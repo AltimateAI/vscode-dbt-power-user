@@ -66,8 +66,8 @@ export class NotebookKernel implements vscode.Disposable {
     // };
   }
 
-  private genUniqueId() {
-    return (Math.random() + 1).toString(36).substring(7);
+  private genUniqueId(cell: vscode.NotebookCell) {
+    return `${cell.document.languageId.replace(/-/g, "_")}_${cell.index}`;
   }
 
   private async onNotebookOpen(notebook: vscode.NotebookDocument) {
@@ -76,7 +76,7 @@ export class NotebookKernel implements vscode.Disposable {
     const edits: vscode.NotebookEdit[] = [];
     cells.forEach((cell) => {
       if (!cell.metadata.customId) {
-        const uniqueId = this.genUniqueId();
+        const uniqueId = this.genUniqueId(cell);
         const newMetadata = {
           ...cell.metadata,
           cellId: uniqueId,

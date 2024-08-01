@@ -187,6 +187,8 @@ container
       return new NotebookClient(
         path,
         container.get(DBTCommandExecutionInfrastructure),
+        container.get(CommandProcessExecutionFactory),
+        container.get(PythonEnvironment),
       );
     };
   });
