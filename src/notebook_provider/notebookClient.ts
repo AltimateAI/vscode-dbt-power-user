@@ -26,6 +26,13 @@ export class NotebookClient {
     }
   }
 
+  async storeDataInKernel(cellId: string, data: any) {
+    console.log(`storeDataInKernel: ${cellId}`, data);
+    return this.python.lock<{ mime: string; value: string }[]>(
+      (python) => python`notebook_kernel.store_sql_result(${cellId}, ${data})`,
+    );
+  }
+
   // TODO: typecast the return value
   async executePython(code: string, cellPath: string) {
     console.log(`Executing python code in cell: ${cellPath}`);

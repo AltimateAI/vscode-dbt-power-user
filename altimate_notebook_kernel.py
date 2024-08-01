@@ -1,3 +1,5 @@
+import json
+import re
 from datetime import  datetime
 import jupyter_client
 import queue
@@ -22,11 +24,12 @@ class JupyterKernelExecutor:
         self.kernel_client = self.kernel_manager.client()
         self.kernel_client.start_channels()
 
-    def execute(self, code):
+    def execute(self, code, user_expressions=None):
         self.kernel_client.wait_for_ready()
 
+        print("Executing code:", code, user_expressions)
         # Execute the code
-        self.kernel_client.execute(code)
+        self.kernel_client.execute(code, silent=False, store_history=True, user_expressions=user_expressions)
 
         # Capture and return the output
         output = []
@@ -109,7 +112,33 @@ class AltimateNotebookKernel:
         """
         # Placeholder for actual kernel shutdown logic
         print("Kernel executor shut down.")
+    
+    def get_sql_result_by_cell(self, cell_id):
+        code = f"cell_{cell_id}"
+        return self.kernel_executor.execute(code)
 
+    def store_sql_result(self, cell_id, result):
+        """
+        Stores the result of a cell execution.
+        
+        Parameters:
+        cell_id (str): The unique identifier for the cell.
+        result: The result of the cell execution.
+        """
+        # Convert the result to a string representation
+        if isinstance(result, (list, dict)):
+            # result_str = {"mime": "application/json", "value": json.dumps(result)}
+            result_str = json.dumps(result)
+        else:
+            # result_str =  {"mime": "text/plain", "value": str(result)}
+            result_str =  str(result)
+        
+        # Construct the code to store the result in the Jupyter kernel
+        code = f"""
+        cell_{cell_id} = {result_str}
+        """
+        self.kernel_executor.execute(code)
+        
     def execute_python(self, code):
         """
         Executes a cell and stores the result.
@@ -121,7 +150,7 @@ class AltimateNotebookKernel:
         Returns:
         result: The result of the cell execution.
         """
-        response = self.kernel_executor.execute(code)
+        response = self.kernel_executor.execute(code, self.cell_results)
         return response
 
     def delete_cell(self, cell_id):

@@ -20,7 +20,9 @@ export const activate: ActivationFunction = () => {
   return {
     renderOutputItem(info: OutputItem, element: HTMLElement) {
       const data =
-        info.json() as unknown as QueryPanelStateProps["queryResults"];
+        info.json() as unknown as QueryPanelStateProps["queryResults"] & {
+          cellId: string;
+        };
       panelLogger.log("renderOutputItem", info.json(), element);
       // let shadow = element.shadowRoot;
       // if (!shadow) {

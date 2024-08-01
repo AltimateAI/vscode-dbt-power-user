@@ -66,13 +66,17 @@ export class NotebookKernel implements vscode.Disposable {
     // };
   }
 
+  private genUniqueId() {
+    return (Math.random() + 1).toString(36).substring(7);
+  }
+
   private async onNotebookOpen(notebook: vscode.NotebookDocument) {
     await this.clientMapper.initializeNotebookClient(notebook.uri);
     const cells = notebook.getCells();
     const edits: vscode.NotebookEdit[] = [];
     cells.forEach((cell) => {
       if (!cell.metadata.customId) {
-        const uniqueId = randomUUID();
+        const uniqueId = this.genUniqueId();
         const newMetadata = {
           ...cell.metadata,
           cellId: uniqueId,
@@ -288,58 +292,77 @@ export class NotebookKernel implements vscode.Disposable {
       }
 
       const outputCells = [];
-      if (cell.document.languageId === "python") {
-        // const pythonApi: PythonExtension = await PythonExtension.api();
-        // const server = createPythonServer([
-        //   pythonApi.environments.getActiveEnvironmentPath().path,
-        // ]);
-        // result = (await server.execute(cell.document.getText()))?.output;
-        const notebookClient = await this.clientMapper.getNotebookClient(
-          activeNotebook.uri,
-        );
-        const result = await notebookClient.executePython(
-          cell.document.getText(),
-          cell.metadata.cellId,
-        );
-        for (const item of result) {
-          outputCells.push(
-            vscode.NotebookCellOutputItem.text(item.value, item.mime),
+      const notebookClient = await this.clientMapper.getNotebookClient(
+        activeNotebook.uri,
+      );
+      switch (cell.document.languageId) {
+        case "python":
+          // const pythonApi: PythonExtension = await PythonExtension.api();
+          // const server = createPythonServer([
+          //   pythonApi.environments.getActiveEnvironmentPath().path,
+          // ]);
+          // result = (await server.execute(cell.document.getText()))?.output;
+          const result = await notebookClient.executePython(
+            cell.document.getText(),
+            cell.metadata.cellId,
           );
-        }
-      } else {
-        const result = await project.executeSQL(
-          cell.document.getText(),
+          for (const item of result) {
+            outputCells.push(
+              vscode.NotebookCellOutputItem.text(item.value, item.mime),
+            );
+          }
+          break;
 
-          "",
-          true,
-        );
-        outputCells.push(
-          vscode.NotebookCellOutputItem.json(
-            result,
-            "application/perspective-json",
-          ),
-        );
+        case "jinja-sql":
+        case "sql":
+          const sqlResult = await project.executeSQL(
+            cell.document.getText(),
 
-        // Testing new cell creation
-        // Will be used based on data after execution
-        const newCell = new vscode.NotebookCellData(
-          vscode.NotebookCellKind.Code,
-          "select * from ref",
-          "jinja-sql",
-        );
-        const edit = new vscode.WorkspaceEdit();
-        edit.set(activeNotebook.uri, [
-          new vscode.NotebookEdit(
-            new vscode.NotebookRange(
-              activeNotebook.cellCount,
-              activeNotebook.cellCount,
+            "",
+            true,
+          );
+
+          await notebookClient.storeDataInKernel(
+            cell.metadata.cellId,
+            sqlResult,
+          );
+          outputCells.push(
+            vscode.NotebookCellOutputItem.json(
+              { ...sqlResult, cellId: cell.metadata.cellId },
+              "application/perspective-json",
             ),
-            [newCell],
-          ),
-        ]);
+          );
 
-        await vscode.workspace.applyEdit(edit);
+          // Testing new cell creation
+          // Will be used based on data after execution
+          const newCell = new vscode.NotebookCellData(
+            vscode.NotebookCellKind.Code,
+            "select * from ref",
+            "jinja-sql",
+          );
+          const edit = new vscode.WorkspaceEdit();
+          edit.set(activeNotebook.uri, [
+            new vscode.NotebookEdit(
+              new vscode.NotebookRange(
+                activeNotebook.cellCount,
+                activeNotebook.cellCount,
+              ),
+              [newCell],
+            ),
+          ]);
+
+          await vscode.workspace.applyEdit(edit);
+        default:
+          vscode.window.showErrorMessage("Language not supported");
+          break;
       }
+
+      // outputCells.unshift(
+      //   vscode.NotebookCellOutputItem.json(
+      //     "Cell id: " + cell.metadata.cellId,
+      //     "text/plain",
+      //   ),
+      // );
 
       execution.replaceOutput(new vscode.NotebookCellOutput(outputCells));
 
