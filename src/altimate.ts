@@ -751,7 +751,7 @@ export class AltimateRequest {
     try {
       const response = await fetch(url, { method: "GET" });
       const { status } = (await response.json()) as { status: string };
-      return status === "ok";
+      return { status };
     } catch (e) {
       this.dbtTerminal.error(
         "checkApiConnectivity",
@@ -760,7 +760,8 @@ export class AltimateRequest {
         true,
         { url },
       );
-      return false;
+      const errorMsg = e instanceof Error ? e.message : JSON.stringify(e);
+      return { status: "not-ok", errorMsg };
     }
   }
 

@@ -477,7 +477,10 @@ export class VSCodeCommands implements Disposable {
             }`,
             `DBT integration mode=${dbtIntegrationMode}`,
             `First workspace path=${getFirstWorkspacePath()}`,
-            `API connectivity=${apiConnectivity}`,
+            `Altimate API connectivity=${apiConnectivity.status}`,
+            apiConnectivity.errorMsg
+              ? `Altimate API connectivity error=${apiConnectivity.errorMsg}`
+              : "",
             `AllowList Folders=${allowListFolders}`,
           ]);
           this.dbtTerminal.logNewLine();
