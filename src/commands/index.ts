@@ -654,6 +654,27 @@ export class VSCodeCommands implements Disposable {
           },
         );
       }),
+      commands.registerCommand(
+        "dbtPowerUser.showDocumentation",
+        async (modelName) => {
+          const result = queryManifestService.getEventByCurrentProject();
+          if (!result) {
+            return;
+          }
+          const { event } = result;
+          if (!event) {
+            return;
+          }
+          const { nodeMetaMap } = event;
+          const model = nodeMetaMap.get(modelName);
+          if (!model?.path) {
+            return;
+          }
+          const doc = await workspace.openTextDocument(Uri.file(model.path));
+          await window.showTextDocument(doc);
+          await commands.executeCommand("dbtPowerUser.DocsEdit.focus");
+        },
+      ),
     );
   }
 

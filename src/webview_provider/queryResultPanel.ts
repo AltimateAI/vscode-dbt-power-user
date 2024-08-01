@@ -640,7 +640,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       columnTypes: result.columnTypes,
       modelName,
     });
-    this._queryHistory = this._queryHistory.splice(0, 100);
+    this._queryHistory = this._queryHistory.splice(0, 10);
     this._bottomPanel?.webview.postMessage({
       command: "queryHistory",
       args: {

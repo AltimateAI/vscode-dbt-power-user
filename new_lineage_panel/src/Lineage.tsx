@@ -29,7 +29,7 @@ import {
   bfsTraversal,
   calculateMinLevel,
   calculateNodeCount,
-  expandTableLineage,
+  expandTableLineageLevelWise,
   highlightTableConnections,
   layoutElementsOnCanvas,
 } from "./graph";
@@ -214,9 +214,23 @@ export const Lineage = () => {
   >();
   const [selectCheck, setSelectCheck] = useState(true);
   const [nonSelectCheck, setNonSelectCheck] = useState(true);
-  const [defaultExpansion, setDefaultExpansion] = useState(5);
+  const [defaultExpansion, setDefaultExpansion] = useState(1);
   const [nodeCount, setNodeCount] = useState(0);
   const [minRange, setMinRange] = useState<[number, number]>([0, 0]);
+  // hack for default expansion
+  const defaultExpansionRef = useRef(defaultExpansion);
+
+  const applySettings = useCallback(async () => {
+    const settings = await getLineageSettings();
+    setSelectCheck(settings.showSelectEdges);
+    setNonSelectCheck(settings.showNonSelectEdges);
+    setDefaultExpansion(settings.defaultExpansion);
+    defaultExpansionRef.current = settings.defaultExpansion;
+  }, []);
+
+  useEffect(() => {
+    applySettings();
+  }, [applySettings]);
 
   const setupLineage = useCallback(async () => {
     const render = async (args: {
@@ -256,12 +270,14 @@ export const Lineage = () => {
       }
       let nodes: Node[] = [];
       let edges: Edge[] = [];
-      const addNodesEdges = async (table: string, right: boolean) => {
-        [nodes, edges] = await expandTableLineage(nodes, edges, table, right);
-      };
       nodes = [createTableNode(node, 0, "")];
-      if (node.upstreamCount > 0) await addNodesEdges(node.table, true);
-      if (node.downstreamCount > 0) await addNodesEdges(node.table, false);
+      [nodes, edges] = await expandTableLineageLevelWise(
+        nodes,
+        edges,
+        node.table,
+        -defaultExpansionRef.current,
+        defaultExpansionRef.current
+      );
       setSelectedTable(node.table);
       setSelectedColumn({ table: "", name: "" });
       setCollectColumns({});
@@ -288,13 +304,6 @@ export const Lineage = () => {
       document.documentElement.setAttribute("data-theme", theme);
       setDarkMode(theme === "dark");
       rerender();
-    };
-
-    const applySettings = async () => {
-      const settings = await getLineageSettings();
-      setSelectCheck(settings.showSelectEdges);
-      setNonSelectCheck(settings.showNonSelectEdges);
-      setDefaultExpansion(settings.defaultExpansion);
     };
 
     const commandMap = new Map(
@@ -329,7 +338,6 @@ export const Lineage = () => {
     window.addEventListener("message", executeHostCommands);
     console.log("lineage:onload");
     init();
-    applySettings();
   }, []);
 
   useEffect(() => {

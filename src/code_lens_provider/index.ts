@@ -3,6 +3,7 @@ import { DBTPowerUserExtension } from "../dbtPowerUserExtension";
 import { provideSingleton } from "../utils";
 import { SourceModelCreationCodeLensProvider } from "./sourceModelCreationCodeLensProvider";
 import { VirtualSqlCodeLensProvider } from "./virtualSqlCodeLensProvider";
+import { DocumentationCodeLensProvider } from "./documentationCodeLensProvider";
 
 @provideSingleton(CodeLensProviders)
 export class CodeLensProviders implements Disposable {
@@ -10,6 +11,7 @@ export class CodeLensProviders implements Disposable {
   constructor(
     private sourceModelCreationCodeLensProvider: SourceModelCreationCodeLensProvider,
     private virtualSqlCodeLensProvider: VirtualSqlCodeLensProvider,
+    private documentationCodeLensProvider: DocumentationCodeLensProvider,
   ) {
     this.disposables.push(
       languages.registerCodeLensProvider(
@@ -21,6 +23,18 @@ export class CodeLensProviders implements Disposable {
       languages.registerCodeLensProvider(
         DBTPowerUserExtension.DBT_SQL_SELECTOR,
         this.virtualSqlCodeLensProvider,
+      ),
+    );
+    this.disposables.push(
+      languages.registerCodeLensProvider(
+        DBTPowerUserExtension.DBT_YAML_SELECTOR,
+        this.documentationCodeLensProvider,
+      ),
+    );
+    this.disposables.push(
+      languages.registerCodeLensProvider(
+        DBTPowerUserExtension.DBT_SQL_SELECTOR,
+        this.documentationCodeLensProvider,
       ),
     );
   }
