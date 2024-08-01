@@ -23,6 +23,8 @@ class JupyterKernelExecutor:
         self.kernel_client.start_channels()
 
     def execute(self, code):
+        self.kernel_client.wait_for_ready()
+
         # Execute the code
         self.kernel_client.execute(code)
 
@@ -59,7 +61,7 @@ class JupyterKernelExecutor:
                 elif msg['msg_type'] == 'status' and msg['content']['execution_state'] == 'idle':
                     break
             except queue.Empty:
-                if datetime.now() - start_time > 10:  # Timeout after 10 seconds
+                if datetime.now() - start_time > 30:  # Timeout after 30 seconds
                     break
         return output
 
