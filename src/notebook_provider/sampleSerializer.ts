@@ -15,6 +15,8 @@ export interface RawNotebook {
 export interface RawNotebookCell {
   source: string[];
   cell_type: "code" | "markdown";
+  languageId: string;
+  metadata?: Record<string, unknown>;
 }
 
 @provideSingleton(SampleSerializer)
@@ -36,6 +38,8 @@ export class SampleSerializer implements NotebookSerializer, Disposable {
         {
           cell_type: "code",
           source: [],
+          languageId: "jinja-sql",
+          metadata: {},
         },
       ];
     }
@@ -45,7 +49,7 @@ export class SampleSerializer implements NotebookSerializer, Disposable {
         new NotebookCellData(
           NotebookCellKind.Code,
           item.source?.join("\n"),
-          "jinja-sql",
+          item.languageId,
         ),
     );
 
@@ -62,6 +66,8 @@ export class SampleSerializer implements NotebookSerializer, Disposable {
       contents.push({
         cell_type: cell.kind === NotebookCellKind.Code ? "code" : "markdown",
         source: cell.value.split(/\r?\n/g),
+        languageId: cell.languageId,
+        metadata: cell.metadata,
       });
     }
 

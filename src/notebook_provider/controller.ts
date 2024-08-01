@@ -1,12 +1,10 @@
-import { PythonExtension } from "@vscode/python-extension";
 import * as vscode from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { SharedStateService } from "../services/sharedStateService";
 import { QueryManifestService } from "../services/queryManifestService";
 import path = require("path");
-import { Jupyter } from "@vscode/jupyter-extension";
-import { createPythonServer } from "./pythonServer";
+import { ClientMapper } from "./clientMapper";
+import { randomUUID } from "crypto";
 
 interface RawNotebookCell {
   source: string[];
@@ -14,17 +12,18 @@ interface RawNotebookCell {
 }
 
 @provideSingleton(NotebookKernel)
-export class NotebookKernel {
+export class NotebookKernel implements vscode.Disposable {
   private readonly _id = "test-notebook-serializer-kernel";
   private readonly _label = "Altimate dbt kernel";
   private readonly _supportedLanguages = ["python", "sql", "jinja-sql"];
+  private readonly disposables: vscode.Disposable[] = [];
 
   private _executionOrder = 0;
   private readonly _controller: vscode.NotebookController;
 
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
-    private eventEmitterService: SharedStateService,
+    private clientMapper: ClientMapper,
     private queryManifestService: QueryManifestService,
   ) {
     this._controller = vscode.notebooks.createNotebookController(
@@ -52,12 +51,48 @@ export class NotebookKernel {
       this,
       [],
     );
+
+    this.disposables.push(this._controller);
+    this.disposables.push(
+      vscode.workspace.onDidOpenNotebookDocument(async (notebook) => {
+        await this.onNotebookOpen(notebook);
+      }),
+    );
     // this._controller.updateNotebookAffinity = async (
     //   notebook: vscode.NotebookDocument,
     //   affinity: vscode.NotebookControllerAffinity,
     // ) => {
     //   console.log("updateNotebookAffinity", notebook.uri.toString(), affinity);
     // };
+  }
+
+  private async onNotebookOpen(notebook: vscode.NotebookDocument) {
+    await this.clientMapper.initializeNotebookClient(notebook.uri);
+    const cells = notebook.getCells();
+    const edits: vscode.NotebookEdit[] = [];
+    cells.forEach((cell) => {
+      if (!cell.metadata.customId) {
+        const uniqueId = randomUUID();
+        const newMetadata = {
+          ...cell.metadata,
+          cellId: uniqueId,
+        };
+        const edit = vscode.NotebookEdit.updateCellMetadata(
+          cell.index,
+          newMetadata,
+        );
+        edits.push(edit);
+      }
+    });
+    if (edits.length > 0) {
+      const edit = new vscode.WorkspaceEdit();
+      edit.set(notebook.uri, edits);
+      await vscode.workspace.applyEdit(edit);
+    }
+  }
+
+  dispose() {
+    this.disposables.forEach((d) => d.dispose());
   }
 
   private async onDidChangeSelectedNotebooks(event: {
@@ -172,10 +207,6 @@ export class NotebookKernel {
     }
   }
 
-  dispose(): void {
-    this._controller.dispose();
-  }
-
   private _executeAll(
     cells: vscode.NotebookCell[],
     _notebook: vscode.NotebookDocument,
@@ -188,8 +219,8 @@ export class NotebookKernel {
 
   private async _doExecution(cell: vscode.NotebookCell): Promise<void> {
     const execution = this._controller.createNotebookCellExecution(cell);
-
-    if (!vscode.window.activeNotebookEditor?.notebook.uri) {
+    const activeNotebook = vscode.window.activeNotebookEditor?.notebook;
+    if (!activeNotebook) {
       return;
     }
     // const jupyterExt =
@@ -241,6 +272,9 @@ export class NotebookKernel {
     // }
     execution.executionOrder = ++this._executionOrder;
     execution.start(Date.now());
+    execution.token.onCancellationRequested((_) => {
+      execution.end(true, Date.now());
+    });
 
     try {
       // clear the existing output
@@ -253,7 +287,6 @@ export class NotebookKernel {
         return;
       }
 
-      let result;
       const outputCells = [];
       if (cell.document.languageId === "python") {
         // const pythonApi: PythonExtension = await PythonExtension.api();
@@ -261,28 +294,20 @@ export class NotebookKernel {
         //   pythonApi.environments.getActiveEnvironmentPath().path,
         // ]);
         // result = (await server.execute(cell.document.getText()))?.output;
-
-        result = (await project.executePython(
+        const notebookClient = await this.clientMapper.getNotebookClient(
+          activeNotebook.uri,
+        );
+        const result = await notebookClient.executePython(
           cell.document.getText(),
-        )) as any[];
+          cell.metadata.cellId,
+        );
         for (const item of result) {
-          try {
-            const text =
-              item.startsWith("'") && item.endsWith("'")
-                ? item.slice(1, -1)
-                : item;
-            outputCells.push(
-              vscode.NotebookCellOutputItem.json(
-                JSON.parse(text),
-                "application/json",
-              ),
-            );
-          } catch (_e) {
-            outputCells.push(vscode.NotebookCellOutputItem.stdout(item));
-          }
+          outputCells.push(
+            vscode.NotebookCellOutputItem.text(item.value, item.mime),
+          );
         }
       } else {
-        result = await project.executeSQL(
+        const result = await project.executeSQL(
           cell.document.getText(),
 
           "",
@@ -303,11 +328,11 @@ export class NotebookKernel {
           "jinja-sql",
         );
         const edit = new vscode.WorkspaceEdit();
-        edit.set(vscode.window.activeNotebookEditor.notebook.uri, [
+        edit.set(activeNotebook.uri, [
           new vscode.NotebookEdit(
             new vscode.NotebookRange(
-              vscode.window.activeNotebookEditor.notebook.cellCount,
-              vscode.window.activeNotebookEditor.notebook.cellCount,
+              activeNotebook.cellCount,
+              activeNotebook.cellCount,
             ),
             [newCell],
           ),

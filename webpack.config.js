@@ -51,6 +51,10 @@ const config = {
     new CopyPlugin({
       patterns: [
         {
+          from: path.resolve(__dirname, "altimate_notebook_kernel.py"),
+          to: "altimate_notebook_kernel.py",
+        },
+        {
           from: path.resolve(__dirname, "dbt_core_integration.py"),
           to: "dbt_core_integration.py",
         },

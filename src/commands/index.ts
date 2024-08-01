@@ -617,6 +617,7 @@ export class VSCodeCommands implements Disposable {
                       {
                         cell_type: "code",
                         source: [],
+                        languageId: "jinja-sql",
                       },
                     ];
                   }
