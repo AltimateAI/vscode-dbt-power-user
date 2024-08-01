@@ -44,12 +44,16 @@ const QueryPanelTitle = ({
             </NewFeatureIndicator>
           </NavItem>
           <NavItem>
-            <NavLink
-              active={QueryPanelTitleTabState.Bookmarks === tabState}
-              onClick={() => toggleTabState(QueryPanelTitleTabState.Bookmarks)}
-            >
-              Bookmarks
-            </NavLink>
+            <NewFeatureIndicator featureKey="query-results-bookmarks-clicked">
+              <NavLink
+                active={QueryPanelTitleTabState.Bookmarks === tabState}
+                onClick={() =>
+                  toggleTabState(QueryPanelTitleTabState.Bookmarks)
+                }
+              >
+                Bookmarks
+              </NavLink>
+            </NewFeatureIndicator>
           </NavItem>
           <NavItem>
             <NewFeatureIndicator featureKey="query-results-notebooks-tab-clicked">
