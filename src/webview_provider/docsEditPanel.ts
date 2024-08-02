@@ -104,10 +104,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     private newDocsPanel: NewDocsGenPanel,
     private docGenService: DocGenService,
     private dbtTestService: DbtTestService,
-    private terminal: DBTTerminal
+    private terminal: DBTTerminal,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
-      this.onManifestCacheChanged(event)
+      this.onManifestCacheChanged(event),
     );
     window.onDidChangeActiveColorTheme(
       async (e) => {
@@ -116,7 +116,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         }
       },
       null,
-      this._disposables
+      this._disposables,
     );
     window.onDidChangeActiveTextEditor(
       async (event: TextEditor | undefined) => {
@@ -128,7 +128,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
           this.transmitData();
           this.updateGraphStyle();
         }
-      }
+      },
     );
   }
 
@@ -202,7 +202,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   public async resolveWebviewView(
     panel: WebviewView,
     context: WebviewViewResolveContext,
-    token: CancellationToken
+    token: CancellationToken,
   ) {
     this.panel = panel;
     this.context = context;
@@ -217,7 +217,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   public async resolveWebview(
     panel: WebviewView,
     context: WebviewViewResolveContext,
-    _token: CancellationToken
+    _token: CancellationToken,
   ) {
     this._panel = panel;
     this.setupWebviewOptions(context);
@@ -246,7 +246,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     if (!tests?.length) {
       this.terminal.debug(
         "docsEditViewPanel:getTestDataByModel",
-        "No test data passed"
+        "No test data passed",
       );
       return;
     }
@@ -283,7 +283,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
   private getTestMetadataKwArgs(
     kwargs: TestMetadataAcceptedValues | TestMetadataRelationships,
-    fullName: string
+    fullName: string,
   ) {
     if (kwargs) {
       const rest = Object.entries(kwargs).reduce(
@@ -296,7 +296,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
           acc[key] = value;
           return acc;
         },
-        {}
+        {},
       );
       if (Object.keys(rest)?.length) {
         return {
@@ -309,20 +309,20 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     message: any,
     columnNameFromWebview: string,
     project: DBTProject,
-    existingColumn?: any
+    existingColumn?: any,
   ) {
     const tests = message.updatedTests as undefined | TestMetaData[];
 
     if (!tests?.length) {
       this.terminal.debug(
         "docsEditViewPanel:getTestDataByColumn",
-        "No test data passed"
+        "No test data passed",
       );
       return;
     }
 
     const columnTests = tests.filter((test) =>
-      isColumnNameEqual(test.column_name, columnNameFromWebview)
+      isColumnNameEqual(test.column_name, columnNameFromWebview),
     );
 
     // No tests for this column - may be all deleted
@@ -340,7 +340,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       const columnTestConfigFromYml = getColumnTestConfigFromYml(
         existingColumn?.tests,
         kwargs,
-        testFullName
+        testFullName,
       );
       // If relationships test, set field and to
       if (isRelationship(kwargs)) {
@@ -378,7 +378,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       "test data",
       false,
       data,
-      columnNameFromWebview
+      columnNameFromWebview,
     );
 
     if (!data.length) {
@@ -403,12 +403,12 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
   private modifyColumnNames = (
     columns: { name: string }[],
-    existingColumnNames: string[]
+    existingColumnNames: string[],
   ) => {
     return columns.map((c) => {
       // find a column from schema.yml with same name ignoring case
       const existingColumn = existingColumnNames.find(
-        (name) => name.toLowerCase() === c.name.toLowerCase()
+        (name) => name.toLowerCase() === c.name.toLowerCase(),
       );
       // column exists with matching name, so use name from schema.yml
       if (existingColumn) {
@@ -426,7 +426,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   private convertColumnNamesByCaseConfig(
     columns: { name: string }[],
     modelName: string,
-    project: DBTProject
+    project: DBTProject,
   ) {
     if (!columns.length) {
       return [];
@@ -439,7 +439,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     }
 
     const docFile: string = readFileSync(
-      path.join(project.projectRoot.fsPath, patchPath.split("://")[1])
+      path.join(project.projectRoot.fsPath, patchPath.split("://")[1]),
     ).toString("utf8");
     const parsedDocFile =
       parse(docFile, {
@@ -449,7 +449,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       }) || {};
 
     const model = parsedDocFile.models?.find(
-      (model: any) => model.name === modelName
+      (model: any) => model.name === modelName,
     );
 
     // new model and does not exist in schema.yml
@@ -474,7 +474,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         this.terminal.debug(
           "docsEditPanel:setupWebviewHooks",
           "onDidReceiveMessage",
-          message
+          message,
         );
         if (
           window.activeTextEditor === undefined ||
@@ -512,7 +512,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       };
                     }),
                     modelName,
-                    project
+                    project,
                   );
                   this.transmitColumns(columns);
                   if (syncRequestId) {
@@ -532,23 +532,23 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   if (exc instanceof PythonException) {
                     window.showErrorMessage(
                       `An error occured while fetching metadata for ${modelName} from the database: ` +
-                        exc.exception.message
+                        exc.exception.message,
                     );
                     this.terminal.error(
                       "docsEditPanelLoadPythonError",
                       `An error occured while fetching metadata for ${modelName} from the database`,
-                      exc
+                      exc,
                     );
                     return;
                   }
                   window.showErrorMessage(
                     `An error occured while fetching metadata for ${modelName} from the database: ` +
-                      exc
+                      exc,
                   );
                   this.terminal.error(
                     "docsEditPanelLoadError",
                     `An error occured while fetching metadata for ${modelName} from the database`,
-                    exc
+                    exc,
                   );
                   if (syncRequestId) {
                     this._panel!.webview.postMessage({
@@ -561,7 +561,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     });
                   }
                 }
-              }
+              },
             );
 
             break;
@@ -605,11 +605,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 try {
                   const projectByFilePath =
                     this.dbtProjectContainer.findDBTProject(
-                      Uri.file(message.filePath)
+                      Uri.file(message.filePath),
                     );
                   if (!projectByFilePath) {
                     throw new Error(
-                      "Unable to find project for saving documentation"
+                      "Unable to find project for saving documentation",
                     );
                   }
 
@@ -642,7 +642,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     // the location comes from the manifest, parse it
                     patchPath = path.join(
                       projectByFilePath.projectRoot.fsPath,
-                      patchPath.split("://")[1]
+                      patchPath.split("://")[1],
                     );
                   }
                   // check if file exists, if not create an empty file
@@ -664,7 +664,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   }
                   if (
                     parsedDocFile.models.find(
-                      (model: any) => model.name === message.name
+                      (model: any) => model.name === message.name,
                     ) === undefined
                   ) {
                     // there is a models section but the model does not exist yet.
@@ -674,7 +674,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       columns: message.columns.map((column: any) => {
                         const name = getColumnNameByCase(
                           column.name,
-                          projectByFilePath.getAdapterType()
+                          projectByFilePath.getAdapterType(),
                         );
                         return {
                           name,
@@ -683,11 +683,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                           ...this.getTestDataByColumn(
                             message,
                             column.name,
-                            project
+                            project,
                           ),
                           ...(isQuotedIdentifier(
                             column.name,
-                            projectByFilePath.getAdapterType()
+                            projectByFilePath.getAdapterType(),
                           )
                             ? { quote: true }
                             : undefined),
@@ -702,13 +702,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                           model.description = message.description || undefined;
                           model.tests = this.getTestDataByModel(
                             message,
-                            model.name
+                            model.name,
                           );
                           model.columns = message.columns.map((column: any) => {
                             const existingColumn =
                               model.columns &&
                               model.columns.find((yamlColumn: any) =>
-                                isColumnNameEqual(yamlColumn.name, column.name)
+                                isColumnNameEqual(yamlColumn.name, column.name),
                               );
                             if (existingColumn !== undefined) {
                               // ignore tests, data_tests from existing column, as it will be recreated in `getTestDataByColumn`
@@ -725,13 +725,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                   message,
                                   column.name,
                                   project,
-                                  existingColumn
+                                  existingColumn,
                                 ),
                               };
                             } else {
                               const name = getColumnNameByCase(
                                 column.name,
-                                projectByFilePath.getAdapterType()
+                                projectByFilePath.getAdapterType(),
                               );
                               return {
                                 name,
@@ -740,11 +740,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                 ...this.getTestDataByColumn(
                                   message,
                                   column.name,
-                                  project
+                                  project,
                                 ),
                                 ...(isQuotedIdentifier(
                                   column.name,
-                                  projectByFilePath.getAdapterType()
+                                  projectByFilePath.getAdapterType(),
                                 )
                                   ? { quote: true }
                                   : undefined),
@@ -753,7 +753,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                           });
                         }
                         return model;
-                      }
+                      },
                     );
                   }
                   // Force reload from manifest after manifest refresh
@@ -780,13 +780,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 } catch (error) {
                   this.transmitError();
                   window.showErrorMessage(
-                    `Could not save documentation to ${patchPath}: ${error}`
+                    `Could not save documentation to ${patchPath}: ${error}`,
                   );
                   this.terminal.error(
                     "saveDocumentationError",
                     `Could not save documentation to ${patchPath}`,
                     error,
-                    true
+                    true,
                   );
                   if (syncRequestId) {
                     this._panel!.webview.postMessage({
@@ -801,13 +801,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     });
                   }
                 }
-              }
+              },
             );
             break;
         }
       },
       null,
-      this._disposables
+      this._disposables,
     );
     const sendDocPanelViewEvent = () => {
       if (this._panel!.visible) {
