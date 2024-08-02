@@ -1,5 +1,5 @@
 import styles from "../../querypanel.module.scss";
-import { Stack, CodeBlock, Label, IconButton } from "@uicore";
+import { Stack, CodeBlock, Label, IconButton, Alert } from "@uicore";
 import { useEffect, useState } from "react";
 import { QueryBookmark } from "@modules/queryPanel/context/types";
 import { ChevronRightIcon, OpenNewIcon } from "@assets/icons";
@@ -46,6 +46,13 @@ const QueryPanelBookmarks = (): JSX.Element => {
       className={`${styles.queryTwoCol} ${tabState === QueryPanelTitleTabState.Bookmarks ? "" : "d-none"}`}
     >
       <Stack direction="column" className={styles.limitWidth}>
+        <Alert color="warning">
+          Check out the{" "}
+          <a href="https://docs.myaltimate.com/govern/querybookmarks/">
+            documentation
+          </a>{" "}
+          to learn more about Query Bookmarks.
+        </Alert>
         <BookmarkAccordion
           onSelect={onSelect}
           privacy="private"
