@@ -42,7 +42,7 @@ class JupyterKernelExecutor:
                     # for stdout
                     output.append({'mime': 'text/plain', 'value': msg['content']['text']})
                     break
-                elif msg['msg_type'] == 'execute_result':
+                elif msg['msg_type'] == 'execute_result' or msg['msg_type'] == 'display_data':
                     # Flag to check if any key other than 'text/plain' exists
                     other_keys_exist = False
 
