@@ -105,7 +105,7 @@
   max-height: calc(100vh - 100px);
   display: flex;
   flex-direction: column;
-
+  
   & .head {
     justify-content: space-between;
     > div {
@@ -118,7 +118,7 @@
   & .body-wrap {
     overflow: hidden;
     & .body {
-      width: 80%;
+      width: 100%;
       min-width: var(--bs-breakpoint-md);
       overflow: overlay;
       padding-right: 1rem;
@@ -323,5 +323,16 @@
   textarea{
     top: 5px !important;
     height: 80% !important;
+  }
+}
+
+.limitWidth {
+  max-width: 100%;
+  min-width: 0;
+  flex: 1;
+}
+@media (min-width: 1400px) {
+  .limitWidth {
+    max-width: 1440px;
   }
 }
