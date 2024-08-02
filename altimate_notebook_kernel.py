@@ -64,7 +64,7 @@ class JupyterKernelExecutor:
                 elif msg['msg_type'] == 'status' and msg['content']['execution_state'] == 'idle':
                     break
             except queue.Empty:
-                if datetime.now() - start_time > 30:  # Timeout after 30 seconds
+                if (datetime.now() - start_time).total_seconds() > 30:  # Timeout after 30 seconds
                     break
         return output
 
