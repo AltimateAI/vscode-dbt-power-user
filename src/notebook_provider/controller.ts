@@ -11,12 +11,28 @@ interface RawNotebookCell {
   cell_type: "code" | "markdown";
 }
 
+export interface NotebookCellEvent {
+  cellId: string;
+  notebook: string;
+  result?: any;
+  event: "add" | "update" | "delete";
+  fragment?: string;
+  languageId: string;
+}
+
+const SupportedLanguages = ["python", "sql", "jinja-sql"];
+
 @provideSingleton(NotebookKernel)
 export class NotebookKernel implements vscode.Disposable {
   private readonly _id = "test-notebook-serializer-kernel";
   private readonly _label = "Altimate dbt kernel";
-  private readonly _supportedLanguages = ["python", "sql", "jinja-sql"];
-  private readonly disposables: vscode.Disposable[] = [];
+
+  private _onNotebookCellEvent = new vscode.EventEmitter<NotebookCellEvent>();
+  public readonly onNotebookCellChangeEvent = this._onNotebookCellEvent.event;
+
+  private readonly disposables: vscode.Disposable[] = [
+    this._onNotebookCellEvent,
+  ];
 
   private _executionOrder = 0;
   private readonly _controller: vscode.NotebookController;
@@ -43,7 +59,7 @@ export class NotebookKernel implements vscode.Disposable {
     //   this.customSaveAs,
     // );
 
-    this._controller.supportedLanguages = this._supportedLanguages;
+    this._controller.supportedLanguages = SupportedLanguages;
     this._controller.supportsExecutionOrder = true;
     this._controller.executeHandler = this._executeAll.bind(this);
     this._controller.onDidChangeSelectedNotebooks(
@@ -52,6 +68,27 @@ export class NotebookKernel implements vscode.Disposable {
       [],
     );
 
+    this.disposables.push(
+      vscode.workspace.onDidChangeNotebookDocument((event) => {
+        event.contentChanges.forEach(async (change) => {
+          if (change.addedCells) {
+            await this.updateCellId(event.notebook.getCells(), event.notebook);
+          }
+          if (change.removedCells) {
+            change.removedCells.forEach((cell) => {
+              this._onNotebookCellEvent.fire({
+                cellId: cell.metadata.cellId,
+                notebook: event.notebook.uri.fsPath,
+                result: null,
+                event: "delete",
+                fragment: cell.document.uri.fragment,
+                languageId: cell.document.languageId,
+              });
+            });
+          }
+        });
+      }),
+    );
     this.disposables.push(this._controller);
     this.disposables.push(
       vscode.workspace.onDidOpenNotebookDocument(async (notebook) => {
@@ -67,15 +104,17 @@ export class NotebookKernel implements vscode.Disposable {
   }
 
   private genUniqueId(cell: vscode.NotebookCell) {
-    return `${cell.document.languageId.replace(/-/g, "_")}_${cell.index}`;
+    const randomStr = (Math.random() + 1).toString(36).substring(7);
+    return `${cell.document.languageId.replace(/-/g, "_")}_${randomStr}`;
   }
 
-  private async onNotebookOpen(notebook: vscode.NotebookDocument) {
-    await this.clientMapper.initializeNotebookClient(notebook.uri);
-    const cells = notebook.getCells();
+  private async updateCellId(
+    cells: vscode.NotebookCell[],
+    notebook: vscode.NotebookDocument,
+  ) {
     const edits: vscode.NotebookEdit[] = [];
     cells.forEach((cell) => {
-      if (!cell.metadata.customId) {
+      if (!cell.metadata.cellId) {
         const uniqueId = this.genUniqueId(cell);
         const newMetadata = {
           ...cell.metadata,
@@ -86,6 +125,18 @@ export class NotebookKernel implements vscode.Disposable {
           newMetadata,
         );
         edits.push(edit);
+        this.clientMapper.getNotebookClient(notebook.uri).then((client) => {
+          // client.executePythonLocally(`${uniqueId} = 1`).catch((e) => {
+          //   console.error(e);
+          // });
+        });
+        this._onNotebookCellEvent.fire({
+          cellId: newMetadata.cellId,
+          notebook: notebook.uri.fsPath,
+          event: "update",
+          fragment: cell.document.uri.fragment,
+          languageId: cell.document.languageId,
+        });
       }
     });
     if (edits.length > 0) {
@@ -93,6 +144,12 @@ export class NotebookKernel implements vscode.Disposable {
       edit.set(notebook.uri, edits);
       await vscode.workspace.applyEdit(edit);
     }
+  }
+
+  private async onNotebookOpen(notebook: vscode.NotebookDocument) {
+    await this.clientMapper.initializeNotebookClient(notebook.uri);
+    const cells = notebook.getCells();
+    this.updateCellId(cells, notebook);
   }
 
   dispose() {
@@ -103,6 +160,7 @@ export class NotebookKernel implements vscode.Disposable {
     notebook: vscode.NotebookDocument;
     selected: boolean;
   }) {
+    console.log("onDidChangeSelectedNotebooks", event);
     // const jupyterExt =
     //   vscode.extensions.getExtension<Jupyter>("ms-toolsai.jupyter");
     // if (!jupyterExt) {
@@ -322,36 +380,43 @@ export class NotebookKernel implements vscode.Disposable {
             true,
           );
 
+          this._onNotebookCellEvent.fire({
+            cellId: cell.metadata.cellId,
+            notebook: activeNotebook.uri.fsPath,
+            result: sqlResult,
+            event: "add",
+            languageId: cell.document.languageId,
+          });
           await notebookClient.storeDataInKernel(
             cell.metadata.cellId,
             sqlResult,
           );
           outputCells.push(
             vscode.NotebookCellOutputItem.json(
-              { ...sqlResult, cellId: cell.metadata.cellId },
+              sqlResult,
               "application/perspective-json",
             ),
           );
 
-          // Testing new cell creation
-          // Will be used based on data after execution
-          const newCell = new vscode.NotebookCellData(
-            vscode.NotebookCellKind.Code,
-            "select * from ref",
-            "jinja-sql",
-          );
-          const edit = new vscode.WorkspaceEdit();
-          edit.set(activeNotebook.uri, [
-            new vscode.NotebookEdit(
-              new vscode.NotebookRange(
-                activeNotebook.cellCount,
-                activeNotebook.cellCount,
-              ),
-              [newCell],
-            ),
-          ]);
+        // Testing new cell creation
+        // Will be used based on data after execution
+        // const newCell = new vscode.NotebookCellData(
+        //   vscode.NotebookCellKind.Code,
+        //   "select * from ref",
+        //   "jinja-sql",
+        // );
+        // const edit = new vscode.WorkspaceEdit();
+        // edit.set(activeNotebook.uri, [
+        //   new vscode.NotebookEdit(
+        //     new vscode.NotebookRange(
+        //       activeNotebook.cellCount,
+        //       activeNotebook.cellCount,
+        //     ),
+        //     [newCell],
+        //   ),
+        // ]);
 
-          await vscode.workspace.applyEdit(edit);
+        // await vscode.workspace.applyEdit(edit);
         default:
           vscode.window.showErrorMessage("Language not supported");
           break;
@@ -364,7 +429,15 @@ export class NotebookKernel implements vscode.Disposable {
       //   ),
       // );
 
-      execution.replaceOutput(new vscode.NotebookCellOutput(outputCells));
+      // execution.replaceOutput([
+      //   new vscode.NotebookCellOutput([
+      //     vscode.NotebookCellOutputItem.json(
+      //       "Cell id: " + cell.metadata.cellId,
+      //       "text/markdown",
+      //     ),
+      //   ]),
+      // ]);
+      execution.appendOutput(new vscode.NotebookCellOutput(outputCells));
 
       execution.end(true, Date.now());
     } catch (err) {

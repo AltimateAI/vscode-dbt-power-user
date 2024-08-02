@@ -1,10 +1,9 @@
 import PerspectiveViewer from "@modules/queryPanel/components/perspective/PerspectiveViewer";
 import type { QueryPanelStateProps } from "@modules/queryPanel/context/types";
-import { Stack } from "@uicore";
 import { useMemo } from "react";
 
 interface Props {
-  items: NonNullable<QueryPanelStateProps["queryResults"] & { cellId: string }>;
+  items: NonNullable<QueryPanelStateProps["queryResults"]>;
 }
 const AllItems = ({ items }: Props): JSX.Element => {
   const height = useMemo(() => {
@@ -17,9 +16,6 @@ const AllItems = ({ items }: Props): JSX.Element => {
   }, [items.data]);
   return (
     <div>
-      <Stack>
-        <div>Cell ID: cell_{items.cellId}</div>
-      </Stack>
       <PerspectiveViewer
         columnNames={items.columnNames}
         columnTypes={items.columnTypes}

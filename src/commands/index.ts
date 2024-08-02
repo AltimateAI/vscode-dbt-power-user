@@ -595,6 +595,20 @@ export class VSCodeCommands implements Disposable {
 
           // const uri = Uri.parse(`${tempFolder}/untitled.notebook`, true).with({ scheme: "memfs" });;
           // await memFs.writeFile(uri, Buffer.from(''), { create: true, overwrite: true });
+          // const cell = new NotebookCellData(NotebookCellKind.Code, "select * ", "jinja-sql");
+          // cell.metadata = {"hello": "j"};
+          // const data = new NotebookData([cell]);
+          // data.metadata = {
+          //   custom: {
+          //     cells: [],
+          //     metadata: {
+          //       orig_nbformat: 4
+          //     },
+          //     nbformat: 4,
+          //     nbformat_minor: 2
+          //   }
+          // };
+          // workspace.openNotebookDocument("my-notebook", data).then(
           workspace.openNotebookDocument(uri).then(
             (doc) => {
               // set this to sql language so we can bind codelens and other features
