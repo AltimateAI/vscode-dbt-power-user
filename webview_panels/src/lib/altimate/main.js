@@ -24037,10 +24037,10 @@ function zv({ close: e }) {
     ] })
   ] });
 }
-function jv() {
+function jv({ applyDefault: e }) {
   const {
-    state: { selectCheck: e, nonSelectCheck: t, defaultExpansion: n, aiEnabled: o }
-  } = Pe(), r = Be();
+    state: { selectCheck: t, nonSelectCheck: n, defaultExpansion: o, aiEnabled: r }
+  } = Pe(), a = Be();
   return /* @__PURE__ */ h.jsxs("div", { className: "p-2 h-100 d-flex flex-column", children: [
     /* @__PURE__ */ h.jsx("div", { className: "mb-2 fw-semibold fs-5", children: "Settings" }),
     /* @__PURE__ */ h.jsxs("div", { className: "d-flex flex-column gap-sm", children: [
@@ -24050,16 +24050,16 @@ function jv() {
           $o,
           {
             id: "default-expansion",
-            value: n,
+            value: o,
             type: "number",
-            onChange: (a) => {
-              const i = Math.max(parseInt(a.target.value), 0);
-              r(cd(i)), Fi({ defaultExpansion: i });
+            onChange: (i) => {
+              const s = Math.max(parseInt(i.target.value), 0);
+              a(cd(s)), Fi({ defaultExpansion: s }), e(s);
             }
           }
         )
       ] }),
-      o && /* @__PURE__ */ h.jsxs(h.Fragment, { children: [
+      r && /* @__PURE__ */ h.jsxs(h.Fragment, { children: [
         /* @__PURE__ */ h.jsx("div", { className: "fs-6", children: "Edges visibility" }),
         /* @__PURE__ */ h.jsxs("div", { className: Z.select_node_checkbox, children: [
           /* @__PURE__ */ h.jsx(
@@ -24068,14 +24068,14 @@ function jv() {
               type: "checkbox",
               id: "select-check",
               className: "mt-2",
-              checked: e,
-              onChange: (a) => {
+              checked: t,
+              onChange: (i) => {
                 if (Re.inProgress) {
                   Re.showCllInProgressMsg();
                   return;
                 }
-                r(sd(a.target.checked)), Fi({
-                  showSelectEdges: a.target.checked
+                a(sd(i.target.checked)), Fi({
+                  showSelectEdges: i.target.checked
                 });
               }
             }
@@ -24092,14 +24092,14 @@ function jv() {
               type: "checkbox",
               id: "non-select-check",
               className: "mt-2",
-              checked: t,
-              onChange: (a) => {
+              checked: n,
+              onChange: (i) => {
                 if (Re.inProgress) {
                   Re.showCllInProgressMsg();
                   return;
                 }
-                r(ld(a.target.checked)), Fi({
-                  showNonSelectEdges: a.target.checked
+                a(ld(i.target.checked)), Fi({
+                  showNonSelectEdges: i.target.checked
                 });
               }
             }
@@ -24728,7 +24728,12 @@ const _l = () => {
               i === T2 && /* @__PURE__ */ h.jsx(Nv, {}),
               i === N2 && /* @__PURE__ */ h.jsx(Hv, {}),
               i === I9 && /* @__PURE__ */ h.jsx(zv, { close: () => _t("") }),
-              i === D2 && /* @__PURE__ */ h.jsx(jv, {})
+              i === D2 && /* @__PURE__ */ h.jsx(
+                jv,
+                {
+                  applyDefault: (v) => g.current = v
+                }
+              )
             ]
           }
         ),
