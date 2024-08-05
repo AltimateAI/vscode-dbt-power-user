@@ -59,6 +59,7 @@ import {
   RawNotebook,
   RawNotebookCell,
 } from "../notebook_provider/sampleSerializer";
+import { AltimateRequest } from "../altimate";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -79,6 +80,7 @@ export class VSCodeCommands implements Disposable {
     private dbtClient: DBTClient,
     private sqlLineagePanel: SQLLineagePanel,
     private queryManifestService: QueryManifestService,
+    private altimate: AltimateRequest,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -479,6 +481,7 @@ export class VSCodeCommands implements Disposable {
           const allowListFolders = workspace
             .getConfiguration("dbt")
             .get<string[]>("allowListFolders", []);
+          const apiConnectivity = await this.altimate.checkApiConnectivity();
           this.dbtTerminal.logBlock([
             `Python Path=${this.pythonEnvironment.pythonPath}`,
             `VSCode version=${version}`,
@@ -488,6 +491,10 @@ export class VSCodeCommands implements Disposable {
             }`,
             `DBT integration mode=${dbtIntegrationMode}`,
             `First workspace path=${getFirstWorkspacePath()}`,
+            `Altimate API connectivity=${apiConnectivity.status}`,
+            apiConnectivity.errorMsg
+              ? `Altimate API connectivity error=${apiConnectivity.errorMsg}`
+              : "",
             `AllowList Folders=${allowListFolders}`,
           ]);
           this.dbtTerminal.logNewLine();
