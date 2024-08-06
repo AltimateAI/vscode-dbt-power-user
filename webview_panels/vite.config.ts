@@ -32,6 +32,16 @@ export default defineConfig({
           "./dist/assets/codicons/",
           { recursive: true },
         );
+        cpSync(
+          "./src/notebook/ipywidgetsRenderer/ipywidgetsRenderer.js",
+          "./dist/assets/notebook/ipywidgetsRenderer/ipywidgetsRenderer.js",
+          { recursive: true },
+        );
+        cpSync(
+          "./src/notebook/ipywidgetsKernel/ipywidgetsKernel.js",
+          "./dist/assets/ipywidgetsKernel.js",
+          { recursive: true },
+        );
       },
     },
   ],
@@ -56,6 +66,7 @@ export default defineConfig({
         chunkFileNames: `assets/[name].js`,
         assetFileNames: `assets/[name].[ext]`,
       },
+      external: ["vscode"],
     },
   },
   resolve: {

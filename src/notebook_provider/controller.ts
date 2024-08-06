@@ -5,6 +5,10 @@ import { QueryManifestService } from "../services/queryManifestService";
 import path = require("path");
 import { ClientMapper } from "./clientMapper";
 import { randomUUID } from "crypto";
+import { newRawKernel } from "./kernelClient";
+
+// eslint-disable-next-line no-empty,@typescript-eslint/no-empty-function
+export function noop() {}
 
 interface RawNotebookCell {
   source: string[];
@@ -20,6 +24,12 @@ export interface NotebookCellEvent {
   languageId: string;
 }
 
+type QueryWidgetStateCommand = {
+  command: "query-widget-state";
+  model_id: string;
+};
+type RendererLoadedCommand = { command: "ipywidget-renderer-loaded" };
+
 const SupportedLanguages = ["python", "sql", "jinja-sql"];
 
 @provideSingleton(NotebookKernel)
@@ -29,6 +39,10 @@ export class NotebookKernel implements vscode.Disposable {
 
   private _onNotebookCellEvent = new vscode.EventEmitter<NotebookCellEvent>();
   public readonly onNotebookCellChangeEvent = this._onNotebookCellEvent.event;
+  private readonly widgetOutputsPerNotebook = new WeakMap<
+    vscode.NotebookDocument,
+    Set<string>
+  >();
 
   private readonly disposables: vscode.Disposable[] = [
     this._onNotebookCellEvent,
@@ -36,16 +50,16 @@ export class NotebookKernel implements vscode.Disposable {
 
   private _executionOrder = 0;
   private readonly _controller: vscode.NotebookController;
-
+  private messageChannel: vscode.NotebookRendererMessaging;
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private clientMapper: ClientMapper,
-    private queryManifestService: QueryManifestService,
+    private queryManifestService: QueryManifestService
   ) {
     this._controller = vscode.notebooks.createNotebookController(
       this._id,
       "my-notebook",
-      this._label,
+      this._label
     );
 
     // TODO: move this right place
@@ -65,8 +79,45 @@ export class NotebookKernel implements vscode.Disposable {
     this._controller.onDidChangeSelectedNotebooks(
       this.onDidChangeSelectedNotebooks,
       this,
-      [],
+      []
     );
+
+    // @ts-ignore
+    this._controller.onDidReceiveMessage(
+      (event: {
+        editor: vscode.NotebookEditor;
+        message: { type: string } & Record<string, unknown>;
+      }) => {
+        switch (event.message.type) {
+          case "IPyWidgets_Request_Widget_Version":
+            return this.sendIPyWidgetsVersion();
+          default:
+            break;
+        }
+      }
+    );
+    this.messageChannel = vscode.notebooks.createRendererMessaging(
+      "my-notebook-renderer-1"
+    );
+
+    this.messageChannel.onDidReceiveMessage(({ editor, message }) => {
+      if (
+        message &&
+        typeof message === "object" &&
+        message.command === "query-widget-state"
+      ) {
+        return this.queryWidgetState(this.messageChannel, editor, message);
+      }
+      if (
+        message &&
+        typeof message === "object" &&
+        message.command === "ipywidget-renderer-loaded"
+      ) {
+        return this.sendWidgetVersionAndState(this.messageChannel, editor);
+      }
+
+      console.log("messageChannel", message);
+    });
 
     this.disposables.push(
       vscode.workspace.onDidChangeNotebookDocument((event) => {
@@ -87,13 +138,13 @@ export class NotebookKernel implements vscode.Disposable {
             });
           }
         });
-      }),
+      })
     );
     this.disposables.push(this._controller);
     this.disposables.push(
       vscode.workspace.onDidOpenNotebookDocument(async (notebook) => {
         await this.onNotebookOpen(notebook);
-      }),
+      })
     );
     // this._controller.updateNotebookAffinity = async (
     //   notebook: vscode.NotebookDocument,
@@ -103,6 +154,94 @@ export class NotebookKernel implements vscode.Disposable {
     // };
   }
 
+  private sendMessageToPreloadScript(message: unknown) {
+    // @ts-ignore
+    return this._controller.postMessage(message).then(noop, noop);
+  }
+
+  private async sendIPyWidgetsVersion() {
+    this.sendMessageToPreloadScript({
+      type: "IPyWidgets_Reply_Widget_Version",
+      // TODO: get right version
+      payload: 8,
+    });
+  }
+  private queryWidgetState(
+    comms: vscode.NotebookRendererMessaging,
+    editor: vscode.NotebookEditor,
+    message: QueryWidgetStateCommand
+  ) {
+    const availableModels = this.widgetOutputsPerNotebook.get(editor.notebook);
+    const kernelSelected = true; // !!this.controllers.getSelected(editor.notebook);
+    const hasWidgetState = !!availableModels?.has(message.model_id);
+    comms
+      .postMessage(
+        {
+          command: "query-widget-state",
+          model_id: message.model_id,
+          hasWidgetState,
+          kernelSelected,
+        },
+        editor
+      )
+      .then(noop, noop);
+  }
+  private sendWidgetVersionAndState(
+    comms: vscode.NotebookRendererMessaging,
+    editor: vscode.NotebookEditor
+  ) {
+    // Support for loading Widget state from ipynb files.
+    // Temporarily disabled. See https://github.com/microsoft/vscode-jupyter/issues/11117
+    // const metadata = getNotebookMetadata(editor.notebook);
+    // const widgetState = metadata?.widgets;
+
+    // const kernel = this.kernelProvider.get(editor.notebook);
+    // const state =
+    //     widgetState && widgetState[WIDGET_STATE_MIMETYPE]
+    //         ? widgetState && widgetState[WIDGET_STATE_MIMETYPE].state
+    //         : undefined;
+    // let versionInWidgetState: 7 | 8 | undefined = undefined;
+    // if (state) {
+    //     const findModuleWithVersion = Object.keys(state).find((key) =>
+    //         ['@jupyter-widgets/base', '@jupyter-widgets/controls'].includes(state[key].model_module)
+    //     );
+    //     versionInWidgetState =
+    //         findModuleWithVersion && state[findModuleWithVersion].model_module_version
+    //             ? state[findModuleWithVersion].model_module_version.startsWith('2.')
+    //                 ? 8
+    //                 : 7
+    //             : undefined;
+    // }
+    // TODO: copy from vscode-jupyter
+    // const version = kernel?.ipywidgetsVersion; // || versionInWidgetState;
+    const version = 8;
+    // if (kernel?.ipywidgetsVersion) {
+    //   console.log(
+    //     `IPyWidget version in Kernel is ${kernel?.ipywidgetsVersion}.`,
+    //   );
+    // }
+    // if (versionInWidgetState) {
+    //     logger.trace(`IPyWidget version in Kernel is ${versionInWidgetState}.`);
+    // }
+    // if (kernel?.ipywidgetsVersion && versionInWidgetState) {
+    //     logger.warn(
+    //         `IPyWidget version in Kernel is ${kernel?.ipywidgetsVersion} and in widget state is ${versionInWidgetState}.}`
+    //     );
+    // }
+    const kernelSelected = true;
+    comms
+      .postMessage(
+        {
+          command: "ipywidget-renderer-init",
+          version,
+          widgetState: undefined,
+          kernelSelected,
+        },
+        editor
+      )
+      .then(noop, noop);
+  }
+
   private genUniqueId(cell: vscode.NotebookCell) {
     const randomStr = (Math.random() + 1).toString(36).substring(7);
     return `${cell.document.languageId.replace(/-/g, "_")}_${randomStr}`;
@@ -110,7 +249,7 @@ export class NotebookKernel implements vscode.Disposable {
 
   private async updateCellId(
     cells: vscode.NotebookCell[],
-    notebook: vscode.NotebookDocument,
+    notebook: vscode.NotebookDocument
   ) {
     const edits: vscode.NotebookEdit[] = [];
     cells.forEach((cell) => {
@@ -122,7 +261,7 @@ export class NotebookKernel implements vscode.Disposable {
         };
         const edit = vscode.NotebookEdit.updateCellMetadata(
           cell.index,
-          newMetadata,
+          newMetadata
         );
         edits.push(edit);
         this.clientMapper.getNotebookClient(notebook.uri).then((client) => {
@@ -147,9 +286,31 @@ export class NotebookKernel implements vscode.Disposable {
   }
 
   private async onNotebookOpen(notebook: vscode.NotebookDocument) {
-    await this.clientMapper.initializeNotebookClient(notebook.uri);
+    const client = await this.clientMapper.initializeNotebookClient(
+      notebook.uri
+    );
     const cells = notebook.getCells();
     this.updateCellId(cells, notebook);
+    const kernel = await client.getKernel();
+    if (kernel?.realKernel) {
+      this.sendMessageToPreloadScript({
+        type: "IPyWidgets_kernelOptions",
+        payload: {
+          id: kernel.realKernel.id || "",
+          clientId: kernel.realKernel.clientId || "",
+          userName: kernel.realKernel.username || "",
+          model: kernel.realKernel.model || { id: "", name: "" },
+        },
+      });
+      return;
+    }
+    throw new Error("Unable to initialize kernel");
+    // if (vscode.window.activeNotebookEditor) {
+    //   this.messageChannel.postMessage(
+    //     { command: "IPyWidgets_kernelOptions" },
+    //     vscode.window.activeNotebookEditor,
+    //   );
+    // }
   }
 
   dispose() {
@@ -246,7 +407,7 @@ export class NotebookKernel implements vscode.Disposable {
           uri,
           {
             skipCustomCommand: true,
-          },
+          }
         );
       }
     } catch (e) {
@@ -264,7 +425,7 @@ export class NotebookKernel implements vscode.Disposable {
       await vscode.commands.executeCommand(
         "workbench.action.files.saveAs",
         uri,
-        { skipCustomCommand: true },
+        { skipCustomCommand: true }
       );
     }
   }
@@ -272,7 +433,7 @@ export class NotebookKernel implements vscode.Disposable {
   private _executeAll(
     cells: vscode.NotebookCell[],
     _notebook: vscode.NotebookDocument,
-    _controller: vscode.NotebookController,
+    _controller: vscode.NotebookController
   ): void {
     for (const cell of cells) {
       this._doExecution(cell);
@@ -351,10 +512,18 @@ export class NotebookKernel implements vscode.Disposable {
 
       const outputCells = [];
       const notebookClient = await this.clientMapper.getNotebookClient(
-        activeNotebook.uri,
+        activeNotebook.uri
       );
       switch (cell.document.languageId) {
         case "python":
+          // const isSent = await this.messageChannel.postMessage(
+          //   {
+          //     type: "IPyWidgets_kernelOptions",
+          //     id: randomUUID(),
+          //   },
+          //   // vscode.window.activeNotebookEditor,
+          // );
+          // console.log("isSent", isSent);
           // const pythonApi: PythonExtension = await PythonExtension.api();
           // const server = createPythonServer([
           //   pythonApi.environments.getActiveEnvironmentPath().path,
@@ -362,12 +531,34 @@ export class NotebookKernel implements vscode.Disposable {
           // result = (await server.execute(cell.document.getText()))?.output;
           const result = await notebookClient.executePython(
             cell.document.getText(),
-            cell.metadata.cellId,
+            cell.metadata.cellId
           );
           for (const item of result) {
-            outputCells.push(
-              vscode.NotebookCellOutputItem.text(item.value, item.mime),
-            );
+            if (item.mime === "application/alt.jupyter.widget-view+json") {
+              const data = (item.value) as unknown as Record<string, unknown>;
+              if (data.version_major === undefined) {
+                this.sendMessageToPreloadScript({
+                  type: "IPyWidgets_msg",
+                  payload: {data},
+                });
+              }
+            }
+          }
+          for (const item of result) {
+            if (item.mime === "application/alt.jupyter.widget-view+json") {
+              const data = (item.value) as unknown as Record<string, unknown>;
+              if (data.version_major !== undefined) {
+                const set =
+                  this.widgetOutputsPerNotebook.get(activeNotebook) ||
+                  new Set<string>();
+                // @ts-expect-error valid
+                set.add(item.value.model_id);
+                this.widgetOutputsPerNotebook.set(activeNotebook, set);
+              }
+              outputCells.push(
+                vscode.NotebookCellOutputItem.json(item.value, item.mime)
+              );
+            }
           }
           break;
 
@@ -377,7 +568,7 @@ export class NotebookKernel implements vscode.Disposable {
             cell.document.getText(),
 
             "",
-            true,
+            true
           );
 
           this._onNotebookCellEvent.fire({
@@ -389,13 +580,13 @@ export class NotebookKernel implements vscode.Disposable {
           });
           await notebookClient.storeDataInKernel(
             cell.metadata.cellId,
-            sqlResult,
+            sqlResult
           );
           outputCells.push(
             vscode.NotebookCellOutputItem.json(
               sqlResult,
-              "application/perspective-json",
-            ),
+              "application/perspective-json"
+            )
           );
 
         // Testing new cell creation

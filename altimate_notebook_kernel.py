@@ -23,11 +23,13 @@ class JupyterKernelExecutor:
         self.kernel_manager.start_kernel()
         self.kernel_client = self.kernel_manager.client()
         self.kernel_client.start_channels()
+        print('session pid', self.kernel_client.session.pid)
+        # print('ip', self.kernel_manager.connection_file.split('-')[1])
 
     def execute(self, code, user_expressions=None):
         self.kernel_client.wait_for_ready()
 
-        print("Executing code:", code, user_expressions)
+        # print("Executing code:", code, user_expressions)
         # Execute the code
         self.kernel_client.execute(code, silent=False, store_history=True, user_expressions=user_expressions)
 
@@ -37,11 +39,22 @@ class JupyterKernelExecutor:
         while True:
             try:
                 msg = self.kernel_client.get_iopub_msg(timeout=1)
-                # print("msg", msg)
+                def datetime_converter(o):
+                    if isinstance(o, datetime):
+                        return o.__str__()
+                
+                # Print formatted JSON
+                print("msg", msg)
+                
                 if msg['msg_type'] == 'stream':
                     # for stdout
                     output.append({'mime': 'text/plain', 'value': msg['content']['text']})
                     break
+                elif msg['msg_type'] == 'comm_open':
+                    state = msg['content']['data']['state']
+                    state['model_id'] = msg['content']['comm_id']
+                    # Handle comm_open messages
+                    output.append({'mime': 'application/alt.jupyter.widget-view+json', 'value': state})
                 elif msg['msg_type'] == 'execute_result' or msg['msg_type'] == 'display_data':
                     # Flag to check if any key other than 'text/plain' exists
                     other_keys_exist = False
@@ -86,6 +99,9 @@ class AltimateNotebookKernel:
         self.kernel_executor = self.initialize_kernel_executor()
         self.cell_results = {}
 
+    def get_session_id(self):
+        return self.kernel_executor.kernel_client.session.pid
+    
     def close_notebook(self):
         """
         Method to be called when the notebook is closed.

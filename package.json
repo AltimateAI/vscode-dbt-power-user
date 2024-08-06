@@ -17,6 +17,20 @@
   "engines": {
     "vscode": "^1.81.0"
   },
+  "enabledApiProposals": [
+    "notebookDeprecated",
+    "notebookMessaging",
+    "notebookMime",
+    "contribNotebookStaticPreloads",
+    "portsAttributes",
+    "quickPickSortByLabel",
+    "notebookKernelSource",
+    "interactiveWindow",
+    "quickPickItemTooltip",
+    "notebookExecution",
+    "notebookCellExecution",
+    "notebookVariableProvider"
+  ],
   "capabilities": {
     "hoverProvider": true
   },
@@ -39,6 +53,29 @@
   ],
   "main": "./dist/extension",
   "contributes": {
+    "notebookPreload": [
+      {
+        "type": "my-notebook",
+        "localResourceRoots": [
+          "./temp"
+        ],
+        "entrypoint": "./webview_panels/src/notebook/ipywidgetsKernel/ipywidgets8.js"
+      },
+      {
+        "type": "my-notebook",
+        "localResourceRoots": [
+          "./temp"
+        ],
+        "entrypoint": "./webview_panels/src/notebook/ipywidgetsKernel/ipywidgets7.js"
+      },
+      {
+        "type": "my-notebook",
+        "localResourceRoots": [
+          "./temp"
+        ],
+        "entrypoint": "./webview_panels/src/notebook/ipywidgetsKernel/ipywidgetsKernel.js"
+      }
+    ],
     "notebookRenderer": [
       {
         "id": "my-notebook-renderer",
@@ -47,6 +84,15 @@
         "mimeTypes": [
           "application/perspective-json"
         ]
+      },
+      {
+        "id": "my-notebook-renderer-1",
+        "displayName": "Jupyter widgets Notebook Renderer",
+        "entrypoint": "./webview_panels/dist/assets/notebook/ipywidgetsRenderer/ipywidgetsRenderer.js",
+        "mimeTypes": [
+          "application/alt.jupyter.widget-view+json"
+        ],
+        "requiresMessaging": "always"
       }
     ],
     "notebooks": [
@@ -1222,9 +1268,11 @@
     "@types/node": "^20.14.11",
     "@types/vscode": "^1.81.0",
     "@types/which": "^3.0.4",
+    "@types/ws": "^8.5.12",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "@vscode/test-electron": "^2.4.1",
+    "@vscode/zeromq": "^0.2.1",
     "concurrently": "^8.2.2",
     "copy-webpack-plugin": "^11.0.0",
     "cross-env": "^7.0.3",
@@ -1246,39 +1294,49 @@
     "ts-loader": "^9.4.4",
     "typescript": "^4.9.5",
     "webpack": "^5.93.0",
-    "webpack-cli": "^5.1.4"
+    "webpack-cli": "^5.1.4",
+    "webpack-shell-plugin-next": "^2.3.1"
   },
   "extensionDependencies": [
     "samuelcolvin.jinjahtml",
-    "ms-python.python"
+    "ms-python.python",
+    "ms-toolsai.jupyter"
   ],
   "dependencies": {
     "@finos/perspective": "^2.10.0",
     "@finos/perspective-viewer": "^2.10.0",
     "@finos/perspective-viewer-d3fc": "^2.10.1",
     "@finos/perspective-viewer-datagrid": "^2.10.0",
-    "@jupyterlab/services": "^7.2.4",
+    "@jupyter-widgets/jupyterlab-manager": "^3.1.9",
+    "@jupyterlab/services": "^6.6.7",
+    "@nteract/messaging": "^7.0.20",
     "@vscode/codicons": "^0.0.36",
     "@vscode/extension-telemetry": "^0.9.6",
     "@vscode/jupyter-extension": "^1.1.1",
     "@vscode/python-extension": "^1.0.5",
     "@vscode/vsce": "^2.31.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
+    "bufferutil": "^4.0.8",
     "dayjs": "^1.11.12",
     "inversify": "^6.0.2",
     "inversify-binding-decorators": "^4.0.0",
     "node-abort-controller": "^3.1.1",
     "node-fetch": "^3.3.2",
     "parse-diff": "^0.11.1",
+    "portfinder": "^1.0.32",
     "preact": "^10.23.0",
     "python-bridge": "github:mdesmet/node-python-bridge#feat/detached",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "reflect-metadata": "^0.2.2",
     "semver": "^7.6.3",
+    "utf-8-validate": "^5.0.10",
     "vscode-jsonrpc": "^8.2.1",
     "which": "^4.0.0",
-    "yaml": "^2.5.0"
+    "ws": "^8.18.0",
+    "yaml": "^2.5.0",
+    "zeromq": "^6.0.0-beta.16",
+    "zeromqold": "npm:zeromq@^6.0.0-beta.6"
   },
   "lint-staged": {
     "**/webview_panels/**/*.{ts,tsx}": [

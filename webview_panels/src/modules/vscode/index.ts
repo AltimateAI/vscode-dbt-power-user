@@ -75,6 +75,13 @@ class VSCodeAPIWrapper {
       return newState;
     }
   }
+
+  extensions = {
+    getExtension: (id: string) => {
+      // @ts-ignore
+      return this.vsCodeApi?.extensions.getExtension(id);
+    }
+  }
 }
 
 // Exports class singleton to prevent multiple invocations of acquireVsCodeApi.
