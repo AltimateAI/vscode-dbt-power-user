@@ -366,7 +366,8 @@ export class DBTCloudProjectIntegration
     ];
   }
 
-  async rebuildManifest(): Promise<void> {
+  async rebuildManifest(retryCount: number = 0): Promise<void> {
+    this.throwIfNotAuthenticated();
     if (this.rebuildManifestCancellationTokenSource) {
       this.rebuildManifestCancellationTokenSource.cancel();
       this.rebuildManifestCancellationTokenSource = undefined;
