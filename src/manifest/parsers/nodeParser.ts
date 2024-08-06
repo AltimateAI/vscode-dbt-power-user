@@ -4,6 +4,7 @@ import { DBTProject } from "../dbtProject";
 import { createFullPathForNode } from ".";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { getExternalProjectNamesFromDbtLoomConfig } from "../../utils";
+import * as path from "path";
 
 @provide(NodeParser)
 export class NodeParser {
@@ -62,6 +63,7 @@ export class NodeParser {
           packagePath,
           original_file_path,
         );
+        const targetPath = project.getTargetPath();
         modelMetaMap.set(name, {
           path: fullPath,
           database,
@@ -79,7 +81,14 @@ export class NodeParser {
           is_external_project: Boolean(
             externalProjectNames?.includes(package_name),
           ),
-          compiled_path: `${project.getTargetPath()}/compiled/${package_name}/${original_file_path}`,
+          compiled_path: targetPath
+            ? path.join(
+                targetPath,
+                "compiled",
+                package_name,
+                original_file_path,
+              )
+            : "",
         });
       }
       this.terminal.debug(
