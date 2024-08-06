@@ -574,6 +574,7 @@ export class NewLineagePanel
     const modelsToFetch = Array.from(
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
     );
+    // using artifacts(mappedCompiledSql) from getNodesWithDBColumns as optimization
     const { mappedNode, relationsWithoutColumns, mappedCompiledSql } =
       await project.getNodesWithDBColumns(
         event.event,
@@ -600,6 +601,10 @@ export class NewLineagePanel
       }
       return true;
     });
+    const bulkCompiledSql = await project.getBulkCompiledSql(
+      event,
+      modelsToCompile.filter((m) => !mappedCompiledSql[m]),
+    );
     for (const key of modelsToFetch) {
       const node = mappedNode[key];
       if (!node) {
@@ -622,7 +627,7 @@ export class NewLineagePanel
         }
         modelInfos.push({
           model_node: node,
-          compiled_sql: mappedCompiledSql[key],
+          compiled_sql: mappedCompiledSql[key] || bulkCompiledSql[key],
           raw_sql: rawSql,
         });
       } else {

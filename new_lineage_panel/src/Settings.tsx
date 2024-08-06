@@ -7,7 +7,7 @@ import { LineageContext, aiEnabled } from "./Lineage";
 import { CustomInput } from "./components/Form";
 import { persistLineageSettings } from "./service";
 
-function Settings() {
+function Settings({ applyDefault }: { applyDefault: (v: number) => void }) {
   const {
     selectCheck,
     setSelectCheck,
@@ -32,6 +32,7 @@ function Settings() {
               const value = Math.max(parseInt(e.target.value), 0);
               setDefaultExpansion(value);
               persistLineageSettings({ defaultExpansion: value });
+              applyDefault(value);
             }}
           />
         </div>
