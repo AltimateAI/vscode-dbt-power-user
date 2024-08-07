@@ -746,6 +746,25 @@ export class AltimateRequest {
     return (await response.json()) as Record<string, any> | undefined;
   }
 
+  async checkApiConnectivity() {
+    const url = `${AltimateRequest.ALTIMATE_URL}/health`;
+    try {
+      const response = await fetch(url, { method: "GET" });
+      const { status } = (await response.json()) as { status: string };
+      return { status };
+    } catch (e) {
+      this.dbtTerminal.error(
+        "checkApiConnectivity",
+        "Unable to connect to backend",
+        e,
+        true,
+        { url },
+      );
+      const errorMsg = e instanceof Error ? e.message : JSON.stringify(e);
+      return { status: "not-ok", errorMsg };
+    }
+  }
+
   async fetchProjectIntegrations() {
     return this.fetch<DBTCoreIntegration[]>("dbt/v1/project_integrations");
   }
