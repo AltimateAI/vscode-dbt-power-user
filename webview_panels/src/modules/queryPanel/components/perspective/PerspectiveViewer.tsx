@@ -13,6 +13,7 @@ import "@finos/perspective-viewer/dist/css/vaporwave.css";
 import "@finos/perspective-viewer/dist/css/solarized.css";
 import "@finos/perspective-viewer/dist/css/solarized-dark.css";
 import "@finos/perspective-viewer/dist/css/monokai.css";
+import "./PerspectivePlugins.js";
 import { useEffect, useRef, useState } from "react";
 import { panelLogger } from "@modules/logger";
 import useAppContext from "@modules/app/useAppContext";
@@ -22,6 +23,7 @@ import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
 import { setPerspectiveTheme } from "@modules/queryPanel/context/queryPanelSlice";
+import { Drawer, DrawerRef } from "@uicore";
 
 interface Props {
   data: TableData;
@@ -39,13 +41,17 @@ const PerspectiveViewer = ({
   const { perspectiveTheme } = useQueryPanelState();
   const dispatch = useQueryPanelDispatch();
   const [tableRendered, setTableRendered] = useState(false);
+  const [drawerData, setDrawerData] = useState<string>("");
+  const [drawerTitle, setDrawerTitle] = useState<string>("");
   const perspectiveViewerRef = useRef<HTMLPerspectiveViewerElement>(null);
+  const drawerRef = useRef<DrawerRef | null>(null);
 
   const config: PerspectiveViewerConfig = {
     theme: perspectiveTheme,
     title: "query result",
     columns: [], // reset columns
     settings: false,
+    plugin: "Custom Datagrid",
     plugin_config: { editable: false },
   };
 
@@ -86,7 +92,7 @@ const PerspectiveViewer = ({
             }
             return JSON.stringify(fieldData, replacer);
           })
-          .join(","),
+          .join(",")
       ),
     ].join("\r\n");
     return csv;
@@ -120,7 +126,7 @@ const PerspectiveViewer = ({
 
   const updateCustomStyles = (currentTheme: string) => {
     const shadowRoot = perspectiveViewerRef.current?.querySelector(
-      "perspective-viewer-datagrid",
+      "perspective-viewer-datagrid"
     )?.shadowRoot;
     if (!shadowRoot) {
       return;
@@ -203,7 +209,7 @@ const PerspectiveViewer = ({
           });
           dispatch(setPerspectiveTheme(ev.detail.theme));
         }
-      },
+      }
     );
     setTableRendered(true);
   };
@@ -211,18 +217,47 @@ const PerspectiveViewer = ({
   useEffect(() => {
     loadPerspectiveData().catch((err) => panelLogger.error(err));
 
+    const handleOpenDrawer = (event: CustomEvent) => {
+      drawerRef.current?.open();
+      const detail = event.detail as {
+        type: string;
+        message: string;
+        columnName: string;
+      };
+      setDrawerTitle(detail?.columnName);
+      if (detail?.type === "string") {
+        // adding \n after every 45 characters to make it readable
+        setDrawerData(
+          detail?.message.match(/.{1,45}/g)?.join("\n") ?? detail?.message
+        );
+      } else if (detail?.type === "json") {
+        // Pretty print JSON
+        setDrawerData(JSON.stringify(JSON.parse(detail?.message), null, 2));
+      }
+    };
+
+    window.addEventListener(
+      "string-json-viewer",
+      handleOpenDrawer as EventListener
+    );
+
     return () => {
       perspectiveViewerRef.current
         ?.getTable()
         .then((table) => table.delete())
         .catch((err) =>
-          panelLogger.error("error while deleting perspective table", err),
+          panelLogger.error("error while deleting perspective table", err)
         );
       perspectiveViewerRef.current
         ?.delete()
         .catch((err) =>
-          panelLogger.error("error while deleting perspective viewer", err),
+          panelLogger.error("error while deleting perspective viewer", err)
         );
+
+      window.removeEventListener(
+        "json-viewer",
+        handleOpenDrawer as EventListener
+      );
     };
   }, []);
 
@@ -238,15 +273,25 @@ const PerspectiveViewer = ({
     perspectiveViewerRef.current
       .restore(config)
       .catch((err) =>
-        panelLogger.error("error while restoring perspective", err),
+        panelLogger.error("error while restoring perspective", err)
       );
   }, [theme, tableRendered]);
 
   return (
-    <perspective-viewer
-      class={classes.altimatePerspectiveViewer}
-      ref={perspectiveViewerRef}
-    ></perspective-viewer>
+    <>
+      <perspective-viewer
+        class={classes.altimatePerspectiveViewer}
+        ref={perspectiveViewerRef}
+      ></perspective-viewer>
+      <Drawer
+        buttonProps={{ color: "primary", title: "Json Viewer" }}
+        ref={drawerRef}
+        title={drawerTitle}
+        backdrop={false}
+      >
+        <pre>{drawerData}</pre>
+      </Drawer>
+    </>
   );
 };
 
