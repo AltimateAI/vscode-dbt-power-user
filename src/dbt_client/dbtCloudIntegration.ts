@@ -367,7 +367,8 @@ export class DBTCloudProjectIntegration
   }
 
   async rebuildManifest(retryCount: number = 0): Promise<void> {
-    this.throwIfNotAuthenticated();
+    // TODO: check whether we should allow parsing for unauthenticated users
+    // this.throwIfNotAuthenticated();
     if (this.rebuildManifestCancellationTokenSource) {
       this.rebuildManifestCancellationTokenSource.cancel();
       this.rebuildManifestCancellationTokenSource = undefined;
@@ -390,6 +391,15 @@ export class DBTCloudProjectIntegration
         error: stderr,
         adapter: this.getAdapterType() || "unknown",
       });
+      this.terminal.info(
+        "dbtCloudParseProject",
+        "dbt cloud cli response",
+        false,
+        {
+          command: command.getCommandAsString(),
+          stderr,
+        },
+      );
     } catch (error) {
       this.telemetry.sendTelemetryError(
         "dbtCloudCannotParseProjectCommandExecuteError",
@@ -447,9 +457,11 @@ export class DBTCloudProjectIntegration
         ),
       );
     } catch (error) {
-      this.telemetry.sendTelemetryError(
+      this.terminal.error(
         "dbtCloudCannotParseProjectUnknownError",
+        `Unable to parse dbt cloud cli response.`,
         error,
+        true,
         {
           adapter: this.getAdapterType() || "unknown",
         },
@@ -459,7 +471,7 @@ export class DBTCloudProjectIntegration
         [
           new Diagnostic(
             new Range(0, 0, 999, 999),
-            error instanceof Error ? error.message : JSON.stringify(error),
+            `Unable to parse dbt cloud cli response. If the problem persists please reach out to us.`,
             DiagnosticSeverity.Error,
           ),
         ],
