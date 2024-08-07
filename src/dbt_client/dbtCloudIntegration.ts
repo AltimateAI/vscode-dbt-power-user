@@ -385,6 +385,7 @@ export class DBTCloudProjectIntegration
     try {
       const result = await command.execute();
       stderr = result.stderr;
+      // sending stderr everytime to verify in logs whether is coming as empty or not.
       this.telemetry.sendTelemetryEvent("dbtCloudParseProjectUserError", {
         error: stderr,
         adapter: this.getAdapterType() || "unknown",
