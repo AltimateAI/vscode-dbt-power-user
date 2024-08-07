@@ -255,7 +255,7 @@ const PerspectiveViewer = ({
         );
 
       window.removeEventListener(
-        "json-viewer",
+        "string-json-viewer",
         handleOpenDrawer as EventListener
       );
     };
