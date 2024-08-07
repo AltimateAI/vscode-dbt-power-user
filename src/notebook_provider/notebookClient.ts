@@ -1,14 +1,21 @@
+import type * as nbformat from "@jupyterlab/nbformat";
 import type { Data as WebSocketData } from "ws";
 import { promisify } from "util";
 import { PythonBridge, PythonException } from "python-bridge";
 import { DBTCommandExecutionInfrastructure } from "../dbt_client/dbtIntegration";
 import path = require("path");
-import { ProgressLocation, window } from "vscode";
+import {
+  NotebookCellOutput,
+  NotebookCellOutputItem,
+  ProgressLocation,
+  window,
+} from "vscode";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { getFirstWorkspacePath } from "../utils";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { newRawKernel } from "./kernelClient";
 import { randomUUID } from "crypto";
+import { cellOutputMappers, cellOutputToVSCCellOutput, handleTensorBoardDisplayDataOutput } from "./helpers";
 
 export class NotebookClient {
   private python: PythonBridge;
@@ -156,10 +163,83 @@ export class NotebookClient {
   }
 
   // TODO: typecast the return value
-  async executePython(code: string, cellPath: string) {
+  async executePython(
+    code: string,
+    cellPath: string,
+    onOutput: (output: NotebookCellOutput) => void,
+  ) {
     console.log(`Executing python code in cell: ${cellPath}`);
-    return this.python.lock<{ mime: string; value: string }[]>(
-      (python) => python`notebook_kernel.execute_python(${code})`,
-    );
+    const jupyterLab =
+      require("@jupyterlab/services") as typeof import("@jupyterlab/services");
+    const request = await this.kernel?.realKernel.requestExecute({ code });
+    if (!request) {
+      return;
+    }
+    request.onStdin = (msg) => {
+      console.log("onStdin", msg);
+    }
+    request.onIOPub = (msg) => {
+      // started();
+      if (jupyterLab.KernelMessage.isStreamMsg(msg)) {
+        onOutput(
+          cellOutputToVSCCellOutput({
+            output_type: "stream",
+            name: msg.content.name,
+            text: msg.content.text,
+          }),
+        );
+      } else if (jupyterLab.KernelMessage.isExecuteResultMsg(msg)) {
+        onOutput(
+          cellOutputToVSCCellOutput({
+            output_type: "execute_result",
+            data: msg.content.data,
+            metadata: msg.content.metadata,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            transient: msg.content.transient as any, // NOSONAR
+            execution_count: msg.content.execution_count,
+          }),
+        );
+      } else if (jupyterLab.KernelMessage.isDisplayDataMsg(msg)) {
+        onOutput(
+          cellOutputToVSCCellOutput({
+            output_type: "display_data",
+            data: handleTensorBoardDisplayDataOutput(msg.content.data),
+            metadata: msg.content.metadata,
+            transient: msg.content.transient,
+          }),
+        );
+      } else if (jupyterLab.KernelMessage.isUpdateDisplayDataMsg(msg)) {
+        onOutput(
+          cellOutputToVSCCellOutput({
+            output_type: "display_data",
+            data: handleTensorBoardDisplayDataOutput(msg.content.data),
+            metadata: msg.content.metadata,
+            transient: msg.content.transient,
+          }),
+        );
+      } else if (jupyterLab.KernelMessage.isErrorMsg(msg)) {
+        onOutput(
+          cellOutputToVSCCellOutput({
+            output_type: "error",
+            ename: msg.content.ename,
+            evalue: msg.content.evalue,
+            traceback: msg.content.traceback,
+          }),
+        );
+      } else if (
+        jupyterLab.KernelMessage.isExecuteInputMsg(msg) ||
+        jupyterLab.KernelMessage.isStatusMsg(msg)
+      ) {
+        //
+      } else {
+        console.warn(
+          `Got unexpected io pub message when executing code sillenty (${msg.header.msg_type})`,
+        );
+      }
+    };
+    return request;
+    // return this.python.lock<{ mime: string; value: string }[]>(
+    //   (python) => python`notebook_kernel.execute_python(${code})`,
+    // );
   }
 }

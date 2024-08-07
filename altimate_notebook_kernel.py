@@ -25,6 +25,16 @@ class JupyterKernelExecutor:
         self.kernel_client.start_channels()
         print('session pid', self.kernel_client.session.pid)
         # print('ip', self.kernel_manager.connection_file.split('-')[1])
+        # Get the connection file
+        connection_file = self.kernel_manager.connection_file
+        # Load connection info
+        connection_info = jupyter_client.find_connection_file(connection_file)
+        with open(connection_info) as f:
+            connection_data = json.load(f)
+
+        # Extract WebSocket URL
+        websocket_url = f"ws://{connection_data['ip']}:{connection_data['shell_port']}/api/kernels/{self.kernel_manager.kernel_id}/channels"
+        print(websocket_url)
 
     def execute(self, code, user_expressions=None):
         self.kernel_client.wait_for_ready()

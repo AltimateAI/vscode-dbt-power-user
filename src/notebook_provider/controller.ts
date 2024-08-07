@@ -531,35 +531,47 @@ export class NotebookKernel implements vscode.Disposable {
           // result = (await server.execute(cell.document.getText()))?.output;
           const result = await notebookClient.executePython(
             cell.document.getText(),
-            cell.metadata.cellId
-          );
-          for (const item of result) {
-            if (item.mime === "application/alt.jupyter.widget-view+json") {
-              const data = (item.value) as unknown as Record<string, unknown>;
-              if (data.version_major === undefined) {
-                this.sendMessageToPreloadScript({
-                  type: "IPyWidgets_msg",
-                  payload: {data},
-                });
-              }
-            }
-          }
-          for (const item of result) {
-            if (item.mime === "application/alt.jupyter.widget-view+json") {
-              const data = (item.value) as unknown as Record<string, unknown>;
-              if (data.version_major !== undefined) {
-                const set =
-                  this.widgetOutputsPerNotebook.get(activeNotebook) ||
-                  new Set<string>();
-                // @ts-expect-error valid
-                set.add(item.value.model_id);
-                this.widgetOutputsPerNotebook.set(activeNotebook, set);
-              }
+            cell.metadata.cellId,
+            (output) => {
               outputCells.push(
-                vscode.NotebookCellOutputItem.json(item.value, item.mime)
+                vscode.NotebookCellOutputItem.json(
+                  output,
+                  "application/json"
+                )
               );
             }
-          }
+          );
+          // await Promise.resolve();
+          // result?.done;
+          // if (!result){
+          //   throw new Error("No result found");
+          // }
+          // for (const item of result) {
+          //   if (item.mime === "application/alt.jupyter.widget-view+json") {
+          //     const data = (item.value) as unknown as Record<string, unknown>;
+          //     if (data.version_major === undefined) {
+          //       this.sendMessageToPreloadScript({
+          //         type: "IPyWidgets_msg",
+          //         payload: {data},
+          //       });
+          //     }
+          //   }
+          // }
+          // for (const item of result) {
+          //   if (item.mime === "application/alt.jupyter.widget-view+json") {
+          //     const data = (item.value) as unknown as Record<string, unknown>;
+          //     if (data.version_major !== undefined) {
+          //       const set =
+          //         this.widgetOutputsPerNotebook.get(activeNotebook) ||
+          //         new Set<string>();
+          //       set.add(item.value.model_id);
+          //       this.widgetOutputsPerNotebook.set(activeNotebook, set);
+          //     }
+          //     outputCells.push(
+          //       vscode.NotebookCellOutputItem.json(item.value, item.mime)
+          //     );
+          //   }
+          // }
           break;
 
         case "jinja-sql":
