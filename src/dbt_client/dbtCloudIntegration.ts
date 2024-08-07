@@ -372,17 +372,39 @@ export class DBTCloudProjectIntegration
       this.rebuildManifestCancellationTokenSource.cancel();
       this.rebuildManifestCancellationTokenSource = undefined;
     }
+    const command = this.dbtCloudCommand(
+      this.dbtCommandFactory.createParseCommand(),
+    );
+    command.addArgument("--log-format");
+    command.addArgument("json");
+    command.downloadArtifacts = true;
+    this.rebuildManifestCancellationTokenSource = new CancellationTokenSource();
+    command.setToken(this.rebuildManifestCancellationTokenSource.token);
+
+    let stderr: string = "";
     try {
-      const command = this.dbtCloudCommand(
-        this.dbtCommandFactory.createParseCommand(),
+      const result = await command.execute();
+      stderr = result.stderr;
+      this.telemetry.sendTelemetryEvent("dbtCloudParseProjectUserError", {
+        error: stderr,
+        adapter: this.getAdapterType() || "unknown",
+      });
+    } catch (error) {
+      this.telemetry.sendTelemetryError(
+        "dbtCloudCannotParseProjectCommandExecuteError",
+        error,
+        {
+          adapter: this.getAdapterType() || "unknown",
+          command: command.getCommandAsString(),
+        },
       );
-      command.addArgument("--log-format");
-      command.addArgument("json");
-      command.downloadArtifacts = true;
-      this.rebuildManifestCancellationTokenSource =
-        new CancellationTokenSource();
-      command.setToken(this.rebuildManifestCancellationTokenSource.token);
-      const { stderr } = await command.execute();
+    }
+
+    if (!stderr) {
+      // TODO: check good case or bad case
+      return;
+    }
+    try {
       const errorsAndWarnings = stderr
         .trim()
         .split("\n")
@@ -421,15 +443,6 @@ export class DBTCloudProjectIntegration
           ],
         ),
       );
-      if (stderr) {
-        this.telemetry.sendTelemetryEvent(
-          "dbtCloudCannotParseProjectUserError",
-          {
-            error: stderr,
-            adapter: this.getAdapterType() || "unknown",
-          },
-        );
-      }
     } catch (error) {
       this.telemetry.sendTelemetryError(
         "dbtCloudCannotParseProjectUnknownError",
@@ -437,6 +450,16 @@ export class DBTCloudProjectIntegration
         {
           adapter: this.getAdapterType() || "unknown",
         },
+      );
+      this.rebuildManifestDiagnostics.set(
+        Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+        [
+          new Diagnostic(
+            new Range(0, 0, 999, 999),
+            error instanceof Error ? error.message : JSON.stringify(error),
+            DiagnosticSeverity.Error,
+          ),
+        ],
       );
     }
   }
