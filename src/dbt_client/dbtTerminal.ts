@@ -39,7 +39,9 @@ export class DBTTerminal {
   logBlock(block: string[]) {
     this.logHorizontalRule();
     for (const line of block) {
-      this.logLine(line);
+      if (line) {
+        this.logLine(line);
+      }
     }
     this.logHorizontalRule();
   }
