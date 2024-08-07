@@ -408,7 +408,9 @@ export class DBTCloudProjectIntegration
       const errorsAndWarnings = stderr
         .trim()
         .split("\n")
-        .map((line) => JSON.parse(line.trim()));
+        .map((line) => line.trim())
+        .filter((line) => Boolean(line))
+        .map((line) => JSON.parse(line));
       const errors = errorsAndWarnings
         .filter(
           (line) => line.info.level === "error" || line.info.level === "fatal",
