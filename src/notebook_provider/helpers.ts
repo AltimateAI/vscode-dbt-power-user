@@ -1,5 +1,7 @@
+import type * as KernelMessage from "@jupyterlab/services/lib/kernel/messages";
 import type * as nbformat from "@jupyterlab/nbformat";
-import { NotebookCellOutput, NotebookCellOutputItem } from "vscode";
+import { NotebookCellOutput, NotebookCellOutputItem, Uri } from "vscode";
+import path = require("path");
 
 export enum CellOutputMimeTypes {
   error = "application/vnd.code.notebook.error",
@@ -331,4 +333,79 @@ export function handleTensorBoardDisplayDataOutput(data: nbformat.IMimeBundle) {
     }
   }
   return data;
+}
+
+export function getParentHeaderMsgId(msg: KernelMessage.IMessage): string | undefined {
+  if (msg.parent_header && 'msg_id' in msg.parent_header) {
+      return msg.parent_header.msg_id;
+  }
+  return undefined;
+}
+
+export enum OSType {
+  Unknown = 'Unknown',
+  Windows = 'Windows',
+  OSX = 'OSX',
+  Linux = 'Linux'
+}
+
+export function getOSType(platform: string = process.platform): OSType {
+  if (/^win/.test(platform)) {
+      return OSType.Windows;
+  } else if (/^darwin/.test(platform)) {
+      return OSType.OSX;
+  } else if (/^linux/.test(platform)) {
+      return OSType.Linux;
+  } else {
+      return OSType.Unknown;
+  }
+}
+
+export function getFilePath(file: Uri | undefined) {
+  const isWindows = getOSType() === OSType.Windows;
+  if (file) {
+      const fsPath = file.fsPath;
+
+      // Remove separator on the front if not a network drive.
+      // Example, if you create a URI with Uri.file('hello world'), the fsPath will come out as '\Hello World' on windows. We don't want that
+      // However if you create a URI from a network drive, like '\\mydrive\foo\bar\python.exe', we want to keep the \\ on the front.
+      if (fsPath && fsPath.startsWith(path.sep) && fsPath.length > 1 && fsPath[1] !== path.sep && isWindows) {
+          return fsPath.slice(1);
+      }
+      return fsPath || '';
+  }
+  return '';
+}
+export const cellAtFormat = (filePath: string, lineNumber: number) => ('{0} Cell {1}'.replace("{0}", filePath).replace("{1}", lineNumber.toString()));
+
+// Took this from jupyter/notebook
+// https://github.com/jupyter/notebook/blob/b8b66332e2023e83d2ee04f83d8814f567e01a4e/notebook/static/base/js/utils.js
+// Remove characters that are overridden by backspace characters
+function fixBackspace(txt: string) {
+  let tmp = txt;
+  do {
+      txt = tmp;
+      // Cancel out anything-but-newline followed by backspace
+      tmp = txt.replace(/[^\n]\x08/gm, '');
+  } while (tmp.length < txt.length);
+  return txt;
+}
+
+// Remove chunks that should be overridden by the effect of
+// carriage return characters
+// From https://github.com/jupyter/notebook/blob/master/notebook/static/base/js/utils.js
+function fixCarriageReturn(txt: string) {
+  txt = txt.replace(/\r+\n/gm, '\n'); // \r followed by \n --> newline
+  while (txt.search(/\r[^$]/g) > -1) {
+      var base = txt.match(/^(.*)\r+/m)![1];
+      var insert = txt.match(/\r+(.*)$/m)![1];
+      insert = insert + base.slice(insert.length, base.length);
+      txt = txt.replace(/\r+.*$/m, '\r').replace(/^.*\r/m, insert);
+  }
+  return txt;
+}
+
+export function formatStreamText(str: string): string {
+  // Do the same thing jupyter is doing
+  return fixCarriageReturn(fixBackspace(str));
 }

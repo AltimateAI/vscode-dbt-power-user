@@ -34,7 +34,7 @@ class JupyterKernelExecutor:
 
         # Extract WebSocket URL
         websocket_url = f"ws://{connection_data['ip']}:{connection_data['shell_port']}/api/kernels/{self.kernel_manager.kernel_id}/channels"
-        print(websocket_url)
+        print(connection_data, self.kernel_manager.kernel_name, self.kernel_manager.kernel_spec.name)
 
     def execute(self, code, user_expressions=None):
         self.kernel_client.wait_for_ready()
@@ -122,6 +122,9 @@ class AltimateNotebookKernel:
             self.kernel_executor = None
             print(f"Notebook {self.doc_uri} closed and kernel shut down.")
 
+    def get_connection_file(self):
+        return self.kernel_executor.kernel_manager.connection_file
+    
     def initialize_kernel_executor(self):
         """
         Initializes the Jupyter kernel executor.

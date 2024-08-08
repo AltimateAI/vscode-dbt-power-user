@@ -6,6 +6,7 @@ import path = require("path");
 import { ClientMapper } from "./clientMapper";
 import { randomUUID } from "crypto";
 import { newRawKernel } from "./kernelClient";
+import { cellOutputToVSCCellOutput } from "./helpers";
 
 // eslint-disable-next-line no-empty,@typescript-eslint/no-empty-function
 export function noop() {}
@@ -529,18 +530,31 @@ export class NotebookKernel implements vscode.Disposable {
           //   pythonApi.environments.getActiveEnvironmentPath().path,
           // ]);
           // result = (await server.execute(cell.document.getText()))?.output;
-          const result = await notebookClient.executePython(
+              
+      // execution.appendOutput(cellOutputToVSCCellOutput({
+      //   output_type: "stream",
+      //   name: "stdout",
+      //   text: "hi",
+      // }));
+
+          const output = await notebookClient.executePython(
             cell.document.getText(),
-            cell.metadata.cellId,
-            (output) => {
-              outputCells.push(
-                vscode.NotebookCellOutputItem.json(
-                  output,
-                  "application/json"
-                )
-              );
+            cell);
+
+            if (output){
+      execution.appendOutput(output);
             }
-          );
+              // output.items.forEach((item) => {
+              //   outputCells.push(
+              //     vscode.NotebookCellOutputItem.stdout(
+              //       item.data,
+              //       // item.mime
+              //     )
+              //   );
+              // })
+              
+          //   }
+          // );
           // await Promise.resolve();
           // result?.done;
           // if (!result){
@@ -600,6 +614,7 @@ export class NotebookKernel implements vscode.Disposable {
               "application/perspective-json"
             )
           );
+      execution.appendOutput(new vscode.NotebookCellOutput(outputCells));
 
         // Testing new cell creation
         // Will be used based on data after execution
@@ -640,7 +655,7 @@ export class NotebookKernel implements vscode.Disposable {
       //     ),
       //   ]),
       // ]);
-      execution.appendOutput(new vscode.NotebookCellOutput(outputCells));
+      // execution.appendOutput(new vscode.NotebookCellOutput(outputCells));
 
       execution.end(true, Date.now());
     } catch (err) {
