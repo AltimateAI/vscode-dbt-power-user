@@ -2,13 +2,8 @@ import { useState } from "react";
 import { Button as ReactStrapButton, ButtonProps } from "reactstrap";
 import Tooltip from "../tooltip/Tooltip";
 
-export const Button = (
-  props: ButtonProps,
-  buttonText: string,
-  icon?: JSX.Element,
-  showHoverEffect = false,
-): JSX.Element => {
-  const isIconPresrent = showHoverEffect && icon ? true : false;
+export const Button = (props: ButtonProps): JSX.Element => {
+  const isIconPresrent = props?.showHoverEffect && props?.icon ? true : false;
   const [showButtonText, setShowButtonText] = useState<boolean>(
     isIconPresrent ? false : true,
   );
@@ -22,7 +17,7 @@ export const Button = (
         onMouseEnter={() => mouseHoverAction(true)}
         onMouseLeave={() => mouseHoverAction(false)}
       >
-        {isIconPresrent && icon} {showButtonText && buttonText}
+        {isIconPresrent && props?.icon} {showButtonText && props.buttonText}
       </ReactStrapButton>
     </Tooltip>
   );
