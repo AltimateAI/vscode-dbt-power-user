@@ -78,7 +78,7 @@ const AddCoversationButton = ({
   return (
     <Drawer
       buttonProps={{ color: "primary", title: "Start conversation" }}
-      buttonText={<CommentIcon />}
+      icon={<CommentIcon />}
       title="Start conversation"
       ref={drawerRef}
     >

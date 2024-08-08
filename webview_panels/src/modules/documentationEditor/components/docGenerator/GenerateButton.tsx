@@ -2,6 +2,7 @@ import { ShinesIcon } from "@assets/icons";
 import PreviewFeatureIcon from "@modules/previewFeature/PreviewFeatureIcon";
 import { Button } from "@uicore";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export enum Variants {
   ICON,
   TEXT,

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useMemo, useReducer } from "react";
 import QueryPanel from "./QueryPanel";
 import { QueryPanelStateProps } from "./context/types";

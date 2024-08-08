@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { ChevronRightIcon } from "@assets/icons";
 import {
   forwardRef,
@@ -19,6 +20,7 @@ interface Props {
   title?: string;
   buttonProps?: ButtonProps;
   buttonText?: ReactNode | string;
+  icon?: JSX.Element;
   onClose?: () => void;
   children: ReactNode;
 }
@@ -29,7 +31,7 @@ export interface DrawerRef {
 }
 
 const Drawer: ForwardRefRenderFunction<DrawerRef, Props> = (
-  { buttonProps, buttonText, title, onClose, children },
+  { buttonProps, buttonText, icon, title, onClose, children },
   ref,
 ) => {
   const [show, setShow] = useState(false);
@@ -54,7 +56,12 @@ const Drawer: ForwardRefRenderFunction<DrawerRef, Props> = (
   return (
     <>
       {buttonText ? (
-        <Button {...buttonProps} onClick={handleShow} buttonText={buttonText} />
+        <Button
+          {...buttonProps}
+          onClick={handleShow}
+          buttonText={buttonText}
+          icon={icon}
+        />
       ) : null}
 
       <Offcanvas
