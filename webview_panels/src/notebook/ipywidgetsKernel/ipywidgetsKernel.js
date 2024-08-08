@@ -1,4636 +1,6120 @@
-var Pl = Object.create;
-var vn = Object.defineProperty;
-var Ml = Object.getOwnPropertyDescriptor;
-var Tl = Object.getOwnPropertyNames;
-var Ol = Object.getPrototypeOf,
-  Nl = Object.prototype.hasOwnProperty;
-var Ns = (n, e) => () => (n && (e = n((n = 0))), e);
-var k = (n, e) => () => (e || n((e = { exports: {} }).exports, e), e.exports),
-  Ll = (n, e) => {
-    for (var t in e) vn(n, t, { get: e[t], enumerable: !0 });
-  },
-  Ls = (n, e, t, r) => {
-    if ((e && typeof e == "object") || typeof e == "function")
-      for (let i of Tl(e))
-        !Nl.call(n, i) &&
-          i !== t &&
-          vn(n, i, {
-            get: () => e[i],
-            enumerable: !(r = Ml(e, i)) || r.enumerable,
-          });
-    return n;
-  };
-var Ct = (n, e, t) => (
-    (t = n != null ? Pl(Ol(n)) : {}),
-    Ls(
-      e || !n || !n.__esModule
-        ? vn(t, "default", { value: n, enumerable: !0 })
-        : t,
-      n
-    )
-  ),
-  kl = (n) => Ls(vn({}, "__esModule", { value: !0 }), n);
-var process,
-  h = Ns(() => {
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
+var __commonJS = (cb, mod) => function __require() {
+  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+};
+var __export = (target, all) => {
+  for (var name2 in all)
+    __defProp(target, name2, { get: all[name2], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+// build/esbuild/process.development.js
+var process;
+var init_process_development = __esm({
+  "build/esbuild/process.development.js"() {
     "use strict";
     process = {
       platform: "web",
       cwd: () => "",
-      env: { NODE_ENV: "production" },
+      env: {
+        NODE_ENV: "development"
+      }
     };
-  });
-var kr = k((gf, Ws) => {
-  "use strict";
-  h();
-  var Fs = Array.isArray,
-    Us = Object.keys,
-    jl = Object.prototype.hasOwnProperty;
-  Ws.exports = function n(e, t) {
-    if (e === t) return !0;
-    if (e && t && typeof e == "object" && typeof t == "object") {
-      var r = Fs(e),
-        i = Fs(t),
-        s,
-        o,
-        a;
-      if (r && i) {
-        if (((o = e.length), o != t.length)) return !1;
-        for (s = o; s-- !== 0; ) if (!n(e[s], t[s])) return !1;
-        return !0;
-      }
-      if (r != i) return !1;
-      var l = e instanceof Date,
-        u = t instanceof Date;
-      if (l != u) return !1;
-      if (l && u) return e.getTime() == t.getTime();
-      var f = e instanceof RegExp,
-        c = t instanceof RegExp;
-      if (f != c) return !1;
-      if (f && c) return e.toString() == t.toString();
-      var C = Us(e);
-      if (((o = C.length), o !== Us(t).length)) return !1;
-      for (s = o; s-- !== 0; ) if (!jl.call(t, C[s])) return !1;
-      for (s = o; s-- !== 0; ) if (((a = C[s]), !n(e[a], t[a]))) return !1;
-      return !0;
-    }
-    return e !== e && t !== t;
-  };
+  }
 });
-var ct = k((En, Ks) => {
-  h();
-  (function (n, e) {
-    typeof En == "object" && typeof Ks != "undefined"
-      ? e(En)
-      : typeof define == "function" && define.amd
-        ? define(["exports"], e)
-        : ((n = typeof globalThis != "undefined" ? globalThis : n || self),
-          e((n.lumino_algorithm = {})));
-  })(En, function (n) {
+
+// node_modules/fast-deep-equal/index.js
+var require_fast_deep_equal = __commonJS({
+  "node_modules/fast-deep-equal/index.js"(exports2, module2) {
     "use strict";
-    (n.ArrayExt = void 0),
-      (function (d) {
-        function g(A, P, _, p) {
-          _ === void 0 && (_ = 0), p === void 0 && (p = -1);
-          var v = A.length;
-          if (v === 0) return -1;
-          _ < 0 ? (_ = Math.max(0, _ + v)) : (_ = Math.min(_, v - 1)),
-            p < 0 ? (p = Math.max(0, p + v)) : (p = Math.min(p, v - 1));
-          var N;
-          p < _ ? (N = p + 1 + (v - _)) : (N = p - _ + 1);
-          for (var j = 0; j < N; ++j) {
-            var Q = (_ + j) % v;
-            if (A[Q] === P) return Q;
+    init_process_development();
+    var isArray = Array.isArray;
+    var keyList = Object.keys;
+    var hasProp = Object.prototype.hasOwnProperty;
+    module2.exports = function equal(a, b) {
+      if (a === b)
+        return true;
+      if (a && b && typeof a == "object" && typeof b == "object") {
+        var arrA = isArray(a), arrB = isArray(b), i, length, key;
+        if (arrA && arrB) {
+          length = a.length;
+          if (length != b.length)
+            return false;
+          for (i = length; i-- !== 0; )
+            if (!equal(a[i], b[i]))
+              return false;
+          return true;
+        }
+        if (arrA != arrB)
+          return false;
+        var dateA = a instanceof Date, dateB = b instanceof Date;
+        if (dateA != dateB)
+          return false;
+        if (dateA && dateB)
+          return a.getTime() == b.getTime();
+        var regexpA = a instanceof RegExp, regexpB = b instanceof RegExp;
+        if (regexpA != regexpB)
+          return false;
+        if (regexpA && regexpB)
+          return a.toString() == b.toString();
+        var keys = keyList(a);
+        length = keys.length;
+        if (length !== keyList(b).length)
+          return false;
+        for (i = length; i-- !== 0; )
+          if (!hasProp.call(b, keys[i]))
+            return false;
+        for (i = length; i-- !== 0; ) {
+          key = keys[i];
+          if (!equal(a[key], b[key]))
+            return false;
+        }
+        return true;
+      }
+      return a !== a && b !== b;
+    };
+  }
+});
+
+// node_modules/@lumino/algorithm/dist/index.js
+var require_dist = __commonJS({
+  "node_modules/@lumino/algorithm/dist/index.js"(exports2, module2) {
+    init_process_development();
+    (function(global2, factory) {
+      typeof exports2 === "object" && typeof module2 !== "undefined" ? factory(exports2) : typeof define === "function" && define.amd ? define(["exports"], factory) : (global2 = typeof globalThis !== "undefined" ? globalThis : global2 || self, factory(global2.lumino_algorithm = {}));
+    })(exports2, function(exports3) {
+      "use strict";
+      exports3.ArrayExt = void 0;
+      (function(ArrayExt) {
+        function firstIndexOf(array, value, start, stop) {
+          if (start === void 0) {
+            start = 0;
+          }
+          if (stop === void 0) {
+            stop = -1;
+          }
+          var n = array.length;
+          if (n === 0) {
+            return -1;
+          }
+          if (start < 0) {
+            start = Math.max(0, start + n);
+          } else {
+            start = Math.min(start, n - 1);
+          }
+          if (stop < 0) {
+            stop = Math.max(0, stop + n);
+          } else {
+            stop = Math.min(stop, n - 1);
+          }
+          var span;
+          if (stop < start) {
+            span = stop + 1 + (n - start);
+          } else {
+            span = stop - start + 1;
+          }
+          for (var i = 0; i < span; ++i) {
+            var j = (start + i) % n;
+            if (array[j] === value) {
+              return j;
+            }
           }
           return -1;
         }
-        d.firstIndexOf = g;
-        function D(A, P, _, p) {
-          _ === void 0 && (_ = -1), p === void 0 && (p = 0);
-          var v = A.length;
-          if (v === 0) return -1;
-          _ < 0 ? (_ = Math.max(0, _ + v)) : (_ = Math.min(_, v - 1)),
-            p < 0 ? (p = Math.max(0, p + v)) : (p = Math.min(p, v - 1));
-          var N;
-          _ < p ? (N = _ + 1 + (v - p)) : (N = _ - p + 1);
-          for (var j = 0; j < N; ++j) {
-            var Q = (_ - j + v) % v;
-            if (A[Q] === P) return Q;
+        ArrayExt.firstIndexOf = firstIndexOf;
+        function lastIndexOf(array, value, start, stop) {
+          if (start === void 0) {
+            start = -1;
+          }
+          if (stop === void 0) {
+            stop = 0;
+          }
+          var n = array.length;
+          if (n === 0) {
+            return -1;
+          }
+          if (start < 0) {
+            start = Math.max(0, start + n);
+          } else {
+            start = Math.min(start, n - 1);
+          }
+          if (stop < 0) {
+            stop = Math.max(0, stop + n);
+          } else {
+            stop = Math.min(stop, n - 1);
+          }
+          var span;
+          if (start < stop) {
+            span = start + 1 + (n - stop);
+          } else {
+            span = start - stop + 1;
+          }
+          for (var i = 0; i < span; ++i) {
+            var j = (start - i + n) % n;
+            if (array[j] === value) {
+              return j;
+            }
           }
           return -1;
         }
-        d.lastIndexOf = D;
-        function x(A, P, _, p) {
-          _ === void 0 && (_ = 0), p === void 0 && (p = -1);
-          var v = A.length;
-          if (v === 0) return -1;
-          _ < 0 ? (_ = Math.max(0, _ + v)) : (_ = Math.min(_, v - 1)),
-            p < 0 ? (p = Math.max(0, p + v)) : (p = Math.min(p, v - 1));
-          var N;
-          p < _ ? (N = p + 1 + (v - _)) : (N = p - _ + 1);
-          for (var j = 0; j < N; ++j) {
-            var Q = (_ + j) % v;
-            if (P(A[Q], Q)) return Q;
+        ArrayExt.lastIndexOf = lastIndexOf;
+        function findFirstIndex(array, fn, start, stop) {
+          if (start === void 0) {
+            start = 0;
+          }
+          if (stop === void 0) {
+            stop = -1;
+          }
+          var n = array.length;
+          if (n === 0) {
+            return -1;
+          }
+          if (start < 0) {
+            start = Math.max(0, start + n);
+          } else {
+            start = Math.min(start, n - 1);
+          }
+          if (stop < 0) {
+            stop = Math.max(0, stop + n);
+          } else {
+            stop = Math.min(stop, n - 1);
+          }
+          var span;
+          if (stop < start) {
+            span = stop + 1 + (n - start);
+          } else {
+            span = stop - start + 1;
+          }
+          for (var i = 0; i < span; ++i) {
+            var j = (start + i) % n;
+            if (fn(array[j], j)) {
+              return j;
+            }
           }
           return -1;
         }
-        d.findFirstIndex = x;
-        function U(A, P, _, p) {
-          _ === void 0 && (_ = -1), p === void 0 && (p = 0);
-          var v = A.length;
-          if (v === 0) return -1;
-          _ < 0 ? (_ = Math.max(0, _ + v)) : (_ = Math.min(_, v - 1)),
-            p < 0 ? (p = Math.max(0, p + v)) : (p = Math.min(p, v - 1));
-          var N;
-          _ < p ? (N = _ + 1 + (v - p)) : (N = _ - p + 1);
-          for (var j = 0; j < N; ++j) {
-            var Q = (_ - j + v) % v;
-            if (P(A[Q], Q)) return Q;
+        ArrayExt.findFirstIndex = findFirstIndex;
+        function findLastIndex(array, fn, start, stop) {
+          if (start === void 0) {
+            start = -1;
+          }
+          if (stop === void 0) {
+            stop = 0;
+          }
+          var n = array.length;
+          if (n === 0) {
+            return -1;
+          }
+          if (start < 0) {
+            start = Math.max(0, start + n);
+          } else {
+            start = Math.min(start, n - 1);
+          }
+          if (stop < 0) {
+            stop = Math.max(0, stop + n);
+          } else {
+            stop = Math.min(stop, n - 1);
+          }
+          var d;
+          if (start < stop) {
+            d = start + 1 + (n - stop);
+          } else {
+            d = start - stop + 1;
+          }
+          for (var i = 0; i < d; ++i) {
+            var j = (start - i + n) % n;
+            if (fn(array[j], j)) {
+              return j;
+            }
           }
           return -1;
         }
-        d.findLastIndex = U;
-        function le(A, P, _, p) {
-          _ === void 0 && (_ = 0), p === void 0 && (p = -1);
-          var v = x(A, P, _, p);
-          return v !== -1 ? A[v] : void 0;
-        }
-        d.findFirstValue = le;
-        function G(A, P, _, p) {
-          _ === void 0 && (_ = -1), p === void 0 && (p = 0);
-          var v = U(A, P, _, p);
-          return v !== -1 ? A[v] : void 0;
-        }
-        d.findLastValue = G;
-        function $(A, P, _, p, v) {
-          p === void 0 && (p = 0), v === void 0 && (v = -1);
-          var N = A.length;
-          if (N === 0) return 0;
-          p < 0 ? (p = Math.max(0, p + N)) : (p = Math.min(p, N - 1)),
-            v < 0 ? (v = Math.max(0, v + N)) : (v = Math.min(v, N - 1));
-          for (var j = p, Q = v - p + 1; Q > 0; ) {
-            var Re = Q >> 1,
-              It = j + Re;
-            _(A[It], P) < 0 ? ((j = It + 1), (Q -= Re + 1)) : (Q = Re);
+        ArrayExt.findLastIndex = findLastIndex;
+        function findFirstValue(array, fn, start, stop) {
+          if (start === void 0) {
+            start = 0;
           }
-          return j;
-        }
-        d.lowerBound = $;
-        function ee(A, P, _, p, v) {
-          p === void 0 && (p = 0), v === void 0 && (v = -1);
-          var N = A.length;
-          if (N === 0) return 0;
-          p < 0 ? (p = Math.max(0, p + N)) : (p = Math.min(p, N - 1)),
-            v < 0 ? (v = Math.max(0, v + N)) : (v = Math.min(v, N - 1));
-          for (var j = p, Q = v - p + 1; Q > 0; ) {
-            var Re = Q >> 1,
-              It = j + Re;
-            _(A[It], P) > 0 ? (Q = Re) : ((j = It + 1), (Q -= Re + 1));
+          if (stop === void 0) {
+            stop = -1;
           }
-          return j;
+          var index = findFirstIndex(array, fn, start, stop);
+          return index !== -1 ? array[index] : void 0;
         }
-        d.upperBound = ee;
-        function te(A, P, _) {
-          if (A === P) return !0;
-          if (A.length !== P.length) return !1;
-          for (var p = 0, v = A.length; p < v; ++p)
-            if (_ ? !_(A[p], P[p]) : A[p] !== P[p]) return !1;
-          return !0;
+        ArrayExt.findFirstValue = findFirstValue;
+        function findLastValue(array, fn, start, stop) {
+          if (start === void 0) {
+            start = -1;
+          }
+          if (stop === void 0) {
+            stop = 0;
+          }
+          var index = findLastIndex(array, fn, start, stop);
+          return index !== -1 ? array[index] : void 0;
         }
-        d.shallowEqual = te;
-        function oe(A, P) {
-          P === void 0 && (P = {});
-          var _ = P.start,
-            p = P.stop,
-            v = P.step;
-          if ((v === void 0 && (v = 1), v === 0))
+        ArrayExt.findLastValue = findLastValue;
+        function lowerBound(array, value, fn, start, stop) {
+          if (start === void 0) {
+            start = 0;
+          }
+          if (stop === void 0) {
+            stop = -1;
+          }
+          var n = array.length;
+          if (n === 0) {
+            return 0;
+          }
+          if (start < 0) {
+            start = Math.max(0, start + n);
+          } else {
+            start = Math.min(start, n - 1);
+          }
+          if (stop < 0) {
+            stop = Math.max(0, stop + n);
+          } else {
+            stop = Math.min(stop, n - 1);
+          }
+          var begin = start;
+          var span = stop - start + 1;
+          while (span > 0) {
+            var half = span >> 1;
+            var middle = begin + half;
+            if (fn(array[middle], value) < 0) {
+              begin = middle + 1;
+              span -= half + 1;
+            } else {
+              span = half;
+            }
+          }
+          return begin;
+        }
+        ArrayExt.lowerBound = lowerBound;
+        function upperBound(array, value, fn, start, stop) {
+          if (start === void 0) {
+            start = 0;
+          }
+          if (stop === void 0) {
+            stop = -1;
+          }
+          var n = array.length;
+          if (n === 0) {
+            return 0;
+          }
+          if (start < 0) {
+            start = Math.max(0, start + n);
+          } else {
+            start = Math.min(start, n - 1);
+          }
+          if (stop < 0) {
+            stop = Math.max(0, stop + n);
+          } else {
+            stop = Math.min(stop, n - 1);
+          }
+          var begin = start;
+          var span = stop - start + 1;
+          while (span > 0) {
+            var half = span >> 1;
+            var middle = begin + half;
+            if (fn(array[middle], value) > 0) {
+              span = half;
+            } else {
+              begin = middle + 1;
+              span -= half + 1;
+            }
+          }
+          return begin;
+        }
+        ArrayExt.upperBound = upperBound;
+        function shallowEqual(a, b, fn) {
+          if (a === b) {
+            return true;
+          }
+          if (a.length !== b.length) {
+            return false;
+          }
+          for (var i = 0, n = a.length; i < n; ++i) {
+            if (fn ? !fn(a[i], b[i]) : a[i] !== b[i]) {
+              return false;
+            }
+          }
+          return true;
+        }
+        ArrayExt.shallowEqual = shallowEqual;
+        function slice(array, options) {
+          if (options === void 0) {
+            options = {};
+          }
+          var start = options.start, stop = options.stop, step = options.step;
+          if (step === void 0) {
+            step = 1;
+          }
+          if (step === 0) {
             throw new Error("Slice `step` cannot be zero.");
-          var N = A.length;
-          _ === void 0
-            ? (_ = v < 0 ? N - 1 : 0)
-            : _ < 0
-              ? (_ = Math.max(_ + N, v < 0 ? -1 : 0))
-              : _ >= N && (_ = v < 0 ? N - 1 : N),
-            p === void 0
-              ? (p = v < 0 ? -1 : N)
-              : p < 0
-                ? (p = Math.max(p + N, v < 0 ? -1 : 0))
-                : p >= N && (p = v < 0 ? N - 1 : N);
-          var j;
-          (v < 0 && p >= _) || (v > 0 && _ >= p)
-            ? (j = 0)
-            : v < 0
-              ? (j = Math.floor((p - _ + 1) / v + 1))
-              : (j = Math.floor((p - _ - 1) / v + 1));
-          for (var Q = [], Re = 0; Re < j; ++Re) Q[Re] = A[_ + Re * v];
-          return Q;
+          }
+          var n = array.length;
+          if (start === void 0) {
+            start = step < 0 ? n - 1 : 0;
+          } else if (start < 0) {
+            start = Math.max(start + n, step < 0 ? -1 : 0);
+          } else if (start >= n) {
+            start = step < 0 ? n - 1 : n;
+          }
+          if (stop === void 0) {
+            stop = step < 0 ? -1 : n;
+          } else if (stop < 0) {
+            stop = Math.max(stop + n, step < 0 ? -1 : 0);
+          } else if (stop >= n) {
+            stop = step < 0 ? n - 1 : n;
+          }
+          var length;
+          if (step < 0 && stop >= start || step > 0 && start >= stop) {
+            length = 0;
+          } else if (step < 0) {
+            length = Math.floor((stop - start + 1) / step + 1);
+          } else {
+            length = Math.floor((stop - start - 1) / step + 1);
+          }
+          var result = [];
+          for (var i = 0; i < length; ++i) {
+            result[i] = array[start + i * step];
+          }
+          return result;
         }
-        d.slice = oe;
-        function se(A, P, _) {
-          var p = A.length;
-          if (
-            !(p <= 1) &&
-            (P < 0 ? (P = Math.max(0, P + p)) : (P = Math.min(P, p - 1)),
-            _ < 0 ? (_ = Math.max(0, _ + p)) : (_ = Math.min(_, p - 1)),
-            P !== _)
-          ) {
-            for (var v = A[P], N = P < _ ? 1 : -1, j = P; j !== _; j += N)
-              A[j] = A[j + N];
-            A[_] = v;
+        ArrayExt.slice = slice;
+        function move(array, fromIndex, toIndex) {
+          var n = array.length;
+          if (n <= 1) {
+            return;
+          }
+          if (fromIndex < 0) {
+            fromIndex = Math.max(0, fromIndex + n);
+          } else {
+            fromIndex = Math.min(fromIndex, n - 1);
+          }
+          if (toIndex < 0) {
+            toIndex = Math.max(0, toIndex + n);
+          } else {
+            toIndex = Math.min(toIndex, n - 1);
+          }
+          if (fromIndex === toIndex) {
+            return;
+          }
+          var value = array[fromIndex];
+          var d = fromIndex < toIndex ? 1 : -1;
+          for (var i = fromIndex; i !== toIndex; i += d) {
+            array[i] = array[i + d];
+          }
+          array[toIndex] = value;
+        }
+        ArrayExt.move = move;
+        function reverse(array, start, stop) {
+          if (start === void 0) {
+            start = 0;
+          }
+          if (stop === void 0) {
+            stop = -1;
+          }
+          var n = array.length;
+          if (n <= 1) {
+            return;
+          }
+          if (start < 0) {
+            start = Math.max(0, start + n);
+          } else {
+            start = Math.min(start, n - 1);
+          }
+          if (stop < 0) {
+            stop = Math.max(0, stop + n);
+          } else {
+            stop = Math.min(stop, n - 1);
+          }
+          while (start < stop) {
+            var a = array[start];
+            var b = array[stop];
+            array[start++] = b;
+            array[stop--] = a;
           }
         }
-        d.move = se;
-        function pe(A, P, _) {
-          P === void 0 && (P = 0), _ === void 0 && (_ = -1);
-          var p = A.length;
-          if (!(p <= 1))
-            for (
-              P < 0 ? (P = Math.max(0, P + p)) : (P = Math.min(P, p - 1)),
-                _ < 0 ? (_ = Math.max(0, _ + p)) : (_ = Math.min(_, p - 1));
-              P < _;
-
-            ) {
-              var v = A[P],
-                N = A[_];
-              (A[P++] = N), (A[_--] = v);
+        ArrayExt.reverse = reverse;
+        function rotate(array, delta, start, stop) {
+          if (start === void 0) {
+            start = 0;
+          }
+          if (stop === void 0) {
+            stop = -1;
+          }
+          var n = array.length;
+          if (n <= 1) {
+            return;
+          }
+          if (start < 0) {
+            start = Math.max(0, start + n);
+          } else {
+            start = Math.min(start, n - 1);
+          }
+          if (stop < 0) {
+            stop = Math.max(0, stop + n);
+          } else {
+            stop = Math.min(stop, n - 1);
+          }
+          if (start >= stop) {
+            return;
+          }
+          var length = stop - start + 1;
+          if (delta > 0) {
+            delta = delta % length;
+          } else if (delta < 0) {
+            delta = (delta % length + length) % length;
+          }
+          if (delta === 0) {
+            return;
+          }
+          var pivot = start + delta;
+          reverse(array, start, pivot - 1);
+          reverse(array, pivot, stop);
+          reverse(array, start, stop);
+        }
+        ArrayExt.rotate = rotate;
+        function fill(array, value, start, stop) {
+          if (start === void 0) {
+            start = 0;
+          }
+          if (stop === void 0) {
+            stop = -1;
+          }
+          var n = array.length;
+          if (n === 0) {
+            return;
+          }
+          if (start < 0) {
+            start = Math.max(0, start + n);
+          } else {
+            start = Math.min(start, n - 1);
+          }
+          if (stop < 0) {
+            stop = Math.max(0, stop + n);
+          } else {
+            stop = Math.min(stop, n - 1);
+          }
+          var span;
+          if (stop < start) {
+            span = stop + 1 + (n - start);
+          } else {
+            span = stop - start + 1;
+          }
+          for (var i = 0; i < span; ++i) {
+            array[(start + i) % n] = value;
+          }
+        }
+        ArrayExt.fill = fill;
+        function insert(array, index, value) {
+          var n = array.length;
+          if (index < 0) {
+            index = Math.max(0, index + n);
+          } else {
+            index = Math.min(index, n);
+          }
+          for (var i = n; i > index; --i) {
+            array[i] = array[i - 1];
+          }
+          array[index] = value;
+        }
+        ArrayExt.insert = insert;
+        function removeAt(array, index) {
+          var n = array.length;
+          if (index < 0) {
+            index += n;
+          }
+          if (index < 0 || index >= n) {
+            return void 0;
+          }
+          var value = array[index];
+          for (var i = index + 1; i < n; ++i) {
+            array[i - 1] = array[i];
+          }
+          array.length = n - 1;
+          return value;
+        }
+        ArrayExt.removeAt = removeAt;
+        function removeFirstOf(array, value, start, stop) {
+          if (start === void 0) {
+            start = 0;
+          }
+          if (stop === void 0) {
+            stop = -1;
+          }
+          var index = firstIndexOf(array, value, start, stop);
+          if (index !== -1) {
+            removeAt(array, index);
+          }
+          return index;
+        }
+        ArrayExt.removeFirstOf = removeFirstOf;
+        function removeLastOf(array, value, start, stop) {
+          if (start === void 0) {
+            start = -1;
+          }
+          if (stop === void 0) {
+            stop = 0;
+          }
+          var index = lastIndexOf(array, value, start, stop);
+          if (index !== -1) {
+            removeAt(array, index);
+          }
+          return index;
+        }
+        ArrayExt.removeLastOf = removeLastOf;
+        function removeAllOf(array, value, start, stop) {
+          if (start === void 0) {
+            start = 0;
+          }
+          if (stop === void 0) {
+            stop = -1;
+          }
+          var n = array.length;
+          if (n === 0) {
+            return 0;
+          }
+          if (start < 0) {
+            start = Math.max(0, start + n);
+          } else {
+            start = Math.min(start, n - 1);
+          }
+          if (stop < 0) {
+            stop = Math.max(0, stop + n);
+          } else {
+            stop = Math.min(stop, n - 1);
+          }
+          var count = 0;
+          for (var i = 0; i < n; ++i) {
+            if (start <= stop && i >= start && i <= stop && array[i] === value) {
+              count++;
+            } else if (stop < start && (i <= stop || i >= start) && array[i] === value) {
+              count++;
+            } else if (count > 0) {
+              array[i - count] = array[i];
             }
+          }
+          if (count > 0) {
+            array.length = n - count;
+          }
+          return count;
         }
-        d.reverse = pe;
-        function Me(A, P, _, p) {
-          _ === void 0 && (_ = 0), p === void 0 && (p = -1);
-          var v = A.length;
-          if (
-            !(v <= 1) &&
-            (_ < 0 ? (_ = Math.max(0, _ + v)) : (_ = Math.min(_, v - 1)),
-            p < 0 ? (p = Math.max(0, p + v)) : (p = Math.min(p, v - 1)),
-            !(_ >= p))
-          ) {
-            var N = p - _ + 1;
-            if (
-              (P > 0 ? (P = P % N) : P < 0 && (P = ((P % N) + N) % N), P !== 0)
-            ) {
-              var j = _ + P;
-              pe(A, _, j - 1), pe(A, j, p), pe(A, _, p);
+        ArrayExt.removeAllOf = removeAllOf;
+        function removeFirstWhere(array, fn, start, stop) {
+          if (start === void 0) {
+            start = 0;
+          }
+          if (stop === void 0) {
+            stop = -1;
+          }
+          var value;
+          var index = findFirstIndex(array, fn, start, stop);
+          if (index !== -1) {
+            value = removeAt(array, index);
+          }
+          return { index, value };
+        }
+        ArrayExt.removeFirstWhere = removeFirstWhere;
+        function removeLastWhere(array, fn, start, stop) {
+          if (start === void 0) {
+            start = -1;
+          }
+          if (stop === void 0) {
+            stop = 0;
+          }
+          var value;
+          var index = findLastIndex(array, fn, start, stop);
+          if (index !== -1) {
+            value = removeAt(array, index);
+          }
+          return { index, value };
+        }
+        ArrayExt.removeLastWhere = removeLastWhere;
+        function removeAllWhere(array, fn, start, stop) {
+          if (start === void 0) {
+            start = 0;
+          }
+          if (stop === void 0) {
+            stop = -1;
+          }
+          var n = array.length;
+          if (n === 0) {
+            return 0;
+          }
+          if (start < 0) {
+            start = Math.max(0, start + n);
+          } else {
+            start = Math.min(start, n - 1);
+          }
+          if (stop < 0) {
+            stop = Math.max(0, stop + n);
+          } else {
+            stop = Math.min(stop, n - 1);
+          }
+          var count = 0;
+          for (var i = 0; i < n; ++i) {
+            if (start <= stop && i >= start && i <= stop && fn(array[i], i)) {
+              count++;
+            } else if (stop < start && (i <= stop || i >= start) && fn(array[i], i)) {
+              count++;
+            } else if (count > 0) {
+              array[i - count] = array[i];
             }
           }
+          if (count > 0) {
+            array.length = n - count;
+          }
+          return count;
         }
-        d.rotate = Me;
-        function Oe(A, P, _, p) {
-          _ === void 0 && (_ = 0), p === void 0 && (p = -1);
-          var v = A.length;
-          if (v !== 0) {
-            _ < 0 ? (_ = Math.max(0, _ + v)) : (_ = Math.min(_, v - 1)),
-              p < 0 ? (p = Math.max(0, p + v)) : (p = Math.min(p, v - 1));
-            var N;
-            p < _ ? (N = p + 1 + (v - _)) : (N = p - _ + 1);
-            for (var j = 0; j < N; ++j) A[(_ + j) % v] = P;
+        ArrayExt.removeAllWhere = removeAllWhere;
+      })(exports3.ArrayExt || (exports3.ArrayExt = {}));
+      function iter(object) {
+        var it;
+        if (typeof object.iter === "function") {
+          it = object.iter();
+        } else {
+          it = new ArrayIterator(object);
+        }
+        return it;
+      }
+      function iterKeys(object) {
+        return new KeyIterator(object);
+      }
+      function iterValues(object) {
+        return new ValueIterator(object);
+      }
+      function iterItems(object) {
+        return new ItemIterator(object);
+      }
+      function iterFn(fn) {
+        return new FnIterator(fn);
+      }
+      function each(object, fn) {
+        var index = 0;
+        var it = iter(object);
+        var value;
+        while ((value = it.next()) !== void 0) {
+          if (fn(value, index++) === false) {
+            return;
           }
         }
-        d.fill = Oe;
-        function Rs(A, P, _) {
-          var p = A.length;
-          P < 0 ? (P = Math.max(0, P + p)) : (P = Math.min(P, p));
-          for (var v = p; v > P; --v) A[v] = A[v - 1];
-          A[P] = _;
-        }
-        d.insert = Rs;
-        function wt(A, P) {
-          var _ = A.length;
-          if ((P < 0 && (P += _), !(P < 0 || P >= _))) {
-            for (var p = A[P], v = P + 1; v < _; ++v) A[v - 1] = A[v];
-            return (A.length = _ - 1), p;
+      }
+      function every(object, fn) {
+        var index = 0;
+        var it = iter(object);
+        var value;
+        while ((value = it.next()) !== void 0) {
+          if (!fn(value, index++)) {
+            return false;
           }
         }
-        d.removeAt = wt;
-        function As(A, P, _, p) {
-          _ === void 0 && (_ = 0), p === void 0 && (p = -1);
-          var v = g(A, P, _, p);
-          return v !== -1 && wt(A, v), v;
+        return true;
+      }
+      function some(object, fn) {
+        var index = 0;
+        var it = iter(object);
+        var value;
+        while ((value = it.next()) !== void 0) {
+          if (fn(value, index++)) {
+            return true;
+          }
         }
-        d.removeFirstOf = As;
-        function Ds(A, P, _, p) {
-          _ === void 0 && (_ = -1), p === void 0 && (p = 0);
-          var v = D(A, P, _, p);
-          return v !== -1 && wt(A, v), v;
+        return false;
+      }
+      function toArray(object) {
+        var index = 0;
+        var result = [];
+        var it = iter(object);
+        var value;
+        while ((value = it.next()) !== void 0) {
+          result[index++] = value;
         }
-        d.removeLastOf = Ds;
-        function Ps(A, P, _, p) {
-          _ === void 0 && (_ = 0), p === void 0 && (p = -1);
-          var v = A.length;
-          if (v === 0) return 0;
-          _ < 0 ? (_ = Math.max(0, _ + v)) : (_ = Math.min(_, v - 1)),
-            p < 0 ? (p = Math.max(0, p + v)) : (p = Math.min(p, v - 1));
-          for (var N = 0, j = 0; j < v; ++j)
-            (_ <= p && j >= _ && j <= p && A[j] === P) ||
-            (p < _ && (j <= p || j >= _) && A[j] === P)
-              ? N++
-              : N > 0 && (A[j - N] = A[j]);
-          return N > 0 && (A.length = v - N), N;
+        return result;
+      }
+      function toObject(object) {
+        var it = iter(object);
+        var pair;
+        var result = {};
+        while ((pair = it.next()) !== void 0) {
+          result[pair[0]] = pair[1];
         }
-        d.removeAllOf = Ps;
-        function Ms(A, P, _, p) {
-          _ === void 0 && (_ = 0), p === void 0 && (p = -1);
-          var v,
-            N = x(A, P, _, p);
-          return N !== -1 && (v = wt(A, N)), { index: N, value: v };
-        }
-        d.removeFirstWhere = Ms;
-        function Ts(A, P, _, p) {
-          _ === void 0 && (_ = -1), p === void 0 && (p = 0);
-          var v,
-            N = U(A, P, _, p);
-          return N !== -1 && (v = wt(A, N)), { index: N, value: v };
-        }
-        d.removeLastWhere = Ts;
-        function Os(A, P, _, p) {
-          _ === void 0 && (_ = 0), p === void 0 && (p = -1);
-          var v = A.length;
-          if (v === 0) return 0;
-          _ < 0 ? (_ = Math.max(0, _ + v)) : (_ = Math.min(_, v - 1)),
-            p < 0 ? (p = Math.max(0, p + v)) : (p = Math.min(p, v - 1));
-          for (var N = 0, j = 0; j < v; ++j)
-            (_ <= p && j >= _ && j <= p && P(A[j], j)) ||
-            (p < _ && (j <= p || j >= _) && P(A[j], j))
-              ? N++
-              : N > 0 && (A[j - N] = A[j]);
-          return N > 0 && (A.length = v - N), N;
-        }
-        d.removeAllWhere = Os;
-      })(n.ArrayExt || (n.ArrayExt = {}));
-    function e(d) {
-      var g;
-      return typeof d.iter == "function" ? (g = d.iter()) : (g = new c(d)), g;
-    }
-    function t(d) {
-      return new C(d);
-    }
-    function r(d) {
-      return new M(d);
-    }
-    function i(d) {
-      return new S(d);
-    }
-    function s(d) {
-      return new w(d);
-    }
-    function o(d, g) {
-      for (var D = 0, x = e(d), U; (U = x.next()) !== void 0; )
-        if (g(U, D++) === !1) return;
-    }
-    function a(d, g) {
-      for (var D = 0, x = e(d), U; (U = x.next()) !== void 0; )
-        if (!g(U, D++)) return !1;
-      return !0;
-    }
-    function l(d, g) {
-      for (var D = 0, x = e(d), U; (U = x.next()) !== void 0; )
-        if (g(U, D++)) return !0;
-      return !1;
-    }
-    function u(d) {
-      for (var g = 0, D = [], x = e(d), U; (U = x.next()) !== void 0; )
-        D[g++] = U;
-      return D;
-    }
-    function f(d) {
-      for (var g = e(d), D, x = {}; (D = g.next()) !== void 0; ) x[D[0]] = D[1];
-      return x;
-    }
-    var c = (function () {
-        function d(g) {
-          (this._index = 0), (this._source = g);
-        }
-        return (
-          (d.prototype.iter = function () {
+        return result;
+      }
+      var ArrayIterator = (
+        /** @class */
+        function() {
+          function ArrayIterator2(source) {
+            this._index = 0;
+            this._source = source;
+          }
+          ArrayIterator2.prototype.iter = function() {
             return this;
-          }),
-          (d.prototype.clone = function () {
-            var g = new d(this._source);
-            return (g._index = this._index), g;
-          }),
-          (d.prototype.next = function () {
-            if (!(this._index >= this._source.length))
-              return this._source[this._index++];
-          }),
-          d
-        );
-      })(),
-      C = (function () {
-        function d(g, D) {
-          D === void 0 && (D = Object.keys(g)),
-            (this._index = 0),
-            (this._source = g),
-            (this._keys = D);
-        }
-        return (
-          (d.prototype.iter = function () {
-            return this;
-          }),
-          (d.prototype.clone = function () {
-            var g = new d(this._source, this._keys);
-            return (g._index = this._index), g;
-          }),
-          (d.prototype.next = function () {
-            if (!(this._index >= this._keys.length)) {
-              var g = this._keys[this._index++];
-              return g in this._source ? g : this.next();
-            }
-          }),
-          d
-        );
-      })(),
-      M = (function () {
-        function d(g, D) {
-          D === void 0 && (D = Object.keys(g)),
-            (this._index = 0),
-            (this._source = g),
-            (this._keys = D);
-        }
-        return (
-          (d.prototype.iter = function () {
-            return this;
-          }),
-          (d.prototype.clone = function () {
-            var g = new d(this._source, this._keys);
-            return (g._index = this._index), g;
-          }),
-          (d.prototype.next = function () {
-            if (!(this._index >= this._keys.length)) {
-              var g = this._keys[this._index++];
-              return g in this._source ? this._source[g] : this.next();
-            }
-          }),
-          d
-        );
-      })(),
-      S = (function () {
-        function d(g, D) {
-          D === void 0 && (D = Object.keys(g)),
-            (this._index = 0),
-            (this._source = g),
-            (this._keys = D);
-        }
-        return (
-          (d.prototype.iter = function () {
-            return this;
-          }),
-          (d.prototype.clone = function () {
-            var g = new d(this._source, this._keys);
-            return (g._index = this._index), g;
-          }),
-          (d.prototype.next = function () {
-            if (!(this._index >= this._keys.length)) {
-              var g = this._keys[this._index++];
-              return g in this._source ? [g, this._source[g]] : this.next();
-            }
-          }),
-          d
-        );
-      })(),
-      w = (function () {
-        function d(g) {
-          this._fn = g;
-        }
-        return (
-          (d.prototype.iter = function () {
-            return this;
-          }),
-          (d.prototype.clone = function () {
-            throw new Error("An `FnIterator` cannot be cloned.");
-          }),
-          (d.prototype.next = function () {
-            return this._fn.call(void 0);
-          }),
-          d
-        );
-      })();
-    function E() {
-      for (var d = [], g = 0; g < arguments.length; g++) d[g] = arguments[g];
-      return new m(e(d.map(e)));
-    }
-    var m = (function () {
-      function d(g) {
-        (this._cloned = !1), (this._source = g), (this._active = void 0);
-      }
-      return (
-        (d.prototype.iter = function () {
-          return this;
-        }),
-        (d.prototype.clone = function () {
-          var g = new d(this._source.clone());
-          return (
-            (g._active = this._active && this._active.clone()),
-            (g._cloned = !0),
-            (this._cloned = !0),
-            g
-          );
-        }),
-        (d.prototype.next = function () {
-          if (this._active === void 0) {
-            var g = this._source.next();
-            if (g === void 0) return;
-            this._active = this._cloned ? g.clone() : g;
-          }
-          var D = this._active.next();
-          return D !== void 0 ? D : ((this._active = void 0), this.next());
-        }),
-        d
-      );
-    })();
-    function b() {
-      return new y();
-    }
-    var y = (function () {
-      function d() {}
-      return (
-        (d.prototype.iter = function () {
-          return this;
-        }),
-        (d.prototype.clone = function () {
-          return new d();
-        }),
-        (d.prototype.next = function () {}),
-        d
-      );
-    })();
-    function L(d, g) {
-      return g === void 0 && (g = 0), new q(e(d), g);
-    }
-    var q = (function () {
-      function d(g, D) {
-        (this._source = g), (this._index = D);
-      }
-      return (
-        (d.prototype.iter = function () {
-          return this;
-        }),
-        (d.prototype.clone = function () {
-          return new d(this._source.clone(), this._index);
-        }),
-        (d.prototype.next = function () {
-          var g = this._source.next();
-          if (g !== void 0) return [this._index++, g];
-        }),
-        d
-      );
-    })();
-    function F(d, g) {
-      return new R(e(d), g);
-    }
-    var R = (function () {
-      function d(g, D) {
-        (this._index = 0), (this._source = g), (this._fn = D);
-      }
-      return (
-        (d.prototype.iter = function () {
-          return this;
-        }),
-        (d.prototype.clone = function () {
-          var g = new d(this._source.clone(), this._fn);
-          return (g._index = this._index), g;
-        }),
-        (d.prototype.next = function () {
-          for (
-            var g = this._fn, D = this._source, x;
-            (x = D.next()) !== void 0;
-
-          )
-            if (g(x, this._index++)) return x;
-        }),
-        d
-      );
-    })();
-    function O(d, g) {
-      for (var D = 0, x = e(d), U; (U = x.next()) !== void 0; )
-        if (g(U, D++)) return U;
-    }
-    function W(d, g) {
-      for (var D = 0, x = e(d), U; (U = x.next()) !== void 0; )
-        if (g(U, D++)) return D - 1;
-      return -1;
-    }
-    function J(d, g) {
-      var D = e(d),
-        x = D.next();
-      if (x !== void 0) {
-        for (var U = x; (x = D.next()) !== void 0; ) g(x, U) < 0 && (U = x);
-        return U;
-      }
-    }
-    function Se(d, g) {
-      var D = e(d),
-        x = D.next();
-      if (x !== void 0) {
-        for (var U = x; (x = D.next()) !== void 0; ) g(x, U) > 0 && (U = x);
-        return U;
-      }
-    }
-    function ut(d, g) {
-      var D = e(d),
-        x = D.next();
-      if (x !== void 0) {
-        for (var U = x, le = x; (x = D.next()) !== void 0; )
-          g(x, U) < 0 ? (U = x) : g(x, le) > 0 && (le = x);
-        return [U, le];
-      }
-    }
-    function _s(d, g) {
-      return new Dr(e(d), g);
-    }
-    var Dr = (function () {
-      function d(g, D) {
-        (this._index = 0), (this._source = g), (this._fn = D);
-      }
-      return (
-        (d.prototype.iter = function () {
-          return this;
-        }),
-        (d.prototype.clone = function () {
-          var g = new d(this._source.clone(), this._fn);
-          return (g._index = this._index), g;
-        }),
-        (d.prototype.next = function () {
-          var g = this._source.next();
-          if (g !== void 0) return this._fn.call(void 0, g, this._index++);
-        }),
-        d
-      );
-    })();
-    function ms(d, g, D) {
-      return g === void 0
-        ? new Vt(0, d, 1)
-        : D === void 0
-          ? new Vt(d, g, 1)
-          : new Vt(d, g, D);
-    }
-    var Vt = (function () {
-        function d(g, D, x) {
-          (this._index = 0),
-            (this._start = g),
-            (this._stop = D),
-            (this._step = x),
-            (this._length = _n.rangeLength(g, D, x));
-        }
-        return (
-          (d.prototype.iter = function () {
-            return this;
-          }),
-          (d.prototype.clone = function () {
-            var g = new d(this._start, this._stop, this._step);
-            return (g._index = this._index), g;
-          }),
-          (d.prototype.next = function () {
-            if (!(this._index >= this._length))
-              return this._start + this._step * this._index++;
-          }),
-          d
-        );
-      })(),
-      _n;
-    (function (d) {
-      function g(D, x, U) {
-        return U === 0
-          ? 1 / 0
-          : (D > x && U > 0) || (D < x && U < 0)
-            ? 0
-            : Math.ceil((x - D) / U);
-      }
-      d.rangeLength = g;
-    })(_n || (_n = {}));
-    function vs(d, g, D) {
-      var x = 0,
-        U = e(d),
-        le = U.next();
-      if (le === void 0 && D === void 0)
-        throw new TypeError("Reduce of empty iterable with no initial value.");
-      if (le === void 0) return D;
-      var G = U.next();
-      if (G === void 0 && D === void 0) return le;
-      if (G === void 0) return g(D, le, x++);
-      var $;
-      D === void 0 ? ($ = g(le, G, x++)) : ($ = g(g(D, le, x++), G, x++));
-      for (var ee; (ee = U.next()) !== void 0; ) $ = g($, ee, x++);
-      return $;
-    }
-    function ys(d, g) {
-      return new mn(d, g);
-    }
-    function Es(d) {
-      return new mn(d, 1);
-    }
-    var mn = (function () {
-      function d(g, D) {
-        (this._value = g), (this._count = D);
-      }
-      return (
-        (d.prototype.iter = function () {
-          return this;
-        }),
-        (d.prototype.clone = function () {
-          return new d(this._value, this._count);
-        }),
-        (d.prototype.next = function () {
-          if (!(this._count <= 0)) return this._count--, this._value;
-        }),
-        d
-      );
-    })();
-    function bs(d) {
-      var g;
-      return (
-        typeof d.retro == "function" ? (g = d.retro()) : (g = new Pr(d)), g
-      );
-    }
-    var Pr = (function () {
-      function d(g) {
-        (this._source = g), (this._index = g.length - 1);
-      }
-      return (
-        (d.prototype.iter = function () {
-          return this;
-        }),
-        (d.prototype.clone = function () {
-          var g = new d(this._source);
-          return (g._index = this._index), g;
-        }),
-        (d.prototype.next = function () {
-          if (!(this._index < 0 || this._index >= this._source.length))
-            return this._source[this._index--];
-        }),
-        d
-      );
-    })();
-    function Ss(d) {
-      var g = [],
-        D = new Set(),
-        x = new Map();
-      return (
-        o(d, U),
-        x.forEach(function (G, $) {
-          le($);
-        }),
-        g
-      );
-      function U(G) {
-        var $ = G[0],
-          ee = G[1],
-          te = x.get(ee);
-        te ? te.push($) : x.set(ee, [$]);
-      }
-      function le(G) {
-        if (!D.has(G)) {
-          D.add(G);
-          var $ = x.get(G);
-          $ && $.forEach(le), g.push(G);
-        }
-      }
-    }
-    function ws(d, g) {
-      return new Mr(e(d), g);
-    }
-    var Mr = (function () {
-      function d(g, D) {
-        (this._source = g), (this._step = D);
-      }
-      return (
-        (d.prototype.iter = function () {
-          return this;
-        }),
-        (d.prototype.clone = function () {
-          return new d(this._source.clone(), this._step);
-        }),
-        (d.prototype.next = function () {
-          for (var g = this._source.next(), D = this._step - 1; D > 0; --D)
-            this._source.next();
-          return g;
-        }),
-        d
-      );
-    })();
-    (n.StringExt = void 0),
-      (function (d) {
-        function g(G, $, ee) {
-          ee === void 0 && (ee = 0);
-          for (
-            var te = new Array($.length), oe = 0, se = ee, pe = $.length;
-            oe < pe;
-            ++oe, ++se
-          ) {
-            if (((se = G.indexOf($[oe], se)), se === -1)) return null;
-            te[oe] = se;
-          }
-          return te;
-        }
-        d.findIndices = g;
-        function D(G, $, ee) {
-          ee === void 0 && (ee = 0);
-          var te = g(G, $, ee);
-          if (!te) return null;
-          for (var oe = 0, se = 0, pe = te.length; se < pe; ++se) {
-            var Me = te[se] - ee;
-            oe += Me * Me;
-          }
-          return { score: oe, indices: te };
-        }
-        d.matchSumOfSquares = D;
-        function x(G, $, ee) {
-          ee === void 0 && (ee = 0);
-          var te = g(G, $, ee);
-          if (!te) return null;
-          for (var oe = 0, se = ee - 1, pe = 0, Me = te.length; pe < Me; ++pe) {
-            var Oe = te[pe];
-            (oe += Oe - se - 1), (se = Oe);
-          }
-          return { score: oe, indices: te };
-        }
-        d.matchSumOfDeltas = x;
-        function U(G, $, ee) {
-          for (var te = [], oe = 0, se = 0, pe = $.length; oe < pe; ) {
-            for (var Me = $[oe], Oe = $[oe]; ++oe < pe && $[oe] === Oe + 1; )
-              Oe++;
-            se < Me && te.push(G.slice(se, Me)),
-              Me < Oe + 1 && te.push(ee(G.slice(Me, Oe + 1))),
-              (se = Oe + 1);
-          }
-          return se < G.length && te.push(G.slice(se)), te;
-        }
-        d.highlight = U;
-        function le(G, $) {
-          return G < $ ? -1 : G > $ ? 1 : 0;
-        }
-        d.cmp = le;
-      })(n.StringExt || (n.StringExt = {}));
-    function Is(d, g) {
-      return new Tr(e(d), g);
-    }
-    var Tr = (function () {
-      function d(g, D) {
-        (this._source = g), (this._count = D);
-      }
-      return (
-        (d.prototype.iter = function () {
-          return this;
-        }),
-        (d.prototype.clone = function () {
-          return new d(this._source.clone(), this._count);
-        }),
-        (d.prototype.next = function () {
-          if (!(this._count <= 0)) {
-            var g = this._source.next();
-            if (g !== void 0) return this._count--, g;
-          }
-        }),
-        d
-      );
-    })();
-    function Cs() {
-      for (var d = [], g = 0; g < arguments.length; g++) d[g] = arguments[g];
-      return new Or(d.map(e));
-    }
-    var Or = (function () {
-      function d(g) {
-        this._source = g;
-      }
-      return (
-        (d.prototype.iter = function () {
-          return this;
-        }),
-        (d.prototype.clone = function () {
-          return new d(
-            this._source.map(function (g) {
-              return g.clone();
-            })
-          );
-        }),
-        (d.prototype.next = function () {
-          for (
-            var g = new Array(this._source.length),
-              D = 0,
-              x = this._source.length;
-            D < x;
-            ++D
-          ) {
-            var U = this._source[D].next();
-            if (U === void 0) return;
-            g[D] = U;
-          }
-          return g;
-        }),
-        d
-      );
-    })();
-    (n.ArrayIterator = c),
-      (n.ChainIterator = m),
-      (n.EmptyIterator = y),
-      (n.EnumerateIterator = q),
-      (n.FilterIterator = R),
-      (n.FnIterator = w),
-      (n.ItemIterator = S),
-      (n.KeyIterator = C),
-      (n.MapIterator = Dr),
-      (n.RangeIterator = Vt),
-      (n.RepeatIterator = mn),
-      (n.RetroArrayIterator = Pr),
-      (n.StrideIterator = Mr),
-      (n.TakeIterator = Tr),
-      (n.ValueIterator = M),
-      (n.ZipIterator = Or),
-      (n.chain = E),
-      (n.each = o),
-      (n.empty = b),
-      (n.enumerate = L),
-      (n.every = a),
-      (n.filter = F),
-      (n.find = O),
-      (n.findIndex = W),
-      (n.iter = e),
-      (n.iterFn = s),
-      (n.iterItems = i),
-      (n.iterKeys = t),
-      (n.iterValues = r),
-      (n.map = _s),
-      (n.max = Se),
-      (n.min = J),
-      (n.minmax = ut),
-      (n.once = Es),
-      (n.range = ms),
-      (n.reduce = vs),
-      (n.repeat = ys),
-      (n.retro = bs),
-      (n.some = l),
-      (n.stride = ws),
-      (n.take = Is),
-      (n.toArray = u),
-      (n.toObject = f),
-      (n.topologicSort = Ss),
-      (n.zip = Cs),
-      Object.defineProperty(n, "__esModule", { value: !0 });
-  });
-});
-var xr = k((bn, qs) => {
-  h();
-  (function (n, e) {
-    typeof bn == "object" && typeof qs != "undefined"
-      ? e(bn)
-      : typeof define == "function" && define.amd
-        ? define(["exports"], e)
-        : ((n = typeof globalThis != "undefined" ? globalThis : n || self),
-          e((n.lumino_properties = {})));
-  })(bn, function (n) {
-    "use strict";
-    (n.AttachedProperty = (function () {
-      function t(r) {
-        (this._pid = e.nextPID()),
-          (this.name = r.name),
-          (this._create = r.create),
-          (this._coerce = r.coerce || null),
-          (this._compare = r.compare || null),
-          (this._changed = r.changed || null);
-      }
-      return (
-        (t.prototype.get = function (r) {
-          var i,
-            s = e.ensureMap(r);
-          return (
-            this._pid in s
-              ? (i = s[this._pid])
-              : (i = s[this._pid] = this._createValue(r)),
-            i
-          );
-        }),
-        (t.prototype.set = function (r, i) {
-          var s,
-            o = e.ensureMap(r);
-          this._pid in o
-            ? (s = o[this._pid])
-            : (s = o[this._pid] = this._createValue(r));
-          var a = this._coerceValue(r, i);
-          this._maybeNotify(r, s, (o[this._pid] = a));
-        }),
-        (t.prototype.coerce = function (r) {
-          var i,
-            s = e.ensureMap(r);
-          this._pid in s
-            ? (i = s[this._pid])
-            : (i = s[this._pid] = this._createValue(r));
-          var o = this._coerceValue(r, i);
-          this._maybeNotify(r, i, (s[this._pid] = o));
-        }),
-        (t.prototype._createValue = function (r) {
-          var i = this._create;
-          return i(r);
-        }),
-        (t.prototype._coerceValue = function (r, i) {
-          var s = this._coerce;
-          return s ? s(r, i) : i;
-        }),
-        (t.prototype._compareValue = function (r, i) {
-          var s = this._compare;
-          return s ? s(r, i) : r === i;
-        }),
-        (t.prototype._maybeNotify = function (r, i, s) {
-          var o = this._changed;
-          o && !this._compareValue(i, s) && o(r, i, s);
-        }),
-        t
-      );
-    })()),
-      (function (t) {
-        function r(i) {
-          e.ownerData.delete(i);
-        }
-        t.clearData = r;
-      })(n.AttachedProperty || (n.AttachedProperty = {}));
-    var e;
-    (function (t) {
-      (t.ownerData = new WeakMap()),
-        (t.nextPID = (function () {
-          var i = 0;
-          return function () {
-            var s = Math.random(),
-              o = ("" + s).slice(2);
-            return "pid-" + o + "-" + i++;
           };
-        })());
-      function r(i) {
-        var s = t.ownerData.get(i);
-        return s || ((s = Object.create(null)), t.ownerData.set(i, s), s);
+          ArrayIterator2.prototype.clone = function() {
+            var result = new ArrayIterator2(this._source);
+            result._index = this._index;
+            return result;
+          };
+          ArrayIterator2.prototype.next = function() {
+            if (this._index >= this._source.length) {
+              return void 0;
+            }
+            return this._source[this._index++];
+          };
+          return ArrayIterator2;
+        }()
+      );
+      var KeyIterator = (
+        /** @class */
+        function() {
+          function KeyIterator2(source, keys) {
+            if (keys === void 0) {
+              keys = Object.keys(source);
+            }
+            this._index = 0;
+            this._source = source;
+            this._keys = keys;
+          }
+          KeyIterator2.prototype.iter = function() {
+            return this;
+          };
+          KeyIterator2.prototype.clone = function() {
+            var result = new KeyIterator2(this._source, this._keys);
+            result._index = this._index;
+            return result;
+          };
+          KeyIterator2.prototype.next = function() {
+            if (this._index >= this._keys.length) {
+              return void 0;
+            }
+            var key = this._keys[this._index++];
+            if (key in this._source) {
+              return key;
+            }
+            return this.next();
+          };
+          return KeyIterator2;
+        }()
+      );
+      var ValueIterator = (
+        /** @class */
+        function() {
+          function ValueIterator2(source, keys) {
+            if (keys === void 0) {
+              keys = Object.keys(source);
+            }
+            this._index = 0;
+            this._source = source;
+            this._keys = keys;
+          }
+          ValueIterator2.prototype.iter = function() {
+            return this;
+          };
+          ValueIterator2.prototype.clone = function() {
+            var result = new ValueIterator2(this._source, this._keys);
+            result._index = this._index;
+            return result;
+          };
+          ValueIterator2.prototype.next = function() {
+            if (this._index >= this._keys.length) {
+              return void 0;
+            }
+            var key = this._keys[this._index++];
+            if (key in this._source) {
+              return this._source[key];
+            }
+            return this.next();
+          };
+          return ValueIterator2;
+        }()
+      );
+      var ItemIterator = (
+        /** @class */
+        function() {
+          function ItemIterator2(source, keys) {
+            if (keys === void 0) {
+              keys = Object.keys(source);
+            }
+            this._index = 0;
+            this._source = source;
+            this._keys = keys;
+          }
+          ItemIterator2.prototype.iter = function() {
+            return this;
+          };
+          ItemIterator2.prototype.clone = function() {
+            var result = new ItemIterator2(this._source, this._keys);
+            result._index = this._index;
+            return result;
+          };
+          ItemIterator2.prototype.next = function() {
+            if (this._index >= this._keys.length) {
+              return void 0;
+            }
+            var key = this._keys[this._index++];
+            if (key in this._source) {
+              return [key, this._source[key]];
+            }
+            return this.next();
+          };
+          return ItemIterator2;
+        }()
+      );
+      var FnIterator = (
+        /** @class */
+        function() {
+          function FnIterator2(fn) {
+            this._fn = fn;
+          }
+          FnIterator2.prototype.iter = function() {
+            return this;
+          };
+          FnIterator2.prototype.clone = function() {
+            throw new Error("An `FnIterator` cannot be cloned.");
+          };
+          FnIterator2.prototype.next = function() {
+            return this._fn.call(void 0);
+          };
+          return FnIterator2;
+        }()
+      );
+      function chain() {
+        var objects = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+          objects[_i] = arguments[_i];
+        }
+        return new ChainIterator(iter(objects.map(iter)));
       }
-      t.ensureMap = r;
-    })(e || (e = {})),
-      Object.defineProperty(n, "__esModule", { value: !0 });
-  });
+      var ChainIterator = (
+        /** @class */
+        function() {
+          function ChainIterator2(source) {
+            this._cloned = false;
+            this._source = source;
+            this._active = void 0;
+          }
+          ChainIterator2.prototype.iter = function() {
+            return this;
+          };
+          ChainIterator2.prototype.clone = function() {
+            var result = new ChainIterator2(this._source.clone());
+            result._active = this._active && this._active.clone();
+            result._cloned = true;
+            this._cloned = true;
+            return result;
+          };
+          ChainIterator2.prototype.next = function() {
+            if (this._active === void 0) {
+              var active = this._source.next();
+              if (active === void 0) {
+                return void 0;
+              }
+              this._active = this._cloned ? active.clone() : active;
+            }
+            var value = this._active.next();
+            if (value !== void 0) {
+              return value;
+            }
+            this._active = void 0;
+            return this.next();
+          };
+          return ChainIterator2;
+        }()
+      );
+      function empty() {
+        return new EmptyIterator();
+      }
+      var EmptyIterator = (
+        /** @class */
+        function() {
+          function EmptyIterator2() {
+          }
+          EmptyIterator2.prototype.iter = function() {
+            return this;
+          };
+          EmptyIterator2.prototype.clone = function() {
+            return new EmptyIterator2();
+          };
+          EmptyIterator2.prototype.next = function() {
+            return void 0;
+          };
+          return EmptyIterator2;
+        }()
+      );
+      function enumerate(object, start) {
+        if (start === void 0) {
+          start = 0;
+        }
+        return new EnumerateIterator(iter(object), start);
+      }
+      var EnumerateIterator = (
+        /** @class */
+        function() {
+          function EnumerateIterator2(source, start) {
+            this._source = source;
+            this._index = start;
+          }
+          EnumerateIterator2.prototype.iter = function() {
+            return this;
+          };
+          EnumerateIterator2.prototype.clone = function() {
+            return new EnumerateIterator2(this._source.clone(), this._index);
+          };
+          EnumerateIterator2.prototype.next = function() {
+            var value = this._source.next();
+            if (value === void 0) {
+              return void 0;
+            }
+            return [this._index++, value];
+          };
+          return EnumerateIterator2;
+        }()
+      );
+      function filter(object, fn) {
+        return new FilterIterator(iter(object), fn);
+      }
+      var FilterIterator = (
+        /** @class */
+        function() {
+          function FilterIterator2(source, fn) {
+            this._index = 0;
+            this._source = source;
+            this._fn = fn;
+          }
+          FilterIterator2.prototype.iter = function() {
+            return this;
+          };
+          FilterIterator2.prototype.clone = function() {
+            var result = new FilterIterator2(this._source.clone(), this._fn);
+            result._index = this._index;
+            return result;
+          };
+          FilterIterator2.prototype.next = function() {
+            var fn = this._fn;
+            var it = this._source;
+            var value;
+            while ((value = it.next()) !== void 0) {
+              if (fn(value, this._index++)) {
+                return value;
+              }
+            }
+            return void 0;
+          };
+          return FilterIterator2;
+        }()
+      );
+      function find(object, fn) {
+        var index = 0;
+        var it = iter(object);
+        var value;
+        while ((value = it.next()) !== void 0) {
+          if (fn(value, index++)) {
+            return value;
+          }
+        }
+        return void 0;
+      }
+      function findIndex(object, fn) {
+        var index = 0;
+        var it = iter(object);
+        var value;
+        while ((value = it.next()) !== void 0) {
+          if (fn(value, index++)) {
+            return index - 1;
+          }
+        }
+        return -1;
+      }
+      function min(object, fn) {
+        var it = iter(object);
+        var value = it.next();
+        if (value === void 0) {
+          return void 0;
+        }
+        var result = value;
+        while ((value = it.next()) !== void 0) {
+          if (fn(value, result) < 0) {
+            result = value;
+          }
+        }
+        return result;
+      }
+      function max(object, fn) {
+        var it = iter(object);
+        var value = it.next();
+        if (value === void 0) {
+          return void 0;
+        }
+        var result = value;
+        while ((value = it.next()) !== void 0) {
+          if (fn(value, result) > 0) {
+            result = value;
+          }
+        }
+        return result;
+      }
+      function minmax(object, fn) {
+        var it = iter(object);
+        var value = it.next();
+        if (value === void 0) {
+          return void 0;
+        }
+        var vmin = value;
+        var vmax = value;
+        while ((value = it.next()) !== void 0) {
+          if (fn(value, vmin) < 0) {
+            vmin = value;
+          } else if (fn(value, vmax) > 0) {
+            vmax = value;
+          }
+        }
+        return [vmin, vmax];
+      }
+      function map(object, fn) {
+        return new MapIterator(iter(object), fn);
+      }
+      var MapIterator = (
+        /** @class */
+        function() {
+          function MapIterator2(source, fn) {
+            this._index = 0;
+            this._source = source;
+            this._fn = fn;
+          }
+          MapIterator2.prototype.iter = function() {
+            return this;
+          };
+          MapIterator2.prototype.clone = function() {
+            var result = new MapIterator2(this._source.clone(), this._fn);
+            result._index = this._index;
+            return result;
+          };
+          MapIterator2.prototype.next = function() {
+            var value = this._source.next();
+            if (value === void 0) {
+              return void 0;
+            }
+            return this._fn.call(void 0, value, this._index++);
+          };
+          return MapIterator2;
+        }()
+      );
+      function range(start, stop, step) {
+        if (stop === void 0) {
+          return new RangeIterator(0, start, 1);
+        }
+        if (step === void 0) {
+          return new RangeIterator(start, stop, 1);
+        }
+        return new RangeIterator(start, stop, step);
+      }
+      var RangeIterator = (
+        /** @class */
+        function() {
+          function RangeIterator2(start, stop, step) {
+            this._index = 0;
+            this._start = start;
+            this._stop = stop;
+            this._step = step;
+            this._length = Private.rangeLength(start, stop, step);
+          }
+          RangeIterator2.prototype.iter = function() {
+            return this;
+          };
+          RangeIterator2.prototype.clone = function() {
+            var result = new RangeIterator2(this._start, this._stop, this._step);
+            result._index = this._index;
+            return result;
+          };
+          RangeIterator2.prototype.next = function() {
+            if (this._index >= this._length) {
+              return void 0;
+            }
+            return this._start + this._step * this._index++;
+          };
+          return RangeIterator2;
+        }()
+      );
+      var Private;
+      (function(Private2) {
+        function rangeLength(start, stop, step) {
+          if (step === 0) {
+            return Infinity;
+          }
+          if (start > stop && step > 0) {
+            return 0;
+          }
+          if (start < stop && step < 0) {
+            return 0;
+          }
+          return Math.ceil((stop - start) / step);
+        }
+        Private2.rangeLength = rangeLength;
+      })(Private || (Private = {}));
+      function reduce(object, fn, initial) {
+        var index = 0;
+        var it = iter(object);
+        var first = it.next();
+        if (first === void 0 && initial === void 0) {
+          throw new TypeError("Reduce of empty iterable with no initial value.");
+        }
+        if (first === void 0) {
+          return initial;
+        }
+        var second = it.next();
+        if (second === void 0 && initial === void 0) {
+          return first;
+        }
+        if (second === void 0) {
+          return fn(initial, first, index++);
+        }
+        var accumulator;
+        if (initial === void 0) {
+          accumulator = fn(first, second, index++);
+        } else {
+          accumulator = fn(fn(initial, first, index++), second, index++);
+        }
+        var next;
+        while ((next = it.next()) !== void 0) {
+          accumulator = fn(accumulator, next, index++);
+        }
+        return accumulator;
+      }
+      function repeat(value, count) {
+        return new RepeatIterator(value, count);
+      }
+      function once2(value) {
+        return new RepeatIterator(value, 1);
+      }
+      var RepeatIterator = (
+        /** @class */
+        function() {
+          function RepeatIterator2(value, count) {
+            this._value = value;
+            this._count = count;
+          }
+          RepeatIterator2.prototype.iter = function() {
+            return this;
+          };
+          RepeatIterator2.prototype.clone = function() {
+            return new RepeatIterator2(this._value, this._count);
+          };
+          RepeatIterator2.prototype.next = function() {
+            if (this._count <= 0) {
+              return void 0;
+            }
+            this._count--;
+            return this._value;
+          };
+          return RepeatIterator2;
+        }()
+      );
+      function retro(object) {
+        var it;
+        if (typeof object.retro === "function") {
+          it = object.retro();
+        } else {
+          it = new RetroArrayIterator(object);
+        }
+        return it;
+      }
+      var RetroArrayIterator = (
+        /** @class */
+        function() {
+          function RetroArrayIterator2(source) {
+            this._source = source;
+            this._index = source.length - 1;
+          }
+          RetroArrayIterator2.prototype.iter = function() {
+            return this;
+          };
+          RetroArrayIterator2.prototype.clone = function() {
+            var result = new RetroArrayIterator2(this._source);
+            result._index = this._index;
+            return result;
+          };
+          RetroArrayIterator2.prototype.next = function() {
+            if (this._index < 0 || this._index >= this._source.length) {
+              return void 0;
+            }
+            return this._source[this._index--];
+          };
+          return RetroArrayIterator2;
+        }()
+      );
+      function topologicSort(edges) {
+        var sorted = [];
+        var visited = /* @__PURE__ */ new Set();
+        var graph = /* @__PURE__ */ new Map();
+        each(edges, addEdge);
+        graph.forEach(function(v, k) {
+          visit(k);
+        });
+        return sorted;
+        function addEdge(edge) {
+          var fromNode = edge[0], toNode = edge[1];
+          var children = graph.get(toNode);
+          if (children) {
+            children.push(fromNode);
+          } else {
+            graph.set(toNode, [fromNode]);
+          }
+        }
+        function visit(node) {
+          if (visited.has(node)) {
+            return;
+          }
+          visited.add(node);
+          var children = graph.get(node);
+          if (children) {
+            children.forEach(visit);
+          }
+          sorted.push(node);
+        }
+      }
+      function stride(object, step) {
+        return new StrideIterator(iter(object), step);
+      }
+      var StrideIterator = (
+        /** @class */
+        function() {
+          function StrideIterator2(source, step) {
+            this._source = source;
+            this._step = step;
+          }
+          StrideIterator2.prototype.iter = function() {
+            return this;
+          };
+          StrideIterator2.prototype.clone = function() {
+            return new StrideIterator2(this._source.clone(), this._step);
+          };
+          StrideIterator2.prototype.next = function() {
+            var value = this._source.next();
+            for (var n = this._step - 1; n > 0; --n) {
+              this._source.next();
+            }
+            return value;
+          };
+          return StrideIterator2;
+        }()
+      );
+      exports3.StringExt = void 0;
+      (function(StringExt) {
+        function findIndices(source, query, start) {
+          if (start === void 0) {
+            start = 0;
+          }
+          var indices = new Array(query.length);
+          for (var i = 0, j = start, n = query.length; i < n; ++i, ++j) {
+            j = source.indexOf(query[i], j);
+            if (j === -1) {
+              return null;
+            }
+            indices[i] = j;
+          }
+          return indices;
+        }
+        StringExt.findIndices = findIndices;
+        function matchSumOfSquares(source, query, start) {
+          if (start === void 0) {
+            start = 0;
+          }
+          var indices = findIndices(source, query, start);
+          if (!indices) {
+            return null;
+          }
+          var score = 0;
+          for (var i = 0, n = indices.length; i < n; ++i) {
+            var j = indices[i] - start;
+            score += j * j;
+          }
+          return { score, indices };
+        }
+        StringExt.matchSumOfSquares = matchSumOfSquares;
+        function matchSumOfDeltas(source, query, start) {
+          if (start === void 0) {
+            start = 0;
+          }
+          var indices = findIndices(source, query, start);
+          if (!indices) {
+            return null;
+          }
+          var score = 0;
+          var last = start - 1;
+          for (var i = 0, n = indices.length; i < n; ++i) {
+            var j = indices[i];
+            score += j - last - 1;
+            last = j;
+          }
+          return { score, indices };
+        }
+        StringExt.matchSumOfDeltas = matchSumOfDeltas;
+        function highlight(source, indices, fn) {
+          var result = [];
+          var k = 0;
+          var last = 0;
+          var n = indices.length;
+          while (k < n) {
+            var i = indices[k];
+            var j = indices[k];
+            while (++k < n && indices[k] === j + 1) {
+              j++;
+            }
+            if (last < i) {
+              result.push(source.slice(last, i));
+            }
+            if (i < j + 1) {
+              result.push(fn(source.slice(i, j + 1)));
+            }
+            last = j + 1;
+          }
+          if (last < source.length) {
+            result.push(source.slice(last));
+          }
+          return result;
+        }
+        StringExt.highlight = highlight;
+        function cmp(a, b) {
+          return a < b ? -1 : a > b ? 1 : 0;
+        }
+        StringExt.cmp = cmp;
+      })(exports3.StringExt || (exports3.StringExt = {}));
+      function take(object, count) {
+        return new TakeIterator(iter(object), count);
+      }
+      var TakeIterator = (
+        /** @class */
+        function() {
+          function TakeIterator2(source, count) {
+            this._source = source;
+            this._count = count;
+          }
+          TakeIterator2.prototype.iter = function() {
+            return this;
+          };
+          TakeIterator2.prototype.clone = function() {
+            return new TakeIterator2(this._source.clone(), this._count);
+          };
+          TakeIterator2.prototype.next = function() {
+            if (this._count <= 0) {
+              return void 0;
+            }
+            var value = this._source.next();
+            if (value === void 0) {
+              return void 0;
+            }
+            this._count--;
+            return value;
+          };
+          return TakeIterator2;
+        }()
+      );
+      function zip() {
+        var objects = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+          objects[_i] = arguments[_i];
+        }
+        return new ZipIterator(objects.map(iter));
+      }
+      var ZipIterator = (
+        /** @class */
+        function() {
+          function ZipIterator2(source) {
+            this._source = source;
+          }
+          ZipIterator2.prototype.iter = function() {
+            return this;
+          };
+          ZipIterator2.prototype.clone = function() {
+            return new ZipIterator2(this._source.map(function(it) {
+              return it.clone();
+            }));
+          };
+          ZipIterator2.prototype.next = function() {
+            var result = new Array(this._source.length);
+            for (var i = 0, n = this._source.length; i < n; ++i) {
+              var value = this._source[i].next();
+              if (value === void 0) {
+                return void 0;
+              }
+              result[i] = value;
+            }
+            return result;
+          };
+          return ZipIterator2;
+        }()
+      );
+      exports3.ArrayIterator = ArrayIterator;
+      exports3.ChainIterator = ChainIterator;
+      exports3.EmptyIterator = EmptyIterator;
+      exports3.EnumerateIterator = EnumerateIterator;
+      exports3.FilterIterator = FilterIterator;
+      exports3.FnIterator = FnIterator;
+      exports3.ItemIterator = ItemIterator;
+      exports3.KeyIterator = KeyIterator;
+      exports3.MapIterator = MapIterator;
+      exports3.RangeIterator = RangeIterator;
+      exports3.RepeatIterator = RepeatIterator;
+      exports3.RetroArrayIterator = RetroArrayIterator;
+      exports3.StrideIterator = StrideIterator;
+      exports3.TakeIterator = TakeIterator;
+      exports3.ValueIterator = ValueIterator;
+      exports3.ZipIterator = ZipIterator;
+      exports3.chain = chain;
+      exports3.each = each;
+      exports3.empty = empty;
+      exports3.enumerate = enumerate;
+      exports3.every = every;
+      exports3.filter = filter;
+      exports3.find = find;
+      exports3.findIndex = findIndex;
+      exports3.iter = iter;
+      exports3.iterFn = iterFn;
+      exports3.iterItems = iterItems;
+      exports3.iterKeys = iterKeys;
+      exports3.iterValues = iterValues;
+      exports3.map = map;
+      exports3.max = max;
+      exports3.min = min;
+      exports3.minmax = minmax;
+      exports3.once = once2;
+      exports3.range = range;
+      exports3.reduce = reduce;
+      exports3.repeat = repeat;
+      exports3.retro = retro;
+      exports3.some = some;
+      exports3.stride = stride;
+      exports3.take = take;
+      exports3.toArray = toArray;
+      exports3.toObject = toObject;
+      exports3.topologicSort = topologicSort;
+      exports3.zip = zip;
+      Object.defineProperty(exports3, "__esModule", { value: true });
+    });
+  }
 });
-var ce = k((Sn, Vs) => {
-  h();
-  (function (n, e) {
-    typeof Sn == "object" && typeof Vs != "undefined"
-      ? e(Sn, ct(), xr())
-      : typeof define == "function" && define.amd
-        ? define(["exports", "@lumino/algorithm", "@lumino/properties"], e)
-        : ((n = typeof globalThis != "undefined" ? globalThis : n || self),
-          e(
-            (n.lumino_signaling = {}),
-            n.lumino_algorithm,
-            n.lumino_properties
-          ));
-  })(Sn, function (n, e, t) {
-    "use strict";
-    (n.Signal = (function () {
-      function i(s) {
-        (this._blockedCount = 0), (this.sender = s);
-      }
-      return (
-        (i.prototype.block = function (s) {
+
+// node_modules/@lumino/properties/dist/index.js
+var require_dist2 = __commonJS({
+  "node_modules/@lumino/properties/dist/index.js"(exports2, module2) {
+    init_process_development();
+    (function(global2, factory) {
+      typeof exports2 === "object" && typeof module2 !== "undefined" ? factory(exports2) : typeof define === "function" && define.amd ? define(["exports"], factory) : (global2 = typeof globalThis !== "undefined" ? globalThis : global2 || self, factory(global2.lumino_properties = {}));
+    })(exports2, function(exports3) {
+      "use strict";
+      exports3.AttachedProperty = /** @class */
+      function() {
+        function AttachedProperty(options) {
+          this._pid = Private.nextPID();
+          this.name = options.name;
+          this._create = options.create;
+          this._coerce = options.coerce || null;
+          this._compare = options.compare || null;
+          this._changed = options.changed || null;
+        }
+        AttachedProperty.prototype.get = function(owner) {
+          var value;
+          var map = Private.ensureMap(owner);
+          if (this._pid in map) {
+            value = map[this._pid];
+          } else {
+            value = map[this._pid] = this._createValue(owner);
+          }
+          return value;
+        };
+        AttachedProperty.prototype.set = function(owner, value) {
+          var oldValue;
+          var map = Private.ensureMap(owner);
+          if (this._pid in map) {
+            oldValue = map[this._pid];
+          } else {
+            oldValue = map[this._pid] = this._createValue(owner);
+          }
+          var newValue = this._coerceValue(owner, value);
+          this._maybeNotify(owner, oldValue, map[this._pid] = newValue);
+        };
+        AttachedProperty.prototype.coerce = function(owner) {
+          var oldValue;
+          var map = Private.ensureMap(owner);
+          if (this._pid in map) {
+            oldValue = map[this._pid];
+          } else {
+            oldValue = map[this._pid] = this._createValue(owner);
+          }
+          var newValue = this._coerceValue(owner, oldValue);
+          this._maybeNotify(owner, oldValue, map[this._pid] = newValue);
+        };
+        AttachedProperty.prototype._createValue = function(owner) {
+          var create2 = this._create;
+          return create2(owner);
+        };
+        AttachedProperty.prototype._coerceValue = function(owner, value) {
+          var coerce = this._coerce;
+          return coerce ? coerce(owner, value) : value;
+        };
+        AttachedProperty.prototype._compareValue = function(oldValue, newValue) {
+          var compare2 = this._compare;
+          return compare2 ? compare2(oldValue, newValue) : oldValue === newValue;
+        };
+        AttachedProperty.prototype._maybeNotify = function(owner, oldValue, newValue) {
+          var changed = this._changed;
+          if (changed && !this._compareValue(oldValue, newValue)) {
+            changed(owner, oldValue, newValue);
+          }
+        };
+        return AttachedProperty;
+      }();
+      (function(AttachedProperty) {
+        function clearData(owner) {
+          Private.ownerData.delete(owner);
+        }
+        AttachedProperty.clearData = clearData;
+      })(exports3.AttachedProperty || (exports3.AttachedProperty = {}));
+      var Private;
+      (function(Private2) {
+        Private2.ownerData = /* @__PURE__ */ new WeakMap();
+        Private2.nextPID = function() {
+          var id = 0;
+          return function() {
+            var rand = Math.random();
+            var stem = ("" + rand).slice(2);
+            return "pid-" + stem + "-" + id++;
+          };
+        }();
+        function ensureMap(owner) {
+          var map = Private2.ownerData.get(owner);
+          if (map) {
+            return map;
+          }
+          map = /* @__PURE__ */ Object.create(null);
+          Private2.ownerData.set(owner, map);
+          return map;
+        }
+        Private2.ensureMap = ensureMap;
+      })(Private || (Private = {}));
+      Object.defineProperty(exports3, "__esModule", { value: true });
+    });
+  }
+});
+
+// node_modules/@lumino/signaling/dist/index.js
+var require_dist3 = __commonJS({
+  "node_modules/@lumino/signaling/dist/index.js"(exports2, module2) {
+    init_process_development();
+    (function(global2, factory) {
+      typeof exports2 === "object" && typeof module2 !== "undefined" ? factory(exports2, require_dist(), require_dist2()) : typeof define === "function" && define.amd ? define(["exports", "@lumino/algorithm", "@lumino/properties"], factory) : (global2 = typeof globalThis !== "undefined" ? globalThis : global2 || self, factory(global2.lumino_signaling = {}, global2.lumino_algorithm, global2.lumino_properties));
+    })(exports2, function(exports3, algorithm, properties) {
+      "use strict";
+      exports3.Signal = /** @class */
+      function() {
+        function Signal(sender) {
+          this._blockedCount = 0;
+          this.sender = sender;
+        }
+        Signal.prototype.block = function(fn) {
           this._blockedCount++;
           try {
-            s();
+            fn();
           } finally {
             this._blockedCount--;
           }
-        }),
-        (i.prototype.connect = function (s, o) {
-          return r.connect(this, s, o);
-        }),
-        (i.prototype.disconnect = function (s, o) {
-          return r.disconnect(this, s, o);
-        }),
-        (i.prototype.emit = function (s) {
-          this._blockedCount || r.emit(this, s);
-        }),
-        i
-      );
-    })()),
-      (function (i) {
-        function s(M, S) {
-          var w = r.blockedProperty;
-          w.set(M, w.get(M) + 1);
+        };
+        Signal.prototype.connect = function(slot, thisArg) {
+          return Private.connect(this, slot, thisArg);
+        };
+        Signal.prototype.disconnect = function(slot, thisArg) {
+          return Private.disconnect(this, slot, thisArg);
+        };
+        Signal.prototype.emit = function(args) {
+          if (!this._blockedCount) {
+            Private.emit(this, args);
+          }
+        };
+        return Signal;
+      }();
+      (function(Signal) {
+        function blockAll(sender, fn) {
+          var blockedProperty = Private.blockedProperty;
+          blockedProperty.set(sender, blockedProperty.get(sender) + 1);
           try {
-            S();
+            fn();
           } finally {
-            w.set(M, w.get(M) - 1);
+            blockedProperty.set(sender, blockedProperty.get(sender) - 1);
           }
         }
-        i.blockAll = s;
-        function o(M, S) {
-          r.disconnectBetween(M, S);
+        Signal.blockAll = blockAll;
+        function disconnectBetween(sender, receiver) {
+          Private.disconnectBetween(sender, receiver);
         }
-        i.disconnectBetween = o;
-        function a(M) {
-          r.disconnectSender(M);
+        Signal.disconnectBetween = disconnectBetween;
+        function disconnectSender(sender) {
+          Private.disconnectSender(sender);
         }
-        i.disconnectSender = a;
-        function l(M) {
-          r.disconnectReceiver(M);
+        Signal.disconnectSender = disconnectSender;
+        function disconnectReceiver(receiver) {
+          Private.disconnectReceiver(receiver);
         }
-        i.disconnectReceiver = l;
-        function u(M) {
-          r.disconnectAll(M);
+        Signal.disconnectReceiver = disconnectReceiver;
+        function disconnectAll(object) {
+          Private.disconnectAll(object);
         }
-        i.disconnectAll = u;
-        function f(M) {
-          r.disconnectAll(M);
+        Signal.disconnectAll = disconnectAll;
+        function clearData(object) {
+          Private.disconnectAll(object);
         }
-        i.clearData = f;
-        function c() {
-          return r.exceptionHandler;
+        Signal.clearData = clearData;
+        function getExceptionHandler() {
+          return Private.exceptionHandler;
         }
-        i.getExceptionHandler = c;
-        function C(M) {
-          var S = r.exceptionHandler;
-          return (r.exceptionHandler = M), S;
+        Signal.getExceptionHandler = getExceptionHandler;
+        function setExceptionHandler(handler) {
+          var old = Private.exceptionHandler;
+          Private.exceptionHandler = handler;
+          return old;
         }
-        i.setExceptionHandler = C;
-      })(n.Signal || (n.Signal = {}));
-    var r;
-    (function (i) {
-      i.exceptionHandler = function (F) {
-        console.error(F);
-      };
-      function s(F, R, O) {
-        O = O || void 0;
-        var W = C.get(F.sender);
-        if ((W || ((W = []), C.set(F.sender, W)), E(W, F, R, O))) return !1;
-        var J = O || R,
-          Se = M.get(J);
-        Se || ((Se = []), M.set(J, Se));
-        var ut = { signal: F, slot: R, thisArg: O };
-        return W.push(ut), Se.push(ut), !0;
-      }
-      i.connect = s;
-      function o(F, R, O) {
-        O = O || void 0;
-        var W = C.get(F.sender);
-        if (!W || W.length === 0) return !1;
-        var J = E(W, F, R, O);
-        if (!J) return !1;
-        var Se = O || R,
-          ut = M.get(Se);
-        return (J.signal = null), b(W), b(ut), !0;
-      }
-      i.disconnect = o;
-      function a(F, R) {
-        var O = C.get(F);
-        if (!(!O || O.length === 0)) {
-          var W = M.get(R);
-          !W ||
-            W.length === 0 ||
-            (e.each(W, function (J) {
-              J.signal && J.signal.sender === F && (J.signal = null);
-            }),
-            b(O),
-            b(W));
+        Signal.setExceptionHandler = setExceptionHandler;
+      })(exports3.Signal || (exports3.Signal = {}));
+      var Private;
+      (function(Private2) {
+        Private2.exceptionHandler = function(err) {
+          console.error(err);
+        };
+        function connect(signal, slot, thisArg) {
+          thisArg = thisArg || void 0;
+          var receivers = receiversForSender.get(signal.sender);
+          if (!receivers) {
+            receivers = [];
+            receiversForSender.set(signal.sender, receivers);
+          }
+          if (findConnection(receivers, signal, slot, thisArg)) {
+            return false;
+          }
+          var receiver = thisArg || slot;
+          var senders = sendersForReceiver.get(receiver);
+          if (!senders) {
+            senders = [];
+            sendersForReceiver.set(receiver, senders);
+          }
+          var connection = { signal, slot, thisArg };
+          receivers.push(connection);
+          senders.push(connection);
+          return true;
         }
-      }
-      i.disconnectBetween = a;
-      function l(F) {
-        var R = C.get(F);
-        !R ||
-          R.length === 0 ||
-          (e.each(R, function (O) {
-            if (O.signal) {
-              var W = O.thisArg || O.slot;
-              (O.signal = null), b(M.get(W));
+        Private2.connect = connect;
+        function disconnect(signal, slot, thisArg) {
+          thisArg = thisArg || void 0;
+          var receivers = receiversForSender.get(signal.sender);
+          if (!receivers || receivers.length === 0) {
+            return false;
+          }
+          var connection = findConnection(receivers, signal, slot, thisArg);
+          if (!connection) {
+            return false;
+          }
+          var receiver = thisArg || slot;
+          var senders = sendersForReceiver.get(receiver);
+          connection.signal = null;
+          scheduleCleanup(receivers);
+          scheduleCleanup(senders);
+          return true;
+        }
+        Private2.disconnect = disconnect;
+        function disconnectBetween(sender, receiver) {
+          var receivers = receiversForSender.get(sender);
+          if (!receivers || receivers.length === 0) {
+            return;
+          }
+          var senders = sendersForReceiver.get(receiver);
+          if (!senders || senders.length === 0) {
+            return;
+          }
+          algorithm.each(senders, function(connection) {
+            if (!connection.signal) {
+              return;
             }
-          }),
-          b(R));
-      }
-      i.disconnectSender = l;
-      function u(F) {
-        var R = M.get(F);
-        !R ||
-          R.length === 0 ||
-          (e.each(R, function (O) {
-            if (O.signal) {
-              var W = O.signal.sender;
-              (O.signal = null), b(C.get(W));
+            if (connection.signal.sender === sender) {
+              connection.signal = null;
             }
-          }),
-          b(R));
-      }
-      i.disconnectReceiver = u;
-      function f(F) {
-        l(F), u(F);
-      }
-      i.disconnectAll = f;
-      function c(F, R) {
-        if (!(i.blockedProperty.get(F.sender) > 0)) {
-          var O = C.get(F.sender);
-          if (!(!O || O.length === 0))
-            for (var W = 0, J = O.length; W < J; ++W) {
-              var Se = O[W];
-              Se.signal === F && m(Se, R);
-            }
+          });
+          scheduleCleanup(receivers);
+          scheduleCleanup(senders);
         }
-      }
-      i.emit = c;
-      var C = new WeakMap(),
-        M = new WeakMap(),
-        S = new Set(),
-        w = (function () {
-          var F = typeof requestAnimationFrame == "function";
-          return F ? requestAnimationFrame : setImmediate;
-        })();
-      function E(F, R, O, W) {
-        return e.find(F, function (J) {
-          return J.signal === R && J.slot === O && J.thisArg === W;
+        Private2.disconnectBetween = disconnectBetween;
+        function disconnectSender(sender) {
+          var receivers = receiversForSender.get(sender);
+          if (!receivers || receivers.length === 0) {
+            return;
+          }
+          algorithm.each(receivers, function(connection) {
+            if (!connection.signal) {
+              return;
+            }
+            var receiver = connection.thisArg || connection.slot;
+            connection.signal = null;
+            scheduleCleanup(sendersForReceiver.get(receiver));
+          });
+          scheduleCleanup(receivers);
+        }
+        Private2.disconnectSender = disconnectSender;
+        function disconnectReceiver(receiver) {
+          var senders = sendersForReceiver.get(receiver);
+          if (!senders || senders.length === 0) {
+            return;
+          }
+          algorithm.each(senders, function(connection) {
+            if (!connection.signal) {
+              return;
+            }
+            var sender = connection.signal.sender;
+            connection.signal = null;
+            scheduleCleanup(receiversForSender.get(sender));
+          });
+          scheduleCleanup(senders);
+        }
+        Private2.disconnectReceiver = disconnectReceiver;
+        function disconnectAll(object) {
+          disconnectSender(object);
+          disconnectReceiver(object);
+        }
+        Private2.disconnectAll = disconnectAll;
+        function emit(signal, args) {
+          if (Private2.blockedProperty.get(signal.sender) > 0) {
+            return;
+          }
+          var receivers = receiversForSender.get(signal.sender);
+          if (!receivers || receivers.length === 0) {
+            return;
+          }
+          for (var i = 0, n = receivers.length; i < n; ++i) {
+            var connection = receivers[i];
+            if (connection.signal === signal) {
+              invokeSlot(connection, args);
+            }
+          }
+        }
+        Private2.emit = emit;
+        var receiversForSender = /* @__PURE__ */ new WeakMap();
+        var sendersForReceiver = /* @__PURE__ */ new WeakMap();
+        var dirtySet = /* @__PURE__ */ new Set();
+        var schedule = function() {
+          var ok = typeof requestAnimationFrame === "function";
+          return ok ? requestAnimationFrame : setImmediate;
+        }();
+        function findConnection(connections, signal, slot, thisArg) {
+          return algorithm.find(connections, function(connection) {
+            return connection.signal === signal && connection.slot === slot && connection.thisArg === thisArg;
+          });
+        }
+        function invokeSlot(connection, args) {
+          var signal = connection.signal, slot = connection.slot, thisArg = connection.thisArg;
+          try {
+            slot.call(thisArg, signal.sender, args);
+          } catch (err) {
+            Private2.exceptionHandler(err);
+          }
+        }
+        function scheduleCleanup(array) {
+          if (dirtySet.size === 0) {
+            schedule(cleanupDirtySet);
+          }
+          dirtySet.add(array);
+        }
+        function cleanupDirtySet() {
+          dirtySet.forEach(cleanupConnections);
+          dirtySet.clear();
+        }
+        function cleanupConnections(connections) {
+          algorithm.ArrayExt.removeAllWhere(connections, isDeadConnection);
+        }
+        function isDeadConnection(connection) {
+          return connection.signal === null;
+        }
+        Private2.blockedProperty = new properties.AttachedProperty({
+          name: "blocked",
+          create: function() {
+            return 0;
+          }
         });
-      }
-      function m(F, R) {
-        var O = F.signal,
-          W = F.slot,
-          J = F.thisArg;
-        try {
-          W.call(J, O.sender, R);
-        } catch (Se) {
-          i.exceptionHandler(Se);
-        }
-      }
-      function b(F) {
-        S.size === 0 && w(y), S.add(F);
-      }
-      function y() {
-        S.forEach(L), S.clear();
-      }
-      function L(F) {
-        e.ArrayExt.removeAllWhere(F, q);
-      }
-      function q(F) {
-        return F.signal === null;
-      }
-      i.blockedProperty = new t.AttachedProperty({
-        name: "blocked",
-        create: function () {
-          return 0;
-        },
-      });
-    })(r || (r = {})),
-      Object.defineProperty(n, "__esModule", { value: !0 });
-  });
+      })(Private || (Private = {}));
+      Object.defineProperty(exports3, "__esModule", { value: true });
+    });
+  }
 });
-var Hs = k((wn) => {
-  "use strict";
-  h();
-  Object.defineProperty(wn, "__esModule", { value: !0 });
-  wn.ActivityMonitor = void 0;
-  var Bs = ce(),
-    jr = class {
-      constructor(e) {
-        (this._timer = -1),
-          (this._timeout = -1),
-          (this._isDisposed = !1),
-          (this._activityStopped = new Bs.Signal(this)),
-          e.signal.connect(this._onSignalFired, this),
-          (this._timeout = e.timeout || 1e3);
+
+// node_modules/@jupyterlab/coreutils/lib/activitymonitor.js
+var require_activitymonitor = __commonJS({
+  "node_modules/@jupyterlab/coreutils/lib/activitymonitor.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.ActivityMonitor = void 0;
+    var signaling_1 = require_dist3();
+    var ActivityMonitor = class {
+      /**
+       * Construct a new activity monitor.
+       */
+      constructor(options) {
+        this._timer = -1;
+        this._timeout = -1;
+        this._isDisposed = false;
+        this._activityStopped = new signaling_1.Signal(this);
+        options.signal.connect(this._onSignalFired, this);
+        this._timeout = options.timeout || 1e3;
       }
+      /**
+       * A signal emitted when activity has ceased.
+       */
       get activityStopped() {
         return this._activityStopped;
       }
+      /**
+       * The timeout associated with the monitor, in milliseconds.
+       */
       get timeout() {
         return this._timeout;
       }
-      set timeout(e) {
-        this._timeout = e;
+      set timeout(value) {
+        this._timeout = value;
       }
+      /**
+       * Test whether the monitor has been disposed.
+       *
+       * #### Notes
+       * This is a read-only property.
+       */
       get isDisposed() {
         return this._isDisposed;
       }
+      /**
+       * Dispose of the resources used by the activity monitor.
+       */
       dispose() {
-        this._isDisposed ||
-          ((this._isDisposed = !0), Bs.Signal.clearData(this));
+        if (this._isDisposed) {
+          return;
+        }
+        this._isDisposed = true;
+        signaling_1.Signal.clearData(this);
       }
-      _onSignalFired(e, t) {
-        clearTimeout(this._timer),
-          (this._sender = e),
-          (this._args = t),
-          (this._timer = setTimeout(() => {
-            this._activityStopped.emit({
-              sender: this._sender,
-              args: this._args,
-            });
-          }, this._timeout));
+      /**
+       * A signal handler for the monitored signal.
+       */
+      _onSignalFired(sender, args) {
+        clearTimeout(this._timer);
+        this._sender = sender;
+        this._args = args;
+        this._timer = setTimeout(() => {
+          this._activityStopped.emit({
+            sender: this._sender,
+            args: this._args
+          });
+        }, this._timeout);
       }
     };
-  wn.ActivityMonitor = jr;
+    exports2.ActivityMonitor = ActivityMonitor;
+  }
 });
-var Js = k(($s) => {
-  "use strict";
-  h();
-  Object.defineProperty($s, "__esModule", { value: !0 });
-});
-var Gs = k(($t) => {
-  "use strict";
-  h();
-  Object.defineProperty($t, "__esModule", { value: !0 });
-  $t.MarkdownCodeBlocks = void 0;
-  var Fl;
-  (function (n) {
-    n.CODE_BLOCK_MARKER = "```";
-    let e = [
-      ".markdown",
-      ".mdown",
-      ".mkdn",
-      ".md",
-      ".mkd",
-      ".mdwn",
-      ".mdtxt",
-      ".mdtext",
-      ".text",
-      ".txt",
-      ".Rmd",
-    ];
-    class t {
-      constructor(o) {
-        (this.startLine = o), (this.code = ""), (this.endLine = -1);
-      }
-    }
-    n.MarkdownCodeBlock = t;
-    function r(s) {
-      return e.indexOf(s) > -1;
-    }
-    n.isMarkdown = r;
-    function i(s) {
-      if (!s || s === "") return [];
-      let o = s.split(`
-`),
-        a = [],
-        l = null;
-      for (let u = 0; u < o.length; u++) {
-        let f = o[u],
-          c = f.indexOf(n.CODE_BLOCK_MARKER) === 0,
-          C = l != null;
-        if (!(!c && !C))
-          if (C)
-            l &&
-              (c
-                ? ((l.endLine = u - 1), a.push(l), (l = null))
-                : (l.code +=
-                    f +
-                    `
-`));
-          else {
-            l = new t(u);
-            let M = f.indexOf(n.CODE_BLOCK_MARKER),
-              S = f.lastIndexOf(n.CODE_BLOCK_MARKER);
-            M !== S &&
-              ((l.code = f.substring(M + n.CODE_BLOCK_MARKER.length, S)),
-              (l.endLine = u),
-              a.push(l),
-              (l = null));
-          }
-      }
-      return a;
-    }
-    n.findMarkdownCodeBlocks = i;
-  })((Fl = $t.MarkdownCodeBlocks || ($t.MarkdownCodeBlocks = {})));
-});
-var Ne = k((In, zs) => {
-  h();
-  (function (n, e) {
-    typeof In == "object" && typeof zs != "undefined"
-      ? e(In)
-      : typeof define == "function" && define.amd
-        ? define(["exports"], e)
-        : ((n = typeof globalThis != "undefined" ? globalThis : n || self),
-          e((n.lumino_coreutils = {})));
-  })(In, function (n) {
+
+// node_modules/@jupyterlab/coreutils/lib/interfaces.js
+var require_interfaces = __commonJS({
+  "node_modules/@jupyterlab/coreutils/lib/interfaces.js"(exports2) {
     "use strict";
-    (n.JSONExt = void 0),
-      (function (o) {
-        (o.emptyObject = Object.freeze({})), (o.emptyArray = Object.freeze([]));
-        function a(E) {
-          return (
-            E === null ||
-            typeof E == "boolean" ||
-            typeof E == "number" ||
-            typeof E == "string"
-          );
-        }
-        o.isPrimitive = a;
-        function l(E) {
-          return Array.isArray(E);
-        }
-        o.isArray = l;
-        function u(E) {
-          return !a(E) && !l(E);
-        }
-        o.isObject = u;
-        function f(E, m) {
-          if (E === m) return !0;
-          if (a(E) || a(m)) return !1;
-          var b = l(E),
-            y = l(m);
-          return b !== y ? !1 : b && y ? C(E, m) : M(E, m);
-        }
-        o.deepEqual = f;
-        function c(E) {
-          return a(E) ? E : l(E) ? S(E) : w(E);
-        }
-        o.deepCopy = c;
-        function C(E, m) {
-          if (E === m) return !0;
-          if (E.length !== m.length) return !1;
-          for (var b = 0, y = E.length; b < y; ++b)
-            if (!f(E[b], m[b])) return !1;
-          return !0;
-        }
-        function M(E, m) {
-          if (E === m) return !0;
-          for (var b in E) if (E[b] !== void 0 && !(b in m)) return !1;
-          for (var b in m) if (m[b] !== void 0 && !(b in E)) return !1;
-          for (var b in E) {
-            var y = E[b],
-              L = m[b];
-            if (
-              !(y === void 0 && L === void 0) &&
-              (y === void 0 || L === void 0 || !f(y, L))
-            )
-              return !1;
-          }
-          return !0;
-        }
-        function S(E) {
-          for (var m = new Array(E.length), b = 0, y = E.length; b < y; ++b)
-            m[b] = c(E[b]);
-          return m;
-        }
-        function w(E) {
-          var m = {};
-          for (var b in E) {
-            var y = E[b];
-            y !== void 0 && (m[b] = c(y));
-          }
-          return m;
-        }
-      })(n.JSONExt || (n.JSONExt = {}));
-    var e = (function () {
-        function o() {
-          (this._types = []), (this._values = []);
-        }
-        return (
-          (o.prototype.types = function () {
-            return this._types.slice();
-          }),
-          (o.prototype.hasData = function (a) {
-            return this._types.indexOf(a) !== -1;
-          }),
-          (o.prototype.getData = function (a) {
-            var l = this._types.indexOf(a);
-            return l !== -1 ? this._values[l] : void 0;
-          }),
-          (o.prototype.setData = function (a, l) {
-            this.clearData(a), this._types.push(a), this._values.push(l);
-          }),
-          (o.prototype.clearData = function (a) {
-            var l = this._types.indexOf(a);
-            l !== -1 && (this._types.splice(l, 1), this._values.splice(l, 1));
-          }),
-          (o.prototype.clear = function () {
-            (this._types.length = 0), (this._values.length = 0);
-          }),
-          o
-        );
-      })(),
-      t = (function () {
-        function o() {
-          var a = this;
-          this.promise = new Promise(function (l, u) {
-            (a._resolve = l), (a._reject = u);
-          });
-        }
-        return (
-          (o.prototype.resolve = function (a) {
-            var l = this._resolve;
-            l(a);
-          }),
-          (o.prototype.reject = function (a) {
-            var l = this._reject;
-            l(a);
-          }),
-          o
-        );
-      })(),
-      r = (function () {
-        function o(a) {
-          (this.name = a), (this._tokenStructuralPropertyT = null);
-        }
-        return o;
-      })();
-    function i(o) {
-      for (var a = 0, l = 0, u = o.length; l < u; ++l)
-        l % 4 === 0 && (a = (Math.random() * 4294967295) >>> 0),
-          (o[l] = a & 255),
-          (a >>>= 8);
-    }
-    (n.Random = void 0),
-      (function (o) {
-        o.getRandomValues = (function () {
-          var a =
-            (typeof window != "undefined" &&
-              (window.crypto || window.msCrypto)) ||
-            null;
-          return a && typeof a.getRandomValues == "function"
-            ? function (u) {
-                return a.getRandomValues(u);
-              }
-            : i;
-        })();
-      })(n.Random || (n.Random = {}));
-    function s(o) {
-      for (var a = new Uint8Array(16), l = new Array(256), u = 0; u < 16; ++u)
-        l[u] = "0" + u.toString(16);
-      for (var u = 16; u < 256; ++u) l[u] = u.toString(16);
-      return function () {
-        return (
-          o(a),
-          (a[6] = 64 | (a[6] & 15)),
-          (a[8] = 128 | (a[8] & 63)),
-          l[a[0]] +
-            l[a[1]] +
-            l[a[2]] +
-            l[a[3]] +
-            "-" +
-            l[a[4]] +
-            l[a[5]] +
-            "-" +
-            l[a[6]] +
-            l[a[7]] +
-            "-" +
-            l[a[8]] +
-            l[a[9]] +
-            "-" +
-            l[a[10]] +
-            l[a[11]] +
-            l[a[12]] +
-            l[a[13]] +
-            l[a[14]] +
-            l[a[15]]
-        );
-      };
-    }
-    (n.UUID = void 0),
-      (function (o) {
-        o.uuid4 = s(n.Random.getRandomValues);
-      })(n.UUID || (n.UUID = {})),
-      (n.MimeData = e),
-      (n.PromiseDelegate = t),
-      (n.Token = r),
-      Object.defineProperty(n, "__esModule", { value: !0 });
-  });
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+  }
 });
-var Zs = k((Pf, Qs) => {
-  "use strict";
-  h();
-  function Ul(n, e) {
-    var t = n;
-    e.slice(0, -1).forEach(function (i) {
-      t = t[i] || {};
-    });
-    var r = e[e.length - 1];
-    return r in t;
-  }
-  function Ys(n) {
-    return typeof n == "number" || /^0x[0-9a-f]+$/i.test(n)
-      ? !0
-      : /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(e[-+]?\d+)?$/.test(n);
-  }
-  function Xs(n, e) {
-    return (
-      (e === "constructor" && typeof n[e] == "function") || e === "__proto__"
-    );
-  }
-  Qs.exports = function (n, e) {
-    e || (e = {});
-    var t = { bools: {}, strings: {}, unknownFn: null };
-    typeof e.unknown == "function" && (t.unknownFn = e.unknown),
-      typeof e.boolean == "boolean" && e.boolean
-        ? (t.allBools = !0)
-        : []
-            .concat(e.boolean)
-            .filter(Boolean)
-            .forEach(function (L) {
-              t.bools[L] = !0;
-            });
-    var r = {};
-    function i(L) {
-      return r[L].some(function (q) {
-        return t.bools[q];
-      });
-    }
-    Object.keys(e.alias || {}).forEach(function (L) {
-      (r[L] = [].concat(e.alias[L])),
-        r[L].forEach(function (q) {
-          r[q] = [L].concat(
-            r[L].filter(function (F) {
-              return q !== F;
-            })
-          );
-        });
-    }),
-      []
-        .concat(e.string)
-        .filter(Boolean)
-        .forEach(function (L) {
-          (t.strings[L] = !0),
-            r[L] &&
-              [].concat(r[L]).forEach(function (q) {
-                t.strings[q] = !0;
-              });
-        });
-    var s = e.default || {},
-      o = { _: [] };
-    function a(L, q) {
-      return (
-        (t.allBools && /^--[^=]+$/.test(q)) ||
-        t.strings[L] ||
-        t.bools[L] ||
-        r[L]
-      );
-    }
-    function l(L, q, F) {
-      for (var R = L, O = 0; O < q.length - 1; O++) {
-        var W = q[O];
-        if (Xs(R, W)) return;
-        R[W] === void 0 && (R[W] = {}),
-          (R[W] === Object.prototype ||
-            R[W] === Number.prototype ||
-            R[W] === String.prototype) &&
-            (R[W] = {}),
-          R[W] === Array.prototype && (R[W] = []),
-          (R = R[W]);
+
+// node_modules/@jupyterlab/coreutils/lib/markdowncodeblocks.js
+var require_markdowncodeblocks = __commonJS({
+  "node_modules/@jupyterlab/coreutils/lib/markdowncodeblocks.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.MarkdownCodeBlocks = void 0;
+    var MarkdownCodeBlocks;
+    (function(MarkdownCodeBlocks2) {
+      MarkdownCodeBlocks2.CODE_BLOCK_MARKER = "```";
+      const markdownExtensions = [
+        ".markdown",
+        ".mdown",
+        ".mkdn",
+        ".md",
+        ".mkd",
+        ".mdwn",
+        ".mdtxt",
+        ".mdtext",
+        ".text",
+        ".txt",
+        ".Rmd"
+      ];
+      class MarkdownCodeBlock {
+        constructor(startLine) {
+          this.startLine = startLine;
+          this.code = "";
+          this.endLine = -1;
+        }
       }
-      var J = q[q.length - 1];
-      Xs(R, J) ||
-        ((R === Object.prototype ||
-          R === Number.prototype ||
-          R === String.prototype) &&
-          (R = {}),
-        R === Array.prototype && (R = []),
-        R[J] === void 0 || t.bools[J] || typeof R[J] == "boolean"
-          ? (R[J] = F)
-          : Array.isArray(R[J])
-            ? R[J].push(F)
-            : (R[J] = [R[J], F]));
-    }
-    function u(L, q, F) {
-      if (!(F && t.unknownFn && !a(L, F) && t.unknownFn(F) === !1)) {
-        var R = !t.strings[L] && Ys(q) ? Number(q) : q;
-        l(o, L.split("."), R),
-          (r[L] || []).forEach(function (O) {
-            l(o, O.split("."), R);
-          });
+      MarkdownCodeBlocks2.MarkdownCodeBlock = MarkdownCodeBlock;
+      function isMarkdown(extension) {
+        return markdownExtensions.indexOf(extension) > -1;
       }
-    }
-    Object.keys(t.bools).forEach(function (L) {
-      u(L, s[L] === void 0 ? !1 : s[L]);
-    });
-    var f = [];
-    n.indexOf("--") !== -1 &&
-      ((f = n.slice(n.indexOf("--") + 1)), (n = n.slice(0, n.indexOf("--"))));
-    for (var c = 0; c < n.length; c++) {
-      var C = n[c],
-        M,
-        S;
-      if (/^--.+=/.test(C)) {
-        var w = C.match(/^--([^=]+)=([\s\S]*)$/);
-        M = w[1];
-        var E = w[2];
-        t.bools[M] && (E = E !== "false"), u(M, E, C);
-      } else if (/^--no-.+/.test(C))
-        (M = C.match(/^--no-(.+)/)[1]), u(M, !1, C);
-      else if (/^--.+/.test(C))
-        (M = C.match(/^--(.+)/)[1]),
-          (S = n[c + 1]),
-          S !== void 0 &&
-          !/^(-|--)[^-]/.test(S) &&
-          !t.bools[M] &&
-          !t.allBools &&
-          (!r[M] || !i(M))
-            ? (u(M, S, C), (c += 1))
-            : /^(true|false)$/.test(S)
-              ? (u(M, S === "true", C), (c += 1))
-              : u(M, t.strings[M] ? "" : !0, C);
-      else if (/^-[^-]+/.test(C)) {
-        for (
-          var m = C.slice(1, -1).split(""), b = !1, y = 0;
-          y < m.length;
-          y++
-        ) {
-          if (((S = C.slice(y + 2)), S === "-")) {
-            u(m[y], S, C);
+      MarkdownCodeBlocks2.isMarkdown = isMarkdown;
+      function findMarkdownCodeBlocks(text) {
+        if (!text || text === "") {
+          return [];
+        }
+        const lines = text.split("\n");
+        const codeBlocks = [];
+        let currentBlock = null;
+        for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+          const line = lines[lineIndex];
+          const lineContainsMarker = line.indexOf(MarkdownCodeBlocks2.CODE_BLOCK_MARKER) === 0;
+          const constructingBlock = currentBlock != null;
+          if (!lineContainsMarker && !constructingBlock) {
             continue;
           }
-          if (/[A-Za-z]/.test(m[y]) && S[0] === "=") {
-            u(m[y], S.slice(1), C), (b = !0);
-            break;
+          if (!constructingBlock) {
+            currentBlock = new MarkdownCodeBlock(lineIndex);
+            const firstIndex = line.indexOf(MarkdownCodeBlocks2.CODE_BLOCK_MARKER);
+            const lastIndex = line.lastIndexOf(MarkdownCodeBlocks2.CODE_BLOCK_MARKER);
+            const isSingleLine = firstIndex !== lastIndex;
+            if (isSingleLine) {
+              currentBlock.code = line.substring(firstIndex + MarkdownCodeBlocks2.CODE_BLOCK_MARKER.length, lastIndex);
+              currentBlock.endLine = lineIndex;
+              codeBlocks.push(currentBlock);
+              currentBlock = null;
+            }
+          } else if (currentBlock) {
+            if (lineContainsMarker) {
+              currentBlock.endLine = lineIndex - 1;
+              codeBlocks.push(currentBlock);
+              currentBlock = null;
+            } else {
+              currentBlock.code += line + "\n";
+            }
           }
-          if (/[A-Za-z]/.test(m[y]) && /-?\d+(\.\d*)?(e-?\d+)?$/.test(S)) {
-            u(m[y], S, C), (b = !0);
-            break;
-          }
-          if (m[y + 1] && m[y + 1].match(/\W/)) {
-            u(m[y], C.slice(y + 2), C), (b = !0);
-            break;
-          } else u(m[y], t.strings[m[y]] ? "" : !0, C);
         }
-        (M = C.slice(-1)[0]),
-          !b &&
-            M !== "-" &&
-            (n[c + 1] &&
-            !/^(-|--)[^-]/.test(n[c + 1]) &&
-            !t.bools[M] &&
-            (!r[M] || !i(M))
-              ? (u(M, n[c + 1], C), (c += 1))
-              : n[c + 1] && /^(true|false)$/.test(n[c + 1])
-                ? (u(M, n[c + 1] === "true", C), (c += 1))
-                : u(M, t.strings[M] ? "" : !0, C));
-      } else if (
-        ((!t.unknownFn || t.unknownFn(C) !== !1) &&
-          o._.push(t.strings._ || !Ys(C) ? C : Number(C)),
-        e.stopEarly)
-      ) {
-        o._.push.apply(o._, n.slice(c + 1));
-        break;
+        return codeBlocks;
+      }
+      MarkdownCodeBlocks2.findMarkdownCodeBlocks = findMarkdownCodeBlocks;
+    })(MarkdownCodeBlocks = exports2.MarkdownCodeBlocks || (exports2.MarkdownCodeBlocks = {}));
+  }
+});
+
+// node_modules/@lumino/coreutils/dist/index.js
+var require_dist4 = __commonJS({
+  "node_modules/@lumino/coreutils/dist/index.js"(exports2, module2) {
+    init_process_development();
+    (function(global2, factory) {
+      typeof exports2 === "object" && typeof module2 !== "undefined" ? factory(exports2) : typeof define === "function" && define.amd ? define(["exports"], factory) : (global2 = typeof globalThis !== "undefined" ? globalThis : global2 || self, factory(global2.lumino_coreutils = {}));
+    })(exports2, function(exports3) {
+      "use strict";
+      exports3.JSONExt = void 0;
+      (function(JSONExt) {
+        JSONExt.emptyObject = Object.freeze({});
+        JSONExt.emptyArray = Object.freeze([]);
+        function isPrimitive(value) {
+          return value === null || typeof value === "boolean" || typeof value === "number" || typeof value === "string";
+        }
+        JSONExt.isPrimitive = isPrimitive;
+        function isArray(value) {
+          return Array.isArray(value);
+        }
+        JSONExt.isArray = isArray;
+        function isObject(value) {
+          return !isPrimitive(value) && !isArray(value);
+        }
+        JSONExt.isObject = isObject;
+        function deepEqual(first, second) {
+          if (first === second) {
+            return true;
+          }
+          if (isPrimitive(first) || isPrimitive(second)) {
+            return false;
+          }
+          var a1 = isArray(first);
+          var a2 = isArray(second);
+          if (a1 !== a2) {
+            return false;
+          }
+          if (a1 && a2) {
+            return deepArrayEqual(first, second);
+          }
+          return deepObjectEqual(first, second);
+        }
+        JSONExt.deepEqual = deepEqual;
+        function deepCopy(value) {
+          if (isPrimitive(value)) {
+            return value;
+          }
+          if (isArray(value)) {
+            return deepArrayCopy(value);
+          }
+          return deepObjectCopy(value);
+        }
+        JSONExt.deepCopy = deepCopy;
+        function deepArrayEqual(first, second) {
+          if (first === second) {
+            return true;
+          }
+          if (first.length !== second.length) {
+            return false;
+          }
+          for (var i = 0, n = first.length; i < n; ++i) {
+            if (!deepEqual(first[i], second[i])) {
+              return false;
+            }
+          }
+          return true;
+        }
+        function deepObjectEqual(first, second) {
+          if (first === second) {
+            return true;
+          }
+          for (var key in first) {
+            if (first[key] !== void 0 && !(key in second)) {
+              return false;
+            }
+          }
+          for (var key in second) {
+            if (second[key] !== void 0 && !(key in first)) {
+              return false;
+            }
+          }
+          for (var key in first) {
+            var firstValue = first[key];
+            var secondValue = second[key];
+            if (firstValue === void 0 && secondValue === void 0) {
+              continue;
+            }
+            if (firstValue === void 0 || secondValue === void 0) {
+              return false;
+            }
+            if (!deepEqual(firstValue, secondValue)) {
+              return false;
+            }
+          }
+          return true;
+        }
+        function deepArrayCopy(value) {
+          var result = new Array(value.length);
+          for (var i = 0, n = value.length; i < n; ++i) {
+            result[i] = deepCopy(value[i]);
+          }
+          return result;
+        }
+        function deepObjectCopy(value) {
+          var result = {};
+          for (var key in value) {
+            var subvalue = value[key];
+            if (subvalue === void 0) {
+              continue;
+            }
+            result[key] = deepCopy(subvalue);
+          }
+          return result;
+        }
+      })(exports3.JSONExt || (exports3.JSONExt = {}));
+      var MimeData = (
+        /** @class */
+        function() {
+          function MimeData2() {
+            this._types = [];
+            this._values = [];
+          }
+          MimeData2.prototype.types = function() {
+            return this._types.slice();
+          };
+          MimeData2.prototype.hasData = function(mime) {
+            return this._types.indexOf(mime) !== -1;
+          };
+          MimeData2.prototype.getData = function(mime) {
+            var i = this._types.indexOf(mime);
+            return i !== -1 ? this._values[i] : void 0;
+          };
+          MimeData2.prototype.setData = function(mime, data) {
+            this.clearData(mime);
+            this._types.push(mime);
+            this._values.push(data);
+          };
+          MimeData2.prototype.clearData = function(mime) {
+            var i = this._types.indexOf(mime);
+            if (i !== -1) {
+              this._types.splice(i, 1);
+              this._values.splice(i, 1);
+            }
+          };
+          MimeData2.prototype.clear = function() {
+            this._types.length = 0;
+            this._values.length = 0;
+          };
+          return MimeData2;
+        }()
+      );
+      var PromiseDelegate = (
+        /** @class */
+        function() {
+          function PromiseDelegate2() {
+            var _this = this;
+            this.promise = new Promise(function(resolve, reject) {
+              _this._resolve = resolve;
+              _this._reject = reject;
+            });
+          }
+          PromiseDelegate2.prototype.resolve = function(value) {
+            var resolve = this._resolve;
+            resolve(value);
+          };
+          PromiseDelegate2.prototype.reject = function(reason) {
+            var reject = this._reject;
+            reject(reason);
+          };
+          return PromiseDelegate2;
+        }()
+      );
+      var Token = (
+        /** @class */
+        function() {
+          function Token2(name2) {
+            this.name = name2;
+            this._tokenStructuralPropertyT = null;
+          }
+          return Token2;
+        }()
+      );
+      function fallbackRandomValues(buffer) {
+        var value = 0;
+        for (var i = 0, n = buffer.length; i < n; ++i) {
+          if (i % 4 === 0) {
+            value = Math.random() * 4294967295 >>> 0;
+          }
+          buffer[i] = value & 255;
+          value >>>= 8;
+        }
+      }
+      exports3.Random = void 0;
+      (function(Random) {
+        Random.getRandomValues = function() {
+          var crypto = typeof window !== "undefined" && (window.crypto || window.msCrypto) || null;
+          if (crypto && typeof crypto.getRandomValues === "function") {
+            return function getRandomValues(buffer) {
+              return crypto.getRandomValues(buffer);
+            };
+          }
+          return fallbackRandomValues;
+        }();
+      })(exports3.Random || (exports3.Random = {}));
+      function uuid4Factory(getRandomValues) {
+        var bytes = new Uint8Array(16);
+        var lut = new Array(256);
+        for (var i = 0; i < 16; ++i) {
+          lut[i] = "0" + i.toString(16);
+        }
+        for (var i = 16; i < 256; ++i) {
+          lut[i] = i.toString(16);
+        }
+        return function uuid4() {
+          getRandomValues(bytes);
+          bytes[6] = 64 | bytes[6] & 15;
+          bytes[8] = 128 | bytes[8] & 63;
+          return lut[bytes[0]] + lut[bytes[1]] + lut[bytes[2]] + lut[bytes[3]] + "-" + lut[bytes[4]] + lut[bytes[5]] + "-" + lut[bytes[6]] + lut[bytes[7]] + "-" + lut[bytes[8]] + lut[bytes[9]] + "-" + lut[bytes[10]] + lut[bytes[11]] + lut[bytes[12]] + lut[bytes[13]] + lut[bytes[14]] + lut[bytes[15]];
+        };
+      }
+      exports3.UUID = void 0;
+      (function(UUID) {
+        UUID.uuid4 = uuid4Factory(exports3.Random.getRandomValues);
+      })(exports3.UUID || (exports3.UUID = {}));
+      exports3.MimeData = MimeData;
+      exports3.PromiseDelegate = PromiseDelegate;
+      exports3.Token = Token;
+      Object.defineProperty(exports3, "__esModule", { value: true });
+    });
+  }
+});
+
+// node_modules/minimist/index.js
+var require_minimist = __commonJS({
+  "node_modules/minimist/index.js"(exports2, module2) {
+    "use strict";
+    init_process_development();
+    function hasKey(obj, keys) {
+      var o = obj;
+      keys.slice(0, -1).forEach(function(key2) {
+        o = o[key2] || {};
+      });
+      var key = keys[keys.length - 1];
+      return key in o;
+    }
+    function isNumber(x) {
+      if (typeof x === "number") {
+        return true;
+      }
+      if (/^0x[0-9a-f]+$/i.test(x)) {
+        return true;
+      }
+      return /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(e[-+]?\d+)?$/.test(x);
+    }
+    function isConstructorOrProto(obj, key) {
+      return key === "constructor" && typeof obj[key] === "function" || key === "__proto__";
+    }
+    module2.exports = function(args, opts) {
+      if (!opts) {
+        opts = {};
+      }
+      var flags = {
+        bools: {},
+        strings: {},
+        unknownFn: null
+      };
+      if (typeof opts.unknown === "function") {
+        flags.unknownFn = opts.unknown;
+      }
+      if (typeof opts.boolean === "boolean" && opts.boolean) {
+        flags.allBools = true;
+      } else {
+        [].concat(opts.boolean).filter(Boolean).forEach(function(key2) {
+          flags.bools[key2] = true;
+        });
+      }
+      var aliases = {};
+      function aliasIsBoolean(key2) {
+        return aliases[key2].some(function(x) {
+          return flags.bools[x];
+        });
+      }
+      Object.keys(opts.alias || {}).forEach(function(key2) {
+        aliases[key2] = [].concat(opts.alias[key2]);
+        aliases[key2].forEach(function(x) {
+          aliases[x] = [key2].concat(aliases[key2].filter(function(y) {
+            return x !== y;
+          }));
+        });
+      });
+      [].concat(opts.string).filter(Boolean).forEach(function(key2) {
+        flags.strings[key2] = true;
+        if (aliases[key2]) {
+          [].concat(aliases[key2]).forEach(function(k) {
+            flags.strings[k] = true;
+          });
+        }
+      });
+      var defaults = opts.default || {};
+      var argv = { _: [] };
+      function argDefined(key2, arg2) {
+        return flags.allBools && /^--[^=]+$/.test(arg2) || flags.strings[key2] || flags.bools[key2] || aliases[key2];
+      }
+      function setKey(obj, keys, value2) {
+        var o = obj;
+        for (var i2 = 0; i2 < keys.length - 1; i2++) {
+          var key2 = keys[i2];
+          if (isConstructorOrProto(o, key2)) {
+            return;
+          }
+          if (o[key2] === void 0) {
+            o[key2] = {};
+          }
+          if (o[key2] === Object.prototype || o[key2] === Number.prototype || o[key2] === String.prototype) {
+            o[key2] = {};
+          }
+          if (o[key2] === Array.prototype) {
+            o[key2] = [];
+          }
+          o = o[key2];
+        }
+        var lastKey = keys[keys.length - 1];
+        if (isConstructorOrProto(o, lastKey)) {
+          return;
+        }
+        if (o === Object.prototype || o === Number.prototype || o === String.prototype) {
+          o = {};
+        }
+        if (o === Array.prototype) {
+          o = [];
+        }
+        if (o[lastKey] === void 0 || flags.bools[lastKey] || typeof o[lastKey] === "boolean") {
+          o[lastKey] = value2;
+        } else if (Array.isArray(o[lastKey])) {
+          o[lastKey].push(value2);
+        } else {
+          o[lastKey] = [o[lastKey], value2];
+        }
+      }
+      function setArg(key2, val, arg2) {
+        if (arg2 && flags.unknownFn && !argDefined(key2, arg2)) {
+          if (flags.unknownFn(arg2) === false) {
+            return;
+          }
+        }
+        var value2 = !flags.strings[key2] && isNumber(val) ? Number(val) : val;
+        setKey(argv, key2.split("."), value2);
+        (aliases[key2] || []).forEach(function(x) {
+          setKey(argv, x.split("."), value2);
+        });
+      }
+      Object.keys(flags.bools).forEach(function(key2) {
+        setArg(key2, defaults[key2] === void 0 ? false : defaults[key2]);
+      });
+      var notFlags = [];
+      if (args.indexOf("--") !== -1) {
+        notFlags = args.slice(args.indexOf("--") + 1);
+        args = args.slice(0, args.indexOf("--"));
+      }
+      for (var i = 0; i < args.length; i++) {
+        var arg = args[i];
+        var key;
+        var next;
+        if (/^--.+=/.test(arg)) {
+          var m = arg.match(/^--([^=]+)=([\s\S]*)$/);
+          key = m[1];
+          var value = m[2];
+          if (flags.bools[key]) {
+            value = value !== "false";
+          }
+          setArg(key, value, arg);
+        } else if (/^--no-.+/.test(arg)) {
+          key = arg.match(/^--no-(.+)/)[1];
+          setArg(key, false, arg);
+        } else if (/^--.+/.test(arg)) {
+          key = arg.match(/^--(.+)/)[1];
+          next = args[i + 1];
+          if (next !== void 0 && !/^(-|--)[^-]/.test(next) && !flags.bools[key] && !flags.allBools && (aliases[key] ? !aliasIsBoolean(key) : true)) {
+            setArg(key, next, arg);
+            i += 1;
+          } else if (/^(true|false)$/.test(next)) {
+            setArg(key, next === "true", arg);
+            i += 1;
+          } else {
+            setArg(key, flags.strings[key] ? "" : true, arg);
+          }
+        } else if (/^-[^-]+/.test(arg)) {
+          var letters = arg.slice(1, -1).split("");
+          var broken = false;
+          for (var j = 0; j < letters.length; j++) {
+            next = arg.slice(j + 2);
+            if (next === "-") {
+              setArg(letters[j], next, arg);
+              continue;
+            }
+            if (/[A-Za-z]/.test(letters[j]) && next[0] === "=") {
+              setArg(letters[j], next.slice(1), arg);
+              broken = true;
+              break;
+            }
+            if (/[A-Za-z]/.test(letters[j]) && /-?\d+(\.\d*)?(e-?\d+)?$/.test(next)) {
+              setArg(letters[j], next, arg);
+              broken = true;
+              break;
+            }
+            if (letters[j + 1] && letters[j + 1].match(/\W/)) {
+              setArg(letters[j], arg.slice(j + 2), arg);
+              broken = true;
+              break;
+            } else {
+              setArg(letters[j], flags.strings[letters[j]] ? "" : true, arg);
+            }
+          }
+          key = arg.slice(-1)[0];
+          if (!broken && key !== "-") {
+            if (args[i + 1] && !/^(-|--)[^-]/.test(args[i + 1]) && !flags.bools[key] && (aliases[key] ? !aliasIsBoolean(key) : true)) {
+              setArg(key, args[i + 1], arg);
+              i += 1;
+            } else if (args[i + 1] && /^(true|false)$/.test(args[i + 1])) {
+              setArg(key, args[i + 1] === "true", arg);
+              i += 1;
+            } else {
+              setArg(key, flags.strings[key] ? "" : true, arg);
+            }
+          }
+        } else {
+          if (!flags.unknownFn || flags.unknownFn(arg) !== false) {
+            argv._.push(flags.strings._ || !isNumber(arg) ? arg : Number(arg));
+          }
+          if (opts.stopEarly) {
+            argv._.push.apply(argv._, args.slice(i + 1));
+            break;
+          }
+        }
+      }
+      Object.keys(defaults).forEach(function(k) {
+        if (!hasKey(argv, k.split("."))) {
+          setKey(argv, k.split("."), defaults[k]);
+          (aliases[k] || []).forEach(function(x) {
+            setKey(argv, x.split("."), defaults[k]);
+          });
+        }
+      });
+      if (opts["--"]) {
+        argv["--"] = notFlags.slice();
+      } else {
+        notFlags.forEach(function(k) {
+          argv._.push(k);
+        });
+      }
+      return argv;
+    };
+  }
+});
+
+// node_modules/path-browserify/index.js
+var require_path_browserify = __commonJS({
+  "node_modules/path-browserify/index.js"(exports2, module2) {
+    "use strict";
+    init_process_development();
+    function assertPath(path2) {
+      if (typeof path2 !== "string") {
+        throw new TypeError("Path must be a string. Received " + JSON.stringify(path2));
       }
     }
-    return (
-      Object.keys(s).forEach(function (L) {
-        Ul(o, L.split(".")) ||
-          (l(o, L.split("."), s[L]),
-          (r[L] || []).forEach(function (q) {
-            l(o, q.split("."), s[L]);
-          }));
-      }),
-      e["--"]
-        ? (o["--"] = f.slice())
-        : f.forEach(function (L) {
-            o._.push(L);
-          }),
-      o
-    );
-  };
-});
-var Cn = k((Tf, to) => {
-  "use strict";
-  h();
-  function We(n) {
-    if (typeof n != "string")
-      throw new TypeError(
-        "Path must be a string. Received " + JSON.stringify(n)
-      );
-  }
-  function eo(n, e) {
-    for (var t = "", r = 0, i = -1, s = 0, o, a = 0; a <= n.length; ++a) {
-      if (a < n.length) o = n.charCodeAt(a);
-      else {
-        if (o === 47) break;
-        o = 47;
-      }
-      if (o === 47) {
-        if (!(i === a - 1 || s === 1))
-          if (i !== a - 1 && s === 2) {
-            if (
-              t.length < 2 ||
-              r !== 2 ||
-              t.charCodeAt(t.length - 1) !== 46 ||
-              t.charCodeAt(t.length - 2) !== 46
-            ) {
-              if (t.length > 2) {
-                var l = t.lastIndexOf("/");
-                if (l !== t.length - 1) {
-                  l === -1
-                    ? ((t = ""), (r = 0))
-                    : ((t = t.slice(0, l)),
-                      (r = t.length - 1 - t.lastIndexOf("/"))),
-                    (i = a),
-                    (s = 0);
+    function normalizeStringPosix(path2, allowAboveRoot) {
+      var res = "";
+      var lastSegmentLength = 0;
+      var lastSlash = -1;
+      var dots = 0;
+      var code;
+      for (var i = 0; i <= path2.length; ++i) {
+        if (i < path2.length)
+          code = path2.charCodeAt(i);
+        else if (code === 47)
+          break;
+        else
+          code = 47;
+        if (code === 47) {
+          if (lastSlash === i - 1 || dots === 1) {
+          } else if (lastSlash !== i - 1 && dots === 2) {
+            if (res.length < 2 || lastSegmentLength !== 2 || res.charCodeAt(res.length - 1) !== 46 || res.charCodeAt(res.length - 2) !== 46) {
+              if (res.length > 2) {
+                var lastSlashIndex = res.lastIndexOf("/");
+                if (lastSlashIndex !== res.length - 1) {
+                  if (lastSlashIndex === -1) {
+                    res = "";
+                    lastSegmentLength = 0;
+                  } else {
+                    res = res.slice(0, lastSlashIndex);
+                    lastSegmentLength = res.length - 1 - res.lastIndexOf("/");
+                  }
+                  lastSlash = i;
+                  dots = 0;
                   continue;
                 }
-              } else if (t.length === 2 || t.length === 1) {
-                (t = ""), (r = 0), (i = a), (s = 0);
+              } else if (res.length === 2 || res.length === 1) {
+                res = "";
+                lastSegmentLength = 0;
+                lastSlash = i;
+                dots = 0;
                 continue;
               }
             }
-            e && (t.length > 0 ? (t += "/..") : (t = ".."), (r = 2));
-          } else
-            t.length > 0
-              ? (t += "/" + n.slice(i + 1, a))
-              : (t = n.slice(i + 1, a)),
-              (r = a - i - 1);
-        (i = a), (s = 0);
-      } else o === 46 && s !== -1 ? ++s : (s = -1);
-    }
-    return t;
-  }
-  function Wl(n, e) {
-    var t = e.dir || e.root,
-      r = e.base || (e.name || "") + (e.ext || "");
-    return t ? (t === e.root ? t + r : t + n + r) : r;
-  }
-  var Rt = {
-    resolve: function () {
-      for (
-        var e = "", t = !1, r, i = arguments.length - 1;
-        i >= -1 && !t;
-        i--
-      ) {
-        var s;
-        i >= 0
-          ? (s = arguments[i])
-          : (r === void 0 && (r = process.cwd()), (s = r)),
-          We(s),
-          s.length !== 0 && ((e = s + "/" + e), (t = s.charCodeAt(0) === 47));
-      }
-      return (
-        (e = eo(e, !t)),
-        t ? (e.length > 0 ? "/" + e : "/") : e.length > 0 ? e : "."
-      );
-    },
-    normalize: function (e) {
-      if ((We(e), e.length === 0)) return ".";
-      var t = e.charCodeAt(0) === 47,
-        r = e.charCodeAt(e.length - 1) === 47;
-      return (
-        (e = eo(e, !t)),
-        e.length === 0 && !t && (e = "."),
-        e.length > 0 && r && (e += "/"),
-        t ? "/" + e : e
-      );
-    },
-    isAbsolute: function (e) {
-      return We(e), e.length > 0 && e.charCodeAt(0) === 47;
-    },
-    join: function () {
-      if (arguments.length === 0) return ".";
-      for (var e, t = 0; t < arguments.length; ++t) {
-        var r = arguments[t];
-        We(r), r.length > 0 && (e === void 0 ? (e = r) : (e += "/" + r));
-      }
-      return e === void 0 ? "." : Rt.normalize(e);
-    },
-    relative: function (e, t) {
-      if (
-        (We(e),
-        We(t),
-        e === t || ((e = Rt.resolve(e)), (t = Rt.resolve(t)), e === t))
-      )
-        return "";
-      for (var r = 1; r < e.length && e.charCodeAt(r) === 47; ++r);
-      for (
-        var i = e.length, s = i - r, o = 1;
-        o < t.length && t.charCodeAt(o) === 47;
-        ++o
-      );
-      for (
-        var a = t.length, l = a - o, u = s < l ? s : l, f = -1, c = 0;
-        c <= u;
-        ++c
-      ) {
-        if (c === u) {
-          if (l > u) {
-            if (t.charCodeAt(o + c) === 47) return t.slice(o + c + 1);
-            if (c === 0) return t.slice(o + c);
-          } else
-            s > u &&
-              (e.charCodeAt(r + c) === 47 ? (f = c) : c === 0 && (f = 0));
-          break;
+            if (allowAboveRoot) {
+              if (res.length > 0)
+                res += "/..";
+              else
+                res = "..";
+              lastSegmentLength = 2;
+            }
+          } else {
+            if (res.length > 0)
+              res += "/" + path2.slice(lastSlash + 1, i);
+            else
+              res = path2.slice(lastSlash + 1, i);
+            lastSegmentLength = i - lastSlash - 1;
+          }
+          lastSlash = i;
+          dots = 0;
+        } else if (code === 46 && dots !== -1) {
+          ++dots;
+        } else {
+          dots = -1;
         }
-        var C = e.charCodeAt(r + c),
-          M = t.charCodeAt(o + c);
-        if (C !== M) break;
-        C === 47 && (f = c);
       }
-      var S = "";
-      for (c = r + f + 1; c <= i; ++c)
-        (c === i || e.charCodeAt(c) === 47) &&
-          (S.length === 0 ? (S += "..") : (S += "/.."));
-      return S.length > 0
-        ? S + t.slice(o + f)
-        : ((o += f), t.charCodeAt(o) === 47 && ++o, t.slice(o));
-    },
-    _makeLong: function (e) {
-      return e;
-    },
-    dirname: function (e) {
-      if ((We(e), e.length === 0)) return ".";
-      for (
-        var t = e.charCodeAt(0), r = t === 47, i = -1, s = !0, o = e.length - 1;
-        o >= 1;
-        --o
-      )
-        if (((t = e.charCodeAt(o)), t === 47)) {
-          if (!s) {
-            i = o;
+      return res;
+    }
+    function _format(sep, pathObject) {
+      var dir = pathObject.dir || pathObject.root;
+      var base = pathObject.base || (pathObject.name || "") + (pathObject.ext || "");
+      if (!dir) {
+        return base;
+      }
+      if (dir === pathObject.root) {
+        return dir + base;
+      }
+      return dir + sep + base;
+    }
+    var posix = {
+      // path.resolve([from ...], to)
+      resolve: function resolve() {
+        var resolvedPath = "";
+        var resolvedAbsolute = false;
+        var cwd;
+        for (var i = arguments.length - 1; i >= -1 && !resolvedAbsolute; i--) {
+          var path2;
+          if (i >= 0)
+            path2 = arguments[i];
+          else {
+            if (cwd === void 0)
+              cwd = process.cwd();
+            path2 = cwd;
+          }
+          assertPath(path2);
+          if (path2.length === 0) {
+            continue;
+          }
+          resolvedPath = path2 + "/" + resolvedPath;
+          resolvedAbsolute = path2.charCodeAt(0) === 47;
+        }
+        resolvedPath = normalizeStringPosix(resolvedPath, !resolvedAbsolute);
+        if (resolvedAbsolute) {
+          if (resolvedPath.length > 0)
+            return "/" + resolvedPath;
+          else
+            return "/";
+        } else if (resolvedPath.length > 0) {
+          return resolvedPath;
+        } else {
+          return ".";
+        }
+      },
+      normalize: function normalize(path2) {
+        assertPath(path2);
+        if (path2.length === 0)
+          return ".";
+        var isAbsolute = path2.charCodeAt(0) === 47;
+        var trailingSeparator = path2.charCodeAt(path2.length - 1) === 47;
+        path2 = normalizeStringPosix(path2, !isAbsolute);
+        if (path2.length === 0 && !isAbsolute)
+          path2 = ".";
+        if (path2.length > 0 && trailingSeparator)
+          path2 += "/";
+        if (isAbsolute)
+          return "/" + path2;
+        return path2;
+      },
+      isAbsolute: function isAbsolute(path2) {
+        assertPath(path2);
+        return path2.length > 0 && path2.charCodeAt(0) === 47;
+      },
+      join: function join() {
+        if (arguments.length === 0)
+          return ".";
+        var joined;
+        for (var i = 0; i < arguments.length; ++i) {
+          var arg = arguments[i];
+          assertPath(arg);
+          if (arg.length > 0) {
+            if (joined === void 0)
+              joined = arg;
+            else
+              joined += "/" + arg;
+          }
+        }
+        if (joined === void 0)
+          return ".";
+        return posix.normalize(joined);
+      },
+      relative: function relative(from, to) {
+        assertPath(from);
+        assertPath(to);
+        if (from === to)
+          return "";
+        from = posix.resolve(from);
+        to = posix.resolve(to);
+        if (from === to)
+          return "";
+        var fromStart = 1;
+        for (; fromStart < from.length; ++fromStart) {
+          if (from.charCodeAt(fromStart) !== 47)
+            break;
+        }
+        var fromEnd = from.length;
+        var fromLen = fromEnd - fromStart;
+        var toStart = 1;
+        for (; toStart < to.length; ++toStart) {
+          if (to.charCodeAt(toStart) !== 47)
+            break;
+        }
+        var toEnd = to.length;
+        var toLen = toEnd - toStart;
+        var length = fromLen < toLen ? fromLen : toLen;
+        var lastCommonSep = -1;
+        var i = 0;
+        for (; i <= length; ++i) {
+          if (i === length) {
+            if (toLen > length) {
+              if (to.charCodeAt(toStart + i) === 47) {
+                return to.slice(toStart + i + 1);
+              } else if (i === 0) {
+                return to.slice(toStart + i);
+              }
+            } else if (fromLen > length) {
+              if (from.charCodeAt(fromStart + i) === 47) {
+                lastCommonSep = i;
+              } else if (i === 0) {
+                lastCommonSep = 0;
+              }
+            }
             break;
           }
-        } else s = !1;
-      return i === -1 ? (r ? "/" : ".") : r && i === 1 ? "//" : e.slice(0, i);
-    },
-    basename: function (e, t) {
-      if (t !== void 0 && typeof t != "string")
-        throw new TypeError('"ext" argument must be a string');
-      We(e);
-      var r = 0,
-        i = -1,
-        s = !0,
-        o;
-      if (t !== void 0 && t.length > 0 && t.length <= e.length) {
-        if (t.length === e.length && t === e) return "";
-        var a = t.length - 1,
-          l = -1;
-        for (o = e.length - 1; o >= 0; --o) {
-          var u = e.charCodeAt(o);
-          if (u === 47) {
-            if (!s) {
-              r = o + 1;
+          var fromCode = from.charCodeAt(fromStart + i);
+          var toCode = to.charCodeAt(toStart + i);
+          if (fromCode !== toCode)
+            break;
+          else if (fromCode === 47)
+            lastCommonSep = i;
+        }
+        var out = "";
+        for (i = fromStart + lastCommonSep + 1; i <= fromEnd; ++i) {
+          if (i === fromEnd || from.charCodeAt(i) === 47) {
+            if (out.length === 0)
+              out += "..";
+            else
+              out += "/..";
+          }
+        }
+        if (out.length > 0)
+          return out + to.slice(toStart + lastCommonSep);
+        else {
+          toStart += lastCommonSep;
+          if (to.charCodeAt(toStart) === 47)
+            ++toStart;
+          return to.slice(toStart);
+        }
+      },
+      _makeLong: function _makeLong(path2) {
+        return path2;
+      },
+      dirname: function dirname(path2) {
+        assertPath(path2);
+        if (path2.length === 0)
+          return ".";
+        var code = path2.charCodeAt(0);
+        var hasRoot = code === 47;
+        var end = -1;
+        var matchedSlash = true;
+        for (var i = path2.length - 1; i >= 1; --i) {
+          code = path2.charCodeAt(i);
+          if (code === 47) {
+            if (!matchedSlash) {
+              end = i;
               break;
             }
-          } else
-            l === -1 && ((s = !1), (l = o + 1)),
-              a >= 0 &&
-                (u === t.charCodeAt(a)
-                  ? --a === -1 && (i = o)
-                  : ((a = -1), (i = l)));
+          } else {
+            matchedSlash = false;
+          }
         }
-        return r === i ? (i = l) : i === -1 && (i = e.length), e.slice(r, i);
-      } else {
-        for (o = e.length - 1; o >= 0; --o)
-          if (e.charCodeAt(o) === 47) {
-            if (!s) {
-              r = o + 1;
+        if (end === -1)
+          return hasRoot ? "/" : ".";
+        if (hasRoot && end === 1)
+          return "//";
+        return path2.slice(0, end);
+      },
+      basename: function basename(path2, ext) {
+        if (ext !== void 0 && typeof ext !== "string")
+          throw new TypeError('"ext" argument must be a string');
+        assertPath(path2);
+        var start = 0;
+        var end = -1;
+        var matchedSlash = true;
+        var i;
+        if (ext !== void 0 && ext.length > 0 && ext.length <= path2.length) {
+          if (ext.length === path2.length && ext === path2)
+            return "";
+          var extIdx = ext.length - 1;
+          var firstNonSlashEnd = -1;
+          for (i = path2.length - 1; i >= 0; --i) {
+            var code = path2.charCodeAt(i);
+            if (code === 47) {
+              if (!matchedSlash) {
+                start = i + 1;
+                break;
+              }
+            } else {
+              if (firstNonSlashEnd === -1) {
+                matchedSlash = false;
+                firstNonSlashEnd = i + 1;
+              }
+              if (extIdx >= 0) {
+                if (code === ext.charCodeAt(extIdx)) {
+                  if (--extIdx === -1) {
+                    end = i;
+                  }
+                } else {
+                  extIdx = -1;
+                  end = firstNonSlashEnd;
+                }
+              }
+            }
+          }
+          if (start === end)
+            end = firstNonSlashEnd;
+          else if (end === -1)
+            end = path2.length;
+          return path2.slice(start, end);
+        } else {
+          for (i = path2.length - 1; i >= 0; --i) {
+            if (path2.charCodeAt(i) === 47) {
+              if (!matchedSlash) {
+                start = i + 1;
+                break;
+              }
+            } else if (end === -1) {
+              matchedSlash = false;
+              end = i + 1;
+            }
+          }
+          if (end === -1)
+            return "";
+          return path2.slice(start, end);
+        }
+      },
+      extname: function extname(path2) {
+        assertPath(path2);
+        var startDot = -1;
+        var startPart = 0;
+        var end = -1;
+        var matchedSlash = true;
+        var preDotState = 0;
+        for (var i = path2.length - 1; i >= 0; --i) {
+          var code = path2.charCodeAt(i);
+          if (code === 47) {
+            if (!matchedSlash) {
+              startPart = i + 1;
               break;
             }
-          } else i === -1 && ((s = !1), (i = o + 1));
-        return i === -1 ? "" : e.slice(r, i);
-      }
-    },
-    extname: function (e) {
-      We(e);
-      for (
-        var t = -1, r = 0, i = -1, s = !0, o = 0, a = e.length - 1;
-        a >= 0;
-        --a
-      ) {
-        var l = e.charCodeAt(a);
-        if (l === 47) {
-          if (!s) {
-            r = a + 1;
-            break;
+            continue;
           }
-          continue;
-        }
-        i === -1 && ((s = !1), (i = a + 1)),
-          l === 46
-            ? t === -1
-              ? (t = a)
-              : o !== 1 && (o = 1)
-            : t !== -1 && (o = -1);
-      }
-      return t === -1 ||
-        i === -1 ||
-        o === 0 ||
-        (o === 1 && t === i - 1 && t === r + 1)
-        ? ""
-        : e.slice(t, i);
-    },
-    format: function (e) {
-      if (e === null || typeof e != "object")
-        throw new TypeError(
-          'The "pathObject" argument must be of type Object. Received type ' +
-            typeof e
-        );
-      return Wl("/", e);
-    },
-    parse: function (e) {
-      We(e);
-      var t = { root: "", dir: "", base: "", ext: "", name: "" };
-      if (e.length === 0) return t;
-      var r = e.charCodeAt(0),
-        i = r === 47,
-        s;
-      i ? ((t.root = "/"), (s = 1)) : (s = 0);
-      for (
-        var o = -1, a = 0, l = -1, u = !0, f = e.length - 1, c = 0;
-        f >= s;
-        --f
-      ) {
-        if (((r = e.charCodeAt(f)), r === 47)) {
-          if (!u) {
-            a = f + 1;
-            break;
+          if (end === -1) {
+            matchedSlash = false;
+            end = i + 1;
           }
-          continue;
+          if (code === 46) {
+            if (startDot === -1)
+              startDot = i;
+            else if (preDotState !== 1)
+              preDotState = 1;
+          } else if (startDot !== -1) {
+            preDotState = -1;
+          }
         }
-        l === -1 && ((u = !1), (l = f + 1)),
-          r === 46
-            ? o === -1
-              ? (o = f)
-              : c !== 1 && (c = 1)
-            : o !== -1 && (c = -1);
+        if (startDot === -1 || end === -1 || // We saw a non-dot character immediately before the dot
+        preDotState === 0 || // The (right-most) trimmed path component is exactly '..'
+        preDotState === 1 && startDot === end - 1 && startDot === startPart + 1) {
+          return "";
+        }
+        return path2.slice(startDot, end);
+      },
+      format: function format(pathObject) {
+        if (pathObject === null || typeof pathObject !== "object") {
+          throw new TypeError('The "pathObject" argument must be of type Object. Received type ' + typeof pathObject);
+        }
+        return _format("/", pathObject);
+      },
+      parse: function parse(path2) {
+        assertPath(path2);
+        var ret = { root: "", dir: "", base: "", ext: "", name: "" };
+        if (path2.length === 0)
+          return ret;
+        var code = path2.charCodeAt(0);
+        var isAbsolute = code === 47;
+        var start;
+        if (isAbsolute) {
+          ret.root = "/";
+          start = 1;
+        } else {
+          start = 0;
+        }
+        var startDot = -1;
+        var startPart = 0;
+        var end = -1;
+        var matchedSlash = true;
+        var i = path2.length - 1;
+        var preDotState = 0;
+        for (; i >= start; --i) {
+          code = path2.charCodeAt(i);
+          if (code === 47) {
+            if (!matchedSlash) {
+              startPart = i + 1;
+              break;
+            }
+            continue;
+          }
+          if (end === -1) {
+            matchedSlash = false;
+            end = i + 1;
+          }
+          if (code === 46) {
+            if (startDot === -1)
+              startDot = i;
+            else if (preDotState !== 1)
+              preDotState = 1;
+          } else if (startDot !== -1) {
+            preDotState = -1;
+          }
+        }
+        if (startDot === -1 || end === -1 || // We saw a non-dot character immediately before the dot
+        preDotState === 0 || // The (right-most) trimmed path component is exactly '..'
+        preDotState === 1 && startDot === end - 1 && startDot === startPart + 1) {
+          if (end !== -1) {
+            if (startPart === 0 && isAbsolute)
+              ret.base = ret.name = path2.slice(1, end);
+            else
+              ret.base = ret.name = path2.slice(startPart, end);
+          }
+        } else {
+          if (startPart === 0 && isAbsolute) {
+            ret.name = path2.slice(1, startDot);
+            ret.base = path2.slice(1, end);
+          } else {
+            ret.name = path2.slice(startPart, startDot);
+            ret.base = path2.slice(startPart, end);
+          }
+          ret.ext = path2.slice(startDot, end);
+        }
+        if (startPart > 0)
+          ret.dir = path2.slice(0, startPart - 1);
+        else if (isAbsolute)
+          ret.dir = "/";
+        return ret;
+      },
+      sep: "/",
+      delimiter: ":",
+      win32: null,
+      posix: null
+    };
+    posix.posix = posix;
+    module2.exports = posix;
+  }
+});
+
+// node_modules/requires-port/index.js
+var require_requires_port = __commonJS({
+  "node_modules/requires-port/index.js"(exports2, module2) {
+    "use strict";
+    init_process_development();
+    module2.exports = function required(port, protocol) {
+      protocol = protocol.split(":")[0];
+      port = +port;
+      if (!port)
+        return false;
+      switch (protocol) {
+        case "http":
+        case "ws":
+          return port !== 80;
+        case "https":
+        case "wss":
+          return port !== 443;
+        case "ftp":
+          return port !== 21;
+        case "gopher":
+          return port !== 70;
+        case "file":
+          return false;
       }
-      return (
-        o === -1 ||
-        l === -1 ||
-        c === 0 ||
-        (c === 1 && o === l - 1 && o === a + 1)
-          ? l !== -1 &&
-            (a === 0 && i
-              ? (t.base = t.name = e.slice(1, l))
-              : (t.base = t.name = e.slice(a, l)))
-          : (a === 0 && i
-              ? ((t.name = e.slice(1, o)), (t.base = e.slice(1, l)))
-              : ((t.name = e.slice(a, o)), (t.base = e.slice(a, l))),
-            (t.ext = e.slice(o, l))),
-        a > 0 ? (t.dir = e.slice(0, a - 1)) : i && (t.dir = "/"),
-        t
-      );
-    },
-    sep: "/",
-    delimiter: ":",
-    win32: null,
-    posix: null,
-  };
-  Rt.posix = Rt;
-  to.exports = Rt;
+      return port !== 0;
+    };
+  }
 });
-var ro = k((Nf, no) => {
-  "use strict";
-  h();
-  no.exports = function (e, t) {
-    if (((t = t.split(":")[0]), (e = +e), !e)) return !1;
-    switch (t) {
-      case "http":
-      case "ws":
-        return e !== 80;
-      case "https":
-      case "wss":
-        return e !== 443;
-      case "ftp":
-        return e !== 21;
-      case "gopher":
-        return e !== 70;
-      case "file":
-        return !1;
+
+// node_modules/querystringify/index.js
+var require_querystringify = __commonJS({
+  "node_modules/querystringify/index.js"(exports2) {
+    "use strict";
+    init_process_development();
+    var has = Object.prototype.hasOwnProperty;
+    var undef;
+    function decode(input) {
+      try {
+        return decodeURIComponent(input.replace(/\+/g, " "));
+      } catch (e) {
+        return null;
+      }
     }
-    return e !== 0;
-  };
-});
-var oo = k((Fr) => {
-  "use strict";
-  h();
-  var Kl = Object.prototype.hasOwnProperty,
-    ql;
-  function io(n) {
-    try {
-      return decodeURIComponent(n.replace(/\+/g, " "));
-    } catch (e) {
-      return null;
+    function encode(input) {
+      try {
+        return encodeURIComponent(input);
+      } catch (e) {
+        return null;
+      }
     }
-  }
-  function so(n) {
-    try {
-      return encodeURIComponent(n);
-    } catch (e) {
-      return null;
-    }
-  }
-  function Vl(n) {
-    for (var e = /([^=?#&]+)=?([^&]*)/g, t = {}, r; (r = e.exec(n)); ) {
-      var i = io(r[1]),
-        s = io(r[2]);
-      i === null || s === null || i in t || (t[i] = s);
-    }
-    return t;
-  }
-  function Bl(n, e) {
-    e = e || "";
-    var t = [],
-      r,
-      i;
-    typeof e != "string" && (e = "?");
-    for (i in n)
-      if (Kl.call(n, i)) {
-        if (
-          ((r = n[i]),
-          !r && (r === null || r === ql || isNaN(r)) && (r = ""),
-          (i = so(i)),
-          (r = so(r)),
-          i === null || r === null)
-        )
+    function querystring(query) {
+      var parser = /([^=?#&]+)=?([^&]*)/g, result = {}, part;
+      while (part = parser.exec(query)) {
+        var key = decode(part[1]), value = decode(part[2]);
+        if (key === null || value === null || key in result)
           continue;
-        t.push(i + "=" + r);
+        result[key] = value;
       }
-    return t.length ? e + t.join("&") : "";
+      return result;
+    }
+    function querystringify(obj, prefix) {
+      prefix = prefix || "";
+      var pairs = [], value, key;
+      if ("string" !== typeof prefix)
+        prefix = "?";
+      for (key in obj) {
+        if (has.call(obj, key)) {
+          value = obj[key];
+          if (!value && (value === null || value === undef || isNaN(value))) {
+            value = "";
+          }
+          key = encode(key);
+          value = encode(value);
+          if (key === null || value === null)
+            continue;
+          pairs.push(key + "=" + value);
+        }
+      }
+      return pairs.length ? prefix + pairs.join("&") : "";
+    }
+    exports2.stringify = querystringify;
+    exports2.parse = querystring;
   }
-  Fr.stringify = Bl;
-  Fr.parse = Vl;
 });
-var go = k((jf, po) => {
-  "use strict";
-  h();
-  var lo = ro(),
-    Rn = oo(),
-    Hl =
-      /^[\x00-\x20\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+/,
-    uo = /[\n\r\t]/g,
-    $l = /^[A-Za-z][A-Za-z0-9+-.]*:\/\//,
-    co = /:\d+$/,
-    Jl = /^([a-z][a-z0-9.+-]*:)?(\/\/)?([\\/]+)?([\S\s]*)/i,
-    Gl = /^[a-zA-Z]:/;
-  function Wr(n) {
-    return (n || "").toString().replace(Hl, "");
-  }
-  var Ur = [
+
+// node_modules/url-parse/index.js
+var require_url_parse = __commonJS({
+  "node_modules/url-parse/index.js"(exports2, module2) {
+    "use strict";
+    init_process_development();
+    var required = require_requires_port();
+    var qs = require_querystringify();
+    var controlOrWhitespace = /^[\x00-\x20\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+/;
+    var CRHTLF = /[\n\r\t]/g;
+    var slashes = /^[A-Za-z][A-Za-z0-9+-.]*:\/\//;
+    var port = /:\d+$/;
+    var protocolre = /^([a-z][a-z0-9.+-]*:)?(\/\/)?([\\/]+)?([\S\s]*)/i;
+    var windowsDriveLetter = /^[a-zA-Z]:/;
+    function trimLeft(str) {
+      return (str ? str : "").toString().replace(controlOrWhitespace, "");
+    }
+    var rules = [
       ["#", "hash"],
+      // Extract from the back.
       ["?", "query"],
-      function (e, t) {
-        return Ke(t.protocol) ? e.replace(/\\/g, "/") : e;
+      // Extract from the back.
+      function sanitize(address, url) {
+        return isSpecial(url.protocol) ? address.replace(/\\/g, "/") : address;
       },
       ["/", "pathname"],
+      // Extract from the back.
       ["@", "auth", 1],
+      // Extract from the front.
       [NaN, "host", void 0, 1, 1],
+      // Set left over value.
       [/:(\d*)$/, "port", void 0, 1],
-      [NaN, "hostname", void 0, 1, 1],
-    ],
-    ao = { hash: 1, query: 1 };
-  function ho(n) {
-    var e;
-    typeof window != "undefined"
-      ? (e = window)
-      : typeof this != "undefined"
-        ? (e = this)
-        : typeof self != "undefined"
-          ? (e = self)
-          : (e = {});
-    var t = e.location || {};
-    n = n || t;
-    var r = {},
-      i = typeof n,
-      s;
-    if (n.protocol === "blob:") r = new qe(unescape(n.pathname), {});
-    else if (i === "string") {
-      r = new qe(n, {});
-      for (s in ao) delete r[s];
-    } else if (i === "object") {
-      for (s in n) s in ao || (r[s] = n[s]);
-      r.slashes === void 0 && (r.slashes = $l.test(n.href));
-    }
-    return r;
-  }
-  function Ke(n) {
-    return (
-      n === "file:" ||
-      n === "ftp:" ||
-      n === "http:" ||
-      n === "https:" ||
-      n === "ws:" ||
-      n === "wss:"
-    );
-  }
-  function fo(n, e) {
-    (n = Wr(n)), (n = n.replace(uo, "")), (e = e || {});
-    var t = Jl.exec(n),
-      r = t[1] ? t[1].toLowerCase() : "",
-      i = !!t[2],
-      s = !!t[3],
-      o = 0,
-      a;
-    return (
-      i
-        ? s
-          ? ((a = t[2] + t[3] + t[4]), (o = t[2].length + t[3].length))
-          : ((a = t[2] + t[4]), (o = t[2].length))
-        : s
-          ? ((a = t[3] + t[4]), (o = t[3].length))
-          : (a = t[4]),
-      r === "file:"
-        ? o >= 2 && (a = a.slice(2))
-        : Ke(r)
-          ? (a = t[4])
-          : r
-            ? i && (a = a.slice(2))
-            : o >= 2 && Ke(e.protocol) && (a = t[4]),
-      { protocol: r, slashes: i || Ke(r), slashesCount: o, rest: a }
-    );
-  }
-  function zl(n, e) {
-    if (n === "") return e;
-    for (
-      var t = (e || "/").split("/").slice(0, -1).concat(n.split("/")),
-        r = t.length,
-        i = t[r - 1],
-        s = !1,
-        o = 0;
-      r--;
-
-    )
-      t[r] === "."
-        ? t.splice(r, 1)
-        : t[r] === ".."
-          ? (t.splice(r, 1), o++)
-          : o && (r === 0 && (s = !0), t.splice(r, 1), o--);
-    return (
-      s && t.unshift(""), (i === "." || i === "..") && t.push(""), t.join("/")
-    );
-  }
-  function qe(n, e, t) {
-    if (((n = Wr(n)), (n = n.replace(uo, "")), !(this instanceof qe)))
-      return new qe(n, e, t);
-    var r,
-      i,
-      s,
-      o,
-      a,
-      l,
-      u = Ur.slice(),
-      f = typeof e,
-      c = this,
-      C = 0;
-    for (
-      f !== "object" && f !== "string" && ((t = e), (e = null)),
-        t && typeof t != "function" && (t = Rn.parse),
-        e = ho(e),
-        i = fo(n || "", e),
-        r = !i.protocol && !i.slashes,
-        c.slashes = i.slashes || (r && e.slashes),
-        c.protocol = i.protocol || e.protocol || "",
-        n = i.rest,
-        ((i.protocol === "file:" && (i.slashesCount !== 2 || Gl.test(n))) ||
-          (!i.slashes &&
-            (i.protocol || i.slashesCount < 2 || !Ke(c.protocol)))) &&
-          (u[3] = [/(.*)/, "pathname"]);
-      C < u.length;
-      C++
-    ) {
-      if (((o = u[C]), typeof o == "function")) {
-        n = o(n, c);
-        continue;
-      }
-      (s = o[0]),
-        (l = o[1]),
-        s !== s
-          ? (c[l] = n)
-          : typeof s == "string"
-            ? ((a = s === "@" ? n.lastIndexOf(s) : n.indexOf(s)),
-              ~a &&
-                (typeof o[2] == "number"
-                  ? ((c[l] = n.slice(0, a)), (n = n.slice(a + o[2])))
-                  : ((c[l] = n.slice(a)), (n = n.slice(0, a)))))
-            : (a = s.exec(n)) && ((c[l] = a[1]), (n = n.slice(0, a.index))),
-        (c[l] = c[l] || (r && o[3] && e[l]) || ""),
-        o[4] && (c[l] = c[l].toLowerCase());
-    }
-    t && (c.query = t(c.query)),
-      r &&
-        e.slashes &&
-        c.pathname.charAt(0) !== "/" &&
-        (c.pathname !== "" || e.pathname !== "") &&
-        (c.pathname = zl(c.pathname, e.pathname)),
-      c.pathname.charAt(0) !== "/" &&
-        Ke(c.protocol) &&
-        (c.pathname = "/" + c.pathname),
-      lo(c.port, c.protocol) || ((c.host = c.hostname), (c.port = "")),
-      (c.username = c.password = ""),
-      c.auth &&
-        ((a = c.auth.indexOf(":")),
-        ~a
-          ? ((c.username = c.auth.slice(0, a)),
-            (c.username = encodeURIComponent(decodeURIComponent(c.username))),
-            (c.password = c.auth.slice(a + 1)),
-            (c.password = encodeURIComponent(decodeURIComponent(c.password))))
-          : (c.username = encodeURIComponent(decodeURIComponent(c.auth))),
-        (c.auth = c.password ? c.username + ":" + c.password : c.username)),
-      (c.origin =
-        c.protocol !== "file:" && Ke(c.protocol) && c.host
-          ? c.protocol + "//" + c.host
-          : "null"),
-      (c.href = c.toString());
-  }
-  function Yl(n, e, t) {
-    var r = this;
-    switch (n) {
-      case "query":
-        typeof e == "string" && e.length && (e = (t || Rn.parse)(e)),
-          (r[n] = e);
-        break;
-      case "port":
-        (r[n] = e),
-          lo(e, r.protocol)
-            ? e && (r.host = r.hostname + ":" + e)
-            : ((r.host = r.hostname), (r[n] = ""));
-        break;
-      case "hostname":
-        (r[n] = e), r.port && (e += ":" + r.port), (r.host = e);
-        break;
-      case "host":
-        (r[n] = e),
-          co.test(e)
-            ? ((e = e.split(":")),
-              (r.port = e.pop()),
-              (r.hostname = e.join(":")))
-            : ((r.hostname = e), (r.port = ""));
-        break;
-      case "protocol":
-        (r.protocol = e.toLowerCase()), (r.slashes = !t);
-        break;
-      case "pathname":
-      case "hash":
-        if (e) {
-          var i = n === "pathname" ? "/" : "#";
-          r[n] = e.charAt(0) !== i ? i + e : e;
-        } else r[n] = e;
-        break;
-      case "username":
-      case "password":
-        r[n] = encodeURIComponent(e);
-        break;
-      case "auth":
-        var s = e.indexOf(":");
-        ~s
-          ? ((r.username = e.slice(0, s)),
-            (r.username = encodeURIComponent(decodeURIComponent(r.username))),
-            (r.password = e.slice(s + 1)),
-            (r.password = encodeURIComponent(decodeURIComponent(r.password))))
-          : (r.username = encodeURIComponent(decodeURIComponent(e)));
-    }
-    for (var o = 0; o < Ur.length; o++) {
-      var a = Ur[o];
-      a[4] && (r[a[1]] = r[a[1]].toLowerCase());
-    }
-    return (
-      (r.auth = r.password ? r.username + ":" + r.password : r.username),
-      (r.origin =
-        r.protocol !== "file:" && Ke(r.protocol) && r.host
-          ? r.protocol + "//" + r.host
-          : "null"),
-      (r.href = r.toString()),
-      r
-    );
-  }
-  function Xl(n) {
-    (!n || typeof n != "function") && (n = Rn.stringify);
-    var e,
-      t = this,
-      r = t.host,
-      i = t.protocol;
-    i && i.charAt(i.length - 1) !== ":" && (i += ":");
-    var s = i + ((t.protocol && t.slashes) || Ke(t.protocol) ? "//" : "");
-    return (
-      t.username
-        ? ((s += t.username), t.password && (s += ":" + t.password), (s += "@"))
-        : t.password
-          ? ((s += ":" + t.password), (s += "@"))
-          : t.protocol !== "file:" &&
-            Ke(t.protocol) &&
-            !r &&
-            t.pathname !== "/" &&
-            (s += "@"),
-      (r[r.length - 1] === ":" || (co.test(t.hostname) && !t.port)) &&
-        (r += ":"),
-      (s += r + t.pathname),
-      (e = typeof t.query == "object" ? n(t.query) : t.query),
-      e && (s += e.charAt(0) !== "?" ? "?" + e : e),
-      t.hash && (s += t.hash),
-      s
-    );
-  }
-  qe.prototype = { set: Yl, toString: Xl };
-  qe.extractProtocol = fo;
-  qe.location = ho;
-  qe.trimLeft = Wr;
-  qe.qs = Rn;
-  po.exports = qe;
-});
-var qr = k((dt) => {
-  "use strict";
-  h();
-  var Ql =
-    (dt && dt.__importDefault) ||
-    function (n) {
-      return n && n.__esModule ? n : { default: n };
-    };
-  Object.defineProperty(dt, "__esModule", { value: !0 });
-  dt.URLExt = void 0;
-  var Zl = Cn(),
-    Kr = Ql(go()),
-    eu;
-  (function (n) {
-    function e(u) {
-      if (typeof document != "undefined" && document) {
-        let f = document.createElement("a");
-        return (f.href = u), f;
-      }
-      return Kr.default(u);
-    }
-    n.parse = e;
-    function t(u) {
-      return Kr.default(u).hostname;
-    }
-    n.getHostName = t;
-    function r(u) {
-      return u && e(u).toString();
-    }
-    n.normalize = r;
-    function i(...u) {
-      let f = Kr.default(u[0], {}),
-        c = `${f.protocol}${f.slashes ? "//" : ""}${f.auth}${f.auth ? "@" : ""}${f.host}`,
-        C = Zl.posix.join(
-          `${c && f.pathname[0] !== "/" ? "/" : ""}${f.pathname}`,
-          ...u.slice(1)
-        );
-      return `${c}${C === "." ? "" : C}`;
-    }
-    n.join = i;
-    function s(u) {
-      return i(...u.split("/").map(encodeURIComponent));
-    }
-    n.encodeParts = s;
-    function o(u) {
-      let f = Object.keys(u).filter((c) => c.length > 0);
-      return f.length
-        ? "?" +
-            f
-              .map((c) => {
-                let C = encodeURIComponent(String(u[c]));
-                return c + (C ? "=" + C : "");
-              })
-              .join("&")
-        : "";
-    }
-    n.objectToQueryString = o;
-    function a(u) {
-      return u
-        .replace(/^\?/, "")
-        .split("&")
-        .reduce((f, c) => {
-          let [C, M] = c.split("=");
-          return C.length > 0 && (f[C] = decodeURIComponent(M || "")), f;
-        }, {});
-    }
-    n.queryStringToObject = a;
-    function l(u) {
-      let { protocol: f } = e(u);
-      return (!f || u.toLowerCase().indexOf(f) !== 0) && u.indexOf("/") !== 0;
-    }
-    n.isLocal = l;
-  })((eu = dt.URLExt || (dt.URLExt = {})));
-});
-var _o = k((exports, module) => {
-  "use strict";
-  h();
-  var __importDefault =
-    (exports && exports.__importDefault) ||
-    function (n) {
-      return n && n.__esModule ? n : { default: n };
-    };
-  Object.defineProperty(exports, "__esModule", { value: !0 });
-  exports.PageConfig = void 0;
-  var coreutils_1 = Ne(),
-    minimist_1 = __importDefault(Zs()),
-    url_1 = qr(),
-    PageConfig;
-  (function (PageConfig) {
-    function getOption(name) {
-      if (configData) return configData[name] || getBodyData(name);
-      configData = Object.create(null);
-      let found = !1;
-      if (typeof document != "undefined" && document) {
-        let n = document.getElementById("jupyter-config-data");
-        n && ((configData = JSON.parse(n.textContent || "")), (found = !0));
-      }
-      if (!found && typeof process != "undefined" && process.argv)
-        try {
-          let cli = minimist_1.default(process.argv.slice(2)),
-            path = Cn(),
-            fullPath = "";
-          "jupyter-config-data" in cli
-            ? (fullPath = path.resolve(cli["jupyter-config-data"]))
-            : "JUPYTER_CONFIG_DATA" in process.env &&
-              (fullPath = path.resolve(process.env.JUPYTER_CONFIG_DATA)),
-            fullPath && (configData = eval("require")(fullPath));
-        } catch (n) {
-          console.error(n);
-        }
-      if (!coreutils_1.JSONExt.isObject(configData))
-        configData = Object.create(null);
+      // RegExp the back.
+      [NaN, "hostname", void 0, 1, 1]
+      // Set left over.
+    ];
+    var ignore = { hash: 1, query: 1 };
+    function lolcation(loc) {
+      var globalVar;
+      if (typeof window !== "undefined")
+        globalVar = window;
+      else if (typeof this !== "undefined")
+        globalVar = this;
+      else if (typeof self !== "undefined")
+        globalVar = self;
       else
-        for (let n in configData)
-          typeof configData[n] != "string" &&
-            (configData[n] = JSON.stringify(configData[n]));
-      return configData[name] || getBodyData(name);
+        globalVar = {};
+      var location = globalVar.location || {};
+      loc = loc || location;
+      var finaldestination = {}, type = typeof loc, key;
+      if ("blob:" === loc.protocol) {
+        finaldestination = new Url(unescape(loc.pathname), {});
+      } else if ("string" === type) {
+        finaldestination = new Url(loc, {});
+        for (key in ignore)
+          delete finaldestination[key];
+      } else if ("object" === type) {
+        for (key in loc) {
+          if (key in ignore)
+            continue;
+          finaldestination[key] = loc[key];
+        }
+        if (finaldestination.slashes === void 0) {
+          finaldestination.slashes = slashes.test(loc.href);
+        }
+      }
+      return finaldestination;
     }
-    PageConfig.getOption = getOption;
-    function setOption(n, e) {
-      let t = getOption(n);
-      return (configData[n] = e), t;
+    function isSpecial(scheme) {
+      return scheme === "file:" || scheme === "ftp:" || scheme === "http:" || scheme === "https:" || scheme === "ws:" || scheme === "wss:";
     }
-    PageConfig.setOption = setOption;
-    function getBaseUrl() {
-      return url_1.URLExt.normalize(getOption("baseUrl") || "/");
+    function extractProtocol(address, location) {
+      address = trimLeft(address);
+      address = address.replace(CRHTLF, "");
+      location = location || {};
+      var match = protocolre.exec(address);
+      var protocol = match[1] ? match[1].toLowerCase() : "";
+      var forwardSlashes = !!match[2];
+      var otherSlashes = !!match[3];
+      var slashesCount = 0;
+      var rest;
+      if (forwardSlashes) {
+        if (otherSlashes) {
+          rest = match[2] + match[3] + match[4];
+          slashesCount = match[2].length + match[3].length;
+        } else {
+          rest = match[2] + match[4];
+          slashesCount = match[2].length;
+        }
+      } else {
+        if (otherSlashes) {
+          rest = match[3] + match[4];
+          slashesCount = match[3].length;
+        } else {
+          rest = match[4];
+        }
+      }
+      if (protocol === "file:") {
+        if (slashesCount >= 2) {
+          rest = rest.slice(2);
+        }
+      } else if (isSpecial(protocol)) {
+        rest = match[4];
+      } else if (protocol) {
+        if (forwardSlashes) {
+          rest = rest.slice(2);
+        }
+      } else if (slashesCount >= 2 && isSpecial(location.protocol)) {
+        rest = match[4];
+      }
+      return {
+        protocol,
+        slashes: forwardSlashes || isSpecial(protocol),
+        slashesCount,
+        rest
+      };
     }
-    PageConfig.getBaseUrl = getBaseUrl;
-    function getTreeUrl() {
-      return url_1.URLExt.join(getBaseUrl(), getOption("treeUrl"));
+    function resolve(relative, base) {
+      if (relative === "")
+        return base;
+      var path2 = (base || "/").split("/").slice(0, -1).concat(relative.split("/")), i = path2.length, last = path2[i - 1], unshift = false, up = 0;
+      while (i--) {
+        if (path2[i] === ".") {
+          path2.splice(i, 1);
+        } else if (path2[i] === "..") {
+          path2.splice(i, 1);
+          up++;
+        } else if (up) {
+          if (i === 0)
+            unshift = true;
+          path2.splice(i, 1);
+          up--;
+        }
+      }
+      if (unshift)
+        path2.unshift("");
+      if (last === "." || last === "..")
+        path2.push("");
+      return path2.join("/");
     }
-    PageConfig.getTreeUrl = getTreeUrl;
-    function getShareUrl() {
-      return url_1.URLExt.normalize(getOption("shareUrl") || getBaseUrl());
+    function Url(address, location, parser) {
+      address = trimLeft(address);
+      address = address.replace(CRHTLF, "");
+      if (!(this instanceof Url)) {
+        return new Url(address, location, parser);
+      }
+      var relative, extracted, parse, instruction, index, key, instructions = rules.slice(), type = typeof location, url = this, i = 0;
+      if ("object" !== type && "string" !== type) {
+        parser = location;
+        location = null;
+      }
+      if (parser && "function" !== typeof parser)
+        parser = qs.parse;
+      location = lolcation(location);
+      extracted = extractProtocol(address || "", location);
+      relative = !extracted.protocol && !extracted.slashes;
+      url.slashes = extracted.slashes || relative && location.slashes;
+      url.protocol = extracted.protocol || location.protocol || "";
+      address = extracted.rest;
+      if (extracted.protocol === "file:" && (extracted.slashesCount !== 2 || windowsDriveLetter.test(address)) || !extracted.slashes && (extracted.protocol || extracted.slashesCount < 2 || !isSpecial(url.protocol))) {
+        instructions[3] = [/(.*)/, "pathname"];
+      }
+      for (; i < instructions.length; i++) {
+        instruction = instructions[i];
+        if (typeof instruction === "function") {
+          address = instruction(address, url);
+          continue;
+        }
+        parse = instruction[0];
+        key = instruction[1];
+        if (parse !== parse) {
+          url[key] = address;
+        } else if ("string" === typeof parse) {
+          index = parse === "@" ? address.lastIndexOf(parse) : address.indexOf(parse);
+          if (~index) {
+            if ("number" === typeof instruction[2]) {
+              url[key] = address.slice(0, index);
+              address = address.slice(index + instruction[2]);
+            } else {
+              url[key] = address.slice(index);
+              address = address.slice(0, index);
+            }
+          }
+        } else if (index = parse.exec(address)) {
+          url[key] = index[1];
+          address = address.slice(0, index.index);
+        }
+        url[key] = url[key] || (relative && instruction[3] ? location[key] || "" : "");
+        if (instruction[4])
+          url[key] = url[key].toLowerCase();
+      }
+      if (parser)
+        url.query = parser(url.query);
+      if (relative && location.slashes && url.pathname.charAt(0) !== "/" && (url.pathname !== "" || location.pathname !== "")) {
+        url.pathname = resolve(url.pathname, location.pathname);
+      }
+      if (url.pathname.charAt(0) !== "/" && isSpecial(url.protocol)) {
+        url.pathname = "/" + url.pathname;
+      }
+      if (!required(url.port, url.protocol)) {
+        url.host = url.hostname;
+        url.port = "";
+      }
+      url.username = url.password = "";
+      if (url.auth) {
+        index = url.auth.indexOf(":");
+        if (~index) {
+          url.username = url.auth.slice(0, index);
+          url.username = encodeURIComponent(decodeURIComponent(url.username));
+          url.password = url.auth.slice(index + 1);
+          url.password = encodeURIComponent(decodeURIComponent(url.password));
+        } else {
+          url.username = encodeURIComponent(decodeURIComponent(url.auth));
+        }
+        url.auth = url.password ? url.username + ":" + url.password : url.username;
+      }
+      url.origin = url.protocol !== "file:" && isSpecial(url.protocol) && url.host ? url.protocol + "//" + url.host : "null";
+      url.href = url.toString();
     }
-    PageConfig.getShareUrl = getShareUrl;
-    function getTreeShareUrl() {
-      return url_1.URLExt.normalize(
-        url_1.URLExt.join(getShareUrl(), getOption("treeUrl"))
-      );
+    function set(part, value, fn) {
+      var url = this;
+      switch (part) {
+        case "query":
+          if ("string" === typeof value && value.length) {
+            value = (fn || qs.parse)(value);
+          }
+          url[part] = value;
+          break;
+        case "port":
+          url[part] = value;
+          if (!required(value, url.protocol)) {
+            url.host = url.hostname;
+            url[part] = "";
+          } else if (value) {
+            url.host = url.hostname + ":" + value;
+          }
+          break;
+        case "hostname":
+          url[part] = value;
+          if (url.port)
+            value += ":" + url.port;
+          url.host = value;
+          break;
+        case "host":
+          url[part] = value;
+          if (port.test(value)) {
+            value = value.split(":");
+            url.port = value.pop();
+            url.hostname = value.join(":");
+          } else {
+            url.hostname = value;
+            url.port = "";
+          }
+          break;
+        case "protocol":
+          url.protocol = value.toLowerCase();
+          url.slashes = !fn;
+          break;
+        case "pathname":
+        case "hash":
+          if (value) {
+            var char = part === "pathname" ? "/" : "#";
+            url[part] = value.charAt(0) !== char ? char + value : value;
+          } else {
+            url[part] = value;
+          }
+          break;
+        case "username":
+        case "password":
+          url[part] = encodeURIComponent(value);
+          break;
+        case "auth":
+          var index = value.indexOf(":");
+          if (~index) {
+            url.username = value.slice(0, index);
+            url.username = encodeURIComponent(decodeURIComponent(url.username));
+            url.password = value.slice(index + 1);
+            url.password = encodeURIComponent(decodeURIComponent(url.password));
+          } else {
+            url.username = encodeURIComponent(decodeURIComponent(value));
+          }
+      }
+      for (var i = 0; i < rules.length; i++) {
+        var ins = rules[i];
+        if (ins[4])
+          url[ins[1]] = url[ins[1]].toLowerCase();
+      }
+      url.auth = url.password ? url.username + ":" + url.password : url.username;
+      url.origin = url.protocol !== "file:" && isSpecial(url.protocol) && url.host ? url.protocol + "//" + url.host : "null";
+      url.href = url.toString();
+      return url;
     }
-    PageConfig.getTreeShareUrl = getTreeShareUrl;
-    function getUrl(n) {
-      var e, t, r;
-      let i = getOption("baseUrl") || "/",
-        s = (e = n.mode) !== null && e !== void 0 ? e : getOption("mode"),
-        o =
-          (t = n.workspace) !== null && t !== void 0
-            ? t
-            : getOption("workspace"),
-        a = s === "multiple-document" ? "lab" : "doc";
-      (i = url_1.URLExt.join(i, a)),
-        o !== PageConfig.defaultWorkspace &&
-          (i = url_1.URLExt.join(
-            i,
-            "workspaces",
-            encodeURIComponent(getOption("workspace"))
-          ));
-      let l =
-        (r = n.treePath) !== null && r !== void 0 ? r : getOption("treePath");
-      return (
-        l && (i = url_1.URLExt.join(i, "tree", url_1.URLExt.encodeParts(l))), i
-      );
+    function toString(stringify) {
+      if (!stringify || "function" !== typeof stringify)
+        stringify = qs.stringify;
+      var query, url = this, host = url.host, protocol = url.protocol;
+      if (protocol && protocol.charAt(protocol.length - 1) !== ":")
+        protocol += ":";
+      var result = protocol + (url.protocol && url.slashes || isSpecial(url.protocol) ? "//" : "");
+      if (url.username) {
+        result += url.username;
+        if (url.password)
+          result += ":" + url.password;
+        result += "@";
+      } else if (url.password) {
+        result += ":" + url.password;
+        result += "@";
+      } else if (url.protocol !== "file:" && isSpecial(url.protocol) && !host && url.pathname !== "/") {
+        result += "@";
+      }
+      if (host[host.length - 1] === ":" || port.test(url.hostname) && !url.port) {
+        host += ":";
+      }
+      result += host + url.pathname;
+      query = "object" === typeof url.query ? stringify(url.query) : url.query;
+      if (query)
+        result += "?" !== query.charAt(0) ? "?" + query : query;
+      if (url.hash)
+        result += url.hash;
+      return result;
     }
-    (PageConfig.getUrl = getUrl), (PageConfig.defaultWorkspace = "default");
-    function getWsUrl(n) {
-      let e = getOption("wsUrl");
-      if (!e) {
-        if (
-          ((n = n ? url_1.URLExt.normalize(n) : getBaseUrl()),
-          n.indexOf("http") !== 0)
-        )
+    Url.prototype = { set, toString };
+    Url.extractProtocol = extractProtocol;
+    Url.location = lolcation;
+    Url.trimLeft = trimLeft;
+    Url.qs = qs;
+    module2.exports = Url;
+  }
+});
+
+// node_modules/@jupyterlab/coreutils/lib/url.js
+var require_url = __commonJS({
+  "node_modules/@jupyterlab/coreutils/lib/url.js"(exports2) {
+    "use strict";
+    init_process_development();
+    var __importDefault2 = exports2 && exports2.__importDefault || function(mod) {
+      return mod && mod.__esModule ? mod : { "default": mod };
+    };
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.URLExt = void 0;
+    var path_1 = require_path_browserify();
+    var url_parse_1 = __importDefault2(require_url_parse());
+    var URLExt;
+    (function(URLExt2) {
+      function parse(url) {
+        if (typeof document !== "undefined" && document) {
+          const a = document.createElement("a");
+          a.href = url;
+          return a;
+        }
+        return url_parse_1.default(url);
+      }
+      URLExt2.parse = parse;
+      function getHostName(url) {
+        return url_parse_1.default(url).hostname;
+      }
+      URLExt2.getHostName = getHostName;
+      function normalize(url) {
+        return url && parse(url).toString();
+      }
+      URLExt2.normalize = normalize;
+      function join(...parts) {
+        const u = url_parse_1.default(parts[0], {});
+        const prefix = `${u.protocol}${u.slashes ? "//" : ""}${u.auth}${u.auth ? "@" : ""}${u.host}`;
+        const path2 = path_1.posix.join(`${!!prefix && u.pathname[0] !== "/" ? "/" : ""}${u.pathname}`, ...parts.slice(1));
+        return `${prefix}${path2 === "." ? "" : path2}`;
+      }
+      URLExt2.join = join;
+      function encodeParts(url) {
+        return join(...url.split("/").map(encodeURIComponent));
+      }
+      URLExt2.encodeParts = encodeParts;
+      function objectToQueryString(value) {
+        const keys = Object.keys(value).filter((key) => key.length > 0);
+        if (!keys.length) {
           return "";
-        e = "ws" + n.slice(4);
-      }
-      return url_1.URLExt.normalize(e);
-    }
-    PageConfig.getWsUrl = getWsUrl;
-    function getNBConvertURL({ path: n, format: e, download: t }) {
-      let r = url_1.URLExt.encodeParts(n),
-        i = url_1.URLExt.join(getBaseUrl(), "nbconvert", e, r);
-      return t ? i + "?download=true" : i;
-    }
-    PageConfig.getNBConvertURL = getNBConvertURL;
-    function getToken() {
-      return getOption("token") || getBodyData("jupyterApiToken");
-    }
-    PageConfig.getToken = getToken;
-    function getNotebookVersion() {
-      let n = getOption("notebookVersion");
-      return n === "" ? [0, 0, 0] : JSON.parse(n);
-    }
-    PageConfig.getNotebookVersion = getNotebookVersion;
-    let configData = null;
-    function getBodyData(n) {
-      if (typeof document == "undefined" || !document.body) return "";
-      let e = document.body.dataset[n];
-      return typeof e == "undefined" ? "" : decodeURIComponent(e);
-    }
-    let Extension;
-    (function (n) {
-      function e(i) {
-        try {
-          let s = getOption(i);
-          if (s) return JSON.parse(s);
-        } catch (s) {
-          console.warn(`Unable to parse ${i}.`, s);
         }
-        return [];
+        return "?" + keys.map((key) => {
+          const content = encodeURIComponent(String(value[key]));
+          return key + (content ? "=" + content : "");
+        }).join("&");
       }
-      (n.deferred = e("deferredExtensions")),
-        (n.disabled = e("disabledExtensions"));
-      function t(i) {
-        let s = i.indexOf(":"),
-          o = "";
-        return (
-          s !== -1 && (o = i.slice(0, s)),
-          n.deferred.some((a) => a === i || (o && a === o))
-        );
+      URLExt2.objectToQueryString = objectToQueryString;
+      function queryStringToObject(value) {
+        return value.replace(/^\?/, "").split("&").reduce((acc, val) => {
+          const [key, value2] = val.split("=");
+          if (key.length > 0) {
+            acc[key] = decodeURIComponent(value2 || "");
+          }
+          return acc;
+        }, {});
       }
-      n.isDeferred = t;
-      function r(i) {
-        let s = i.indexOf(":"),
-          o = "";
-        return (
-          s !== -1 && (o = i.slice(0, s)),
-          n.disabled.some((a) => a === i || (o && a === o))
-        );
+      URLExt2.queryStringToObject = queryStringToObject;
+      function isLocal(url) {
+        const { protocol } = parse(url);
+        return (!protocol || url.toLowerCase().indexOf(protocol) !== 0) && url.indexOf("/") !== 0;
       }
-      n.isDisabled = r;
-    })((Extension = PageConfig.Extension || (PageConfig.Extension = {})));
-  })((PageConfig = exports.PageConfig || (exports.PageConfig = {})));
+      URLExt2.isLocal = isLocal;
+    })(URLExt = exports2.URLExt || (exports2.URLExt = {}));
+  }
 });
-var mo = k((Jt) => {
-  "use strict";
-  h();
-  Object.defineProperty(Jt, "__esModule", { value: !0 });
-  Jt.PathExt = void 0;
-  var ht = Cn(),
-    tu;
-  (function (n) {
-    function e(...f) {
-      let c = ht.posix.join(...f);
-      return c === "." ? "" : u(c);
-    }
-    n.join = e;
-    function t(f, c) {
-      return ht.posix.basename(f, c);
-    }
-    n.basename = t;
-    function r(f) {
-      let c = u(ht.posix.dirname(f));
-      return c === "." ? "" : c;
-    }
-    n.dirname = r;
-    function i(f) {
-      return ht.posix.extname(f);
-    }
-    n.extname = i;
-    function s(f) {
-      return f === "" ? "" : u(ht.posix.normalize(f));
-    }
-    n.normalize = s;
-    function o(...f) {
-      return u(ht.posix.resolve(...f));
-    }
-    n.resolve = o;
-    function a(f, c) {
-      return u(ht.posix.relative(f, c));
-    }
-    n.relative = a;
-    function l(f) {
-      return f.length > 0 && f.indexOf(".") !== 0 && (f = `.${f}`), f;
-    }
-    n.normalizeExtension = l;
-    function u(f) {
-      return f.indexOf("/") === 0 && (f = f.slice(1)), f;
-    }
-    n.removeSlash = u;
-  })((tu = Jt.PathExt || (Jt.PathExt = {})));
-});
-var vo = k((Gt) => {
-  "use strict";
-  h();
-  Object.defineProperty(Gt, "__esModule", { value: !0 });
-  Gt.Text = void 0;
-  var nu;
-  (function (n) {
-    let e = 2 > 1;
-    function t(o, a) {
-      if (e) return o;
-      let l = o;
-      for (let u = 0; u + 1 < a.length && u < o; u++) {
-        let f = a.charCodeAt(u);
-        if (f >= 55296 && f <= 56319) {
-          let c = a.charCodeAt(u + 1);
-          c >= 56320 && c <= 57343 && (l--, u++);
+
+// node_modules/@jupyterlab/coreutils/lib/pageconfig.js
+var require_pageconfig = __commonJS({
+  "node_modules/@jupyterlab/coreutils/lib/pageconfig.js"(exports, module) {
+    "use strict";
+    init_process_development();
+    var __importDefault = exports && exports.__importDefault || function(mod) {
+      return mod && mod.__esModule ? mod : { "default": mod };
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.PageConfig = void 0;
+    var coreutils_1 = require_dist4();
+    var minimist_1 = __importDefault(require_minimist());
+    var url_1 = require_url();
+    var PageConfig;
+    (function(PageConfig) {
+      function getOption(name) {
+        if (configData) {
+          return configData[name] || getBodyData(name);
         }
-      }
-      return l;
-    }
-    n.jsIndexToCharIndex = t;
-    function r(o, a) {
-      if (e) return o;
-      let l = o;
-      for (let u = 0; u + 1 < a.length && u < l; u++) {
-        let f = a.charCodeAt(u);
-        if (f >= 55296 && f <= 56319) {
-          let c = a.charCodeAt(u + 1);
-          c >= 56320 && c <= 57343 && (l++, u++);
+        configData = /* @__PURE__ */ Object.create(null);
+        let found = false;
+        if (typeof document !== "undefined" && document) {
+          const el = document.getElementById("jupyter-config-data");
+          if (el) {
+            configData = JSON.parse(el.textContent || "");
+            found = true;
+          }
         }
+        if (!found && typeof process !== "undefined" && process.argv) {
+          try {
+            const cli = minimist_1.default(process.argv.slice(2));
+            const path = require_path_browserify();
+            let fullPath = "";
+            if ("jupyter-config-data" in cli) {
+              fullPath = path.resolve(cli["jupyter-config-data"]);
+            } else if ("JUPYTER_CONFIG_DATA" in process.env) {
+              fullPath = path.resolve(process.env["JUPYTER_CONFIG_DATA"]);
+            }
+            if (fullPath) {
+              configData = eval("require")(fullPath);
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        if (!coreutils_1.JSONExt.isObject(configData)) {
+          configData = /* @__PURE__ */ Object.create(null);
+        } else {
+          for (const key in configData) {
+            if (typeof configData[key] !== "string") {
+              configData[key] = JSON.stringify(configData[key]);
+            }
+          }
+        }
+        return configData[name] || getBodyData(name);
       }
-      return l;
-    }
-    n.charIndexToJsIndex = r;
-    function i(o, a = !1) {
-      return o.replace(/^(\w)|[\s-_:]+(\w)/g, function (l, u, f) {
-        return f ? f.toUpperCase() : a ? u.toUpperCase() : u.toLowerCase();
-      });
-    }
-    n.camelCase = i;
-    function s(o) {
-      return (o || "")
-        .toLowerCase()
-        .split(" ")
-        .map((a) => a.charAt(0).toUpperCase() + a.slice(1))
-        .join(" ");
-    }
-    n.titleCase = s;
-  })((nu = Gt.Text || (Gt.Text = {})));
+      PageConfig.getOption = getOption;
+      function setOption(name2, value) {
+        const last = getOption(name2);
+        configData[name2] = value;
+        return last;
+      }
+      PageConfig.setOption = setOption;
+      function getBaseUrl() {
+        return url_1.URLExt.normalize(getOption("baseUrl") || "/");
+      }
+      PageConfig.getBaseUrl = getBaseUrl;
+      function getTreeUrl() {
+        return url_1.URLExt.join(getBaseUrl(), getOption("treeUrl"));
+      }
+      PageConfig.getTreeUrl = getTreeUrl;
+      function getShareUrl() {
+        return url_1.URLExt.normalize(getOption("shareUrl") || getBaseUrl());
+      }
+      PageConfig.getShareUrl = getShareUrl;
+      function getTreeShareUrl() {
+        return url_1.URLExt.normalize(url_1.URLExt.join(getShareUrl(), getOption("treeUrl")));
+      }
+      PageConfig.getTreeShareUrl = getTreeShareUrl;
+      function getUrl(options) {
+        var _a, _b, _c;
+        let path2 = getOption("baseUrl") || "/";
+        const mode = (_a = options.mode) !== null && _a !== void 0 ? _a : getOption("mode");
+        const workspace = (_b = options.workspace) !== null && _b !== void 0 ? _b : getOption("workspace");
+        const labOrDoc = mode === "multiple-document" ? "lab" : "doc";
+        path2 = url_1.URLExt.join(path2, labOrDoc);
+        if (workspace !== PageConfig.defaultWorkspace) {
+          path2 = url_1.URLExt.join(path2, "workspaces", encodeURIComponent(getOption("workspace")));
+        }
+        const treePath = (_c = options.treePath) !== null && _c !== void 0 ? _c : getOption("treePath");
+        if (treePath) {
+          path2 = url_1.URLExt.join(path2, "tree", url_1.URLExt.encodeParts(treePath));
+        }
+        return path2;
+      }
+      PageConfig.getUrl = getUrl;
+      PageConfig.defaultWorkspace = "default";
+      function getWsUrl(baseUrl) {
+        let wsUrl = getOption("wsUrl");
+        if (!wsUrl) {
+          baseUrl = baseUrl ? url_1.URLExt.normalize(baseUrl) : getBaseUrl();
+          if (baseUrl.indexOf("http") !== 0) {
+            return "";
+          }
+          wsUrl = "ws" + baseUrl.slice(4);
+        }
+        return url_1.URLExt.normalize(wsUrl);
+      }
+      PageConfig.getWsUrl = getWsUrl;
+      function getNBConvertURL({ path: path2, format, download }) {
+        const notebookPath = url_1.URLExt.encodeParts(path2);
+        const url = url_1.URLExt.join(getBaseUrl(), "nbconvert", format, notebookPath);
+        if (download) {
+          return url + "?download=true";
+        }
+        return url;
+      }
+      PageConfig.getNBConvertURL = getNBConvertURL;
+      function getToken() {
+        return getOption("token") || getBodyData("jupyterApiToken");
+      }
+      PageConfig.getToken = getToken;
+      function getNotebookVersion() {
+        const notebookVersion = getOption("notebookVersion");
+        if (notebookVersion === "") {
+          return [0, 0, 0];
+        }
+        return JSON.parse(notebookVersion);
+      }
+      PageConfig.getNotebookVersion = getNotebookVersion;
+      let configData = null;
+      function getBodyData(key) {
+        if (typeof document === "undefined" || !document.body) {
+          return "";
+        }
+        const val = document.body.dataset[key];
+        if (typeof val === "undefined") {
+          return "";
+        }
+        return decodeURIComponent(val);
+      }
+      let Extension;
+      (function(Extension2) {
+        function populate(key) {
+          try {
+            const raw = getOption(key);
+            if (raw) {
+              return JSON.parse(raw);
+            }
+          } catch (error) {
+            console.warn(`Unable to parse ${key}.`, error);
+          }
+          return [];
+        }
+        Extension2.deferred = populate("deferredExtensions");
+        Extension2.disabled = populate("disabledExtensions");
+        function isDeferred(id) {
+          const separatorIndex = id.indexOf(":");
+          let extName = "";
+          if (separatorIndex !== -1) {
+            extName = id.slice(0, separatorIndex);
+          }
+          return Extension2.deferred.some((val) => val === id || extName && val === extName);
+        }
+        Extension2.isDeferred = isDeferred;
+        function isDisabled(id) {
+          const separatorIndex = id.indexOf(":");
+          let extName = "";
+          if (separatorIndex !== -1) {
+            extName = id.slice(0, separatorIndex);
+          }
+          return Extension2.disabled.some((val) => val === id || extName && val === extName);
+        }
+        Extension2.isDisabled = isDisabled;
+      })(Extension = PageConfig.Extension || (PageConfig.Extension = {}));
+    })(PageConfig = exports.PageConfig || (exports.PageConfig = {}));
+  }
 });
-var yo = {};
-Ll(yo, { default: () => ru });
-function ru(n) {
+
+// node_modules/@jupyterlab/coreutils/lib/path.js
+var require_path = __commonJS({
+  "node_modules/@jupyterlab/coreutils/lib/path.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.PathExt = void 0;
+    var path_1 = require_path_browserify();
+    var PathExt;
+    (function(PathExt2) {
+      function join(...paths) {
+        const path2 = path_1.posix.join(...paths);
+        return path2 === "." ? "" : removeSlash(path2);
+      }
+      PathExt2.join = join;
+      function basename(path2, ext) {
+        return path_1.posix.basename(path2, ext);
+      }
+      PathExt2.basename = basename;
+      function dirname(path2) {
+        const dir = removeSlash(path_1.posix.dirname(path2));
+        return dir === "." ? "" : dir;
+      }
+      PathExt2.dirname = dirname;
+      function extname(path2) {
+        return path_1.posix.extname(path2);
+      }
+      PathExt2.extname = extname;
+      function normalize(path2) {
+        if (path2 === "") {
+          return "";
+        }
+        return removeSlash(path_1.posix.normalize(path2));
+      }
+      PathExt2.normalize = normalize;
+      function resolve(...parts) {
+        return removeSlash(path_1.posix.resolve(...parts));
+      }
+      PathExt2.resolve = resolve;
+      function relative(from, to) {
+        return removeSlash(path_1.posix.relative(from, to));
+      }
+      PathExt2.relative = relative;
+      function normalizeExtension(extension) {
+        if (extension.length > 0 && extension.indexOf(".") !== 0) {
+          extension = `.${extension}`;
+        }
+        return extension;
+      }
+      PathExt2.normalizeExtension = normalizeExtension;
+      function removeSlash(path2) {
+        if (path2.indexOf("/") === 0) {
+          path2 = path2.slice(1);
+        }
+        return path2;
+      }
+      PathExt2.removeSlash = removeSlash;
+    })(PathExt = exports2.PathExt || (exports2.PathExt = {}));
+  }
+});
+
+// node_modules/@jupyterlab/coreutils/lib/text.js
+var require_text = __commonJS({
+  "node_modules/@jupyterlab/coreutils/lib/text.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.Text = void 0;
+    var Text;
+    (function(Text2) {
+      const HAS_SURROGATES = "\u{1D41A}".length > 1;
+      function jsIndexToCharIndex(jsIdx, text) {
+        if (HAS_SURROGATES) {
+          return jsIdx;
+        }
+        let charIdx = jsIdx;
+        for (let i = 0; i + 1 < text.length && i < jsIdx; i++) {
+          const charCode = text.charCodeAt(i);
+          if (charCode >= 55296 && charCode <= 56319) {
+            const nextCharCode = text.charCodeAt(i + 1);
+            if (nextCharCode >= 56320 && nextCharCode <= 57343) {
+              charIdx--;
+              i++;
+            }
+          }
+        }
+        return charIdx;
+      }
+      Text2.jsIndexToCharIndex = jsIndexToCharIndex;
+      function charIndexToJsIndex(charIdx, text) {
+        if (HAS_SURROGATES) {
+          return charIdx;
+        }
+        let jsIdx = charIdx;
+        for (let i = 0; i + 1 < text.length && i < jsIdx; i++) {
+          const charCode = text.charCodeAt(i);
+          if (charCode >= 55296 && charCode <= 56319) {
+            const nextCharCode = text.charCodeAt(i + 1);
+            if (nextCharCode >= 56320 && nextCharCode <= 57343) {
+              jsIdx++;
+              i++;
+            }
+          }
+        }
+        return jsIdx;
+      }
+      Text2.charIndexToJsIndex = charIndexToJsIndex;
+      function camelCase(str, upper = false) {
+        return str.replace(/^(\w)|[\s-_:]+(\w)/g, function(match, p1, p2) {
+          if (p2) {
+            return p2.toUpperCase();
+          } else {
+            return upper ? p1.toUpperCase() : p1.toLowerCase();
+          }
+        });
+      }
+      Text2.camelCase = camelCase;
+      function titleCase(str) {
+        return (str || "").toLowerCase().split(" ").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+      }
+      Text2.titleCase = titleCase;
+    })(Text = exports2.Text || (exports2.Text = {}));
+  }
+});
+
+// build/webpack/moment.js
+var moment_exports = {};
+__export(moment_exports, {
+  default: () => moment_default
+});
+function moment_default(dateTime) {
   return {
     formatNow: () => {
       try {
-        return n.toLocaleString();
+        return dateTime.toLocaleString();
       } catch (e) {
-        return `${n}`;
+        return `${dateTime}`;
       }
     },
     format: () => {
       try {
-        return n.toLocaleTimeString();
+        return dateTime.toLocaleTimeString();
       } catch (e) {
-        return `${n}`;
+        return `${dateTime}`;
       }
-    },
+    }
   };
 }
-var Eo = Ns(() => {
-  "use strict";
-  h();
+var init_moment = __esm({
+  "build/webpack/moment.js"() {
+    "use strict";
+    init_process_development();
+  }
 });
-var bo = k((ft) => {
-  "use strict";
-  h();
-  var iu =
-    (ft && ft.__importDefault) ||
-    function (n) {
-      return n && n.__esModule ? n : { default: n };
+
+// node_modules/@jupyterlab/coreutils/lib/time.js
+var require_time = __commonJS({
+  "node_modules/@jupyterlab/coreutils/lib/time.js"(exports2) {
+    "use strict";
+    init_process_development();
+    var __importDefault2 = exports2 && exports2.__importDefault || function(mod) {
+      return mod && mod.__esModule ? mod : { "default": mod };
     };
-  Object.defineProperty(ft, "__esModule", { value: !0 });
-  ft.Time = void 0;
-  var Vr = iu((Eo(), kl(yo))),
-    su;
-  (function (n) {
-    function e(r) {
-      Vr.default.locale(document.documentElement.lang);
-      let i = Vr.default(r).fromNow();
-      return (i = i === "a few seconds ago" ? "seconds ago" : i), i;
-    }
-    n.formatHuman = e;
-    function t(r, i = "YYYY-MM-DD HH:mm") {
-      return Vr.default(r).format(i);
-    }
-    n.format = t;
-  })((su = ft.Time || (ft.Time = {})));
-});
-var Ie = k((we) => {
-  "use strict";
-  h();
-  var ou =
-      (we && we.__createBinding) ||
-      (Object.create
-        ? function (n, e, t, r) {
-            r === void 0 && (r = t),
-              Object.defineProperty(n, r, {
-                enumerable: !0,
-                get: function () {
-                  return e[t];
-                },
-              });
-          }
-        : function (n, e, t, r) {
-            r === void 0 && (r = t), (n[r] = e[t]);
-          }),
-    tt =
-      (we && we.__exportStar) ||
-      function (n, e) {
-        for (var t in n)
-          t !== "default" &&
-            !Object.prototype.hasOwnProperty.call(e, t) &&
-            ou(e, n, t);
-      };
-  Object.defineProperty(we, "__esModule", { value: !0 });
-  tt(Hs(), we);
-  tt(Js(), we);
-  tt(Gs(), we);
-  tt(_o(), we);
-  tt(mo(), we);
-  tt(vo(), we);
-  tt(bo(), we);
-  tt(qr(), we);
-});
-var So = k((pt) => {
-  "use strict";
-  h();
-  Object.defineProperty(pt, "__esModule", { value: !0 });
-  pt.ConfigWithDefaults = pt.ConfigSection = void 0;
-  var au = Ie(),
-    zt = Ve(),
-    lu = "api/config",
-    uu;
-  (function (n) {
-    function e(t) {
-      let r = new Br(t);
-      return r.load().then(() => r);
-    }
-    n.create = e;
-  })((uu = pt.ConfigSection || (pt.ConfigSection = {})));
-  var Br = class {
-      constructor(e) {
-        var t;
-        this._url = "unknown";
-        let r = (this.serverSettings =
-          (t = e.serverSettings) !== null && t !== void 0
-            ? t
-            : zt.ServerConnection.makeSettings());
-        this._url = au.URLExt.join(r.baseUrl, lu, encodeURIComponent(e.name));
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.Time = void 0;
+    var moment_1 = __importDefault2((init_moment(), __toCommonJS(moment_exports)));
+    var Time;
+    (function(Time2) {
+      function formatHuman(value) {
+        moment_1.default.locale(document.documentElement.lang);
+        let time = moment_1.default(value).fromNow();
+        time = time === "a few seconds ago" ? "seconds ago" : time;
+        return time;
       }
+      Time2.formatHuman = formatHuman;
+      function format(value, timeFormat = "YYYY-MM-DD HH:mm") {
+        return moment_1.default(value).format(timeFormat);
+      }
+      Time2.format = format;
+    })(Time = exports2.Time || (exports2.Time = {}));
+  }
+});
+
+// node_modules/@jupyterlab/coreutils/lib/index.js
+var require_lib = __commonJS({
+  "node_modules/@jupyterlab/coreutils/lib/index.js"(exports2) {
+    "use strict";
+    init_process_development();
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      Object.defineProperty(o, k2, { enumerable: true, get: function() {
+        return m[k];
+      } });
+    } : function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      o[k2] = m[k];
+    });
+    var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
+      for (var p in m)
+        if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p))
+          __createBinding(exports3, m, p);
+    };
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    __exportStar(require_activitymonitor(), exports2);
+    __exportStar(require_interfaces(), exports2);
+    __exportStar(require_markdowncodeblocks(), exports2);
+    __exportStar(require_pageconfig(), exports2);
+    __exportStar(require_path(), exports2);
+    __exportStar(require_text(), exports2);
+    __exportStar(require_time(), exports2);
+    __exportStar(require_url(), exports2);
+  }
+});
+
+// node_modules/@jupyterlab/services/lib/config/index.js
+var require_config = __commonJS({
+  "node_modules/@jupyterlab/services/lib/config/index.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.ConfigWithDefaults = exports2.ConfigSection = void 0;
+    var coreutils_12 = require_lib();
+    var __1 = require_lib3();
+    var SERVICE_CONFIG_URL = "api/config";
+    var ConfigSection;
+    (function(ConfigSection2) {
+      function create2(options) {
+        const section = new DefaultConfigSection(options);
+        return section.load().then(() => {
+          return section;
+        });
+      }
+      ConfigSection2.create = create2;
+    })(ConfigSection = exports2.ConfigSection || (exports2.ConfigSection = {}));
+    var DefaultConfigSection = class {
+      /**
+       * Construct a new config section.
+       */
+      constructor(options) {
+        var _a;
+        this._url = "unknown";
+        const settings = this.serverSettings = (_a = options.serverSettings) !== null && _a !== void 0 ? _a : __1.ServerConnection.makeSettings();
+        this._url = coreutils_12.URLExt.join(settings.baseUrl, SERVICE_CONFIG_URL, encodeURIComponent(options.name));
+      }
+      /**
+       * Get the data for this section.
+       */
       get data() {
         return this._data;
       }
+      /**
+       * Load the initial data for this section.
+       *
+       * #### Notes
+       * Uses the [Jupyter Notebook API](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/jupyter/notebook/master/notebook/services/api/api.yaml#!/config).
+       *
+       * The promise is fulfilled on a valid response and rejected otherwise.
+       */
       async load() {
-        let e = await zt.ServerConnection.makeRequest(
-          this._url,
-          {},
-          this.serverSettings
-        );
-        if (e.status !== 200)
-          throw await zt.ServerConnection.ResponseError.create(e);
-        this._data = await e.json();
+        const response = await __1.ServerConnection.makeRequest(this._url, {}, this.serverSettings);
+        if (response.status !== 200) {
+          const err = await __1.ServerConnection.ResponseError.create(response);
+          throw err;
+        }
+        this._data = await response.json();
       }
-      async update(e) {
-        this._data = Object.assign(Object.assign({}, this._data), e);
-        let t = { method: "PATCH", body: JSON.stringify(e) },
-          r = await zt.ServerConnection.makeRequest(
-            this._url,
-            t,
-            this.serverSettings
-          );
-        if (r.status !== 200)
-          throw await zt.ServerConnection.ResponseError.create(r);
-        return (this._data = await r.json()), this._data;
-      }
-    },
-    Hr = class {
-      constructor(e) {
-        var t, r;
-        (this._className = ""),
-          (this._section = e.section),
-          (this._defaults = (t = e.defaults) !== null && t !== void 0 ? t : {}),
-          (this._className =
-            (r = e.className) !== null && r !== void 0 ? r : "");
-      }
-      get(e) {
-        let t = this._classData();
-        return e in t ? t[e] : this._defaults[e];
-      }
-      set(e, t) {
-        let r = {};
-        if (((r[e] = t), this._className)) {
-          let i = {};
-          return (i[this._className] = r), this._section.update(i);
-        } else return this._section.update(r);
-      }
-      _classData() {
-        let e = this._section.data;
-        return this._className && this._className in e ? e[this._className] : e;
+      /**
+       * Modify the stored config values.
+       *
+       * #### Notes
+       * Uses the [Jupyter Notebook API](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/jupyter/notebook/master/notebook/services/api/api.yaml#!/config).
+       *
+       * The promise is fulfilled on a valid response and rejected otherwise.
+       *
+       * Updates the local data immediately, sends the change to the server,
+       * and updates the local data with the response, and fulfils the promise
+       * with that data.
+       */
+      async update(newdata) {
+        this._data = Object.assign(Object.assign({}, this._data), newdata);
+        const init = {
+          method: "PATCH",
+          body: JSON.stringify(newdata)
+        };
+        const response = await __1.ServerConnection.makeRequest(this._url, init, this.serverSettings);
+        if (response.status !== 200) {
+          const err = await __1.ServerConnection.ResponseError.create(response);
+          throw err;
+        }
+        this._data = await response.json();
+        return this._data;
       }
     };
-  pt.ConfigWithDefaults = Hr;
-});
-var Yt = k((An) => {
-  "use strict";
-  h();
-  Object.defineProperty(An, "__esModule", { value: !0 });
-  An.validateProperty = void 0;
-  function cu(n, e, t, r = []) {
-    if (!n.hasOwnProperty(e)) throw Error(`Missing property '${e}'`);
-    let i = n[e];
-    if (t !== void 0) {
-      let s = !0;
-      switch (t) {
-        case "array":
-          s = Array.isArray(i);
-          break;
-        case "object":
-          s = typeof i != "undefined";
-          break;
-        default:
-          s = typeof i === t;
+    var ConfigWithDefaults = class {
+      /**
+       * Create a new config with defaults.
+       */
+      constructor(options) {
+        var _a, _b;
+        this._className = "";
+        this._section = options.section;
+        this._defaults = (_a = options.defaults) !== null && _a !== void 0 ? _a : {};
+        this._className = (_b = options.className) !== null && _b !== void 0 ? _b : "";
       }
-      if (!s) throw new Error(`Property '${e}' is not of type '${t}'`);
-      if (r.length > 0) {
-        let o = !0;
-        switch (t) {
-          case "string":
-          case "number":
-          case "boolean":
-            o = r.includes(i);
+      /**
+       * Get data from the config section or fall back to defaults.
+       */
+      get(key) {
+        const data = this._classData();
+        return key in data ? data[key] : this._defaults[key];
+      }
+      /**
+       * Set a config value.
+       *
+       * #### Notes
+       * Uses the [Jupyter Notebook API](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/jupyter/notebook/master/notebook/services/api/api.yaml#!/config).
+       *
+       * The promise is fulfilled on a valid response and rejected otherwise.
+       *
+       * Sends the update to the server, and changes our local copy of the data
+       * immediately.
+       */
+      set(key, value) {
+        const d = {};
+        d[key] = value;
+        if (this._className) {
+          const d2 = {};
+          d2[this._className] = d;
+          return this._section.update(d2);
+        } else {
+          return this._section.update(d);
+        }
+      }
+      /**
+       * Get data from the Section with our classname, if available.
+       *
+       * #### Notes
+       * If we have no classname, get all of the data in the Section
+       */
+      _classData() {
+        const data = this._section.data;
+        if (this._className && this._className in data) {
+          return data[this._className];
+        }
+        return data;
+      }
+    };
+    exports2.ConfigWithDefaults = ConfigWithDefaults;
+  }
+});
+
+// node_modules/@jupyterlab/services/lib/validate.js
+var require_validate = __commonJS({
+  "node_modules/@jupyterlab/services/lib/validate.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.validateProperty = void 0;
+    function validateProperty(object, name2, typeName, values = []) {
+      if (!object.hasOwnProperty(name2)) {
+        throw Error(`Missing property '${name2}'`);
+      }
+      const value = object[name2];
+      if (typeName !== void 0) {
+        let valid = true;
+        switch (typeName) {
+          case "array":
+            valid = Array.isArray(value);
+            break;
+          case "object":
+            valid = typeof value !== "undefined";
             break;
           default:
-            o = r.findIndex((a) => a === i) >= 0;
-            break;
+            valid = typeof value === typeName;
         }
-        if (!o)
-          throw new Error(
-            `Property '${e}' is not one of the valid values ${JSON.stringify(r)}`
-          );
+        if (!valid) {
+          throw new Error(`Property '${name2}' is not of type '${typeName}'`);
+        }
+        if (values.length > 0) {
+          let valid2 = true;
+          switch (typeName) {
+            case "string":
+            case "number":
+            case "boolean":
+              valid2 = values.includes(value);
+              break;
+            default:
+              valid2 = values.findIndex((v) => v === value) >= 0;
+              break;
+          }
+          if (!valid2) {
+            throw new Error(`Property '${name2}' is not one of the valid values ${JSON.stringify(values)}`);
+          }
+        }
       }
     }
+    exports2.validateProperty = validateProperty;
   }
-  An.validateProperty = cu;
 });
-var wo = k((At) => {
-  "use strict";
-  h();
-  Object.defineProperty(At, "__esModule", { value: !0 });
-  At.validateCheckpointModel = At.validateContentsModel = void 0;
-  var Be = Yt();
-  function du(n) {
-    Be.validateProperty(n, "name", "string"),
-      Be.validateProperty(n, "path", "string"),
-      Be.validateProperty(n, "type", "string"),
-      Be.validateProperty(n, "created", "string"),
-      Be.validateProperty(n, "last_modified", "string"),
-      Be.validateProperty(n, "mimetype", "object"),
-      Be.validateProperty(n, "content", "object"),
-      Be.validateProperty(n, "format", "object");
+
+// node_modules/@jupyterlab/services/lib/contents/validate.js
+var require_validate2 = __commonJS({
+  "node_modules/@jupyterlab/services/lib/contents/validate.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.validateCheckpointModel = exports2.validateContentsModel = void 0;
+    var validate_1 = require_validate();
+    function validateContentsModel(model) {
+      validate_1.validateProperty(model, "name", "string");
+      validate_1.validateProperty(model, "path", "string");
+      validate_1.validateProperty(model, "type", "string");
+      validate_1.validateProperty(model, "created", "string");
+      validate_1.validateProperty(model, "last_modified", "string");
+      validate_1.validateProperty(model, "mimetype", "object");
+      validate_1.validateProperty(model, "content", "object");
+      validate_1.validateProperty(model, "format", "object");
+    }
+    exports2.validateContentsModel = validateContentsModel;
+    function validateCheckpointModel(model) {
+      validate_1.validateProperty(model, "id", "string");
+      validate_1.validateProperty(model, "last_modified", "string");
+    }
+    exports2.validateCheckpointModel = validateCheckpointModel;
   }
-  At.validateContentsModel = du;
-  function hu(n) {
-    Be.validateProperty(n, "id", "string"),
-      Be.validateProperty(n, "last_modified", "string");
-  }
-  At.validateCheckpointModel = hu;
 });
-var Gr = k((_e) => {
-  "use strict";
-  h();
-  var fu =
-      (_e && _e.__createBinding) ||
-      (Object.create
-        ? function (n, e, t, r) {
-            r === void 0 && (r = t),
-              Object.defineProperty(n, r, {
-                enumerable: !0,
-                get: function () {
-                  return e[t];
-                },
-              });
-          }
-        : function (n, e, t, r) {
-            r === void 0 && (r = t), (n[r] = e[t]);
-          }),
-    pu =
-      (_e && _e.__setModuleDefault) ||
-      (Object.create
-        ? function (n, e) {
-            Object.defineProperty(n, "default", { enumerable: !0, value: e });
-          }
-        : function (n, e) {
-            n.default = e;
-          }),
-    gu =
-      (_e && _e.__importStar) ||
-      function (n) {
-        if (n && n.__esModule) return n;
-        var e = {};
-        if (n != null)
-          for (var t in n)
-            t !== "default" &&
-              Object.prototype.hasOwnProperty.call(n, t) &&
-              fu(e, n, t);
-        return pu(e, n), e;
-      };
-  Object.defineProperty(_e, "__esModule", { value: !0 });
-  _e.Drive = _e.ContentsManager = _e.Contents = void 0;
-  var Ae = Ie(),
-    _u = ct(),
-    Dn = ce(),
-    re = Ve(),
-    Xe = gu(wo()),
-    mu = "api/contents",
-    vu = "files",
-    yu;
-  (function (n) {
-    function e(r) {
-      Xe.validateContentsModel(r);
-    }
-    n.validateContentsModel = e;
-    function t(r) {
-      Xe.validateCheckpointModel(r);
-    }
-    n.validateCheckpointModel = t;
-  })((yu = _e.Contents || (_e.Contents = {})));
-  var $r = class {
-    constructor(e = {}) {
-      var t, r;
-      (this._isDisposed = !1),
-        (this._additionalDrives = new Map()),
-        (this._fileChanged = new Dn.Signal(this));
-      let i = (this.serverSettings =
-        (t = e.serverSettings) !== null && t !== void 0
-          ? t
-          : re.ServerConnection.makeSettings());
-      (this._defaultDrive =
-        (r = e.defaultDrive) !== null && r !== void 0
-          ? r
-          : new Pn({ serverSettings: i })),
+
+// node_modules/@jupyterlab/services/lib/contents/index.js
+var require_contents = __commonJS({
+  "node_modules/@jupyterlab/services/lib/contents/index.js"(exports2) {
+    "use strict";
+    init_process_development();
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      Object.defineProperty(o, k2, { enumerable: true, get: function() {
+        return m[k];
+      } });
+    } : function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      o[k2] = m[k];
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || function(mod) {
+      if (mod && mod.__esModule)
+        return mod;
+      var result = {};
+      if (mod != null) {
+        for (var k in mod)
+          if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+            __createBinding(result, mod, k);
+      }
+      __setModuleDefault(result, mod);
+      return result;
+    };
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.Drive = exports2.ContentsManager = exports2.Contents = void 0;
+    var coreutils_12 = require_lib();
+    var algorithm_1 = require_dist();
+    var signaling_1 = require_dist3();
+    var __1 = require_lib3();
+    var validate = __importStar(require_validate2());
+    var SERVICE_DRIVE_URL = "api/contents";
+    var FILES_URL = "files";
+    var Contents;
+    (function(Contents2) {
+      function validateContentsModel(contents) {
+        validate.validateContentsModel(contents);
+      }
+      Contents2.validateContentsModel = validateContentsModel;
+      function validateCheckpointModel(checkpoint) {
+        validate.validateCheckpointModel(checkpoint);
+      }
+      Contents2.validateCheckpointModel = validateCheckpointModel;
+    })(Contents = exports2.Contents || (exports2.Contents = {}));
+    var ContentsManager = class {
+      /**
+       * Construct a new contents manager object.
+       *
+       * @param options - The options used to initialize the object.
+       */
+      constructor(options = {}) {
+        var _a, _b;
+        this._isDisposed = false;
+        this._additionalDrives = /* @__PURE__ */ new Map();
+        this._fileChanged = new signaling_1.Signal(this);
+        const serverSettings = this.serverSettings = (_a = options.serverSettings) !== null && _a !== void 0 ? _a : __1.ServerConnection.makeSettings();
+        this._defaultDrive = (_b = options.defaultDrive) !== null && _b !== void 0 ? _b : new Drive({ serverSettings });
         this._defaultDrive.fileChanged.connect(this._onFileChanged, this);
-    }
-    get fileChanged() {
-      return this._fileChanged;
-    }
-    get isDisposed() {
-      return this._isDisposed;
-    }
-    dispose() {
-      this.isDisposed || ((this._isDisposed = !0), Dn.Signal.clearData(this));
-    }
-    addDrive(e) {
-      this._additionalDrives.set(e.name, e),
-        e.fileChanged.connect(this._onFileChanged, this);
-    }
-    getModelDBFactory(e) {
-      var t;
-      let [r] = this._driveForPath(e);
-      return (t = r == null ? void 0 : r.modelDBFactory) !== null &&
-        t !== void 0
-        ? t
-        : null;
-    }
-    localPath(e) {
-      let t = e.split("/"),
-        r = t[0].split(":");
-      return r.length === 1 || !this._additionalDrives.has(r[0])
-        ? Ae.PathExt.removeSlash(e)
-        : Ae.PathExt.join(r.slice(1).join(":"), ...t.slice(1));
-    }
-    normalize(e) {
-      let t = e.split(":");
-      return t.length === 1
-        ? Ae.PathExt.normalize(e)
-        : `${t[0]}:${Ae.PathExt.normalize(t.slice(1).join(":"))}`;
-    }
-    resolvePath(e, t) {
-      let r = this.driveName(e),
-        i = this.localPath(e),
-        s = Ae.PathExt.resolve("/", i, t);
-      return r ? `${r}:${s}` : s;
-    }
-    driveName(e) {
-      let r = e.split("/")[0].split(":");
-      return r.length === 1 ? "" : this._additionalDrives.has(r[0]) ? r[0] : "";
-    }
-    get(e, t) {
-      let [r, i] = this._driveForPath(e);
-      return r.get(i, t).then((s) => {
-        let o = [];
-        return s.type === "directory" && s.content
-          ? (_u.each(s.content, (a) => {
-              o.push(
-                Object.assign(Object.assign({}, a), {
-                  path: this._toGlobalPath(r, a.path),
-                })
-              );
-            }),
-            Object.assign(Object.assign({}, s), {
-              path: this._toGlobalPath(r, i),
-              content: o,
-            }))
-          : Object.assign(Object.assign({}, s), {
-              path: this._toGlobalPath(r, i),
+      }
+      /**
+       * A signal emitted when a file operation takes place.
+       */
+      get fileChanged() {
+        return this._fileChanged;
+      }
+      /**
+       * Test whether the manager has been disposed.
+       */
+      get isDisposed() {
+        return this._isDisposed;
+      }
+      /**
+       * Dispose of the resources held by the manager.
+       */
+      dispose() {
+        if (this.isDisposed) {
+          return;
+        }
+        this._isDisposed = true;
+        signaling_1.Signal.clearData(this);
+      }
+      /**
+       * Add an `IDrive` to the manager.
+       */
+      addDrive(drive) {
+        this._additionalDrives.set(drive.name, drive);
+        drive.fileChanged.connect(this._onFileChanged, this);
+      }
+      /**
+       * Given a path, get a ModelDB.IFactory from the
+       * relevant backend. Returns `undefined` if the backend
+       * does not provide one.
+       */
+      getModelDBFactory(path2) {
+        var _a;
+        const [drive] = this._driveForPath(path2);
+        return (_a = drive === null || drive === void 0 ? void 0 : drive.modelDBFactory) !== null && _a !== void 0 ? _a : null;
+      }
+      /**
+       * Given a path of the form `drive:local/portion/of/it.txt`
+       * get the local part of it.
+       *
+       * @param path: the path.
+       *
+       * @returns The local part of the path.
+       */
+      localPath(path2) {
+        const parts = path2.split("/");
+        const firstParts = parts[0].split(":");
+        if (firstParts.length === 1 || !this._additionalDrives.has(firstParts[0])) {
+          return coreutils_12.PathExt.removeSlash(path2);
+        }
+        return coreutils_12.PathExt.join(firstParts.slice(1).join(":"), ...parts.slice(1));
+      }
+      /**
+       * Normalize a global path. Reduces '..' and '.' parts, and removes
+       * leading slashes from the local part of the path, while retaining
+       * the drive name if it exists.
+       *
+       * @param path: the path.
+       *
+       * @returns The normalized path.
+       */
+      normalize(path2) {
+        const parts = path2.split(":");
+        if (parts.length === 1) {
+          return coreutils_12.PathExt.normalize(path2);
+        }
+        return `${parts[0]}:${coreutils_12.PathExt.normalize(parts.slice(1).join(":"))}`;
+      }
+      /**
+       * Resolve a global path, starting from the root path. Behaves like
+       * posix-path.resolve, with 3 differences:
+       *  - will never prepend cwd
+       *  - if root has a drive name, the result is prefixed with "<drive>:"
+       *  - before adding drive name, leading slashes are removed
+       *
+       * @param path: the path.
+       *
+       * @returns The normalized path.
+       */
+      resolvePath(root, path2) {
+        const driveName = this.driveName(root);
+        const localPath = this.localPath(root);
+        const resolved = coreutils_12.PathExt.resolve("/", localPath, path2);
+        return driveName ? `${driveName}:${resolved}` : resolved;
+      }
+      /**
+       * Given a path of the form `drive:local/portion/of/it.txt`
+       * get the name of the drive. If the path is missing
+       * a drive portion, returns an empty string.
+       *
+       * @param path: the path.
+       *
+       * @returns The drive name for the path, or the empty string.
+       */
+      driveName(path2) {
+        const parts = path2.split("/");
+        const firstParts = parts[0].split(":");
+        if (firstParts.length === 1) {
+          return "";
+        }
+        if (this._additionalDrives.has(firstParts[0])) {
+          return firstParts[0];
+        }
+        return "";
+      }
+      /**
+       * Get a file or directory.
+       *
+       * @param path: The path to the file.
+       *
+       * @param options: The options used to fetch the file.
+       *
+       * @returns A promise which resolves with the file content.
+       */
+      get(path2, options) {
+        const [drive, localPath] = this._driveForPath(path2);
+        return drive.get(localPath, options).then((contentsModel) => {
+          const listing = [];
+          if (contentsModel.type === "directory" && contentsModel.content) {
+            algorithm_1.each(contentsModel.content, (item) => {
+              listing.push(Object.assign(Object.assign({}, item), { path: this._toGlobalPath(drive, item.path) }));
             });
-      });
-    }
-    getDownloadUrl(e) {
-      let [t, r] = this._driveForPath(e);
-      return t.getDownloadUrl(r);
-    }
-    newUntitled(e = {}) {
-      if (e.path) {
-        let t = this.normalize(e.path),
-          [r, i] = this._driveForPath(t);
-        return r
-          .newUntitled(Object.assign(Object.assign({}, e), { path: i }))
-          .then((s) =>
-            Object.assign(Object.assign({}, s), {
-              path: Ae.PathExt.join(t, s.name),
-            })
-          );
-      } else return this._defaultDrive.newUntitled(e);
-    }
-    delete(e) {
-      let [t, r] = this._driveForPath(e);
-      return t.delete(r);
-    }
-    rename(e, t) {
-      let [r, i] = this._driveForPath(e),
-        [s, o] = this._driveForPath(t);
-      if (r !== s)
-        throw Error(
-          "ContentsManager: renaming files must occur within a Drive"
-        );
-      return r
-        .rename(i, o)
-        .then((a) =>
-          Object.assign(Object.assign({}, a), {
-            path: this._toGlobalPath(r, o),
-          })
-        );
-    }
-    save(e, t = {}) {
-      let r = this.normalize(e),
-        [i, s] = this._driveForPath(e);
-      return i
-        .save(s, Object.assign(Object.assign({}, t), { path: s }))
-        .then((o) => Object.assign(Object.assign({}, o), { path: r }));
-    }
-    copy(e, t) {
-      let [r, i] = this._driveForPath(e),
-        [s, o] = this._driveForPath(t);
-      if (r === s)
-        return r
-          .copy(i, o)
-          .then((a) =>
-            Object.assign(Object.assign({}, a), {
-              path: this._toGlobalPath(r, a.path),
-            })
-          );
-      throw Error("Copying files between drives is not currently implemented");
-    }
-    createCheckpoint(e) {
-      let [t, r] = this._driveForPath(e);
-      return t.createCheckpoint(r);
-    }
-    listCheckpoints(e) {
-      let [t, r] = this._driveForPath(e);
-      return t.listCheckpoints(r);
-    }
-    restoreCheckpoint(e, t) {
-      let [r, i] = this._driveForPath(e);
-      return r.restoreCheckpoint(i, t);
-    }
-    deleteCheckpoint(e, t) {
-      let [r, i] = this._driveForPath(e);
-      return r.deleteCheckpoint(i, t);
-    }
-    _toGlobalPath(e, t) {
-      return e === this._defaultDrive
-        ? Ae.PathExt.removeSlash(t)
-        : `${e.name}:${Ae.PathExt.removeSlash(t)}`;
-    }
-    _driveForPath(e) {
-      let t = this.driveName(e),
-        r = this.localPath(e);
-      return t ? [this._additionalDrives.get(t), r] : [this._defaultDrive, r];
-    }
-    _onFileChanged(e, t) {
-      var r, i;
-      if (e === this._defaultDrive) this._fileChanged.emit(t);
-      else {
-        let s = null,
-          o = null;
-        !((r = t.newValue) === null || r === void 0) &&
-          r.path &&
-          (s = Object.assign(Object.assign({}, t.newValue), {
-            path: this._toGlobalPath(e, t.newValue.path),
-          })),
-          !((i = t.oldValue) === null || i === void 0) &&
-            i.path &&
-            (o = Object.assign(Object.assign({}, t.oldValue), {
-              path: this._toGlobalPath(e, t.oldValue.path),
-            })),
-          this._fileChanged.emit({ type: t.type, newValue: s, oldValue: o });
+            return Object.assign(Object.assign({}, contentsModel), { path: this._toGlobalPath(drive, localPath), content: listing });
+          } else {
+            return Object.assign(Object.assign({}, contentsModel), { path: this._toGlobalPath(drive, localPath) });
+          }
+        });
       }
-    }
-  };
-  _e.ContentsManager = $r;
-  var Pn = class {
-    constructor(e = {}) {
-      var t, r, i;
-      (this._isDisposed = !1),
-        (this._fileChanged = new Dn.Signal(this)),
-        (this.name = (t = e.name) !== null && t !== void 0 ? t : "Default"),
-        (this._apiEndpoint =
-          (r = e.apiEndpoint) !== null && r !== void 0 ? r : mu),
-        (this.serverSettings =
-          (i = e.serverSettings) !== null && i !== void 0
-            ? i
-            : re.ServerConnection.makeSettings());
-    }
-    get fileChanged() {
-      return this._fileChanged;
-    }
-    get isDisposed() {
-      return this._isDisposed;
-    }
-    dispose() {
-      this.isDisposed || ((this._isDisposed = !0), Dn.Signal.clearData(this));
-    }
-    async get(e, t) {
-      let r = this._getUrl(e);
-      if (t) {
-        t.type === "notebook" && delete t.format;
-        let a = t.content ? "1" : "0",
-          l = Object.assign(Object.assign({}, t), { content: a });
-        r += Ae.URLExt.objectToQueryString(l);
+      /**
+       * Get an encoded download url given a file path.
+       *
+       * @param path - An absolute POSIX file path on the server.
+       *
+       * #### Notes
+       * It is expected that the path contains no relative paths.
+       *
+       * The returned URL may include a query parameter.
+       */
+      getDownloadUrl(path2) {
+        const [drive, localPath] = this._driveForPath(path2);
+        return drive.getDownloadUrl(localPath);
       }
-      let i = this.serverSettings,
-        s = await re.ServerConnection.makeRequest(r, {}, i);
-      if (s.status !== 200)
-        throw await re.ServerConnection.ResponseError.create(s);
-      let o = await s.json();
-      return Xe.validateContentsModel(o), o;
-    }
-    getDownloadUrl(e) {
-      let t = this.serverSettings.baseUrl,
-        r = Ae.URLExt.join(t, vu, Ae.URLExt.encodeParts(e)),
-        i = document.cookie.match("\\b_xsrf=([^;]*)\\b");
-      if (i) {
-        let s = new URL(r);
-        s.searchParams.append("_xsrf", i[1]), (r = s.toString());
+      /**
+       * Create a new untitled file or directory in the specified directory path.
+       *
+       * @param options: The options used to create the file.
+       *
+       * @returns A promise which resolves with the created file content when the
+       *    file is created.
+       */
+      newUntitled(options = {}) {
+        if (options.path) {
+          const globalPath = this.normalize(options.path);
+          const [drive, localPath] = this._driveForPath(globalPath);
+          return drive.newUntitled(Object.assign(Object.assign({}, options), { path: localPath })).then((contentsModel) => {
+            return Object.assign(Object.assign({}, contentsModel), { path: coreutils_12.PathExt.join(globalPath, contentsModel.name) });
+          });
+        } else {
+          return this._defaultDrive.newUntitled(options);
+        }
       }
-      return Promise.resolve(r);
-    }
-    async newUntitled(e = {}) {
-      var t;
-      let r = "{}";
-      e &&
-        (e.ext && (e.ext = Jr.normalizeExtension(e.ext)),
-        (r = JSON.stringify(e)));
-      let i = this.serverSettings,
-        s = this._getUrl((t = e.path) !== null && t !== void 0 ? t : ""),
-        o = { method: "POST", body: r },
-        a = await re.ServerConnection.makeRequest(s, o, i);
-      if (a.status !== 201)
-        throw await re.ServerConnection.ResponseError.create(a);
-      let l = await a.json();
-      return (
-        Xe.validateContentsModel(l),
-        this._fileChanged.emit({ type: "new", oldValue: null, newValue: l }),
-        l
-      );
-    }
-    async delete(e) {
-      let t = this._getUrl(e),
-        r = this.serverSettings,
-        i = { method: "DELETE" },
-        s = await re.ServerConnection.makeRequest(t, i, r);
-      if (s.status !== 204)
-        throw await re.ServerConnection.ResponseError.create(s);
-      this._fileChanged.emit({
-        type: "delete",
-        oldValue: { path: e },
-        newValue: null,
-      });
-    }
-    async rename(e, t) {
-      let r = this.serverSettings,
-        i = this._getUrl(e),
-        s = { method: "PATCH", body: JSON.stringify({ path: t }) },
-        o = await re.ServerConnection.makeRequest(i, s, r);
-      if (o.status !== 200)
-        throw await re.ServerConnection.ResponseError.create(o);
-      let a = await o.json();
-      return (
-        Xe.validateContentsModel(a),
+      /**
+       * Delete a file.
+       *
+       * @param path - The path to the file.
+       *
+       * @returns A promise which resolves when the file is deleted.
+       */
+      delete(path2) {
+        const [drive, localPath] = this._driveForPath(path2);
+        return drive.delete(localPath);
+      }
+      /**
+       * Rename a file or directory.
+       *
+       * @param path - The original file path.
+       *
+       * @param newPath - The new file path.
+       *
+       * @returns A promise which resolves with the new file contents model when
+       *   the file is renamed.
+       */
+      rename(path2, newPath) {
+        const [drive1, path1] = this._driveForPath(path2);
+        const [drive2, path22] = this._driveForPath(newPath);
+        if (drive1 !== drive2) {
+          throw Error("ContentsManager: renaming files must occur within a Drive");
+        }
+        return drive1.rename(path1, path22).then((contentsModel) => {
+          return Object.assign(Object.assign({}, contentsModel), { path: this._toGlobalPath(drive1, path22) });
+        });
+      }
+      /**
+       * Save a file.
+       *
+       * @param path - The desired file path.
+       *
+       * @param options - Optional overrides to the model.
+       *
+       * @returns A promise which resolves with the file content model when the
+       *   file is saved.
+       *
+       * #### Notes
+       * Ensure that `model.content` is populated for the file.
+       */
+      save(path2, options = {}) {
+        const globalPath = this.normalize(path2);
+        const [drive, localPath] = this._driveForPath(path2);
+        return drive.save(localPath, Object.assign(Object.assign({}, options), { path: localPath })).then((contentsModel) => {
+          return Object.assign(Object.assign({}, contentsModel), { path: globalPath });
+        });
+      }
+      /**
+       * Copy a file into a given directory.
+       *
+       * @param path - The original file path.
+       *
+       * @param toDir - The destination directory path.
+       *
+       * @returns A promise which resolves with the new contents model when the
+       *  file is copied.
+       *
+       * #### Notes
+       * The server will select the name of the copied file.
+       */
+      copy(fromFile, toDir) {
+        const [drive1, path1] = this._driveForPath(fromFile);
+        const [drive2, path2] = this._driveForPath(toDir);
+        if (drive1 === drive2) {
+          return drive1.copy(path1, path2).then((contentsModel) => {
+            return Object.assign(Object.assign({}, contentsModel), { path: this._toGlobalPath(drive1, contentsModel.path) });
+          });
+        } else {
+          throw Error("Copying files between drives is not currently implemented");
+        }
+      }
+      /**
+       * Create a checkpoint for a file.
+       *
+       * @param path - The path of the file.
+       *
+       * @returns A promise which resolves with the new checkpoint model when the
+       *   checkpoint is created.
+       */
+      createCheckpoint(path2) {
+        const [drive, localPath] = this._driveForPath(path2);
+        return drive.createCheckpoint(localPath);
+      }
+      /**
+       * List available checkpoints for a file.
+       *
+       * @param path - The path of the file.
+       *
+       * @returns A promise which resolves with a list of checkpoint models for
+       *    the file.
+       */
+      listCheckpoints(path2) {
+        const [drive, localPath] = this._driveForPath(path2);
+        return drive.listCheckpoints(localPath);
+      }
+      /**
+       * Restore a file to a known checkpoint state.
+       *
+       * @param path - The path of the file.
+       *
+       * @param checkpointID - The id of the checkpoint to restore.
+       *
+       * @returns A promise which resolves when the checkpoint is restored.
+       */
+      restoreCheckpoint(path2, checkpointID) {
+        const [drive, localPath] = this._driveForPath(path2);
+        return drive.restoreCheckpoint(localPath, checkpointID);
+      }
+      /**
+       * Delete a checkpoint for a file.
+       *
+       * @param path - The path of the file.
+       *
+       * @param checkpointID - The id of the checkpoint to delete.
+       *
+       * @returns A promise which resolves when the checkpoint is deleted.
+       */
+      deleteCheckpoint(path2, checkpointID) {
+        const [drive, localPath] = this._driveForPath(path2);
+        return drive.deleteCheckpoint(localPath, checkpointID);
+      }
+      /**
+       * Given a drive and a local path, construct a fully qualified
+       * path. The inverse of `_driveForPath`.
+       *
+       * @param drive: an `IDrive`.
+       *
+       * @param localPath: the local path on the drive.
+       *
+       * @returns the fully qualified path.
+       */
+      _toGlobalPath(drive, localPath) {
+        if (drive === this._defaultDrive) {
+          return coreutils_12.PathExt.removeSlash(localPath);
+        } else {
+          return `${drive.name}:${coreutils_12.PathExt.removeSlash(localPath)}`;
+        }
+      }
+      /**
+       * Given a path, get the `IDrive to which it refers,
+       * where the path satisfies the pattern
+       * `'driveName:path/to/file'`. If there is no `driveName`
+       * prepended to the path, it returns the default drive.
+       *
+       * @param path: a path to a file.
+       *
+       * @returns A tuple containing an `IDrive` object for the path,
+       * and a local path for that drive.
+       */
+      _driveForPath(path2) {
+        const driveName = this.driveName(path2);
+        const localPath = this.localPath(path2);
+        if (driveName) {
+          return [this._additionalDrives.get(driveName), localPath];
+        } else {
+          return [this._defaultDrive, localPath];
+        }
+      }
+      /**
+       * Respond to fileChanged signals from the drives attached to
+       * the manager. This prepends the drive name to the path if necessary,
+       * and then forwards the signal.
+       */
+      _onFileChanged(sender, args) {
+        var _a, _b;
+        if (sender === this._defaultDrive) {
+          this._fileChanged.emit(args);
+        } else {
+          let newValue = null;
+          let oldValue = null;
+          if ((_a = args.newValue) === null || _a === void 0 ? void 0 : _a.path) {
+            newValue = Object.assign(Object.assign({}, args.newValue), { path: this._toGlobalPath(sender, args.newValue.path) });
+          }
+          if ((_b = args.oldValue) === null || _b === void 0 ? void 0 : _b.path) {
+            oldValue = Object.assign(Object.assign({}, args.oldValue), { path: this._toGlobalPath(sender, args.oldValue.path) });
+          }
+          this._fileChanged.emit({
+            type: args.type,
+            newValue,
+            oldValue
+          });
+        }
+      }
+    };
+    exports2.ContentsManager = ContentsManager;
+    var Drive = class {
+      /**
+       * Construct a new contents manager object.
+       *
+       * @param options - The options used to initialize the object.
+       */
+      constructor(options = {}) {
+        var _a, _b, _c;
+        this._isDisposed = false;
+        this._fileChanged = new signaling_1.Signal(this);
+        this.name = (_a = options.name) !== null && _a !== void 0 ? _a : "Default";
+        this._apiEndpoint = (_b = options.apiEndpoint) !== null && _b !== void 0 ? _b : SERVICE_DRIVE_URL;
+        this.serverSettings = (_c = options.serverSettings) !== null && _c !== void 0 ? _c : __1.ServerConnection.makeSettings();
+      }
+      /**
+       * A signal emitted when a file operation takes place.
+       */
+      get fileChanged() {
+        return this._fileChanged;
+      }
+      /**
+       * Test whether the manager has been disposed.
+       */
+      get isDisposed() {
+        return this._isDisposed;
+      }
+      /**
+       * Dispose of the resources held by the manager.
+       */
+      dispose() {
+        if (this.isDisposed) {
+          return;
+        }
+        this._isDisposed = true;
+        signaling_1.Signal.clearData(this);
+      }
+      /**
+       * Get a file or directory.
+       *
+       * @param localPath: The path to the file.
+       *
+       * @param options: The options used to fetch the file.
+       *
+       * @returns A promise which resolves with the file content.
+       *
+       * Uses the [Jupyter Notebook API](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/jupyter/notebook/master/notebook/services/api/api.yaml#!/contents) and validates the response model.
+       */
+      async get(localPath, options) {
+        let url = this._getUrl(localPath);
+        if (options) {
+          if (options.type === "notebook") {
+            delete options["format"];
+          }
+          const content = options.content ? "1" : "0";
+          const params = Object.assign(Object.assign({}, options), { content });
+          url += coreutils_12.URLExt.objectToQueryString(params);
+        }
+        const settings = this.serverSettings;
+        const response = await __1.ServerConnection.makeRequest(url, {}, settings);
+        if (response.status !== 200) {
+          const err = await __1.ServerConnection.ResponseError.create(response);
+          throw err;
+        }
+        const data = await response.json();
+        validate.validateContentsModel(data);
+        return data;
+      }
+      /**
+       * Get an encoded download url given a file path.
+       *
+       * @param localPath - An absolute POSIX file path on the server.
+       *
+       * #### Notes
+       * It is expected that the path contains no relative paths.
+       *
+       * The returned URL may include a query parameter.
+       */
+      getDownloadUrl(localPath) {
+        const baseUrl = this.serverSettings.baseUrl;
+        let url = coreutils_12.URLExt.join(baseUrl, FILES_URL, coreutils_12.URLExt.encodeParts(localPath));
+        const xsrfTokenMatch = document.cookie.match("\\b_xsrf=([^;]*)\\b");
+        if (xsrfTokenMatch) {
+          const fullUrl = new URL(url);
+          fullUrl.searchParams.append("_xsrf", xsrfTokenMatch[1]);
+          url = fullUrl.toString();
+        }
+        return Promise.resolve(url);
+      }
+      /**
+       * Create a new untitled file or directory in the specified directory path.
+       *
+       * @param options: The options used to create the file.
+       *
+       * @returns A promise which resolves with the created file content when the
+       *    file is created.
+       *
+       * #### Notes
+       * Uses the [Jupyter Notebook API](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/jupyter/notebook/master/notebook/services/api/api.yaml#!/contents) and validates the response model.
+       */
+      async newUntitled(options = {}) {
+        var _a;
+        let body = "{}";
+        if (options) {
+          if (options.ext) {
+            options.ext = Private.normalizeExtension(options.ext);
+          }
+          body = JSON.stringify(options);
+        }
+        const settings = this.serverSettings;
+        const url = this._getUrl((_a = options.path) !== null && _a !== void 0 ? _a : "");
+        const init = {
+          method: "POST",
+          body
+        };
+        const response = await __1.ServerConnection.makeRequest(url, init, settings);
+        if (response.status !== 201) {
+          const err = await __1.ServerConnection.ResponseError.create(response);
+          throw err;
+        }
+        const data = await response.json();
+        validate.validateContentsModel(data);
+        this._fileChanged.emit({
+          type: "new",
+          oldValue: null,
+          newValue: data
+        });
+        return data;
+      }
+      /**
+       * Delete a file.
+       *
+       * @param localPath - The path to the file.
+       *
+       * @returns A promise which resolves when the file is deleted.
+       *
+       * #### Notes
+       * Uses the [Jupyter Notebook API](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/jupyter/notebook/master/notebook/services/api/api.yaml#!/contents).
+       */
+      async delete(localPath) {
+        const url = this._getUrl(localPath);
+        const settings = this.serverSettings;
+        const init = { method: "DELETE" };
+        const response = await __1.ServerConnection.makeRequest(url, init, settings);
+        if (response.status !== 204) {
+          const err = await __1.ServerConnection.ResponseError.create(response);
+          throw err;
+        }
+        this._fileChanged.emit({
+          type: "delete",
+          oldValue: { path: localPath },
+          newValue: null
+        });
+      }
+      /**
+       * Rename a file or directory.
+       *
+       * @param oldLocalPath - The original file path.
+       *
+       * @param newLocalPath - The new file path.
+       *
+       * @returns A promise which resolves with the new file contents model when
+       *   the file is renamed.
+       *
+       * #### Notes
+       * Uses the [Jupyter Notebook API](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/jupyter/notebook/master/notebook/services/api/api.yaml#!/contents) and validates the response model.
+       */
+      async rename(oldLocalPath, newLocalPath) {
+        const settings = this.serverSettings;
+        const url = this._getUrl(oldLocalPath);
+        const init = {
+          method: "PATCH",
+          body: JSON.stringify({ path: newLocalPath })
+        };
+        const response = await __1.ServerConnection.makeRequest(url, init, settings);
+        if (response.status !== 200) {
+          const err = await __1.ServerConnection.ResponseError.create(response);
+          throw err;
+        }
+        const data = await response.json();
+        validate.validateContentsModel(data);
         this._fileChanged.emit({
           type: "rename",
-          oldValue: { path: e },
-          newValue: a,
-        }),
-        a
-      );
-    }
-    async save(e, t = {}) {
-      let r = this.serverSettings,
-        i = this._getUrl(e),
-        s = { method: "PUT", body: JSON.stringify(t) },
-        o = await re.ServerConnection.makeRequest(i, s, r);
-      if (o.status !== 200 && o.status !== 201)
-        throw await re.ServerConnection.ResponseError.create(o);
-      let a = await o.json();
-      return (
-        Xe.validateContentsModel(a),
-        this._fileChanged.emit({ type: "save", oldValue: null, newValue: a }),
-        a
-      );
-    }
-    async copy(e, t) {
-      let r = this.serverSettings,
-        i = this._getUrl(t),
-        s = { method: "POST", body: JSON.stringify({ copy_from: e }) },
-        o = await re.ServerConnection.makeRequest(i, s, r);
-      if (o.status !== 201)
-        throw await re.ServerConnection.ResponseError.create(o);
-      let a = await o.json();
-      return (
-        Xe.validateContentsModel(a),
-        this._fileChanged.emit({ type: "new", oldValue: null, newValue: a }),
-        a
-      );
-    }
-    async createCheckpoint(e) {
-      let t = this._getUrl(e, "checkpoints"),
-        r = { method: "POST" },
-        i = await re.ServerConnection.makeRequest(t, r, this.serverSettings);
-      if (i.status !== 201)
-        throw await re.ServerConnection.ResponseError.create(i);
-      let s = await i.json();
-      return Xe.validateCheckpointModel(s), s;
-    }
-    async listCheckpoints(e) {
-      let t = this._getUrl(e, "checkpoints"),
-        r = await re.ServerConnection.makeRequest(t, {}, this.serverSettings);
-      if (r.status !== 200)
-        throw await re.ServerConnection.ResponseError.create(r);
-      let i = await r.json();
-      if (!Array.isArray(i)) throw new Error("Invalid Checkpoint list");
-      for (let s = 0; s < i.length; s++) Xe.validateCheckpointModel(i[s]);
-      return i;
-    }
-    async restoreCheckpoint(e, t) {
-      let r = this._getUrl(e, "checkpoints", t),
-        i = { method: "POST" },
-        s = await re.ServerConnection.makeRequest(r, i, this.serverSettings);
-      if (s.status !== 204)
-        throw await re.ServerConnection.ResponseError.create(s);
-    }
-    async deleteCheckpoint(e, t) {
-      let r = this._getUrl(e, "checkpoints", t),
-        i = { method: "DELETE" },
-        s = await re.ServerConnection.makeRequest(r, i, this.serverSettings);
-      if (s.status !== 204)
-        throw await re.ServerConnection.ResponseError.create(s);
-    }
-    _getUrl(...e) {
-      let t = e.map((i) => Ae.URLExt.encodeParts(i)),
-        r = this.serverSettings.baseUrl;
-      return Ae.URLExt.join(r, this._apiEndpoint, ...t);
-    }
-  };
-  _e.Drive = Pn;
-  var Jr;
-  (function (n) {
-    function e(t) {
-      return t.length > 0 && t.indexOf(".") !== 0 && (t = `.${t}`), t;
-    }
-    n.normalizeExtension = e;
-  })(Jr || (Jr = {}));
-});
-var Co = k((Io) => {
-  "use strict";
-  h();
-  Object.defineProperty(Io, "__esModule", { value: !0 });
-});
-var Xt = k((V) => {
-  "use strict";
-  h();
-  Object.defineProperty(V, "__esModule", { value: !0 });
-  V.isInputReplyMsg =
-    V.isInputRequestMsg =
-    V.isDebugReplyMsg =
-    V.isDebugRequestMsg =
-    V.isExecuteReplyMsg =
-    V.isInfoRequestMsg =
-    V.isCommMsgMsg =
-    V.isCommCloseMsg =
-    V.isCommOpenMsg =
-    V.isDebugEventMsg =
-    V.isClearOutputMsg =
-    V.isStatusMsg =
-    V.isErrorMsg =
-    V.isExecuteResultMsg =
-    V.isExecuteInputMsg =
-    V.isUpdateDisplayDataMsg =
-    V.isDisplayDataMsg =
-    V.isStreamMsg =
-    V.createMessage =
-      void 0;
-  var Eu = Ne();
-  function bu(n) {
-    var e, t, r, i, s;
-    return {
-      buffers: (e = n.buffers) !== null && e !== void 0 ? e : [],
-      channel: n.channel,
-      content: n.content,
-      header: {
-        date: new Date().toISOString(),
-        msg_id: (t = n.msgId) !== null && t !== void 0 ? t : Eu.UUID.uuid4(),
-        msg_type: n.msgType,
-        session: n.session,
-        username: (r = n.username) !== null && r !== void 0 ? r : "",
-        version: "5.2",
-      },
-      metadata: (i = n.metadata) !== null && i !== void 0 ? i : {},
-      parent_header: (s = n.parentHeader) !== null && s !== void 0 ? s : {},
-    };
-  }
-  V.createMessage = bu;
-  function Su(n) {
-    return n.header.msg_type === "stream";
-  }
-  V.isStreamMsg = Su;
-  function wu(n) {
-    return n.header.msg_type === "display_data";
-  }
-  V.isDisplayDataMsg = wu;
-  function Iu(n) {
-    return n.header.msg_type === "update_display_data";
-  }
-  V.isUpdateDisplayDataMsg = Iu;
-  function Cu(n) {
-    return n.header.msg_type === "execute_input";
-  }
-  V.isExecuteInputMsg = Cu;
-  function Ru(n) {
-    return n.header.msg_type === "execute_result";
-  }
-  V.isExecuteResultMsg = Ru;
-  function Au(n) {
-    return n.header.msg_type === "error";
-  }
-  V.isErrorMsg = Au;
-  function Du(n) {
-    return n.header.msg_type === "status";
-  }
-  V.isStatusMsg = Du;
-  function Pu(n) {
-    return n.header.msg_type === "clear_output";
-  }
-  V.isClearOutputMsg = Pu;
-  function Mu(n) {
-    return n.header.msg_type === "debug_event";
-  }
-  V.isDebugEventMsg = Mu;
-  function Tu(n) {
-    return n.header.msg_type === "comm_open";
-  }
-  V.isCommOpenMsg = Tu;
-  function Ou(n) {
-    return n.header.msg_type === "comm_close";
-  }
-  V.isCommCloseMsg = Ou;
-  function Nu(n) {
-    return n.header.msg_type === "comm_msg";
-  }
-  V.isCommMsgMsg = Nu;
-  function Lu(n) {
-    return n.header.msg_type === "kernel_info_request";
-  }
-  V.isInfoRequestMsg = Lu;
-  function ku(n) {
-    return n.header.msg_type === "execute_reply";
-  }
-  V.isExecuteReplyMsg = ku;
-  function xu(n) {
-    return n.header.msg_type === "debug_request";
-  }
-  V.isDebugRequestMsg = xu;
-  function ju(n) {
-    return n.header.msg_type === "debug_reply";
-  }
-  V.isDebugReplyMsg = ju;
-  function Fu(n) {
-    return n.header.msg_type === "input_request";
-  }
-  V.isInputRequestMsg = Fu;
-  function Uu(n) {
-    return n.header.msg_type === "input_reply";
-  }
-  V.isInputReplyMsg = Uu;
-});
-var Ro = k(() => {
-  h();
-});
-var Ao = k((zr) => {
-  "use strict";
-  h();
-  Object.defineProperty(zr, "__esModule", { value: !0 });
-  zr.default = WebSocket;
-});
-var De = k((nt) => {
-  "use strict";
-  h();
-  var Yr, Xr, Qr;
-  Object.defineProperty(nt, "__esModule", { value: !0 });
-  nt.ServerConnection = void 0;
-  var gt = Ie(),
-    Zr,
-    ei,
-    ti,
-    ni;
-  if (typeof window == "undefined") {
-    let n = Ro();
-    (Zr = (Yr = nt.fetch) !== null && Yr !== void 0 ? Yr : n),
-      (ti = (Xr = nt.Request) !== null && Xr !== void 0 ? Xr : n.Request),
-      (ei = (Qr = nt.Headers) !== null && Qr !== void 0 ? Qr : n.Headers),
-      (ni = Ao());
-  } else (Zr = fetch), (ti = Request), (ei = Headers), (ni = WebSocket);
-  var Do;
-  (function (n) {
-    function e(s) {
-      return Mn.makeSettings(s);
-    }
-    n.makeSettings = e;
-    function t(s, o, a) {
-      return Mn.handleRequest(s, o, a);
-    }
-    n.makeRequest = t;
-    class r extends Error {
-      constructor(
-        o,
-        a = `Invalid response: ${o.status} ${o.statusText}`,
-        l = ""
-      ) {
-        super(a), (this.response = o), (this.traceback = l);
+          oldValue: { path: oldLocalPath },
+          newValue: data
+        });
+        return data;
       }
-      static async create(o) {
-        try {
-          let a = await o.json();
-          return (
-            a.traceback && console.error(a.traceback),
-            a.message ? new r(o, a.message) : new r(o)
-          );
-        } catch (a) {
-          return console.debug(a), new r(o);
+      /**
+       * Save a file.
+       *
+       * @param localPath - The desired file path.
+       *
+       * @param options - Optional overrides to the model.
+       *
+       * @returns A promise which resolves with the file content model when the
+       *   file is saved.
+       *
+       * #### Notes
+       * Ensure that `model.content` is populated for the file.
+       *
+       * Uses the [Jupyter Notebook API](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/jupyter/notebook/master/notebook/services/api/api.yaml#!/contents) and validates the response model.
+       */
+      async save(localPath, options = {}) {
+        const settings = this.serverSettings;
+        const url = this._getUrl(localPath);
+        const init = {
+          method: "PUT",
+          body: JSON.stringify(options)
+        };
+        const response = await __1.ServerConnection.makeRequest(url, init, settings);
+        if (response.status !== 200 && response.status !== 201) {
+          const err = await __1.ServerConnection.ResponseError.create(response);
+          throw err;
+        }
+        const data = await response.json();
+        validate.validateContentsModel(data);
+        this._fileChanged.emit({
+          type: "save",
+          oldValue: null,
+          newValue: data
+        });
+        return data;
+      }
+      /**
+       * Copy a file into a given directory.
+       *
+       * @param localPath - The original file path.
+       *
+       * @param toDir - The destination directory path.
+       *
+       * @returns A promise which resolves with the new contents model when the
+       *  file is copied.
+       *
+       * #### Notes
+       * The server will select the name of the copied file.
+       *
+       * Uses the [Jupyter Notebook API](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/jupyter/notebook/master/notebook/services/api/api.yaml#!/contents) and validates the response model.
+       */
+      async copy(fromFile, toDir) {
+        const settings = this.serverSettings;
+        const url = this._getUrl(toDir);
+        const init = {
+          method: "POST",
+          body: JSON.stringify({ copy_from: fromFile })
+        };
+        const response = await __1.ServerConnection.makeRequest(url, init, settings);
+        if (response.status !== 201) {
+          const err = await __1.ServerConnection.ResponseError.create(response);
+          throw err;
+        }
+        const data = await response.json();
+        validate.validateContentsModel(data);
+        this._fileChanged.emit({
+          type: "new",
+          oldValue: null,
+          newValue: data
+        });
+        return data;
+      }
+      /**
+       * Create a checkpoint for a file.
+       *
+       * @param localPath - The path of the file.
+       *
+       * @returns A promise which resolves with the new checkpoint model when the
+       *   checkpoint is created.
+       *
+       * #### Notes
+       * Uses the [Jupyter Notebook API](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/jupyter/notebook/master/notebook/services/api/api.yaml#!/contents) and validates the response model.
+       */
+      async createCheckpoint(localPath) {
+        const url = this._getUrl(localPath, "checkpoints");
+        const init = { method: "POST" };
+        const response = await __1.ServerConnection.makeRequest(url, init, this.serverSettings);
+        if (response.status !== 201) {
+          const err = await __1.ServerConnection.ResponseError.create(response);
+          throw err;
+        }
+        const data = await response.json();
+        validate.validateCheckpointModel(data);
+        return data;
+      }
+      /**
+       * List available checkpoints for a file.
+       *
+       * @param localPath - The path of the file.
+       *
+       * @returns A promise which resolves with a list of checkpoint models for
+       *    the file.
+       *
+       * #### Notes
+       * Uses the [Jupyter Notebook API](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/jupyter/notebook/master/notebook/services/api/api.yaml#!/contents) and validates the response model.
+       */
+      async listCheckpoints(localPath) {
+        const url = this._getUrl(localPath, "checkpoints");
+        const response = await __1.ServerConnection.makeRequest(url, {}, this.serverSettings);
+        if (response.status !== 200) {
+          const err = await __1.ServerConnection.ResponseError.create(response);
+          throw err;
+        }
+        const data = await response.json();
+        if (!Array.isArray(data)) {
+          throw new Error("Invalid Checkpoint list");
+        }
+        for (let i = 0; i < data.length; i++) {
+          validate.validateCheckpointModel(data[i]);
+        }
+        return data;
+      }
+      /**
+       * Restore a file to a known checkpoint state.
+       *
+       * @param localPath - The path of the file.
+       *
+       * @param checkpointID - The id of the checkpoint to restore.
+       *
+       * @returns A promise which resolves when the checkpoint is restored.
+       *
+       * #### Notes
+       * Uses the [Jupyter Notebook API](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/jupyter/notebook/master/notebook/services/api/api.yaml#!/contents).
+       */
+      async restoreCheckpoint(localPath, checkpointID) {
+        const url = this._getUrl(localPath, "checkpoints", checkpointID);
+        const init = { method: "POST" };
+        const response = await __1.ServerConnection.makeRequest(url, init, this.serverSettings);
+        if (response.status !== 204) {
+          const err = await __1.ServerConnection.ResponseError.create(response);
+          throw err;
         }
       }
-    }
-    n.ResponseError = r;
-    class i extends TypeError {
-      constructor(o) {
-        super(o.message), (this.stack = o.stack);
+      /**
+       * Delete a checkpoint for a file.
+       *
+       * @param localPath - The path of the file.
+       *
+       * @param checkpointID - The id of the checkpoint to delete.
+       *
+       * @returns A promise which resolves when the checkpoint is deleted.
+       *
+       * #### Notes
+       * Uses the [Jupyter Notebook API](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/jupyter/notebook/master/notebook/services/api/api.yaml#!/contents).
+       */
+      async deleteCheckpoint(localPath, checkpointID) {
+        const url = this._getUrl(localPath, "checkpoints", checkpointID);
+        const init = { method: "DELETE" };
+        const response = await __1.ServerConnection.makeRequest(url, init, this.serverSettings);
+        if (response.status !== 204) {
+          const err = await __1.ServerConnection.ResponseError.create(response);
+          throw err;
+        }
       }
-    }
-    n.NetworkError = i;
-  })((Do = nt.ServerConnection || (nt.ServerConnection = {})));
-  var Mn;
-  (function (n) {
-    function e(i = {}) {
-      let s = gt.PageConfig.getBaseUrl(),
-        o = gt.PageConfig.getWsUrl(),
-        a = gt.URLExt.normalize(i.baseUrl) || s,
-        l = i.wsUrl;
-      return (
-        !l && a === s && (l = o),
-        !l && a.indexOf("http") === 0 && (l = "ws" + a.slice(4)),
-        (l = l != null ? l : o),
-        Object.assign(
-          Object.assign(
-            {
-              init: { cache: "no-store", credentials: "same-origin" },
-              fetch: Zr,
-              Headers: ei,
-              Request: ti,
-              WebSocket: ni,
-              token: gt.PageConfig.getToken(),
-              appUrl: gt.PageConfig.getOption("appUrl"),
-              appendToken:
-                typeof window == "undefined" ||
-                process.env.JEST_WORKER_ID !== void 0 ||
-                gt.URLExt.getHostName(s) !== gt.URLExt.getHostName(l),
-            },
-            i
-          ),
-          { baseUrl: a, wsUrl: l }
-        )
-      );
-    }
-    n.makeSettings = e;
-    function t(i, s, o) {
-      var a;
-      if (i.indexOf(o.baseUrl) !== 0)
-        throw new Error("Can only be used for notebook server requests");
-      ((a = s.cache) !== null && a !== void 0 ? a : o.init.cache) ===
-        "no-store" && (i += (/\?/.test(i) ? "&" : "?") + new Date().getTime());
-      let u = new o.Request(i, Object.assign(Object.assign({}, o.init), s)),
-        f = !1;
-      if (
-        (o.token &&
-          ((f = !0), u.headers.append("Authorization", `token ${o.token}`)),
-        typeof document != "undefined" && document != null && document.cookie)
-      ) {
-        let c = r("_xsrf");
-        c !== void 0 && ((f = !0), u.headers.append("X-XSRFToken", c));
+      /**
+       * Get a REST url for a file given a path.
+       */
+      _getUrl(...args) {
+        const parts = args.map((path2) => coreutils_12.URLExt.encodeParts(path2));
+        const baseUrl = this.serverSettings.baseUrl;
+        return coreutils_12.URLExt.join(baseUrl, this._apiEndpoint, ...parts);
       }
-      return (
-        !u.headers.has("Content-Type") &&
-          f &&
-          u.headers.set("Content-Type", "application/json"),
-        o.fetch.call(null, u).catch((c) => {
-          throw new Do.NetworkError(c);
-        })
-      );
-    }
-    n.handleRequest = t;
-    function r(i) {
-      let s = document.cookie.match("\\b" + i + "=([^;]*)\\b");
-      return s == null ? void 0 : s[1];
-    }
-  })(Mn || (Mn = {}));
+    };
+    exports2.Drive = Drive;
+    var Private;
+    (function(Private2) {
+      function normalizeExtension(extension) {
+        if (extension.length > 0 && extension.indexOf(".") !== 0) {
+          extension = `.${extension}`;
+        }
+        return extension;
+      }
+      Private2.normalizeExtension = normalizeExtension;
+    })(Private || (Private = {}));
+  }
 });
-var Tn = k((rt) => {
-  "use strict";
-  h();
-  Object.defineProperty(rt, "__esModule", { value: !0 });
-  rt.validateModels = rt.validateModel = rt.validateMessage = void 0;
-  var _t = Yt(),
-    Po = ["username", "version", "session", "msg_id", "msg_type"],
-    Wu = {
+
+// node_modules/@jupyterlab/services/lib/kernel/kernel.js
+var require_kernel = __commonJS({
+  "node_modules/@jupyterlab/services/lib/kernel/kernel.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+  }
+});
+
+// node_modules/@jupyterlab/services/lib/kernel/messages.js
+var require_messages = __commonJS({
+  "node_modules/@jupyterlab/services/lib/kernel/messages.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.isInputReplyMsg = exports2.isInputRequestMsg = exports2.isDebugReplyMsg = exports2.isDebugRequestMsg = exports2.isExecuteReplyMsg = exports2.isInfoRequestMsg = exports2.isCommMsgMsg = exports2.isCommCloseMsg = exports2.isCommOpenMsg = exports2.isDebugEventMsg = exports2.isClearOutputMsg = exports2.isStatusMsg = exports2.isErrorMsg = exports2.isExecuteResultMsg = exports2.isExecuteInputMsg = exports2.isUpdateDisplayDataMsg = exports2.isDisplayDataMsg = exports2.isStreamMsg = exports2.createMessage = void 0;
+    var coreutils_12 = require_dist4();
+    function createMessage(options) {
+      var _a, _b, _c, _d, _e;
+      return {
+        buffers: (_a = options.buffers) !== null && _a !== void 0 ? _a : [],
+        channel: options.channel,
+        content: options.content,
+        header: {
+          date: (/* @__PURE__ */ new Date()).toISOString(),
+          msg_id: (_b = options.msgId) !== null && _b !== void 0 ? _b : coreutils_12.UUID.uuid4(),
+          msg_type: options.msgType,
+          session: options.session,
+          username: (_c = options.username) !== null && _c !== void 0 ? _c : "",
+          version: "5.2"
+        },
+        metadata: (_d = options.metadata) !== null && _d !== void 0 ? _d : {},
+        parent_header: (_e = options.parentHeader) !== null && _e !== void 0 ? _e : {}
+      };
+    }
+    exports2.createMessage = createMessage;
+    function isStreamMsg(msg) {
+      return msg.header.msg_type === "stream";
+    }
+    exports2.isStreamMsg = isStreamMsg;
+    function isDisplayDataMsg(msg) {
+      return msg.header.msg_type === "display_data";
+    }
+    exports2.isDisplayDataMsg = isDisplayDataMsg;
+    function isUpdateDisplayDataMsg(msg) {
+      return msg.header.msg_type === "update_display_data";
+    }
+    exports2.isUpdateDisplayDataMsg = isUpdateDisplayDataMsg;
+    function isExecuteInputMsg(msg) {
+      return msg.header.msg_type === "execute_input";
+    }
+    exports2.isExecuteInputMsg = isExecuteInputMsg;
+    function isExecuteResultMsg(msg) {
+      return msg.header.msg_type === "execute_result";
+    }
+    exports2.isExecuteResultMsg = isExecuteResultMsg;
+    function isErrorMsg(msg) {
+      return msg.header.msg_type === "error";
+    }
+    exports2.isErrorMsg = isErrorMsg;
+    function isStatusMsg(msg) {
+      return msg.header.msg_type === "status";
+    }
+    exports2.isStatusMsg = isStatusMsg;
+    function isClearOutputMsg(msg) {
+      return msg.header.msg_type === "clear_output";
+    }
+    exports2.isClearOutputMsg = isClearOutputMsg;
+    function isDebugEventMsg(msg) {
+      return msg.header.msg_type === "debug_event";
+    }
+    exports2.isDebugEventMsg = isDebugEventMsg;
+    function isCommOpenMsg(msg) {
+      return msg.header.msg_type === "comm_open";
+    }
+    exports2.isCommOpenMsg = isCommOpenMsg;
+    function isCommCloseMsg(msg) {
+      return msg.header.msg_type === "comm_close";
+    }
+    exports2.isCommCloseMsg = isCommCloseMsg;
+    function isCommMsgMsg(msg) {
+      return msg.header.msg_type === "comm_msg";
+    }
+    exports2.isCommMsgMsg = isCommMsgMsg;
+    function isInfoRequestMsg(msg) {
+      return msg.header.msg_type === "kernel_info_request";
+    }
+    exports2.isInfoRequestMsg = isInfoRequestMsg;
+    function isExecuteReplyMsg(msg) {
+      return msg.header.msg_type === "execute_reply";
+    }
+    exports2.isExecuteReplyMsg = isExecuteReplyMsg;
+    function isDebugRequestMsg(msg) {
+      return msg.header.msg_type === "debug_request";
+    }
+    exports2.isDebugRequestMsg = isDebugRequestMsg;
+    function isDebugReplyMsg(msg) {
+      return msg.header.msg_type === "debug_reply";
+    }
+    exports2.isDebugReplyMsg = isDebugReplyMsg;
+    function isInputRequestMsg(msg) {
+      return msg.header.msg_type === "input_request";
+    }
+    exports2.isInputRequestMsg = isInputRequestMsg;
+    function isInputReplyMsg(msg) {
+      return msg.header.msg_type === "input_reply";
+    }
+    exports2.isInputReplyMsg = isInputReplyMsg;
+  }
+});
+
+// (disabled):node_modules/node-fetch/browser.js
+var require_browser = __commonJS({
+  "(disabled):node_modules/node-fetch/browser.js"() {
+    init_process_development();
+  }
+});
+
+// node_modules/@jupyterlab/services/lib/shim/ws.js
+var require_ws = __commonJS({
+  "node_modules/@jupyterlab/services/lib/shim/ws.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.default = WebSocket;
+  }
+});
+
+// node_modules/@jupyterlab/services/lib/serverconnection.js
+var require_serverconnection = __commonJS({
+  "node_modules/@jupyterlab/services/lib/serverconnection.js"(exports2) {
+    "use strict";
+    init_process_development();
+    var _a;
+    var _b;
+    var _c;
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.ServerConnection = void 0;
+    var coreutils_12 = require_lib();
+    var FETCH;
+    var HEADERS;
+    var REQUEST;
+    var WEBSOCKET;
+    if (typeof window === "undefined") {
+      const fetchMod = require_browser();
+      FETCH = (_a = exports2.fetch) !== null && _a !== void 0 ? _a : fetchMod;
+      REQUEST = (_b = exports2.Request) !== null && _b !== void 0 ? _b : fetchMod.Request;
+      HEADERS = (_c = exports2.Headers) !== null && _c !== void 0 ? _c : fetchMod.Headers;
+      WEBSOCKET = require_ws();
+    } else {
+      FETCH = fetch;
+      REQUEST = Request;
+      HEADERS = Headers;
+      WEBSOCKET = WebSocket;
+    }
+    var ServerConnection2;
+    (function(ServerConnection3) {
+      function makeSettings(options) {
+        return Private.makeSettings(options);
+      }
+      ServerConnection3.makeSettings = makeSettings;
+      function makeRequest(url, init, settings) {
+        return Private.handleRequest(url, init, settings);
+      }
+      ServerConnection3.makeRequest = makeRequest;
+      class ResponseError extends Error {
+        /**
+         * Create a new response error.
+         */
+        constructor(response, message = `Invalid response: ${response.status} ${response.statusText}`, traceback = "") {
+          super(message);
+          this.response = response;
+          this.traceback = traceback;
+        }
+        /**
+         * Create a ResponseError from a response, handling the traceback and message
+         * as appropriate.
+         *
+         * @param response The response object.
+         *
+         * @returns A promise that resolves with a `ResponseError` object.
+         */
+        static async create(response) {
+          try {
+            const data = await response.json();
+            if (data["traceback"]) {
+              console.error(data["traceback"]);
+            }
+            if (data["message"]) {
+              return new ResponseError(response, data["message"]);
+            }
+            return new ResponseError(response);
+          } catch (e) {
+            console.debug(e);
+            return new ResponseError(response);
+          }
+        }
+      }
+      ServerConnection3.ResponseError = ResponseError;
+      class NetworkError extends TypeError {
+        /**
+         * Create a new network error.
+         */
+        constructor(original) {
+          super(original.message);
+          this.stack = original.stack;
+        }
+      }
+      ServerConnection3.NetworkError = NetworkError;
+    })(ServerConnection2 = exports2.ServerConnection || (exports2.ServerConnection = {}));
+    var Private;
+    (function(Private2) {
+      function makeSettings(options = {}) {
+        const pageBaseUrl = coreutils_12.PageConfig.getBaseUrl();
+        const pageWsUrl = coreutils_12.PageConfig.getWsUrl();
+        const baseUrl = coreutils_12.URLExt.normalize(options.baseUrl) || pageBaseUrl;
+        let wsUrl = options.wsUrl;
+        if (!wsUrl && baseUrl === pageBaseUrl) {
+          wsUrl = pageWsUrl;
+        }
+        if (!wsUrl && baseUrl.indexOf("http") === 0) {
+          wsUrl = "ws" + baseUrl.slice(4);
+        }
+        wsUrl = wsUrl !== null && wsUrl !== void 0 ? wsUrl : pageWsUrl;
+        return Object.assign(Object.assign({ init: { cache: "no-store", credentials: "same-origin" }, fetch: FETCH, Headers: HEADERS, Request: REQUEST, WebSocket: WEBSOCKET, token: coreutils_12.PageConfig.getToken(), appUrl: coreutils_12.PageConfig.getOption("appUrl"), appendToken: typeof window === "undefined" || process.env.JEST_WORKER_ID !== void 0 || coreutils_12.URLExt.getHostName(pageBaseUrl) !== coreutils_12.URLExt.getHostName(wsUrl) }, options), {
+          baseUrl,
+          wsUrl
+        });
+      }
+      Private2.makeSettings = makeSettings;
+      function handleRequest(url, init, settings) {
+        var _a2;
+        if (url.indexOf(settings.baseUrl) !== 0) {
+          throw new Error("Can only be used for notebook server requests");
+        }
+        const cache = (_a2 = init.cache) !== null && _a2 !== void 0 ? _a2 : settings.init.cache;
+        if (cache === "no-store") {
+          url += (/\?/.test(url) ? "&" : "?") + (/* @__PURE__ */ new Date()).getTime();
+        }
+        const request = new settings.Request(url, Object.assign(Object.assign({}, settings.init), init));
+        let authenticated = false;
+        if (settings.token) {
+          authenticated = true;
+          request.headers.append("Authorization", `token ${settings.token}`);
+        }
+        if (typeof document !== "undefined" && (document === null || document === void 0 ? void 0 : document.cookie)) {
+          const xsrfToken = getCookie("_xsrf");
+          if (xsrfToken !== void 0) {
+            authenticated = true;
+            request.headers.append("X-XSRFToken", xsrfToken);
+          }
+        }
+        if (!request.headers.has("Content-Type") && authenticated) {
+          request.headers.set("Content-Type", "application/json");
+        }
+        return settings.fetch.call(null, request).catch((e) => {
+          throw new ServerConnection2.NetworkError(e);
+        });
+      }
+      Private2.handleRequest = handleRequest;
+      function getCookie(name2) {
+        const matches = document.cookie.match("\\b" + name2 + "=([^;]*)\\b");
+        return matches === null || matches === void 0 ? void 0 : matches[1];
+      }
+    })(Private || (Private = {}));
+  }
+});
+
+// node_modules/@jupyterlab/services/lib/kernel/validate.js
+var require_validate3 = __commonJS({
+  "node_modules/@jupyterlab/services/lib/kernel/validate.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.validateModels = exports2.validateModel = exports2.validateMessage = void 0;
+    var validate_1 = require_validate();
+    var HEADER_FIELDS = ["username", "version", "session", "msg_id", "msg_type"];
+    var IOPUB_CONTENT_FIELDS = {
       stream: { name: "string", text: "string" },
       display_data: { data: "object", metadata: "object" },
       execute_input: { code: "string", execution_count: "number" },
       execute_result: {
         execution_count: "number",
         data: "object",
-        metadata: "object",
+        metadata: "object"
       },
       error: { ename: "string", evalue: "string", traceback: "object" },
       status: {
         execution_state: [
           "string",
-          ["starting", "idle", "busy", "restarting", "dead"],
-        ],
+          ["starting", "idle", "busy", "restarting", "dead"]
+        ]
       },
       clear_output: { wait: "boolean" },
       comm_open: { comm_id: "string", target_name: "string", data: "object" },
       comm_msg: { comm_id: "string", data: "object" },
       comm_close: { comm_id: "string" },
-      shutdown_reply: { restart: "boolean" },
+      shutdown_reply: { restart: "boolean" }
+      // Emitted by the IPython kernel.
     };
-  function Ku(n) {
-    for (let e = 0; e < Po.length; e++) _t.validateProperty(n, Po[e], "string");
-  }
-  function qu(n) {
-    _t.validateProperty(n, "metadata", "object"),
-      _t.validateProperty(n, "content", "object"),
-      _t.validateProperty(n, "channel", "string"),
-      Ku(n.header),
-      n.channel === "iopub" && Vu(n);
-  }
-  rt.validateMessage = qu;
-  function Vu(n) {
-    if (n.channel === "iopub") {
-      let e = Wu[n.header.msg_type];
-      if (e === void 0) return;
-      let t = Object.keys(e),
-        r = n.content;
-      for (let i = 0; i < t.length; i++) {
-        let s = e[t[i]];
-        Array.isArray(s) || (s = [s]), _t.validateProperty(r, t[i], ...s);
+    function validateHeader(header) {
+      for (let i = 0; i < HEADER_FIELDS.length; i++) {
+        validate_1.validateProperty(header, HEADER_FIELDS[i], "string");
       }
     }
+    function validateMessage(msg) {
+      validate_1.validateProperty(msg, "metadata", "object");
+      validate_1.validateProperty(msg, "content", "object");
+      validate_1.validateProperty(msg, "channel", "string");
+      validateHeader(msg.header);
+      if (msg.channel === "iopub") {
+        validateIOPubContent(msg);
+      }
+    }
+    exports2.validateMessage = validateMessage;
+    function validateIOPubContent(msg) {
+      if (msg.channel === "iopub") {
+        const fields = IOPUB_CONTENT_FIELDS[msg.header.msg_type];
+        if (fields === void 0) {
+          return;
+        }
+        const names = Object.keys(fields);
+        const content = msg.content;
+        for (let i = 0; i < names.length; i++) {
+          let args = fields[names[i]];
+          if (!Array.isArray(args)) {
+            args = [args];
+          }
+          validate_1.validateProperty(content, names[i], ...args);
+        }
+      }
+    }
+    function validateModel(model) {
+      validate_1.validateProperty(model, "name", "string");
+      validate_1.validateProperty(model, "id", "string");
+    }
+    exports2.validateModel = validateModel;
+    function validateModels(models) {
+      if (!Array.isArray(models)) {
+        throw new Error("Invalid kernel list");
+      }
+      models.forEach((d) => validateModel(d));
+    }
+    exports2.validateModels = validateModels;
   }
-  function Mo(n) {
-    _t.validateProperty(n, "name", "string"),
-      _t.validateProperty(n, "id", "string");
-  }
-  rt.validateModel = Mo;
-  function Bu(n) {
-    if (!Array.isArray(n)) throw new Error("Invalid kernel list");
-    n.forEach((e) => Mo(e));
-  }
-  rt.validateModels = Bu;
 });
-var Nn = k((ie) => {
-  "use strict";
-  h();
-  Object.defineProperty(ie, "__esModule", { value: !0 });
-  ie.getKernelModel =
-    ie.shutdownKernel =
-    ie.interruptKernel =
-    ie.restartKernel =
-    ie.startNew =
-    ie.listRunning =
-    ie.KERNEL_SERVICE_URL =
-      void 0;
-  var ue = De(),
-    Dt = Ie(),
-    On = Tn();
-  ie.KERNEL_SERVICE_URL = "api/kernels";
-  async function Hu(n = ue.ServerConnection.makeSettings()) {
-    let e = Dt.URLExt.join(n.baseUrl, ie.KERNEL_SERVICE_URL),
-      t = await ue.ServerConnection.makeRequest(e, {}, n);
-    if (t.status !== 200)
-      throw await ue.ServerConnection.ResponseError.create(t);
-    let r = await t.json();
-    return On.validateModels(r), r;
-  }
-  ie.listRunning = Hu;
-  async function $u(n = {}, e = ue.ServerConnection.makeSettings()) {
-    let t = Dt.URLExt.join(e.baseUrl, ie.KERNEL_SERVICE_URL),
-      r = { method: "POST", body: JSON.stringify(n) },
-      i = await ue.ServerConnection.makeRequest(t, r, e);
-    if (i.status !== 201)
-      throw await ue.ServerConnection.ResponseError.create(i);
-    let s = await i.json();
-    return On.validateModel(s), s;
-  }
-  ie.startNew = $u;
-  async function Ju(n, e = ue.ServerConnection.makeSettings()) {
-    let t = Dt.URLExt.join(
-        e.baseUrl,
-        ie.KERNEL_SERVICE_URL,
-        encodeURIComponent(n),
-        "restart"
-      ),
-      r = { method: "POST" },
-      i = await ue.ServerConnection.makeRequest(t, r, e);
-    if (i.status !== 200)
-      throw await ue.ServerConnection.ResponseError.create(i);
-    let s = await i.json();
-    On.validateModel(s);
-  }
-  ie.restartKernel = Ju;
-  async function Gu(n, e = ue.ServerConnection.makeSettings()) {
-    let t = Dt.URLExt.join(
-        e.baseUrl,
-        ie.KERNEL_SERVICE_URL,
-        encodeURIComponent(n),
-        "interrupt"
-      ),
-      r = { method: "POST" },
-      i = await ue.ServerConnection.makeRequest(t, r, e);
-    if (i.status !== 204)
-      throw await ue.ServerConnection.ResponseError.create(i);
-  }
-  ie.interruptKernel = Gu;
-  async function zu(n, e = ue.ServerConnection.makeSettings()) {
-    let t = Dt.URLExt.join(
-        e.baseUrl,
-        ie.KERNEL_SERVICE_URL,
-        encodeURIComponent(n)
-      ),
-      r = { method: "DELETE" },
-      i = await ue.ServerConnection.makeRequest(t, r, e);
-    if (i.status === 404) {
-      let s = `The kernel "${n}" does not exist on the server`;
-      console.warn(s);
-    } else if (i.status !== 204)
-      throw await ue.ServerConnection.ResponseError.create(i);
-  }
-  ie.shutdownKernel = zu;
-  async function Yu(n, e = ue.ServerConnection.makeSettings()) {
-    let t = Dt.URLExt.join(
-        e.baseUrl,
-        ie.KERNEL_SERVICE_URL,
-        encodeURIComponent(n)
-      ),
-      r = await ue.ServerConnection.makeRequest(t, {}, e);
-    if (r.status === 404) return;
-    if (r.status !== 200)
-      throw await ue.ServerConnection.ResponseError.create(r);
-    let i = await r.json();
-    return On.validateModel(i), i;
-  }
-  ie.getKernelModel = Yu;
-});
-var Qt = k((Ln, To) => {
-  h();
-  (function (n, e) {
-    typeof Ln == "object" && typeof To != "undefined"
-      ? e(Ln, Ne(), ce())
-      : typeof define == "function" && define.amd
-        ? define(["exports", "@lumino/coreutils", "@lumino/signaling"], e)
-        : ((n = typeof globalThis != "undefined" ? globalThis : n || self),
-          e((n.lumino_polling = {}), n.lumino_coreutils, n.lumino_signaling));
-  })(Ln, function (n, e, t) {
+
+// node_modules/@jupyterlab/services/lib/kernel/restapi.js
+var require_restapi = __commonJS({
+  "node_modules/@jupyterlab/services/lib/kernel/restapi.js"(exports2) {
     "use strict";
-    var r = function (S, w) {
-      return (
-        (r =
-          Object.setPrototypeOf ||
-          ({ __proto__: [] } instanceof Array &&
-            function (E, m) {
-              E.__proto__ = m;
-            }) ||
-          function (E, m) {
-            for (var b in m)
-              Object.prototype.hasOwnProperty.call(m, b) && (E[b] = m[b]);
-          }),
-        r(S, w)
-      );
-    };
-    function i(S, w) {
-      if (typeof w != "function" && w !== null)
-        throw new TypeError(
-          "Class extends value " + String(w) + " is not a constructor or null"
-        );
-      r(S, w);
-      function E() {
-        this.constructor = S;
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.getKernelModel = exports2.shutdownKernel = exports2.interruptKernel = exports2.restartKernel = exports2.startNew = exports2.listRunning = exports2.KERNEL_SERVICE_URL = void 0;
+    var serverconnection_1 = require_serverconnection();
+    var coreutils_12 = require_lib();
+    var validate_1 = require_validate3();
+    exports2.KERNEL_SERVICE_URL = "api/kernels";
+    async function listRunning(settings = serverconnection_1.ServerConnection.makeSettings()) {
+      const url = coreutils_12.URLExt.join(settings.baseUrl, exports2.KERNEL_SERVICE_URL);
+      const response = await serverconnection_1.ServerConnection.makeRequest(url, {}, settings);
+      if (response.status !== 200) {
+        const err = await serverconnection_1.ServerConnection.ResponseError.create(response);
+        throw err;
       }
-      S.prototype =
-        w === null ? Object.create(w) : ((E.prototype = w.prototype), new E());
+      const data = await response.json();
+      validate_1.validateModels(data);
+      return data;
     }
-    var s = function () {
-      return (
-        (s =
-          Object.assign ||
-          function (w) {
-            for (var E, m = 1, b = arguments.length; m < b; m++) {
-              E = arguments[m];
-              for (var y in E)
-                Object.prototype.hasOwnProperty.call(E, y) && (w[y] = E[y]);
-            }
-            return w;
-          }),
-        s.apply(this, arguments)
-      );
-    };
-    function o(S, w, E, m) {
-      function b(y) {
-        return y instanceof E
-          ? y
-          : new E(function (L) {
-              L(y);
-            });
+    exports2.listRunning = listRunning;
+    async function startNew(options = {}, settings = serverconnection_1.ServerConnection.makeSettings()) {
+      const url = coreutils_12.URLExt.join(settings.baseUrl, exports2.KERNEL_SERVICE_URL);
+      const init = {
+        method: "POST",
+        body: JSON.stringify(options)
+      };
+      const response = await serverconnection_1.ServerConnection.makeRequest(url, init, settings);
+      if (response.status !== 201) {
+        const err = await serverconnection_1.ServerConnection.ResponseError.create(response);
+        throw err;
       }
-      return new (E || (E = Promise))(function (y, L) {
-        function q(O) {
-          try {
-            R(m.next(O));
-          } catch (W) {
-            L(W);
-          }
-        }
-        function F(O) {
-          try {
-            R(m.throw(O));
-          } catch (W) {
-            L(W);
-          }
-        }
-        function R(O) {
-          O.done ? y(O.value) : b(O.value).then(q, F);
-        }
-        R((m = m.apply(S, w || [])).next());
-      });
+      const data = await response.json();
+      validate_1.validateModel(data);
+      return data;
     }
-    function a(S, w) {
-      var E = {
-          label: 0,
-          sent: function () {
-            if (y[0] & 1) throw y[1];
-            return y[1];
-          },
-          trys: [],
-          ops: [],
-        },
-        m,
-        b,
-        y,
-        L;
-      return (
-        (L = { next: q(0), throw: q(1), return: q(2) }),
-        typeof Symbol == "function" &&
-          (L[Symbol.iterator] = function () {
-            return this;
-          }),
-        L
-      );
-      function q(R) {
-        return function (O) {
-          return F([R, O]);
+    exports2.startNew = startNew;
+    async function restartKernel(id, settings = serverconnection_1.ServerConnection.makeSettings()) {
+      const url = coreutils_12.URLExt.join(settings.baseUrl, exports2.KERNEL_SERVICE_URL, encodeURIComponent(id), "restart");
+      const init = { method: "POST" };
+      const response = await serverconnection_1.ServerConnection.makeRequest(url, init, settings);
+      if (response.status !== 200) {
+        const err = await serverconnection_1.ServerConnection.ResponseError.create(response);
+        throw err;
+      }
+      const data = await response.json();
+      validate_1.validateModel(data);
+    }
+    exports2.restartKernel = restartKernel;
+    async function interruptKernel(id, settings = serverconnection_1.ServerConnection.makeSettings()) {
+      const url = coreutils_12.URLExt.join(settings.baseUrl, exports2.KERNEL_SERVICE_URL, encodeURIComponent(id), "interrupt");
+      const init = { method: "POST" };
+      const response = await serverconnection_1.ServerConnection.makeRequest(url, init, settings);
+      if (response.status !== 204) {
+        const err = await serverconnection_1.ServerConnection.ResponseError.create(response);
+        throw err;
+      }
+    }
+    exports2.interruptKernel = interruptKernel;
+    async function shutdownKernel(id, settings = serverconnection_1.ServerConnection.makeSettings()) {
+      const url = coreutils_12.URLExt.join(settings.baseUrl, exports2.KERNEL_SERVICE_URL, encodeURIComponent(id));
+      const init = { method: "DELETE" };
+      const response = await serverconnection_1.ServerConnection.makeRequest(url, init, settings);
+      if (response.status === 404) {
+        const msg = `The kernel "${id}" does not exist on the server`;
+        console.warn(msg);
+      } else if (response.status !== 204) {
+        const err = await serverconnection_1.ServerConnection.ResponseError.create(response);
+        throw err;
+      }
+    }
+    exports2.shutdownKernel = shutdownKernel;
+    async function getKernelModel(id, settings = serverconnection_1.ServerConnection.makeSettings()) {
+      const url = coreutils_12.URLExt.join(settings.baseUrl, exports2.KERNEL_SERVICE_URL, encodeURIComponent(id));
+      const response = await serverconnection_1.ServerConnection.makeRequest(url, {}, settings);
+      if (response.status === 404) {
+        return void 0;
+      } else if (response.status !== 200) {
+        const err = await serverconnection_1.ServerConnection.ResponseError.create(response);
+        throw err;
+      }
+      const data = await response.json();
+      validate_1.validateModel(data);
+      return data;
+    }
+    exports2.getKernelModel = getKernelModel;
+  }
+});
+
+// node_modules/@lumino/polling/dist/index.js
+var require_dist5 = __commonJS({
+  "node_modules/@lumino/polling/dist/index.js"(exports2, module2) {
+    init_process_development();
+    (function(global2, factory) {
+      typeof exports2 === "object" && typeof module2 !== "undefined" ? factory(exports2, require_dist4(), require_dist3()) : typeof define === "function" && define.amd ? define(["exports", "@lumino/coreutils", "@lumino/signaling"], factory) : (global2 = typeof globalThis !== "undefined" ? globalThis : global2 || self, factory(global2.lumino_polling = {}, global2.lumino_coreutils, global2.lumino_signaling));
+    })(exports2, function(exports3, coreutils, signaling) {
+      "use strict";
+      var extendStatics = function(d, b) {
+        extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+          d2.__proto__ = b2;
+        } || function(d2, b2) {
+          for (var p in b2)
+            if (Object.prototype.hasOwnProperty.call(b2, p))
+              d2[p] = b2[p];
         };
+        return extendStatics(d, b);
+      };
+      function __extends(d, b) {
+        if (typeof b !== "function" && b !== null)
+          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() {
+          this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
       }
-      function F(R) {
-        if (m) throw new TypeError("Generator is already executing.");
-        for (; E; )
-          try {
-            if (
-              ((m = 1),
-              b &&
-                (y =
-                  R[0] & 2
-                    ? b.return
-                    : R[0]
-                      ? b.throw || ((y = b.return) && y.call(b), 0)
-                      : b.next) &&
-                !(y = y.call(b, R[1])).done)
-            )
-              return y;
-            switch (((b = 0), y && (R = [R[0] & 2, y.value]), R[0])) {
-              case 0:
-              case 1:
-                y = R;
-                break;
-              case 4:
-                return E.label++, { value: R[1], done: !1 };
-              case 5:
-                E.label++, (b = R[1]), (R = [0]);
-                continue;
-              case 7:
-                (R = E.ops.pop()), E.trys.pop();
-                continue;
-              default:
-                if (
-                  ((y = E.trys),
-                  !(y = y.length > 0 && y[y.length - 1]) &&
-                    (R[0] === 6 || R[0] === 2))
-                ) {
-                  E = 0;
-                  continue;
-                }
-                if (R[0] === 3 && (!y || (R[1] > y[0] && R[1] < y[3]))) {
-                  E.label = R[1];
-                  break;
-                }
-                if (R[0] === 6 && E.label < y[1]) {
-                  (E.label = y[1]), (y = R);
-                  break;
-                }
-                if (y && E.label < y[2]) {
-                  (E.label = y[2]), E.ops.push(R);
-                  break;
-                }
-                y[2] && E.ops.pop(), E.trys.pop();
-                continue;
-            }
-            R = w.call(S, E);
-          } catch (O) {
-            (R = [6, O]), (b = 0);
-          } finally {
-            m = y = 0;
+      var __assign = function() {
+        __assign = Object.assign || function __assign2(t) {
+          for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s)
+              if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
           }
-        if (R[0] & 5) throw R[1];
-        return { value: R[0] ? R[1] : void 0, done: !0 };
+          return t;
+        };
+        return __assign.apply(this, arguments);
+      };
+      function __awaiter(thisArg, _arguments, P, generator) {
+        function adopt(value) {
+          return value instanceof P ? value : new P(function(resolve) {
+            resolve(value);
+          });
+        }
+        return new (P || (P = Promise))(function(resolve, reject) {
+          function fulfilled(value) {
+            try {
+              step(generator.next(value));
+            } catch (e) {
+              reject(e);
+            }
+          }
+          function rejected(value) {
+            try {
+              step(generator["throw"](value));
+            } catch (e) {
+              reject(e);
+            }
+          }
+          function step(result) {
+            result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
+          }
+          step((generator = generator.apply(thisArg, _arguments || [])).next());
+        });
       }
-    }
-    var l =
-        typeof requestAnimationFrame == "function"
-          ? requestAnimationFrame
-          : setImmediate,
-      u =
-        typeof cancelAnimationFrame == "function"
-          ? cancelAnimationFrame
-          : clearImmediate;
-    (n.Poll = (function () {
-      function S(w) {
-        var E = this;
-        (this._disposed = new t.Signal(this)),
-          (this._tick = new e.PromiseDelegate()),
-          (this._ticked = new t.Signal(this)),
-          (this._timeout = -1),
-          (this._factory = w.factory),
-          (this._standby = w.standby || f.DEFAULT_STANDBY),
-          (this._state = s(s({}, f.DEFAULT_STATE), {
-            timestamp: new Date().getTime(),
-          }));
-        var m = w.frequency || {},
-          b = Math.max(m.interval || 0, m.max || 0, f.DEFAULT_FREQUENCY.max);
-        (this.frequency = s(s(s({}, f.DEFAULT_FREQUENCY), m), { max: b })),
-          (this.name = w.name || f.DEFAULT_NAME),
-          (!("auto" in w) || w.auto) &&
-            l(function () {
-              return void E.start();
+      function __generator(thisArg, body) {
+        var _ = { label: 0, sent: function() {
+          if (t[0] & 1)
+            throw t[1];
+          return t[1];
+        }, trys: [], ops: [] }, f, y, t, g;
+        return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() {
+          return this;
+        }), g;
+        function verb(n) {
+          return function(v) {
+            return step([n, v]);
+          };
+        }
+        function step(op) {
+          if (f)
+            throw new TypeError("Generator is already executing.");
+          while (_)
+            try {
+              if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done)
+                return t;
+              if (y = 0, t)
+                op = [op[0] & 2, t.value];
+              switch (op[0]) {
+                case 0:
+                case 1:
+                  t = op;
+                  break;
+                case 4:
+                  _.label++;
+                  return { value: op[1], done: false };
+                case 5:
+                  _.label++;
+                  y = op[1];
+                  op = [0];
+                  continue;
+                case 7:
+                  op = _.ops.pop();
+                  _.trys.pop();
+                  continue;
+                default:
+                  if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) {
+                    _ = 0;
+                    continue;
+                  }
+                  if (op[0] === 3 && (!t || op[1] > t[0] && op[1] < t[3])) {
+                    _.label = op[1];
+                    break;
+                  }
+                  if (op[0] === 6 && _.label < t[1]) {
+                    _.label = t[1];
+                    t = op;
+                    break;
+                  }
+                  if (t && _.label < t[2]) {
+                    _.label = t[2];
+                    _.ops.push(op);
+                    break;
+                  }
+                  if (t[2])
+                    _.ops.pop();
+                  _.trys.pop();
+                  continue;
+              }
+              op = body.call(thisArg, _);
+            } catch (e) {
+              op = [6, e];
+              y = 0;
+            } finally {
+              f = t = 0;
+            }
+          if (op[0] & 5)
+            throw op[1];
+          return { value: op[0] ? op[1] : void 0, done: true };
+        }
+      }
+      var defer = typeof requestAnimationFrame === "function" ? requestAnimationFrame : setImmediate;
+      var cancel = typeof cancelAnimationFrame === "function" ? cancelAnimationFrame : clearImmediate;
+      exports3.Poll = /** @class */
+      function() {
+        function Poll(options) {
+          var _this = this;
+          this._disposed = new signaling.Signal(this);
+          this._tick = new coreutils.PromiseDelegate();
+          this._ticked = new signaling.Signal(this);
+          this._timeout = -1;
+          this._factory = options.factory;
+          this._standby = options.standby || Private.DEFAULT_STANDBY;
+          this._state = __assign(__assign({}, Private.DEFAULT_STATE), { timestamp: (/* @__PURE__ */ new Date()).getTime() });
+          var frequency = options.frequency || {};
+          var max = Math.max(frequency.interval || 0, frequency.max || 0, Private.DEFAULT_FREQUENCY.max);
+          this.frequency = __assign(__assign(__assign({}, Private.DEFAULT_FREQUENCY), frequency), { max });
+          this.name = options.name || Private.DEFAULT_NAME;
+          if ("auto" in options ? options.auto : true) {
+            defer(function() {
+              return void _this.start();
             });
-      }
-      return (
-        Object.defineProperty(S.prototype, "disposed", {
-          get: function () {
+          }
+        }
+        Object.defineProperty(Poll.prototype, "disposed", {
+          /**
+           * A signal emitted when the poll is disposed.
+           */
+          get: function() {
             return this._disposed;
           },
-          enumerable: !0,
-          configurable: !0,
-        }),
-        Object.defineProperty(S.prototype, "frequency", {
-          get: function () {
+          enumerable: true,
+          configurable: true
+        });
+        Object.defineProperty(Poll.prototype, "frequency", {
+          /**
+           * The polling frequency parameters.
+           */
+          get: function() {
             return this._frequency;
           },
-          set: function (w) {
-            if (
-              !(this.isDisposed || e.JSONExt.deepEqual(w, this.frequency || {}))
-            ) {
-              var E = w.backoff,
-                m = w.interval,
-                b = w.max;
-              if (
-                ((m = Math.round(m)),
-                (b = Math.round(b)),
-                typeof E == "number" && E < 1)
-              )
-                throw new Error(
-                  "Poll backoff growth factor must be at least 1"
-                );
-              if ((m < 0 || m > b) && m !== S.NEVER)
-                throw new Error("Poll interval must be between 0 and max");
-              if (b > S.MAX_INTERVAL && b !== S.NEVER)
-                throw new Error(
-                  "Max interval must be less than " + S.MAX_INTERVAL
-                );
-              this._frequency = { backoff: E, interval: m, max: b };
+          set: function(frequency) {
+            if (this.isDisposed || coreutils.JSONExt.deepEqual(frequency, this.frequency || {})) {
+              return;
             }
+            var backoff = frequency.backoff, interval = frequency.interval, max = frequency.max;
+            interval = Math.round(interval);
+            max = Math.round(max);
+            if (typeof backoff === "number" && backoff < 1) {
+              throw new Error("Poll backoff growth factor must be at least 1");
+            }
+            if ((interval < 0 || interval > max) && interval !== Poll.NEVER) {
+              throw new Error("Poll interval must be between 0 and max");
+            }
+            if (max > Poll.MAX_INTERVAL && max !== Poll.NEVER) {
+              throw new Error("Max interval must be less than " + Poll.MAX_INTERVAL);
+            }
+            this._frequency = { backoff, interval, max };
           },
-          enumerable: !0,
-          configurable: !0,
-        }),
-        Object.defineProperty(S.prototype, "isDisposed", {
-          get: function () {
+          enumerable: true,
+          configurable: true
+        });
+        Object.defineProperty(Poll.prototype, "isDisposed", {
+          /**
+           * Whether the poll is disposed.
+           */
+          get: function() {
             return this.state.phase === "disposed";
           },
-          enumerable: !0,
-          configurable: !0,
-        }),
-        Object.defineProperty(S.prototype, "standby", {
-          get: function () {
+          enumerable: true,
+          configurable: true
+        });
+        Object.defineProperty(Poll.prototype, "standby", {
+          /**
+           * Indicates when the poll switches to standby.
+           */
+          get: function() {
             return this._standby;
           },
-          set: function (w) {
-            this.isDisposed || this.standby === w || (this._standby = w);
+          set: function(standby) {
+            if (this.isDisposed || this.standby === standby) {
+              return;
+            }
+            this._standby = standby;
           },
-          enumerable: !0,
-          configurable: !0,
-        }),
-        Object.defineProperty(S.prototype, "state", {
-          get: function () {
+          enumerable: true,
+          configurable: true
+        });
+        Object.defineProperty(Poll.prototype, "state", {
+          /**
+           * The poll state, which is the content of the current poll tick.
+           */
+          get: function() {
             return this._state;
           },
-          enumerable: !0,
-          configurable: !0,
-        }),
-        Object.defineProperty(S.prototype, "tick", {
-          get: function () {
+          enumerable: true,
+          configurable: true
+        });
+        Object.defineProperty(Poll.prototype, "tick", {
+          /**
+           * A promise that resolves when the poll next ticks.
+           */
+          get: function() {
             return this._tick.promise;
           },
-          enumerable: !0,
-          configurable: !0,
-        }),
-        Object.defineProperty(S.prototype, "ticked", {
-          get: function () {
+          enumerable: true,
+          configurable: true
+        });
+        Object.defineProperty(Poll.prototype, "ticked", {
+          /**
+           * A signal emitted when the poll ticks and fires off a new request.
+           */
+          get: function() {
             return this._ticked;
           },
-          enumerable: !0,
-          configurable: !0,
-        }),
-        (S.prototype.dispose = function () {
-          this.isDisposed ||
-            ((this._state = s(s({}, f.DISPOSED_STATE), {
-              timestamp: new Date().getTime(),
-            })),
-            this._tick.promise.catch(function (w) {}),
-            this._tick.reject(
-              new Error("Poll (" + this.name + ") is disposed.")
-            ),
-            this._disposed.emit(void 0),
-            t.Signal.clearData(this));
-        }),
-        (S.prototype.refresh = function () {
-          return this.schedule({
-            cancel: function (w) {
-              var E = w.phase;
-              return E === "refreshed";
-            },
-            interval: S.IMMEDIATE,
-            phase: "refreshed",
-          });
-        }),
-        (S.prototype.schedule = function (w) {
-          return (
-            w === void 0 && (w = {}),
-            o(this, void 0, void 0, function () {
-              var E,
-                m,
-                b,
-                y,
-                L,
-                q = this;
-              return a(this, function (F) {
-                switch (F.label) {
-                  case 0:
-                    return this.isDisposed
-                      ? [2]
-                      : w.cancel && w.cancel(this.state)
-                        ? [2]
-                        : ((E = this.state),
-                          (m = this._tick),
-                          (b = new e.PromiseDelegate()),
-                          (y = s(
-                            {
-                              interval: this.frequency.interval,
-                              payload: null,
-                              phase: "standby",
-                              timestamp: new Date().getTime(),
-                            },
-                            w
-                          )),
-                          (this._state = y),
-                          (this._tick = b),
-                          E.interval === S.IMMEDIATE
-                            ? u(this._timeout)
-                            : clearTimeout(this._timeout),
-                          this._ticked.emit(this.state),
-                          m.resolve(this),
-                          [4, m.promise]);
-                  case 1:
-                    return (
-                      F.sent(),
-                      (L = function () {
-                        q.isDisposed || q.tick !== b.promise || q._execute();
-                      }),
-                      (this._timeout =
-                        y.interval === S.IMMEDIATE
-                          ? l(L)
-                          : y.interval === S.NEVER
-                            ? -1
-                            : setTimeout(L, y.interval)),
-                      [2]
-                    );
-                }
-              });
-            })
-          );
-        }),
-        (S.prototype.start = function () {
-          return this.schedule({
-            cancel: function (w) {
-              var E = w.phase;
-              return E !== "constructed" && E !== "standby" && E !== "stopped";
-            },
-            interval: S.IMMEDIATE,
-            phase: "started",
-          });
-        }),
-        (S.prototype.stop = function () {
-          return this.schedule({
-            cancel: function (w) {
-              var E = w.phase;
-              return E === "stopped";
-            },
-            interval: S.NEVER,
-            phase: "stopped",
-          });
-        }),
-        (S.prototype._execute = function () {
-          var w = this,
-            E =
-              typeof this.standby == "function" ? this.standby() : this.standby;
-          if (
-            ((E =
-              E === "never"
-                ? !1
-                : E === "when-hidden"
-                  ? !!(
-                      typeof document != "undefined" &&
-                      document &&
-                      document.hidden
-                    )
-                  : E),
-            E)
-          ) {
-            this.schedule();
+          enumerable: true,
+          configurable: true
+        });
+        Poll.prototype.dispose = function() {
+          if (this.isDisposed) {
             return;
           }
-          var m = this.tick;
-          this._factory(this.state)
-            .then(function (b) {
-              w.isDisposed ||
-                w.tick !== m ||
-                w.schedule({
-                  payload: b,
-                  phase:
-                    w.state.phase === "rejected" ? "reconnected" : "resolved",
-                });
-            })
-            .catch(function (b) {
-              w.isDisposed ||
-                w.tick !== m ||
-                w.schedule({
-                  interval: f.sleep(w.frequency, w.state),
-                  payload: b,
-                  phase: "rejected",
-                });
+          this._state = __assign(__assign({}, Private.DISPOSED_STATE), { timestamp: (/* @__PURE__ */ new Date()).getTime() });
+          this._tick.promise.catch(function(_) {
+            return void 0;
+          });
+          this._tick.reject(new Error("Poll (" + this.name + ") is disposed."));
+          this._disposed.emit(void 0);
+          signaling.Signal.clearData(this);
+        };
+        Poll.prototype.refresh = function() {
+          return this.schedule({
+            cancel: function(_a) {
+              var phase = _a.phase;
+              return phase === "refreshed";
+            },
+            interval: Poll.IMMEDIATE,
+            phase: "refreshed"
+          });
+        };
+        Poll.prototype.schedule = function(next) {
+          if (next === void 0) {
+            next = {};
+          }
+          return __awaiter(this, void 0, void 0, function() {
+            var last, pending, scheduled, state, execute;
+            var _this = this;
+            return __generator(this, function(_a) {
+              switch (_a.label) {
+                case 0:
+                  if (this.isDisposed) {
+                    return [
+                      2
+                      /*return*/
+                    ];
+                  }
+                  if (next.cancel && next.cancel(this.state)) {
+                    return [
+                      2
+                      /*return*/
+                    ];
+                  }
+                  last = this.state;
+                  pending = this._tick;
+                  scheduled = new coreutils.PromiseDelegate();
+                  state = __assign({ interval: this.frequency.interval, payload: null, phase: "standby", timestamp: (/* @__PURE__ */ new Date()).getTime() }, next);
+                  this._state = state;
+                  this._tick = scheduled;
+                  if (last.interval === Poll.IMMEDIATE) {
+                    cancel(this._timeout);
+                  } else {
+                    clearTimeout(this._timeout);
+                  }
+                  this._ticked.emit(this.state);
+                  pending.resolve(this);
+                  return [4, pending.promise];
+                case 1:
+                  _a.sent();
+                  execute = function() {
+                    if (_this.isDisposed || _this.tick !== scheduled.promise) {
+                      return;
+                    }
+                    _this._execute();
+                  };
+                  this._timeout = state.interval === Poll.IMMEDIATE ? defer(execute) : state.interval === Poll.NEVER ? -1 : setTimeout(execute, state.interval);
+                  return [
+                    2
+                    /*return*/
+                  ];
+              }
             });
-        }),
-        S
-      );
-    })()),
-      (function (S) {
-        (S.IMMEDIATE = 0), (S.MAX_INTERVAL = 2147483647), (S.NEVER = 1 / 0);
-      })(n.Poll || (n.Poll = {}));
-    var f;
-    (function (S) {
-      (S.DEFAULT_BACKOFF = 3),
-        (S.DEFAULT_FREQUENCY = { backoff: !0, interval: 1e3, max: 30 * 1e3 }),
-        (S.DEFAULT_NAME = "unknown"),
-        (S.DEFAULT_STANDBY = "when-hidden"),
-        (S.DEFAULT_STATE = {
-          interval: n.Poll.NEVER,
+          });
+        };
+        Poll.prototype.start = function() {
+          return this.schedule({
+            cancel: function(_a) {
+              var phase = _a.phase;
+              return phase !== "constructed" && phase !== "standby" && phase !== "stopped";
+            },
+            interval: Poll.IMMEDIATE,
+            phase: "started"
+          });
+        };
+        Poll.prototype.stop = function() {
+          return this.schedule({
+            cancel: function(_a) {
+              var phase = _a.phase;
+              return phase === "stopped";
+            },
+            interval: Poll.NEVER,
+            phase: "stopped"
+          });
+        };
+        Poll.prototype._execute = function() {
+          var _this = this;
+          var standby = typeof this.standby === "function" ? this.standby() : this.standby;
+          standby = standby === "never" ? false : standby === "when-hidden" ? !!(typeof document !== "undefined" && document && document.hidden) : standby;
+          if (standby) {
+            void this.schedule();
+            return;
+          }
+          var pending = this.tick;
+          this._factory(this.state).then(function(resolved) {
+            if (_this.isDisposed || _this.tick !== pending) {
+              return;
+            }
+            void _this.schedule({
+              payload: resolved,
+              phase: _this.state.phase === "rejected" ? "reconnected" : "resolved"
+            });
+          }).catch(function(rejected) {
+            if (_this.isDisposed || _this.tick !== pending) {
+              return;
+            }
+            void _this.schedule({
+              interval: Private.sleep(_this.frequency, _this.state),
+              payload: rejected,
+              phase: "rejected"
+            });
+          });
+        };
+        return Poll;
+      }();
+      (function(Poll) {
+        Poll.IMMEDIATE = 0;
+        Poll.MAX_INTERVAL = 2147483647;
+        Poll.NEVER = Infinity;
+      })(exports3.Poll || (exports3.Poll = {}));
+      var Private;
+      (function(Private2) {
+        Private2.DEFAULT_BACKOFF = 3;
+        Private2.DEFAULT_FREQUENCY = {
+          backoff: true,
+          interval: 1e3,
+          max: 30 * 1e3
+        };
+        Private2.DEFAULT_NAME = "unknown";
+        Private2.DEFAULT_STANDBY = "when-hidden";
+        Private2.DEFAULT_STATE = {
+          interval: exports3.Poll.NEVER,
           payload: null,
           phase: "constructed",
-          timestamp: new Date(0).getTime(),
-        }),
-        (S.DISPOSED_STATE = {
-          interval: n.Poll.NEVER,
+          timestamp: (/* @__PURE__ */ new Date(0)).getTime()
+        };
+        Private2.DISPOSED_STATE = {
+          interval: exports3.Poll.NEVER,
           payload: null,
           phase: "disposed",
-          timestamp: new Date(0).getTime(),
-        });
-      function w(m, b) {
-        return (
-          (m = Math.ceil(m)),
-          (b = Math.floor(b)),
-          Math.floor(Math.random() * (b - m + 1)) + m
-        );
-      }
-      function E(m, b) {
-        var y = m.backoff,
-          L = m.interval,
-          q = m.max;
-        if (L === n.Poll.NEVER) return L;
-        var F = y === !0 ? S.DEFAULT_BACKOFF : y === !1 ? 1 : y,
-          R = w(L, b.interval * F);
-        return Math.min(q, R);
-      }
-      S.sleep = E;
-    })(f || (f = {}));
-    var c = (function () {
-        function S(w, E) {
-          var m = this;
-          E === void 0 && (E = 500),
-            (this.payload = null),
-            (this.limit = E),
-            (this.poll = new n.Poll({
-              auto: !1,
-              factory: function () {
-                return o(m, void 0, void 0, function () {
-                  return a(this, function (b) {
-                    switch (b.label) {
+          timestamp: (/* @__PURE__ */ new Date(0)).getTime()
+        };
+        function getRandomIntInclusive(min, max) {
+          min = Math.ceil(min);
+          max = Math.floor(max);
+          return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+        function sleep(frequency, last) {
+          var backoff = frequency.backoff, interval = frequency.interval, max = frequency.max;
+          if (interval === exports3.Poll.NEVER) {
+            return interval;
+          }
+          var growth = backoff === true ? Private2.DEFAULT_BACKOFF : backoff === false ? 1 : backoff;
+          var random = getRandomIntInclusive(interval, last.interval * growth);
+          return Math.min(max, random);
+        }
+        Private2.sleep = sleep;
+      })(Private || (Private = {}));
+      var RateLimiter = (
+        /** @class */
+        function() {
+          function RateLimiter2(fn, limit) {
+            var _this = this;
+            if (limit === void 0) {
+              limit = 500;
+            }
+            this.payload = null;
+            this.limit = limit;
+            this.poll = new exports3.Poll({
+              auto: false,
+              factory: function() {
+                return __awaiter(_this, void 0, void 0, function() {
+                  return __generator(this, function(_a) {
+                    switch (_a.label) {
                       case 0:
-                        return [4, w()];
+                        return [4, fn()];
                       case 1:
-                        return [2, b.sent()];
+                        return [2, _a.sent()];
                     }
                   });
                 });
               },
-              frequency: {
-                backoff: !1,
-                interval: n.Poll.NEVER,
-                max: n.Poll.NEVER,
-              },
-              standby: "never",
-            })),
-            (this.payload = new e.PromiseDelegate()),
-            this.poll.ticked.connect(function (b, y) {
-              var L = m.payload;
-              if (y.phase === "resolved") {
-                (m.payload = new e.PromiseDelegate()), L.resolve(y.payload);
+              frequency: { backoff: false, interval: exports3.Poll.NEVER, max: exports3.Poll.NEVER },
+              standby: "never"
+            });
+            this.payload = new coreutils.PromiseDelegate();
+            this.poll.ticked.connect(function(_, state) {
+              var payload = _this.payload;
+              if (state.phase === "resolved") {
+                _this.payload = new coreutils.PromiseDelegate();
+                payload.resolve(state.payload);
                 return;
               }
-              if (y.phase === "rejected" || y.phase === "stopped") {
-                (m.payload = new e.PromiseDelegate()),
-                  L.promise.catch(function (q) {}),
-                  L.reject(y.payload);
+              if (state.phase === "rejected" || state.phase === "stopped") {
+                _this.payload = new coreutils.PromiseDelegate();
+                payload.promise.catch(function(_2) {
+                  return void 0;
+                });
+                payload.reject(state.payload);
                 return;
               }
             }, this);
-        }
-        return (
-          Object.defineProperty(S.prototype, "isDisposed", {
-            get: function () {
+          }
+          Object.defineProperty(RateLimiter2.prototype, "isDisposed", {
+            /**
+             * Whether the rate limiter is disposed.
+             */
+            get: function() {
               return this.payload === null;
             },
-            enumerable: !0,
-            configurable: !0,
-          }),
-          (S.prototype.dispose = function () {
-            this.isDisposed || ((this.payload = null), this.poll.dispose());
-          }),
-          (S.prototype.stop = function () {
-            return o(this, void 0, void 0, function () {
-              return a(this, function (w) {
+            enumerable: true,
+            configurable: true
+          });
+          RateLimiter2.prototype.dispose = function() {
+            if (this.isDisposed) {
+              return;
+            }
+            this.payload = null;
+            this.poll.dispose();
+          };
+          RateLimiter2.prototype.stop = function() {
+            return __awaiter(this, void 0, void 0, function() {
+              return __generator(this, function(_a) {
                 return [2, this.poll.stop()];
               });
             });
-          }),
-          S
-        );
-      })(),
-      C = (function (S) {
-        i(w, S);
-        function w() {
-          return (S !== null && S.apply(this, arguments)) || this;
-        }
-        return (
-          (w.prototype.invoke = function () {
-            return (
-              this.poll.schedule({ interval: this.limit, phase: "invoked" }),
-              this.payload.promise
-            );
-          }),
-          w
-        );
-      })(c),
-      M = (function (S) {
-        i(w, S);
-        function w(E, m) {
-          var b =
-              S.call(this, E, typeof m == "number" ? m : m && m.limit) || this,
-            y = "leading";
-          return (
-            typeof m != "number" &&
-              ((m = m || {}), (y = "edge" in m ? m.edge : y)),
-            (b._interval = y === "trailing" ? b.limit : n.Poll.IMMEDIATE),
-            b
-          );
-        }
-        return (
-          (w.prototype.invoke = function () {
-            return (
-              this.poll.state.phase !== "invoked" &&
-                this.poll.schedule({
-                  interval: this._interval,
-                  phase: "invoked",
-                }),
-              this.payload.promise
-            );
-          }),
-          w
-        );
-      })(c);
-    (n.Debouncer = C),
-      (n.RateLimiter = c),
-      (n.Throttler = M),
-      Object.defineProperty(n, "__esModule", { value: !0 });
-  });
+          };
+          return RateLimiter2;
+        }()
+      );
+      var Debouncer = (
+        /** @class */
+        function(_super) {
+          __extends(Debouncer2, _super);
+          function Debouncer2() {
+            return _super !== null && _super.apply(this, arguments) || this;
+          }
+          Debouncer2.prototype.invoke = function() {
+            void this.poll.schedule({ interval: this.limit, phase: "invoked" });
+            return this.payload.promise;
+          };
+          return Debouncer2;
+        }(RateLimiter)
+      );
+      var Throttler = (
+        /** @class */
+        function(_super) {
+          __extends(Throttler2, _super);
+          function Throttler2(fn, options) {
+            var _this = _super.call(this, fn, typeof options === "number" ? options : options && options.limit) || this;
+            var edge = "leading";
+            if (typeof options !== "number") {
+              options = options || {};
+              edge = "edge" in options ? options.edge : edge;
+            }
+            _this._interval = edge === "trailing" ? _this.limit : exports3.Poll.IMMEDIATE;
+            return _this;
+          }
+          Throttler2.prototype.invoke = function() {
+            if (this.poll.state.phase !== "invoked") {
+              void this.poll.schedule({ interval: this._interval, phase: "invoked" });
+            }
+            return this.payload.promise;
+          };
+          return Throttler2;
+        }(RateLimiter)
+      );
+      exports3.Debouncer = Debouncer;
+      exports3.RateLimiter = RateLimiter;
+      exports3.Throttler = Throttler;
+      Object.defineProperty(exports3, "__esModule", { value: true });
+    });
+  }
 });
-var Zt = k((kn) => {
-  "use strict";
-  h();
-  Object.defineProperty(kn, "__esModule", { value: !0 });
-  kn.BaseManager = void 0;
-  var Oo = ce(),
-    Xu = De(),
-    ri = class {
-      constructor(e) {
-        var t;
-        (this._isDisposed = !1),
-          (this._disposed = new Oo.Signal(this)),
-          (this.serverSettings =
-            (t = e.serverSettings) !== null && t !== void 0
-              ? t
-              : Xu.ServerConnection.makeSettings());
+
+// node_modules/@jupyterlab/services/lib/basemanager.js
+var require_basemanager = __commonJS({
+  "node_modules/@jupyterlab/services/lib/basemanager.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.BaseManager = void 0;
+    var signaling_1 = require_dist3();
+    var serverconnection_1 = require_serverconnection();
+    var BaseManager = class {
+      constructor(options) {
+        var _a;
+        this._isDisposed = false;
+        this._disposed = new signaling_1.Signal(this);
+        this.serverSettings = (_a = options.serverSettings) !== null && _a !== void 0 ? _a : serverconnection_1.ServerConnection.makeSettings();
       }
+      /**
+       * A signal emitted when the delegate is disposed.
+       */
       get disposed() {
         return this._disposed;
       }
+      /**
+       * Test whether the delegate has been disposed.
+       */
       get isDisposed() {
         return this._isDisposed;
       }
+      /**
+       * Dispose of the delegate and invoke the callback function.
+       */
       dispose() {
-        this.isDisposed ||
-          (this._disposed.emit(void 0), Oo.Signal.clearData(this));
-      }
-    };
-  kn.BaseManager = ri;
-});
-var ii = k((xn, No) => {
-  h();
-  (function (n, e) {
-    typeof xn == "object" && typeof No != "undefined"
-      ? e(xn, ct(), ce())
-      : typeof define == "function" && define.amd
-        ? define(["exports", "@lumino/algorithm", "@lumino/signaling"], e)
-        : ((n = typeof globalThis != "undefined" ? globalThis : n || self),
-          e(
-            (n.lumino_disposable = {}),
-            n.lumino_algorithm,
-            n.lumino_signaling
-          ));
-  })(xn, function (n, e, t) {
-    "use strict";
-    var r = function (a, l) {
-      return (
-        (r =
-          Object.setPrototypeOf ||
-          ({ __proto__: [] } instanceof Array &&
-            function (u, f) {
-              u.__proto__ = f;
-            }) ||
-          function (u, f) {
-            for (var c in f)
-              Object.prototype.hasOwnProperty.call(f, c) && (u[c] = f[c]);
-          }),
-        r(a, l)
-      );
-    };
-    function i(a, l) {
-      if (typeof l != "function" && l !== null)
-        throw new TypeError(
-          "Class extends value " + String(l) + " is not a constructor or null"
-        );
-      r(a, l);
-      function u() {
-        this.constructor = a;
-      }
-      a.prototype =
-        l === null ? Object.create(l) : ((u.prototype = l.prototype), new u());
-    }
-    var s = (function () {
-        function a(l) {
-          this._fn = l;
+        if (this.isDisposed) {
+          return;
         }
-        return (
-          Object.defineProperty(a.prototype, "isDisposed", {
-            get: function () {
+        this._disposed.emit(void 0);
+        signaling_1.Signal.clearData(this);
+      }
+    };
+    exports2.BaseManager = BaseManager;
+  }
+});
+
+// node_modules/@lumino/disposable/dist/index.js
+var require_dist6 = __commonJS({
+  "node_modules/@lumino/disposable/dist/index.js"(exports2, module2) {
+    init_process_development();
+    (function(global2, factory) {
+      typeof exports2 === "object" && typeof module2 !== "undefined" ? factory(exports2, require_dist(), require_dist3()) : typeof define === "function" && define.amd ? define(["exports", "@lumino/algorithm", "@lumino/signaling"], factory) : (global2 = typeof globalThis !== "undefined" ? globalThis : global2 || self, factory(global2.lumino_disposable = {}, global2.lumino_algorithm, global2.lumino_signaling));
+    })(exports2, function(exports3, algorithm, signaling) {
+      "use strict";
+      var extendStatics = function(d, b) {
+        extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+          d2.__proto__ = b2;
+        } || function(d2, b2) {
+          for (var p in b2)
+            if (Object.prototype.hasOwnProperty.call(b2, p))
+              d2[p] = b2[p];
+        };
+        return extendStatics(d, b);
+      };
+      function __extends(d, b) {
+        if (typeof b !== "function" && b !== null)
+          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() {
+          this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+      }
+      var DisposableDelegate = (
+        /** @class */
+        function() {
+          function DisposableDelegate2(fn) {
+            this._fn = fn;
+          }
+          Object.defineProperty(DisposableDelegate2.prototype, "isDisposed", {
+            /**
+             * Test whether the delegate has been disposed.
+             */
+            get: function() {
               return !this._fn;
             },
-            enumerable: !0,
-            configurable: !0,
-          }),
-          (a.prototype.dispose = function () {
-            if (this._fn) {
-              var l = this._fn;
-              (this._fn = null), l();
+            enumerable: true,
+            configurable: true
+          });
+          DisposableDelegate2.prototype.dispose = function() {
+            if (!this._fn) {
+              return;
             }
-          }),
-          a
-        );
-      })(),
-      o = (function (a) {
-        i(l, a);
-        function l() {
-          var u = (a !== null && a.apply(this, arguments)) || this;
-          return (u._disposed = new t.Signal(u)), u;
-        }
-        return (
-          Object.defineProperty(l.prototype, "disposed", {
-            get: function () {
+            var fn = this._fn;
+            this._fn = null;
+            fn();
+          };
+          return DisposableDelegate2;
+        }()
+      );
+      var ObservableDisposableDelegate = (
+        /** @class */
+        function(_super) {
+          __extends(ObservableDisposableDelegate2, _super);
+          function ObservableDisposableDelegate2() {
+            var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this._disposed = new signaling.Signal(_this);
+            return _this;
+          }
+          Object.defineProperty(ObservableDisposableDelegate2.prototype, "disposed", {
+            /**
+             * A signal emitted when the delegate is disposed.
+             */
+            get: function() {
               return this._disposed;
             },
-            enumerable: !0,
-            configurable: !0,
-          }),
-          (l.prototype.dispose = function () {
-            this.isDisposed ||
-              (a.prototype.dispose.call(this),
-              this._disposed.emit(void 0),
-              t.Signal.clearData(this));
-          }),
-          l
-        );
-      })(s);
-    (n.DisposableSet = (function () {
-      function a() {
-        (this._isDisposed = !1), (this._items = new Set());
-      }
-      return (
-        Object.defineProperty(a.prototype, "isDisposed", {
-          get: function () {
+            enumerable: true,
+            configurable: true
+          });
+          ObservableDisposableDelegate2.prototype.dispose = function() {
+            if (this.isDisposed) {
+              return;
+            }
+            _super.prototype.dispose.call(this);
+            this._disposed.emit(void 0);
+            signaling.Signal.clearData(this);
+          };
+          return ObservableDisposableDelegate2;
+        }(DisposableDelegate)
+      );
+      exports3.DisposableSet = /** @class */
+      function() {
+        function DisposableSet() {
+          this._isDisposed = false;
+          this._items = /* @__PURE__ */ new Set();
+        }
+        Object.defineProperty(DisposableSet.prototype, "isDisposed", {
+          /**
+           * Test whether the set has been disposed.
+           */
+          get: function() {
             return this._isDisposed;
           },
-          enumerable: !0,
-          configurable: !0,
-        }),
-        (a.prototype.dispose = function () {
-          this._isDisposed ||
-            ((this._isDisposed = !0),
-            this._items.forEach(function (l) {
-              l.dispose();
-            }),
-            this._items.clear());
-        }),
-        (a.prototype.contains = function (l) {
-          return this._items.has(l);
-        }),
-        (a.prototype.add = function (l) {
-          this._items.add(l);
-        }),
-        (a.prototype.remove = function (l) {
-          this._items.delete(l);
-        }),
-        (a.prototype.clear = function () {
+          enumerable: true,
+          configurable: true
+        });
+        DisposableSet.prototype.dispose = function() {
+          if (this._isDisposed) {
+            return;
+          }
+          this._isDisposed = true;
+          this._items.forEach(function(item) {
+            item.dispose();
+          });
           this._items.clear();
-        }),
-        a
-      );
-    })()),
-      (function (a) {
-        function l(u) {
-          var f = new a();
-          return (
-            e.each(u, function (c) {
-              f.add(c);
-            }),
-            f
-          );
+        };
+        DisposableSet.prototype.contains = function(item) {
+          return this._items.has(item);
+        };
+        DisposableSet.prototype.add = function(item) {
+          this._items.add(item);
+        };
+        DisposableSet.prototype.remove = function(item) {
+          this._items.delete(item);
+        };
+        DisposableSet.prototype.clear = function() {
+          this._items.clear();
+        };
+        return DisposableSet;
+      }();
+      (function(DisposableSet) {
+        function from(items) {
+          var set = new DisposableSet();
+          algorithm.each(items, function(item) {
+            set.add(item);
+          });
+          return set;
         }
-        a.from = l;
-      })(n.DisposableSet || (n.DisposableSet = {})),
-      (n.ObservableDisposableSet = (function (a) {
-        i(l, a);
-        function l() {
-          var u = (a !== null && a.apply(this, arguments)) || this;
-          return (u._disposed = new t.Signal(u)), u;
+        DisposableSet.from = from;
+      })(exports3.DisposableSet || (exports3.DisposableSet = {}));
+      exports3.ObservableDisposableSet = /** @class */
+      function(_super) {
+        __extends(ObservableDisposableSet, _super);
+        function ObservableDisposableSet() {
+          var _this = _super !== null && _super.apply(this, arguments) || this;
+          _this._disposed = new signaling.Signal(_this);
+          return _this;
         }
-        return (
-          Object.defineProperty(l.prototype, "disposed", {
-            get: function () {
-              return this._disposed;
-            },
-            enumerable: !0,
-            configurable: !0,
-          }),
-          (l.prototype.dispose = function () {
-            this.isDisposed ||
-              (a.prototype.dispose.call(this),
-              this._disposed.emit(void 0),
-              t.Signal.clearData(this));
-          }),
-          l
-        );
-      })(n.DisposableSet)),
-      (function (a) {
-        function l(u) {
-          var f = new a();
-          return (
-            e.each(u, function (c) {
-              f.add(c);
-            }),
-            f
-          );
+        Object.defineProperty(ObservableDisposableSet.prototype, "disposed", {
+          /**
+           * A signal emitted when the set is disposed.
+           */
+          get: function() {
+            return this._disposed;
+          },
+          enumerable: true,
+          configurable: true
+        });
+        ObservableDisposableSet.prototype.dispose = function() {
+          if (this.isDisposed) {
+            return;
+          }
+          _super.prototype.dispose.call(this);
+          this._disposed.emit(void 0);
+          signaling.Signal.clearData(this);
+        };
+        return ObservableDisposableSet;
+      }(exports3.DisposableSet);
+      (function(ObservableDisposableSet) {
+        function from(items) {
+          var set = new ObservableDisposableSet();
+          algorithm.each(items, function(item) {
+            set.add(item);
+          });
+          return set;
         }
-        a.from = l;
-      })(n.ObservableDisposableSet || (n.ObservableDisposableSet = {})),
-      (n.DisposableDelegate = s),
-      (n.ObservableDisposableDelegate = o),
-      Object.defineProperty(n, "__esModule", { value: !0 });
-  });
+        ObservableDisposableSet.from = from;
+      })(exports3.ObservableDisposableSet || (exports3.ObservableDisposableSet = {}));
+      exports3.DisposableDelegate = DisposableDelegate;
+      exports3.ObservableDisposableDelegate = ObservableDisposableDelegate;
+      Object.defineProperty(exports3, "__esModule", { value: true });
+    });
+  }
 });
-var Lo = k((He) => {
-  "use strict";
-  h();
-  var Qu =
-      (He && He.__createBinding) ||
-      (Object.create
-        ? function (n, e, t, r) {
-            r === void 0 && (r = t),
-              Object.defineProperty(n, r, {
-                enumerable: !0,
-                get: function () {
-                  return e[t];
-                },
-              });
-          }
-        : function (n, e, t, r) {
-            r === void 0 && (r = t), (n[r] = e[t]);
-          }),
-    Zu =
-      (He && He.__setModuleDefault) ||
-      (Object.create
-        ? function (n, e) {
-            Object.defineProperty(n, "default", { enumerable: !0, value: e });
-          }
-        : function (n, e) {
-            n.default = e;
-          }),
-    ec =
-      (He && He.__importStar) ||
-      function (n) {
-        if (n && n.__esModule) return n;
-        var e = {};
-        if (n != null)
-          for (var t in n)
-            t !== "default" &&
-              Object.prototype.hasOwnProperty.call(n, t) &&
-              Qu(e, n, t);
-        return Zu(e, n), e;
-      };
-  Object.defineProperty(He, "__esModule", { value: !0 });
-  He.CommHandler = void 0;
-  var tc = ii(),
-    jn = ec(Xt()),
-    si = class extends tc.DisposableDelegate {
-      constructor(e, t, r, i) {
-        super(i),
-          (this._target = ""),
-          (this._id = ""),
-          (this._id = t),
-          (this._target = e),
-          (this._kernel = r);
+
+// node_modules/@jupyterlab/services/lib/kernel/comm.js
+var require_comm = __commonJS({
+  "node_modules/@jupyterlab/services/lib/kernel/comm.js"(exports2) {
+    "use strict";
+    init_process_development();
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      Object.defineProperty(o, k2, { enumerable: true, get: function() {
+        return m[k];
+      } });
+    } : function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      o[k2] = m[k];
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || function(mod) {
+      if (mod && mod.__esModule)
+        return mod;
+      var result = {};
+      if (mod != null) {
+        for (var k in mod)
+          if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+            __createBinding(result, mod, k);
       }
+      __setModuleDefault(result, mod);
+      return result;
+    };
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.CommHandler = void 0;
+    var disposable_1 = require_dist6();
+    var KernelMessage2 = __importStar(require_messages());
+    var CommHandler = class extends disposable_1.DisposableDelegate {
+      /**
+       * Construct a new comm channel.
+       */
+      constructor(target, id, kernel, disposeCb) {
+        super(disposeCb);
+        this._target = "";
+        this._id = "";
+        this._id = id;
+        this._target = target;
+        this._kernel = kernel;
+      }
+      /**
+       * The unique id for the comm channel.
+       */
       get commId() {
         return this._id;
       }
+      /**
+       * The target name for the comm channel.
+       */
       get targetName() {
         return this._target;
       }
+      /**
+       * Get the callback for a comm close event.
+       *
+       * #### Notes
+       * This is called when the comm is closed from either the server or client.
+       *
+       * **See also:** [[ICommClose]], [[close]]
+       */
       get onClose() {
         return this._onClose;
       }
-      set onClose(e) {
-        this._onClose = e;
+      /**
+       * Set the callback for a comm close event.
+       *
+       * #### Notes
+       * This is called when the comm is closed from either the server or client. If
+       * the function returns a promise, and the kernel was closed from the server,
+       * kernel message processing will pause until the returned promise is
+       * fulfilled.
+       *
+       * **See also:** [[close]]
+       */
+      set onClose(cb) {
+        this._onClose = cb;
       }
+      /**
+       * Get the callback for a comm message received event.
+       */
       get onMsg() {
         return this._onMsg;
       }
-      set onMsg(e) {
-        this._onMsg = e;
+      /**
+       * Set the callback for a comm message received event.
+       *
+       * #### Notes
+       * This is called when a comm message is received. If the function returns a
+       * promise, kernel message processing will pause until it is fulfilled.
+       */
+      set onMsg(cb) {
+        this._onMsg = cb;
       }
-      open(e, t, r = []) {
-        if (this.isDisposed || this._kernel.isDisposed)
+      /**
+       * Open a comm with optional data and metadata.
+       *
+       * #### Notes
+       * This sends a `comm_open` message to the server.
+       *
+       * **See also:** [[ICommOpen]]
+       */
+      open(data, metadata, buffers = []) {
+        if (this.isDisposed || this._kernel.isDisposed) {
           throw new Error("Cannot open");
-        let i = jn.createMessage({
+        }
+        const msg = KernelMessage2.createMessage({
           msgType: "comm_open",
           channel: "shell",
           username: this._kernel.username,
@@ -4638,5054 +6122,6750 @@ var Lo = k((He) => {
           content: {
             comm_id: this._id,
             target_name: this._target,
-            data: e != null ? e : {},
+            data: data !== null && data !== void 0 ? data : {}
           },
-          metadata: t,
-          buffers: r,
+          metadata,
+          buffers
         });
-        return this._kernel.sendShellMessage(i, !1, !0);
+        return this._kernel.sendShellMessage(msg, false, true);
       }
-      send(e, t, r = [], i = !0) {
-        if (this.isDisposed || this._kernel.isDisposed)
+      /**
+       * Send a `comm_msg` message to the kernel.
+       *
+       * #### Notes
+       * This is a no-op if the comm has been closed.
+       *
+       * **See also:** [[ICommMsg]]
+       */
+      send(data, metadata, buffers = [], disposeOnDone = true) {
+        if (this.isDisposed || this._kernel.isDisposed) {
           throw new Error("Cannot send");
-        let s = jn.createMessage({
+        }
+        const msg = KernelMessage2.createMessage({
           msgType: "comm_msg",
           channel: "shell",
           username: this._kernel.username,
           session: this._kernel.clientId,
-          content: { comm_id: this._id, data: e },
-          metadata: t,
-          buffers: r,
+          content: {
+            comm_id: this._id,
+            data
+          },
+          metadata,
+          buffers
         });
-        return this._kernel.sendShellMessage(s, !1, i);
+        return this._kernel.sendShellMessage(msg, false, disposeOnDone);
       }
-      close(e, t, r = []) {
-        if (this.isDisposed || this._kernel.isDisposed)
+      /**
+       * Close the comm.
+       *
+       * #### Notes
+       * This will send a `comm_close` message to the kernel, and call the
+       * `onClose` callback if set.
+       *
+       * This is a no-op if the comm is already closed.
+       *
+       * **See also:** [[ICommClose]], [[onClose]]
+       */
+      close(data, metadata, buffers = []) {
+        if (this.isDisposed || this._kernel.isDisposed) {
           throw new Error("Cannot close");
-        let i = jn.createMessage({
-            msgType: "comm_close",
-            channel: "shell",
-            username: this._kernel.username,
-            session: this._kernel.clientId,
-            content: { comm_id: this._id, data: e != null ? e : {} },
-            metadata: t,
-            buffers: r,
-          }),
-          s = this._kernel.sendShellMessage(i, !1, !0),
-          o = this._onClose;
-        if (o) {
-          let a = jn.createMessage({
+        }
+        const msg = KernelMessage2.createMessage({
+          msgType: "comm_close",
+          channel: "shell",
+          username: this._kernel.username,
+          session: this._kernel.clientId,
+          content: {
+            comm_id: this._id,
+            data: data !== null && data !== void 0 ? data : {}
+          },
+          metadata,
+          buffers
+        });
+        const future = this._kernel.sendShellMessage(msg, false, true);
+        const onClose = this._onClose;
+        if (onClose) {
+          const ioMsg = KernelMessage2.createMessage({
             msgType: "comm_close",
             channel: "iopub",
             username: this._kernel.username,
             session: this._kernel.clientId,
-            content: { comm_id: this._id, data: e != null ? e : {} },
-            metadata: t,
-            buffers: r,
+            content: {
+              comm_id: this._id,
+              data: data !== null && data !== void 0 ? data : {}
+            },
+            metadata,
+            buffers
           });
-          o(a);
+          void onClose(ioMsg);
         }
-        return this.dispose(), s;
+        this.dispose();
+        return future;
       }
     };
-  He.CommHandler = si;
+    exports2.CommHandler = CommHandler;
+  }
 });
-var xo = k((Ce) => {
-  "use strict";
-  h();
-  var nc =
-      (Ce && Ce.__createBinding) ||
-      (Object.create
-        ? function (n, e, t, r) {
-            r === void 0 && (r = t),
-              Object.defineProperty(n, r, {
-                enumerable: !0,
-                get: function () {
-                  return e[t];
-                },
-              });
-          }
-        : function (n, e, t, r) {
-            r === void 0 && (r = t), (n[r] = e[t]);
-          }),
-    rc =
-      (Ce && Ce.__setModuleDefault) ||
-      (Object.create
-        ? function (n, e) {
-            Object.defineProperty(n, "default", { enumerable: !0, value: e });
-          }
-        : function (n, e) {
-            n.default = e;
-          }),
-    ic =
-      (Ce && Ce.__importStar) ||
-      function (n) {
-        if (n && n.__esModule) return n;
-        var e = {};
-        if (n != null)
-          for (var t in n)
-            t !== "default" &&
-              Object.prototype.hasOwnProperty.call(n, t) &&
-              nc(e, n, t);
-        return rc(e, n), e;
-      };
-  Object.defineProperty(Ce, "__esModule", { value: !0 });
-  Ce.KernelShellFutureHandler =
-    Ce.KernelControlFutureHandler =
-    Ce.KernelFutureHandler =
-      void 0;
-  var ko = Ne(),
-    sc = ii(),
-    oc = ic(Xt()),
-    en = class extends sc.DisposableDelegate {
-      constructor(e, t, r, i, s) {
-        super(e),
-          (this._status = 0),
-          (this._stdin = de.noOp),
-          (this._iopub = de.noOp),
-          (this._reply = de.noOp),
-          (this._done = new ko.PromiseDelegate()),
-          (this._hooks = new de.HookList()),
-          (this._disposeOnDone = !0),
-          (this._msg = t),
-          r || this._setFlag(de.KernelFutureFlag.GotReply),
-          (this._disposeOnDone = i),
-          (this._kernel = s);
+
+// node_modules/@jupyterlab/services/lib/kernel/future.js
+var require_future = __commonJS({
+  "node_modules/@jupyterlab/services/lib/kernel/future.js"(exports2) {
+    "use strict";
+    init_process_development();
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      Object.defineProperty(o, k2, { enumerable: true, get: function() {
+        return m[k];
+      } });
+    } : function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      o[k2] = m[k];
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || function(mod) {
+      if (mod && mod.__esModule)
+        return mod;
+      var result = {};
+      if (mod != null) {
+        for (var k in mod)
+          if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+            __createBinding(result, mod, k);
       }
+      __setModuleDefault(result, mod);
+      return result;
+    };
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.KernelShellFutureHandler = exports2.KernelControlFutureHandler = exports2.KernelFutureHandler = void 0;
+    var coreutils_12 = require_dist4();
+    var disposable_1 = require_dist6();
+    var KernelMessage2 = __importStar(require_messages());
+    var KernelFutureHandler = class extends disposable_1.DisposableDelegate {
+      /**
+       * Construct a new KernelFutureHandler.
+       */
+      constructor(cb, msg, expectReply, disposeOnDone, kernel) {
+        super(cb);
+        this._status = 0;
+        this._stdin = Private.noOp;
+        this._iopub = Private.noOp;
+        this._reply = Private.noOp;
+        this._done = new coreutils_12.PromiseDelegate();
+        this._hooks = new Private.HookList();
+        this._disposeOnDone = true;
+        this._msg = msg;
+        if (!expectReply) {
+          this._setFlag(Private.KernelFutureFlag.GotReply);
+        }
+        this._disposeOnDone = disposeOnDone;
+        this._kernel = kernel;
+      }
+      /**
+       * Get the original outgoing message.
+       */
       get msg() {
         return this._msg;
       }
+      /**
+       * A promise that resolves when the future is done.
+       */
       get done() {
         return this._done.promise;
       }
+      /**
+       * Get the reply handler.
+       */
       get onReply() {
         return this._reply;
       }
-      set onReply(e) {
-        this._reply = e;
+      /**
+       * Set the reply handler.
+       */
+      set onReply(cb) {
+        this._reply = cb;
       }
+      /**
+       * Get the iopub handler.
+       */
       get onIOPub() {
         return this._iopub;
       }
-      set onIOPub(e) {
-        this._iopub = e;
+      /**
+       * Set the iopub handler.
+       */
+      set onIOPub(cb) {
+        this._iopub = cb;
       }
+      /**
+       * Get the stdin handler.
+       */
       get onStdin() {
         return this._stdin;
       }
-      set onStdin(e) {
-        this._stdin = e;
+      /**
+       * Set the stdin handler.
+       */
+      set onStdin(cb) {
+        this._stdin = cb;
       }
-      registerMessageHook(e) {
-        if (this.isDisposed) throw new Error("Kernel future is disposed");
-        this._hooks.add(e);
+      /**
+       * Register hook for IOPub messages.
+       *
+       * @param hook - The callback invoked for an IOPub message.
+       *
+       * #### Notes
+       * The IOPub hook system allows you to preempt the handlers for IOPub
+       * messages handled by the future.
+       *
+       * The most recently registered hook is run first. A hook can return a
+       * boolean or a promise to a boolean, in which case all kernel message
+       * processing pauses until the promise is fulfilled. If a hook return value
+       * resolves to false, any later hooks will not run and the function will
+       * return a promise resolving to false. If a hook throws an error, the error
+       * is logged to the console and the next hook is run. If a hook is
+       * registered during the hook processing, it will not run until the next
+       * message. If a hook is removed during the hook processing, it will be
+       * deactivated immediately.
+       */
+      registerMessageHook(hook) {
+        if (this.isDisposed) {
+          throw new Error("Kernel future is disposed");
+        }
+        this._hooks.add(hook);
       }
-      removeMessageHook(e) {
-        this.isDisposed || this._hooks.remove(e);
+      /**
+       * Remove a hook for IOPub messages.
+       *
+       * @param hook - The hook to remove.
+       *
+       * #### Notes
+       * If a hook is removed during the hook processing, it will be deactivated immediately.
+       */
+      removeMessageHook(hook) {
+        if (this.isDisposed) {
+          return;
+        }
+        this._hooks.remove(hook);
       }
-      sendInputReply(e) {
-        this._kernel.sendInputReply(e);
+      /**
+       * Send an `input_reply` message.
+       */
+      sendInputReply(content) {
+        this._kernel.sendInputReply(content);
       }
+      /**
+       * Dispose and unregister the future.
+       */
       dispose() {
-        (this._stdin = de.noOp),
-          (this._iopub = de.noOp),
-          (this._reply = de.noOp),
-          (this._hooks = null),
-          this._testFlag(de.KernelFutureFlag.IsDone) ||
-            (this._done.promise.catch(() => {}),
-            this._done.reject(
-              new Error(
-                `Canceled future for ${this.msg.header.msg_type} message before replies were done`
-              )
-            )),
-          super.dispose();
+        this._stdin = Private.noOp;
+        this._iopub = Private.noOp;
+        this._reply = Private.noOp;
+        this._hooks = null;
+        if (!this._testFlag(Private.KernelFutureFlag.IsDone)) {
+          this._done.promise.catch(() => {
+          });
+          this._done.reject(new Error(`Canceled future for ${this.msg.header.msg_type} message before replies were done`));
+        }
+        super.dispose();
       }
-      async handleMsg(e) {
-        switch (e.channel) {
+      /**
+       * Handle an incoming kernel message.
+       */
+      async handleMsg(msg) {
+        switch (msg.channel) {
           case "control":
           case "shell":
-            e.channel === this.msg.channel &&
-              e.parent_header.msg_id === this.msg.header.msg_id &&
-              (await this._handleReply(e));
+            if (msg.channel === this.msg.channel && msg.parent_header.msg_id === this.msg.header.msg_id) {
+              await this._handleReply(msg);
+            }
             break;
           case "stdin":
-            await this._handleStdin(e);
+            await this._handleStdin(msg);
             break;
           case "iopub":
-            await this._handleIOPub(e);
+            await this._handleIOPub(msg);
             break;
           default:
             break;
         }
       }
-      async _handleReply(e) {
-        let t = this._reply;
-        t && (await t(e)),
-          (this._replyMsg = e),
-          this._setFlag(de.KernelFutureFlag.GotReply),
-          this._testFlag(de.KernelFutureFlag.GotIdle) && this._handleDone();
+      async _handleReply(msg) {
+        const reply = this._reply;
+        if (reply) {
+          await reply(msg);
+        }
+        this._replyMsg = msg;
+        this._setFlag(Private.KernelFutureFlag.GotReply);
+        if (this._testFlag(Private.KernelFutureFlag.GotIdle)) {
+          this._handleDone();
+        }
       }
-      async _handleStdin(e) {
-        let t = this._stdin;
-        t && (await t(e));
+      async _handleStdin(msg) {
+        const stdin = this._stdin;
+        if (stdin) {
+          await stdin(msg);
+        }
       }
-      async _handleIOPub(e) {
-        let t = await this._hooks.process(e),
-          r = this._iopub;
-        t && r && (await r(e)),
-          oc.isStatusMsg(e) &&
-            e.content.execution_state === "idle" &&
-            (this._setFlag(de.KernelFutureFlag.GotIdle),
-            this._testFlag(de.KernelFutureFlag.GotReply) && this._handleDone());
+      async _handleIOPub(msg) {
+        const process2 = await this._hooks.process(msg);
+        const iopub = this._iopub;
+        if (process2 && iopub) {
+          await iopub(msg);
+        }
+        if (KernelMessage2.isStatusMsg(msg) && msg.content.execution_state === "idle") {
+          this._setFlag(Private.KernelFutureFlag.GotIdle);
+          if (this._testFlag(Private.KernelFutureFlag.GotReply)) {
+            this._handleDone();
+          }
+        }
       }
       _handleDone() {
-        this._testFlag(de.KernelFutureFlag.IsDone) ||
-          (this._setFlag(de.KernelFutureFlag.IsDone),
-          this._done.resolve(this._replyMsg),
-          this._disposeOnDone && this.dispose());
+        if (this._testFlag(Private.KernelFutureFlag.IsDone)) {
+          return;
+        }
+        this._setFlag(Private.KernelFutureFlag.IsDone);
+        this._done.resolve(this._replyMsg);
+        if (this._disposeOnDone) {
+          this.dispose();
+        }
       }
-      _testFlag(e) {
-        return (this._status & e) !== 0;
+      /**
+       * Test whether the given future flag is set.
+       */
+      _testFlag(flag) {
+        return (this._status & flag) !== 0;
       }
-      _setFlag(e) {
-        this._status |= e;
+      /**
+       * Set the given future flag.
+       */
+      _setFlag(flag) {
+        this._status |= flag;
       }
     };
-  Ce.KernelFutureHandler = en;
-  var oi = class extends en {};
-  Ce.KernelControlFutureHandler = oi;
-  var ai = class extends en {};
-  Ce.KernelShellFutureHandler = ai;
-  var de;
-  (function (n) {
-    n.noOp = () => {};
-    let e = (() =>
-      typeof requestAnimationFrame == "function"
-        ? requestAnimationFrame
-        : setImmediate)();
-    class t {
-      constructor() {
-        this._hooks = [];
-      }
-      add(s) {
-        this.remove(s), this._hooks.push(s);
-      }
-      remove(s) {
-        let o = this._hooks.indexOf(s);
-        o >= 0 && ((this._hooks[o] = null), this._scheduleCompact());
-      }
-      async process(s) {
-        await this._processing;
-        let o = new ko.PromiseDelegate();
-        this._processing = o.promise;
-        let a;
-        for (let l = this._hooks.length - 1; l >= 0; l--) {
-          let u = this._hooks[l];
-          if (u !== null) {
-            try {
-              a = await u(s);
-            } catch (f) {
-              (a = !0), console.error(f);
-            }
-            if (a === !1) return o.resolve(void 0), !1;
-          }
-        }
-        return o.resolve(void 0), !0;
-      }
-      _scheduleCompact() {
-        this._compactScheduled ||
-          ((this._compactScheduled = !0),
-          e(() => {
-            this._processing = this._processing.then(() => {
-              (this._compactScheduled = !1), this._compact();
-            });
-          }));
-      }
-      _compact() {
-        let s = 0;
-        for (let o = 0, a = this._hooks.length; o < a; o++) {
-          let l = this._hooks[o];
-          this._hooks[o] === null ? s++ : (this._hooks[o - s] = l);
-        }
-        this._hooks.length -= s;
-      }
-    }
-    n.HookList = t;
-    let r;
-    (function (i) {
-      (i[(i.GotReply = 1)] = "GotReply"),
-        (i[(i.GotIdle = 2)] = "GotIdle"),
-        (i[(i.IsDone = 4)] = "IsDone"),
-        (i[(i.DisposeOnDone = 8)] = "DisposeOnDone");
-    })((r = n.KernelFutureFlag || (n.KernelFutureFlag = {})));
-  })(de || (de = {}));
-});
-var jo = k((Pt) => {
-  "use strict";
-  h();
-  Object.defineProperty(Pt, "__esModule", { value: !0 });
-  Pt.serialize = Pt.deserialize = void 0;
-  function ac(n) {
-    let e;
-    return typeof n == "string" ? (e = JSON.parse(n)) : (e = uc(n)), e;
-  }
-  Pt.deserialize = ac;
-  function lc(n) {
-    var e;
-    let t;
-    return (
-      !((e = n.buffers) === null || e === void 0) && e.length
-        ? (t = cc(n))
-        : (t = JSON.stringify(n)),
-      t
-    );
-  }
-  Pt.serialize = lc;
-  function uc(n) {
-    let e = new DataView(n),
-      t = e.getUint32(0),
-      r = [];
-    if (t < 2) throw new Error("Invalid incoming Kernel Message");
-    for (let o = 1; o <= t; o++) r.push(e.getUint32(o * 4));
-    let i = new Uint8Array(n.slice(r[0], r[1])),
-      s = JSON.parse(new TextDecoder("utf8").decode(i));
-    s.buffers = [];
-    for (let o = 1; o < t; o++) {
-      let a = r[o],
-        l = r[o + 1] || n.byteLength;
-      s.buffers.push(new DataView(n.slice(a, l)));
-    }
-    return s;
-  }
-  function cc(n) {
-    let e = [],
-      t = [],
-      r = new TextEncoder(),
-      i = [];
-    n.buffers !== void 0 && ((i = n.buffers), delete n.buffers);
-    let s = r.encode(JSON.stringify(n));
-    t.push(s.buffer);
-    for (let u = 0; u < i.length; u++) {
-      let f = i[u];
-      t.push(ArrayBuffer.isView(f) ? f.buffer : f);
-    }
-    let o = t.length;
-    e.push(4 * (o + 1));
-    for (let u = 0; u + 1 < t.length; u++)
-      e.push(e[e.length - 1] + t[u].byteLength);
-    let a = new Uint8Array(e[e.length - 1] + t[t.length - 1].byteLength),
-      l = new DataView(a.buffer);
-    l.setUint32(0, o);
-    for (let u = 0; u < e.length; u++) l.setUint32(4 * (u + 1), e[u]);
-    for (let u = 0; u < t.length; u++) a.set(new Uint8Array(t[u]), e[u]);
-    return a.buffer;
-  }
-});
-var Uo = k((Fo) => {
-  "use strict";
-  h();
-  Object.defineProperty(Fo, "__esModule", { value: !0 });
-});
-var Ko = k((Mt) => {
-  "use strict";
-  h();
-  Object.defineProperty(Mt, "__esModule", { value: !0 });
-  Mt.validateSpecModels = Mt.validateSpecModel = void 0;
-  var mt = Yt();
-  function Wo(n) {
-    let e = n.spec;
-    if (!e) throw new Error("Invalid kernel spec");
-    mt.validateProperty(n, "name", "string"),
-      mt.validateProperty(n, "resources", "object"),
-      mt.validateProperty(e, "language", "string"),
-      mt.validateProperty(e, "display_name", "string"),
-      mt.validateProperty(e, "argv", "array");
-    let t = null;
-    e.hasOwnProperty("metadata") &&
-      (mt.validateProperty(e, "metadata", "object"), (t = e.metadata));
-    let r = null;
-    return (
-      e.hasOwnProperty("env") &&
-        (mt.validateProperty(e, "env", "object"), (r = e.env)),
-      {
-        name: n.name,
-        resources: n.resources,
-        language: e.language,
-        display_name: e.display_name,
-        argv: e.argv,
-        metadata: t,
-        env: r,
-      }
-    );
-  }
-  Mt.validateSpecModel = Wo;
-  function dc(n) {
-    if (!n.hasOwnProperty("kernelspecs"))
-      throw new Error("No kernelspecs found");
-    let e = Object.keys(n.kernelspecs),
-      t = Object.create(null),
-      r = n.default;
-    for (let i = 0; i < e.length; i++) {
-      let s = n.kernelspecs[e[i]];
-      try {
-        t[e[i]] = Wo(s);
-      } catch (o) {
-        console.warn(`Removing errant kernel spec: ${e[i]}`);
-      }
-    }
-    if (((e = Object.keys(t)), !e.length))
-      throw new Error("No valid kernelspecs found");
-    return (
-      (!r || typeof r != "string" || !(r in t)) &&
-        ((r = e[0]), console.warn(`Default kernel not found, using '${e[0]}'`)),
-      { default: r, kernelspecs: t }
-    );
-  }
-  Mt.validateSpecModels = dc;
-});
-var ui = k((Fn) => {
-  "use strict";
-  h();
-  Object.defineProperty(Fn, "__esModule", { value: !0 });
-  Fn.getSpecs = void 0;
-  var li = De(),
-    hc = Ko(),
-    fc = Ie(),
-    pc = "api/kernelspecs";
-  async function gc(n = li.ServerConnection.makeSettings()) {
-    let e = fc.URLExt.join(n.baseUrl, pc),
-      t = await li.ServerConnection.makeRequest(e, {}, n);
-    if (t.status !== 200)
-      throw await li.ServerConnection.ResponseError.create(t);
-    let r = await t.json();
-    return hc.validateSpecModels(r);
-  }
-  Fn.getSpecs = gc;
-});
-var Vo = k(($e) => {
-  "use strict";
-  h();
-  var _c =
-      ($e && $e.__createBinding) ||
-      (Object.create
-        ? function (n, e, t, r) {
-            r === void 0 && (r = t),
-              Object.defineProperty(n, r, {
-                enumerable: !0,
-                get: function () {
-                  return e[t];
-                },
-              });
-          }
-        : function (n, e, t, r) {
-            r === void 0 && (r = t), (n[r] = e[t]);
-          }),
-    mc =
-      ($e && $e.__setModuleDefault) ||
-      (Object.create
-        ? function (n, e) {
-            Object.defineProperty(n, "default", { enumerable: !0, value: e });
-          }
-        : function (n, e) {
-            n.default = e;
-          }),
-    vc =
-      ($e && $e.__importStar) ||
-      function (n) {
-        if (n && n.__esModule) return n;
-        var e = {};
-        if (n != null)
-          for (var t in n)
-            t !== "default" &&
-              Object.prototype.hasOwnProperty.call(n, t) &&
-              _c(e, n, t);
-        return mc(e, n), e;
+    exports2.KernelFutureHandler = KernelFutureHandler;
+    var KernelControlFutureHandler = class extends KernelFutureHandler {
+    };
+    exports2.KernelControlFutureHandler = KernelControlFutureHandler;
+    var KernelShellFutureHandler = class extends KernelFutureHandler {
+    };
+    exports2.KernelShellFutureHandler = KernelShellFutureHandler;
+    var Private;
+    (function(Private2) {
+      Private2.noOp = () => {
       };
-  Object.defineProperty($e, "__esModule", { value: !0 });
-  $e.KernelSpecManager = void 0;
-  var yc = Ne(),
-    Ec = Qt(),
-    qo = ce(),
-    bc = vc(ui()),
-    Sc = Zt(),
-    ci = class extends Sc.BaseManager {
-      constructor(e = {}) {
-        var t;
-        super(e),
-          (this._isReady = !1),
-          (this._connectionFailure = new qo.Signal(this)),
-          (this._specs = null),
-          (this._specsChanged = new qo.Signal(this)),
-          (this._ready = Promise.all([this.requestSpecs()])
-            .then((r) => {})
-            .catch((r) => {})
-            .then(() => {
-              this.isDisposed || (this._isReady = !0);
-            })),
-          (this._pollSpecs = new Ec.Poll({
-            auto: !1,
-            factory: () => this.requestSpecs(),
-            frequency: { interval: 61 * 1e3, backoff: !0, max: 300 * 1e3 },
-            name: "@jupyterlab/services:KernelSpecManager#specs",
-            standby:
-              (t = e.standby) !== null && t !== void 0 ? t : "when-hidden",
-          })),
-          this.ready.then(() => {
-            this._pollSpecs.start();
-          });
+      const defer = (() => {
+        const ok = typeof requestAnimationFrame === "function";
+        return ok ? requestAnimationFrame : setImmediate;
+      })();
+      class HookList {
+        constructor() {
+          this._hooks = [];
+        }
+        /**
+         * Register a hook.
+         *
+         * @param hook - The callback to register.
+         */
+        add(hook) {
+          this.remove(hook);
+          this._hooks.push(hook);
+        }
+        /**
+         * Remove a hook, if it exists in the hook list.
+         *
+         * @param hook - The callback to remove.
+         */
+        remove(hook) {
+          const index = this._hooks.indexOf(hook);
+          if (index >= 0) {
+            this._hooks[index] = null;
+            this._scheduleCompact();
+          }
+        }
+        /**
+         * Process a message through the hooks.
+         *
+         * @returns a promise resolving to false if any hook resolved as false,
+         * otherwise true
+         *
+         * #### Notes
+         * The most recently registered hook is run first. A hook can return a
+         * boolean or a promise to a boolean, in which case processing pauses until
+         * the promise is fulfilled. If a hook return value resolves to false, any
+         * later hooks will not run and the function will return a promise resolving
+         * to false. If a hook throws an error, the error is logged to the console
+         * and the next hook is run. If a hook is registered during the hook
+         * processing, it will not run until the next message. If a hook is removed
+         * during the hook processing, it will be deactivated immediately.
+         */
+        async process(msg) {
+          await this._processing;
+          const processing = new coreutils_12.PromiseDelegate();
+          this._processing = processing.promise;
+          let continueHandling;
+          for (let i = this._hooks.length - 1; i >= 0; i--) {
+            const hook = this._hooks[i];
+            if (hook === null) {
+              continue;
+            }
+            try {
+              continueHandling = await hook(msg);
+            } catch (err) {
+              continueHandling = true;
+              console.error(err);
+            }
+            if (continueHandling === false) {
+              processing.resolve(void 0);
+              return false;
+            }
+          }
+          processing.resolve(void 0);
+          return true;
+        }
+        /**
+         * Schedule a cleanup of the list, removing any hooks that have been nulled out.
+         */
+        _scheduleCompact() {
+          if (!this._compactScheduled) {
+            this._compactScheduled = true;
+            defer(() => {
+              this._processing = this._processing.then(() => {
+                this._compactScheduled = false;
+                this._compact();
+              });
+            });
+          }
+        }
+        /**
+         * Compact the list, removing any nulls.
+         */
+        _compact() {
+          let numNulls = 0;
+          for (let i = 0, len = this._hooks.length; i < len; i++) {
+            const hook = this._hooks[i];
+            if (this._hooks[i] === null) {
+              numNulls++;
+            } else {
+              this._hooks[i - numNulls] = hook;
+            }
+          }
+          this._hooks.length -= numNulls;
+        }
       }
+      Private2.HookList = HookList;
+      let KernelFutureFlag;
+      (function(KernelFutureFlag2) {
+        KernelFutureFlag2[KernelFutureFlag2["GotReply"] = 1] = "GotReply";
+        KernelFutureFlag2[KernelFutureFlag2["GotIdle"] = 2] = "GotIdle";
+        KernelFutureFlag2[KernelFutureFlag2["IsDone"] = 4] = "IsDone";
+        KernelFutureFlag2[KernelFutureFlag2["DisposeOnDone"] = 8] = "DisposeOnDone";
+      })(KernelFutureFlag = Private2.KernelFutureFlag || (Private2.KernelFutureFlag = {}));
+    })(Private || (Private = {}));
+  }
+});
+
+// node_modules/@jupyterlab/services/lib/kernel/serialize.js
+var require_serialize = __commonJS({
+  "node_modules/@jupyterlab/services/lib/kernel/serialize.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.serialize = exports2.deserialize = void 0;
+    function deserialize(data) {
+      let value;
+      if (typeof data === "string") {
+        value = JSON.parse(data);
+      } else {
+        value = deserializeBinary(data);
+      }
+      return value;
+    }
+    exports2.deserialize = deserialize;
+    function serialize(msg) {
+      var _a;
+      let value;
+      if ((_a = msg.buffers) === null || _a === void 0 ? void 0 : _a.length) {
+        value = serializeBinary(msg);
+      } else {
+        value = JSON.stringify(msg);
+      }
+      return value;
+    }
+    exports2.serialize = serialize;
+    function deserializeBinary(buf) {
+      const data = new DataView(buf);
+      const nbufs = data.getUint32(0);
+      const offsets = [];
+      if (nbufs < 2) {
+        throw new Error("Invalid incoming Kernel Message");
+      }
+      for (let i = 1; i <= nbufs; i++) {
+        offsets.push(data.getUint32(i * 4));
+      }
+      const jsonBytes = new Uint8Array(buf.slice(offsets[0], offsets[1]));
+      const msg = JSON.parse(new TextDecoder("utf8").decode(jsonBytes));
+      msg.buffers = [];
+      for (let i = 1; i < nbufs; i++) {
+        const start = offsets[i];
+        const stop = offsets[i + 1] || buf.byteLength;
+        msg.buffers.push(new DataView(buf.slice(start, stop)));
+      }
+      return msg;
+    }
+    function serializeBinary(msg) {
+      const offsets = [];
+      const buffers = [];
+      const encoder = new TextEncoder();
+      let origBuffers = [];
+      if (msg.buffers !== void 0) {
+        origBuffers = msg.buffers;
+        delete msg["buffers"];
+      }
+      const jsonUtf8 = encoder.encode(JSON.stringify(msg));
+      buffers.push(jsonUtf8.buffer);
+      for (let i = 0; i < origBuffers.length; i++) {
+        const b = origBuffers[i];
+        buffers.push(ArrayBuffer.isView(b) ? b.buffer : b);
+      }
+      const nbufs = buffers.length;
+      offsets.push(4 * (nbufs + 1));
+      for (let i = 0; i + 1 < buffers.length; i++) {
+        offsets.push(offsets[offsets.length - 1] + buffers[i].byteLength);
+      }
+      const msgBuf = new Uint8Array(offsets[offsets.length - 1] + buffers[buffers.length - 1].byteLength);
+      const view = new DataView(msgBuf.buffer);
+      view.setUint32(0, nbufs);
+      for (let i = 0; i < offsets.length; i++) {
+        view.setUint32(4 * (i + 1), offsets[i]);
+      }
+      for (let i = 0; i < buffers.length; i++) {
+        msgBuf.set(new Uint8Array(buffers[i]), offsets[i]);
+      }
+      return msgBuf.buffer;
+    }
+  }
+});
+
+// node_modules/@jupyterlab/services/lib/kernelspec/kernelspec.js
+var require_kernelspec = __commonJS({
+  "node_modules/@jupyterlab/services/lib/kernelspec/kernelspec.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+  }
+});
+
+// node_modules/@jupyterlab/services/lib/kernelspec/validate.js
+var require_validate4 = __commonJS({
+  "node_modules/@jupyterlab/services/lib/kernelspec/validate.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.validateSpecModels = exports2.validateSpecModel = void 0;
+    var validate_1 = require_validate();
+    function validateSpecModel(data) {
+      const spec = data.spec;
+      if (!spec) {
+        throw new Error("Invalid kernel spec");
+      }
+      validate_1.validateProperty(data, "name", "string");
+      validate_1.validateProperty(data, "resources", "object");
+      validate_1.validateProperty(spec, "language", "string");
+      validate_1.validateProperty(spec, "display_name", "string");
+      validate_1.validateProperty(spec, "argv", "array");
+      let metadata = null;
+      if (spec.hasOwnProperty("metadata")) {
+        validate_1.validateProperty(spec, "metadata", "object");
+        metadata = spec.metadata;
+      }
+      let env = null;
+      if (spec.hasOwnProperty("env")) {
+        validate_1.validateProperty(spec, "env", "object");
+        env = spec.env;
+      }
+      return {
+        name: data.name,
+        resources: data.resources,
+        language: spec.language,
+        display_name: spec.display_name,
+        argv: spec.argv,
+        metadata,
+        env
+      };
+    }
+    exports2.validateSpecModel = validateSpecModel;
+    function validateSpecModels(data) {
+      if (!data.hasOwnProperty("kernelspecs")) {
+        throw new Error("No kernelspecs found");
+      }
+      let keys = Object.keys(data.kernelspecs);
+      const kernelspecs = /* @__PURE__ */ Object.create(null);
+      let defaultSpec = data.default;
+      for (let i = 0; i < keys.length; i++) {
+        const ks = data.kernelspecs[keys[i]];
+        try {
+          kernelspecs[keys[i]] = validateSpecModel(ks);
+        } catch (err) {
+          console.warn(`Removing errant kernel spec: ${keys[i]}`);
+        }
+      }
+      keys = Object.keys(kernelspecs);
+      if (!keys.length) {
+        throw new Error("No valid kernelspecs found");
+      }
+      if (!defaultSpec || typeof defaultSpec !== "string" || !(defaultSpec in kernelspecs)) {
+        defaultSpec = keys[0];
+        console.warn(`Default kernel not found, using '${keys[0]}'`);
+      }
+      return {
+        default: defaultSpec,
+        kernelspecs
+      };
+    }
+    exports2.validateSpecModels = validateSpecModels;
+  }
+});
+
+// node_modules/@jupyterlab/services/lib/kernelspec/restapi.js
+var require_restapi2 = __commonJS({
+  "node_modules/@jupyterlab/services/lib/kernelspec/restapi.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.getSpecs = void 0;
+    var serverconnection_1 = require_serverconnection();
+    var validate_1 = require_validate4();
+    var coreutils_12 = require_lib();
+    var KERNELSPEC_SERVICE_URL = "api/kernelspecs";
+    async function getSpecs(settings = serverconnection_1.ServerConnection.makeSettings()) {
+      const url = coreutils_12.URLExt.join(settings.baseUrl, KERNELSPEC_SERVICE_URL);
+      const response = await serverconnection_1.ServerConnection.makeRequest(url, {}, settings);
+      if (response.status !== 200) {
+        const err = await serverconnection_1.ServerConnection.ResponseError.create(response);
+        throw err;
+      }
+      const data = await response.json();
+      return validate_1.validateSpecModels(data);
+    }
+    exports2.getSpecs = getSpecs;
+  }
+});
+
+// node_modules/@jupyterlab/services/lib/kernelspec/manager.js
+var require_manager = __commonJS({
+  "node_modules/@jupyterlab/services/lib/kernelspec/manager.js"(exports2) {
+    "use strict";
+    init_process_development();
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      Object.defineProperty(o, k2, { enumerable: true, get: function() {
+        return m[k];
+      } });
+    } : function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      o[k2] = m[k];
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || function(mod) {
+      if (mod && mod.__esModule)
+        return mod;
+      var result = {};
+      if (mod != null) {
+        for (var k in mod)
+          if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+            __createBinding(result, mod, k);
+      }
+      __setModuleDefault(result, mod);
+      return result;
+    };
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.KernelSpecManager = void 0;
+    var coreutils_12 = require_dist4();
+    var polling_1 = require_dist5();
+    var signaling_1 = require_dist3();
+    var restapi = __importStar(require_restapi2());
+    var basemanager_1 = require_basemanager();
+    var KernelSpecManager = class extends basemanager_1.BaseManager {
+      /**
+       * Construct a new kernel spec manager.
+       *
+       * @param options - The default options for kernel.
+       */
+      constructor(options = {}) {
+        var _a;
+        super(options);
+        this._isReady = false;
+        this._connectionFailure = new signaling_1.Signal(this);
+        this._specs = null;
+        this._specsChanged = new signaling_1.Signal(this);
+        this._ready = Promise.all([this.requestSpecs()]).then((_) => void 0).catch((_) => void 0).then(() => {
+          if (this.isDisposed) {
+            return;
+          }
+          this._isReady = true;
+        });
+        this._pollSpecs = new polling_1.Poll({
+          auto: false,
+          factory: () => this.requestSpecs(),
+          frequency: {
+            interval: 61 * 1e3,
+            backoff: true,
+            max: 300 * 1e3
+          },
+          name: `@jupyterlab/services:KernelSpecManager#specs`,
+          standby: (_a = options.standby) !== null && _a !== void 0 ? _a : "when-hidden"
+        });
+        void this.ready.then(() => {
+          void this._pollSpecs.start();
+        });
+      }
+      /**
+       * Test whether the manager is ready.
+       */
       get isReady() {
         return this._isReady;
       }
+      /**
+       * A promise that fulfills when the manager is ready.
+       */
       get ready() {
         return this._ready;
       }
+      /**
+       * Get the most recently fetched kernel specs.
+       */
       get specs() {
         return this._specs;
       }
+      /**
+       * A signal emitted when the specs change.
+       */
       get specsChanged() {
         return this._specsChanged;
       }
+      /**
+       * A signal emitted when there is a connection failure.
+       */
       get connectionFailure() {
         return this._connectionFailure;
       }
+      /**
+       * Dispose of the resources used by the manager.
+       */
       dispose() {
-        this._pollSpecs.dispose(), super.dispose();
+        this._pollSpecs.dispose();
+        super.dispose();
       }
+      /**
+       * Force a refresh of the specs from the server.
+       *
+       * @returns A promise that resolves when the specs are fetched.
+       *
+       * #### Notes
+       * This is intended to be called only in response to a user action,
+       * since the manager maintains its internal state.
+       */
       async refreshSpecs() {
-        await this._pollSpecs.refresh(), await this._pollSpecs.tick;
+        await this._pollSpecs.refresh();
+        await this._pollSpecs.tick;
       }
+      /**
+       * Execute a request to the server to poll specs and update state.
+       */
       async requestSpecs() {
-        let e = await bc.getSpecs(this.serverSettings);
-        this.isDisposed ||
-          yc.JSONExt.deepEqual(e, this._specs) ||
-          ((this._specs = e), this._specsChanged.emit(e));
+        const specs = await restapi.getSpecs(this.serverSettings);
+        if (this.isDisposed) {
+          return;
+        }
+        if (!coreutils_12.JSONExt.deepEqual(specs, this._specs)) {
+          this._specs = specs;
+          this._specsChanged.emit(specs);
+        }
       }
     };
-  $e.KernelSpecManager = ci;
+    exports2.KernelSpecManager = KernelSpecManager;
+  }
 });
-var Un = k((me) => {
-  "use strict";
-  h();
-  var Bo =
-      (me && me.__createBinding) ||
-      (Object.create
-        ? function (n, e, t, r) {
-            r === void 0 && (r = t),
-              Object.defineProperty(n, r, {
-                enumerable: !0,
-                get: function () {
-                  return e[t];
-                },
-              });
-          }
-        : function (n, e, t, r) {
-            r === void 0 && (r = t), (n[r] = e[t]);
-          }),
-    wc =
-      (me && me.__setModuleDefault) ||
-      (Object.create
-        ? function (n, e) {
-            Object.defineProperty(n, "default", { enumerable: !0, value: e });
-          }
-        : function (n, e) {
-            n.default = e;
-          }),
-    Ho =
-      (me && me.__importStar) ||
-      function (n) {
-        if (n && n.__esModule) return n;
-        var e = {};
-        if (n != null)
-          for (var t in n)
-            t !== "default" &&
-              Object.prototype.hasOwnProperty.call(n, t) &&
-              Bo(e, n, t);
-        return wc(e, n), e;
-      },
-    Ic =
-      (me && me.__exportStar) ||
-      function (n, e) {
-        for (var t in n)
-          t !== "default" &&
-            !Object.prototype.hasOwnProperty.call(e, t) &&
-            Bo(e, n, t);
-      };
-  Object.defineProperty(me, "__esModule", { value: !0 });
-  me.KernelSpecAPI = me.KernelSpec = void 0;
-  var Cc = Ho(Uo());
-  me.KernelSpec = Cc;
-  var Rc = Ho(ui());
-  me.KernelSpecAPI = Rc;
-  Ic(Vo(), me);
+
+// node_modules/@jupyterlab/services/lib/kernelspec/index.js
+var require_kernelspec2 = __commonJS({
+  "node_modules/@jupyterlab/services/lib/kernelspec/index.js"(exports2) {
+    "use strict";
+    init_process_development();
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      Object.defineProperty(o, k2, { enumerable: true, get: function() {
+        return m[k];
+      } });
+    } : function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      o[k2] = m[k];
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || function(mod) {
+      if (mod && mod.__esModule)
+        return mod;
+      var result = {};
+      if (mod != null) {
+        for (var k in mod)
+          if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+            __createBinding(result, mod, k);
+      }
+      __setModuleDefault(result, mod);
+      return result;
+    };
+    var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
+      for (var p in m)
+        if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p))
+          __createBinding(exports3, m, p);
+    };
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.KernelSpecAPI = exports2.KernelSpec = void 0;
+    var KernelSpec = __importStar(require_kernelspec());
+    exports2.KernelSpec = KernelSpec;
+    var KernelSpecAPI = __importStar(require_restapi2());
+    exports2.KernelSpecAPI = KernelSpecAPI;
+    __exportStar(require_manager(), exports2);
+  }
 });
-var fi = k((Je) => {
-  "use strict";
-  h();
-  var Ac =
-      (Je && Je.__createBinding) ||
-      (Object.create
-        ? function (n, e, t, r) {
-            r === void 0 && (r = t),
-              Object.defineProperty(n, r, {
-                enumerable: !0,
-                get: function () {
-                  return e[t];
-                },
-              });
+
+// node_modules/@jupyterlab/services/lib/kernel/default.js
+var require_default = __commonJS({
+  "node_modules/@jupyterlab/services/lib/kernel/default.js"(exports2) {
+    "use strict";
+    init_process_development();
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      Object.defineProperty(o, k2, { enumerable: true, get: function() {
+        return m[k];
+      } });
+    } : function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      o[k2] = m[k];
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || function(mod) {
+      if (mod && mod.__esModule)
+        return mod;
+      var result = {};
+      if (mod != null) {
+        for (var k in mod)
+          if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+            __createBinding(result, mod, k);
+      }
+      __setModuleDefault(result, mod);
+      return result;
+    };
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.KernelConnection = void 0;
+    var coreutils_12 = require_lib();
+    var coreutils_2 = require_dist4();
+    var signaling_1 = require_dist3();
+    var __1 = require_lib3();
+    var comm_1 = require_comm();
+    var KernelMessage2 = __importStar(require_messages());
+    var future_1 = require_future();
+    var serialize = __importStar(require_serialize());
+    var validate = __importStar(require_validate3());
+    var kernelspec_1 = require_kernelspec2();
+    var restapi = __importStar(require_restapi());
+    var KERNEL_INFO_TIMEOUT = 3e3;
+    var RESTARTING_KERNEL_SESSION = "_RESTARTING_";
+    var STARTING_KERNEL_SESSION = "";
+    var KernelConnection2 = class _KernelConnection {
+      /**
+       * Construct a kernel object.
+       */
+      constructor(options) {
+        var _a, _b, _c, _d;
+        this._createSocket = () => {
+          this._errorIfDisposed();
+          this._clearSocket();
+          this._updateConnectionStatus("connecting");
+          const settings = this.serverSettings;
+          const partialUrl = coreutils_12.URLExt.join(settings.wsUrl, restapi.KERNEL_SERVICE_URL, encodeURIComponent(this._id));
+          const display = partialUrl.replace(/^((?:\w+:)?\/\/)(?:[^@\/]+@)/, "$1");
+          let url = coreutils_12.URLExt.join(partialUrl, "channels?session_id=" + encodeURIComponent(this._clientId));
+          const token = settings.token;
+          if (settings.appendToken && token !== "") {
+            url = url + `&token=${encodeURIComponent(token)}`;
           }
-        : function (n, e, t, r) {
-            r === void 0 && (r = t), (n[r] = e[t]);
-          }),
-    Dc =
-      (Je && Je.__setModuleDefault) ||
-      (Object.create
-        ? function (n, e) {
-            Object.defineProperty(n, "default", { enumerable: !0, value: e });
+          this._ws = new settings.WebSocket(url);
+          this._ws.binaryType = "arraybuffer";
+          this._ws.onmessage = this._onWSMessage;
+          this._ws.onopen = this._onWSOpen;
+          this._ws.onclose = this._onWSClose;
+          this._ws.onerror = this._onWSClose;
+        };
+        this._onWSOpen = (evt) => {
+          this._updateConnectionStatus("connected");
+        };
+        this._onWSMessage = (evt) => {
+          let msg;
+          try {
+            msg = serialize.deserialize(evt.data);
+            validate.validateMessage(msg);
+          } catch (error) {
+            error.message = `Kernel message validation error: ${error.message}`;
+            throw error;
           }
-        : function (n, e) {
-            n.default = e;
-          }),
-    Kn =
-      (Je && Je.__importStar) ||
-      function (n) {
-        if (n && n.__esModule) return n;
-        var e = {};
-        if (n != null)
-          for (var t in n)
-            t !== "default" &&
-              Object.prototype.hasOwnProperty.call(n, t) &&
-              Ac(e, n, t);
-        return Dc(e, n), e;
-      };
-  Object.defineProperty(Je, "__esModule", { value: !0 });
-  Je.KernelConnection = void 0;
-  var $o = Ie(),
-    it = Ne(),
-    vt = ce(),
-    Pc = Ve(),
-    Jo = Lo(),
-    Pe = Kn(Xt()),
-    Go = xo(),
-    di = Kn(jo()),
-    Mc = Kn(Tn()),
-    Tc = Un(),
-    Wn = Kn(Nn()),
-    Oc = 3e3,
-    Tt = "_RESTARTING_",
-    Nc = "",
-    hi = class n {
-      constructor(e) {
-        var t, r, i, s;
-        (this._createSocket = () => {
-          this._errorIfDisposed(),
-            this._clearSocket(),
-            this._updateConnectionStatus("connecting");
-          let o = this.serverSettings,
-            a = $o.URLExt.join(
-              o.wsUrl,
-              Wn.KERNEL_SERVICE_URL,
-              encodeURIComponent(this._id)
-            ),
-            l = a.replace(/^((?:\w+:)?\/\/)(?:[^@\/]+@)/, "$1"),
-            u = $o.URLExt.join(
-              a,
-              "channels?session_id=" + encodeURIComponent(this._clientId)
-            ),
-            f = o.token;
-          o.appendToken &&
-            f !== "" &&
-            (u = u + `&token=${encodeURIComponent(f)}`),
-            (this._ws = new o.WebSocket(u)),
-            (this._ws.binaryType = "arraybuffer"),
-            (this._ws.onmessage = this._onWSMessage),
-            (this._ws.onopen = this._onWSOpen),
-            (this._ws.onclose = this._onWSClose),
-            (this._ws.onerror = this._onWSClose);
-        }),
-          (this._onWSOpen = (o) => {
-            this._updateConnectionStatus("connected");
-          }),
-          (this._onWSMessage = (o) => {
-            let a;
-            try {
-              (a = di.deserialize(o.data)), Mc.validateMessage(a);
-            } catch (l) {
-              throw (
-                ((l.message = `Kernel message validation error: ${l.message}`),
-                l)
-              );
+          this._kernelSession = msg.header.session;
+          this._msgChain = this._msgChain.then(() => {
+            return this._handleMessage(msg);
+          }).catch((error) => {
+            if (error.message.startsWith("Canceled future for ")) {
+              console.error(error);
             }
-            (this._kernelSession = a.header.session),
-              (this._msgChain = this._msgChain
-                .then(() => this._handleMessage(a))
-                .catch((l) => {
-                  l.message.startsWith("Canceled future for ") &&
-                    console.error(l);
-                })),
-              this._anyMessage.emit({ msg: a, direction: "recv" });
-          }),
-          (this._onWSClose = (o) => {
-            this.isDisposed || this._reconnect();
-          }),
-          (this._id = ""),
-          (this._name = ""),
-          (this._status = "unknown"),
-          (this._connectionStatus = "connecting"),
-          (this._kernelSession = ""),
-          (this._isDisposed = !1),
-          (this._ws = null),
-          (this._username = ""),
-          (this._reconnectLimit = 7),
-          (this._reconnectAttempt = 0),
-          (this._reconnectTimeout = null),
-          (this._futures = new Map()),
-          (this._comms = new Map()),
-          (this._targetRegistry = Object.create(null)),
-          (this._info = new it.PromiseDelegate()),
-          (this._pendingMessages = []),
-          (this._statusChanged = new vt.Signal(this)),
-          (this._connectionStatusChanged = new vt.Signal(this)),
-          (this._disposed = new vt.Signal(this)),
-          (this._iopubMessage = new vt.Signal(this)),
-          (this._anyMessage = new vt.Signal(this)),
-          (this._unhandledMessage = new vt.Signal(this)),
-          (this._displayIdToParentIds = new Map()),
-          (this._msgIdToDisplayIds = new Map()),
-          (this._msgChain = Promise.resolve()),
-          (this._noOp = () => {}),
-          (this._name = e.model.name),
-          (this._id = e.model.id),
-          (this.serverSettings =
-            (t = e.serverSettings) !== null && t !== void 0
-              ? t
-              : Pc.ServerConnection.makeSettings()),
-          (this._clientId =
-            (r = e.clientId) !== null && r !== void 0 ? r : it.UUID.uuid4()),
-          (this._username = (i = e.username) !== null && i !== void 0 ? i : ""),
-          (this.handleComms =
-            (s = e.handleComms) !== null && s !== void 0 ? s : !0),
-          this._createSocket();
+          });
+          this._anyMessage.emit({ msg, direction: "recv" });
+        };
+        this._onWSClose = (evt) => {
+          if (!this.isDisposed) {
+            this._reconnect();
+          }
+        };
+        this._id = "";
+        this._name = "";
+        this._status = "unknown";
+        this._connectionStatus = "connecting";
+        this._kernelSession = "";
+        this._isDisposed = false;
+        this._ws = null;
+        this._username = "";
+        this._reconnectLimit = 7;
+        this._reconnectAttempt = 0;
+        this._reconnectTimeout = null;
+        this._futures = /* @__PURE__ */ new Map();
+        this._comms = /* @__PURE__ */ new Map();
+        this._targetRegistry = /* @__PURE__ */ Object.create(null);
+        this._info = new coreutils_2.PromiseDelegate();
+        this._pendingMessages = [];
+        this._statusChanged = new signaling_1.Signal(this);
+        this._connectionStatusChanged = new signaling_1.Signal(this);
+        this._disposed = new signaling_1.Signal(this);
+        this._iopubMessage = new signaling_1.Signal(this);
+        this._anyMessage = new signaling_1.Signal(this);
+        this._unhandledMessage = new signaling_1.Signal(this);
+        this._displayIdToParentIds = /* @__PURE__ */ new Map();
+        this._msgIdToDisplayIds = /* @__PURE__ */ new Map();
+        this._msgChain = Promise.resolve();
+        this._noOp = () => {
+        };
+        this._name = options.model.name;
+        this._id = options.model.id;
+        this.serverSettings = (_a = options.serverSettings) !== null && _a !== void 0 ? _a : __1.ServerConnection.makeSettings();
+        this._clientId = (_b = options.clientId) !== null && _b !== void 0 ? _b : coreutils_2.UUID.uuid4();
+        this._username = (_c = options.username) !== null && _c !== void 0 ? _c : "";
+        this.handleComms = (_d = options.handleComms) !== null && _d !== void 0 ? _d : true;
+        this._createSocket();
       }
       get disposed() {
         return this._disposed;
       }
+      /**
+       * A signal emitted when the kernel status changes.
+       */
       get statusChanged() {
         return this._statusChanged;
       }
+      /**
+       * A signal emitted when the kernel status changes.
+       */
       get connectionStatusChanged() {
         return this._connectionStatusChanged;
       }
+      /**
+       * A signal emitted for iopub kernel messages.
+       *
+       * #### Notes
+       * This signal is emitted after the iopub message is handled asynchronously.
+       */
       get iopubMessage() {
         return this._iopubMessage;
       }
+      /**
+       * A signal emitted for unhandled kernel message.
+       *
+       * #### Notes
+       * This signal is emitted for a message that was not handled. It is emitted
+       * during the asynchronous message handling code.
+       */
       get unhandledMessage() {
         return this._unhandledMessage;
       }
+      /**
+       * The kernel model
+       */
       get model() {
-        return { id: this.id, name: this.name };
+        return {
+          id: this.id,
+          name: this.name
+        };
       }
+      /**
+       * A signal emitted for any kernel message.
+       *
+       * #### Notes
+       * This signal is emitted when a message is received, before it is handled
+       * asynchronously.
+       *
+       * This message is emitted when a message is queued for sending (either in
+       * the websocket buffer, or our own pending message buffer). The message may
+       * actually be sent across the wire at a later time.
+       *
+       * The message emitted in this signal should not be modified in any way.
+       */
       get anyMessage() {
         return this._anyMessage;
       }
+      /**
+       * The id of the server-side kernel.
+       */
       get id() {
         return this._id;
       }
+      /**
+       * The name of the server-side kernel.
+       */
       get name() {
         return this._name;
       }
+      /**
+       * The client username.
+       */
       get username() {
         return this._username;
       }
+      /**
+       * The client unique id.
+       */
       get clientId() {
         return this._clientId;
       }
+      /**
+       * The current status of the kernel.
+       */
       get status() {
         return this._status;
       }
+      /**
+       * The current connection status of the kernel connection.
+       */
       get connectionStatus() {
         return this._connectionStatus;
       }
+      /**
+       * Test whether the kernel has been disposed.
+       */
       get isDisposed() {
         return this._isDisposed;
       }
+      /**
+       * The cached kernel info.
+       *
+       * @returns A promise that resolves to the kernel info.
+       */
       get info() {
         return this._info.promise;
       }
+      /**
+       * The kernel spec.
+       *
+       * @returns A promise that resolves to the kernel spec.
+       */
       get spec() {
-        return this._specPromise
-          ? this._specPromise
-          : ((this._specPromise = Tc.KernelSpecAPI.getSpecs(
-              this.serverSettings
-            ).then((e) => e.kernelspecs[this._name])),
-            this._specPromise);
+        if (this._specPromise) {
+          return this._specPromise;
+        }
+        this._specPromise = kernelspec_1.KernelSpecAPI.getSpecs(this.serverSettings).then((specs) => {
+          return specs.kernelspecs[this._name];
+        });
+        return this._specPromise;
       }
-      clone(e = {}) {
-        return new n(
-          Object.assign(
-            {
-              model: this.model,
-              username: this.username,
-              serverSettings: this.serverSettings,
-              handleComms: !1,
-            },
-            e
-          )
-        );
+      /**
+       * Clone the current kernel with a new clientId.
+       */
+      clone(options = {}) {
+        return new _KernelConnection(Object.assign({
+          model: this.model,
+          username: this.username,
+          serverSettings: this.serverSettings,
+          // handleComms defaults to false since that is safer
+          handleComms: false
+        }, options));
       }
+      /**
+       * Dispose of the resources held by the kernel.
+       */
       dispose() {
-        this.isDisposed ||
-          ((this._isDisposed = !0),
-          this._disposed.emit(),
-          this._updateConnectionStatus("disconnected"),
-          this._clearKernelState(),
-          (this._pendingMessages = []),
-          this._clearSocket(),
-          vt.Signal.clearData(this));
-      }
-      sendShellMessage(e, t = !1, r = !0) {
-        return this._sendKernelShellControl(
-          Go.KernelShellFutureHandler,
-          e,
-          t,
-          r
-        );
-      }
-      sendControlMessage(e, t = !1, r = !0) {
-        return this._sendKernelShellControl(
-          Go.KernelControlFutureHandler,
-          e,
-          t,
-          r
-        );
-      }
-      _sendKernelShellControl(e, t, r = !1, i = !0) {
-        this._sendMessage(t),
-          this._anyMessage.emit({ msg: t, direction: "send" });
-        let s = new e(
-          () => {
-            let o = t.header.msg_id;
-            this._futures.delete(o);
-            let a = this._msgIdToDisplayIds.get(o);
-            a &&
-              (a.forEach((l) => {
-                let u = this._displayIdToParentIds.get(l);
-                if (u) {
-                  let f = u.indexOf(o);
-                  if (f === -1) return;
-                  u.length === 1
-                    ? this._displayIdToParentIds.delete(l)
-                    : (u.splice(f, 1), this._displayIdToParentIds.set(l, u));
-                }
-              }),
-              this._msgIdToDisplayIds.delete(o));
-          },
-          t,
-          r,
-          i,
-          this
-        );
-        return this._futures.set(t.header.msg_id, s), s;
-      }
-      _sendMessage(e, t = !0) {
-        if (this.status === "dead") throw new Error("Kernel is dead");
-        if (
-          (this._kernelSession === Nc || this._kernelSession === Tt) &&
-          Pe.isInfoRequestMsg(e)
-        )
-          if (this.connectionStatus === "connected") {
-            this._ws.send(di.serialize(e));
-            return;
-          } else
-            throw new Error("Could not send message: status is not connected");
-        if (t && this._pendingMessages.length > 0) {
-          this._pendingMessages.push(e);
+        if (this.isDisposed) {
           return;
         }
-        if (this.connectionStatus === "connected" && this._kernelSession !== Tt)
-          this._ws.send(di.serialize(e));
-        else if (t) this._pendingMessages.push(e);
-        else throw new Error("Could not send message");
+        this._isDisposed = true;
+        this._disposed.emit();
+        this._updateConnectionStatus("disconnected");
+        this._clearKernelState();
+        this._pendingMessages = [];
+        this._clearSocket();
+        signaling_1.Signal.clearData(this);
       }
+      /**
+       * Send a shell message to the kernel.
+       *
+       * #### Notes
+       * Send a message to the kernel's shell channel, yielding a future object
+       * for accepting replies.
+       *
+       * If `expectReply` is given and `true`, the future is disposed when both a
+       * shell reply and an idle status message are received. If `expectReply`
+       * is not given or is `false`, the future is resolved when an idle status
+       * message is received.
+       * If `disposeOnDone` is not given or is `true`, the Future is disposed at this point.
+       * If `disposeOnDone` is given and `false`, it is up to the caller to dispose of the Future.
+       *
+       * All replies are validated as valid kernel messages.
+       *
+       * If the kernel status is `dead`, this will throw an error.
+       */
+      sendShellMessage(msg, expectReply = false, disposeOnDone = true) {
+        return this._sendKernelShellControl(future_1.KernelShellFutureHandler, msg, expectReply, disposeOnDone);
+      }
+      /**
+       * Send a control message to the kernel.
+       *
+       * #### Notes
+       * Send a message to the kernel's control channel, yielding a future object
+       * for accepting replies.
+       *
+       * If `expectReply` is given and `true`, the future is disposed when both a
+       * control reply and an idle status message are received. If `expectReply`
+       * is not given or is `false`, the future is resolved when an idle status
+       * message is received.
+       * If `disposeOnDone` is not given or is `true`, the Future is disposed at this point.
+       * If `disposeOnDone` is given and `false`, it is up to the caller to dispose of the Future.
+       *
+       * All replies are validated as valid kernel messages.
+       *
+       * If the kernel status is `dead`, this will throw an error.
+       */
+      sendControlMessage(msg, expectReply = false, disposeOnDone = true) {
+        return this._sendKernelShellControl(future_1.KernelControlFutureHandler, msg, expectReply, disposeOnDone);
+      }
+      _sendKernelShellControl(ctor, msg, expectReply = false, disposeOnDone = true) {
+        this._sendMessage(msg);
+        this._anyMessage.emit({ msg, direction: "send" });
+        const future = new ctor(() => {
+          const msgId = msg.header.msg_id;
+          this._futures.delete(msgId);
+          const displayIds = this._msgIdToDisplayIds.get(msgId);
+          if (!displayIds) {
+            return;
+          }
+          displayIds.forEach((displayId) => {
+            const msgIds = this._displayIdToParentIds.get(displayId);
+            if (msgIds) {
+              const idx = msgIds.indexOf(msgId);
+              if (idx === -1) {
+                return;
+              }
+              if (msgIds.length === 1) {
+                this._displayIdToParentIds.delete(displayId);
+              } else {
+                msgIds.splice(idx, 1);
+                this._displayIdToParentIds.set(displayId, msgIds);
+              }
+            }
+          });
+          this._msgIdToDisplayIds.delete(msgId);
+        }, msg, expectReply, disposeOnDone, this);
+        this._futures.set(msg.header.msg_id, future);
+        return future;
+      }
+      /**
+       * Send a message on the websocket.
+       *
+       * If queue is true, queue the message for later sending if we cannot send
+       * now. Otherwise throw an error.
+       *
+       * #### Notes
+       * As an exception to the queueing, if we are sending a kernel_info_request
+       * message while we think the kernel is restarting, we send the message
+       * immediately without queueing. This is so that we can trigger a message
+       * back, which will then clear the kernel restarting state.
+       */
+      _sendMessage(msg, queue = true) {
+        if (this.status === "dead") {
+          throw new Error("Kernel is dead");
+        }
+        if ((this._kernelSession === STARTING_KERNEL_SESSION || this._kernelSession === RESTARTING_KERNEL_SESSION) && KernelMessage2.isInfoRequestMsg(msg)) {
+          if (this.connectionStatus === "connected") {
+            this._ws.send(serialize.serialize(msg));
+            return;
+          } else {
+            throw new Error("Could not send message: status is not connected");
+          }
+        }
+        if (queue && this._pendingMessages.length > 0) {
+          this._pendingMessages.push(msg);
+          return;
+        }
+        if (this.connectionStatus === "connected" && this._kernelSession !== RESTARTING_KERNEL_SESSION) {
+          this._ws.send(serialize.serialize(msg));
+        } else if (queue) {
+          this._pendingMessages.push(msg);
+        } else {
+          throw new Error("Could not send message");
+        }
+      }
+      /**
+       * Interrupt a kernel.
+       *
+       * #### Notes
+       * Uses the [Jupyter Notebook API](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/jupyter/notebook/master/notebook/services/api/api.yaml#!/kernels).
+       *
+       * The promise is fulfilled on a valid response and rejected otherwise.
+       *
+       * It is assumed that the API call does not mutate the kernel id or name.
+       *
+       * The promise will be rejected if the kernel status is `Dead` or if the
+       * request fails or the response is invalid.
+       */
       async interrupt() {
-        if (this.status === "dead") throw new Error("Kernel is dead");
-        return Wn.interruptKernel(this.id, this.serverSettings);
+        if (this.status === "dead") {
+          throw new Error("Kernel is dead");
+        }
+        return restapi.interruptKernel(this.id, this.serverSettings);
       }
+      /**
+       * Request a kernel restart.
+       *
+       * #### Notes
+       * Uses the [Jupyter Notebook API](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/jupyter/notebook/master/notebook/services/api/api.yaml#!/kernels)
+       * and validates the response model.
+       *
+       * Any existing Future or Comm objects are cleared once the kernel has
+       * actually be restarted.
+       *
+       * The promise is fulfilled on a valid server response (after the kernel restarts)
+       * and rejected otherwise.
+       *
+       * It is assumed that the API call does not mutate the kernel id or name.
+       *
+       * The promise will be rejected if the request fails or the response is
+       * invalid.
+       */
       async restart() {
-        if (this.status === "dead") throw new Error("Kernel is dead");
-        this._updateStatus("restarting"),
-          this._clearKernelState(),
-          (this._kernelSession = Tt),
-          await Wn.restartKernel(this.id, this.serverSettings),
-          await this.reconnect();
+        if (this.status === "dead") {
+          throw new Error("Kernel is dead");
+        }
+        this._updateStatus("restarting");
+        this._clearKernelState();
+        this._kernelSession = RESTARTING_KERNEL_SESSION;
+        await restapi.restartKernel(this.id, this.serverSettings);
+        await this.reconnect();
       }
+      /**
+       * Reconnect to a kernel.
+       *
+       * #### Notes
+       * This may try multiple times to reconnect to a kernel, and will sever any
+       * existing connection.
+       */
       reconnect() {
         this._errorIfDisposed();
-        let e = new it.PromiseDelegate(),
-          t = (r, i) => {
-            i === "connected"
-              ? (e.resolve(), this.connectionStatusChanged.disconnect(t, this))
-              : i === "disconnected" &&
-                (e.reject(new Error("Kernel connection disconnected")),
-                this.connectionStatusChanged.disconnect(t, this));
-          };
-        return (
-          this.connectionStatusChanged.connect(t, this),
-          (this._reconnectAttempt = 0),
-          this._reconnect(),
-          e.promise
-        );
+        const result = new coreutils_2.PromiseDelegate();
+        const fulfill = (sender, status) => {
+          if (status === "connected") {
+            result.resolve();
+            this.connectionStatusChanged.disconnect(fulfill, this);
+          } else if (status === "disconnected") {
+            result.reject(new Error("Kernel connection disconnected"));
+            this.connectionStatusChanged.disconnect(fulfill, this);
+          }
+        };
+        this.connectionStatusChanged.connect(fulfill, this);
+        this._reconnectAttempt = 0;
+        this._reconnect();
+        return result.promise;
       }
+      /**
+       * Shutdown a kernel.
+       *
+       * #### Notes
+       * Uses the [Jupyter Notebook API](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/jupyter/notebook/master/notebook/services/api/api.yaml#!/kernels).
+       *
+       * The promise is fulfilled on a valid response and rejected otherwise.
+       *
+       * On a valid response, disposes this kernel connection.
+       *
+       * If the kernel is already `dead`, disposes this kernel connection without
+       * a server request.
+       */
       async shutdown() {
-        this.status !== "dead" &&
-          (await Wn.shutdownKernel(this.id, this.serverSettings)),
-          this.handleShutdown();
-      }
-      handleShutdown() {
-        this._updateStatus("dead"), this.dispose();
-      }
-      async requestKernelInfo() {
-        let e = Pe.createMessage({
-            msgType: "kernel_info_request",
-            channel: "shell",
-            username: this._username,
-            session: this._clientId,
-            content: {},
-          }),
-          t;
-        try {
-          t = await Le.handleShellMessage(this, e);
-        } catch (r) {
-          if (this.isDisposed) return;
-          throw r;
+        if (this.status !== "dead") {
+          await restapi.shutdownKernel(this.id, this.serverSettings);
         }
-        if ((this._errorIfDisposed(), !!t))
-          return (
-            t.content.status === void 0 && (t.content.status = "ok"),
-            t.content.status !== "ok"
-              ? (this._info.reject("Kernel info reply errored"), t)
-              : (this._info.resolve(t.content),
-                (this._kernelSession = t.header.session),
-                t)
-          );
+        this.handleShutdown();
       }
-      requestComplete(e) {
-        let t = Pe.createMessage({
+      /**
+       * Handles a kernel shutdown.
+       *
+       * #### Notes
+       * This method should be called if we know from outside information that a
+       * kernel is dead (for example, we cannot find the kernel model on the
+       * server).
+       */
+      handleShutdown() {
+        this._updateStatus("dead");
+        this.dispose();
+      }
+      /**
+       * Send a `kernel_info_request` message.
+       *
+       * #### Notes
+       * See [Messaging in Jupyter](https://jupyter-client.readthedocs.io/en/latest/messaging.html#kernel-info).
+       *
+       * Fulfills with the `kernel_info_response` content when the shell reply is
+       * received and validated.
+       */
+      async requestKernelInfo() {
+        const msg = KernelMessage2.createMessage({
+          msgType: "kernel_info_request",
+          channel: "shell",
+          username: this._username,
+          session: this._clientId,
+          content: {}
+        });
+        let reply;
+        try {
+          reply = await Private.handleShellMessage(this, msg);
+        } catch (e) {
+          if (this.isDisposed) {
+            return;
+          } else {
+            throw e;
+          }
+        }
+        this._errorIfDisposed();
+        if (!reply) {
+          return;
+        }
+        if (reply.content.status === void 0) {
+          reply.content.status = "ok";
+        }
+        if (reply.content.status !== "ok") {
+          this._info.reject("Kernel info reply errored");
+          return reply;
+        }
+        this._info.resolve(reply.content);
+        this._kernelSession = reply.header.session;
+        return reply;
+      }
+      /**
+       * Send a `complete_request` message.
+       *
+       * #### Notes
+       * See [Messaging in Jupyter](https://jupyter-client.readthedocs.io/en/latest/messaging.html#completion).
+       *
+       * Fulfills with the `complete_reply` content when the shell reply is
+       * received and validated.
+       */
+      requestComplete(content) {
+        const msg = KernelMessage2.createMessage({
           msgType: "complete_request",
           channel: "shell",
           username: this._username,
           session: this._clientId,
-          content: e,
+          content
         });
-        return Le.handleShellMessage(this, t);
+        return Private.handleShellMessage(this, msg);
       }
-      requestInspect(e) {
-        let t = Pe.createMessage({
+      /**
+       * Send an `inspect_request` message.
+       *
+       * #### Notes
+       * See [Messaging in Jupyter](https://jupyter-client.readthedocs.io/en/latest/messaging.html#introspection).
+       *
+       * Fulfills with the `inspect_reply` content when the shell reply is
+       * received and validated.
+       */
+      requestInspect(content) {
+        const msg = KernelMessage2.createMessage({
           msgType: "inspect_request",
           channel: "shell",
           username: this._username,
           session: this._clientId,
-          content: e,
+          content
         });
-        return Le.handleShellMessage(this, t);
+        return Private.handleShellMessage(this, msg);
       }
-      requestHistory(e) {
-        let t = Pe.createMessage({
+      /**
+       * Send a `history_request` message.
+       *
+       * #### Notes
+       * See [Messaging in Jupyter](https://jupyter-client.readthedocs.io/en/latest/messaging.html#history).
+       *
+       * Fulfills with the `history_reply` content when the shell reply is
+       * received and validated.
+       */
+      requestHistory(content) {
+        const msg = KernelMessage2.createMessage({
           msgType: "history_request",
           channel: "shell",
           username: this._username,
           session: this._clientId,
-          content: e,
+          content
         });
-        return Le.handleShellMessage(this, t);
+        return Private.handleShellMessage(this, msg);
       }
-      requestExecute(e, t = !0, r) {
-        let i = {
-            silent: !1,
-            store_history: !0,
-            user_expressions: {},
-            allow_stdin: !0,
-            stop_on_error: !1,
-          },
-          s = Pe.createMessage({
-            msgType: "execute_request",
-            channel: "shell",
-            username: this._username,
-            session: this._clientId,
-            content: Object.assign(Object.assign({}, i), e),
-            metadata: r,
-          });
-        return this.sendShellMessage(s, !0, t);
+      /**
+       * Send an `execute_request` message.
+       *
+       * #### Notes
+       * See [Messaging in Jupyter](https://jupyter-client.readthedocs.io/en/latest/messaging.html#execute).
+       *
+       * Future `onReply` is called with the `execute_reply` content when the
+       * shell reply is received and validated. The future will resolve when
+       * this message is received and the `idle` iopub status is received.
+       * The future will also be disposed at this point unless `disposeOnDone`
+       * is specified and `false`, in which case it is up to the caller to dispose
+       * of the future.
+       *
+       * **See also:** [[IExecuteReply]]
+       */
+      requestExecute(content, disposeOnDone = true, metadata) {
+        const defaults = {
+          silent: false,
+          store_history: true,
+          user_expressions: {},
+          allow_stdin: true,
+          stop_on_error: false
+        };
+        const msg = KernelMessage2.createMessage({
+          msgType: "execute_request",
+          channel: "shell",
+          username: this._username,
+          session: this._clientId,
+          content: Object.assign(Object.assign({}, defaults), content),
+          metadata
+        });
+        return this.sendShellMessage(msg, true, disposeOnDone);
       }
-      requestDebug(e, t = !0) {
-        let r = Pe.createMessage({
+      /**
+       * Send an experimental `debug_request` message.
+       *
+       * @hidden
+       *
+       * #### Notes
+       * Debug messages are experimental messages that are not in the official
+       * kernel message specification. As such, this function is *NOT* considered
+       * part of the public API, and may change without notice.
+       */
+      requestDebug(content, disposeOnDone = true) {
+        const msg = KernelMessage2.createMessage({
           msgType: "debug_request",
           channel: "control",
           username: this._username,
           session: this._clientId,
-          content: e,
+          content
         });
-        return this.sendControlMessage(r, !0, t);
+        return this.sendControlMessage(msg, true, disposeOnDone);
       }
-      requestIsComplete(e) {
-        let t = Pe.createMessage({
+      /**
+       * Send an `is_complete_request` message.
+       *
+       * #### Notes
+       * See [Messaging in Jupyter](https://jupyter-client.readthedocs.io/en/latest/messaging.html#code-completeness).
+       *
+       * Fulfills with the `is_complete_response` content when the shell reply is
+       * received and validated.
+       */
+      requestIsComplete(content) {
+        const msg = KernelMessage2.createMessage({
           msgType: "is_complete_request",
           channel: "shell",
           username: this._username,
           session: this._clientId,
-          content: e,
+          content
         });
-        return Le.handleShellMessage(this, t);
+        return Private.handleShellMessage(this, msg);
       }
-      requestCommInfo(e) {
-        let t = Pe.createMessage({
+      /**
+       * Send a `comm_info_request` message.
+       *
+       * #### Notes
+       * Fulfills with the `comm_info_reply` content when the shell reply is
+       * received and validated.
+       */
+      requestCommInfo(content) {
+        const msg = KernelMessage2.createMessage({
           msgType: "comm_info_request",
           channel: "shell",
           username: this._username,
           session: this._clientId,
-          content: e,
+          content
         });
-        return Le.handleShellMessage(this, t);
+        return Private.handleShellMessage(this, msg);
       }
-      sendInputReply(e) {
-        let t = Pe.createMessage({
+      /**
+       * Send an `input_reply` message.
+       *
+       * #### Notes
+       * See [Messaging in Jupyter](https://jupyter-client.readthedocs.io/en/latest/messaging.html#messages-on-the-stdin-router-dealer-sockets).
+       */
+      sendInputReply(content) {
+        const msg = KernelMessage2.createMessage({
           msgType: "input_reply",
           channel: "stdin",
           username: this._username,
           session: this._clientId,
-          content: e,
+          content
         });
-        this._sendMessage(t),
-          this._anyMessage.emit({ msg: t, direction: "send" });
+        this._sendMessage(msg);
+        this._anyMessage.emit({ msg, direction: "send" });
       }
-      createComm(e, t = it.UUID.uuid4()) {
-        if (!this.handleComms)
+      /**
+       * Create a new comm.
+       *
+       * #### Notes
+       * If a client-side comm already exists with the given commId, an error is thrown.
+       * If the kernel does not handle comms, an error is thrown.
+       */
+      createComm(targetName, commId = coreutils_2.UUID.uuid4()) {
+        if (!this.handleComms) {
           throw new Error("Comms are disabled on this kernel connection");
-        if (this._comms.has(t)) throw new Error("Comm is already created");
-        let r = new Jo.CommHandler(e, t, this, () => {
-          this._unregisterComm(t);
+        }
+        if (this._comms.has(commId)) {
+          throw new Error("Comm is already created");
+        }
+        const comm = new comm_1.CommHandler(targetName, commId, this, () => {
+          this._unregisterComm(commId);
         });
-        return this._comms.set(t, r), r;
+        this._comms.set(commId, comm);
+        return comm;
       }
-      hasComm(e) {
-        return this._comms.has(e);
+      /**
+       * Check if a comm exists.
+       */
+      hasComm(commId) {
+        return this._comms.has(commId);
       }
-      registerCommTarget(e, t) {
-        this.handleComms && (this._targetRegistry[e] = t);
-      }
-      removeCommTarget(e, t) {
-        this.handleComms &&
-          !this.isDisposed &&
-          this._targetRegistry[e] === t &&
-          delete this._targetRegistry[e];
-      }
-      registerMessageHook(e, t) {
-        var r;
-        let i =
-          (r = this._futures) === null || r === void 0 ? void 0 : r.get(e);
-        i && i.registerMessageHook(t);
-      }
-      removeMessageHook(e, t) {
-        var r;
-        let i =
-          (r = this._futures) === null || r === void 0 ? void 0 : r.get(e);
-        i && i.removeMessageHook(t);
-      }
-      async _handleDisplayId(e, t) {
-        var r, i;
-        let s = t.parent_header.msg_id,
-          o = this._displayIdToParentIds.get(e);
-        if (o) {
-          let l = {
-            header: it.JSONExt.deepCopy(t.header),
-            parent_header: it.JSONExt.deepCopy(t.parent_header),
-            metadata: it.JSONExt.deepCopy(t.metadata),
-            content: it.JSONExt.deepCopy(t.content),
-            channel: t.channel,
-            buffers: t.buffers ? t.buffers.slice() : [],
-          };
-          (l.header.msg_type = "update_display_data"),
-            await Promise.all(
-              o.map(async (u) => {
-                let f = this._futures && this._futures.get(u);
-                f && (await f.handleMsg(l));
-              })
-            );
-        }
-        if (t.header.msg_type === "update_display_data") return !0;
-        (o =
-          (r = this._displayIdToParentIds.get(e)) !== null && r !== void 0
-            ? r
-            : []),
-          o.indexOf(s) === -1 && o.push(s),
-          this._displayIdToParentIds.set(e, o);
-        let a =
-          (i = this._msgIdToDisplayIds.get(s)) !== null && i !== void 0
-            ? i
-            : [];
-        return (
-          a.indexOf(s) === -1 && a.push(s),
-          this._msgIdToDisplayIds.set(s, a),
-          !1
-        );
-      }
-      _clearSocket() {
-        this._ws !== null &&
-          ((this._ws.onopen = this._noOp),
-          (this._ws.onclose = this._noOp),
-          (this._ws.onerror = this._noOp),
-          (this._ws.onmessage = this._noOp),
-          this._ws.close(),
-          (this._ws = null));
-      }
-      _updateStatus(e) {
-        this._status === e ||
-          this._status === "dead" ||
-          ((this._status = e),
-          Le.logKernelStatus(this),
-          this._statusChanged.emit(e),
-          e === "dead" && this.dispose());
-      }
-      _sendPending() {
-        for (
-          ;
-          this.connectionStatus === "connected" &&
-          this._kernelSession !== Tt &&
-          this._pendingMessages.length > 0;
-
-        )
-          this._sendMessage(this._pendingMessages[0], !1),
-            this._pendingMessages.shift();
-      }
-      _clearKernelState() {
-        (this._kernelSession = ""),
-          (this._pendingMessages = []),
-          this._futures.forEach((e) => {
-            e.dispose();
-          }),
-          this._comms.forEach((e) => {
-            e.dispose();
-          }),
-          (this._msgChain = Promise.resolve()),
-          (this._futures = new Map()),
-          (this._comms = new Map()),
-          this._displayIdToParentIds.clear(),
-          this._msgIdToDisplayIds.clear();
-      }
-      _assertCurrentMessage(e) {
-        if ((this._errorIfDisposed(), e.header.session !== this._kernelSession))
-          throw new Error(
-            `Canceling handling of old message: ${e.header.msg_type}`
-          );
-      }
-      async _handleCommOpen(e) {
-        this._assertCurrentMessage(e);
-        let t = e.content,
-          r = new Jo.CommHandler(t.target_name, t.comm_id, this, () => {
-            this._unregisterComm(t.comm_id);
-          });
-        this._comms.set(t.comm_id, r);
-        try {
-          await (
-            await Le.loadObject(
-              t.target_name,
-              t.target_module,
-              this._targetRegistry
-            )
-          )(r, e);
-        } catch (i) {
-          throw (r.close(), console.error("Exception opening new comm"), i);
-        }
-      }
-      async _handleCommClose(e) {
-        this._assertCurrentMessage(e);
-        let t = e.content,
-          r = this._comms.get(t.comm_id);
-        if (!r) {
-          console.error("Comm not found for comm id " + t.comm_id);
+      /**
+       * Register a comm target handler.
+       *
+       * @param targetName - The name of the comm target.
+       *
+       * @param callback - The callback invoked for a comm open message.
+       *
+       * @returns A disposable used to unregister the comm target.
+       *
+       * #### Notes
+       * Only one comm target can be registered to a target name at a time, an
+       * existing callback for the same target name will be overridden.  A registered
+       * comm target handler will take precedence over a comm which specifies a
+       * `target_module`.
+       *
+       * If the callback returns a promise, kernel message processing will pause
+       * until the returned promise is fulfilled.
+       */
+      registerCommTarget(targetName, callback) {
+        if (!this.handleComms) {
           return;
         }
-        this._unregisterComm(r.commId);
-        let i = r.onClose;
-        i && (await i(e)), r.dispose();
+        this._targetRegistry[targetName] = callback;
       }
-      async _handleCommMsg(e) {
-        this._assertCurrentMessage(e);
-        let t = e.content,
-          r = this._comms.get(t.comm_id);
-        if (!r) return;
-        let i = r.onMsg;
-        i && (await i(e));
-      }
-      _unregisterComm(e) {
-        this._comms.delete(e);
-      }
-      _updateConnectionStatus(e) {
-        if (this._connectionStatus !== e) {
-          if (
-            ((this._connectionStatus = e),
-            e !== "connecting" &&
-              ((this._reconnectAttempt = 0),
-              clearTimeout(this._reconnectTimeout)),
-            this.status !== "dead")
-          )
-            if (e === "connected") {
-              let t = this._kernelSession === Tt,
-                r = this.requestKernelInfo(),
-                i = !1,
-                s = () => {
-                  i ||
-                    ((i = !0),
-                    t &&
-                      this._kernelSession === Tt &&
-                      (this._kernelSession = ""),
-                    clearTimeout(o),
-                    this._pendingMessages.length > 0 && this._sendPending());
-                };
-              r.then(s);
-              let o = setTimeout(s, Oc);
-            } else this._updateStatus("unknown");
-          this._connectionStatusChanged.emit(e);
+      /**
+       * Remove a comm target handler.
+       *
+       * @param targetName - The name of the comm target to remove.
+       *
+       * @param callback - The callback to remove.
+       *
+       * #### Notes
+       * The comm target is only removed if the callback argument matches.
+       */
+      removeCommTarget(targetName, callback) {
+        if (!this.handleComms) {
+          return;
+        }
+        if (!this.isDisposed && this._targetRegistry[targetName] === callback) {
+          delete this._targetRegistry[targetName];
         }
       }
-      async _handleMessage(e) {
-        var t, r;
-        let i = !1;
-        if (
-          e.parent_header &&
-          e.channel === "iopub" &&
-          (Pe.isDisplayDataMsg(e) ||
-            Pe.isUpdateDisplayDataMsg(e) ||
-            Pe.isExecuteResultMsg(e))
-        ) {
-          let o = ((t = e.content.transient) !== null && t !== void 0 ? t : {})
-            .display_id;
-          o &&
-            ((i = await this._handleDisplayId(o, e)),
-            this._assertCurrentMessage(e));
+      /**
+       * Register an IOPub message hook.
+       *
+       * @param msg_id - The parent_header message id the hook will intercept.
+       *
+       * @param hook - The callback invoked for the message.
+       *
+       * #### Notes
+       * The IOPub hook system allows you to preempt the handlers for IOPub
+       * messages that are responses to a given message id.
+       *
+       * The most recently registered hook is run first. A hook can return a
+       * boolean or a promise to a boolean, in which case all kernel message
+       * processing pauses until the promise is fulfilled. If a hook return value
+       * resolves to false, any later hooks will not run and the function will
+       * return a promise resolving to false. If a hook throws an error, the error
+       * is logged to the console and the next hook is run. If a hook is
+       * registered during the hook processing, it will not run until the next
+       * message. If a hook is removed during the hook processing, it will be
+       * deactivated immediately.
+       *
+       * See also [[IFuture.registerMessageHook]].
+       */
+      registerMessageHook(msgId, hook) {
+        var _a;
+        const future = (_a = this._futures) === null || _a === void 0 ? void 0 : _a.get(msgId);
+        if (future) {
+          future.registerMessageHook(hook);
         }
-        if (!i && e.parent_header) {
-          let s = e.parent_header,
-            o =
-              (r = this._futures) === null || r === void 0
-                ? void 0
-                : r.get(s.msg_id);
-          if (o) await o.handleMsg(e), this._assertCurrentMessage(e);
-          else {
-            let a = s.session === this.clientId;
-            e.channel !== "iopub" && a && this._unhandledMessage.emit(e);
+      }
+      /**
+       * Remove an IOPub message hook.
+       *
+       * @param msg_id - The parent_header message id the hook intercepted.
+       *
+       * @param hook - The callback invoked for the message.
+       *
+       */
+      removeMessageHook(msgId, hook) {
+        var _a;
+        const future = (_a = this._futures) === null || _a === void 0 ? void 0 : _a.get(msgId);
+        if (future) {
+          future.removeMessageHook(hook);
+        }
+      }
+      /**
+       * Handle a message with a display id.
+       *
+       * @returns Whether the message was handled.
+       */
+      async _handleDisplayId(displayId, msg) {
+        var _a, _b;
+        const msgId = msg.parent_header.msg_id;
+        let parentIds = this._displayIdToParentIds.get(displayId);
+        if (parentIds) {
+          const updateMsg = {
+            header: coreutils_2.JSONExt.deepCopy(msg.header),
+            parent_header: coreutils_2.JSONExt.deepCopy(msg.parent_header),
+            metadata: coreutils_2.JSONExt.deepCopy(msg.metadata),
+            content: coreutils_2.JSONExt.deepCopy(msg.content),
+            channel: msg.channel,
+            buffers: msg.buffers ? msg.buffers.slice() : []
+          };
+          updateMsg.header.msg_type = "update_display_data";
+          await Promise.all(parentIds.map(async (parentId) => {
+            const future = this._futures && this._futures.get(parentId);
+            if (future) {
+              await future.handleMsg(updateMsg);
+            }
+          }));
+        }
+        if (msg.header.msg_type === "update_display_data") {
+          return true;
+        }
+        parentIds = (_a = this._displayIdToParentIds.get(displayId)) !== null && _a !== void 0 ? _a : [];
+        if (parentIds.indexOf(msgId) === -1) {
+          parentIds.push(msgId);
+        }
+        this._displayIdToParentIds.set(displayId, parentIds);
+        const displayIds = (_b = this._msgIdToDisplayIds.get(msgId)) !== null && _b !== void 0 ? _b : [];
+        if (displayIds.indexOf(msgId) === -1) {
+          displayIds.push(msgId);
+        }
+        this._msgIdToDisplayIds.set(msgId, displayIds);
+        return false;
+      }
+      /**
+       * Forcefully clear the socket state.
+       *
+       * #### Notes
+       * This will clear all socket state without calling any handlers and will
+       * not update the connection status. If you call this method, you are
+       * responsible for updating the connection status as needed and recreating
+       * the socket if you plan to reconnect.
+       */
+      _clearSocket() {
+        if (this._ws !== null) {
+          this._ws.onopen = this._noOp;
+          this._ws.onclose = this._noOp;
+          this._ws.onerror = this._noOp;
+          this._ws.onmessage = this._noOp;
+          this._ws.close();
+          this._ws = null;
+        }
+      }
+      /**
+       * Handle status iopub messages from the kernel.
+       */
+      _updateStatus(status) {
+        if (this._status === status || this._status === "dead") {
+          return;
+        }
+        this._status = status;
+        Private.logKernelStatus(this);
+        this._statusChanged.emit(status);
+        if (status === "dead") {
+          this.dispose();
+        }
+      }
+      /**
+       * Send pending messages to the kernel.
+       */
+      _sendPending() {
+        while (this.connectionStatus === "connected" && this._kernelSession !== RESTARTING_KERNEL_SESSION && this._pendingMessages.length > 0) {
+          this._sendMessage(this._pendingMessages[0], false);
+          this._pendingMessages.shift();
+        }
+      }
+      /**
+       * Clear the internal state.
+       */
+      _clearKernelState() {
+        this._kernelSession = "";
+        this._pendingMessages = [];
+        this._futures.forEach((future) => {
+          future.dispose();
+        });
+        this._comms.forEach((comm) => {
+          comm.dispose();
+        });
+        this._msgChain = Promise.resolve();
+        this._futures = /* @__PURE__ */ new Map();
+        this._comms = /* @__PURE__ */ new Map();
+        this._displayIdToParentIds.clear();
+        this._msgIdToDisplayIds.clear();
+      }
+      /**
+       * Check to make sure it is okay to proceed to handle a message.
+       *
+       * #### Notes
+       * Because we handle messages asynchronously, before a message is handled the
+       * kernel might be disposed or restarted (and have a different session id).
+       * This function throws an error in each of these cases. This is meant to be
+       * called at the start of an asynchronous message handler to cancel message
+       * processing if the message no longer is valid.
+       */
+      _assertCurrentMessage(msg) {
+        this._errorIfDisposed();
+        if (msg.header.session !== this._kernelSession) {
+          throw new Error(`Canceling handling of old message: ${msg.header.msg_type}`);
+        }
+      }
+      /**
+       * Handle a `comm_open` kernel message.
+       */
+      async _handleCommOpen(msg) {
+        this._assertCurrentMessage(msg);
+        const content = msg.content;
+        const comm = new comm_1.CommHandler(content.target_name, content.comm_id, this, () => {
+          this._unregisterComm(content.comm_id);
+        });
+        this._comms.set(content.comm_id, comm);
+        try {
+          const target = await Private.loadObject(content.target_name, content.target_module, this._targetRegistry);
+          await target(comm, msg);
+        } catch (e) {
+          comm.close();
+          console.error("Exception opening new comm");
+          throw e;
+        }
+      }
+      /**
+       * Handle 'comm_close' kernel message.
+       */
+      async _handleCommClose(msg) {
+        this._assertCurrentMessage(msg);
+        const content = msg.content;
+        const comm = this._comms.get(content.comm_id);
+        if (!comm) {
+          console.error("Comm not found for comm id " + content.comm_id);
+          return;
+        }
+        this._unregisterComm(comm.commId);
+        const onClose = comm.onClose;
+        if (onClose) {
+          await onClose(msg);
+        }
+        comm.dispose();
+      }
+      /**
+       * Handle a 'comm_msg' kernel message.
+       */
+      async _handleCommMsg(msg) {
+        this._assertCurrentMessage(msg);
+        const content = msg.content;
+        const comm = this._comms.get(content.comm_id);
+        if (!comm) {
+          return;
+        }
+        const onMsg = comm.onMsg;
+        if (onMsg) {
+          await onMsg(msg);
+        }
+      }
+      /**
+       * Unregister a comm instance.
+       */
+      _unregisterComm(commId) {
+        this._comms.delete(commId);
+      }
+      /**
+       * Handle connection status changes.
+       */
+      _updateConnectionStatus(connectionStatus) {
+        if (this._connectionStatus === connectionStatus) {
+          return;
+        }
+        this._connectionStatus = connectionStatus;
+        if (connectionStatus !== "connecting") {
+          this._reconnectAttempt = 0;
+          clearTimeout(this._reconnectTimeout);
+        }
+        if (this.status !== "dead") {
+          if (connectionStatus === "connected") {
+            let restarting = this._kernelSession === RESTARTING_KERNEL_SESSION;
+            let p = this.requestKernelInfo();
+            let sendPendingCalled = false;
+            let sendPendingOnce = () => {
+              if (sendPendingCalled) {
+                return;
+              }
+              sendPendingCalled = true;
+              if (restarting && this._kernelSession === RESTARTING_KERNEL_SESSION) {
+                this._kernelSession = "";
+              }
+              clearTimeout(timeoutHandle);
+              if (this._pendingMessages.length > 0) {
+                this._sendPending();
+              }
+            };
+            void p.then(sendPendingOnce);
+            let timeoutHandle = setTimeout(sendPendingOnce, KERNEL_INFO_TIMEOUT);
+          } else {
+            this._updateStatus("unknown");
           }
         }
-        if (e.channel === "iopub") {
-          switch (e.header.msg_type) {
+        this._connectionStatusChanged.emit(connectionStatus);
+      }
+      async _handleMessage(msg) {
+        var _a, _b;
+        let handled = false;
+        if (msg.parent_header && msg.channel === "iopub" && (KernelMessage2.isDisplayDataMsg(msg) || KernelMessage2.isUpdateDisplayDataMsg(msg) || KernelMessage2.isExecuteResultMsg(msg))) {
+          const transient = (_a = msg.content.transient) !== null && _a !== void 0 ? _a : {};
+          const displayId = transient["display_id"];
+          if (displayId) {
+            handled = await this._handleDisplayId(displayId, msg);
+            this._assertCurrentMessage(msg);
+          }
+        }
+        if (!handled && msg.parent_header) {
+          const parentHeader = msg.parent_header;
+          const future = (_b = this._futures) === null || _b === void 0 ? void 0 : _b.get(parentHeader.msg_id);
+          if (future) {
+            await future.handleMsg(msg);
+            this._assertCurrentMessage(msg);
+          } else {
+            const owned = parentHeader.session === this.clientId;
+            if (msg.channel !== "iopub" && owned) {
+              this._unhandledMessage.emit(msg);
+            }
+          }
+        }
+        if (msg.channel === "iopub") {
+          switch (msg.header.msg_type) {
             case "status": {
-              let s = e.content.execution_state;
-              s === "restarting" &&
-                Promise.resolve().then(async () => {
-                  this._updateStatus("autorestarting"),
-                    this._clearKernelState(),
-                    await this.reconnect();
-                }),
-                this._updateStatus(s);
+              const executionState = msg.content.execution_state;
+              if (executionState === "restarting") {
+                void Promise.resolve().then(async () => {
+                  this._updateStatus("autorestarting");
+                  this._clearKernelState();
+                  await this.reconnect();
+                });
+              }
+              this._updateStatus(executionState);
               break;
             }
             case "comm_open":
-              this.handleComms && (await this._handleCommOpen(e));
+              if (this.handleComms) {
+                await this._handleCommOpen(msg);
+              }
               break;
             case "comm_msg":
-              this.handleComms && (await this._handleCommMsg(e));
+              if (this.handleComms) {
+                await this._handleCommMsg(msg);
+              }
               break;
             case "comm_close":
-              this.handleComms && (await this._handleCommClose(e));
+              if (this.handleComms) {
+                await this._handleCommClose(msg);
+              }
               break;
             default:
               break;
           }
-          this.isDisposed ||
-            (this._assertCurrentMessage(e), this._iopubMessage.emit(e));
+          if (!this.isDisposed) {
+            this._assertCurrentMessage(msg);
+            this._iopubMessage.emit(msg);
+          }
         }
       }
+      /**
+       * Attempt a connection if we have not exhausted connection attempts.
+       */
       _reconnect() {
-        if (
-          (this._errorIfDisposed(),
-          clearTimeout(this._reconnectTimeout),
-          this._reconnectAttempt < this._reconnectLimit)
-        ) {
+        this._errorIfDisposed();
+        clearTimeout(this._reconnectTimeout);
+        if (this._reconnectAttempt < this._reconnectLimit) {
           this._updateConnectionStatus("connecting");
-          let e = Le.getRandomIntInclusive(
-            0,
-            1e3 * (Math.pow(2, this._reconnectAttempt) - 1)
-          );
-          console.warn(
-            `Connection lost, reconnecting in ${Math.floor(e / 1e3)} seconds.`
-          ),
-            (this._reconnectTimeout = setTimeout(this._createSocket, e)),
-            (this._reconnectAttempt += 1);
-        } else this._updateConnectionStatus("disconnected");
+          const timeout = Private.getRandomIntInclusive(0, 1e3 * (Math.pow(2, this._reconnectAttempt) - 1));
+          console.warn(`Connection lost, reconnecting in ${Math.floor(timeout / 1e3)} seconds.`);
+          this._reconnectTimeout = setTimeout(this._createSocket, timeout);
+          this._reconnectAttempt += 1;
+        } else {
+          this._updateConnectionStatus("disconnected");
+        }
         this._clearSocket();
       }
+      /**
+       * Utility function to throw an error if this instance is disposed.
+       */
       _errorIfDisposed() {
-        if (this.isDisposed) throw new Error("Kernel connection is disposed");
+        if (this.isDisposed) {
+          throw new Error("Kernel connection is disposed");
+        }
       }
     };
-  Je.KernelConnection = hi;
-  var Le;
-  (function (n) {
-    function e(s) {
-      switch (s.status) {
-        case "idle":
-        case "busy":
-        case "unknown":
-          return;
-        default:
-          console.debug(`Kernel: ${s.status} (${s.id})`);
-          break;
+    exports2.KernelConnection = KernelConnection2;
+    var Private;
+    (function(Private2) {
+      function logKernelStatus(kernel) {
+        switch (kernel.status) {
+          case "idle":
+          case "busy":
+          case "unknown":
+            return;
+          default:
+            console.debug(`Kernel: ${kernel.status} (${kernel.id})`);
+            break;
+        }
       }
-    }
-    n.logKernelStatus = e;
-    async function t(s, o) {
-      return s.sendShellMessage(o, !0).done;
-    }
-    n.handleShellMessage = t;
-    function r(s, o, a) {
-      return new Promise((l, u) => {
-        if (o) {
-          if (typeof requirejs == "undefined")
-            throw new Error("requirejs not found");
-          requirejs(
-            [o],
-            (f) => {
-              if (f[s] === void 0) {
-                let c = `Object '${s}' not found in module '${o}'`;
-                u(new Error(c));
-              } else l(f[s]);
-            },
-            u
-          );
-        } else
-          a != null && a[s]
-            ? l(a[s])
-            : u(new Error(`Object '${s}' not found in registry`));
-      });
-    }
-    n.loadObject = r;
-    function i(s, o) {
-      return (
-        (s = Math.ceil(s)),
-        (o = Math.floor(o)),
-        Math.floor(Math.random() * (o - s + 1)) + s
-      );
-    }
-    n.getRandomIntInclusive = i;
-  })(Le || (Le = {}));
+      Private2.logKernelStatus = logKernelStatus;
+      async function handleShellMessage(kernel, msg) {
+        const future = kernel.sendShellMessage(msg, true);
+        return future.done;
+      }
+      Private2.handleShellMessage = handleShellMessage;
+      function loadObject(name2, moduleName, registry) {
+        return new Promise((resolve, reject) => {
+          if (moduleName) {
+            if (typeof requirejs === "undefined") {
+              throw new Error("requirejs not found");
+            }
+            requirejs([moduleName], (mod) => {
+              if (mod[name2] === void 0) {
+                const msg = `Object '${name2}' not found in module '${moduleName}'`;
+                reject(new Error(msg));
+              } else {
+                resolve(mod[name2]);
+              }
+            }, reject);
+          } else {
+            if (registry === null || registry === void 0 ? void 0 : registry[name2]) {
+              resolve(registry[name2]);
+            } else {
+              reject(new Error(`Object '${name2}' not found in registry`));
+            }
+          }
+        });
+      }
+      Private2.loadObject = loadObject;
+      function getRandomIntInclusive(min, max) {
+        min = Math.ceil(min);
+        max = Math.floor(max);
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+      Private2.getRandomIntInclusive = getRandomIntInclusive;
+    })(Private || (Private = {}));
+  }
 });
-var Xo = k((Vn) => {
-  "use strict";
-  h();
-  Object.defineProperty(Vn, "__esModule", { value: !0 });
-  Vn.KernelManager = void 0;
-  var zo = ct(),
-    Lc = Qt(),
-    Yo = ce(),
-    kc = Ve(),
-    xc = Zt(),
-    qn = Nn(),
-    jc = fi(),
-    pi = class extends xc.BaseManager {
-      constructor(e = {}) {
-        var t;
-        super(e),
-          (this._isReady = !1),
-          (this._kernelConnections = new Set()),
-          (this._models = new Map()),
-          (this._runningChanged = new Yo.Signal(this)),
-          (this._connectionFailure = new Yo.Signal(this)),
-          (this._pollModels = new Lc.Poll({
-            auto: !1,
-            factory: () => this.requestRunning(),
-            frequency: { interval: 10 * 1e3, backoff: !0, max: 300 * 1e3 },
-            name: "@jupyterlab/services:KernelManager#models",
-            standby:
-              (t = e.standby) !== null && t !== void 0 ? t : "when-hidden",
-          })),
-          (this._ready = (async () => {
-            await this._pollModels.start(),
-              await this._pollModels.tick,
-              (this._isReady = !0);
-          })());
+
+// node_modules/@jupyterlab/services/lib/kernel/manager.js
+var require_manager2 = __commonJS({
+  "node_modules/@jupyterlab/services/lib/kernel/manager.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.KernelManager = void 0;
+    var algorithm_1 = require_dist();
+    var polling_1 = require_dist5();
+    var signaling_1 = require_dist3();
+    var __1 = require_lib3();
+    var basemanager_1 = require_basemanager();
+    var restapi_1 = require_restapi();
+    var default_1 = require_default();
+    var KernelManager = class extends basemanager_1.BaseManager {
+      /**
+       * Construct a new kernel manager.
+       *
+       * @param options - The default options for kernel.
+       */
+      constructor(options = {}) {
+        var _a;
+        super(options);
+        this._isReady = false;
+        this._kernelConnections = /* @__PURE__ */ new Set();
+        this._models = /* @__PURE__ */ new Map();
+        this._runningChanged = new signaling_1.Signal(this);
+        this._connectionFailure = new signaling_1.Signal(this);
+        this._pollModels = new polling_1.Poll({
+          auto: false,
+          factory: () => this.requestRunning(),
+          frequency: {
+            interval: 10 * 1e3,
+            backoff: true,
+            max: 300 * 1e3
+          },
+          name: `@jupyterlab/services:KernelManager#models`,
+          standby: (_a = options.standby) !== null && _a !== void 0 ? _a : "when-hidden"
+        });
+        this._ready = (async () => {
+          await this._pollModels.start();
+          await this._pollModels.tick;
+          this._isReady = true;
+        })();
       }
+      /**
+       * Test whether the manager is ready.
+       */
       get isReady() {
         return this._isReady;
       }
+      /**
+       * A promise that fulfills when the manager is ready.
+       */
       get ready() {
         return this._ready;
       }
+      /**
+       * A signal emitted when the running kernels change.
+       */
       get runningChanged() {
         return this._runningChanged;
       }
+      /**
+       * A signal emitted when there is a connection failure.
+       */
       get connectionFailure() {
         return this._connectionFailure;
       }
+      /**
+       * Dispose of the resources used by the manager.
+       */
       dispose() {
-        this.isDisposed ||
-          (this._models.clear(),
-          this._kernelConnections.forEach((e) => e.dispose()),
-          this._pollModels.dispose(),
-          super.dispose());
+        if (this.isDisposed) {
+          return;
+        }
+        this._models.clear();
+        this._kernelConnections.forEach((x) => x.dispose());
+        this._pollModels.dispose();
+        super.dispose();
       }
-      connectTo(e) {
-        var t;
-        let { id: r } = e.model,
-          i = (t = e.handleComms) !== null && t !== void 0 ? t : !0;
-        if (e.handleComms === void 0) {
-          for (let o of this._kernelConnections)
-            if (o.id === r && o.handleComms) {
-              i = !1;
+      /**
+       * Connect to an existing kernel.
+       *
+       * @returns The new kernel connection.
+       *
+       * #### Notes
+       * This will use the manager's server settings and ignore any server
+       * settings passed in the options.
+       */
+      connectTo(options) {
+        var _a;
+        const { id } = options.model;
+        let handleComms = (_a = options.handleComms) !== null && _a !== void 0 ? _a : true;
+        if (options.handleComms === void 0) {
+          for (const kc of this._kernelConnections) {
+            if (kc.id === id && kc.handleComms) {
+              handleComms = false;
               break;
             }
-        }
-        let s = new jc.KernelConnection(
-          Object.assign(Object.assign({ handleComms: i }, e), {
-            serverSettings: this.serverSettings,
-          })
-        );
-        return (
-          this._onStarted(s),
-          this._models.has(r) || this.refreshRunning().catch(() => {}),
-          s
-        );
-      }
-      running() {
-        return zo.iter([...this._models.values()]);
-      }
-      async refreshRunning() {
-        await this._pollModels.refresh(), await this._pollModels.tick;
-      }
-      async startNew(e = {}, t = {}) {
-        let r = await qn.startNew(e, this.serverSettings);
-        return this.connectTo(
-          Object.assign(Object.assign({}, t), { model: r })
-        );
-      }
-      async shutdown(e) {
-        await qn.shutdownKernel(e, this.serverSettings),
-          await this.refreshRunning();
-      }
-      async shutdownAll() {
-        await this.refreshRunning(),
-          await Promise.all(
-            [...this._models.keys()].map((e) =>
-              qn.shutdownKernel(e, this.serverSettings)
-            )
-          ),
-          await this.refreshRunning();
-      }
-      async findById(e) {
-        return this._models.has(e)
-          ? this._models.get(e)
-          : (await this.refreshRunning(), this._models.get(e));
-      }
-      async requestRunning() {
-        var e, t;
-        let r;
-        try {
-          r = await qn.listRunning(this.serverSettings);
-        } catch (i) {
-          throw (
-            ((i instanceof kc.ServerConnection.NetworkError ||
-              ((e = i.response) === null || e === void 0
-                ? void 0
-                : e.status) === 503 ||
-              ((t = i.response) === null || t === void 0
-                ? void 0
-                : t.status) === 424) &&
-              this._connectionFailure.emit(i),
-            i)
-          );
-        }
-        this.isDisposed ||
-          (this._models.size === r.length &&
-            zo.every(r, (i) => {
-              let s = this._models.get(i.id);
-              return s ? s.name === i.name : !1;
-            })) ||
-          ((this._models = new Map(r.map((i) => [i.id, i]))),
-          this._kernelConnections.forEach((i) => {
-            this._models.has(i.id) || i.handleShutdown();
-          }),
-          this._runningChanged.emit(r));
-      }
-      _onStarted(e) {
-        this._kernelConnections.add(e),
-          e.statusChanged.connect(this._onStatusChanged, this),
-          e.disposed.connect(this._onDisposed, this);
-      }
-      _onDisposed(e) {
-        this._kernelConnections.delete(e),
-          this.refreshRunning().catch(() => {});
-      }
-      _onStatusChanged(e, t) {
-        t === "dead" && this.refreshRunning().catch(() => {});
-      }
-    };
-  Vn.KernelManager = pi;
-});
-var _i = k((he) => {
-  "use strict";
-  h();
-  var Qo =
-      (he && he.__createBinding) ||
-      (Object.create
-        ? function (n, e, t, r) {
-            r === void 0 && (r = t),
-              Object.defineProperty(n, r, {
-                enumerable: !0,
-                get: function () {
-                  return e[t];
-                },
-              });
           }
-        : function (n, e, t, r) {
-            r === void 0 && (r = t), (n[r] = e[t]);
-          }),
-    Fc =
-      (he && he.__setModuleDefault) ||
-      (Object.create
-        ? function (n, e) {
-            Object.defineProperty(n, "default", { enumerable: !0, value: e });
-          }
-        : function (n, e) {
-            n.default = e;
-          }),
-    gi =
-      (he && he.__importStar) ||
-      function (n) {
-        if (n && n.__esModule) return n;
-        var e = {};
-        if (n != null)
-          for (var t in n)
-            t !== "default" &&
-              Object.prototype.hasOwnProperty.call(n, t) &&
-              Qo(e, n, t);
-        return Fc(e, n), e;
-      },
-    Uc =
-      (he && he.__exportStar) ||
-      function (n, e) {
-        for (var t in n)
-          t !== "default" &&
-            !Object.prototype.hasOwnProperty.call(e, t) &&
-            Qo(e, n, t);
-      };
-  Object.defineProperty(he, "__esModule", { value: !0 });
-  he.KernelAPI = he.KernelMessage = he.Kernel = void 0;
-  var Wc = gi(Co());
-  he.Kernel = Wc;
-  var Kc = gi(Xt());
-  he.KernelMessage = Kc;
-  var qc = gi(Nn());
-  he.KernelAPI = qc;
-  Uc(Xo(), he);
-});
-var Zo = k((Bn) => {
-  "use strict";
-  h();
-  Object.defineProperty(Bn, "__esModule", { value: !0 });
-  Bn.BuildManager = void 0;
-  var mi = Ie(),
-    st = De(),
-    Vc = "api/build",
-    vi = class {
-      constructor(e = {}) {
-        var t;
-        (this._url = ""),
-          (this.serverSettings =
-            (t = e.serverSettings) !== null && t !== void 0
-              ? t
-              : st.ServerConnection.makeSettings());
-        let { baseUrl: r, appUrl: i } = this.serverSettings;
-        this._url = mi.URLExt.join(r, i, Vc);
-      }
-      get isAvailable() {
-        return (
-          mi.PageConfig.getOption("buildAvailable").toLowerCase() === "true"
-        );
-      }
-      get shouldCheck() {
-        return mi.PageConfig.getOption("buildCheck").toLowerCase() === "true";
-      }
-      getStatus() {
-        let { _url: e, serverSettings: t } = this;
-        return st.ServerConnection.makeRequest(e, {}, t)
-          .then((i) => {
-            if (i.status !== 200)
-              throw new st.ServerConnection.ResponseError(i);
-            return i.json();
-          })
-          .then((i) => {
-            if (typeof i.status != "string") throw new Error("Invalid data");
-            if (typeof i.message != "string") throw new Error("Invalid data");
-            return i;
+        }
+        const kernelConnection = new default_1.KernelConnection(Object.assign(Object.assign({ handleComms }, options), { serverSettings: this.serverSettings }));
+        this._onStarted(kernelConnection);
+        if (!this._models.has(id)) {
+          void this.refreshRunning().catch(() => {
           });
+        }
+        return kernelConnection;
       }
+      /**
+       * Create an iterator over the most recent running kernels.
+       *
+       * @returns A new iterator over the running kernels.
+       */
+      running() {
+        return algorithm_1.iter([...this._models.values()]);
+      }
+      /**
+       * Force a refresh of the running kernels.
+       *
+       * @returns A promise that resolves when the running list has been refreshed.
+       *
+       * #### Notes
+       * This is not typically meant to be called by the user, since the
+       * manager maintains its own internal state.
+       */
+      async refreshRunning() {
+        await this._pollModels.refresh();
+        await this._pollModels.tick;
+      }
+      /**
+       * Start a new kernel.
+       *
+       * @param createOptions - The kernel creation options
+       *
+       * @param connectOptions - The kernel connection options
+       *
+       * @returns A promise that resolves with the kernel connection.
+       *
+       * #### Notes
+       * The manager `serverSettings` will be always be used.
+       */
+      async startNew(createOptions = {}, connectOptions = {}) {
+        const model = await restapi_1.startNew(createOptions, this.serverSettings);
+        return this.connectTo(Object.assign(Object.assign({}, connectOptions), { model }));
+      }
+      /**
+       * Shut down a kernel by id.
+       *
+       * @param id - The id of the target kernel.
+       *
+       * @returns A promise that resolves when the operation is complete.
+       */
+      async shutdown(id) {
+        await restapi_1.shutdownKernel(id, this.serverSettings);
+        await this.refreshRunning();
+      }
+      /**
+       * Shut down all kernels.
+       *
+       * @returns A promise that resolves when all of the kernels are shut down.
+       */
+      async shutdownAll() {
+        await this.refreshRunning();
+        await Promise.all([...this._models.keys()].map((id) => restapi_1.shutdownKernel(id, this.serverSettings)));
+        await this.refreshRunning();
+      }
+      /**
+       * Find a kernel by id.
+       *
+       * @param id - The id of the target kernel.
+       *
+       * @returns A promise that resolves with the kernel's model.
+       */
+      async findById(id) {
+        if (this._models.has(id)) {
+          return this._models.get(id);
+        }
+        await this.refreshRunning();
+        return this._models.get(id);
+      }
+      /**
+       * Execute a request to the server to poll running kernels and update state.
+       */
+      async requestRunning() {
+        var _a, _b;
+        let models;
+        try {
+          models = await restapi_1.listRunning(this.serverSettings);
+        } catch (err) {
+          if (err instanceof __1.ServerConnection.NetworkError || ((_a = err.response) === null || _a === void 0 ? void 0 : _a.status) === 503 || ((_b = err.response) === null || _b === void 0 ? void 0 : _b.status) === 424) {
+            this._connectionFailure.emit(err);
+          }
+          throw err;
+        }
+        if (this.isDisposed) {
+          return;
+        }
+        if (this._models.size === models.length && algorithm_1.every(models, (x) => {
+          const existing = this._models.get(x.id);
+          if (!existing) {
+            return false;
+          }
+          return existing.name === x.name;
+        })) {
+          return;
+        }
+        this._models = new Map(models.map((x) => [x.id, x]));
+        this._kernelConnections.forEach((kc) => {
+          if (!this._models.has(kc.id)) {
+            kc.handleShutdown();
+          }
+        });
+        this._runningChanged.emit(models);
+      }
+      /**
+       * Handle a kernel starting.
+       */
+      _onStarted(kernelConnection) {
+        this._kernelConnections.add(kernelConnection);
+        kernelConnection.statusChanged.connect(this._onStatusChanged, this);
+        kernelConnection.disposed.connect(this._onDisposed, this);
+      }
+      _onDisposed(kernelConnection) {
+        this._kernelConnections.delete(kernelConnection);
+        void this.refreshRunning().catch(() => {
+        });
+      }
+      _onStatusChanged(kernelConnection, status) {
+        if (status === "dead") {
+          void this.refreshRunning().catch(() => {
+          });
+        }
+      }
+    };
+    exports2.KernelManager = KernelManager;
+  }
+});
+
+// node_modules/@jupyterlab/services/lib/kernel/index.js
+var require_kernel2 = __commonJS({
+  "node_modules/@jupyterlab/services/lib/kernel/index.js"(exports2) {
+    "use strict";
+    init_process_development();
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      Object.defineProperty(o, k2, { enumerable: true, get: function() {
+        return m[k];
+      } });
+    } : function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      o[k2] = m[k];
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || function(mod) {
+      if (mod && mod.__esModule)
+        return mod;
+      var result = {};
+      if (mod != null) {
+        for (var k in mod)
+          if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+            __createBinding(result, mod, k);
+      }
+      __setModuleDefault(result, mod);
+      return result;
+    };
+    var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
+      for (var p in m)
+        if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p))
+          __createBinding(exports3, m, p);
+    };
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.KernelAPI = exports2.KernelMessage = exports2.Kernel = void 0;
+    var Kernel2 = __importStar(require_kernel());
+    exports2.Kernel = Kernel2;
+    var KernelMessage2 = __importStar(require_messages());
+    exports2.KernelMessage = KernelMessage2;
+    var KernelAPI = __importStar(require_restapi());
+    exports2.KernelAPI = KernelAPI;
+    __exportStar(require_manager2(), exports2);
+  }
+});
+
+// node_modules/@jupyterlab/services/lib/builder/index.js
+var require_builder = __commonJS({
+  "node_modules/@jupyterlab/services/lib/builder/index.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.BuildManager = void 0;
+    var coreutils_12 = require_lib();
+    var serverconnection_1 = require_serverconnection();
+    var BUILD_SETTINGS_URL = "api/build";
+    var BuildManager = class {
+      /**
+       * Create a new setting manager.
+       */
+      constructor(options = {}) {
+        var _a;
+        this._url = "";
+        this.serverSettings = (_a = options.serverSettings) !== null && _a !== void 0 ? _a : serverconnection_1.ServerConnection.makeSettings();
+        const { baseUrl, appUrl } = this.serverSettings;
+        this._url = coreutils_12.URLExt.join(baseUrl, appUrl, BUILD_SETTINGS_URL);
+      }
+      /**
+       * Test whether the build service is available.
+       */
+      get isAvailable() {
+        return coreutils_12.PageConfig.getOption("buildAvailable").toLowerCase() === "true";
+      }
+      /**
+       * Test whether to check build status automatically.
+       */
+      get shouldCheck() {
+        return coreutils_12.PageConfig.getOption("buildCheck").toLowerCase() === "true";
+      }
+      /**
+       * Get whether the application should be built.
+       */
+      getStatus() {
+        const { _url, serverSettings } = this;
+        const promise = serverconnection_1.ServerConnection.makeRequest(_url, {}, serverSettings);
+        return promise.then((response) => {
+          if (response.status !== 200) {
+            throw new serverconnection_1.ServerConnection.ResponseError(response);
+          }
+          return response.json();
+        }).then((data) => {
+          if (typeof data.status !== "string") {
+            throw new Error("Invalid data");
+          }
+          if (typeof data.message !== "string") {
+            throw new Error("Invalid data");
+          }
+          return data;
+        });
+      }
+      /**
+       * Build the application.
+       */
       build() {
-        let { _url: e, serverSettings: t } = this,
-          r = { method: "POST" };
-        return st.ServerConnection.makeRequest(e, r, t).then((s) => {
-          if (s.status === 400)
-            throw new st.ServerConnection.ResponseError(s, "Build aborted");
-          if (s.status !== 200) {
-            let o = `Build failed with ${s.status}, please run 'jupyter lab build' on the server for full output`;
-            throw new st.ServerConnection.ResponseError(s, o);
+        const { _url, serverSettings } = this;
+        const init = { method: "POST" };
+        const promise = serverconnection_1.ServerConnection.makeRequest(_url, init, serverSettings);
+        return promise.then((response) => {
+          if (response.status === 400) {
+            throw new serverconnection_1.ServerConnection.ResponseError(response, "Build aborted");
+          }
+          if (response.status !== 200) {
+            const message = `Build failed with ${response.status}, please run 'jupyter lab build' on the server for full output`;
+            throw new serverconnection_1.ServerConnection.ResponseError(response, message);
           }
         });
       }
+      /**
+       * Cancel an active build.
+       */
       cancel() {
-        let { _url: e, serverSettings: t } = this,
-          r = { method: "DELETE" };
-        return st.ServerConnection.makeRequest(e, r, t).then((s) => {
-          if (s.status !== 204) throw new st.ServerConnection.ResponseError(s);
+        const { _url, serverSettings } = this;
+        const init = { method: "DELETE" };
+        const promise = serverconnection_1.ServerConnection.makeRequest(_url, init, serverSettings);
+        return promise.then((response) => {
+          if (response.status !== 204) {
+            throw new serverconnection_1.ServerConnection.ResponseError(response);
+          }
         });
       }
     };
-  Bn.BuildManager = vi;
+    exports2.BuildManager = BuildManager;
+  }
 });
-var bi = k((Hn) => {
-  "use strict";
-  h();
-  Object.defineProperty(Hn, "__esModule", { value: !0 });
-  Hn.NbConvertManager = void 0;
-  var Bc = Ie(),
-    yi = De(),
-    Hc = "api/nbconvert",
-    Ei = class {
-      constructor(e = {}) {
-        var t;
-        this.serverSettings =
-          (t = e.serverSettings) !== null && t !== void 0
-            ? t
-            : yi.ServerConnection.makeSettings();
+
+// node_modules/@jupyterlab/services/lib/nbconvert/index.js
+var require_nbconvert = __commonJS({
+  "node_modules/@jupyterlab/services/lib/nbconvert/index.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.NbConvertManager = void 0;
+    var coreutils_12 = require_lib();
+    var serverconnection_1 = require_serverconnection();
+    var NBCONVERT_SETTINGS_URL = "api/nbconvert";
+    var NbConvertManager = class {
+      /**
+       * Create a new nbconvert manager.
+       */
+      constructor(options = {}) {
+        var _a;
+        this.serverSettings = (_a = options.serverSettings) !== null && _a !== void 0 ? _a : serverconnection_1.ServerConnection.makeSettings();
       }
+      /**
+       * Get whether the application should be built.
+       */
       async getExportFormats() {
-        let e = this.serverSettings.baseUrl,
-          t = Bc.URLExt.join(e, Hc),
-          { serverSettings: r } = this,
-          i = await yi.ServerConnection.makeRequest(t, {}, r);
-        if (i.status !== 200)
-          throw await yi.ServerConnection.ResponseError.create(i);
-        let s = await i.json(),
-          o = {};
-        return (
-          Object.keys(s).forEach(function (l) {
-            let u = s[l].output_mimetype;
-            o[l] = { output_mimetype: u };
-          }),
-          o
-        );
+        const base = this.serverSettings.baseUrl;
+        const url = coreutils_12.URLExt.join(base, NBCONVERT_SETTINGS_URL);
+        const { serverSettings } = this;
+        const response = await serverconnection_1.ServerConnection.makeRequest(url, {}, serverSettings);
+        if (response.status !== 200) {
+          const err = await serverconnection_1.ServerConnection.ResponseError.create(response);
+          throw err;
+        }
+        const data = await response.json();
+        const exportList = {};
+        const keys = Object.keys(data);
+        keys.forEach(function(key) {
+          const mimeType = data[key].output_mimetype;
+          exportList[key] = { output_mimetype: mimeType };
+        });
+        return exportList;
       }
     };
-  Hn.NbConvertManager = Ei;
+    exports2.NbConvertManager = NbConvertManager;
+  }
 });
-var ta = k((ea) => {
-  "use strict";
-  h();
-  Object.defineProperty(ea, "__esModule", { value: !0 });
+
+// node_modules/@jupyterlab/services/lib/session/session.js
+var require_session = __commonJS({
+  "node_modules/@jupyterlab/services/lib/session/session.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+  }
 });
-var ra = k((ot) => {
-  "use strict";
-  h();
-  Object.defineProperty(ot, "__esModule", { value: !0 });
-  ot.validateModels = ot.updateLegacySessionModel = ot.validateModel = void 0;
-  var $c = Tn(),
-    tn = Yt();
-  function na(n) {
-    tn.validateProperty(n, "id", "string"),
-      tn.validateProperty(n, "type", "string"),
-      tn.validateProperty(n, "name", "string"),
-      tn.validateProperty(n, "path", "string"),
-      tn.validateProperty(n, "kernel", "object"),
-      $c.validateModel(n.kernel);
-  }
-  ot.validateModel = na;
-  function Jc(n) {
-    n.path === void 0 &&
-      n.notebook !== void 0 &&
-      ((n.path = n.notebook.path), (n.type = "notebook"), (n.name = ""));
-  }
-  ot.updateLegacySessionModel = Jc;
-  function Gc(n) {
-    if (!Array.isArray(n)) throw new Error("Invalid session list");
-    n.forEach((e) => na(e));
-  }
-  ot.validateModels = Gc;
-});
-var Jn = k((ae) => {
-  "use strict";
-  h();
-  Object.defineProperty(ae, "__esModule", { value: !0 });
-  ae.updateSession =
-    ae.startSession =
-    ae.getSessionModel =
-    ae.shutdownSession =
-    ae.getSessionUrl =
-    ae.listRunning =
-    ae.SESSION_SERVICE_URL =
-      void 0;
-  var ge = De(),
-    Si = Ie(),
-    at = ra();
-  ae.SESSION_SERVICE_URL = "api/sessions";
-  async function zc(n = ge.ServerConnection.makeSettings()) {
-    let e = Si.URLExt.join(n.baseUrl, ae.SESSION_SERVICE_URL),
-      t = await ge.ServerConnection.makeRequest(e, {}, n);
-    if (t.status !== 200)
-      throw await ge.ServerConnection.ResponseError.create(t);
-    let r = await t.json();
-    if (!Array.isArray(r)) throw new Error("Invalid Session list");
-    return (
-      r.forEach((i) => {
-        at.updateLegacySessionModel(i), at.validateModel(i);
-      }),
-      r
-    );
-  }
-  ae.listRunning = zc;
-  function $n(n, e) {
-    return Si.URLExt.join(n, ae.SESSION_SERVICE_URL, e);
-  }
-  ae.getSessionUrl = $n;
-  async function Yc(n, e = ge.ServerConnection.makeSettings()) {
-    var t;
-    let r = $n(e.baseUrl, n),
-      i = { method: "DELETE" },
-      s = await ge.ServerConnection.makeRequest(r, i, e);
-    if (s.status === 404) {
-      let a =
-        (t = (await s.json()).message) !== null && t !== void 0
-          ? t
-          : `The session "${n}"" does not exist on the server`;
-      console.warn(a);
-    } else {
-      if (s.status === 410)
-        throw new ge.ServerConnection.ResponseError(
-          s,
-          "The kernel was deleted but the session was not"
-        );
-      if (s.status !== 204)
-        throw await ge.ServerConnection.ResponseError.create(s);
+
+// node_modules/@jupyterlab/services/lib/session/validate.js
+var require_validate5 = __commonJS({
+  "node_modules/@jupyterlab/services/lib/session/validate.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.validateModels = exports2.updateLegacySessionModel = exports2.validateModel = void 0;
+    var validate_1 = require_validate3();
+    var validate_2 = require_validate();
+    function validateModel(data) {
+      validate_2.validateProperty(data, "id", "string");
+      validate_2.validateProperty(data, "type", "string");
+      validate_2.validateProperty(data, "name", "string");
+      validate_2.validateProperty(data, "path", "string");
+      validate_2.validateProperty(data, "kernel", "object");
+      validate_1.validateModel(data.kernel);
     }
-  }
-  ae.shutdownSession = Yc;
-  async function Xc(n, e = ge.ServerConnection.makeSettings()) {
-    let t = $n(e.baseUrl, n),
-      r = await ge.ServerConnection.makeRequest(t, {}, e);
-    if (r.status !== 200)
-      throw await ge.ServerConnection.ResponseError.create(r);
-    let i = await r.json();
-    return at.updateLegacySessionModel(i), at.validateModel(i), i;
-  }
-  ae.getSessionModel = Xc;
-  async function Qc(n, e = ge.ServerConnection.makeSettings()) {
-    let t = Si.URLExt.join(e.baseUrl, ae.SESSION_SERVICE_URL),
-      r = { method: "POST", body: JSON.stringify(n) },
-      i = await ge.ServerConnection.makeRequest(t, r, e);
-    if (i.status !== 201)
-      throw await ge.ServerConnection.ResponseError.create(i);
-    let s = await i.json();
-    return at.updateLegacySessionModel(s), at.validateModel(s), s;
-  }
-  ae.startSession = Qc;
-  async function Zc(n, e = ge.ServerConnection.makeSettings()) {
-    let t = $n(e.baseUrl, n.id),
-      r = { method: "PATCH", body: JSON.stringify(n) },
-      i = await ge.ServerConnection.makeRequest(t, r, e);
-    if (i.status !== 200)
-      throw await ge.ServerConnection.ResponseError.create(i);
-    let s = await i.json();
-    return at.updateLegacySessionModel(s), at.validateModel(s), s;
-  }
-  ae.updateSession = Zc;
-});
-var sa = k((Gn) => {
-  "use strict";
-  h();
-  Object.defineProperty(Gn, "__esModule", { value: !0 });
-  Gn.SessionConnection = void 0;
-  var Qe = ce(),
-    ed = Ve(),
-    ia = Jn(),
-    td = Ne(),
-    wi = class {
-      constructor(e) {
-        var t, r, i, s;
-        (this._id = ""),
-          (this._path = ""),
-          (this._name = ""),
-          (this._type = ""),
-          (this._kernel = null),
-          (this._isDisposed = !1),
-          (this._disposed = new Qe.Signal(this)),
-          (this._kernelChanged = new Qe.Signal(this)),
-          (this._statusChanged = new Qe.Signal(this)),
-          (this._connectionStatusChanged = new Qe.Signal(this)),
-          (this._iopubMessage = new Qe.Signal(this)),
-          (this._unhandledMessage = new Qe.Signal(this)),
-          (this._anyMessage = new Qe.Signal(this)),
-          (this._propertyChanged = new Qe.Signal(this)),
-          (this._id = e.model.id),
-          (this._name = e.model.name),
-          (this._path = e.model.path),
-          (this._type = e.model.type),
-          (this._username = (t = e.username) !== null && t !== void 0 ? t : ""),
-          (this._clientId =
-            (r = e.clientId) !== null && r !== void 0 ? r : td.UUID.uuid4()),
-          (this._connectToKernel = e.connectToKernel),
-          (this._kernelConnectionOptions =
-            (i = e.kernelConnectionOptions) !== null && i !== void 0 ? i : {}),
-          (this.serverSettings =
-            (s = e.serverSettings) !== null && s !== void 0
-              ? s
-              : ed.ServerConnection.makeSettings()),
-          this.setupKernel(e.model.kernel);
+    exports2.validateModel = validateModel;
+    function updateLegacySessionModel(data) {
+      if (data.path === void 0 && data.notebook !== void 0) {
+        data.path = data.notebook.path;
+        data.type = "notebook";
+        data.name = "";
       }
+    }
+    exports2.updateLegacySessionModel = updateLegacySessionModel;
+    function validateModels(models) {
+      if (!Array.isArray(models)) {
+        throw new Error("Invalid session list");
+      }
+      models.forEach((d) => validateModel(d));
+    }
+    exports2.validateModels = validateModels;
+  }
+});
+
+// node_modules/@jupyterlab/services/lib/session/restapi.js
+var require_restapi3 = __commonJS({
+  "node_modules/@jupyterlab/services/lib/session/restapi.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.updateSession = exports2.startSession = exports2.getSessionModel = exports2.shutdownSession = exports2.getSessionUrl = exports2.listRunning = exports2.SESSION_SERVICE_URL = void 0;
+    var serverconnection_1 = require_serverconnection();
+    var coreutils_12 = require_lib();
+    var validate_1 = require_validate5();
+    exports2.SESSION_SERVICE_URL = "api/sessions";
+    async function listRunning(settings = serverconnection_1.ServerConnection.makeSettings()) {
+      const url = coreutils_12.URLExt.join(settings.baseUrl, exports2.SESSION_SERVICE_URL);
+      const response = await serverconnection_1.ServerConnection.makeRequest(url, {}, settings);
+      if (response.status !== 200) {
+        const err = await serverconnection_1.ServerConnection.ResponseError.create(response);
+        throw err;
+      }
+      const data = await response.json();
+      if (!Array.isArray(data)) {
+        throw new Error("Invalid Session list");
+      }
+      data.forEach((m) => {
+        validate_1.updateLegacySessionModel(m);
+        validate_1.validateModel(m);
+      });
+      return data;
+    }
+    exports2.listRunning = listRunning;
+    function getSessionUrl(baseUrl, id) {
+      return coreutils_12.URLExt.join(baseUrl, exports2.SESSION_SERVICE_URL, id);
+    }
+    exports2.getSessionUrl = getSessionUrl;
+    async function shutdownSession(id, settings = serverconnection_1.ServerConnection.makeSettings()) {
+      var _a;
+      const url = getSessionUrl(settings.baseUrl, id);
+      const init = { method: "DELETE" };
+      const response = await serverconnection_1.ServerConnection.makeRequest(url, init, settings);
+      if (response.status === 404) {
+        const data = await response.json();
+        const msg = (_a = data.message) !== null && _a !== void 0 ? _a : `The session "${id}"" does not exist on the server`;
+        console.warn(msg);
+      } else if (response.status === 410) {
+        throw new serverconnection_1.ServerConnection.ResponseError(response, "The kernel was deleted but the session was not");
+      } else if (response.status !== 204) {
+        const err = await serverconnection_1.ServerConnection.ResponseError.create(response);
+        throw err;
+      }
+    }
+    exports2.shutdownSession = shutdownSession;
+    async function getSessionModel(id, settings = serverconnection_1.ServerConnection.makeSettings()) {
+      const url = getSessionUrl(settings.baseUrl, id);
+      const response = await serverconnection_1.ServerConnection.makeRequest(url, {}, settings);
+      if (response.status !== 200) {
+        const err = await serverconnection_1.ServerConnection.ResponseError.create(response);
+        throw err;
+      }
+      const data = await response.json();
+      validate_1.updateLegacySessionModel(data);
+      validate_1.validateModel(data);
+      return data;
+    }
+    exports2.getSessionModel = getSessionModel;
+    async function startSession(options, settings = serverconnection_1.ServerConnection.makeSettings()) {
+      const url = coreutils_12.URLExt.join(settings.baseUrl, exports2.SESSION_SERVICE_URL);
+      const init = {
+        method: "POST",
+        body: JSON.stringify(options)
+      };
+      const response = await serverconnection_1.ServerConnection.makeRequest(url, init, settings);
+      if (response.status !== 201) {
+        const err = await serverconnection_1.ServerConnection.ResponseError.create(response);
+        throw err;
+      }
+      const data = await response.json();
+      validate_1.updateLegacySessionModel(data);
+      validate_1.validateModel(data);
+      return data;
+    }
+    exports2.startSession = startSession;
+    async function updateSession(model, settings = serverconnection_1.ServerConnection.makeSettings()) {
+      const url = getSessionUrl(settings.baseUrl, model.id);
+      const init = {
+        method: "PATCH",
+        body: JSON.stringify(model)
+      };
+      const response = await serverconnection_1.ServerConnection.makeRequest(url, init, settings);
+      if (response.status !== 200) {
+        const err = await serverconnection_1.ServerConnection.ResponseError.create(response);
+        throw err;
+      }
+      const data = await response.json();
+      validate_1.updateLegacySessionModel(data);
+      validate_1.validateModel(data);
+      return data;
+    }
+    exports2.updateSession = updateSession;
+  }
+});
+
+// node_modules/@jupyterlab/services/lib/session/default.js
+var require_default2 = __commonJS({
+  "node_modules/@jupyterlab/services/lib/session/default.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.SessionConnection = void 0;
+    var signaling_1 = require_dist3();
+    var __1 = require_lib3();
+    var restapi_1 = require_restapi3();
+    var coreutils_12 = require_dist4();
+    var SessionConnection = class {
+      /**
+       * Construct a new session.
+       */
+      constructor(options) {
+        var _a, _b, _c, _d;
+        this._id = "";
+        this._path = "";
+        this._name = "";
+        this._type = "";
+        this._kernel = null;
+        this._isDisposed = false;
+        this._disposed = new signaling_1.Signal(this);
+        this._kernelChanged = new signaling_1.Signal(this);
+        this._statusChanged = new signaling_1.Signal(this);
+        this._connectionStatusChanged = new signaling_1.Signal(this);
+        this._iopubMessage = new signaling_1.Signal(this);
+        this._unhandledMessage = new signaling_1.Signal(this);
+        this._anyMessage = new signaling_1.Signal(this);
+        this._propertyChanged = new signaling_1.Signal(this);
+        this._id = options.model.id;
+        this._name = options.model.name;
+        this._path = options.model.path;
+        this._type = options.model.type;
+        this._username = (_a = options.username) !== null && _a !== void 0 ? _a : "";
+        this._clientId = (_b = options.clientId) !== null && _b !== void 0 ? _b : coreutils_12.UUID.uuid4();
+        this._connectToKernel = options.connectToKernel;
+        this._kernelConnectionOptions = (_c = options.kernelConnectionOptions) !== null && _c !== void 0 ? _c : {};
+        this.serverSettings = (_d = options.serverSettings) !== null && _d !== void 0 ? _d : __1.ServerConnection.makeSettings();
+        this.setupKernel(options.model.kernel);
+      }
+      /**
+       * A signal emitted when the session is disposed.
+       */
       get disposed() {
         return this._disposed;
       }
+      /**
+       * A signal emitted when the kernel changes.
+       */
       get kernelChanged() {
         return this._kernelChanged;
       }
+      /**
+       * A signal proxied from the connection about the kernel status.
+       */
       get statusChanged() {
         return this._statusChanged;
       }
+      /**
+       * A signal proxied from the kernel about the connection status.
+       */
       get connectionStatusChanged() {
         return this._connectionStatusChanged;
       }
+      /**
+       * A signal proxied from the kernel about iopub kernel messages.
+       */
       get iopubMessage() {
         return this._iopubMessage;
       }
+      /**
+       * A signal proxied from the kernel for an unhandled kernel message.
+       */
       get unhandledMessage() {
         return this._unhandledMessage;
       }
+      /**
+       * A signal proxied from the kernel emitted for any kernel message.
+       *
+       * #### Notes
+       * The behavior is undefined if the message is modified during message
+       * handling. As such, it should be treated as read-only.
+       */
       get anyMessage() {
         return this._anyMessage;
       }
+      /**
+       * A signal emitted when a session property changes.
+       */
       get propertyChanged() {
         return this._propertyChanged;
       }
+      /**
+       * Get the session id.
+       */
       get id() {
         return this._id;
       }
+      /**
+       * Get the session kernel connection object.
+       *
+       * #### Notes
+       * This is a read-only property, and can be altered by [changeKernel].
+       */
       get kernel() {
         return this._kernel;
       }
+      /**
+       * Get the session path.
+       */
       get path() {
         return this._path;
       }
+      /**
+       * Get the session type.
+       */
       get type() {
         return this._type;
       }
+      /**
+       * Get the session name.
+       */
       get name() {
         return this._name;
       }
+      /**
+       * Get the model associated with the session.
+       */
       get model() {
         return {
           id: this.id,
           kernel: this.kernel && { id: this.kernel.id, name: this.kernel.name },
           path: this._path,
           type: this._type,
-          name: this._name,
+          name: this._name
         };
       }
+      /**
+       * Test whether the session has been disposed.
+       */
       get isDisposed() {
         return this._isDisposed;
       }
-      update(e) {
-        let t = this.model;
-        if (
-          ((this._path = e.path),
-          (this._name = e.name),
-          (this._type = e.type),
-          (this._kernel === null && e.kernel !== null) ||
-            (this._kernel !== null && e.kernel === null) ||
-            (this._kernel !== null &&
-              e.kernel !== null &&
-              this._kernel.id !== e.kernel.id))
-        ) {
-          this._kernel !== null && this._kernel.dispose();
-          let r = this._kernel || null;
-          this.setupKernel(e.kernel);
-          let i = this._kernel || null;
-          this._kernelChanged.emit({
-            name: "kernel",
-            oldValue: r,
-            newValue: i,
-          });
-        }
-        this._handleModelChange(t);
-      }
-      dispose() {
-        if (!this.isDisposed) {
-          if (((this._isDisposed = !0), this._disposed.emit(), this._kernel)) {
+      /**
+       * Update the session based on a session model from the server.
+       *
+       * #### Notes
+       * This only updates this session connection instance. Use `setPath`,
+       * `setName`, `setType`, and `changeKernel` to change the session values on
+       * the server.
+       */
+      update(model) {
+        const oldModel = this.model;
+        this._path = model.path;
+        this._name = model.name;
+        this._type = model.type;
+        if (this._kernel === null && model.kernel !== null || this._kernel !== null && model.kernel === null || this._kernel !== null && model.kernel !== null && this._kernel.id !== model.kernel.id) {
+          if (this._kernel !== null) {
             this._kernel.dispose();
-            let e = this._kernel;
-            this._kernel = null;
-            let t = this._kernel;
-            this._kernelChanged.emit({
-              name: "kernel",
-              oldValue: e,
-              newValue: t,
-            });
           }
-          Qe.Signal.clearData(this);
+          const oldValue = this._kernel || null;
+          this.setupKernel(model.kernel);
+          const newValue = this._kernel || null;
+          this._kernelChanged.emit({ name: "kernel", oldValue, newValue });
         }
+        this._handleModelChange(oldModel);
       }
-      async setPath(e) {
-        if (this.isDisposed) throw new Error("Session is disposed");
-        await this._patch({ path: e });
+      /**
+       * Dispose of the resources held by the session.
+       */
+      dispose() {
+        if (this.isDisposed) {
+          return;
+        }
+        this._isDisposed = true;
+        this._disposed.emit();
+        if (this._kernel) {
+          this._kernel.dispose();
+          const oldValue = this._kernel;
+          this._kernel = null;
+          const newValue = this._kernel;
+          this._kernelChanged.emit({ name: "kernel", oldValue, newValue });
+        }
+        signaling_1.Signal.clearData(this);
       }
-      async setName(e) {
-        if (this.isDisposed) throw new Error("Session is disposed");
-        await this._patch({ name: e });
+      /**
+       * Change the session path.
+       *
+       * @param path - The new session path.
+       *
+       * @returns A promise that resolves when the session has renamed.
+       *
+       * #### Notes
+       * This uses the Jupyter REST API, and the response is validated.
+       * The promise is fulfilled on a valid response and rejected otherwise.
+       */
+      async setPath(path2) {
+        if (this.isDisposed) {
+          throw new Error("Session is disposed");
+        }
+        await this._patch({ path: path2 });
       }
-      async setType(e) {
-        if (this.isDisposed) throw new Error("Session is disposed");
-        await this._patch({ type: e });
+      /**
+       * Change the session name.
+       */
+      async setName(name2) {
+        if (this.isDisposed) {
+          throw new Error("Session is disposed");
+        }
+        await this._patch({ name: name2 });
       }
-      async changeKernel(e) {
-        if (this.isDisposed) throw new Error("Session is disposed");
-        return await this._patch({ kernel: e }), this.kernel;
+      /**
+       * Change the session type.
+       */
+      async setType(type) {
+        if (this.isDisposed) {
+          throw new Error("Session is disposed");
+        }
+        await this._patch({ type });
       }
+      /**
+       * Change the kernel.
+       *
+       * @params options - The name or id of the new kernel.
+       *
+       * #### Notes
+       * This shuts down the existing kernel and creates a new kernel,
+       * keeping the existing session ID and session path.
+       */
+      async changeKernel(options) {
+        if (this.isDisposed) {
+          throw new Error("Session is disposed");
+        }
+        await this._patch({ kernel: options });
+        return this.kernel;
+      }
+      /**
+       * Kill the kernel and shutdown the session.
+       *
+       * @returns - The promise fulfilled on a valid response from the server.
+       *
+       * #### Notes
+       * Uses the [Jupyter Notebook API](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/jupyter/notebook/master/notebook/services/api/api.yaml#!/sessions), and validates the response.
+       * Disposes of the session and emits a [sessionDied] signal on success.
+       */
       async shutdown() {
-        if (this.isDisposed) throw new Error("Session is disposed");
-        await ia.shutdownSession(this.id, this.serverSettings), this.dispose();
+        if (this.isDisposed) {
+          throw new Error("Session is disposed");
+        }
+        await restapi_1.shutdownSession(this.id, this.serverSettings);
+        this.dispose();
       }
-      setupKernel(e) {
-        if (e === null) {
+      /**
+       * Create a new kernel connection and connect to its signals.
+       *
+       * #### Notes
+       * This method is not meant to be subclassed.
+       */
+      setupKernel(model) {
+        if (model === null) {
           this._kernel = null;
           return;
         }
-        let t = this._connectToKernel(
-          Object.assign(Object.assign({}, this._kernelConnectionOptions), {
-            model: e,
-            username: this._username,
-            clientId: this._clientId,
-            serverSettings: this.serverSettings,
-          })
-        );
-        (this._kernel = t),
-          t.statusChanged.connect(this.onKernelStatus, this),
-          t.connectionStatusChanged.connect(
-            this.onKernelConnectionStatus,
-            this
-          ),
-          t.unhandledMessage.connect(this.onUnhandledMessage, this),
-          t.iopubMessage.connect(this.onIOPubMessage, this),
-          t.anyMessage.connect(this.onAnyMessage, this);
+        const kc = this._connectToKernel(Object.assign(Object.assign({}, this._kernelConnectionOptions), { model, username: this._username, clientId: this._clientId, serverSettings: this.serverSettings }));
+        this._kernel = kc;
+        kc.statusChanged.connect(this.onKernelStatus, this);
+        kc.connectionStatusChanged.connect(this.onKernelConnectionStatus, this);
+        kc.unhandledMessage.connect(this.onUnhandledMessage, this);
+        kc.iopubMessage.connect(this.onIOPubMessage, this);
+        kc.anyMessage.connect(this.onAnyMessage, this);
       }
-      onKernelStatus(e, t) {
-        this._statusChanged.emit(t);
+      /**
+       * Handle to changes in the Kernel status.
+       */
+      onKernelStatus(sender, state) {
+        this._statusChanged.emit(state);
       }
-      onKernelConnectionStatus(e, t) {
-        this._connectionStatusChanged.emit(t);
+      /**
+       * Handle to changes in the Kernel status.
+       */
+      onKernelConnectionStatus(sender, state) {
+        this._connectionStatusChanged.emit(state);
       }
-      onIOPubMessage(e, t) {
-        this._iopubMessage.emit(t);
+      /**
+       * Handle iopub kernel messages.
+       */
+      onIOPubMessage(sender, msg) {
+        this._iopubMessage.emit(msg);
       }
-      onUnhandledMessage(e, t) {
-        this._unhandledMessage.emit(t);
+      /**
+       * Handle unhandled kernel messages.
+       */
+      onUnhandledMessage(sender, msg) {
+        this._unhandledMessage.emit(msg);
       }
-      onAnyMessage(e, t) {
-        this._anyMessage.emit(t);
+      /**
+       * Handle any kernel messages.
+       */
+      onAnyMessage(sender, args) {
+        this._anyMessage.emit(args);
       }
-      async _patch(e) {
-        let t = await ia.updateSession(
-          Object.assign(Object.assign({}, e), { id: this._id }),
-          this.serverSettings
-        );
-        return this.update(t), t;
+      /**
+       * Send a PATCH to the server, updating the session path or the kernel.
+       */
+      async _patch(body) {
+        const model = await restapi_1.updateSession(Object.assign(Object.assign({}, body), { id: this._id }), this.serverSettings);
+        this.update(model);
+        return model;
       }
-      _handleModelChange(e) {
-        e.name !== this._name && this._propertyChanged.emit("name"),
-          e.type !== this._type && this._propertyChanged.emit("type"),
-          e.path !== this._path && this._propertyChanged.emit("path");
+      /**
+       * Handle a change to the model.
+       */
+      _handleModelChange(oldModel) {
+        if (oldModel.name !== this._name) {
+          this._propertyChanged.emit("name");
+        }
+        if (oldModel.type !== this._type) {
+          this._propertyChanged.emit("type");
+        }
+        if (oldModel.path !== this._path) {
+          this._propertyChanged.emit("path");
+        }
       }
     };
-  Gn.SessionConnection = wi;
+    exports2.SessionConnection = SessionConnection;
+  }
 });
-var la = k((zn) => {
-  "use strict";
-  h();
-  Object.defineProperty(zn, "__esModule", { value: !0 });
-  zn.SessionManager = void 0;
-  var oa = ct(),
-    nd = Qt(),
-    aa = ce(),
-    rd = De(),
-    id = Zt(),
-    sd = sa(),
-    nn = Jn(),
-    Ii = class extends id.BaseManager {
-      constructor(e) {
-        var t;
-        super(e),
-          (this._isReady = !1),
-          (this._sessionConnections = new Set()),
-          (this._models = new Map()),
-          (this._runningChanged = new aa.Signal(this)),
-          (this._connectionFailure = new aa.Signal(this)),
-          (this._connectToKernel = (r) => this._kernelManager.connectTo(r)),
-          (this._kernelManager = e.kernelManager),
-          (this._pollModels = new nd.Poll({
-            auto: !1,
-            factory: () => this.requestRunning(),
-            frequency: { interval: 10 * 1e3, backoff: !0, max: 300 * 1e3 },
-            name: "@jupyterlab/services:SessionManager#models",
-            standby:
-              (t = e.standby) !== null && t !== void 0 ? t : "when-hidden",
-          })),
-          (this._ready = (async () => {
-            await this._pollModels.start(),
-              await this._pollModels.tick,
-              await this._kernelManager.ready,
-              (this._isReady = !0);
-          })());
+
+// node_modules/@jupyterlab/services/lib/session/manager.js
+var require_manager3 = __commonJS({
+  "node_modules/@jupyterlab/services/lib/session/manager.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.SessionManager = void 0;
+    var algorithm_1 = require_dist();
+    var polling_1 = require_dist5();
+    var signaling_1 = require_dist3();
+    var serverconnection_1 = require_serverconnection();
+    var basemanager_1 = require_basemanager();
+    var default_1 = require_default2();
+    var restapi_1 = require_restapi3();
+    var SessionManager = class extends basemanager_1.BaseManager {
+      /**
+       * Construct a new session manager.
+       *
+       * @param options - The default options for each session.
+       */
+      constructor(options) {
+        var _a;
+        super(options);
+        this._isReady = false;
+        this._sessionConnections = /* @__PURE__ */ new Set();
+        this._models = /* @__PURE__ */ new Map();
+        this._runningChanged = new signaling_1.Signal(this);
+        this._connectionFailure = new signaling_1.Signal(this);
+        this._connectToKernel = (options2) => {
+          return this._kernelManager.connectTo(options2);
+        };
+        this._kernelManager = options.kernelManager;
+        this._pollModels = new polling_1.Poll({
+          auto: false,
+          factory: () => this.requestRunning(),
+          frequency: {
+            interval: 10 * 1e3,
+            backoff: true,
+            max: 300 * 1e3
+          },
+          name: `@jupyterlab/services:SessionManager#models`,
+          standby: (_a = options.standby) !== null && _a !== void 0 ? _a : "when-hidden"
+        });
+        this._ready = (async () => {
+          await this._pollModels.start();
+          await this._pollModels.tick;
+          await this._kernelManager.ready;
+          this._isReady = true;
+        })();
       }
+      /**
+       * Test whether the manager is ready.
+       */
       get isReady() {
         return this._isReady;
       }
+      /**
+       * A promise that fulfills when the manager is ready.
+       */
       get ready() {
         return this._ready;
       }
+      /**
+       * A signal emitted when the running sessions change.
+       */
       get runningChanged() {
         return this._runningChanged;
       }
+      /**
+       * A signal emitted when there is a connection failure.
+       */
       get connectionFailure() {
         return this._connectionFailure;
       }
+      /**
+       * Dispose of the resources used by the manager.
+       */
       dispose() {
-        this.isDisposed ||
-          (this._models.clear(),
-          this._sessionConnections.forEach((e) => e.dispose()),
-          this._pollModels.dispose(),
-          super.dispose());
-      }
-      connectTo(e) {
-        let t = new sd.SessionConnection(
-          Object.assign(Object.assign({}, e), {
-            connectToKernel: this._connectToKernel,
-            serverSettings: this.serverSettings,
-          })
-        );
-        return (
-          this._onStarted(t),
-          this._models.has(e.model.id) || this.refreshRunning().catch(() => {}),
-          t
-        );
-      }
-      running() {
-        return oa.iter([...this._models.values()]);
-      }
-      async refreshRunning() {
-        await this._pollModels.refresh(), await this._pollModels.tick;
-      }
-      async startNew(e, t = {}) {
-        let r = await nn.startSession(e, this.serverSettings);
-        return (
-          await this.refreshRunning(),
-          this.connectTo(Object.assign(Object.assign({}, t), { model: r }))
-        );
-      }
-      async shutdown(e) {
-        await nn.shutdownSession(e, this.serverSettings),
-          await this.refreshRunning();
-      }
-      async shutdownAll() {
-        await this.refreshRunning(),
-          await Promise.all(
-            [...this._models.keys()].map((e) =>
-              nn.shutdownSession(e, this.serverSettings)
-            )
-          ),
-          await this.refreshRunning();
-      }
-      async stopIfNeeded(e) {
-        try {
-          let r = (await nn.listRunning(this.serverSettings)).filter(
-            (i) => i.path === e
-          );
-          if (r.length === 1) {
-            let i = r[0].id;
-            await this.shutdown(i);
-          }
-        } catch (t) {}
-      }
-      async findById(e) {
-        return this._models.has(e)
-          ? this._models.get(e)
-          : (await this.refreshRunning(), this._models.get(e));
-      }
-      async findByPath(e) {
-        for (let t of this._models.values()) if (t.path === e) return t;
-        await this.refreshRunning();
-        for (let t of this._models.values()) if (t.path === e) return t;
-      }
-      async requestRunning() {
-        var e, t;
-        let r;
-        try {
-          r = await nn.listRunning(this.serverSettings);
-        } catch (i) {
-          throw (
-            ((i instanceof rd.ServerConnection.NetworkError ||
-              ((e = i.response) === null || e === void 0
-                ? void 0
-                : e.status) === 503 ||
-              ((t = i.response) === null || t === void 0
-                ? void 0
-                : t.status) === 424) &&
-              this._connectionFailure.emit(i),
-            i)
-          );
+        if (this.isDisposed) {
+          return;
         }
-        this.isDisposed ||
-          (this._models.size === r.length &&
-            oa.every(r, (i) => {
-              var s, o, a, l;
-              let u = this._models.get(i.id);
-              return u
-                ? ((s = u.kernel) === null || s === void 0 ? void 0 : s.id) ===
-                    ((o = i.kernel) === null || o === void 0 ? void 0 : o.id) &&
-                    ((a = u.kernel) === null || a === void 0
-                      ? void 0
-                      : a.name) ===
-                      ((l = i.kernel) === null || l === void 0
-                        ? void 0
-                        : l.name) &&
-                    u.name === i.name &&
-                    u.path === i.path &&
-                    u.type === i.type
-                : !1;
-            })) ||
-          ((this._models = new Map(r.map((i) => [i.id, i]))),
-          this._sessionConnections.forEach((i) => {
-            this._models.has(i.id)
-              ? i.update(this._models.get(i.id))
-              : i.dispose();
-          }),
-          this._runningChanged.emit(r));
+        this._models.clear();
+        this._sessionConnections.forEach((x) => x.dispose());
+        this._pollModels.dispose();
+        super.dispose();
       }
-      _onStarted(e) {
-        this._sessionConnections.add(e),
-          e.disposed.connect(this._onDisposed, this),
-          e.propertyChanged.connect(this._onChanged, this),
-          e.kernelChanged.connect(this._onChanged, this);
+      /*
+       * Connect to a running session.  See also [[connectToSession]].
+       */
+      connectTo(options) {
+        const sessionConnection = new default_1.SessionConnection(Object.assign(Object.assign({}, options), { connectToKernel: this._connectToKernel, serverSettings: this.serverSettings }));
+        this._onStarted(sessionConnection);
+        if (!this._models.has(options.model.id)) {
+          void this.refreshRunning().catch(() => {
+          });
+        }
+        return sessionConnection;
       }
-      _onDisposed(e) {
-        this._sessionConnections.delete(e),
-          this.refreshRunning().catch(() => {});
+      /**
+       * Create an iterator over the most recent running sessions.
+       *
+       * @returns A new iterator over the running sessions.
+       */
+      running() {
+        return algorithm_1.iter([...this._models.values()]);
+      }
+      /**
+       * Force a refresh of the running sessions.
+       *
+       * @returns A promise that with the list of running sessions.
+       *
+       * #### Notes
+       * This is not typically meant to be called by the user, since the
+       * manager maintains its own internal state.
+       */
+      async refreshRunning() {
+        await this._pollModels.refresh();
+        await this._pollModels.tick;
+      }
+      /**
+       * Start a new session.  See also [[startNewSession]].
+       *
+       * @param createOptions - Options for creating the session
+       *
+       * @param connectOptions - Options for connecting to the session
+       */
+      async startNew(createOptions, connectOptions = {}) {
+        const model = await restapi_1.startSession(createOptions, this.serverSettings);
+        await this.refreshRunning();
+        return this.connectTo(Object.assign(Object.assign({}, connectOptions), { model }));
+      }
+      /**
+       * Shut down a session by id.
+       */
+      async shutdown(id) {
+        await restapi_1.shutdownSession(id, this.serverSettings);
+        await this.refreshRunning();
+      }
+      /**
+       * Shut down all sessions.
+       *
+       * @returns A promise that resolves when all of the kernels are shut down.
+       */
+      async shutdownAll() {
+        await this.refreshRunning();
+        await Promise.all([...this._models.keys()].map((id) => restapi_1.shutdownSession(id, this.serverSettings)));
+        await this.refreshRunning();
+      }
+      /**
+       * Find a session associated with a path and stop it if it is the only session
+       * using that kernel.
+       *
+       * @param path - The path in question.
+       *
+       * @returns A promise that resolves when the relevant sessions are stopped.
+       */
+      async stopIfNeeded(path2) {
+        try {
+          const sessions = await restapi_1.listRunning(this.serverSettings);
+          const matches = sessions.filter((value) => value.path === path2);
+          if (matches.length === 1) {
+            const id = matches[0].id;
+            await this.shutdown(id);
+          }
+        } catch (error) {
+        }
+      }
+      /**
+       * Find a session by id.
+       */
+      async findById(id) {
+        if (this._models.has(id)) {
+          return this._models.get(id);
+        }
+        await this.refreshRunning();
+        return this._models.get(id);
+      }
+      /**
+       * Find a session by path.
+       */
+      async findByPath(path2) {
+        for (const m of this._models.values()) {
+          if (m.path === path2) {
+            return m;
+          }
+        }
+        await this.refreshRunning();
+        for (const m of this._models.values()) {
+          if (m.path === path2) {
+            return m;
+          }
+        }
+        return void 0;
+      }
+      /**
+       * Execute a request to the server to poll running kernels and update state.
+       */
+      async requestRunning() {
+        var _a, _b;
+        let models;
+        try {
+          models = await restapi_1.listRunning(this.serverSettings);
+        } catch (err) {
+          if (err instanceof serverconnection_1.ServerConnection.NetworkError || ((_a = err.response) === null || _a === void 0 ? void 0 : _a.status) === 503 || ((_b = err.response) === null || _b === void 0 ? void 0 : _b.status) === 424) {
+            this._connectionFailure.emit(err);
+          }
+          throw err;
+        }
+        if (this.isDisposed) {
+          return;
+        }
+        if (this._models.size === models.length && algorithm_1.every(models, (x) => {
+          var _a2, _b2, _c, _d;
+          const existing = this._models.get(x.id);
+          if (!existing) {
+            return false;
+          }
+          return ((_a2 = existing.kernel) === null || _a2 === void 0 ? void 0 : _a2.id) === ((_b2 = x.kernel) === null || _b2 === void 0 ? void 0 : _b2.id) && ((_c = existing.kernel) === null || _c === void 0 ? void 0 : _c.name) === ((_d = x.kernel) === null || _d === void 0 ? void 0 : _d.name) && existing.name === x.name && existing.path === x.path && existing.type === x.type;
+        })) {
+          return;
+        }
+        this._models = new Map(models.map((x) => [x.id, x]));
+        this._sessionConnections.forEach((sc) => {
+          if (this._models.has(sc.id)) {
+            sc.update(this._models.get(sc.id));
+          } else {
+            sc.dispose();
+          }
+        });
+        this._runningChanged.emit(models);
+      }
+      /**
+       * Handle a session starting.
+       */
+      _onStarted(sessionConnection) {
+        this._sessionConnections.add(sessionConnection);
+        sessionConnection.disposed.connect(this._onDisposed, this);
+        sessionConnection.propertyChanged.connect(this._onChanged, this);
+        sessionConnection.kernelChanged.connect(this._onChanged, this);
+      }
+      _onDisposed(sessionConnection) {
+        this._sessionConnections.delete(sessionConnection);
+        void this.refreshRunning().catch(() => {
+        });
       }
       _onChanged() {
-        this.refreshRunning().catch(() => {});
+        void this.refreshRunning().catch(() => {
+        });
       }
     };
-  zn.SessionManager = Ii;
+    exports2.SessionManager = SessionManager;
+  }
 });
-var Ci = k((ve) => {
-  "use strict";
-  h();
-  var ua =
-      (ve && ve.__createBinding) ||
-      (Object.create
-        ? function (n, e, t, r) {
-            r === void 0 && (r = t),
-              Object.defineProperty(n, r, {
-                enumerable: !0,
-                get: function () {
-                  return e[t];
-                },
-              });
-          }
-        : function (n, e, t, r) {
-            r === void 0 && (r = t), (n[r] = e[t]);
-          }),
-    od =
-      (ve && ve.__setModuleDefault) ||
-      (Object.create
-        ? function (n, e) {
-            Object.defineProperty(n, "default", { enumerable: !0, value: e });
-          }
-        : function (n, e) {
-            n.default = e;
-          }),
-    ca =
-      (ve && ve.__importStar) ||
-      function (n) {
-        if (n && n.__esModule) return n;
-        var e = {};
-        if (n != null)
-          for (var t in n)
-            t !== "default" &&
-              Object.prototype.hasOwnProperty.call(n, t) &&
-              ua(e, n, t);
-        return od(e, n), e;
-      },
-    ad =
-      (ve && ve.__exportStar) ||
-      function (n, e) {
-        for (var t in n)
-          t !== "default" &&
-            !Object.prototype.hasOwnProperty.call(e, t) &&
-            ua(e, n, t);
-      };
-  Object.defineProperty(ve, "__esModule", { value: !0 });
-  ve.SessionAPI = ve.Session = void 0;
-  var ld = ca(ta());
-  ve.Session = ld;
-  var ud = ca(Jn());
-  ve.SessionAPI = ud;
-  ad(la(), ve);
-});
-var da = k((Yn) => {
-  "use strict";
-  h();
-  Object.defineProperty(Yn, "__esModule", { value: !0 });
-  Yn.DataConnector = void 0;
-  var Ri = class {
-    async list(e) {
-      throw new Error("DataConnector#list method has not been implemented.");
-    }
-    async remove(e) {
-      throw new Error("DataConnector#remove method has not been implemented.");
-    }
-    async save(e, t) {
-      throw new Error("DataConnector#save method has not been implemented.");
-    }
-  };
-  Yn.DataConnector = Ri;
-});
-var fa = k((ha) => {
-  "use strict";
-  h();
-  Object.defineProperty(ha, "__esModule", { value: !0 });
-});
-var ga = k((Qn) => {
-  "use strict";
-  h();
-  Object.defineProperty(Qn, "__esModule", { value: !0 });
-  Qn.RestorablePool = void 0;
-  var cd = Ne(),
-    pa = xr(),
-    Xn = ce(),
-    Ai = class {
-      constructor(e) {
-        (this._added = new Xn.Signal(this)),
-          (this._current = null),
-          (this._currentChanged = new Xn.Signal(this)),
-          (this._hasRestored = !1),
-          (this._isDisposed = !1),
-          (this._objects = new Set()),
-          (this._restore = null),
-          (this._restored = new cd.PromiseDelegate()),
-          (this._updated = new Xn.Signal(this)),
-          (this.namespace = e.namespace);
+
+// node_modules/@jupyterlab/services/lib/session/index.js
+var require_session2 = __commonJS({
+  "node_modules/@jupyterlab/services/lib/session/index.js"(exports2) {
+    "use strict";
+    init_process_development();
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      Object.defineProperty(o, k2, { enumerable: true, get: function() {
+        return m[k];
+      } });
+    } : function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      o[k2] = m[k];
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || function(mod) {
+      if (mod && mod.__esModule)
+        return mod;
+      var result = {};
+      if (mod != null) {
+        for (var k in mod)
+          if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+            __createBinding(result, mod, k);
       }
+      __setModuleDefault(result, mod);
+      return result;
+    };
+    var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
+      for (var p in m)
+        if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p))
+          __createBinding(exports3, m, p);
+    };
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.SessionAPI = exports2.Session = void 0;
+    var Session = __importStar(require_session());
+    exports2.Session = Session;
+    var SessionAPI = __importStar(require_restapi3());
+    exports2.SessionAPI = SessionAPI;
+    __exportStar(require_manager3(), exports2);
+  }
+});
+
+// node_modules/@jupyterlab/statedb/lib/dataconnector.js
+var require_dataconnector = __commonJS({
+  "node_modules/@jupyterlab/statedb/lib/dataconnector.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.DataConnector = void 0;
+    var DataConnector = class {
+      /**
+       * Retrieve the list of items available from the data connector.
+       *
+       * @param query - The optional query filter to apply to the connector request.
+       *
+       * @returns A promise that always rejects with an error.
+       *
+       * #### Notes
+       * Subclasses should reimplement if they support a back-end that can list.
+       */
+      async list(query) {
+        throw new Error("DataConnector#list method has not been implemented.");
+      }
+      /**
+       * Remove a value using the data connector.
+       *
+       * @param id - The identifier for the data being removed.
+       *
+       * @returns A promise that always rejects with an error.
+       *
+       * #### Notes
+       * Subclasses should reimplement if they support a back-end that can remove.
+       */
+      async remove(id) {
+        throw new Error("DataConnector#remove method has not been implemented.");
+      }
+      /**
+       * Save a value using the data connector.
+       *
+       * @param id - The identifier for the data being saved.
+       *
+       * @param value - The data being saved.
+       *
+       * @returns A promise that always rejects with an error.
+       *
+       * #### Notes
+       * Subclasses should reimplement if they support a back-end that can save.
+       */
+      async save(id, value) {
+        throw new Error("DataConnector#save method has not been implemented.");
+      }
+    };
+    exports2.DataConnector = DataConnector;
+  }
+});
+
+// node_modules/@jupyterlab/statedb/lib/interfaces.js
+var require_interfaces2 = __commonJS({
+  "node_modules/@jupyterlab/statedb/lib/interfaces.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+  }
+});
+
+// node_modules/@jupyterlab/statedb/lib/restorablepool.js
+var require_restorablepool = __commonJS({
+  "node_modules/@jupyterlab/statedb/lib/restorablepool.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.RestorablePool = void 0;
+    var coreutils_12 = require_dist4();
+    var properties_1 = require_dist2();
+    var signaling_1 = require_dist3();
+    var RestorablePool = class {
+      /**
+       * Create a new restorable pool.
+       *
+       * @param options - The instantiation options for a restorable pool.
+       */
+      constructor(options) {
+        this._added = new signaling_1.Signal(this);
+        this._current = null;
+        this._currentChanged = new signaling_1.Signal(this);
+        this._hasRestored = false;
+        this._isDisposed = false;
+        this._objects = /* @__PURE__ */ new Set();
+        this._restore = null;
+        this._restored = new coreutils_12.PromiseDelegate();
+        this._updated = new signaling_1.Signal(this);
+        this.namespace = options.namespace;
+      }
+      /**
+       * A signal emitted when an object object is added.
+       *
+       * #### Notes
+       * This signal will only fire when an object is added to the pool.
+       * It will not fire if an object injected into the pool.
+       */
       get added() {
         return this._added;
       }
+      /**
+       * The current object.
+       *
+       * #### Notes
+       * The restorable pool does not set `current`. It is intended for client use.
+       *
+       * If `current` is set to an object that does not exist in the pool, it is a
+       * no-op.
+       */
       get current() {
         return this._current;
       }
-      set current(e) {
-        this._current !== e &&
-          e !== null &&
-          this._objects.has(e) &&
-          ((this._current = e), this._currentChanged.emit(this._current));
+      set current(obj) {
+        if (this._current === obj) {
+          return;
+        }
+        if (obj !== null && this._objects.has(obj)) {
+          this._current = obj;
+          this._currentChanged.emit(this._current);
+        }
       }
+      /**
+       * A signal emitted when the current widget changes.
+       */
       get currentChanged() {
         return this._currentChanged;
       }
+      /**
+       * Test whether the pool is disposed.
+       */
       get isDisposed() {
         return this._isDisposed;
       }
+      /**
+       * A promise resolved when the restorable pool has been restored.
+       */
       get restored() {
         return this._restored.promise;
       }
+      /**
+       * The number of objects held by the pool.
+       */
       get size() {
         return this._objects.size;
       }
+      /**
+       * A signal emitted when an object is updated.
+       */
       get updated() {
         return this._updated;
       }
-      async add(e) {
-        var t, r;
-        if (e.isDisposed) {
-          let i = "A disposed object cannot be added.";
-          throw (console.warn(i, e), new Error(i));
+      /**
+       * Add a new object to the pool.
+       *
+       * @param obj - The object object being added.
+       *
+       * #### Notes
+       * The object passed into the pool is added synchronously; its existence in
+       * the pool can be checked with the `has()` method. The promise this method
+       * returns resolves after the object has been added and saved to an underlying
+       * restoration connector, if one is available.
+       */
+      async add(obj) {
+        var _a, _b;
+        if (obj.isDisposed) {
+          const warning = "A disposed object cannot be added.";
+          console.warn(warning, obj);
+          throw new Error(warning);
         }
-        if (this._objects.has(e)) {
-          let i = "This object already exists in the pool.";
-          throw (console.warn(i, e), new Error(i));
+        if (this._objects.has(obj)) {
+          const warning = "This object already exists in the pool.";
+          console.warn(warning, obj);
+          throw new Error(warning);
         }
-        if (
-          (this._objects.add(e),
-          e.disposed.connect(this._onInstanceDisposed, this),
-          !Ge.injectedProperty.get(e))
-        ) {
-          if (this._restore) {
-            let { connector: i } = this._restore,
-              s = this._restore.name(e);
-            if (s) {
-              let o = `${this.namespace}:${s}`,
-                a =
-                  (r = (t = this._restore).args) === null || r === void 0
-                    ? void 0
-                    : r.call(t, e);
-              Ge.nameProperty.set(e, o), await i.save(o, { data: a });
-            }
-          }
-          this._added.emit(e);
-        }
-      }
-      dispose() {
-        this.isDisposed ||
-          ((this._current = null),
-          (this._isDisposed = !0),
-          this._objects.clear(),
-          Xn.Signal.clearData(this));
-      }
-      find(e) {
-        let t = this._objects.values();
-        for (let r of t) if (e(r)) return r;
-      }
-      forEach(e) {
-        this._objects.forEach(e);
-      }
-      filter(e) {
-        let t = [];
-        return (
-          this.forEach((r) => {
-            e(r) && t.push(r);
-          }),
-          t
-        );
-      }
-      inject(e) {
-        return Ge.injectedProperty.set(e, !0), this.add(e);
-      }
-      has(e) {
-        return this._objects.has(e);
-      }
-      async restore(e) {
-        if (this._hasRestored)
-          throw new Error("This pool has already been restored.");
-        this._hasRestored = !0;
-        let { command: t, connector: r, registry: i, when: s } = e,
-          o = this.namespace,
-          a = s ? [r.list(o)].concat(s) : [r.list(o)];
-        this._restore = e;
-        let [l] = await Promise.all(a),
-          u = await Promise.all(
-            l.ids.map(async (f, c) => {
-              let C = l.values[c],
-                M = C && C.data;
-              return M === void 0
-                ? r.remove(f)
-                : i.execute(t, M).catch(() => r.remove(f));
-            })
-          );
-        return this._restored.resolve(), u;
-      }
-      async save(e) {
-        var t, r;
-        let i = Ge.injectedProperty.get(e);
-        if (!this._restore || !this.has(e) || i) return;
-        let { connector: s } = this._restore,
-          o = this._restore.name(e),
-          a = Ge.nameProperty.get(e),
-          l = o ? `${this.namespace}:${o}` : "";
-        if (
-          (a && a !== l && (await s.remove(a)), Ge.nameProperty.set(e, l), l)
-        ) {
-          let u =
-            (r = (t = this._restore).args) === null || r === void 0
-              ? void 0
-              : r.call(t, e);
-          await s.save(l, { data: u });
-        }
-        a !== l && this._updated.emit(e);
-      }
-      _onInstanceDisposed(e) {
-        if (
-          (this._objects.delete(e),
-          e === this._current &&
-            ((this._current = null), this._currentChanged.emit(this._current)),
-          Ge.injectedProperty.get(e) || !this._restore)
-        )
+        this._objects.add(obj);
+        obj.disposed.connect(this._onInstanceDisposed, this);
+        if (Private.injectedProperty.get(obj)) {
           return;
-        let { connector: t } = this._restore,
-          r = Ge.nameProperty.get(e);
-        r && t.remove(r);
+        }
+        if (this._restore) {
+          const { connector } = this._restore;
+          const objName = this._restore.name(obj);
+          if (objName) {
+            const name2 = `${this.namespace}:${objName}`;
+            const data = (_b = (_a = this._restore).args) === null || _b === void 0 ? void 0 : _b.call(_a, obj);
+            Private.nameProperty.set(obj, name2);
+            await connector.save(name2, { data });
+          }
+        }
+        this._added.emit(obj);
+      }
+      /**
+       * Dispose of the resources held by the pool.
+       *
+       * #### Notes
+       * Disposing a pool does not affect the underlying data in the data connector,
+       * it simply disposes the client-side pool without making any connector calls.
+       */
+      dispose() {
+        if (this.isDisposed) {
+          return;
+        }
+        this._current = null;
+        this._isDisposed = true;
+        this._objects.clear();
+        signaling_1.Signal.clearData(this);
+      }
+      /**
+       * Find the first object in the pool that satisfies a filter function.
+       *
+       * @param - fn The filter function to call on each object.
+       */
+      find(fn) {
+        const values = this._objects.values();
+        for (const value of values) {
+          if (fn(value)) {
+            return value;
+          }
+        }
+        return void 0;
+      }
+      /**
+       * Iterate through each object in the pool.
+       *
+       * @param fn - The function to call on each object.
+       */
+      forEach(fn) {
+        this._objects.forEach(fn);
+      }
+      /**
+       * Filter the objects in the pool based on a predicate.
+       *
+       * @param fn - The function by which to filter.
+       */
+      filter(fn) {
+        const filtered = [];
+        this.forEach((obj) => {
+          if (fn(obj)) {
+            filtered.push(obj);
+          }
+        });
+        return filtered;
+      }
+      /**
+       * Inject an object into the restorable pool without the pool handling its
+       * restoration lifecycle.
+       *
+       * @param obj - The object to inject into the pool.
+       */
+      inject(obj) {
+        Private.injectedProperty.set(obj, true);
+        return this.add(obj);
+      }
+      /**
+       * Check if this pool has the specified object.
+       *
+       * @param obj - The object whose existence is being checked.
+       */
+      has(obj) {
+        return this._objects.has(obj);
+      }
+      /**
+       * Restore the objects in this pool's namespace.
+       *
+       * @param options - The configuration options that describe restoration.
+       *
+       * @returns A promise that resolves when restoration has completed.
+       *
+       * #### Notes
+       * This function should almost never be invoked by client code. Its primary
+       * use case is to be invoked by a layout restorer plugin that handles
+       * multiple restorable pools and, when ready, asks them each to restore their
+       * respective objects.
+       */
+      async restore(options) {
+        if (this._hasRestored) {
+          throw new Error("This pool has already been restored.");
+        }
+        this._hasRestored = true;
+        const { command, connector, registry, when } = options;
+        const namespace = this.namespace;
+        const promises = when ? [connector.list(namespace)].concat(when) : [connector.list(namespace)];
+        this._restore = options;
+        const [saved] = await Promise.all(promises);
+        const values = await Promise.all(saved.ids.map(async (id, index) => {
+          const value = saved.values[index];
+          const args = value && value.data;
+          if (args === void 0) {
+            return connector.remove(id);
+          }
+          return registry.execute(command, args).catch(() => connector.remove(id));
+        }));
+        this._restored.resolve();
+        return values;
+      }
+      /**
+       * Save the restore data for a given object.
+       *
+       * @param obj - The object being saved.
+       */
+      async save(obj) {
+        var _a, _b;
+        const injected = Private.injectedProperty.get(obj);
+        if (!this._restore || !this.has(obj) || injected) {
+          return;
+        }
+        const { connector } = this._restore;
+        const objName = this._restore.name(obj);
+        const oldName = Private.nameProperty.get(obj);
+        const newName = objName ? `${this.namespace}:${objName}` : "";
+        if (oldName && oldName !== newName) {
+          await connector.remove(oldName);
+        }
+        Private.nameProperty.set(obj, newName);
+        if (newName) {
+          const data = (_b = (_a = this._restore).args) === null || _b === void 0 ? void 0 : _b.call(_a, obj);
+          await connector.save(newName, { data });
+        }
+        if (oldName !== newName) {
+          this._updated.emit(obj);
+        }
+      }
+      /**
+       * Clean up after disposed objects.
+       */
+      _onInstanceDisposed(obj) {
+        this._objects.delete(obj);
+        if (obj === this._current) {
+          this._current = null;
+          this._currentChanged.emit(this._current);
+        }
+        if (Private.injectedProperty.get(obj)) {
+          return;
+        }
+        if (!this._restore) {
+          return;
+        }
+        const { connector } = this._restore;
+        const name2 = Private.nameProperty.get(obj);
+        if (name2) {
+          void connector.remove(name2);
+        }
       }
     };
-  Qn.RestorablePool = Ai;
-  var Ge;
-  (function (n) {
-    (n.injectedProperty = new pa.AttachedProperty({
-      name: "injected",
-      create: () => !1,
-    })),
-      (n.nameProperty = new pa.AttachedProperty({
+    exports2.RestorablePool = RestorablePool;
+    var Private;
+    (function(Private2) {
+      Private2.injectedProperty = new properties_1.AttachedProperty({
+        name: "injected",
+        create: () => false
+      });
+      Private2.nameProperty = new properties_1.AttachedProperty({
         name: "name",
-        create: () => "",
-      }));
-  })(Ge || (Ge = {}));
+        create: () => ""
+      });
+    })(Private || (Private = {}));
+  }
 });
-var _a = k((Ot) => {
-  "use strict";
-  h();
-  Object.defineProperty(Ot, "__esModule", { value: !0 });
-  Ot.StateDB = void 0;
-  var dd = ce(),
-    Zn = class n {
-      constructor(e = {}) {
-        this._changed = new dd.Signal(this);
-        let { connector: t, transform: r } = e;
-        (this._connector = t || new n.Connector()),
-          r
-            ? (this._ready = r.then((i) => {
-                let { contents: s, type: o } = i;
-                switch (o) {
-                  case "cancel":
-                    return;
-                  case "clear":
-                    return this._clear();
-                  case "merge":
-                    return this._merge(s || {});
-                  case "overwrite":
-                    return this._overwrite(s || {});
-                  default:
-                    return;
-                }
-              }))
-            : (this._ready = Promise.resolve(void 0));
+
+// node_modules/@jupyterlab/statedb/lib/statedb.js
+var require_statedb = __commonJS({
+  "node_modules/@jupyterlab/statedb/lib/statedb.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.StateDB = void 0;
+    var signaling_1 = require_dist3();
+    var StateDB = class _StateDB {
+      /**
+       * Create a new state database.
+       *
+       * @param options - The instantiation options for a state database.
+       */
+      constructor(options = {}) {
+        this._changed = new signaling_1.Signal(this);
+        const { connector, transform } = options;
+        this._connector = connector || new _StateDB.Connector();
+        if (!transform) {
+          this._ready = Promise.resolve(void 0);
+        } else {
+          this._ready = transform.then((transformation) => {
+            const { contents, type } = transformation;
+            switch (type) {
+              case "cancel":
+                return;
+              case "clear":
+                return this._clear();
+              case "merge":
+                return this._merge(contents || {});
+              case "overwrite":
+                return this._overwrite(contents || {});
+              default:
+                return;
+            }
+          });
+        }
       }
+      /**
+       * A signal that emits the change type any time a value changes.
+       */
       get changed() {
         return this._changed;
       }
+      /**
+       * Clear the entire database.
+       */
       async clear() {
-        await this._ready, await this._clear();
+        await this._ready;
+        await this._clear();
       }
-      async fetch(e) {
-        return await this._ready, this._fetch(e);
+      /**
+       * Retrieve a saved bundle from the database.
+       *
+       * @param id - The identifier used to retrieve a data bundle.
+       *
+       * @returns A promise that bears a data payload if available.
+       *
+       * #### Notes
+       * The `id` values of stored items in the state database are formatted:
+       * `'namespace:identifier'`, which is the same convention that command
+       * identifiers in JupyterLab use as well. While this is not a technical
+       * requirement for `fetch()`, `remove()`, and `save()`, it *is* necessary for
+       * using the `list(namespace: string)` method.
+       *
+       * The promise returned by this method may be rejected if an error occurs in
+       * retrieving the data. Non-existence of an `id` will succeed with the `value`
+       * `undefined`.
+       */
+      async fetch(id) {
+        await this._ready;
+        return this._fetch(id);
       }
-      async list(e) {
-        return await this._ready, this._list(e);
+      /**
+       * Retrieve all the saved bundles for a namespace.
+       *
+       * @param filter - The namespace prefix to retrieve.
+       *
+       * @returns A promise that bears a collection of payloads for a namespace.
+       *
+       * #### Notes
+       * Namespaces are entirely conventional entities. The `id` values of stored
+       * items in the state database are formatted: `'namespace:identifier'`, which
+       * is the same convention that command identifiers in JupyterLab use as well.
+       *
+       * If there are any errors in retrieving the data, they will be logged to the
+       * console in order to optimistically return any extant data without failing.
+       * This promise will always succeed.
+       */
+      async list(namespace) {
+        await this._ready;
+        return this._list(namespace);
       }
-      async remove(e) {
-        await this._ready,
-          await this._remove(e),
-          this._changed.emit({ id: e, type: "remove" });
+      /**
+       * Remove a value from the database.
+       *
+       * @param id - The identifier for the data being removed.
+       *
+       * @returns A promise that is rejected if remove fails and succeeds otherwise.
+       */
+      async remove(id) {
+        await this._ready;
+        await this._remove(id);
+        this._changed.emit({ id, type: "remove" });
       }
-      async save(e, t) {
-        await this._ready,
-          await this._save(e, t),
-          this._changed.emit({ id: e, type: "save" });
+      /**
+       * Save a value in the database.
+       *
+       * @param id - The identifier for the data being saved.
+       *
+       * @param value - The data being saved.
+       *
+       * @returns A promise that is rejected if saving fails and succeeds otherwise.
+       *
+       * #### Notes
+       * The `id` values of stored items in the state database are formatted:
+       * `'namespace:identifier'`, which is the same convention that command
+       * identifiers in JupyterLab use as well. While this is not a technical
+       * requirement for `fetch()`, `remove()`, and `save()`, it *is* necessary for
+       * using the `list(namespace: string)` method.
+       */
+      async save(id, value) {
+        await this._ready;
+        await this._save(id, value);
+        this._changed.emit({ id, type: "save" });
       }
+      /**
+       * Return a serialized copy of the state database's entire contents.
+       *
+       * @returns A promise that resolves with the database contents as JSON.
+       */
       async toJSON() {
         await this._ready;
-        let { ids: e, values: t } = await this._list();
-        return t.reduce((r, i, s) => ((r[e[s]] = i), r), {});
+        const { ids, values } = await this._list();
+        return values.reduce((acc, val, idx) => {
+          acc[ids[idx]] = val;
+          return acc;
+        }, {});
       }
+      /**
+       * Clear the entire database.
+       */
       async _clear() {
-        await Promise.all((await this._list()).ids.map((e) => this._remove(e)));
+        await Promise.all((await this._list()).ids.map((id) => this._remove(id)));
       }
-      async _fetch(e) {
-        let t = await this._connector.fetch(e);
-        if (t) return JSON.parse(t).v;
+      /**
+       * Fetch a value from the database.
+       */
+      async _fetch(id) {
+        const value = await this._connector.fetch(id);
+        if (value) {
+          return JSON.parse(value).v;
+        }
       }
-      async _list(e = "") {
-        let { ids: t, values: r } = await this._connector.list(e);
-        return { ids: t, values: r.map((i) => JSON.parse(i).v) };
+      /**
+       * Fetch a list from the database.
+       */
+      async _list(namespace = "") {
+        const { ids, values } = await this._connector.list(namespace);
+        return {
+          ids,
+          values: values.map((val) => JSON.parse(val).v)
+        };
       }
-      async _merge(e) {
-        await Promise.all(
-          Object.keys(e).map((t) => e[t] && this._save(t, e[t]))
-        );
+      /**
+       * Merge data into the state database.
+       */
+      async _merge(contents) {
+        await Promise.all(Object.keys(contents).map((key) => contents[key] && this._save(key, contents[key])));
       }
-      async _overwrite(e) {
-        await this._clear(), await this._merge(e);
+      /**
+       * Overwrite the entire database with new contents.
+       */
+      async _overwrite(contents) {
+        await this._clear();
+        await this._merge(contents);
       }
-      async _remove(e) {
-        return this._connector.remove(e);
+      /**
+       * Remove a key in the database.
+       */
+      async _remove(id) {
+        return this._connector.remove(id);
       }
-      async _save(e, t) {
-        return this._connector.save(e, JSON.stringify({ v: t }));
-      }
-    };
-  Ot.StateDB = Zn;
-  (function (n) {
-    class e {
-      constructor() {
-        this._storage = {};
-      }
-      async fetch(r) {
-        return this._storage[r];
-      }
-      async list(r = "") {
-        return Object.keys(this._storage).reduce(
-          (i, s) => (
-            (r === "" || r === s.split(":")[0]) &&
-              (i.ids.push(s), i.values.push(this._storage[s])),
-            i
-          ),
-          { ids: [], values: [] }
-        );
-      }
-      async remove(r) {
-        delete this._storage[r];
-      }
-      async save(r, i) {
-        this._storage[r] = i;
-      }
-    }
-    n.Connector = e;
-  })((Zn = Ot.StateDB || (Ot.StateDB = {})));
-});
-var ma = k((er) => {
-  "use strict";
-  h();
-  Object.defineProperty(er, "__esModule", { value: !0 });
-  er.IStateDB = void 0;
-  var hd = Ne();
-  er.IStateDB = new hd.Token("@jupyterlab/coreutils:IStateDB");
-});
-var Di = k((ke) => {
-  "use strict";
-  h();
-  var fd =
-      (ke && ke.__createBinding) ||
-      (Object.create
-        ? function (n, e, t, r) {
-            r === void 0 && (r = t),
-              Object.defineProperty(n, r, {
-                enumerable: !0,
-                get: function () {
-                  return e[t];
-                },
-              });
-          }
-        : function (n, e, t, r) {
-            r === void 0 && (r = t), (n[r] = e[t]);
-          }),
-    rn =
-      (ke && ke.__exportStar) ||
-      function (n, e) {
-        for (var t in n)
-          t !== "default" &&
-            !Object.prototype.hasOwnProperty.call(e, t) &&
-            fd(e, n, t);
-      };
-  Object.defineProperty(ke, "__esModule", { value: !0 });
-  rn(da(), ke);
-  rn(fa(), ke);
-  rn(ga(), ke);
-  rn(_a(), ke);
-  rn(ma(), ke);
-});
-var Mi = k((nr) => {
-  "use strict";
-  h();
-  Object.defineProperty(nr, "__esModule", { value: !0 });
-  nr.SettingManager = void 0;
-  var pd = Ie(),
-    gd = Di(),
-    tr = De(),
-    _d = "api/settings",
-    Pi = class extends gd.DataConnector {
-      constructor(e = {}) {
-        var t;
-        super(),
-          (this.serverSettings =
-            (t = e.serverSettings) !== null && t !== void 0
-              ? t
-              : tr.ServerConnection.makeSettings());
-      }
-      async fetch(e) {
-        if (!e)
-          throw new Error(
-            "Plugin `id` parameter is required for settings fetch."
-          );
-        let { serverSettings: t } = this,
-          { baseUrl: r, appUrl: i } = t,
-          { makeRequest: s, ResponseError: o } = tr.ServerConnection,
-          a = r + i,
-          l = sn.url(a, e),
-          u = await s(l, {}, t);
-        if (u.status !== 200) throw await o.create(u);
-        return u.json();
-      }
-      async list() {
-        var e, t;
-        let { serverSettings: r } = this,
-          { baseUrl: i, appUrl: s } = r,
-          { makeRequest: o, ResponseError: a } = tr.ServerConnection,
-          l = i + s,
-          u = sn.url(l, ""),
-          f = await o(u, {}, r);
-        if (f.status !== 200) throw new a(f);
-        let c = await f.json(),
-          C =
-            (t =
-              (e = c == null ? void 0 : c.settings) === null || e === void 0
-                ? void 0
-                : e.map((S) => ((S.data = { composite: {}, user: {} }), S))) !==
-              null && t !== void 0
-              ? t
-              : [];
-        return { ids: C.map((S) => S.id), values: C };
-      }
-      async save(e, t) {
-        let { serverSettings: r } = this,
-          { baseUrl: i, appUrl: s } = r,
-          { makeRequest: o, ResponseError: a } = tr.ServerConnection,
-          l = i + s,
-          u = sn.url(l, e),
-          f = { body: JSON.stringify({ raw: t }), method: "PUT" },
-          c = await o(u, f, r);
-        if (c.status !== 204) throw new a(c);
+      /**
+       * Save a key and its value in the database.
+       */
+      async _save(id, value) {
+        return this._connector.save(id, JSON.stringify({ v: value }));
       }
     };
-  nr.SettingManager = Pi;
-  var sn;
-  (function (n) {
-    function e(t, r) {
-      return pd.URLExt.join(t, _d, r);
-    }
-    n.url = e;
-  })(sn || (sn = {}));
-});
-var an = k((ye) => {
-  "use strict";
-  h();
-  Object.defineProperty(ye, "__esModule", { value: !0 });
-  ye.shutdownTerminal =
-    ye.listRunning =
-    ye.startNew =
-    ye.isAvailable =
-    ye.TERMINAL_SERVICE_URL =
-      void 0;
-  var rr = Ie(),
-    Ze = De();
-  ye.TERMINAL_SERVICE_URL = "api/terminals";
-  function va() {
-    return (
-      String(rr.PageConfig.getOption("terminalsAvailable")).toLowerCase() ===
-      "true"
-    );
-  }
-  ye.isAvailable = va;
-  async function md(n = Ze.ServerConnection.makeSettings()) {
-    on.errorIfNotAvailable();
-    let e = rr.URLExt.join(n.baseUrl, ye.TERMINAL_SERVICE_URL),
-      t = { method: "POST" },
-      r = await Ze.ServerConnection.makeRequest(e, t, n);
-    if (r.status !== 200)
-      throw await Ze.ServerConnection.ResponseError.create(r);
-    return await r.json();
-  }
-  ye.startNew = md;
-  async function vd(n = Ze.ServerConnection.makeSettings()) {
-    on.errorIfNotAvailable();
-    let e = rr.URLExt.join(n.baseUrl, ye.TERMINAL_SERVICE_URL),
-      t = await Ze.ServerConnection.makeRequest(e, {}, n);
-    if (t.status !== 200)
-      throw await Ze.ServerConnection.ResponseError.create(t);
-    let r = await t.json();
-    if (!Array.isArray(r)) throw new Error("Invalid terminal list");
-    return r;
-  }
-  ye.listRunning = vd;
-  async function yd(n, e = Ze.ServerConnection.makeSettings()) {
-    var t;
-    on.errorIfNotAvailable();
-    let r = rr.URLExt.join(e.baseUrl, ye.TERMINAL_SERVICE_URL, n),
-      i = { method: "DELETE" },
-      s = await Ze.ServerConnection.makeRequest(r, i, e);
-    if (s.status === 404) {
-      let a =
-        (t = (await s.json()).message) !== null && t !== void 0
-          ? t
-          : `The terminal session "${n}"" does not exist on the server`;
-      console.warn(a);
-    } else if (s.status !== 204)
-      throw await Ze.ServerConnection.ResponseError.create(s);
-  }
-  ye.shutdownTerminal = yd;
-  var on;
-  (function (n) {
-    function e() {
-      if (!va()) throw new Error("Terminals Unavailable");
-    }
-    n.errorIfNotAvailable = e;
-  })(on || (on = {}));
-});
-var ya = k((ir) => {
-  "use strict";
-  h();
-  Object.defineProperty(ir, "__esModule", { value: !0 });
-  ir.isAvailable = void 0;
-  var Ed = an();
-  Object.defineProperty(ir, "isAvailable", {
-    enumerable: !0,
-    get: function () {
-      return Ed.isAvailable;
-    },
-  });
-});
-var Sa = k((or) => {
-  "use strict";
-  h();
-  Object.defineProperty(or, "__esModule", { value: !0 });
-  or.TerminalConnection = void 0;
-  var Ea = Ie(),
-    bd = Ne(),
-    sr = ce(),
-    Sd = Ve(),
-    ba = an(),
-    Ti = class n {
-      constructor(e) {
-        var t;
-        (this._createSocket = () => {
-          this._errorIfDisposed(),
-            this._clearSocket(),
-            this._updateConnectionStatus("connecting");
-          let r = this._name,
-            i = this.serverSettings,
-            s = Ea.URLExt.join(
-              i.wsUrl,
-              "terminals",
-              "websocket",
-              encodeURIComponent(r)
-            ),
-            o = i.token;
-          i.appendToken &&
-            o !== "" &&
-            (s = s + `?token=${encodeURIComponent(o)}`),
-            (this._ws = new i.WebSocket(s)),
-            (this._ws.onmessage = this._onWSMessage),
-            (this._ws.onclose = this._onWSClose),
-            (this._ws.onerror = this._onWSClose);
-        }),
-          (this._onWSMessage = (r) => {
-            if (this._isDisposed) return;
-            let i = JSON.parse(r.data);
-            if (
-              (i[0] === "disconnect" && this.dispose(),
-              this._connectionStatus === "connecting")
-            ) {
-              i[0] === "setup" && this._updateConnectionStatus("connected");
-              return;
+    exports2.StateDB = StateDB;
+    (function(StateDB2) {
+      class Connector {
+        constructor() {
+          this._storage = {};
+        }
+        /**
+         * Retrieve an item from the data connector.
+         */
+        async fetch(id) {
+          return this._storage[id];
+        }
+        /**
+         * Retrieve the list of items available from the data connector.
+         *
+         * @param namespace - If not empty, only keys whose first token before `:`
+         * exactly match `namespace` will be returned, e.g. `foo` in `foo:bar`.
+         */
+        async list(namespace = "") {
+          return Object.keys(this._storage).reduce((acc, val) => {
+            if (namespace === "" ? true : namespace === val.split(":")[0]) {
+              acc.ids.push(val);
+              acc.values.push(this._storage[val]);
             }
-            this._messageReceived.emit({ type: i[0], content: i.slice(1) });
-          }),
-          (this._onWSClose = (r) => {
-            console.warn(`Terminal websocket closed: ${r.code}`),
-              this.isDisposed || this._reconnect();
-          }),
-          (this._connectionStatus = "connecting"),
-          (this._connectionStatusChanged = new sr.Signal(this)),
-          (this._isDisposed = !1),
-          (this._disposed = new sr.Signal(this)),
-          (this._messageReceived = new sr.Signal(this)),
-          (this._reconnectTimeout = null),
-          (this._ws = null),
-          (this._noOp = () => {}),
-          (this._reconnectLimit = 7),
-          (this._reconnectAttempt = 0),
-          (this._pendingMessages = []),
-          (this._name = e.model.name),
-          (this.serverSettings =
-            (t = e.serverSettings) !== null && t !== void 0
-              ? t
-              : Sd.ServerConnection.makeSettings()),
-          this._createSocket();
+            return acc;
+          }, { ids: [], values: [] });
+        }
+        /**
+         * Remove a value using the data connector.
+         */
+        async remove(id) {
+          delete this._storage[id];
+        }
+        /**
+         * Save a value using the data connector.
+         */
+        async save(id, value) {
+          this._storage[id] = value;
+        }
       }
+      StateDB2.Connector = Connector;
+    })(StateDB = exports2.StateDB || (exports2.StateDB = {}));
+  }
+});
+
+// node_modules/@jupyterlab/statedb/lib/tokens.js
+var require_tokens = __commonJS({
+  "node_modules/@jupyterlab/statedb/lib/tokens.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.IStateDB = void 0;
+    var coreutils_12 = require_dist4();
+    exports2.IStateDB = new coreutils_12.Token("@jupyterlab/coreutils:IStateDB");
+  }
+});
+
+// node_modules/@jupyterlab/statedb/lib/index.js
+var require_lib2 = __commonJS({
+  "node_modules/@jupyterlab/statedb/lib/index.js"(exports2) {
+    "use strict";
+    init_process_development();
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      Object.defineProperty(o, k2, { enumerable: true, get: function() {
+        return m[k];
+      } });
+    } : function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      o[k2] = m[k];
+    });
+    var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
+      for (var p in m)
+        if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p))
+          __createBinding(exports3, m, p);
+    };
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    __exportStar(require_dataconnector(), exports2);
+    __exportStar(require_interfaces2(), exports2);
+    __exportStar(require_restorablepool(), exports2);
+    __exportStar(require_statedb(), exports2);
+    __exportStar(require_tokens(), exports2);
+  }
+});
+
+// node_modules/@jupyterlab/services/lib/setting/index.js
+var require_setting = __commonJS({
+  "node_modules/@jupyterlab/services/lib/setting/index.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.SettingManager = void 0;
+    var coreutils_12 = require_lib();
+    var statedb_1 = require_lib2();
+    var serverconnection_1 = require_serverconnection();
+    var SERVICE_SETTINGS_URL = "api/settings";
+    var SettingManager = class extends statedb_1.DataConnector {
+      /**
+       * Create a new setting manager.
+       */
+      constructor(options = {}) {
+        var _a;
+        super();
+        this.serverSettings = (_a = options.serverSettings) !== null && _a !== void 0 ? _a : serverconnection_1.ServerConnection.makeSettings();
+      }
+      /**
+       * Fetch a plugin's settings.
+       *
+       * @param id - The plugin's ID.
+       *
+       * @returns A promise that resolves if successful.
+       */
+      async fetch(id) {
+        if (!id) {
+          throw new Error("Plugin `id` parameter is required for settings fetch.");
+        }
+        const { serverSettings } = this;
+        const { baseUrl, appUrl } = serverSettings;
+        const { makeRequest, ResponseError } = serverconnection_1.ServerConnection;
+        const base = baseUrl + appUrl;
+        const url = Private.url(base, id);
+        const response = await makeRequest(url, {}, serverSettings);
+        if (response.status !== 200) {
+          const err = await ResponseError.create(response);
+          throw err;
+        }
+        return response.json();
+      }
+      /**
+       * Fetch the list of all plugin setting bundles.
+       *
+       * @returns A promise that resolves if successful.
+       */
+      async list() {
+        var _a, _b;
+        const { serverSettings } = this;
+        const { baseUrl, appUrl } = serverSettings;
+        const { makeRequest, ResponseError } = serverconnection_1.ServerConnection;
+        const base = baseUrl + appUrl;
+        const url = Private.url(base, "");
+        const response = await makeRequest(url, {}, serverSettings);
+        if (response.status !== 200) {
+          throw new ResponseError(response);
+        }
+        const json = await response.json();
+        const values = (_b = (_a = json === null || json === void 0 ? void 0 : json["settings"]) === null || _a === void 0 ? void 0 : _a.map((plugin) => {
+          plugin.data = { composite: {}, user: {} };
+          return plugin;
+        })) !== null && _b !== void 0 ? _b : [];
+        const ids = values.map((plugin) => plugin.id);
+        return { ids, values };
+      }
+      /**
+       * Save a plugin's settings.
+       *
+       * @param id - The plugin's ID.
+       *
+       * @param raw - The user setting values as a raw string of JSON with comments.
+       *
+       * @returns A promise that resolves if successful.
+       */
+      async save(id, raw) {
+        const { serverSettings } = this;
+        const { baseUrl, appUrl } = serverSettings;
+        const { makeRequest, ResponseError } = serverconnection_1.ServerConnection;
+        const base = baseUrl + appUrl;
+        const url = Private.url(base, id);
+        const init = { body: JSON.stringify({ raw }), method: "PUT" };
+        const response = await makeRequest(url, init, serverSettings);
+        if (response.status !== 204) {
+          throw new ResponseError(response);
+        }
+      }
+    };
+    exports2.SettingManager = SettingManager;
+    var Private;
+    (function(Private2) {
+      function url(base, id) {
+        return coreutils_12.URLExt.join(base, SERVICE_SETTINGS_URL, id);
+      }
+      Private2.url = url;
+    })(Private || (Private = {}));
+  }
+});
+
+// node_modules/@jupyterlab/services/lib/terminal/restapi.js
+var require_restapi4 = __commonJS({
+  "node_modules/@jupyterlab/services/lib/terminal/restapi.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.shutdownTerminal = exports2.listRunning = exports2.startNew = exports2.isAvailable = exports2.TERMINAL_SERVICE_URL = void 0;
+    var coreutils_12 = require_lib();
+    var serverconnection_1 = require_serverconnection();
+    exports2.TERMINAL_SERVICE_URL = "api/terminals";
+    function isAvailable() {
+      const available = String(coreutils_12.PageConfig.getOption("terminalsAvailable"));
+      return available.toLowerCase() === "true";
+    }
+    exports2.isAvailable = isAvailable;
+    async function startNew(settings = serverconnection_1.ServerConnection.makeSettings()) {
+      Private.errorIfNotAvailable();
+      const url = coreutils_12.URLExt.join(settings.baseUrl, exports2.TERMINAL_SERVICE_URL);
+      const init = { method: "POST" };
+      const response = await serverconnection_1.ServerConnection.makeRequest(url, init, settings);
+      if (response.status !== 200) {
+        const err = await serverconnection_1.ServerConnection.ResponseError.create(response);
+        throw err;
+      }
+      const data = await response.json();
+      return data;
+    }
+    exports2.startNew = startNew;
+    async function listRunning(settings = serverconnection_1.ServerConnection.makeSettings()) {
+      Private.errorIfNotAvailable();
+      const url = coreutils_12.URLExt.join(settings.baseUrl, exports2.TERMINAL_SERVICE_URL);
+      const response = await serverconnection_1.ServerConnection.makeRequest(url, {}, settings);
+      if (response.status !== 200) {
+        const err = await serverconnection_1.ServerConnection.ResponseError.create(response);
+        throw err;
+      }
+      const data = await response.json();
+      if (!Array.isArray(data)) {
+        throw new Error("Invalid terminal list");
+      }
+      return data;
+    }
+    exports2.listRunning = listRunning;
+    async function shutdownTerminal(name2, settings = serverconnection_1.ServerConnection.makeSettings()) {
+      var _a;
+      Private.errorIfNotAvailable();
+      const url = coreutils_12.URLExt.join(settings.baseUrl, exports2.TERMINAL_SERVICE_URL, name2);
+      const init = { method: "DELETE" };
+      const response = await serverconnection_1.ServerConnection.makeRequest(url, init, settings);
+      if (response.status === 404) {
+        const data = await response.json();
+        const msg = (_a = data.message) !== null && _a !== void 0 ? _a : `The terminal session "${name2}"" does not exist on the server`;
+        console.warn(msg);
+      } else if (response.status !== 204) {
+        const err = await serverconnection_1.ServerConnection.ResponseError.create(response);
+        throw err;
+      }
+    }
+    exports2.shutdownTerminal = shutdownTerminal;
+    var Private;
+    (function(Private2) {
+      function errorIfNotAvailable() {
+        if (!isAvailable()) {
+          throw new Error("Terminals Unavailable");
+        }
+      }
+      Private2.errorIfNotAvailable = errorIfNotAvailable;
+    })(Private || (Private = {}));
+  }
+});
+
+// node_modules/@jupyterlab/services/lib/terminal/terminal.js
+var require_terminal = __commonJS({
+  "node_modules/@jupyterlab/services/lib/terminal/terminal.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.isAvailable = void 0;
+    var restapi_1 = require_restapi4();
+    Object.defineProperty(exports2, "isAvailable", { enumerable: true, get: function() {
+      return restapi_1.isAvailable;
+    } });
+  }
+});
+
+// node_modules/@jupyterlab/services/lib/terminal/default.js
+var require_default3 = __commonJS({
+  "node_modules/@jupyterlab/services/lib/terminal/default.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.TerminalConnection = void 0;
+    var coreutils_12 = require_lib();
+    var coreutils_2 = require_dist4();
+    var signaling_1 = require_dist3();
+    var __1 = require_lib3();
+    var restapi_1 = require_restapi4();
+    var TerminalConnection = class _TerminalConnection {
+      /**
+       * Construct a new terminal session.
+       */
+      constructor(options) {
+        var _a;
+        this._createSocket = () => {
+          this._errorIfDisposed();
+          this._clearSocket();
+          this._updateConnectionStatus("connecting");
+          const name2 = this._name;
+          const settings = this.serverSettings;
+          let url = coreutils_12.URLExt.join(settings.wsUrl, "terminals", "websocket", encodeURIComponent(name2));
+          const token = settings.token;
+          if (settings.appendToken && token !== "") {
+            url = url + `?token=${encodeURIComponent(token)}`;
+          }
+          this._ws = new settings.WebSocket(url);
+          this._ws.onmessage = this._onWSMessage;
+          this._ws.onclose = this._onWSClose;
+          this._ws.onerror = this._onWSClose;
+        };
+        this._onWSMessage = (event) => {
+          if (this._isDisposed) {
+            return;
+          }
+          const data = JSON.parse(event.data);
+          if (data[0] === "disconnect") {
+            this.dispose();
+          }
+          if (this._connectionStatus === "connecting") {
+            if (data[0] === "setup") {
+              this._updateConnectionStatus("connected");
+            }
+            return;
+          }
+          this._messageReceived.emit({
+            type: data[0],
+            content: data.slice(1)
+          });
+        };
+        this._onWSClose = (event) => {
+          console.warn(`Terminal websocket closed: ${event.code}`);
+          if (!this.isDisposed) {
+            this._reconnect();
+          }
+        };
+        this._connectionStatus = "connecting";
+        this._connectionStatusChanged = new signaling_1.Signal(this);
+        this._isDisposed = false;
+        this._disposed = new signaling_1.Signal(this);
+        this._messageReceived = new signaling_1.Signal(this);
+        this._reconnectTimeout = null;
+        this._ws = null;
+        this._noOp = () => {
+        };
+        this._reconnectLimit = 7;
+        this._reconnectAttempt = 0;
+        this._pendingMessages = [];
+        this._name = options.model.name;
+        this.serverSettings = (_a = options.serverSettings) !== null && _a !== void 0 ? _a : __1.ServerConnection.makeSettings();
+        this._createSocket();
+      }
+      /**
+       * A signal emitted when the session is disposed.
+       */
       get disposed() {
         return this._disposed;
       }
+      /**
+       * A signal emitted when a message is received from the server.
+       */
       get messageReceived() {
         return this._messageReceived;
       }
+      /**
+       * Get the name of the terminal session.
+       */
       get name() {
         return this._name;
       }
+      /**
+       * Get the model for the terminal session.
+       */
       get model() {
         return { name: this._name };
       }
+      /**
+       * Test whether the session is disposed.
+       */
       get isDisposed() {
         return this._isDisposed;
       }
+      /**
+       * Dispose of the resources held by the session.
+       */
       dispose() {
-        this._isDisposed ||
-          ((this._isDisposed = !0),
-          this._disposed.emit(),
-          this._updateConnectionStatus("disconnected"),
-          this._clearSocket(),
-          sr.Signal.clearData(this));
+        if (this._isDisposed) {
+          return;
+        }
+        this._isDisposed = true;
+        this._disposed.emit();
+        this._updateConnectionStatus("disconnected");
+        this._clearSocket();
+        signaling_1.Signal.clearData(this);
       }
-      send(e) {
-        this._sendMessage(e);
+      /**
+       * Send a message to the terminal session.
+       *
+       * #### Notes
+       * If the connection is down, the message will be queued for sending when
+       * the connection comes back up.
+       */
+      send(message) {
+        this._sendMessage(message);
       }
-      _sendMessage(e, t = !0) {
-        if (!(this._isDisposed || !e.content))
-          if (this.connectionStatus === "connected" && this._ws) {
-            let r = [e.type, ...e.content];
-            this._ws.send(JSON.stringify(r));
-          } else if (t) this._pendingMessages.push(e);
-          else throw new Error(`Could not send message: ${JSON.stringify(e)}`);
+      /**
+       * Send a message on the websocket, or possibly queue for later sending.
+       *
+       * @param queue - whether to queue the message if it cannot be sent
+       */
+      _sendMessage(message, queue = true) {
+        if (this._isDisposed || !message.content) {
+          return;
+        }
+        if (this.connectionStatus === "connected" && this._ws) {
+          const msg = [message.type, ...message.content];
+          this._ws.send(JSON.stringify(msg));
+        } else if (queue) {
+          this._pendingMessages.push(message);
+        } else {
+          throw new Error(`Could not send message: ${JSON.stringify(message)}`);
+        }
       }
+      /**
+       * Send pending messages to the kernel.
+       */
       _sendPending() {
-        for (
-          ;
-          this.connectionStatus === "connected" &&
-          this._pendingMessages.length > 0;
-
-        )
-          this._sendMessage(this._pendingMessages[0], !1),
-            this._pendingMessages.shift();
+        while (this.connectionStatus === "connected" && this._pendingMessages.length > 0) {
+          this._sendMessage(this._pendingMessages[0], false);
+          this._pendingMessages.shift();
+        }
       }
+      /**
+       * Reconnect to a terminal.
+       *
+       * #### Notes
+       * This may try multiple times to reconnect to a terminal, and will sever
+       * any existing connection.
+       */
       reconnect() {
         this._errorIfDisposed();
-        let e = new bd.PromiseDelegate(),
-          t = (r, i) => {
-            i === "connected"
-              ? (e.resolve(), this.connectionStatusChanged.disconnect(t, this))
-              : i === "disconnected" &&
-                (e.reject(new Error("Terminal connection disconnected")),
-                this.connectionStatusChanged.disconnect(t, this));
-          };
-        return (
-          this.connectionStatusChanged.connect(t, this),
-          (this._reconnectAttempt = 0),
-          this._reconnect(),
-          e.promise
-        );
+        const result = new coreutils_2.PromiseDelegate();
+        const fulfill = (sender, status) => {
+          if (status === "connected") {
+            result.resolve();
+            this.connectionStatusChanged.disconnect(fulfill, this);
+          } else if (status === "disconnected") {
+            result.reject(new Error("Terminal connection disconnected"));
+            this.connectionStatusChanged.disconnect(fulfill, this);
+          }
+        };
+        this.connectionStatusChanged.connect(fulfill, this);
+        this._reconnectAttempt = 0;
+        this._reconnect();
+        return result.promise;
       }
+      /**
+       * Attempt a connection if we have not exhausted connection attempts.
+       */
       _reconnect() {
-        if (
-          (this._errorIfDisposed(),
-          clearTimeout(this._reconnectTimeout),
-          this._reconnectAttempt < this._reconnectLimit)
-        ) {
+        this._errorIfDisposed();
+        clearTimeout(this._reconnectTimeout);
+        if (this._reconnectAttempt < this._reconnectLimit) {
           this._updateConnectionStatus("connecting");
-          let e = Oi.getRandomIntInclusive(
-            0,
-            1e3 * (Math.pow(2, this._reconnectAttempt) - 1)
-          );
-          console.error(
-            `Connection lost, reconnecting in ${Math.floor(e / 1e3)} seconds.`
-          ),
-            (this._reconnectTimeout = setTimeout(this._createSocket, e)),
-            (this._reconnectAttempt += 1);
-        } else this._updateConnectionStatus("disconnected");
+          const timeout = Private.getRandomIntInclusive(0, 1e3 * (Math.pow(2, this._reconnectAttempt) - 1));
+          console.error(`Connection lost, reconnecting in ${Math.floor(timeout / 1e3)} seconds.`);
+          this._reconnectTimeout = setTimeout(this._createSocket, timeout);
+          this._reconnectAttempt += 1;
+        } else {
+          this._updateConnectionStatus("disconnected");
+        }
         this._clearSocket();
       }
+      /**
+       * Forcefully clear the socket state.
+       *
+       * #### Notes
+       * This will clear all socket state without calling any handlers and will
+       * not update the connection status. If you call this method, you are
+       * responsible for updating the connection status as needed and recreating
+       * the socket if you plan to reconnect.
+       */
       _clearSocket() {
-        this._ws !== null &&
-          ((this._ws.onopen = this._noOp),
-          (this._ws.onclose = this._noOp),
-          (this._ws.onerror = this._noOp),
-          (this._ws.onmessage = this._noOp),
-          this._ws.close(),
-          (this._ws = null));
+        if (this._ws !== null) {
+          this._ws.onopen = this._noOp;
+          this._ws.onclose = this._noOp;
+          this._ws.onerror = this._noOp;
+          this._ws.onmessage = this._noOp;
+          this._ws.close();
+          this._ws = null;
+        }
       }
+      /**
+       * Shut down the terminal session.
+       */
       async shutdown() {
-        await ba.shutdownTerminal(this.name, this.serverSettings),
-          this.dispose();
+        await restapi_1.shutdownTerminal(this.name, this.serverSettings);
+        this.dispose();
       }
+      /**
+       * Clone the current terminal connection.
+       */
       clone() {
-        return new n(this);
+        return new _TerminalConnection(this);
       }
-      _updateConnectionStatus(e) {
-        this._connectionStatus !== e &&
-          ((this._connectionStatus = e),
-          e !== "connecting" &&
-            ((this._reconnectAttempt = 0),
-            clearTimeout(this._reconnectTimeout)),
-          e === "connected" && this._sendPending(),
-          this._connectionStatusChanged.emit(e));
+      /**
+       * Handle connection status changes.
+       */
+      _updateConnectionStatus(connectionStatus) {
+        if (this._connectionStatus === connectionStatus) {
+          return;
+        }
+        this._connectionStatus = connectionStatus;
+        if (connectionStatus !== "connecting") {
+          this._reconnectAttempt = 0;
+          clearTimeout(this._reconnectTimeout);
+        }
+        if (connectionStatus === "connected") {
+          this._sendPending();
+        }
+        this._connectionStatusChanged.emit(connectionStatus);
       }
+      /**
+       * Utility function to throw an error if this instance is disposed.
+       */
       _errorIfDisposed() {
-        if (this.isDisposed) throw new Error("Terminal connection is disposed");
+        if (this.isDisposed) {
+          throw new Error("Terminal connection is disposed");
+        }
       }
+      /**
+       * A signal emitted when the terminal connection status changes.
+       */
       get connectionStatusChanged() {
         return this._connectionStatusChanged;
       }
+      /**
+       * The current connection status of the terminal connection.
+       */
       get connectionStatus() {
         return this._connectionStatus;
       }
     };
-  or.TerminalConnection = Ti;
-  var Oi;
-  (function (n) {
-    function e(r, i) {
-      return Ea.URLExt.join(r, ba.TERMINAL_SERVICE_URL, encodeURIComponent(i));
-    }
-    n.getTermUrl = e;
-    function t(r, i) {
-      return (
-        (r = Math.ceil(r)),
-        (i = Math.floor(i)),
-        Math.floor(Math.random() * (i - r + 1)) + r
-      );
-    }
-    n.getRandomIntInclusive = t;
-  })(Oi || (Oi = {}));
+    exports2.TerminalConnection = TerminalConnection;
+    var Private;
+    (function(Private2) {
+      function getTermUrl(baseUrl, name2) {
+        return coreutils_12.URLExt.join(baseUrl, restapi_1.TERMINAL_SERVICE_URL, encodeURIComponent(name2));
+      }
+      Private2.getTermUrl = getTermUrl;
+      function getRandomIntInclusive(min, max) {
+        min = Math.ceil(min);
+        max = Math.floor(max);
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+      Private2.getRandomIntInclusive = getRandomIntInclusive;
+    })(Private || (Private = {}));
+  }
 });
-var Ia = k((ar) => {
-  "use strict";
-  h();
-  Object.defineProperty(ar, "__esModule", { value: !0 });
-  ar.TerminalManager = void 0;
-  var wd = ct(),
-    Id = Qt(),
-    wa = ce(),
-    Cd = Ve(),
-    Rd = Zt(),
-    ln = an(),
-    Ad = Sa(),
-    Ni = class extends Rd.BaseManager {
-      constructor(e = {}) {
-        var t;
-        if (
-          (super(e),
-          (this._isReady = !1),
-          (this._names = []),
-          (this._terminalConnections = new Set()),
-          (this._runningChanged = new wa.Signal(this)),
-          (this._connectionFailure = new wa.Signal(this)),
-          !this.isAvailable())
-        ) {
-          (this._ready = Promise.reject("Terminals unavailable")),
-            this._ready.catch((r) => {});
+
+// node_modules/@jupyterlab/services/lib/terminal/manager.js
+var require_manager4 = __commonJS({
+  "node_modules/@jupyterlab/services/lib/terminal/manager.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.TerminalManager = void 0;
+    var algorithm_1 = require_dist();
+    var polling_1 = require_dist5();
+    var signaling_1 = require_dist3();
+    var __1 = require_lib3();
+    var basemanager_1 = require_basemanager();
+    var restapi_1 = require_restapi4();
+    var default_1 = require_default3();
+    var TerminalManager = class extends basemanager_1.BaseManager {
+      /**
+       * Construct a new terminal manager.
+       */
+      constructor(options = {}) {
+        var _a;
+        super(options);
+        this._isReady = false;
+        this._names = [];
+        this._terminalConnections = /* @__PURE__ */ new Set();
+        this._runningChanged = new signaling_1.Signal(this);
+        this._connectionFailure = new signaling_1.Signal(this);
+        if (!this.isAvailable()) {
+          this._ready = Promise.reject("Terminals unavailable");
+          this._ready.catch((_) => void 0);
           return;
         }
-        (this._pollModels = new Id.Poll({
-          auto: !1,
+        this._pollModels = new polling_1.Poll({
+          auto: false,
           factory: () => this.requestRunning(),
-          frequency: { interval: 10 * 1e3, backoff: !0, max: 300 * 1e3 },
-          name: "@jupyterlab/services:TerminalManager#models",
-          standby: (t = e.standby) !== null && t !== void 0 ? t : "when-hidden",
-        })),
-          (this._ready = (async () => {
-            await this._pollModels.start(),
-              await this._pollModels.tick,
-              (this._isReady = !0);
-          })());
+          frequency: {
+            interval: 10 * 1e3,
+            backoff: true,
+            max: 300 * 1e3
+          },
+          name: `@jupyterlab/services:TerminalManager#models`,
+          standby: (_a = options.standby) !== null && _a !== void 0 ? _a : "when-hidden"
+        });
+        this._ready = (async () => {
+          await this._pollModels.start();
+          await this._pollModels.tick;
+          this._isReady = true;
+        })();
       }
+      /**
+       * Test whether the manager is ready.
+       */
       get isReady() {
         return this._isReady;
       }
+      /**
+       * A promise that fulfills when the manager is ready.
+       */
       get ready() {
         return this._ready;
       }
+      /**
+       * A signal emitted when the running terminals change.
+       */
       get runningChanged() {
         return this._runningChanged;
       }
+      /**
+       * A signal emitted when there is a connection failure.
+       */
       get connectionFailure() {
         return this._connectionFailure;
       }
+      /**
+       * Dispose of the resources used by the manager.
+       */
       dispose() {
-        this.isDisposed ||
-          ((this._names.length = 0),
-          this._terminalConnections.forEach((e) => e.dispose()),
-          this._pollModels.dispose(),
-          super.dispose());
-      }
-      isAvailable() {
-        return ln.isAvailable();
-      }
-      connectTo(e) {
-        let t = new Ad.TerminalConnection(
-          Object.assign(Object.assign({}, e), {
-            serverSettings: this.serverSettings,
-          })
-        );
-        return (
-          this._onStarted(t),
-          this._names.includes(e.model.name) ||
-            this.refreshRunning().catch(() => {}),
-          t
-        );
-      }
-      running() {
-        return wd.iter(this._models);
-      }
-      async refreshRunning() {
-        await this._pollModels.refresh(), await this._pollModels.tick;
-      }
-      async startNew() {
-        let e = await ln.startNew(this.serverSettings);
-        return await this.refreshRunning(), this.connectTo({ model: e });
-      }
-      async shutdown(e) {
-        await ln.shutdownTerminal(e, this.serverSettings),
-          await this.refreshRunning();
-      }
-      async shutdownAll() {
-        await this.refreshRunning(),
-          await Promise.all(
-            this._names.map((e) => ln.shutdownTerminal(e, this.serverSettings))
-          ),
-          await this.refreshRunning();
-      }
-      async requestRunning() {
-        var e, t;
-        let r;
-        try {
-          r = await ln.listRunning(this.serverSettings);
-        } catch (s) {
-          throw (
-            ((s instanceof Cd.ServerConnection.NetworkError ||
-              ((e = s.response) === null || e === void 0
-                ? void 0
-                : e.status) === 503 ||
-              ((t = s.response) === null || t === void 0
-                ? void 0
-                : t.status) === 424) &&
-              this._connectionFailure.emit(s),
-            s)
-          );
+        if (this.isDisposed) {
+          return;
         }
-        if (this.isDisposed) return;
-        let i = r.map(({ name: s }) => s).sort();
-        i !== this._names &&
-          ((this._names = i),
-          this._terminalConnections.forEach((s) => {
-            i.includes(s.name) || s.dispose();
-          }),
-          this._runningChanged.emit(this._models));
+        this._names.length = 0;
+        this._terminalConnections.forEach((x) => x.dispose());
+        this._pollModels.dispose();
+        super.dispose();
       }
-      _onStarted(e) {
-        this._terminalConnections.add(e),
-          e.disposed.connect(this._onDisposed, this);
+      /**
+       * Whether the terminal service is available.
+       */
+      isAvailable() {
+        return restapi_1.isAvailable();
       }
-      _onDisposed(e) {
-        this._terminalConnections.delete(e),
-          this.refreshRunning().catch(() => {});
+      /*
+       * Connect to a running terminal.
+       *
+       * @param name - The name of the target terminal.
+       *
+       * @param options - The options used to connect to the terminal.
+       *
+       * @returns A promise that resolves to the new terminal connection instance.
+       *
+       * #### Notes
+       * The manager `serverSettings` will be used.
+       */
+      connectTo(options) {
+        const terminalConnection = new default_1.TerminalConnection(Object.assign(Object.assign({}, options), { serverSettings: this.serverSettings }));
+        this._onStarted(terminalConnection);
+        if (!this._names.includes(options.model.name)) {
+          void this.refreshRunning().catch(() => {
+          });
+        }
+        return terminalConnection;
+      }
+      /**
+       * Create an iterator over the most recent running terminals.
+       *
+       * @returns A new iterator over the running terminals.
+       */
+      running() {
+        return algorithm_1.iter(this._models);
+      }
+      /**
+       * Force a refresh of the running terminals.
+       *
+       * @returns A promise that with the list of running terminals.
+       *
+       * #### Notes
+       * This is intended to be called only in response to a user action,
+       * since the manager maintains its internal state.
+       */
+      async refreshRunning() {
+        await this._pollModels.refresh();
+        await this._pollModels.tick;
+      }
+      /**
+       * Create a new terminal session.
+       *
+       * @returns A promise that resolves with the terminal instance.
+       *
+       * #### Notes
+       * The manager `serverSettings` will be used unless overridden in the
+       * options.
+       */
+      async startNew() {
+        const model = await restapi_1.startNew(this.serverSettings);
+        await this.refreshRunning();
+        return this.connectTo({ model });
+      }
+      /**
+       * Shut down a terminal session by name.
+       */
+      async shutdown(name2) {
+        await restapi_1.shutdownTerminal(name2, this.serverSettings);
+        await this.refreshRunning();
+      }
+      /**
+       * Shut down all terminal sessions.
+       *
+       * @returns A promise that resolves when all of the sessions are shut down.
+       */
+      async shutdownAll() {
+        await this.refreshRunning();
+        await Promise.all(this._names.map((name2) => restapi_1.shutdownTerminal(name2, this.serverSettings)));
+        await this.refreshRunning();
+      }
+      /**
+       * Execute a request to the server to poll running terminals and update state.
+       */
+      async requestRunning() {
+        var _a, _b;
+        let models;
+        try {
+          models = await restapi_1.listRunning(this.serverSettings);
+        } catch (err) {
+          if (err instanceof __1.ServerConnection.NetworkError || ((_a = err.response) === null || _a === void 0 ? void 0 : _a.status) === 503 || ((_b = err.response) === null || _b === void 0 ? void 0 : _b.status) === 424) {
+            this._connectionFailure.emit(err);
+          }
+          throw err;
+        }
+        if (this.isDisposed) {
+          return;
+        }
+        const names = models.map(({ name: name2 }) => name2).sort();
+        if (names === this._names) {
+          return;
+        }
+        this._names = names;
+        this._terminalConnections.forEach((tc) => {
+          if (!names.includes(tc.name)) {
+            tc.dispose();
+          }
+        });
+        this._runningChanged.emit(this._models);
+      }
+      /**
+       * Handle a session starting.
+       */
+      _onStarted(terminalConnection) {
+        this._terminalConnections.add(terminalConnection);
+        terminalConnection.disposed.connect(this._onDisposed, this);
+      }
+      /**
+       * Handle a session terminating.
+       */
+      _onDisposed(terminalConnection) {
+        this._terminalConnections.delete(terminalConnection);
+        void this.refreshRunning().catch(() => {
+        });
       }
       get _models() {
-        return this._names.map((e) => ({ name: e }));
+        return this._names.map((name2) => {
+          return { name: name2 };
+        });
       }
     };
-  ar.TerminalManager = Ni;
+    exports2.TerminalManager = TerminalManager;
+  }
 });
-var Li = k((Ee) => {
-  "use strict";
-  h();
-  var Ca =
-      (Ee && Ee.__createBinding) ||
-      (Object.create
-        ? function (n, e, t, r) {
-            r === void 0 && (r = t),
-              Object.defineProperty(n, r, {
-                enumerable: !0,
-                get: function () {
-                  return e[t];
-                },
-              });
-          }
-        : function (n, e, t, r) {
-            r === void 0 && (r = t), (n[r] = e[t]);
-          }),
-    Dd =
-      (Ee && Ee.__setModuleDefault) ||
-      (Object.create
-        ? function (n, e) {
-            Object.defineProperty(n, "default", { enumerable: !0, value: e });
-          }
-        : function (n, e) {
-            n.default = e;
-          }),
-    Ra =
-      (Ee && Ee.__importStar) ||
-      function (n) {
-        if (n && n.__esModule) return n;
-        var e = {};
-        if (n != null)
-          for (var t in n)
-            t !== "default" &&
-              Object.prototype.hasOwnProperty.call(n, t) &&
-              Ca(e, n, t);
-        return Dd(e, n), e;
-      },
-    Pd =
-      (Ee && Ee.__exportStar) ||
-      function (n, e) {
-        for (var t in n)
-          t !== "default" &&
-            !Object.prototype.hasOwnProperty.call(e, t) &&
-            Ca(e, n, t);
-      };
-  Object.defineProperty(Ee, "__esModule", { value: !0 });
-  Ee.TerminalAPI = Ee.Terminal = void 0;
-  var Md = Ra(ya());
-  Ee.Terminal = Md;
-  var Td = Ra(an());
-  Ee.TerminalAPI = Td;
-  Pd(Ia(), Ee);
+
+// node_modules/@jupyterlab/services/lib/terminal/index.js
+var require_terminal2 = __commonJS({
+  "node_modules/@jupyterlab/services/lib/terminal/index.js"(exports2) {
+    "use strict";
+    init_process_development();
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      Object.defineProperty(o, k2, { enumerable: true, get: function() {
+        return m[k];
+      } });
+    } : function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      o[k2] = m[k];
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || function(mod) {
+      if (mod && mod.__esModule)
+        return mod;
+      var result = {};
+      if (mod != null) {
+        for (var k in mod)
+          if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+            __createBinding(result, mod, k);
+      }
+      __setModuleDefault(result, mod);
+      return result;
+    };
+    var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
+      for (var p in m)
+        if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p))
+          __createBinding(exports3, m, p);
+    };
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.TerminalAPI = exports2.Terminal = void 0;
+    var Terminal = __importStar(require_terminal());
+    exports2.Terminal = Terminal;
+    var TerminalAPI = __importStar(require_restapi4());
+    exports2.TerminalAPI = TerminalAPI;
+    __exportStar(require_manager4(), exports2);
+  }
 });
-var xi = k((lr) => {
-  "use strict";
-  h();
-  Object.defineProperty(lr, "__esModule", { value: !0 });
-  lr.WorkspaceManager = void 0;
-  var Od = Ie(),
-    Nd = Di(),
-    un = De(),
-    Ld = "api/workspaces",
-    ki = class extends Nd.DataConnector {
-      constructor(e = {}) {
-        var t;
-        super(),
-          (this.serverSettings =
-            (t = e.serverSettings) !== null && t !== void 0
-              ? t
-              : un.ServerConnection.makeSettings());
+
+// node_modules/@jupyterlab/services/lib/workspace/index.js
+var require_workspace = __commonJS({
+  "node_modules/@jupyterlab/services/lib/workspace/index.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.WorkspaceManager = void 0;
+    var coreutils_12 = require_lib();
+    var statedb_1 = require_lib2();
+    var serverconnection_1 = require_serverconnection();
+    var SERVICE_WORKSPACES_URL = "api/workspaces";
+    var WorkspaceManager = class extends statedb_1.DataConnector {
+      /**
+       * Create a new workspace manager.
+       */
+      constructor(options = {}) {
+        var _a;
+        super();
+        this.serverSettings = (_a = options.serverSettings) !== null && _a !== void 0 ? _a : serverconnection_1.ServerConnection.makeSettings();
       }
-      async fetch(e) {
-        let { serverSettings: t } = this,
-          { baseUrl: r, appUrl: i } = t,
-          { makeRequest: s, ResponseError: o } = un.ServerConnection,
-          a = r + i,
-          l = Nt.url(a, e),
-          u = await s(l, {}, t);
-        if (u.status !== 200) throw await o.create(u);
-        return u.json();
+      /**
+       * Fetch a workspace.
+       *
+       * @param id - The workspace's ID.
+       *
+       * @returns A promise that resolves if successful.
+       */
+      async fetch(id) {
+        const { serverSettings } = this;
+        const { baseUrl, appUrl } = serverSettings;
+        const { makeRequest, ResponseError } = serverconnection_1.ServerConnection;
+        const base = baseUrl + appUrl;
+        const url = Private.url(base, id);
+        const response = await makeRequest(url, {}, serverSettings);
+        if (response.status !== 200) {
+          const err = await ResponseError.create(response);
+          throw err;
+        }
+        return response.json();
       }
+      /**
+       * Fetch the list of workspace IDs that exist on the server.
+       *
+       * @returns A promise that resolves if successful.
+       */
       async list() {
-        let { serverSettings: e } = this,
-          { baseUrl: t, appUrl: r } = e,
-          { makeRequest: i, ResponseError: s } = un.ServerConnection,
-          o = t + r,
-          a = Nt.url(o, ""),
-          l = await i(a, {}, e);
-        if (l.status !== 200) throw await s.create(l);
-        return (await l.json()).workspaces;
+        const { serverSettings } = this;
+        const { baseUrl, appUrl } = serverSettings;
+        const { makeRequest, ResponseError } = serverconnection_1.ServerConnection;
+        const base = baseUrl + appUrl;
+        const url = Private.url(base, "");
+        const response = await makeRequest(url, {}, serverSettings);
+        if (response.status !== 200) {
+          const err = await ResponseError.create(response);
+          throw err;
+        }
+        const result = await response.json();
+        return result.workspaces;
       }
-      async remove(e) {
-        let { serverSettings: t } = this,
-          { baseUrl: r, appUrl: i } = t,
-          { makeRequest: s, ResponseError: o } = un.ServerConnection,
-          a = r + i,
-          l = Nt.url(a, e),
-          f = await s(l, { method: "DELETE" }, t);
-        if (f.status !== 204) throw await o.create(f);
+      /**
+       * Remove a workspace from the server.
+       *
+       * @param id - The workspaces's ID.
+       *
+       * @returns A promise that resolves if successful.
+       */
+      async remove(id) {
+        const { serverSettings } = this;
+        const { baseUrl, appUrl } = serverSettings;
+        const { makeRequest, ResponseError } = serverconnection_1.ServerConnection;
+        const base = baseUrl + appUrl;
+        const url = Private.url(base, id);
+        const init = { method: "DELETE" };
+        const response = await makeRequest(url, init, serverSettings);
+        if (response.status !== 204) {
+          const err = await ResponseError.create(response);
+          throw err;
+        }
       }
-      async save(e, t) {
-        let { serverSettings: r } = this,
-          { baseUrl: i, appUrl: s } = r,
-          { makeRequest: o, ResponseError: a } = un.ServerConnection,
-          l = i + s,
-          u = Nt.url(l, e),
-          f = { body: JSON.stringify(t), method: "PUT" },
-          c = await o(u, f, r);
-        if (c.status !== 204) throw await a.create(c);
+      /**
+       * Save a workspace.
+       *
+       * @param id - The workspace's ID.
+       *
+       * @param workspace - The workspace being saved.
+       *
+       * @returns A promise that resolves if successful.
+       */
+      async save(id, workspace) {
+        const { serverSettings } = this;
+        const { baseUrl, appUrl } = serverSettings;
+        const { makeRequest, ResponseError } = serverconnection_1.ServerConnection;
+        const base = baseUrl + appUrl;
+        const url = Private.url(base, id);
+        const init = { body: JSON.stringify(workspace), method: "PUT" };
+        const response = await makeRequest(url, init, serverSettings);
+        if (response.status !== 204) {
+          const err = await ResponseError.create(response);
+          throw err;
+        }
       }
     };
-  lr.WorkspaceManager = ki;
-  var Nt;
-  (function (n) {
-    function e(t, r) {
-      return Od.URLExt.join(t, Ld, r);
-    }
-    n.url = e;
-  })(Nt || (Nt = {}));
-});
-var Da = k((ur) => {
-  "use strict";
-  h();
-  Object.defineProperty(ur, "__esModule", { value: !0 });
-  ur.ServiceManager = void 0;
-  var Aa = ce(),
-    kd = Zo(),
-    xd = bi(),
-    jd = Gr(),
-    Fd = Un(),
-    Ud = Ci(),
-    Wd = Mi(),
-    Kd = Li(),
-    qd = De(),
-    Vd = xi(),
-    Bd = _i(),
-    ji = class {
-      constructor(e = {}) {
-        var t, r;
-        (this._isDisposed = !1),
-          (this._connectionFailure = new Aa.Signal(this)),
-          (this._isReady = !1);
-        let i = e.defaultDrive,
-          s =
-            (t = e.serverSettings) !== null && t !== void 0
-              ? t
-              : qd.ServerConnection.makeSettings(),
-          o = (r = e.standby) !== null && r !== void 0 ? r : "when-hidden",
-          a = { defaultDrive: i, serverSettings: s, standby: o },
-          l = new Bd.KernelManager(a);
-        (this.serverSettings = s),
-          (this.contents = new jd.ContentsManager(a)),
-          (this.sessions = new Ud.SessionManager(
-            Object.assign(Object.assign({}, a), { kernelManager: l })
-          )),
-          (this.settings = new Wd.SettingManager(a)),
-          (this.terminals = new Kd.TerminalManager(a)),
-          (this.builder = new kd.BuildManager(a)),
-          (this.workspaces = new Vd.WorkspaceManager(a)),
-          (this.nbconvert = new xd.NbConvertManager(a)),
-          (this.kernelspecs = new Fd.KernelSpecManager(a)),
-          this.kernelspecs.connectionFailure.connect(
-            this._onConnectionFailure,
-            this
-          ),
-          this.sessions.connectionFailure.connect(
-            this._onConnectionFailure,
-            this
-          ),
-          this.terminals.connectionFailure.connect(
-            this._onConnectionFailure,
-            this
-          );
-        let u = [this.sessions.ready, this.kernelspecs.ready];
-        this.terminals.isAvailable() && u.push(this.terminals.ready),
-          (this._readyPromise = Promise.all(u).then(() => {
-            this._isReady = !0;
-          }));
+    exports2.WorkspaceManager = WorkspaceManager;
+    var Private;
+    (function(Private2) {
+      function url(base, id) {
+        return coreutils_12.URLExt.join(base, SERVICE_WORKSPACES_URL, id);
       }
+      Private2.url = url;
+    })(Private || (Private = {}));
+  }
+});
+
+// node_modules/@jupyterlab/services/lib/manager.js
+var require_manager5 = __commonJS({
+  "node_modules/@jupyterlab/services/lib/manager.js"(exports2) {
+    "use strict";
+    init_process_development();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.ServiceManager = void 0;
+    var signaling_1 = require_dist3();
+    var builder_1 = require_builder();
+    var nbconvert_1 = require_nbconvert();
+    var contents_1 = require_contents();
+    var kernelspec_1 = require_kernelspec2();
+    var session_1 = require_session2();
+    var setting_1 = require_setting();
+    var terminal_1 = require_terminal2();
+    var serverconnection_1 = require_serverconnection();
+    var workspace_1 = require_workspace();
+    var kernel_1 = require_kernel2();
+    var ServiceManager = class {
+      /**
+       * Construct a new services provider.
+       */
+      constructor(options = {}) {
+        var _a, _b;
+        this._isDisposed = false;
+        this._connectionFailure = new signaling_1.Signal(this);
+        this._isReady = false;
+        const defaultDrive = options.defaultDrive;
+        const serverSettings = (_a = options.serverSettings) !== null && _a !== void 0 ? _a : serverconnection_1.ServerConnection.makeSettings();
+        const standby = (_b = options.standby) !== null && _b !== void 0 ? _b : "when-hidden";
+        const normalized = { defaultDrive, serverSettings, standby };
+        const kernelManager = new kernel_1.KernelManager(normalized);
+        this.serverSettings = serverSettings;
+        this.contents = new contents_1.ContentsManager(normalized);
+        this.sessions = new session_1.SessionManager(Object.assign(Object.assign({}, normalized), { kernelManager }));
+        this.settings = new setting_1.SettingManager(normalized);
+        this.terminals = new terminal_1.TerminalManager(normalized);
+        this.builder = new builder_1.BuildManager(normalized);
+        this.workspaces = new workspace_1.WorkspaceManager(normalized);
+        this.nbconvert = new nbconvert_1.NbConvertManager(normalized);
+        this.kernelspecs = new kernelspec_1.KernelSpecManager(normalized);
+        this.kernelspecs.connectionFailure.connect(this._onConnectionFailure, this);
+        this.sessions.connectionFailure.connect(this._onConnectionFailure, this);
+        this.terminals.connectionFailure.connect(this._onConnectionFailure, this);
+        const readyList = [this.sessions.ready, this.kernelspecs.ready];
+        if (this.terminals.isAvailable()) {
+          readyList.push(this.terminals.ready);
+        }
+        this._readyPromise = Promise.all(readyList).then(() => {
+          this._isReady = true;
+        });
+      }
+      /**
+       * A signal emitted when there is a connection failure with the kernel.
+       */
       get connectionFailure() {
         return this._connectionFailure;
       }
+      /**
+       * Test whether the service manager is disposed.
+       */
       get isDisposed() {
         return this._isDisposed;
       }
+      /**
+       * Dispose of the resources used by the manager.
+       */
       dispose() {
-        this.isDisposed ||
-          ((this._isDisposed = !0),
-          Aa.Signal.clearData(this),
-          this.contents.dispose(),
-          this.sessions.dispose(),
-          this.terminals.dispose());
+        if (this.isDisposed) {
+          return;
+        }
+        this._isDisposed = true;
+        signaling_1.Signal.clearData(this);
+        this.contents.dispose();
+        this.sessions.dispose();
+        this.terminals.dispose();
       }
+      /**
+       * Test whether the manager is ready.
+       */
       get isReady() {
         return this._isReady;
       }
+      /**
+       * A promise that fulfills when the manager is ready.
+       */
       get ready() {
         return this._readyPromise;
       }
-      _onConnectionFailure(e, t) {
-        this._connectionFailure.emit(t);
+      _onConnectionFailure(sender, err) {
+        this._connectionFailure.emit(err);
       }
     };
-  ur.ServiceManager = ji;
+    exports2.ServiceManager = ServiceManager;
+  }
 });
-var Ve = k((fe) => {
-  "use strict";
-  h();
-  var Hd =
-      (fe && fe.__createBinding) ||
-      (Object.create
-        ? function (n, e, t, r) {
-            r === void 0 && (r = t),
-              Object.defineProperty(n, r, {
-                enumerable: !0,
-                get: function () {
-                  return e[t];
-                },
-              });
-          }
-        : function (n, e, t, r) {
-            r === void 0 && (r = t), (n[r] = e[t]);
-          }),
-    xe =
-      (fe && fe.__exportStar) ||
-      function (n, e) {
-        for (var t in n)
-          t !== "default" &&
-            !Object.prototype.hasOwnProperty.call(e, t) &&
-            Hd(e, n, t);
+
+// node_modules/@jupyterlab/services/lib/index.js
+var require_lib3 = __commonJS({
+  "node_modules/@jupyterlab/services/lib/index.js"(exports2) {
+    "use strict";
+    init_process_development();
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      Object.defineProperty(o, k2, { enumerable: true, get: function() {
+        return m[k];
+      } });
+    } : function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      o[k2] = m[k];
+    });
+    var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
+      for (var p in m)
+        if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p))
+          __createBinding(exports3, m, p);
+    };
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    __exportStar(require_config(), exports2);
+    __exportStar(require_contents(), exports2);
+    __exportStar(require_kernel2(), exports2);
+    __exportStar(require_kernelspec2(), exports2);
+    __exportStar(require_manager5(), exports2);
+    __exportStar(require_serverconnection(), exports2);
+    __exportStar(require_session2(), exports2);
+    __exportStar(require_setting(), exports2);
+    __exportStar(require_terminal2(), exports2);
+    __exportStar(require_workspace(), exports2);
+    __exportStar(require_nbconvert(), exports2);
+  }
+});
+
+// node_modules/events/events.js
+var require_events = __commonJS({
+  "node_modules/events/events.js"(exports2, module2) {
+    "use strict";
+    init_process_development();
+    var R = typeof Reflect === "object" ? Reflect : null;
+    var ReflectApply = R && typeof R.apply === "function" ? R.apply : function ReflectApply2(target, receiver, args) {
+      return Function.prototype.apply.call(target, receiver, args);
+    };
+    var ReflectOwnKeys;
+    if (R && typeof R.ownKeys === "function") {
+      ReflectOwnKeys = R.ownKeys;
+    } else if (Object.getOwnPropertySymbols) {
+      ReflectOwnKeys = function ReflectOwnKeys2(target) {
+        return Object.getOwnPropertyNames(target).concat(Object.getOwnPropertySymbols(target));
       };
-  Object.defineProperty(fe, "__esModule", { value: !0 });
-  xe(So(), fe);
-  xe(Gr(), fe);
-  xe(_i(), fe);
-  xe(Un(), fe);
-  xe(Da(), fe);
-  xe(De(), fe);
-  xe(Ci(), fe);
-  xe(Mi(), fe);
-  xe(Li(), fe);
-  xe(xi(), fe);
-  xe(bi(), fe);
-});
-var Xa = k((A_, Bi) => {
-  "use strict";
-  h();
-  var kt = typeof Reflect == "object" ? Reflect : null,
-    Ka =
-      kt && typeof kt.apply == "function"
-        ? kt.apply
-        : function (e, t, r) {
-            return Function.prototype.apply.call(e, t, r);
-          },
-    cr;
-  kt && typeof kt.ownKeys == "function"
-    ? (cr = kt.ownKeys)
-    : Object.getOwnPropertySymbols
-      ? (cr = function (e) {
-          return Object.getOwnPropertyNames(e).concat(
-            Object.getOwnPropertySymbols(e)
-          );
-        })
-      : (cr = function (e) {
-          return Object.getOwnPropertyNames(e);
-        });
-  function zd(n) {
-    console && console.warn && console.warn(n);
-  }
-  var Va =
-    Number.isNaN ||
-    function (e) {
-      return e !== e;
+    } else {
+      ReflectOwnKeys = function ReflectOwnKeys2(target) {
+        return Object.getOwnPropertyNames(target);
+      };
+    }
+    function ProcessEmitWarning(warning) {
+      if (console && console.warn)
+        console.warn(warning);
+    }
+    var NumberIsNaN = Number.isNaN || function NumberIsNaN2(value) {
+      return value !== value;
     };
-  function X() {
-    X.init.call(this);
-  }
-  Bi.exports = X;
-  Bi.exports.once = Zd;
-  X.EventEmitter = X;
-  X.prototype._events = void 0;
-  X.prototype._eventsCount = 0;
-  X.prototype._maxListeners = void 0;
-  var qa = 10;
-  function dr(n) {
-    if (typeof n != "function")
-      throw new TypeError(
-        'The "listener" argument must be of type Function. Received type ' +
-          typeof n
-      );
-  }
-  Object.defineProperty(X, "defaultMaxListeners", {
-    enumerable: !0,
-    get: function () {
-      return qa;
-    },
-    set: function (n) {
-      if (typeof n != "number" || n < 0 || Va(n))
-        throw new RangeError(
-          'The value of "defaultMaxListeners" is out of range. It must be a non-negative number. Received ' +
-            n +
-            "."
-        );
-      qa = n;
-    },
-  });
-  X.init = function () {
-    (this._events === void 0 ||
-      this._events === Object.getPrototypeOf(this)._events) &&
-      ((this._events = Object.create(null)), (this._eventsCount = 0)),
-      (this._maxListeners = this._maxListeners || void 0);
-  };
-  X.prototype.setMaxListeners = function (e) {
-    if (typeof e != "number" || e < 0 || Va(e))
-      throw new RangeError(
-        'The value of "n" is out of range. It must be a non-negative number. Received ' +
-          e +
-          "."
-      );
-    return (this._maxListeners = e), this;
-  };
-  function Ba(n) {
-    return n._maxListeners === void 0 ? X.defaultMaxListeners : n._maxListeners;
-  }
-  X.prototype.getMaxListeners = function () {
-    return Ba(this);
-  };
-  X.prototype.emit = function (e) {
-    for (var t = [], r = 1; r < arguments.length; r++) t.push(arguments[r]);
-    var i = e === "error",
-      s = this._events;
-    if (s !== void 0) i = i && s.error === void 0;
-    else if (!i) return !1;
-    if (i) {
-      var o;
-      if ((t.length > 0 && (o = t[0]), o instanceof Error)) throw o;
-      var a = new Error("Unhandled error." + (o ? " (" + o.message + ")" : ""));
-      throw ((a.context = o), a);
+    function EventEmitter3() {
+      EventEmitter3.init.call(this);
     }
-    var l = s[e];
-    if (l === void 0) return !1;
-    if (typeof l == "function") Ka(l, this, t);
-    else
-      for (var u = l.length, f = za(l, u), r = 0; r < u; ++r) Ka(f[r], this, t);
-    return !0;
-  };
-  function Ha(n, e, t, r) {
-    var i, s, o;
-    if (
-      (dr(t),
-      (s = n._events),
-      s === void 0
-        ? ((s = n._events = Object.create(null)), (n._eventsCount = 0))
-        : (s.newListener !== void 0 &&
-            (n.emit("newListener", e, t.listener ? t.listener : t),
-            (s = n._events)),
-          (o = s[e])),
-      o === void 0)
-    )
-      (o = s[e] = t), ++n._eventsCount;
-    else if (
-      (typeof o == "function"
-        ? (o = s[e] = r ? [t, o] : [o, t])
-        : r
-          ? o.unshift(t)
-          : o.push(t),
-      (i = Ba(n)),
-      i > 0 && o.length > i && !o.warned)
-    ) {
-      o.warned = !0;
-      var a = new Error(
-        "Possible EventEmitter memory leak detected. " +
-          o.length +
-          " " +
-          String(e) +
-          " listeners added. Use emitter.setMaxListeners() to increase limit"
-      );
-      (a.name = "MaxListenersExceededWarning"),
-        (a.emitter = n),
-        (a.type = e),
-        (a.count = o.length),
-        zd(a);
+    module2.exports = EventEmitter3;
+    module2.exports.once = once2;
+    EventEmitter3.EventEmitter = EventEmitter3;
+    EventEmitter3.prototype._events = void 0;
+    EventEmitter3.prototype._eventsCount = 0;
+    EventEmitter3.prototype._maxListeners = void 0;
+    var defaultMaxListeners = 10;
+    function checkListener(listener) {
+      if (typeof listener !== "function") {
+        throw new TypeError('The "listener" argument must be of type Function. Received type ' + typeof listener);
+      }
     }
-    return n;
-  }
-  X.prototype.addListener = function (e, t) {
-    return Ha(this, e, t, !1);
-  };
-  X.prototype.on = X.prototype.addListener;
-  X.prototype.prependListener = function (e, t) {
-    return Ha(this, e, t, !0);
-  };
-  function Yd() {
-    if (!this.fired)
-      return (
-        this.target.removeListener(this.type, this.wrapFn),
-        (this.fired = !0),
-        arguments.length === 0
-          ? this.listener.call(this.target)
-          : this.listener.apply(this.target, arguments)
-      );
-  }
-  function $a(n, e, t) {
-    var r = { fired: !1, wrapFn: void 0, target: n, type: e, listener: t },
-      i = Yd.bind(r);
-    return (i.listener = t), (r.wrapFn = i), i;
-  }
-  X.prototype.once = function (e, t) {
-    return dr(t), this.on(e, $a(this, e, t)), this;
-  };
-  X.prototype.prependOnceListener = function (e, t) {
-    return dr(t), this.prependListener(e, $a(this, e, t)), this;
-  };
-  X.prototype.removeListener = function (e, t) {
-    var r, i, s, o, a;
-    if ((dr(t), (i = this._events), i === void 0)) return this;
-    if (((r = i[e]), r === void 0)) return this;
-    if (r === t || r.listener === t)
-      --this._eventsCount === 0
-        ? (this._events = Object.create(null))
-        : (delete i[e],
-          i.removeListener && this.emit("removeListener", e, r.listener || t));
-    else if (typeof r != "function") {
-      for (s = -1, o = r.length - 1; o >= 0; o--)
-        if (r[o] === t || r[o].listener === t) {
-          (a = r[o].listener), (s = o);
-          break;
+    Object.defineProperty(EventEmitter3, "defaultMaxListeners", {
+      enumerable: true,
+      get: function() {
+        return defaultMaxListeners;
+      },
+      set: function(arg) {
+        if (typeof arg !== "number" || arg < 0 || NumberIsNaN(arg)) {
+          throw new RangeError('The value of "defaultMaxListeners" is out of range. It must be a non-negative number. Received ' + arg + ".");
         }
-      if (s < 0) return this;
-      s === 0 ? r.shift() : Xd(r, s),
-        r.length === 1 && (i[e] = r[0]),
-        i.removeListener !== void 0 && this.emit("removeListener", e, a || t);
-    }
-    return this;
-  };
-  X.prototype.off = X.prototype.removeListener;
-  X.prototype.removeAllListeners = function (e) {
-    var t, r, i;
-    if (((r = this._events), r === void 0)) return this;
-    if (r.removeListener === void 0)
-      return (
-        arguments.length === 0
-          ? ((this._events = Object.create(null)), (this._eventsCount = 0))
-          : r[e] !== void 0 &&
-            (--this._eventsCount === 0
-              ? (this._events = Object.create(null))
-              : delete r[e]),
-        this
-      );
-    if (arguments.length === 0) {
-      var s = Object.keys(r),
-        o;
-      for (i = 0; i < s.length; ++i)
-        (o = s[i]), o !== "removeListener" && this.removeAllListeners(o);
-      return (
-        this.removeAllListeners("removeListener"),
-        (this._events = Object.create(null)),
-        (this._eventsCount = 0),
-        this
-      );
-    }
-    if (((t = r[e]), typeof t == "function")) this.removeListener(e, t);
-    else if (t !== void 0)
-      for (i = t.length - 1; i >= 0; i--) this.removeListener(e, t[i]);
-    return this;
-  };
-  function Ja(n, e, t) {
-    var r = n._events;
-    if (r === void 0) return [];
-    var i = r[e];
-    return i === void 0
-      ? []
-      : typeof i == "function"
-        ? t
-          ? [i.listener || i]
-          : [i]
-        : t
-          ? Qd(i)
-          : za(i, i.length);
-  }
-  X.prototype.listeners = function (e) {
-    return Ja(this, e, !0);
-  };
-  X.prototype.rawListeners = function (e) {
-    return Ja(this, e, !1);
-  };
-  X.listenerCount = function (n, e) {
-    return typeof n.listenerCount == "function"
-      ? n.listenerCount(e)
-      : Ga.call(n, e);
-  };
-  X.prototype.listenerCount = Ga;
-  function Ga(n) {
-    var e = this._events;
-    if (e !== void 0) {
-      var t = e[n];
-      if (typeof t == "function") return 1;
-      if (t !== void 0) return t.length;
-    }
-    return 0;
-  }
-  X.prototype.eventNames = function () {
-    return this._eventsCount > 0 ? cr(this._events) : [];
-  };
-  function za(n, e) {
-    for (var t = new Array(e), r = 0; r < e; ++r) t[r] = n[r];
-    return t;
-  }
-  function Xd(n, e) {
-    for (; e + 1 < n.length; e++) n[e] = n[e + 1];
-    n.pop();
-  }
-  function Qd(n) {
-    for (var e = new Array(n.length), t = 0; t < e.length; ++t)
-      e[t] = n[t].listener || n[t];
-    return e;
-  }
-  function Zd(n, e) {
-    return new Promise(function (t, r) {
-      function i(o) {
-        n.removeListener(e, s), r(o);
+        defaultMaxListeners = arg;
       }
-      function s() {
-        typeof n.removeListener == "function" && n.removeListener("error", i),
-          t([].slice.call(arguments));
-      }
-      Ya(n, e, s, { once: !0 }), e !== "error" && eh(n, i, { once: !0 });
     });
-  }
-  function eh(n, e, t) {
-    typeof n.on == "function" && Ya(n, "error", e, t);
-  }
-  function Ya(n, e, t, r) {
-    if (typeof n.on == "function") r.once ? n.once(e, t) : n.on(e, t);
-    else if (typeof n.addEventListener == "function")
-      n.addEventListener(e, function i(s) {
-        r.once && n.removeEventListener(e, i), t(s);
+    EventEmitter3.init = function() {
+      if (this._events === void 0 || this._events === Object.getPrototypeOf(this)._events) {
+        this._events = /* @__PURE__ */ Object.create(null);
+        this._eventsCount = 0;
+      }
+      this._maxListeners = this._maxListeners || void 0;
+    };
+    EventEmitter3.prototype.setMaxListeners = function setMaxListeners(n) {
+      if (typeof n !== "number" || n < 0 || NumberIsNaN(n)) {
+        throw new RangeError('The value of "n" is out of range. It must be a non-negative number. Received ' + n + ".");
+      }
+      this._maxListeners = n;
+      return this;
+    };
+    function _getMaxListeners(that) {
+      if (that._maxListeners === void 0)
+        return EventEmitter3.defaultMaxListeners;
+      return that._maxListeners;
+    }
+    EventEmitter3.prototype.getMaxListeners = function getMaxListeners() {
+      return _getMaxListeners(this);
+    };
+    EventEmitter3.prototype.emit = function emit(type) {
+      var args = [];
+      for (var i = 1; i < arguments.length; i++)
+        args.push(arguments[i]);
+      var doError = type === "error";
+      var events = this._events;
+      if (events !== void 0)
+        doError = doError && events.error === void 0;
+      else if (!doError)
+        return false;
+      if (doError) {
+        var er;
+        if (args.length > 0)
+          er = args[0];
+        if (er instanceof Error) {
+          throw er;
+        }
+        var err = new Error("Unhandled error." + (er ? " (" + er.message + ")" : ""));
+        err.context = er;
+        throw err;
+      }
+      var handler = events[type];
+      if (handler === void 0)
+        return false;
+      if (typeof handler === "function") {
+        ReflectApply(handler, this, args);
+      } else {
+        var len = handler.length;
+        var listeners = arrayClone(handler, len);
+        for (var i = 0; i < len; ++i)
+          ReflectApply(listeners[i], this, args);
+      }
+      return true;
+    };
+    function _addListener(target, type, listener, prepend) {
+      var m;
+      var events;
+      var existing;
+      checkListener(listener);
+      events = target._events;
+      if (events === void 0) {
+        events = target._events = /* @__PURE__ */ Object.create(null);
+        target._eventsCount = 0;
+      } else {
+        if (events.newListener !== void 0) {
+          target.emit(
+            "newListener",
+            type,
+            listener.listener ? listener.listener : listener
+          );
+          events = target._events;
+        }
+        existing = events[type];
+      }
+      if (existing === void 0) {
+        existing = events[type] = listener;
+        ++target._eventsCount;
+      } else {
+        if (typeof existing === "function") {
+          existing = events[type] = prepend ? [listener, existing] : [existing, listener];
+        } else if (prepend) {
+          existing.unshift(listener);
+        } else {
+          existing.push(listener);
+        }
+        m = _getMaxListeners(target);
+        if (m > 0 && existing.length > m && !existing.warned) {
+          existing.warned = true;
+          var w = new Error("Possible EventEmitter memory leak detected. " + existing.length + " " + String(type) + " listeners added. Use emitter.setMaxListeners() to increase limit");
+          w.name = "MaxListenersExceededWarning";
+          w.emitter = target;
+          w.type = type;
+          w.count = existing.length;
+          ProcessEmitWarning(w);
+        }
+      }
+      return target;
+    }
+    EventEmitter3.prototype.addListener = function addListener(type, listener) {
+      return _addListener(this, type, listener, false);
+    };
+    EventEmitter3.prototype.on = EventEmitter3.prototype.addListener;
+    EventEmitter3.prototype.prependListener = function prependListener(type, listener) {
+      return _addListener(this, type, listener, true);
+    };
+    function onceWrapper() {
+      if (!this.fired) {
+        this.target.removeListener(this.type, this.wrapFn);
+        this.fired = true;
+        if (arguments.length === 0)
+          return this.listener.call(this.target);
+        return this.listener.apply(this.target, arguments);
+      }
+    }
+    function _onceWrap(target, type, listener) {
+      var state = { fired: false, wrapFn: void 0, target, type, listener };
+      var wrapped = onceWrapper.bind(state);
+      wrapped.listener = listener;
+      state.wrapFn = wrapped;
+      return wrapped;
+    }
+    EventEmitter3.prototype.once = function once3(type, listener) {
+      checkListener(listener);
+      this.on(type, _onceWrap(this, type, listener));
+      return this;
+    };
+    EventEmitter3.prototype.prependOnceListener = function prependOnceListener(type, listener) {
+      checkListener(listener);
+      this.prependListener(type, _onceWrap(this, type, listener));
+      return this;
+    };
+    EventEmitter3.prototype.removeListener = function removeListener(type, listener) {
+      var list, events, position, i, originalListener;
+      checkListener(listener);
+      events = this._events;
+      if (events === void 0)
+        return this;
+      list = events[type];
+      if (list === void 0)
+        return this;
+      if (list === listener || list.listener === listener) {
+        if (--this._eventsCount === 0)
+          this._events = /* @__PURE__ */ Object.create(null);
+        else {
+          delete events[type];
+          if (events.removeListener)
+            this.emit("removeListener", type, list.listener || listener);
+        }
+      } else if (typeof list !== "function") {
+        position = -1;
+        for (i = list.length - 1; i >= 0; i--) {
+          if (list[i] === listener || list[i].listener === listener) {
+            originalListener = list[i].listener;
+            position = i;
+            break;
+          }
+        }
+        if (position < 0)
+          return this;
+        if (position === 0)
+          list.shift();
+        else {
+          spliceOne(list, position);
+        }
+        if (list.length === 1)
+          events[type] = list[0];
+        if (events.removeListener !== void 0)
+          this.emit("removeListener", type, originalListener || listener);
+      }
+      return this;
+    };
+    EventEmitter3.prototype.off = EventEmitter3.prototype.removeListener;
+    EventEmitter3.prototype.removeAllListeners = function removeAllListeners(type) {
+      var listeners, events, i;
+      events = this._events;
+      if (events === void 0)
+        return this;
+      if (events.removeListener === void 0) {
+        if (arguments.length === 0) {
+          this._events = /* @__PURE__ */ Object.create(null);
+          this._eventsCount = 0;
+        } else if (events[type] !== void 0) {
+          if (--this._eventsCount === 0)
+            this._events = /* @__PURE__ */ Object.create(null);
+          else
+            delete events[type];
+        }
+        return this;
+      }
+      if (arguments.length === 0) {
+        var keys = Object.keys(events);
+        var key;
+        for (i = 0; i < keys.length; ++i) {
+          key = keys[i];
+          if (key === "removeListener")
+            continue;
+          this.removeAllListeners(key);
+        }
+        this.removeAllListeners("removeListener");
+        this._events = /* @__PURE__ */ Object.create(null);
+        this._eventsCount = 0;
+        return this;
+      }
+      listeners = events[type];
+      if (typeof listeners === "function") {
+        this.removeListener(type, listeners);
+      } else if (listeners !== void 0) {
+        for (i = listeners.length - 1; i >= 0; i--) {
+          this.removeListener(type, listeners[i]);
+        }
+      }
+      return this;
+    };
+    function _listeners(target, type, unwrap) {
+      var events = target._events;
+      if (events === void 0)
+        return [];
+      var evlistener = events[type];
+      if (evlistener === void 0)
+        return [];
+      if (typeof evlistener === "function")
+        return unwrap ? [evlistener.listener || evlistener] : [evlistener];
+      return unwrap ? unwrapListeners(evlistener) : arrayClone(evlistener, evlistener.length);
+    }
+    EventEmitter3.prototype.listeners = function listeners(type) {
+      return _listeners(this, type, true);
+    };
+    EventEmitter3.prototype.rawListeners = function rawListeners(type) {
+      return _listeners(this, type, false);
+    };
+    EventEmitter3.listenerCount = function(emitter, type) {
+      if (typeof emitter.listenerCount === "function") {
+        return emitter.listenerCount(type);
+      } else {
+        return listenerCount.call(emitter, type);
+      }
+    };
+    EventEmitter3.prototype.listenerCount = listenerCount;
+    function listenerCount(type) {
+      var events = this._events;
+      if (events !== void 0) {
+        var evlistener = events[type];
+        if (typeof evlistener === "function") {
+          return 1;
+        } else if (evlistener !== void 0) {
+          return evlistener.length;
+        }
+      }
+      return 0;
+    }
+    EventEmitter3.prototype.eventNames = function eventNames() {
+      return this._eventsCount > 0 ? ReflectOwnKeys(this._events) : [];
+    };
+    function arrayClone(arr, n) {
+      var copy = new Array(n);
+      for (var i = 0; i < n; ++i)
+        copy[i] = arr[i];
+      return copy;
+    }
+    function spliceOne(list, index) {
+      for (; index + 1 < list.length; index++)
+        list[index] = list[index + 1];
+      list.pop();
+    }
+    function unwrapListeners(arr) {
+      var ret = new Array(arr.length);
+      for (var i = 0; i < ret.length; ++i) {
+        ret[i] = arr[i].listener || arr[i];
+      }
+      return ret;
+    }
+    function once2(emitter, name2) {
+      return new Promise(function(resolve, reject) {
+        function errorListener(err) {
+          emitter.removeListener(name2, resolver);
+          reject(err);
+        }
+        function resolver() {
+          if (typeof emitter.removeListener === "function") {
+            emitter.removeListener("error", errorListener);
+          }
+          resolve([].slice.call(arguments));
+        }
+        ;
+        eventTargetAgnosticAddListener(emitter, name2, resolver, { once: true });
+        if (name2 !== "error") {
+          addErrorHandlerIfEventEmitter(emitter, errorListener, { once: true });
+        }
       });
-    else
-      throw new TypeError(
-        'The "emitter" argument must be of type EventEmitter. Received type ' +
-          typeof n
-      );
+    }
+    function addErrorHandlerIfEventEmitter(emitter, handler, flags) {
+      if (typeof emitter.on === "function") {
+        eventTargetAgnosticAddListener(emitter, "error", handler, flags);
+      }
+    }
+    function eventTargetAgnosticAddListener(emitter, name2, listener, flags) {
+      if (typeof emitter.on === "function") {
+        if (flags.once) {
+          emitter.once(name2, listener);
+        } else {
+          emitter.on(name2, listener);
+        }
+      } else if (typeof emitter.addEventListener === "function") {
+        emitter.addEventListener(name2, function wrapListener(arg) {
+          if (flags.once) {
+            emitter.removeEventListener(name2, wrapListener);
+          }
+          listener(arg);
+        });
+      } else {
+        throw new TypeError('The "emitter" argument must be of type EventEmitter. Received type ' + typeof emitter);
+      }
+    }
   }
 });
-var ml = k((K, _l) => {
-  h();
-  K = _l.exports = H;
-  var Y;
-  typeof process == "object" &&
-  process.env &&
-  process.env.NODE_DEBUG &&
-  /\bsemver\b/i.test(process.env.NODE_DEBUG)
-    ? (Y = function () {
-        var n = Array.prototype.slice.call(arguments, 0);
-        n.unshift("SEMVER"), console.log.apply(console, n);
-      })
-    : (Y = function () {});
-  K.SEMVER_SPEC_VERSION = "2.0.0";
-  var cn = 256,
-    gr = Number.MAX_SAFE_INTEGER || 9007199254740991,
-    Gi = 16,
-    sh = cn - 6,
-    dn = (K.re = []),
-    Z = (K.safeRe = []),
-    I = (K.src = []),
-    B = 0,
-    Zi = "[a-zA-Z0-9-]",
-    zi = [
+
+// node_modules/semver/semver.js
+var require_semver = __commonJS({
+  "node_modules/semver/semver.js"(exports2, module2) {
+    init_process_development();
+    exports2 = module2.exports = SemVer;
+    var debug;
+    if (typeof process === "object" && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG)) {
+      debug = function() {
+        var args = Array.prototype.slice.call(arguments, 0);
+        args.unshift("SEMVER");
+        console.log.apply(console, args);
+      };
+    } else {
+      debug = function() {
+      };
+    }
+    exports2.SEMVER_SPEC_VERSION = "2.0.0";
+    var MAX_LENGTH = 256;
+    var MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER || /* istanbul ignore next */
+    9007199254740991;
+    var MAX_SAFE_COMPONENT_LENGTH = 16;
+    var MAX_SAFE_BUILD_LENGTH = MAX_LENGTH - 6;
+    var re = exports2.re = [];
+    var safeRe = exports2.safeRe = [];
+    var src = exports2.src = [];
+    var R = 0;
+    var LETTERDASHNUMBER = "[a-zA-Z0-9-]";
+    var safeRegexReplacements = [
       ["\\s", 1],
-      ["\\d", cn],
-      [Zi, sh],
+      ["\\d", MAX_LENGTH],
+      [LETTERDASHNUMBER, MAX_SAFE_BUILD_LENGTH]
     ];
-  function br(n) {
-    for (var e = 0; e < zi.length; e++) {
-      var t = zi[e][0],
-        r = zi[e][1];
-      n = n
-        .split(t + "*")
-        .join(t + "{0," + r + "}")
-        .split(t + "+")
-        .join(t + "{1," + r + "}");
+    function makeSafeRe(value) {
+      for (var i2 = 0; i2 < safeRegexReplacements.length; i2++) {
+        var token = safeRegexReplacements[i2][0];
+        var max = safeRegexReplacements[i2][1];
+        value = value.split(token + "*").join(token + "{0," + max + "}").split(token + "+").join(token + "{1," + max + "}");
+      }
+      return value;
     }
-    return n;
-  }
-  var xt = B++;
-  I[xt] = "0|[1-9]\\d*";
-  var jt = B++;
-  I[jt] = "\\d+";
-  var es = B++;
-  I[es] = "\\d*[a-zA-Z-]" + Zi + "*";
-  var nl = B++;
-  I[nl] = "(" + I[xt] + ")\\.(" + I[xt] + ")\\.(" + I[xt] + ")";
-  var rl = B++;
-  I[rl] = "(" + I[jt] + ")\\.(" + I[jt] + ")\\.(" + I[jt] + ")";
-  var Yi = B++;
-  I[Yi] = "(?:" + I[xt] + "|" + I[es] + ")";
-  var Xi = B++;
-  I[Xi] = "(?:" + I[jt] + "|" + I[es] + ")";
-  var ts = B++;
-  I[ts] = "(?:-(" + I[Yi] + "(?:\\." + I[Yi] + ")*))";
-  var ns = B++;
-  I[ns] = "(?:-?(" + I[Xi] + "(?:\\." + I[Xi] + ")*))";
-  var Qi = B++;
-  I[Qi] = Zi + "+";
-  var fn = B++;
-  I[fn] = "(?:\\+(" + I[Qi] + "(?:\\." + I[Qi] + ")*))";
-  var rs = B++,
-    il = "v?" + I[nl] + I[ts] + "?" + I[fn] + "?";
-  I[rs] = "^" + il + "$";
-  var is = "[v=\\s]*" + I[rl] + I[ns] + "?" + I[fn] + "?",
-    ss = B++;
-  I[ss] = "^" + is + "$";
-  var qt = B++;
-  I[qt] = "((?:<|>)?=?)";
-  var _r = B++;
-  I[_r] = I[jt] + "|x|X|\\*";
-  var mr = B++;
-  I[mr] = I[xt] + "|x|X|\\*";
-  var Et = B++;
-  I[Et] =
-    "[v=\\s]*(" +
-    I[mr] +
-    ")(?:\\.(" +
-    I[mr] +
-    ")(?:\\.(" +
-    I[mr] +
-    ")(?:" +
-    I[ts] +
-    ")?" +
-    I[fn] +
-    "?)?)?";
-  var Ut = B++;
-  I[Ut] =
-    "[v=\\s]*(" +
-    I[_r] +
-    ")(?:\\.(" +
-    I[_r] +
-    ")(?:\\.(" +
-    I[_r] +
-    ")(?:" +
-    I[ns] +
-    ")?" +
-    I[fn] +
-    "?)?)?";
-  var sl = B++;
-  I[sl] = "^" + I[qt] + "\\s*" + I[Et] + "$";
-  var ol = B++;
-  I[ol] = "^" + I[qt] + "\\s*" + I[Ut] + "$";
-  var al = B++;
-  I[al] =
-    "(?:^|[^\\d])(\\d{1," +
-    Gi +
-    "})(?:\\.(\\d{1," +
-    Gi +
-    "}))?(?:\\.(\\d{1," +
-    Gi +
-    "}))?(?:$|[^\\d])";
-  var Sr = B++;
-  I[Sr] = "(?:~>?)";
-  var Wt = B++;
-  I[Wt] = "(\\s*)" + I[Sr] + "\\s+";
-  dn[Wt] = new RegExp(I[Wt], "g");
-  Z[Wt] = new RegExp(br(I[Wt]), "g");
-  var oh = "$1~",
-    ll = B++;
-  I[ll] = "^" + I[Sr] + I[Et] + "$";
-  var ul = B++;
-  I[ul] = "^" + I[Sr] + I[Ut] + "$";
-  var wr = B++;
-  I[wr] = "(?:\\^)";
-  var Kt = B++;
-  I[Kt] = "(\\s*)" + I[wr] + "\\s+";
-  dn[Kt] = new RegExp(I[Kt], "g");
-  Z[Kt] = new RegExp(br(I[Kt]), "g");
-  var ah = "$1^",
-    cl = B++;
-  I[cl] = "^" + I[wr] + I[Et] + "$";
-  var dl = B++;
-  I[dl] = "^" + I[wr] + I[Ut] + "$";
-  var os = B++;
-  I[os] = "^" + I[qt] + "\\s*(" + is + ")$|^$";
-  var as = B++;
-  I[as] = "^" + I[qt] + "\\s*(" + il + ")$|^$";
-  var bt = B++;
-  I[bt] = "(\\s*)" + I[qt] + "\\s*(" + is + "|" + I[Et] + ")";
-  dn[bt] = new RegExp(I[bt], "g");
-  Z[bt] = new RegExp(br(I[bt]), "g");
-  var lh = "$1$2$3",
-    hl = B++;
-  I[hl] = "^\\s*(" + I[Et] + ")\\s+-\\s+(" + I[Et] + ")\\s*$";
-  var fl = B++;
-  I[fl] = "^\\s*(" + I[Ut] + ")\\s+-\\s+(" + I[Ut] + ")\\s*$";
-  var pl = B++;
-  I[pl] = "(<|>)?=?\\s*\\*";
-  for (ze = 0; ze < B; ze++)
-    Y(ze, I[ze]),
-      dn[ze] || ((dn[ze] = new RegExp(I[ze])), (Z[ze] = new RegExp(br(I[ze]))));
-  var ze;
-  K.parse = St;
-  function St(n, e) {
-    if (
-      ((!e || typeof e != "object") &&
-        (e = { loose: !!e, includePrerelease: !1 }),
-      n instanceof H)
-    )
-      return n;
-    if (typeof n != "string" || n.length > cn) return null;
-    var t = e.loose ? Z[ss] : Z[rs];
-    if (!t.test(n)) return null;
-    try {
-      return new H(n, e);
-    } catch (r) {
-      return null;
+    var NUMERICIDENTIFIER = R++;
+    src[NUMERICIDENTIFIER] = "0|[1-9]\\d*";
+    var NUMERICIDENTIFIERLOOSE = R++;
+    src[NUMERICIDENTIFIERLOOSE] = "\\d+";
+    var NONNUMERICIDENTIFIER = R++;
+    src[NONNUMERICIDENTIFIER] = "\\d*[a-zA-Z-]" + LETTERDASHNUMBER + "*";
+    var MAINVERSION = R++;
+    src[MAINVERSION] = "(" + src[NUMERICIDENTIFIER] + ")\\.(" + src[NUMERICIDENTIFIER] + ")\\.(" + src[NUMERICIDENTIFIER] + ")";
+    var MAINVERSIONLOOSE = R++;
+    src[MAINVERSIONLOOSE] = "(" + src[NUMERICIDENTIFIERLOOSE] + ")\\.(" + src[NUMERICIDENTIFIERLOOSE] + ")\\.(" + src[NUMERICIDENTIFIERLOOSE] + ")";
+    var PRERELEASEIDENTIFIER = R++;
+    src[PRERELEASEIDENTIFIER] = "(?:" + src[NUMERICIDENTIFIER] + "|" + src[NONNUMERICIDENTIFIER] + ")";
+    var PRERELEASEIDENTIFIERLOOSE = R++;
+    src[PRERELEASEIDENTIFIERLOOSE] = "(?:" + src[NUMERICIDENTIFIERLOOSE] + "|" + src[NONNUMERICIDENTIFIER] + ")";
+    var PRERELEASE = R++;
+    src[PRERELEASE] = "(?:-(" + src[PRERELEASEIDENTIFIER] + "(?:\\." + src[PRERELEASEIDENTIFIER] + ")*))";
+    var PRERELEASELOOSE = R++;
+    src[PRERELEASELOOSE] = "(?:-?(" + src[PRERELEASEIDENTIFIERLOOSE] + "(?:\\." + src[PRERELEASEIDENTIFIERLOOSE] + ")*))";
+    var BUILDIDENTIFIER = R++;
+    src[BUILDIDENTIFIER] = LETTERDASHNUMBER + "+";
+    var BUILD = R++;
+    src[BUILD] = "(?:\\+(" + src[BUILDIDENTIFIER] + "(?:\\." + src[BUILDIDENTIFIER] + ")*))";
+    var FULL = R++;
+    var FULLPLAIN = "v?" + src[MAINVERSION] + src[PRERELEASE] + "?" + src[BUILD] + "?";
+    src[FULL] = "^" + FULLPLAIN + "$";
+    var LOOSEPLAIN = "[v=\\s]*" + src[MAINVERSIONLOOSE] + src[PRERELEASELOOSE] + "?" + src[BUILD] + "?";
+    var LOOSE = R++;
+    src[LOOSE] = "^" + LOOSEPLAIN + "$";
+    var GTLT = R++;
+    src[GTLT] = "((?:<|>)?=?)";
+    var XRANGEIDENTIFIERLOOSE = R++;
+    src[XRANGEIDENTIFIERLOOSE] = src[NUMERICIDENTIFIERLOOSE] + "|x|X|\\*";
+    var XRANGEIDENTIFIER = R++;
+    src[XRANGEIDENTIFIER] = src[NUMERICIDENTIFIER] + "|x|X|\\*";
+    var XRANGEPLAIN = R++;
+    src[XRANGEPLAIN] = "[v=\\s]*(" + src[XRANGEIDENTIFIER] + ")(?:\\.(" + src[XRANGEIDENTIFIER] + ")(?:\\.(" + src[XRANGEIDENTIFIER] + ")(?:" + src[PRERELEASE] + ")?" + src[BUILD] + "?)?)?";
+    var XRANGEPLAINLOOSE = R++;
+    src[XRANGEPLAINLOOSE] = "[v=\\s]*(" + src[XRANGEIDENTIFIERLOOSE] + ")(?:\\.(" + src[XRANGEIDENTIFIERLOOSE] + ")(?:\\.(" + src[XRANGEIDENTIFIERLOOSE] + ")(?:" + src[PRERELEASELOOSE] + ")?" + src[BUILD] + "?)?)?";
+    var XRANGE = R++;
+    src[XRANGE] = "^" + src[GTLT] + "\\s*" + src[XRANGEPLAIN] + "$";
+    var XRANGELOOSE = R++;
+    src[XRANGELOOSE] = "^" + src[GTLT] + "\\s*" + src[XRANGEPLAINLOOSE] + "$";
+    var COERCE = R++;
+    src[COERCE] = "(?:^|[^\\d])(\\d{1," + MAX_SAFE_COMPONENT_LENGTH + "})(?:\\.(\\d{1," + MAX_SAFE_COMPONENT_LENGTH + "}))?(?:\\.(\\d{1," + MAX_SAFE_COMPONENT_LENGTH + "}))?(?:$|[^\\d])";
+    var LONETILDE = R++;
+    src[LONETILDE] = "(?:~>?)";
+    var TILDETRIM = R++;
+    src[TILDETRIM] = "(\\s*)" + src[LONETILDE] + "\\s+";
+    re[TILDETRIM] = new RegExp(src[TILDETRIM], "g");
+    safeRe[TILDETRIM] = new RegExp(makeSafeRe(src[TILDETRIM]), "g");
+    var tildeTrimReplace = "$1~";
+    var TILDE = R++;
+    src[TILDE] = "^" + src[LONETILDE] + src[XRANGEPLAIN] + "$";
+    var TILDELOOSE = R++;
+    src[TILDELOOSE] = "^" + src[LONETILDE] + src[XRANGEPLAINLOOSE] + "$";
+    var LONECARET = R++;
+    src[LONECARET] = "(?:\\^)";
+    var CARETTRIM = R++;
+    src[CARETTRIM] = "(\\s*)" + src[LONECARET] + "\\s+";
+    re[CARETTRIM] = new RegExp(src[CARETTRIM], "g");
+    safeRe[CARETTRIM] = new RegExp(makeSafeRe(src[CARETTRIM]), "g");
+    var caretTrimReplace = "$1^";
+    var CARET = R++;
+    src[CARET] = "^" + src[LONECARET] + src[XRANGEPLAIN] + "$";
+    var CARETLOOSE = R++;
+    src[CARETLOOSE] = "^" + src[LONECARET] + src[XRANGEPLAINLOOSE] + "$";
+    var COMPARATORLOOSE = R++;
+    src[COMPARATORLOOSE] = "^" + src[GTLT] + "\\s*(" + LOOSEPLAIN + ")$|^$";
+    var COMPARATOR = R++;
+    src[COMPARATOR] = "^" + src[GTLT] + "\\s*(" + FULLPLAIN + ")$|^$";
+    var COMPARATORTRIM = R++;
+    src[COMPARATORTRIM] = "(\\s*)" + src[GTLT] + "\\s*(" + LOOSEPLAIN + "|" + src[XRANGEPLAIN] + ")";
+    re[COMPARATORTRIM] = new RegExp(src[COMPARATORTRIM], "g");
+    safeRe[COMPARATORTRIM] = new RegExp(makeSafeRe(src[COMPARATORTRIM]), "g");
+    var comparatorTrimReplace = "$1$2$3";
+    var HYPHENRANGE = R++;
+    src[HYPHENRANGE] = "^\\s*(" + src[XRANGEPLAIN] + ")\\s+-\\s+(" + src[XRANGEPLAIN] + ")\\s*$";
+    var HYPHENRANGELOOSE = R++;
+    src[HYPHENRANGELOOSE] = "^\\s*(" + src[XRANGEPLAINLOOSE] + ")\\s+-\\s+(" + src[XRANGEPLAINLOOSE] + ")\\s*$";
+    var STAR = R++;
+    src[STAR] = "(<|>)?=?\\s*\\*";
+    for (i = 0; i < R; i++) {
+      debug(i, src[i]);
+      if (!re[i]) {
+        re[i] = new RegExp(src[i]);
+        safeRe[i] = new RegExp(makeSafeRe(src[i]));
+      }
     }
-  }
-  K.valid = uh;
-  function uh(n, e) {
-    var t = St(n, e);
-    return t ? t.version : null;
-  }
-  K.clean = ch;
-  function ch(n, e) {
-    var t = St(n.trim().replace(/^[=v]+/, ""), e);
-    return t ? t.version : null;
-  }
-  K.SemVer = H;
-  function H(n, e) {
-    if (
-      ((!e || typeof e != "object") &&
-        (e = { loose: !!e, includePrerelease: !1 }),
-      n instanceof H)
-    ) {
-      if (n.loose === e.loose) return n;
-      n = n.version;
-    } else if (typeof n != "string")
-      throw new TypeError("Invalid Version: " + n);
-    if (n.length > cn)
-      throw new TypeError("version is longer than " + cn + " characters");
-    if (!(this instanceof H)) return new H(n, e);
-    Y("SemVer", n, e), (this.options = e), (this.loose = !!e.loose);
-    var t = n.trim().match(e.loose ? Z[ss] : Z[rs]);
-    if (!t) throw new TypeError("Invalid Version: " + n);
-    if (
-      ((this.raw = n),
-      (this.major = +t[1]),
-      (this.minor = +t[2]),
-      (this.patch = +t[3]),
-      this.major > gr || this.major < 0)
-    )
-      throw new TypeError("Invalid major version");
-    if (this.minor > gr || this.minor < 0)
-      throw new TypeError("Invalid minor version");
-    if (this.patch > gr || this.patch < 0)
-      throw new TypeError("Invalid patch version");
-    t[4]
-      ? (this.prerelease = t[4].split(".").map(function (r) {
-          if (/^[0-9]+$/.test(r)) {
-            var i = +r;
-            if (i >= 0 && i < gr) return i;
-          }
-          return r;
-        }))
-      : (this.prerelease = []),
-      (this.build = t[5] ? t[5].split(".") : []),
-      this.format();
-  }
-  H.prototype.format = function () {
-    return (
-      (this.version = this.major + "." + this.minor + "." + this.patch),
-      this.prerelease.length &&
-        (this.version += "-" + this.prerelease.join(".")),
-      this.version
-    );
-  };
-  H.prototype.toString = function () {
-    return this.version;
-  };
-  H.prototype.compare = function (n) {
-    return (
-      Y("SemVer.compare", this.version, this.options, n),
-      n instanceof H || (n = new H(n, this.options)),
-      this.compareMain(n) || this.comparePre(n)
-    );
-  };
-  H.prototype.compareMain = function (n) {
-    return (
-      n instanceof H || (n = new H(n, this.options)),
-      Ft(this.major, n.major) ||
-        Ft(this.minor, n.minor) ||
-        Ft(this.patch, n.patch)
-    );
-  };
-  H.prototype.comparePre = function (n) {
-    if (
-      (n instanceof H || (n = new H(n, this.options)),
-      this.prerelease.length && !n.prerelease.length)
-    )
-      return -1;
-    if (!this.prerelease.length && n.prerelease.length) return 1;
-    if (!this.prerelease.length && !n.prerelease.length) return 0;
-    var e = 0;
-    do {
-      var t = this.prerelease[e],
-        r = n.prerelease[e];
-      if ((Y("prerelease compare", e, t, r), t === void 0 && r === void 0))
-        return 0;
-      if (r === void 0) return 1;
-      if (t === void 0) return -1;
-      if (t === r) continue;
-      return Ft(t, r);
-    } while (++e);
-  };
-  H.prototype.inc = function (n, e) {
-    switch (n) {
-      case "premajor":
-        (this.prerelease.length = 0),
-          (this.patch = 0),
-          (this.minor = 0),
-          this.major++,
-          this.inc("pre", e);
-        break;
-      case "preminor":
-        (this.prerelease.length = 0),
-          (this.patch = 0),
-          this.minor++,
-          this.inc("pre", e);
-        break;
-      case "prepatch":
-        (this.prerelease.length = 0), this.inc("patch", e), this.inc("pre", e);
-        break;
-      case "prerelease":
-        this.prerelease.length === 0 && this.inc("patch", e),
-          this.inc("pre", e);
-        break;
-      case "major":
-        (this.minor !== 0 ||
-          this.patch !== 0 ||
-          this.prerelease.length === 0) &&
-          this.major++,
-          (this.minor = 0),
-          (this.patch = 0),
-          (this.prerelease = []);
-        break;
-      case "minor":
-        (this.patch !== 0 || this.prerelease.length === 0) && this.minor++,
-          (this.patch = 0),
-          (this.prerelease = []);
-        break;
-      case "patch":
-        this.prerelease.length === 0 && this.patch++, (this.prerelease = []);
-        break;
-      case "pre":
-        if (this.prerelease.length === 0) this.prerelease = [0];
-        else {
-          for (var t = this.prerelease.length; --t >= 0; )
-            typeof this.prerelease[t] == "number" &&
-              (this.prerelease[t]++, (t = -2));
-          t === -1 && this.prerelease.push(0);
+    var i;
+    exports2.parse = parse;
+    function parse(version, options) {
+      if (!options || typeof options !== "object") {
+        options = {
+          loose: !!options,
+          includePrerelease: false
+        };
+      }
+      if (version instanceof SemVer) {
+        return version;
+      }
+      if (typeof version !== "string") {
+        return null;
+      }
+      if (version.length > MAX_LENGTH) {
+        return null;
+      }
+      var r = options.loose ? safeRe[LOOSE] : safeRe[FULL];
+      if (!r.test(version)) {
+        return null;
+      }
+      try {
+        return new SemVer(version, options);
+      } catch (er) {
+        return null;
+      }
+    }
+    exports2.valid = valid;
+    function valid(version, options) {
+      var v = parse(version, options);
+      return v ? v.version : null;
+    }
+    exports2.clean = clean;
+    function clean(version, options) {
+      var s = parse(version.trim().replace(/^[=v]+/, ""), options);
+      return s ? s.version : null;
+    }
+    exports2.SemVer = SemVer;
+    function SemVer(version, options) {
+      if (!options || typeof options !== "object") {
+        options = {
+          loose: !!options,
+          includePrerelease: false
+        };
+      }
+      if (version instanceof SemVer) {
+        if (version.loose === options.loose) {
+          return version;
+        } else {
+          version = version.version;
         }
-        e &&
-          (this.prerelease[0] === e
-            ? isNaN(this.prerelease[1]) && (this.prerelease = [e, 0])
-            : (this.prerelease = [e, 0]));
-        break;
-      default:
-        throw new Error("invalid increment argument: " + n);
+      } else if (typeof version !== "string") {
+        throw new TypeError("Invalid Version: " + version);
+      }
+      if (version.length > MAX_LENGTH) {
+        throw new TypeError("version is longer than " + MAX_LENGTH + " characters");
+      }
+      if (!(this instanceof SemVer)) {
+        return new SemVer(version, options);
+      }
+      debug("SemVer", version, options);
+      this.options = options;
+      this.loose = !!options.loose;
+      var m = version.trim().match(options.loose ? safeRe[LOOSE] : safeRe[FULL]);
+      if (!m) {
+        throw new TypeError("Invalid Version: " + version);
+      }
+      this.raw = version;
+      this.major = +m[1];
+      this.minor = +m[2];
+      this.patch = +m[3];
+      if (this.major > MAX_SAFE_INTEGER || this.major < 0) {
+        throw new TypeError("Invalid major version");
+      }
+      if (this.minor > MAX_SAFE_INTEGER || this.minor < 0) {
+        throw new TypeError("Invalid minor version");
+      }
+      if (this.patch > MAX_SAFE_INTEGER || this.patch < 0) {
+        throw new TypeError("Invalid patch version");
+      }
+      if (!m[4]) {
+        this.prerelease = [];
+      } else {
+        this.prerelease = m[4].split(".").map(function(id) {
+          if (/^[0-9]+$/.test(id)) {
+            var num = +id;
+            if (num >= 0 && num < MAX_SAFE_INTEGER) {
+              return num;
+            }
+          }
+          return id;
+        });
+      }
+      this.build = m[5] ? m[5].split(".") : [];
+      this.format();
     }
-    return this.format(), (this.raw = this.version), this;
-  };
-  K.inc = dh;
-  function dh(n, e, t, r) {
-    typeof t == "string" && ((r = t), (t = void 0));
-    try {
-      return new H(n, t).inc(e, r).version;
-    } catch (i) {
-      return null;
+    SemVer.prototype.format = function() {
+      this.version = this.major + "." + this.minor + "." + this.patch;
+      if (this.prerelease.length) {
+        this.version += "-" + this.prerelease.join(".");
+      }
+      return this.version;
+    };
+    SemVer.prototype.toString = function() {
+      return this.version;
+    };
+    SemVer.prototype.compare = function(other) {
+      debug("SemVer.compare", this.version, this.options, other);
+      if (!(other instanceof SemVer)) {
+        other = new SemVer(other, this.options);
+      }
+      return this.compareMain(other) || this.comparePre(other);
+    };
+    SemVer.prototype.compareMain = function(other) {
+      if (!(other instanceof SemVer)) {
+        other = new SemVer(other, this.options);
+      }
+      return compareIdentifiers(this.major, other.major) || compareIdentifiers(this.minor, other.minor) || compareIdentifiers(this.patch, other.patch);
+    };
+    SemVer.prototype.comparePre = function(other) {
+      if (!(other instanceof SemVer)) {
+        other = new SemVer(other, this.options);
+      }
+      if (this.prerelease.length && !other.prerelease.length) {
+        return -1;
+      } else if (!this.prerelease.length && other.prerelease.length) {
+        return 1;
+      } else if (!this.prerelease.length && !other.prerelease.length) {
+        return 0;
+      }
+      var i2 = 0;
+      do {
+        var a = this.prerelease[i2];
+        var b = other.prerelease[i2];
+        debug("prerelease compare", i2, a, b);
+        if (a === void 0 && b === void 0) {
+          return 0;
+        } else if (b === void 0) {
+          return 1;
+        } else if (a === void 0) {
+          return -1;
+        } else if (a === b) {
+          continue;
+        } else {
+          return compareIdentifiers(a, b);
+        }
+      } while (++i2);
+    };
+    SemVer.prototype.inc = function(release, identifier) {
+      switch (release) {
+        case "premajor":
+          this.prerelease.length = 0;
+          this.patch = 0;
+          this.minor = 0;
+          this.major++;
+          this.inc("pre", identifier);
+          break;
+        case "preminor":
+          this.prerelease.length = 0;
+          this.patch = 0;
+          this.minor++;
+          this.inc("pre", identifier);
+          break;
+        case "prepatch":
+          this.prerelease.length = 0;
+          this.inc("patch", identifier);
+          this.inc("pre", identifier);
+          break;
+        case "prerelease":
+          if (this.prerelease.length === 0) {
+            this.inc("patch", identifier);
+          }
+          this.inc("pre", identifier);
+          break;
+        case "major":
+          if (this.minor !== 0 || this.patch !== 0 || this.prerelease.length === 0) {
+            this.major++;
+          }
+          this.minor = 0;
+          this.patch = 0;
+          this.prerelease = [];
+          break;
+        case "minor":
+          if (this.patch !== 0 || this.prerelease.length === 0) {
+            this.minor++;
+          }
+          this.patch = 0;
+          this.prerelease = [];
+          break;
+        case "patch":
+          if (this.prerelease.length === 0) {
+            this.patch++;
+          }
+          this.prerelease = [];
+          break;
+        case "pre":
+          if (this.prerelease.length === 0) {
+            this.prerelease = [0];
+          } else {
+            var i2 = this.prerelease.length;
+            while (--i2 >= 0) {
+              if (typeof this.prerelease[i2] === "number") {
+                this.prerelease[i2]++;
+                i2 = -2;
+              }
+            }
+            if (i2 === -1) {
+              this.prerelease.push(0);
+            }
+          }
+          if (identifier) {
+            if (this.prerelease[0] === identifier) {
+              if (isNaN(this.prerelease[1])) {
+                this.prerelease = [identifier, 0];
+              }
+            } else {
+              this.prerelease = [identifier, 0];
+            }
+          }
+          break;
+        default:
+          throw new Error("invalid increment argument: " + release);
+      }
+      this.format();
+      this.raw = this.version;
+      return this;
+    };
+    exports2.inc = inc;
+    function inc(version, release, loose, identifier) {
+      if (typeof loose === "string") {
+        identifier = loose;
+        loose = void 0;
+      }
+      try {
+        return new SemVer(version, loose).inc(release, identifier).version;
+      } catch (er) {
+        return null;
+      }
     }
-  }
-  K.diff = hh;
-  function hh(n, e) {
-    if (ls(n, e)) return null;
-    var t = St(n),
-      r = St(e),
-      i = "";
-    if (t.prerelease.length || r.prerelease.length) {
-      i = "pre";
-      var s = "prerelease";
+    exports2.diff = diff;
+    function diff(version1, version2) {
+      if (eq(version1, version2)) {
+        return null;
+      } else {
+        var v1 = parse(version1);
+        var v2 = parse(version2);
+        var prefix = "";
+        if (v1.prerelease.length || v2.prerelease.length) {
+          prefix = "pre";
+          var defaultResult = "prerelease";
+        }
+        for (var key in v1) {
+          if (key === "major" || key === "minor" || key === "patch") {
+            if (v1[key] !== v2[key]) {
+              return prefix + key;
+            }
+          }
+        }
+        return defaultResult;
+      }
     }
-    for (var o in t)
-      if ((o === "major" || o === "minor" || o === "patch") && t[o] !== r[o])
-        return i + o;
-    return s;
-  }
-  K.compareIdentifiers = Ft;
-  var tl = /^[0-9]+$/;
-  function Ft(n, e) {
-    var t = tl.test(n),
-      r = tl.test(e);
-    return (
-      t && r && ((n = +n), (e = +e)),
-      n === e ? 0 : t && !r ? -1 : r && !t ? 1 : n < e ? -1 : 1
-    );
-  }
-  K.rcompareIdentifiers = fh;
-  function fh(n, e) {
-    return Ft(e, n);
-  }
-  K.major = ph;
-  function ph(n, e) {
-    return new H(n, e).major;
-  }
-  K.minor = gh;
-  function gh(n, e) {
-    return new H(n, e).minor;
-  }
-  K.patch = _h;
-  function _h(n, e) {
-    return new H(n, e).patch;
-  }
-  K.compare = et;
-  function et(n, e, t) {
-    return new H(n, t).compare(new H(e, t));
-  }
-  K.compareLoose = mh;
-  function mh(n, e) {
-    return et(n, e, !0);
-  }
-  K.rcompare = vh;
-  function vh(n, e, t) {
-    return et(e, n, t);
-  }
-  K.sort = yh;
-  function yh(n, e) {
-    return n.sort(function (t, r) {
-      return K.compare(t, r, e);
-    });
-  }
-  K.rsort = Eh;
-  function Eh(n, e) {
-    return n.sort(function (t, r) {
-      return K.rcompare(t, r, e);
-    });
-  }
-  K.gt = hn;
-  function hn(n, e, t) {
-    return et(n, e, t) > 0;
-  }
-  K.lt = vr;
-  function vr(n, e, t) {
-    return et(n, e, t) < 0;
-  }
-  K.eq = ls;
-  function ls(n, e, t) {
-    return et(n, e, t) === 0;
-  }
-  K.neq = gl;
-  function gl(n, e, t) {
-    return et(n, e, t) !== 0;
-  }
-  K.gte = us;
-  function us(n, e, t) {
-    return et(n, e, t) >= 0;
-  }
-  K.lte = cs;
-  function cs(n, e, t) {
-    return et(n, e, t) <= 0;
-  }
-  K.cmp = yr;
-  function yr(n, e, t, r) {
-    switch (e) {
-      case "===":
-        return (
-          typeof n == "object" && (n = n.version),
-          typeof t == "object" && (t = t.version),
-          n === t
-        );
-      case "!==":
-        return (
-          typeof n == "object" && (n = n.version),
-          typeof t == "object" && (t = t.version),
-          n !== t
-        );
-      case "":
-      case "=":
-      case "==":
-        return ls(n, t, r);
-      case "!=":
-        return gl(n, t, r);
-      case ">":
-        return hn(n, t, r);
-      case ">=":
-        return us(n, t, r);
-      case "<":
-        return vr(n, t, r);
-      case "<=":
-        return cs(n, t, r);
-      default:
-        throw new TypeError("Invalid operator: " + e);
+    exports2.compareIdentifiers = compareIdentifiers;
+    var numeric = /^[0-9]+$/;
+    function compareIdentifiers(a, b) {
+      var anum = numeric.test(a);
+      var bnum = numeric.test(b);
+      if (anum && bnum) {
+        a = +a;
+        b = +b;
+      }
+      return a === b ? 0 : anum && !bnum ? -1 : bnum && !anum ? 1 : a < b ? -1 : 1;
     }
-  }
-  K.Comparator = Te;
-  function Te(n, e) {
-    if (
-      ((!e || typeof e != "object") &&
-        (e = { loose: !!e, includePrerelease: !1 }),
-      n instanceof Te)
-    ) {
-      if (n.loose === !!e.loose) return n;
-      n = n.value;
+    exports2.rcompareIdentifiers = rcompareIdentifiers;
+    function rcompareIdentifiers(a, b) {
+      return compareIdentifiers(b, a);
     }
-    if (!(this instanceof Te)) return new Te(n, e);
-    (n = n.trim().split(/\s+/).join(" ")),
-      Y("comparator", n, e),
-      (this.options = e),
-      (this.loose = !!e.loose),
-      this.parse(n),
-      this.semver === pn
-        ? (this.value = "")
-        : (this.value = this.operator + this.semver.version),
-      Y("comp", this);
-  }
-  var pn = {};
-  Te.prototype.parse = function (n) {
-    var e = this.options.loose ? Z[os] : Z[as],
-      t = n.match(e);
-    if (!t) throw new TypeError("Invalid comparator: " + n);
-    (this.operator = t[1]),
-      this.operator === "=" && (this.operator = ""),
-      t[2]
-        ? (this.semver = new H(t[2], this.options.loose))
-        : (this.semver = pn);
-  };
-  Te.prototype.toString = function () {
-    return this.value;
-  };
-  Te.prototype.test = function (n) {
-    return (
-      Y("Comparator.test", n, this.options.loose),
-      this.semver === pn
-        ? !0
-        : (typeof n == "string" && (n = new H(n, this.options)),
-          yr(n, this.operator, this.semver, this.options))
-    );
-  };
-  Te.prototype.intersects = function (n, e) {
-    if (!(n instanceof Te)) throw new TypeError("a Comparator is required");
-    (!e || typeof e != "object") && (e = { loose: !!e, includePrerelease: !1 });
-    var t;
-    if (this.operator === "")
-      return (t = new ne(n.value, e)), Er(this.value, t, e);
-    if (n.operator === "")
-      return (t = new ne(this.value, e)), Er(n.semver, t, e);
-    var r =
-        (this.operator === ">=" || this.operator === ">") &&
-        (n.operator === ">=" || n.operator === ">"),
-      i =
-        (this.operator === "<=" || this.operator === "<") &&
-        (n.operator === "<=" || n.operator === "<"),
-      s = this.semver.version === n.semver.version,
-      o =
-        (this.operator === ">=" || this.operator === "<=") &&
-        (n.operator === ">=" || n.operator === "<="),
-      a =
-        yr(this.semver, "<", n.semver, e) &&
-        (this.operator === ">=" || this.operator === ">") &&
-        (n.operator === "<=" || n.operator === "<"),
-      l =
-        yr(this.semver, ">", n.semver, e) &&
-        (this.operator === "<=" || this.operator === "<") &&
-        (n.operator === ">=" || n.operator === ">");
-    return r || i || (s && o) || a || l;
-  };
-  K.Range = ne;
-  function ne(n, e) {
-    if (
-      ((!e || typeof e != "object") &&
-        (e = { loose: !!e, includePrerelease: !1 }),
-      n instanceof ne)
-    )
-      return n.loose === !!e.loose &&
-        n.includePrerelease === !!e.includePrerelease
-        ? n
-        : new ne(n.raw, e);
-    if (n instanceof Te) return new ne(n.value, e);
-    if (!(this instanceof ne)) return new ne(n, e);
-    if (
-      ((this.options = e),
-      (this.loose = !!e.loose),
-      (this.includePrerelease = !!e.includePrerelease),
-      (this.raw = n.trim().split(/\s+/).join(" ")),
-      (this.set = this.raw
-        .split("||")
-        .map(function (t) {
-          return this.parseRange(t.trim());
-        }, this)
-        .filter(function (t) {
-          return t.length;
-        })),
-      !this.set.length)
-    )
-      throw new TypeError("Invalid SemVer Range: " + this.raw);
-    this.format();
-  }
-  ne.prototype.format = function () {
-    return (
-      (this.range = this.set
-        .map(function (n) {
-          return n.join(" ").trim();
-        })
-        .join("||")
-        .trim()),
-      this.range
-    );
-  };
-  ne.prototype.toString = function () {
-    return this.range;
-  };
-  ne.prototype.parseRange = function (n) {
-    var e = this.options.loose,
-      t = e ? Z[fl] : Z[hl];
-    (n = n.replace(t, Mh)),
-      Y("hyphen replace", n),
-      (n = n.replace(Z[bt], lh)),
-      Y("comparator trim", n, Z[bt]),
-      (n = n.replace(Z[Wt], oh)),
-      (n = n.replace(Z[Kt], ah));
-    var r = e ? Z[os] : Z[as],
-      i = n
-        .split(" ")
-        .map(function (s) {
-          return Sh(s, this.options);
-        }, this)
-        .join(" ")
-        .split(/\s+/);
-    return (
-      this.options.loose &&
-        (i = i.filter(function (s) {
-          return !!s.match(r);
-        })),
-      (i = i.map(function (s) {
-        return new Te(s, this.options);
-      }, this)),
-      i
-    );
-  };
-  ne.prototype.intersects = function (n, e) {
-    if (!(n instanceof ne)) throw new TypeError("a Range is required");
-    return this.set.some(function (t) {
-      return t.every(function (r) {
-        return n.set.some(function (i) {
-          return i.every(function (s) {
-            return r.intersects(s, e);
+    exports2.major = major;
+    function major(a, loose) {
+      return new SemVer(a, loose).major;
+    }
+    exports2.minor = minor;
+    function minor(a, loose) {
+      return new SemVer(a, loose).minor;
+    }
+    exports2.patch = patch;
+    function patch(a, loose) {
+      return new SemVer(a, loose).patch;
+    }
+    exports2.compare = compare2;
+    function compare2(a, b, loose) {
+      return new SemVer(a, loose).compare(new SemVer(b, loose));
+    }
+    exports2.compareLoose = compareLoose;
+    function compareLoose(a, b) {
+      return compare2(a, b, true);
+    }
+    exports2.rcompare = rcompare;
+    function rcompare(a, b, loose) {
+      return compare2(b, a, loose);
+    }
+    exports2.sort = sort;
+    function sort(list, loose) {
+      return list.sort(function(a, b) {
+        return exports2.compare(a, b, loose);
+      });
+    }
+    exports2.rsort = rsort;
+    function rsort(list, loose) {
+      return list.sort(function(a, b) {
+        return exports2.rcompare(a, b, loose);
+      });
+    }
+    exports2.gt = gt;
+    function gt(a, b, loose) {
+      return compare2(a, b, loose) > 0;
+    }
+    exports2.lt = lt;
+    function lt(a, b, loose) {
+      return compare2(a, b, loose) < 0;
+    }
+    exports2.eq = eq;
+    function eq(a, b, loose) {
+      return compare2(a, b, loose) === 0;
+    }
+    exports2.neq = neq;
+    function neq(a, b, loose) {
+      return compare2(a, b, loose) !== 0;
+    }
+    exports2.gte = gte;
+    function gte(a, b, loose) {
+      return compare2(a, b, loose) >= 0;
+    }
+    exports2.lte = lte;
+    function lte(a, b, loose) {
+      return compare2(a, b, loose) <= 0;
+    }
+    exports2.cmp = cmp;
+    function cmp(a, op, b, loose) {
+      switch (op) {
+        case "===":
+          if (typeof a === "object")
+            a = a.version;
+          if (typeof b === "object")
+            b = b.version;
+          return a === b;
+        case "!==":
+          if (typeof a === "object")
+            a = a.version;
+          if (typeof b === "object")
+            b = b.version;
+          return a !== b;
+        case "":
+        case "=":
+        case "==":
+          return eq(a, b, loose);
+        case "!=":
+          return neq(a, b, loose);
+        case ">":
+          return gt(a, b, loose);
+        case ">=":
+          return gte(a, b, loose);
+        case "<":
+          return lt(a, b, loose);
+        case "<=":
+          return lte(a, b, loose);
+        default:
+          throw new TypeError("Invalid operator: " + op);
+      }
+    }
+    exports2.Comparator = Comparator;
+    function Comparator(comp, options) {
+      if (!options || typeof options !== "object") {
+        options = {
+          loose: !!options,
+          includePrerelease: false
+        };
+      }
+      if (comp instanceof Comparator) {
+        if (comp.loose === !!options.loose) {
+          return comp;
+        } else {
+          comp = comp.value;
+        }
+      }
+      if (!(this instanceof Comparator)) {
+        return new Comparator(comp, options);
+      }
+      comp = comp.trim().split(/\s+/).join(" ");
+      debug("comparator", comp, options);
+      this.options = options;
+      this.loose = !!options.loose;
+      this.parse(comp);
+      if (this.semver === ANY) {
+        this.value = "";
+      } else {
+        this.value = this.operator + this.semver.version;
+      }
+      debug("comp", this);
+    }
+    var ANY = {};
+    Comparator.prototype.parse = function(comp) {
+      var r = this.options.loose ? safeRe[COMPARATORLOOSE] : safeRe[COMPARATOR];
+      var m = comp.match(r);
+      if (!m) {
+        throw new TypeError("Invalid comparator: " + comp);
+      }
+      this.operator = m[1];
+      if (this.operator === "=") {
+        this.operator = "";
+      }
+      if (!m[2]) {
+        this.semver = ANY;
+      } else {
+        this.semver = new SemVer(m[2], this.options.loose);
+      }
+    };
+    Comparator.prototype.toString = function() {
+      return this.value;
+    };
+    Comparator.prototype.test = function(version) {
+      debug("Comparator.test", version, this.options.loose);
+      if (this.semver === ANY) {
+        return true;
+      }
+      if (typeof version === "string") {
+        version = new SemVer(version, this.options);
+      }
+      return cmp(version, this.operator, this.semver, this.options);
+    };
+    Comparator.prototype.intersects = function(comp, options) {
+      if (!(comp instanceof Comparator)) {
+        throw new TypeError("a Comparator is required");
+      }
+      if (!options || typeof options !== "object") {
+        options = {
+          loose: !!options,
+          includePrerelease: false
+        };
+      }
+      var rangeTmp;
+      if (this.operator === "") {
+        rangeTmp = new Range(comp.value, options);
+        return satisfies2(this.value, rangeTmp, options);
+      } else if (comp.operator === "") {
+        rangeTmp = new Range(this.value, options);
+        return satisfies2(comp.semver, rangeTmp, options);
+      }
+      var sameDirectionIncreasing = (this.operator === ">=" || this.operator === ">") && (comp.operator === ">=" || comp.operator === ">");
+      var sameDirectionDecreasing = (this.operator === "<=" || this.operator === "<") && (comp.operator === "<=" || comp.operator === "<");
+      var sameSemVer = this.semver.version === comp.semver.version;
+      var differentDirectionsInclusive = (this.operator === ">=" || this.operator === "<=") && (comp.operator === ">=" || comp.operator === "<=");
+      var oppositeDirectionsLessThan = cmp(this.semver, "<", comp.semver, options) && ((this.operator === ">=" || this.operator === ">") && (comp.operator === "<=" || comp.operator === "<"));
+      var oppositeDirectionsGreaterThan = cmp(this.semver, ">", comp.semver, options) && ((this.operator === "<=" || this.operator === "<") && (comp.operator === ">=" || comp.operator === ">"));
+      return sameDirectionIncreasing || sameDirectionDecreasing || sameSemVer && differentDirectionsInclusive || oppositeDirectionsLessThan || oppositeDirectionsGreaterThan;
+    };
+    exports2.Range = Range;
+    function Range(range, options) {
+      if (!options || typeof options !== "object") {
+        options = {
+          loose: !!options,
+          includePrerelease: false
+        };
+      }
+      if (range instanceof Range) {
+        if (range.loose === !!options.loose && range.includePrerelease === !!options.includePrerelease) {
+          return range;
+        } else {
+          return new Range(range.raw, options);
+        }
+      }
+      if (range instanceof Comparator) {
+        return new Range(range.value, options);
+      }
+      if (!(this instanceof Range)) {
+        return new Range(range, options);
+      }
+      this.options = options;
+      this.loose = !!options.loose;
+      this.includePrerelease = !!options.includePrerelease;
+      this.raw = range.trim().split(/\s+/).join(" ");
+      this.set = this.raw.split("||").map(function(range2) {
+        return this.parseRange(range2.trim());
+      }, this).filter(function(c) {
+        return c.length;
+      });
+      if (!this.set.length) {
+        throw new TypeError("Invalid SemVer Range: " + this.raw);
+      }
+      this.format();
+    }
+    Range.prototype.format = function() {
+      this.range = this.set.map(function(comps) {
+        return comps.join(" ").trim();
+      }).join("||").trim();
+      return this.range;
+    };
+    Range.prototype.toString = function() {
+      return this.range;
+    };
+    Range.prototype.parseRange = function(range) {
+      var loose = this.options.loose;
+      var hr = loose ? safeRe[HYPHENRANGELOOSE] : safeRe[HYPHENRANGE];
+      range = range.replace(hr, hyphenReplace);
+      debug("hyphen replace", range);
+      range = range.replace(safeRe[COMPARATORTRIM], comparatorTrimReplace);
+      debug("comparator trim", range, safeRe[COMPARATORTRIM]);
+      range = range.replace(safeRe[TILDETRIM], tildeTrimReplace);
+      range = range.replace(safeRe[CARETTRIM], caretTrimReplace);
+      var compRe = loose ? safeRe[COMPARATORLOOSE] : safeRe[COMPARATOR];
+      var set = range.split(" ").map(function(comp) {
+        return parseComparator(comp, this.options);
+      }, this).join(" ").split(/\s+/);
+      if (this.options.loose) {
+        set = set.filter(function(comp) {
+          return !!comp.match(compRe);
+        });
+      }
+      set = set.map(function(comp) {
+        return new Comparator(comp, this.options);
+      }, this);
+      return set;
+    };
+    Range.prototype.intersects = function(range, options) {
+      if (!(range instanceof Range)) {
+        throw new TypeError("a Range is required");
+      }
+      return this.set.some(function(thisComparators) {
+        return thisComparators.every(function(thisComparator) {
+          return range.set.some(function(rangeComparators) {
+            return rangeComparators.every(function(rangeComparator) {
+              return thisComparator.intersects(rangeComparator, options);
+            });
           });
         });
       });
-    });
-  };
-  K.toComparators = bh;
-  function bh(n, e) {
-    return new ne(n, e).set.map(function (t) {
-      return t
-        .map(function (r) {
-          return r.value;
-        })
-        .join(" ")
-        .trim()
-        .split(" ");
-    });
-  }
-  function Sh(n, e) {
-    return (
-      Y("comp", n, e),
-      (n = Ch(n, e)),
-      Y("caret", n),
-      (n = wh(n, e)),
-      Y("tildes", n),
-      (n = Ah(n, e)),
-      Y("xrange", n),
-      (n = Ph(n, e)),
-      Y("stars", n),
-      n
-    );
-  }
-  function be(n) {
-    return !n || n.toLowerCase() === "x" || n === "*";
-  }
-  function wh(n, e) {
-    return n
-      .trim()
-      .split(/\s+/)
-      .map(function (t) {
-        return Ih(t, e);
-      })
-      .join(" ");
-  }
-  function Ih(n, e) {
-    var t = e.loose ? Z[ul] : Z[ll];
-    return n.replace(t, function (r, i, s, o, a) {
-      Y("tilde", n, r, i, s, o, a);
-      var l;
-      return (
-        be(i)
-          ? (l = "")
-          : be(s)
-            ? (l = ">=" + i + ".0.0 <" + (+i + 1) + ".0.0")
-            : be(o)
-              ? (l = ">=" + i + "." + s + ".0 <" + i + "." + (+s + 1) + ".0")
-              : a
-                ? (Y("replaceTilde pr", a),
-                  (l =
-                    ">=" +
-                    i +
-                    "." +
-                    s +
-                    "." +
-                    o +
-                    "-" +
-                    a +
-                    " <" +
-                    i +
-                    "." +
-                    (+s + 1) +
-                    ".0"))
-                : (l =
-                    ">=" +
-                    i +
-                    "." +
-                    s +
-                    "." +
-                    o +
-                    " <" +
-                    i +
-                    "." +
-                    (+s + 1) +
-                    ".0"),
-        Y("tilde return", l),
-        l
-      );
-    });
-  }
-  function Ch(n, e) {
-    return n
-      .trim()
-      .split(/\s+/)
-      .map(function (t) {
-        return Rh(t, e);
-      })
-      .join(" ");
-  }
-  function Rh(n, e) {
-    Y("caret", n, e);
-    var t = e.loose ? Z[dl] : Z[cl];
-    return n.replace(t, function (r, i, s, o, a) {
-      Y("caret", n, r, i, s, o, a);
-      var l;
-      return (
-        be(i)
-          ? (l = "")
-          : be(s)
-            ? (l = ">=" + i + ".0.0 <" + (+i + 1) + ".0.0")
-            : be(o)
-              ? i === "0"
-                ? (l = ">=" + i + "." + s + ".0 <" + i + "." + (+s + 1) + ".0")
-                : (l = ">=" + i + "." + s + ".0 <" + (+i + 1) + ".0.0")
-              : a
-                ? (Y("replaceCaret pr", a),
-                  i === "0"
-                    ? s === "0"
-                      ? (l =
-                          ">=" +
-                          i +
-                          "." +
-                          s +
-                          "." +
-                          o +
-                          "-" +
-                          a +
-                          " <" +
-                          i +
-                          "." +
-                          s +
-                          "." +
-                          (+o + 1))
-                      : (l =
-                          ">=" +
-                          i +
-                          "." +
-                          s +
-                          "." +
-                          o +
-                          "-" +
-                          a +
-                          " <" +
-                          i +
-                          "." +
-                          (+s + 1) +
-                          ".0")
-                    : (l =
-                        ">=" +
-                        i +
-                        "." +
-                        s +
-                        "." +
-                        o +
-                        "-" +
-                        a +
-                        " <" +
-                        (+i + 1) +
-                        ".0.0"))
-                : (Y("no pr"),
-                  i === "0"
-                    ? s === "0"
-                      ? (l =
-                          ">=" +
-                          i +
-                          "." +
-                          s +
-                          "." +
-                          o +
-                          " <" +
-                          i +
-                          "." +
-                          s +
-                          "." +
-                          (+o + 1))
-                      : (l =
-                          ">=" +
-                          i +
-                          "." +
-                          s +
-                          "." +
-                          o +
-                          " <" +
-                          i +
-                          "." +
-                          (+s + 1) +
-                          ".0")
-                    : (l =
-                        ">=" +
-                        i +
-                        "." +
-                        s +
-                        "." +
-                        o +
-                        " <" +
-                        (+i + 1) +
-                        ".0.0")),
-        Y("caret return", l),
-        l
-      );
-    });
-  }
-  function Ah(n, e) {
-    return (
-      Y("replaceXRanges", n, e),
-      n
-        .split(/\s+/)
-        .map(function (t) {
-          return Dh(t, e);
-        })
-        .join(" ")
-    );
-  }
-  function Dh(n, e) {
-    n = n.trim();
-    var t = e.loose ? Z[ol] : Z[sl];
-    return n.replace(t, function (r, i, s, o, a, l) {
-      Y("xRange", n, r, i, s, o, a, l);
-      var u = be(s),
-        f = u || be(o),
-        c = f || be(a),
-        C = c;
-      return (
-        i === "=" && C && (i = ""),
-        u
-          ? i === ">" || i === "<"
-            ? (r = "<0.0.0")
-            : (r = "*")
-          : i && C
-            ? (f && (o = 0),
-              (a = 0),
-              i === ">"
-                ? ((i = ">="),
-                  f
-                    ? ((s = +s + 1), (o = 0), (a = 0))
-                    : ((o = +o + 1), (a = 0)))
-                : i === "<=" && ((i = "<"), f ? (s = +s + 1) : (o = +o + 1)),
-              (r = i + s + "." + o + "." + a))
-            : f
-              ? (r = ">=" + s + ".0.0 <" + (+s + 1) + ".0.0")
-              : c &&
-                (r = ">=" + s + "." + o + ".0 <" + s + "." + (+o + 1) + ".0"),
-        Y("xRange return", r),
-        r
-      );
-    });
-  }
-  function Ph(n, e) {
-    return Y("replaceStars", n, e), n.trim().replace(Z[pl], "");
-  }
-  function Mh(n, e, t, r, i, s, o, a, l, u, f, c, C) {
-    return (
-      be(t)
-        ? (e = "")
-        : be(r)
-          ? (e = ">=" + t + ".0.0")
-          : be(i)
-            ? (e = ">=" + t + "." + r + ".0")
-            : (e = ">=" + e),
-      be(l)
-        ? (a = "")
-        : be(u)
-          ? (a = "<" + (+l + 1) + ".0.0")
-          : be(f)
-            ? (a = "<" + l + "." + (+u + 1) + ".0")
-            : c
-              ? (a = "<=" + l + "." + u + "." + f + "-" + c)
-              : (a = "<=" + a),
-      (e + " " + a).trim()
-    );
-  }
-  ne.prototype.test = function (n) {
-    if (!n) return !1;
-    typeof n == "string" && (n = new H(n, this.options));
-    for (var e = 0; e < this.set.length; e++)
-      if (Th(this.set[e], n, this.options)) return !0;
-    return !1;
-  };
-  function Th(n, e, t) {
-    for (var r = 0; r < n.length; r++) if (!n[r].test(e)) return !1;
-    if (e.prerelease.length && !t.includePrerelease) {
-      for (r = 0; r < n.length; r++)
-        if (
-          (Y(n[r].semver),
-          n[r].semver !== pn && n[r].semver.prerelease.length > 0)
-        ) {
-          var i = n[r].semver;
-          if (i.major === e.major && i.minor === e.minor && i.patch === e.patch)
-            return !0;
-        }
-      return !1;
-    }
-    return !0;
-  }
-  K.satisfies = Er;
-  function Er(n, e, t) {
-    try {
-      e = new ne(e, t);
-    } catch (r) {
-      return !1;
-    }
-    return e.test(n);
-  }
-  K.maxSatisfying = Oh;
-  function Oh(n, e, t) {
-    var r = null,
-      i = null;
-    try {
-      var s = new ne(e, t);
-    } catch (o) {
-      return null;
-    }
-    return (
-      n.forEach(function (o) {
-        s.test(o) &&
-          (!r || i.compare(o) === -1) &&
-          ((r = o), (i = new H(r, t)));
-      }),
-      r
-    );
-  }
-  K.minSatisfying = Nh;
-  function Nh(n, e, t) {
-    var r = null,
-      i = null;
-    try {
-      var s = new ne(e, t);
-    } catch (o) {
-      return null;
-    }
-    return (
-      n.forEach(function (o) {
-        s.test(o) && (!r || i.compare(o) === 1) && ((r = o), (i = new H(r, t)));
-      }),
-      r
-    );
-  }
-  K.minVersion = Lh;
-  function Lh(n, e) {
-    n = new ne(n, e);
-    var t = new H("0.0.0");
-    if (n.test(t) || ((t = new H("0.0.0-0")), n.test(t))) return t;
-    t = null;
-    for (var r = 0; r < n.set.length; ++r) {
-      var i = n.set[r];
-      i.forEach(function (s) {
-        var o = new H(s.semver.version);
-        switch (s.operator) {
-          case ">":
-            o.prerelease.length === 0 ? o.patch++ : o.prerelease.push(0),
-              (o.raw = o.format());
-          case "":
-          case ">=":
-            (!t || hn(t, o)) && (t = o);
-            break;
-          case "<":
-          case "<=":
-            break;
-          default:
-            throw new Error("Unexpected operation: " + s.operator);
-        }
+    };
+    exports2.toComparators = toComparators;
+    function toComparators(range, options) {
+      return new Range(range, options).set.map(function(comp) {
+        return comp.map(function(c) {
+          return c.value;
+        }).join(" ").trim().split(" ");
       });
     }
-    return t && n.test(t) ? t : null;
-  }
-  K.validRange = kh;
-  function kh(n, e) {
-    try {
-      return new ne(n, e).range || "*";
-    } catch (t) {
+    function parseComparator(comp, options) {
+      debug("comp", comp, options);
+      comp = replaceCarets(comp, options);
+      debug("caret", comp);
+      comp = replaceTildes(comp, options);
+      debug("tildes", comp);
+      comp = replaceXRanges(comp, options);
+      debug("xrange", comp);
+      comp = replaceStars(comp, options);
+      debug("stars", comp);
+      return comp;
+    }
+    function isX(id) {
+      return !id || id.toLowerCase() === "x" || id === "*";
+    }
+    function replaceTildes(comp, options) {
+      return comp.trim().split(/\s+/).map(function(comp2) {
+        return replaceTilde(comp2, options);
+      }).join(" ");
+    }
+    function replaceTilde(comp, options) {
+      var r = options.loose ? safeRe[TILDELOOSE] : safeRe[TILDE];
+      return comp.replace(r, function(_, M, m, p, pr) {
+        debug("tilde", comp, _, M, m, p, pr);
+        var ret;
+        if (isX(M)) {
+          ret = "";
+        } else if (isX(m)) {
+          ret = ">=" + M + ".0.0 <" + (+M + 1) + ".0.0";
+        } else if (isX(p)) {
+          ret = ">=" + M + "." + m + ".0 <" + M + "." + (+m + 1) + ".0";
+        } else if (pr) {
+          debug("replaceTilde pr", pr);
+          ret = ">=" + M + "." + m + "." + p + "-" + pr + " <" + M + "." + (+m + 1) + ".0";
+        } else {
+          ret = ">=" + M + "." + m + "." + p + " <" + M + "." + (+m + 1) + ".0";
+        }
+        debug("tilde return", ret);
+        return ret;
+      });
+    }
+    function replaceCarets(comp, options) {
+      return comp.trim().split(/\s+/).map(function(comp2) {
+        return replaceCaret(comp2, options);
+      }).join(" ");
+    }
+    function replaceCaret(comp, options) {
+      debug("caret", comp, options);
+      var r = options.loose ? safeRe[CARETLOOSE] : safeRe[CARET];
+      return comp.replace(r, function(_, M, m, p, pr) {
+        debug("caret", comp, _, M, m, p, pr);
+        var ret;
+        if (isX(M)) {
+          ret = "";
+        } else if (isX(m)) {
+          ret = ">=" + M + ".0.0 <" + (+M + 1) + ".0.0";
+        } else if (isX(p)) {
+          if (M === "0") {
+            ret = ">=" + M + "." + m + ".0 <" + M + "." + (+m + 1) + ".0";
+          } else {
+            ret = ">=" + M + "." + m + ".0 <" + (+M + 1) + ".0.0";
+          }
+        } else if (pr) {
+          debug("replaceCaret pr", pr);
+          if (M === "0") {
+            if (m === "0") {
+              ret = ">=" + M + "." + m + "." + p + "-" + pr + " <" + M + "." + m + "." + (+p + 1);
+            } else {
+              ret = ">=" + M + "." + m + "." + p + "-" + pr + " <" + M + "." + (+m + 1) + ".0";
+            }
+          } else {
+            ret = ">=" + M + "." + m + "." + p + "-" + pr + " <" + (+M + 1) + ".0.0";
+          }
+        } else {
+          debug("no pr");
+          if (M === "0") {
+            if (m === "0") {
+              ret = ">=" + M + "." + m + "." + p + " <" + M + "." + m + "." + (+p + 1);
+            } else {
+              ret = ">=" + M + "." + m + "." + p + " <" + M + "." + (+m + 1) + ".0";
+            }
+          } else {
+            ret = ">=" + M + "." + m + "." + p + " <" + (+M + 1) + ".0.0";
+          }
+        }
+        debug("caret return", ret);
+        return ret;
+      });
+    }
+    function replaceXRanges(comp, options) {
+      debug("replaceXRanges", comp, options);
+      return comp.split(/\s+/).map(function(comp2) {
+        return replaceXRange(comp2, options);
+      }).join(" ");
+    }
+    function replaceXRange(comp, options) {
+      comp = comp.trim();
+      var r = options.loose ? safeRe[XRANGELOOSE] : safeRe[XRANGE];
+      return comp.replace(r, function(ret, gtlt, M, m, p, pr) {
+        debug("xRange", comp, ret, gtlt, M, m, p, pr);
+        var xM = isX(M);
+        var xm = xM || isX(m);
+        var xp = xm || isX(p);
+        var anyX = xp;
+        if (gtlt === "=" && anyX) {
+          gtlt = "";
+        }
+        if (xM) {
+          if (gtlt === ">" || gtlt === "<") {
+            ret = "<0.0.0";
+          } else {
+            ret = "*";
+          }
+        } else if (gtlt && anyX) {
+          if (xm) {
+            m = 0;
+          }
+          p = 0;
+          if (gtlt === ">") {
+            gtlt = ">=";
+            if (xm) {
+              M = +M + 1;
+              m = 0;
+              p = 0;
+            } else {
+              m = +m + 1;
+              p = 0;
+            }
+          } else if (gtlt === "<=") {
+            gtlt = "<";
+            if (xm) {
+              M = +M + 1;
+            } else {
+              m = +m + 1;
+            }
+          }
+          ret = gtlt + M + "." + m + "." + p;
+        } else if (xm) {
+          ret = ">=" + M + ".0.0 <" + (+M + 1) + ".0.0";
+        } else if (xp) {
+          ret = ">=" + M + "." + m + ".0 <" + M + "." + (+m + 1) + ".0";
+        }
+        debug("xRange return", ret);
+        return ret;
+      });
+    }
+    function replaceStars(comp, options) {
+      debug("replaceStars", comp, options);
+      return comp.trim().replace(safeRe[STAR], "");
+    }
+    function hyphenReplace($0, from, fM, fm, fp, fpr, fb, to, tM, tm, tp, tpr, tb) {
+      if (isX(fM)) {
+        from = "";
+      } else if (isX(fm)) {
+        from = ">=" + fM + ".0.0";
+      } else if (isX(fp)) {
+        from = ">=" + fM + "." + fm + ".0";
+      } else {
+        from = ">=" + from;
+      }
+      if (isX(tM)) {
+        to = "";
+      } else if (isX(tm)) {
+        to = "<" + (+tM + 1) + ".0.0";
+      } else if (isX(tp)) {
+        to = "<" + tM + "." + (+tm + 1) + ".0";
+      } else if (tpr) {
+        to = "<=" + tM + "." + tm + "." + tp + "-" + tpr;
+      } else {
+        to = "<=" + to;
+      }
+      return (from + " " + to).trim();
+    }
+    Range.prototype.test = function(version) {
+      if (!version) {
+        return false;
+      }
+      if (typeof version === "string") {
+        version = new SemVer(version, this.options);
+      }
+      for (var i2 = 0; i2 < this.set.length; i2++) {
+        if (testSet(this.set[i2], version, this.options)) {
+          return true;
+        }
+      }
+      return false;
+    };
+    function testSet(set, version, options) {
+      for (var i2 = 0; i2 < set.length; i2++) {
+        if (!set[i2].test(version)) {
+          return false;
+        }
+      }
+      if (version.prerelease.length && !options.includePrerelease) {
+        for (i2 = 0; i2 < set.length; i2++) {
+          debug(set[i2].semver);
+          if (set[i2].semver === ANY) {
+            continue;
+          }
+          if (set[i2].semver.prerelease.length > 0) {
+            var allowed = set[i2].semver;
+            if (allowed.major === version.major && allowed.minor === version.minor && allowed.patch === version.patch) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+      return true;
+    }
+    exports2.satisfies = satisfies2;
+    function satisfies2(version, range, options) {
+      try {
+        range = new Range(range, options);
+      } catch (er) {
+        return false;
+      }
+      return range.test(version);
+    }
+    exports2.maxSatisfying = maxSatisfying;
+    function maxSatisfying(versions, range, options) {
+      var max = null;
+      var maxSV = null;
+      try {
+        var rangeObj = new Range(range, options);
+      } catch (er) {
+        return null;
+      }
+      versions.forEach(function(v) {
+        if (rangeObj.test(v)) {
+          if (!max || maxSV.compare(v) === -1) {
+            max = v;
+            maxSV = new SemVer(max, options);
+          }
+        }
+      });
+      return max;
+    }
+    exports2.minSatisfying = minSatisfying;
+    function minSatisfying(versions, range, options) {
+      var min = null;
+      var minSV = null;
+      try {
+        var rangeObj = new Range(range, options);
+      } catch (er) {
+        return null;
+      }
+      versions.forEach(function(v) {
+        if (rangeObj.test(v)) {
+          if (!min || minSV.compare(v) === 1) {
+            min = v;
+            minSV = new SemVer(min, options);
+          }
+        }
+      });
+      return min;
+    }
+    exports2.minVersion = minVersion;
+    function minVersion(range, loose) {
+      range = new Range(range, loose);
+      var minver = new SemVer("0.0.0");
+      if (range.test(minver)) {
+        return minver;
+      }
+      minver = new SemVer("0.0.0-0");
+      if (range.test(minver)) {
+        return minver;
+      }
+      minver = null;
+      for (var i2 = 0; i2 < range.set.length; ++i2) {
+        var comparators = range.set[i2];
+        comparators.forEach(function(comparator) {
+          var compver = new SemVer(comparator.semver.version);
+          switch (comparator.operator) {
+            case ">":
+              if (compver.prerelease.length === 0) {
+                compver.patch++;
+              } else {
+                compver.prerelease.push(0);
+              }
+              compver.raw = compver.format();
+            case "":
+            case ">=":
+              if (!minver || gt(minver, compver)) {
+                minver = compver;
+              }
+              break;
+            case "<":
+            case "<=":
+              break;
+            default:
+              throw new Error("Unexpected operation: " + comparator.operator);
+          }
+        });
+      }
+      if (minver && range.test(minver)) {
+        return minver;
+      }
       return null;
     }
-  }
-  K.ltr = xh;
-  function xh(n, e, t) {
-    return ds(n, e, "<", t);
-  }
-  K.gtr = jh;
-  function jh(n, e, t) {
-    return ds(n, e, ">", t);
-  }
-  K.outside = ds;
-  function ds(n, e, t, r) {
-    (n = new H(n, r)), (e = new ne(e, r));
-    var i, s, o, a, l;
-    switch (t) {
-      case ">":
-        (i = hn), (s = cs), (o = vr), (a = ">"), (l = ">=");
-        break;
-      case "<":
-        (i = vr), (s = us), (o = hn), (a = "<"), (l = "<=");
-        break;
-      default:
-        throw new TypeError('Must provide a hilo val of "<" or ">"');
-    }
-    if (Er(n, e, r)) return !1;
-    for (var u = 0; u < e.set.length; ++u) {
-      var f = e.set[u],
-        c = null,
-        C = null;
-      if (
-        (f.forEach(function (M) {
-          M.semver === pn && (M = new Te(">=0.0.0")),
-            (c = c || M),
-            (C = C || M),
-            i(M.semver, c.semver, r)
-              ? (c = M)
-              : o(M.semver, C.semver, r) && (C = M);
-        }),
-        c.operator === a ||
-          c.operator === l ||
-          ((!C.operator || C.operator === a) && s(n, C.semver)))
-      )
-        return !1;
-      if (C.operator === l && o(n, C.semver)) return !1;
-    }
-    return !0;
-  }
-  K.prerelease = Fh;
-  function Fh(n, e) {
-    var t = St(n, e);
-    return t && t.prerelease.length ? t.prerelease : null;
-  }
-  K.intersects = Uh;
-  function Uh(n, e, t) {
-    return (n = new ne(n, t)), (e = new ne(e, t)), n.intersects(e);
-  }
-  K.coerce = Wh;
-  function Wh(n) {
-    if (n instanceof H) return n;
-    if (typeof n != "string") return null;
-    var e = n.match(Z[al]);
-    return e == null
-      ? null
-      : St(e[1] + "." + (e[2] || "0") + "." + (e[3] || "0"));
-  }
-});
-h();
-h();
-h();
-var Bt;
-function z(n) {
-  Bt && Bt("verbose", n);
-}
-function Ue(n) {
-  Bt && Bt("error", n);
-}
-function ks(n) {
-  Bt = n;
-}
-var Nr = class {
-    constructor() {
-      this.registered = !1;
-      this.baseHandler = this.handleVSCodeApiMessages.bind(this);
-    }
-    register(e) {
-      if (
-        ((this.messageCallback = e),
-        !this.vscodeApi && typeof acquireVsCodeApi != "undefined"
-          ? (this.vscodeApi = acquireVsCodeApi())
-          : !this.vscodeApi &&
-            typeof window.acquireVsCodeApi != "undefined" &&
-            (this.vscodeApi = window.acquireVsCodeApi()),
-        this.vscodeApi || console.error("The vscode api is not set"),
-        !this.registered)
-      ) {
-        (this.registered = !0),
-          window.addEventListener("message", this.baseHandler);
-        try {
-          let t = this.vscodeApi;
-          t &&
-            t.handleMessage &&
-            t.handleMessage(this.handleVSCodeApiMessages.bind(this));
-        } catch (t) {}
+    exports2.validRange = validRange;
+    function validRange(range, options) {
+      try {
+        return new Range(range, options).range || "*";
+      } catch (er) {
+        return null;
       }
     }
-    sendMessage(e, t) {
-      this.vscodeApi
-        ? this.vscodeApi.postMessage({ type: e, payload: t })
-        : e === "IPyWidgets_logMessage"
-          ? z(`Logging message ${e}, ${t}`)
-          : z(`No vscode API to post message ${e}`);
+    exports2.ltr = ltr;
+    function ltr(version, range, options) {
+      return outside(version, range, "<", options);
     }
-    dispose() {
-      this.registered &&
-        ((this.registered = !1),
-        window.removeEventListener("message", this.baseHandler));
+    exports2.gtr = gtr;
+    function gtr(version, range, options) {
+      return outside(version, range, ">", options);
     }
-    async handleVSCodeApiMessages(e) {
-      let t = e.data;
-      t && this.messageCallback && (await this.messageCallback(t));
-    }
-  },
-  Lr = class {
-    constructor(e) {
-      this.kernelMessagingApi = e || {
-        onDidReceiveKernelMessage,
-        postKernelMessage,
-      };
-    }
-    register(e) {
-      (this.messageCallback = e),
-        this.kernelHandler ||
-          (this.kernelHandler =
-            this.kernelMessagingApi.onDidReceiveKernelMessage(
-              this.handleKernelMessage.bind(this)
-            ));
-    }
-    sendMessage(e, t) {
-      this.kernelMessagingApi.postKernelMessage({ type: e, payload: t });
-    }
-    dispose() {
-      this.kernelHandler && this.kernelHandler.dispose();
-    }
-    async handleKernelMessage(e) {
-      let t = e;
-      t && this.messageCallback && (await this.messageCallback(t));
-    }
-  },
-  yn = class {
-    constructor(e) {
-      this.kernelMessagingApi = e;
-      this.handlers = [];
-    }
-    dispose() {
-      this.messageApi && this.messageApi.dispose();
-    }
-    sendMessage(e, t) {
-      return this.sendUnsafeMessage(e.toString(), t);
-    }
-    sendUnsafeMessage(e, t) {
-      this.messageApi
-        ? this.messageApi.sendMessage(e, t)
-        : e === "IPyWidgets_logMessage"
-          ? console.log("Message not sent", e, t)
-          : z(`No message API to post message ${e}`);
-    }
-    addHandler(e) {
-      this.acquireApi(), this.handlers.push(e);
-    }
-    removeHandler(e) {
-      this.handlers = this.handlers.filter((t) => t !== e);
-    }
-    acquireApi() {
-      this.messageApi ||
-        (this.useKernelMessageApi()
-          ? (this.messageApi = new Lr(this.kernelMessagingApi))
-          : (this.messageApi = new Nr()),
-        this.messageApi.register(this.handleMessage.bind(this)));
-    }
-    useKernelMessageApi() {
-      return !!(
-        (this.kernelMessagingApi &&
-          typeof this.kernelMessagingApi.postKernelMessage != "undefined") ||
-        typeof postKernelMessage != "undefined"
-      );
-    }
-    async handleMessage(e) {
-      this.handlers &&
-        e &&
-        this.handlers.forEach((t) => {
-          t && t.handleMessage(e.type, e.payload);
+    exports2.outside = outside;
+    function outside(version, range, hilo, options) {
+      version = new SemVer(version, options);
+      range = new Range(range, options);
+      var gtfn, ltefn, ltfn, comp, ecomp;
+      switch (hilo) {
+        case ">":
+          gtfn = gt;
+          ltefn = lte;
+          ltfn = lt;
+          comp = ">";
+          ecomp = ">=";
+          break;
+        case "<":
+          gtfn = lt;
+          ltefn = gte;
+          ltfn = gt;
+          comp = "<";
+          ecomp = "<=";
+          break;
+        default:
+          throw new TypeError('Must provide a hilo val of "<" or ">"');
+      }
+      if (satisfies2(version, range, options)) {
+        return false;
+      }
+      for (var i2 = 0; i2 < range.set.length; ++i2) {
+        var comparators = range.set[i2];
+        var high = null;
+        var low = null;
+        comparators.forEach(function(comparator) {
+          if (comparator.semver === ANY) {
+            comparator = new Comparator(">=0.0.0");
+          }
+          high = high || comparator;
+          low = low || comparator;
+          if (gtfn(comparator.semver, high.semver, options)) {
+            high = comparator;
+          } else if (ltfn(comparator.semver, low.semver, options)) {
+            low = comparator;
+          }
         });
+        if (high.operator === comp || high.operator === ecomp) {
+          return false;
+        }
+        if ((!low.operator || low.operator === comp) && ltefn(version, low.semver)) {
+          return false;
+        } else if (low.operator === ecomp && ltfn(version, low.semver)) {
+          return false;
+        }
+      }
+      return true;
     }
-  };
-h();
-h();
-h();
-h();
-function xs(n) {
-  if (typeof document != "undefined") {
-    var e = document.createElement("style"),
-      t = document.createTextNode(n);
-    e.appendChild(t), document.head.appendChild(e);
+    exports2.prerelease = prerelease;
+    function prerelease(version, options) {
+      var parsed = parse(version, options);
+      return parsed && parsed.prerelease.length ? parsed.prerelease : null;
+    }
+    exports2.intersects = intersects;
+    function intersects(r1, r2, options) {
+      r1 = new Range(r1, options);
+      r2 = new Range(r2, options);
+      return r1.intersects(r2);
+    }
+    exports2.coerce = coerce;
+    function coerce(version) {
+      if (version instanceof SemVer) {
+        return version;
+      }
+      if (typeof version !== "string") {
+        return null;
+      }
+      var match = version.match(safeRe[COERCE]);
+      if (match == null) {
+        return null;
+      }
+      return parse(match[1] + "." + (match[2] || "0") + "." + (match[3] || "0"));
+    }
+  }
+});
+
+// src/webviews/webview-side/ipywidgets/kernel/index.ts
+init_process_development();
+
+// src/webviews/webview-side/react-common/postOffice.ts
+init_process_development();
+
+// src/webviews/webview-side/react-common/logger.ts
+init_process_development();
+var messageLogger;
+function logMessage(message) {
+  if (messageLogger) {
+    messageLogger("verbose", message);
   }
 }
-var js = `:root{--md-red-50: #FFEBEE;--md-red-100: #FFCDD2;--md-red-200: #EF9A9A;--md-red-300: #E57373;--md-red-400: #EF5350;--md-red-500: #F44336;--md-red-600: #E53935;--md-red-700: #D32F2F;--md-red-800: #C62828;--md-red-900: #B71C1C;--md-red-A100: #FF8A80;--md-red-A200: #FF5252;--md-red-A400: #FF1744;--md-red-A700: #D50000;--md-pink-50: #FCE4EC;--md-pink-100: #F8BBD0;--md-pink-200: #F48FB1;--md-pink-300: #F06292;--md-pink-400: #EC407A;--md-pink-500: #E91E63;--md-pink-600: #D81B60;--md-pink-700: #C2185B;--md-pink-800: #AD1457;--md-pink-900: #880E4F;--md-pink-A100: #FF80AB;--md-pink-A200: #FF4081;--md-pink-A400: #F50057;--md-pink-A700: #C51162;--md-purple-50: #F3E5F5;--md-purple-100: #E1BEE7;--md-purple-200: #CE93D8;--md-purple-300: #BA68C8;--md-purple-400: #AB47BC;--md-purple-500: #9C27B0;--md-purple-600: #8E24AA;--md-purple-700: #7B1FA2;--md-purple-800: #6A1B9A;--md-purple-900: #4A148C;--md-purple-A100: #EA80FC;--md-purple-A200: #E040FB;--md-purple-A400: #D500F9;--md-purple-A700: #AA00FF;--md-deep-purple-50: #EDE7F6;--md-deep-purple-100: #D1C4E9;--md-deep-purple-200: #B39DDB;--md-deep-purple-300: #9575CD;--md-deep-purple-400: #7E57C2;--md-deep-purple-500: #673AB7;--md-deep-purple-600: #5E35B1;--md-deep-purple-700: #512DA8;--md-deep-purple-800: #4527A0;--md-deep-purple-900: #311B92;--md-deep-purple-A100: #B388FF;--md-deep-purple-A200: #7C4DFF;--md-deep-purple-A400: #651FFF;--md-deep-purple-A700: #6200EA;--md-indigo-50: #E8EAF6;--md-indigo-100: #C5CAE9;--md-indigo-200: #9FA8DA;--md-indigo-300: #7986CB;--md-indigo-400: #5C6BC0;--md-indigo-500: #3F51B5;--md-indigo-600: #3949AB;--md-indigo-700: #303F9F;--md-indigo-800: #283593;--md-indigo-900: #1A237E;--md-indigo-A100: #8C9EFF;--md-indigo-A200: #536DFE;--md-indigo-A400: #3D5AFE;--md-indigo-A700: #304FFE;--md-blue-50: #E3F2FD;--md-blue-100: #BBDEFB;--md-blue-200: #90CAF9;--md-blue-300: #64B5F6;--md-blue-400: #42A5F5;--md-blue-500: #2196F3;--md-blue-600: #1E88E5;--md-blue-700: #1976D2;--md-blue-800: #1565C0;--md-blue-900: #0D47A1;--md-blue-A100: #82B1FF;--md-blue-A200: #448AFF;--md-blue-A400: #2979FF;--md-blue-A700: #2962FF;--md-light-blue-50: #E1F5FE;--md-light-blue-100: #B3E5FC;--md-light-blue-200: #81D4FA;--md-light-blue-300: #4FC3F7;--md-light-blue-400: #29B6F6;--md-light-blue-500: #03A9F4;--md-light-blue-600: #039BE5;--md-light-blue-700: #0288D1;--md-light-blue-800: #0277BD;--md-light-blue-900: #01579B;--md-light-blue-A100: #80D8FF;--md-light-blue-A200: #40C4FF;--md-light-blue-A400: #00B0FF;--md-light-blue-A700: #0091EA;--md-cyan-50: #E0F7FA;--md-cyan-100: #B2EBF2;--md-cyan-200: #80DEEA;--md-cyan-300: #4DD0E1;--md-cyan-400: #26C6DA;--md-cyan-500: #00BCD4;--md-cyan-600: #00ACC1;--md-cyan-700: #0097A7;--md-cyan-800: #00838F;--md-cyan-900: #006064;--md-cyan-A100: #84FFFF;--md-cyan-A200: #18FFFF;--md-cyan-A400: #00E5FF;--md-cyan-A700: #00B8D4;--md-teal-50: #E0F2F1;--md-teal-100: #B2DFDB;--md-teal-200: #80CBC4;--md-teal-300: #4DB6AC;--md-teal-400: #26A69A;--md-teal-500: #009688;--md-teal-600: #00897B;--md-teal-700: #00796B;--md-teal-800: #00695C;--md-teal-900: #004D40;--md-teal-A100: #A7FFEB;--md-teal-A200: #64FFDA;--md-teal-A400: #1DE9B6;--md-teal-A700: #00BFA5;--md-green-50: #E8F5E9;--md-green-100: #C8E6C9;--md-green-200: #A5D6A7;--md-green-300: #81C784;--md-green-400: #66BB6A;--md-green-500: #4CAF50;--md-green-600: #43A047;--md-green-700: #388E3C;--md-green-800: #2E7D32;--md-green-900: #1B5E20;--md-green-A100: #B9F6CA;--md-green-A200: #69F0AE;--md-green-A400: #00E676;--md-green-A700: #00C853;--md-light-green-50: #F1F8E9;--md-light-green-100: #DCEDC8;--md-light-green-200: #C5E1A5;--md-light-green-300: #AED581;--md-light-green-400: #9CCC65;--md-light-green-500: #8BC34A;--md-light-green-600: #7CB342;--md-light-green-700: #689F38;--md-light-green-800: #558B2F;--md-light-green-900: #33691E;--md-light-green-A100: #CCFF90;--md-light-green-A200: #B2FF59;--md-light-green-A400: #76FF03;--md-light-green-A700: #64DD17;--md-lime-50: #F9FBE7;--md-lime-100: #F0F4C3;--md-lime-200: #E6EE9C;--md-lime-300: #DCE775;--md-lime-400: #D4E157;--md-lime-500: #CDDC39;--md-lime-600: #C0CA33;--md-lime-700: #AFB42B;--md-lime-800: #9E9D24;--md-lime-900: #827717;--md-lime-A100: #F4FF81;--md-lime-A200: #EEFF41;--md-lime-A400: #C6FF00;--md-lime-A700: #AEEA00;--md-yellow-50: #FFFDE7;--md-yellow-100: #FFF9C4;--md-yellow-200: #FFF59D;--md-yellow-300: #FFF176;--md-yellow-400: #FFEE58;--md-yellow-500: #FFEB3B;--md-yellow-600: #FDD835;--md-yellow-700: #FBC02D;--md-yellow-800: #F9A825;--md-yellow-900: #F57F17;--md-yellow-A100: #FFFF8D;--md-yellow-A200: #FFFF00;--md-yellow-A400: #FFEA00;--md-yellow-A700: #FFD600;--md-amber-50: #FFF8E1;--md-amber-100: #FFECB3;--md-amber-200: #FFE082;--md-amber-300: #FFD54F;--md-amber-400: #FFCA28;--md-amber-500: #FFC107;--md-amber-600: #FFB300;--md-amber-700: #FFA000;--md-amber-800: #FF8F00;--md-amber-900: #FF6F00;--md-amber-A100: #FFE57F;--md-amber-A200: #FFD740;--md-amber-A400: #FFC400;--md-amber-A700: #FFAB00;--md-orange-50: #FFF3E0;--md-orange-100: #FFE0B2;--md-orange-200: #FFCC80;--md-orange-300: #FFB74D;--md-orange-400: #FFA726;--md-orange-500: #FF9800;--md-orange-600: #FB8C00;--md-orange-700: #F57C00;--md-orange-800: #EF6C00;--md-orange-900: #E65100;--md-orange-A100: #FFD180;--md-orange-A200: #FFAB40;--md-orange-A400: #FF9100;--md-orange-A700: #FF6D00;--md-deep-orange-50: #FBE9E7;--md-deep-orange-100: #FFCCBC;--md-deep-orange-200: #FFAB91;--md-deep-orange-300: #FF8A65;--md-deep-orange-400: #FF7043;--md-deep-orange-500: #FF5722;--md-deep-orange-600: #F4511E;--md-deep-orange-700: #E64A19;--md-deep-orange-800: #D84315;--md-deep-orange-900: #BF360C;--md-deep-orange-A100: #FF9E80;--md-deep-orange-A200: #FF6E40;--md-deep-orange-A400: #FF3D00;--md-deep-orange-A700: #DD2C00;--md-brown-50: #EFEBE9;--md-brown-100: #D7CCC8;--md-brown-200: #BCAAA4;--md-brown-300: #A1887F;--md-brown-400: #8D6E63;--md-brown-500: #795548;--md-brown-600: #6D4C41;--md-brown-700: #5D4037;--md-brown-800: #4E342E;--md-brown-900: #3E2723;--md-grey-50: #FAFAFA;--md-grey-100: #F5F5F5;--md-grey-200: #EEEEEE;--md-grey-300: #E0E0E0;--md-grey-400: #BDBDBD;--md-grey-500: #9E9E9E;--md-grey-600: #757575;--md-grey-700: #616161;--md-grey-800: #424242;--md-grey-900: #212121;--md-blue-grey-50: #ECEFF1;--md-blue-grey-100: #CFD8DC;--md-blue-grey-200: #B0BEC5;--md-blue-grey-300: #90A4AE;--md-blue-grey-400: #78909C;--md-blue-grey-500: #607D8B;--md-blue-grey-600: #546E7A;--md-blue-grey-700: #455A64;--md-blue-grey-800: #37474F;--md-blue-grey-900: #263238}:root{--jp-icon-search: none;--jp-ui-select-caret: none}:root{--jp-border-width: 1px;--jp-border-color0: var(--md-grey-700);--jp-border-color1: var(--md-grey-500);--jp-border-color2: var(--md-grey-300);--jp-border-color3: var(--md-grey-100);--jp-ui-icon-font-size: 14px;--jp-ui-font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;--jp-ui-font-color0: rgba(0,0,0,1);--jp-ui-font-color1: rgba(0,0,0,.8);--jp-ui-font-color2: rgba(0,0,0,.5);--jp-ui-font-color3: rgba(0,0,0,.3);--jp-ui-inverse-font-color0: rgba(255, 255, 255, 1);--jp-ui-inverse-font-color1: rgba(255, 255, 255, 1);--jp-ui-inverse-font-color2: rgba(255, 255, 255, .7);--jp-ui-inverse-font-color3: rgba(255, 255, 255, .5);--jp-inverse-ui-font-color0: rgba(255,255,255,1);--jp-inverse-ui-font-color1: rgba(255,255,255,1);--jp-inverse-ui-font-color2: rgba(255,255,255,.7);--jp-inverse-ui-font-color3: rgba(255,255,255,.5);--jp-content-font-size: 13px;--jp-content-line-height: 1.5;--jp-content-font-color0: black;--jp-content-font-color1: black;--jp-content-font-color2: var(--md-grey-700);--jp-content-font-color3: var(--md-grey-500);--jp-ui-font-scale-factor: 1.2;--jp-ui-font-size0: calc(var(--jp-ui-font-size1)/var(--jp-ui-font-scale-factor));--jp-ui-font-size1: 13px;--jp-ui-font-size2: calc(var(--jp-ui-font-size1)*var(--jp-ui-font-scale-factor));--jp-ui-font-size3: calc(var(--jp-ui-font-size2)*var(--jp-ui-font-scale-factor));--jp-code-font-size: 13px;--jp-code-line-height: 1.307;--jp-code-padding: 5px;--jp-code-font-family: monospace;--jp-layout-color0: white;--jp-layout-color1: white;--jp-layout-color2: var(--md-grey-200);--jp-layout-color3: var(--md-grey-400);--jp-brand-color0: var(--md-blue-700);--jp-brand-color1: var(--md-blue-500);--jp-brand-color2: var(--md-blue-300);--jp-brand-color3: var(--md-blue-100);--jp-accent-color0: var(--md-green-700);--jp-accent-color1: var(--md-green-500);--jp-accent-color2: var(--md-green-300);--jp-accent-color3: var(--md-green-100);--jp-warn-color0: var(--md-orange-700);--jp-warn-color1: var(--md-orange-500);--jp-warn-color2: var(--md-orange-300);--jp-warn-color3: var(--md-orange-100);--jp-error-color0: var(--md-red-700);--jp-error-color1: var(--md-red-500);--jp-error-color2: var(--md-red-300);--jp-error-color3: var(--md-red-100);--jp-success-color0: var(--md-green-700);--jp-success-color1: var(--md-green-500);--jp-success-color2: var(--md-green-300);--jp-success-color3: var(--md-green-100);--jp-info-color0: var(--md-cyan-700);--jp-info-color1: var(--md-cyan-500);--jp-info-color2: var(--md-cyan-300);--jp-info-color3: var(--md-cyan-100);--jp-cell-padding: 5px;--jp-cell-editor-background: #f7f7f7;--jp-cell-editor-border-color: #cfcfcf;--jp-cell-editor-background-edit: var(--jp-ui-layout-color1);--jp-cell-editor-border-color-edit: var(--jp-brand-color1);--jp-cell-prompt-width: 100px;--jp-cell-prompt-font-family: "Roboto Mono", monospace;--jp-cell-prompt-letter-spacing: 0px;--jp-cell-prompt-opacity: 1;--jp-cell-prompt-opacity-not-active: .4;--jp-cell-prompt-font-color-not-active: var(--md-grey-700);--jp-cell-inprompt-font-color: #307FC1;--jp-cell-outprompt-font-color: #BF5B3D;--jp-notebook-padding: 10px;--jp-notebook-scroll-padding: 100px;--jp-console-background: var(--md-grey-100);--jp-toolbar-border-color: var(--md-grey-400);--jp-toolbar-micro-height: 8px;--jp-toolbar-background: var(--jp-layout-color0);--jp-toolbar-box-shadow: 0px 0px 2px 0px rgba(0,0,0,.24);--jp-toolbar-header-margin: 4px 4px 0px 4px;--jp-toolbar-active-background: var(--md-grey-300)}
-`;
-xs(js);
-var Wa = Ct(kr());
-h();
-var Ht = class {
+function logErrorMessage(message) {
+  if (messageLogger) {
+    messageLogger("error", message);
+  }
+}
+function setLogger(logger) {
+  messageLogger = logger;
+}
+
+// src/webviews/webview-side/react-common/postOffice.ts
+var VsCodeMessageApi = class {
   constructor() {
-    this.event = (e, t, r) => {
-      let i = this.add(t ? e.bind(t) : e);
-      return r == null || r.push(i), i;
+    this.registered = false;
+    this.baseHandler = this.handleVSCodeApiMessages.bind(this);
+  }
+  register(msgCallback) {
+    this.messageCallback = msgCallback;
+    if (!this.vscodeApi && typeof acquireVsCodeApi !== "undefined") {
+      this.vscodeApi = acquireVsCodeApi();
+    } else if (!this.vscodeApi && typeof window.acquireVsCodeApi !== "undefined") {
+      this.vscodeApi = window.acquireVsCodeApi();
+    }
+    if (!this.vscodeApi) {
+      console.error("The vscode api is not set");
+    }
+    if (!this.registered) {
+      this.registered = true;
+      window.addEventListener("message", this.baseHandler);
+      try {
+        const api = this.vscodeApi;
+        if (api && api.handleMessage) {
+          api.handleMessage(this.handleVSCodeApiMessages.bind(this));
+        }
+      } catch (e) {
+      }
+    }
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sendMessage(type, payload) {
+    if (this.vscodeApi) {
+      this.vscodeApi.postMessage({ type, payload });
+    } else if (type === "IPyWidgets_logMessage") {
+      logMessage(`Logging message ${type}, ${payload}`);
+    } else {
+      logMessage(`No vscode API to post message ${type}`);
+    }
+  }
+  dispose() {
+    if (this.registered) {
+      this.registered = false;
+      window.removeEventListener("message", this.baseHandler);
+    }
+  }
+  async handleVSCodeApiMessages(ev) {
+    const msg = ev.data;
+    if (msg && this.messageCallback) {
+      await this.messageCallback(msg);
+    }
+  }
+};
+var KernelMessageApi = class {
+  constructor(kernelMessagingApi) {
+    this.kernelMessagingApi = kernelMessagingApi ? kernelMessagingApi : {
+      onDidReceiveKernelMessage,
+      postKernelMessage
     };
   }
+  register(msgCallback) {
+    this.messageCallback = msgCallback;
+    if (!this.kernelHandler) {
+      this.kernelHandler = this.kernelMessagingApi.onDidReceiveKernelMessage(this.handleKernelMessage.bind(this));
+    }
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sendMessage(type, payload) {
+    this.kernelMessagingApi.postKernelMessage({ type, payload });
+  }
+  dispose() {
+    if (this.kernelHandler) {
+      this.kernelHandler.dispose();
+    }
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async handleKernelMessage(ev) {
+    const msg = ev;
+    if (msg && this.messageCallback) {
+      await this.messageCallback(msg);
+    }
+  }
+};
+var PostOffice = class {
+  constructor(kernelMessagingApi) {
+    this.kernelMessagingApi = kernelMessagingApi;
+    this.handlers = [];
+  }
+  dispose() {
+    if (this.messageApi) {
+      this.messageApi.dispose();
+    }
+  }
+  sendMessage(type, payload) {
+    return this.sendUnsafeMessage(type.toString(), payload);
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sendUnsafeMessage(type, payload) {
+    if (this.messageApi) {
+      this.messageApi.sendMessage(type, payload);
+    } else if (type === "IPyWidgets_logMessage") {
+      console.log("Message not sent", type, payload);
+    } else {
+      logMessage(`No message API to post message ${type}`);
+    }
+  }
+  addHandler(handler) {
+    this.acquireApi();
+    this.handlers.push(handler);
+  }
+  removeHandler(handler) {
+    this.handlers = this.handlers.filter((f) => f !== handler);
+  }
+  // Hook up to our messaging API
+  acquireApi() {
+    if (this.messageApi) {
+      return;
+    }
+    if (this.useKernelMessageApi()) {
+      this.messageApi = new KernelMessageApi(this.kernelMessagingApi);
+    } else {
+      this.messageApi = new VsCodeMessageApi();
+    }
+    this.messageApi.register(this.handleMessage.bind(this));
+  }
+  // Check to see if global kernel message API is supported, if so use that
+  // instead of the VSCodeAPI which is not available in NativeNotebooks
+  useKernelMessageApi() {
+    if (this.kernelMessagingApi && typeof this.kernelMessagingApi.postKernelMessage !== "undefined" || typeof postKernelMessage !== "undefined") {
+      return true;
+    }
+    return false;
+  }
+  async handleMessage(msg) {
+    if (this.handlers) {
+      if (msg) {
+        this.handlers.forEach((h) => {
+          if (h) {
+            h.handleMessage(msg.type, msg.payload);
+          }
+        });
+      }
+    }
+  }
+};
+
+// src/messageTypes.ts
+init_process_development();
+
+// src/webviews/webview-side/ipywidgets/kernel/manager.ts
+init_process_development();
+
+// style-stub:@jupyter-widgets/controls/css/labvariables.css
+init_process_development();
+
+// style-helper:__style_helper__
+init_process_development();
+function injectStyle(text) {
+  if (typeof document !== "undefined") {
+    var style = document.createElement("style");
+    var node = document.createTextNode(text);
+    style.appendChild(node);
+    document.head.appendChild(style);
+  }
+}
+
+// style-content:@jupyter-widgets/controls/css/labvariables.css
+var labvariables_default = ':root{--md-red-50: #FFEBEE;--md-red-100: #FFCDD2;--md-red-200: #EF9A9A;--md-red-300: #E57373;--md-red-400: #EF5350;--md-red-500: #F44336;--md-red-600: #E53935;--md-red-700: #D32F2F;--md-red-800: #C62828;--md-red-900: #B71C1C;--md-red-A100: #FF8A80;--md-red-A200: #FF5252;--md-red-A400: #FF1744;--md-red-A700: #D50000;--md-pink-50: #FCE4EC;--md-pink-100: #F8BBD0;--md-pink-200: #F48FB1;--md-pink-300: #F06292;--md-pink-400: #EC407A;--md-pink-500: #E91E63;--md-pink-600: #D81B60;--md-pink-700: #C2185B;--md-pink-800: #AD1457;--md-pink-900: #880E4F;--md-pink-A100: #FF80AB;--md-pink-A200: #FF4081;--md-pink-A400: #F50057;--md-pink-A700: #C51162;--md-purple-50: #F3E5F5;--md-purple-100: #E1BEE7;--md-purple-200: #CE93D8;--md-purple-300: #BA68C8;--md-purple-400: #AB47BC;--md-purple-500: #9C27B0;--md-purple-600: #8E24AA;--md-purple-700: #7B1FA2;--md-purple-800: #6A1B9A;--md-purple-900: #4A148C;--md-purple-A100: #EA80FC;--md-purple-A200: #E040FB;--md-purple-A400: #D500F9;--md-purple-A700: #AA00FF;--md-deep-purple-50: #EDE7F6;--md-deep-purple-100: #D1C4E9;--md-deep-purple-200: #B39DDB;--md-deep-purple-300: #9575CD;--md-deep-purple-400: #7E57C2;--md-deep-purple-500: #673AB7;--md-deep-purple-600: #5E35B1;--md-deep-purple-700: #512DA8;--md-deep-purple-800: #4527A0;--md-deep-purple-900: #311B92;--md-deep-purple-A100: #B388FF;--md-deep-purple-A200: #7C4DFF;--md-deep-purple-A400: #651FFF;--md-deep-purple-A700: #6200EA;--md-indigo-50: #E8EAF6;--md-indigo-100: #C5CAE9;--md-indigo-200: #9FA8DA;--md-indigo-300: #7986CB;--md-indigo-400: #5C6BC0;--md-indigo-500: #3F51B5;--md-indigo-600: #3949AB;--md-indigo-700: #303F9F;--md-indigo-800: #283593;--md-indigo-900: #1A237E;--md-indigo-A100: #8C9EFF;--md-indigo-A200: #536DFE;--md-indigo-A400: #3D5AFE;--md-indigo-A700: #304FFE;--md-blue-50: #E3F2FD;--md-blue-100: #BBDEFB;--md-blue-200: #90CAF9;--md-blue-300: #64B5F6;--md-blue-400: #42A5F5;--md-blue-500: #2196F3;--md-blue-600: #1E88E5;--md-blue-700: #1976D2;--md-blue-800: #1565C0;--md-blue-900: #0D47A1;--md-blue-A100: #82B1FF;--md-blue-A200: #448AFF;--md-blue-A400: #2979FF;--md-blue-A700: #2962FF;--md-light-blue-50: #E1F5FE;--md-light-blue-100: #B3E5FC;--md-light-blue-200: #81D4FA;--md-light-blue-300: #4FC3F7;--md-light-blue-400: #29B6F6;--md-light-blue-500: #03A9F4;--md-light-blue-600: #039BE5;--md-light-blue-700: #0288D1;--md-light-blue-800: #0277BD;--md-light-blue-900: #01579B;--md-light-blue-A100: #80D8FF;--md-light-blue-A200: #40C4FF;--md-light-blue-A400: #00B0FF;--md-light-blue-A700: #0091EA;--md-cyan-50: #E0F7FA;--md-cyan-100: #B2EBF2;--md-cyan-200: #80DEEA;--md-cyan-300: #4DD0E1;--md-cyan-400: #26C6DA;--md-cyan-500: #00BCD4;--md-cyan-600: #00ACC1;--md-cyan-700: #0097A7;--md-cyan-800: #00838F;--md-cyan-900: #006064;--md-cyan-A100: #84FFFF;--md-cyan-A200: #18FFFF;--md-cyan-A400: #00E5FF;--md-cyan-A700: #00B8D4;--md-teal-50: #E0F2F1;--md-teal-100: #B2DFDB;--md-teal-200: #80CBC4;--md-teal-300: #4DB6AC;--md-teal-400: #26A69A;--md-teal-500: #009688;--md-teal-600: #00897B;--md-teal-700: #00796B;--md-teal-800: #00695C;--md-teal-900: #004D40;--md-teal-A100: #A7FFEB;--md-teal-A200: #64FFDA;--md-teal-A400: #1DE9B6;--md-teal-A700: #00BFA5;--md-green-50: #E8F5E9;--md-green-100: #C8E6C9;--md-green-200: #A5D6A7;--md-green-300: #81C784;--md-green-400: #66BB6A;--md-green-500: #4CAF50;--md-green-600: #43A047;--md-green-700: #388E3C;--md-green-800: #2E7D32;--md-green-900: #1B5E20;--md-green-A100: #B9F6CA;--md-green-A200: #69F0AE;--md-green-A400: #00E676;--md-green-A700: #00C853;--md-light-green-50: #F1F8E9;--md-light-green-100: #DCEDC8;--md-light-green-200: #C5E1A5;--md-light-green-300: #AED581;--md-light-green-400: #9CCC65;--md-light-green-500: #8BC34A;--md-light-green-600: #7CB342;--md-light-green-700: #689F38;--md-light-green-800: #558B2F;--md-light-green-900: #33691E;--md-light-green-A100: #CCFF90;--md-light-green-A200: #B2FF59;--md-light-green-A400: #76FF03;--md-light-green-A700: #64DD17;--md-lime-50: #F9FBE7;--md-lime-100: #F0F4C3;--md-lime-200: #E6EE9C;--md-lime-300: #DCE775;--md-lime-400: #D4E157;--md-lime-500: #CDDC39;--md-lime-600: #C0CA33;--md-lime-700: #AFB42B;--md-lime-800: #9E9D24;--md-lime-900: #827717;--md-lime-A100: #F4FF81;--md-lime-A200: #EEFF41;--md-lime-A400: #C6FF00;--md-lime-A700: #AEEA00;--md-yellow-50: #FFFDE7;--md-yellow-100: #FFF9C4;--md-yellow-200: #FFF59D;--md-yellow-300: #FFF176;--md-yellow-400: #FFEE58;--md-yellow-500: #FFEB3B;--md-yellow-600: #FDD835;--md-yellow-700: #FBC02D;--md-yellow-800: #F9A825;--md-yellow-900: #F57F17;--md-yellow-A100: #FFFF8D;--md-yellow-A200: #FFFF00;--md-yellow-A400: #FFEA00;--md-yellow-A700: #FFD600;--md-amber-50: #FFF8E1;--md-amber-100: #FFECB3;--md-amber-200: #FFE082;--md-amber-300: #FFD54F;--md-amber-400: #FFCA28;--md-amber-500: #FFC107;--md-amber-600: #FFB300;--md-amber-700: #FFA000;--md-amber-800: #FF8F00;--md-amber-900: #FF6F00;--md-amber-A100: #FFE57F;--md-amber-A200: #FFD740;--md-amber-A400: #FFC400;--md-amber-A700: #FFAB00;--md-orange-50: #FFF3E0;--md-orange-100: #FFE0B2;--md-orange-200: #FFCC80;--md-orange-300: #FFB74D;--md-orange-400: #FFA726;--md-orange-500: #FF9800;--md-orange-600: #FB8C00;--md-orange-700: #F57C00;--md-orange-800: #EF6C00;--md-orange-900: #E65100;--md-orange-A100: #FFD180;--md-orange-A200: #FFAB40;--md-orange-A400: #FF9100;--md-orange-A700: #FF6D00;--md-deep-orange-50: #FBE9E7;--md-deep-orange-100: #FFCCBC;--md-deep-orange-200: #FFAB91;--md-deep-orange-300: #FF8A65;--md-deep-orange-400: #FF7043;--md-deep-orange-500: #FF5722;--md-deep-orange-600: #F4511E;--md-deep-orange-700: #E64A19;--md-deep-orange-800: #D84315;--md-deep-orange-900: #BF360C;--md-deep-orange-A100: #FF9E80;--md-deep-orange-A200: #FF6E40;--md-deep-orange-A400: #FF3D00;--md-deep-orange-A700: #DD2C00;--md-brown-50: #EFEBE9;--md-brown-100: #D7CCC8;--md-brown-200: #BCAAA4;--md-brown-300: #A1887F;--md-brown-400: #8D6E63;--md-brown-500: #795548;--md-brown-600: #6D4C41;--md-brown-700: #5D4037;--md-brown-800: #4E342E;--md-brown-900: #3E2723;--md-grey-50: #FAFAFA;--md-grey-100: #F5F5F5;--md-grey-200: #EEEEEE;--md-grey-300: #E0E0E0;--md-grey-400: #BDBDBD;--md-grey-500: #9E9E9E;--md-grey-600: #757575;--md-grey-700: #616161;--md-grey-800: #424242;--md-grey-900: #212121;--md-blue-grey-50: #ECEFF1;--md-blue-grey-100: #CFD8DC;--md-blue-grey-200: #B0BEC5;--md-blue-grey-300: #90A4AE;--md-blue-grey-400: #78909C;--md-blue-grey-500: #607D8B;--md-blue-grey-600: #546E7A;--md-blue-grey-700: #455A64;--md-blue-grey-800: #37474F;--md-blue-grey-900: #263238}:root{--jp-icon-search: none;--jp-ui-select-caret: none}:root{--jp-border-width: 1px;--jp-border-color0: var(--md-grey-700);--jp-border-color1: var(--md-grey-500);--jp-border-color2: var(--md-grey-300);--jp-border-color3: var(--md-grey-100);--jp-ui-icon-font-size: 14px;--jp-ui-font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;--jp-ui-font-color0: rgba(0,0,0,1);--jp-ui-font-color1: rgba(0,0,0,.8);--jp-ui-font-color2: rgba(0,0,0,.5);--jp-ui-font-color3: rgba(0,0,0,.3);--jp-ui-inverse-font-color0: rgba(255, 255, 255, 1);--jp-ui-inverse-font-color1: rgba(255, 255, 255, 1);--jp-ui-inverse-font-color2: rgba(255, 255, 255, .7);--jp-ui-inverse-font-color3: rgba(255, 255, 255, .5);--jp-inverse-ui-font-color0: rgba(255,255,255,1);--jp-inverse-ui-font-color1: rgba(255,255,255,1);--jp-inverse-ui-font-color2: rgba(255,255,255,.7);--jp-inverse-ui-font-color3: rgba(255,255,255,.5);--jp-content-font-size: 13px;--jp-content-line-height: 1.5;--jp-content-font-color0: black;--jp-content-font-color1: black;--jp-content-font-color2: var(--md-grey-700);--jp-content-font-color3: var(--md-grey-500);--jp-ui-font-scale-factor: 1.2;--jp-ui-font-size0: calc(var(--jp-ui-font-size1)/var(--jp-ui-font-scale-factor));--jp-ui-font-size1: 13px;--jp-ui-font-size2: calc(var(--jp-ui-font-size1)*var(--jp-ui-font-scale-factor));--jp-ui-font-size3: calc(var(--jp-ui-font-size2)*var(--jp-ui-font-scale-factor));--jp-code-font-size: 13px;--jp-code-line-height: 1.307;--jp-code-padding: 5px;--jp-code-font-family: monospace;--jp-layout-color0: white;--jp-layout-color1: white;--jp-layout-color2: var(--md-grey-200);--jp-layout-color3: var(--md-grey-400);--jp-brand-color0: var(--md-blue-700);--jp-brand-color1: var(--md-blue-500);--jp-brand-color2: var(--md-blue-300);--jp-brand-color3: var(--md-blue-100);--jp-accent-color0: var(--md-green-700);--jp-accent-color1: var(--md-green-500);--jp-accent-color2: var(--md-green-300);--jp-accent-color3: var(--md-green-100);--jp-warn-color0: var(--md-orange-700);--jp-warn-color1: var(--md-orange-500);--jp-warn-color2: var(--md-orange-300);--jp-warn-color3: var(--md-orange-100);--jp-error-color0: var(--md-red-700);--jp-error-color1: var(--md-red-500);--jp-error-color2: var(--md-red-300);--jp-error-color3: var(--md-red-100);--jp-success-color0: var(--md-green-700);--jp-success-color1: var(--md-green-500);--jp-success-color2: var(--md-green-300);--jp-success-color3: var(--md-green-100);--jp-info-color0: var(--md-cyan-700);--jp-info-color1: var(--md-cyan-500);--jp-info-color2: var(--md-cyan-300);--jp-info-color3: var(--md-cyan-100);--jp-cell-padding: 5px;--jp-cell-editor-background: #f7f7f7;--jp-cell-editor-border-color: #cfcfcf;--jp-cell-editor-background-edit: var(--jp-ui-layout-color1);--jp-cell-editor-border-color-edit: var(--jp-brand-color1);--jp-cell-prompt-width: 100px;--jp-cell-prompt-font-family: "Roboto Mono", monospace;--jp-cell-prompt-letter-spacing: 0px;--jp-cell-prompt-opacity: 1;--jp-cell-prompt-opacity-not-active: .4;--jp-cell-prompt-font-color-not-active: var(--md-grey-700);--jp-cell-inprompt-font-color: #307FC1;--jp-cell-outprompt-font-color: #BF5B3D;--jp-notebook-padding: 10px;--jp-notebook-scroll-padding: 100px;--jp-console-background: var(--md-grey-100);--jp-toolbar-border-color: var(--md-grey-400);--jp-toolbar-micro-height: 8px;--jp-toolbar-background: var(--jp-layout-color0);--jp-toolbar-box-shadow: 0px 0px 2px 0px rgba(0,0,0,.24);--jp-toolbar-header-margin: 4px 4px 0px 4px;--jp-toolbar-active-background: var(--md-grey-300)}\n';
+
+// style-stub:@jupyter-widgets/controls/css/labvariables.css
+injectStyle(labvariables_default);
+
+// src/webviews/webview-side/ipywidgets/kernel/manager.ts
+var import_fast_deep_equal = __toESM(require_fast_deep_equal());
+
+// node_modules/@c4312/evt/index.js
+init_process_development();
+var EventEmitter = class {
+  constructor() {
+    this.event = (listener, thisArgs, disposables) => {
+      const d = this.add(thisArgs ? listener.bind(thisArgs) : listener);
+      disposables == null ? void 0 : disposables.push(d);
+      return d;
+    };
+  }
+  /**
+   * Gets the number of event listeners.
+   */
   get size() {
-    return this.listeners
-      ? typeof this.listeners == "function"
-        ? 1
-        : this.listeners.length
-      : 0;
+    if (!this.listeners) {
+      return 0;
+    } else if (typeof this.listeners === "function") {
+      return 1;
+    } else {
+      return this.listeners.length;
+    }
   }
-  fire(e) {
-    if (this.listeners)
-      if (typeof this.listeners == "function") this.listeners(e);
-      else for (let t of this.listeners) t(e);
+  /**
+   * Emits event data.
+   */
+  fire(value) {
+    if (!this.listeners) {
+    } else if (typeof this.listeners === "function") {
+      this.listeners(value);
+    } else {
+      for (const listener of this.listeners) {
+        listener(value);
+      }
+    }
   }
+  /**
+   * Disposes of the emitter.
+   */
   dispose() {
     this.listeners = void 0;
   }
-  add(e) {
-    return (
-      this.listeners
-        ? typeof this.listeners == "function"
-          ? (this.listeners = [this.listeners, e])
-          : this.listeners.push(e)
-        : (this.listeners = e),
-      { dispose: () => this.rm(e) }
-    );
+  add(listener) {
+    if (!this.listeners) {
+      this.listeners = listener;
+    } else if (typeof this.listeners === "function") {
+      this.listeners = [this.listeners, listener];
+    } else {
+      this.listeners.push(listener);
+    }
+    return { dispose: () => this.rm(listener) };
   }
-  rm(e) {
-    if (!this.listeners) return;
-    if (typeof this.listeners == "function") {
-      this.listeners === e && (this.listeners = void 0);
+  rm(listener) {
+    if (!this.listeners) {
       return;
     }
-    let t = this.listeners.indexOf(e);
-    t !== -1 &&
-      (this.listeners.length === 2
-        ? (this.listeners = t === 0 ? this.listeners[1] : this.listeners[0])
-        : (this.listeners = this.listeners
-            .slice(0, t)
-            .concat(this.listeners.slice(t + 1))));
+    if (typeof this.listeners === "function") {
+      if (this.listeners === listener) {
+        this.listeners = void 0;
+      }
+      return;
+    }
+    const index = this.listeners.indexOf(listener);
+    if (index === -1) {
+      return;
+    }
+    if (this.listeners.length === 2) {
+      this.listeners = index === 0 ? this.listeners[1] : this.listeners[0];
+    } else {
+      this.listeners = this.listeners.slice(0, index).concat(this.listeners.slice(index + 1));
+    }
   }
 };
-h();
-var ja = Ct(Ve()),
-  Fa = Ct(fi());
-h();
-h();
-h();
-h();
-var $d = "ms-toolsai.jupyter";
-var Pa;
-((t) => (
-  (t.PythonInteractiveHelpLink = "https://aka.ms/pyaiinstall"),
-  (t.JupyterDataRateHelpLink = "https://aka.ms/AA5ggm0")
-))(Pa || (Pa = {}));
-var Ma;
-((s) => (
-  (s.JupyterServerRemoteLaunchNameSeparator = `
-`),
-  (s.JupyterServerRemoteLaunchService = $d),
-  (s.JupyterServerUriListMax = 10),
-  (s.IntellisenseTimeout = 2e3),
-  (s.IntellisenseResolveTimeout = 5e3)
-))(Ma || (Ma = {}));
-var Fi;
-((w) => (
-  (w.GeneratedThemeName = "ipython-theme"),
-  (w.MatplotLibDefaultParams = "_VSCode_defaultMatplotlib_Params"),
-  (w.MatplotLibFigureFormats = "_VSCode_matplotLib_FigureFormats"),
-  (w.DefaultCodeCellMarker = "# %%"),
-  (w.DefaultCommTarget = "jupyter.widget"),
-  (w.ALL_VARIABLES = "ALL_VARIABLES"),
-  (w.KERNEL_VARIABLES = "KERNEL_VARIABLES"),
-  (w.DEBUGGER_VARIABLES = "DEBUGGER_VARIABLES"),
-  (w.PYTHON_VARIABLES_REQUESTER = "PYTHON_VARIABLES_REQUESTER"),
-  (w.MULTIPLEXING_DEBUGSERVICE = "MULTIPLEXING_DEBUGSERVICE"),
-  (w.RUN_BY_LINE_DEBUGSERVICE = "RUN_BY_LINE_DEBUGSERVICE"),
-  (w.REMOTE_URI = "https://remote/"),
-  (w.REMOTE_URI_ID_PARAM = "id"),
-  (w.REMOTE_URI_HANDLE_PARAM = "uriHandle"),
-  (w.REMOTE_URI_EXTENSION_ID_PARAM = "extensionId")
-))(Fi || (Fi = {}));
-var Ta;
-((r) => (
-  (r.ImportIPython = `{0}
-from IPython import get_ipython
 
-{1}`),
-  (r.MatplotLibInit = `import matplotlib
+// src/webviews/webview-side/ipywidgets/kernel/kernel.ts
+init_process_development();
+var import_services = __toESM(require_lib3());
+var import_default = __toESM(require_default());
+
+// src/platform/common/utils/async.ts
+init_process_development();
+
+// src/platform/common/utils/misc.ts
+init_process_development();
+
+// src/platform/common/constants.ts
+init_process_development();
+
+// src/platform/constants.ts
+init_process_development();
+var MillisecondsInADay = 24 * 60 * 60 * 1e3;
+
+// src/platform/common/constants.ts
+var JVSC_EXTENSION_ID = "ms-toolsai.jupyter";
+var HelpLinks;
+((HelpLinks2) => {
+  HelpLinks2.PythonInteractiveHelpLink = "https://aka.ms/pyaiinstall";
+  HelpLinks2.JupyterDataRateHelpLink = "https://aka.ms/AA5ggm0";
+})(HelpLinks || (HelpLinks = {}));
+var Settings;
+((Settings2) => {
+  Settings2.JupyterServerRemoteLaunchNameSeparator = "\n";
+  Settings2.JupyterServerRemoteLaunchService = JVSC_EXTENSION_ID;
+  Settings2.JupyterServerUriListMax = 10;
+  Settings2.IntellisenseTimeout = 2e3;
+  Settings2.IntellisenseResolveTimeout = 5e3;
+})(Settings || (Settings = {}));
+var Identifiers;
+((Identifiers2) => {
+  Identifiers2.GeneratedThemeName = "ipython-theme";
+  Identifiers2.MatplotLibDefaultParams = "_VSCode_defaultMatplotlib_Params";
+  Identifiers2.MatplotLibFigureFormats = "_VSCode_matplotLib_FigureFormats";
+  Identifiers2.DefaultCodeCellMarker = "# %%";
+  Identifiers2.DefaultCommTarget = "jupyter.widget";
+  Identifiers2.ALL_VARIABLES = "ALL_VARIABLES";
+  Identifiers2.KERNEL_VARIABLES = "KERNEL_VARIABLES";
+  Identifiers2.DEBUGGER_VARIABLES = "DEBUGGER_VARIABLES";
+  Identifiers2.PYTHON_VARIABLES_REQUESTER = "PYTHON_VARIABLES_REQUESTER";
+  Identifiers2.MULTIPLEXING_DEBUGSERVICE = "MULTIPLEXING_DEBUGSERVICE";
+  Identifiers2.RUN_BY_LINE_DEBUGSERVICE = "RUN_BY_LINE_DEBUGSERVICE";
+  Identifiers2.REMOTE_URI = "https://remote/";
+  Identifiers2.REMOTE_URI_ID_PARAM = "id";
+  Identifiers2.REMOTE_URI_HANDLE_PARAM = "uriHandle";
+  Identifiers2.REMOTE_URI_EXTENSION_ID_PARAM = "extensionId";
+})(Identifiers || (Identifiers = {}));
+var CodeSnippets;
+((CodeSnippets2) => {
+  CodeSnippets2.ImportIPython = "{0}\nfrom IPython import get_ipython\n\n{1}";
+  CodeSnippets2.MatplotLibInit = `import matplotlib
 %matplotlib inline
-${Fi.MatplotLibDefaultParams} = dict(matplotlib.rcParams)
-`),
-  (r.DisableJedi = "%config Completer.use_jedi = False")
-))(Ta || (Ta = {}));
-var je;
-((T) => (
-  (T.RunAllCells = "jupyter.runallcells"),
-  (T.RunAllCellsAbove = "jupyter.runallcellsabove"),
-  (T.RunCellAndAllBelow = "jupyter.runcellandallbelow"),
-  (T.RunAllCellsAbovePalette = "jupyter.runallcellsabove.palette"),
-  (T.RunCellAndAllBelowPalette = "jupyter.runcurrentcellandallbelow.palette"),
-  (T.RunToLine = "jupyter.runtoline"),
-  (T.RunFromLine = "jupyter.runfromline"),
-  (T.RunCell = "jupyter.runcell"),
-  (T.RunCurrentCell = "jupyter.runcurrentcell"),
-  (T.RunCurrentCellAdvance = "jupyter.runcurrentcelladvance"),
-  (T.CreateNewInteractive = "jupyter.createnewinteractive"),
-  (T.ImportNotebook = "jupyter.importnotebook"),
-  (T.ImportNotebookFile = "jupyter.importnotebookfile"),
-  (T.ExportFileAsNotebook = "jupyter.exportfileasnotebook"),
-  (T.ExportFileAndOutputAsNotebook = "jupyter.exportfileandoutputasnotebook"),
-  (T.InterruptKernel = "jupyter.interruptkernel"),
-  (T.RestartKernel = "jupyter.restartkernel"),
-  (T.RestartKernelAndRunAllCells = "jupyter.restartkernelandrunallcells"),
-  (T.RestartKernelAndRunUpToSelectedCell =
-    "jupyter.restartkernelandrunuptoselectedcell"),
-  (T.NotebookEditorRemoveAllCells = "jupyter.notebookeditor.removeallcells"),
-  (T.NotebookEditorRunAllCells = "jupyter.notebookeditor.runallcells"),
-  (T.NotebookEditorRunSelectedCell = "jupyter.notebookeditor.runselectedcell"),
-  (T.NotebookEditorAddCellBelow = "jupyter.notebookeditor.addcellbelow"),
-  (T.ExpandAllCells = "jupyter.expandallcells"),
-  (T.CollapseAllCells = "jupyter.collapseallcells"),
-  (T.ExportOutputAsNotebook = "jupyter.exportoutputasnotebook"),
-  (T.ExecSelectionInInteractiveWindow = "jupyter.execSelectionInteractive"),
-  (T.RunFileInInteractiveWindows = "jupyter.runFileInteractive"),
-  (T.DebugFileInInteractiveWindows = "jupyter.debugFileInteractive"),
-  (T.AddCellBelow = "jupyter.addcellbelow"),
-  (T.DebugCurrentCellPalette = "jupyter.debugcurrentcell.palette"),
-  (T.DebugCell = "jupyter.debugcell"),
-  (T.DebugStepOver = "jupyter.debugstepover"),
-  (T.DebugContinue = "jupyter.debugcontinue"),
-  (T.DebugStop = "jupyter.debugstop"),
-  (T.RunCurrentCellAndAddBelow = "jupyter.runcurrentcellandaddbelow"),
-  (T.InsertCellBelowPosition = "jupyter.insertCellBelowPosition"),
-  (T.InsertCellBelow = "jupyter.insertCellBelow"),
-  (T.InsertCellAbove = "jupyter.insertCellAbove"),
-  (T.DeleteCells = "jupyter.deleteCells"),
-  (T.SelectCell = "jupyter.selectCell"),
-  (T.SelectCellContents = "jupyter.selectCellContents"),
-  (T.ExtendSelectionByCellAbove = "jupyter.extendSelectionByCellAbove"),
-  (T.ExtendSelectionByCellBelow = "jupyter.extendSelectionByCellBelow"),
-  (T.MoveCellsUp = "jupyter.moveCellsUp"),
-  (T.MoveCellsDown = "jupyter.moveCellsDown"),
-  (T.ChangeCellToMarkdown = "jupyter.changeCellToMarkdown"),
-  (T.ChangeCellToCode = "jupyter.changeCellToCode"),
-  (T.GotoNextCellInFile = "jupyter.gotoNextCellInFile"),
-  (T.GotoPrevCellInFile = "jupyter.gotoPrevCellInFile"),
-  (T.ScrollToCell = "jupyter.scrolltocell"),
-  (T.CreateNewNotebook = "jupyter.createnewnotebook"),
-  (T.ViewJupyterOutput = "jupyter.viewOutput"),
-  (T.ExportAsPythonScript = "jupyter.exportAsPythonScript"),
-  (T.ExportToHTML = "jupyter.exportToHTML"),
-  (T.ExportToPDF = "jupyter.exportToPDF"),
-  (T.Export = "jupyter.export"),
-  (T.NativeNotebookExport = "jupyter.notebookeditor.export"),
-  (T.LatestExtension = "jupyter.latestExtension"),
-  (T.EnableLoadingWidgetsFrom3rdPartySource =
-    "jupyter.enableLoadingWidgetScriptsFromThirdPartySource"),
-  (T.ShowDataViewer = "jupyter.showDataViewer"),
-  (T.ShowJupyterDataViewer = "jupyter.showJupyterDataViewer"),
-  (T.RefreshDataViewer = "jupyter.refreshDataViewer"),
-  (T.ClearSavedJupyterUris = "jupyter.clearSavedJupyterUris"),
-  (T.OpenVariableView = "jupyter.openVariableView"),
-  (T.OpenOutlineView = "jupyter.openOutlineView"),
-  (T.InteractiveClearAll = "jupyter.interactive.clearAllCells"),
-  (T.InteractiveGoToCode = "jupyter.interactive.goToCode"),
-  (T.InteractiveCopyCell = "jupyter.interactive.copyCell"),
-  (T.InteractiveExportAsNotebook = "jupyter.interactive.exportasnotebook"),
-  (T.InteractiveExportAs = "jupyter.interactive.exportas"),
-  (T.RunByLine = "jupyter.runByLine"),
-  (T.RunAndDebugCell = "jupyter.runAndDebugCell"),
-  (T.RunByLineNext = "jupyter.runByLineNext"),
-  (T.RunByLineStop = "jupyter.runByLineStop"),
-  (T.ReplayPylanceLog = "jupyter.replayPylanceLog"),
-  (T.ReplayPylanceLogStep = "jupyter.replayPylanceLogStep"),
-  (T.InstallPythonExtensionViaKernelPicker =
-    "jupyter.installPythonExtensionViaKernelPicker"),
-  (T.InstallPythonViaKernelPicker = "jupyter.installPythonViaKernelPicker"),
-  (T.ContinueEditSessionInCodespace = "jupyter.continueEditSessionInCodespace")
-))(je || (je = {}));
-var Oa;
-((r) => (
-  (r.DefaultDesignLenses = [
-    je.RunCurrentCell,
-    je.RunAllCellsAbove,
-    je.DebugCell,
-  ]),
-  (r.DefaultDebuggingLenses = [
-    je.DebugContinue,
-    je.DebugStop,
-    je.DebugStepOver,
-  ]),
-  (r.DebuggerCommands = [je.DebugContinue, je.DebugStop, je.DebugStepOver])
-))(Oa || (Oa = {}));
-var Na;
-((O) => (
-  (O.HasCodeCells = "jupyter.hascodecells"),
-  (O.IsInteractiveActive = "jupyter.isinteractiveactive"),
-  (O.OwnsSelection = "jupyter.ownsSelection"),
-  (O.HaveNativeCells = "jupyter.havenativecells"),
-  (O.HaveNative = "jupyter.havenative"),
-  (O.IsNativeActive = "jupyter.isnativeactive"),
-  (O.IsInteractiveOrNativeActive = "jupyter.isinteractiveornativeactive"),
-  (O.IsPythonOrNativeActive = "jupyter.ispythonornativeactive"),
-  (O.IsPythonOrInteractiveActive = "jupyter.ispythonorinteractiveeactive"),
-  (O.IsPythonOrInteractiveOrNativeActive =
-    "jupyter.ispythonorinteractiveornativeeactive"),
-  (O.CanRestartNotebookKernel =
-    "jupyter.notebookeditor.canrestartNotebookkernel"),
-  (O.CanInterruptNotebookKernel =
-    "jupyter.notebookeditor.canInterruptNotebookKernel"),
-  (O.CanRestartInteractiveWindowKernel =
-    "jupyter.interactive.canRestartNotebookKernel"),
-  (O.CanInterruptInteractiveWindowKernel =
-    "jupyter.interactive.canInterruptNotebookKernel"),
-  (O.RunByLineCells = "jupyter.notebookeditor.runByLineCells"),
-  (O.RunByLineDocuments = "jupyter.notebookeditor.runByLineDocuments"),
-  (O.DebugDocuments = "jupyter.notebookeditor.debugDocuments"),
-  (O.IsPythonNotebook = "jupyter.ispythonnotebook"),
-  (O.IsJupyterKernelSelected = "jupyter.kernel.isjupyter"),
-  (O.IsDataViewerActive = "jupyter.dataViewerActive"),
-  (O.HasNativeNotebookOrInteractiveWindowOpen =
-    "jupyter.hasNativeNotebookOrInteractiveWindowOpen"),
-  (O.ZmqAvailable = "jupyter.zmqavailable"),
-  (O.ReplayLogLoaded = "jupyter.replayLogLoaded"),
-  (O.KernelSource = "jupyter.kernelSource")
-))(Na || (Na = {}));
-var La;
-((l) => (
-  (l.PythonCellMarker =
-    /^(#\s*%%|#\s*\<codecell\>|#\s*In\[\d*?\]|#\s*In\[ \])/),
-  (l.PythonMarkdownCellMarker =
-    /^(#\s*%%\s*\[markdown\]|#\s*\<markdowncell\>)/),
-  (l.UrlPatternRegEx =
-    "(?<PREFIX>https?:\\/\\/)((\\(.+\\s+or\\s+(?<IP>.+)\\))|(?<LOCAL>[^\\s]+))(?<REST>:.+)"),
-  (l.HttpPattern = /https?:\/\//),
-  (l.ShapeSplitterRegEx = /.*,\s*(\d+).*/),
-  (l.SvgHeightRegex = /(\<svg.*height=\")(.*?)\"/),
-  (l.SvgWidthRegex = /(\<svg.*width=\")(.*?)\"/),
-  (l.SvgSizeTagRegex = /\<svg.*tag=\"sizeTag=\{(.*),\s*(.*)\}\"/)
-))(La || (La = {}));
-var Wg = Symbol("DataScienceStartupTime");
-var Ui = "application/vnd.jupyter.widget-view+json",
-  Wi = "application/vnd.jupyter.widget-state+json";
-function yt() {}
-h();
-var Jd = Symbol("MicrotaskDelay");
-var Ki = class {
-  constructor(e = null) {
-    this.scope = e;
-    this._resolved = !1;
-    this._rejected = !1;
-    this._promise = new Promise((t, r) => {
-      (this._resolve = t), (this._reject = r);
+${Identifiers.MatplotLibDefaultParams} = dict(matplotlib.rcParams)
+`;
+  CodeSnippets2.DisableJedi = "%config Completer.use_jedi = False";
+})(CodeSnippets || (CodeSnippets = {}));
+var Commands;
+((Commands2) => {
+  Commands2.RunAllCells = "jupyter.runallcells";
+  Commands2.RunAllCellsAbove = "jupyter.runallcellsabove";
+  Commands2.RunCellAndAllBelow = "jupyter.runcellandallbelow";
+  Commands2.RunAllCellsAbovePalette = "jupyter.runallcellsabove.palette";
+  Commands2.RunCellAndAllBelowPalette = "jupyter.runcurrentcellandallbelow.palette";
+  Commands2.RunToLine = "jupyter.runtoline";
+  Commands2.RunFromLine = "jupyter.runfromline";
+  Commands2.RunCell = "jupyter.runcell";
+  Commands2.RunCurrentCell = "jupyter.runcurrentcell";
+  Commands2.RunCurrentCellAdvance = "jupyter.runcurrentcelladvance";
+  Commands2.CreateNewInteractive = "jupyter.createnewinteractive";
+  Commands2.ImportNotebook = "jupyter.importnotebook";
+  Commands2.ImportNotebookFile = "jupyter.importnotebookfile";
+  Commands2.ExportFileAsNotebook = "jupyter.exportfileasnotebook";
+  Commands2.ExportFileAndOutputAsNotebook = "jupyter.exportfileandoutputasnotebook";
+  Commands2.InterruptKernel = "jupyter.interruptkernel";
+  Commands2.RestartKernel = "jupyter.restartkernel";
+  Commands2.RestartKernelAndRunAllCells = "jupyter.restartkernelandrunallcells";
+  Commands2.RestartKernelAndRunUpToSelectedCell = "jupyter.restartkernelandrunuptoselectedcell";
+  Commands2.NotebookEditorRemoveAllCells = "jupyter.notebookeditor.removeallcells";
+  Commands2.NotebookEditorRunAllCells = "jupyter.notebookeditor.runallcells";
+  Commands2.NotebookEditorRunSelectedCell = "jupyter.notebookeditor.runselectedcell";
+  Commands2.NotebookEditorAddCellBelow = "jupyter.notebookeditor.addcellbelow";
+  Commands2.ExpandAllCells = "jupyter.expandallcells";
+  Commands2.CollapseAllCells = "jupyter.collapseallcells";
+  Commands2.ExportOutputAsNotebook = "jupyter.exportoutputasnotebook";
+  Commands2.ExecSelectionInInteractiveWindow = "jupyter.execSelectionInteractive";
+  Commands2.RunFileInInteractiveWindows = "jupyter.runFileInteractive";
+  Commands2.DebugFileInInteractiveWindows = "jupyter.debugFileInteractive";
+  Commands2.AddCellBelow = "jupyter.addcellbelow";
+  Commands2.DebugCurrentCellPalette = "jupyter.debugcurrentcell.palette";
+  Commands2.DebugCell = "jupyter.debugcell";
+  Commands2.DebugStepOver = "jupyter.debugstepover";
+  Commands2.DebugContinue = "jupyter.debugcontinue";
+  Commands2.DebugStop = "jupyter.debugstop";
+  Commands2.RunCurrentCellAndAddBelow = "jupyter.runcurrentcellandaddbelow";
+  Commands2.InsertCellBelowPosition = "jupyter.insertCellBelowPosition";
+  Commands2.InsertCellBelow = "jupyter.insertCellBelow";
+  Commands2.InsertCellAbove = "jupyter.insertCellAbove";
+  Commands2.DeleteCells = "jupyter.deleteCells";
+  Commands2.SelectCell = "jupyter.selectCell";
+  Commands2.SelectCellContents = "jupyter.selectCellContents";
+  Commands2.ExtendSelectionByCellAbove = "jupyter.extendSelectionByCellAbove";
+  Commands2.ExtendSelectionByCellBelow = "jupyter.extendSelectionByCellBelow";
+  Commands2.MoveCellsUp = "jupyter.moveCellsUp";
+  Commands2.MoveCellsDown = "jupyter.moveCellsDown";
+  Commands2.ChangeCellToMarkdown = "jupyter.changeCellToMarkdown";
+  Commands2.ChangeCellToCode = "jupyter.changeCellToCode";
+  Commands2.GotoNextCellInFile = "jupyter.gotoNextCellInFile";
+  Commands2.GotoPrevCellInFile = "jupyter.gotoPrevCellInFile";
+  Commands2.ScrollToCell = "jupyter.scrolltocell";
+  Commands2.CreateNewNotebook = "jupyter.createnewnotebook";
+  Commands2.ViewJupyterOutput = "jupyter.viewOutput";
+  Commands2.ExportAsPythonScript = "jupyter.exportAsPythonScript";
+  Commands2.ExportToHTML = "jupyter.exportToHTML";
+  Commands2.ExportToPDF = "jupyter.exportToPDF";
+  Commands2.Export = "jupyter.export";
+  Commands2.NativeNotebookExport = "jupyter.notebookeditor.export";
+  Commands2.LatestExtension = "jupyter.latestExtension";
+  Commands2.EnableLoadingWidgetsFrom3rdPartySource = "jupyter.enableLoadingWidgetScriptsFromThirdPartySource";
+  Commands2.ShowDataViewer = "jupyter.showDataViewer";
+  Commands2.ShowJupyterDataViewer = "jupyter.showJupyterDataViewer";
+  Commands2.RefreshDataViewer = "jupyter.refreshDataViewer";
+  Commands2.ClearSavedJupyterUris = "jupyter.clearSavedJupyterUris";
+  Commands2.OpenVariableView = "jupyter.openVariableView";
+  Commands2.OpenOutlineView = "jupyter.openOutlineView";
+  Commands2.InteractiveClearAll = "jupyter.interactive.clearAllCells";
+  Commands2.InteractiveGoToCode = "jupyter.interactive.goToCode";
+  Commands2.InteractiveCopyCell = "jupyter.interactive.copyCell";
+  Commands2.InteractiveExportAsNotebook = "jupyter.interactive.exportasnotebook";
+  Commands2.InteractiveExportAs = "jupyter.interactive.exportas";
+  Commands2.RunByLine = "jupyter.runByLine";
+  Commands2.RunAndDebugCell = "jupyter.runAndDebugCell";
+  Commands2.RunByLineNext = "jupyter.runByLineNext";
+  Commands2.RunByLineStop = "jupyter.runByLineStop";
+  Commands2.ReplayPylanceLog = "jupyter.replayPylanceLog";
+  Commands2.ReplayPylanceLogStep = "jupyter.replayPylanceLogStep";
+  Commands2.InstallPythonExtensionViaKernelPicker = "jupyter.installPythonExtensionViaKernelPicker";
+  Commands2.InstallPythonViaKernelPicker = "jupyter.installPythonViaKernelPicker";
+  Commands2.ContinueEditSessionInCodespace = "jupyter.continueEditSessionInCodespace";
+})(Commands || (Commands = {}));
+var CodeLensCommands;
+((CodeLensCommands2) => {
+  CodeLensCommands2.DefaultDesignLenses = [Commands.RunCurrentCell, Commands.RunAllCellsAbove, Commands.DebugCell];
+  CodeLensCommands2.DefaultDebuggingLenses = [Commands.DebugContinue, Commands.DebugStop, Commands.DebugStepOver];
+  CodeLensCommands2.DebuggerCommands = [Commands.DebugContinue, Commands.DebugStop, Commands.DebugStepOver];
+})(CodeLensCommands || (CodeLensCommands = {}));
+var EditorContexts;
+((EditorContexts2) => {
+  EditorContexts2.HasCodeCells = "jupyter.hascodecells";
+  EditorContexts2.IsInteractiveActive = "jupyter.isinteractiveactive";
+  EditorContexts2.OwnsSelection = "jupyter.ownsSelection";
+  EditorContexts2.HaveNativeCells = "jupyter.havenativecells";
+  EditorContexts2.HaveNative = "jupyter.havenative";
+  EditorContexts2.IsNativeActive = "jupyter.isnativeactive";
+  EditorContexts2.IsInteractiveOrNativeActive = "jupyter.isinteractiveornativeactive";
+  EditorContexts2.IsPythonOrNativeActive = "jupyter.ispythonornativeactive";
+  EditorContexts2.IsPythonOrInteractiveActive = "jupyter.ispythonorinteractiveeactive";
+  EditorContexts2.IsPythonOrInteractiveOrNativeActive = "jupyter.ispythonorinteractiveornativeeactive";
+  EditorContexts2.CanRestartNotebookKernel = "jupyter.notebookeditor.canrestartNotebookkernel";
+  EditorContexts2.CanInterruptNotebookKernel = "jupyter.notebookeditor.canInterruptNotebookKernel";
+  EditorContexts2.CanRestartInteractiveWindowKernel = "jupyter.interactive.canRestartNotebookKernel";
+  EditorContexts2.CanInterruptInteractiveWindowKernel = "jupyter.interactive.canInterruptNotebookKernel";
+  EditorContexts2.RunByLineCells = "jupyter.notebookeditor.runByLineCells";
+  EditorContexts2.RunByLineDocuments = "jupyter.notebookeditor.runByLineDocuments";
+  EditorContexts2.DebugDocuments = "jupyter.notebookeditor.debugDocuments";
+  EditorContexts2.IsPythonNotebook = "jupyter.ispythonnotebook";
+  EditorContexts2.IsJupyterKernelSelected = "jupyter.kernel.isjupyter";
+  EditorContexts2.IsDataViewerActive = "jupyter.dataViewerActive";
+  EditorContexts2.HasNativeNotebookOrInteractiveWindowOpen = "jupyter.hasNativeNotebookOrInteractiveWindowOpen";
+  EditorContexts2.ZmqAvailable = "jupyter.zmqavailable";
+  EditorContexts2.ReplayLogLoaded = "jupyter.replayLogLoaded";
+  EditorContexts2.KernelSource = "jupyter.kernelSource";
+})(EditorContexts || (EditorContexts = {}));
+var RegExpValues;
+((RegExpValues2) => {
+  RegExpValues2.PythonCellMarker = /^(#\s*%%|#\s*\<codecell\>|#\s*In\[\d*?\]|#\s*In\[ \])/;
+  RegExpValues2.PythonMarkdownCellMarker = /^(#\s*%%\s*\[markdown\]|#\s*\<markdowncell\>)/;
+  RegExpValues2.UrlPatternRegEx = "(?<PREFIX>https?:\\/\\/)((\\(.+\\s+or\\s+(?<IP>.+)\\))|(?<LOCAL>[^\\s]+))(?<REST>:.+)";
+  RegExpValues2.HttpPattern = /https?:\/\//;
+  RegExpValues2.ShapeSplitterRegEx = /.*,\s*(\d+).*/;
+  RegExpValues2.SvgHeightRegex = /(\<svg.*height=\")(.*?)\"/;
+  RegExpValues2.SvgWidthRegex = /(\<svg.*width=\")(.*?)\"/;
+  RegExpValues2.SvgSizeTagRegex = /\<svg.*tag=\"sizeTag=\{(.*),\s*(.*)\}\"/;
+})(RegExpValues || (RegExpValues = {}));
+var DataScienceStartupTime = Symbol("DataScienceStartupTime");
+var WIDGET_MIMETYPE = "application/vnd.jupyter.widget-view+json";
+var WIDGET_STATE_MIMETYPE = "application/vnd.jupyter.widget-state+json";
+
+// src/platform/common/utils/misc.ts
+function noop() {
+}
+
+// src/platform/common/utils/symbols.ts
+init_process_development();
+var MicrotaskDelay = Symbol("MicrotaskDelay");
+
+// src/platform/common/utils/async.ts
+var DeferredImpl = class {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(scope = null) {
+    this.scope = scope;
+    this._resolved = false;
+    this._rejected = false;
+    this._promise = new Promise((res, rej) => {
+      this._resolve = res;
+      this._reject = rej;
     });
   }
   get value() {
     return this._value;
   }
-  resolve(e) {
-    (this._value = e),
-      this._resolve.apply(this.scope ? this.scope : this, arguments),
-      (this._resolved = !0);
+  resolve(value) {
+    this._value = value;
+    this._resolve.apply(this.scope ? this.scope : this, arguments);
+    this._resolved = true;
   }
-  reject(e) {
-    this._reject.apply(this.scope ? this.scope : this, arguments),
-      (this._rejected = !0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  reject(_reason) {
+    this._reject.apply(this.scope ? this.scope : this, arguments);
+    this._rejected = true;
   }
   get promise() {
     return this._promise;
@@ -9700,82 +12880,97 @@ var Ki = class {
     return this._rejected || this._resolved;
   }
 };
-function Fe(n = null) {
-  return new Ki(n);
+function createDeferred(scope = null) {
+  return new DeferredImpl(scope);
 }
-h();
-function ka(n) {
-  if (!n || !Array.isArray(n) || n.length === 0) return;
-  let e = [];
-  for (let t = 0; t < n.length; t += 1) {
-    let r = n[t];
-    if ("buffer" in r && "byteOffset" in r) {
-      let i = Array.apply(null, new Uint8Array(r.buffer));
-      e.push({
-        ...r,
-        byteLength: r.byteLength,
-        byteOffset: r.byteOffset,
-        buffer: i,
+
+// src/platform/common/utils/serializers.ts
+init_process_development();
+function serializeDataViews(buffers) {
+  if (!buffers || !Array.isArray(buffers) || buffers.length === 0) {
+    return;
+  }
+  const newBufferView = [];
+  for (let i = 0; i < buffers.length; i += 1) {
+    const item = buffers[i];
+    if ("buffer" in item && "byteOffset" in item) {
+      const buffer = Array.apply(null, new Uint8Array(item.buffer));
+      newBufferView.push({
+        ...item,
+        byteLength: item.byteLength,
+        byteOffset: item.byteOffset,
+        buffer
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       });
-    } else e.push([...new Uint8Array(r)]);
-  }
-  return e;
-}
-function xa(n) {
-  if (!Array.isArray(n) || n.length === 0) return n;
-  let e = [];
-  for (let t = 0; t < n.length; t += 1) {
-    let r = n[t];
-    if ("buffer" in r && "byteOffset" in r) {
-      let i = new Uint8Array(r.buffer).buffer,
-        s = new DataView(i, r.byteOffset, r.byteLength);
-      e.push(s);
     } else {
-      let i = new Uint8Array(r).buffer;
-      e.push(i);
+      newBufferView.push([...new Uint8Array(item)]);
     }
   }
-  return e;
+  return newBufferView;
 }
-var qi = class n {
-  constructor(e, t) {
-    this.postOffice = t;
-    this.hookResults = new Map();
-    let r;
-    class i {
+function deserializeDataViews(buffers) {
+  if (!Array.isArray(buffers) || buffers.length === 0) {
+    return buffers;
+  }
+  const newBufferView = [];
+  for (let i = 0; i < buffers.length; i += 1) {
+    const item = buffers[i];
+    if ("buffer" in item && "byteOffset" in item) {
+      const buffer = new Uint8Array(item.buffer).buffer;
+      const bufferView = new DataView(buffer, item.byteOffset, item.byteLength);
+      newBufferView.push(bufferView);
+    } else {
+      const buffer = new Uint8Array(item).buffer;
+      newBufferView.push(buffer);
+    }
+  }
+  return newBufferView;
+}
+
+// src/webviews/webview-side/ipywidgets/kernel/kernel.ts
+var ProxyKernel = class _ProxyKernel {
+  constructor(options, postOffice) {
+    this.postOffice = postOffice;
+    this.hookResults = /* @__PURE__ */ new Map();
+    let proxySocketInstance;
+    class ProxyWebSocket {
       constructor() {
-        this.sendEnabled = !0;
-        r = this;
+        this.sendEnabled = true;
+        proxySocketInstance = this;
       }
-      close(l, u) {}
-      send(l) {
-        this.sendEnabled &&
-          (typeof l == "string"
-            ? t.sendMessage("IPyWidgets_msg", l)
-            : t.sendMessage("IPyWidgets_binary_msg", ka([l])));
+      close(_code, _reason) {
+      }
+      send(data) {
+        if (this.sendEnabled) {
+          if (typeof data === "string") {
+            postOffice.sendMessage("IPyWidgets_msg" /* IPyWidgets_msg */, data);
+          } else {
+            postOffice.sendMessage(
+              "IPyWidgets_binary_msg" /* IPyWidgets_binary_msg */,
+              serializeDataViews([data])
+            );
+          }
+        }
       }
     }
-    let s = ja.ServerConnection.makeSettings({
-      WebSocket: i,
-      wsUrl: "BOGUS_PVSC",
+    const settings = import_services.ServerConnection.makeSettings({ WebSocket: ProxyWebSocket, wsUrl: "BOGUS_PVSC" });
+    this.awaitingExtensionMessage = /* @__PURE__ */ new Map();
+    this.realKernel = new import_default.KernelConnection({
+      serverSettings: settings,
+      clientId: options.clientId,
+      handleComms: true,
+      username: options.userName,
+      model: options.model
     });
-    (this.awaitingExtensionMessage = new Map()),
-      (this.realKernel = new Fa.KernelConnection({
-        serverSettings: s,
-        clientId: e.clientId,
-        handleComms: !0,
-        username: e.userName,
-        model: e.model,
-      }));
-    let o = ce();
-    (this._ioPubMessageSignal = new o.Signal(this)),
-      this.realKernel.iopubMessage.connect(this.onIOPubMessage, this),
-      (this._options = e),
-      t.addHandler(this),
-      (this.websocket = r),
-      (this.messageHook = this.messageHookInterceptor.bind(this)),
-      (this.messageHooks = new Map()),
-      this.fakeOpenSocket();
+    const signaling = require_dist3();
+    this._ioPubMessageSignal = new signaling.Signal(this);
+    this.realKernel.iopubMessage.connect(this.onIOPubMessage, this);
+    this._options = options;
+    postOffice.addHandler(this);
+    this.websocket = proxySocketInstance;
+    this.messageHook = this.messageHookInterceptor.bind(this);
+    this.messageHooks = /* @__PURE__ */ new Map();
+    this.fakeOpenSocket();
   }
   get iopubMessage() {
     return this._ioPubMessageSignal;
@@ -9831,18 +13026,18 @@ var qi = class n {
   get hasComm() {
     return this.realKernel.hasComm;
   }
-  createComm(e, t) {
-    return this.realKernel.createComm(e, t);
+  createComm(targetName, commId) {
+    return this.realKernel.createComm(targetName, commId);
   }
   get disposed() {
     return this.realKernel.disposed;
   }
-  clone(e) {
-    return new n(
+  clone(options) {
+    return new _ProxyKernel(
       {
         ...this._options,
-        clientId: (e == null ? void 0 : e.clientId) || this._options.clientId,
-        userName: (e == null ? void 0 : e.username) || this._options.userName,
+        clientId: (options == null ? void 0 : options.clientId) || this._options.clientId,
+        userName: (options == null ? void 0 : options.username) || this._options.userName
       },
       this.postOffice
     );
@@ -9850,11 +13045,11 @@ var qi = class n {
   shutdown() {
     return this.realKernel.shutdown();
   }
-  sendShellMessage(e, t, r) {
-    return this.realKernel.sendShellMessage(e, t, r);
+  sendShellMessage(msg, expectReply, disposeOnDone) {
+    return this.realKernel.sendShellMessage(msg, expectReply, disposeOnDone);
   }
-  sendControlMessage(e, t, r) {
-    return this.realKernel.sendControlMessage(e, t, r);
+  sendControlMessage(msg, expectReply, disposeOnDone) {
+    return this.realKernel.sendControlMessage(msg, expectReply, disposeOnDone);
   }
   reconnect() {
     return this.realKernel.reconnect();
@@ -9868,1157 +13063,1408 @@ var qi = class n {
   requestKernelInfo() {
     return this.realKernel.requestKernelInfo();
   }
-  requestComplete(e) {
-    return this.realKernel.requestComplete(e);
+  requestComplete(content) {
+    return this.realKernel.requestComplete(content);
   }
-  requestInspect(e) {
-    return this.realKernel.requestInspect(e);
+  requestInspect(content) {
+    return this.realKernel.requestInspect(content);
   }
-  requestHistory(e) {
-    return this.realKernel.requestHistory(e);
+  requestHistory(content) {
+    return this.realKernel.requestHistory(content);
   }
-  requestExecute(e, t, r) {
-    return this.realKernel.requestExecute(e, t, r);
+  requestExecute(content, disposeOnDone, metadata) {
+    return this.realKernel.requestExecute(content, disposeOnDone, metadata);
   }
-  requestDebug(e, t) {
-    return this.realKernel.requestDebug(e, t);
+  requestDebug(content, disposeOnDone) {
+    return this.realKernel.requestDebug(content, disposeOnDone);
   }
-  requestIsComplete(e) {
-    return this.realKernel.requestIsComplete(e);
+  requestIsComplete(content) {
+    return this.realKernel.requestIsComplete(content);
   }
-  requestCommInfo(e) {
-    return this.realKernel.requestCommInfo(e);
+  requestCommInfo(content) {
+    return this.realKernel.requestCommInfo(content);
   }
-  sendInputReply(e) {
-    return this.realKernel.sendInputReply(e);
+  sendInputReply(content) {
+    return this.realKernel.sendInputReply(content);
   }
-  registerCommTarget(e, t) {
-    return (
-      this.postOffice.sendMessage("IPyWidgets_registerCommTarget", e),
-      this.realKernel.registerCommTarget(e, t)
+  registerCommTarget(targetName, callback) {
+    this.postOffice.sendMessage(
+      "IPyWidgets_registerCommTarget" /* IPyWidgets_registerCommTarget */,
+      targetName
     );
+    return this.realKernel.registerCommTarget(targetName, callback);
   }
-  removeCommTarget(e, t) {
-    return this.realKernel.removeCommTarget(e, t);
+  removeCommTarget(targetName, callback) {
+    return this.realKernel.removeCommTarget(targetName, callback);
   }
   dispose() {
-    return this.postOffice.removeHandler(this), this.realKernel.dispose();
+    this.postOffice.removeHandler(this);
+    return this.realKernel.dispose();
   }
-  handleMessage(e, t) {
-    switch (e) {
-      case "IPyWidgets_MessageHookCall":
-        this.sendHookResult(t);
+  handleMessage(type, payload) {
+    switch (type) {
+      case "IPyWidgets_MessageHookCall" /* IPyWidgets_MessageHookCall */:
+        this.sendHookResult(payload);
         break;
-      case "IPyWidgets_msg":
-        this.websocket &&
-          this.websocket.onmessage &&
-          this.websocket.onmessage({
-            target: this.websocket,
-            data: t.data,
-            type: "",
-          }),
-          this.sendResponse(t.id);
-        break;
-      case "IPyWidgets_binary_msg":
+      case "IPyWidgets_msg" /* IPyWidgets_msg */:
         if (this.websocket && this.websocket.onmessage) {
-          let r = xa(t.data)[0];
-          this.websocket.onmessage({
-            target: this.websocket,
-            data: r,
-            type: "",
-          });
+          this.websocket.onmessage({ target: this.websocket, data: payload.data, type: "" });
         }
-        this.sendResponse(t.id);
+        this.sendResponse(payload.id);
         break;
-      case "IPyWidgets_mirror_execute":
-        this.handleMirrorExecute(t);
+      case "IPyWidgets_binary_msg" /* IPyWidgets_binary_msg */:
+        if (this.websocket && this.websocket.onmessage) {
+          const deserialized = deserializeDataViews(payload.data)[0];
+          this.websocket.onmessage({ target: this.websocket, data: deserialized, type: "" });
+        }
+        this.sendResponse(payload.id);
         break;
-      case "IPyWidgets_ExtensionOperationHandled":
-        this.extensionOperationFinished(t);
+      case "IPyWidgets_mirror_execute" /* IPyWidgets_mirror_execute */:
+        this.handleMirrorExecute(payload);
         break;
-      case "IPyWidgets_registerCommTarget":
-        this.realKernel.registerCommTarget(t, yt);
+      case "IPyWidgets_ExtensionOperationHandled" /* IPyWidgets_ExtensionOperationHandled */:
+        this.extensionOperationFinished(payload);
+        break;
+      case "IPyWidgets_registerCommTarget" /* IPyWidgets_registerCommTarget */:
+        this.realKernel.registerCommTarget(payload, noop);
         break;
       default:
         break;
     }
-    return !0;
+    return true;
   }
-  registerMessageHook(e, t) {
-    let r = Fe(),
-      i = this.generateExtensionResponseKey(
-        e,
-        "IPyWidgets_RegisterMessageHook".toString()
-      );
-    this.awaitingExtensionMessage.set(i, r),
-      this.postOffice.sendMessage("IPyWidgets_RegisterMessageHook", e),
-      this.messageHooks.set(e, t),
-      this.realKernel.registerMessageHook(e, this.messageHook);
+  registerMessageHook(msgId, hook) {
+    const waitPromise = createDeferred();
+    const key = this.generateExtensionResponseKey(
+      msgId,
+      "IPyWidgets_RegisterMessageHook" /* IPyWidgets_RegisterMessageHook */.toString()
+    );
+    this.awaitingExtensionMessage.set(key, waitPromise);
+    this.postOffice.sendMessage("IPyWidgets_RegisterMessageHook" /* IPyWidgets_RegisterMessageHook */, msgId);
+    this.messageHooks.set(msgId, hook);
+    this.realKernel.registerMessageHook(msgId, this.messageHook);
   }
-  removeMessageHook(e, t) {
-    let r = Fe(),
-      i = this.generateExtensionResponseKey(
-        e,
-        "IPyWidgets_RemoveMessageHook".toString()
-      );
-    this.awaitingExtensionMessage.set(i, r),
-      this.postOffice.sendMessage("IPyWidgets_RemoveMessageHook", {
-        hookMsgId: e,
-        lastHookedMsgId: this.lastHookedMessageId,
-      }),
-      this.messageHooks.delete(e),
-      (this.lastHookedMessageId = void 0),
-      this.realKernel.removeMessageHook(e, this.messageHook);
+  removeMessageHook(msgId, _hook) {
+    const waitPromise = createDeferred();
+    const key = this.generateExtensionResponseKey(msgId, "IPyWidgets_RemoveMessageHook" /* IPyWidgets_RemoveMessageHook */.toString());
+    this.awaitingExtensionMessage.set(key, waitPromise);
+    this.postOffice.sendMessage("IPyWidgets_RemoveMessageHook" /* IPyWidgets_RemoveMessageHook */, {
+      hookMsgId: msgId,
+      lastHookedMsgId: this.lastHookedMessageId
+    });
+    this.messageHooks.delete(msgId);
+    this.lastHookedMessageId = void 0;
+    this.realKernel.removeMessageHook(msgId, this.messageHook);
   }
-  extensionOperationFinished(e) {
-    let t = `${e.id}${e.type}`,
-      r = this.awaitingExtensionMessage.get(t);
-    r && (r.resolve(), this.awaitingExtensionMessage.delete(t));
+  // Called when the extension has finished an operation that we are waiting for in message processing
+  extensionOperationFinished(payload) {
+    const key = `${payload.id}${payload.type}`;
+    const waitPromise = this.awaitingExtensionMessage.get(key);
+    if (waitPromise) {
+      waitPromise.resolve();
+      this.awaitingExtensionMessage.delete(key);
+    }
   }
-  sendResponse(e) {
-    this.postOffice.sendMessage("IPyWidgets_msg_received", { id: e });
+  sendResponse(id) {
+    this.postOffice.sendMessage("IPyWidgets_msg_received" /* IPyWidgets_msg_received */, {
+      id
+    });
   }
-  generateExtensionResponseKey(e, t) {
-    return `${e}${t}`;
+  generateExtensionResponseKey(msgId, msgType) {
+    return `${msgId}${msgType}`;
   }
   fakeOpenSocket() {
-    let e = this.realKernel.requestKernelInfo.bind(this.realKernel);
-    (this.realKernel.requestKernelInfo = () => (
-      (this.realKernel.requestKernelInfo = e), Promise.resolve()
-    )),
-      this.websocket && this.websocket.onopen({ target: this.websocket }),
-      (this.realKernel.requestKernelInfo = e);
+    const originalRequestKernelInfo = this.realKernel.requestKernelInfo.bind(this.realKernel);
+    this.realKernel.requestKernelInfo = () => {
+      this.realKernel.requestKernelInfo = originalRequestKernelInfo;
+      return Promise.resolve();
+    };
+    if (this.websocket) {
+      this.websocket.onopen({ target: this.websocket });
+    }
+    this.realKernel.requestKernelInfo = originalRequestKernelInfo;
   }
-  messageHookInterceptor(e) {
+  messageHookInterceptor(msg) {
     try {
-      this.lastHookedMessageId = e.header.msg_id;
-      let t = this.messageHooks.get(e.parent_header.msg_id);
-      if (t) {
-        let r = t(e);
-        return (
-          this.hookResults.set(e.header.msg_id, r),
-          r.then ? r.then((i) => i) : r
-        );
+      this.lastHookedMessageId = msg.header.msg_id;
+      const hook = this.messageHooks.get(msg.parent_header.msg_id);
+      if (hook) {
+        const result = hook(msg);
+        this.hookResults.set(msg.header.msg_id, result);
+        if (result.then) {
+          return result.then((r) => {
+            return r;
+          });
+        }
+        return result;
       }
-    } catch (t) {}
-    return !1;
+    } catch (ex) {
+    }
+    return false;
   }
-  sendHookResult(e) {
-    let t = this.hookResults.get(e.msg.header.msg_id);
-    t !== void 0
-      ? (this.hookResults.delete(e.msg.header.msg_id),
-        t.then
-          ? t.then((r) => {
-              this.postOffice.sendMessage("IPyWidgets_MessageHookResult", {
-                requestId: e.requestId,
-                parentId: e.parentId,
-                msgType: e.msg.header.msg_type,
-                result: r,
-              });
-            })
-          : this.postOffice.sendMessage("IPyWidgets_MessageHookResult", {
-              requestId: e.requestId,
-              parentId: e.parentId,
-              msgType: e.msg.header.msg_type,
-              result: t === !0,
-            }))
-      : this.postOffice.sendMessage("IPyWidgets_MessageHookResult", {
-          requestId: e.requestId,
-          parentId: e.parentId,
-          msgType: e.msg.header.msg_type,
-          result: !0,
+  sendHookResult(args) {
+    const result = this.hookResults.get(args.msg.header.msg_id);
+    if (result !== void 0) {
+      this.hookResults.delete(args.msg.header.msg_id);
+      if (result.then) {
+        result.then((r) => {
+          this.postOffice.sendMessage(
+            "IPyWidgets_MessageHookResult" /* IPyWidgets_MessageHookResult */,
+            {
+              requestId: args.requestId,
+              parentId: args.parentId,
+              msgType: args.msg.header.msg_type,
+              result: r
+            }
+          );
         });
+      } else {
+        this.postOffice.sendMessage("IPyWidgets_MessageHookResult" /* IPyWidgets_MessageHookResult */, {
+          requestId: args.requestId,
+          parentId: args.parentId,
+          msgType: args.msg.header.msg_type,
+          result: result === true
+        });
+      }
+    } else {
+      this.postOffice.sendMessage("IPyWidgets_MessageHookResult" /* IPyWidgets_MessageHookResult */, {
+        requestId: args.requestId,
+        parentId: args.parentId,
+        msgType: args.msg.header.msg_type,
+        result: true
+      });
+    }
   }
-  handleMirrorExecute(e) {
+  handleMirrorExecute(payload) {
     try {
-      (this.websocket.sendEnabled = !1),
-        this.realKernel.sendShellMessage(e.msg, !1, e.msg.content.silent);
+      this.websocket.sendEnabled = false;
+      this.realKernel.sendShellMessage(payload.msg, false, payload.msg.content.silent);
     } finally {
-      this.websocket.sendEnabled = !0;
+      this.websocket.sendEnabled = true;
     }
-    this.sendResponse(e.id);
+    this.sendResponse(payload.id);
   }
-  onIOPubMessage(e, t) {
-    if (this.awaitingExtensionMessage.size <= 0) this.finishIOPubMessage(t);
-    else {
-      let r = Array.from(this.awaitingExtensionMessage.values()).map(
-        (i) => i.promise
-      );
-      Promise.all(r)
-        .then(() => {
-          this.finishIOPubMessage(t);
-        })
-        .catch((i) => {
-          window.console.error("Failed to send iopub_msg_handled message", i);
-        });
+  // When the real kernel handles iopub messages notify the Extension side and then forward on the message
+  // Note, this message comes from the kernel after it is done handling the message async
+  onIOPubMessage(_sender, message) {
+    if (this.awaitingExtensionMessage.size <= 0) {
+      this.finishIOPubMessage(message);
+    } else {
+      const extensionPromises = Array.from(this.awaitingExtensionMessage.values()).map((value) => {
+        return value.promise;
+      });
+      Promise.all(extensionPromises).then(() => {
+        this.finishIOPubMessage(message);
+      }).catch((ex) => {
+        window.console.error("Failed to send iopub_msg_handled message", ex);
+      });
     }
   }
-  finishIOPubMessage(e) {
-    this.postOffice.sendMessage("IPyWidgets_iopub_msg_handled", {
-      id: e.header.msg_id,
-    }),
-      this._ioPubMessageSignal.emit(e);
+  // Finish an iopub message by sending a message to the UI and then emitting that we are done with it
+  finishIOPubMessage(message) {
+    this.postOffice.sendMessage("IPyWidgets_iopub_msg_handled" /* IPyWidgets_iopub_msg_handled */, {
+      id: message.header.msg_id
+    });
+    this._ioPubMessageSignal.emit(message);
   }
 };
-function Ua(n, e, t) {
-  let r = new qi(n, e);
-  return t.forEach((i) => r.handleMessage(i.message, i.payload)), r;
+function create(options, postOffice, pendingMessages) {
+  const result = new ProxyKernel(options, postOffice);
+  pendingMessages.forEach((m) => result.handleMessage(m.message, m.payload));
+  return result;
 }
-var lt = class lt {
-  constructor(e, t, r, i, s) {
-    this.widgetContainer = e;
-    this.postOffice = t;
-    this.scriptLoader = r;
-    this.JupyterLabWidgetManager = i;
-    this.widgetState = s;
+
+// src/webviews/webview-side/ipywidgets/kernel/manager.ts
+var _WidgetManager = class _WidgetManager {
+  constructor(widgetContainer, postOffice, scriptLoader, JupyterLabWidgetManager, widgetState) {
+    this.widgetContainer = widgetContainer;
+    this.postOffice = postOffice;
+    this.scriptLoader = scriptLoader;
+    this.JupyterLabWidgetManager = JupyterLabWidgetManager;
+    this.widgetState = widgetState;
     this.pendingMessages = [];
-    this.modelIdsToBeDisplayed = new Map();
-    this.offlineModelIds = new Set();
-    this.postOffice.addHandler(this),
-      this.postOffice.sendMessage("IPyWidgets_Ready"),
-      ks((o, a) => {
-        this.postOffice.sendMessage("IPyWidgets_logMessage", {
-          category: o,
-          message: a,
-        }),
-          o === "error" && console.error(a);
-      }),
-      s &&
-        this.initializeKernelAndWidgetManager(
-          { clientId: "", id: "", model: { id: "", name: "" }, userName: "" },
-          s
-        );
-  }
-  static get onDidChangeInstance() {
-    return lt._onDidChangeInstance.event;
-  }
-  dispose() {
-    var e;
-    (e = this.proxyKernel) == null || e.dispose(),
-      this.postOffice.removeHandler(this),
-      this.clear().catch(yt);
-  }
-  async clear() {
-    var e;
-    await ((e = this.manager) == null ? void 0 : e.clear_state());
-  }
-  handleMessage(e, t) {
-    var r, i;
-    return (
-      e === "IPyWidgets_kernelOptions"
-        ? (z("Received IPyWidgetMessages.IPyWidgets_kernelOptions"),
-          this.initializeKernelAndWidgetManager(t))
-        : e === "IPyWidgets_IsReadyRequest"
-          ? (z("Received IPyWidgetMessages.IPyWidgets_IsReadyRequest"),
-            this.postOffice.sendMessage("IPyWidgets_Ready"))
-          : e === "IPyWidgets_onRestartKernel"
-            ? (z("Received IPyWidgetMessages.IPyWidgets_onRestartKernel"),
-              (r = this.manager) == null || r.dispose(),
-              (this.manager = void 0),
-              (i = this.proxyKernel) == null || i.dispose(),
-              (this.proxyKernel = void 0),
-              (lt.instance = void 0),
-              lt._onDidChangeInstance.fire(void 0))
-            : this.proxyKernel ||
-              (z(`Received some pending message ${e}`),
-              this.pendingMessages.push({ message: e, payload: t })),
-      !0
-    );
-  }
-  async restoreWidgets(e, t) {
-    if (!e || !(t != null && t.loadNotebook)) return;
-    if (!this.manager) throw new Error("DS IPyWidgetManager not initialized.");
-    await this.manager.restoreWidgets(e, t);
-    let r = e.metadata.get("widgets"),
-      i = r && r[Wi] ? r[Wi] : void 0;
-    if (i) {
-      let s = Fe();
-      s.resolve(),
-        Object.keys(i.state).forEach((o) => {
-          this.modelIdsToBeDisplayed.set(o, s), this.offlineModelIds.add(o);
-        });
+    /**
+     * Contains promises related to model_ids that need to be displayed.
+     * When we receive a message from the kernel of type = `display_data` for a widget (`application/vnd.jupyter.widget-view+json`),
+     * then its time to display this.
+     * We need to keep track of this. A boolean is sufficient, but we're using a promise so we can be notified when it is ready.
+     *
+     * @private
+     * @memberof WidgetManager
+     */
+    this.modelIdsToBeDisplayed = /* @__PURE__ */ new Map();
+    this.offlineModelIds = /* @__PURE__ */ new Set();
+    this.postOffice.addHandler(this);
+    this.postOffice.sendMessage("IPyWidgets_Ready" /* IPyWidgets_Ready */);
+    setLogger((category, message) => {
+      this.postOffice.sendMessage("IPyWidgets_logMessage" /* IPyWidgets_logMessage */, {
+        category,
+        message
+      });
+      if (category === "error") {
+        console.error(message);
+      }
+    });
+    if (widgetState) {
+      this.initializeKernelAndWidgetManager(
+        {
+          clientId: "",
+          id: "",
+          model: {
+            id: "",
+            name: ""
+          },
+          userName: ""
+        },
+        widgetState
+      );
     }
   }
-  async renderWidget(e, t) {
-    if (!e)
+  static get onDidChangeInstance() {
+    return _WidgetManager._onDidChangeInstance.event;
+  }
+  dispose() {
+    var _a;
+    (_a = this.proxyKernel) == null ? void 0 : _a.dispose();
+    this.postOffice.removeHandler(this);
+    this.clear().catch(noop);
+  }
+  async clear() {
+    var _a;
+    await ((_a = this.manager) == null ? void 0 : _a.clear_state());
+  }
+  handleMessage(message, payload) {
+    var _a, _b;
+    if (message === "IPyWidgets_kernelOptions" /* IPyWidgets_kernelOptions */) {
+      logMessage("Received IPyWidgetMessages.IPyWidgets_kernelOptions");
+      this.initializeKernelAndWidgetManager(payload);
+    } else if (message === "IPyWidgets_IsReadyRequest" /* IPyWidgets_IsReadyRequest */) {
+      logMessage("Received IPyWidgetMessages.IPyWidgets_IsReadyRequest");
+      this.postOffice.sendMessage("IPyWidgets_Ready" /* IPyWidgets_Ready */);
+    } else if (message === "IPyWidgets_onRestartKernel" /* IPyWidgets_onRestartKernel */) {
+      logMessage("Received IPyWidgetMessages.IPyWidgets_onRestartKernel");
+      (_a = this.manager) == null ? void 0 : _a.dispose();
+      this.manager = void 0;
+      (_b = this.proxyKernel) == null ? void 0 : _b.dispose();
+      this.proxyKernel = void 0;
+      _WidgetManager.instance = void 0;
+      _WidgetManager._onDidChangeInstance.fire(void 0);
+    } else if (!this.proxyKernel) {
+      logMessage(`Received some pending message ${message}`);
+      this.pendingMessages.push({ message, payload });
+    }
+    return true;
+  }
+  /**
+   * Restore widgets from kernel and saved state.
+   * (for now loading state from kernel is not supported).
+   */
+  async restoreWidgets(notebook, options) {
+    if (!notebook) {
+      return;
+    }
+    if (!(options == null ? void 0 : options.loadNotebook)) {
+      return;
+    }
+    if (!this.manager) {
+      throw new Error("DS IPyWidgetManager not initialized.");
+    }
+    await this.manager.restoreWidgets(notebook, options);
+    const state = notebook.metadata.get("widgets");
+    const widgetState = state && state[WIDGET_STATE_MIMETYPE] ? state[WIDGET_STATE_MIMETYPE] : void 0;
+    if (widgetState) {
+      const deferred = createDeferred();
+      deferred.resolve();
+      Object.keys(widgetState.state).forEach((modelId) => {
+        this.modelIdsToBeDisplayed.set(modelId, deferred);
+        this.offlineModelIds.add(modelId);
+      });
+    }
+  }
+  /**
+   * Renders a widget and returns a disposable (to remove the widget).
+   *
+   * @param {(nbformat.IMimeBundle & {model_id: string; version_major: number})} data
+   * @param {HTMLElement} ele
+   * @returns {Promise<{ dispose: Function }>}
+   * @memberof WidgetManager
+   */
+  async renderWidget(data, ele) {
+    if (!data) {
       throw new Error(
         "application/vnd.jupyter.widget-view+json not in msg.content.data, as msg.content.data is 'undefined'."
       );
-    if (!this.manager) throw new Error("DS IPyWidgetManager not initialized.");
-    if (!e || e.version_major !== 2) {
+    }
+    if (!this.manager) {
+      throw new Error("DS IPyWidgetManager not initialized.");
+    }
+    if (!data || data.version_major !== 2) {
       console.warn("Widget data not available to render an ipywidget");
-      return;
+      return void 0;
     }
-    let r = e.model_id;
-    this.modelIdsToBeDisplayed.has(r) ||
-      this.modelIdsToBeDisplayed.set(r, Fe()),
-      z(`Waiting for model to be available before rendering it ${e.model_id}`),
-      await this.modelIdsToBeDisplayed.get(r).promise;
-    let i = this.manager.get_model(e.model_id);
-    if (!i) {
+    const modelId = data.model_id;
+    if (!this.modelIdsToBeDisplayed.has(modelId)) {
+      this.modelIdsToBeDisplayed.set(modelId, createDeferred());
+    }
+    logMessage(`Waiting for model to be available before rendering it ${data.model_id}`);
+    await this.modelIdsToBeDisplayed.get(modelId).promise;
+    const modelPromise = this.manager.get_model(data.model_id);
+    if (!modelPromise) {
       console.warn("Widget model not available to render an ipywidget");
+      return void 0;
+    }
+    const model = await modelPromise;
+    if (this.widgetState && this.offlineModelIds.has(modelId)) {
+      model.comm_live = false;
+    }
+    const view = await this.manager.create_view(model, { el: ele });
+    if (this.widgetState) {
+      view.initialize({ model, el: ele, options: {} });
+    }
+    return this.manager.display_view(data, view, { node: ele });
+  }
+  initializeKernelAndWidgetManager(options, widgetState) {
+    var _a, _b;
+    if (this.manager && this.proxyKernel && (0, import_fast_deep_equal.default)(options, this.options)) {
       return;
     }
-    let s = await i;
-    this.widgetState && this.offlineModelIds.has(r) && (s.comm_live = !1);
-    let o = await this.manager.create_view(s, { el: t });
-    return (
-      this.widgetState && o.initialize({ model: s, el: t, options: {} }),
-      this.manager.display_view(e, o, { node: t })
-    );
+    this.options = options;
+    (_a = this.proxyKernel) == null ? void 0 : _a.dispose();
+    this.proxyKernel = create(options, this.postOffice, this.pendingMessages);
+    this.pendingMessages = [];
+    (_b = this.manager) == null ? void 0 : _b.dispose();
+    try {
+      this.manager = new this.JupyterLabWidgetManager(
+        this.proxyKernel,
+        this.widgetContainer,
+        this.scriptLoader,
+        logMessage,
+        widgetState
+      );
+      this.proxyKernel.iopubMessage.connect(this.handleDisplayDataMessage.bind(this));
+      this.manager.onUnhandledIOPubMessage.connect(this.handleUnhandledIOPubMessage.bind(this));
+      _WidgetManager.instance = this;
+      _WidgetManager._onDidChangeInstance.fire(this);
+    } catch (ex) {
+      console.error("Failed to initialize WidgetManager", ex);
+    }
   }
-  initializeKernelAndWidgetManager(e, t) {
-    var r, i;
-    if (
-      !(this.manager && this.proxyKernel && (0, Wa.default)(e, this.options))
-    ) {
-      (this.options = e),
-        (r = this.proxyKernel) == null || r.dispose(),
-        (this.proxyKernel = Ua(e, this.postOffice, this.pendingMessages)),
-        (this.pendingMessages = []),
-        (i = this.manager) == null || i.dispose();
-      try {
-        (this.manager = new this.JupyterLabWidgetManager(
-          this.proxyKernel,
-          this.widgetContainer,
-          this.scriptLoader,
-          z,
-          t
-        )),
-          this.proxyKernel.iopubMessage.connect(
-            this.handleDisplayDataMessage.bind(this)
-          ),
-          this.manager.onUnhandledIOPubMessage.connect(
-            this.handleUnhandledIOPubMessage.bind(this)
-          ),
-          (lt.instance = this),
-          lt._onDidChangeInstance.fire(this);
-      } catch (s) {
-        console.error("Failed to initialize WidgetManager", s);
+  /**
+   * Ensure we create the model for the display data.
+   */
+  handleDisplayDataMessage(_sender, payload) {
+    const jupyterLab = require_lib3();
+    if (!jupyterLab.KernelMessage.isDisplayDataMsg(payload) && !jupyterLab.KernelMessage.isExecuteResultMsg(payload)) {
+      return;
+    }
+    const displayMsg = payload;
+    if (displayMsg.content && displayMsg.content.data && displayMsg.content.data[WIDGET_MIMETYPE]) {
+      const data = displayMsg.content.data[WIDGET_MIMETYPE];
+      const modelId = data.model_id;
+      logMessage(`Received display data message ${modelId}`);
+      let deferred = this.modelIdsToBeDisplayed.get(modelId);
+      if (!deferred) {
+        deferred = createDeferred();
+        this.modelIdsToBeDisplayed.set(modelId, deferred);
+      }
+      if (!this.manager) {
+        throw new Error("DS IPyWidgetManager not initialized");
+      }
+      const modelPromise = this.manager.get_model(data.model_id);
+      if (modelPromise) {
+        modelPromise.then((_m) => deferred == null ? void 0 : deferred.resolve()).catch((e) => deferred == null ? void 0 : deferred.reject(e));
+      } else {
+        deferred.resolve();
       }
     }
   }
-  handleDisplayDataMessage(e, t) {
-    let r = Ve();
-    if (
-      !r.KernelMessage.isDisplayDataMsg(t) &&
-      !r.KernelMessage.isExecuteResultMsg(t)
-    )
-      return;
-    let i = t;
-    if (i.content && i.content.data && i.content.data[Ui]) {
-      let s = i.content.data[Ui],
-        o = s.model_id;
-      z(`Received display data message ${o}`);
-      let a = this.modelIdsToBeDisplayed.get(o);
-      if (
-        (a || ((a = Fe()), this.modelIdsToBeDisplayed.set(o, a)), !this.manager)
-      )
-        throw new Error("DS IPyWidgetManager not initialized");
-      let l = this.manager.get_model(s.model_id);
-      l
-        ? l
-            .then((u) => (a == null ? void 0 : a.resolve()))
-            .catch((u) => (a == null ? void 0 : a.reject(u)))
-        : a.resolve();
-    }
-  }
-  handleUnhandledIOPubMessage(e, t) {
-    this.postOffice.sendMessage("ipywidget_unhandled_kernel_message", t);
+  handleUnhandledIOPubMessage(_manager, msg) {
+    this.postOffice.sendMessage(
+      "ipywidget_unhandled_kernel_message" /* IPyWidgetUnhandledKernelMessage */,
+      msg
+    );
   }
 };
-lt._onDidChangeInstance = new Ht();
-var Lt = lt;
-h();
-var Sl = Ct(kr()),
-  wl = Ct(Xa());
-h();
-var th = "https://unpkg.com/",
-  nh = "https://cdn.jsdelivr.net/npm/requirejs@2.3.6/bin/r.min.js",
-  rh = 1e3,
-  Hi = !1;
-async function $i() {
-  if (Hi) return !0;
-  let n = new AbortController(),
-    e,
-    t = new Promise((r) => {
-      e = setTimeout(() => {
-        r(!1), n.abort();
-      }, rh);
-    });
-  t.catch(() => {});
+_WidgetManager._onDidChangeInstance = new EventEmitter();
+var WidgetManager = _WidgetManager;
+
+// src/webviews/webview-side/ipywidgets/kernel/scriptManager.ts
+init_process_development();
+var import_fast_deep_equal2 = __toESM(require_fast_deep_equal());
+var import_events = __toESM(require_events());
+
+// src/webviews/webview-side/ipywidgets/kernel/helper.ts
+init_process_development();
+var unpgkUrl = "https://unpkg.com/";
+var jsdelivrUrl = "https://cdn.jsdelivr.net/npm/requirejs@2.3.6/bin/r.min.js";
+var networkAccessTimeoutMs = 1e3;
+var isOnlineOnceBefore = false;
+async function isCDNReachable() {
+  if (isOnlineOnceBefore) {
+    return true;
+  }
+  const abort = new AbortController();
+  let timeout;
+  const promise = new Promise((resolve) => {
+    timeout = setTimeout(() => {
+      resolve(false);
+      abort.abort();
+    }, networkAccessTimeoutMs);
+  });
+  promise.catch(() => {
+  });
   try {
-    return (
-      (Hi = await Promise.race([Qa(th, n.signal), Qa(nh, n.signal), t])), Hi
-    );
+    isOnlineOnceBefore = await Promise.race([
+      isWebSiteReachable(unpgkUrl, abort.signal),
+      isWebSiteReachable(jsdelivrUrl, abort.signal),
+      promise
+    ]);
+    return isOnlineOnceBefore;
   } finally {
-    e && clearInterval(e);
+    if (timeout) {
+      clearInterval(timeout);
+    }
   }
 }
-async function Qa(n, e) {
-  let t = 1;
+async function isWebSiteReachable(url, signal) {
+  let retries = 1;
   try {
-    for (t = 0; t <= 5; t++) if ((await fetch(n, { signal: e })).ok) return !0;
-    return !1;
-  } catch (r) {
-    return (
-      Ue(
-        `Failed to access CDN ${n} after ${t} attempt(s), ${(r || "").toString()}`
-      ),
-      !1
-    );
+    for (retries = 0; retries <= 5; retries++) {
+      const response = await fetch(url, { signal });
+      if (response.ok) {
+        return true;
+      }
+    }
+    return false;
+  } catch (ex) {
+    logErrorMessage(`Failed to access CDN ${url} after ${retries} attempt(s), ${(ex || "").toString()}`);
+    return false;
   }
 }
-h();
-h();
-h();
-var hr;
-((E) => {
-  function n(m) {
-    return m && typeof m == "object" && typeof m[Symbol.iterator] == "function";
+
+// src/platform/common/utils/lifecycle.ts
+init_process_development();
+
+// src/platform/common/utils/functional.ts
+init_process_development();
+
+// src/platform/common/utils/iterable.ts
+init_process_development();
+var Iterable;
+((Iterable2) => {
+  function is(thing) {
+    return thing && typeof thing === "object" && typeof thing[Symbol.iterator] === "function";
   }
-  E.is = n;
-  let e = Object.freeze([]);
-  function t() {
-    return e;
+  Iterable2.is = is;
+  const _empty = Object.freeze([]);
+  function empty() {
+    return _empty;
   }
-  E.empty = t;
-  function* r(m) {
-    yield m;
+  Iterable2.empty = empty;
+  function* single(element) {
+    yield element;
   }
-  E.single = r;
-  function i(m) {
-    return n(m) ? m : r(m);
+  Iterable2.single = single;
+  function wrap(iterableOrElement) {
+    if (is(iterableOrElement)) {
+      return iterableOrElement;
+    } else {
+      return single(iterableOrElement);
+    }
   }
-  E.wrap = i;
-  function s(m) {
-    return m || e;
+  Iterable2.wrap = wrap;
+  function from(iterable) {
+    return iterable || _empty;
   }
-  E.from = s;
-  function o(m) {
-    return !m || m[Symbol.iterator]().next().done === !0;
+  Iterable2.from = from;
+  function isEmpty(iterable) {
+    return !iterable || iterable[Symbol.iterator]().next().done === true;
   }
-  E.isEmpty = o;
-  function a(m) {
-    return m[Symbol.iterator]().next().value;
+  Iterable2.isEmpty = isEmpty;
+  function first(iterable) {
+    return iterable[Symbol.iterator]().next().value;
   }
-  E.first = a;
-  function l(m, b) {
-    for (let y of m) if (b(y)) return !0;
-    return !1;
+  Iterable2.first = first;
+  function some(iterable, predicate) {
+    for (const element of iterable) {
+      if (predicate(element)) {
+        return true;
+      }
+    }
+    return false;
   }
-  E.some = l;
-  function u(m, b) {
-    for (let y of m) if (b(y)) return y;
+  Iterable2.some = some;
+  function find(iterable, predicate) {
+    for (const element of iterable) {
+      if (predicate(element)) {
+        return element;
+      }
+    }
+    return void 0;
   }
-  E.find = u;
-  function* f(m, b) {
-    for (let y of m) b(y) && (yield y);
+  Iterable2.find = find;
+  function* filter(iterable, predicate) {
+    for (const element of iterable) {
+      if (predicate(element)) {
+        yield element;
+      }
+    }
   }
-  E.filter = f;
-  function* c(m, b) {
-    let y = 0;
-    for (let L of m) yield b(L, y++);
+  Iterable2.filter = filter;
+  function* map(iterable, fn) {
+    let index = 0;
+    for (const element of iterable) {
+      yield fn(element, index++);
+    }
   }
-  E.map = c;
-  function* C(...m) {
-    for (let b of m) for (let y of b) yield y;
+  Iterable2.map = map;
+  function* concat(...iterables) {
+    for (const iterable of iterables) {
+      for (const element of iterable) {
+        yield element;
+      }
+    }
   }
-  E.concat = C;
-  function M(m, b, y) {
-    let L = y;
-    for (let q of m) L = b(L, q);
-    return L;
+  Iterable2.concat = concat;
+  function reduce(iterable, reducer, initialValue) {
+    let value = initialValue;
+    for (const element of iterable) {
+      value = reducer(value, element);
+    }
+    return value;
   }
-  E.reduce = M;
-  function* S(m, b, y = m.length) {
-    for (
-      b < 0 && (b += m.length),
-        y < 0 ? (y += m.length) : y > m.length && (y = m.length);
-      b < y;
-      b++
-    )
-      yield m[b];
+  Iterable2.reduce = reduce;
+  function* slice(arr, from2, to = arr.length) {
+    if (from2 < 0) {
+      from2 += arr.length;
+    }
+    if (to < 0) {
+      to += arr.length;
+    } else if (to > arr.length) {
+      to = arr.length;
+    }
+    for (; from2 < to; from2++) {
+      yield arr[from2];
+    }
   }
-  E.slice = S;
-  function w(m, b = Number.POSITIVE_INFINITY) {
-    let y = [];
-    if (b === 0) return [y, m];
-    let L = m[Symbol.iterator]();
-    for (let q = 0; q < b; q++) {
-      let F = L.next();
-      if (F.done) return [y, E.empty()];
-      y.push(F.value);
+  Iterable2.slice = slice;
+  function consume(iterable, atMost = Number.POSITIVE_INFINITY) {
+    const consumed = [];
+    if (atMost === 0) {
+      return [consumed, iterable];
+    }
+    const iterator = iterable[Symbol.iterator]();
+    for (let i = 0; i < atMost; i++) {
+      const next = iterator.next();
+      if (next.done) {
+        return [consumed, Iterable2.empty()];
+      }
+      consumed.push(next.value);
     }
     return [
-      y,
+      consumed,
       {
         [Symbol.iterator]() {
-          return L;
-        },
-      },
+          return iterator;
+        }
+      }
     ];
   }
-  E.consume = w;
-})(hr || (hr = {}));
-var Ji;
-function ih(n) {
-  return Ji == null || Ji.push(n), n;
+  Iterable2.consume = consume;
+})(Iterable || (Iterable = {}));
+
+// src/platform/common/utils/lifecycle.ts
+var disposableTracker = void 0;
+function trackDisposable(x) {
+  disposableTracker == null ? void 0 : disposableTracker.push(x);
+  return x;
 }
-function pr(n) {
-  if (hr.is(n)) {
-    for (let e of n)
-      if (e)
+function dispose(arg) {
+  if (Iterable.is(arg)) {
+    for (const d of arg) {
+      if (d) {
         try {
-          e.dispose();
-        } catch (t) {
-          console.warn(`dispose() failed for ${e}`, t);
+          d.dispose();
+        } catch (e) {
+          console.warn(`dispose() failed for ${d}`, e);
         }
-    return Array.isArray(n) ? [] : n;
-  } else if (n) return n.dispose(), n;
+      }
+    }
+    return Array.isArray(arg) ? [] : arg;
+  } else if (arg) {
+    arg.dispose();
+    return arg;
+  }
 }
-var fr = class fr {
-  constructor(...e) {
-    this._toDispose = new Set();
-    this._isDisposed = !1;
-    e.forEach((t) => this.add(t)), ih(this);
+var _DisposableStore = class _DisposableStore {
+  constructor(...disposables) {
+    this._toDispose = /* @__PURE__ */ new Set();
+    this._isDisposed = false;
+    disposables.forEach((disposable) => this.add(disposable));
+    trackDisposable(this);
   }
+  /**
+   * Dispose of all registered disposables and mark this object as disposed.
+   *
+   * Any future disposables added to this object will be disposed of on `add`.
+   */
   dispose() {
-    this._isDisposed || ((this._isDisposed = !0), this.clear());
+    if (this._isDisposed) {
+      return;
+    }
+    this._isDisposed = true;
+    this.clear();
   }
+  /**
+   * @return `true` if this object has been disposed of.
+   */
   get isDisposed() {
     return this._isDisposed;
   }
+  /**
+   * Dispose of all registered disposables but do not mark this object as disposed.
+   */
   clear() {
-    if (this._toDispose.size !== 0)
-      try {
-        pr(this._toDispose);
-      } finally {
-        this._toDispose.clear();
-      }
+    if (this._toDispose.size === 0) {
+      return;
+    }
+    try {
+      dispose(this._toDispose);
+    } finally {
+      this._toDispose.clear();
+    }
   }
-  add(e) {
-    if (!e) return e;
-    if (e === this) throw new Error("Cannot register a disposable on itself!");
-    return (
-      this._isDisposed
-        ? fr.DISABLE_DISPOSED_WARNING ||
-          console.warn(
-            new Error(
-              "Trying to add a disposable to a DisposableStore that has already been disposed of. The added object will be leaked!"
-            ).stack
-          )
-        : this._toDispose.add(e),
-      e
-    );
+  /**
+   * Add a new {@link IDisposable disposable} to the collection.
+   */
+  add(o) {
+    if (!o) {
+      return o;
+    }
+    if (o === this) {
+      throw new Error("Cannot register a disposable on itself!");
+    }
+    if (this._isDisposed) {
+      if (!_DisposableStore.DISABLE_DISPOSED_WARNING) {
+        console.warn(
+          new Error(
+            "Trying to add a disposable to a DisposableStore that has already been disposed of. The added object will be leaked!"
+          ).stack
+        );
+      }
+    } else {
+      this._toDispose.add(o);
+    }
+    return o;
   }
 };
-fr.DISABLE_DISPOSED_WARNING = !1;
-var Za = fr;
-var el = class {
+_DisposableStore.DISABLE_DISPOSED_WARNING = false;
+var DisposableStore = _DisposableStore;
+var DisposableMap = class {
   constructor() {
-    this._store = new Map();
-    this._isDisposed = !1;
+    this._store = /* @__PURE__ */ new Map();
+    this._isDisposed = false;
   }
+  /**
+   * Disposes of all stored values and mark this object as disposed.
+   *
+   * Trying to use this object after it has been disposed of is an error.
+   */
   dispose() {
-    (this._isDisposed = !0), this.clearAndDisposeAll();
+    this._isDisposed = true;
+    this.clearAndDisposeAll();
   }
+  /**
+   * Disposes of all stored values and clear the map, but DO NOT mark this object as disposed.
+   */
   clearAndDisposeAll() {
-    if (this._store.size)
-      try {
-        pr(this._store.values());
-      } finally {
-        this._store.clear();
-      }
+    if (!this._store.size) {
+      return;
+    }
+    try {
+      dispose(this._store.values());
+    } finally {
+      this._store.clear();
+    }
   }
-  has(e) {
-    return this._store.has(e);
+  has(key) {
+    return this._store.has(key);
   }
-  get(e) {
-    return this._store.get(e);
+  get(key) {
+    return this._store.get(key);
   }
-  set(e, t, r = !1) {
-    var i;
-    this._isDisposed &&
+  set(key, value, skipDisposeOnOverwrite = false) {
+    var _a;
+    if (this._isDisposed) {
       console.warn(
         new Error(
           "Trying to add a disposable to a DisposableMap that has already been disposed of. The added object will be leaked!"
         ).stack
-      ),
-      r || (i = this._store.get(e)) == null || i.dispose(),
-      this._store.set(e, t);
+      );
+    }
+    if (!skipDisposeOnOverwrite) {
+      (_a = this._store.get(key)) == null ? void 0 : _a.dispose();
+    }
+    this._store.set(key, value);
   }
-  deleteAndDispose(e) {
-    var t;
-    (t = this._store.get(e)) == null || t.dispose(), this._store.delete(e);
+  /**
+   * Delete the value stored for `key` from this map and also dispose of it.
+   */
+  deleteAndDispose(key) {
+    var _a;
+    (_a = this._store.get(key)) == null ? void 0 : _a.dispose();
+    this._store.delete(key);
   }
   [Symbol.iterator]() {
     return this._store[Symbol.iterator]();
   }
 };
-h();
-var Ir = Ct(ml()),
-  vl = "1.1.1",
-  Kh = "qgrid";
-function yl(n, e, t, r) {
-  if (n.source === "cdn" || !t || n.moduleName !== Kh) return !1;
-  try {
-    if (
-      (!e.startsWith("^") && Ir.compare(e, vl) <= 0) ||
-      (e.startsWith("^") && Ir.satisfies(vl, e))
-    )
-      return !1;
-  } catch (i) {
-    return !1;
+
+// src/webviews/webview-side/ipywidgets/kernel/incompatibleWidgetHandler.ts
+init_process_development();
+var semver = __toESM(require_semver());
+var supportedVersionOfQgrid = "1.1.1";
+var qgridModuleName = "qgrid";
+function warnAboutWidgetVersionsThatAreNotSupported(widgetSource, moduleVersion, cdnSupported, errorDispatcher) {
+  if (widgetSource.source === "cdn" || !cdnSupported) {
+    return false;
   }
-  r({ moduleName: n.moduleName, moduleVersion: e });
+  if (widgetSource.moduleName !== qgridModuleName) {
+    return false;
+  }
+  try {
+    if (!moduleVersion.startsWith("^") && semver.compare(moduleVersion, supportedVersionOfQgrid) <= 0) {
+      return false;
+    }
+    if (moduleVersion.startsWith("^") && semver.satisfies(supportedVersionOfQgrid, moduleVersion)) {
+      return false;
+    }
+  } catch (e) {
+    return false;
+  }
+  errorDispatcher({ moduleName: widgetSource.moduleName, moduleVersion });
 }
-h();
-var Cr = new Map();
-function qh(n) {
-  return n.filter(
-    (e) => !(Cr.has(e.moduleName) && Cr.get(e.moduleName) === e.scriptUri)
-  );
+
+// src/webviews/webview-side/ipywidgets/kernel/requirejsRegistry.ts
+init_process_development();
+var scriptsAlreadyRegisteredInRequireJs = /* @__PURE__ */ new Map();
+function getScriptsToBeRegistered(scripts) {
+  return scripts.filter((script) => {
+    if (scriptsAlreadyRegisteredInRequireJs.has(script.moduleName) && scriptsAlreadyRegisteredInRequireJs.get(script.moduleName) === script.scriptUri) {
+      return false;
+    }
+    return true;
+  });
 }
-function Vh(n) {
-  return n
-    .filter((e) =>
-      e.scriptUri
-        ? (z(
-            `Source for IPyWidget ${e.moduleName} found in ${e.source} @ ${e.scriptUri}.`
-          ),
-          !0)
-        : (console.error(`Source for IPyWidget ${e.moduleName} not found.`), !1)
-    )
-    .map((e) => e);
+function getScriptsWithAValidScriptUriToBeRegistered(scripts) {
+  return scripts.filter((source) => {
+    if (source.scriptUri) {
+      logMessage(
+        `Source for IPyWidget ${source.moduleName} found in ${source.source} @ ${source.scriptUri}.`
+      );
+      return true;
+    } else {
+      console.error(`Source for IPyWidget ${source.moduleName} not found.`);
+      return false;
+    }
+  }).map((source) => source);
 }
-function fs() {
-  let n = window.requirejs;
-  if (!n)
-    throw (
-      (window.console.error("Requirejs not found"),
-      new Error("Requirejs not found"))
-    );
-  return n;
+function getRequireJs() {
+  const requireJsFunc = window.requirejs;
+  if (!requireJsFunc) {
+    window.console.error("Requirejs not found");
+    throw new Error("Requirejs not found");
+  }
+  return requireJsFunc;
 }
-function Bh(n, e) {
-  let t = fs(),
-    r = { paths: {} };
-  n && (r.baseUrl = n),
-    hs(),
-    e.forEach((i) => {
-      z(`Registering IPyWidget ${i.moduleName} found in ${i.scriptUri}.`),
-        Cr.set(i.moduleName, i.scriptUri);
-      let s = i.scriptUri.toLowerCase().endsWith(".js")
-        ? i.scriptUri.substring(0, i.scriptUri.length - 3)
-        : i.scriptUri;
-      r.paths[i.moduleName] = s;
-    }),
-    t.config(r);
+function registerScriptsInRequireJs(baseUrl, scripts) {
+  const requireJsFunc = getRequireJs();
+  const config = {
+    paths: {}
+  };
+  if (baseUrl) {
+    config.baseUrl = baseUrl;
+  }
+  registerCustomScripts();
+  scripts.forEach((script) => {
+    logMessage(`Registering IPyWidget ${script.moduleName} found in ${script.scriptUri}.`);
+    scriptsAlreadyRegisteredInRequireJs.set(script.moduleName, script.scriptUri);
+    const scriptUri = script.scriptUri.toLowerCase().endsWith(".js") ? script.scriptUri.substring(0, script.scriptUri.length - 3) : script.scriptUri;
+    config.paths[script.moduleName] = scriptUri;
+  });
+  requireJsFunc.config(config);
 }
-function El(n) {
-  Cr.delete(n), fs().undef(n);
+function undefineModule(moduleName) {
+  scriptsAlreadyRegisteredInRequireJs.delete(moduleName);
+  getRequireJs().undef(moduleName);
 }
-function bl(n, e) {
-  let t = qh(e),
-    r = Vh(t);
-  Bh(n, r);
+function registerScripts(baseUrl, scripts) {
+  const scriptsToRegister = getScriptsToBeRegistered(scripts);
+  const validScriptsToRegister = getScriptsWithAValidScriptUriToBeRegistered(scriptsToRegister);
+  registerScriptsInRequireJs(baseUrl, validScriptsToRegister);
 }
-function hs() {
-  hs.invoked ||
-    ((hs.invoked = !0),
-    fs().config({
-      map: { "*": { "jupyter-js-widgets": "@jupyter-widgets/base" } },
-    }));
+function registerCustomScripts() {
+  if (registerCustomScripts.invoked) {
+    return;
+  }
+  registerCustomScripts.invoked = true;
+  getRequireJs().config({
+    map: {
+      "*": {
+        "jupyter-js-widgets": "@jupyter-widgets/base"
+      }
+    }
+  });
 }
-var Rr = class extends wl.EventEmitter {
-  constructor(t, r = $i()) {
+
+// src/webviews/webview-side/ipywidgets/kernel/scriptManager.ts
+var ScriptManager = class extends import_events.EventEmitter {
+  // List of widgets that must always be loaded using requirejs instead of using a CDN or the like.
+  constructor(postOffice, cdnIsReachable = isCDNReachable()) {
     super();
-    this.postOffice = t;
-    this.widgetsRegisteredInRequireJs = new Set();
+    this.postOffice = postOffice;
+    this.widgetsRegisteredInRequireJs = /* @__PURE__ */ new Set();
     this.disposables = [];
-    this.widgetSourceRequests = new Map();
-    this.registeredWidgetSources = new Map();
-    this.widgetModulesFailedToLoad = new Set();
-    this.isOnline = Fe();
-    this.widgetsCanLoadFromCDN = !1;
+    this.widgetSourceRequests = /* @__PURE__ */ new Map();
+    this.registeredWidgetSources = /* @__PURE__ */ new Map();
+    this.widgetModulesFailedToLoad = /* @__PURE__ */ new Set();
+    this.isOnline = createDeferred();
+    this.widgetsCanLoadFromCDN = false;
+    // Total time to wait for a script to load. This includes ipywidgets making a request to extension for a Uri of a widget,
+    // then extension replying back with the Uri (max 5 seconds round trip time).
+    // If expires, then Widget downloader will attempt to download with what ever information it has (potentially failing).
+    // Note, we might have a message displayed at the user end (asking for consent to use CDN).
+    // Hence use 60 seconds.
     this.timeoutWaitingForScriptToLoad = 6e4;
-    this.isOnline.promise.catch(yt),
-      r
-        .then((i) => {
-          this.isOnline.resolve(i),
-            this.postOffice.sendMessage("IPyWidgets_IsOnline", { isOnline: i });
-        })
-        .catch((i) => Ue(`Failed to check if online ${i.toString()}`)),
-      t.addHandler({
-        handleMessage: (i, s) => {
-          if (i === "update_settings") {
-            let o = JSON.parse(s);
-            this.widgetsCanLoadFromCDN = o.widgetScriptSources.length > 0;
-          } else if (i === "IPyWidgets_WidgetScriptSource_Response")
-            this.registerScriptSourceInRequirejs(s);
-          else if (i === "IPyWidgets_AttemptToDownloadFailedWidgetsAgain")
-            Array.from(this.widgetModulesFailedToLoad.values()).forEach((o) => {
-              this.clearWidgetModuleScriptSource(o);
-            }),
-              this.widgetModulesFailedToLoad.clear();
-          else if (i === "IPyWidgets_BaseUrl_Response") {
-            let o = s;
-            o &&
-              ((this.baseUrl = o),
-              (document.body.dataset.baseUrl = o.endsWith("/") ? o : `${o}/`),
-              z(`data-base-url set to ${o}`));
-          } else
-            i === "IPyWidgets_kernelOptions"
-              ? (z("Received IPyWidgets_kernelOptions in ScriptManager"),
-                this.previousKernelOptions &&
-                  !(0, Sl.default)(this.previousKernelOptions, s) &&
-                  (z(
-                    "Received IPyWidgets_kernelOptions in ScriptManager with new kernel options"
-                  ),
-                  (this.previousKernelOptions = s),
-                  this.clear()))
-              : i === "IPyWidgets_onKernelChanged" &&
-                (z("Received IPyWidgets_onKernelChanged in ScriptManager"),
-                this.clear());
-          return !0;
-        },
+    this.isOnline.promise.catch(noop);
+    cdnIsReachable.then((isOnline) => {
+      this.isOnline.resolve(isOnline);
+      this.postOffice.sendMessage("IPyWidgets_IsOnline" /* IPyWidgets_IsOnline */, {
+        isOnline
       });
+    }).catch((ex) => logErrorMessage(`Failed to check if online ${ex.toString()}`));
+    postOffice.addHandler({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      handleMessage: (type, payload) => {
+        if (type === "update_settings" /* UpdateSettings */) {
+          const settings = JSON.parse(payload);
+          this.widgetsCanLoadFromCDN = settings.widgetScriptSources.length > 0;
+        } else if (type === "IPyWidgets_WidgetScriptSource_Response" /* IPyWidgets_WidgetScriptSourceResponse */) {
+          this.registerScriptSourceInRequirejs(payload);
+        } else if (type === "IPyWidgets_AttemptToDownloadFailedWidgetsAgain" /* IPyWidgets_AttemptToDownloadFailedWidgetsAgain */) {
+          Array.from(this.widgetModulesFailedToLoad.values()).forEach((moduleName) => {
+            this.clearWidgetModuleScriptSource(moduleName);
+          });
+          this.widgetModulesFailedToLoad.clear();
+        } else if (type === "IPyWidgets_BaseUrl_Response" /* IPyWidgets_BaseUrlResponse */) {
+          const baseUrl = payload;
+          if (baseUrl) {
+            this.baseUrl = baseUrl;
+            document.body.dataset.baseUrl = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+            logMessage(`data-base-url set to ${baseUrl}`);
+          }
+        } else if (type === "IPyWidgets_kernelOptions" /* IPyWidgets_kernelOptions */) {
+          logMessage(`Received IPyWidgets_kernelOptions in ScriptManager`);
+          if (this.previousKernelOptions && !(0, import_fast_deep_equal2.default)(this.previousKernelOptions, payload)) {
+            logMessage(`Received IPyWidgets_kernelOptions in ScriptManager with new kernel options`);
+            this.previousKernelOptions = payload;
+            this.clear();
+          }
+        } else if (type === "IPyWidgets_onKernelChanged" /* IPyWidgets_onKernelChanged */) {
+          logMessage(`Received IPyWidgets_onKernelChanged in ScriptManager`);
+          this.clear();
+        }
+        return true;
+      }
+    });
   }
   dispose() {
-    pr(this.disposables);
+    dispose(this.disposables);
   }
   getScriptLoader() {
     return {
       widgetsRegisteredInRequireJs: this.widgetsRegisteredInRequireJs,
-      errorHandler: (t, r, i, s) =>
-        this.handleLoadError(t, r, i, s).catch(() => {}),
-      loadWidgetScript: (t, r) => this.loadWidgetScript(t, r),
-      successHandler: (t, r, i) => this.handleLoadSuccess(t, r, i),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      errorHandler: (className, moduleName, moduleVersion, error) => this.handleLoadError(className, moduleName, moduleVersion, error).catch(() => {
+      }),
+      loadWidgetScript: (moduleName, moduleVersion) => this.loadWidgetScript(moduleName, moduleVersion),
+      successHandler: (className, moduleName, moduleVersion) => this.handleLoadSuccess(className, moduleName, moduleVersion)
     };
   }
-  onWidgetLoadSuccess(t) {
-    return this.on("onWidgetLoadSuccess", t);
+  onWidgetLoadSuccess(listener) {
+    return this.on("onWidgetLoadSuccess", listener);
   }
-  onWidgetLoadError(t) {
-    return this.on("onWidgetLoadError", t);
+  onWidgetLoadError(listener) {
+    return this.on("onWidgetLoadError", listener);
   }
-  onWidgetVersionNotSupported(t) {
-    return this.on("onWidgetVersionNotSupported", t);
+  onWidgetVersionNotSupported(listener) {
+    return this.on("onWidgetVersionNotSupported", listener);
   }
-  async loadWidgetScript(t, r) {
-    z(`Fetch IPyWidget source for ${t}`);
-    let i = await this.isOnline.promise,
-      s = this.widgetSourceRequests.get(t),
-      o = `${t}:${r}:${Date.now().toString()}`;
-    if (
-      (i && s && !s.explicitlyRequested && s.source !== "cdn" && (s = void 0),
-      !s)
-    ) {
-      s = {
-        deferred: Fe(),
+  /**
+   * Method called by ipywidgets to get the source for a widget.
+   * When we get a source for the widget, we register it in requriejs.
+   * We need to check if it is available on CDN, if not then fallback to local FS.
+   * Or check local FS then fall back to CDN (depending on the order defined by the user).
+   */
+  async loadWidgetScript(moduleName, moduleVersion) {
+    logMessage(`Fetch IPyWidget source for ${moduleName}`);
+    const isOnline = await this.isOnline.promise;
+    let request = this.widgetSourceRequests.get(moduleName);
+    const requestId = `${moduleName}:${moduleVersion}:${Date.now().toString()}`;
+    if (isOnline && request && !request.explicitlyRequested && request.source !== "cdn") {
+      request = void 0;
+    }
+    if (!request) {
+      request = {
+        deferred: createDeferred(),
         timer: void 0,
-        explicitlyRequested: !0,
-        requestId: o,
+        explicitlyRequested: true,
+        requestId
       };
-      let a = this.timedoutWaitingForWidgetsToGetLoaded
-        ? 5e3
-        : this.timeoutWaitingForScriptToLoad;
-      (s.timer = setTimeout(() => {
-        s &&
-          !s.deferred.resolved &&
-          (console.error(`Timeout waiting to get widget source for ${t}, ${r}`),
+      const timeoutTime = this.timedoutWaitingForWidgetsToGetLoaded ? 5e3 : this.timeoutWaitingForScriptToLoad;
+      request.timer = setTimeout(() => {
+        if (request && !request.deferred.resolved) {
+          console.error(`Timeout waiting to get widget source for ${moduleName}, ${moduleVersion}`);
           this.handleLoadError(
             "<class>",
-            t,
-            r,
-            new Error(`Timeout getting source for ${t}:${r}`),
-            !0
-          ).catch(() => {}),
-          s.deferred.resolve(),
-          (this.timedoutWaitingForWidgetsToGetLoaded = !0));
-      }, a)),
-        this.disposables.push({
-          dispose() {
-            try {
-              s != null && s.timer && clearTimeout(s.timer);
-            } catch (l) {}
-          },
-        }),
-        this.widgetSourceRequests.set(t, s);
+            moduleName,
+            moduleVersion,
+            new Error(`Timeout getting source for ${moduleName}:${moduleVersion}`),
+            true
+          ).catch(() => {
+          });
+          request.deferred.resolve();
+          this.timedoutWaitingForWidgetsToGetLoaded = true;
+        }
+      }, timeoutTime);
+      this.disposables.push({
+        dispose() {
+          try {
+            if (request == null ? void 0 : request.timer) {
+              clearTimeout(request.timer);
+            }
+          } catch (e) {
+          }
+        }
+      });
+      this.widgetSourceRequests.set(moduleName, request);
     }
-    this.postOffice.sendMessage("IPyWidgets_WidgetScriptSourceRequest", {
-      moduleName: t,
-      moduleVersion: r,
-      requestId: o,
+    this.postOffice.sendMessage("IPyWidgets_WidgetScriptSourceRequest" /* IPyWidgets_WidgetScriptSourceRequest */, {
+      moduleName,
+      moduleVersion,
+      requestId
     });
     try {
-      await s.deferred.promise;
-      let a = this.registeredWidgetSources.get(t);
-      a &&
-        yl(a, r, this.widgetsCanLoadFromCDN, (l) =>
-          this.emit("onWidgetVersionNotSupported", {
-            moduleName: l.moduleName,
-            moduleVersion: l.moduleVersion,
+      await request.deferred.promise;
+      const widgetSource = this.registeredWidgetSources.get(moduleName);
+      if (widgetSource) {
+        warnAboutWidgetVersionsThatAreNotSupported(
+          widgetSource,
+          moduleVersion,
+          this.widgetsCanLoadFromCDN,
+          (info) => this.emit("onWidgetVersionNotSupported", {
+            moduleName: info.moduleName,
+            moduleVersion: info.moduleVersion
           })
         );
-    } catch (a) {
-      console.error(
-        `Failed to load Widget Script from Extension for ${t}, ${r}`,
-        a
-      );
+      }
+    } catch (ex) {
+      console.error(`Failed to load Widget Script from Extension for ${moduleName}, ${moduleVersion}`, ex);
     }
   }
-  handleLoadSuccess(t, r, i) {
-    this.emit("onWidgetLoadSuccess", {
-      className: t,
-      moduleName: r,
-      moduleVersion: i,
-    });
+  handleLoadSuccess(className, moduleName, moduleVersion) {
+    this.emit("onWidgetLoadSuccess", { className, moduleName, moduleVersion });
   }
-  clearWidgetModuleScriptSource(t) {
-    this.widgetSourceRequests.delete(t),
-      this.registeredWidgetSources.delete(t),
-      this.widgetsRegisteredInRequireJs.delete(t),
-      El(t);
+  clearWidgetModuleScriptSource(moduleName) {
+    this.widgetSourceRequests.delete(moduleName);
+    this.registeredWidgetSources.delete(moduleName);
+    this.widgetsRegisteredInRequireJs.delete(moduleName);
+    undefineModule(moduleName);
   }
+  /**
+   * E.g. when we have restarted a kernel.
+   * If user changed the kernel, then some widgets might exist now and some might now.
+   */
   clear() {
-    this.widgetSourceRequests.clear(), this.registeredWidgetSources.clear();
+    this.widgetSourceRequests.clear();
+    this.registeredWidgetSources.clear();
   }
-  registerScriptSourcesInRequirejs(t) {
-    z(`Received IPyWidget scripts ${JSON.stringify(t || [])}`),
-      !(!Array.isArray(t) || t.length === 0) &&
-        t.forEach((r) => {
-          let i = this.registeredWidgetSources.get(r.moduleName);
-          (!i || (i.source && i.source !== "cdn")) &&
-            (bl(this.baseUrl, [r]),
-            this.registeredWidgetSources.set(r.moduleName, r),
-            this.widgetsRegisteredInRequireJs.add(r.moduleName));
-          let s = this.widgetSourceRequests.get(r.moduleName);
-          s ||
-            ((s = {
-              deferred: Fe(),
-              timer: void 0,
-              source: r.source,
-              requestId: r.requestId || "",
-              explicitlyRequested: !1,
-            }),
-            this.widgetSourceRequests.set(r.moduleName, s)),
-            r.requestId && r.requestId === s.requestId
-              ? ((s.source = r.source), s.deferred.resolve())
-              : r.requestId || ((s.source = r.source), s.deferred.resolve()),
-            s.deferred.completed && s.timer !== void 0 && clearTimeout(s.timer);
-        });
-  }
-  registerScriptSourceInRequirejs(t) {
-    if (!t) {
-      z("No widget script source");
+  /**
+   * Given a list of the widgets along with the sources, we will need to register them with requirejs.
+   * IPyWidgets uses requirejs to dynamically load modules.
+   * (https://requirejs.org/docs/api.html)
+   * All we're doing here is given a widget (module) name, we register the path where the widget (module) can be loaded from.
+   * E.g.
+   * requirejs.config({ paths:{
+   *  'widget_xyz': '<Url of script without trailing .js>'
+   * }});
+   */
+  registerScriptSourcesInRequirejs(sources) {
+    logMessage(`Received IPyWidget scripts ${JSON.stringify(sources || [])}`);
+    if (!Array.isArray(sources) || sources.length === 0) {
       return;
     }
-    this.registerScriptSourcesInRequirejs([t]);
+    sources.forEach((source) => {
+      const currentRegistration = this.registeredWidgetSources.get(source.moduleName);
+      if (!currentRegistration || currentRegistration.source && currentRegistration.source !== "cdn") {
+        registerScripts(this.baseUrl, [source]);
+        this.registeredWidgetSources.set(source.moduleName, source);
+        this.widgetsRegisteredInRequireJs.add(source.moduleName);
+      }
+      let request = this.widgetSourceRequests.get(source.moduleName);
+      if (!request) {
+        request = {
+          deferred: createDeferred(),
+          timer: void 0,
+          source: source.source,
+          requestId: source.requestId || "",
+          explicitlyRequested: false
+        };
+        this.widgetSourceRequests.set(source.moduleName, request);
+      }
+      if (source.requestId && source.requestId === request.requestId) {
+        request.source = source.source;
+        request.deferred.resolve();
+      } else if (!source.requestId) {
+        request.source = source.source;
+        request.deferred.resolve();
+      }
+      if (request.deferred.completed && request.timer !== void 0) {
+        clearTimeout(request.timer);
+      }
+    });
   }
-  async handleLoadError(t, r, i, s, o = !1) {
-    this.widgetModulesFailedToLoad.add(r);
-    let a = await $i();
-    this.emit("onWidgetLoadError", {
-      className: t,
-      moduleName: r,
-      moduleVersion: i,
-      error: s,
-      timedout: o,
-      isOnline: a,
+  registerScriptSourceInRequirejs(source) {
+    if (!source) {
+      logMessage("No widget script source");
+      return;
+    }
+    this.registerScriptSourcesInRequirejs([source]);
+  }
+  async handleLoadError(className, moduleName, moduleVersion, error, timedout = false) {
+    this.widgetModulesFailedToLoad.add(moduleName);
+    const isOnline = await isCDNReachable();
+    this.emit("onWidgetLoadError", { className, moduleName, moduleVersion, error, timedout, isOnline });
+  }
+};
+
+// src/webviews/webview-side/ipywidgets/kernel/index.ts
+var WidgetManagerComponent = class {
+  constructor(postOffice, JupyterLabWidgetManager, widgetState) {
+    this.postOffice = postOffice;
+    this.scriptManager = new ScriptManager(postOffice);
+    this.scriptManager.onWidgetLoadError(this.handleLoadError.bind(this));
+    this.scriptManager.onWidgetLoadSuccess(this.handleLoadSuccess.bind(this));
+    this.scriptManager.onWidgetVersionNotSupported(this.handleUnsupportedWidgetVersion.bind(this));
+    this.widgetManager = new WidgetManager(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      void 0,
+      postOffice,
+      this.scriptManager.getScriptLoader(),
+      JupyterLabWidgetManager,
+      widgetState
+    );
+    postOffice.addHandler({
+      handleMessage: (_type, _payload) => {
+        return true;
+      }
+    });
+  }
+  dispose() {
+    this.widgetManager.dispose();
+  }
+  async handleLoadError(data) {
+    this.postOffice.sendMessage("ipywidget_load_failure" /* IPyWidgetLoadFailure */, {
+      className: data.className,
+      moduleName: data.moduleName,
+      moduleVersion: data.moduleVersion,
+      isOnline: data.isOnline,
+      timedout: data.timedout,
+      error: JSON.stringify(data.error)
+    });
+    console.error(`Failed to to Widget load class ${data.moduleName}${data.className}`, data);
+  }
+  handleUnsupportedWidgetVersion(data) {
+    this.postOffice.sendMessage(
+      "ipywidget_widget_version_not_supported" /* IPyWidgetWidgetVersionNotSupported */,
+      {
+        moduleName: data.moduleName,
+        moduleVersion: data.moduleVersion
+      }
+    );
+  }
+  handleLoadSuccess(data) {
+    this.postOffice.sendMessage("ipywidget_load_success" /* IPyWidgetLoadSuccess */, {
+      className: data.className,
+      moduleName: data.moduleName,
+      moduleVersion: data.moduleVersion
     });
   }
 };
-var ps = class {
-    constructor(e, t, r) {
-      this.postOffice = e;
-      (this.scriptManager = new Rr(e)),
-        this.scriptManager.onWidgetLoadError(this.handleLoadError.bind(this)),
-        this.scriptManager.onWidgetLoadSuccess(
-          this.handleLoadSuccess.bind(this)
-        ),
-        this.scriptManager.onWidgetVersionNotSupported(
-          this.handleUnsupportedWidgetVersion.bind(this)
-        ),
-        (this.widgetManager = new Lt(
-          void 0,
-          e,
-          this.scriptManager.getScriptLoader(),
-          t,
-          r
-        )),
-        e.addHandler({ handleMessage: (i, s) => !0 });
-    }
-    dispose() {
-      this.widgetManager.dispose();
-    }
-    async handleLoadError(e) {
-      this.postOffice.sendMessage("ipywidget_load_failure", {
-        className: e.className,
-        moduleName: e.moduleName,
-        moduleVersion: e.moduleVersion,
-        isOnline: e.isOnline,
-        timedout: e.timedout,
-        error: JSON.stringify(e.error),
-      }),
-        console.error(
-          `Failed to to Widget load class ${e.moduleName}${e.className}`,
-          e
-        );
-    }
-    handleUnsupportedWidgetVersion(e) {
-      this.postOffice.sendMessage("ipywidget_widget_version_not_supported", {
-        moduleName: e.moduleName,
-        moduleVersion: e.moduleVersion,
-      });
-    }
-    handleLoadSuccess(e) {
-      this.postOffice.sendMessage("ipywidget_load_success", {
-        className: e.className,
-        moduleName: e.moduleName,
-        moduleVersion: e.moduleVersion,
-      });
-    }
-  },
-  Hh = new Map(),
-  Ye = new Map(),
-  Ar = [];
-async function $h(n, e, t, r) {
+var outputDisposables = /* @__PURE__ */ new Map();
+var renderedWidgets = /* @__PURE__ */ new Map();
+var stackOfWidgetsRenderStatusByOutputId = [];
+async function renderOutput(outputItem, model, element, logger) {
   try {
-    Ar.push({ outputId: n.id, container: t }), Gh(n.id, e, t, r);
-  } catch (i) {
-    throw (
-      (r(`Error: render output ${n.id} failed ${i.toString()}`, "error"), i)
+    stackOfWidgetsRenderStatusByOutputId.push({ outputId: outputItem.id, container: element });
+    renderIPyWidget(outputItem.id, model, element, logger);
+  } catch (ex) {
+    logger(`Error: render output ${outputItem.id} failed ${ex.toString()}`, "error");
+    throw ex;
+  }
+}
+function disposeOutput(outputId) {
+  if (outputId) {
+    stackOfWidgetsRenderStatusByOutputId = stackOfWidgetsRenderStatusByOutputId.filter(
+      (item) => !(outputId in item)
     );
   }
 }
-function Jh(n) {
-  n && (Ar = Ar.filter((e) => !(n in e)));
-}
-function Gh(n, e, t, r) {
-  var s, o, a, l;
-  if (
-    (r(`Rendering IPyWidget ${n} with model ${e.model_id} in ${t.id}`),
-    Ye.has(n) &&
-      ((s = Ye.get(n)) == null ? void 0 : s.container) === t &&
-      ((o = Ye.get(n)) == null ? void 0 : o.modelId) === e.model_id)
-  )
-    return r("already rendering");
-  let i = 0;
-  if (Ye.has(n)) {
-    (i = 100),
-      r(
-        "Widget was already rendering for another container, dispose that widget so we can re-render it"
-      );
-    try {
-      (l = (a = Ye.get(n)) == null ? void 0 : a.widget) == null || l.dispose();
-    } catch (u) {}
+function renderIPyWidget(outputId, model, container, logger) {
+  var _a, _b, _c, _d;
+  logger(`Rendering IPyWidget ${outputId} with model ${model.model_id} in ${container.id}`);
+  if (renderedWidgets.has(outputId) && ((_a = renderedWidgets.get(outputId)) == null ? void 0 : _a.container) === container && ((_b = renderedWidgets.get(outputId)) == null ? void 0 : _b.modelId) === model.model_id) {
+    return logger("already rendering");
   }
-  if (t.firstChild)
+  let timeout = 0;
+  if (renderedWidgets.has(outputId)) {
+    timeout = 100;
+    logger("Widget was already rendering for another container, dispose that widget so we can re-render it");
     try {
-      t.removeChild(t.firstChild);
-    } catch (u) {}
-  new Promise((u) => setTimeout(u, i))
-    .then(() => {
-      let u = document.createElement("div");
-      (u.className = "cell-output cell-output"),
-        typeof e._vsc_test_cellIndex == "number" &&
-          (t.className += ` vsc-test-cell-index-${e._vsc_test_cellIndex}`);
-      let f = document.createElement("div");
-      (f.className = "cell-output-ipywidget-background"),
-        t.appendChild(f),
-        f.appendChild(u),
-        Ye.set(n, { container: t, modelId: e.model_id }),
-        zh(e, f)
-          .then((c) => {
-            var S;
-            if (((S = Ye.get(n)) == null ? void 0 : S.container) !== t) {
-              r("Widget container changed, hence disposing the widget"),
-                c == null || c.dispose();
-              return;
-            }
-            Ye.has(n) && (Ye.get(n).widget = c);
-            let C = {
-              dispose: () => {
-                Ye.delete(n), c == null || c.dispose();
-              },
-            };
-            Hh.set(n, C);
-            let M = Ar.find((w) => w.outputId === n);
-            M && (M.success = !0);
-          })
-          .catch((c) => {
-            r(`Error: Failed to render ${n}, ${c.toString()}`, "error");
-          });
-    })
-    .catch((u) => {
-      r(`Error: Failed to render ${n}, ${u.toString()}`, "error");
+      (_d = (_c = renderedWidgets.get(outputId)) == null ? void 0 : _c.widget) == null ? void 0 : _d.dispose();
+    } catch (e) {
+    }
+  }
+  if (container.firstChild) {
+    try {
+      container.removeChild(container.firstChild);
+    } catch (e) {
+    }
+  }
+  new Promise((resolve) => setTimeout(resolve, timeout)).then(() => {
+    const output = document.createElement("div");
+    output.className = "cell-output cell-output";
+    if (typeof model._vsc_test_cellIndex === "number") {
+      container.className += ` vsc-test-cell-index-${model._vsc_test_cellIndex}`;
+    }
+    const ele = document.createElement("div");
+    ele.className = "cell-output-ipywidget-background";
+    container.appendChild(ele);
+    ele.appendChild(output);
+    renderedWidgets.set(outputId, { container, modelId: model.model_id });
+    createWidgetView(model, ele).then((w) => {
+      var _a2;
+      if (((_a2 = renderedWidgets.get(outputId)) == null ? void 0 : _a2.container) !== container) {
+        logger("Widget container changed, hence disposing the widget");
+        w == null ? void 0 : w.dispose();
+        return;
+      }
+      if (renderedWidgets.has(outputId)) {
+        renderedWidgets.get(outputId).widget = w;
+      }
+      const disposable = {
+        dispose: () => {
+          renderedWidgets.delete(outputId);
+          w == null ? void 0 : w.dispose();
+        }
+      };
+      outputDisposables.set(outputId, disposable);
+      const statusInfo = stackOfWidgetsRenderStatusByOutputId.find((item) => item.outputId === outputId);
+      if (statusInfo) {
+        statusInfo.success = true;
+      }
+    }).catch((ex) => {
+      logger(`Error: Failed to render ${outputId}, ${ex.toString()}`, "error");
     });
+  }).catch((ex) => {
+    logger(`Error: Failed to render ${outputId}, ${ex.toString()}`, "error");
+  });
 }
-var gn;
-async function Rl() {
-  if (!gn) {
-    let e = function (t) {
-      function r() {
-        let i = Lt.instance;
-        if (i) {
-          let s = i.dispose.bind(i);
-          (i.dispose = () => ((gn = void 0), s())),
-            t && (t(i), (t = void 0)),
-            (gn = Promise.resolve(i));
+var widgetManagerPromise;
+async function getWidgetManager() {
+  if (!widgetManagerPromise) {
+    let reInitializeWidgetManager2 = function(resolve) {
+      function initializeInstance() {
+        const wm = WidgetManager.instance;
+        if (wm) {
+          const oldDispose = wm.dispose.bind(wm);
+          wm.dispose = () => {
+            widgetManagerPromise = void 0;
+            return oldDispose();
+          };
+          if (resolve) {
+            resolve(wm);
+            resolve = void 0;
+          }
+          widgetManagerPromise = Promise.resolve(wm);
         }
       }
-      r(), Lt.onDidChangeInstance(r);
+      initializeInstance();
+      WidgetManager.onDidChangeInstance(initializeInstance);
     };
-    var n = e;
-    gn = new Promise((t) => e(t));
+    var reInitializeWidgetManager = reInitializeWidgetManager2;
+    widgetManagerPromise = new Promise((resolve) => reInitializeWidgetManager2(resolve));
   }
-  return gn;
+  return widgetManagerPromise;
 }
-async function zh(n, e) {
+async function createWidgetView(widgetData, element) {
   try {
-    let t = await Rl();
-    return await (t == null ? void 0 : t.renderWidget(n, e));
-  } catch (t) {
-    Ue(`Error: Failed to render widget ${n.model_id}, ${t.toString()}`);
+    const wm = await getWidgetManager();
+    return await (wm == null ? void 0 : wm.renderWidget(widgetData, element));
+  } catch (ex) {
+    logErrorMessage(`Error: Failed to render widget ${widgetData.model_id}, ${ex.toString()}`);
   }
 }
-async function Yh(n) {
-  await new Promise((e) => {
-    let t = () => {
-      if (window.vscIPyWidgets) return e();
-      setTimeout(t, 1e3);
+async function restoreWidgets(widgetState) {
+  await new Promise((resolve) => {
+    const tryAgain = () => {
+      if (window.vscIPyWidgets) {
+        return resolve();
+      }
+      setTimeout(tryAgain, 1e3);
     };
-    setTimeout(t, 1e3);
+    setTimeout(tryAgain, 1e3);
   });
   try {
-    Dl(n);
-    let e = await Rl(),
-      t = { metadata: { get: (r) => n } };
-    return await (e == null
-      ? void 0
-      : e.restoreWidgets(t, { loadKernel: !1, loadNotebook: !0 }));
-  } catch (e) {
-    Ue(`Error: Failed to render widget state ${n}, ${e.toString()}`);
+    initializeWidgetManager(widgetState);
+    const wm = await getWidgetManager();
+    const model = {
+      metadata: {
+        get: (_) => {
+          return widgetState;
+        }
+      }
+    };
+    return await (wm == null ? void 0 : wm.restoreWidgets(model, { loadKernel: false, loadNotebook: true }));
+  } catch (ex) {
+    logErrorMessage(`Error: Failed to render widget state ${widgetState}, ${ex.toString()}`);
   }
 }
-var Il = !1;
-function Xh(n, e, t) {
-  if (Il) {
-    Ue("Error: WidgetManager already initialized");
+var initialized = false;
+function initialize(JupyterLabWidgetManager, context, widgetState) {
+  if (initialized) {
+    logErrorMessage(`Error: WidgetManager already initialized`);
     return;
   }
   try {
-    let r = new yn(e),
-      i = new ps(r, n, t);
-    (window._mgr = i), (Il = !0);
-  } catch (r) {
-    Ue(`Error: Exception initializing WidgetManager, ${r.toString()}`);
+    const postOffice = new PostOffice(context);
+    const mgr = new WidgetManagerComponent(postOffice, JupyterLabWidgetManager, widgetState);
+    window._mgr = mgr;
+    initialized = true;
+  } catch (ex) {
+    logErrorMessage(`Error: Exception initializing WidgetManager, ${ex.toString()}`);
   }
 }
-var gs;
+var capturedContext;
 window.ipywidgetsKernel = {
-  renderOutput: $h,
-  disposeOutput: Jh,
-  restoreWidgets: Yh,
+  renderOutput,
+  disposeOutput,
+  restoreWidgets,
   initialize: () => {
-    Al(gs);
-  },
+    requestWidgetVersion(capturedContext);
+  }
 };
-function Al(n) {
-  n.postKernelMessage({ type: "IPyWidgets_Request_Widget_Version" });
+function requestWidgetVersion(context) {
+  context.postKernelMessage({ type: "IPyWidgets_Request_Widget_Version" /* IPyWidgets_Request_Widget_Version */ });
 }
-function Dl(n) {
-  z("IPyWidget kernel initializing...");
-  let e = window.vscIPyWidgets.WidgetManager;
-  if (!e)
-    throw new Error(
-      "JupyterLabWidgetManager not defined. Please include/check ipywidgets.js file"
-    );
-  Xh(e, gs, n);
+function initializeWidgetManager(widgetState) {
+  logMessage("IPyWidget kernel initializing...");
+  const JupyterLabWidgetManager = window.vscIPyWidgets.WidgetManager;
+  if (!JupyterLabWidgetManager) {
+    throw new Error("JupyterLabWidgetManager not defined. Please include/check ipywidgets.js file");
+  }
+  initialize(JupyterLabWidgetManager, capturedContext, widgetState);
 }
-var Cl = !1;
-function gm(n) {
-  (gs = n),
-    Qh(n),
-    z(`Attempt Initialize IpyWidgets kernel.js : ${JSON.stringify(n)}`),
-    n.onDidReceiveKernelMessage(async (e) => {
-      if (
-        typeof e == "object" &&
-        e &&
-        "type" in e &&
-        e.type === "IPyWidgets_Reply_Widget_Version" &&
-        "payload" in e &&
-        typeof e.payload == "number"
-      ) {
-        if (Cl) return;
-        Cl = !0;
-        try {
-          let t = e.payload;
-          z(`Loading IPyWidget Version ${t}`);
-          let r = new Promise((a) => {
-              let l = () => {
-                if (window.vscIPyWidgets7) return a();
-                setTimeout(l, 500);
-              };
-              setTimeout(l, 500);
-            }),
-            i = new Promise((a) => {
-              let l = () => {
-                if (window.vscIPyWidgets8) return a();
-                setTimeout(l, 500);
-              };
-              setTimeout(l, 500);
-            });
-          await Promise.all([r, i]),
-            t === 7
-              ? ((() => {
-                  try {
-                    window.vscIPyWidgets8.unload();
-                  } catch (a) {}
-                })(),
-                window.vscIPyWidgets7.load(),
-                z("Loaded IPYWidgets 7.x from Kernel"))
-              : t === 8 &&
-                ((() => {
-                  try {
-                    window.vscIPyWidgets7.unload();
-                  } catch (a) {}
-                })(),
-                window.vscIPyWidgets8.load(),
-                z("Loaded IPYWidgets 8.x from Kernel")),
-            Dl();
-        } catch (t) {
-          Ue(`Failed to load IPyWidget Version ${e.payload}, ${t}`);
-        }
+var ipyWidgetVersionResponseHandled = false;
+function activate(context) {
+  capturedContext = context;
+  hookWindowFunctions(context);
+  logMessage(`Attempt Initialize IpyWidgets kernel.js : ${JSON.stringify(context)}`);
+  context.onDidReceiveKernelMessage(async (e) => {
+    console.log("mtype", typeof e === "object" && e && "type" in e && e.type, JSON.stringify(e.payload));
+    if (typeof e === "object" && e && "type" in e && e.type === "IPyWidgets_Reply_Widget_Version" /* IPyWidgets_Reply_Widget_Version */ && "payload" in e && typeof e.payload === "number") {
+      if (ipyWidgetVersionResponseHandled) {
+        return;
       }
-    }),
-    Al(n);
+      ipyWidgetVersionResponseHandled = true;
+      try {
+        const version = e.payload;
+        logMessage(`Loading IPyWidget Version ${version}`);
+        const widgets7Promise = new Promise((resolve) => {
+          const checkIfLoaded = () => {
+            if (window.vscIPyWidgets7) {
+              return resolve();
+            }
+            setTimeout(checkIfLoaded, 500);
+          };
+          setTimeout(checkIfLoaded, 500);
+        });
+        const widgets8Promise = new Promise((resolve) => {
+          const checkIfLoaded = () => {
+            if (window.vscIPyWidgets8) {
+              return resolve();
+            }
+            setTimeout(checkIfLoaded, 500);
+          };
+          setTimeout(checkIfLoaded, 500);
+        });
+        await Promise.all([widgets7Promise, widgets8Promise]);
+        const unloadWidgets8 = () => {
+          try {
+            window.vscIPyWidgets8.unload();
+          } catch (e2) {
+          }
+        };
+        const unloadWidgets7 = () => {
+          try {
+            window.vscIPyWidgets7.unload();
+          } catch (e2) {
+          }
+        };
+        if (version === 7) {
+          unloadWidgets8();
+          window.vscIPyWidgets7.load();
+          logMessage("Loaded IPYWidgets 7.x from Kernel");
+        } else if (version === 8) {
+          unloadWidgets7();
+          window.vscIPyWidgets8.load();
+          logMessage("Loaded IPYWidgets 8.x from Kernel");
+        }
+        initializeWidgetManager();
+      } catch (ex) {
+        logErrorMessage(`Failed to load IPyWidget Version ${e.payload}, ${ex}`);
+      }
+    }
+  });
+  requestWidgetVersion(context);
 }
-function Qh(n) {
-  n.postKernelMessage &&
-    ((window.alert = (e) => {
-      var t;
-      throw (
-        (console.log("window.alert", e),
-        (t = n.postKernelMessage) == null ||
-          t.call(n, { type: "IPyWidgets_Window_Alert", message: e.toString() }),
-        new Error("window.alert not supported in VS Code Renderers"))
-      );
-    }),
-    (window.open = (e) => {
-      var t;
-      if ((console.log("window.open", e), e))
-        throw (
-          ((t = n.postKernelMessage) == null ||
-            t.call(n, { type: "IPyWidgets_Window_Open", url: e.toString() }),
-          new Error("window.open not supported in VS Code Renderers"))
-        );
+function hookWindowFunctions(context) {
+  if (context.postKernelMessage) {
+    window.alert = (message) => {
+      var _a;
+      console.log("window.alert", message);
+      (_a = context.postKernelMessage) == null ? void 0 : _a.call(context, {
+        type: "IPyWidgets_Window_Alert" /* IPyWidgets_Window_Alert */,
+        message: message.toString()
+      });
+      throw new Error("window.alert not supported in VS Code Renderers");
+    };
+    window.open = (url) => {
+      var _a;
+      console.log("window.open", url);
+      if (url) {
+        (_a = context.postKernelMessage) == null ? void 0 : _a.call(context, { type: "IPyWidgets_Window_Open" /* IPyWidgets_Window_Open */, url: url.toString() });
+        throw new Error("window.open not supported in VS Code Renderers");
+      }
       return null;
-    }));
+    };
+  }
 }
-export { gm as activate, Jh as disposeOutput, $h as renderOutput };
+export {
+  activate,
+  disposeOutput,
+  renderOutput
+};
 /*! Bundled license information:
 
 @lumino/polling/dist/index.js:
@@ -11053,3 +14499,4 @@ export { gm as activate, Jh as disposeOutput, $h as renderOutput };
       PERFORMANCE OF THIS SOFTWARE.
       ***************************************************************************** *)
 */
+//# sourceMappingURL=ipywidgetsKernel.js.map

@@ -6,6 +6,8 @@ import { PythonBridge, PythonException } from "python-bridge";
 import { DBTCommandExecutionInfrastructure } from "../dbt_client/dbtIntegration";
 import path = require("path");
 import {
+  Event,
+  EventEmitter,
   NotebookCell,
   NotebookCellOutput,
   NotebookCellOutputItem,
@@ -25,10 +27,13 @@ import {
   formatStreamText,
   getParentHeaderMsgId,
   handleTensorBoardDisplayDataOutput,
+  shouldMessageBeMirroredWithRenderer,
 } from "./helpers";
 import { readFileSync } from "fs";
 import { Identifiers, WIDGET_MIMETYPE } from "./constants";
 import { noop } from "./controller";
+import { serializeDataViews } from "./serializers";
+import { createDeferred } from "./async";
 
 type ExecuteResult = nbformat.IExecuteResult & {
   transient?: { display_id?: string };
@@ -54,6 +59,12 @@ interface ConnectionSettings {
   stdin_port: number;
   transport: string;
 }
+
+export interface IPyWidgetMessage {
+  message: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: any;
+}
 export class NotebookClient {
   private lastUsedStreamOutput?: {
     stream: "stdout" | "stderr";
@@ -63,6 +74,11 @@ export class NotebookClient {
     NotebookCell,
     Set<string>
   >();
+  public get postMessage(): Event<IPyWidgetMessage> {
+    return this._postMessageEmitter.event;
+  }
+
+  private _postMessageEmitter = new EventEmitter<IPyWidgetMessage>();
   private python: PythonBridge;
   private kernel: ReturnType<typeof newRawKernel> | undefined;
   private isInitializing = true;
@@ -72,6 +88,11 @@ export class NotebookClient {
   private readonly ownedRequestMsgIds = new Set<string>();
   private commIdsMappedToParentWidgetModel = new Map<string, string>();
   private streamsReAttachedToExecutingCell = false;
+  private isUsingIPyWidgets = false;
+  private outputWidgetIds = new Set<string>();
+  private readonly deserialize: (
+    data: string | ArrayBuffer,
+  ) => KernelMessage.IMessage<KernelMessage.MessageType>;
   private outputsAreSpecificToAWidget: {
     /**
      * Comm Id (or model_id) of widget that will handle all messages and render them via the widget manager.
@@ -97,6 +118,10 @@ export class NotebookClient {
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
     private pythonEnvironment: PythonEnvironment,
   ) {
+    const jupyterLabSerialize =
+      require("@jupyterlab/services/lib/kernel/serialize") as typeof import("@jupyterlab/services/lib/kernel/serialize"); // NOSONAR
+    this.deserialize = jupyterLabSerialize.deserialize;
+
     this.python = this.executionInfrastructure.createPythonBridge(
       path.dirname(notebookPath),
     );
@@ -143,10 +168,10 @@ export class NotebookClient {
         id: randomUUID(),
       });
       this.kernel = result;
-      console.log(result);
+      console.log("newRawKernel", result);
       const newSocket = result.socket;
-      newSocket?.addReceiveHook(this.onKernelSocketMessage); // NOSONAR
-      newSocket?.addSendHook(this.mirrorSend); // NOSONAR
+      newSocket?.addReceiveHook(this.onKernelSocketMessage.bind(this)); // NOSONAR
+      newSocket?.addSendHook(this.mirrorSend.bind(this)); // NOSONAR
     } catch (exc) {
       // TODO: handle error
       console.error(exc);
@@ -214,10 +239,124 @@ export class NotebookClient {
     data: any,
     _cb?: (err?: Error) => void,
   ): Promise<void> {
-    console.log("mirrorSend", data);
+    // If this is shell control message, mirror to the other side. This is how
+    // we get the kernel in the UI to have the same set of futures we have on this side
+    if (
+      typeof data === "string" &&
+      data.includes("shell") &&
+      data.includes("execute_request")
+    ) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const msg = this.deserialize(data) as KernelMessage.IExecuteRequestMsg;
+      if (
+        msg.channel === "shell" &&
+        msg.header.msg_type === "execute_request"
+      ) {
+        if (!shouldMessageBeMirroredWithRenderer(msg)) {
+          return;
+        }
+        const promise = this.mirrorExecuteRequest(
+          msg as KernelMessage.IExecuteRequestMsg,
+        ); // NOSONAR
+        // If there are no ipywidgets thusfar in the notebook, then no need to synchronize messages.
+        if (this.isUsingIPyWidgets) {
+          await promise;
+        }
+      }
+    }
   }
+
+  private raisePostMessage(message: string, payload: unknown) {
+    // TODO validate type
+    // @ts-ignore
+    this._postMessageEmitter.fire({ message, payload, type: message });
+  }
+
+  private mirrorExecuteRequest(msg: KernelMessage.IExecuteRequestMsg) {
+    const promise = createDeferred<void>();
+    // this.waitingMessageIds.set(msg.header.msg_id, { startTime: Date.now(), resultPromise: promise });
+    this.raisePostMessage("IPyWidgets_mirror_execute", {
+      id: msg.header.msg_id,
+      msg,
+    });
+    return promise.promise;
+  }
+
   private async onKernelSocketMessage(data: WebSocketData): Promise<void> {
-    console.log("onKernelSocketMessage", data);
+    // Hooks expect serialized data as this normally comes from a WebSocket
+
+    const msgUuid = randomUUID();
+    // const promise = createDeferred<void>();
+    // this.waitingMessageIds.set(msgUuid, {
+    //   startTime: Date.now(),
+    //   resultPromise: promise,
+    // });
+
+    if (typeof data === "string") {
+      if (shouldMessageBeMirroredWithRenderer(data)) {
+        this.raisePostMessage("IPyWidgets_msg", {
+          id: msgUuid,
+          data,
+        });
+      }
+    } else {
+      this.raisePostMessage("IPyWidgets_binary_msg", {
+        id: msgUuid,
+        data: serializeDataViews([data as any]),
+      });
+    }
+
+    // Lets deserialize only if we know we have a potential case
+    // where this message contains some data we're interested in.
+    const mustDeserialize =
+      typeof data !== "string" ||
+      data.includes(WIDGET_MIMETYPE) ||
+      data.includes(Identifiers.DefaultCommTarget) ||
+      data.includes("comm_open") ||
+      data.includes("comm_close") ||
+      data.includes("comm_msg");
+    if (mustDeserialize) {
+      const message = this.deserialize(data as any) as any;
+      if (!shouldMessageBeMirroredWithRenderer(message)) {
+        return;
+      }
+
+      // Check for hints that would indicate whether ipywidgest are used in outputs.
+      if (
+        message &&
+        message.content &&
+        message.content.data &&
+        (message.content.data[WIDGET_MIMETYPE] ||
+          message.content.target_name === Identifiers.DefaultCommTarget)
+      ) {
+        this.isUsingIPyWidgets = true;
+      }
+
+      const isIPYWidgetOutputModelOpen =
+        message.header?.msg_type === "comm_open" &&
+        message.content?.data?.state?._model_module ===
+          "@jupyter-widgets/output" &&
+        message.content?.data?.state?._model_name === "OutputModel";
+      const isIPYWidgetOutputModelClose =
+        message.header?.msg_type === "comm_close" &&
+        this.outputWidgetIds.has(message.content?.comm_id);
+
+      if (isIPYWidgetOutputModelOpen) {
+        this.outputWidgetIds.add(message.content.comm_id);
+      } else if (isIPYWidgetOutputModelClose) {
+        this.outputWidgetIds.delete(message.content.comm_id);
+      }
+      // TODO check if this is needed
+      // else if (this.messageNeedsFullHandle(message)) {
+      //   this.fullHandleMessage = {
+      //     id: message.header.msg_id,
+      //     promise: createDeferred<void>(),
+      //   };
+      //   await promise.promise;
+      //   await this.fullHandleMessage.promise.promise;
+      //   this.fullHandleMessage = undefined;
+      // }
+    }
   }
 
   async storeDataInKernel(cellId: string, data: any) {
@@ -231,7 +370,7 @@ export class NotebookClient {
   async executePython(
     code: string,
     cell: NotebookCell,
-  ): Promise<NotebookCellOutput | NotebookCellOutput[] | undefined> {
+  ): Promise<NotebookCellOutput[] | undefined> {
     return new Promise(async (resolve, reject) => {
       const cellPath = cell.metadata.cellId;
       console.log(`Executing python code in cell: ${cellPath}`);
@@ -239,8 +378,15 @@ export class NotebookClient {
         require("@jupyterlab/services") as typeof import("@jupyterlab/services");
       const request = await this.kernel?.realKernel.requestExecute({ code });
       if (!request) {
+        resolve(undefined);
         return;
       }
+
+      const outputs: (NotebookCellOutput | undefined)[] = [];
+      request.done.finally(() => {
+        console.log("finally");
+        resolve(outputs.filter((o): o is NotebookCellOutput => !!o));
+      });
       request.onStdin = (msg) => {
         console.log("onStdin", msg);
       };
@@ -248,7 +394,7 @@ export class NotebookClient {
         if (jupyterLab.KernelMessage.isCommOpenMsg(msg)) {
           this.handleCommOpen(msg);
         } else if (jupyterLab.KernelMessage.isExecuteResultMsg(msg)) {
-          resolve(
+          outputs.push(
             this.handleExecuteResult(
               msg as KernelMessage.IExecuteResultMsg,
               cell,
@@ -262,11 +408,11 @@ export class NotebookClient {
           const statusMsg = msg as KernelMessage.IStatusMsg;
           this.handleStatusMessage(statusMsg);
         } else if (jupyterLab.KernelMessage.isStreamMsg(msg)) {
-          resolve(
+          outputs.concat(
             this.handleStreamMessage(msg as KernelMessage.IStreamMsg, cell),
           );
         } else if (jupyterLab.KernelMessage.isDisplayDataMsg(msg)) {
-          resolve(
+          outputs.push(
             this.handleDisplayData(msg as KernelMessage.IDisplayDataMsg, cell),
           );
         } else if (jupyterLab.KernelMessage.isUpdateDisplayDataMsg(msg)) {
@@ -275,7 +421,7 @@ export class NotebookClient {
         } else if (jupyterLab.KernelMessage.isClearOutputMsg(msg)) {
           this.handleClearOutput(msg as KernelMessage.IClearOutputMsg);
         } else if (jupyterLab.KernelMessage.isErrorMsg(msg)) {
-          resolve(this.handleError(msg as KernelMessage.IErrorMsg, cell));
+          outputs.push(this.handleError(msg as KernelMessage.IErrorMsg, cell));
         } else if (jupyterLab.KernelMessage.isCommOpenMsg(msg)) {
           // Noop.
         } else if (jupyterLab.KernelMessage.isCommMsgMsg(msg)) {
