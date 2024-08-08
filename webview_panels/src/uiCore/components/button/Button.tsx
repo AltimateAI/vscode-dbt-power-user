@@ -3,7 +3,8 @@ import { Button as ReactStrapButton, ButtonProps } from "reactstrap";
 import Tooltip from "../tooltip/Tooltip";
 
 export const Button = (props: ButtonProps): JSX.Element => {
-  const isIconPresrent = props?.showHoverEffect && props?.icon ? true : false;
+  const showHovereffect = !props?.showHoverEffect ? false : true;
+  const isIconPresrent = showHovereffect && props?.icon ? true : false;
   const [showButtonText, setShowButtonText] = useState<boolean>(
     isIconPresrent ? false : true,
   );
