@@ -366,26 +366,62 @@ export class DBTCloudProjectIntegration
     ];
   }
 
-  async rebuildManifest(): Promise<void> {
+  async rebuildManifest(retryCount: number = 0): Promise<void> {
+    // TODO: check whether we should allow parsing for unauthenticated users
+    // this.throwIfNotAuthenticated();
     if (this.rebuildManifestCancellationTokenSource) {
       this.rebuildManifestCancellationTokenSource.cancel();
       this.rebuildManifestCancellationTokenSource = undefined;
     }
+    const command = this.dbtCloudCommand(
+      this.dbtCommandFactory.createParseCommand(),
+    );
+    command.addArgument("--log-format");
+    command.addArgument("json");
+    command.downloadArtifacts = true;
+    this.rebuildManifestCancellationTokenSource = new CancellationTokenSource();
+    command.setToken(this.rebuildManifestCancellationTokenSource.token);
+
+    let stderr: string = "";
     try {
-      const command = this.dbtCloudCommand(
-        this.dbtCommandFactory.createParseCommand(),
+      const result = await command.execute();
+      stderr = result.stderr;
+      // sending stderr everytime to verify in logs whether is coming as empty or not.
+      this.telemetry.sendTelemetryEvent("dbtCloudParseProjectUserError", {
+        error: stderr,
+        adapter: this.getAdapterType() || "unknown",
+      });
+      this.terminal.info(
+        "dbtCloudParseProject",
+        "dbt cloud cli response",
+        false,
+        {
+          command: command.getCommandAsString(),
+          stderr,
+        },
       );
-      command.addArgument("--log-format");
-      command.addArgument("json");
-      command.downloadArtifacts = true;
-      this.rebuildManifestCancellationTokenSource =
-        new CancellationTokenSource();
-      command.setToken(this.rebuildManifestCancellationTokenSource.token);
-      const { stderr } = await command.execute();
+    } catch (error) {
+      this.telemetry.sendTelemetryError(
+        "dbtCloudCannotParseProjectCommandExecuteError",
+        error,
+        {
+          adapter: this.getAdapterType() || "unknown",
+          command: command.getCommandAsString(),
+        },
+      );
+    }
+
+    if (!stderr) {
+      // TODO: check good case or bad case
+      return;
+    }
+    try {
       const errorsAndWarnings = stderr
         .trim()
         .split("\n")
-        .map((line) => JSON.parse(line.trim()));
+        .map((line) => line.trim())
+        .filter((line) => Boolean(line))
+        .map((line) => JSON.parse(line));
       const errors = errorsAndWarnings
         .filter(
           (line) => line.info.level === "error" || line.info.level === "fatal",
@@ -420,22 +456,25 @@ export class DBTCloudProjectIntegration
           ],
         ),
       );
-      if (stderr) {
-        this.telemetry.sendTelemetryEvent(
-          "dbtCloudCannotParseProjectUserError",
-          {
-            error: stderr,
-            adapter: this.getAdapterType() || "unknown",
-          },
-        );
-      }
     } catch (error) {
-      this.telemetry.sendTelemetryError(
+      this.terminal.error(
         "dbtCloudCannotParseProjectUnknownError",
+        `Unable to parse dbt cloud cli response.`,
         error,
+        true,
         {
           adapter: this.getAdapterType() || "unknown",
         },
+      );
+      this.rebuildManifestDiagnostics.set(
+        Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+        [
+          new Diagnostic(
+            new Range(0, 0, 999, 999),
+            `Unable to parse dbt cloud cli response. If the problem persists please reach out to us.`,
+            DiagnosticSeverity.Error,
+          ),
+        ],
       );
     }
   }
