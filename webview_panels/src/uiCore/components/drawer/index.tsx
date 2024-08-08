@@ -21,7 +21,7 @@ interface Props {
   buttonText?: ReactNode | string;
   onClose?: () => void;
   children: ReactNode;
-  backdrop: boolean;
+  backdrop?: boolean;
 }
 
 export interface DrawerRef {

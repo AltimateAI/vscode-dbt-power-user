@@ -1,16 +1,13 @@
-function dispatchCustomEvent(
-  eventName: string,
-  message: string,
-  columnName: string,
-  type: string
-) {
+/* eslint-disable */
+
+function dispatchCustomEvent(eventName, message, columnName, type) {
   const event = new CustomEvent(eventName, {
     detail: { columnName, message, type },
   });
   window.dispatchEvent(event);
 }
 
-const isJson = (str: string) => {
+const isJson = (str) => {
   try {
     JSON.parse(str);
   } catch (e) {
@@ -19,14 +16,7 @@ const isJson = (str: string) => {
   return true;
 };
 
-function makeClickEvent(
-  td: {
-    textContent: string;
-    style: { cursor: string };
-    onclick: { (): void; (): void };
-  },
-  metadata: { value: string; column_header: string }
-) {
+function makeClickEvent(td, metadata) {
   // If string length is greater than 20, truncate and add ellipsis
   if (metadata.value.length > 20) {
     td.textContent = metadata.value.slice(0, 20) + "...";
@@ -143,7 +133,7 @@ class CustomDatagridPlugin extends customElements.get(
 
 customElements.define(
   "perspective-viewer-custom-datagrid",
-  CustomDatagridPlugin as unknown as CustomElementConstructor
+  CustomDatagridPlugin
 );
 
 void customElements
