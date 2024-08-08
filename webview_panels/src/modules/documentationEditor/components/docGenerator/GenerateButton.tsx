@@ -44,7 +44,7 @@ const GenerateButton = ({
       color="primary"
       onClick={onSubmit}
       title={`Generate description for ${entityName}`}
-      buttonText={getButtonText()}
+      buttontext={getButtonText()}
     />
   );
 };

@@ -216,7 +216,7 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
                   onClose();
                 }}
                 outline
-                buttonText="Cancel"
+                buttontext="Cancel"
               />
             </div>
           </form>

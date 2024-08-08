@@ -8,7 +8,7 @@ const RunAdhocQueryButton = (): JSX.Element => {
   };
   return (
     <NewFeatureIndicator featureKey="run-adhoc-query-button-clicked">
-      <Button outline onClick={handleClick} buttonText="+ New query" />
+      <Button outline onClick={handleClick} buttontext="+ New query" />
     </NewFeatureIndicator>
   );
 };

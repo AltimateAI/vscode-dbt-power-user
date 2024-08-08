@@ -72,7 +72,7 @@ const AddTest = ({ title, currentTests, type }: Props): JSX.Element => {
                       className={classes.newTestTag}
                       onClick={() => handleNewTestClick(test)}
                       outline
-                      buttonText={test}
+                      buttontext={test}
                     />
                   </Tooltip>
                 ))}

@@ -12,7 +12,7 @@ const ClearResultsButton = (): JSX.Element | null => {
   if (!queryResults) {
     return null;
   }
-  return <Button outline onClick={handleClear} buttonText="Clear results" />;
+  return <Button outline onClick={handleClear} buttontext="Clear results" />;
 };
 
 export default ClearResultsButton;

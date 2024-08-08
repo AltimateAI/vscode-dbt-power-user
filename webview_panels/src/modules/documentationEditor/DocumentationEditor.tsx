@@ -134,7 +134,8 @@ const DocumentationEditor = (): JSX.Element => {
                 )}
               </span>
             }
-            buttonText="Documentation"
+            buttontext="Documentation"
+            showtext={true}
           />
           <Button
             color={isTestsPageSelected ? "primary" : "secondary"}
@@ -148,7 +149,8 @@ const DocumentationEditor = (): JSX.Element => {
                 )}
               </span>
             }
-            buttonText="Tests"
+            buttontext="Tests"
+            showtext={true}
           />
           {/* <Button
           color={activePage === Pages.TAGS ? "primary" : "secondary"}

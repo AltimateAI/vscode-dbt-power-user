@@ -77,7 +77,7 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
               onClick={handleShowAllTests}
               className={classes.showAllTests}
               title={`Show all tests`}
-              buttonText={`${remainingTests} ${remainingTests > 1 ? "tests" : "test"} +`}
+              buttontext={`${remainingTests} ${remainingTests > 1 ? "tests" : "test"} +`}
             />
           ) : null}
           <AddTest title={title} currentTests={currentTests} type={type} />

@@ -177,7 +177,7 @@ const DatapilotChatFollowupComponent = ({
               </div>
               {state === RequestState.LOADING ? (
                 <Stack>
-                  <Button color="warning" buttonText="Loading..." />
+                  <Button color="warning" buttontext="Loading..." />
                 </Stack>
               ) : null}
               {!hideFeedback && state === RequestState.COMPLETED ? (
@@ -188,7 +188,7 @@ const DatapilotChatFollowupComponent = ({
                         color="primary"
                         key={button.title}
                         onClick={() => button.onClick(followup, button.title)}
-                        buttonText={button.title}
+                        buttontext={button.title}
                       />
                     ))}
                   </Stack>

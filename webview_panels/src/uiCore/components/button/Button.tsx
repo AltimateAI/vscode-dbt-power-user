@@ -3,13 +3,13 @@ import { Button as ReactStrapButton, ButtonProps } from "reactstrap";
 import Tooltip from "../tooltip/Tooltip";
 
 export const Button = (props: ButtonProps): JSX.Element => {
-  const showHovereffect = !props?.showHoverEffect ? false : true;
-  const isIconPresrent = showHovereffect && props?.icon ? true : false;
+  const defaultSHowText = props?.showtext ? true : false;
+  const isIconPresrent = props?.icon ? true : false;
   const [showButtonText, setShowButtonText] = useState<boolean>(
-    isIconPresrent ? false : true,
+    isIconPresrent && !defaultSHowText ? false : true,
   );
   const mouseHoverAction = (showBtnText: boolean) => {
-    if (isIconPresrent) setShowButtonText(showBtnText);
+    if (isIconPresrent && !defaultSHowText) setShowButtonText(showBtnText);
   };
   return (
     <Tooltip title={props.title}>

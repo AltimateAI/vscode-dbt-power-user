@@ -85,7 +85,7 @@ const SaveDocumentation = (): JSX.Element | null => {
                         dialogType === option.value ? "active" : ""
                       }`}
                       onClick={() => handleChange(option.value)}
-                      buttonText={option.label}
+                      buttontext={option.label}
                     />
                   </li>
                 ))}
@@ -94,7 +94,7 @@ const SaveDocumentation = (): JSX.Element | null => {
           </Popover>
         </>
       )}
-      <Button color="primary" onClick={saveDocumentation} buttonText="Save" />
+      <Button color="primary" onClick={saveDocumentation} buttontext="Save" />
     </Stack>
   );
 };

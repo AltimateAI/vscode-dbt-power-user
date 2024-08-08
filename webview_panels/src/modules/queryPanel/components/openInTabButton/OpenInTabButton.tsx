@@ -13,7 +13,7 @@ const OpenInTabButton = (): JSX.Element | null => {
   }
   return (
     <NewFeatureIndicator featureKey="open-query-results-in-tab-clicked">
-      <Button outline onClick={handleClick} buttonText="Open in Tab" />
+      <Button outline onClick={handleClick} buttontext="Open in Tab" />
     </NewFeatureIndicator>
   );
 };

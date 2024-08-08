@@ -56,14 +56,14 @@ const ShareDbtDocsButton = (): JSX.Element => {
           <h4>Share this url:</h4>
           <p>{sharedUrl}</p>
           <Stack>
-            <Button onClick={handleViewClick} buttonText="View" />
+            <Button onClick={handleViewClick} buttontext="View" />
             <CopyToClipboard text={sharedUrl}>
               <Button
                 title={`${
                   !isCopied ? "Copy to clipboard" : "Copied to clipboard"
                 }`}
                 onClick={() => setIsCopied(true)}
-                buttonText={isCopied ? "Copied" : "Copy"}
+                buttontext={isCopied ? "Copied" : "Copy"}
               />
             </CopyToClipboard>
           </Stack>

@@ -66,7 +66,7 @@ const AiDocActionButton = ({ action, onNewGeneration }: Props): JSX.Element => {
         key={action.title?.toString()}
         onClick={handleBtnClick}
         disabled={isLoading}
-        buttonText={action.title}
+        buttontext={action.title}
       />
     </>
   );

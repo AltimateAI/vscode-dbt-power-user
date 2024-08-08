@@ -143,7 +143,7 @@ const BulkGenerateButton = (): JSX.Element => {
                 <Button
                   color="link"
                   onClick={() => onOptionSelect(option.value)}
-                  buttonText={option.label}
+                  buttontext={option.label}
                 />
               </li>
             ))}

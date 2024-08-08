@@ -32,7 +32,7 @@ const ActionButton = ({
   const handleAction = () => {
     window.postMessage(data);
   };
-  return <Button onClick={handleAction} buttonText={title} />;
+  return <Button onClick={handleAction} buttontext={title} />;
 };
 
 const user = TenantUserFactory.build();

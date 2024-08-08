@@ -125,13 +125,13 @@ const DisplayTestDetails = ({
           <Button
             type="submit"
             disabled={isSaving || disableFormSubmit}
-            buttonText="Update"
+            buttontext="Update"
           />
           <Button
             outline
             onClick={handleCancel}
             disabled={isSaving}
-            buttonText="Cancel"
+            buttontext="Cancel"
           />
         </Stack>
       </CardFooter>

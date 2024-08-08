@@ -59,7 +59,7 @@ const Drawer: ForwardRefRenderFunction<DrawerRef, Props> = (
         <Button
           {...buttonProps}
           onClick={handleShow}
-          buttonText={buttonText}
+          buttontext={buttonText}
           icon={icon}
         />
       ) : null}

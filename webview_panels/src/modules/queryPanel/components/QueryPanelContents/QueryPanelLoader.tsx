@@ -27,7 +27,7 @@ const QueryPanelLoader = (): JSX.Element => {
       <Button
         color="primary"
         onClick={handleCancelQuery}
-        buttonText="Cancel query"
+        buttontext="Cancel query"
       />
     </Stack>
   );

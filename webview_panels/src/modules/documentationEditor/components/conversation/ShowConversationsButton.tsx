@@ -13,7 +13,7 @@ const ShowConversationsButton = (): JSX.Element => {
       outline
       onClick={handleClick}
       icon={<CommentIcon />}
-      text="Show Conversations"
+      buttontext="Show Conversations"
     />
   );
 };

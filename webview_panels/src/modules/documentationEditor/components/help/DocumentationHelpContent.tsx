@@ -25,7 +25,7 @@ const DocumentationHelpContent = ({
                 color="link"
                 style={{ marginTop: -5 }}
                 onClick={openProblemsTab}
-                buttonText="Click here"
+                buttontext="Click here"
               />{" "}
               to view Problems tab
             </>
