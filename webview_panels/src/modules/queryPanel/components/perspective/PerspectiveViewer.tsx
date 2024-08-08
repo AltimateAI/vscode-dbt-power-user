@@ -25,6 +25,12 @@ import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
 import { setPerspectiveTheme } from "@modules/queryPanel/context/queryPanelSlice";
 import { Drawer, DrawerRef } from "@uicore";
 
+let GLOBAL_THEME = "";
+
+export function getGlobalTheme() {
+  return GLOBAL_THEME;
+}
+
 interface Props {
   data: TableData;
   columnNames: string[];
@@ -197,6 +203,7 @@ const PerspectiveViewer = ({
       exportButton.addEventListener("click", downloadAsCSV);
     }
     updateCustomStyles(perspectiveTheme);
+    GLOBAL_THEME = perspectiveTheme;
     perspectiveViewerRef.current.addEventListener(
       "perspective-config-update",
       (event) => {
@@ -294,5 +301,4 @@ const PerspectiveViewer = ({
     </>
   );
 };
-
 export default PerspectiveViewer;

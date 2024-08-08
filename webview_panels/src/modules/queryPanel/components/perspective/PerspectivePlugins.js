@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { getGlobalTheme } from "./PerspectiveViewer";
 
 function dispatchCustomEvent(eventName, message, columnName, type) {
   const event = new CustomEvent(eventName, {
@@ -27,23 +28,13 @@ function makeClickEvent(td, metadata) {
   if (isJson(metadata.value)) {
     if (!td.querySelector("span")) {
       const span = document.createElement("span");
-      const svg = document.createElement("svg");
-      const path = document.createElement("path");
-      path.setAttribute(
-        "d",
-        "M 25.980469 2.9902344 A 1.0001 1.0001 0 0 0 25.869141 3 L 20 3 A 1.0001 1.0001 0 1 0 20 5 L 23.585938 5 L 13.292969 15.292969 A 1.0001 1.0001 0 1 0 14.707031 16.707031 L 25 6.4140625 L 25 10 A 1.0001 1.0001 0 1 0 27 10 L 27 4.1269531 A 1.0001 1.0001 0 0 0 25.980469 2.9902344 z M 6 7 C 4.9069372 7 4 7.9069372 4 9 L 4 24 C 4 25.093063 4.9069372 26 6 26 L 21 26 C 22.093063 26 23 25.093063 23 24 L 23 14 L 23 11.421875 L 21 13.421875 L 21 16 L 21 24 L 6 24 L 6 9 L 14 9 L 16 9 L 16.578125 9 L 18.578125 7 L 16 7 L 14 7 L 6 7 z"
-      );
-      svg.setAttribute("fill", "currentColor");
-      svg.setAttribute("viewBox", "0 0 30 30");
-      svg.setAttribute("width", "30px");
-      svg.setAttribute("height", "30px");
-      svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-      svg.appendChild(path);
+      const img = document.createElement("img");
+      const currentTheme = getGlobalTheme();
+      const iconColor = currentTheme === "Pro Light" ? "black" : "white";
+      img.src = `data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2030%2030'%20width='12px'%20fill='${iconColor}'%20height='12px'%3E%3Cpath%20d='M%2025.980469%202.9902344%20A%201.0001%201.0001%200%200%200%2025.869141%203%20L%2020%203%20A%201.0001%201.0001%200%201%200%2020%205%20L%2023.585938%205%20L%2013.292969%2015.292969%20A%201.0001%201.0001%200%201%200%2014.707031%2016.707031%20L%2025%206.4140625%20L%2025%2010%20A%201.0001%201.0001%200%201%200%2027%2010%20L%2027%204.1269531%20A%201.0001%201.0001%200%200%200%2025.980469%202.9902344%20z%20M%206%207%20C%204.9069372%207%204%207.9069372%204%209%20L%204%2024%20C%204%2025.093063%204.9069372%2026%206%2026%20L%2021%2026%20C%2022.093063%2026%2023%2025.093063%2023%2024%20L%2023%2014%20L%2023%2011.421875%20L%2021%2013.421875%20L%2021%2016%20L%2021%2024%20L%206%2024%20L%206%209%20L%2014%209%20L%2016%209%20L%2016.578125%209%20L%2018.578125%207%20L%2016%207%20L%2014%207%20L%206%207%20z'%3E%3C/path%3E%3C/svg%3E`;
       span.style.marginLeft = "5px";
       span.style.color = "var(--primary-color)";
-      span.style.width = "30px !important";
-      span.style.height = "30px !important";
-      span.appendChild(svg);
+      span.appendChild(img);
       td.appendChild(span);
     }
     td.style.cursor = "pointer";
