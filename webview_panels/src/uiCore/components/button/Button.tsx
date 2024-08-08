@@ -24,8 +24,7 @@ export const Button = (props: ButtonProps): JSX.Element => {
         onMouseEnter={() => mouseHoverAction(true)}
         onMouseLeave={() => mouseHoverAction(false)}
       >
-        {isIconPresent && props?.icon}
-        {showButtonText && props.buttonText}
+        {isIconPresent && props?.icon} {showButtonText && props.buttontext}
       </ReactStrapButton>
     </Tooltip>
   );
