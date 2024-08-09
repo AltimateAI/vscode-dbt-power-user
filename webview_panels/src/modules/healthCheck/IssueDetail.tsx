@@ -11,7 +11,7 @@ const DetailItem = ({ label, value }: { label: string; value: string }) => (
 
 const IssueDetail = ({ insight }: { insight: ModelInsight }): JSX.Element => {
   return (
-    <Drawer buttonProps={{ size: "sm" }} buttonText={<>Details</>}>
+    <Drawer buttonProps={{ size: "sm" }} buttonText="Details">
       <div className="p-2 h-100 d-flex flex-column gap-md">
         <div className="fw-semibold fs-4">{insight.insight.name}</div>
         <DetailItem label="File" value={insight.original_file_path} />

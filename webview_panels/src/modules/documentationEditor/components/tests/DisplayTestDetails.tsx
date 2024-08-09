@@ -122,12 +122,17 @@ const DisplayTestDetails = ({
     return (
       <CardFooter>
         <Stack className="mt-3">
-          <Button type="submit" disabled={isSaving || disableFormSubmit}>
-            Update
-          </Button>
-          <Button outline onClick={handleCancel} disabled={isSaving}>
-            Cancel
-          </Button>
+          <Button
+            type="submit"
+            disabled={isSaving || disableFormSubmit}
+            buttontext="Update"
+          />
+          <Button
+            outline
+            onClick={handleCancel}
+            disabled={isSaving}
+            buttontext="Cancel"
+          />
         </Stack>
       </CardFooter>
     );

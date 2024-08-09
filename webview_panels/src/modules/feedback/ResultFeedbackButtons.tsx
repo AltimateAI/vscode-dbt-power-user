@@ -108,10 +108,8 @@ const ResultFeedbackButtons = ({ getFeedbackData }: Props): JSX.Element => {
               )}
             />
             <Stack>
-              <Button color="primary" type="submit">
-                Submit
-              </Button>
-              <Button onClick={handleCancel}>Cancel</Button>
+              <Button color="primary" type="submit" buttontext="Submit" />
+              <Button onClick={handleCancel} buttontext="Cancel" />
             </Stack>
           </Stack>
         </Form>

@@ -50,26 +50,21 @@ const ShareDbtDocsButton = (): JSX.Element => {
     }
   };
   return (
-    <Drawer
-      buttonProps={{ outline: true }}
-      buttonText={<>Share</>}
-      title="Share"
-    >
+    <Drawer buttonProps={{ outline: true }} buttonText="Share" title="Share">
       {sharedUrl ? (
         <div>
           <h4>Share this url:</h4>
           <p>{sharedUrl}</p>
           <Stack>
-            <Button onClick={handleViewClick}>View</Button>
+            <Button onClick={handleViewClick} buttontext="View" />
             <CopyToClipboard text={sharedUrl}>
               <Button
                 title={`${
                   !isCopied ? "Copy to clipboard" : "Copied to clipboard"
                 }`}
                 onClick={() => setIsCopied(true)}
-              >
-                {isCopied ? "Copied" : "Copy"}
-              </Button>
+                buttontext={isCopied ? "Copied" : "Copy"}
+              />
             </CopyToClipboard>
           </Stack>
         </div>

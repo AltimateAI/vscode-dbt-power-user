@@ -116,12 +116,9 @@ const TestForm = ({ formType, onClose, column }: Props): JSX.Element | null => {
             })}
             color="primary"
             disabled={disableFormSubmit}
-          >
-            Add
-          </Button>
-          <Button onClick={handleCancel} outline>
-            Cancel
-          </Button>
+            buttontext="Add"
+          />
+          <Button onClick={handleCancel} outline buttontext="Cancel" />
         </Stack>
       </CardFooter>
     </Card>

@@ -13,26 +13,21 @@ const HelpButton = (): JSX.Element => {
   return (
     <Drawer
       buttonProps={{ outline: true }}
-      buttonText={
-        <>
-          <HelpIcon /> Help
-        </>
-      }
+      buttonText="Help"
+      icon={<HelpIcon />}
       title="Help"
     >
       <ButtonGroup className="mb-2">
         <Button
           color={selectedPage === Pages.DOCUMENTATION ? "primary" : "secondary"}
           onClick={() => handleClick(Pages.DOCUMENTATION)}
-        >
-          Documentation
-        </Button>
+          buttontext="Documentation"
+        />
         <Button
           color={selectedPage === Pages.TESTS ? "primary" : "secondary"}
           onClick={() => handleClick(Pages.TESTS)}
-        >
-          Tests
-        </Button>
+          buttontext="Tests"
+        />
       </ButtonGroup>
       {selectedPage === Pages.DOCUMENTATION ? (
         <DocumentationHelpContent />

@@ -38,11 +38,8 @@ const DocGeneratorSettings = (): JSX.Element => {
   return (
     <Drawer
       buttonProps={{ outline: true }}
-      buttonText={
-        <>
-          <SettingsIcon style={{ height: 16 }} /> Settings
-        </>
-      }
+      buttonText="Settings"
+      icon={<SettingsIcon style={{ height: 16 }} />}
       title="Help"
     >
       <Stack direction="column">

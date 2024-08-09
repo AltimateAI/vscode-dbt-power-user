@@ -102,7 +102,7 @@ const BookmarkAccordion = ({
             <div>
               <h6>No results found.</h6>
               <p>
-                <Button onClick={clearFilters}>Clear filters</Button>
+                <Button onClick={clearFilters} buttontext="Clear filters" />
               </p>
             </div>
           ) : (
@@ -114,9 +114,8 @@ const BookmarkAccordion = ({
                 <p>
                   <Button
                     onClick={() => executeRequestInAsync("runAdhocQuery", {})}
-                  >
-                    + New query
-                  </Button>
+                    buttontext="+ New query"
+                  />
                 </p>
               </div>
             </div>
