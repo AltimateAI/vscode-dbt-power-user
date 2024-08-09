@@ -382,10 +382,9 @@ export class DBTCloudProjectIntegration
     this.rebuildManifestCancellationTokenSource = new CancellationTokenSource();
     command.setToken(this.rebuildManifestCancellationTokenSource.token);
 
-    let stderr: string = "";
     try {
       const result = await command.execute();
-      stderr = result.stderr;
+      const stderr = result.stderr;
       // sending stderr everytime to verify in logs whether is coming as empty or not.
       this.telemetry.sendTelemetryEvent("dbtCloudParseProjectUserError", {
         error: stderr,
@@ -400,6 +399,65 @@ export class DBTCloudProjectIntegration
           stderr,
         },
       );
+      const errorsAndWarnings = stderr
+        .trim()
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => Boolean(line))
+        .map((line) =>
+          this.parseJSON(
+            "RebuildManifestErrorsAndWarningsJSONParsing",
+            line,
+            false,
+          ),
+        );
+      const errors = errorsAndWarnings
+        .filter(
+          (line) =>
+            line &&
+            line.hasOwnProperty("info") &&
+            line.info.hasOwnProperty("level") &&
+            line.info.hasOwnProperty("msg") &&
+            ["error", "fatal"].includes(line.info.level),
+        )
+        .map((line) => line.info.msg);
+      const warnings = errorsAndWarnings
+        .filter(
+          (line) =>
+            line &&
+            line.hasOwnProperty("info") &&
+            line.info.hasOwnProperty("level") &&
+            line.info.hasOwnProperty("msg") &&
+            line.info.level === "warn",
+        )
+        .map((line) => line.info.msg);
+      this.rebuildManifestDiagnostics.clear();
+      const diagnostics: Array<Diagnostic> = errors
+        .map(
+          (error) =>
+            new Diagnostic(
+              new Range(0, 0, 999, 999),
+              error,
+              DiagnosticSeverity.Error,
+            ),
+        )
+        .concat(
+          warnings.map(
+            (warning) =>
+              new Diagnostic(
+                new Range(0, 0, 999, 999),
+                warning,
+                DiagnosticSeverity.Warning,
+              ),
+          ),
+        );
+      if (diagnostics) {
+        // user error
+        this.rebuildManifestDiagnostics.set(
+          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+          diagnostics,
+        );
+      }
     } catch (error) {
       this.telemetry.sendTelemetryError(
         "dbtCloudCannotParseProjectCommandExecuteError",
@@ -409,69 +467,13 @@ export class DBTCloudProjectIntegration
           command: command.getCommandAsString(),
         },
       );
-    }
-
-    if (!stderr) {
-      // TODO: check good case or bad case
-      return;
-    }
-    try {
-      const errorsAndWarnings = stderr
-        .trim()
-        .split("\n")
-        .map((line) => line.trim())
-        .filter((line) => Boolean(line))
-        .map((line) => JSON.parse(line));
-      const errors = errorsAndWarnings
-        .filter(
-          (line) => line.info.level === "error" || line.info.level === "fatal",
-        )
-        .map((line) => line.info.msg);
-      const warnings = errorsAndWarnings
-        .filter((line) => line.info.level === "warning")
-        .map((line) => line.info.msg);
-
-      this.rebuildManifestDiagnostics.clear();
-      errors.forEach((error) =>
-        this.rebuildManifestDiagnostics.set(
-          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
-          [
-            new Diagnostic(
-              new Range(0, 0, 999, 999),
-              error,
-              DiagnosticSeverity.Error,
-            ),
-          ],
-        ),
-      );
-      warnings.forEach((warning) =>
-        this.rebuildManifestDiagnostics.set(
-          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
-          [
-            new Diagnostic(
-              new Range(0, 0, 999, 999),
-              warning,
-              DiagnosticSeverity.Warning,
-            ),
-          ],
-        ),
-      );
-    } catch (error) {
-      this.terminal.error(
-        "dbtCloudCannotParseProjectUnknownError",
-        `Unable to parse dbt cloud cli response.`,
-        error,
-        true,
-        {
-          adapter: this.getAdapterType() || "unknown",
-        },
-      );
       this.rebuildManifestDiagnostics.set(
         Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
         [
           new Diagnostic(
             new Range(0, 0, 999, 999),
-            `Unable to parse dbt cloud cli response. If the problem persists please reach out to us.`,
+            "Unable to parse dbt cloud cli response. If the problem persists please reach out to us: " +
+              error,
             DiagnosticSeverity.Error,
           ),
         ],
@@ -1127,9 +1129,11 @@ export class DBTCloudProjectIntegration
 
     for (const diagnosticCollection of allDiagnostics) {
       for (const [_, diagnostics] of diagnosticCollection) {
-        if (diagnostics.length > 0) {
-          const firstError = diagnostics[0];
-          throw new Error(firstError.message);
+        const error = diagnostics.find(
+          (diagnostic) => diagnostic.severity === DiagnosticSeverity.Error,
+        );
+        if (error) {
+          throw new Error(error.message);
         }
       }
     }
@@ -1153,5 +1157,24 @@ export class DBTCloudProjectIntegration
 
   throwDiagnosticsErrorIfAvailable(): void {
     this.throwBridgeErrorIfAvailable();
+  }
+
+  private parseJSON(
+    contextName: string,
+    json: string,
+    throw_: boolean = true,
+  ): any {
+    try {
+      return JSON.parse(json);
+    } catch (error) {
+      this.telemetry.sendTelemetryEvent("dbtCloud" + contextName + "Error", {
+        text: json,
+        error: (error as Error).message,
+        adapter: this.getAdapterType() || "unknown",
+      });
+      if (throw_) {
+        throw error;
+      }
+    }
   }
 }
