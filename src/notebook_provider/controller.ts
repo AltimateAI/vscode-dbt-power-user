@@ -8,6 +8,7 @@ import { randomUUID } from "crypto";
 import { newRawKernel } from "./kernelClient";
 import { cellOutputToVSCCellOutput } from "./helpers";
 import { NotebookClient } from "./notebookClient";
+import { cpSync } from "fs";
 
 // eslint-disable-next-line no-empty,@typescript-eslint/no-empty-function
 export function noop() {}
@@ -94,6 +95,9 @@ export class NotebookKernel implements vscode.Disposable {
           event.editor.notebook.uri,
         );
         switch (event.message.type) {
+          // case "IPyWidgets_registerCommTarget":
+          //   client.registerCommTarget(event.message.payload as string);
+          //   break;
           case "IPyWidgets_Request_Widget_Version":
             return this.sendIPyWidgetsVersion();
           case "IPyWidgets_Ready":
@@ -163,6 +167,36 @@ export class NotebookKernel implements vscode.Disposable {
     // };
   }
 
+  private async copyNbExtensionFolders(notebook: vscode.NotebookDocument) {
+    try {
+      // TODO: fix this properly - check src\notebooks\controllers\ipywidgets\scriptSourceProvider\localIPyWidgetScriptManager.node.ts in vscode-jupyter
+      const tempDirPathForVenv = this.dbtProjectContainer.getProjectRootpath(
+        notebook.uri,
+      );
+      cpSync(
+        path.join(
+          tempDirPathForVenv?.fsPath || "",
+          ".venv",
+          "share",
+          "jupyter",
+          "nbextensions",
+        ),
+        path.join(
+          this.dbtProjectContainer.extensionUri.fsPath,
+          "temp",
+          "scripts",
+          "jupyter",
+          "nbextensions",
+        ),
+        { recursive: true },
+      );
+      console.log("copied nb extensions");
+    } catch (e) {
+      console.log("unable to copy nb extensions", e);
+      // throw e;
+    }
+  }
+
   private sendMessageToPreloadScript(message: unknown) {
     // @ts-ignore
     return this._controller.postMessage(message).then(noop, noop);
@@ -180,9 +214,10 @@ export class NotebookKernel implements vscode.Disposable {
     editor: vscode.NotebookEditor,
     message: QueryWidgetStateCommand,
   ) {
+    // TODO fix this state properly
     const availableModels = this.widgetOutputsPerNotebook.get(editor.notebook);
     const kernelSelected = true; // !!this.controllers.getSelected(editor.notebook);
-    const hasWidgetState = !!availableModels?.has(message.model_id);
+    const hasWidgetState = true; // !!availableModels?.has(message.model_id);
     comms
       .postMessage(
         {
@@ -328,13 +363,16 @@ export class NotebookKernel implements vscode.Disposable {
       });
       return;
     }
-    console.error("Unable to send kernel options");
   }
 
   private async onNotebookOpen(notebook: vscode.NotebookDocument) {
     const client = await this.clientMapper.initializeNotebookClient(
       notebook.uri,
     );
+    // this.copyNbExtensionFolders(notebook);
+    if (!(await client.getKernel())?.realKernel) {
+      throw new Error("Unable to initialize kernel");
+    }
     this.disposables.push(
       client.postMessage((e) => {
         this.sendMessageToPreloadScript(e);
@@ -343,13 +381,6 @@ export class NotebookKernel implements vscode.Disposable {
 
     const cells = notebook.getCells();
     this.updateCellId(cells, notebook);
-    throw new Error("Unable to initialize kernel");
-    // if (vscode.window.activeNotebookEditor) {
-    //   this.messageChannel.postMessage(
-    //     { command: "IPyWidgets_kernelOptions" },
-    //     vscode.window.activeNotebookEditor,
-    //   );
-    // }
   }
 
   dispose() {
@@ -555,10 +586,7 @@ export class NotebookKernel implements vscode.Disposable {
       );
       switch (cell.document.languageId) {
         case "python":
-          const client = await this.clientMapper.getNotebookClient(
-            activeNotebook.uri,
-          );
-          const kernel = await client.getKernel();
+          const kernel = await notebookClient.getKernel();
           if (kernel) {
             this.sendMessageToPreloadScript({
               type: "IPyWidgets_kernelOptions",
@@ -608,7 +636,7 @@ export class NotebookKernel implements vscode.Disposable {
           //   throw new Error("No result found");
           // }
           // for (const item of result) {
-          //   if (item.mime === "application/alt.jupyter.widget-view+json") {
+          //   if (item.mime === "application/vnd.jupyter.widget-view+json") {
           //     const data = (item.value) as unknown as Record<string, unknown>;
           //     if (data.version_major === undefined) {
           //       this.sendMessageToPreloadScript({
@@ -619,7 +647,7 @@ export class NotebookKernel implements vscode.Disposable {
           //   }
           // }
           // for (const item of result) {
-          //   if (item.mime === "application/alt.jupyter.widget-view+json") {
+          //   if (item.mime === "application/vnd.jupyter.widget-view+json") {
           //     const data = (item.value) as unknown as Record<string, unknown>;
           //     if (data.version_major !== undefined) {
           //       const set =

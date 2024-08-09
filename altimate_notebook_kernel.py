@@ -64,7 +64,7 @@ class JupyterKernelExecutor:
                     state = msg['content']['data']['state']
                     state['model_id'] = msg['content']['comm_id']
                     # Handle comm_open messages
-                    output.append({'mime': 'application/alt.jupyter.widget-view+json', 'value': state})
+                    output.append({'mime': 'application/vnd.jupyter.widget-view+json', 'value': state})
                 elif msg['msg_type'] == 'execute_result' or msg['msg_type'] == 'display_data':
                     # Flag to check if any key other than 'text/plain' exists
                     other_keys_exist = False

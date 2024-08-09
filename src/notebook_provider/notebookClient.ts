@@ -90,6 +90,7 @@ export class NotebookClient {
   private streamsReAttachedToExecutingCell = false;
   private isUsingIPyWidgets = false;
   private outputWidgetIds = new Set<string>();
+  private registerdCommTargets = new Set<string>();
   private readonly deserialize: (
     data: string | ArrayBuffer,
   ) => KernelMessage.IMessage<KernelMessage.MessageType>;
@@ -363,6 +364,27 @@ export class NotebookClient {
     console.log(`storeDataInKernel: ${cellId}`, data);
     return this.python.lock<{ mime: string; value: string }[]>(
       (python) => python`notebook_kernel.store_sql_result(${cellId}, ${data})`,
+    );
+  }
+
+  async registerCommTarget(payload: string) {
+    // TODO: register one payload only once
+    if (this.registerdCommTargets.has(payload)) {
+      console.log(`registerCommTarget already registered: ${payload}`);
+      return;
+    }
+    this.registerdCommTargets.add(payload);
+    console.log(`registerCommTarget registering: ${payload}`);
+    const kernel = await this.getKernel();
+    if (!kernel) {
+    this.registerdCommTargets.delete(payload);
+    throw new Error("Kernel not found for registering comm target");
+    }
+    return kernel.realKernel.registerCommTarget(
+      payload as string,
+      (comm, msg) => {
+        console.log(`registerCommTarget registered: ${payload}`, comm, msg);
+      },
     );
   }
 

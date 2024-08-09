@@ -59,6 +59,13 @@
         "localResourceRoots": [
           "./temp"
         ],
+        "entrypoint": "./webview_panels/src/notebook/ipywidgetsKernel/preload.js"
+      },
+      {
+        "type": "my-notebook",
+        "localResourceRoots": [
+          "./temp"
+        ],
         "entrypoint": "./webview_panels/src/notebook/ipywidgetsKernel/ipywidgets8.js"
       },
       {
@@ -88,9 +95,9 @@
       {
         "id": "my-notebook-renderer-1",
         "displayName": "Jupyter widgets Notebook Renderer",
-        "entrypoint": "./webview_panels/dist/assets/notebook/ipywidgetsRenderer/ipywidgetsRenderer.js",
+        "entrypoint": "./webview_panels/src/notebook/ipywidgetsRenderer/ipywidgetsRenderer.js",
         "mimeTypes": [
-          "application/alt.jupyter.widget-view+json"
+          "application/vnd.jupyter.widget-view+json"
         ],
         "requiresMessaging": "always"
       }
@@ -1307,8 +1314,14 @@
     "@finos/perspective-viewer": "^2.10.0",
     "@finos/perspective-viewer-d3fc": "^2.10.1",
     "@finos/perspective-viewer-datagrid": "^2.10.0",
+    "@jupyter-widgets/base": "^4.1.6",
+    "@jupyter-widgets/controls": "^3.1.7",
     "@jupyter-widgets/jupyterlab-manager": "^3.1.9",
+    "@jupyter-widgets/schema": "^0.5.5",
+    "@jupyterlab/coreutils": "^6.2.4",
+    "@jupyterlab/nbformat": "^4.2.4",
     "@jupyterlab/services": "^6.6.7",
+    "@lumino/widgets": "^2.4.0",
     "@nteract/messaging": "^7.0.20",
     "@vscode/codicons": "^0.0.36",
     "@vscode/extension-telemetry": "^0.9.6",
@@ -1329,6 +1342,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "reflect-metadata": "^0.2.2",
+    "requirejs": "2.3",
     "semver": "^7.6.3",
     "utf-8-validate": "^5.0.10",
     "vscode-jsonrpc": "^8.2.1",
