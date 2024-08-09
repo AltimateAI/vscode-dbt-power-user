@@ -59,6 +59,7 @@ export class ConversationProvider implements Disposable {
   private disposables: Disposable[] = [];
   private commentController;
   private timer: NodeJS.Timeout | undefined;
+  private isPolling: boolean = false;
   // record of share id with conv group
   // used to identify deleted records during polling
   // can be removed in future if we get right events like delete, add etc.,
@@ -143,6 +144,7 @@ export class ConversationProvider implements Disposable {
     this.timer = setTimeout(() => {
       this.loadThreads();
     }, pollingInterval * 1000);
+    this.isPolling = true;
   }
 
   private async loadThreads() {
@@ -151,7 +153,9 @@ export class ConversationProvider implements Disposable {
       "loading threads",
     );
     const shares = await this.conversationService.loadSharedDocs();
-    this.setupPolling();
+    if (shares) {
+      this.setupPolling();
+    }
 
     if (!shares?.length) {
       this.dbtTerminal.debug(
@@ -611,6 +615,10 @@ export class ConversationProvider implements Disposable {
           `Unable to save your comment. ${(error as Error).message}`,
         ),
       );
+    } finally {
+      if (!this.isPolling) {
+        this.setupPolling();
+      }
     }
   }
 
