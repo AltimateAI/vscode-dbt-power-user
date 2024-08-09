@@ -52,6 +52,7 @@ const PerspectiveViewer = ({
   const [drawerTitle, setDrawerTitle] = useState<string>("");
   const perspectiveViewerRef = useRef<HTMLPerspectiveViewerElement>(null);
   const drawerRef = useRef<DrawerRef | null>(null);
+  GLOBAL_THEME = theme;
 
   const config: PerspectiveViewerConfig = {
     theme: perspectiveTheme,
@@ -203,7 +204,6 @@ const PerspectiveViewer = ({
       exportButton.addEventListener("click", downloadAsCSV);
     }
     updateCustomStyles(perspectiveTheme);
-    GLOBAL_THEME = perspectiveTheme;
     perspectiveViewerRef.current.addEventListener(
       "perspective-config-update",
       (event) => {
@@ -223,6 +223,7 @@ const PerspectiveViewer = ({
 
   useEffect(() => {
     loadPerspectiveData().catch((err) => panelLogger.error(err));
+    GLOBAL_THEME = theme;
 
     // Handle the event when a string or JSON is clicked in the perspective viewer datagrid
     const handleOpenDrawer = (event: CustomEvent) => {
@@ -275,6 +276,7 @@ const PerspectiveViewer = ({
     if (!tableRendered || !config.theme || !perspectiveViewerRef.current) {
       return;
     }
+    GLOBAL_THEME = theme;
 
     perspectiveViewerRef.current
       ?.querySelector("perspective-viewer-datagrid")
