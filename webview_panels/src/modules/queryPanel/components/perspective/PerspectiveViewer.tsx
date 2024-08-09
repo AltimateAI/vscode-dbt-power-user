@@ -25,8 +25,9 @@ import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
 import { setPerspectiveTheme } from "@modules/queryPanel/context/queryPanelSlice";
 import { Drawer, DrawerRef } from "@uicore";
 
+// The global theme is used to store the current theme of the perspective viewer.
+// This is used to update the icon color in the perspective viewer plugin.
 let GLOBAL_THEME = "";
-
 export function getGlobalTheme() {
   return GLOBAL_THEME;
 }
@@ -57,7 +58,6 @@ const PerspectiveViewer = ({
     title: "query result",
     columns: [], // reset columns
     settings: false,
-    plugin: "Custom Datagrid",
     plugin_config: { editable: false },
   };
 
@@ -132,7 +132,7 @@ const PerspectiveViewer = ({
 
   const updateCustomStyles = (currentTheme: string) => {
     const shadowRoot = perspectiveViewerRef.current?.querySelector(
-      "perspective-viewer-datagrid"
+      "perspective-viewer-custom-datagrid"
     )?.shadowRoot;
     if (!shadowRoot) {
       return;
@@ -224,6 +224,7 @@ const PerspectiveViewer = ({
   useEffect(() => {
     loadPerspectiveData().catch((err) => panelLogger.error(err));
 
+    // Handle the event when a string or JSON is clicked in the perspective viewer datagrid
     const handleOpenDrawer = (event: CustomEvent) => {
       drawerRef.current?.open();
       const detail = event.detail as {
@@ -243,6 +244,7 @@ const PerspectiveViewer = ({
       }
     };
 
+    // Add an event listener to open the drawer when a string or JSON is clicked
     window.addEventListener(
       "string-json-viewer",
       handleOpenDrawer as EventListener
@@ -261,6 +263,7 @@ const PerspectiveViewer = ({
           panelLogger.error("error while deleting perspective viewer", err)
         );
 
+      // Remove the event listener when the component is unmounted
       window.removeEventListener(
         "string-json-viewer",
         handleOpenDrawer as EventListener
