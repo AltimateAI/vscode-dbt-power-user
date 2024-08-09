@@ -1157,7 +1157,7 @@
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
-    "@types/mocha": "^10.0.6",
+    "@types/mocha": "^10.0.7",
     "@types/node": "^20.14.11",
     "@types/vscode": "^1.81.0",
     "@types/which": "^3.0.4",
@@ -1174,7 +1174,7 @@
     "glob": "^10.4.2",
     "husky": "^9.1.1",
     "lint-staged": "^15.2.5",
-    "mocha": "^10.3.0",
+    "mocha": "^10.7.0",
     "ovsx": "^0.8.4",
     "prettier": "^3.3.3",
     "prettier-eslint": "^15.0.1",
