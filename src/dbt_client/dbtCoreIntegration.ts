@@ -3,6 +3,7 @@ import {
   CancellationToken,
   Diagnostic,
   DiagnosticCollection,
+  DiagnosticSeverity,
   Disposable,
   languages,
   Range,
@@ -1046,9 +1047,11 @@ export class DBTCoreProjectIntegration
 
     for (const diagnosticCollection of allDiagnostics) {
       for (const [_, diagnostics] of diagnosticCollection) {
-        if (diagnostics.length > 0) {
-          const firstError = diagnostics[0];
-          throw new Error(firstError.message);
+        const error = diagnostics.find(
+          (diagnostic) => diagnostic.severity === DiagnosticSeverity.Error,
+        );
+        if (error) {
+          throw new Error(error.message);
         }
       }
     }

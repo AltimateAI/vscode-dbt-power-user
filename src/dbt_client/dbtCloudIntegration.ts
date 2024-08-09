@@ -366,76 +366,117 @@ export class DBTCloudProjectIntegration
     ];
   }
 
-  async rebuildManifest(): Promise<void> {
+  async rebuildManifest(retryCount: number = 0): Promise<void> {
+    // TODO: check whether we should allow parsing for unauthenticated users
+    // this.throwIfNotAuthenticated();
     if (this.rebuildManifestCancellationTokenSource) {
       this.rebuildManifestCancellationTokenSource.cancel();
       this.rebuildManifestCancellationTokenSource = undefined;
     }
+    const command = this.dbtCloudCommand(
+      this.dbtCommandFactory.createParseCommand(),
+    );
+    command.addArgument("--log-format");
+    command.addArgument("json");
+    command.downloadArtifacts = true;
+    this.rebuildManifestCancellationTokenSource = new CancellationTokenSource();
+    command.setToken(this.rebuildManifestCancellationTokenSource.token);
+
     try {
-      const command = this.dbtCloudCommand(
-        this.dbtCommandFactory.createParseCommand(),
+      const result = await command.execute();
+      const stderr = result.stderr;
+      // sending stderr everytime to verify in logs whether is coming as empty or not.
+      this.telemetry.sendTelemetryEvent("dbtCloudParseProjectUserError", {
+        error: stderr,
+        adapter: this.getAdapterType() || "unknown",
+      });
+      this.terminal.info(
+        "dbtCloudParseProject",
+        "dbt cloud cli response",
+        false,
+        {
+          command: command.getCommandAsString(),
+          stderr,
+        },
       );
-      command.addArgument("--log-format");
-      command.addArgument("json");
-      command.downloadArtifacts = true;
-      this.rebuildManifestCancellationTokenSource =
-        new CancellationTokenSource();
-      command.setToken(this.rebuildManifestCancellationTokenSource.token);
-      const { stderr } = await command.execute();
       const errorsAndWarnings = stderr
         .trim()
         .split("\n")
-        .map((line) => JSON.parse(line.trim()));
+        .map((line) => line.trim())
+        .filter((line) => Boolean(line))
+        .map((line) =>
+          this.parseJSON(
+            "RebuildManifestErrorsAndWarningsJSONParsing",
+            line,
+            false,
+          ),
+        );
       const errors = errorsAndWarnings
         .filter(
-          (line) => line.info.level === "error" || line.info.level === "fatal",
+          (line) =>
+            line &&
+            line.hasOwnProperty("info") &&
+            line.info.hasOwnProperty("level") &&
+            line.info.hasOwnProperty("msg") &&
+            ["error", "fatal"].includes(line.info.level),
         )
         .map((line) => line.info.msg);
       const warnings = errorsAndWarnings
-        .filter((line) => line.info.level === "warning")
+        .filter(
+          (line) =>
+            line &&
+            line.hasOwnProperty("info") &&
+            line.info.hasOwnProperty("level") &&
+            line.info.hasOwnProperty("msg") &&
+            line.info.level === "warn",
+        )
         .map((line) => line.info.msg);
-
       this.rebuildManifestDiagnostics.clear();
-      errors.forEach((error) =>
-        this.rebuildManifestDiagnostics.set(
-          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
-          [
+      const diagnostics: Array<Diagnostic> = errors
+        .map(
+          (error) =>
             new Diagnostic(
               new Range(0, 0, 999, 999),
               error,
               DiagnosticSeverity.Error,
             ),
-          ],
-        ),
-      );
-      warnings.forEach((warning) =>
+        )
+        .concat(
+          warnings.map(
+            (warning) =>
+              new Diagnostic(
+                new Range(0, 0, 999, 999),
+                warning,
+                DiagnosticSeverity.Warning,
+              ),
+          ),
+        );
+      if (diagnostics) {
+        // user error
         this.rebuildManifestDiagnostics.set(
           Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
-          [
-            new Diagnostic(
-              new Range(0, 0, 999, 999),
-              warning,
-              DiagnosticSeverity.Warning,
-            ),
-          ],
-        ),
-      );
-      if (stderr) {
-        this.telemetry.sendTelemetryEvent(
-          "dbtCloudCannotParseProjectUserError",
-          {
-            error: stderr,
-            adapter: this.getAdapterType() || "unknown",
-          },
+          diagnostics,
         );
       }
     } catch (error) {
       this.telemetry.sendTelemetryError(
-        "dbtCloudCannotParseProjectUnknownError",
+        "dbtCloudCannotParseProjectCommandExecuteError",
         error,
         {
           adapter: this.getAdapterType() || "unknown",
+          command: command.getCommandAsString(),
         },
+      );
+      this.rebuildManifestDiagnostics.set(
+        Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+        [
+          new Diagnostic(
+            new Range(0, 0, 999, 999),
+            "Unable to parse dbt cloud cli response. If the problem persists please reach out to us: " +
+              error,
+            DiagnosticSeverity.Error,
+          ),
+        ],
       );
     }
   }
@@ -1088,9 +1129,11 @@ export class DBTCloudProjectIntegration
 
     for (const diagnosticCollection of allDiagnostics) {
       for (const [_, diagnostics] of diagnosticCollection) {
-        if (diagnostics.length > 0) {
-          const firstError = diagnostics[0];
-          throw new Error(firstError.message);
+        const error = diagnostics.find(
+          (diagnostic) => diagnostic.severity === DiagnosticSeverity.Error,
+        );
+        if (error) {
+          throw new Error(error.message);
         }
       }
     }
@@ -1118,5 +1161,24 @@ export class DBTCloudProjectIntegration
 
   throwDiagnosticsErrorIfAvailable(): void {
     this.throwBridgeErrorIfAvailable();
+  }
+
+  private parseJSON(
+    contextName: string,
+    json: string,
+    throw_: boolean = true,
+  ): any {
+    try {
+      return JSON.parse(json);
+    } catch (error) {
+      this.telemetry.sendTelemetryEvent("dbtCloud" + contextName + "Error", {
+        text: json,
+        error: (error as Error).message,
+        adapter: this.getAdapterType() || "unknown",
+      });
+      if (throw_) {
+        throw error;
+      }
+    }
   }
 }
