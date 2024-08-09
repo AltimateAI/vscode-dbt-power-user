@@ -86,7 +86,10 @@ function makeClickEvent(td, metadata) {
         "json"
       );
     };
-  } else if (metadata.value.length > 20) {
+    return;
+  }
+
+  if (metadata.value.length > 20) {
     appendImage(td);
     // else if string is greater than 20, add click event to view full string
     td.onclick = () => {
@@ -108,6 +111,17 @@ class CustomDatagridPlugin extends customElements.get(
     return "Custom Datagrid";
   }
 
+  getType(metadata) {
+    // This function returns the data type of the cell
+    if (metadata.x >= 0) {
+      const column_path = this._column_paths[metadata.x];
+      const column_path_parts = column_path.split("|");
+      return this._schema[column_path_parts[column_path_parts.length - 1]];
+    }
+    const column_path = this._group_by[metadata.row_header_x - 1];
+    return this._table_schema[column_path];
+  }
+
   async styleListener() {
     const viewer = this.parentElement;
     const datagrid = this.regular_table;
@@ -117,16 +131,7 @@ class CustomDatagridPlugin extends customElements.get(
 
     for (const td of datagrid.querySelectorAll("td")) {
       const metadata = datagrid.getMeta(td);
-
-      let type;
-      if (metadata.x >= 0) {
-        const column_path = this._column_paths[metadata.x];
-        const column_path_parts = column_path.split("|");
-        type = this._schema[column_path_parts[column_path_parts.length - 1]];
-      } else {
-        const column_path = this._group_by[metadata.row_header_x - 1];
-        type = this._table_schema[column_path];
-      }
+      const type = this.getType(metadata);
 
       if (type === "string") {
         makeClickEvent(td, metadata);
