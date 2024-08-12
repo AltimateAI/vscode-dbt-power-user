@@ -1,6 +1,7 @@
 .altimatePerspectiveViewer {
   height: 100%;
   font-size: 1.25rem !important;
+  z-index: 20;
 
   &[theme="Vintage"] {
     font-family: var(--bs-body-font-family) !important;
