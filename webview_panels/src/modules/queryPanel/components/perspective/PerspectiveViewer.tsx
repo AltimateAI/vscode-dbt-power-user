@@ -125,7 +125,7 @@ const PerspectiveViewer = ({
 
   const updateCustomStyles = (currentTheme: string) => {
     const shadowRoot = perspectiveViewerRef.current?.querySelector(
-      "perspective-viewer-custom-datagrid",
+      "perspective-datagrid-json-viewer-plugin"
     )?.shadowRoot;
     if (!shadowRoot) {
       return;

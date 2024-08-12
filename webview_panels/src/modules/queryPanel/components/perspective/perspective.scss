@@ -1,10 +1,24 @@
 regular-table {
-  td, th{
+  td,
+  th {
     user-select: text;
     cursor: text;
 
-    .open-icon{
-      margin-left: 5px; 
+    .clickable-cell-div {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .clickable-cell-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      width: 100px;
+    }
+
+    .open-icon {
+      margin-left: 5px;
       color: var(--text-active);
     }
   }
@@ -20,17 +34,16 @@ regular-table[perspective-theme="Vintage"] {
     padding-top: 4px !important;
   }
 
-  &[theme="dark"]{
-  th {
-    background-color: #fff;
-    color: #222;
-    
-  }
+  &[theme="dark"] {
+    th {
+      background-color: #fff;
+      color: #222;
+    }
   }
 
   th,
   td {
-  font-size: 13px !important;
+    font-size: 13px !important;
   }
 
   tbody tr::after,
@@ -39,7 +52,7 @@ regular-table[perspective-theme="Vintage"] {
   }
 
   tbody {
-    td{
+    td {
       padding-top: 3px !important;
       padding-bottom: 3px !important;
     }
@@ -47,7 +60,7 @@ regular-table[perspective-theme="Vintage"] {
       background-color: rgb(239, 239, 239);
     }
 
-    tr:last-child td{
+    tr:last-child td {
       border-bottom: 1px solid var(--inactive--border-color);
     }
 
@@ -56,10 +69,10 @@ regular-table[perspective-theme="Vintage"] {
       cursor: pointer;
     }
 
-    td:first-child{
+    td:first-child {
       border-left-color: var(--inactive--border-color) !important;
     }
-    td:last-child{
+    td:last-child {
       border-right-color: var(--inactive--border-color) !important;
       border-right-width: 1px !important;
     }
