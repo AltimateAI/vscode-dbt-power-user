@@ -30,7 +30,8 @@
       "@modules/*": ["src/modules/*"],
       "@testUtils": ["src/testUtils/index.ts"],
       "@vscodeApi": ["src/modules/vscode/index.ts"]
-    }
+    },
+    "typeRoots": ["src/modules/queryPanel/components/perspective"]
   },
   "include": ["src", "vite.config.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
