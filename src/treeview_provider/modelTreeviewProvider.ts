@@ -250,7 +250,7 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
         const url =
           currentNode.patch_path !== null
             ? path.join(
-                projectRootpath.path,
+                projectRootpath.fsPath,
                 currentNode.patch_path.split("://")[1],
               )
             : " ";

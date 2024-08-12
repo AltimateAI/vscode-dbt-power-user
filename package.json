@@ -1,7 +1,7 @@
 {
   "name": "vscode-dbt-power-user",
-  "displayName": "Power User for dbt Core™",
-  "description": "a.k.a. dbt™ power user makes vscode seamlessly work with dbt™: auto-complete, preview, column lineage, AI docs generation, health checks, cost estimation etc",
+  "displayName": "Power User for dbt",
+  "description": "a.k.a. dbt power user makes vscode work seamlessly with dbt™ core and dbt™ cloud: auto-complete, preview, column lineage, AI docs generation, health checks, cost estimation etc",
   "icon": "media/images/dbt.png",
   "publisher": "innoverio",
   "license": "MIT",
@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.42.5",
+  "version": "0.43.5",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -79,7 +79,7 @@
           "dbt.enableQueryBookmarks": {
             "type": "boolean",
             "description": "Enable Query history and bookmarks feature",
-            "default": false
+            "default": true
           },
           "dbt.lineage.showSelectEdges": {
             "type": "boolean",
@@ -629,6 +629,11 @@
         "title": "Visualize SQL (Beta)",
         "category": "dbt Power User",
         "icon": "$(eye)"
+      },
+      {
+        "command": "dbtPowerUser.showDocumentation",
+        "title": "Show documentation",
+        "category": "dbt Power User"
       }
     ],
     "keybindings": [
@@ -1199,7 +1204,7 @@
     "reflect-metadata": "^0.2.2",
     "semver": "^7.6.3",
     "which": "^4.0.0",
-    "yaml": "^2.4.5"
+    "yaml": "^2.5.0"
   },
   "lint-staged": {
     "**/webview_panels/**/*.{ts,tsx}": [
