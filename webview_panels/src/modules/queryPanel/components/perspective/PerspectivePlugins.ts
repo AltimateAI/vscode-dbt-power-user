@@ -1,8 +1,21 @@
 /* eslint-disable */
 import { getGlobalTheme } from "./PerspectiveViewer";
 
+// Declare type
+type TableCellMetadata = {
+  value: string;
+  column_header: string;
+  x: number;
+  row_header_x: number;
+};
+
 // Dispatches a custom event with the given event name and message
-function dispatchCustomEvent(eventName, message, columnName, type) {
+function dispatchCustomEvent(
+  eventName: string,
+  message: any,
+  columnName: any,
+  type: string
+) {
   const event = new CustomEvent(eventName, {
     detail: { columnName, message, type },
   });
@@ -10,7 +23,7 @@ function dispatchCustomEvent(eventName, message, columnName, type) {
 }
 
 // Checks if the given string is a valid JSON
-const isJson = (str) => {
+const isJson = (str: string) => {
   try {
     JSON.parse(str);
   } catch (e) {
@@ -20,7 +33,7 @@ const isJson = (str) => {
 };
 
 // Appends an image to the td element
-function appendImage(td) {
+function appendImage(td: HTMLTableCellElement) {
   if (!td.querySelector("span")) {
     const div = document.createElement("div");
     const text = document.createElement("div");
@@ -66,7 +79,7 @@ function appendImage(td) {
 }
 
 // Adds click event to the td element
-function makeClickEvent(td, metadata) {
+function makeClickEvent(td: HTMLTableCellElement, metadata: TableCellMetadata) {
   // If string length is greater than 20, truncate and add ellipsis
   if (metadata.value.length > 20) {
     // td.textContent = metadata.value.slice(0, 20) + "...";
@@ -111,7 +124,7 @@ class CustomDatagridPlugin extends customElements.get(
     return "Custom Datagrid";
   }
 
-  getType(metadata) {
+  getType(metadata: TableCellMetadata) {
     // This function returns the data type of the cell
     if (metadata.x >= 0) {
       const column_path = this._column_paths[metadata.x];
