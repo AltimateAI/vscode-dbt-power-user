@@ -153,7 +153,7 @@ export class ConversationProvider implements Disposable {
       "loading threads",
     );
     const shares = await this.conversationService.loadSharedDocs();
-    if (shares) {
+    if (shares && shares.length && !this.isPolling) {
       this.setupPolling();
     }
 
