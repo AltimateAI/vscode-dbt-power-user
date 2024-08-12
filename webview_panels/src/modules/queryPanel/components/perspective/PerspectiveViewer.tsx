@@ -13,7 +13,7 @@ import "@finos/perspective-viewer/dist/css/vaporwave.css";
 import "@finos/perspective-viewer/dist/css/solarized.css";
 import "@finos/perspective-viewer/dist/css/solarized-dark.css";
 import "@finos/perspective-viewer/dist/css/monokai.css";
-import "./PerspectivePlugins.js";
+import "./PerspectivePlugins";
 import { useEffect, useRef, useState } from "react";
 import { panelLogger } from "@modules/logger";
 import useAppContext from "@modules/app/useAppContext";
