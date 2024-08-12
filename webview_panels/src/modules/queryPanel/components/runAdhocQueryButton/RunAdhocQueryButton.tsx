@@ -11,8 +11,8 @@ const RunAdhocQueryButton = (): JSX.Element => {
       <Button
         outline
         onClick={handleClick}
-        buttontext="+ New query"
-        showtext={true}
+        icon={<>+</>}
+        buttontext="New query"
       />
     </NewFeatureIndicator>
   );
