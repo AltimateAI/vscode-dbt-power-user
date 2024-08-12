@@ -1,20 +1,13 @@
-/* eslint-disable */
-import { getGlobalTheme } from "./PerspectiveViewer";
-
-// Declare type
-type TableCellMetadata = {
-  value: string;
-  column_header: string;
-  x: number;
-  row_header_x: number;
-};
+/* eslint-disable no-underscore-dangle */
+import OpenIcon from "./openIcon.svg?raw";
+import type { Schema } from "@finos/perspective";
 
 // Dispatches a custom event with the given event name and message
 function dispatchCustomEvent(
   eventName: string,
-  message: any,
-  columnName: any,
-  type: string
+  message: string,
+  columnName: string,
+  type: string,
 ) {
   const event = new CustomEvent(eventName, {
     detail: { columnName, message, type },
@@ -33,7 +26,8 @@ const isJson = (str: string) => {
 };
 
 // Appends an image to the td element
-function appendImage(td: HTMLTableCellElement) {
+function appendImage(tdArg: HTMLTableCellElement) {
+  const td = tdArg;
   if (!td.querySelector("span")) {
     const div = document.createElement("div");
     const text = document.createElement("div");
@@ -44,25 +38,8 @@ function appendImage(td: HTMLTableCellElement) {
 
     // Adding svg icon to the span element
     const span = document.createElement("span");
-    const img = document.createElement("img");
-
-    // Getting the current theme and setting the icon color
-    const svg = document.createElement("svg");
-    const path = document.createElement("path");
-    path.setAttribute(
-      "d",
-      "M 25.980469 2.9902344 A 1.0001 1.0001 0 0 0 25.869141 3 L 20 3 A 1.0001 1.0001 0 1 0 20 5 L 23.585938 5 L 13.292969 15.292969 A 1.0001 1.0001 0 1 0 14.707031 16.707031 L 25 6.4140625 L 25 10 A 1.0001 1.0001 0 1 0 27 10 L 27 4.1269531 A 1.0001 1.0001 0 0 0 25.980469 2.9902344 z M 6 7 C 4.9069372 7 4 7.9069372 4 9 L 4 24 C 4 25.093063 4.9069372 26 6 26 L 21 26 C 22.093063 26 23 25.093063 23 24 L 23 14 L 23 11.421875 L 21 13.421875 L 21 16 L 21 24 L 6 24 L 6 9 L 14 9 L 16 9 L 16.578125 9 L 18.578125 7 L 16 7 L 14 7 L 6 7 z"
-    );
-    svg.setAttribute("fill", "currentColor");
-    svg.setAttribute("viewBox", "0 0 30 30");
-    svg.setAttribute("width", "30px");
-    svg.setAttribute("height", "30px");
-    svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-    svg.appendChild(path);
-
     // Styling the span element
-    span.style.marginLeft = "5px";
-    span.style.color = "var(--primary-color)";
+    span.classList.add("open-icon");
 
     // Styling the div element
     div.style.display = "flex";
@@ -77,7 +54,7 @@ function appendImage(td: HTMLTableCellElement) {
 
     // Appending the image to the span element and the text to the div element
     // Appending the div element to the td element
-    span.appendChild(svg);
+    span.innerHTML = OpenIcon;
     div.appendChild(text);
     div.appendChild(span);
     td.appendChild(div);
@@ -85,7 +62,11 @@ function appendImage(td: HTMLTableCellElement) {
 }
 
 // Adds click event to the td element
-function makeClickEvent(td: HTMLTableCellElement, metadata: TableCellMetadata) {
+function makeClickEvent(
+  tdArg: HTMLTableCellElement,
+  metadata: TableCellMetadata,
+) {
+  const td = tdArg;
   // If string length is greater than 20, truncate and add ellipsis
   if (metadata.value.length > 20) {
     // td.textContent = metadata.value.slice(0, 20) + "...";
@@ -102,7 +83,7 @@ function makeClickEvent(td: HTMLTableCellElement, metadata: TableCellMetadata) {
         "string-json-viewer",
         metadata.value,
         columnName,
-        "json"
+        "json",
       );
     };
     return;
@@ -116,33 +97,44 @@ function makeClickEvent(td: HTMLTableCellElement, metadata: TableCellMetadata) {
         "string-json-viewer",
         metadata.value,
         columnName,
-        "string"
+        "string",
       );
     };
   }
 }
 
 // Custom perspective plugin to add click event to the td element
-class CustomDatagridPlugin extends customElements.get(
-  "perspective-viewer-datagrid"
-) {
+class CustomDatagridPlugin extends (customElements.get(
+  "perspective-viewer-datagrid",
+) as unknown as typeof HTMLPerspectiveViewerDatagridPluginElement) {
+  private readonly pluginName = "Custom Datagrid";
+  private _view?: PerspectiveViewerView;
+  private _dirty?: boolean;
+  private _custom_initialized?: boolean;
+  private _table_schema?: Schema;
+  private _schema?: Schema;
+  private _column_paths?: string[];
+  private _group_by?: string[];
+
   get name() {
-    return "Custom Datagrid";
+    return this.pluginName;
   }
 
   getType(metadata: TableCellMetadata) {
-    // This function returns the data type of the cell
-    if (metadata.x >= 0) {
-      const column_path = this._column_paths[metadata.x];
-      const column_path_parts = column_path.split("|");
-      return this._schema[column_path_parts[column_path_parts.length - 1]];
+    if (!this._column_paths) {
+      return;
     }
-    const column_path = this._group_by[metadata.row_header_x - 1];
-    return this._table_schema[column_path];
+    // This function returns the data type of the cell
+    if (this._schema && metadata.x >= 0) {
+      const columnPath = this._column_paths[metadata.x];
+      const columnPathParts = columnPath.split("|");
+      return this._schema[columnPathParts[columnPathParts.length - 1]];
+    }
+    const columnPath = this._group_by?.[metadata.row_header_x - 1];
+    return columnPath ? this._table_schema?.[columnPath] : undefined;
   }
 
   async styleListener() {
-    const viewer = this.parentElement;
     const datagrid = this.regular_table;
     if (this._dirty) {
       await this.refresh_cache();
@@ -160,25 +152,26 @@ class CustomDatagridPlugin extends customElements.get(
 
   async refresh_cache() {
     const view = this._view;
+    if (!view) {
+      return;
+    }
     this._column_paths = await view.column_paths();
-    this._group_by = await view.get_config()["group_by"];
+    this._group_by = (await view.get_config()).group_by;
     this._schema = await view.schema();
     this._dirty = false;
   }
 
-  async activate(view) {
+  async activate(view: PerspectiveViewerView) {
     await super.activate(view);
     this._view = view;
     this._dirty = true;
     if (!this._custom_initialized) {
       const viewer = this.parentElement;
       const datagrid = this.regular_table;
-      this._max = -Infinity;
-      await this.refresh_cache(view);
-      const table = await viewer.getTable(true);
+      await this.refresh_cache();
+      const table = await viewer?.getTable(true);
       this._table_schema = await table.schema();
-      viewer.addEventListener("perspective-config-update", async () => {
-        this._max = -Infinity;
+      viewer.addEventListener("perspective-config-update", () => {
         this._dirty = true;
       });
 
@@ -190,7 +183,7 @@ class CustomDatagridPlugin extends customElements.get(
 
 customElements.define(
   "perspective-viewer-custom-datagrid",
-  CustomDatagridPlugin
+  CustomDatagridPlugin,
 );
 
 void customElements

@@ -2,6 +2,11 @@ regular-table {
   td, th{
     user-select: text;
     cursor: text;
+
+    .open-icon{
+      margin-left: 5px; 
+      color: var(--text-active);
+    }
   }
 }
 

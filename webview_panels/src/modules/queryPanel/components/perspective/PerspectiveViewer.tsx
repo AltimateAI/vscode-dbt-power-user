@@ -25,13 +25,6 @@ import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
 import { setPerspectiveTheme } from "@modules/queryPanel/context/queryPanelSlice";
 import { Drawer, DrawerRef } from "@uicore";
 
-// The global theme is used to store the current theme of the perspective viewer.
-// This is used to update the icon color in the perspective viewer plugin.
-let GLOBAL_THEME = "";
-export function getGlobalTheme() {
-  return GLOBAL_THEME;
-}
-
 interface Props {
   data: TableData;
   columnNames: string[];
@@ -52,7 +45,6 @@ const PerspectiveViewer = ({
   const [drawerTitle, setDrawerTitle] = useState<string>("");
   const perspectiveViewerRef = useRef<HTMLPerspectiveViewerElement>(null);
   const drawerRef = useRef<DrawerRef | null>(null);
-  GLOBAL_THEME = theme;
 
   const config: PerspectiveViewerConfig = {
     theme: perspectiveTheme,
@@ -99,7 +91,7 @@ const PerspectiveViewer = ({
             }
             return JSON.stringify(fieldData, replacer);
           })
-          .join(",")
+          .join(","),
       ),
     ].join("\r\n");
     return csv;
@@ -133,7 +125,7 @@ const PerspectiveViewer = ({
 
   const updateCustomStyles = (currentTheme: string) => {
     const shadowRoot = perspectiveViewerRef.current?.querySelector(
-      "perspective-viewer-custom-datagrid"
+      "perspective-viewer-custom-datagrid",
     )?.shadowRoot;
     if (!shadowRoot) {
       return;
@@ -216,14 +208,13 @@ const PerspectiveViewer = ({
           });
           dispatch(setPerspectiveTheme(ev.detail.theme));
         }
-      }
+      },
     );
     setTableRendered(true);
   };
 
   useEffect(() => {
     loadPerspectiveData().catch((err) => panelLogger.error(err));
-    GLOBAL_THEME = theme;
 
     // Handle the event when a string or JSON is clicked in the perspective viewer datagrid
     const handleOpenDrawer = (event: CustomEvent) => {
@@ -237,7 +228,7 @@ const PerspectiveViewer = ({
       if (detail?.type === "string") {
         // adding \n after every 45 characters to make it readable
         setDrawerData(
-          detail?.message.match(/.{1,45}/g)?.join("\n") ?? detail?.message
+          detail?.message.match(/.{1,45}/g)?.join("\n") ?? detail?.message,
         );
       } else if (detail?.type === "json") {
         // Pretty print JSON
@@ -248,7 +239,7 @@ const PerspectiveViewer = ({
     // Add an event listener to open the drawer when a string or JSON is clicked
     window.addEventListener(
       "string-json-viewer",
-      handleOpenDrawer as EventListener
+      handleOpenDrawer as EventListener,
     );
 
     return () => {
@@ -256,18 +247,18 @@ const PerspectiveViewer = ({
         ?.getTable()
         .then((table) => table.delete())
         .catch((err) =>
-          panelLogger.error("error while deleting perspective table", err)
+          panelLogger.error("error while deleting perspective table", err),
         );
       perspectiveViewerRef.current
         ?.delete()
         .catch((err) =>
-          panelLogger.error("error while deleting perspective viewer", err)
+          panelLogger.error("error while deleting perspective viewer", err),
         );
 
       // Remove the event listener when the component is unmounted
       window.removeEventListener(
         "string-json-viewer",
-        handleOpenDrawer as EventListener
+        handleOpenDrawer as EventListener,
       );
     };
   }, []);
@@ -276,7 +267,6 @@ const PerspectiveViewer = ({
     if (!tableRendered || !config.theme || !perspectiveViewerRef.current) {
       return;
     }
-    GLOBAL_THEME = theme;
 
     perspectiveViewerRef.current
       ?.querySelector("perspective-viewer-datagrid")
@@ -285,7 +275,7 @@ const PerspectiveViewer = ({
     perspectiveViewerRef.current
       .restore(config)
       .catch((err) =>
-        panelLogger.error("error while restoring perspective", err)
+        panelLogger.error("error while restoring perspective", err),
       );
   }, [theme, tableRendered]);
 
