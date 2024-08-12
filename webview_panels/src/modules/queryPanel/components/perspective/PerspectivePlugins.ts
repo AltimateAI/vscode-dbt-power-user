@@ -49,6 +49,7 @@ function appendImage(tdArg: HTMLTableCellElement) {
     // Appending the image to the span element and the text to the div element
     // Appending the div element to the td element
     span.innerHTML = OpenIcon;
+    span.title = "Click to view complete value";
     div.appendChild(text);
     div.appendChild(span);
     td.appendChild(div);
