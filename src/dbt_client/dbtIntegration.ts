@@ -335,7 +335,6 @@ export interface DBTProjectIntegration extends Disposable {
   getVersion(): number[] | undefined;
   // parse manifest
   rebuildManifest(): Promise<void>;
-  executePython(code: string): Promise<any>;
   // execute queries
   executeSQL(
     query: string,

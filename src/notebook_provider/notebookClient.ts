@@ -13,6 +13,7 @@ import {
   NotebookCellOutputItem,
   ProgressLocation,
   window,
+  Disposable,
 } from "vscode";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { getFirstWorkspacePath } from "../utils";
@@ -65,7 +66,8 @@ export interface IPyWidgetMessage {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   payload: any;
 }
-export class NotebookClient {
+export class NotebookClient implements Disposable {
+  private disposables: Disposable[] = [];
   private lastUsedStreamOutput?: {
     stream: "stdout" | "stderr";
     output: NotebookCellOutput;
@@ -129,6 +131,18 @@ export class NotebookClient {
     this.initializeNotebookKernel(notebookPath);
   }
 
+  async dispose() {
+    this.disposables.forEach((d) => d.dispose());
+    try {
+      await this.python.ex`
+        notebook_kernel.close_notebook()
+        `;
+    } catch (error) {
+      console.error(error);
+      // TODO: add telemetry
+    }
+  }
+
   public async getKernel(): Promise<
     ReturnType<typeof newRawKernel> | undefined
   > {
@@ -146,7 +160,7 @@ export class NotebookClient {
     try {
       await this.python.ex`
         from altimate_notebook_kernel import initialize_kernel
-        notebook_kernel = initialize_kernel(${notebookPath})
+        notebook_kernel = AltimateNotebookKernel(${notebookPath})
         `;
 
       const connectionFile = await this.python.lock<string>(
@@ -155,8 +169,6 @@ export class NotebookClient {
       const connectionSettings = JSON.parse(
         readFileSync(connectionFile, { encoding: "utf-8" }),
       ) as ConnectionSettings;
-      // const getPorts = promisify((await import("portfinder")).getPorts);
-      // const ports = await getPorts(5, { host: "127.0.0.1", port: undefined });
       const pid = await this.python.lock<{ mime: string; value: string }[]>(
         (python) => python`notebook_kernel.get_session_id()`,
       );
@@ -377,8 +389,8 @@ export class NotebookClient {
     console.log(`registerCommTarget registering: ${payload}`);
     const kernel = await this.getKernel();
     if (!kernel) {
-    this.registerdCommTargets.delete(payload);
-    throw new Error("Kernel not found for registering comm target");
+      this.registerdCommTargets.delete(payload);
+      throw new Error("Kernel not found for registering comm target");
     }
     return kernel.realKernel.registerCommTarget(
       payload as string,
@@ -392,21 +404,68 @@ export class NotebookClient {
   async executePython(
     code: string,
     cell: NotebookCell,
+    onOutput: (output: NotebookCellOutput) => void,
   ): Promise<NotebookCellOutput[] | undefined> {
     return new Promise(async (resolve, reject) => {
       const cellPath = cell.metadata.cellId;
       console.log(`Executing python code in cell: ${cellPath}`);
       const jupyterLab =
         require("@jupyterlab/services") as typeof import("@jupyterlab/services");
-      const request = await this.kernel?.realKernel.requestExecute({ code });
+      console.log("kernel status", this.kernel?.realKernel.status);
+
+      const request = await this.kernel?.realKernel.requestExecute(
+        {
+          code,
+          silent: false,
+          stop_on_error: false,
+          allow_stdin: true,
+          store_history: true,
+        },
+        false,
+        { cellId: cell.document.uri.toString() },
+      );
       if (!request) {
         resolve(undefined);
         return;
       }
 
+      request.onReply = (msg) => {
+        // Cell has been deleted or the like.
+        if (cell.document.isClosed) {
+          request.dispose();
+          return;
+        }
+
+        // Refer https://github.com/microsoft/vscode-jupyter/blob/main/src/kernels/execution/cellExecutionMessageHandler.ts#L874 if needed
+        const reply = msg.content as KernelMessage.IExecuteReply;
+
+        if (reply.payload) {
+          reply.payload.forEach((payload) => {
+            if (payload.data && payload.data.hasOwnProperty("text/plain")) {
+              onOutput(
+                this.addToCellData(
+                  {
+                    // Mark as stream output so the text is formatted because it likely has ansi codes in it.
+                    output_type: "stream",
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    text: (payload.data as any)["text/plain"].toString(),
+                    name: "stdout",
+                    metadata: {},
+                    execution_count: reply.execution_count,
+                  },
+                  msg,
+                  cell,
+                ),
+              );
+            }
+          });
+        }
+      };
+
       const outputs: (NotebookCellOutput | undefined)[] = [];
       request.done.finally(() => {
         console.log("finally");
+        request.dispose();
         resolve(outputs.filter((o): o is NotebookCellOutput => !!o));
       });
       request.onStdin = (msg) => {
@@ -457,9 +516,6 @@ export class NotebookClient {
         }
       };
       return request;
-      // return this.python.lock<{ mime: string; value: string }[]>(
-      //   (python) => python`notebook_kernel.execute_python(${code})`,
-      // );
     });
   }
 
@@ -764,9 +820,9 @@ export class NotebookClient {
   ) {
     const mime = outputItem.mime;
     if (
-      mime == CellOutputMimeTypes.stderr ||
-      mime == CellOutputMimeTypes.stdout ||
-      mime == CellOutputMimeTypes.error
+      mime === CellOutputMimeTypes.stderr ||
+      mime === CellOutputMimeTypes.stdout ||
+      mime === CellOutputMimeTypes.error
     ) {
       // These are plain text mimetypes that can be rendered by the Jupyter Lab widget manager.
       return true;
@@ -810,7 +866,7 @@ export class NotebookClient {
       this.outputsAreSpecificToAWidget.length &&
       this.outputsAreSpecificToAWidget[
         this.outputsAreSpecificToAWidget.length - 1
-      ].msgIdsToSwallow == getParentHeaderMsgId(msg)
+      ].msgIdsToSwallow === getParentHeaderMsgId(msg)
     ) {
       // Stream messages will be handled by the Output Widget.
       return;

@@ -348,7 +348,3 @@ export function getFormattedDateTime(): string {
 
   return `${date}-${time}`;
 }
-
-export const executePythonCode = async (code: string, python: PythonBridge) => {
-  return python.lock((python) => python`project.execute_python(${code})`);
-};

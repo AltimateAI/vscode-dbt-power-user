@@ -1139,10 +1139,6 @@ export class DBTCloudProjectIntegration
     }
   }
 
-  async executePython(code: string) {
-    await this.python.lock((python) => python`${code}`);
-  }
-
   async performDatapilotHealthcheck({
     manifestPath,
     catalogPath,

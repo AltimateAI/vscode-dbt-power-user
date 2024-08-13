@@ -13,7 +13,6 @@ import {
   workspace,
 } from "vscode";
 import {
-  executePythonCode,
   extendErrorWithSupportLinks,
   getFirstWorkspacePath,
   getProjectRelativePath,
@@ -557,11 +556,6 @@ export class DBTCoreProjectIntegration
       ...(this.projectConfigDiagnostics.get(projectURI) || []),
       ...(this.rebuildManifestDiagnostics.get(projectURI) || []),
     ];
-  }
-
-  async executePython(code: string) {
-    await this.python.ex`from dbt_core_integration import execute_python`;
-    return await this.python.lock((python) => python`execute_python(${code})`);
   }
 
   async rebuildManifest(): Promise<void> {

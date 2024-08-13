@@ -95,9 +95,9 @@ export class NotebookKernel implements vscode.Disposable {
           event.editor.notebook.uri,
         );
         switch (event.message.type) {
-          // case "IPyWidgets_registerCommTarget":
-          //   client.registerCommTarget(event.message.payload as string);
-          //   break;
+          case "IPyWidgets_registerCommTarget":
+            client.registerCommTarget(event.message.payload as string);
+            break;
           case "IPyWidgets_Request_Widget_Version":
             return this.sendIPyWidgetsVersion();
           case "IPyWidgets_Ready":
@@ -157,6 +157,11 @@ export class NotebookKernel implements vscode.Disposable {
     this.disposables.push(
       vscode.workspace.onDidOpenNotebookDocument(async (notebook) => {
         await this.onNotebookOpen(notebook);
+      }),
+    );
+    this.disposables.push(
+      vscode.workspace.onDidCloseNotebookDocument(async (notebook) => {
+        await this.onNotebookClose(notebook);
       }),
     );
     // this._controller.updateNotebookAffinity = async (
@@ -363,6 +368,14 @@ export class NotebookKernel implements vscode.Disposable {
       });
       return;
     }
+  }
+
+  private async onNotebookClose(notebook: vscode.NotebookDocument) {
+    const client = await this.clientMapper.getNotebookClient(notebook.uri);
+    if (client) {
+      client.dispose();
+    }
+    this.widgetOutputsPerNotebook.delete(notebook);
   }
 
   private async onNotebookOpen(notebook: vscode.NotebookDocument) {
@@ -614,6 +627,9 @@ export class NotebookKernel implements vscode.Disposable {
           const output = await notebookClient.executePython(
             cell.document.getText(),
             cell,
+            (output) => {
+              execution.appendOutput(output);
+            },
           );
 
           if (output) {
