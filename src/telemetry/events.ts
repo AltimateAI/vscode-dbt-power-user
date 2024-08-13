@@ -45,4 +45,7 @@ export enum TelemetryEvents {
   "DocumentationEditor/TestEditUpdateClick" = "DocumentationEditor/TestEditUpdateClick",
   "DocumentationEditor/TestDeleteClick" = "DocumentationEditor/TestDeleteClick",
   "DocumentationEditor/AddTestSelect" = "DocumentationEditor/AddTestSelect",
+  "Notebook/DependenciesInstallCancelled" = "Notebook/DependenciesInstallCancelled",
+  "Notebook/DependenciesInstalled" = "Notebook/DependenciesInstalled",
+  "Notebook/DependenciesInstallError" = "Notebook/DependenciesInstallError",
 }

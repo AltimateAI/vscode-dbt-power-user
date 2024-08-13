@@ -40,6 +40,7 @@ import { ValidationProvider } from "./validation_provider";
 import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
 import { NotebookClient } from "./notebook_provider/notebookClient";
+import { NotebookDependencies } from "./notebook_provider/python/notebookDependencies";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -187,8 +188,7 @@ container
       return new NotebookClient(
         path,
         container.get(DBTCommandExecutionInfrastructure),
-        container.get(CommandProcessExecutionFactory),
-        container.get(PythonEnvironment),
+        container.get(NotebookDependencies),
       );
     };
   });

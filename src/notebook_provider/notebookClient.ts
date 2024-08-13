@@ -1,8 +1,7 @@
 import type * as KernelMessage from "@jupyterlab/services/lib/kernel/messages";
 import type * as nbformat from "@jupyterlab/nbformat";
 import type { Data as WebSocketData } from "ws";
-import { promisify } from "util";
-import { PythonBridge, PythonException } from "python-bridge";
+import { PythonBridge } from "python-bridge";
 import { DBTCommandExecutionInfrastructure } from "../dbt_client/dbtIntegration";
 import path = require("path");
 import {
@@ -11,17 +10,12 @@ import {
   NotebookCell,
   NotebookCellOutput,
   NotebookCellOutputItem,
-  ProgressLocation,
   window,
   Disposable,
 } from "vscode";
-import { CommandProcessExecutionFactory } from "../commandProcessExecution";
-import { getFirstWorkspacePath } from "../utils";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { newRawKernel } from "./kernelClient";
 import { randomUUID } from "crypto";
 import {
-  cellOutputMappers,
   CellOutputMimeTypes,
   cellOutputToVSCCellOutput,
   concatMultilineString,
@@ -32,9 +26,9 @@ import {
 } from "./helpers";
 import { readFileSync } from "fs";
 import { Identifiers, WIDGET_MIMETYPE } from "./constants";
-import { noop } from "./controller";
 import { serializeDataViews } from "./serializers";
 import { createDeferred } from "./async";
+import { NotebookDependencies } from "./python/notebookDependencies";
 
 type ExecuteResult = nbformat.IExecuteResult & {
   transient?: { display_id?: string };
@@ -118,8 +112,7 @@ export class NotebookClient implements Disposable {
   constructor(
     notebookPath: string,
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
-    private commandProcessExecutionFactory: CommandProcessExecutionFactory,
-    private pythonEnvironment: PythonEnvironment,
+    private notebookDependencies: NotebookDependencies,
   ) {
     const jupyterLabSerialize =
       require("@jupyterlab/services/lib/kernel/serialize") as typeof import("@jupyterlab/services/lib/kernel/serialize"); // NOSONAR
@@ -158,8 +151,13 @@ export class NotebookClient implements Disposable {
 
   private async initializeNotebookKernel(notebookPath: string) {
     try {
+      if (
+        !(await this.notebookDependencies.validateAndInstallNotebookDependencies())
+      ) {
+        return;
+      }
       await this.python.ex`
-        from altimate_notebook_kernel import initialize_kernel
+        from altimate_notebook_kernel import AltimateNotebookKernel
         notebook_kernel = AltimateNotebookKernel(${notebookPath})
         `;
 
@@ -186,62 +184,6 @@ export class NotebookClient implements Disposable {
       newSocket?.addReceiveHook(this.onKernelSocketMessage.bind(this)); // NOSONAR
       newSocket?.addSendHook(this.mirrorSend.bind(this)); // NOSONAR
     } catch (exc) {
-      // TODO: handle error
-      console.error(exc);
-      if (exc instanceof PythonException) {
-        // python errors can be about anything, so we just associate the error with the project file
-        //  with a fixed range
-        if (exc.message.includes("No module named 'jupyter_client'")) {
-          const selected = await window.showInformationMessage(
-            "You need [ipykernel](https://pypi.org/project/ipykernel/) and [jupyter_client](https://github.com/jupyter/jupyter_client) to use the notebook",
-            "Install",
-            "Cancel",
-          );
-          if (selected === "Install") {
-            await window.withProgress(
-              {
-                title: `Installing jupyter_client...`,
-                location: ProgressLocation.Notification,
-                cancellable: false,
-              },
-              async () => {
-                try {
-                  const args = [
-                    "-m",
-                    "pip",
-                    "install",
-                    "ipykernel",
-                    "jupyter_client",
-                    "jupyter_contrib_nbextensions",
-                  ];
-                  console.log(this.pythonEnvironment.pythonPath, args);
-                  const { stdout, stderr } =
-                    await this.commandProcessExecutionFactory
-                      .createCommandProcessExecution({
-                        command: this.pythonEnvironment.pythonPath,
-                        args,
-                        cwd: getFirstWorkspacePath(),
-                        envVars: this.pythonEnvironment.environmentVariables,
-                      })
-                      .completeWithTerminalOutput();
-                  if (
-                    !stdout.includes("Successfully installed") &&
-                    !stdout.includes("Requirement already satisfied") &&
-                    stderr
-                  ) {
-                    throw new Error(stderr);
-                  }
-                  await this.initializeNotebookKernel(notebookPath);
-                } catch (err) {
-                  window.showErrorMessage((err as Error).message);
-                }
-              },
-            );
-          }
-          this.isInitializing = false;
-          return;
-        }
-      }
       window.showErrorMessage((exc as Error).message);
     }
 

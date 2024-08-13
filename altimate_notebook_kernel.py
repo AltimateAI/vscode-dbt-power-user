@@ -200,12 +200,3 @@ class AltimateNotebookKernel:
         self.close_notebook()
         self.cell_results.clear()
         print(f"Instance for notebook {self.doc_uri} destroyed.")
-
-def initialize_kernel(doc_uri: str):
-    """
-    Initialize the AltimateNotebookKernel instance.
-    
-    Returns:
-    notebook_kernel: The initialized AltimateNotebookKernel instance.
-    """
-    return AltimateNotebookKernel(doc_uri)
