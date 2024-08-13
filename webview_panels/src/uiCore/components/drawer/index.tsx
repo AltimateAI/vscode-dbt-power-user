@@ -22,6 +22,7 @@ interface Props {
   onClose?: () => void;
   onOpen?: () => void;
   children: ReactNode;
+  backdrop?: boolean;
 }
 
 export interface DrawerRef {
@@ -30,8 +31,8 @@ export interface DrawerRef {
 }
 
 const Drawer: ForwardRefRenderFunction<DrawerRef, Props> = (
-  { buttonProps, buttonText, title, onClose, children, onOpen },
-  ref,
+  { buttonProps, buttonText, title, onClose, children, onOpen, backdrop = true },
+  ref
 ) => {
   const [show, setShow] = useState(false);
 
@@ -67,6 +68,7 @@ const Drawer: ForwardRefRenderFunction<DrawerRef, Props> = (
         toggle={handleClose}
         direction="end"
         className={classes.offcanvas}
+        backdrop={backdrop}
         unmountOnClose
       >
         {title ? (

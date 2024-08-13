@@ -124,7 +124,7 @@ const DocumentationEditor = (): JSX.Element => {
   }
 
   return (
-    <div className={classes.documentationWrapper}>
+    <div className={`${classes.documentationWrapper} ${classes.limitWidth}`}>
       <Stack className="mb-2 justify-content-between">
         <Stack>
           <Button

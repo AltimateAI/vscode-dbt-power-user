@@ -61,6 +61,7 @@ import { ColumnMetaData, NodeMetaData } from "../domain";
 import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryEvents } from "../telemetry/events";
+import { RunResultsEvent } from "./event/runResultsEvent";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -88,6 +89,8 @@ export class DBTProject implements Disposable {
   private _onProjectConfigChanged =
     new EventEmitter<ProjectConfigChangedEvent>();
   public onProjectConfigChanged = this._onProjectConfigChanged.event;
+  private _onRunResults = new EventEmitter<RunResultsEvent>();
+  public onRunResults = this._onRunResults.event;
   private sourceFileWatchers: SourceFileWatchers;
   public onSourceFileChanged: Event<void>;
   private dbtProjectLog?: DBTProjectLog;
@@ -157,6 +160,7 @@ export class DBTProject implements Disposable {
       this.dbtProjectIntegration,
       this.targetWatchersFactory.createTargetWatchers(
         _onManifestChanged,
+        this._onRunResults,
         this.onProjectConfigChanged,
       ),
       this.PythonEnvironment.onPythonEnvironmentChanged(() =>
@@ -164,6 +168,9 @@ export class DBTProject implements Disposable {
       ),
       this.sourceFileWatchers,
       this.projectConfigDiagnostics,
+      this.onRunResults((event) => {
+        this.invalidateCacheUsingLastRun(event.file);
+      }),
     );
 
     this.terminal.debug(
@@ -174,18 +181,8 @@ export class DBTProject implements Disposable {
     );
   }
 
-  private createLastRunResultsWatcher() {
-    const watcher = workspace.createFileSystemWatcher(
-      new RelativePattern(this.getTargetPath()!, `run_results.json`),
-    );
-
-    watcher.onDidChange((e) => this.invalidateCacheUsingLastRun(e));
-    watcher.onDidCreate((e) => this.invalidateCacheUsingLastRun(e));
-    return watcher;
-  }
-
   private async invalidateCacheUsingLastRun(file: Uri) {
-    const fileContent = readFileSync(file.path, "utf8").toString();
+    const fileContent = readFileSync(file.fsPath, "utf8").toString();
     if (!fileContent) {
       return;
     }
@@ -343,7 +340,6 @@ export class DBTProject implements Disposable {
           await this.rebuildManifest();
         }, this.dbtProjectIntegration.getDebounceForRebuildManifest()),
       ),
-      this.createLastRunResultsWatcher(),
     );
 
     this.terminal.debug(

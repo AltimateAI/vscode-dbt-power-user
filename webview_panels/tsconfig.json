@@ -31,7 +31,8 @@
       "@testUtils": ["src/testUtils/index.ts"],
       "@vscodeApi": ["src/modules/vscode/index.ts"],
       "@telemetryEvents": ["../src/telemetry/events.ts"]
-    }
+    },
+    "typeRoots": ["src/modules/queryPanel/components/perspective"]
   },
   "include": ["src", "vite.config.ts", "../src/telemetry/events.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
