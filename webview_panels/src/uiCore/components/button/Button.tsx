@@ -11,7 +11,7 @@ export const Button = ({
   children,
   ...restProps
 }: CustomButtonProps): JSX.Element => {
-  const [showButtonText, setShowButtonText] = useState<boolean>(true);
+  const [showButtonText, setShowButtonText] = useState(true);
 
   useEffect(() => {
     setShowButtonText(!icon);
