@@ -17,11 +17,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Install Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
-          node-version: "16"
+          node-version: "20"
       - run: npm install
       - run: npm install
         working-directory: ./new_lineage_panel
