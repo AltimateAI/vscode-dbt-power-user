@@ -121,9 +121,7 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
                 e.stopPropagation();
                 void props.loadConfigs();
               }}
-              buttontext={
-                props.isConfigLoading ? <LoadingIcon /> : <RefreshIcon />
-              }
+              icon={props.isConfigLoading ? <LoadingIcon /> : <RefreshIcon />}
             />
             <div className={classes.accordionContainer + " w-100"}>
               <Accordion

@@ -19,7 +19,7 @@ import { Button } from "../..";
 interface Props {
   title?: string;
   buttonProps?: ButtonProps;
-  buttonText?: ReactNode | string;
+  buttonText?: string;
   icon?: JSX.Element;
   onClose?: () => void;
   children: ReactNode;
