@@ -2,29 +2,37 @@ import { useState } from "react";
 import { Button as ReactStrapButton, ButtonProps } from "reactstrap";
 import Tooltip from "../tooltip/Tooltip";
 
-export const Button = (props: ButtonProps): JSX.Element => {
-  const defaultShowText = props?.showtext ? true : false;
-  const isIconPresent = props?.icon ? true : false;
+interface CustomButtonProps extends ButtonProps {
+  icon?: React.ReactNode;
+  showText?: boolean;
+  title?: string;
+  buttontext?: string;
+}
 
-  // Set the initial state based on whether the text should be shown by default
-  const [showButtonText, setShowButtonText] =
-    useState<boolean>(defaultShowText);
+export const Button = ({
+  icon,
+  showText = false,
+  title,
+  buttontext,
+  ...restProps
+}: CustomButtonProps): JSX.Element => {
+  const isIconPresent = !!icon;
+  const [showButtonText, setShowButtonText] = useState<boolean>(showText);
 
   const mouseHoverAction = (showBtnText: boolean) => {
-    // Only toggle the text visibility if `showtext` is false
-    if (isIconPresent && !defaultShowText) {
+    if (isIconPresent && !showText) {
       setShowButtonText(showBtnText);
     }
   };
 
   return (
-    <Tooltip title={props.title}>
+    <Tooltip title={title}>
       <ReactStrapButton
-        {...props}
+        {...restProps}
         onMouseEnter={() => mouseHoverAction(true)}
         onMouseLeave={() => mouseHoverAction(false)}
       >
-        {isIconPresent && props?.icon} {showButtonText && props.buttontext}
+        {isIconPresent && icon} {showButtonText && buttontext}
       </ReactStrapButton>
     </Tooltip>
   );
