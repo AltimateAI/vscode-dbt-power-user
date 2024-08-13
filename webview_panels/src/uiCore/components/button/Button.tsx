@@ -1,26 +1,29 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button as ReactStrapButton, ButtonProps } from "reactstrap";
 import Tooltip from "../tooltip/Tooltip";
 
 interface CustomButtonProps extends ButtonProps {
   icon?: React.ReactNode;
-  showText?: boolean;
+  showtext?: boolean;
   title?: string;
   buttontext?: string;
 }
 
 export const Button = ({
   icon,
-  showText = false,
+  showtext = false,
   title,
   buttontext,
   ...restProps
 }: CustomButtonProps): JSX.Element => {
-  const isIconPresent = !!icon;
-  const [showButtonText, setShowButtonText] = useState<boolean>(showText);
+  const [showButtonText, setShowButtonText] = useState<boolean>(showtext);
+
+  useEffect(() => {
+    setShowButtonText(showtext || !icon);
+  }, [showtext, icon]);
 
   const mouseHoverAction = (showBtnText: boolean) => {
-    if (isIconPresent && !showText) {
+    if (icon && !showtext) {
       setShowButtonText(showBtnText);
     }
   };
@@ -32,7 +35,7 @@ export const Button = ({
         onMouseEnter={() => mouseHoverAction(true)}
         onMouseLeave={() => mouseHoverAction(false)}
       >
-        {isIconPresent && icon} {showButtonText && buttontext}
+        {icon && icon} {showButtonText && buttontext}
       </ReactStrapButton>
     </Tooltip>
   );

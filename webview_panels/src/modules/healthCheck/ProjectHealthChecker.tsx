@@ -99,7 +99,6 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
               props.setConfigPath(path[0]);
             }}
             buttontext={props.configPath || "Select config path"}
-            showtext={true}
           />
         )}
       </div>
@@ -353,14 +352,12 @@ const ProjectHealthcheckInput = ({
               }}
               disabled={!isStartScanEnabled}
               buttontext="Start scan"
-              showtext={true}
             />
             <Button
               color={selectedProject ? "primary" : "secondary"}
               onClick={handleClearProblems}
               disabled={!selectedProject}
               buttontext="Clear problems"
-              showtext={true}
             />
           </Stack>
         </Stack>
