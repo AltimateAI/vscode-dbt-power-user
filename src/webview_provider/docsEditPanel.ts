@@ -595,7 +595,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               panel: this._panel,
               message,
               project,
-              isBulkGen: message.isBulkGen, // TODO: check this with vipul/surya
+              isBulkGen: message.isBulkGen,
             });
             break;
           case "sendFeedback":
