@@ -60,6 +60,7 @@ import { ModelNode } from "../altimate";
 import { ColumnMetaData, NodeMetaData } from "../domain";
 import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 import { SharedStateService } from "../services/sharedStateService";
+import { TelemetryEvents } from "../telemetry/events";
 import { RunResultsEvent } from "./event/runResultsEvent";
 
 interface FileNameTemplateMap {
@@ -728,21 +729,40 @@ export class DBTProject implements Disposable {
   }
 
   async getColumnValues(model: string, column: string) {
-    this.terminal.debug(
-      "getColumnValues",
-      "finding distinct values for column",
-      true,
-      { model, column },
+    this.telemetry.startTelemetryEvent(
+      TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
+      { column, model },
     );
-    const query = `select ${column} from {{ ref('${model}')}} group by ${column}`;
-    const queryExecution = await this.dbtProjectIntegration.executeSQL(
-      query,
-      100, // setting this 100 as executeSql needs a limit and distinct values will be usually less in number
-      model,
-    );
-    const result = await queryExecution.executeQuery();
 
-    return result.table.rows.flat();
+    try {
+      this.terminal.debug(
+        "getColumnValues",
+        "finding distinct values for column",
+        true,
+        { model, column },
+      );
+      const query = `select ${column} from {{ ref('${model}')}} group by ${column}`;
+      const queryExecution = await this.dbtProjectIntegration.executeSQL(
+        query,
+        100, // setting this 100 as executeSql needs a limit and distinct values will be usually less in number
+        model,
+      );
+      const result = await queryExecution.executeQuery();
+
+      this.telemetry.endTelemetryEvent(
+        TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
+        undefined,
+        { column, model },
+      );
+
+      return result.table.rows.flat();
+    } catch (error) {
+      this.telemetry.endTelemetryEvent(
+        TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
+        error,
+        { column, model },
+      );
+    }
   }
 
   async getBulkSchemaFromDB(

@@ -44,6 +44,7 @@ import {
 } from "../domain";
 import { DbtTestService } from "../services/dbtTestService";
 import { gte } from "semver";
+import { TelemetryEvents } from "../telemetry/events";
 
 export enum Source {
   YAML = "YAML",
@@ -493,7 +494,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         const { command, syncRequestId, args } = message;
         switch (command) {
           case "fetchMetadataFromDatabase":
-            this.telemetry.sendTelemetryEvent("syncColumnsFromDatabaseForDocs");
+            this.telemetry.startTelemetryEvent(
+              TelemetryEvents["DocumentationEditor/SyncWithDBClick"],
+            );
             window.withProgress(
               {
                 title: "Syncing columns with metadata from database",
@@ -528,8 +531,15 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       },
                     });
                   }
+                  this.telemetry.endTelemetryEvent(
+                    TelemetryEvents["DocumentationEditor/SyncWithDBClick"],
+                  );
                 } catch (exc) {
                   this.transmitError();
+                  this.telemetry.endTelemetryEvent(
+                    TelemetryEvents["DocumentationEditor/SyncWithDBClick"],
+                    exc,
+                  );
                   if (exc instanceof PythonException) {
                     window.showErrorMessage(
                       `An error occured while fetching metadata for ${modelName} from the database: ` +
@@ -539,6 +549,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       "docsEditPanelLoadPythonError",
                       `An error occured while fetching metadata for ${modelName} from the database`,
                       exc,
+                      false,
                     );
                     return;
                   }
@@ -550,6 +561,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     "docsEditPanelLoadError",
                     `An error occured while fetching metadata for ${modelName} from the database`,
                     exc,
+                    false,
                   );
                   if (syncRequestId) {
                     this._panel!.webview.postMessage({
@@ -583,7 +595,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               panel: this._panel,
               message,
               project,
-              isBulkGen: true,
+              isBulkGen: message.isBulkGen,
             });
             break;
           case "sendFeedback":
@@ -594,7 +606,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             });
             break;
           case "saveDocumentation":
-            this.telemetry.sendTelemetryEvent("saveDocumentation");
+            this.telemetry.sendTelemetryEvent(
+              TelemetryEvents["DocumentationEditor/SaveClick"],
+            );
             let patchPath = message.patchPath;
             window.withProgress(
               {
@@ -636,6 +650,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                         if (!saveDialog) {
                           return;
                         }
+                        this.telemetry.sendTelemetryEvent(
+                          TelemetryEvents[
+                            "DocumentationEditor/SaveNewFilePathSelect"
+                          ],
+                        );
                         patchPath = saveDialog.fsPath;
                         break;
                     }
@@ -780,6 +799,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   }
                 } catch (error) {
                   this.transmitError();
+                  this.telemetry.sendTelemetryError(
+                    TelemetryEvents["DocumentationEditor/SaveError"],
+                    error,
+                  );
                   window.showErrorMessage(
                     `Could not save documentation to ${patchPath}: ${error}`,
                   );
@@ -787,7 +810,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     "saveDocumentationError",
                     `Could not save documentation to ${patchPath}`,
                     error,
-                    true,
+                    false,
                   );
                   if (syncRequestId) {
                     this._panel!.webview.postMessage({
@@ -810,13 +833,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       null,
       this._disposables,
     );
-    const sendDocPanelViewEvent = () => {
-      if (this._panel!.visible) {
-        this.telemetry.sendTelemetryEvent("DocsPanelActive");
-      }
-    };
-    sendDocPanelViewEvent();
-    this._panel!.onDidChangeVisibility(sendDocPanelViewEvent);
   }
 
   private async onManifestCacheChanged(event: ManifestCacheChangedEvent) {
