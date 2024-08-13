@@ -5,9 +5,9 @@ import { QueryManifestService } from "../services/queryManifestService";
 import path = require("path");
 import { ClientMapper } from "./clientMapper";
 import { randomUUID } from "crypto";
-import { newRawKernel } from "./kernelClient";
+import { newRawKernel } from "./python/kernelClient";
 import { cellOutputToVSCCellOutput } from "./helpers";
-import { NotebookClient } from "./notebookClient";
+import { NotebookKernelClient } from "./notebookKernelClient";
 import { cpSync } from "fs";
 
 // eslint-disable-next-line no-empty,@typescript-eslint/no-empty-function
@@ -103,6 +103,11 @@ export class NotebookKernel implements vscode.Disposable {
           case "IPyWidgets_Ready":
             this.sendKernelOptions(client);
             this.sendBaseUrl();
+            break;
+          case "IPyWidgets_msg_received":
+            client.onKernelSocketResponse(
+              event.message.payload as { id: string },
+            );
             break;
           default:
             break;
@@ -354,7 +359,7 @@ export class NotebookKernel implements vscode.Disposable {
     });
   }
 
-  private async sendKernelOptions(client?: NotebookClient) {
+  private async sendKernelOptions(client?: NotebookKernelClient) {
     const kernel = await client?.getKernel();
     if (kernel?.realKernel) {
       this.sendMessageToPreloadScript({

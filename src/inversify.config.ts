@@ -39,7 +39,7 @@ import { AltimateRequest } from "./altimate";
 import { ValidationProvider } from "./validation_provider";
 import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
-import { NotebookClient } from "./notebook_provider/notebookClient";
+import { NotebookKernelClient } from "./notebook_provider/notebookKernelClient";
 import { NotebookDependencies } from "./notebook_provider/python/notebookDependencies";
 
 export const container = new Container();
@@ -181,14 +181,16 @@ container
   });
 
 container
-  .bind<interfaces.Factory<NotebookClient>>("Factory<NotebookClient>")
-  .toFactory<NotebookClient, [string]>((context: interfaces.Context) => {
+  .bind<interfaces.Factory<NotebookKernelClient>>("Factory<NotebookClient>")
+  .toFactory<NotebookKernelClient, [string]>((context: interfaces.Context) => {
     return (path: string) => {
       const { container } = context;
-      return new NotebookClient(
+      return new NotebookKernelClient(
         path,
         container.get(DBTCommandExecutionInfrastructure),
         container.get(NotebookDependencies),
+        container.get(DBTTerminal),
+        container.get(TelemetryService),
       );
     };
   });

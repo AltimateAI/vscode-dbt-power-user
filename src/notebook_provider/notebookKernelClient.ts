@@ -1,7 +1,8 @@
 import type * as KernelMessage from "@jupyterlab/services/lib/kernel/messages";
+import { deserialize } from "@jupyterlab/services/lib/kernel/serialize";
 import type * as nbformat from "@jupyterlab/nbformat";
 import type { Data as WebSocketData } from "ws";
-import { PythonBridge } from "python-bridge";
+import { PythonBridge, PythonException } from "python-bridge";
 import { DBTCommandExecutionInfrastructure } from "../dbt_client/dbtIntegration";
 import path = require("path");
 import {
@@ -13,7 +14,7 @@ import {
   window,
   Disposable,
 } from "vscode";
-import { newRawKernel } from "./kernelClient";
+import { newRawKernel } from "./python/kernelClient";
 import { randomUUID } from "crypto";
 import {
   CellOutputMimeTypes,
@@ -27,8 +28,12 @@ import {
 import { readFileSync } from "fs";
 import { Identifiers, WIDGET_MIMETYPE } from "./constants";
 import { serializeDataViews } from "./serializers";
-import { createDeferred } from "./async";
+import { createDeferred, Deferred } from "./async";
 import { NotebookDependencies } from "./python/notebookDependencies";
+import { ConnectionSettings } from "./python/types";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { TelemetryService } from "../telemetry";
+import { TelemetryEvents } from "../telemetry/events";
 
 type ExecuteResult = nbformat.IExecuteResult & {
   transient?: { display_id?: string };
@@ -42,25 +47,18 @@ type WidgetData = {
   model_id: string;
 };
 
-interface ConnectionSettings {
-  control_port: number;
-  hb_port: number;
-  iopub_port: number;
-  ip: string;
-  key: string;
-  kernel_name: string;
-  shell_port: number;
-  signature_scheme: string;
-  stdin_port: number;
-  transport: string;
-}
-
 export interface IPyWidgetMessage {
   message: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   payload: any;
 }
-export class NotebookClient implements Disposable {
+
+type PendingMessage = {
+  resultPromise: Deferred<void>;
+  startTime: number;
+};
+
+export class NotebookKernelClient implements Disposable {
   private disposables: Disposable[] = [];
   private lastUsedStreamOutput?: {
     stream: "stdout" | "stderr";
@@ -80,6 +78,7 @@ export class NotebookClient implements Disposable {
   private isInitializing = true;
   private readonly ownedCommIds = new Set<string>();
   private readonly commIdsMappedToWidgetOutputModels = new Set<string>();
+  private waitingMessageIds = new Map<string, PendingMessage>();
   private cellHasErrorsInOutput?: boolean;
   private readonly ownedRequestMsgIds = new Set<string>();
   private commIdsMappedToParentWidgetModel = new Map<string, string>();
@@ -87,9 +86,6 @@ export class NotebookClient implements Disposable {
   private isUsingIPyWidgets = false;
   private outputWidgetIds = new Set<string>();
   private registerdCommTargets = new Set<string>();
-  private readonly deserialize: (
-    data: string | ArrayBuffer,
-  ) => KernelMessage.IMessage<KernelMessage.MessageType>;
   private outputsAreSpecificToAWidget: {
     /**
      * Comm Id (or model_id) of widget that will handle all messages and render them via the widget manager.
@@ -113,11 +109,9 @@ export class NotebookClient implements Disposable {
     notebookPath: string,
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
     private notebookDependencies: NotebookDependencies,
+    private dbtTerminal: DBTTerminal,
+    private telemetry: TelemetryService,
   ) {
-    const jupyterLabSerialize =
-      require("@jupyterlab/services/lib/kernel/serialize") as typeof import("@jupyterlab/services/lib/kernel/serialize"); // NOSONAR
-    this.deserialize = jupyterLabSerialize.deserialize;
-
     this.python = this.executionInfrastructure.createPythonBridge(
       path.dirname(notebookPath),
     );
@@ -167,7 +161,7 @@ export class NotebookClient implements Disposable {
       const connectionSettings = JSON.parse(
         readFileSync(connectionFile, { encoding: "utf-8" }),
       ) as ConnectionSettings;
-      const pid = await this.python.lock<{ mime: string; value: string }[]>(
+      const pid = await this.python.lock<number>(
         (python) => python`notebook_kernel.get_session_id()`,
       );
       const kernelProcess = {
@@ -179,12 +173,23 @@ export class NotebookClient implements Disposable {
         id: randomUUID(),
       });
       this.kernel = result;
-      console.log("newRawKernel", result);
+      this.dbtTerminal.log(
+        `Notebook Kernel started with PID: ${pid} connection: ${JSON.stringify(connectionSettings)}`,
+      );
       const newSocket = result.socket;
-      newSocket?.addReceiveHook(this.onKernelSocketMessage.bind(this)); // NOSONAR
-      newSocket?.addSendHook(this.mirrorSend.bind(this)); // NOSONAR
+      newSocket?.addReceiveHook(this.onKernelSocketMessage.bind(this));
+      newSocket?.addSendHook(this.mirrorSend.bind(this));
     } catch (exc) {
-      window.showErrorMessage((exc as Error).message);
+      let message = (exc as Error).message;
+      if (exc instanceof PythonException) {
+        message = exc.exception.message;
+      }
+      this.dbtTerminal.error(
+        TelemetryEvents["Notebook/KernelInitializationError"],
+        message,
+        exc,
+      );
+      window.showErrorMessage(message);
     }
 
     this.isInitializing = false;
@@ -201,8 +206,7 @@ export class NotebookClient implements Disposable {
       data.includes("shell") &&
       data.includes("execute_request")
     ) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const msg = this.deserialize(data) as KernelMessage.IExecuteRequestMsg;
+      const msg = deserialize(data) as KernelMessage.IExecuteRequestMsg;
       if (
         msg.channel === "shell" &&
         msg.header.msg_type === "execute_request"
@@ -229,7 +233,10 @@ export class NotebookClient implements Disposable {
 
   private mirrorExecuteRequest(msg: KernelMessage.IExecuteRequestMsg) {
     const promise = createDeferred<void>();
-    // this.waitingMessageIds.set(msg.header.msg_id, { startTime: Date.now(), resultPromise: promise });
+    this.waitingMessageIds.set(msg.header.msg_id, {
+      startTime: Date.now(),
+      resultPromise: promise,
+    });
     this.raisePostMessage("IPyWidgets_mirror_execute", {
       id: msg.header.msg_id,
       msg,
@@ -237,15 +244,22 @@ export class NotebookClient implements Disposable {
     return promise.promise;
   }
 
+  onKernelSocketResponse(payload: { id: string }) {
+    const pending = this.waitingMessageIds.get(payload.id);
+    if (pending) {
+      this.waitingMessageIds.delete(payload.id);
+      pending.resultPromise.resolve();
+    }
+  }
   private async onKernelSocketMessage(data: WebSocketData): Promise<void> {
     // Hooks expect serialized data as this normally comes from a WebSocket
 
     const msgUuid = randomUUID();
-    // const promise = createDeferred<void>();
-    // this.waitingMessageIds.set(msgUuid, {
-    //   startTime: Date.now(),
-    //   resultPromise: promise,
-    // });
+    const promise = createDeferred<void>();
+    this.waitingMessageIds.set(msgUuid, {
+      startTime: Date.now(),
+      resultPromise: promise,
+    });
 
     if (typeof data === "string") {
       if (shouldMessageBeMirroredWithRenderer(data)) {
@@ -271,7 +285,7 @@ export class NotebookClient implements Disposable {
       data.includes("comm_close") ||
       data.includes("comm_msg");
     if (mustDeserialize) {
-      const message = this.deserialize(data as any) as any;
+      const message = deserialize(data as any) as any;
       if (!shouldMessageBeMirroredWithRenderer(message)) {
         return;
       }
@@ -677,10 +691,10 @@ export class NotebookClient implements Disposable {
       const widgetData = output.data[WIDGET_MIMETYPE] as WidgetData;
       if (widgetData && "model_id" in widgetData) {
         const modelIds =
-          NotebookClient.modelIdsOwnedByCells.get(cellPath) ||
+          NotebookKernelClient.modelIdsOwnedByCells.get(cellPath) ||
           new Set<string>();
         modelIds.add(widgetData.model_id);
-        NotebookClient.modelIdsOwnedByCells.set(cellPath, modelIds);
+        NotebookKernelClient.modelIdsOwnedByCells.set(cellPath, modelIds);
       }
     }
     const cellOutput = cellOutputToVSCCellOutput(output);

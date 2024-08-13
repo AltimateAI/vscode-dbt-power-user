@@ -2,6 +2,7 @@ import * as wireProtocol from "@nteract/messaging/lib/wire-protocol";
 import { randomUUID } from "crypto";
 import path = require("path");
 import { workspace } from "vscode";
+import { ConnectionSettings } from "./types";
 const zeromq = require("zeromq");
 
 const HEADER_FIELDS = ["username", "version", "session", "msg_id", "msg_type"];
@@ -430,7 +431,10 @@ export class RawSocket {
 
 // TODO: add right types
 export function newRawKernel(
-  kernelProcess: any,
+  kernelProcess: {
+    connection: ConnectionSettings;
+    pid: number;
+  },
   clientId: string,
   username: string,
   model: any,
