@@ -12,6 +12,7 @@ import { ManifestCacheChangedEvent } from "../event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 import { ManifestParser } from "../parsers";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
+import { RunResultsEvent } from "../event/runResultsEvent";
 
 @provideSingleton(TargetWatchersFactory)
 export class TargetWatchersFactory {
@@ -22,10 +23,12 @@ export class TargetWatchersFactory {
 
   createTargetWatchers(
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+    _onRunResults: EventEmitter<RunResultsEvent>,
     onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
   ) {
     return new TargetWatchers(
       _onManifestChanged,
+      _onRunResults,
       onProjectConfigChanged,
       this.manifestParser,
       this.dbtTerminal,
@@ -36,19 +39,23 @@ export class TargetWatchersFactory {
 export class TargetWatchers implements Disposable {
   private manifestWatcher?: FileSystemWatcher;
   private targetFolderWatcher?: FileSystemWatcher;
+  private runResultsWatcher?: FileSystemWatcher;
   private currentTargetPath?: string;
   private currentProjectName?: string;
   private disposables: Disposable[] = [];
   private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>;
+  private _onRunResults: EventEmitter<RunResultsEvent>;
   private watchers: FileSystemWatcher[] = [];
 
   constructor(
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+    _onRunResults: EventEmitter<RunResultsEvent>,
     onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
     private manifestParser: ManifestParser,
     private terminal: DBTTerminal,
   ) {
     this._onManifestChanged = _onManifestChanged;
+    this._onRunResults = _onRunResults;
     this.disposables.push(
       onProjectConfigChanged((event) => this.onProjectConfigChanged(event)),
     );
@@ -120,10 +127,16 @@ export class TargetWatchers implements Disposable {
       this.targetFolderWatcher = this.createTargetFolderWatcher(event);
       this.targetFolderWatcher.onDidDelete(() => () => handler());
 
+      this.runResultsWatcher = this.createLastRunResultsWatcher(event);
+
       this.currentTargetPath = targetPath;
       this.currentProjectName = projectName;
 
-      this.watchers.push(this.manifestWatcher, this.targetFolderWatcher);
+      this.watchers.push(
+        this.manifestWatcher,
+        this.targetFolderWatcher,
+        this.runResultsWatcher,
+      );
 
       const manifestCacheChangedEvent = await this.manifestParser.parseManifest(
         event.project,
@@ -194,5 +207,35 @@ export class TargetWatchers implements Disposable {
       targetPath,
     );
     return targetFolderWatcher;
+  }
+
+  private createLastRunResultsWatcher(
+    event: ProjectConfigChangedEvent,
+  ): FileSystemWatcher {
+    {
+      const targetPath = event.project.getTargetPath();
+      if (!targetPath) {
+        const error = new Error(
+          "targetPath is undefined in " + event.project.projectRoot.fsPath,
+        );
+        this.terminal.error(
+          "createTargetFolderWatcherError",
+          "targetPath is undefined",
+          error,
+        );
+        throw error;
+      }
+      const watcher = workspace.createFileSystemWatcher(
+        new RelativePattern(targetPath, `run_results.json`),
+      );
+
+      watcher.onDidChange((e) =>
+        this._onRunResults.fire({ project: event.project, file: e }),
+      );
+      watcher.onDidCreate((e) =>
+        this._onRunResults.fire({ project: event.project, file: e }),
+      );
+      return watcher;
+    }
   }
 }
