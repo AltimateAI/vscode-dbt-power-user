@@ -188,11 +188,26 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     if (command === "getConnectedColumns") {
-      const body = await this.getConnectedColumns(params);
-      this._panel?.webview.postMessage({
-        command: "response",
-        args: { id, body, status: !!body },
-      });
+      try {
+        const body = await this.getConnectedColumns(params);
+        this._panel?.webview.postMessage({
+          command: "response",
+          args: { id, body, status: !!body },
+        });
+      } catch (error) {
+        window.showErrorMessage(
+          extendErrorWithSupportLinks(
+            "Unable to generate lineage: " + (error as Error).message,
+          ),
+        );
+        this._panel?.webview.postMessage({
+          command: "response",
+          args: { id, error, status: false },
+        });
+        this.telemetry.sendTelemetryError("columnLineageUnknownError", {
+          params,
+        });
+      }
       return;
     }
 

@@ -420,19 +420,21 @@ class ConfigInterface:
         defer: Optional[bool] = False,
         state: Optional[str] = None,
         favor_state: Optional[bool] = False,
+        vars: Optional[Dict[str, Any]] = {},
     ):
         self.threads = threads
-        self.target = target
+        self.target = target if target else os.environ.get("DBT_TARGET")
         self.profiles_dir = profiles_dir
         self.project_dir = project_dir
         self.dependencies = []
         self.single_threaded = threads == 1
         self.quiet = True
-        self.profile = profile
+        self.profile = profile if profile else os.environ.get("DBT_PROFILE")
         self.target_path = target_path
         self.defer = defer
         self.state = state
         self.favor_state = favor_state
+        self.vars = vars if vars else json.loads(os.environ.get("DBT_VARS", "{}"))
 
     def __str__(self):
         return f"ConfigInterface(threads={self.threads}, target={self.target}, profiles_dir={self.profiles_dir}, project_dir={self.project_dir}, profile={self.profile}, target_path={self.target_path})"
@@ -493,6 +495,7 @@ class DbtProject:
         defer_to_prod: bool = False,
         manifest_path: Optional[str] = None,
         favor_state: bool = False,
+        vars: Optional[Dict[str, Any]] = {},
     ):
         self.args = ConfigInterface(
             threads=threads,
@@ -504,6 +507,7 @@ class DbtProject:
             defer=defer_to_prod,
             state=manifest_path,
             favor_state=favor_state,
+            vars=vars,
         )
 
         # Utilities
@@ -608,6 +612,7 @@ class DbtProject:
             threads=args.threads,
             profile=args.profile,
             target_path=args.target_path,
+            vars=args.vars,
         )
 
     @property

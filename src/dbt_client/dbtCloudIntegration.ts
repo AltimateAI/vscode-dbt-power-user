@@ -1171,11 +1171,11 @@ export class DBTCloudProjectIntegration
     try {
       return JSON.parse(json);
     } catch (error) {
-      this.telemetry.sendTelemetryEvent("dbtCloud" + contextName + "Error", {
-        text: json,
-        error: (error as Error).message,
-        adapter: this.getAdapterType() || "unknown",
-      });
+      this.terminal.error(
+        "dbtCloud" + contextName + "Error",
+        "An error occured while parsing following json: " + json,
+        error,
+      );
       if (throw_) {
         throw error;
       }

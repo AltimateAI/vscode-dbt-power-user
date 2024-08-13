@@ -22,10 +22,7 @@ export function serializeDataViews(
     if ("buffer" in item && "byteOffset" in item) {
       // It is an ArrayBufferView
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const buffer = Array.apply(
-        null,
-        new Uint8Array(item.buffer as any) as any,
-      );
+      const buffer = [...new Uint8Array(item.buffer as any)];
       newBufferView.push({
         ...item,
         byteLength: item.byteLength,

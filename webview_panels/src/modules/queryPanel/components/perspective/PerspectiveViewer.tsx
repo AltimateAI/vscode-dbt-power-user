@@ -22,6 +22,7 @@ import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
 import { setPerspectiveTheme } from "@modules/queryPanel/context/queryPanelSlice";
+import { Drawer, DrawerRef } from "@uicore";
 
 interface Props {
   data: TableData;
@@ -41,7 +42,10 @@ const PerspectiveViewer = ({
   const { perspectiveTheme } = useQueryPanelState();
   const dispatch = useQueryPanelDispatch();
   const [tableRendered, setTableRendered] = useState(false);
+  const [drawerData, setDrawerData] = useState<string>("");
+  const [drawerTitle, setDrawerTitle] = useState<string>("");
   const perspectiveViewerRef = useRef<HTMLPerspectiveViewerElement>(null);
+  const drawerRef = useRef<DrawerRef | null>(null);
 
   const config: PerspectiveViewerConfig = {
     theme: perspectiveTheme,
@@ -122,7 +126,7 @@ const PerspectiveViewer = ({
 
   const updateCustomStyles = (currentTheme: string) => {
     const shadowRoot = perspectiveViewerRef.current?.querySelector(
-      "perspective-viewer-datagrid",
+      "perspective-datagrid-json-viewer-plugin"
     )?.shadowRoot;
     if (!shadowRoot) {
       return;
@@ -213,6 +217,32 @@ const PerspectiveViewer = ({
   useEffect(() => {
     loadPerspectiveData().catch((err) => panelLogger.error(err));
 
+    // Handle the event when a string or JSON is clicked in the perspective viewer datagrid
+    const handleOpenDrawer = (event: CustomEvent) => {
+      drawerRef.current?.open();
+      const detail = event.detail as {
+        type: string;
+        message: string;
+        columnName: string;
+      };
+      setDrawerTitle(detail?.columnName);
+      if (detail?.type === "string") {
+        // adding \n after every 45 characters to make it readable
+        setDrawerData(
+          detail?.message.match(/.{1,45}/g)?.join("\n") ?? detail?.message,
+        );
+      } else if (detail?.type === "json") {
+        // Pretty print JSON
+        setDrawerData(JSON.stringify(JSON.parse(detail?.message), null, 2));
+      }
+    };
+
+    // Add an event listener to open the drawer when a string or JSON is clicked
+    window.addEventListener(
+      "string-json-viewer",
+      handleOpenDrawer as EventListener,
+    );
+
     return () => {
       perspectiveViewerRef.current
         ?.getTable()
@@ -225,6 +255,12 @@ const PerspectiveViewer = ({
         .catch((err) =>
           panelLogger.error("error while deleting perspective viewer", err),
         );
+
+      // Remove the event listener when the component is unmounted
+      window.removeEventListener(
+        "string-json-viewer",
+        handleOpenDrawer as EventListener,
+      );
     };
   }, []);
 
@@ -245,12 +281,21 @@ const PerspectiveViewer = ({
   }, [theme, tableRendered]);
 
   return (
-    <perspective-viewer
-      class={classes.altimatePerspectiveViewer}
-      ref={perspectiveViewerRef}
-      style={styles}
-    ></perspective-viewer>
+    <>
+      <perspective-viewer
+        class={classes.altimatePerspectiveViewer}
+        ref={perspectiveViewerRef}
+      ></perspective-viewer>
+      <Drawer
+        buttonProps={{ color: "primary", title: "Json Viewer" }}
+        ref={drawerRef}
+        title={drawerTitle}
+        backdrop={false}
+        style={styles}
+        >
+        <pre>{drawerData}</pre>
+      </Drawer>
+    </>
   );
 };
-
 export default PerspectiveViewer;
