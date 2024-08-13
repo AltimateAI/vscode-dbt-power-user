@@ -23,6 +23,7 @@ export { default as FolderIcon } from "./folder.svg?react";
 export { default as NoBookmarksIcon } from "./no-bookmarks.svg?react";
 export { default as NoHistoryIcon } from "./no-history.svg?react";
 export { default as OpenInTab } from "./open-in-tab.svg?react";
+export { default as XClose } from "./close.svg?react";
 import LoadingSpinnerUrl from "./spinner.gif";
 import "./styles.css";
 
