@@ -1,6 +1,6 @@
 import { Disposable } from "vscode";
 import { provideSingleton } from "../utils";
-import { NotebookKernel } from "./controller";
+import { DatapilotNotebookController } from "./controller";
 import { NotebookCellEvent } from "./types";
 
 @provideSingleton(NotebookService)
@@ -11,7 +11,7 @@ export class NotebookService implements Disposable {
     { cellId: string; fragment: string; languageId: string }[]
   > = new Map();
 
-  constructor(private notebookKernel: NotebookKernel) {
+  constructor(private notebookKernel: DatapilotNotebookController) {
     this.disposables.push(
       this.notebookKernel.onNotebookCellChangeEvent((event) => {
         this.onNotebookCellChanged(event);

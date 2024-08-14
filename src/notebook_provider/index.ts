@@ -1,7 +1,7 @@
 import { Disposable, notebooks, workspace } from "vscode";
 import { provideSingleton } from "../utils";
 import { DatapilotNotebookSerializer } from "./serializer";
-import { NotebookKernel } from "./controller";
+import { DatapilotNotebookController } from "./controller";
 import { NotebookStatusBarProvider } from "./statusBarItemProvider";
 
 @provideSingleton(NotebookProviders)
@@ -9,7 +9,7 @@ export class NotebookProviders implements Disposable {
   private disposables: Disposable[] = [];
   constructor(
     private notebookProvider: DatapilotNotebookSerializer,
-    private notebookController: NotebookKernel,
+    private notebookController: DatapilotNotebookController,
   ) {
     this.disposables.push(
       notebooks.registerNotebookCellStatusBarItemProvider(

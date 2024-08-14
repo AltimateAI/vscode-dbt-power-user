@@ -52,4 +52,5 @@ export enum TelemetryEvents {
   "Notebook/KernelCloseError" = "Notebook/KernelCloseError",
   "Notebook/Execute" = "Notebook/Execute",
   "Notebook/WidgetVersionError" = "Notebook/WidgetVersionError",
+  "Notebook/SaveError" = "Notebook/SaveError",
 }

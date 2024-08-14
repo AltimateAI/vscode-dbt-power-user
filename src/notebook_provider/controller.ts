@@ -6,7 +6,6 @@ import { NotebookKernelClient } from "./python/notebookKernelClient";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
 import {
-  commands,
   EventEmitter,
   NotebookCell,
   NotebookCellKind,
@@ -22,18 +21,22 @@ import {
   WorkspaceEdit,
   Disposable,
   window,
+  NotebookCellData,
+  Range,
+  NotebookRange,
 } from "vscode";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { noop } from "./python/constants";
 import { RendererMessageHandler } from "./python/rendererMessageHandler";
 import { SemVer } from "semver";
-import { NotebookCellEvent, RawNotebookCell } from "./types";
-import { SupportedLanguages } from "./constants";
+import { NotebookCellEvent, RawNotebook, RawNotebookCell } from "./types";
+import { DefaultNotebookCellLanguage, SupportedLanguages } from "./constants";
+import { NotebookSaveHandler } from "./saveHandler";
 
-@provideSingleton(NotebookKernel)
-export class NotebookKernel implements Disposable {
-  private readonly _id = "test-notebook-serializer-kernel";
-  private readonly _label = "Altimate dbt kernel";
+@provideSingleton(DatapilotNotebookController)
+export class DatapilotNotebookController implements Disposable {
+  private readonly _id = "DatapilotNotebookController";
+  private readonly _label = "Datapilot";
 
   private _onNotebookCellEvent = new EventEmitter<NotebookCellEvent>();
   public readonly onNotebookCellChangeEvent = this._onNotebookCellEvent.event;
@@ -49,23 +52,13 @@ export class NotebookKernel implements Disposable {
     private telemetry: TelemetryService,
     private dbtTerminal: DBTTerminal,
     private rendererMessageHandler: RendererMessageHandler,
+    private notebookSaveHandler: NotebookSaveHandler,
   ) {
     this._controller = notebooks.createNotebookController(
       this._id,
       "datapilot-notebook",
       this._label,
     );
-
-    // TODO: move this right place
-    // Intercept save commands
-    // commands.registerCommand(
-    //   "workbench.action.files.save",
-    //   (uri: Uri) => this.customSave(uri),
-    // );
-    // commands.registerCommand(
-    //   "workbench.action.files.saveAs",
-    //   this.customSaveAs,
-    // );
 
     this._controller.supportedLanguages = SupportedLanguages;
     this._controller.supportsExecutionOrder = true;
@@ -133,6 +126,123 @@ export class NotebookKernel implements Disposable {
       workspace.onDidCloseNotebookDocument(async (notebook) => {
         await this.onNotebookClose(notebook);
       }),
+    );
+  }
+
+  public async createNotebook(
+    args: { notebookId?: string; fileName?: string } | undefined,
+  ) {
+    const { notebookId, fileName } = args || {};
+    const project =
+      await this.queryManifestService.getOrPickProjectFromWorkspace();
+    if (!project) {
+      window.showErrorMessage("No dbt project selected.");
+      return;
+    }
+
+    const fileNamePrefix = notebookId || fileName || "datapilot";
+    const uri = Uri.parse(
+      `${project.projectRoot}/${fileNamePrefix}-${Date.now()}.notebook`,
+    ).with({ scheme: "untitled" });
+    workspace.openNotebookDocument(uri).then(
+      (doc) => {
+        // set this to sql language so we can bind codelens and other features
+        window.showNotebookDocument(doc).then(
+          (editor) => {
+            if (!notebookId) {
+              return;
+            }
+            const notebooks =
+              this.dbtProjectContainer.getFromGlobalState("notebooks") || {};
+            const contents = notebooks[notebookId];
+
+            let raw: RawNotebookCell[];
+            try {
+              raw = (<RawNotebook>JSON.parse(contents)).cells;
+            } catch {
+              raw = [
+                {
+                  cell_type: "code",
+                  source: [],
+                  languageId: DefaultNotebookCellLanguage,
+                },
+              ];
+            }
+
+            const cellData = raw.map(
+              (item) =>
+                new NotebookCellData(
+                  NotebookCellKind.Code,
+                  item.source?.join("\n"),
+                  DefaultNotebookCellLanguage,
+                ),
+            );
+
+            // Get the active notebook editor
+            const notebookEditor = window.activeNotebookEditor;
+            if (notebookEditor) {
+              // Create notebook cells
+              const cells = cellData.map(
+                (data) =>
+                  new NotebookCellData(data.kind, data.value, data.languageId),
+              );
+
+              // Function to backup the state of the notebook
+              function backupNotebookState(notebook: NotebookDocument) {
+                return notebook
+                  .getCells()
+                  .map((cell) => cell.document.getText());
+              }
+
+              // Function to restore the state of the notebook
+              async function restoreNotebookState(
+                notebook: NotebookDocument,
+                backup: string[],
+              ) {
+                const edit = new WorkspaceEdit();
+                notebook.getCells().forEach((cell, index) => {
+                  edit.replace(
+                    cell.document.uri,
+                    new Range(0, 0, cell.document.lineCount, 0),
+                    backup[index],
+                  );
+                });
+                await workspace.applyEdit(edit);
+              }
+
+              async function applyCellsWithoutDirty(
+                notebookEditor: NotebookEditor,
+                cells: NotebookCellData[],
+              ) {
+                const backup = backupNotebookState(notebookEditor.notebook);
+
+                // Apply the cell data to the notebook
+                const edit = new WorkspaceEdit();
+                edit.set(notebookEditor.notebook.uri, [
+                  new NotebookEdit(new NotebookRange(0, 0), cells),
+                ]);
+
+                await workspace.applyEdit(edit);
+
+                // Restore the original state to make it appear as not dirty
+                await restoreNotebookState(notebookEditor.notebook, backup);
+              }
+
+              applyCellsWithoutDirty(notebookEditor, cells).then(() => {
+                console.log(
+                  "Cells applied without marking the document as dirty.",
+                );
+              });
+            }
+          },
+          (e) => {
+            window.showErrorMessage((e as Error).message);
+          },
+        );
+      },
+      (e) => {
+        window.showErrorMessage((e as Error).message);
+      },
     );
   }
 
@@ -244,65 +354,6 @@ export class NotebookKernel implements Disposable {
 
   dispose() {
     this.disposables.forEach((d) => d.dispose());
-  }
-
-  private async customSave(uri: Uri) {
-    try {
-      const notebook = window.activeNotebookEditor?.notebook;
-      // Check if the file is a "notebook" file
-      if (notebook?.uri.fsPath.endsWith(".notebook")) {
-        console.log("custom save", notebook);
-        window.showInputBox({ prompt: "Your bookmark name?" }).then((name) => {
-          if (!name) {
-            return;
-          }
-          // TODO: handle as per requirement
-          const data = notebook.getCells();
-          const contents: RawNotebookCell[] = [];
-
-          for (const cell of data) {
-            contents.push({
-              cell_type:
-                cell.kind === NotebookCellKind.Code ? "code" : "markdown",
-              source: cell.document.getText().split(/\r?\n/g),
-              languageId: cell.document.languageId,
-            });
-          }
-
-          const output = JSON.stringify({ cells: contents });
-          const currentValues =
-            this.dbtProjectContainer.getFromGlobalState("notebooks") || {};
-          this.dbtProjectContainer.setToGlobalState("notebooks", {
-            ...currentValues,
-            [name]: output,
-          });
-          console.log("notebook saved", name, contents);
-          window.showInformationMessage("Notebook saved successfully");
-        });
-        // Implement logic to save the notebook content to your server
-      } else {
-        // If not a notebook file, fallback to default save behavior
-        // Trigger the default save command
-        await commands.executeCommand("workbench.action.files.save", uri, {
-          skipCustomCommand: true,
-        });
-      }
-    } catch (e) {
-      console.log(e);
-    }
-  }
-
-  private async customSaveAs(uri: Uri) {
-    // Check if the file is a "notebook" file
-    if (uri.fsPath.endsWith(".notebook")) {
-      // Implement logic to save the notebook content to your server with a 'save as' functionality
-    } else {
-      // If not a notebook file, fallback to default save as behavior
-      // Trigger the default save as command
-      await commands.executeCommand("workbench.action.files.saveAs", uri, {
-        skipCustomCommand: true,
-      });
-    }
   }
 
   private _executeAll(
