@@ -9,8 +9,8 @@ const ShowConversationsButton = (): JSX.Element => {
     dispatch(updateConversationsRightPanelState(true));
   };
   return (
-    <Button outline onClick={handleClick}>
-      <CommentIcon /> Show Conversations
+    <Button outline onClick={handleClick} icon={<CommentIcon />}>
+      Show Conversations
     </Button>
   );
 };
