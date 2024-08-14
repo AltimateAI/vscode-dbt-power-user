@@ -371,6 +371,28 @@ export class DBTProject implements Disposable {
       );
       await this.dbtProjectIntegration.refreshProjectConfig();
       this.projectConfigDiagnostics.clear();
+      const event = new ProjectConfigChangedEvent(this);
+      this._onProjectConfigChanged.fire(event);
+      this.terminal.debug(
+        "DBTProject",
+        `firing ProjectConfigChanged event for the project "${this.getProjectName()}" at ${
+          this.projectRoot
+        } configuration`,
+        "targetPaths",
+        this.getTargetPath(),
+        "modelPaths",
+        this.getModelPaths(),
+        "seedPaths",
+        this.getSeedPaths(),
+        "macroPaths",
+        this.getMacroPaths(),
+        "packagesInstallPath",
+        this.getPackageInstallPath(),
+        "version",
+        this.getDBTVersion(),
+        "adapterType",
+        this.getAdapterType(),
+      );
     } catch (error) {
       if (error instanceof YAMLError) {
         this.projectConfigDiagnostics.set(
@@ -402,28 +424,6 @@ export class DBTProject implements Disposable {
       );
       this.telemetry.sendTelemetryError("projectConfigRefreshError", error);
     }
-    const event = new ProjectConfigChangedEvent(this);
-    this._onProjectConfigChanged.fire(event);
-    this.terminal.debug(
-      "DBTProject",
-      `firing ProjectConfigChanged event for the project "${this.getProjectName()}" at ${
-        this.projectRoot
-      } configuration`,
-      "targetPaths",
-      this.getTargetPath(),
-      "modelPaths",
-      this.getModelPaths(),
-      "seedPaths",
-      this.getSeedPaths(),
-      "macroPaths",
-      this.getMacroPaths(),
-      "packagesInstallPath",
-      this.getPackageInstallPath(),
-      "version",
-      this.getDBTVersion(),
-      "adapterType",
-      this.getAdapterType(),
-    );
   }
 
   getAdapterType() {
