@@ -96,7 +96,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   private loadedFromManifest = false;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private _disposables: Disposable[] = [];
-  private legacyDocsPanel = this;
   private onMessageDisposable: Disposable | undefined;
 
   public constructor(
