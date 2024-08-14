@@ -193,7 +193,8 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     }
 
     // specific commands
-    this.telemetry.sendTelemetryEvent(command);
+    // Will add specific events in respective places in the future
+    // this.telemetry.sendTelemetryEvent(command);
     this.getPanel().handleCommand(message);
   };
 }
