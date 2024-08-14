@@ -1,6 +1,7 @@
 import PerspectiveViewer from "@modules/queryPanel/components/perspective/PerspectiveViewer";
 import type { QueryPanelStateProps } from "@modules/queryPanel/context/types";
 import { useMemo } from "react";
+import classes from "./renderer.module.scss";
 
 interface Props {
   items: NonNullable<QueryPanelStateProps["queryResults"]>;
@@ -14,8 +15,9 @@ const AllItems = ({ items }: Props): JSX.Element => {
 
     return undefined;
   }, [items.data]);
+
   return (
-    <div>
+    <div className={classes.perspectiveWrapper}>
       <PerspectiveViewer
         columnNames={items.columnNames}
         columnTypes={items.columnTypes}

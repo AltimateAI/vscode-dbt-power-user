@@ -28,13 +28,13 @@ interface Props {
   data: TableData;
   columnNames: string[];
   columnTypes: string[];
-  styles?: CSSProperties ;
+  styles?: CSSProperties;
 }
 const PerspectiveViewer = ({
   columnNames,
   columnTypes,
   data,
-  styles
+  styles,
 }: Props): JSX.Element => {
   const {
     state: { theme },
@@ -126,7 +126,7 @@ const PerspectiveViewer = ({
 
   const updateCustomStyles = (currentTheme: string) => {
     const shadowRoot = perspectiveViewerRef.current?.querySelector(
-      "perspective-datagrid-json-viewer-plugin"
+      "perspective-datagrid-json-viewer-plugin",
     )?.shadowRoot;
     if (!shadowRoot) {
       return;
@@ -285,14 +285,14 @@ const PerspectiveViewer = ({
       <perspective-viewer
         class={classes.altimatePerspectiveViewer}
         ref={perspectiveViewerRef}
+        style={styles}
       ></perspective-viewer>
       <Drawer
         buttonProps={{ color: "primary", title: "Json Viewer" }}
         ref={drawerRef}
         title={drawerTitle}
         backdrop={false}
-        style={styles}
-        >
+      >
         <pre>{drawerData}</pre>
       </Drawer>
     </>
