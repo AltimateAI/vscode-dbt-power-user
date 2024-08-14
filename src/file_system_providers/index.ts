@@ -15,7 +15,7 @@ export class FilesystemProviders implements Disposable {
     );
 
     workspace.onWillSaveNotebookDocument((e) => {
-      if (e.notebook.notebookType === "my-notebook") {
+      if (e.notebook.notebookType === "datapilot-notebook") {
         // Check if the file is a ".notebook" file
         console.log("Notebook file saving:", e.notebook.uri.fsPath);
 
@@ -25,7 +25,7 @@ export class FilesystemProviders implements Disposable {
     });
 
     workspace.onDidSaveNotebookDocument((doc) => {
-      if (doc.notebookType === "my-notebook") {
+      if (doc.notebookType === "datapilot-notebook") {
         // Check if the saved file is a ".notebook" file
         console.log("Notebook file saved:", doc.uri.fsPath);
 

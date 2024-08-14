@@ -7,20 +7,13 @@ import {
   Disposable,
 } from "vscode";
 import { provideSingleton } from "../utils";
+import { RawNotebook, RawNotebookCell } from "./types";
+import { DefaultNotebookCellLanguage } from "./constants";
 
-export interface RawNotebook {
-  cells: RawNotebookCell[];
-}
-
-export interface RawNotebookCell {
-  source: string[];
-  cell_type: "code" | "markdown";
-  languageId: string;
-  metadata?: Record<string, unknown>;
-}
-
-@provideSingleton(SampleSerializer)
-export class SampleSerializer implements NotebookSerializer, Disposable {
+@provideSingleton(DatapilotNotebookSerializer)
+export class DatapilotNotebookSerializer
+  implements NotebookSerializer, Disposable
+{
   dispose() {
     throw new Error("Method not implemented.");
   }
@@ -38,7 +31,7 @@ export class SampleSerializer implements NotebookSerializer, Disposable {
         {
           cell_type: "code",
           source: [],
-          languageId: "jinja-sql",
+          languageId: DefaultNotebookCellLanguage,
           metadata: {},
         },
       ];

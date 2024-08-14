@@ -375,7 +375,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             });
             break;
           case InboundCommand.OpenNewNotebook:
-            commands.executeCommand("dbtPowerUser.createJinjaSqlNotebook", {
+            commands.executeCommand("dbtPowerUser.createDatapilotlNotebook", {
               fileName: "Untitled",
               notebookId: message.notebookId,
             });

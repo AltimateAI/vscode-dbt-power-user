@@ -55,11 +55,8 @@ import { SQLLineagePanel } from "../webview_provider/sqlLineagePanel";
 import { QueryManifestService } from "../services/queryManifestService";
 import { NotebookFileSystemProvider } from "../file_system_providers/notebookFileSystemProvider";
 import { join } from "path";
-import {
-  RawNotebook,
-  RawNotebookCell,
-} from "../notebook_provider/sampleSerializer";
 import { AltimateRequest } from "../altimate";
+import { RawNotebookCell, RawNotebook } from "../notebook_provider/types";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -575,7 +572,7 @@ export class VSCodeCommands implements Disposable {
         }
       }),
       commands.registerCommand(
-        "dbtPowerUser.createJinjaSqlNotebook",
+        "dbtPowerUser.createDatapilotlNotebook",
         async (
           args: { notebookId?: string; fileName?: string } | undefined,
         ) => {
@@ -615,7 +612,7 @@ export class VSCodeCommands implements Disposable {
           //     nbformat_minor: 2
           //   }
           // };
-          // workspace.openNotebookDocument("my-notebook", data).then(
+          // workspace.openNotebookDocument("datapilot-notebook", data).then(
           workspace.openNotebookDocument(uri).then(
             (doc) => {
               // set this to sql language so we can bind codelens and other features

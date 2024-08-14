@@ -7,7 +7,7 @@ import { KernelMessage } from "@jupyterlab/services";
 import { shouldMessageBeMirroredWithRenderer } from "./helpers";
 import { deserialize } from "@jupyterlab/services/lib/kernel/serialize";
 import { Identifiers, WIDGET_MIMETYPE } from "./constants";
-import { serializeDataViews } from "../serializers";
+import { serializeDataViews } from "./serializers";
 import { IPyWidgetMessage } from "./notebookKernelClient";
 import { RawSocket } from "./rawSocket";
 

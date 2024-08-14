@@ -27,22 +27,8 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { noop } from "./python/constants";
 import { RendererMessageHandler } from "./python/rendererMessageHandler";
 import { SemVer } from "semver";
-
-interface RawNotebookCell {
-  source: string[];
-  cell_type: "code" | "markdown";
-}
-
-export interface NotebookCellEvent {
-  cellId: string;
-  notebook: string;
-  result?: any;
-  event: "add" | "update" | "delete";
-  fragment?: string;
-  languageId: string;
-}
-
-const SupportedLanguages = ["python", "sql", "jinja-sql"];
+import { NotebookCellEvent, RawNotebookCell } from "./types";
+import { SupportedLanguages } from "./constants";
 
 @provideSingleton(NotebookKernel)
 export class NotebookKernel implements Disposable {
@@ -66,7 +52,7 @@ export class NotebookKernel implements Disposable {
   ) {
     this._controller = notebooks.createNotebookController(
       this._id,
-      "my-notebook",
+      "datapilot-notebook",
       this._label,
     );
 
@@ -279,6 +265,7 @@ export class NotebookKernel implements Disposable {
               cell_type:
                 cell.kind === NotebookCellKind.Code ? "code" : "markdown",
               source: cell.document.getText().split(/\r?\n/g),
+              languageId: cell.document.languageId,
             });
           }
 

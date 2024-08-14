@@ -18,18 +18,8 @@
     "vscode": "^1.81.0"
   },
   "enabledApiProposals": [
-    "notebookDeprecated",
     "notebookMessaging",
-    "notebookMime",
-    "contribNotebookStaticPreloads",
-    "portsAttributes",
-    "quickPickSortByLabel",
-    "notebookKernelSource",
-    "interactiveWindow",
-    "quickPickItemTooltip",
-    "notebookExecution",
-    "notebookCellExecution",
-    "notebookVariableProvider"
+    "contribNotebookStaticPreloads"
   ],
   "capabilities": {
     "hoverProvider": true
@@ -55,37 +45,25 @@
   "contributes": {
     "notebookPreload": [
       {
-        "type": "my-notebook",
-        "localResourceRoots": [
-          "./temp"
-        ],
+        "type": "datapilot-notebook",
         "entrypoint": "./webview_panels/src/notebook/ipywidgetsKernel/preload.js"
       },
       {
-        "type": "my-notebook",
-        "localResourceRoots": [
-          "./temp"
-        ],
+        "type": "datapilot-notebook",
         "entrypoint": "./webview_panels/src/notebook/ipywidgetsKernel/ipywidgets8.js"
       },
       {
-        "type": "my-notebook",
-        "localResourceRoots": [
-          "./temp"
-        ],
+        "type": "datapilot-notebook",
         "entrypoint": "./webview_panels/src/notebook/ipywidgetsKernel/ipywidgets7.js"
       },
       {
-        "type": "my-notebook",
-        "localResourceRoots": [
-          "./temp"
-        ],
+        "type": "datapilot-notebook",
         "entrypoint": "./webview_panels/src/notebook/ipywidgetsKernel/ipywidgetsKernel.js"
       }
     ],
     "notebookRenderer": [
       {
-        "id": "my-notebook-renderer",
+        "id": "datapilot-notebook-perspective-renderer",
         "displayName": "Github Issues Notebook Renderer",
         "entrypoint": "./webview_panels/dist/assets/renderer.js",
         "mimeTypes": [
@@ -93,7 +71,7 @@
         ]
       },
       {
-        "id": "my-notebook-renderer-1",
+        "id": "datapilot-notebook-jupyter-renderer",
         "displayName": "Jupyter widgets Notebook Renderer",
         "entrypoint": "./webview_panels/src/notebook/ipywidgetsRenderer/ipywidgetsRenderer.js",
         "mimeTypes": [
@@ -104,8 +82,8 @@
     ],
     "notebooks": [
       {
-        "type": "my-notebook",
-        "displayName": "My Notebook",
+        "type": "datapilot-notebook",
+        "displayName": "Datapilot Notebook",
         "selector": [
           {
             "filenamePattern": "*.notebook"
@@ -445,8 +423,8 @@
         "title": "Create Power User SQL file"
       },
       {
-        "command": "dbtPowerUser.createJinjaSqlNotebook",
-        "title": "Create Power User Jinja SQL notebook"
+        "command": "dbtPowerUser.createDatapilotlNotebook",
+        "title": "New Datapilot notebook"
       },
       {
         "command": "dbtPowerUser.notebookItem",
@@ -765,7 +743,7 @@
           "when": "dbt.enableQueryBookmarks == true"
         },
         {
-          "command": "dbtPowerUser.createJinjaSqlNotebook",
+          "command": "dbtPowerUser.createDatapilotlNotebook",
           "when": "dbt.enableQueryBookmarks == true",
           "group": "notebook"
         }

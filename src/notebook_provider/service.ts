@@ -1,6 +1,7 @@
 import { Disposable } from "vscode";
 import { provideSingleton } from "../utils";
-import { NotebookCellEvent, NotebookKernel } from "./controller";
+import { NotebookKernel } from "./controller";
+import { NotebookCellEvent } from "./types";
 
 @provideSingleton(NotebookService)
 export class NotebookService implements Disposable {

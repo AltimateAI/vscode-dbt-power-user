@@ -8,6 +8,7 @@ export class NotebookStatusBarProvider
   dispose() {
     this._disposables.forEach((d) => d.dispose());
   }
+
   provideCellStatusBarItems(
     cell: vscode.NotebookCell,
   ): vscode.NotebookCellStatusBarItem[] | undefined {

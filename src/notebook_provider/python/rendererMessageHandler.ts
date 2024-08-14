@@ -36,7 +36,7 @@ export class RendererMessageHandler implements Disposable {
     private readonly telemetry: TelemetryService,
   ) {
     this.messageChannel = notebooks.createRendererMessaging(
-      "my-notebook-renderer-1",
+      "datapilot-notebook-jupyter-renderer",
     );
 
     this.messageChannel.onDidReceiveMessage(({ editor, message }) => {
