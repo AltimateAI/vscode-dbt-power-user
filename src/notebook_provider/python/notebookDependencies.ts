@@ -18,6 +18,38 @@ export class NotebookDependencies {
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
     private pythonEnvironment: PythonEnvironment,
   ) {}
+
+  public async getDependenciesVersion() {
+    const args = ["-m", "jupyter", "--version"];
+    const { stdout, stderr } = await this.commandProcessExecutionFactory
+      .createCommandProcessExecution({
+        command: this.pythonEnvironment.pythonPath,
+        args,
+        // TODO: should this be first workspace path or projectroot of notebook?
+        cwd: getFirstWorkspacePath(),
+        envVars: this.pythonEnvironment.environmentVariables,
+      })
+      .completeWithTerminalOutput();
+    if (
+      !stdout.includes("Successfully installed") &&
+      !stdout.includes("Requirement already satisfied") &&
+      stderr
+    ) {
+      throw new Error(stderr);
+    }
+    const lines = stdout.split("\n");
+    const jsonObject: Record<string, string> = {};
+
+    lines.forEach((line) => {
+      const [packageName, version] = line.split(":").map((part) => part.trim());
+      if (packageName && version) {
+        jsonObject[packageName] = version;
+      }
+    });
+
+    return jsonObject;
+  }
+
   public async validateAndInstallNotebookDependencies() {
     try {
       if (await this.notebookDependenciesAreInstalled()) {

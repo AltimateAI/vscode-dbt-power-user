@@ -24,7 +24,7 @@ import {
 import { readFileSync } from "fs";
 import { Identifiers, WIDGET_MIMETYPE } from "./constants";
 import { NotebookDependencies } from "./notebookDependencies";
-import { ConnectionSettings, RawKernelType } from "./types";
+import { ConnectionSettings, RawKernelType, WidgetData } from "./types";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { TelemetryService } from "../../telemetry";
 import { TelemetryEvents } from "../../telemetry/events";
@@ -35,11 +35,6 @@ type ExecuteResult = nbformat.IExecuteResult & {
 };
 type DisplayData = nbformat.IDisplayData & {
   transient?: { display_id?: string };
-};
-type WidgetData = {
-  version_major: number;
-  version_minor: number;
-  model_id: string;
 };
 
 export interface IPyWidgetMessage {
@@ -92,6 +87,8 @@ export class NotebookKernelClient implements Disposable {
     clearOutputOnNextUpdateToOutput?: boolean;
   }[] = [];
 
+  private versions?: Record<string, string>;
+
   constructor(
     notebookPath: string,
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
@@ -118,6 +115,14 @@ export class NotebookKernelClient implements Disposable {
         error,
       );
     }
+  }
+
+  public get jupyterPackagesVersions() {
+    return this.versions;
+  }
+
+  private async getDependenciesVersion() {
+    this.versions = await this.notebookDependencies.getDependenciesVersion();
   }
 
   public async getKernel(): Promise<RawKernelType | undefined> {
@@ -168,6 +173,7 @@ export class NotebookKernelClient implements Disposable {
       this.dbtTerminal.log(
         `Notebook Kernel started with PID: ${pid} connection: ${JSON.stringify(connectionSettings)}`,
       );
+      this.getDependenciesVersion();
     } catch (exc) {
       let message = (exc as Error).message;
       if (exc instanceof PythonException) {
@@ -189,7 +195,7 @@ export class NotebookKernelClient implements Disposable {
   }
 
   async storeDataInKernel(cellId: string, data: any) {
-    console.log(`storeDataInKernel: ${cellId}`, data);
+    this.dbtTerminal.log(`storeDataInKernel: ${cellId}`, data);
     return this.python.lock<{ mime: string; value: string }[]>(
       (python) => python`notebook_kernel.store_sql_result(${cellId}, ${data})`,
     );
@@ -198,11 +204,11 @@ export class NotebookKernelClient implements Disposable {
   async registerCommTarget(payload: string) {
     // TODO: register one payload only once
     if (this.registerdCommTargets.has(payload)) {
-      console.log(`registerCommTarget already registered: ${payload}`);
+      this.dbtTerminal.log(`registerCommTarget already registered: ${payload}`);
       return;
     }
     this.registerdCommTargets.add(payload);
-    console.log(`registerCommTarget registering: ${payload}`);
+    this.dbtTerminal.log(`registerCommTarget registering: ${payload}`);
     const kernel = await this.getKernel();
     if (!kernel) {
       this.registerdCommTargets.delete(payload);
@@ -211,7 +217,11 @@ export class NotebookKernelClient implements Disposable {
     return kernel.realKernel.registerCommTarget(
       payload as string,
       (comm, msg) => {
-        console.log(`registerCommTarget registered: ${payload}`, comm, msg);
+        this.dbtTerminal.log(
+          `registerCommTarget registered: ${payload}`,
+          comm,
+          msg,
+        );
       },
     );
   }
@@ -222,13 +232,20 @@ export class NotebookKernelClient implements Disposable {
     onOutput: (output: NotebookCellOutput) => void,
   ): Promise<NotebookCellOutput[] | undefined> {
     return new Promise(async (resolve, reject) => {
+      if (!this.kernel?.rawKernel?.realKernel) {
+        reject(new Error("Kernel not found"));
+        return;
+      }
       const cellPath = cell.metadata.cellId;
-      console.log(`Executing python code in cell: ${cellPath}`);
+      this.dbtTerminal.log(`Executing python code in cell: ${cellPath}`);
       const jupyterLab =
         require("@jupyterlab/services") as typeof import("@jupyterlab/services");
-      console.log("kernel status", this.kernel?.rawKernel?.realKernel.status);
+      this.dbtTerminal.log(
+        "kernel status",
+        this.kernel.rawKernel.realKernel.status,
+      );
 
-      const request = await this.kernel?.rawKernel?.realKernel.requestExecute(
+      const request = await this.kernel.rawKernel.realKernel.requestExecute(
         {
           code,
           silent: false,
@@ -240,7 +257,7 @@ export class NotebookKernelClient implements Disposable {
         { cellId: cell.document.uri.toString() },
       );
       if (!request) {
-        resolve(undefined);
+        reject(new Error("Unknown request error"));
         return;
       }
 
@@ -257,21 +274,22 @@ export class NotebookKernelClient implements Disposable {
         if (reply.payload) {
           reply.payload.forEach((payload) => {
             if (payload.data && payload.data.hasOwnProperty("text/plain")) {
-              onOutput(
-                this.addToCellData(
-                  {
-                    // Mark as stream output so the text is formatted because it likely has ansi codes in it.
-                    output_type: "stream",
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    text: (payload.data as any)["text/plain"].toString(),
-                    name: "stdout",
-                    metadata: {},
-                    execution_count: reply.execution_count,
-                  },
-                  msg,
-                  cell,
-                ),
+              const replyOutput = this.addToCellData(
+                {
+                  // Mark as stream output so the text is formatted because it likely has ansi codes in it.
+                  output_type: "stream",
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  text: (payload.data as any)["text/plain"].toString(),
+                  name: "stdout",
+                  metadata: {},
+                  execution_count: reply.execution_count,
+                },
+                msg,
+                cell,
               );
+              if (replyOutput) {
+                onOutput(replyOutput);
+              }
             }
           });
         }
@@ -283,7 +301,7 @@ export class NotebookKernelClient implements Disposable {
         resolve(outputs.filter((o): o is NotebookCellOutput => !!o));
       });
       request.onStdin = (msg) => {
-        console.log("onStdin", msg);
+        this.dbtTerminal.log("onStdin", msg);
       };
       request.onIOPub = (msg) => {
         if (jupyterLab.KernelMessage.isCommOpenMsg(msg)) {
@@ -324,7 +342,8 @@ export class NotebookKernelClient implements Disposable {
         } else if (jupyterLab.KernelMessage.isCommCloseMsg(msg)) {
           // Noop.
         } else {
-          console.warn(
+          this.dbtTerminal.warn(
+            "NotebookUnknownIOPubMessage",
             `Unknown message ${msg.header.msg_type} : hasData=${"data" in msg.content}`,
           );
         }
@@ -336,11 +355,13 @@ export class NotebookKernelClient implements Disposable {
   private handleUpdateDisplayDataMessage(
     msg: KernelMessage.IUpdateDisplayDataMsg,
   ) {
-    console.log("handleUpdateDisplayDataMessage", msg);
+    this.dbtTerminal.log("handleUpdateDisplayDataMessage", msg);
     const displayId = msg.content.transient.display_id;
     if (!displayId) {
-      console.warn(
+      this.dbtTerminal.warn(
+        "NotebookUpdateDisplayDataMessageReceivedButNoDisplayId",
         "Update display data message received, but no display id",
+        false,
         msg.content,
       );
       return;
@@ -499,13 +520,13 @@ export class NotebookKernelClient implements Disposable {
       const IPY_MODEL_PREFIX = "IPY_MODEL_";
       data.state.children.forEach((item) => {
         if (typeof item !== "string") {
-          return console.warn(
+          return this.dbtTerminal.warn(
             `Came across a comm update message a child that isn't a string`,
             item,
           );
         }
         if (!item.startsWith(IPY_MODEL_PREFIX)) {
-          return console.warn(
+          return this.dbtTerminal.warn(
             `Came across a comm update message a child that start start with ${IPY_MODEL_PREFIX}`,
             item,
           );
@@ -542,7 +563,7 @@ export class NotebookKernelClient implements Disposable {
       | nbformat.IError
       | nbformat.IOutput,
     originalMessage: KernelMessage.IMessage,
-    cellPath: NotebookCell,
+    cell: NotebookCell,
   ) {
     if (
       output.data &&
@@ -552,10 +573,10 @@ export class NotebookKernelClient implements Disposable {
       const widgetData = output.data[WIDGET_MIMETYPE] as WidgetData;
       if (widgetData && "model_id" in widgetData) {
         const modelIds =
-          NotebookKernelClient.modelIdsOwnedByCells.get(cellPath) ||
+          NotebookKernelClient.modelIdsOwnedByCells.get(cell) ||
           new Set<string>();
         modelIds.add(widgetData.model_id);
-        NotebookKernelClient.modelIdsOwnedByCells.set(cellPath, modelIds);
+        NotebookKernelClient.modelIdsOwnedByCells.set(cell, modelIds);
       }
     }
     const cellOutput = cellOutputToVSCCellOutput(output);
@@ -567,13 +588,12 @@ export class NotebookKernelClient implements Disposable {
       typeof output.transient?.display_id === "string"
         ? output.transient?.display_id
         : undefined;
-    // if (this.cell.document.isClosed) {
-    //     return;
-    // }
-    console.log(
-      cellPath,
-      () =>
-        `Update output with mimes ${cellOutput.items.map((item) => item.mime).toString()}`,
+    if (cell.document.isClosed) {
+      return;
+    }
+    this.dbtTerminal.log(
+      cell.document.uri.fsPath,
+      `Update output with mimes ${cellOutput.items.map((item) => item.mime).toString()}`,
     );
     // Append to the data (we would push here but VS code requires a recreation of the array)
     // Possible execution of cell has completed (the task would have been disposed).
@@ -623,7 +643,7 @@ export class NotebookKernelClient implements Disposable {
       //     outputShouldBeAppended = false;
       // }
 
-      console.error("unknown operation");
+      this.dbtTerminal.warn("NotebookAddToCellData", "unknown operation");
     }
     // if (outputShouldBeAppended) {
     //     task?.appendOutput([cellOutput]).then(noop, noop);
@@ -794,7 +814,6 @@ export class NotebookKernelClient implements Disposable {
           ].clearOutputOnNextUpdateToOutput = true;
         }
       } else {
-        console.log("clear output");
         // const task = this.execution || this.createTemporaryTask();
         // this.updateJupyterOutputWidgetWithOutput({ clearOutput: true }, task);
         // this.endTemporaryTask();
@@ -819,11 +838,10 @@ export class NotebookKernelClient implements Disposable {
 
   private handleError(msg: KernelMessage.IErrorMsg, cell: NotebookCell) {
     const traceback = msg.content.traceback;
-    console.log(`Traceback for error ${traceback}`);
+    this.dbtTerminal.log(`Traceback for error ${traceback}`);
     // this.formatters.forEach((formatter) => {
     //     traceback = formatter.format(cell, traceback);
     // });
-    console.log(`Traceback for error after formatting ${traceback}`);
     const output: nbformat.IError = {
       output_type: "error",
       ename: msg.content.ename,

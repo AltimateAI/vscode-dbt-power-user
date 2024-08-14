@@ -67,3 +67,9 @@ export interface CellOutputMetadata {
    */
   __displayOpenPlotIcon?: boolean;
 }
+
+export type WidgetData = {
+  version_major: number;
+  version_minor: number;
+  model_id: string;
+};

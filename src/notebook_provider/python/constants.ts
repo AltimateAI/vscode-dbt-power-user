@@ -19,3 +19,5 @@ export namespace Identifiers {
 export const WIDGET_MIMETYPE = "application/vnd.jupyter.widget-view+json";
 export const WIDGET_STATE_MIMETYPE =
   "application/vnd.jupyter.widget-state+json";
+
+export function noop() {}
