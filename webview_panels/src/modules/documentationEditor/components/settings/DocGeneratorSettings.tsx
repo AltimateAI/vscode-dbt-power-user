@@ -10,6 +10,8 @@ import { ActionMeta } from "react-select";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { updateUserInstructions } from "@modules/documentationEditor/state/documentationSlice";
 import { panelLogger } from "@modules/logger";
+import { sendTelemetryEvent } from "../telemetry";
+import { TelemetryEvents } from "@telemetryEvents";
 
 const DocGeneratorSettings = (): JSX.Element => {
   const {
@@ -25,6 +27,10 @@ const DocGeneratorSettings = (): JSX.Element => {
     dispatch(
       updateUserInstructions({ [meta.name]: (value as OptionType).value }),
     );
+    sendTelemetryEvent(TelemetryEvents["DocumentationEditor/SettingsUpdate"], {
+      field: meta.name,
+      value: (value as OptionType).value,
+    });
 
     localStorage.setItem(
       "userInstructions",
@@ -35,12 +41,17 @@ const DocGeneratorSettings = (): JSX.Element => {
     );
   };
 
+  const onOpen = () => {
+    sendTelemetryEvent(TelemetryEvents["DocumentationEditor/SettingsOpen"]);
+  };
+
   return (
     <Drawer
       buttonProps={{ outline: true }}
       buttonText="Settings"
       icon={<SettingsIcon style={{ height: 16 }} />}
       title="Help"
+      onOpen={onOpen}
     >
       <Stack direction="column">
         <h5>Configure settings for document generation</h5>
