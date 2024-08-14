@@ -4,11 +4,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { QueryManifestService } from "../services/queryManifestService";
 import path = require("path");
 import { ClientMapper } from "./clientMapper";
-import { randomUUID } from "crypto";
-import { newRawKernel } from "./python/kernelClient";
-import { cellOutputToVSCCellOutput } from "./helpers";
 import { NotebookKernelClient } from "./notebookKernelClient";
-import { cpSync } from "fs";
 
 // eslint-disable-next-line no-empty,@typescript-eslint/no-empty-function
 export function noop() {}
@@ -31,7 +27,6 @@ type QueryWidgetStateCommand = {
   command: "query-widget-state";
   model_id: string;
 };
-type RendererLoadedCommand = { command: "ipywidget-renderer-loaded" };
 
 const SupportedLanguages = ["python", "sql", "jinja-sql"];
 
@@ -177,36 +172,6 @@ export class NotebookKernel implements vscode.Disposable {
     // };
   }
 
-  private async copyNbExtensionFolders(notebook: vscode.NotebookDocument) {
-    try {
-      // TODO: fix this properly - check src\notebooks\controllers\ipywidgets\scriptSourceProvider\localIPyWidgetScriptManager.node.ts in vscode-jupyter
-      const tempDirPathForVenv = this.dbtProjectContainer.getProjectRootpath(
-        notebook.uri,
-      );
-      cpSync(
-        path.join(
-          tempDirPathForVenv?.fsPath || "",
-          ".venv",
-          "share",
-          "jupyter",
-          "nbextensions",
-        ),
-        path.join(
-          this.dbtProjectContainer.extensionUri.fsPath,
-          "temp",
-          "scripts",
-          "jupyter",
-          "nbextensions",
-        ),
-        { recursive: true },
-      );
-      console.log("copied nb extensions");
-    } catch (e) {
-      console.log("unable to copy nb extensions", e);
-      // throw e;
-    }
-  }
-
   private sendMessageToPreloadScript(message: unknown) {
     // @ts-ignore
     return this._controller.postMessage(message).then(noop, noop);
@@ -318,11 +283,6 @@ export class NotebookKernel implements vscode.Disposable {
           newMetadata,
         );
         edits.push(edit);
-        this.clientMapper.getNotebookClient(notebook.uri).then((client) => {
-          // client.executePythonLocally(`${uniqueId} = 1`).catch((e) => {
-          //   console.error(e);
-          // });
-        });
         this._onNotebookCellEvent.fire({
           cellId: newMetadata.cellId,
           notebook: notebook.uri.fsPath,
@@ -387,7 +347,6 @@ export class NotebookKernel implements vscode.Disposable {
     const client = await this.clientMapper.initializeNotebookClient(
       notebook.uri,
     );
-    // this.copyNbExtensionFolders(notebook);
     if (!(await client.getKernel())?.realKernel) {
       throw new Error("Unable to initialize kernel");
     }

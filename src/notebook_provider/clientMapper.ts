@@ -17,7 +17,12 @@ export class ClientMapper {
   ): Promise<NotebookKernelClient> {
     if (!this.clientMap.has(notebookUri.fsPath)) {
       const client = this.notebookClientFactory(notebookUri.fsPath);
-      this.clientMap.set(notebookUri.fsPath, Promise.resolve(client));
+      this.clientMap.set(
+        notebookUri.fsPath,
+        new Promise((resolve) => {
+          client.getKernel().then(() => resolve(client));
+        }),
+      );
     }
     return this.clientMap.get(notebookUri.fsPath)!;
   }

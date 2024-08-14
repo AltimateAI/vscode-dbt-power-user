@@ -1,20 +1,17 @@
 import type * as KernelMessage from "@jupyterlab/services/lib/kernel/messages";
-import { deserialize } from "@jupyterlab/services/lib/kernel/serialize";
 import type * as nbformat from "@jupyterlab/nbformat";
-import type { Data as WebSocketData } from "ws";
 import { PythonBridge, PythonException } from "python-bridge";
 import { DBTCommandExecutionInfrastructure } from "../dbt_client/dbtIntegration";
 import path = require("path");
 import {
-  Event,
-  EventEmitter,
   NotebookCell,
   NotebookCellOutput,
   NotebookCellOutputItem,
   window,
   Disposable,
+  Event,
+  EventEmitter,
 } from "vscode";
-import { newRawKernel } from "./python/kernelClient";
 import { randomUUID } from "crypto";
 import {
   CellOutputMimeTypes,
@@ -23,17 +20,15 @@ import {
   formatStreamText,
   getParentHeaderMsgId,
   handleTensorBoardDisplayDataOutput,
-  shouldMessageBeMirroredWithRenderer,
 } from "./helpers";
 import { readFileSync } from "fs";
 import { Identifiers, WIDGET_MIMETYPE } from "./constants";
-import { serializeDataViews } from "./serializers";
-import { createDeferred, Deferred } from "./async";
 import { NotebookDependencies } from "./python/notebookDependencies";
-import { ConnectionSettings } from "./python/types";
+import { ConnectionSettings, RawKernelType } from "./python/types";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
+import { RawKernel } from "./python/kernelClient";
 
 type ExecuteResult = nbformat.IExecuteResult & {
   transient?: { display_id?: string };
@@ -48,17 +43,17 @@ type WidgetData = {
 };
 
 export interface IPyWidgetMessage {
-  message: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type: string;
   payload: any;
 }
 
-type PendingMessage = {
-  resultPromise: Deferred<void>;
-  startTime: number;
-};
-
 export class NotebookKernelClient implements Disposable {
+  public get postMessage(): Event<IPyWidgetMessage> {
+    return this._postMessageEmitter.event;
+  }
+
+  private _postMessageEmitter = new EventEmitter<IPyWidgetMessage>();
+
   private disposables: Disposable[] = [];
   private lastUsedStreamOutput?: {
     stream: "stdout" | "stderr";
@@ -68,23 +63,15 @@ export class NotebookKernelClient implements Disposable {
     NotebookCell,
     Set<string>
   >();
-  public get postMessage(): Event<IPyWidgetMessage> {
-    return this._postMessageEmitter.event;
-  }
 
-  private _postMessageEmitter = new EventEmitter<IPyWidgetMessage>();
   private python: PythonBridge;
-  private kernel: ReturnType<typeof newRawKernel> | undefined;
+  private kernel: RawKernel | undefined;
   private isInitializing = true;
   private readonly ownedCommIds = new Set<string>();
   private readonly commIdsMappedToWidgetOutputModels = new Set<string>();
-  private waitingMessageIds = new Map<string, PendingMessage>();
-  private cellHasErrorsInOutput?: boolean;
   private readonly ownedRequestMsgIds = new Set<string>();
   private commIdsMappedToParentWidgetModel = new Map<string, string>();
   private streamsReAttachedToExecutingCell = false;
-  private isUsingIPyWidgets = false;
-  private outputWidgetIds = new Set<string>();
   private registerdCommTargets = new Set<string>();
   private outputsAreSpecificToAWidget: {
     /**
@@ -125,18 +112,19 @@ export class NotebookKernelClient implements Disposable {
         notebook_kernel.close_notebook()
         `;
     } catch (error) {
-      console.error(error);
-      // TODO: add telemetry
+      this.dbtTerminal.error(
+        TelemetryEvents["Notebook/KernelCloseError"],
+        (error as PythonException).exception.message,
+        error,
+      );
     }
   }
 
-  public async getKernel(): Promise<
-    ReturnType<typeof newRawKernel> | undefined
-  > {
+  public async getKernel(): Promise<RawKernelType | undefined> {
     return new Promise((resolve) => {
       const timer = setInterval(() => {
         if (!this.isInitializing) {
-          resolve(this.kernel);
+          resolve(this.kernel?.rawKernel);
           clearInterval(timer);
         }
       }, 500);
@@ -150,6 +138,7 @@ export class NotebookKernelClient implements Disposable {
       ) {
         return;
       }
+      // This can be changed to use jupyterlab services similar to vscode-jupyter
       await this.python.ex`
         from altimate_notebook_kernel import AltimateNotebookKernel
         notebook_kernel = AltimateNotebookKernel(${notebookPath})
@@ -168,17 +157,17 @@ export class NotebookKernelClient implements Disposable {
         connection: connectionSettings,
         pid,
       };
-      const result = newRawKernel(kernelProcess, randomUUID(), randomUUID(), {
+      const result = new RawKernel(kernelProcess, randomUUID(), randomUUID(), {
         name: connectionSettings.kernel_name,
         id: randomUUID(),
       });
       this.kernel = result;
+      this.disposables.push(
+        result.postMessage((e) => this._postMessageEmitter.fire(e)),
+      );
       this.dbtTerminal.log(
         `Notebook Kernel started with PID: ${pid} connection: ${JSON.stringify(connectionSettings)}`,
       );
-      const newSocket = result.socket;
-      newSocket?.addReceiveHook(this.onKernelSocketMessage.bind(this));
-      newSocket?.addSendHook(this.mirrorSend.bind(this));
     } catch (exc) {
       let message = (exc as Error).message;
       if (exc instanceof PythonException) {
@@ -195,137 +184,8 @@ export class NotebookKernelClient implements Disposable {
     this.isInitializing = false;
   }
 
-  private async mirrorSend(
-    data: any,
-    _cb?: (err?: Error) => void,
-  ): Promise<void> {
-    // If this is shell control message, mirror to the other side. This is how
-    // we get the kernel in the UI to have the same set of futures we have on this side
-    if (
-      typeof data === "string" &&
-      data.includes("shell") &&
-      data.includes("execute_request")
-    ) {
-      const msg = deserialize(data) as KernelMessage.IExecuteRequestMsg;
-      if (
-        msg.channel === "shell" &&
-        msg.header.msg_type === "execute_request"
-      ) {
-        if (!shouldMessageBeMirroredWithRenderer(msg)) {
-          return;
-        }
-        const promise = this.mirrorExecuteRequest(
-          msg as KernelMessage.IExecuteRequestMsg,
-        ); // NOSONAR
-        // If there are no ipywidgets thusfar in the notebook, then no need to synchronize messages.
-        if (this.isUsingIPyWidgets) {
-          await promise;
-        }
-      }
-    }
-  }
-
-  private raisePostMessage(message: string, payload: unknown) {
-    // TODO validate type
-    // @ts-ignore
-    this._postMessageEmitter.fire({ message, payload, type: message });
-  }
-
-  private mirrorExecuteRequest(msg: KernelMessage.IExecuteRequestMsg) {
-    const promise = createDeferred<void>();
-    this.waitingMessageIds.set(msg.header.msg_id, {
-      startTime: Date.now(),
-      resultPromise: promise,
-    });
-    this.raisePostMessage("IPyWidgets_mirror_execute", {
-      id: msg.header.msg_id,
-      msg,
-    });
-    return promise.promise;
-  }
-
   onKernelSocketResponse(payload: { id: string }) {
-    const pending = this.waitingMessageIds.get(payload.id);
-    if (pending) {
-      this.waitingMessageIds.delete(payload.id);
-      pending.resultPromise.resolve();
-    }
-  }
-  private async onKernelSocketMessage(data: WebSocketData): Promise<void> {
-    // Hooks expect serialized data as this normally comes from a WebSocket
-
-    const msgUuid = randomUUID();
-    const promise = createDeferred<void>();
-    this.waitingMessageIds.set(msgUuid, {
-      startTime: Date.now(),
-      resultPromise: promise,
-    });
-
-    if (typeof data === "string") {
-      if (shouldMessageBeMirroredWithRenderer(data)) {
-        this.raisePostMessage("IPyWidgets_msg", {
-          id: msgUuid,
-          data,
-        });
-      }
-    } else {
-      this.raisePostMessage("IPyWidgets_binary_msg", {
-        id: msgUuid,
-        data: serializeDataViews([data as any]),
-      });
-    }
-
-    // Lets deserialize only if we know we have a potential case
-    // where this message contains some data we're interested in.
-    const mustDeserialize =
-      typeof data !== "string" ||
-      data.includes(WIDGET_MIMETYPE) ||
-      data.includes(Identifiers.DefaultCommTarget) ||
-      data.includes("comm_open") ||
-      data.includes("comm_close") ||
-      data.includes("comm_msg");
-    if (mustDeserialize) {
-      const message = deserialize(data as any) as any;
-      if (!shouldMessageBeMirroredWithRenderer(message)) {
-        return;
-      }
-
-      // Check for hints that would indicate whether ipywidgest are used in outputs.
-      if (
-        message &&
-        message.content &&
-        message.content.data &&
-        (message.content.data[WIDGET_MIMETYPE] ||
-          message.content.target_name === Identifiers.DefaultCommTarget)
-      ) {
-        this.isUsingIPyWidgets = true;
-      }
-
-      const isIPYWidgetOutputModelOpen =
-        message.header?.msg_type === "comm_open" &&
-        message.content?.data?.state?._model_module ===
-          "@jupyter-widgets/output" &&
-        message.content?.data?.state?._model_name === "OutputModel";
-      const isIPYWidgetOutputModelClose =
-        message.header?.msg_type === "comm_close" &&
-        this.outputWidgetIds.has(message.content?.comm_id);
-
-      if (isIPYWidgetOutputModelOpen) {
-        this.outputWidgetIds.add(message.content.comm_id);
-      } else if (isIPYWidgetOutputModelClose) {
-        this.outputWidgetIds.delete(message.content.comm_id);
-      }
-      // TODO check if this is needed
-      // else if (this.messageNeedsFullHandle(message)) {
-      //   this.fullHandleMessage = {
-      //     id: message.header.msg_id,
-      //     promise: createDeferred<void>(),
-      //   };
-      //   await promise.promise;
-      //   await this.fullHandleMessage.promise.promise;
-      //   this.fullHandleMessage = undefined;
-      // }
-    }
+    this.kernel?.onKernelSocketResponse(payload);
   }
 
   async storeDataInKernel(cellId: string, data: any) {
@@ -367,9 +227,9 @@ export class NotebookKernelClient implements Disposable {
       console.log(`Executing python code in cell: ${cellPath}`);
       const jupyterLab =
         require("@jupyterlab/services") as typeof import("@jupyterlab/services");
-      console.log("kernel status", this.kernel?.realKernel.status);
+      console.log("kernel status", this.kernel?.rawKernel?.realKernel.status);
 
-      const request = await this.kernel?.realKernel.requestExecute(
+      const request = await this.kernel?.rawKernel?.realKernel.requestExecute(
         {
           code,
           silent: false,
@@ -970,19 +830,6 @@ export class NotebookKernelClient implements Disposable {
       traceback,
     };
 
-    // if (cell.notebook.notebookType !== 'interactive') {
-    //     const cellExecution = CellExecutionCreator.get(cell);
-    //     if (cellExecution && msg.content.ename !== 'KeyboardInterrupt') {
-    //         cellExecution.errorInfo = {
-    //             message: `${msg.content.ename}: ${msg.content.evalue}`,
-    //             location: findErrorLocation(msg.content.traceback, this.cell),
-    //             uri: cell.document.uri,
-    //             stack: msg.content.traceback.join('\n')
-    //         };
-    //     }
-    // }
-
-    this.cellHasErrorsInOutput = true;
     return this.addToCellData(output, msg, cell);
   }
 }

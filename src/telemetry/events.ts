@@ -49,4 +49,5 @@ export enum TelemetryEvents {
   "Notebook/DependenciesInstalled" = "Notebook/DependenciesInstalled",
   "Notebook/DependenciesInstallError" = "Notebook/DependenciesInstallError",
   "Notebook/KernelInitializationError" = "Notebook/KernelInitializationError",
+  "Notebook/KernelCloseError" = "Notebook/KernelCloseError",
 }

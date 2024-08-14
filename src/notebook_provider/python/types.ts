@@ -1,3 +1,6 @@
+import { KernelConnection } from "@jupyterlab/services";
+import { Deferred } from "../async";
+
 export interface ConnectionSettings {
   control_port: number;
   hb_port: number;
@@ -9,4 +12,18 @@ export interface ConnectionSettings {
   signature_scheme: string;
   stdin_port: number;
   transport: string;
+}
+
+export interface PendingMessage {
+  resultPromise: Deferred<void>;
+  startTime: number;
+}
+
+export interface RawKernelType {
+  realKernel: KernelConnection;
+  socket: any;
+  kernelProcess: {
+    connection: ConnectionSettings;
+    pid: number;
+  };
 }
