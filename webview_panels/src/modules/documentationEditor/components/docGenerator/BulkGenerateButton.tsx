@@ -28,12 +28,17 @@ const BulkGenerateButton = (): JSX.Element => {
     { label: "Generate only missing columns", value: "missing" },
   ];
 
-  const bulkGenerateDocs = async (columns: DBTDocumentationColumn[]) => {
+  const bulkGenerateDocs = async (
+    columns: DBTDocumentationColumn[],
+    isAll: boolean,
+  ) => {
     const result = (await executeRequestInSync("generateDocsForColumn", {
       description: "",
       user_instructions: userInstructions,
       columnNames: columns.map((c) => c.name),
       columns: currentDocsData?.columns,
+      isAll,
+      isBulkGen: true,
     })) as { columns: Partial<DBTDocumentationColumn>[] };
 
     dispatch(
@@ -60,7 +65,7 @@ const BulkGenerateButton = (): JSX.Element => {
       const columnsWithoutDescription = mergedColumns.filter(
         (column) => !column.description,
       );
-      return await bulkGenerateDocs(columnsWithoutDescription);
+      return await bulkGenerateDocs(columnsWithoutDescription, false);
     } catch (err) {
       panelLogger.error("Unable to generate docs for missing columns");
     }
@@ -72,7 +77,7 @@ const BulkGenerateButton = (): JSX.Element => {
         {},
       )) as { columns: DBTDocumentationColumn[] };
 
-      return await bulkGenerateDocs(columns);
+      return await bulkGenerateDocs(columns, true);
     } catch (err) {
       panelLogger.error("Unable to generate docs for all columns");
     }
