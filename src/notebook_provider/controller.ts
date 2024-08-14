@@ -4,7 +4,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { QueryManifestService } from "../services/queryManifestService";
 import path = require("path");
 import { ClientMapper } from "./clientMapper";
-import { NotebookKernelClient } from "./notebookKernelClient";
+import { NotebookKernelClient } from "./python/notebookKernelClient";
 
 // eslint-disable-next-line no-empty,@typescript-eslint/no-empty-function
 export function noop() {}

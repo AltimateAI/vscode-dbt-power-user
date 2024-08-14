@@ -2,12 +2,20 @@ import type * as KernelMessage from "@jupyterlab/services/lib/kernel/messages";
 import type * as nbformat from "@jupyterlab/nbformat";
 import { NotebookCellOutput, NotebookCellOutputItem, Uri } from "vscode";
 import path = require("path");
+import { CellOutputMetadata } from "./types";
 
 export enum CellOutputMimeTypes {
   error = "application/vnd.code.notebook.error",
   stderr = "application/vnd.code.notebook.stderr",
   stdout = "application/vnd.code.notebook.stdout",
 }
+
+const textMimeTypes = [
+  "text/plain",
+  "text/markdown",
+  CellOutputMimeTypes.stderr,
+  CellOutputMimeTypes.stdout,
+];
 
 const orderOfMimeTypes = [
   "application/vnd.*",
@@ -25,50 +33,37 @@ const orderOfMimeTypes = [
   "application/json",
   "text/plain",
 ];
-const textMimeTypes = [
-  "text/plain",
-  "text/markdown",
-  CellOutputMimeTypes.stderr,
-  CellOutputMimeTypes.stdout,
-];
 
-/**
- * Metadata we store in VS Code cell output items.
- * This contains the original metadata from the Jupyuter Outputs.
- */
-interface CellOutputMetadata {
-  /**
-   * Cell output metadata.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata?: any;
-  /**
-   * Transient data from Jupyter.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  transient?: {
-    /**
-     * This is used for updating the output in other cells.
-     * We don't know of others properties, but this is definitely used.
-     */
-    display_id?: string;
+export const cellOutputMappers = new Map<
+  nbformat.OutputType,
+  (output: nbformat.IOutput) => NotebookCellOutput
+>();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+cellOutputMappers.set("display_data", translateDisplayDataOutput as any);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+cellOutputMappers.set("error", translateErrorOutput as any);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+cellOutputMappers.set("execute_result", translateDisplayDataOutput as any);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+cellOutputMappers.set("stream", translateStreamOutput as any);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+cellOutputMappers.set("update_display_data", translateDisplayDataOutput as any);
+
+export function cellOutputToVSCCellOutput(
+  output: nbformat.IOutput,
+): NotebookCellOutput {
+  const fn = cellOutputMappers.get(output.output_type as nbformat.OutputType);
+  let result: NotebookCellOutput;
+  if (fn) {
+    result = fn(output);
+  } else {
+    console.warn(
+      `Unable to translate cell from ${output.output_type} to NotebookCellData for VS Code.`,
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  };
-  /**
-   * Original cell output type
-   */
-  outputType: nbformat.OutputType | string;
-  executionCount?: nbformat.IExecuteResult["ExecutionCount"];
-  /**
-   * Whether the original Mime data is JSON or not.
-   * This properly only exists in metadata for NotebookCellOutputItems
-   * (this is something we have added)
-   */
-  __isJson?: boolean;
-  /**
-   * Whether to display the open plot icon.
-   */
-  __displayOpenPlotIcon?: boolean;
+    result = translateDisplayDataOutput(output as any);
+  }
+  return result;
 }
 
 function getOutputMetadata(output: nbformat.IOutput): CellOutputMetadata {
@@ -145,15 +140,6 @@ export function translateDisplayDataOutput(
   );
 }
 
-function isEmptyVendoredMimeType(outputItem: NotebookCellOutputItem) {
-  if (outputItem.mime.startsWith("application/vnd.")) {
-    try {
-      return new TextDecoder().decode(outputItem.data).length === 0;
-    } catch {}
-  }
-  return false;
-}
-
 function sortOutputItemsBasedOnDisplayOrder(
   outputItems: NotebookCellOutputItem[],
 ): NotebookCellOutputItem[] {
@@ -179,34 +165,19 @@ function sortOutputItemsBasedOnDisplayOrder(
     if (isEmptyVendoredMimeType(outputItemB)) {
       indexOfMimeTypeB = -1;
     }
-    indexOfMimeTypeA = indexOfMimeTypeA == -1 ? 100 : indexOfMimeTypeA;
-    indexOfMimeTypeB = indexOfMimeTypeB == -1 ? 100 : indexOfMimeTypeB;
+    indexOfMimeTypeA = indexOfMimeTypeA === -1 ? 100 : indexOfMimeTypeA;
+    indexOfMimeTypeB = indexOfMimeTypeB === -1 ? 100 : indexOfMimeTypeB;
     return indexOfMimeTypeA - indexOfMimeTypeB;
   });
 }
 
-export function concatMultilineString(str: nbformat.MultilineString): string {
-  if (Array.isArray(str)) {
-    let result = "";
-    for (let i = 0; i < str.length; i += 1) {
-      const s = str[i];
-      if (i < str.length - 1 && !s.endsWith("\n")) {
-        result = result.concat(`${s}\n`);
-      } else {
-        result = result.concat(s);
-      }
-    }
-    return result;
+function isEmptyVendoredMimeType(outputItem: NotebookCellOutputItem) {
+  if (outputItem.mime.startsWith("application/vnd.")) {
+    try {
+      return new TextDecoder().decode(outputItem.data).length === 0;
+    } catch {}
   }
-  return str.toString();
-}
-
-export function base64ToUint8Array(base64: string): Uint8Array {
-  if (typeof Buffer !== "undefined" && typeof Buffer.from === "function") {
-    return Buffer.from(base64, "base64");
-  } else {
-    return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-  }
+  return false;
 }
 
 function convertJupyterOutputToBuffer(
@@ -253,139 +224,29 @@ function convertJupyterOutputToBuffer(
   }
 }
 
-function translateStreamOutput(output: nbformat.IStream): NotebookCellOutput {
-  const value = concatMultilineString(output.text);
-  const factoryFn =
-    output.name === "stderr"
-      ? NotebookCellOutputItem.stderr
-      : NotebookCellOutputItem.stdout;
-  return new NotebookCellOutput([factoryFn(value)], getOutputMetadata(output));
-}
-
-/**
- * We will display the error message in the status of the cell.
- * The `ename` & `evalue` is displayed at the top of the output by VS Code.
- * As we're displaying the error in the statusbar, we don't want this dup error in output.
- * Hence remove this.
- */
-function translateErrorOutput(output?: nbformat.IError): NotebookCellOutput {
-  output = output || {
-    output_type: "error",
-    ename: "",
-    evalue: "",
-    traceback: [],
-  };
-  return new NotebookCellOutput(
-    [
-      NotebookCellOutputItem.error({
-        name: output?.ename || "",
-        message: output?.evalue || "",
-        stack: (output?.traceback || []).join("\n"),
-      }),
-    ],
-    { ...getOutputMetadata(output), originalError: output },
-  );
-}
-
-export const cellOutputMappers = new Map<
-  nbformat.OutputType,
-  (output: nbformat.IOutput) => NotebookCellOutput
->();
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-cellOutputMappers.set("display_data", translateDisplayDataOutput as any);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-cellOutputMappers.set("error", translateErrorOutput as any);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-cellOutputMappers.set("execute_result", translateDisplayDataOutput as any);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-cellOutputMappers.set("stream", translateStreamOutput as any);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-cellOutputMappers.set("update_display_data", translateDisplayDataOutput as any);
-
-export function cellOutputToVSCCellOutput(
-  output: nbformat.IOutput,
-): NotebookCellOutput {
-  const fn = cellOutputMappers.get(output.output_type as nbformat.OutputType);
-  let result: NotebookCellOutput;
-  if (fn) {
-    result = fn(output);
+export function base64ToUint8Array(base64: string): Uint8Array {
+  if (typeof Buffer !== "undefined" && typeof Buffer.from === "function") {
+    return Buffer.from(base64, "base64");
   } else {
-    console.warn(
-      `Unable to translate cell from ${output.output_type} to NotebookCellData for VS Code.`,
-    );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    result = translateDisplayDataOutput(output as any);
+    return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
   }
-  return result;
 }
 
-export function handleTensorBoardDisplayDataOutput(data: nbformat.IMimeBundle) {
-  if (data.hasOwnProperty("text/html")) {
-    const text = data["text/html"];
-    if (
-      typeof text === "string" &&
-      text.includes('<iframe id="tensorboard-frame-')
-    ) {
-      data["text/html"] = text.replace(
-        /new URL\((.*), window.location\)/,
-        'new URL("http://localhost")',
-      );
+export function concatMultilineString(str: nbformat.MultilineString): string {
+  if (Array.isArray(str)) {
+    let result = "";
+    for (let i = 0; i < str.length; i += 1) {
+      const s = str[i];
+      if (i < str.length - 1 && !s.endsWith("\n")) {
+        result = result.concat(`${s}\n`);
+      } else {
+        result = result.concat(s);
+      }
     }
+    return result;
   }
-  return data;
+  return str.toString();
 }
-
-export function getParentHeaderMsgId(
-  msg: KernelMessage.IMessage,
-): string | undefined {
-  if (msg.parent_header && "msg_id" in msg.parent_header) {
-    return msg.parent_header.msg_id;
-  }
-  return undefined;
-}
-
-export enum OSType {
-  Unknown = "Unknown",
-  Windows = "Windows",
-  OSX = "OSX",
-  Linux = "Linux",
-}
-
-export function getOSType(platform: string = process.platform): OSType {
-  if (/^win/.test(platform)) {
-    return OSType.Windows;
-  } else if (/^darwin/.test(platform)) {
-    return OSType.OSX;
-  } else if (/^linux/.test(platform)) {
-    return OSType.Linux;
-  } else {
-    return OSType.Unknown;
-  }
-}
-
-export function getFilePath(file: Uri | undefined) {
-  const isWindows = getOSType() === OSType.Windows;
-  if (file) {
-    const fsPath = file.fsPath;
-
-    // Remove separator on the front if not a network drive.
-    // Example, if you create a URI with Uri.file('hello world'), the fsPath will come out as '\Hello World' on windows. We don't want that
-    // However if you create a URI from a network drive, like '\\mydrive\foo\bar\python.exe', we want to keep the \\ on the front.
-    if (
-      fsPath &&
-      fsPath.startsWith(path.sep) &&
-      fsPath.length > 1 &&
-      fsPath[1] !== path.sep &&
-      isWindows
-    ) {
-      return fsPath.slice(1);
-    }
-    return fsPath || "";
-  }
-  return "";
-}
-export const cellAtFormat = (filePath: string, lineNumber: number) =>
-  "{0} Cell {1}".replace("{0}", filePath).replace("{1}", lineNumber.toString());
 
 // Took this from jupyter/notebook
 // https://github.com/jupyter/notebook/blob/b8b66332e2023e83d2ee04f83d8814f567e01a4e/notebook/static/base/js/utils.js
@@ -419,8 +280,34 @@ export function formatStreamText(str: string): string {
   return fixCarriageReturn(fixBackspace(str));
 }
 
+export function getParentHeaderMsgId(
+  msg: KernelMessage.IMessage,
+): string | undefined {
+  if (msg.parent_header && "msg_id" in msg.parent_header) {
+    return msg.parent_header.msg_id;
+  }
+  return undefined;
+}
+
+export function handleTensorBoardDisplayDataOutput(data: nbformat.IMimeBundle) {
+  if (data.hasOwnProperty("text/html")) {
+    const text = data["text/html"];
+    if (
+      typeof text === "string" &&
+      text.includes('<iframe id="tensorboard-frame-')
+    ) {
+      data["text/html"] = text.replace(
+        /new URL\((.*), window.location\)/,
+        'new URL("http://localhost")',
+      );
+    }
+  }
+  return data;
+}
+
 const widgetVersionOutPrefix =
   "e976ee50-99ed-4aba-9b6b-9dcd5634d07d:IPyWidgets:";
+
 /**
  * Sometimes we send code internally, e.g. to determine version of IPyWidgets and the like.
  * Such messages need not be mirrored with the renderer.
@@ -442,4 +329,38 @@ export function shouldMessageBeMirroredWithRenderer(
     return false;
   }
   return true;
+}
+
+function translateStreamOutput(output: nbformat.IStream): NotebookCellOutput {
+  const value = concatMultilineString(output.text);
+  const factoryFn =
+    output.name === "stderr"
+      ? NotebookCellOutputItem.stderr
+      : NotebookCellOutputItem.stdout;
+  return new NotebookCellOutput([factoryFn(value)], getOutputMetadata(output));
+}
+
+/**
+ * We will display the error message in the status of the cell.
+ * The `ename` & `evalue` is displayed at the top of the output by VS Code.
+ * As we're displaying the error in the statusbar, we don't want this dup error in output.
+ * Hence remove this.
+ */
+function translateErrorOutput(output?: nbformat.IError): NotebookCellOutput {
+  output = output || {
+    output_type: "error",
+    ename: "",
+    evalue: "",
+    traceback: [],
+  };
+  return new NotebookCellOutput(
+    [
+      NotebookCellOutputItem.error({
+        name: output?.ename || "",
+        message: output?.evalue || "",
+        stack: (output?.traceback || []).join("\n"),
+      }),
+    ],
+    { ...getOutputMetadata(output), originalError: output },
+  );
 }

@@ -1,6 +1,6 @@
 import { Uri } from "vscode";
 import { provideSingleton } from "../utils";
-import { NotebookKernelClient } from "./notebookKernelClient";
+import { NotebookKernelClient } from "./python/notebookKernelClient";
 import path = require("path");
 import { inject } from "inversify";
 

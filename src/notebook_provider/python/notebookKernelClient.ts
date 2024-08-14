@@ -1,7 +1,7 @@
 import type * as KernelMessage from "@jupyterlab/services/lib/kernel/messages";
 import type * as nbformat from "@jupyterlab/nbformat";
 import { PythonBridge, PythonException } from "python-bridge";
-import { DBTCommandExecutionInfrastructure } from "../dbt_client/dbtIntegration";
+import { DBTCommandExecutionInfrastructure } from "../../dbt_client/dbtIntegration";
 import path = require("path");
 import {
   NotebookCell,
@@ -23,12 +23,12 @@ import {
 } from "./helpers";
 import { readFileSync } from "fs";
 import { Identifiers, WIDGET_MIMETYPE } from "./constants";
-import { NotebookDependencies } from "./python/notebookDependencies";
-import { ConnectionSettings, RawKernelType } from "./python/types";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { TelemetryService } from "../telemetry";
-import { TelemetryEvents } from "../telemetry/events";
-import { RawKernel } from "./python/kernelClient";
+import { NotebookDependencies } from "./notebookDependencies";
+import { ConnectionSettings, RawKernelType } from "./types";
+import { DBTTerminal } from "../../dbt_client/dbtTerminal";
+import { TelemetryService } from "../../telemetry";
+import { TelemetryEvents } from "../../telemetry/events";
+import { RawKernel } from "./kernelClient";
 
 type ExecuteResult = nbformat.IExecuteResult & {
   transient?: { display_id?: string };
@@ -216,7 +216,6 @@ export class NotebookKernelClient implements Disposable {
     );
   }
 
-  // TODO: typecast the return value
   async executePython(
     code: string,
     cell: NotebookCell,
@@ -280,7 +279,6 @@ export class NotebookKernelClient implements Disposable {
 
       const outputs: (NotebookCellOutput | undefined)[] = [];
       request.done.finally(() => {
-        console.log("finally");
         request.dispose();
         resolve(outputs.filter((o): o is NotebookCellOutput => !!o));
       });
@@ -339,11 +337,14 @@ export class NotebookKernelClient implements Disposable {
     msg: KernelMessage.IUpdateDisplayDataMsg,
   ) {
     console.log("handleUpdateDisplayDataMessage", msg);
-    // const displayId = msg.content.transient.display_id;
-    // if (!displayId) {
-    //     logger.warn('Update display data message received, but no display id', msg.content);
-    //     return;
-    // }
+    const displayId = msg.content.transient.display_id;
+    if (!displayId) {
+      console.warn(
+        "Update display data message received, but no display id",
+        msg.content,
+      );
+      return;
+    }
     // const outputToBeUpdated = CellOutputDisplayIdTracker.getMappedOutput(this.cell.notebook, displayId);
     // if (!outputToBeUpdated) {
     //     // Possible this is a display Id that was created by code executed by an extension.
