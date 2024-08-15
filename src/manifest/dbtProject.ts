@@ -970,6 +970,8 @@ select * from renamed
     modelName: string,
     returnImmediately?: boolean,
   ) {
+    // if user added a semicolon at the end, let,s remove it.
+    query = query.replace(/;\s*$/, "");
     const limit = workspace
       .getConfiguration("dbt")
       .get<number>("queryLimit", 500);

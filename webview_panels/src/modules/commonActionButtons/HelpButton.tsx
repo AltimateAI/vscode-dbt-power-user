@@ -23,11 +23,8 @@ const HelpButton = (): JSX.Element => {
   return (
     <Drawer
       buttonProps={{ outline: true }}
-      buttonText={
-        <>
-          <HelpIcon /> Help
-        </>
-      }
+      buttonText="Help"
+      icon={<HelpIcon />}
       title="Help"
       onOpen={onOpen}
     >

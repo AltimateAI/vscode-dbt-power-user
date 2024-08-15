@@ -1,0 +1,19 @@
+# .github/actions/common-build/action.yml
+name: "Common Build"
+description: "Common build steps for the project"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+    - run: npm install
+      shell: bash  # Explicitly define the shell
+    - run: npm install
+      shell: bash  # Explicitly define the shell
+      working-directory: ./new_lineage_panel
+    - run: npm install
+      shell: bash  # Explicitly define the shell
+      working-directory: ./webview_panels

@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.44.0",
+  "version": "0.44.1",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -1268,7 +1268,7 @@
     "eslint-plugin-prettier": "^5.2.1",
     "file-loader": "^6.1.0",
     "glob": "^10.4.2",
-    "husky": "^9.1.1",
+    "husky": "^9.1.4",
     "lint-staged": "^15.2.5",
     "mocha": "^10.3.0",
     "ovsx": "^0.9.2",
