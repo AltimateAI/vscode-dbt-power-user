@@ -1,25 +1,19 @@
 regular-table {
   td,
   th {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
     user-select: text;
     cursor: text;
-
-    .clickable-cell-div {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .clickable-cell-text {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      width: 100px;
-    }
 
     .open-icon {
       margin-left: 5px;
       color: var(--text-active);
+
+      svg {
+        margin-bottom: -2.5px;
+      }
     }
   }
 }
