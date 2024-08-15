@@ -83,6 +83,7 @@ export class NotebookDependencies {
               "ipykernel",
               "jupyter_client",
               "jupyter_contrib_nbextensions",
+              "ipywidgets",
             ];
             const { stdout, stderr } = await this.commandProcessExecutionFactory
               .createCommandProcessExecution({
