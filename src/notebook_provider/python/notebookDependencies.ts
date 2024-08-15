@@ -8,7 +8,7 @@ import {
   getFirstWorkspacePath,
   provideSingleton,
 } from "../../utils";
-import { ProgressLocation, window } from "vscode";
+import { commands, ProgressLocation, window } from "vscode";
 
 @provideSingleton(NotebookDependencies)
 export class NotebookDependencies {
@@ -70,7 +70,7 @@ export class NotebookDependencies {
       }
       await window.withProgress(
         {
-          title: `Installing required depencies...`,
+          title: `Installing required dependencies...`,
           location: ProgressLocation.Notification,
           cancellable: false,
         },
@@ -106,6 +106,13 @@ export class NotebookDependencies {
             this.telemetry.sendTelemetryEvent(
               TelemetryEvents["Notebook/DependenciesInstalled"],
             );
+            const result = await window.showInformationMessage(
+              "Notebook dependencies installed. Please reload the window to use the notebook.",
+              "Reload Window",
+            );
+            if (result === "Reload Window") {
+              commands.executeCommand("workbench.action.reloadWindow");
+            }
             return true;
           } catch (err) {
             this.telemetry.sendTelemetryError(

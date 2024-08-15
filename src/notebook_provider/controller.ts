@@ -22,21 +22,19 @@ import {
   Disposable,
   window,
   NotebookCellData,
-  Range,
   NotebookRange,
 } from "vscode";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { noop } from "./python/constants";
 import { RendererMessageHandler } from "./python/rendererMessageHandler";
 import { SemVer } from "semver";
+import { NotebookCellEvent, OpenNotebookRequest } from "./types";
 import {
-  NotebookCellEvent,
-  NotebookSchema,
-  NotebookCellSchema,
-  OpenNotebookRequest,
-} from "./types";
-import { DefaultNotebookCellLanguage, SupportedLanguages } from "./constants";
-import { NotebookSaveHandler } from "./saveHandler";
+  DatapilotNotebookExtension,
+  DatapilotNotebookScheme,
+  DatapilotNotebookType,
+  SupportedLanguages,
+} from "./constants";
 import { AltimateRequest } from "../altimate";
 
 @provideSingleton(DatapilotNotebookController)
@@ -58,12 +56,11 @@ export class DatapilotNotebookController implements Disposable {
     private telemetry: TelemetryService,
     private dbtTerminal: DBTTerminal,
     private rendererMessageHandler: RendererMessageHandler,
-    private notebookSaveHandler: NotebookSaveHandler,
     private altimate: AltimateRequest,
   ) {
     this._controller = notebooks.createNotebookController(
       this._id,
-      "datapilot-notebook",
+      DatapilotNotebookType,
       this._label,
     );
 
@@ -136,12 +133,6 @@ export class DatapilotNotebookController implements Disposable {
     );
   }
 
-  private getNotebookById(notebookId: string) {
-    const notebooks =
-      this.dbtProjectContainer.getFromGlobalState("notebooks") || {};
-    return notebooks[notebookId] as NotebookSchema | undefined;
-  }
-
   private async getNotebookByTemplate(template?: string) {
     const notebookTemplates = await this.altimate.getNotebooks();
     if (template) {
@@ -180,7 +171,7 @@ export class DatapilotNotebookController implements Disposable {
     const { notebookId, template, query } = args || {};
 
     const notebookData = notebookId
-      ? this.getNotebookById(notebookId)
+      ? null
       : await this.getNotebookByTemplate(template);
 
     if (query && notebookData) {
@@ -195,10 +186,10 @@ export class DatapilotNotebookController implements Disposable {
     }
 
     // TODO: check if datapilot file is already open, then add suffix like datapilot-1, datapilot-2 etc
-    const fileNamePrefix = notebookId || `datapilot`;
+    const fileNamePrefix = notebookId || `untitled`;
     const uri = Uri.parse(
-      `${project.projectRoot}/${fileNamePrefix}.notebook`,
-    ).with({ scheme: "untitled" });
+      `${DatapilotNotebookScheme}:/${fileNamePrefix}${DatapilotNotebookExtension}`,
+    );
 
     workspace.openNotebookDocument(uri).then(
       (doc) => {
@@ -208,9 +199,7 @@ export class DatapilotNotebookController implements Disposable {
             if (!notebookData) {
               return;
             }
-
             const edit = new WorkspaceEdit();
-
             const cellEdits: NotebookEdit[] = [];
             notebookData.cells.forEach((cell, index) => {
               const newCell = new NotebookCellData(
@@ -229,11 +218,13 @@ export class DatapilotNotebookController implements Disposable {
             await workspace.applyEdit(edit);
           },
           (e) => {
+            // TODO: add telemetry
             window.showErrorMessage((e as Error).message);
           },
         );
       },
       (e) => {
+        // TODO: add telemetry
         window.showErrorMessage((e as Error).message);
       },
     );
