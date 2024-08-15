@@ -92,7 +92,6 @@ enum InboundCommand {
   ExecuteQuery = "executeQuery",
   GetQueryTabData = "getQueryTabData",
   RunAdhocQuery = "runAdhocQuery",
-  OpenNewNotebook = "openNewNotebook",
   ViewResultSet = "viewResultSet",
   OpenCodeInEditor = "openCodeInEditor",
 }
@@ -372,12 +371,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           case InboundCommand.RunAdhocQuery:
             commands.executeCommand("dbtPowerUser.createSqlFile", {
               fileName: "Custom Query",
-            });
-            break;
-          case InboundCommand.OpenNewNotebook:
-            commands.executeCommand("dbtPowerUser.createDatapilotlNotebook", {
-              fileName: "Untitled",
-              notebookId: message.notebookId,
             });
             break;
           case InboundCommand.ExecuteQuery:

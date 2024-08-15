@@ -93,6 +93,7 @@ const useQueryPanelListeners = (): { loading: boolean } => {
         data: args.rows,
         columnNames: args.columnNames,
         columnTypes: args.columnTypes,
+        raw_sql: args.raw_sql,
       } as QueryPanelStateProps["queryResults"]),
     );
     dispatch(setCompiledCodeMarkup(args.compiled_sql as string));

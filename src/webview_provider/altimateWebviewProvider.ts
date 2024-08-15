@@ -222,6 +222,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     try {
       switch (command) {
+        case "openNewNotebook":
+          commands.executeCommand(
+            "dbtPowerUser.createDatapilotNotebook",
+            params,
+          );
+          break;
         case "setToWorkspaceState":
           this.dbtProjectContainer.setToWorkspaceState(
             params.key as string,

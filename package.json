@@ -423,8 +423,8 @@
         "title": "Create Power User SQL file"
       },
       {
-        "command": "dbtPowerUser.createDatapilotlNotebook",
-        "title": "New Datapilot notebook"
+        "command": "dbtPowerUser.createDatapilotNotebook",
+        "title": "Datapilot notebook"
       },
       {
         "command": "dbtPowerUser.notebookItem",
@@ -743,7 +743,7 @@
           "when": "dbt.enableQueryBookmarks == true"
         },
         {
-          "command": "dbtPowerUser.createDatapilotlNotebook",
+          "command": "dbtPowerUser.createDatapilotNotebook",
           "when": "dbt.enableQueryBookmarks == true",
           "group": "notebook"
         }

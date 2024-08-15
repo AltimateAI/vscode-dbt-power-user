@@ -7,7 +7,7 @@ import {
   Disposable,
 } from "vscode";
 import { provideSingleton } from "../utils";
-import { RawNotebook, RawNotebookCell } from "./types";
+import { NotebookSchema, NotebookCellSchema } from "./types";
 import { DefaultNotebookCellLanguage } from "./constants";
 
 @provideSingleton(DatapilotNotebookSerializer)
@@ -23,21 +23,23 @@ export class DatapilotNotebookSerializer
   ): Promise<NotebookData> {
     const contents = new TextDecoder().decode(content);
 
-    let raw: RawNotebookCell[];
+    let raw: NotebookSchema;
     try {
-      raw = (<RawNotebook>JSON.parse(contents)).cells;
+      raw = <NotebookSchema>JSON.parse(contents);
     } catch {
-      raw = [
-        {
-          cell_type: "code",
-          source: [],
-          languageId: DefaultNotebookCellLanguage,
-          metadata: {},
-        },
-      ];
+      raw = {
+        cells: [
+          {
+            cell_type: "code",
+            source: [],
+            languageId: DefaultNotebookCellLanguage,
+            metadata: {},
+          },
+        ],
+      };
     }
 
-    const cells = raw.map(
+    const cells = raw.cells.map(
       (item) =>
         new NotebookCellData(
           NotebookCellKind.Code,
@@ -46,14 +48,16 @@ export class DatapilotNotebookSerializer
         ),
     );
 
-    return new NotebookData(cells);
+    const notebookdata = new NotebookData(cells);
+    notebookdata.metadata = raw.metadata;
+    return notebookdata;
   }
 
   async serializeNotebook(
     data: NotebookData,
     _token: CancellationToken,
   ): Promise<Uint8Array> {
-    const contents: RawNotebookCell[] = [];
+    const contents: NotebookCellSchema[] = [];
 
     for (const cell of data.cells) {
       contents.push({
@@ -64,6 +68,8 @@ export class DatapilotNotebookSerializer
       });
     }
 
-    return new TextEncoder().encode(JSON.stringify({ cells: contents }));
+    return new TextEncoder().encode(
+      JSON.stringify({ cells: contents, metadata: data.metadata }),
+    );
   }
 }

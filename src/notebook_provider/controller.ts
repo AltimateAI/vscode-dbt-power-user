@@ -29,9 +29,15 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { noop } from "./python/constants";
 import { RendererMessageHandler } from "./python/rendererMessageHandler";
 import { SemVer } from "semver";
-import { NotebookCellEvent, RawNotebook, RawNotebookCell } from "./types";
+import {
+  NotebookCellEvent,
+  NotebookSchema,
+  NotebookCellSchema,
+  OpenNotebookRequest,
+} from "./types";
 import { DefaultNotebookCellLanguage, SupportedLanguages } from "./constants";
 import { NotebookSaveHandler } from "./saveHandler";
+import { AltimateRequest } from "../altimate";
 
 @provideSingleton(DatapilotNotebookController)
 export class DatapilotNotebookController implements Disposable {
@@ -53,6 +59,7 @@ export class DatapilotNotebookController implements Disposable {
     private dbtTerminal: DBTTerminal,
     private rendererMessageHandler: RendererMessageHandler,
     private notebookSaveHandler: NotebookSaveHandler,
+    private altimate: AltimateRequest,
   ) {
     this._controller = notebooks.createNotebookController(
       this._id,
@@ -129,10 +136,57 @@ export class DatapilotNotebookController implements Disposable {
     );
   }
 
-  public async createNotebook(
-    args: { notebookId?: string; fileName?: string } | undefined,
-  ) {
-    const { notebookId, fileName } = args || {};
+  private getNotebookById(notebookId: string) {
+    const notebooks =
+      this.dbtProjectContainer.getFromGlobalState("notebooks") || {};
+    return notebooks[notebookId] as NotebookSchema | undefined;
+  }
+
+  private async getNotebookByTemplate(template?: string) {
+    const notebookTemplates = await this.altimate.getNotebooks();
+    if (template) {
+      return notebookTemplates.notebooks.find(
+        (notebook) => notebook.name === template,
+      )?.notebookData;
+    }
+
+    const options = [
+      {
+        label: "Blank notebook",
+        description: "",
+        id: "",
+      },
+      ...notebookTemplates.notebooks.map((notebook: any) => ({
+        label: notebook.name,
+        description: notebook.description,
+        id: notebook.id,
+      })),
+    ];
+    const pick: { label: string; description: string; id: string } | undefined =
+      await window.showQuickPick(options, {
+        title: "Select a notebook",
+        canPickMany: false,
+      });
+
+    const selectedNotebook = pick?.id
+      ? notebookTemplates.notebooks.find(
+          (notebook: any) => notebook.id === pick.id,
+        )
+      : undefined;
+    return selectedNotebook?.notebookData;
+  }
+
+  public async createNotebook(args: OpenNotebookRequest | undefined) {
+    const { notebookId, template, query } = args || {};
+
+    const notebookData = notebookId
+      ? this.getNotebookById(notebookId)
+      : await this.getNotebookByTemplate(template);
+
+    if (query && notebookData) {
+      notebookData.cells[0].source = [query];
+    }
+
     const project =
       await this.queryManifestService.getOrPickProjectFromWorkspace();
     if (!project) {
@@ -140,100 +194,39 @@ export class DatapilotNotebookController implements Disposable {
       return;
     }
 
-    const fileNamePrefix = notebookId || fileName || "datapilot";
+    // TODO: check if datapilot file is already open, then add suffix like datapilot-1, datapilot-2 etc
+    const fileNamePrefix = notebookId || `datapilot`;
     const uri = Uri.parse(
-      `${project.projectRoot}/${fileNamePrefix}-${Date.now()}.notebook`,
+      `${project.projectRoot}/${fileNamePrefix}.notebook`,
     ).with({ scheme: "untitled" });
+
     workspace.openNotebookDocument(uri).then(
       (doc) => {
         // set this to sql language so we can bind codelens and other features
         window.showNotebookDocument(doc).then(
-          (editor) => {
-            if (!notebookId) {
+          async (notebookEditor) => {
+            if (!notebookData) {
               return;
             }
-            const notebooks =
-              this.dbtProjectContainer.getFromGlobalState("notebooks") || {};
-            const contents = notebooks[notebookId];
 
-            let raw: RawNotebookCell[];
-            try {
-              raw = (<RawNotebook>JSON.parse(contents)).cells;
-            } catch {
-              raw = [
-                {
-                  cell_type: "code",
-                  source: [],
-                  languageId: DefaultNotebookCellLanguage,
-                },
-              ];
-            }
+            const edit = new WorkspaceEdit();
 
-            const cellData = raw.map(
-              (item) =>
-                new NotebookCellData(
-                  NotebookCellKind.Code,
-                  item.source?.join("\n"),
-                  DefaultNotebookCellLanguage,
-                ),
-            );
-
-            // Get the active notebook editor
-            const notebookEditor = window.activeNotebookEditor;
-            if (notebookEditor) {
-              // Create notebook cells
-              const cells = cellData.map(
-                (data) =>
-                  new NotebookCellData(data.kind, data.value, data.languageId),
+            const cellEdits: NotebookEdit[] = [];
+            notebookData.cells.forEach((cell, index) => {
+              const newCell = new NotebookCellData(
+                cell.cell_type === "code"
+                  ? NotebookCellKind.Code
+                  : NotebookCellKind.Markup,
+                cell.source.join("\n"),
+                cell.languageId,
               );
-
-              // Function to backup the state of the notebook
-              function backupNotebookState(notebook: NotebookDocument) {
-                return notebook
-                  .getCells()
-                  .map((cell) => cell.document.getText());
-              }
-
-              // Function to restore the state of the notebook
-              async function restoreNotebookState(
-                notebook: NotebookDocument,
-                backup: string[],
-              ) {
-                const edit = new WorkspaceEdit();
-                notebook.getCells().forEach((cell, index) => {
-                  edit.replace(
-                    cell.document.uri,
-                    new Range(0, 0, cell.document.lineCount, 0),
-                    backup[index],
-                  );
-                });
-                await workspace.applyEdit(edit);
-              }
-
-              async function applyCellsWithoutDirty(
-                notebookEditor: NotebookEditor,
-                cells: NotebookCellData[],
-              ) {
-                const backup = backupNotebookState(notebookEditor.notebook);
-
-                // Apply the cell data to the notebook
-                const edit = new WorkspaceEdit();
-                edit.set(notebookEditor.notebook.uri, [
-                  new NotebookEdit(new NotebookRange(0, 0), cells),
-                ]);
-
-                await workspace.applyEdit(edit);
-
-                // Restore the original state to make it appear as not dirty
-                await restoreNotebookState(notebookEditor.notebook, backup);
-              }
-
-              applyCellsWithoutDirty(notebookEditor, cells).then(() => {
-                console.log(
-                  "Cells applied without marking the document as dirty.",
-                );
-              });
-            }
+              newCell.metadata = cell.metadata;
+              cellEdits.push(
+                new NotebookEdit(new NotebookRange(index, index), [newCell]),
+              );
+            });
+            edit.set(notebookEditor.notebook.uri, cellEdits);
+            await workspace.applyEdit(edit);
           },
           (e) => {
             window.showErrorMessage((e as Error).message);
@@ -281,22 +274,23 @@ export class DatapilotNotebookController implements Disposable {
   ) {
     const edits: NotebookEdit[] = [];
     cells.forEach((cell) => {
-      if (!cell.metadata.cellId) {
-        const uniqueId = this.genUniqueId(cell);
+      let cellId = cell.metadata.cellId;
+      if (!cellId) {
+        cellId = this.genUniqueId(cell);
         const newMetadata = {
           ...cell.metadata,
-          cellId: uniqueId,
+          cellId,
         };
         const edit = NotebookEdit.updateCellMetadata(cell.index, newMetadata);
         edits.push(edit);
-        this._onNotebookCellEvent.fire({
-          cellId: newMetadata.cellId,
-          notebook: notebook.uri.fsPath,
-          event: "update",
-          fragment: cell.document.uri.fragment,
-          languageId: cell.document.languageId,
-        });
       }
+      this._onNotebookCellEvent.fire({
+        cellId,
+        notebook: notebook.uri.fsPath,
+        event: "update",
+        fragment: cell.document.uri.fragment,
+        languageId: cell.document.languageId,
+      });
     });
     if (edits.length > 0) {
       const edit = new WorkspaceEdit();
@@ -444,11 +438,6 @@ export class DatapilotNotebookController implements Disposable {
             event: "add",
             languageId: cell.document.languageId,
           });
-          // TODO: fix this - not working to auto suggest cell id
-          await notebookClient.storeDataInKernel(
-            cell.metadata.cellId,
-            sqlResult,
-          );
           outputCells.push(
             NotebookCellOutputItem.json(
               sqlResult,
@@ -457,6 +446,11 @@ export class DatapilotNotebookController implements Disposable {
             ),
           );
           execution.appendOutput(new NotebookCellOutput(outputCells));
+          // TODO: fix this - not working to auto suggest cell id
+          await notebookClient.storeDataInKernel(
+            cell.metadata.cellId,
+            sqlResult,
+          );
           break;
 
         default:

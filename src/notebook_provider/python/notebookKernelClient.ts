@@ -195,10 +195,19 @@ export class NotebookKernelClient implements Disposable {
   }
 
   async storeDataInKernel(cellId: string, data: any) {
-    this.dbtTerminal.log(`storeDataInKernel: ${cellId}`, data);
-    return this.python.lock<{ mime: string; value: string }[]>(
-      (python) => python`notebook_kernel.store_sql_result(${cellId}, ${data})`,
-    );
+    try {
+      this.dbtTerminal.log(`storeDataInKernel: ${cellId}`, data);
+      this.python.lock<{ mime: string; value: string }[]>(
+        (python) =>
+          python`notebook_kernel.store_sql_result(${cellId}, ${data})`,
+      );
+    } catch (error) {
+      this.dbtTerminal.error(
+        TelemetryEvents["Notebook/StoreDataInKernelError"],
+        (error as PythonException).exception.message,
+        error,
+      );
+    }
   }
 
   async registerCommTarget(payload: string) {

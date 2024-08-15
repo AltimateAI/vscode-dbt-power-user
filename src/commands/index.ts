@@ -47,6 +47,10 @@ import { SQLLineagePanel } from "../webview_provider/sqlLineagePanel";
 import { QueryManifestService } from "../services/queryManifestService";
 import { AltimateRequest } from "../altimate";
 import { DatapilotNotebookController } from "../notebook_provider/controller";
+import {
+  NotebookSchema,
+  OpenNotebookRequest,
+} from "../notebook_provider/types";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -563,10 +567,8 @@ export class VSCodeCommands implements Disposable {
         }
       }),
       commands.registerCommand(
-        "dbtPowerUser.createDatapilotlNotebook",
-        async (
-          args: { notebookId?: string; fileName?: string } | undefined,
-        ) => {
+        "dbtPowerUser.createDatapilotNotebook",
+        async (args: OpenNotebookRequest | undefined) => {
           this.notebookController.createNotebook(args);
         },
       ),

@@ -10,6 +10,7 @@ import { RateLimitException, ExecutionsExhaustedException } from "./exceptions";
 import { DBTProject } from "./manifest/dbtProject";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
+import { NotebookItem, NotebookSchema } from "./notebook_provider/types";
 
 export class NoCredentialsError extends Error {}
 
@@ -117,6 +118,10 @@ interface DBTProjectHealthConfigResponse {
 
 export interface SQLToModelResponse {
   sql: string;
+}
+
+interface NotebooksResponse {
+  notebooks: NotebookItem[];
 }
 
 interface OnewayFeedback {
@@ -916,5 +921,58 @@ export class AltimateRequest {
       method: "POST",
       body: JSON.stringify(req),
     });
+  }
+
+  async getNotebooks() {
+    // return this.fetch<NotebooksResponse>("dbt/v3/notebooks", {
+    //   method: "GET",
+    // });
+    // TODO integrate with new API
+    return {
+      notebooks: [
+        {
+          name: "Profile your query",
+          description: "Notebook to profile your query",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          id: "1",
+          notebookData: {
+            cells: [
+              {
+                cell_type: "code",
+                source: [],
+                languageId: "jinja-sql",
+                metadata: { cellId: "jinja_sql_cu6pt" },
+              },
+              {
+                cell_type: "code",
+                source: [
+                  "import pandas as pd",
+                  "from IPython.display import display, HTML",
+                  "from ydata_profiling import ProfileReport",
+                  "from io import StringIO",
+                  "",
+                  "# Extract the data field",
+                  "data = jinja_sql_cu6pt['data']",
+                  "",
+                  "# Create a DataFrame",
+                  "df = pd.DataFrame(data)",
+                  "",
+                  "# Display the DataFrame",
+                  "# display(HTML(df.to_html()))",
+                  "",
+                  'profile = ProfileReport(df, title="Profiling Report")',
+                  "profile.to_notebook_iframe()",
+                ],
+                languageId: "python",
+                metadata: {},
+              },
+            ],
+            metadata: {},
+          },
+          tags: ["profile"],
+        },
+      ],
+    } as NotebooksResponse;
   }
 }
