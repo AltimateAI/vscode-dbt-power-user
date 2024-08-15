@@ -371,28 +371,6 @@ export class DBTProject implements Disposable {
       );
       await this.dbtProjectIntegration.refreshProjectConfig();
       this.projectConfigDiagnostics.clear();
-      const event = new ProjectConfigChangedEvent(this);
-      this._onProjectConfigChanged.fire(event);
-      this.terminal.debug(
-        "DBTProject",
-        `firing ProjectConfigChanged event for the project "${this.getProjectName()}" at ${
-          this.projectRoot
-        } configuration`,
-        "targetPaths",
-        this.getTargetPath(),
-        "modelPaths",
-        this.getModelPaths(),
-        "seedPaths",
-        this.getSeedPaths(),
-        "macroPaths",
-        this.getMacroPaths(),
-        "packagesInstallPath",
-        this.getPackageInstallPath(),
-        "version",
-        this.getDBTVersion(),
-        "adapterType",
-        this.getAdapterType(),
-      );
     } catch (error) {
       if (error instanceof YAMLError) {
         this.projectConfigDiagnostics.set(
@@ -423,6 +401,56 @@ export class DBTProject implements Disposable {
         error,
       );
       this.telemetry.sendTelemetryError("projectConfigRefreshError", error);
+    }
+    const sourcePaths = this.getModelPaths();
+    if (sourcePaths === undefined) {
+      this.terminal.debug(
+        "DBTProject",
+        "sourcePaths is not defined in project in " + this.projectRoot.fsPath,
+      );
+    }
+    const macroPaths = this.getMacroPaths();
+    if (macroPaths === undefined) {
+      this.terminal.debug(
+        "DBTProject",
+        "macroPaths is not defined in " + this.projectRoot.fsPath,
+      );
+    }
+    const seedPaths = this.getSeedPaths();
+    if (seedPaths === undefined) {
+      this.terminal.debug(
+        "DBTProject",
+        "macroPaths is not defined in " + this.projectRoot.fsPath,
+      );
+    }
+    if (sourcePaths && macroPaths && seedPaths) {
+      const event = new ProjectConfigChangedEvent(this);
+      this._onProjectConfigChanged.fire(event);
+      this.terminal.debug(
+        "DBTProject",
+        `firing ProjectConfigChanged event for the project "${this.getProjectName()}" at ${
+          this.projectRoot
+        } configuration`,
+        "targetPaths",
+        this.getTargetPath(),
+        "modelPaths",
+        this.getModelPaths(),
+        "seedPaths",
+        this.getSeedPaths(),
+        "macroPaths",
+        this.getMacroPaths(),
+        "packagesInstallPath",
+        this.getPackageInstallPath(),
+        "version",
+        this.getDBTVersion(),
+        "adapterType",
+        this.getAdapterType(),
+      );
+    } else {
+      this.terminal.warn(
+        "DBTProject",
+        "Could not send out ProjectConfigChangedEvent because project is not initialized properly. dbt path settings cannot be determined",
+      );
     }
   }
 
