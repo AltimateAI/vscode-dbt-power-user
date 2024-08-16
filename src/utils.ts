@@ -1,6 +1,3 @@
-import { Kernel, KernelMessage, ServerConnection } from "@jupyterlab/services";
-import { KernelConnection } from "@jupyterlab/services/lib/kernel/default";
-import { exec } from "child_process";
 import { fluentProvide } from "inversify-binding-decorators";
 import * as path from "path";
 import {
@@ -18,11 +15,7 @@ import {
   TestMetadataAcceptedValues,
   TestMetadataRelationships,
 } from "./domain";
-import { PythonBridge } from "python-bridge";
 
-const clientId = "vscode-jupyter";
-const userName = "vscode-jupyter";
-const model = "vscode-jupyter";
 export const isEnclosedWithinCodeBlock = (
   document: TextDocument,
   rangeOrPosition: Range | Position,
