@@ -8,9 +8,10 @@ import {
   FileType,
   FileChangeType,
   Event,
-  NotebookCellKind,
   window,
   NotebookDocument,
+  workspace,
+  commands,
 } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
@@ -56,7 +57,7 @@ export class NotebookFileSystemProvider implements FileSystemProvider {
   }
 
   readFile(uri: Uri): Uint8Array {
-    const filename = path.basename(uri.fsPath, DatapilotNotebookExtension);
+    const filename = this.getFileNameFromUri(uri);
     const notebooksData =
       this.dbtProjectContainer.getFromGlobalState("notebooks") || {};
     const data = notebooksData[filename];
@@ -69,7 +70,7 @@ export class NotebookFileSystemProvider implements FileSystemProvider {
     options: { create: boolean; overwrite: boolean },
   ): Promise<void> {
     // Save data to your database
-    this.customSave(uri, content);
+    await this.customSave(uri, content);
 
     // Notify that the file has changed
     this._emitter.fire([{ type: FileChangeType.Changed, uri }]);
@@ -80,7 +81,14 @@ export class NotebookFileSystemProvider implements FileSystemProvider {
   }
 
   rename(oldUri: Uri, newUri: Uri, options: { overwrite: boolean }): void {
-    // Implement rename in your database if needed
+    this._emitter.fire([
+      { type: FileChangeType.Deleted, uri: oldUri },
+      { type: FileChangeType.Created, uri: newUri },
+    ]);
+  }
+
+  private getFileNameFromUri(uri: Uri) {
+    return path.basename(uri.fsPath, DatapilotNotebookExtension);
   }
 
   private async customSave(uri: Uri, content: Uint8Array) {
@@ -102,13 +110,23 @@ export class NotebookFileSystemProvider implements FileSystemProvider {
         return;
       }
       // save new file
-      window.showInputBox({ prompt: "Your notebook name?" }).then((name) => {
-        if (!name) {
-          return;
-        }
-        this.saveNotebook(notebook, name);
-        window.showInformationMessage("Notebook saved successfully");
-      });
+      const name = await window.showInputBox({ prompt: "Your notebook name?" });
+      if (!name) {
+        return;
+      }
+      this.saveNotebook(notebook, name);
+      // Open a new document with new name and close the untitled
+      const oldFileName = this.getFileNameFromUri(uri);
+      const newUri = uri.with({ path: uri.path.replace(oldFileName, name) });
+      await commands.executeCommand(
+        "workbench.action.revertAndCloseActiveEditor",
+      );
+
+      await window.showNotebookDocument(
+        await workspace.openNotebookDocument(newUri),
+      );
+
+      window.showInformationMessage("Notebook saved successfully");
     } catch (e) {
       this.dbtTerminal.error(
         TelemetryEvents["Notebook/SaveError"],
@@ -128,5 +146,6 @@ export class NotebookFileSystemProvider implements FileSystemProvider {
       [name]: output,
     });
     this.dbtTerminal.log("notebook saved", name, output);
+    return output;
   }
 }
