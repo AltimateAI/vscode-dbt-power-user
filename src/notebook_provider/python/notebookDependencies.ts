@@ -68,7 +68,7 @@ export class NotebookDependencies {
         );
         return false;
       }
-      await window.withProgress(
+      const isInstalled = await window.withProgress(
         {
           title: `Installing required dependencies...`,
           location: ProgressLocation.Notification,
@@ -107,13 +107,6 @@ export class NotebookDependencies {
             this.telemetry.sendTelemetryEvent(
               TelemetryEvents["Notebook/DependenciesInstalled"],
             );
-            const result = await window.showInformationMessage(
-              "Notebook dependencies installed. Please reload the window to use the notebook.",
-              "Reload Window",
-            );
-            if (result === "Reload Window") {
-              commands.executeCommand("workbench.action.reloadWindow");
-            }
             return true;
           } catch (err) {
             this.telemetry.sendTelemetryError(
@@ -127,6 +120,15 @@ export class NotebookDependencies {
           }
         },
       );
+      if (isInstalled) {
+        const result = await window.showInformationMessage(
+          "Notebook dependencies installed. Please reload the window to use the notebook.",
+          "Reload Window",
+        );
+        if (result === "Reload Window") {
+          commands.executeCommand("workbench.action.reloadWindow");
+        }
+      }
     } catch (exc) {
       this.dbtTerminal.error(
         TelemetryEvents["Notebook/DependenciesInstallError"],
