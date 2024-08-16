@@ -77,7 +77,7 @@ function makeClickEvent(
     return;
   }
 
-  if (td.offsetWidth < 14 * metadata.value.length) {
+  if (td.offsetWidth < 11 * metadata.value.length) {
     td.style.cursor = "pointer";
     appendImage(td);
     // else if string is greater than 20, add click event to view full string
