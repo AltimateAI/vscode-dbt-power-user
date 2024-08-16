@@ -5,6 +5,7 @@ import DeferToProduction from "../defer/DeferToProduction";
 import ProjectHealthChecker from "../healthCheck/ProjectHealthChecker";
 import classes from "./insights.module.scss";
 import HelpButton from "./components/help/HelpButton";
+import NotebooksList from "@modules/notebooks/NotebooksList";
 
 const Insights = (): JSX.Element => (
   <Container className={classes.insightsContainer}>
@@ -27,6 +28,10 @@ const Insights = (): JSX.Element => (
           {
             label: "Project Governance",
             component: <ProjectHealthChecker />,
+          },
+          {
+            label: "Notebooks",
+            component: <NotebooksList />,
           },
         ]}
       />

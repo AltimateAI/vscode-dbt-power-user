@@ -581,6 +581,13 @@ export class InsightsPanel extends AltimateWebviewProvider {
     const { command, syncRequestId, ...params } = message;
 
     switch (command) {
+      case "getNotebooks":
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId: message.syncRequestId,
+          data: this.dbtProjectContainer.getFromGlobalState("notebooks"),
+        });
+        break;
       case "selectDirectoryForManifest":
         this.selectDirectoryForManifest(syncRequestId);
         break;

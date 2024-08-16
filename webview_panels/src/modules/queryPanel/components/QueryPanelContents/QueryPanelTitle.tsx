@@ -55,18 +55,6 @@ const QueryPanelTitle = ({
               </NavLink>
             </NewFeatureIndicator>
           </NavItem>
-          <NavItem>
-            <NewFeatureIndicator featureKey="query-results-notebooks-tab-clicked">
-              <NavLink
-                active={QueryPanelTitleTabState.Notebooks === tabState}
-                onClick={() =>
-                  toggleTabState(QueryPanelTitleTabState.Notebooks)
-                }
-              >
-                Notebooks
-              </NavLink>
-            </NewFeatureIndicator>
-          </NavItem>
         </>
       ) : null,
     [queryBookmarksEnabled, tabState, viewType],

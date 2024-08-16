@@ -6,7 +6,7 @@ interface Notebook {
   data: string;
 }
 
-const QueryPanelNotebooks = (): JSX.Element => {
+const NotebooksList = (): JSX.Element => {
   const [notebooks, setNotebooks] = useState<
     Record<string, Notebook> | undefined
   >();
@@ -37,4 +37,4 @@ const QueryPanelNotebooks = (): JSX.Element => {
   );
 };
 
-export default QueryPanelNotebooks;
+export default NotebooksList;

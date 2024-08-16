@@ -8,7 +8,6 @@ import PreTag from "@modules/markdown/PreTag";
 import { QueryPanelTitleTabState } from "./types";
 import QueryPanelHistory from "../queryPanelQueryHistory/QueryPanelHistory";
 import QueryPanelBookmarks from "../queryPanelBookmarks/QueryPanelBookmarks";
-import QueryPanelNotebooks from "../queryPanelNotebooks/QueryPanelNotebooks";
 
 const QueryPanelContent = ({
   tabState,
@@ -24,10 +23,6 @@ const QueryPanelContent = ({
 
   if (QueryPanelTitleTabState.QueryHistory === tabState) {
     return <QueryPanelHistory />;
-  }
-
-  if (QueryPanelTitleTabState.Notebooks === tabState) {
-    return <QueryPanelNotebooks />;
   }
 
   if (QueryPanelTitleTabState.Sql === tabState && compiledCodeMarkup) {
