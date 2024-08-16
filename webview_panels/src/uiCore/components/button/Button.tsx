@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, ReactNode } from "react";
 import { Button as ReactStrapButton, ButtonProps } from "reactstrap";
 import Tooltip from "../tooltip/Tooltip";
 
 interface CustomButtonProps extends ButtonProps {
   icon?: React.ReactNode;
+  children?: ReactNode;
 }
 
 export const Button = ({
@@ -23,6 +24,9 @@ export const Button = ({
     }
   };
 
+  const isString = (value: ReactNode): value is string =>
+    typeof value === "string";
+
   return (
     <Tooltip title={restProps.title}>
       <ReactStrapButton
@@ -30,7 +34,12 @@ export const Button = ({
         onMouseEnter={() => mouseHoverAction(true)}
         onMouseLeave={() => mouseHoverAction(false)}
       >
-        {icon && icon} {showButtonText && children}
+        {icon && icon}{" "}
+        {children && (
+          <span id={isString(children) ? children : undefined}>
+            {showButtonText && children}
+          </span>
+        )}
       </ReactStrapButton>
     </Tooltip>
   );
