@@ -4,12 +4,15 @@ regular-table {
     max-width: 200px;
     overflow: hidden;
     text-overflow: ellipsis;
+    padding-right: 20px !important;
     user-select: text;
     cursor: text;
 
     .open-icon {
       margin-left: 5px;
       color: var(--text-active);
+      position: absolute;
+      right: 5px;
 
       svg {
         margin-bottom: -2.5px;
