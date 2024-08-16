@@ -7,8 +7,9 @@ import {
   Disposable,
 } from "vscode";
 import { provideSingleton } from "../utils";
-import { NotebookSchema, NotebookCellSchema } from "./types";
+import { NotebookSchema } from "./types";
 import { DefaultNotebookCellLanguage } from "./constants";
+import { serializeNotebookData } from "./utils";
 
 @provideSingleton(DatapilotNotebookSerializer)
 export class DatapilotNotebookSerializer
@@ -57,19 +58,8 @@ export class DatapilotNotebookSerializer
     data: NotebookData,
     _token: CancellationToken,
   ): Promise<Uint8Array> {
-    const contents: NotebookCellSchema[] = [];
+    const output = serializeNotebookData(data);
 
-    for (const cell of data.cells) {
-      contents.push({
-        cell_type: cell.kind === NotebookCellKind.Code ? "code" : "markdown",
-        source: cell.value.split(/\r?\n/g),
-        languageId: cell.languageId,
-        metadata: cell.metadata,
-      });
-    }
-
-    return new TextEncoder().encode(
-      JSON.stringify({ cells: contents, metadata: data.metadata }),
-    );
+    return new TextEncoder().encode(JSON.stringify(output));
   }
 }

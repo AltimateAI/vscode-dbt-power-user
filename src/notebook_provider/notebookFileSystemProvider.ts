@@ -15,10 +15,10 @@ import {
 import { provideSingleton } from "../utils";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { TelemetryEvents } from "../telemetry/events";
-import { NotebookCellSchema, NotebookSchema } from "./types";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import path = require("path");
 import { DatapilotNotebookExtension } from "./constants";
+import { serializeNotebookData } from "./utils";
 
 @provideSingleton(NotebookFileSystemProvider)
 export class NotebookFileSystemProvider implements FileSystemProvider {
@@ -119,27 +119,7 @@ export class NotebookFileSystemProvider implements FileSystemProvider {
   }
 
   private saveNotebook(notebook: NotebookDocument, name: string) {
-    const data = notebook.getCells();
-    const contents: NotebookCellSchema[] = [];
-
-    for (const cell of data) {
-      contents.push({
-        cell_type: cell.kind === NotebookCellKind.Code ? "code" : "markdown",
-        source: cell.document.getText().split(/\r?\n/g),
-        languageId: cell.document.languageId,
-        metadata: cell.metadata,
-      });
-    }
-
-    const output = {
-      cells: contents,
-      metadata: {
-        ...notebook.metadata,
-        name,
-        createdAt: notebook.metadata.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    } as NotebookSchema;
+    const output = serializeNotebookData(notebook, name);
     this.dbtTerminal.log("saving notebook", name, output);
     const currentValues =
       this.dbtProjectContainer.getFromGlobalState("notebooks") || {};
