@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.44.1",
+  "version": "0.45.1",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -46,19 +46,19 @@
     "notebookPreload": [
       {
         "type": "datapilot-notebook",
-        "entrypoint": "./webview_panels/src/notebook/ipywidgetsKernel/preload.js"
+        "entrypoint": "./webview_panels/dist/assets/notebook/ipywidgetsKernel/preload.js"
       },
       {
         "type": "datapilot-notebook",
-        "entrypoint": "./webview_panels/src/notebook/ipywidgetsKernel/ipywidgets8.js"
+        "entrypoint": "./webview_panels/dist/assets/notebook/ipywidgetsKernel/ipywidgets8.js"
       },
       {
         "type": "datapilot-notebook",
-        "entrypoint": "./webview_panels/src/notebook/ipywidgetsKernel/ipywidgets7.js"
+        "entrypoint": "./webview_panels/dist/assets/notebook/ipywidgetsKernel/ipywidgets7.js"
       },
       {
         "type": "datapilot-notebook",
-        "entrypoint": "./webview_panels/src/notebook/ipywidgetsKernel/ipywidgetsKernel.js"
+        "entrypoint": "./webview_panels/dist/assets/notebook/ipywidgetsKernel/ipywidgetsKernel.js"
       }
     ],
     "notebookRenderer": [
@@ -73,7 +73,7 @@
       {
         "id": "datapilot-notebook-jupyter-renderer",
         "displayName": "Jupyter widgets Notebook Renderer",
-        "entrypoint": "./webview_panels/src/notebook/ipywidgetsRenderer/ipywidgetsRenderer.js",
+        "entrypoint": "./webview_panels/dist/assets/notebook/ipywidgetsRenderer/ipywidgetsRenderer.js",
         "mimeTypes": [
           "application/vnd.jupyter.widget-view+json"
         ],

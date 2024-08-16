@@ -1,4 +1,3 @@
-import cssInjectedByJsPlugin from "vite-plugin-css-injected-by-js";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import svgr from "vite-plugin-svgr";
@@ -10,20 +9,6 @@ export default defineConfig({
   plugins: [
     svgr(),
     react(),
-    cssInjectedByJsPlugin({
-      //   cssAssetsFilterFunction: (outputAsset) => {
-      //     console.log("outputAsset.fileName", outputAsset.fileName)
-      //     return outputAsset.fileName !== 'assets/style.css';
-      // }
-      jsAssetsFilterFunction: function customJsAssetsfilterFunction(
-        outputChunk,
-      ) {
-        return (
-          outputChunk.fileName == "assets/renderer.js" ||
-          outputChunk.fileName == "assets/main.js"
-        );
-      },
-    }),
     {
       name: "copy-codicons",
       renderStart: () => {
@@ -32,41 +17,17 @@ export default defineConfig({
           "./dist/assets/codicons/",
           { recursive: true },
         );
-        cpSync(
-          "./src/notebook/ipywidgetsRenderer/ipywidgetsRenderer.js",
-          "./dist/assets/notebook/ipywidgetsRenderer/ipywidgetsRenderer.js",
-          { recursive: true },
-        );
-        cpSync(
-          "./src/notebook/ipywidgetsKernel/ipywidgetsKernel.js",
-          "./dist/assets/ipywidgetsKernel.js",
-          { recursive: true },
-        );
       },
     },
   ],
-  define: {
-    "process.env": {},
-  },
   build: {
-    lib: {
-      entry: { main: "./src/main.tsx", renderer: "./src/notebook/index.tsx" },
-      // exports: "named", // Use named exports
-      formats: ["es"],
-      // fileName: `assets/renderer.js`,
-      // name: "NotebookRenderer", // Name of the library
-    },
-    // minify: false,
-    commonjsOptions: {},
-
     rollupOptions: {
-      // input: "./src/main.tsx",
+      input: "./src/main.tsx",
       output: {
         entryFileNames: `assets/[name].js`,
         chunkFileNames: `assets/[name].js`,
         assetFileNames: `assets/[name].[ext]`,
       },
-      external: ["vscode"],
     },
   },
   resolve: {

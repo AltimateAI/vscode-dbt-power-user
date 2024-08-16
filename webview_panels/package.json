@@ -11,7 +11,7 @@
   "scripts": {
     "dev": "vite",
     "watch": "rm -Rf ./dist; tsc && vite build --watch",
-    "build": "rm -Rf ./dist; tsc && vite build",
+    "build": "rm -Rf ./dist; tsc && vite build && vite build --config vite.config.renderer.ts --emptyOutDir=false",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 7",
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006",
