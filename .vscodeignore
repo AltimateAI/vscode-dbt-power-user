@@ -3,6 +3,7 @@
 out/**
 src/**
 **/node_modules
+!dist/node_modules/**
 .gitignore
 vsc-extension-quickstart.md
 **/tsconfig.json

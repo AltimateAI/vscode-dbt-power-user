@@ -6,6 +6,7 @@ const WebpackShellPluginNext = require("webpack-shell-plugin-next");
 const TerserPlugin = require("terser-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 const path = require("path");
+const { cpSync } = require("fs");
 
 /**@type {import('webpack').Configuration}*/
 const config = {
@@ -83,11 +84,43 @@ const config = {
       ],
     }),
     new WebpackShellPluginNext({
-      onBuildEnd: {
+      onBuildStart: {
         scripts: [
-          "echo  'copying zeromq modules'",
-          "mkdir -p ./dist/node_modules/zeromq && cp -Rf ./node_modules/zeromq ./dist/node_modules/zeromq",
-          "mkdir -p ./dist/node_modules/zeromqold && cp -Rf ./node_modules/zeromqold ./dist/node_modules/zeromqold",
+          () => {
+            console.log("copying zeromq module");
+            cpSync("./node_modules/zeromq", "./dist/node_modules/zeromq", {
+              recursive: true,
+            });
+            cpSync(
+              "./node_modules/zeromqold",
+              "./dist/node_modules/zeromqold",
+              {
+                recursive: true,
+              },
+            );
+            cpSync(
+              "./node_modules/zeromqold",
+              "./dist/node_modules/zeromqold",
+              {
+                recursive: true,
+              },
+            );
+            cpSync(
+              "./node_modules/@aminya/node-gyp-build",
+              "./dist/node_modules/@aminya/node-gyp-build",
+              {
+                recursive: true,
+              },
+            );
+            cpSync(
+              "./node_modules/node-gyp-build",
+              "./dist/node_modules/node-gyp-build",
+              {
+                recursive: true,
+              },
+            );
+            console.log("copied zeromq module");
+          },
         ],
         blocking: true,
         parallel: false,
@@ -120,7 +153,7 @@ const rendererConfig = {
   target: ["web", "es5"],
   externals: {
     vscode: "commonjs vscode",
-    zeromq: "zeromq"
+    zeromq: "zeromq",
   },
   entry: "./webview_panels/src/notebook/index.tsx",
   output: {

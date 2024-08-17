@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.45.1",
+  "version": "0.45.2",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -1285,8 +1285,7 @@
   },
   "extensionDependencies": [
     "samuelcolvin.jinjahtml",
-    "ms-python.python",
-    "ms-toolsai.jupyter"
+    "ms-python.python"
   ],
   "dependencies": {
     "@finos/perspective": "^2.10.0",
@@ -1329,7 +1328,7 @@
     "ws": "^8.18.0",
     "yaml": "^2.5.0",
     "zeromq": "^6.0.0-beta.16",
-    "zeromqold": "npm:zeromq@^6.0.0-beta.6"
+    "zeromqold": "npm:zeromq@6.0.0-beta.6"
   },
   "lint-staged": {
     "**/webview_panels/**/*.{ts,tsx}": [

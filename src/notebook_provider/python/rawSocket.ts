@@ -1,20 +1,22 @@
 import * as wireProtocol from "@nteract/messaging/lib/wire-protocol";
 import { randomUUID } from "crypto";
 import path = require("path");
-const zeromq = require("zeromq");
 
 function noop() {}
 
-export const EXTENSION_ROOT_DIR = path.join(__dirname, "..");
+export const EXTENSION_ROOT_DIR = path.join(__dirname, ".");
 
 export function getZeroMQ(): typeof import("zeromq") {
   try {
-    // const zmq: typeof import("zeromq") = require(zeromqModuleName);
+    console.log("Trying to load zmq");
+    const zmq: typeof import("zeromq") = require("zeromq");
     // We do not want to block the process from exiting if there are any pending messages.
-    zeromq.context.blocky = false;
-    return zeromq;
+    zmq.context.blocky = false;
+    console.info("ZMQ loaded.");
+    return zmq;
   } catch (e) {
     try {
+      console.log("Trying to load zeromqold");
       // TODO check from jupyter code
       const zmq = require(
         path.join(EXTENSION_ROOT_DIR, "node_modules", "zeromqold"),
