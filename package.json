@@ -1232,10 +1232,11 @@
     ]
   },
   "scripts": {
+    "generate-dts": "dts-bundle-generator -o out/modules.d.ts src/modules.ts",
     "postinstall": "node postinstall.js",
     "prepare": "husky install",
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production",
-    "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
+    "webpack": "webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "watch": "concurrently \"npm:watch --prefix ./new_lineage_panel\" \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",
@@ -1262,6 +1263,7 @@
     "concurrently": "^8.2.2",
     "copy-webpack-plugin": "^11.0.0",
     "cross-env": "^7.0.3",
+    "dts-bundle-generator": "^9.5.1",
     "esbuild-loader": "^4.2.2",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^8.9.0",

@@ -39,8 +39,7 @@ import { AltimateRequest } from "./altimate";
 import { ValidationProvider } from "./validation_provider";
 import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
-import { NotebookKernelClient } from "./notebook_provider/python/notebookKernelClient";
-import { NotebookDependencies } from "./notebook_provider/python/notebookDependencies";
+import { NotebookKernelClient, NotebookDependencies } from "./lib/main";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -190,7 +189,6 @@ container
         container.get(DBTCommandExecutionInfrastructure),
         container.get(NotebookDependencies),
         container.get(DBTTerminal),
-        container.get(TelemetryService),
       );
     };
   });

@@ -11,7 +11,7 @@ import {
 import { provideSingleton } from "../utils";
 import { QueryManifestService } from "../services/queryManifestService";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { NotebookService } from "../notebook_provider/service";
+import { NotebookService } from "../lib/main";
 
 @provideSingleton(VirtualSqlCodeLensProvider)
 export class VirtualSqlCodeLensProvider

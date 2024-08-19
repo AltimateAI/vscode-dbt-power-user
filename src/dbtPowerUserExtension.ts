@@ -21,7 +21,7 @@ import { HoverProviders } from "./hover_provider";
 import { DbtPowerUserActionsCenter } from "./quickpick";
 import { ValidationProvider } from "./validation_provider";
 import { CommentProviders } from "./comment_provider";
-import { NotebookProviders } from "./notebook_provider";
+import { NotebookProviders } from "./lib/main";
 
 enum PromptAnswer {
   YES = "Yes",
