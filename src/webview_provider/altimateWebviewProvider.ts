@@ -222,6 +222,18 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     try {
       switch (command) {
+        case "configEnabled":
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            () => {
+              return workspace
+                .getConfiguration(params.section as string)
+                .get(params.config as string);
+            },
+            command,
+            true,
+          );
+          break;
         case "openNewNotebook":
           commands.executeCommand(
             "dbtPowerUser.createDatapilotNotebook",

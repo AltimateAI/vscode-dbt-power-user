@@ -90,39 +90,43 @@ const config = {
       onBuildStart: {
         scripts: [
           () => {
-            console.log("copying zeromq module");
-            cpSync("./node_modules/zeromq", "./dist/node_modules/zeromq", {
-              recursive: true,
-            });
-            cpSync(
-              "./node_modules/zeromqold",
-              "./dist/node_modules/zeromqold",
-              {
+            try {
+              console.log("copying zeromq module");
+              cpSync("./node_modules/zeromq", "./dist/node_modules/zeromq", {
                 recursive: true,
-              },
-            );
-            cpSync(
-              "./node_modules/zeromqold",
-              "./dist/node_modules/zeromqold",
-              {
-                recursive: true,
-              },
-            );
-            cpSync(
-              "./node_modules/@aminya/node-gyp-build",
-              "./dist/node_modules/@aminya/node-gyp-build",
-              {
-                recursive: true,
-              },
-            );
-            cpSync(
-              "./node_modules/node-gyp-build",
-              "./dist/node_modules/node-gyp-build",
-              {
-                recursive: true,
-              },
-            );
-            console.log("copied zeromq module");
+              });
+              cpSync(
+                "./node_modules/zeromqold",
+                "./dist/node_modules/zeromqold",
+                {
+                  recursive: true,
+                },
+              );
+              cpSync(
+                "./node_modules/zeromqold",
+                "./dist/node_modules/zeromqold",
+                {
+                  recursive: true,
+                },
+              );
+              cpSync(
+                "./node_modules/@aminya/node-gyp-build",
+                "./dist/node_modules/@aminya/node-gyp-build",
+                {
+                  recursive: true,
+                },
+              );
+              cpSync(
+                "./node_modules/node-gyp-build",
+                "./dist/node_modules/node-gyp-build",
+                {
+                  recursive: true,
+                },
+              );
+              console.log("copied zeromq module");
+            } catch (error) {
+              console.error(error.message);
+            }
           },
         ],
         blocking: true,

@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 const l = require("vscode"),
-  u = require("@extension"),
+  c = require("@extension"),
   Q = require("python-bridge"),
   D = require("path"),
   X = require("fs"),
@@ -22,7 +22,7 @@ function ee(o) {
   }
   return (e.default = o), Object.freeze(e);
 }
-const $ = ee(Z),
+const q = ee(Z),
   te = ["python", "sql", "jinja-sql"],
   re = "jinja-sql",
   H = ".notebook",
@@ -68,7 +68,7 @@ var ae = function (o, e, t, r) {
       (s = o[a]) && (i = (n < 3 ? s(i) : n > 3 ? s(e, t, i) : s(e, t)) || i);
   return n > 3 && i && Object.defineProperty(e, t, i), i;
 };
-let S = class {
+let T = class {
   dispose() {
     throw new Error("Method not implemented.");
   }
@@ -85,12 +85,12 @@ let S = class {
       };
     }
     const i = n.cells.map((a) => {
-        var c;
+        var u;
         return new l.NotebookCellData(
           l.NotebookCellKind.Code,
-          (c = a.source) == null
+          (u = a.source) == null
             ? void 0
-            : c.join(`
+            : u.join(`
 `),
           a.languageId,
         );
@@ -103,7 +103,7 @@ let S = class {
     return new TextEncoder().encode(JSON.stringify(r));
   }
 };
-S = ae([u.provideSingleton(S)], S);
+T = ae([c.provideSingleton(T)], T);
 var y;
 (function (o) {
   (o.error = "application/vnd.code.notebook.error"),
@@ -111,7 +111,7 @@ var y;
     (o.stdout = "application/vnd.code.notebook.stdout");
 })(y || (y = {}));
 const se = ["text/plain", "text/markdown", y.stderr, y.stdout],
-  q = [
+  $ = [
     "application/vnd.*",
     "application/vdom.*",
     "application/geo+json",
@@ -172,8 +172,8 @@ function le(o) {
     const r = (s, a) => (
       s.endsWith(".*") && (s = s.substr(0, s.indexOf(".*"))), a.startsWith(s)
     );
-    let n = q.findIndex((s) => r(s, e.mime)),
-      i = q.findIndex((s) => r(s, t.mime));
+    let n = $.findIndex((s) => r(s, e.mime)),
+      i = $.findIndex((s) => r(s, t.mime));
     return (
       z(e) && (n = -1),
       z(t) && (i = -1),
@@ -269,7 +269,7 @@ function N(o) {
   if (o.parent_header && "msg_id" in o.parent_header)
     return o.parent_header.msg_id;
 }
-function fe(o) {
+function be(o) {
   if (o.hasOwnProperty("text/html")) {
     const e = o["text/html"];
     typeof e == "string" &&
@@ -281,7 +281,7 @@ function fe(o) {
   }
   return o;
 }
-const be = "e976ee50-99ed-4aba-9b6b-9dcd5634d07d:IPyWidgets:";
+const fe = "e976ee50-99ed-4aba-9b6b-9dcd5634d07d:IPyWidgets:";
 function A(o) {
   let e = typeof o == "string" ? o : "";
   return (
@@ -290,7 +290,7 @@ function A(o) {
       "code" in o.content &&
       typeof o.content.code == "string" &&
       (e = o.content.code),
-    !e.includes(be)
+    !e.includes(fe)
   );
 }
 function me(o) {
@@ -317,7 +317,7 @@ function ge(o) {
     )
   );
 }
-var E;
+var C;
 (function (o) {
   (o.GeneratedThemeName = "ipython-theme"),
     (o.MatplotLibDefaultParams = "_VSCode_defaultMatplotlib_Params"),
@@ -334,7 +334,7 @@ var E;
     (o.REMOTE_URI_ID_PARAM = "id"),
     (o.REMOTE_URI_HANDLE_PARAM = "uriHandle"),
     (o.REMOTE_URI_EXTENSION_ID_PARAM = "extensionId");
-})(E || (E = {}));
+})(C || (C = {}));
 const w = "application/vnd.jupyter.widget-view+json";
 function _() {}
 class ye {
@@ -443,8 +443,8 @@ function _e(o) {
   i.buffers = [];
   for (let s = 1; s < t; s++) {
     const a = r[s],
-      c = r[s + 1] || o.byteLength;
-    i.buffers.push(new DataView(o.slice(a, c)));
+      u = r[s + 1] || o.byteLength;
+    i.buffers.push(new DataView(o.slice(a, u)));
   }
   return i;
 }
@@ -457,17 +457,17 @@ function ve(o) {
   const i = r.encode(JSON.stringify(o));
   t.push(i.buffer);
   for (let d = 0; d < n.length; d++) {
-    const f = n[d];
-    t.push(ArrayBuffer.isView(f) ? f.buffer : f);
+    const b = n[d];
+    t.push(ArrayBuffer.isView(b) ? b.buffer : b);
   }
   const s = t.length;
   e.push(4 * (s + 1));
   for (let d = 0; d + 1 < t.length; d++)
     e.push(e[e.length - 1] + t[d].byteLength);
   const a = new Uint8Array(e[e.length - 1] + t[t.length - 1].byteLength),
-    c = new DataView(a.buffer);
-  c.setUint32(0, s);
-  for (let d = 0; d < e.length; d++) c.setUint32(4 * (d + 1), e[d]);
+    u = new DataView(a.buffer);
+  u.setUint32(0, s);
+  for (let d = 0; d < e.length; d++) u.setUint32(4 * (d + 1), e[d]);
   for (let d = 0; d < t.length; d++) a.set(new Uint8Array(t[d]), e[d]);
   return a.buffer;
 }
@@ -490,7 +490,7 @@ function Oe(o) {
 }
 function k() {}
 const Pe = D.join(__dirname, ".");
-function Ce() {
+function Ee() {
   try {
     console.log("Trying to load zmq");
     const o = require("zeromq");
@@ -512,7 +512,7 @@ function Ce() {
     }
   }
 }
-function Ee(o, e) {
+function Ce(o, e) {
   const t = o.transport === "tcp" ? ":" : "-",
     r = o[`${e}_port`];
   if (!r) throw new Error(`Port not found for channel "${e}"`);
@@ -571,7 +571,7 @@ function Ne(o) {
     }
   }
 }
-function Se(o, e) {
+function Te(o, e) {
   const t = o.header;
   Me.forEach((r) => {
     typeof t[r] != "string" && (t[r] = "");
@@ -581,7 +581,7 @@ function Se(o, e) {
     o.metadata || (o.metadata = {}),
     o.channel === "iopub" && Ne(o);
 }
-class Te {
+class je {
   constructor(e, t) {
     Object.defineProperty(this, "connection", {
       enumerable: !0,
@@ -714,7 +714,7 @@ class Te {
   generateChannel(e, t, r) {
     const n = r();
     return (
-      n.connect(Ee(e, t)),
+      n.connect(Ce(e, t)),
       this.processSocketMessages(t, n).catch((i) =>
         console.error(`Failed to read messages from channel ${t}`, i),
       ),
@@ -728,7 +728,7 @@ class Te {
     }
   }
   generateChannels(e) {
-    const t = Ce(),
+    const t = Ee(),
       r = P(),
       n = {
         iopub: this.generateChannel(
@@ -776,7 +776,7 @@ class Te {
   onIncomingMessage(e, t) {
     const r = this.closed
       ? {}
-      : $.decode(t, this.connection.key, this.connection.signature_scheme);
+      : q.decode(t, this.connection.key, this.connection.signature_scheme);
     (r.channel = e),
       this.receiveHooks.length
         ? (this.msgChain = this.msgChain
@@ -790,7 +790,7 @@ class Te {
   fireOnMessage(e, t) {
     if (!this.closed)
       try {
-        Se(e, t), this.onmessage({ data: e, type: "message", target: this });
+        Te(e, t), this.onmessage({ data: e, type: "message", target: this });
       } catch (r) {
         console.error(
           `Failed to handle message in Jupyter Kernel package ${JSON.stringify(e)}`,
@@ -799,7 +799,7 @@ class Te {
       }
   }
   sendMessage(e, t) {
-    const r = $.encode(
+    const r = q.encode(
       e,
       this.connection.key,
       this.connection.signature_scheme,
@@ -835,7 +835,7 @@ class Te {
   }
 }
 let W;
-class je {
+class Se {
   get postMessage() {
     return this._postMessageEmitter.event;
   }
@@ -879,14 +879,14 @@ class je {
     const i = require("@jupyterlab/services"),
       s = require("@jupyterlab/services/lib/kernel/serialize");
     let a;
-    class c extends Te {
+    class u extends je {
       constructor() {
         super(e.connection, s.serialize), (a = this);
       }
     }
-    const d = i.ServerConnection.makeSettings({ WebSocket: c, wsUrl: "RAW" });
+    const d = i.ServerConnection.makeSettings({ WebSocket: u, wsUrl: "RAW" });
     W || (W = require("@jupyterlab/services/lib/kernel/nonSerializingKernel"));
-    const f = new W.KernelConnection({
+    const b = new W.KernelConnection({
       serverSettings: d,
       clientId: t,
       handleComms: !0,
@@ -898,7 +898,7 @@ class je {
         (a.emit("open"),
         a.addReceiveHook(this.onKernelSocketMessage.bind(this)),
         a.addSendHook(this.mirrorSend.bind(this))),
-      { realKernel: f, socket: a, kernelProcess: e }
+      { realKernel: b, socket: a, kernelProcess: e }
     );
   }
   async mirrorSend(e, t) {
@@ -933,7 +933,7 @@ class je {
     );
   }
   async onKernelSocketMessage(e) {
-    var i, s, a, c, d, f, m, p, b;
+    var i, s, a, u, d, b, m, p, f;
     const t = P(),
       r = V();
     if (
@@ -949,7 +949,7 @@ class je {
           }),
       typeof e != "string" ||
         e.includes(w) ||
-        e.includes(E.DefaultCommTarget) ||
+        e.includes(C.DefaultCommTarget) ||
         e.includes("comm_open") ||
         e.includes("comm_close") ||
         e.includes("comm_msg"))
@@ -959,26 +959,26 @@ class je {
       h &&
         h.content &&
         h.content.data &&
-        (h.content.data[w] || h.content.target_name === E.DefaultCommTarget) &&
+        (h.content.data[w] || h.content.target_name === C.DefaultCommTarget) &&
         (this.isUsingIPyWidgets = !0);
       const g =
           ((i = h.header) == null ? void 0 : i.msg_type) === "comm_open" &&
-          ((c =
+          ((u =
             (a = (s = h.content) == null ? void 0 : s.data) == null
               ? void 0
               : a.state) == null
             ? void 0
-            : c._model_module) === "@jupyter-widgets/output" &&
+            : u._model_module) === "@jupyter-widgets/output" &&
           ((m =
-            (f = (d = h.content) == null ? void 0 : d.data) == null
+            (b = (d = h.content) == null ? void 0 : d.data) == null
               ? void 0
-              : f.state) == null
+              : b.state) == null
             ? void 0
             : m._model_name) === "OutputModel",
         Y =
           ((p = h.header) == null ? void 0 : p.msg_type) === "comm_close" &&
           this.outputWidgetIds.has(
-            (b = h.content) == null ? void 0 : b.comm_id,
+            (f = h.content) == null ? void 0 : f.comm_id,
           );
       g
         ? this.outputWidgetIds.add(h.content.comm_id)
@@ -1110,7 +1110,7 @@ class v {
         `;
     } catch (e) {
       this.dbtTerminal.error(
-        u.TelemetryEvents["Notebook/KernelCloseError"],
+        c.TelemetryEvents["Notebook/KernelCloseError"],
         e.exception.message,
         e,
       );
@@ -1148,7 +1148,7 @@ class v {
         r = JSON.parse(X.readFileSync(t, { encoding: "utf-8" })),
         n = await this.python.lock((a) => a`notebook_kernel.get_session_id()`),
         i = { connection: r, pid: n },
-        s = new je(i, P(), P(), { name: r.kernel_name, id: P() });
+        s = new Se(i, P(), P(), { name: r.kernel_name, id: P() });
       (this.kernel = s),
         this.disposables.push(
           s.postMessage((a) => this._postMessageEmitter.fire(a)),
@@ -1161,7 +1161,7 @@ class v {
       let r = t.message;
       t instanceof Q.PythonException && (r = t.exception.message),
         this.dbtTerminal.error(
-          u.TelemetryEvents["Notebook/KernelInitializationError"],
+          c.TelemetryEvents["Notebook/KernelInitializationError"],
           r,
           t,
         ),
@@ -1181,7 +1181,7 @@ class v {
         );
     } catch (r) {
       this.dbtTerminal.error(
-        u.TelemetryEvents["Notebook/StoreDataInKernelError"],
+        c.TelemetryEvents["Notebook/StoreDataInKernelError"],
         r.exception.message,
         r,
       );
@@ -1206,10 +1206,10 @@ class v {
   }
   async executePython(e, t, r) {
     return new Promise(async (n, i) => {
-      var f, m;
+      var b, m;
       if (
         !(
-          (m = (f = this.kernel) == null ? void 0 : f.rawKernel) != null &&
+          (m = (b = this.kernel) == null ? void 0 : b.rawKernel) != null &&
           m.realKernel
         )
       ) {
@@ -1223,7 +1223,7 @@ class v {
         "kernel status",
         this.kernel.rawKernel.realKernel.status,
       );
-      const c = await this.kernel.rawKernel.realKernel.requestExecute(
+      const u = await this.kernel.rawKernel.realKernel.requestExecute(
         {
           code: e,
           silent: !1,
@@ -1234,18 +1234,18 @@ class v {
         !1,
         { cellId: t.document.uri.toString() },
       );
-      if (!c) {
+      if (!u) {
         i(new Error("Unknown request error"));
         return;
       }
-      c.onReply = (p) => {
+      u.onReply = (p) => {
         if (t.document.isClosed) {
-          c.dispose();
+          u.dispose();
           return;
         }
-        const b = p.content;
-        b.payload &&
-          b.payload.forEach((h) => {
+        const f = p.content;
+        f.payload &&
+          f.payload.forEach((h) => {
             if (h.data && h.data.hasOwnProperty("text/plain")) {
               const g = this.addToCellData(
                 {
@@ -1253,7 +1253,7 @@ class v {
                   text: h.data["text/plain"].toString(),
                   name: "stdout",
                   metadata: {},
-                  execution_count: b.execution_count,
+                  execution_count: f.execution_count,
                 },
                 p,
                 t,
@@ -1264,21 +1264,21 @@ class v {
       };
       const d = [];
       return (
-        c.done.finally(() => {
-          c.dispose(), n(d.filter((p) => !!p));
+        u.done.finally(() => {
+          u.dispose(), n(d.filter((p) => !!p));
         }),
-        (c.onStdin = (p) => {
+        (u.onStdin = (p) => {
           this.dbtTerminal.log("onStdin", p);
         }),
-        (c.onIOPub = (p) => {
+        (u.onIOPub = (p) => {
           if (a.KernelMessage.isCommOpenMsg(p)) this.handleCommOpen(p);
           else if (a.KernelMessage.isExecuteResultMsg(p))
             d.push(this.handleExecuteResult(p, t));
           else if (a.KernelMessage.isExecuteInputMsg(p))
             this.handleExecuteInput(p);
           else if (a.KernelMessage.isStatusMsg(p)) {
-            const b = p;
-            this.handleStatusMessage(b);
+            const f = p;
+            this.handleStatusMessage(f);
           } else
             a.KernelMessage.isStreamMsg(p)
               ? d.concat(this.handleStreamMessage(p, t))
@@ -1299,7 +1299,7 @@ class v {
                               `Unknown message ${p.header.msg_type} : hasData=${"data" in p.content}`,
                             ));
         }),
-        c
+        u
       );
     });
   }
@@ -1321,7 +1321,7 @@ class v {
     var r;
     this.ownedCommIds.add(e.content.comm_id);
     const t = ((r = e.content.data) == null ? void 0 : r.state) || void 0;
-    e.content.target_name === E.DefaultCommTarget &&
+    e.content.target_name === C.DefaultCommTarget &&
       t &&
       t._model_module === "@jupyter-widgets/output" &&
       this.commIdsMappedToWidgetOutputModels.add(e.content.comm_id);
@@ -1467,7 +1467,7 @@ class v {
   handleDisplayData(e, t) {
     const r = {
       output_type: "display_data",
-      data: fe(e.content.data),
+      data: be(e.content.data),
       metadata: e.content.metadata,
       transient: e.content.transient,
     };
@@ -1559,7 +1559,7 @@ exports.NotebookDependencies = class {
         .createCommandProcessExecution({
           command: this.pythonEnvironment.pythonPath,
           args: e,
-          cwd: u.getFirstWorkspacePath(),
+          cwd: c.getFirstWorkspacePath(),
           envVars: this.pythonEnvironment.environmentVariables,
         })
         .completeWithTerminalOutput();
@@ -1574,8 +1574,8 @@ exports.NotebookDependencies = class {
       i = {};
     return (
       n.forEach((s) => {
-        const [a, c] = s.split(":").map((d) => d.trim());
-        a && c && (i[a] = c);
+        const [a, u] = s.split(":").map((d) => d.trim());
+        a && u && (i[a] = u);
       }),
       i
     );
@@ -1596,7 +1596,7 @@ exports.NotebookDependencies = class {
       )
         return (
           this.telemetry.sendTelemetryEvent(
-            u.TelemetryEvents["Notebook/DependenciesInstallCancelled"],
+            c.TelemetryEvents["Notebook/DependenciesInstallCancelled"],
           ),
           !1
         );
@@ -1622,7 +1622,7 @@ exports.NotebookDependencies = class {
                   .createCommandProcessExecution({
                     command: this.pythonEnvironment.pythonPath,
                     args: r,
-                    cwd: u.getFirstWorkspacePath(),
+                    cwd: c.getFirstWorkspacePath(),
                     envVars: this.pythonEnvironment.environmentVariables,
                   })
                   .completeWithTerminalOutput();
@@ -1637,18 +1637,18 @@ exports.NotebookDependencies = class {
                 "Notebook dependencies have been installed successfully.",
               ),
               this.telemetry.sendTelemetryEvent(
-                u.TelemetryEvents["Notebook/DependenciesInstalled"],
+                c.TelemetryEvents["Notebook/DependenciesInstalled"],
               ),
               !0
             );
           } catch (r) {
             return (
               this.telemetry.sendTelemetryError(
-                u.TelemetryEvents["Notebook/DependenciesInstallError"],
+                c.TelemetryEvents["Notebook/DependenciesInstallError"],
                 r,
               ),
               l.window.showErrorMessage(
-                u.extendErrorWithSupportLinks(r.message),
+                c.extendErrorWithSupportLinks(r.message),
               ),
               !1
             );
@@ -1663,7 +1663,7 @@ exports.NotebookDependencies = class {
     } catch (e) {
       throw (
         (this.dbtTerminal.error(
-          u.TelemetryEvents["Notebook/DependenciesInstallError"],
+          c.TelemetryEvents["Notebook/DependenciesInstallError"],
           e.message,
           e,
         ),
@@ -1677,7 +1677,7 @@ exports.NotebookDependencies = class {
           this.commandProcessExecutionFactory.createCommandProcessExecution({
             command: this.pythonEnvironment.pythonPath,
             args: ["-c", "import jupyter_client"],
-            cwd: u.getFirstWorkspacePath(),
+            cwd: c.getFirstWorkspacePath(),
             envVars: this.pythonEnvironment.environmentVariables,
           }),
         { stderr: t } = await e.complete();
@@ -1690,12 +1690,12 @@ exports.NotebookDependencies = class {
 };
 exports.NotebookDependencies = Ie(
   [
-    u.provideSingleton(exports.NotebookDependencies),
+    c.provideSingleton(exports.NotebookDependencies),
     De("design:paramtypes", [
-      u.DBTTerminal,
-      u.TelemetryService,
-      u.CommandProcessExecutionFactory,
-      u.PythonEnvironment,
+      c.DBTTerminal,
+      c.TelemetryService,
+      c.CommandProcessExecutionFactory,
+      c.PythonEnvironment,
     ]),
   ],
   exports.NotebookDependencies,
@@ -1720,7 +1720,7 @@ var xe = function (o, e, t, r) {
     if (typeof Reflect == "object" && typeof Reflect.metadata == "function")
       return Reflect.metadata(o, e);
   };
-let C = class {
+let E = class {
   constructor(e, t, r) {
     Object.defineProperty(this, "executionInfrastructure", {
       enumerable: !0,
@@ -1770,16 +1770,16 @@ let C = class {
     return this.clientMap.get(e.fsPath);
   }
 };
-C = xe(
+E = xe(
   [
-    u.provideSingleton(C),
+    c.provideSingleton(E),
     Re("design:paramtypes", [
-      u.DBTCommandExecutionInfrastructure,
+      c.DBTCommandExecutionInfrastructure,
       exports.NotebookDependencies,
-      u.DBTTerminal,
+      c.DBTTerminal,
     ]),
   ],
-  C,
+  E,
 );
 var Ae = function (o, e, t, r) {
     var n = arguments.length,
@@ -1801,7 +1801,7 @@ var Ae = function (o, e, t, r) {
     if (typeof Reflect == "object" && typeof Reflect.metadata == "function")
       return Reflect.metadata(o, e);
   };
-let T = class {
+let j = class {
   constructor(e, t) {
     Object.defineProperty(this, "clientMapper", {
       enumerable: !0,
@@ -1904,7 +1904,7 @@ let T = class {
       ).then(_, _);
     } catch (r) {
       this.dbtTerminal.error(
-        u.TelemetryEvents["Notebook/WidgetVersionError"],
+        c.TelemetryEvents["Notebook/WidgetVersionError"],
         r.message,
         r,
       );
@@ -1917,7 +1917,7 @@ let T = class {
     this.disposables.forEach((e) => e.dispose());
   }
 };
-T = Ae([u.provideSingleton(T), We("design:paramtypes", [C, u.DBTTerminal])], T);
+j = Ae([c.provideSingleton(j), We("design:paramtypes", [E, c.DBTTerminal])], j);
 var Ke = function (o, e, t, r) {
     var n = arguments.length,
       i =
@@ -2027,20 +2027,20 @@ exports.DatapilotNotebookController = class {
       (this._controller.supportsExecutionOrder = !0),
       (this._controller.executeHandler = this._executeAll.bind(this)),
       this._controller.onDidReceiveMessage(async (a) => {
-        const c = await this.clientMapper.getNotebookClient(
+        const u = await this.clientMapper.getNotebookClient(
           a.editor.notebook.uri,
         );
         switch (a.message.type) {
           case "IPyWidgets_registerCommTarget":
-            c.registerCommTarget(a.message.payload);
+            u.registerCommTarget(a.message.payload);
             break;
           case "IPyWidgets_Request_Widget_Version":
-            return this.sendIPyWidgetsVersion(c);
+            return this.sendIPyWidgetsVersion(u);
           case "IPyWidgets_Ready":
-            this.sendKernelOptions(c);
+            this.sendKernelOptions(u);
             break;
           case "IPyWidgets_msg_received":
-            c.onKernelSocketResponse(a.message.payload);
+            u.onKernelSocketResponse(a.message.payload);
             break;
           case "IPyWidgets_RegisterMessageHook":
             this.registerMessageHook(a.message.payload);
@@ -2049,11 +2049,11 @@ exports.DatapilotNotebookController = class {
       }),
       this.disposables.push(
         l.workspace.onDidChangeNotebookDocument((a) => {
-          a.contentChanges.forEach(async (c) => {
-            c.addedCells &&
+          a.contentChanges.forEach(async (u) => {
+            u.addedCells &&
               (await this.updateCellId(a.notebook.getCells(), a.notebook)),
-              c.removedCells &&
-                c.removedCells.forEach((d) => {
+              u.removedCells &&
+                u.removedCells.forEach((d) => {
                   this._onNotebookCellEvent.fire({
                     cellId: d.metadata.cellId,
                     notebook: a.notebook.uri.fsPath,
@@ -2111,31 +2111,31 @@ exports.DatapilotNotebookController = class {
       return;
     }
     const a = t || "untitled",
-      c = l.Uri.parse(`${J}:/${a}${H}`);
-    l.workspace.openNotebookDocument(c).then(
+      u = l.Uri.parse(`${J}:/${a}${H}`);
+    l.workspace.openNotebookDocument(u).then(
       (d) => {
         l.window.showNotebookDocument(d).then(
-          async (f) => {
+          async (b) => {
             if (!i) return;
             const m = new l.WorkspaceEdit(),
               p = [];
-            i.cells.forEach((b, h) => {
+            i.cells.forEach((f, h) => {
               const g = new l.NotebookCellData(
-                b.cell_type === "code"
+                f.cell_type === "code"
                   ? l.NotebookCellKind.Code
                   : l.NotebookCellKind.Markup,
-                b.source.join(`
+                f.source.join(`
 `),
-                b.languageId,
+                f.languageId,
               );
-              (g.metadata = b.metadata),
+              (g.metadata = f.metadata),
                 p.push(new l.NotebookEdit(new l.NotebookRange(h, h), [g]));
             }),
-              m.set(f.notebook.uri, p),
+              m.set(b.notebook.uri, p),
               await l.workspace.applyEdit(m);
           },
-          (f) => {
-            l.window.showErrorMessage(f.message);
+          (b) => {
+            l.window.showErrorMessage(b.message);
           },
         );
       },
@@ -2228,11 +2228,11 @@ exports.DatapilotNotebookController = class {
     const n = (i = l.window.activeNotebookEditor) == null ? void 0 : i.notebook;
     if (!n) {
       this.telemetry.sendTelemetryError(
-        `${u.TelemetryEvents["Notebook/Execute"]}Error`,
+        `${c.TelemetryEvents["Notebook/Execute"]}Error`,
         new Error("No active notebook found"),
       ),
         l.window.showErrorMessage(
-          u.extendErrorWithSupportLinks("No active notebook found"),
+          c.extendErrorWithSupportLinks("No active notebook found"),
         );
       return;
     }
@@ -2252,7 +2252,7 @@ exports.DatapilotNotebookController = class {
       switch (e.document.languageId) {
         case "python":
           this.telemetry.startTelemetryEvent(
-            u.TelemetryEvents["Notebook/Execute"],
+            c.TelemetryEvents["Notebook/Execute"],
             { language: e.document.languageId },
           );
           const s = await i.executePython(e.document.getText(), e, (d) => {
@@ -2269,22 +2269,22 @@ exports.DatapilotNotebookController = class {
             return;
           }
           this.telemetry.startTelemetryEvent(
-            u.TelemetryEvents["Notebook/Execute"],
+            c.TelemetryEvents["Notebook/Execute"],
             { language: e.document.languageId },
           );
-          const c = await a.executeSQL(e.document.getText(), "", !0);
+          const u = await a.executeSQL(e.document.getText(), "", !0);
           this._onNotebookCellEvent.fire({
             cellId: e.metadata.cellId,
             notebook: t.uri.fsPath,
-            result: c,
+            result: u,
             event: "add",
             languageId: e.document.languageId,
           }),
             n.push(
-              l.NotebookCellOutputItem.json(c, "application/perspective-json"),
+              l.NotebookCellOutputItem.json(u, "application/perspective-json"),
             ),
             r.appendOutput(new l.NotebookCellOutput(n)),
-            await i.storeDataInKernel(e.metadata.cellId, c);
+            await i.storeDataInKernel(e.metadata.cellId, u);
           break;
         default:
           l.window.showErrorMessage(
@@ -2292,7 +2292,7 @@ exports.DatapilotNotebookController = class {
           );
           break;
       }
-      this.telemetry.endTelemetryEvent(u.TelemetryEvents["Notebook/Execute"], {
+      this.telemetry.endTelemetryEvent(c.TelemetryEvents["Notebook/Execute"], {
         language: e.document.languageId,
       }),
         r.end(!0, Date.now());
@@ -2301,7 +2301,7 @@ exports.DatapilotNotebookController = class {
         new l.NotebookCellOutput([l.NotebookCellOutputItem.error(n)]),
       ]),
         this.telemetry.endTelemetryEvent(
-          u.TelemetryEvents["Notebook/Execute"],
+          c.TelemetryEvents["Notebook/Execute"],
           n,
           { language: e.document.languageId },
         ),
@@ -2311,14 +2311,14 @@ exports.DatapilotNotebookController = class {
 };
 exports.DatapilotNotebookController = Ke(
   [
-    u.provideSingleton(exports.DatapilotNotebookController),
+    c.provideSingleton(exports.DatapilotNotebookController),
     Be("design:paramtypes", [
-      C,
-      u.QueryManifestService,
-      u.TelemetryService,
-      u.DBTTerminal,
-      T,
-      u.AltimateRequest,
+      E,
+      c.QueryManifestService,
+      c.TelemetryService,
+      c.DBTTerminal,
+      j,
+      c.AltimateRequest,
     ]),
   ],
   exports.DatapilotNotebookController,
@@ -2336,24 +2336,10 @@ class Ue {
     this._disposables.forEach((e) => e.dispose());
   }
   provideCellStatusBarItems(e) {
-    const t = new l.NotebookCellStatusBarItem(
-      "$(globe) Left item",
-      l.NotebookCellStatusBarAlignment.Left,
-    );
-    (t.command = "dbtPowerUser.notebookItem"),
-      (t.tooltip = "Cell item tooltip");
-    const r = new l.NotebookCellStatusBarItem(
-      "$(globe) Right item",
-      l.NotebookCellStatusBarAlignment.Right,
-    );
-    return (
-      (r.command = "dbtPowerUser.notebookItem"),
-      (r.tooltip = "Cell item tooltip"),
-      [t, r]
-    );
+    return [];
   }
 }
-var $e = function (o, e, t, r) {
+var qe = function (o, e, t, r) {
     var n = arguments.length,
       i =
         n < 3
@@ -2369,11 +2355,11 @@ var $e = function (o, e, t, r) {
         (s = o[a]) && (i = (n < 3 ? s(i) : n > 3 ? s(e, t, i) : s(e, t)) || i);
     return n > 3 && i && Object.defineProperty(e, t, i), i;
   },
-  qe = function (o, e) {
+  $e = function (o, e) {
     if (typeof Reflect == "object" && typeof Reflect.metadata == "function")
       return Reflect.metadata(o, e);
   };
-let j = class {
+let S = class {
   constructor(e, t) {
     Object.defineProperty(this, "dbtProjectContainer", {
       enumerable: !0,
@@ -2442,7 +2428,7 @@ let j = class {
         (r = l.window.activeNotebookEditor) == null ? void 0 : r.notebook;
       if (!n) {
         this.dbtTerminal.warn(
-          u.TelemetryEvents["Notebook/SaveError"],
+          c.TelemetryEvents["Notebook/SaveError"],
           "No active notebook found",
         );
         return;
@@ -2457,17 +2443,17 @@ let j = class {
       if (!s) return;
       this.saveNotebook(n, s);
       const a = this.getFileNameFromUri(e),
-        c = e.with({ path: e.path.replace(a, s) });
+        u = e.with({ path: e.path.replace(a, s) });
       await l.commands.executeCommand(
         "workbench.action.revertAndCloseActiveEditor",
       ),
         await l.window.showNotebookDocument(
-          await l.workspace.openNotebookDocument(c),
+          await l.workspace.openNotebookDocument(u),
         ),
         l.window.showInformationMessage("Notebook saved successfully");
     } catch (n) {
       this.dbtTerminal.error(
-        u.TelemetryEvents["Notebook/SaveError"],
+        c.TelemetryEvents["Notebook/SaveError"],
         n.message,
         n,
       );
@@ -2484,12 +2470,12 @@ let j = class {
     );
   }
 };
-j = $e(
+S = qe(
   [
-    u.provideSingleton(j),
-    qe("design:paramtypes", [u.DBTProjectContainer, u.DBTTerminal]),
+    c.provideSingleton(S),
+    $e("design:paramtypes", [c.DBTProjectContainer, c.DBTTerminal]),
   ],
-  j,
+  S,
 );
 var ze = function (o, e, t, r) {
     var n = arguments.length,
@@ -2573,7 +2559,7 @@ exports.NotebookService = class {
 };
 exports.NotebookService = ze(
   [
-    u.provideSingleton(exports.NotebookService),
+    c.provideSingleton(exports.NotebookService),
     Ve("design:paramtypes", [exports.DatapilotNotebookController]),
   ],
   exports.NotebookService,
@@ -2599,7 +2585,7 @@ var Le = function (o, e, t, r) {
       return Reflect.metadata(o, e);
   };
 exports.NotebookProviders = class {
-  constructor(e, t, r) {
+  constructor(e, t, r, n) {
     Object.defineProperty(this, "notebookProvider", {
       enumerable: !0,
       configurable: !0,
@@ -2618,12 +2604,29 @@ exports.NotebookProviders = class {
         writable: !0,
         value: r,
       }),
+      Object.defineProperty(this, "dbtTerminal", {
+        enumerable: !0,
+        configurable: !0,
+        writable: !0,
+        value: n,
+      }),
       Object.defineProperty(this, "disposables", {
         enumerable: !0,
         configurable: !0,
         writable: !0,
         value: [],
       }),
+      this.disposables.push(
+        l.workspace.onDidChangeConfiguration((i) => {
+          i.affectsConfiguration("dbt.enableNotebooks") &&
+            this.bindNotebookActions();
+        }),
+      ),
+      this.bindNotebookActions();
+  }
+  bindNotebookActions() {
+    l.workspace.getConfiguration("dbt").get("enableNotebooks", !1) &&
+      (this.dbtTerminal.log("Notebooks enabled, binding actions"),
       this.disposables.push(
         l.notebooks.registerNotebookCellStatusBarItemProvider(K, new Ue()),
         l.workspace.registerNotebookSerializer(K, this.notebookProvider, {}),
@@ -2635,7 +2638,7 @@ exports.NotebookProviders = class {
           this.notebookFileSystemProvider,
           { isCaseSensitive: !0, isReadonly: !1 },
         ),
-      );
+      ));
   }
   dispose() {
     for (; this.disposables.length; ) {
@@ -2646,8 +2649,13 @@ exports.NotebookProviders = class {
 };
 exports.NotebookProviders = Le(
   [
-    u.provideSingleton(exports.NotebookProviders),
-    Fe("design:paramtypes", [S, exports.DatapilotNotebookController, j]),
+    c.provideSingleton(exports.NotebookProviders),
+    Fe("design:paramtypes", [
+      T,
+      exports.DatapilotNotebookController,
+      S,
+      c.DBTTerminal,
+    ]),
   ],
   exports.NotebookProviders,
 );

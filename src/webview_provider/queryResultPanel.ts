@@ -170,6 +170,13 @@ export class QueryResultPanel extends AltimateWebviewProvider {
               this.renderWebviewView(this._panel.webview);
             }
           }
+
+          if (e.affectsConfiguration("dbt.enableNotebooks")) {
+            this.updateEnableNotebooksInContext();
+            if (this._panel) {
+              this.renderWebviewView(this._panel.webview);
+            }
+          }
         },
         this,
         this._disposables,
@@ -177,6 +184,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     );
 
     this.updateEnableBookmarksInContext();
+    this.updateEnableNotebooksInContext();
   }
 
   private updateEnableBookmarksInContext() {
@@ -187,6 +195,15 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       workspace
         .getConfiguration("dbt")
         .get<boolean>("enableQueryBookmarks", false),
+    );
+  }
+
+  private updateEnableNotebooksInContext() {
+    // Setting this here to access it in package.json for enabling new file command
+    commands.executeCommand(
+      "setContext",
+      "dbt.enableNotebooks",
+      workspace.getConfiguration("dbt").get<boolean>("enableNotebooks", false),
     );
   }
 

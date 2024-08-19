@@ -133,6 +133,11 @@
             "description": "Enable Query history and bookmarks feature",
             "default": true
           },
+          "dbt.enableNotebooks": {
+            "type": "boolean",
+            "description": "Enable Datapilot notebooks feature",
+            "default": false
+          },
           "dbt.lineage.showSelectEdges": {
             "type": "boolean",
             "description": "Show select edges in lineage panel.",
@@ -424,20 +429,8 @@
       },
       {
         "command": "dbtPowerUser.createDatapilotNotebook",
-        "title": "Datapilot notebook"
-      },
-      {
-        "command": "dbtPowerUser.notebookItem",
-        "title": "Sample notebook button",
-        "icon": {
-          "light": "./media/images/sql-action-light.svg",
-          "dark": "./media/images/sql-action-dark.svg"
-        }
-      },
-      {
-        "command": "dbtPowerUser.notebookItem1",
-        "title": "Pick project",
-        "icon": "$(home)"
+        "title": "Datapilot notebook",
+        "enablement": "dbt.enableNotebooks == true"
       },
       {
         "command": "dbtPowerUser.replyToConversation",
@@ -719,24 +712,6 @@
       }
     ],
     "menus": {
-      "notebook/cell/title": [
-        {
-          "command": "dbtPowerUser.notebookItem",
-          "group": "inline/output@1"
-        }
-      ],
-      "notebook/cell/execute": [
-        {
-          "command": "dbtPowerUser.notebookItem",
-          "group": "navigation"
-        }
-      ],
-      "notebook/toolbar": [
-        {
-          "command": "dbtPowerUser.notebookItem1",
-          "group": "navigation"
-        }
-      ],
       "file/newFile": [
         {
           "command": "dbtPowerUser.createSqlFile",
@@ -744,7 +719,7 @@
         },
         {
           "command": "dbtPowerUser.createDatapilotNotebook",
-          "when": "dbt.enableQueryBookmarks == true",
+          "when": "dbt.enableNotebooks == true",
           "group": "notebook"
         }
       ],
@@ -1236,7 +1211,7 @@
     "postinstall": "node postinstall.js",
     "prepare": "husky install",
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production",
-    "webpack": "webpack --mode development",
+    "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "watch": "concurrently \"npm:watch --prefix ./new_lineage_panel\" \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",

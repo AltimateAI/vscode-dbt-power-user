@@ -252,12 +252,15 @@ export declare class NotebookProviders implements Disposable {
   private notebookProvider;
   private notebookController;
   private notebookFileSystemProvider;
+  private dbtTerminal;
   private disposables;
   constructor(
     notebookProvider: DatapilotNotebookSerializer,
     notebookController: DatapilotNotebookController,
     notebookFileSystemProvider: NotebookFileSystemProvider,
+    dbtTerminal: DBTTerminal_2,
   );
+  private bindNotebookActions;
   dispose(): void;
 }
 
