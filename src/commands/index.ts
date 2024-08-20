@@ -569,6 +569,12 @@ export class VSCodeCommands implements Disposable {
         },
       ),
       commands.registerCommand(
+        "dbtPowerUser.datapilotProfileYourQuery",
+        async (args) => {
+          this.notebookController.profileYourQuery(args);
+        },
+      ),
+      commands.registerCommand(
         "dbtPowerUser.createSqlFile",
         async (args: { code?: string; fileName?: string } | undefined) => {
           const { code, fileName } = args || {};

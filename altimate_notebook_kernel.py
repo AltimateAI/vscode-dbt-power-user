@@ -4,6 +4,26 @@ from datetime import  datetime
 import jupyter_client
 import queue
 
+# TODO: check if this is right way if we need to mask this code
+Query_types = {
+    "profileQuery": """
+import pandas as pd
+from IPython.display import display, HTML
+from ydata_profiling import ProfileReport
+from io import StringIO
+
+data = cell_{cell_id}['data']
+# Create a DataFrame
+df = pd.DataFrame(data)
+
+# Display the DataFrame
+# display(HTML(df.to_html()))
+
+profile = ProfileReport(df, title="Profiling Report")
+profile.to_notebook_iframe()
+"""
+}
+
 # Notebook kernel which will responsible for creating kernel executors for each notebook
 # should shut down kernel after notebook is closed
 # also store the cell outputs/data and use it for further executions
@@ -182,6 +202,10 @@ class AltimateNotebookKernel:
         response = self.kernel_executor.execute(code, self.cell_results)
         return response
 
+    def get_python_code_by_type(self, key, cell_id):
+        code = Query_types[key].format(cell_id=cell_id)
+        return code
+    
     def delete_cell(self, cell_id):
         """
         Handles cell deletion.

@@ -3,7 +3,6 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import svgr from "vite-plugin-svgr";
 import path from "path";
-import { cpSync } from "fs";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -21,21 +20,6 @@ export default defineConfig({
         return outputChunk.fileName == "assets/renderer.js";
       },
     }),
-    {
-      name: "copy-ipywidgets",
-      renderStart: () => {
-        cpSync(
-          "./src/notebook/ipywidgetsRenderer",
-          "./dist/assets/notebook/ipywidgetsRenderer",
-          { recursive: true },
-        );
-        cpSync(
-          "./src/notebook/ipywidgetsKernel",
-          "./dist/assets/notebook/ipywidgetsKernel",
-          { recursive: true },
-        );
-      },
-    },
   ],
   define: {
     "process.env": {},

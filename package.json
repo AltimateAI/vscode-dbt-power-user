@@ -17,10 +17,6 @@
   "engines": {
     "vscode": "^1.81.0"
   },
-  "enabledApiProposals": [
-    "notebookMessaging",
-    "contribNotebookStaticPreloads"
-  ],
   "capabilities": {
     "hoverProvider": true
   },
@@ -43,24 +39,6 @@
   ],
   "main": "./dist/extension",
   "contributes": {
-    "notebookPreload": [
-      {
-        "type": "datapilot-notebook",
-        "entrypoint": "./webview_panels/dist/assets/notebook/ipywidgetsKernel/preload.js"
-      },
-      {
-        "type": "datapilot-notebook",
-        "entrypoint": "./webview_panels/dist/assets/notebook/ipywidgetsKernel/ipywidgets8.js"
-      },
-      {
-        "type": "datapilot-notebook",
-        "entrypoint": "./webview_panels/dist/assets/notebook/ipywidgetsKernel/ipywidgets7.js"
-      },
-      {
-        "type": "datapilot-notebook",
-        "entrypoint": "./webview_panels/dist/assets/notebook/ipywidgetsKernel/ipywidgetsKernel.js"
-      }
-    ],
     "notebookRenderer": [
       {
         "id": "datapilot-notebook-perspective-renderer",
@@ -69,15 +47,6 @@
         "mimeTypes": [
           "application/perspective-json"
         ]
-      },
-      {
-        "id": "datapilot-notebook-jupyter-renderer",
-        "displayName": "Jupyter widgets Notebook Renderer",
-        "entrypoint": "./webview_panels/dist/assets/notebook/ipywidgetsRenderer/ipywidgetsRenderer.js",
-        "mimeTypes": [
-          "application/vnd.jupyter.widget-view+json"
-        ],
-        "requiresMessaging": "always"
       }
     ],
     "notebooks": [
@@ -433,6 +402,14 @@
         "enablement": "dbt.enableNotebooks == true"
       },
       {
+        "command": "dbtPowerUser.datapilotProfileYourQuery",
+        "title": "Profile your query",
+        "icon": {
+          "light": "./media/images/sql-action-light.svg",
+          "dark": "./media/images/sql-action-dark.svg"
+        }
+      },
+      {
         "command": "dbtPowerUser.replyToConversation",
         "title": "Reply",
         "enablement": "!commentIsEmpty",
@@ -712,6 +689,12 @@
       }
     ],
     "menus": {
+      "notebook/cell/execute": [
+        {
+          "command": "dbtPowerUser.datapilotProfileYourQuery",
+          "group": "navigation"
+        }
+      ],
       "file/newFile": [
         {
           "command": "dbtPowerUser.createSqlFile",
@@ -1211,7 +1194,7 @@
     "postinstall": "node postinstall.js",
     "prepare": "husky install",
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production",
-    "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
+    "webpack": "webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "watch": "concurrently \"npm:watch --prefix ./new_lineage_panel\" \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",

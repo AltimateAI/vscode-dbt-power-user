@@ -16,7 +16,6 @@ import { KernelConnection } from "@jupyterlab/services";
 import { NotebookCell } from "vscode";
 import { NotebookCellOutput } from "vscode";
 import { NotebookData } from "vscode";
-import { NotebookDocument } from "vscode";
 import { NotebookSerializer } from "vscode";
 import { PythonEnvironment } from "../../dependencies.d.ts";
 import { QueryManifestService } from "../dependencies.d.ts";
@@ -56,7 +55,6 @@ export declare class DatapilotNotebookController implements Disposable {
   private queryManifestService;
   private telemetry;
   private dbtTerminal;
-  private rendererMessageHandler;
   private altimate;
   private readonly _id;
   private readonly _label;
@@ -70,21 +68,19 @@ export declare class DatapilotNotebookController implements Disposable {
     queryManifestService: QueryManifestService,
     telemetry: TelemetryService_2,
     dbtTerminal: DBTTerminal_2,
-    rendererMessageHandler: RendererMessageHandler,
     altimate: AltimateRequest,
   );
   private getNotebookByTemplate;
+  profileYourQuery(args: any): Promise<void>;
   createNotebook(args: OpenNotebookRequest | undefined): Promise<void>;
-  private registerMessageHook;
   private sendMessageToPreloadScript;
-  private sendIPyWidgetsVersion;
   private genUniqueId;
   private updateCellId;
-  private sendKernelOptions;
   private onNotebookClose;
   private onNotebookOpen;
   dispose(): void;
   private _executeAll;
+  private filterIPyWidgets;
   private _doExecution;
 }
 
@@ -229,6 +225,7 @@ export declare class NotebookKernelClient implements Disposable {
   onKernelSocketResponse(payload: { id: string }): void;
   storeDataInKernel(cellId: string, data: any): Promise<void>;
   registerCommTarget(payload: string): Promise<void>;
+  getPythonCodeByType(type: string, cellId: string): Promise<string>;
   executePython(
     code: string,
     cell: NotebookCell,
@@ -299,22 +296,6 @@ declare interface RawKernelType {
     connection: ConnectionSettings;
     pid: number;
   };
-}
-
-declare class RendererMessageHandler implements Disposable {
-  private clientMapper;
-  private readonly dbtTerminal;
-  private messageChannel;
-  private disposables;
-  private readonly widgetOutputsPerNotebook;
-  constructor(clientMapper: ClientMapper, dbtTerminal: DBTTerminal);
-  hookupKernel(kernel: KernelConnection, notebook: NotebookDocument): void;
-  private handler;
-  private trackModelId;
-  private queryWidgetState;
-  private sendWidgetVersionAndState;
-  onNotebookClosed(notebook: NotebookDocument): void;
-  dispose(): void;
 }
 
 export {};
