@@ -33,7 +33,6 @@ const config = {
     "@opentelemetry/instrumentation",
     "@azure/functions-core",
     "zeromq",
-    "zeromqold",
   ],
   resolve: {
     extensions: [".ts", ".js"],
@@ -95,20 +94,6 @@ const config = {
               cpSync("./node_modules/zeromq", "./dist/node_modules/zeromq", {
                 recursive: true,
               });
-              cpSync(
-                "./node_modules/zeromqold",
-                "./dist/node_modules/zeromqold",
-                {
-                  recursive: true,
-                },
-              );
-              cpSync(
-                "./node_modules/zeromqold",
-                "./dist/node_modules/zeromqold",
-                {
-                  recursive: true,
-                },
-              );
               cpSync(
                 "./node_modules/@aminya/node-gyp-build",
                 "./dist/node_modules/@aminya/node-gyp-build",

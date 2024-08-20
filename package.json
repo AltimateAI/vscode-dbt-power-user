@@ -1249,8 +1249,6 @@
     "@nteract/messaging": "^7.0.20",
     "@vscode/codicons": "^0.0.36",
     "@vscode/extension-telemetry": "^0.9.6",
-    "@vscode/jupyter-extension": "^1.1.1",
-    "@vscode/python-extension": "^1.0.5",
     "@vscode/vsce": "^2.31.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "dayjs": "^1.11.12",
@@ -1264,8 +1262,7 @@
     "semver": "^7.6.3",
     "which": "^4.0.0",
     "yaml": "^2.5.0",
-    "zeromq": "^6.0.0-beta.16",
-    "zeromqold": "npm:zeromq@6.0.0-beta.6"
+    "zeromq": "^6.0.0-beta.16"
   },
   "lint-staged": {
     "**/webview_panels/**/*.{ts,tsx}": [
