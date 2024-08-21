@@ -28,7 +28,10 @@ export const Button = ({
     typeof value === "string";
 
   return (
-    <Tooltip title={restProps.title}>
+    <Tooltip
+      id={isString(children) ? children : undefined}
+      title={restProps.title}
+    >
       <ReactStrapButton
         {...restProps}
         onMouseEnter={() => mouseHoverAction(true)}
