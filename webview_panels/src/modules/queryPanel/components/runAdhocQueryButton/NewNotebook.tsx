@@ -15,6 +15,13 @@ const NewNotebookButton = (): JSX.Element | null => {
     executeRequestInAsync("openNewNotebook", { query: queryResults?.raw_sql });
   };
 
+  const handleProfileQueryClick = () => {
+    executeRequestInAsync("openNewNotebook", {
+      query: queryResults?.raw_sql,
+      template: "Profile your query",
+    });
+  };
+
   useEffect(() => {
     executeRequestInSync("configEnabled", {
       section: "dbt",
@@ -29,11 +36,18 @@ const NewNotebookButton = (): JSX.Element | null => {
   }
 
   return (
-    <NewFeatureIndicator featureKey="new-notebook-button-clicked">
-      <Button outline onClick={handleClick}>
-        + New notebook
-      </Button>
-    </NewFeatureIndicator>
+    <>
+      <NewFeatureIndicator featureKey="profile-query-notebook-button-clicked">
+        <Button outline onClick={handleProfileQueryClick}>
+          Profile your query
+        </Button>
+      </NewFeatureIndicator>
+      <NewFeatureIndicator featureKey="new-notebook-button-clicked">
+        <Button outline onClick={handleClick}>
+          + New notebook
+        </Button>
+      </NewFeatureIndicator>
+    </>
   );
 };
 

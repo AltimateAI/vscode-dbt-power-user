@@ -689,12 +689,6 @@
       }
     ],
     "menus": {
-      "notebook/cell/execute": [
-        {
-          "command": "dbtPowerUser.datapilotProfileYourQuery",
-          "group": "navigation"
-        }
-      ],
       "file/newFile": [
         {
           "command": "dbtPowerUser.createSqlFile",
@@ -1193,7 +1187,7 @@
     "postinstall": "node postinstall.js",
     "prepare": "husky install",
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production",
-    "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
+    "webpack": "webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "watch": "concurrently \"npm:watch --prefix ./new_lineage_panel\" \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",
@@ -1212,6 +1206,7 @@
     "@types/node": "^20.14.11",
     "@types/vscode": "^1.81.0",
     "@types/which": "^3.0.4",
+    "@types/ws": "^8.5.12",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "@vscode/test-electron": "^2.4.1",
@@ -1261,6 +1256,7 @@
     "reflect-metadata": "^0.2.2",
     "semver": "^7.6.3",
     "which": "^4.0.0",
+    "ws": "^8.18.0",
     "yaml": "^2.5.0",
     "zeromq": "^6.0.0-beta.16"
   },

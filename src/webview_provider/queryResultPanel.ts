@@ -173,9 +173,12 @@ export class QueryResultPanel extends AltimateWebviewProvider {
 
           if (e.affectsConfiguration("dbt.enableNotebooks")) {
             this.updateEnableNotebooksInContext();
-            if (this._panel) {
-              this.renderWebviewView(this._panel.webview);
-            }
+            const event = workspace
+              .getConfiguration("dbt")
+              .get<boolean>("enableNotebooks", false)
+              ? "NotebooksEnabled"
+              : "NotebooksDisabled";
+            this.telemetry.sendTelemetryEvent(event);
           }
         },
         this,

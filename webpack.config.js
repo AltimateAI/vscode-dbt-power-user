@@ -90,7 +90,7 @@ const config = {
         scripts: [
           () => {
             try {
-              console.log("copying zeromq module");
+              console.log("copying notebook modules");
               cpSync("./node_modules/zeromq", "./dist/node_modules/zeromq", {
                 recursive: true,
               });
@@ -108,7 +108,7 @@ const config = {
                   recursive: true,
                 },
               );
-              console.log("copied zeromq module");
+              console.log("copied notebook modules");
             } catch (error) {
               console.error(error.message);
             }

@@ -7,6 +7,7 @@ import {
   ProviderResult,
   Range,
   TextDocument,
+  window,
 } from "vscode";
 import { provideSingleton } from "../utils";
 import { CST, LineCounter, Parser } from "yaml";
@@ -29,6 +30,19 @@ export class DocumentationCodeLensProvider implements CodeLensProvider {
           tooltip: "Add documentation or tests for this model",
           command: "dbtPowerUser.DocsEdit.focus",
           arguments: [],
+        }),
+      );
+      codeLenses.push(
+        new CodeLens(new Range(0, 0, 1, 1), {
+          title: "Profile this query",
+          tooltip: "Profile this query",
+          command: "dbtPowerUser.createDatapilotNotebook",
+          arguments: [
+            {
+              query: window.activeTextEditor?.document.getText(),
+              template: "Profile your query",
+            },
+          ],
         }),
       );
       return codeLenses;

@@ -1,0 +1,54 @@
+.notebookList {
+  :global .list-group {
+    border-radius: 0;
+    padding: 1rem;
+    :global .list-group-item {
+      background-color: var(--background--base);
+      color: var(--text-color--title);
+      margin-bottom: 1rem;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      padding: 4px 0.5rem;
+      min-height: 2.5rem;
+      &:hover {
+        border-color: var(--primary-color);
+      }
+
+      > div:first-child {
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+        flex: 1;
+        
+        .codicon {
+          color: #89d185;
+          margin-right: 0.5rem;
+        }
+      }
+
+      > div:last-child {
+        gap: 2px;
+        span {
+          vertical-align: bottom;
+        }
+        button {
+          display: none;
+          padding: 1px 4px;
+        }
+      }
+
+      &:hover {
+        > div:last-child {
+          button {
+            display: inline-block;
+            color: var(--text-color--title);
+          }
+        }
+      }
+    }
+  }
+}

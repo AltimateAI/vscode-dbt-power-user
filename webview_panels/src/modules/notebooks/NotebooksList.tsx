@@ -1,6 +1,8 @@
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import { useEffect, useState } from "react";
+import { ListGroup, ListGroupItem } from "@uicore";
+import classes from "./notebooklist.module.scss";
 
 interface Notebook {
   data: string;
@@ -25,14 +27,16 @@ const NotebooksList = (): JSX.Element => {
   };
 
   return (
-    <div>
-      {notebooks &&
-        Object.entries(notebooks).map(([key, value]) => (
-          <div key={key} onClick={() => openNotebook(key)}>
-            <h3>{key}</h3>
-            <pre>{value.data}</pre>
-          </div>
-        ))}
+    <div className={classes.notebookList}>
+      {notebooks && (
+        <ListGroup>
+          {Object.entries(notebooks).map(([key]) => (
+            <ListGroupItem key={key} onClick={() => openNotebook(key)}>
+              <div>{key}</div>
+            </ListGroupItem>
+          ))}
+        </ListGroup>
+      )}
     </div>
   );
 };

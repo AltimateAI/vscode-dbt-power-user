@@ -4,6 +4,15 @@ from datetime import  datetime
 import jupyter_client
 import queue
 
+class CustomDecoder(json.JSONDecoder):
+    def __init__(self, *args, **kwargs):
+        super().__init__(object_hook=self.object_hook, *args, **kwargs)
+    def object_hook(self, obj):
+        for key, value in obj.items():
+            if value == 'null':
+                obj[key] = None
+        return obj
+    
 # TODO: check if this is right way if we need to mask this code
 Query_types = {
     "profileQuery": """
@@ -74,7 +83,7 @@ class JupyterKernelExecutor:
                         return o.__str__()
                 
                 # Print formatted JSON
-                print("msg", msg)
+                # print("msg", msg)
                 
                 if msg['msg_type'] == 'stream':
                     # for stdout
@@ -174,19 +183,13 @@ class AltimateNotebookKernel:
         cell_id (str): The unique identifier for the cell.
         result: The result of the cell execution.
         """
-        # Convert the result to a string representation
-        if isinstance(result, (list, dict)):
-            # result_str = {"mime": "application/json", "value": json.dumps(result)}
-            result_str = json.dumps(result)
-        else:
-            # result_str =  {"mime": "text/plain", "value": str(result)}
-            result_str =  str(result)
+        resultJson =  json.loads(result)
         
         # Construct the code to store the result in the Jupyter kernel
         code = f"""
-        cell_{cell_id} = {result_str}
+        cell_{cell_id} = {resultJson}
         """
-        self.kernel_executor.execute(code)
+        self.execute_python(code)
         
     def execute_python(self, code):
         """
@@ -199,7 +202,7 @@ class AltimateNotebookKernel:
         Returns:
         result: The result of the cell execution.
         """
-        response = self.kernel_executor.execute(code, self.cell_results)
+        response = self.kernel_executor.execute(code)
         return response
 
     def get_python_code_by_type(self, key, cell_id):
