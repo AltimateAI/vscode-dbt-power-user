@@ -272,7 +272,8 @@ class ConfigInterface:
         defer: Optional[bool] = False,
         state: Optional[str] = None,
         favor_state: Optional[bool] = False,
-        vars: Optional[Dict[str, Any]] = {},
+        # dict in 1.5.x onwards, json string before.
+        vars: Optional[Union[Dict[str, Any], str]] = {} if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 5 else "{}",
     ):
         self.threads = threads
         self.target = target if target else os.environ.get("DBT_TARGET")
@@ -286,7 +287,11 @@ class ConfigInterface:
         self.defer = defer
         self.state = state
         self.favor_state = favor_state
-        self.vars = vars if vars else json.loads(os.environ.get("DBT_VARS", "{}"))
+        # dict in 1.5.x onwards, json string before.
+        if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 5:
+            self.vars = vars if vars else json.loads(os.environ.get("DBT_VARS", "{}"))
+        else:
+            self.vars = vars if vars else os.environ.get("DBT_VARS", "{}")
 
     def __str__(self):
         return f"ConfigInterface(threads={self.threads}, target={self.target}, profiles_dir={self.profiles_dir}, project_dir={self.project_dir}, profile={self.profile}, target_path={self.target_path})"
