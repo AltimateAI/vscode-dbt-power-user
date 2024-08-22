@@ -53,7 +53,12 @@ export class PythonEnvironment implements Disposable {
   }
 
   public get environmentVariables(): EnvironmentVariables {
-    return this.executionDetails!.getEnvVars();
+    if (!this.executionDetails) {
+      throw new Error(
+        "executionDetails is undefined, cannot retrieve environment variables",
+      );
+    }
+    return this.executionDetails.getEnvVars();
   }
 
   public get onPythonEnvironmentChanged() {
