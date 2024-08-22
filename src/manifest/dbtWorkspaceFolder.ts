@@ -104,7 +104,7 @@ export class DBTWorkspaceFolder implements Disposable {
     );
 
     const projectDirectories = dbtProjectFiles
-      .filter((uri) => statSync(uri.fsPath).isFile())
+      .filter((uri) => existsSync(uri.fsPath) && statSync(uri.fsPath).isFile())
       .filter((uri) => this.notInVenv(uri.fsPath))
       .filter((uri) => {
         return (
@@ -264,6 +264,7 @@ export class DBTWorkspaceFolder implements Disposable {
     watcher.onDidCreate((uri) => {
       const allowListFolders = this.getAllowListFolders();
       if (
+        existsSync(uri.fsPath) &&
         statSync(uri.fsPath).isFile() &&
         this.notInVenv(uri.fsPath) &&
         this.notInDBtPackages(
