@@ -236,11 +236,11 @@ export class DBTCloudProjectIntegration
     } else {
       this.initializePaths();
     }
-    this.findAdapterType();
+    if (!this.adapterType) {
+      this.findAdapterType();
+    }
     if (!this.version) {
       await this.findVersion();
-    } else {
-      this.findVersion();
     }
   }
 
