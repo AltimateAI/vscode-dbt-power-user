@@ -115,7 +115,7 @@ export class TelemetryService implements vscode.Disposable {
     }
     return error.replace(
       /(key|token|sig|secret|signature|password|passwd|pwd|android:value)/i,
-      "",
+      "****",
     );
   }
 
