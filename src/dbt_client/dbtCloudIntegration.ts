@@ -285,13 +285,21 @@ export class DBTCloudProjectIntegration
           .trim()
           .split("\n")
           .map((line) => JSON.parse(line.trim()));
-        const previewLine = parsedLines.filter((line) =>
-          line.data.hasOwnProperty("preview"),
+        const previewLine = parsedLines.filter(
+          (line) =>
+            line.hasOwnProperty("data") && line.data.hasOwnProperty("preview"),
         );
-        const compiledSqlLines = parsedLines.filter((line) =>
-          line.data.hasOwnProperty("sql"),
+        const compiledSqlLines = parsedLines.filter(
+          (line) =>
+            line.hasOwnProperty("data") && line.data.hasOwnProperty("sql"),
         );
+        if (previewLine.length === 0) {
+          throw new Error("Could not find previewLine in " + stdout);
+        }
         const preview = JSON.parse(previewLine[0].data.preview);
+        if (compiledSqlLines.length === 0) {
+          throw new Error("Could not find compiledSqlLine in " + stdout);
+        }
         const compiledSql =
           compiledSqlLines[compiledSqlLines.length - 1].data.sql;
         return {
