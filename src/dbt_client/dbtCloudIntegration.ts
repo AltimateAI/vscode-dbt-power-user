@@ -237,6 +237,7 @@ export class DBTCloudProjectIntegration
       this.initializePaths();
     }
     if (!this.adapterType) {
+      // We only fetch the adapter type once, as it may impact compilation preview otherwise
       this.findAdapterType();
     }
     if (!this.version) {
