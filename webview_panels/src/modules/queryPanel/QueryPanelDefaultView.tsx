@@ -10,7 +10,7 @@ const QueryPanelDefaultView = (): JSX.Element => {
       </div>
       <div>
         <div>
-          <h2>New Features: Query History, Bookmarks, and More</h2>
+          <h2>New Features: Notebooks, Query History, Bookmarks, and More</h2>
           {/* TODO: get the actual text from Pradnesh */}
           <p>
             New AI Powered Notebooks, to get an early access{" "}
