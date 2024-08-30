@@ -11,7 +11,11 @@ const QueryPanelDefaultView = (): JSX.Element => {
       <div>
         <div>
           <h2>New Features: Query History, Bookmarks, and More</h2>
+          {/* TODO: get the actual text from Pradnesh */}
           <p>
+            New AI Powered Notebooks, to get an early access{" "}
+            <a href="https://app.myaltimate.com/contactus">Contact Us!</a>
+            <br />
             Execute any SQL query with the &quot;+ New Query&quot; button. Every
             query you run in the current VSCode session is stored in your query
             history, accessible for later use.
