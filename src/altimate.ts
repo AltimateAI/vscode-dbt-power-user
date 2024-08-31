@@ -10,7 +10,7 @@ import { RateLimitException, ExecutionsExhaustedException } from "./exceptions";
 import { DBTProject } from "./manifest/dbtProject";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
-import { NotebookItem } from "./lib/main";
+import { NotebookItem, NotebookSchema } from "./lib/main";
 
 export class NoCredentialsError extends Error {}
 
@@ -122,6 +122,13 @@ export interface SQLToModelResponse {
 
 interface NotebooksResponse {
   notebooks: NotebookItem[];
+}
+
+interface NotebookRequest {
+  name: string;
+  description: string;
+  tags_list: string[];
+  data: NotebookSchema;
 }
 
 interface OnewayFeedback {
@@ -924,12 +931,16 @@ export class AltimateRequest {
   }
 
   async getNotebooks() {
-    // return this.fetch<NotebooksResponse>("dbt/v3/notebooks", {
-    //   method: "GET",
-    // });
-    // TODO integrate with new API
-    return {
-      notebooks: [],
-    } as NotebooksResponse;
+    return this.fetch<NotebookItem[]>("notebook/preconfigured/list", {
+      method: "GET",
+    });
+  }
+
+  async addNotebook(req: NotebookRequest) {
+    console.log(req);
+    return this.fetch<FeedbackResponse>("notebook", {
+      method: "POST",
+      body: JSON.stringify(req),
+    });
   }
 }
