@@ -10,7 +10,7 @@ import { RateLimitException, ExecutionsExhaustedException } from "./exceptions";
 import { DBTProject } from "./manifest/dbtProject";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
-import { NotebookItem, NotebookSchema } from "./lib/main";
+import { NotebookItem, NotebookSchema } from "@lib";
 
 export class NoCredentialsError extends Error {}
 

@@ -39,7 +39,7 @@ import { AltimateRequest } from "./altimate";
 import { ValidationProvider } from "./validation_provider";
 import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
-import { NotebookKernelClient, NotebookDependencies } from "./lib/main";
+import { NotebookKernelClient, NotebookDependencies } from "@lib";
 
 export const container = new Container();
 container.load(buildProviderModule());

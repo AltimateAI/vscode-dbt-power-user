@@ -11,9 +11,10 @@
     "lib": ["es6", "es2020", "dom"],
     "sourceMap": true,
     "rootDir": "src",
-    "typeRoots": ["./src/lib/main.d.ts"],
+    "typeRoots": ["./src/lib"],
     "paths": {
-      "@extension": ["./src/modules.ts"]
+      "@extension": ["./src/modules.ts"],
+      "@lib": ["./src/lib/index"]
     },
     "strict": true /* enable all strict type-checking options */
     /* Additional Checks */

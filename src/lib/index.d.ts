@@ -1,3 +1,4 @@
+import { AltimateRequest } from "../dependencies.d.ts";
 import { CancellationToken } from "vscode";
 import { CommandProcessExecutionFactory } from "../../dependencies.d.ts";
 import { DBTCommandExecutionInfrastructure } from "../dependencies.d.ts";
@@ -59,6 +60,7 @@ export declare class DatapilotNotebookController implements Disposable {
   private telemetry;
   private dbtTerminal;
   private notebookDependencies;
+  private altimate;
   private readonly id;
   private readonly label;
   private _onNotebookCellEvent;
@@ -73,6 +75,7 @@ export declare class DatapilotNotebookController implements Disposable {
     telemetry: TelemetryService_2,
     dbtTerminal: DBTTerminal_2,
     notebookDependencies: NotebookDependencies,
+    altimate: AltimateRequest,
   );
   private getNotebookByTemplate;
   profileYourQuery(args: any): Promise<void>;
@@ -147,11 +150,13 @@ export declare class NotebookDependencies {
 declare class NotebookFileSystemProvider implements FileSystemProvider {
   private dbtProjectContainer;
   private dbtTerminal;
+  private altimate;
   private _emitter;
   readonly onDidChangeFile: Event_2<FileChangeEvent[]>;
   constructor(
     dbtProjectContainer: DBTProjectContainer,
     dbtTerminal: DBTTerminal_2,
+    altimate: AltimateRequest,
   );
   watch(
     _uri: Uri,

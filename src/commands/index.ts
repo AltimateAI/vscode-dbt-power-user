@@ -46,7 +46,7 @@ import { DBTProject } from "../manifest/dbtProject";
 import { SQLLineagePanel } from "../webview_provider/sqlLineagePanel";
 import { QueryManifestService } from "../services/queryManifestService";
 import { AltimateRequest } from "../altimate";
-import { DatapilotNotebookController, OpenNotebookRequest } from "../lib/main";
+import { DatapilotNotebookController, OpenNotebookRequest } from "@lib";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
