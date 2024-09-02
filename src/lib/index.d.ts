@@ -202,7 +202,7 @@ export declare interface NotebookItem {
   updated_at: string;
   id: string;
   tags: string[];
-  notebookData: NotebookSchema;
+  data: NotebookSchema;
 }
 
 export declare class NotebookKernelClient implements Disposable {
