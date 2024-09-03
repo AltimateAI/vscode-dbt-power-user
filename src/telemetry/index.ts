@@ -96,13 +96,26 @@ export class TelemetryService implements vscode.Disposable {
           .get<boolean>("isLocalMode", false)
           ? "true"
           : "false",
-        stack:
+        stack: this.removeGenericSecretsFromStackTrace(
           error !== undefined && error instanceof Error
             ? error.stack
             : JSON.stringify(error),
+        ),
         ...this.customAttributes,
       },
       measurements,
+    );
+  }
+
+  private removeGenericSecretsFromStackTrace(
+    error: string | undefined,
+  ): string {
+    if (!error) {
+      return "";
+    }
+    return error.replace(
+      /(key|token|sig|secret|signature|password|passwd|pwd|android:value)/i,
+      "****",
     );
   }
 
