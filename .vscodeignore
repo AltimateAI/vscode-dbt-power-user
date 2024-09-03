@@ -10,3 +10,10 @@ vsc-extension-quickstart.md
 **/.eslintrc.json
 **/*.map
 **/*.ts
+.github
+lineage_panel
+new_lineage_panel
+!new_lineage_panel/dist
+webview_panels
+!webview_panels/dist
+query_panel
