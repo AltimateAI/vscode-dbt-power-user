@@ -188,7 +188,7 @@ export class DBTCoreProjectDetection
             (projectDirectory) => projectDirectory.fsPath,
           )}))`,
       );
-      packagesInstallPaths = packagesInstallPaths.map(
+      packagesInstallPaths = projectDirectories.map(
         (packageInstallPath, index) => {
           const packageInstallPathFromPython =
             packagesInstallPathsFromPython[index];
@@ -445,7 +445,7 @@ export class DBTCoreProjectIntegration
   async initializeProject(): Promise<void> {
     try {
       await this.python
-        .ex`from dbt_core_integration import default_profiles_dir`;
+        .ex`from dbt_core_integration import default_profiles_dir, init_project_without_locks`;
       await this.python.ex`from dbt_healthcheck import *`;
       this.profilesDir = this.removeTrailingSlashes(
         await this.python.lock(
@@ -479,27 +479,30 @@ export class DBTCoreProjectIntegration
           return;
         }
         let errorMessage =
-          "An error occured while initializing the dbt project: " +
+          "An error occurred while initializing the dbt project: " +
           exc.exception.message;
         if (exc.exception.type.module === "dbt.exceptions") {
           // TODO: we can do provide solutions per type of dbt exception
           errorMessage =
-            "An error occured while initializing the dbt project, dbt found following issue: " +
+            "An error occurred while initializing the dbt project, dbt found following issue: " +
             exc.exception.message;
         }
 
         if (exc.message.includes("cannot pickle '_thread.RLock' object")) {
-          errorMessage = "An error occurred while initializing the dbt project due to a threading issue. This might be caused by an incompatibility between dbt and your Python environment.";
+          errorMessage = "An error occurred while initializing the dbt project due to a threading issue. Attempting to initialize without locks.";
           
-          // Log more details for debugging
-          this.dbtTerminal.error(
-            "DBTCoreProjectIntegration",
-            "Pickling error during project initialization",
-            exc
-          );
-          
-          // Suggest a potential fix
-          errorMessage += " Try updating dbt-core to the latest version or use a different Python environment.";
+          try {
+            await this.python.lock(
+              (python) => python`init_project_without_locks(${this.projectRoot.fsPath}, ${this.profilesDir})`,
+            );
+            this.dbtTerminal.info(
+              "DBTCoreProjectIntegration",
+              "Successfully initialized project without locks"
+            );
+            return;
+          } catch (locklessError) {
+            errorMessage += " Failed to initialize without locks: " + locklessError;
+          }
         }
 
         this.pythonBridgeDiagnostics.set(
@@ -510,7 +513,7 @@ export class DBTCoreProjectIntegration
       } else {
         window.showErrorMessage(
           extendErrorWithSupportLinks(
-            "An unexpected error occured while initializing the dbt project at " +
+            "An unexpected error occurred while initializing the dbt project at " +
               this.projectRoot +
               ": " +
               exc +

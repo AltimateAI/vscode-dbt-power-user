@@ -338,6 +338,27 @@ class DbtAdapterCompilationResult:
         self.node = node
 
 
+import multiprocessing as mp
+from dbt.config import Project
+
+def init_project_without_locks(project_dir, profiles_dir):
+    def init_project_task(result_queue):
+        try:
+            project = Project.from_project_root(project_dir, profiles_dir)
+            result_queue.put(("success", project))
+        except Exception as e:
+            result_queue.put(("error", str(e)))
+
+    result_queue = mp.Queue()
+    process = mp.Process(target=init_project_task, args=(result_queue,))
+    process.start()
+    process.join()
+
+    result = result_queue.get()
+    if result[0] == "error":
+        raise Exception(result[1])
+    return result[1]
+
 class DbtProject:
     """Container for a dbt project. The dbt attribute is the primary interface for
     dbt-core. The adapter attribute is the primary interface for the dbt adapter"""
