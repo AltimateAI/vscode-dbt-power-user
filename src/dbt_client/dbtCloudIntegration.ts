@@ -42,7 +42,7 @@ import { ProjectHealthcheck } from "./dbtCoreIntegration";
 import semver = require("semver");
 import { NodeMetaData } from "../domain";
 
-function getDBTPath(
+export function getDBTPath(
   pythonEnvironment: PythonEnvironment,
   terminal: DBTTerminal,
 ): string {

@@ -20,17 +20,16 @@ export class DeferToProdService {
       .getConfiguration("dbt")
       .get<string>("dbtIntegration", "core");
 
-    if (dbtIntegrationMode === "core" || currentConfig[relativePath]) {
-      const coreConfig = currentConfig[relativePath];
-      if (!coreConfig) {
-        return {} as DeferConfig;
-      }
-      return coreConfig;
+    if (currentConfig[relativePath]) {
+      return currentConfig[relativePath];
     }
 
     // In dbt cloud, defer is enabled by default
-    return {
-      deferToProduction: true,
-    } as DeferConfig;
+    if (dbtIntegrationMode === "cloud") {
+      return {
+        deferToProduction: true,
+      } as DeferConfig;
+    }
+    return {} as DeferConfig;
   }
 }
