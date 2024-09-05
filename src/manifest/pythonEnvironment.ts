@@ -242,4 +242,26 @@ export class PythonEnvironment implements Disposable {
       },
     });
   }
+
+  async updateDbtCore(): Promise<void> {
+    try {
+      const result = await this.commandProcessExecutionFactory
+        .createCommandProcessExecution({
+          command: this.pythonPath,
+          args: ["-m", "pip", "install", "--upgrade", "dbt-core"],
+          cwd: getFirstWorkspacePath(),
+          envVars: this.environmentVariables,
+        })
+        .completeWithTerminalOutput();
+
+      if (result.stderr) {
+        throw new Error(result.stderr);
+      }
+
+      this.terminal.info("PythonEnvironment", "Successfully updated dbt-core");
+    } catch (error) {
+      this.terminal.error("PythonEnvironment", "Failed to update dbt-core", error);
+      throw error;
+    }
+  }
 }

@@ -450,4 +450,37 @@ export class DBTProjectContainer implements Disposable {
     }
     return project.performDatapilotHealthcheck(args);
   }
+
+  private async handleProjectInitializationError(error: any): Promise<void> {
+    if (error.message.includes("cannot pickle '_thread.RLock' object")) {
+      const answer = await window.showErrorMessage(
+        "An error occurred while initializing the dbt project. Would you like to try updating dbt-core?",
+        "Yes",
+        "No"
+      );
+
+      if (answer === "Yes") {
+        try {
+          await this.pythonEnvironment.updateDbtCore();
+          // Attempt to reinitialize the project
+          await this.initializeProjects();
+        } catch (updateError) {
+          window.showErrorMessage(
+            `Failed to update dbt-core. Please try updating manually or use a different Python environment. Error: ${updateError.message}`
+          );
+        }
+      }
+    } else {
+      // Handle other errors
+      window.showErrorMessage(`Failed to initialize dbt project: ${error.message}`);
+    }
+  }
+
+  async initializeProjects(): Promise<void> {
+    try {
+      // ... existing initialization code ...
+    } catch (error) {
+      await this.handleProjectInitializationError(error);
+    }
+  }
 }

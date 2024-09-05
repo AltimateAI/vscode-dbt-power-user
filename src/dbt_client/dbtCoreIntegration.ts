@@ -487,6 +487,21 @@ export class DBTCoreProjectIntegration
             "An error occured while initializing the dbt project, dbt found following issue: " +
             exc.exception.message;
         }
+
+        if (exc.message.includes("cannot pickle '_thread.RLock' object")) {
+          errorMessage = "An error occurred while initializing the dbt project due to a threading issue. This might be caused by an incompatibility between dbt and your Python environment.";
+          
+          // Log more details for debugging
+          this.dbtTerminal.error(
+            "DBTCoreProjectIntegration",
+            "Pickling error during project initialization",
+            exc
+          );
+          
+          // Suggest a potential fix
+          errorMessage += " Try updating dbt-core to the latest version or use a different Python environment.";
+        }
+
         this.pythonBridgeDiagnostics.set(
           Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
           [new Diagnostic(new Range(0, 0, 999, 999), errorMessage)],
