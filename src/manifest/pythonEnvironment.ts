@@ -258,7 +258,7 @@ export class PythonEnvironment implements Disposable {
         throw new Error(result.stderr);
       }
 
-      this.terminal.info("PythonEnvironment", "Successfully updated dbt-core");
+      this.dbtTerminal.info("PythonEnvironment", "Successfully updated dbt-core");
     } catch (error) {
       this.terminal.error("PythonEnvironment", "Failed to update dbt-core", error);
       throw error;
