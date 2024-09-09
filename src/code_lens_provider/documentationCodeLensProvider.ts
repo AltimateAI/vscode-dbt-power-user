@@ -8,6 +8,7 @@ import {
   Range,
   TextDocument,
   window,
+  workspace,
 } from "vscode";
 import { provideSingleton } from "../utils";
 import { CST, LineCounter, Parser } from "yaml";
@@ -23,6 +24,9 @@ export class DocumentationCodeLensProvider implements CodeLensProvider {
     document: TextDocument,
     token: CancellationToken,
   ): ProviderResult<CodeLens[]> {
+    const isNotebooksEnabled = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("enableNotebooks", false);
     const codeLenses: CodeLens[] = [];
     if (document.fileName.endsWith(".sql")) {
       codeLenses.push(
@@ -33,82 +37,84 @@ export class DocumentationCodeLensProvider implements CodeLensProvider {
           arguments: [],
         }),
       );
-      codeLenses.push(
-        new CodeLens(new Range(0, 0, 1, 1), {
-          title: "Profile this query",
-          tooltip: "Profile this query",
-          command: "dbtPowerUser.createDatapilotNotebook",
-          arguments: [
-            {
-              context: {
-                query: window.activeTextEditor?.document.getText(),
+      if (isNotebooksEnabled) {
+        codeLenses.push(
+          new CodeLens(new Range(0, 0, 1, 1), {
+            title: "Profile this query",
+            tooltip: "Profile this query",
+            command: "dbtPowerUser.createDatapilotNotebook",
+            arguments: [
+              {
+                context: {
+                  query: window.activeTextEditor?.document.getText(),
+                },
+                template: "Profile your query",
               },
-              template: "Profile your query",
-            },
-          ],
-        }),
-      );
-      const modelName = path.basename(document.uri.fsPath, ".sql");
-      codeLenses.push(
-        new CodeLens(new Range(0, 0, 1, 1), {
-          title: "Get test suggestions",
-          tooltip: "Get test suggestions",
-          command: "dbtPowerUser.createDatapilotNotebook",
-          arguments: [
-            {
-              context: {
-                model: modelName,
+            ],
+          }),
+        );
+        const modelName = path.basename(document.uri.fsPath, ".sql");
+        codeLenses.push(
+          new CodeLens(new Range(0, 0, 1, 1), {
+            title: "Get test suggestions",
+            tooltip: "Get test suggestions",
+            command: "dbtPowerUser.createDatapilotNotebook",
+            arguments: [
+              {
+                context: {
+                  model: modelName,
+                },
+                template: "Get test suggestions",
               },
-              template: "Get test suggestions",
-            },
-          ],
-        }),
-      );
-      codeLenses.push(
-        new CodeLens(new Range(0, 0, 1, 1), {
-          title: "Generate dbt base model sql",
-          tooltip: "Generate dbt base model sql",
-          command: "dbtPowerUser.createDatapilotNotebook",
-          arguments: [
-            {
-              context: {
-                model: modelName,
+            ],
+          }),
+        );
+        codeLenses.push(
+          new CodeLens(new Range(0, 0, 1, 1), {
+            title: "Generate dbt base model sql",
+            tooltip: "Generate dbt base model sql",
+            command: "dbtPowerUser.createDatapilotNotebook",
+            arguments: [
+              {
+                context: {
+                  model: modelName,
+                },
+                template: "Generate dbt base model sql",
               },
-              template: "Generate dbt base model sql",
-            },
-          ],
-        }),
-      );
-      codeLenses.push(
-        new CodeLens(new Range(0, 0, 1, 1), {
-          title: "Generate dbt model yaml",
-          tooltip: "Generate dbt model yaml",
-          command: "dbtPowerUser.createDatapilotNotebook",
-          arguments: [
-            {
-              context: {
-                model: modelName,
+            ],
+          }),
+        );
+        codeLenses.push(
+          new CodeLens(new Range(0, 0, 1, 1), {
+            title: "Generate dbt model yaml",
+            tooltip: "Generate dbt model yaml",
+            command: "dbtPowerUser.createDatapilotNotebook",
+            arguments: [
+              {
+                context: {
+                  model: modelName,
+                },
+                template: "Generate dbt model yaml",
               },
-              template: "Generate dbt model yaml",
-            },
-          ],
-        }),
-      );
-      codeLenses.push(
-        new CodeLens(new Range(0, 0, 1, 1), {
-          title: "Generate dbt model CTE",
-          tooltip: "Generate dbt model CTE",
-          command: "dbtPowerUser.createDatapilotNotebook",
-          arguments: [
-            {
-              context: {
-                model: modelName,
+            ],
+          }),
+        );
+        codeLenses.push(
+          new CodeLens(new Range(0, 0, 1, 1), {
+            title: "Generate dbt model CTE",
+            tooltip: "Generate dbt model CTE",
+            command: "dbtPowerUser.createDatapilotNotebook",
+            arguments: [
+              {
+                context: {
+                  model: modelName,
+                },
+                template: "Generate dbt model CTE",
               },
-              template: "Generate dbt model CTE",
-            },
-          ],
-        }),
-      );
+            ],
+          }),
+        );
+      }
       return codeLenses;
     }
     const lineCounter = new LineCounter();

@@ -6,7 +6,7 @@ import { DBTCommandExecutionInfrastructure as DBTCommandExecutionInfrastructure_
 import { DBTProjectContainer } from "../dependencies.d.ts";
 import { DBTTerminal } from "../../dependencies.d.ts";
 import { DBTTerminal as DBTTerminal_2 } from "../dependencies.d.ts";
-import { Disposable } from "vscode";
+import { Disposable as Disposable_2 } from "vscode";
 import { Event as Event_2 } from "vscode";
 import { FileChangeEvent } from "vscode";
 import { FileStat } from "vscode";
@@ -14,6 +14,7 @@ import { FileSystemProvider } from "vscode";
 import { FileType } from "vscode";
 import { KernelConnection } from "@jupyterlab/services";
 import { NotebookCell } from "vscode";
+import { NotebookCellKind } from "vscode";
 import { NotebookCellOutput } from "vscode";
 import { NotebookData } from "vscode";
 import { NotebookSerializer } from "vscode";
@@ -54,7 +55,7 @@ export declare const CustomNotebooks: {
   notebooks: NotebookItem[];
 };
 
-export declare class DatapilotNotebookController implements Disposable {
+export declare class DatapilotNotebookController implements Disposable_2 {
   private clientMapper;
   private queryManifestService;
   private telemetry;
@@ -78,7 +79,13 @@ export declare class DatapilotNotebookController implements Disposable {
     altimate: AltimateRequest,
   );
   private getNotebookByTemplate;
-  profileYourQuery(args: any): Promise<void>;
+  modelTestSuggestions(args: any): Promise<void>;
+  generateDbtSourceYaml(args: any): Promise<void>;
+  generateDbtDbtModelSql(args: any): Promise<void>;
+  generateDbtDbtModelYaml(args: any): Promise<void>;
+  generateDbtDbtModelCTE(args: any): Promise<void>;
+  extractExposuresFromMetabase(args: any): Promise<void>;
+  extractExposuresFromTableau(args: any): Promise<void>;
   private getUntitledFileName;
   createNotebook(args: OpenNotebookRequest | undefined): Promise<void>;
   private sendMessageToPreloadScript;
@@ -94,7 +101,7 @@ export declare class DatapilotNotebookController implements Disposable {
 }
 
 declare class DatapilotNotebookSerializer
-  implements NotebookSerializer, Disposable
+  implements NotebookSerializer, Disposable_2
 {
   dispose(): void;
   deserializeNotebook(
@@ -123,7 +130,7 @@ export declare interface NotebookCellEvent {
 
 export declare interface NotebookCellSchema {
   source: string[];
-  cell_type: "code" | "markdown";
+  cell_type: NotebookCellKind;
   languageId: string;
   metadata?: Record<string, unknown>;
 }
@@ -164,7 +171,7 @@ declare class NotebookFileSystemProvider implements FileSystemProvider {
       recursive: boolean;
       excludes: string[];
     },
-  ): Disposable;
+  ): Disposable_2;
   stat(_uri: Uri): FileStat;
   readDirectory(_uri: Uri): [string, FileType][];
   createDirectory(_uri: Uri): void;
@@ -205,7 +212,17 @@ export declare interface NotebookItem {
   data: NotebookSchema;
 }
 
-export declare class NotebookKernelClient implements Disposable {
+export declare interface NotebookItem {
+  name: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+  id: string;
+  tags: string[];
+  data: NotebookSchema;
+}
+
+export declare class NotebookKernelClient implements Disposable_2 {
   private executionInfrastructure;
   private notebookDependencies;
   private dbtTerminal;
@@ -238,6 +255,7 @@ export declare class NotebookKernelClient implements Disposable {
   getKernel(): Promise<RawKernelType | undefined>;
   private initializeNotebookKernel;
   onKernelSocketResponse(payload: { id: string }): void;
+  storeContext(context: any): Promise<void>;
   storeDataInKernel(cellId: string, data: any): Promise<unknown>;
   registerCommTarget(payload: string): Promise<void>;
   getPythonCodeByType(type: string, cellId: string): Promise<string>;
@@ -260,7 +278,7 @@ export declare class NotebookKernelClient implements Disposable {
   private handleError;
 }
 
-export declare class NotebookProviders implements Disposable {
+export declare class NotebookProviders implements Disposable_2 {
   private notebookProvider;
   private notebookController;
   private notebookFileSystemProvider;
@@ -281,7 +299,7 @@ export declare interface NotebookSchema {
   metadata?: Record<string, unknown>;
 }
 
-export declare class NotebookService implements Disposable {
+export declare class NotebookService implements Disposable_2 {
   private notebookKernel;
   private disposables;
   private cellByNotebookAutocompleteMap;
@@ -301,7 +319,7 @@ export declare class NotebookService implements Disposable {
 export declare interface OpenNotebookRequest {
   notebookId?: string;
   template?: string;
-  query?: string;
+  context?: Record<string, unknown>;
 }
 
 declare interface RawKernelType {
