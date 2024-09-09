@@ -4,22 +4,13 @@ import {
 } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import NewFeatureIndicator from "@modules/newFeature/NewFeatureIndicator";
-import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import { Button } from "@uicore";
 import { useEffect, useState } from "react";
 
 const NewNotebookButton = (): JSX.Element | null => {
   const [show, setShow] = useState(false);
-  const { queryResults } = useQueryPanelState();
   const handleClick = () => {
-    executeRequestInAsync("openNewNotebook", { query: queryResults?.raw_sql });
-  };
-
-  const handleProfileQueryClick = () => {
-    executeRequestInAsync("openNewNotebook", {
-      query: queryResults?.raw_sql,
-      template: "Profile your query",
-    });
+    executeRequestInAsync("openNewNotebook", {});
   };
 
   useEffect(() => {
@@ -37,11 +28,6 @@ const NewNotebookButton = (): JSX.Element | null => {
 
   return (
     <>
-      <NewFeatureIndicator featureKey="profile-query-notebook-button-clicked">
-        <Button outline onClick={handleProfileQueryClick}>
-          Profile your query
-        </Button>
-      </NewFeatureIndicator>
       <NewFeatureIndicator featureKey="new-notebook-button-clicked">
         <Button outline onClick={handleClick}>
           + New notebook
