@@ -9,3 +9,4 @@ export { PythonEnvironment } from "./manifest/pythonEnvironment";
 export { CommandProcessExecutionFactory } from "./commandProcessExecution";
 export { DBTProjectContainer } from "./manifest/dbtProjectContainer";
 export { QueryManifestService } from "./services/queryManifestService";
+export { DBTProject } from "./manifest/dbtProject";
