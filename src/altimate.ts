@@ -10,7 +10,7 @@ import { RateLimitException, ExecutionsExhaustedException } from "./exceptions";
 import { DBTProject } from "./manifest/dbtProject";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
-import { NotebookItem, NotebookSchema } from "@lib";
+import { PreconfiguredNotebookItem, NotebookItem, NotebookSchema } from "@lib";
 
 export class NoCredentialsError extends Error {}
 
@@ -121,7 +121,7 @@ export interface SQLToModelResponse {
 }
 
 interface NotebooksResponse {
-  notebooks: NotebookItem[];
+  notebooks: PreconfiguredNotebookItem[];
 }
 
 interface NotebookRequest {
@@ -930,8 +930,26 @@ export class AltimateRequest {
     });
   }
 
-  async getNotebooks() {
-    return this.fetch<NotebookItem[]>("notebook/preconfigured/list", {
+  async getPreConfiguredNotebooks() {
+    return this.fetch<PreconfiguredNotebookItem[]>(
+      "notebook/preconfigured/list",
+      {
+        method: "GET",
+      },
+    );
+  }
+
+  async getNotebooks(
+    name: string = "",
+    tags_list: string[] = [],
+    privacy: string = "private",
+  ) {
+    const params = new URLSearchParams({
+      name,
+      privacy,
+      ...(tags_list.length > 0 && { tags_list: tags_list.join(",") }),
+    });
+    return this.fetch<NotebookItem[]>(`notebook/list?${params.toString()}`, {
       method: "GET",
     });
   }

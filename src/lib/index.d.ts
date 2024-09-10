@@ -52,7 +52,7 @@ declare interface ConnectionSettings {
 }
 
 export declare const CustomNotebooks: {
-  notebooks: NotebookItem[];
+  notebooks: PreconfiguredNotebookItem[];
 };
 
 export declare class DatapilotNotebookController implements Disposable_2 {
@@ -202,17 +202,21 @@ declare class NotebookFileSystemProvider implements FileSystemProvider {
   private saveNotebook;
 }
 
-export declare interface NotebookItem {
+export interface NotebookItem {
+  id: number;
   name: string;
-  description: string;
-  created_at: string;
-  updated_at: string;
-  id: string;
-  tags: string[];
   data: NotebookSchema;
+  description: string;
+  created_on: string;
+  updated_on: string;
+  tags: {
+    id: number;
+    tag: string;
+  }[];
+  privacy: boolean;
 }
 
-export declare interface NotebookItem {
+export declare interface PreconfiguredNotebookItem {
   name: string;
   description: string;
   created_at: string;
