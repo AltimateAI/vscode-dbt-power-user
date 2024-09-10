@@ -1,41 +1,20 @@
-import { NotebookCellKind } from "vscode";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import { useEffect, useState } from "react";
 import { ListGroup, ListGroupItem } from "@uicore";
 import classes from "./notebooklist.module.scss";
-
-export declare interface NotebookCellSchema {
-  source: string[];
-  cell_type: NotebookCellKind;
-  languageId: string;
-  metadata?: Record<string, unknown>;
-}
-interface NotebookSchema {
-  cells: NotebookCellSchema[];
-  metadata?: Record<string, unknown>;
-}
-interface NotebookItem {
-  id: number;
-  name: string;
-  data: NotebookSchema;
-  description: string;
-  created_on: string;
-  updated_on: string;
-  tags: {
-    id: number;
-    tag: string;
-  }[];
-  privacy: boolean;
-}
+import { NotebookItem } from "./types";
+import NotebookPrivacySettingButton from "./NotebookPrivacySettingButton";
 
 const NotebooksList = (): JSX.Element => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
   const [notebooks, setNotebooks] = useState<NotebookItem[]>();
-  useEffect(() => {
+  const fetchNotebooks = () => {
     executeRequestInSync("getNotebooks", {})
       .then((response) => setNotebooks(response as NotebookItem[]))
       .catch((err) => panelLogger.info(err));
+  };
+  useEffect(() => {
+    fetchNotebooks();
   }, []);
 
   const openNotebook = (name: string) => {
@@ -49,12 +28,17 @@ const NotebooksList = (): JSX.Element => {
       {notebooks && (
         <ListGroup>
           {notebooks.map((notebook, index) => (
-            <ListGroupItem
-              key={index}
-              onClick={() => openNotebook(notebook.name)}
-            >
-              <div>{notebook.name}</div>
+            <ListGroupItem key={index}>
+              <div onClick={() => openNotebook(notebook.name)}>
+                {notebook.name}
+              </div>
+              <br />
               <div>{notebook.tags.map((tag) => tag.tag).join(", ")}</div>
+              <br />
+              <NotebookPrivacySettingButton
+                notebook={notebook}
+                refetchNotebook={fetchNotebooks}
+              />
             </ListGroupItem>
           ))}
         </ListGroup>

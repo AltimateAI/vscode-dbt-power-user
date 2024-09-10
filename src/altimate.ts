@@ -955,7 +955,6 @@ export class AltimateRequest {
   }
 
   async addNotebook(req: NotebookRequest) {
-    console.log(req);
     return this.fetch<FeedbackResponse>("notebook", {
       method: "POST",
       body: JSON.stringify(req),
@@ -963,10 +962,19 @@ export class AltimateRequest {
   }
 
   async updateNotebook(id: number, req: NotebookRequest) {
-    console.log(req);
     return this.fetch<FeedbackResponse>(`notebook/${id}`, {
       method: "PUT",
       body: JSON.stringify(req),
     });
+  }
+
+  async updateNotebookPrivacy(id: number, privacy: string) {
+    const params = new URLSearchParams({ privacy: privacy });
+    return this.fetch<FeedbackResponse>(
+      `notebook/privacy/${id}?${params.toString()}`,
+      {
+        method: "PUT",
+      },
+    );
   }
 }
