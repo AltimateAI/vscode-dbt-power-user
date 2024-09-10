@@ -36,6 +36,7 @@ const NotebookPrivacySettingButton = ({
       privacy: privacy,
     })
       .then(() => {
+        popoverRef.current?.close();
         setIsSubmitting(false);
         refetchNotebook();
       })

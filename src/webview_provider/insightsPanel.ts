@@ -589,10 +589,14 @@ export class InsightsPanel extends AltimateWebviewProvider {
         });
         break;
       case "updateNotebookPrivacy":
-        await this.altimateRequest.updateNotebookPrivacy(
-          params.notebookId as number,
-          params.privacy as string,
-        );
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId: message.syncRequestId,
+          data: await this.altimateRequest.updateNotebookPrivacy(
+            params.notebookId as number,
+            params.privacy as string,
+          ),
+        });
         break;
       case "selectDirectoryForManifest":
         this.selectDirectoryForManifest(syncRequestId);
