@@ -1,27 +1,45 @@
+import { NotebookCellKind } from "vscode";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import { useEffect, useState } from "react";
 import { ListGroup, ListGroupItem } from "@uicore";
 import classes from "./notebooklist.module.scss";
 
-interface Notebook {
-  data: string;
+export declare interface NotebookCellSchema {
+  source: string[];
+  cell_type: NotebookCellKind;
+  languageId: string;
+  metadata?: Record<string, unknown>;
+}
+interface NotebookSchema {
+  cells: NotebookCellSchema[];
+  metadata?: Record<string, unknown>;
+}
+interface NotebookItem {
+  id: number;
+  name: string;
+  data: NotebookSchema;
+  description: string;
+  created_on: string;
+  updated_on: string;
+  tags: {
+    id: number;
+    tag: string;
+  }[];
+  privacy: boolean;
 }
 
 const NotebooksList = (): JSX.Element => {
-  const [notebooks, setNotebooks] = useState<
-    Record<string, Notebook> | undefined
-  >();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+  const [notebooks, setNotebooks] = useState<NotebookItem[]>();
   useEffect(() => {
     executeRequestInSync("getNotebooks", {})
-      .then((response) => {
-        setNotebooks(response as Record<string, Notebook> | undefined);
-      })
+      .then((response) => setNotebooks(response as NotebookItem[]))
       .catch((err) => panelLogger.info(err));
   }, []);
 
-  const openNotebook = (key: string) => {
-    executeRequestInSync("openNewNotebook", { notebookId: key })
+  const openNotebook = (name: string) => {
+    executeRequestInSync("openNewNotebook", { notebookId: name })
       .then(() => panelLogger.info("Notebook opened"))
       .catch((err) => panelLogger.info(err));
   };
@@ -30,9 +48,13 @@ const NotebooksList = (): JSX.Element => {
     <div className={classes.notebookList}>
       {notebooks && (
         <ListGroup>
-          {Object.entries(notebooks).map(([key]) => (
-            <ListGroupItem key={key} onClick={() => openNotebook(key)}>
-              <div>{key}</div>
+          {notebooks.map((notebook, index) => (
+            <ListGroupItem
+              key={index}
+              onClick={() => openNotebook(notebook.name)}
+            >
+              <div>{notebook.name}</div>
+              <div>{notebook.tags.map((tag) => tag.tag).join(", ")}</div>
             </ListGroupItem>
           ))}
         </ListGroup>
