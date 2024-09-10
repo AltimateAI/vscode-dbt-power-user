@@ -31,13 +31,13 @@ const NotebookPrivacySettingButton = ({
 
   const updateNotebookPrivacy = () => {
     setIsSubmitting(true);
-    executeRequestInSync("openNewNotebook", {
+    executeRequestInSync("updateNotebookPrivacy", {
       notebookId: notebook.id,
       privacy: privacy,
     })
       .then(() => {
-        refetchNotebook();
         setIsSubmitting(false);
+        refetchNotebook();
       })
       .catch((err) => panelLogger.info(err));
   };
