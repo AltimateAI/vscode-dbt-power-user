@@ -3,6 +3,7 @@ import { CancellationToken } from "vscode";
 import { CommandProcessExecutionFactory } from "../../dependencies.d.ts";
 import { DBTCommandExecutionInfrastructure } from "../dependencies.d.ts";
 import { DBTCommandExecutionInfrastructure as DBTCommandExecutionInfrastructure_2 } from "../../dependencies.d.ts";
+import { DBTProject } from "../../dependencies.d.ts";
 import { DBTProjectContainer } from "../dependencies.d.ts";
 import { DBTTerminal } from "../../dependencies.d.ts";
 import { DBTTerminal as DBTTerminal_2 } from "../dependencies.d.ts";
@@ -146,12 +147,24 @@ export declare class NotebookDependencies {
     commandProcessExecutionFactory: CommandProcessExecutionFactory,
     pythonEnvironment: PythonEnvironment,
   );
+  private checkPythonDependencies;
+  private checkDbtDependencies;
+  private installMissingPythonPackages;
+  private installMissingDbtPackages;
   verifyAndInstallDependenciesIfNeeded(
-    dependencies: string[],
-  ): Promise<false | undefined>;
+    dependencies: NotebookDependency[],
+    project: DBTProject,
+  ): Promise<void>;
   getDependenciesVersion(): Promise<Record<string, string>>;
   validateAndInstallNotebookDependencies(): Promise<boolean | undefined>;
   private notebookDependenciesAreInstalled;
+}
+
+export declare interface NotebookDependency {
+  type: "dbt" | "python";
+  package: string;
+  name?: string;
+  version?: string;
 }
 
 declare class NotebookFileSystemProvider implements FileSystemProvider {
