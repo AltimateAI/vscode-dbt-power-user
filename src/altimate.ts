@@ -961,4 +961,12 @@ export class AltimateRequest {
       body: JSON.stringify(req),
     });
   }
+
+  async updateNotebook(id: number, req: NotebookRequest) {
+    console.log(req);
+    return this.fetch<FeedbackResponse>(`notebook/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(req),
+    });
+  }
 }
