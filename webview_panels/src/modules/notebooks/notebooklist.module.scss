@@ -6,7 +6,7 @@
     width: 60%;
     border-radius: 0;
     overflow-y: auto;
-    max-height: 277px;
+    max-height: calc(100vh - 150px);
     padding: 1rem;
     margin-top: 20px;
     background: black;
@@ -65,6 +65,25 @@
     }
     &:hover {
       color: white;
+    }
+  }
+}
+
+.noNotebooksContainer {
+  width: 100vw;
+  display: flex;
+  justify-content: start;
+  .noNotebooks {
+    width: 60%;
+    text-align: center;
+    justify-content: start;
+    background: black;
+    padding-block: 30px;
+    .icon {
+      margin-bottom: 15px;
+    }
+    .button {
+      margin-top: 15px;
     }
   }
 }

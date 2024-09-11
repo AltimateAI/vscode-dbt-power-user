@@ -7,6 +7,7 @@ import { NotebookItem, NotebookSchema } from "./types";
 import NotebookPrivacySettingButton from "./NotebookPrivacySettingButton";
 import { format } from "date-fns";
 import { NoNotebooks } from "./NoNotebooks";
+import { ArrowDownIcon, ArrowRightIcon } from "@assets/icons";
 
 interface NotebookListProps {
   type: "saved" | "preconfigured";
@@ -14,6 +15,7 @@ interface NotebookListProps {
 }
 
 const NotebooksList = ({ type, privacy }: NotebookListProps): JSX.Element => {
+  const [isOpen, setIsOpen] = useState(true);
   const [notebooks, setNotebooks] = useState<NotebookItem[]>();
   const [isLoading, setIsLoading] = useState(false);
   const fetchNotebooks = () => {
@@ -45,8 +47,12 @@ const NotebooksList = ({ type, privacy }: NotebookListProps): JSX.Element => {
     <Accordion
       defaultOpen
       trigger={() => (
-        <header className="d-flex align-items-center justify-content-between mt-4">
+        <header
+          className="d-flex align-items-start justify-content-between mt-4"
+          onClick={() => setIsOpen((prev) => !prev)}
+        >
           <h4>
+            {isOpen ? <ArrowDownIcon /> : <ArrowRightIcon />}{" "}
             {type === "saved"
               ? privacy === "private"
                 ? "Saved Notebooks"
@@ -58,7 +64,12 @@ const NotebooksList = ({ type, privacy }: NotebookListProps): JSX.Element => {
     >
       {() => {
         if (isLoading) return <Spinner />;
-        if (!notebooks || notebooks.length === 0) return <NoNotebooks />;
+        if (!notebooks || notebooks.length === 0)
+          return (
+            <div className={classes.noNotebooksContainer}>
+              <NoNotebooks />
+            </div>
+          );
         if (!isLoading && notebooks)
           return (
             <div className={classes.notebookList}>
