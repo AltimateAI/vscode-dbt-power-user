@@ -45,15 +45,11 @@ export class DocumentationCodeLensProvider implements CodeLensProvider {
             command: "dbtPowerUser.createDatapilotNotebook",
             arguments: [
               {
-                context: {
-                  query: window.activeTextEditor?.document.getText(),
-                },
                 template: "Profile your query",
               },
             ],
           }),
         );
-        const modelName = path.basename(document.uri.fsPath, ".sql");
         codeLenses.push(
           new CodeLens(new Range(0, 0, 1, 1), {
             title: "Get test suggestions",
@@ -61,9 +57,6 @@ export class DocumentationCodeLensProvider implements CodeLensProvider {
             command: "dbtPowerUser.createDatapilotNotebook",
             arguments: [
               {
-                context: {
-                  model: modelName,
-                },
                 template: "Get test suggestions",
               },
             ],
@@ -76,9 +69,6 @@ export class DocumentationCodeLensProvider implements CodeLensProvider {
             command: "dbtPowerUser.createDatapilotNotebook",
             arguments: [
               {
-                context: {
-                  model: modelName,
-                },
                 template: "Generate dbt base model sql",
               },
             ],
@@ -91,9 +81,6 @@ export class DocumentationCodeLensProvider implements CodeLensProvider {
             command: "dbtPowerUser.createDatapilotNotebook",
             arguments: [
               {
-                context: {
-                  model: modelName,
-                },
                 template: "Generate dbt model yaml",
               },
             ],
@@ -106,9 +93,6 @@ export class DocumentationCodeLensProvider implements CodeLensProvider {
             command: "dbtPowerUser.createDatapilotNotebook",
             arguments: [
               {
-                context: {
-                  model: modelName,
-                },
                 template: "Generate dbt model CTE",
               },
             ],
