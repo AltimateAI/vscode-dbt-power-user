@@ -79,6 +79,7 @@ interface InjectConfig {
 }
 
 enum InboundCommand {
+  CollectQueryResultsDebugInfo = "collectQueryResultsDebugInfo",
   Info = "info",
   Error = "error",
   UpdateConfig = "updateConfig",
@@ -177,6 +178,19 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     );
 
     this.updateEnableBookmarksInContext();
+    this._disposables.push(
+      commands.registerCommand("dbtPowerUser.gatherQueryResultsDebugInfo", () =>
+        this.collectQueryResultsDebugInfo(),
+      ),
+      this,
+    );
+  }
+
+  private collectQueryResultsDebugInfo() {
+    console.log("Collecting query results debug info");
+    this._panel?.webview?.postMessage({
+      command: "collectQueryResultsDebugInfo",
+    });
   }
 
   private updateEnableBookmarksInContext() {
@@ -471,6 +485,12 @@ export class QueryResultPanel extends AltimateWebviewProvider {
               message.key,
               message.value,
             );
+            break;
+          case InboundCommand.CollectQueryResultsDebugInfo:
+            this.telemetry.sendTelemetryEvent("CollectQueryResultsDebugInfo", {
+              ...message,
+              history: this._queryHistory,
+            });
             break;
           default:
             super.handleCommand(message);

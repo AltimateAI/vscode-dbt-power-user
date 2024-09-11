@@ -341,6 +341,11 @@
     },
     "commands": [
       {
+        "command": "dbtPowerUser.gatherQueryResultsDebugInfo",
+        "title": "Query Results Debug Info",
+        "category": "dbt Power User"
+      },
+      {
         "command": "dbtPowerUser.resolveConversation",
         "title": "Resolve",
         "category": "dbt Power User"
