@@ -29,7 +29,7 @@ export interface NotebookItem {
 export interface PreconfiguredNotebookItem {
   name: string;
   description: string;
-  created_at: string;
+  created_on: string;
   updated_at: string;
   id: string;
   tags: string[];
