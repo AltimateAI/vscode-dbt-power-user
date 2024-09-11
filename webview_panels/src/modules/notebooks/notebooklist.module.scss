@@ -1,10 +1,15 @@
 .notebookList {
+  width: 100%;
   :global .list-group {
+    width: 60%;
     border-radius: 0;
+    overflow-y: auto;
+    max-height: 277px;
     padding: 1rem;
+    margin-top: 20px;
     :global .list-group-item {
-      background-color: var(--background--base);
-      color: var(--text-color--title);
+      background-color: #1e1e1e;
+      color: #808080;
       margin-bottom: 1rem;
       border-radius: 4px;
       border: 1px solid transparent;
@@ -23,7 +28,9 @@
         overflow: hidden;
         white-space: nowrap;
         flex: 1;
-        
+        text-align: left;
+        color: #808080;
+
         .codicon {
           color: #89d185;
           margin-right: 0.5rem;
@@ -34,10 +41,12 @@
         gap: 2px;
         span {
           vertical-align: bottom;
+          color: #808080;
         }
         button {
           display: none;
           padding: 1px 4px;
+          color: #808080;
         }
       }
 
@@ -45,7 +54,7 @@
         > div:last-child {
           button {
             display: inline-block;
-            color: var(--text-color--title);
+            color: #808080;
           }
         }
       }
