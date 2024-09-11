@@ -598,11 +598,14 @@ export class DBTProject implements Disposable {
     return this.dbtProjectIntegration.debug(debugCommand);
   }
 
-  installDbtPackages(packages: string[]) {
+  async installDbtPackages(packages: string[]) {
     this.telemetry.sendTelemetryEvent("installDbtPackages");
     const installPackagesCommand =
-      this.dbtCommandFactory.createInstallPackagesCommand(packages);
-    return this.dbtProjectIntegration.deps(installPackagesCommand);
+      this.dbtCommandFactory.createAddPackagesCommand(packages);
+    // Add packages first
+    await this.dbtProjectIntegration.deps(installPackagesCommand);
+    // Then install
+    return await this.dbtProjectIntegration.deps(this.dbtCommandFactory.createInstallDepsCommand());
   }
 
   installDeps() {
