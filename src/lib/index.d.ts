@@ -266,6 +266,7 @@ export declare interface OpenNotebookRequest {
     notebookId?: string;
     template?: string;
     context?: Record<string, unknown>;
+    notebookSchema?: NotebookSchema;
 }
 
 export declare interface PreconfiguredNotebookItem {
