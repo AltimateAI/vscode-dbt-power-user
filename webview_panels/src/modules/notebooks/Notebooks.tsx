@@ -5,7 +5,8 @@ const Notebooks = (): JSX.Element => {
   return (
     <div>
       <NotebooksList type="preconfigured" />
-      <NotebooksList type="saved" />
+      <NotebooksList type="saved" privacy="private" />
+      <NotebooksList type="saved" privacy="public" />
     </div>
   );
 };

@@ -10,16 +10,17 @@ import { NoNotebooks } from "./NoNotebooks";
 
 interface NotebookListProps {
   type: "saved" | "preconfigured";
+  privacy?: "public" | "private";
 }
 
-const NotebooksList = ({ type }: NotebookListProps): JSX.Element => {
+const NotebooksList = ({ type, privacy }: NotebookListProps): JSX.Element => {
   const [notebooks, setNotebooks] = useState<NotebookItem[]>();
   const [isLoading, setIsLoading] = useState(false);
   const fetchNotebooks = () => {
     setIsLoading(true);
     executeRequestInSync(
       type === "saved" ? "getNotebooks" : "getPreConfiguredNotebooks",
-      {},
+      type === "saved" ? { privacy: privacy } : {},
     )
       .then((response) => {
         setNotebooks(response as NotebookItem[]);
@@ -44,9 +45,13 @@ const NotebooksList = ({ type }: NotebookListProps): JSX.Element => {
     <Accordion
       defaultOpen
       trigger={() => (
-        <header className="d-flex align-items-center justify-content-between">
+        <header className="d-flex align-items-center justify-content-between mt-4">
           <h4>
-            {type === "saved" ? "Saved Notebooks" : "Pre-configured Notebooks"}
+            {type === "saved"
+              ? privacy === "private"
+                ? "Saved Notebooks"
+                : "Public Notebooks"
+              : "Pre-configured Notebooks"}
           </h4>
         </header>
       )}
@@ -79,10 +84,12 @@ const NotebooksList = ({ type }: NotebookListProps): JSX.Element => {
                           )}
                         </Stack>
                         <br />
-                        <NotebookPrivacySettingButton
-                          notebook={notebook}
-                          refetchNotebook={fetchNotebooks}
-                        />
+                        {privacy === "private" && (
+                          <NotebookPrivacySettingButton
+                            notebook={notebook}
+                            refetchNotebook={fetchNotebooks}
+                          />
+                        )}
                       </>
                     )}
                   </ListGroupItem>

@@ -1,5 +1,7 @@
 .notebookList {
-  width: 100%;
+  width: 100vw;
+  display: flex;
+  justify-content: start;
   :global .list-group {
     width: 60%;
     border-radius: 0;
@@ -7,8 +9,10 @@
     max-height: 277px;
     padding: 1rem;
     margin-top: 20px;
+    background: black;
     :global .list-group-item {
       background-color: #1e1e1e;
+      border-radius: 4px;
       color: #808080;
       margin-bottom: 1rem;
       border-radius: 4px;
@@ -17,7 +21,7 @@
       justify-content: space-between;
       align-items: center;
       cursor: pointer;
-      padding: 4px 0.5rem;
+      padding: 8px;
       min-height: 2.5rem;
       &:hover {
         border-color: var(--primary-color);
@@ -58,6 +62,9 @@
           }
         }
       }
+    }
+    &:hover {
+      color: white;
     }
   }
 }
