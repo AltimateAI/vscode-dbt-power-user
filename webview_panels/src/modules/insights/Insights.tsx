@@ -5,10 +5,10 @@ import DeferToProduction from "../defer/DeferToProduction";
 import ProjectHealthChecker from "../healthCheck/ProjectHealthChecker";
 import classes from "./insights.module.scss";
 import HelpButton from "./components/help/HelpButton";
-import NotebooksList from "@modules/notebooks/NotebooksList";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import { useEffect, useMemo, useState } from "react";
+import Notebooks from "@modules/notebooks/Notebooks";
 
 const Insights = (): JSX.Element => {
   const [notebooksEnabled, setNotebooksEnabled] = useState(false);
@@ -42,7 +42,7 @@ const Insights = (): JSX.Element => {
       ...list,
       {
         label: "Notebooks",
-        component: <NotebooksList />,
+        component: <Notebooks />,
       },
     ];
   }, [notebooksEnabled]);

@@ -588,6 +588,13 @@ export class InsightsPanel extends AltimateWebviewProvider {
           data: await this.altimateRequest.getNotebooks(),
         });
         break;
+      case "getPreConfiguredNotebooks":
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId: message.syncRequestId,
+          data: await this.altimateRequest.getPreConfiguredNotebooks(),
+        });
+        break;
       case "updateNotebookPrivacy":
         this.sendResponseToWebview({
           command: "response",

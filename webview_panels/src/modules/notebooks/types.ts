@@ -25,3 +25,13 @@ export interface NotebookItem {
   privacy: string;
   created_by_user: User;
 }
+
+export interface PreconfiguredNotebookItem {
+  name: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+  id: string;
+  tags: string[];
+  data: NotebookSchema;
+}
