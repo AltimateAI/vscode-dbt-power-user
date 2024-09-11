@@ -112,13 +112,6 @@ const useQueryPanelListeners = (): { loading: boolean } => {
   };
 
   const collectQueryResultsDebugInfo = () => {
-    /**
-     * perspective height
-     * no of rows
-     * theme
-     * data
-     * history length and size
-     *      */
     const perspectiveViewer = document.querySelector("perspective-viewer");
     const table = perspectiveViewer
       ?.querySelector("perspective-datagrid-json-viewer-plugin")

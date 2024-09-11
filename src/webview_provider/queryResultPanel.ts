@@ -179,8 +179,9 @@ export class QueryResultPanel extends AltimateWebviewProvider {
 
     this.updateEnableBookmarksInContext();
     this._disposables.push(
-      commands.registerCommand("dbtPowerUser.gatherQueryResultsDebugInfo", () =>
-        this.collectQueryResultsDebugInfo(),
+      commands.registerCommand(
+        "dbtPowerUser.collectQueryResultsDebugInfo",
+        () => this.collectQueryResultsDebugInfo(),
       ),
       this,
     );

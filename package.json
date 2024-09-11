@@ -341,7 +341,7 @@
     },
     "commands": [
       {
-        "command": "dbtPowerUser.gatherQueryResultsDebugInfo",
+        "command": "dbtPowerUser.collectQueryResultsDebugInfo",
         "title": "Query Results Debug Info",
         "category": "dbt Power User"
       },
