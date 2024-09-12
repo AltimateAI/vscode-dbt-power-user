@@ -74,37 +74,43 @@ const NotebooksList = ({ type, privacy }: NotebookListProps): JSX.Element => {
           return (
             <div className={classes.notebookList}>
               <ListGroup>
-                {notebooks.map((notebook, index) => (
-                  <ListGroupItem key={index}>
-                    <Stack
-                      onClick={() =>
-                        type === "saved"
-                          ? openNotebook(notebook.name)
-                          : openNotebook(undefined, notebook.data)
-                      }
-                    >
-                      {notebook.name}
-                    </Stack>
-                    <br />
-                    {type === "saved" && (
-                      <>
-                        <Stack>
-                          {format(
-                            new Date(notebook.created_on),
-                            "hh:mm a dd MMM yyyy",
+                {notebooks
+                  .filter(
+                    (notebook) =>
+                      type === "saved" ||
+                      notebook.data.metadata?.displayInActions === true,
+                  )
+                  .map((notebook, index) => (
+                    <ListGroupItem key={index}>
+                      <Stack
+                        onClick={() =>
+                          type === "saved"
+                            ? openNotebook(notebook.name)
+                            : openNotebook(undefined, notebook.data)
+                        }
+                      >
+                        {notebook.name}
+                      </Stack>
+                      <br />
+                      {type === "saved" && (
+                        <>
+                          <Stack>
+                            {format(
+                              new Date(notebook.created_on),
+                              "hh:mm a dd MMM yyyy",
+                            )}
+                          </Stack>
+                          <br />
+                          {privacy === "private" && (
+                            <NotebookPrivacySettingButton
+                              notebook={notebook}
+                              refetchNotebook={fetchNotebooks}
+                            />
                           )}
-                        </Stack>
-                        <br />
-                        {privacy === "private" && (
-                          <NotebookPrivacySettingButton
-                            notebook={notebook}
-                            refetchNotebook={fetchNotebooks}
-                          />
-                        )}
-                      </>
-                    )}
-                  </ListGroupItem>
-                ))}
+                        </>
+                      )}
+                    </ListGroupItem>
+                  ))}
               </ListGroup>
             </div>
           );
