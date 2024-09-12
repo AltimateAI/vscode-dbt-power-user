@@ -34,6 +34,11 @@
     },
     "typeRoots": ["src/modules/queryPanel/components/perspective"]
   },
-  "include": ["src", "vite.config.ts", "../src/telemetry/events.ts"],
+  "include": [
+    "src",
+    "vite.config.ts",
+    "vite.config.renderer.ts",
+    "../src/telemetry/events.ts"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

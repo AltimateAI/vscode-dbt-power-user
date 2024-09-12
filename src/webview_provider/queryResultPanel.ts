@@ -171,6 +171,16 @@ export class QueryResultPanel extends AltimateWebviewProvider {
               this.renderWebviewView(this._panel.webview);
             }
           }
+
+          if (e.affectsConfiguration("dbt.enableNotebooks")) {
+            this.updateEnableNotebooksInContext();
+            const event = workspace
+              .getConfiguration("dbt")
+              .get<boolean>("enableNotebooks", false)
+              ? "NotebooksEnabled"
+              : "NotebooksDisabled";
+            this.telemetry.sendTelemetryEvent(event);
+          }
         },
         this,
         this._disposables,
@@ -178,6 +188,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     );
 
     this.updateEnableBookmarksInContext();
+    this.updateEnableNotebooksInContext();
     this._disposables.push(
       commands.registerCommand(
         "dbtPowerUser.collectQueryResultsDebugInfo",
@@ -202,6 +213,15 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       workspace
         .getConfiguration("dbt")
         .get<boolean>("enableQueryBookmarks", false),
+    );
+  }
+
+  private updateEnableNotebooksInContext() {
+    // Setting this here to access it in package.json for enabling new file command
+    commands.executeCommand(
+      "setContext",
+      "dbt.enableNotebooks",
+      workspace.getConfiguration("dbt").get<boolean>("enableNotebooks", false),
     );
   }
 
@@ -697,6 +717,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         Date.now() - start,
         output.modelName,
       );
+      return result;
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         if (exc.exception.type.name === "KeyboardInterrupt") {

@@ -7,3 +7,5 @@ dist
 .idea
 .history
 __pycache__/
+
+src/lib/notebooks/

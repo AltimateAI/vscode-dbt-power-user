@@ -13,8 +13,7 @@ import "@finos/perspective-viewer/dist/css/vaporwave.css";
 import "@finos/perspective-viewer/dist/css/solarized.css";
 import "@finos/perspective-viewer/dist/css/solarized-dark.css";
 import "@finos/perspective-viewer/dist/css/monokai.css";
-import "./PerspectivePlugins";
-import { useEffect, useRef, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 import { panelLogger } from "@modules/logger";
 import useAppContext from "@modules/app/useAppContext";
 import classes from "./perspective.module.scss";
@@ -29,11 +28,13 @@ interface Props {
   data: TableData;
   columnNames: string[];
   columnTypes: string[];
+  styles?: CSSProperties;
 }
 const PerspectiveViewer = ({
   columnNames,
   columnTypes,
   data,
+  styles,
 }: Props): JSX.Element => {
   const {
     state: { theme },
@@ -125,7 +126,7 @@ const PerspectiveViewer = ({
 
   const updateCustomStyles = (currentTheme: string) => {
     const shadowRoot = perspectiveViewerRef.current?.querySelector(
-      "perspective-datagrid-json-viewer-plugin"
+      "perspective-datagrid-json-viewer-plugin",
     )?.shadowRoot;
     if (!shadowRoot) {
       return;
@@ -284,6 +285,7 @@ const PerspectiveViewer = ({
       <perspective-viewer
         class={classes.altimatePerspectiveViewer}
         ref={perspectiveViewerRef}
+        style={styles}
       ></perspective-viewer>
       <Drawer
         buttonProps={{ color: "primary", title: "Json Viewer" }}

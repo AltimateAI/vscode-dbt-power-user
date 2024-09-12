@@ -3,9 +3,17 @@
 out/**
 src/**
 **/node_modules
+!dist/node_modules/**
 .gitignore
 vsc-extension-quickstart.md
 **/tsconfig.json
 **/.eslintrc.json
 **/*.map
 **/*.ts
+.github
+lineage_panel
+new_lineage_panel
+!new_lineage_panel/dist
+webview_panels
+!webview_panels/dist
+query_panel

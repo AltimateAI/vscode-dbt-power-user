@@ -581,6 +581,35 @@ export class InsightsPanel extends AltimateWebviewProvider {
     const { command, syncRequestId, ...params } = message;
 
     switch (command) {
+      case "getNotebooks":
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId: message.syncRequestId,
+          // TODO: add other params here later
+          data: await this.altimateRequest.getNotebooks(
+            "",
+            [],
+            params.privacy as string,
+          ),
+        });
+        break;
+      case "getPreConfiguredNotebooks":
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId: message.syncRequestId,
+          data: await this.altimateRequest.getPreConfiguredNotebooks(),
+        });
+        break;
+      case "updateNotebookPrivacy":
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId: message.syncRequestId,
+          data: await this.altimateRequest.updateNotebookPrivacy(
+            params.notebookId as number,
+            params.privacy as string,
+          ),
+        });
+        break;
       case "selectDirectoryForManifest":
         this.selectDirectoryForManifest(syncRequestId);
         break;

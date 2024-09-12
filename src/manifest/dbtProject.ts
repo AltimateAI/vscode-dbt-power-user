@@ -66,7 +66,9 @@ import { RunResultsEvent } from "./event/runResultsEvent";
 interface FileNameTemplateMap {
   [key: string]: string;
 }
-
+interface JsonObj {
+  [key: string]: string | number | undefined;
+}
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
   static MANIFEST_FILE = "manifest.json";
@@ -596,6 +598,16 @@ export class DBTProject implements Disposable {
     return this.dbtProjectIntegration.debug(debugCommand);
   }
 
+  async installDbtPackages(packages: string[]) {
+    this.telemetry.sendTelemetryEvent("installDbtPackages");
+    const installPackagesCommand =
+      this.dbtCommandFactory.createAddPackagesCommand(packages);
+    // Add packages first
+    await this.dbtProjectIntegration.deps(installPackagesCommand);
+    // Then install
+    return await this.dbtProjectIntegration.deps(this.dbtCommandFactory.createInstallDepsCommand());
+  }
+
   installDeps() {
     this.telemetry.sendTelemetryEvent("installDeps");
     const installDepsCommand =
@@ -991,7 +1003,11 @@ select * from renamed
     }
   }
 
-  async executeSQL(query: string, modelName: string) {
+  async executeSQL(
+    query: string,
+    modelName: string,
+    returnImmediately?: boolean,
+  ) {
     // if user added a semicolon at the end, let,s remove it.
     query = query.replace(/;\s*$/, "");
     const limit = workspace
@@ -1011,6 +1027,30 @@ select * from renamed
       limit: limit.toString(),
     });
 
+    if (returnImmediately) {
+      const execution = await this.dbtProjectIntegration.executeSQL(
+        query,
+        limit,
+        modelName,
+      );
+      const result = await execution.executeQuery();
+      const rows: JsonObj[] = [];
+      // Convert compressed array format to dict[]
+      for (let i = 0; i < result.table.rows.length; i++) {
+        result.table.rows[i].forEach((value: any, j: any) => {
+          rows[i] = { ...rows[i], [result.table.column_names[j]]: value };
+        });
+      }
+      const data = {
+        columnNames: result.table.column_names,
+        columnTypes: result.table.column_types,
+        data: rows,
+        raw_sql: query,
+        compiled_sql: result.compiled_sql,
+      };
+
+      return data;
+    }
     this.eventEmitterService.fire({
       command: "executeQuery",
       payload: {

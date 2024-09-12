@@ -163,7 +163,14 @@ export class ModelAutocompletionProvider
     const projectRootpath =
       this.dbtProjectContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
-      return;
+      const project = this.dbtProjectContainer.getFromWorkspaceState(
+        "dbtPowerUser.projectSelected",
+      );
+      if (!project?.uri) {
+        return;
+      }
+
+      return this.modelAutocompleteMap.get(project.uri.fsPath);
     }
     this.telemetry.sendTelemetryEvent("provideModelAutocompletion");
     return this.modelAutocompleteMap.get(projectRootpath.fsPath);

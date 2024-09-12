@@ -21,6 +21,7 @@ import { HoverProviders } from "./hover_provider";
 import { DbtPowerUserActionsCenter } from "./quickpick";
 import { ValidationProvider } from "./validation_provider";
 import { CommentProviders } from "./comment_provider";
+import { NotebookProviders } from "@lib";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -33,6 +34,7 @@ export class DBTPowerUserExtension implements Disposable {
     { language: "jinja-sql", scheme: "file" },
     { language: "sql", scheme: "file" },
     { language: "jinja-sql", scheme: "untitled" },
+    { language: "jinja-sql", scheme: "vscode-notebook-cell" },
   ];
   static DBT_YAML_SELECTOR = [
     { language: "yaml", scheme: "file" },
@@ -63,6 +65,7 @@ export class DBTPowerUserExtension implements Disposable {
     private hoverProviders: HoverProviders,
     private validationProvider: ValidationProvider,
     private commentProviders: CommentProviders,
+    private notebookProviders: NotebookProviders,
   ) {
     this.disposables.push(
       this.dbtProjectContainer,
@@ -80,6 +83,7 @@ export class DBTPowerUserExtension implements Disposable {
       this.hoverProviders,
       this.validationProvider,
       this.commentProviders,
+      this.notebookProviders,
     );
   }
 

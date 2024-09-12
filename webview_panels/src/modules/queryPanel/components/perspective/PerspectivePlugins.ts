@@ -1,4 +1,3 @@
-/* eslint-disable no-underscore-dangle */
 import { panelLogger } from "@modules/logger";
 import OpenIcon from "./openIcon.svg?raw";
 import type { Schema } from "@finos/perspective";
@@ -9,7 +8,7 @@ function dispatchCustomEvent(
   eventName: string,
   message: string,
   columnName: string,
-  type: string
+  type: string,
 ) {
   const event = new CustomEvent(eventName, {
     detail: { columnName, message, type },
@@ -57,7 +56,7 @@ function removeImageAndClickEvent(tdArg: HTMLTableCellElement) {
 // Adds click event to the td element
 function makeClickEvent(
   tdArg: HTMLTableCellElement,
-  metadata: TableCellMetadata
+  metadata: TableCellMetadata,
 ) {
   const td = tdArg;
 
@@ -71,7 +70,7 @@ function makeClickEvent(
         "string-json-viewer",
         metadata.value,
         columnName,
-        "json"
+        "json",
       );
     };
     return;
@@ -86,7 +85,7 @@ function makeClickEvent(
         "string-json-viewer",
         metadata.value,
         columnName,
-        "string"
+        "string",
       );
     };
     return;
@@ -97,7 +96,7 @@ function makeClickEvent(
 
 // Custom perspective plugin to add click event to the td element
 class PerspectiveDatagridJSONViewerPlugin extends (customElements.get(
-  "perspective-viewer-datagrid"
+  "perspective-viewer-datagrid",
 ) as unknown as typeof HTMLPerspectiveViewerDatagridPluginElement) {
   private readonly pluginName = "PerspectiveDatagridJSONViewerPlugin";
   private view?: PerspectiveViewerView;
@@ -190,7 +189,7 @@ class PerspectiveDatagridJSONViewerPlugin extends (customElements.get(
 
 customElements.define(
   "perspective-datagrid-json-viewer-plugin",
-  PerspectiveDatagridJSONViewerPlugin
+  PerspectiveDatagridJSONViewerPlugin,
 );
 
 void customElements

@@ -46,6 +46,7 @@ import { DBTProject } from "../manifest/dbtProject";
 import { SQLLineagePanel } from "../webview_provider/sqlLineagePanel";
 import { QueryManifestService } from "../services/queryManifestService";
 import { AltimateRequest } from "../altimate";
+import { DatapilotNotebookController, OpenNotebookRequest } from "@lib";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -67,6 +68,7 @@ export class VSCodeCommands implements Disposable {
     private sqlLineagePanel: SQLLineagePanel,
     private queryManifestService: QueryManifestService,
     private altimate: AltimateRequest,
+    private notebookController: DatapilotNotebookController,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -561,8 +563,15 @@ export class VSCodeCommands implements Disposable {
         }
       }),
       commands.registerCommand(
+        "dbtPowerUser.createDatapilotNotebook",
+        async (args: OpenNotebookRequest | undefined) => {
+          this.notebookController.createNotebook(args);
+        },
+      ),
+      commands.registerCommand(
         "dbtPowerUser.createSqlFile",
-        async ({ code, fileName }: { code?: string; fileName?: string }) => {
+        async (args: { code?: string; fileName?: string } | undefined) => {
+          const { code, fileName } = args || {};
           try {
             const project =
               await this.queryManifestService.getOrPickProjectFromWorkspace();

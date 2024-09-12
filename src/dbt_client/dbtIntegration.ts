@@ -649,6 +649,16 @@ export class DBTCommandFactory {
     return new DBTCommand("Installing packages...", ["deps"], true, true, true);
   }
 
+  createAddPackagesCommand(packages: string[]): DBTCommand {
+    return new DBTCommand(
+      "Installing packages...",
+      ["deps", "--add-package", ...packages],
+      true,
+      true,
+      true,
+    );
+  }
+
   createDebugCommand(): DBTCommand {
     return new DBTCommand("Debugging...", ["debug"], true, true, true);
   }
