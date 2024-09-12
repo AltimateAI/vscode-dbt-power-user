@@ -17,6 +17,6 @@ runs:
     - run: npm install
       shell: bash  # Explicitly define the shell
       working-directory: ./webview_panels
-    - run: npm postinstall
+    - run: npm run postinstall
       shell: bash
       
