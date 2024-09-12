@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.44.7",
+  "version": "0.44.8",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -366,6 +366,11 @@
       ]
     },
     "commands": [
+      {
+        "command": "dbtPowerUser.collectQueryResultsDebugInfo",
+        "title": "Query Results Debug Info",
+        "category": "dbt Power User"
+      },
       {
         "command": "dbtPowerUser.resolveConversation",
         "title": "Resolve",
