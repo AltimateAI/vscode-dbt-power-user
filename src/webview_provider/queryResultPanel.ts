@@ -508,10 +508,20 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             );
             break;
           case InboundCommand.CollectQueryResultsDebugInfo:
-            this.telemetry.sendTelemetryEvent("CollectQueryResultsDebugInfo", {
+            const data = {
               ...message,
-              history: this._queryHistory,
-            });
+              historyItems: this._queryHistory.length,
+              historySize: JSON.stringify(this._queryHistory).length,
+            };
+            this.dbtTerminal.debug(
+              "CollectQueryResultsDebugInfo",
+              "collecting query results debug info",
+              data,
+            );
+            this.telemetry.sendTelemetryEvent(
+              "CollectQueryResultsDebugInfo",
+              data,
+            );
             break;
           default:
             super.handleCommand(message);
