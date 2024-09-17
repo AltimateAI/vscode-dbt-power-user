@@ -1243,12 +1243,12 @@
     "ms-python.python"
   ],
   "dependencies": {
-    "@jupyterlab/coreutils": "^6.2.4",
-    "@jupyterlab/nbformat": "^4.2.4",
-    "@jupyterlab/services": "^6.6.7",
+    "@jupyterlab/coreutils": "^6.2.5",
+    "@jupyterlab/nbformat": "^4.2.5",
+    "@jupyterlab/services": "^6.6.8",
     "@nteract/messaging": "^7.0.20",
     "@vscode/codicons": "^0.0.36",
-    "@vscode/extension-telemetry": "^0.9.6",
+    "@vscode/extension-telemetry": "^0.9.7",
     "@vscode/vsce": "^2.31.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "dayjs": "^1.11.13",
