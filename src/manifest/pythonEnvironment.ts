@@ -128,7 +128,7 @@ export class PythonEnvironment implements Disposable {
     const pythonPath = api.settings.getExecutionDetails(workspace.workspaceFile)
       .execCommand[0];
     const envDetails = await api.environment.getEnvironmentDetails(pythonPath);
-    this.isPython3 = envDetails.version[0] === "3";
+    this.isPython3 = envDetails?.version[0] === "3";
 
     const dbtInstalledPythonPath: string[] = [];
     // TODO: support multiple workspacefolders for python detection
