@@ -513,10 +513,11 @@ export class QueryResultPanel extends AltimateWebviewProvider {
               historyItems: this._queryHistory.length,
               historySize: JSON.stringify(this._queryHistory).length,
             };
-            this.dbtTerminal.debug(
+            this.dbtTerminal.info(
               "CollectQueryResultsDebugInfo",
               "collecting query results debug info",
-              data,
+              false,
+              JSON.stringify(data),
             );
             this.telemetry.sendTelemetryEvent(
               "CollectQueryResultsDebugInfo",
