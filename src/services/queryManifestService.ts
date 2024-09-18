@@ -167,7 +167,7 @@ export class QueryManifestService {
       window.activeTextEditor?.document.uri ||
       window.activeNotebookEditor?.notebook.uri;
     const project = uri ? this.dbtProjectContainer.findDBTProject(uri) : null;
-    
+
     if (project) {
       return project;
     }
