@@ -12,9 +12,11 @@ import { ArrowDownIcon, ArrowRightIcon } from "@assets/icons";
 interface NotebookListProps {
   type: "saved" | "preconfigured";
   privacy?: "public" | "private";
+  refetchTime: number;
+  refetchNotebook: () => void;
 }
 
-const NotebooksList = ({ type, privacy }: NotebookListProps): JSX.Element => {
+const NotebooksList = ({ type, privacy, refetchTime, refetchNotebook }: NotebookListProps): JSX.Element => {
   const [isOpen, setIsOpen] = useState(true);
   const [notebooks, setNotebooks] = useState<NotebookItem[]>();
   const [isLoading, setIsLoading] = useState(false);
@@ -32,7 +34,7 @@ const NotebooksList = ({ type, privacy }: NotebookListProps): JSX.Element => {
   };
   useEffect(() => {
     fetchNotebooks();
-  }, []);
+  }, [refetchTime]);
 
   const openNotebook = (name?: string, notebookSchema?: NotebookSchema) => {
     executeRequestInSync("openNewNotebook", {
@@ -104,7 +106,7 @@ const NotebooksList = ({ type, privacy }: NotebookListProps): JSX.Element => {
                           {privacy === "private" && (
                             <NotebookPrivacySettingButton
                               notebook={notebook}
-                              refetchNotebook={fetchNotebooks}
+                              refetchNotebook={refetchNotebook}
                             />
                           )}
                         </>

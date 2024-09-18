@@ -2,6 +2,8 @@ import {
   commands,
   ConfigurationTarget,
   env,
+  FileChangeEvent,
+  FileChangeType,
   ProgressLocation,
   TextEditor,
   Uri,
@@ -28,6 +30,7 @@ import { ManifestPathType } from "../constants";
 import { QueryManifestService } from "../services/queryManifestService";
 import { ValidationProvider } from "../validation_provider";
 import { UsersService } from "../services/usersService";
+import { NotebookFileSystemProvider } from "@lib";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];
@@ -84,6 +87,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
     private deferToProdService: DeferToProdService,
     private validationProvider: ValidationProvider,
     protected usersService: UsersService,
+    private notebookFileSystemProvider: NotebookFileSystemProvider,
   ) {
     super(
       dbtProjectContainer,
@@ -124,6 +128,22 @@ export class InsightsPanel extends AltimateWebviewProvider {
                 projectPath: currentProject?.projectRoot.fsPath,
                 dbtIntegrationMode,
               },
+            });
+          }
+        },
+      ),
+    );
+
+    this._disposables.push(
+      this.notebookFileSystemProvider.onDidChangeFile(
+        (e: FileChangeEvent[]) => {
+          const createdEvent = e.find(
+            (event) => event.type === FileChangeType.Created,
+          );
+          if (createdEvent) {
+            this.sendResponseToWebview({
+              command: "refetchNotebooks",
+              data: {},
             });
           }
         },
