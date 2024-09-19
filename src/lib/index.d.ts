@@ -137,6 +137,7 @@ export declare interface NotebookCellSchema {
   cell_type: NotebookCellKind;
   languageId: string;
   metadata?: Record<string, unknown>;
+  outputs?: NotebookCellOutput[];
 }
 
 export declare class NotebookDependencies {
@@ -175,6 +176,7 @@ export declare class NotebookFileSystemProvider implements FileSystemProvider {
   private altimate;
   private _emitter;
   readonly onDidChangeFile: Event_2<FileChangeEvent[]>;
+  private notebookDataMap;
   constructor(dbtTerminal: DBTTerminal_2, altimate: AltimateRequest);
   watch(
     _uri: Uri,
@@ -186,6 +188,7 @@ export declare class NotebookFileSystemProvider implements FileSystemProvider {
   stat(_uri: Uri): FileStat;
   readDirectory(_uri: Uri): [string, FileType][];
   createDirectory(_uri: Uri): void;
+  private getNotebookData;
   readFile(uri: Uri): Promise<Uint8Array>;
   writeFile(
     uri: Uri,
