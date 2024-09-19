@@ -241,6 +241,7 @@ export class DBTCoreProjectIntegration
   private profilesDir?: string;
   private targetPath?: string;
   private adapterType?: string;
+  private targetName?: string;
   private version?: number[];
   private packagesInstallPath?: string;
   private modelPaths?: string[];
@@ -370,6 +371,7 @@ export class DBTCoreProjectIntegration
   async refreshProjectConfig(): Promise<void> {
     await this.createPythonDbtProject(this.python);
     await this.python.ex`project.init_project()`;
+    this.targetName = await this.findSelectedTarget();
     this.targetPath = await this.findTargetPath();
     this.modelPaths = await this.findModelPaths();
     this.seedPaths = await this.findSeedPaths();
@@ -377,6 +379,25 @@ export class DBTCoreProjectIntegration
     this.packagesInstallPath = await this.findPackagesInstallPath();
     this.version = await this.findVersion();
     this.adapterType = await this.findAdapterType();
+  }
+
+  async findSelectedTarget(): Promise<string> {
+    return await this.python.lock(
+      (python) => python`to_dict(project.config.target_name)`,
+    );
+  }
+
+  async setSelectedTarget(targetName: string): Promise<void> {
+    await this.python.lock(
+      (python) => python`project.set_selected_target(${targetName})`,
+    );
+    await this.refreshProjectConfig();
+  }
+
+  async getTargetNames(): Promise<Array<string>> {
+    return await this.python.lock(
+      (python) => python`to_dict(project.get_target_names())`,
+    );
   }
 
   async executeSQL(
@@ -505,6 +526,10 @@ export class DBTCoreProjectIntegration
         this.telemetry.sendTelemetryError("pythonBridgeInitError", exc);
       }
     }
+  }
+
+  getSelectedTarget() {
+    return this.targetName;
   }
 
   getTargetPath(): string | undefined {
@@ -797,6 +822,10 @@ export class DBTCoreProjectIntegration
     if (this.profilesDir) {
       command.addArgument("--profiles-dir");
       command.addArgument(this.profilesDir);
+    }
+    if (this.targetName) {
+      command.addArgument("--target");
+      command.addArgument(this.targetName);
     }
     command.setExecutionStrategy(this.pythonDBTCommandExecutionStrategy);
     return command;

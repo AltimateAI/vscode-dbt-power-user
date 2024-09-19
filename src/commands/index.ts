@@ -15,6 +15,7 @@ import {
   ProgressLocation,
   TextEditorDecorationType,
   DecorationRangeBehavior,
+  QuickPickItem,
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { RunModelType } from "../domain";
@@ -566,6 +567,44 @@ export class VSCodeCommands implements Disposable {
         "dbtPowerUser.createDatapilotNotebook",
         async (args: OpenNotebookRequest | undefined) => {
           this.notebookController.createNotebook(args);
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.openTargetSelector",
+        async (targets, project: DBTProject, statusBar) => {
+          try {
+            if (!targets) {
+              return;
+            }
+            this.dbtTerminal.debug(
+              "OpenTargetSelector",
+              "Showing following targets",
+              targets,
+            );
+            const target = await window.showQuickPick(targets, {
+              title: "Select your target",
+              canPickMany: false,
+            });
+            if (target) {
+              await project.setSelectedTarget(target);
+              await statusBar.updateStatusBar();
+              this.dbtTerminal.info(
+                "OpenTargetSelector",
+                "Selecting target",
+                true,
+                target,
+              );
+            }
+          } catch (error) {
+            this.dbtTerminal.error(
+              "OpenTargetSelector",
+              "An error occurred while changing target",
+              error,
+            );
+            window.showErrorMessage(
+              "An error occurred while changing target: " + error,
+            );
+          }
         },
       ),
       commands.registerCommand(
