@@ -344,7 +344,7 @@ class DbtProject:
 
     def __init__(
         self,
-        target: Optional[str] = None,
+        target_name: Optional[str] = None,
         profiles_dir: Optional[str] = None,
         project_dir: Optional[str] = None,
         threads: Optional[int] = 1,
@@ -357,7 +357,7 @@ class DbtProject:
     ):
         self.args = ConfigInterface(
             threads=threads,
-            target=target,
+            target=target_name,
             profiles_dir=profiles_dir,
             project_dir=project_dir,
             profile=profile,
@@ -398,7 +398,9 @@ class DbtProject:
             set_invocation_context(os.environ)
             set_from_args(self.args, None)
             # Copy over global_flags
-            self.args.__dict__.update(get_flags().__dict__)
+            for key, value in get_flags().__dict__.items():
+                if key not in self.args.__dict__:
+                    self.args.__dict__[key] = value
         else:
             set_from_args(self.args, self.args)
         self.config = RuntimeConfig.from_args(self.args)
@@ -882,3 +884,15 @@ class DbtProject:
             return self.adapter.validate_sql(compiled_sql)
         except Exception as e:
             raise Exception(str(e))
+
+    def get_target_names(self):
+        from dbt.config.profile import read_profile
+        profile = read_profile(self.args.profiles_dir)
+        project = profile[self.project_name]
+        if "outputs" in project:
+            outputs = project["outputs"]
+            return outputs.keys()
+        return []
+    
+    def set_selected_target(self, target: str):
+        self.args.target = target

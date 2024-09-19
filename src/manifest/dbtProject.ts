@@ -210,6 +210,18 @@ export class DBTProject implements Disposable {
     return this.projectConfig.name;
   }
 
+  getSelectedTarget() {
+    return this.dbtProjectIntegration.getSelectedTarget();
+  }
+
+  getTargetNames() {
+    return this.dbtProjectIntegration.getTargetNames();
+  }
+
+  async setSelectedTarget(targetName: string) {
+    await this.dbtProjectIntegration.setSelectedTarget(targetName);
+  }
+
   getDBTProjectFilePath() {
     return path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE);
   }
@@ -605,7 +617,9 @@ export class DBTProject implements Disposable {
     // Add packages first
     await this.dbtProjectIntegration.deps(installPackagesCommand);
     // Then install
-    return await this.dbtProjectIntegration.deps(this.dbtCommandFactory.createInstallDepsCommand());
+    return await this.dbtProjectIntegration.deps(
+      this.dbtCommandFactory.createInstallDepsCommand(),
+    );
   }
 
   installDeps() {

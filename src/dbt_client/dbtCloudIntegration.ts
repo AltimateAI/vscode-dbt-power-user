@@ -336,6 +336,18 @@ export class DBTCloudProjectIntegration
     this.dbtPath = getDBTPath(this.pythonEnvironment, this.terminal);
   }
 
+  async setSelectedTarget(targetName: string): Promise<void> {
+    throw new Error("Method not implemented.");
+  }
+
+  async getTargetNames(): Promise<Array<string>> {
+    throw new Error("Method not implemented.");
+  }
+
+  getSelectedTarget(): string | undefined {
+    throw new Error("Method not implemented.");
+  }
+
   getTargetPath(): string | undefined {
     return this.targetPath;
   }
