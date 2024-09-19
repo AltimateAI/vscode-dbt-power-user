@@ -124,11 +124,18 @@ interface NotebooksResponse {
   notebooks: PreconfiguredNotebookItem[];
 }
 
-interface NotebookRequest {
+interface AddNotebookRequest {
   name: string;
   description: string;
   tags_list: string[];
-  data: NotebookSchema;
+  data?: NotebookSchema;
+}
+
+interface UpdateNotebookRequest {
+  name: string;
+  description?: string;
+  tags_list?: string[];
+  data?: NotebookSchema;
 }
 
 interface OnewayFeedback {
@@ -954,14 +961,20 @@ export class AltimateRequest {
     });
   }
 
-  async addNotebook(req: NotebookRequest) {
+  async addNotebook(req: AddNotebookRequest) {
     return this.fetch<FeedbackResponse>("notebook", {
       method: "POST",
       body: JSON.stringify(req),
     });
   }
 
-  async updateNotebook(id: number, req: NotebookRequest) {
+  async deleteNotebook(id: number) {
+    return this.fetch<FeedbackResponse>(`notebook/${id}`, {
+      method: "DELETE",
+    });
+  }
+
+  async updateNotebook(id: number, req: UpdateNotebookRequest) {
     return this.fetch<FeedbackResponse>(`notebook/${id}`, {
       method: "PUT",
       body: JSON.stringify(req),

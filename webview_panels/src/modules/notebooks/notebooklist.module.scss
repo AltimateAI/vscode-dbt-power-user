@@ -67,6 +67,19 @@
       color: white;
     }
   }
+  .notebookName {
+    span {
+      line-height: 2.4;
+    }
+
+    button {
+      padding-left: 0;
+      padding-top: 0;
+    }
+    svg {
+      width: 10px;
+    }
+  }
 }
 
 .noNotebooksContainer {
