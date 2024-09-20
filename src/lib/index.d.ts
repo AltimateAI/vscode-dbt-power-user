@@ -67,8 +67,8 @@ export declare class DatapilotNotebookController implements Disposable_2 {
   private _onNotebookCellEvent;
   readonly onNotebookCellChangeEvent: Event_2<NotebookCellEvent>;
   private readonly disposables;
+  private associatedNotebooks;
   private executionOrder;
-  private untitledCounter;
   private readonly controller;
   constructor(
     clientMapper: ClientMapper,
@@ -86,14 +86,17 @@ export declare class DatapilotNotebookController implements Disposable_2 {
   generateDbtDbtModelCTE(args: any): Promise<void>;
   extractExposuresFromMetabase(args: any): Promise<void>;
   extractExposuresFromTableau(args: any): Promise<void>;
-  private getUntitledFileName;
+  private getFileName;
   createNotebook(args: OpenNotebookRequest | undefined): Promise<void>;
   private sendMessageToPreloadScript;
   private getRandomString;
   private genUniqueId;
   private updateCellId;
   private onNotebookClose;
+  private onDidChangeSelectedNotebooks;
   private onNotebookOpen;
+  private waitForControllerAssociation;
+  private isControllerAssociatedWithNotebook;
   dispose(): void;
   private _executeAll;
   private filterIPyWidgets;
@@ -134,6 +137,7 @@ export declare interface NotebookCellSchema {
   cell_type: NotebookCellKind;
   languageId: string;
   metadata?: Record<string, unknown>;
+  outputs?: NotebookCellOutput[];
 }
 
 export declare class NotebookDependencies {
@@ -167,11 +171,12 @@ export declare interface NotebookDependency {
   version?: string;
 }
 
-declare class NotebookFileSystemProvider implements FileSystemProvider {
+export declare class NotebookFileSystemProvider implements FileSystemProvider {
   private dbtTerminal;
   private altimate;
   private _emitter;
   readonly onDidChangeFile: Event_2<FileChangeEvent[]>;
+  private notebookDataMap;
   constructor(dbtTerminal: DBTTerminal_2, altimate: AltimateRequest);
   watch(
     _uri: Uri,
@@ -183,6 +188,7 @@ declare class NotebookFileSystemProvider implements FileSystemProvider {
   stat(_uri: Uri): FileStat;
   readDirectory(_uri: Uri): [string, FileType][];
   createDirectory(_uri: Uri): void;
+  private getNotebookData;
   readFile(uri: Uri): Promise<Uint8Array>;
   writeFile(
     uri: Uri,
