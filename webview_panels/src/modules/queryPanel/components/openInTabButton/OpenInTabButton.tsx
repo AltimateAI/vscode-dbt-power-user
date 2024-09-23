@@ -1,3 +1,4 @@
+import { OpenNewIcon } from "@assets/icons";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import NewFeatureIndicator from "@modules/newFeature/NewFeatureIndicator";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
@@ -13,7 +14,7 @@ const OpenInTabButton = (): JSX.Element | null => {
   }
   return (
     <NewFeatureIndicator featureKey="open-query-results-in-tab-clicked">
-      <Button outline onClick={handleClick}>
+      <Button outline onClick={handleClick} icon={<OpenNewIcon />}>
         Open in Tab
       </Button>
     </NewFeatureIndicator>

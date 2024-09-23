@@ -39,6 +39,7 @@ import { AltimateRequest } from "./altimate";
 import { ValidationProvider } from "./validation_provider";
 import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
+import { NotebookKernelClient, NotebookDependencies } from "@lib";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -174,6 +175,20 @@ container
         path,
         projectConfig,
         _onManifestChanged,
+      );
+    };
+  });
+
+container
+  .bind<interfaces.Factory<NotebookKernelClient>>("Factory<NotebookClient>")
+  .toFactory<NotebookKernelClient, [string]>((context: interfaces.Context) => {
+    return (path: string) => {
+      const { container } = context;
+      return new NotebookKernelClient(
+        path,
+        container.get(DBTCommandExecutionInfrastructure),
+        container.get(NotebookDependencies),
+        container.get(DBTTerminal),
       );
     };
   });

@@ -325,6 +325,9 @@ export interface DBTProjectIntegration extends Disposable {
   initializeProject(): Promise<void>;
   // called when project configuration is changed
   refreshProjectConfig(): Promise<void>;
+  // Change target
+  setSelectedTarget(targetName: string): Promise<void>;
+  getTargetNames(): Promise<Array<string>>;
   // retrieve dbt configs
   getTargetPath(): string | undefined;
   getModelPaths(): string[] | undefined;
@@ -333,6 +336,7 @@ export interface DBTProjectIntegration extends Disposable {
   getPackageInstallPath(): string | undefined;
   getAdapterType(): string | undefined;
   getVersion(): number[] | undefined;
+  getSelectedTarget(): string | undefined;
   // parse manifest
   rebuildManifest(): Promise<void>;
   // execute queries
@@ -647,6 +651,16 @@ export class DBTCommandFactory {
 
   createInstallDepsCommand(): DBTCommand {
     return new DBTCommand("Installing packages...", ["deps"], true, true, true);
+  }
+
+  createAddPackagesCommand(packages: string[]): DBTCommand {
+    return new DBTCommand(
+      "Installing packages...",
+      ["deps", "--add-package", ...packages],
+      true,
+      true,
+      true,
+    );
   }
 
   createDebugCommand(): DBTCommand {

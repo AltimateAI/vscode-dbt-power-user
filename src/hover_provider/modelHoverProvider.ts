@@ -17,6 +17,7 @@ import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { generateHoverMarkdownString } from "./utils";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTProject } from "../manifest/dbtProject";
 
 @provideSingleton(ModelHoverProvider)
 export class ModelHoverProvider implements HoverProvider, Disposable {
@@ -46,6 +47,22 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
     }
   }
 
+  private getProject(uri: Uri): DBTProject | undefined {
+    const projectByUri = this.dbtProjectContainer.findDBTProject(uri);
+    if (projectByUri) {
+      return projectByUri;
+    }
+
+    const project = this.dbtProjectContainer.getFromWorkspaceState(
+      "dbtPowerUser.projectSelected",
+    );
+    if (!project?.uri) {
+      return;
+    }
+
+    return this.dbtProjectContainer.findDBTProject(project?.uri);
+  }
+
   provideHover(
     document: TextDocument,
     position: Position,
@@ -61,7 +78,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
         resolve(undefined);
       }
       const word = document.getText(range);
-      const project = this.dbtProjectContainer.findDBTProject(document.uri);
+      const project = this.getProject(document.uri);
       if (!project) {
         this.dbtTerminal.debug(
           "modeHoverProvider:provideHover",
@@ -74,9 +91,8 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
         const dbtModel = word.match(ModelHoverProvider.GET_DBT_MODEL);
         if (dbtModel && dbtModel.length === 1) {
           const mdString = this.getHoverMarkdownFor(
-            project.getProjectName(),
             dbtModel[0],
-            document.uri,
+            project.projectRoot,
           );
           if (mdString !== undefined) {
             const hover = new Hover(mdString, new Range(position, position));
@@ -89,9 +105,8 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
         }
         if (dbtModel && dbtModel.length === 3) {
           const mdString = this.getHoverMarkdownFor(
-            dbtModel[0],
             dbtModel[2],
-            document.uri,
+            project.projectRoot,
           );
           if (mdString !== undefined) {
             const hover = new Hover(mdString, new Range(position, position));
@@ -120,7 +135,6 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
   }
 
   private getHoverMarkdownFor(
-    projectName: string,
     modelName: string,
     currentFilePath: Uri,
   ): MarkdownString | undefined {

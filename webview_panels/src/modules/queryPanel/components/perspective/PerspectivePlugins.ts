@@ -1,4 +1,3 @@
-/* eslint-disable no-underscore-dangle */
 import { panelLogger } from "@modules/logger";
 import OpenIcon from "./openIcon.svg?raw";
 import type { Schema } from "@finos/perspective";
@@ -9,7 +8,7 @@ function dispatchCustomEvent(
   eventName: string,
   message: string,
   columnName: string,
-  type: string
+  type: string,
 ) {
   const event = new CustomEvent(eventName, {
     detail: { columnName, message, type },
@@ -31,42 +30,35 @@ const isJson = (str: string) => {
 function appendImage(tdArg: HTMLTableCellElement) {
   const td = tdArg;
   if (!td.querySelector("span")) {
-    const div = document.createElement("div");
-    const text = document.createElement("div");
-
-    // Setting text content to a div element to avoid base perspective viewer styling
-    text.textContent = td.textContent;
-    td.textContent = "";
-
     // Adding svg icon to the span element
     const span = document.createElement("span");
 
     // Adding class to the elements
     span.classList.add("open-icon");
-    div.classList.add("clickable-cell-div");
-    text.classList.add("clickable-cell-text");
 
-    // Appending the image to the span element and the text to the div element
-    // Appending the div element to the td element
     span.innerHTML = OpenIcon;
     span.title = "Click to view complete value";
-    div.appendChild(text);
-    div.appendChild(span);
-    td.appendChild(div);
+    td.appendChild(span);
   }
+}
+
+// Removes the image and click event from the td element
+function removeImageAndClickEvent(tdArg: HTMLTableCellElement) {
+  const td = tdArg;
+  const span = td.querySelector("span");
+  if (span) {
+    span.remove();
+  }
+  td.style.cursor = "";
+  td.onclick = null;
 }
 
 // Adds click event to the td element
 function makeClickEvent(
   tdArg: HTMLTableCellElement,
-  metadata: TableCellMetadata
+  metadata: TableCellMetadata,
 ) {
   const td = tdArg;
-  // If string length is greater than 20, truncate and add ellipsis
-  if (metadata.value.length > 20) {
-    // td.textContent = metadata.value.slice(0, 20) + "...";
-    td.style.cursor = "pointer";
-  }
 
   const columnName = metadata.column_header;
   if (isJson(metadata.value)) {
@@ -78,13 +70,14 @@ function makeClickEvent(
         "string-json-viewer",
         metadata.value,
         columnName,
-        "json"
+        "json",
       );
     };
     return;
   }
 
-  if (metadata.value.length > 20) {
+  if (td.offsetWidth < 11 * metadata.value.length) {
+    td.style.cursor = "pointer";
     appendImage(td);
     // else if string is greater than 20, add click event to view full string
     td.onclick = () => {
@@ -92,15 +85,18 @@ function makeClickEvent(
         "string-json-viewer",
         metadata.value,
         columnName,
-        "string"
+        "string",
       );
     };
+    return;
   }
+
+  removeImageAndClickEvent(td);
 }
 
 // Custom perspective plugin to add click event to the td element
 class PerspectiveDatagridJSONViewerPlugin extends (customElements.get(
-  "perspective-viewer-datagrid"
+  "perspective-viewer-datagrid",
 ) as unknown as typeof HTMLPerspectiveViewerDatagridPluginElement) {
   private readonly pluginName = "PerspectiveDatagridJSONViewerPlugin";
   private view?: PerspectiveViewerView;
@@ -193,7 +189,7 @@ class PerspectiveDatagridJSONViewerPlugin extends (customElements.get(
 
 customElements.define(
   "perspective-datagrid-json-viewer-plugin",
-  PerspectiveDatagridJSONViewerPlugin
+  PerspectiveDatagridJSONViewerPlugin,
 );
 
 void customElements

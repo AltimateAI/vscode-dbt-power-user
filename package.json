@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.44.0",
+  "version": "0.45.2",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -39,6 +39,27 @@
   ],
   "main": "./dist/extension",
   "contributes": {
+    "notebookRenderer": [
+      {
+        "id": "datapilot-notebook-perspective-renderer",
+        "displayName": "Github Issues Notebook Renderer",
+        "entrypoint": "./webview_panels/dist/assets/renderer.js",
+        "mimeTypes": [
+          "application/perspective-json"
+        ]
+      }
+    ],
+    "notebooks": [
+      {
+        "type": "datapilot-notebook",
+        "displayName": "Datapilot Notebook",
+        "selector": [
+          {
+            "filenamePattern": "*.notebook"
+          }
+        ]
+      }
+    ],
     "snippets": [
       {
         "language": "jinja-sql",
@@ -80,6 +101,11 @@
             "type": "boolean",
             "description": "Enable Query history and bookmarks feature",
             "default": true
+          },
+          "dbt.enableNotebooks": {
+            "type": "boolean",
+            "description": "Enable Datapilot notebooks feature",
+            "default": false
           },
           "dbt.lineage.showSelectEdges": {
             "type": "boolean",
@@ -341,6 +367,11 @@
     },
     "commands": [
       {
+        "command": "dbtPowerUser.collectQueryResultsDebugInfo",
+        "title": "Query Results Debug Info",
+        "category": "dbt Power User"
+      },
+      {
         "command": "dbtPowerUser.resolveConversation",
         "title": "Resolve",
         "category": "dbt Power User"
@@ -369,6 +400,19 @@
       {
         "command": "dbtPowerUser.createSqlFile",
         "title": "Create Power User SQL file"
+      },
+      {
+        "command": "dbtPowerUser.createDatapilotNotebook",
+        "title": "Datapilot notebook",
+        "enablement": "dbt.enableNotebooks == true"
+      },
+      {
+        "command": "dbtPowerUser.datapilotProfileYourQuery",
+        "title": "Profile your query",
+        "icon": {
+          "light": "./media/images/sql-action-light.svg",
+          "dark": "./media/images/sql-action-dark.svg"
+        }
       },
       {
         "command": "dbtPowerUser.replyToConversation",
@@ -654,6 +698,11 @@
         {
           "command": "dbtPowerUser.createSqlFile",
           "when": "dbt.enableQueryBookmarks == true"
+        },
+        {
+          "command": "dbtPowerUser.createDatapilotNotebook",
+          "when": "dbt.enableNotebooks == true",
+          "group": "notebook"
         }
       ],
       "comments/commentThread/title": [
@@ -1140,8 +1189,9 @@
     ]
   },
   "scripts": {
+    "postinstall": "node postInstall.js",
     "prepare": "husky install",
-    "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production",
+    "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production && node prepareBuild.js",
     "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "watch": "concurrently \"npm:watch --prefix ./new_lineage_panel\" \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
@@ -1161,9 +1211,11 @@
     "@types/node": "^20.14.11",
     "@types/vscode": "^1.81.0",
     "@types/which": "^3.0.4",
+    "@types/ws": "^8.5.12",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "@vscode/test-electron": "^2.4.1",
+    "@vscode/zeromq": "^0.2.1",
     "concurrently": "^8.2.2",
     "copy-webpack-plugin": "^11.0.0",
     "cross-env": "^7.0.3",
@@ -1172,7 +1224,7 @@
     "eslint-plugin-prettier": "^5.2.1",
     "file-loader": "^6.1.0",
     "glob": "^10.4.2",
-    "husky": "^9.1.1",
+    "husky": "^9.1.4",
     "lint-staged": "^15.2.5",
     "mocha": "^10.3.0",
     "ovsx": "^0.9.2",
@@ -1183,18 +1235,23 @@
     "ts-loader": "^9.4.4",
     "typescript": "^4.9.5",
     "webpack": "^5.93.0",
-    "webpack-cli": "^5.1.4"
+    "webpack-cli": "^5.1.4",
+    "webpack-shell-plugin-next": "^2.3.1"
   },
   "extensionDependencies": [
     "samuelcolvin.jinjahtml",
     "ms-python.python"
   ],
   "dependencies": {
+    "@jupyterlab/coreutils": "^6.2.4",
+    "@jupyterlab/nbformat": "^4.2.4",
+    "@jupyterlab/services": "^6.6.7",
+    "@nteract/messaging": "^7.0.20",
     "@vscode/codicons": "^0.0.36",
     "@vscode/extension-telemetry": "^0.9.6",
     "@vscode/vsce": "^2.31.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
-    "dayjs": "^1.11.12",
+    "dayjs": "^1.11.13",
     "inversify": "^6.0.2",
     "inversify-binding-decorators": "^4.0.0",
     "node-abort-controller": "^3.1.1",
@@ -1204,7 +1261,9 @@
     "reflect-metadata": "^0.2.2",
     "semver": "^7.6.3",
     "which": "^4.0.0",
-    "yaml": "^2.5.0"
+    "ws": "^8.18.0",
+    "yaml": "^2.5.0",
+    "zeromq": "^6.0.0-beta.16"
   },
   "lint-staged": {
     "**/webview_panels/**/*.{ts,tsx}": [

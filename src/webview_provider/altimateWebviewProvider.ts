@@ -27,6 +27,7 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { QueryManifestService } from "../services/queryManifestService";
 import { PythonException } from "python-bridge";
 import { UsersService } from "../services/usersService";
+import { NotebookSchema } from "@lib";
 
 export type UpdateConfigProps = {
   key: string;
@@ -222,6 +223,54 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     try {
       switch (command) {
+        case "configEnabled":
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            () => {
+              return workspace
+                .getConfiguration(params.section as string)
+                .get(params.config as string);
+            },
+            command,
+            true,
+          );
+          break;
+        case "deleteNotebook":
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            () => {
+              return this.altimateRequest.deleteNotebook(
+                params.notebookId as number,
+              );
+            },
+            command,
+            true,
+          );
+          break;
+        case "updateNotebook":
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            async () => {
+              const { notebookId, name, data } = params as {
+                notebookId: number;
+                name: string;
+                data?: NotebookSchema;
+              };
+              return await this.altimateRequest.updateNotebook(notebookId, {
+                name,
+                data,
+              });
+            },
+            command,
+            true,
+          );
+          break;
+        case "openNewNotebook":
+          commands.executeCommand(
+            "dbtPowerUser.createDatapilotNotebook",
+            params,
+          );
+          break;
         case "setToWorkspaceState":
           this.dbtProjectContainer.setToWorkspaceState(
             params.key as string,

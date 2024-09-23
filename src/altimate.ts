@@ -10,6 +10,7 @@ import { RateLimitException, ExecutionsExhaustedException } from "./exceptions";
 import { DBTProject } from "./manifest/dbtProject";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
+import { PreconfiguredNotebookItem, NotebookItem, NotebookSchema } from "@lib";
 
 export class NoCredentialsError extends Error {}
 
@@ -117,6 +118,24 @@ interface DBTProjectHealthConfigResponse {
 
 export interface SQLToModelResponse {
   sql: string;
+}
+
+interface NotebooksResponse {
+  notebooks: PreconfiguredNotebookItem[];
+}
+
+interface AddNotebookRequest {
+  name: string;
+  description: string;
+  tags_list: string[];
+  data?: NotebookSchema;
+}
+
+interface UpdateNotebookRequest {
+  name: string;
+  description?: string;
+  tags_list?: string[];
+  data?: NotebookSchema;
 }
 
 interface OnewayFeedback {
@@ -916,5 +935,59 @@ export class AltimateRequest {
       method: "POST",
       body: JSON.stringify(req),
     });
+  }
+
+  async getPreConfiguredNotebooks() {
+    return this.fetch<PreconfiguredNotebookItem[]>(
+      "notebook/preconfigured/list",
+      {
+        method: "GET",
+      },
+    );
+  }
+
+  async getNotebooks(
+    name: string = "",
+    tags_list: string[] = [],
+    privacy: string = "private",
+  ) {
+    const params = new URLSearchParams({
+      name,
+      privacy,
+      ...(tags_list.length > 0 && { tags_list: tags_list.join(",") }),
+    });
+    return this.fetch<NotebookItem[]>(`notebook/list?${params.toString()}`, {
+      method: "GET",
+    });
+  }
+
+  async addNotebook(req: AddNotebookRequest) {
+    return this.fetch<FeedbackResponse>("notebook", {
+      method: "POST",
+      body: JSON.stringify(req),
+    });
+  }
+
+  async deleteNotebook(id: number) {
+    return this.fetch<FeedbackResponse>(`notebook/${id}`, {
+      method: "DELETE",
+    });
+  }
+
+  async updateNotebook(id: number, req: UpdateNotebookRequest) {
+    return this.fetch<FeedbackResponse>(`notebook/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(req),
+    });
+  }
+
+  async updateNotebookPrivacy(id: number, privacy: string) {
+    const params = new URLSearchParams({ privacy: privacy });
+    return this.fetch<FeedbackResponse>(
+      `notebook/privacy/${id}?${params.toString()}`,
+      {
+        method: "PUT",
+      },
+    );
   }
 }

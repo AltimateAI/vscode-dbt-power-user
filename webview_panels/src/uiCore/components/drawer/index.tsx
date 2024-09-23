@@ -19,7 +19,9 @@ interface Props {
   title?: string;
   buttonProps?: ButtonProps;
   buttonText?: ReactNode | string;
+  icon?: ReactNode;
   onClose?: () => void;
+  onOpen?: () => void;
   children: ReactNode;
   backdrop?: boolean;
 }
@@ -30,8 +32,17 @@ export interface DrawerRef {
 }
 
 const Drawer: ForwardRefRenderFunction<DrawerRef, Props> = (
-  { buttonProps, buttonText, title, onClose, children, backdrop = true },
-  ref
+  {
+    buttonProps,
+    buttonText,
+    icon,
+    title,
+    onClose,
+    children,
+    onOpen,
+    backdrop = true,
+  },
+  ref,
 ) => {
   const [show, setShow] = useState(false);
 
@@ -41,6 +52,7 @@ const Drawer: ForwardRefRenderFunction<DrawerRef, Props> = (
   };
   const handleShow = () => {
     setShow(true);
+    onOpen?.();
   };
 
   useImperativeHandle(ref, () => ({
@@ -55,7 +67,7 @@ const Drawer: ForwardRefRenderFunction<DrawerRef, Props> = (
   return (
     <>
       {buttonText ? (
-        <Button {...buttonProps} onClick={handleShow}>
+        <Button {...buttonProps} onClick={handleShow} icon={icon}>
           {buttonText}
         </Button>
       ) : null}

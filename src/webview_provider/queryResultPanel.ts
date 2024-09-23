@@ -79,6 +79,7 @@ interface InjectConfig {
 }
 
 enum InboundCommand {
+  CollectQueryResultsDebugInfo = "collectQueryResultsDebugInfo",
   Info = "info",
   Error = "error",
   UpdateConfig = "updateConfig",
@@ -170,6 +171,16 @@ export class QueryResultPanel extends AltimateWebviewProvider {
               this.renderWebviewView(this._panel.webview);
             }
           }
+
+          if (e.affectsConfiguration("dbt.enableNotebooks")) {
+            this.updateEnableNotebooksInContext();
+            const event = workspace
+              .getConfiguration("dbt")
+              .get<boolean>("enableNotebooks", false)
+              ? "NotebooksEnabled"
+              : "NotebooksDisabled";
+            this.telemetry.sendTelemetryEvent(event);
+          }
         },
         this,
         this._disposables,
@@ -177,6 +188,21 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     );
 
     this.updateEnableBookmarksInContext();
+    this.updateEnableNotebooksInContext();
+    this._disposables.push(
+      commands.registerCommand(
+        "dbtPowerUser.collectQueryResultsDebugInfo",
+        () => this.collectQueryResultsDebugInfo(),
+      ),
+      this,
+    );
+  }
+
+  private collectQueryResultsDebugInfo() {
+    console.log("Collecting query results debug info");
+    this._panel?.webview?.postMessage({
+      command: "collectQueryResultsDebugInfo",
+    });
   }
 
   private updateEnableBookmarksInContext() {
@@ -187,6 +213,15 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       workspace
         .getConfiguration("dbt")
         .get<boolean>("enableQueryBookmarks", false),
+    );
+  }
+
+  private updateEnableNotebooksInContext() {
+    // Setting this here to access it in package.json for enabling new file command
+    commands.executeCommand(
+      "setContext",
+      "dbt.enableNotebooks",
+      workspace.getConfiguration("dbt").get<boolean>("enableNotebooks", false),
     );
   }
 
@@ -461,6 +496,22 @@ export class QueryResultPanel extends AltimateWebviewProvider {
               message.value,
             );
             break;
+          case InboundCommand.CollectQueryResultsDebugInfo:
+            const data = {
+              ...message,
+              historyItems: this._queryHistory.length,
+              historySize: JSON.stringify(this._queryHistory).length,
+            };
+            this.dbtTerminal.debug(
+              "CollectQueryResultsDebugInfo",
+              "collecting query results debug info",
+              data,
+            );
+            this.telemetry.sendTelemetryEvent(
+              "CollectQueryResultsDebugInfo",
+              data,
+            );
+            break;
           default:
             super.handleCommand(message);
         }
@@ -665,6 +716,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         Date.now() - start,
         output.modelName,
       );
+      return result;
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         if (exc.exception.type.name === "KeyboardInterrupt") {

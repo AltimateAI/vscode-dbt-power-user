@@ -1,6 +1,8 @@
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { Alert, Button, Stack } from "@uicore";
+import { TelemetryEvents } from "@telemetryEvents";
+import { sendTelemetryEvent } from "../telemetry";
 
 const DocumentationHelpContent = ({
   showMissingDocumentationMessage,
@@ -71,12 +73,32 @@ const DocumentationHelpContent = ({
       </p>
       <p>
         Need more help? Check out the&nbsp;
-        <a href="https://docs.myaltimate.com/document/generatedoc/">
+        <a
+          onClick={() =>
+            sendTelemetryEvent(
+              TelemetryEvents[
+                "DocumentationEditor/HelpDocumentationLinkInDocumentationClick"
+              ],
+            )
+          }
+          href="https://docs.myaltimate.com/document/generatedoc/"
+        >
           documentation
         </a>
         . For any issues or concerns, please{" "}
-        <a href="https://app.myaltimate.com/contactus">contact us</a> via chat
-        or Slack. Happy documenting!
+        <a
+          onClick={() =>
+            sendTelemetryEvent(
+              TelemetryEvents[
+                "DocumentationEditor/HelpContactusLinkInDocumentationClick"
+              ],
+            )
+          }
+          href="https://app.myaltimate.com/contactus"
+        >
+          contact us
+        </a>{" "}
+        via chat or Slack. Happy documenting!
       </p>
     </Stack>
   );

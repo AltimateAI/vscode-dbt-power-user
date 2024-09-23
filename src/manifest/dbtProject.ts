@@ -60,12 +60,15 @@ import { ModelNode } from "../altimate";
 import { ColumnMetaData, NodeMetaData } from "../domain";
 import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 import { SharedStateService } from "../services/sharedStateService";
+import { TelemetryEvents } from "../telemetry/events";
 import { RunResultsEvent } from "./event/runResultsEvent";
 
 interface FileNameTemplateMap {
   [key: string]: string;
 }
-
+interface JsonObj {
+  [key: string]: string | number | undefined;
+}
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
   static MANIFEST_FILE = "manifest.json";
@@ -205,6 +208,18 @@ export class DBTProject implements Disposable {
 
   public getProjectName() {
     return this.projectConfig.name;
+  }
+
+  getSelectedTarget() {
+    return this.dbtProjectIntegration.getSelectedTarget();
+  }
+
+  getTargetNames() {
+    return this.dbtProjectIntegration.getTargetNames();
+  }
+
+  async setSelectedTarget(targetName: string) {
+    await this.dbtProjectIntegration.setSelectedTarget(targetName);
   }
 
   getDBTProjectFilePath() {
@@ -401,28 +416,56 @@ export class DBTProject implements Disposable {
       );
       this.telemetry.sendTelemetryError("projectConfigRefreshError", error);
     }
-    const event = new ProjectConfigChangedEvent(this);
-    this._onProjectConfigChanged.fire(event);
-    this.terminal.debug(
-      "DBTProject",
-      `firing ProjectConfigChanged event for the project "${this.getProjectName()}" at ${
-        this.projectRoot
-      } configuration`,
-      "targetPaths",
-      this.getTargetPath(),
-      "modelPaths",
-      this.getModelPaths(),
-      "seedPaths",
-      this.getSeedPaths(),
-      "macroPaths",
-      this.getMacroPaths(),
-      "packagesInstallPath",
-      this.getPackageInstallPath(),
-      "version",
-      this.getDBTVersion(),
-      "adapterType",
-      this.getAdapterType(),
-    );
+    const sourcePaths = this.getModelPaths();
+    if (sourcePaths === undefined) {
+      this.terminal.debug(
+        "DBTProject",
+        "sourcePaths is not defined in project in " + this.projectRoot.fsPath,
+      );
+    }
+    const macroPaths = this.getMacroPaths();
+    if (macroPaths === undefined) {
+      this.terminal.debug(
+        "DBTProject",
+        "macroPaths is not defined in " + this.projectRoot.fsPath,
+      );
+    }
+    const seedPaths = this.getSeedPaths();
+    if (seedPaths === undefined) {
+      this.terminal.debug(
+        "DBTProject",
+        "macroPaths is not defined in " + this.projectRoot.fsPath,
+      );
+    }
+    if (sourcePaths && macroPaths && seedPaths) {
+      const event = new ProjectConfigChangedEvent(this);
+      this._onProjectConfigChanged.fire(event);
+      this.terminal.debug(
+        "DBTProject",
+        `firing ProjectConfigChanged event for the project "${this.getProjectName()}" at ${
+          this.projectRoot
+        } configuration`,
+        "targetPaths",
+        this.getTargetPath(),
+        "modelPaths",
+        this.getModelPaths(),
+        "seedPaths",
+        this.getSeedPaths(),
+        "macroPaths",
+        this.getMacroPaths(),
+        "packagesInstallPath",
+        this.getPackageInstallPath(),
+        "version",
+        this.getDBTVersion(),
+        "adapterType",
+        this.getAdapterType(),
+      );
+    } else {
+      this.terminal.warn(
+        "DBTProject",
+        "Could not send out ProjectConfigChangedEvent because project is not initialized properly. dbt path settings cannot be determined",
+      );
+    }
   }
 
   getAdapterType() {
@@ -565,6 +608,18 @@ export class DBTProject implements Disposable {
     const debugCommand = this.dbtCommandFactory.createDebugCommand();
     this.telemetry.sendTelemetryEvent("debug");
     return this.dbtProjectIntegration.debug(debugCommand);
+  }
+
+  async installDbtPackages(packages: string[]) {
+    this.telemetry.sendTelemetryEvent("installDbtPackages");
+    const installPackagesCommand =
+      this.dbtCommandFactory.createAddPackagesCommand(packages);
+    // Add packages first
+    await this.dbtProjectIntegration.deps(installPackagesCommand);
+    // Then install
+    return await this.dbtProjectIntegration.deps(
+      this.dbtCommandFactory.createInstallDepsCommand(),
+    );
   }
 
   installDeps() {
@@ -728,21 +783,40 @@ export class DBTProject implements Disposable {
   }
 
   async getColumnValues(model: string, column: string) {
-    this.terminal.debug(
-      "getColumnValues",
-      "finding distinct values for column",
-      true,
-      { model, column },
+    this.telemetry.startTelemetryEvent(
+      TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
+      { column, model },
     );
-    const query = `select ${column} from {{ ref('${model}')}} group by ${column}`;
-    const queryExecution = await this.dbtProjectIntegration.executeSQL(
-      query,
-      100, // setting this 100 as executeSql needs a limit and distinct values will be usually less in number
-      model,
-    );
-    const result = await queryExecution.executeQuery();
 
-    return result.table.rows.flat();
+    try {
+      this.terminal.debug(
+        "getColumnValues",
+        "finding distinct values for column",
+        true,
+        { model, column },
+      );
+      const query = `select ${column} from {{ ref('${model}')}} group by ${column}`;
+      const queryExecution = await this.dbtProjectIntegration.executeSQL(
+        query,
+        100, // setting this 100 as executeSql needs a limit and distinct values will be usually less in number
+        model,
+      );
+      const result = await queryExecution.executeQuery();
+
+      this.telemetry.endTelemetryEvent(
+        TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
+        undefined,
+        { column, model },
+      );
+
+      return result.table.rows.flat();
+    } catch (error) {
+      this.telemetry.endTelemetryEvent(
+        TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
+        error,
+        { column, model },
+      );
+    }
   }
 
   async getBulkSchemaFromDB(
@@ -943,7 +1017,13 @@ select * from renamed
     }
   }
 
-  async executeSQL(query: string, modelName: string) {
+  async executeSQL(
+    query: string,
+    modelName: string,
+    returnImmediately?: boolean,
+  ) {
+    // if user added a semicolon at the end, let,s remove it.
+    query = query.replace(/;\s*$/, "");
     const limit = workspace
       .getConfiguration("dbt")
       .get<number>("queryLimit", 500);
@@ -961,6 +1041,30 @@ select * from renamed
       limit: limit.toString(),
     });
 
+    if (returnImmediately) {
+      const execution = await this.dbtProjectIntegration.executeSQL(
+        query,
+        limit,
+        modelName,
+      );
+      const result = await execution.executeQuery();
+      const rows: JsonObj[] = [];
+      // Convert compressed array format to dict[]
+      for (let i = 0; i < result.table.rows.length; i++) {
+        result.table.rows[i].forEach((value: any, j: any) => {
+          rows[i] = { ...rows[i], [result.table.column_names[j]]: value };
+        });
+      }
+      const data = {
+        columnNames: result.table.column_names,
+        columnTypes: result.table.column_types,
+        data: rows,
+        raw_sql: query,
+        compiled_sql: result.compiled_sql,
+      };
+
+      return data;
+    }
     this.eventEmitterService.fire({
       command: "executeQuery",
       payload: {

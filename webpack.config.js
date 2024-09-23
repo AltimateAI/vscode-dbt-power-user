@@ -2,9 +2,11 @@
 
 "use strict";
 
+const WebpackShellPluginNext = require("webpack-shell-plugin-next");
 const TerserPlugin = require("terser-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 const path = require("path");
+const { cpSync } = require("fs");
 
 /**@type {import('webpack').Configuration}*/
 const config = {
@@ -30,9 +32,14 @@ const config = {
     "@azure/opentelemetry-instrumentation-azure-sdk",
     "@opentelemetry/instrumentation",
     "@azure/functions-core",
+    "zeromq",
   ],
   resolve: {
     extensions: [".ts", ".js"],
+    alias: {
+      "@extension": path.resolve(__dirname, "./src/modules.ts"),
+      "@lib": path.resolve(__dirname, "./src/lib/index"),
+    },
   },
   module: {
     rules: [
@@ -50,6 +57,10 @@ const config = {
   plugins: [
     new CopyPlugin({
       patterns: [
+        {
+          from: path.resolve(__dirname, "altimate_notebook_kernel.py"),
+          to: "altimate_notebook_kernel.py",
+        },
         {
           from: path.resolve(__dirname, "dbt_core_integration.py"),
           to: "dbt_core_integration.py",
@@ -75,6 +86,39 @@ const config = {
         },
       ],
     }),
+    new WebpackShellPluginNext({
+      onBuildStart: {
+        scripts: [
+          () => {
+            try {
+              console.log("copying notebook modules");
+              cpSync("./node_modules/zeromq", "./dist/node_modules/zeromq", {
+                recursive: true,
+              });
+              cpSync(
+                "./node_modules/@aminya/node-gyp-build",
+                "./dist/node_modules/@aminya/node-gyp-build",
+                {
+                  recursive: true,
+                },
+              );
+              cpSync(
+                "./node_modules/node-gyp-build",
+                "./dist/node_modules/node-gyp-build",
+                {
+                  recursive: true,
+                },
+              );
+              console.log("copied notebook modules");
+            } catch (error) {
+              console.error(error.message);
+            }
+          },
+        ],
+        blocking: true,
+        parallel: false,
+      },
+    }),
   ],
   optimization: {
     minimizer: [
@@ -97,4 +141,72 @@ const config = {
   },
 };
 
-module.exports = config;
+const rendererConfig = {
+  devtool: "source-map",
+  target: ["web", "es5"],
+  externals: {
+    vscode: "commonjs vscode",
+    zeromq: "zeromq",
+  },
+  entry: "./webview_panels/src/notebook/index.tsx",
+  output: {
+    path: path.resolve(__dirname, "dist"),
+    filename: "renderer.js",
+    libraryTarget: "module",
+  },
+  resolve: {
+    extensions: [".ts", ".tsx", ".css"],
+    alias: {
+      "@uicore": path.resolve(__dirname, "./webview_panels/src/uiCore"),
+      "@assets": path.resolve(__dirname, "./webview_panels/src/assets"),
+      "@modules": path.resolve(__dirname, "./webview_panels/src/modules"),
+      "@testUtils": path.resolve(__dirname, "./webview_panels/src/testUtils"),
+      "@vscodeApi": path.resolve(
+        __dirname,
+        "./webview_panels/src/modules/vscode",
+      ),
+      "@lib": path.resolve(__dirname, "./webview_panels/src/lib"),
+    },
+  },
+  experiments: {
+    outputModule: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /\.tsx?$/,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: "ts-loader",
+            options: {
+              configFile: path.resolve(
+                __dirname,
+                "./webview_panels/tsconfig.json",
+              ),
+              projectReferences: true,
+              compilerOptions: {
+                module: "esnext",
+                noEmit: false,
+                outDir: "../../out/src/renderer",
+              },
+            },
+          },
+          // {
+          //   loader: "esbuild-loader",
+          //   options: {
+          //     loader: "tsx", // Remove this if you're not using JSX
+          //     target: "es2015", // Syntax to compile to (see options below for possible values)
+          //   },
+          // },
+        ],
+      },
+      {
+        test: /\.css$/i,
+        use: ["raw-loader"],
+      },
+    ],
+  },
+};
+
+module.exports = [config];

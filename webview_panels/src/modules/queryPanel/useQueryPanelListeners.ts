@@ -27,7 +27,8 @@ import {
 
 const useQueryPanelListeners = (): { loading: boolean } => {
   const dispatch = useQueryPanelDispatch();
-  const { loading, hintIndex } = useQueryPanelState();
+  const { loading, hintIndex, queryResults } =
+    useQueryPanelState();
   const hintInterval = useRef<NodeJS.Timeout>();
   const hintIndexRef = useRef<number>(hintIndex);
   const queryExecutionTimer = useRef<NodeJS.Timeout>();
@@ -78,8 +79,8 @@ const useQueryPanelListeners = (): { loading: boolean } => {
   const handleError = (args: Record<string, unknown>) => {
     dispatch(
       setQueryResultsError(
-        args.error as QueryPanelStateProps["queryResultsError"],
-      ),
+        args.error as QueryPanelStateProps["queryResultsError"]
+      )
     );
     dispatch(setCompiledCodeMarkup(args.compiled_sql as string));
     clearHintInterval();
@@ -93,6 +94,7 @@ const useQueryPanelListeners = (): { loading: boolean } => {
         data: args.rows,
         columnNames: args.columnNames,
         columnTypes: args.columnTypes,
+        raw_sql: args.raw_sql,
       } as QueryPanelStateProps["queryResults"]),
     );
     dispatch(setCompiledCodeMarkup(args.compiled_sql as string));
@@ -108,6 +110,19 @@ const useQueryPanelListeners = (): { loading: boolean } => {
 
   const handleIncomingQueryHistory = (args: QueryHistory[]) => {
     dispatch(setQueryHistory(args));
+  };
+
+  const collectQueryResultsDebugInfo = () => {
+    const perspectiveViewer = document.querySelector("perspective-viewer");
+    const table = perspectiveViewer
+      ?.querySelector("perspective-datagrid-json-viewer-plugin")
+      ?.shadowRoot?.querySelectorAll("regular-table tr");
+    void executeRequestInSync("collectQueryResultsDebugInfo", {
+      perspectiveHeight: perspectiveViewer?.offsetHeight,
+      perspectiveScrollHeight: perspectiveViewer?.scrollHeight,
+      tableRowsCount: table?.length,
+      queryResults,
+    });
   };
 
   const onMesssage = useCallback(
@@ -134,8 +149,8 @@ const useQueryPanelListeners = (): { loading: boolean } => {
           dispatch(
             setViewType(
               (args.args.body as { type: QueryPanelViewType })
-                .type as QueryPanelViewType,
-            ),
+                .type as QueryPanelViewType
+            )
           );
           break;
         case "getContext":
@@ -145,14 +160,17 @@ const useQueryPanelListeners = (): { loading: boolean } => {
           dispatch(setPerspectiveTheme(args.perspectiveTheme as string));
           dispatch(
             // @ts-expect-error valid type
-            setQueryBookmarksEnabled(args.queryBookmarksEnabled as boolean),
+            setQueryBookmarksEnabled(args.queryBookmarksEnabled as boolean)
           );
+          break;
+        case "collectQueryResultsDebugInfo":
+          collectQueryResultsDebugInfo();
           break;
         default:
           break;
       }
     },
-    [handleLoading, dispatch],
+    [handleLoading, dispatch]
   );
 
   useEffect(() => {
@@ -182,7 +200,7 @@ const useQueryPanelListeners = (): { loading: boolean } => {
         dispatch(
           setQueryExecutionInfo({
             elapsedTime: typedData.queryExecutionInfo!.elapsedTime,
-          }),
+          })
         );
       }
     });

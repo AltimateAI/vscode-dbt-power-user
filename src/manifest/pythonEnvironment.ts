@@ -53,7 +53,12 @@ export class PythonEnvironment implements Disposable {
   }
 
   public get environmentVariables(): EnvironmentVariables {
-    return this.executionDetails!.getEnvVars();
+    if (!this.executionDetails) {
+      throw new Error(
+        "executionDetails is undefined, cannot retrieve environment variables",
+      );
+    }
+    return this.executionDetails.getEnvVars();
   }
 
   public get onPythonEnvironmentChanged() {
@@ -123,7 +128,7 @@ export class PythonEnvironment implements Disposable {
     const pythonPath = api.settings.getExecutionDetails(workspace.workspaceFile)
       .execCommand[0];
     const envDetails = await api.environment.getEnvironmentDetails(pythonPath);
-    this.isPython3 = envDetails.version[0] === "3";
+    this.isPython3 = envDetails?.version[0] === "3";
 
     const dbtInstalledPythonPath: string[] = [];
     // TODO: support multiple workspacefolders for python detection
