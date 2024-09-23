@@ -11,12 +11,12 @@ import {
 import { faker } from "@faker-js/faker";
 import DocumentationEditor from "./DocumentationEditor";
 import { TeamMateProvider } from "@lib";
-import {
-  aiLearningsFactory,
-  coachAiResponseFactory,
-  delay,
-  getRandomDelay,
-} from "@lib-testUtils";
+// import {
+//   aiLearningsFactory,
+//   coachAiResponseFactory,
+//   delay,
+//   getRandomDelay,
+// } from "@lib-testUtils";
 import { useEffect } from "react";
 
 const meta = {
@@ -92,27 +92,28 @@ export const ModelDocGenView = {
   decorators: [],
   parameters: {
     vscode: {
-      func: async (request: Record<string, unknown>): Promise<unknown> => {
+      func: (request: Record<string, unknown>): Promise<unknown> => {
         switch (request.command) {
           case `getTestCode`:
             return { code: `select * from users` };
           case `getUsers`:
             return TenantUserFactory.buildList(5);
           case "fetch":
-            switch (request.endpoint) {
-              case `/coach/training`:
-                await delay(getRandomDelay());
-                if (
-                  (request.fetchArgs as RequestInit | undefined)?.method ===
-                  "POST"
-                ) {
-                return coachAiResponseFactory.build();
-                }
-                return { train_docs: aiLearningsFactory.buildList(5) };
-              case `/coach/training/confirm`:
-                await delay(getRandomDelay());
-                return coachAiResponseFactory.build();
-            }
+            return {};
+            // switch (request.endpoint) {
+              // case `/coach/training`:
+              //   await delay(getRandomDelay());
+              //   if (
+              //     (request.fetchArgs as RequestInit | undefined)?.method ===
+              //     "POST"
+              //   ) {
+              //   return coachAiResponseFactory.build();
+              //   }
+              //   return { train_docs: aiLearningsFactory.buildList(5) };
+              // case `/coach/training/confirm`:
+              //   await delay(getRandomDelay());
+              //   return coachAiResponseFactory.build();
+            // }
         }
       },
       timer: 500,
