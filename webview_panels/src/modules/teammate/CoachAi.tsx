@@ -16,7 +16,7 @@ const CoachAi = () => {
       title="Coach AI"
       onOpen={onOpen}
     >
-      <CoachForm />
+      <CoachForm taskLabel="DocGen"/>
     </Drawer>
   );
 };
