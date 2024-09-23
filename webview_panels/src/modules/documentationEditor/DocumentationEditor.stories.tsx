@@ -92,7 +92,7 @@ export const ModelDocGenView = {
   decorators: [],
   parameters: {
     vscode: {
-      func: (request: Record<string, unknown>): Promise<unknown> => {
+      func: (request: Record<string, unknown>): unknown => {
         switch (request.command) {
           case `getTestCode`:
             return { code: `select * from users` };
