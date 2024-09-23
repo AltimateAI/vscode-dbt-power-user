@@ -5,7 +5,7 @@ let func = undefined;
 export const vscode = {
   postMessage: async (args: Record<string, unknown>) => {
     if (args.syncRequestId) {
-      const body = typeof func === 'function' ? (func as Function)(args) : data;
+      const body = typeof func === 'function' ? await (func as Function)(args) : data;
       setTimeout(() => {
         window.postMessage({
           command: "response",

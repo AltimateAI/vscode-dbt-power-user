@@ -36,6 +36,7 @@ import DocumentationEditor from "./DocumentationEditor";
 import { ConversationGroup, DbtDocsShareDetails } from "@lib";
 import { TelemetryEvents } from "@telemetryEvents";
 import { sendTelemetryEvent } from "./components/telemetry";
+import useAppContext from "@modules/app/useAppContext";
 
 export const DocumentationContext = createContext<ContextProps>({
   state: initialState,
@@ -43,9 +44,12 @@ export const DocumentationContext = createContext<ContextProps>({
 });
 
 const DocumentationProvider = (): JSX.Element => {
+  const {
+    state: { isComponentsApiInitialized },
+  } = useAppContext();
   const [state, dispatch] = useReducer(
     documentationSlice.reducer,
-    documentationSlice.getInitialState(),
+    documentationSlice.getInitialState()
   );
 
   const updateFocus = (name?: string) => {
@@ -80,7 +84,7 @@ const DocumentationProvider = (): JSX.Element => {
       updateSelectedConversationGroup({
         shareId,
         conversationGroupId: conversation_group_id,
-      }),
+      })
     );
   };
 
@@ -101,20 +105,20 @@ const DocumentationProvider = (): JSX.Element => {
             type: "error" | "warning";
           };
         }
-      >,
+      >
     ) => {
       const { command, ...params } = event.data;
       switch (command) {
         case "viewConversation":
           handleViewConversation(
-            params as unknown as Parameters<typeof handleViewConversation>["0"],
+            params as unknown as Parameters<typeof handleViewConversation>["0"]
           );
           break;
         case "conversations:updates":
           handleConversationUpdates(
             params as unknown as Parameters<
               typeof handleConversationUpdates
-            >["0"],
+            >["0"]
           );
           break;
         case "renderDocumentation":
@@ -122,18 +126,16 @@ const DocumentationProvider = (): JSX.Element => {
             setIncomingDocsData({
               docs: event.data.docs,
               tests: event.data.tests,
-            }),
+            })
           );
           dispatch(setProject(event.data.project));
           dispatch(
-            updateCollaborationEnabled(
-              Boolean(event.data.collaborationEnabled),
-            ),
+            updateCollaborationEnabled(Boolean(event.data.collaborationEnabled))
           );
           dispatch(
             setMissingDocumentationMessage(
-              event.data.missingDocumentationMessage,
-            ),
+              event.data.missingDocumentationMessage
+            )
           );
           break;
         case "renderColumnsFromMetadataFetch":
@@ -141,7 +143,7 @@ const DocumentationProvider = (): JSX.Element => {
             dispatch(
               updateColumnsAfterSync({
                 columns: event.data.columns,
-              }),
+              })
             );
           }
           break;
@@ -154,7 +156,7 @@ const DocumentationProvider = (): JSX.Element => {
                 description: params.description,
                 name: params.model,
                 isNewGeneration: true,
-              }),
+              })
             );
             updateFocus(params.model);
             return;
@@ -164,7 +166,7 @@ const DocumentationProvider = (): JSX.Element => {
             updateColumnsInCurrentDocsData({
               columns: [params as Partial<MetadataColumn>],
               isNewGeneration: true,
-            }),
+            })
           );
           updateFocus((params as Partial<MetadataColumn>).name);
 
@@ -173,7 +175,7 @@ const DocumentationProvider = (): JSX.Element => {
           break;
       }
     },
-    [],
+    []
   );
 
   const loadGenerationsHistory = (project: string, model: string) => {
@@ -182,7 +184,7 @@ const DocumentationProvider = (): JSX.Element => {
         dispatch(setGenerationsHistory(data));
       })
       .catch((err) =>
-        panelLogger.error("error while loading generations history", err),
+        panelLogger.error("error while loading generations history", err)
       );
   };
 
@@ -195,8 +197,8 @@ const DocumentationProvider = (): JSX.Element => {
     if (userInstructions) {
       dispatch(
         updateUserInstructions(
-          JSON.parse(userInstructions) as DocsGenerateUserInstructions,
-        ),
+          JSON.parse(userInstructions) as DocsGenerateUserInstructions
+        )
       );
     }
     loadGenerationsHistory(state.project, state.currentDocsData.name);
@@ -218,8 +220,12 @@ const DocumentationProvider = (): JSX.Element => {
       state,
       dispatch,
     }),
-    [state, dispatch],
+    [state, dispatch]
   );
+
+  if (!isComponentsApiInitialized) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <DocumentationContext.Provider value={values}>
