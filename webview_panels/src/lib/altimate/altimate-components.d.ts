@@ -303,3 +303,21 @@ declare global {
     }
 }
 
+export declare namespace Identifiers {
+    const GeneratedThemeName = "ipython-theme";
+    const MatplotLibDefaultParams = "_VSCode_defaultMatplotlib_Params";
+    const MatplotLibFigureFormats = "_VSCode_matplotLib_FigureFormats";
+    const DefaultCodeCellMarker = "# %%";
+    const DefaultCommTarget = "jupyter.widget";
+    const ALL_VARIABLES = "ALL_VARIABLES";
+    const KERNEL_VARIABLES = "KERNEL_VARIABLES";
+    const DEBUGGER_VARIABLES = "DEBUGGER_VARIABLES";
+    const PYTHON_VARIABLES_REQUESTER = "PYTHON_VARIABLES_REQUESTER";
+    const MULTIPLEXING_DEBUGSERVICE = "MULTIPLEXING_DEBUGSERVICE";
+    const RUN_BY_LINE_DEBUGSERVICE = "RUN_BY_LINE_DEBUGSERVICE";
+    const REMOTE_URI = "https://remote/";
+    const REMOTE_URI_ID_PARAM = "id";
+    const REMOTE_URI_HANDLE_PARAM = "uriHandle";
+    const REMOTE_URI_EXTENSION_ID_PARAM = "extensionId";
+}
+

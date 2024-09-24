@@ -617,7 +617,7 @@ export class NewLineagePanel
       return true;
     });
     const bulkCompiledSql = await project.getBulkCompiledSql(
-      event,
+      event.event,
       modelsToCompile.filter((m) => !mappedCompiledSql[m]),
     );
     for (const key of modelsToFetch) {
