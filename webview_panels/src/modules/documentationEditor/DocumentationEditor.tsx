@@ -17,7 +17,7 @@ import {
   removeFromSelectedPage,
   updateCurrentDocsData,
 } from "./state/documentationSlice";
-import { DocsGenerateModelRequestV2, Pages } from "./state/types";
+import { Citation, DocsGenerateModelRequestV2, Pages } from "./state/types";
 import useDocumentationContext from "./state/useDocumentationContext";
 import classes from "./styles.module.scss";
 import { addDefaultActions } from "./utils";
@@ -26,6 +26,7 @@ import useIncomingDocsDataHandler from "./useIncomingDocsDataHandler";
 import { TelemetryEvents } from "@telemetryEvents";
 import { sendTelemetryEvent } from "./components/telemetry";
 import CoachAiIfModified from "./components/docGenerator/CoachAiIfModified";
+import Citations from "./components/docGenerator/Citations";
 
 const DocumentationEditor = (): JSX.Element => {
   const {
@@ -96,13 +97,14 @@ const DocumentationEditor = (): JSX.Element => {
         description: data.description,
         user_instructions: data.user_instructions,
         columns: currentDocsData.columns,
-      })) as { description: string };
+      })) as { description: string, citations?: Citation[] };
 
       dispatch(
         updateCurrentDocsData({
           name: currentDocsData.name,
           description: result.description,
           isNewGeneration: true,
+          citations: result.citations
         }),
       );
     } catch (error) {
@@ -186,6 +188,7 @@ const DocumentationEditor = (): JSX.Element => {
                   tests={modelTests}
                   type={EntityType.MODEL}
                 />
+                <Citations citations={currentDocsData.citations}/>
                 <CoachAiIfModified model={currentDocsData.name}/>
               </Stack>
               <DocGeneratorColumnsList />

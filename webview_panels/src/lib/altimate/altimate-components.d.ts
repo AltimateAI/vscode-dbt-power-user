@@ -1,5 +1,5 @@
 import { Alert } from 'reactstrap';
-import { Badge } from 'reactstrap';
+import { BadgeProps } from 'reactstrap';
 import { Button } from 'reactstrap';
 import { ButtonGroup } from 'reactstrap';
 import { ButtonHTMLAttributes } from 'react';
@@ -56,7 +56,7 @@ export declare const ApiHelper: {
     post: <T>(_url: string, _data: Record<string, unknown>, _request?: RequestInit) => Promise<T>;
 };
 
-export { Badge }
+export declare const Badge: ({ tooltip, ...props }: Props_9) => JSX_2.Element;
 
 export { Button }
 
@@ -108,9 +108,9 @@ export declare interface CoachAiResponse {
     personalizationScope: string;
 }
 
-export declare const CoachForm: ({ taskLabel, context }: Props_9) => JSX_2.Element;
+export declare const CoachForm: ({ taskLabel, context }: Props_10) => JSX_2.Element;
 
-export declare const CoachFormButton: ({}: Props_10) => JSX_2.Element;
+export declare const CoachFormButton: ({}: Props_11) => JSX_2.Element;
 
 export declare const CodeBlock: ({ code, language, fileName, editorTheme, theme, showLineNumbers, className, titleActions, }: Props) => JSX.Element;
 
@@ -265,7 +265,7 @@ export { Label }
 export declare interface Learning extends z.infer<typeof learningSchema> {
 }
 
-export declare const Learnings: () => JSX_2.Element;
+export declare const Learnings: ({ filters }: Props_12) => JSX_2.Element;
 
 export declare const learningSchema: z.ZodObject<{
     train_doc_uid: z.ZodString;
@@ -278,6 +278,7 @@ export declare const learningSchema: z.ZodObject<{
     updatedDate: z.ZodString;
     content: z.ZodString;
     metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+    isDisabled: z.ZodDefault<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
     content: string;
     userId: string;
@@ -287,6 +288,7 @@ export declare const learningSchema: z.ZodObject<{
     personalizationScope: string;
     createdDate: string;
     updatedDate: string;
+    isDisabled: boolean;
     metadata?: Record<string, unknown> | undefined;
     user_name?: string | undefined;
 }, {
@@ -300,6 +302,7 @@ export declare const learningSchema: z.ZodObject<{
     metadata?: Record<string, unknown> | undefined;
     user_name?: string | undefined;
     personalizationScope?: string | undefined;
+    isDisabled?: boolean | undefined;
 }>;
 
 export declare const Lineage: (props: Omit<Parameters<typeof LineageProvider>["0"], "children">) => JSX_2.Element;
@@ -375,10 +378,21 @@ declare interface Props {
 }
 
 declare interface Props_10 {
+    taskLabel: keyof typeof TaskLabels;
+    context?: Record<string, unknown>;
 }
 
 declare interface Props_11 {
-    onSelect: (selected: (typeof TeamMatesConfig)[0]) => void;
+}
+
+declare interface Props_12 {
+    filters?: {
+        taskLabel?: keyof typeof TaskLabels;
+    };
+}
+
+declare interface Props_13 {
+    onSelect: (selected: (typeof TeamMatesConfig)[0], seeInAction?: boolean) => void;
     client: keyof typeof TeamMateAvailability;
 }
 
@@ -432,9 +446,8 @@ declare interface Props_8 extends ButtonHTMLAttributes<HTMLButtonElement> {
     loading: boolean;
 }
 
-declare interface Props_9 {
-    taskLabel: keyof typeof TaskLabels;
-    context?: Record<string, unknown>;
+declare interface Props_9 extends BadgeProps {
+    tooltip: Parameters<typeof Tooltip>[0]["title"];
 }
 
 export { Row }
@@ -522,6 +535,7 @@ export declare interface TeamMateConfig {
     description: string;
     availability: TeamMateAvailability[];
     key: TaskLabels;
+    seeInAction?: boolean;
 }
 
 export declare interface TeamMateContextProps {
@@ -533,9 +547,9 @@ export declare const TeamMateProvider: ({ children, }: {
     children: ReactNode;
 }) => JSX.Element;
 
-export declare const TeamMates: ({ onSelect, client }: Props_11) => JSX_2.Element;
+export declare const TeamMates: ({ onSelect, client }: Props_13) => JSX_2.Element;
 
-declare const TeamMatesConfig: TeamMateConfig[];
+export declare const TeamMatesConfig: TeamMateConfig[];
 
 export declare interface TeamMateState {
     showCoachingForm: boolean;

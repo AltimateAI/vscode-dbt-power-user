@@ -7,11 +7,16 @@ import {
   DBTModelTest,
   DbtGenericTests,
   TestMetadataAcceptedValuesKwArgs,
+  Citation,
 } from "@modules/documentationEditor/state/types";
 
 const getRandomNumber = (maximum = 10, minimum = 5) =>
   Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
 
+export const CitationFactory = Sync.makeFactory<Citation>({
+  content: each(() => faker.lorem.paragraph()),
+  id: each(() => faker.string.uuid()),
+});
 export const DBTDocumentationColumnFactory =
   Sync.makeFactory<DBTDocumentationColumn>({
     generated: faker.datatype.boolean(),
@@ -21,6 +26,7 @@ export const DBTDocumentationColumnFactory =
       i % 4 === 0 ? undefined : faker.lorem.paragraph(),
     ),
     type: each(() => faker.database.type()),
+    citations: CitationFactory.buildList(5),
   });
 
 export const DBTDocumentationFactory = Sync.makeFactory<DBTDocumentation>({

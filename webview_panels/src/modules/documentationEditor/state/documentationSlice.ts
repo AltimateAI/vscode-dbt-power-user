@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { GenerationDBDataProps } from "../types";
 import {
+  Citation,
   DBTDocumentation,
   DocsGenerateUserInstructions,
   DocumentationStateProps,
@@ -209,6 +210,7 @@ const documentationSlice = createSlice({
         columns: Partial<
           MetadataColumn & {
             description?: string;
+            citations?: Citation[]
           }
         >[];
         isNewGeneration?: boolean;

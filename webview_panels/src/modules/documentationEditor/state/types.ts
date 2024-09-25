@@ -11,6 +11,10 @@ export enum Pages {
   TESTS,
   TAGS,
 }
+export interface Citation {
+  id: string;
+  content: string;
+}
 export interface MetadataColumn {
   name: string;
   type?: string;
@@ -20,6 +24,7 @@ export interface DBTDocumentationColumn extends MetadataColumn {
   description?: string;
   generated: boolean;
   source: Source;
+  citations?: Citation[];
 }
 
 export interface DBTDocumentation {
@@ -31,6 +36,7 @@ export interface DBTDocumentation {
   patchPath?: string;
   resource_type: string;
   uniqueId: string;
+  citations?: Citation[];
 }
 
 export interface TestMetadataKwArgs {
