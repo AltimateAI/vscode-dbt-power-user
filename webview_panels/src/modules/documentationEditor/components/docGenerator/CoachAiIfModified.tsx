@@ -10,14 +10,14 @@ const CoachAiIfModified = ({
   model?: string;
 }): JSX.Element | null => {
   const {
-    state: { docUpdatedForColumns, currentDocsData },
+    state: { docUpdatedForColumns, currentDocsData, docUpdatedForModel },
   } = useDocumentationContext();
 
   if (column && !docUpdatedForColumns.includes(column)) {
     return null;
   }
 
-  if (model && currentDocsData?.name !== model) {
+  if (model && docUpdatedForModel !== model) {
     return null;
   }
 

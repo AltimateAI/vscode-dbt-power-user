@@ -6,6 +6,8 @@ import { ButtonHTMLAttributes } from 'react';
 import { Card } from 'reactstrap';
 import { CardBody } from 'reactstrap';
 import { CardFooter } from 'reactstrap';
+import { CardImg } from 'reactstrap';
+import { CardSubtitle } from 'reactstrap';
 import { CardText } from 'reactstrap';
 import { CardTitle } from 'reactstrap';
 import { CaseReducerActions } from '@reduxjs/toolkit';
@@ -45,6 +47,7 @@ import { Row } from 'reactstrap';
 import { Spinner } from 'reactstrap';
 import { UnknownAction } from '@reduxjs/toolkit';
 import { WritableDraft } from 'immer';
+import { z } from 'zod';
 
 export { Alert }
 
@@ -64,6 +67,10 @@ export { Card }
 export { CardBody }
 
 export { CardFooter }
+
+export { CardImg }
+
+export { CardSubtitle }
 
 export { CardText }
 
@@ -89,7 +96,19 @@ export declare enum CllEvents {
     START = "start"
 }
 
-export declare const CoachForm: ({ taskLabel }: Props_9) => JSX_2.Element;
+export declare interface CoachAiConfirmationResponse {
+    status: string;
+    message: string;
+    frontend_url: string;
+}
+
+export declare interface CoachAiResponse {
+    ai_response: string;
+    category: string;
+    personalizationScope: string;
+}
+
+export declare const CoachForm: ({ taskLabel, context }: Props_9) => JSX_2.Element;
 
 export declare const CoachFormButton: ({}: Props_10) => JSX_2.Element;
 
@@ -130,6 +149,12 @@ export declare interface Confidence {
 }
 
 export { Container }
+
+export declare enum ContentCategory {
+    TERM_CLARIFICATION = "TermClarification",
+    GENERAL_GUIDELINES = "GeneralGuidelines",
+    BUSINESS_EXPLANATION = "BusinessExplanation"
+}
 
 export declare interface Conversation {
     timestamp: string;
@@ -237,7 +262,45 @@ export { InputGroup }
 
 export { Label }
 
+export declare interface Learning extends z.infer<typeof learningSchema> {
+}
+
 export declare const Learnings: () => JSX_2.Element;
+
+export declare const learningSchema: z.ZodObject<{
+    train_doc_uid: z.ZodString;
+    userId: z.ZodString;
+    user_name: z.ZodOptional<z.ZodString>;
+    taskLabel: z.ZodString;
+    category: z.ZodEnum<[string, ...string[]]>;
+    personalizationScope: z.ZodDefault<z.ZodEnum<[string, ...string[]]>>;
+    createdDate: z.ZodString;
+    updatedDate: z.ZodString;
+    content: z.ZodString;
+    metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+}, "strip", z.ZodTypeAny, {
+    content: string;
+    userId: string;
+    train_doc_uid: string;
+    taskLabel: string;
+    category: string;
+    personalizationScope: string;
+    createdDate: string;
+    updatedDate: string;
+    metadata?: Record<string, unknown> | undefined;
+    user_name?: string | undefined;
+}, {
+    content: string;
+    userId: string;
+    train_doc_uid: string;
+    taskLabel: string;
+    category: string;
+    createdDate: string;
+    updatedDate: string;
+    metadata?: Record<string, unknown> | undefined;
+    user_name?: string | undefined;
+    personalizationScope?: string | undefined;
+}>;
 
 export declare const Lineage: (props: Omit<Parameters<typeof LineageProvider>["0"], "children">) => JSX_2.Element;
 
@@ -289,6 +352,11 @@ export declare interface OpNodeArgs {
     op_code: string;
 }
 
+export declare enum PersonalizationScope {
+    USER_SPECIFIC = "UserSpecific",
+    ALL_USERS = "AllUsers"
+}
+
 export { Popover }
 
 export { PopoverBody }
@@ -307,6 +375,11 @@ declare interface Props {
 }
 
 declare interface Props_10 {
+}
+
+declare interface Props_11 {
+    onSelect: (selected: (typeof TeamMatesConfig)[0]) => void;
+    client: keyof typeof TeamMateAvailability;
 }
 
 declare interface Props_2 {
@@ -360,7 +433,8 @@ declare interface Props_8 extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 declare interface Props_9 {
-    taskLabel: "DocGen" | "ChartBot";
+    taskLabel: keyof typeof TaskLabels;
+    context?: Record<string, unknown>;
 }
 
 export { Row }
@@ -427,11 +501,30 @@ export declare interface Table {
     schema?: string;
 }
 
+export declare enum TaskLabels {
+    DocGen = "DocGen",
+    ChartBot = "ChartBot",
+    SqlBot = "SqlBot"
+}
+
 export declare const TeammateActions: CaseReducerActions<    {
 setShowCoachingForm: (state: WritableDraft<TeamMateState>, action: PayloadAction<TeamMateState["showCoachingForm"]>) => void;
 }, "teamMate">;
 
-declare interface TeamMateContextProps {
+export declare enum TeamMateAvailability {
+    EXTENSION = "extension",
+    SAAS = "saas"
+}
+
+export declare interface TeamMateConfig {
+    name: string;
+    avatar: string;
+    description: string;
+    availability: TeamMateAvailability[];
+    key: TaskLabels;
+}
+
+export declare interface TeamMateContextProps {
     state: TeamMateState;
     dispatch: Dispatch<UnknownAction>;
 }
@@ -440,7 +533,11 @@ export declare const TeamMateProvider: ({ children, }: {
     children: ReactNode;
 }) => JSX.Element;
 
-declare interface TeamMateState {
+export declare const TeamMates: ({ onSelect, client }: Props_11) => JSX_2.Element;
+
+declare const TeamMatesConfig: TeamMateConfig[];
+
+export declare interface TeamMateState {
     showCoachingForm: boolean;
 }
 
