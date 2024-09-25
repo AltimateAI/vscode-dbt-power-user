@@ -2,7 +2,11 @@ import { ThinkingIcon } from "@assets/icons";
 import { CoachForm, TeammateActions, useTeamMateContext } from "@lib";
 import { Drawer } from "@uicore";
 
-const CoachAi = () => {
+const CoachAi = ({
+  context,
+}: {
+  context?: Record<string, unknown>;
+}): JSX.Element => {
   const { dispatch } = useTeamMateContext();
 
   const onOpen = () => {
@@ -12,11 +16,11 @@ const CoachAi = () => {
     <Drawer
       buttonProps={{ outline: true }}
       buttonText="Coach AI"
-      icon={<ThinkingIcon style={{height: 16, width: 16}}/>}
+      icon={<ThinkingIcon style={{ height: 16, width: 16 }} />}
       title="Coach AI"
       onOpen={onOpen}
     >
-      <CoachForm taskLabel="DocGen"/>
+      <CoachForm taskLabel="DocGen" context={context} />
     </Drawer>
   );
 };

@@ -18,6 +18,7 @@ import { panelLogger } from "@modules/logger";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import EntityWithTests from "../tests/EntityWithTests";
 import { useMemo } from "react";
+import CoachAiIfModified from "./CoachAiIfModified";
 
 interface Props {
   column: DBTDocumentationColumn;
@@ -105,6 +106,7 @@ const DocGeneratorColumn = ({ column, tests }: Props): JSX.Element => {
         tests={tests}
         type={EntityType.COLUMN}
       />
+      <CoachAiIfModified column={column.name}/>
     </div>
   );
 };

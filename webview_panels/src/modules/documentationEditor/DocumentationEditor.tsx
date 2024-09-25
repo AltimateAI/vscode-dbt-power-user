@@ -25,6 +25,7 @@ import ConversationsRightPanel from "./components/conversation/ConversationsRigh
 import useIncomingDocsDataHandler from "./useIncomingDocsDataHandler";
 import { TelemetryEvents } from "@telemetryEvents";
 import { sendTelemetryEvent } from "./components/telemetry";
+import CoachAiIfModified from "./components/docGenerator/CoachAiIfModified";
 
 const DocumentationEditor = (): JSX.Element => {
   const {
@@ -185,6 +186,7 @@ const DocumentationEditor = (): JSX.Element => {
                   tests={modelTests}
                   type={EntityType.MODEL}
                 />
+                <CoachAiIfModified model={currentDocsData.name}/>
               </Stack>
               <DocGeneratorColumnsList />
             </Stack>
