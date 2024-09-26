@@ -168,7 +168,7 @@ export class DocGenService {
       const result = syncRequestId
         ? {
             command: "response",
-            args: { body: { response }, syncRequestId, status: true },
+            args: { body: response, syncRequestId, status: true },
           }
         : {
             command: "renderAIGeneratedModelDocs",
@@ -375,11 +375,7 @@ export class DocGenService {
             generatedDocsForColumn.column_descriptions.map((entry) => ({
               name: entry.column_name,
               description: entry.column_description,
-              // TODO: remove this dummy data
-              citations: entry.column_citations || [
-                { id: "123", content: "Learning text added by user" },
-                { id: "1234", content: "Another learning text added by user" },
-              ],
+              citations: entry.column_citations,
             })),
             message.syncRequestId,
           );

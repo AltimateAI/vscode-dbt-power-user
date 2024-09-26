@@ -97,15 +97,23 @@ const DocumentationEditor = (): JSX.Element => {
         description: data.description,
         user_instructions: data.user_instructions,
         columns: currentDocsData.columns,
-      })) as { description: string, citations?: Citation[] };
+      })) as {
+        column_descriptions?: {
+          column_name: string;
+          column_description: string;
+          column_citations?: { id: string; content: string }[];
+        }[];
+        model_description?: string;
+        model_citations?: Citation[];
+      };
 
       dispatch(
         updateCurrentDocsData({
           name: currentDocsData.name,
-          description: result.description,
+          description: result.model_description,
           isNewGeneration: true,
-          citations: result.citations
-        }),
+          citations: result.model_citations,
+        })
       );
     } catch (error) {
       panelLogger.error("error while generating doc for model", error);
