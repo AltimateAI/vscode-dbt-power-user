@@ -6,6 +6,7 @@ export const initialState = {
   isComponentsApiInitialized: false,
   users: {},
   currentUser: null,
+  teammatesEnabled: false,
 } as AppStateProps;
 
 const appSlice = createSlice({
@@ -14,6 +15,9 @@ const appSlice = createSlice({
   reducers: {
     updateTheme: (state, action: PayloadAction<Themes>) => {
       state.theme = action.payload;
+    },
+    updateTeammatesEnabled: (state, action: PayloadAction<boolean>) => {
+      state.teammatesEnabled = action.payload;
     },
     updateIsComponentsApiInitialized: (
       state,
@@ -47,5 +51,6 @@ export const {
   updateIsComponentsApiInitialized,
   setUsers,
   setCurrentUser,
+  updateTeammatesEnabled,
 } = appSlice.actions;
 export default appSlice;

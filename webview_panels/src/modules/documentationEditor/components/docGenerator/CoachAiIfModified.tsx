@@ -1,6 +1,7 @@
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { Alert } from "@uicore";
 import CoachAi from "@modules/teammate/CoachAi";
+import useAppContext from "@modules/app/useAppContext";
 
 const CoachAiIfModified = ({
   column,
@@ -12,7 +13,14 @@ const CoachAiIfModified = ({
   const {
     state: { docUpdatedForColumns, currentDocsData, docUpdatedForModel },
   } = useDocumentationContext();
+  const {
+    state: { teammatesEnabled },
+  } = useAppContext();
 
+  if (!teammatesEnabled) {
+    return null;
+  }
+  
   if (column && !docUpdatedForColumns.includes(column)) {
     return null;
   }

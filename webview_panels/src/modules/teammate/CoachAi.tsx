@@ -1,5 +1,6 @@
 import { ThinkingIcon } from "@assets/icons";
 import { CoachForm, TeammateActions, useTeamMateContext } from "@lib";
+import useAppContext from "@modules/app/useAppContext";
 import { Drawer } from "@uicore";
 
 const CoachAi = ({
@@ -8,10 +9,18 @@ const CoachAi = ({
   context?: Record<string, unknown>;
 }): JSX.Element => {
   const { dispatch } = useTeamMateContext();
+  const {
+    state: { teammatesEnabled },
+  } = useAppContext();
 
   const onOpen = () => {
     dispatch(TeammateActions.setShowCoachingForm(true));
   };
+
+  if (!teammatesEnabled) {
+    return null;
+  }
+
   return (
     <Drawer
       buttonProps={{ outline: true }}

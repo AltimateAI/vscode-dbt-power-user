@@ -7,7 +7,7 @@ import {
 import { IncomingMessageProps, IncomingSyncResponse, Themes, User } from "./types";
 import { panelLogger } from "@modules/logger";
 import { UnknownAction } from "@reduxjs/toolkit";
-import { setCurrentUser, setUsers, updateTheme } from "./appSlice";
+import { setCurrentUser, setUsers, updateTeammatesEnabled, updateTheme } from "./appSlice";
 
 const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
   const onMesssage = useCallback(
@@ -16,6 +16,9 @@ const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
       switch (command) {
         case "response":
           handleIncomingResponse(args as unknown as IncomingSyncResponse);
+          break;
+        case "teammatesUpdated":
+          dispatch(updateTeammatesEnabled(args.body as boolean));
           break;
         default:
           break;
@@ -61,6 +64,7 @@ const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
 
     loadUsersDetails();
     loadCurrentUser();
+    executeRequestInAsync("getTeammatesStatus", {});
 
     themeObserver.observe(document.body, {
       attributes: true,

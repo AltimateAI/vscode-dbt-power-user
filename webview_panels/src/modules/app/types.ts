@@ -10,6 +10,7 @@ export interface AppStateProps {
   isComponentsApiInitialized: boolean;
   users: Record<number, User>;
   currentUser: User | null;
+  teammatesEnabled: boolean;
 }
 
 export interface ContextProps {

@@ -1,4 +1,5 @@
 import { Badge } from "@lib";
+import useAppContext from "@modules/app/useAppContext";
 import { Citation } from "@modules/documentationEditor/state/types";
 import { Stack } from "@uicore";
 
@@ -7,7 +8,11 @@ const Citations = ({
 }: {
   citations?: Citation[];
 }): JSX.Element | null => {
-  if (!citations?.length) {
+  const {
+    state: { teammatesEnabled },
+  } = useAppContext();
+
+  if (!teammatesEnabled || !citations?.length) {
     return null;
   }
   return (
