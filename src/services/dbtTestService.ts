@@ -98,7 +98,7 @@ export class DbtTestService {
     const {
       event: { nodeMetaMap },
     } = eventResult;
-    const node = nodeMetaMap.get(modelName);
+    const node = nodeMetaMap.lookupByBaseName(modelName);
     if (!node) {
       return;
     }
@@ -273,7 +273,7 @@ export class DbtTestService {
       false,
       modelName,
     );
-    const _node = nodeMetaMap.get(modelName);
+    const _node = nodeMetaMap.lookupByBaseName(modelName);
     if (!_node) {
       this.dbtTerminal.debug("no node for tableName:", modelName);
       return;

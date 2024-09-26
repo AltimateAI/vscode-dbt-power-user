@@ -139,18 +139,18 @@ export class ModelAutocompletionProvider
     event.added?.forEach((added) => {
       const project = added.project;
       const projectName = project.getProjectName();
-      const models = added.nodeMetaMap.entries();
+      const models = added.nodeMetaMap.nodes();
       this.modelAutocompleteMap.set(
         added.project.projectRoot.fsPath,
         Array.from(models)
           .filter(
-            ([key, model]) =>
+            (model) =>
               model.resource_type !== DBTProject.RESOURCE_TYPE_ANALYSIS,
           )
-          .map(([key, model]) => ({
+          .map((model) => ({
             projectName,
             packageName: model.package_name,
-            modelName: key,
+            modelName: model.name,
           })),
       );
     });

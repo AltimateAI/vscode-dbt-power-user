@@ -142,7 +142,7 @@ export class SQLLineagePanel implements Disposable {
     if (!compiledSQL) {
       throw new Error(`Unable to compile sql for model ${modelName}`);
     }
-    const currNode = nodeMetaMap.get(modelName);
+    const currNode = nodeMetaMap.lookupByBaseName(modelName);
     if (!currNode) {
       throw new Error(`Unable to find model for model ${modelName}`);
     }
@@ -193,7 +193,9 @@ export class SQLLineagePanel implements Disposable {
           continue;
         }
       }
-      const _node = nodeMetaMap.get(splits[splits.length - 1]);
+      // this is probably not compatible with model versions as splits may have also the version
+      // we should not do any magic on the uniqueId
+      const _node = nodeMetaMap.lookupByBaseName(splits[splits.length - 1]);
       if (_node) {
         for (const key in details) {
           if (
@@ -406,7 +408,7 @@ export class SQLLineagePanel implements Disposable {
     }
     const tableName = splits[2];
     const { nodeMetaMap } = event;
-    const node = nodeMetaMap.get(tableName);
+    const node = nodeMetaMap.lookupByBaseName(tableName);
     if (!node) {
       return;
     }

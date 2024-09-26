@@ -81,7 +81,7 @@ export class MacroHoverProvider implements HoverProvider, Disposable {
     nodeMetaMap: NodeMetaMap,
   ) {
     const referencedBy: (MacroMetaData | NodeMetaData)[] = [];
-    const allNodes = [...macroMetaMap.values(), ...nodeMetaMap.values()];
+    const allNodes = [...macroMetaMap.values(), ...nodeMetaMap.nodes()];
 
     allNodes.forEach((node) => {
       if (node.depends_on.macros.includes(macroMetaName)) {

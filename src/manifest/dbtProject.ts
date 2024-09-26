@@ -1165,7 +1165,11 @@ select * from renamed
           parentSet.add(n.key);
           continue;
         }
-        if (nodeMetaMap.get(splits[2])?.config.materialized === "ephemeral") {
+        // this will ignore version
+        if (
+          nodeMetaMap.lookupByBaseName(splits[2])?.config.materialized ===
+          "ephemeral"
+        ) {
           queue.push(n.key);
         } else {
           parentSet.add(n.key);
@@ -1233,9 +1237,10 @@ select * from renamed
       return {};
     }
     const { nodeMetaMap } = event;
+    // this will ignore version
     return this.dbtProjectIntegration.getBulkCompiledSQL(
       models
-        .map((m) => nodeMetaMap.get(m.split(".")[2]))
+        .map((m) => nodeMetaMap.lookupByBaseName(m.split(".")[2]))
         .filter(Boolean) as NodeMetaData[],
     );
   }
@@ -1288,7 +1293,8 @@ select * from renamed
         };
         mappedNode[key] = node;
       } else if (DBTProject.isResourceNode(resource_type)) {
-        const node = nodeMetaMap.get(splits[2]);
+        // this will ignore version
+        const node = nodeMetaMap.lookupByBaseName(splits[2]);
         if (!node) {
           continue;
         }
