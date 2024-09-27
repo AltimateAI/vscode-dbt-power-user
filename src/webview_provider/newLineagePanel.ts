@@ -463,9 +463,8 @@ export class NewLineagePanel implements LineagePanelView {
           .sort((a, b) => a.name.localeCompare(b.name)),
       };
     }
-    const tableName = splits[2];
     const { nodeMetaMap } = event;
-    const node = nodeMetaMap.lookupByBaseName(tableName);
+    const node = nodeMetaMap.lookupByUniqueId(table);
     if (!node) {
       return;
     }
@@ -840,7 +839,7 @@ export class NewLineagePanel implements LineagePanelView {
       };
     }
 
-    const node = nodeMetaMap.lookupByBaseName(table);
+    const node = nodeMetaMap.lookupByUniqueId(key);
     if (!node) {
       return;
     }
