@@ -11,7 +11,7 @@ const CoachAiIfModified = ({
   model?: string;
 }): JSX.Element | null => {
   const {
-    state: { docUpdatedForColumns, currentDocsData, docUpdatedForModel },
+    state: { docUpdatedForColumns, currentDocsData, docUpdatedForModel, project },
   } = useDocumentationContext();
   const {
     state: { teammatesEnabled },
@@ -31,8 +31,8 @@ const CoachAiIfModified = ({
 
   return (
     <Alert color="warning">
-      Do you want to coach datapilot?{" "}
-      <CoachAi context={{ column, model: model ?? currentDocsData?.name }} />
+      Not happy with the generated documentation? Coach the Datapilot AI{" "}
+      <CoachAi context={{ column, model: model ?? currentDocsData?.name, project }} />
     </Alert>
   );
 };

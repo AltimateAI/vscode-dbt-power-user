@@ -5,7 +5,7 @@ import CommonActionButtons from "@modules/commonActionButtons/CommonActionButton
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
-import { Button, Stack } from "@uicore";
+import { Alert, Button, Stack } from "@uicore";
 import { useMemo } from "react";
 import DocGeneratorColumnsList from "./components/docGenerator/DocGeneratorColumnsList";
 import DocGeneratorInput from "./components/docGenerator/DocGeneratorInput";
@@ -27,13 +27,14 @@ import { TelemetryEvents } from "@telemetryEvents";
 import { sendTelemetryEvent } from "./components/telemetry";
 import CoachAiIfModified from "./components/docGenerator/CoachAiIfModified";
 import Citations from "./components/docGenerator/Citations";
+import CoachAi from "@modules/teammate/CoachAi";
 
 const DocumentationEditor = (): JSX.Element => {
   const {
     state: { currentDocsData, currentDocsTests, selectedPages },
     dispatch,
   } = useDocumentationContext();
-  const { postMessageToDataPilot } = useAppContext();
+  const { postMessageToDataPilot, state: {teammatesEnabled} } = useAppContext();
   useIncomingDocsDataHandler();
 
   const handleClick = (page: Pages) => {
@@ -174,6 +175,12 @@ const DocumentationEditor = (): JSX.Element => {
         <CommonActionButtons />
       </Stack>
       <div className={classes.docGenerator}>
+        {teammatesEnabled ? (
+          <Alert color="warning">
+            Provide more context or setup guidelines for your project to help us generate better documentation.
+            <CoachAi context={{ model: currentDocsData?.name }} />
+          </Alert>
+        ) : null}
         <Stack className={classes.head}>
           <Stack>
             <h3 className="mb-2">Model: {currentDocsData.name}</h3>
@@ -196,8 +203,8 @@ const DocumentationEditor = (): JSX.Element => {
                   tests={modelTests}
                   type={EntityType.MODEL}
                 />
-                <Citations citations={currentDocsData.citations}/>
-                <CoachAiIfModified model={currentDocsData.name}/>
+                <Citations citations={currentDocsData.citations} />
+                <CoachAiIfModified model={currentDocsData.name} />
               </Stack>
               <DocGeneratorColumnsList />
             </Stack>
