@@ -1293,8 +1293,7 @@ select * from renamed
         };
         mappedNode[key] = node;
       } else if (DBTProject.isResourceNode(resource_type)) {
-        // this will ignore version
-        const node = nodeMetaMap.lookupByBaseName(splits[2]);
+        const node = nodeMetaMap.lookupByUniqueId(key);
         if (!node) {
           continue;
         }

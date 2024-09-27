@@ -48,7 +48,7 @@ export class SQLLineagePanel implements Disposable {
     private queryManifestService: QueryManifestService,
   ) {
     window.onDidChangeActiveColorTheme(
-      async (e) => {
+      async () => {
         this.changedActiveColorTheme();
       },
       null,
@@ -124,7 +124,7 @@ export class SQLLineagePanel implements Disposable {
     if (!event) {
       throw new Error(this.getMissingLineageMessage());
     }
-    const { graphMetaMap, nodeMetaMap, sourceMetaMap } = event;
+    const { nodeMetaMap, sourceMetaMap } = event;
     const project = this.getProject();
     if (!project) {
       throw new Error("Unable to find the project");
@@ -193,9 +193,7 @@ export class SQLLineagePanel implements Disposable {
           continue;
         }
       }
-      // this is probably not compatible with model versions as splits may have also the version
-      // we should not do any magic on the uniqueId
-      const _node = nodeMetaMap.lookupByBaseName(splits[splits.length - 1]);
+      const _node = nodeMetaMap.lookupByUniqueId(modelId);
       if (_node) {
         for (const key in details) {
           if (
