@@ -11,6 +11,10 @@ export interface AppStateProps {
   users: Record<number, User>;
   currentUser: User | null;
   teammatesEnabled: boolean;
+  tenantInfo: {
+    frontendUrl: string | null;
+    currency: string;
+  }
 }
 
 export interface ContextProps {

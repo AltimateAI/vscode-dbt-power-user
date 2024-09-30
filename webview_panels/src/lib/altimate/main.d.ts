@@ -97,8 +97,8 @@ export declare enum CllEvents {
 }
 
 export declare interface CoachAiConfirmationResponse {
-    status: string;
-    message: string;
+    ok: boolean;
+    train_doc_uid: string;
     frontend_url: string;
 }
 
@@ -108,7 +108,7 @@ export declare interface CoachAiResponse {
     personalizationScope: string;
 }
 
-export declare const CoachForm: ({ taskLabel, context }: Props_10) => JSX_2.Element;
+export declare const CoachForm: ({ taskLabel, context, onClose }: Props_10) => JSX_2.Element;
 
 export declare const CoachFormButton: ({}: Props_11) => JSX_2.Element;
 
@@ -278,7 +278,7 @@ export declare const learningSchema: z.ZodObject<{
     updatedDate: z.ZodString;
     content: z.ZodString;
     metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
-    isDisabled: z.ZodDefault<z.ZodBoolean>;
+    isActive: z.ZodDefault<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
     content: string;
     userId: string;
@@ -288,7 +288,7 @@ export declare const learningSchema: z.ZodObject<{
     personalizationScope: string;
     createdDate: string;
     updatedDate: string;
-    isDisabled: boolean;
+    isActive: boolean;
     metadata?: Record<string, unknown> | undefined;
     user_name?: string | undefined;
 }, {
@@ -302,7 +302,7 @@ export declare const learningSchema: z.ZodObject<{
     metadata?: Record<string, unknown> | undefined;
     user_name?: string | undefined;
     personalizationScope?: string | undefined;
-    isDisabled?: boolean | undefined;
+    isActive?: boolean | undefined;
 }>;
 
 export declare const Lineage: (props: Omit<Parameters<typeof LineageProvider>["0"], "children">) => JSX_2.Element;
@@ -380,6 +380,7 @@ declare interface Props {
 declare interface Props_10 {
     taskLabel: keyof typeof TaskLabels;
     context?: Record<string, unknown>;
+    onClose: () => void;
 }
 
 declare interface Props_11 {

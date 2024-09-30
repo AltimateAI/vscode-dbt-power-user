@@ -9,7 +9,10 @@ const Citations = ({
   citations?: Citation[];
 }): JSX.Element | null => {
   const {
-    state: { teammatesEnabled },
+    state: {
+      teammatesEnabled,
+      tenantInfo: { frontendUrl },
+    },
   } = useAppContext();
 
   if (!teammatesEnabled || !citations?.length) {
@@ -18,10 +21,16 @@ const Citations = ({
   return (
     <Stack className="mt-2">
       <h5>Learnings applied:</h5>
-      <ul style={{padding: 0, display: "flex", gap: 8}}>
+      <ul style={{ padding: 0, display: "flex", gap: 8, marginTop: -2 }}>
         {citations.map((citation, index) => (
           <li key={index} style={{ listStyle: "none" }}>
-            <Badge tooltip={citation.content}>{index + 1}</Badge>
+            <Badge
+              tag={"a"}
+              href={`${frontendUrl}/settings/learnings?learning=${citation.id}`}
+              tooltip={citation.content}
+            >
+              {index + 1}
+            </Badge>
           </li>
         ))}
       </ul>

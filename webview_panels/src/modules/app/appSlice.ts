@@ -7,12 +7,22 @@ export const initialState = {
   users: {},
   currentUser: null,
   teammatesEnabled: false,
+  tenantInfo: {
+    frontendUrl: null,
+    currency: "USD",
+  },
 } as AppStateProps;
 
 const appSlice = createSlice({
   name: "appState",
   initialState,
   reducers: {
+    setTenantInfo: (
+      state,
+      action: PayloadAction<AppStateProps["tenantInfo"]>
+    ) => {
+      state.tenantInfo = action.payload;
+    },
     updateTheme: (state, action: PayloadAction<Themes>) => {
       state.theme = action.payload;
     },
@@ -52,5 +62,6 @@ export const {
   setUsers,
   setCurrentUser,
   updateTeammatesEnabled,
+  setTenantInfo,
 } = appSlice.actions;
 export default appSlice;

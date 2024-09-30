@@ -176,8 +176,8 @@ const DocumentationEditor = (): JSX.Element => {
       </Stack>
       <div className={classes.docGenerator}>
         {teammatesEnabled ? (
-          <Alert color="warning">
-            Provide more context or setup guidelines for your project to help us generate better documentation.
+          <Alert color="secondary" className="px-3 py-2 mt-1">
+            Provide more context or setup guidelines for your project to help us generate better documentation.{" "}
             <CoachAi context={{ model: currentDocsData?.name }} />
           </Alert>
         ) : null}
