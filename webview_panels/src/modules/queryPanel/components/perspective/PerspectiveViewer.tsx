@@ -177,8 +177,6 @@ const PerspectiveViewer = ({
     }
 
     try {
-      // @ts-ignore
-      hi.hi
     // @ts-expect-error valid parameter
     const worker = perspective.worker(styles);
     const table = await worker.table(schema);

@@ -342,7 +342,7 @@ export function getFormattedDateTime(): string {
   return `${date}-${time}`;
 }
 
-export const getStringSizeInBytes = (str: string): number => {
+export const getStringSizeInMb = (str: string): number => {
   let sizeInBytes = 0;
   for (let i = 0; i < str.length; i++) {
     const charCode = str.charCodeAt(i);

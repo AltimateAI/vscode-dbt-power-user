@@ -19,7 +19,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   extendErrorWithSupportLinks,
   getFormattedDateTime,
-  getStringSizeInBytes,
+  getStringSizeInMb,
   provideSingleton,
 } from "../utils";
 import { TelemetryService } from "../telemetry";
@@ -361,6 +361,8 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._panel!.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
+          // Incase of error in rendering perspective viewer query results, user can click button
+          // to disable query history and retry
           case InboundCommand.DisableQueryHistory:
             await workspace
               .getConfiguration("dbt")
@@ -677,10 +679,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       );
       return;
     }
-    const currentSize = getStringSizeInBytes(
+    const currentSize = getStringSizeInMb(
       JSON.stringify(this._queryHistory),
     );
-    // 5MB
+    // if current history size > 5MB, remove the oldest entry
     if (currentSize > 5) {
       this._queryHistory.pop();
       this.dbtTerminal.info(
