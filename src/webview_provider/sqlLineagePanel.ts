@@ -404,9 +404,8 @@ export class SQLLineagePanel implements Disposable {
           .sort((a, b) => a.name.localeCompare(b.name)),
       };
     }
-    const tableName = splits[2];
     const { nodeMetaMap } = event;
-    const node = nodeMetaMap.lookupByBaseName(tableName);
+    const node = nodeMetaMap.lookupByUniqueId(table);
     if (!node) {
       return;
     }
