@@ -20,6 +20,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   extendErrorWithSupportLinks,
   getFormattedDateTime,
+  getStringSizeInBytes,
   provideSingleton,
 } from "../utils";
 import { TelemetryService } from "../telemetry";
@@ -94,6 +95,7 @@ enum InboundCommand {
   RunAdhocQuery = "runAdhocQuery",
   ViewResultSet = "viewResultSet",
   OpenCodeInEditor = "openCodeInEditor",
+  DisableQueryHistory = "disableQueryHistory",
 }
 
 interface RecInfo {
@@ -165,13 +167,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._disposables.push(
       workspace.onDidChangeConfiguration(
         (e) => {
-          if (e.affectsConfiguration("dbt.enableQueryBookmarks")) {
-            this.updateEnableBookmarksInContext();
-            if (this._panel) {
-              this.renderWebviewView(this._panel.webview);
-            }
-          }
-
           if (e.affectsConfiguration("dbt.enableNotebooks")) {
             this.updateEnableNotebooksInContext();
             const event = workspace
@@ -187,7 +182,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       ),
     );
 
-    this.updateEnableBookmarksInContext();
     this.updateEnableNotebooksInContext();
     this._disposables.push(
       commands.registerCommand(
@@ -203,17 +197,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._panel?.webview?.postMessage({
       command: "collectQueryResultsDebugInfo",
     });
-  }
-
-  private updateEnableBookmarksInContext() {
-    // Setting this here to access it in package.json for enabling new file command
-    commands.executeCommand(
-      "setContext",
-      "dbt.enableQueryBookmarks",
-      workspace
-        .getConfiguration("dbt")
-        .get<boolean>("enableQueryBookmarks", false),
-    );
   }
 
   private updateEnableNotebooksInContext() {
@@ -378,6 +361,17 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._panel!.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
+          case InboundCommand.DisableQueryHistory:
+            await workspace
+              .getConfiguration("dbt")
+              .update("disableQueryHistory", true);
+            this._queryHistory = [];
+            this.sendResponseToWebview({
+              command: "response",
+              data: {},
+              syncRequestId: message.syncRequestId,
+            });
+            break;
           case InboundCommand.OpenCodeInEditor:
             this.handleOpenCodeInEditor(message);
             break;
@@ -433,9 +427,9 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             const perspectiveTheme = workspace
               .getConfiguration("dbt")
               .get("perspectiveTheme", "Vintage");
-            const queryBookmarksEnabled = workspace
+            const queryHistoryDisabled = workspace
               .getConfiguration("dbt")
-              .get("enableQueryBookmarks", false);
+              .get("disableQueryHistory", false);
 
             const limit = workspace
               .getConfiguration("dbt")
@@ -444,7 +438,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
               command: OutboundCommand.GetContext,
               limit,
               perspectiveTheme,
-              queryBookmarksEnabled,
+              queryHistoryDisabled,
             });
             break;
           case InboundCommand.CancelQuery:
@@ -665,8 +659,8 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     duration: number,
     modelName: string,
   ) {
-    // Do not update query history if bookmarks are disabled
-    if (!workspace.getConfiguration("dbt").get("enableQueryBookmarks", false)) {
+    // Do not update query history if disabled
+    if (workspace.getConfiguration("dbt").get("disableQueryHistory", false)) {
       return;
     }
     const project = projectName
@@ -678,6 +672,17 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         "skipping query history update, no project found, may be executed from query history",
       );
       return;
+    }
+    const currentSize = getStringSizeInBytes(
+      JSON.stringify(this._queryHistory),
+    );
+    // 5MB
+    if (currentSize > 5) {
+      this._queryHistory.pop();
+      this.dbtTerminal.info(
+        "updateQueryHistory",
+        "Query history size exceeded 5MB, cleared oldest entry",
+      );
     }
     this._queryHistory.unshift({
       rawSql: query,
@@ -692,13 +697,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       modelName,
     });
     this._queryHistory = this._queryHistory.splice(0, 10);
-    this._bottomPanel?.webview.postMessage({
-      command: "queryHistory",
-      args: {
-        body: this._queryHistory,
-        status: true,
-      },
-    });
   }
 
   /** Runs a query transmitting appropriate notifications to webview */

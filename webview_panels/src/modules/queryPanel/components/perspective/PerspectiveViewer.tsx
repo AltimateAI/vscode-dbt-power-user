@@ -24,6 +24,7 @@ import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
 import { setPerspectiveTheme } from "@modules/queryPanel/context/queryPanelSlice";
 import { Drawer, DrawerRef } from "@uicore";
+import { useErrorBoundary } from "react-error-boundary";
 
 interface Props {
   data: TableData;
@@ -40,6 +41,9 @@ const PerspectiveViewer = ({
   const {
     state: { theme },
   } = useAppContext();
+
+  const { showBoundary } = useErrorBoundary();
+
   const { perspectiveTheme } = useQueryPanelState();
   const dispatch = useQueryPanelDispatch();
   const [tableRendered, setTableRendered] = useState(false);
@@ -172,6 +176,9 @@ const PerspectiveViewer = ({
       schema[columnNames[i]] = mapType(columnTypes[i]);
     }
 
+    try {
+      // @ts-ignore
+      hi.hi
     // @ts-expect-error valid parameter
     const worker = perspective.worker(styles);
     const table = await worker.table(schema);
@@ -212,6 +219,10 @@ const PerspectiveViewer = ({
         }
       },
     );
+  }catch(err){
+    panelLogger.error("error while loading perspective data", err);
+    showBoundary(err)
+  }
     setTableRendered(true);
   };
 

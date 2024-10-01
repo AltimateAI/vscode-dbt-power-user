@@ -25,6 +25,10 @@ const QueryPanelHistory = (): JSX.Element => {
   const { refetchBookmarkTags } = useQueryPanelCommonActions();
 
   useEffect(() => {
+    void executeRequestInAsync("getQueryHistory", {});
+  }, []);
+
+  useEffect(() => {
     if (queryBookmarksTagsFromDB) {
       return;
     }
