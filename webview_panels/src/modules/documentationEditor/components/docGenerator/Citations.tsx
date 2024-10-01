@@ -11,11 +11,11 @@ const Citations = ({
   const {
     state: {
       teammatesEnabled,
-      tenantInfo: { frontendUrl },
+      tenantInfo: { frontendUrl, teammatesEnabled: isEnabledInTenant },
     },
   } = useAppContext();
 
-  if (!teammatesEnabled || !citations?.length) {
+  if (!teammatesEnabled || !isEnabledInTenant || !citations?.length) {
     return null;
   }
   return (

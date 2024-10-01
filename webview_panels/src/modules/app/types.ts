@@ -14,6 +14,7 @@ export interface AppStateProps {
   tenantInfo: {
     frontendUrl: string | null;
     currency: string;
+    teammatesEnabled: boolean;
   }
 }
 

@@ -34,7 +34,7 @@ const DocumentationEditor = (): JSX.Element => {
     state: { currentDocsData, currentDocsTests, selectedPages },
     dispatch,
   } = useDocumentationContext();
-  const { postMessageToDataPilot, state: {teammatesEnabled} } = useAppContext();
+  const { postMessageToDataPilot, state: {teammatesEnabled, tenantInfo} } = useAppContext();
   useIncomingDocsDataHandler();
 
   const handleClick = (page: Pages) => {
@@ -175,7 +175,7 @@ const DocumentationEditor = (): JSX.Element => {
         <CommonActionButtons />
       </Stack>
       <div className={classes.docGenerator}>
-        {teammatesEnabled ? (
+        {teammatesEnabled && tenantInfo.teammatesEnabled ? (
           <Alert color="secondary" className="px-3 py-2 mt-1">
             Provide more context or setup guidelines for your project to help us generate better documentation.{" "}
             <CoachAi context={{ model: currentDocsData?.name }} />

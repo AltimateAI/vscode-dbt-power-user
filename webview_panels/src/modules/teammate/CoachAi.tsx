@@ -12,14 +12,14 @@ const CoachAi = ({
   const drawerRef = useRef<DrawerRef>(null);
   const { dispatch } = useTeamMateContext();
   const {
-    state: { teammatesEnabled },
+    state: { teammatesEnabled, tenantInfo },
   } = useAppContext();
 
   const onOpen = () => {
     dispatch(TeammateActions.setShowCoachingForm(true));
   };
 
-  if (!teammatesEnabled) {
+  if (!teammatesEnabled || !tenantInfo.teammatesEnabled) {
     return null;
   }
 
