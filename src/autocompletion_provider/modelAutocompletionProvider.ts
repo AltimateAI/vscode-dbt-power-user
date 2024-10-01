@@ -150,7 +150,8 @@ export class ModelAutocompletionProvider
           .map((model) => ({
             projectName,
             packageName: model.package_name,
-            modelName: model.name,
+            // TODO: fix this autocomplete to support for model version
+            modelName: model.alias,
           })),
       );
     });
