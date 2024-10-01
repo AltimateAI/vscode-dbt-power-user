@@ -847,7 +847,7 @@ export class NewLineagePanel implements LineagePanelView {
     const materialization = node.config.materialized;
     return {
       table: key,
-      label: table,
+      label: node.alias,
       url: tableUrl,
       upstreamCount,
       downstreamCount,
