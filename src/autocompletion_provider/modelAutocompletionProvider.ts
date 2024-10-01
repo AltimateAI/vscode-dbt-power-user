@@ -140,19 +140,36 @@ export class ModelAutocompletionProvider
       const project = added.project;
       const projectName = project.getProjectName();
       const models = added.nodeMetaMap.nodes();
+      const autocompleteItems = Array.from(models)
+        .filter(
+          (model) => model.resource_type !== DBTProject.RESOURCE_TYPE_ANALYSIS,
+        )
+        .map((model) => ({
+          projectName,
+          packageName: model.package_name,
+          // TODO: fix this autocomplete to support for model version
+          modelName: model.name,
+        }));
+
+      const uniqueItems: Record<
+        string,
+        {
+          projectName: string;
+          packageName: string;
+          modelName: string;
+        }
+      > = {};
+
+      for (const item of autocompleteItems) {
+        const key = `${item.projectName}|${item.packageName}|${item.modelName}`;
+        if (!uniqueItems[key]) {
+          uniqueItems[key] = item;
+        }
+      }
+
       this.modelAutocompleteMap.set(
         added.project.projectRoot.fsPath,
-        Array.from(models)
-          .filter(
-            (model) =>
-              model.resource_type !== DBTProject.RESOURCE_TYPE_ANALYSIS,
-          )
-          .map((model) => ({
-            projectName,
-            packageName: model.package_name,
-            // TODO: fix this autocomplete to support for model version
-            modelName: model.alias,
-          })),
+        Object.values(uniqueItems),
       );
     });
     event.removed?.forEach((removed) => {
