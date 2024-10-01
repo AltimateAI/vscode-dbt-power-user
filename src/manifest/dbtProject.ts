@@ -1165,9 +1165,8 @@ select * from renamed
           parentSet.add(n.key);
           continue;
         }
-        // this will ignore version
         if (
-          nodeMetaMap.lookupByBaseName(splits[2])?.config.materialized ===
+          nodeMetaMap.lookupByUniqueId(n.key)?.config.materialized ===
           "ephemeral"
         ) {
           queue.push(n.key);
@@ -1237,10 +1236,9 @@ select * from renamed
       return {};
     }
     const { nodeMetaMap } = event;
-    // this will ignore version
     return this.dbtProjectIntegration.getBulkCompiledSQL(
       models
-        .map((m) => nodeMetaMap.lookupByBaseName(m.split(".")[2]))
+        .map((m) => nodeMetaMap.lookupByUniqueId(m))
         .filter(Boolean) as NodeMetaData[],
     );
   }
