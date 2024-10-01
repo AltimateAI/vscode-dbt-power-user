@@ -14,7 +14,6 @@ import {
   workspace,
 } from "vscode";
 
-import { readFileSync } from "fs";
 import { PythonException } from "python-bridge";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
@@ -39,6 +38,7 @@ import {
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { QueryManifestService } from "../services/queryManifestService";
 import { UsersService } from "../services/usersService";
+import { TelemetryEvents } from "../telemetry/events";
 
 interface JsonObj {
   [key: string]: string | number | undefined;
@@ -365,6 +365,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             await workspace
               .getConfiguration("dbt")
               .update("disableQueryHistory", true);
+            this.telemetry.sendTelemetryError(
+              TelemetryEvents["QueryHistory/Disabled"],
+              message.error,
+            );
             this._queryHistory = [];
             this.sendResponseToWebview({
               command: "response",
