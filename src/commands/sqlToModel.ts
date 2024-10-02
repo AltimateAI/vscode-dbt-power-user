@@ -71,7 +71,7 @@ export class SqlToModel {
       return;
     }
     const { nodeMetaMap, sourceMetaMap } = event;
-    const allmodels = Array.from(nodeMetaMap.values());
+    const allmodels = Array.from(nodeMetaMap.nodes());
     const allsources = Array.from(sourceMetaMap.values());
 
     const fileText = activedoc.document.getText();

@@ -1165,7 +1165,10 @@ select * from renamed
           parentSet.add(n.key);
           continue;
         }
-        if (nodeMetaMap.get(splits[2])?.config.materialized === "ephemeral") {
+        if (
+          nodeMetaMap.lookupByUniqueId(n.key)?.config.materialized ===
+          "ephemeral"
+        ) {
           queue.push(n.key);
         } else {
           parentSet.add(n.key);
@@ -1235,7 +1238,7 @@ select * from renamed
     const { nodeMetaMap } = event;
     return this.dbtProjectIntegration.getBulkCompiledSQL(
       models
-        .map((m) => nodeMetaMap.get(m.split(".")[2]))
+        .map((m) => nodeMetaMap.lookupByUniqueId(m))
         .filter(Boolean) as NodeMetaData[],
     );
   }
@@ -1288,7 +1291,7 @@ select * from renamed
         };
         mappedNode[key] = node;
       } else if (DBTProject.isResourceNode(resource_type)) {
-        const node = nodeMetaMap.get(splits[2]);
+        const node = nodeMetaMap.lookupByUniqueId(key);
         if (!node) {
           continue;
         }

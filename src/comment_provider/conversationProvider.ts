@@ -434,7 +434,7 @@ export class ConversationProvider implements Disposable {
       return;
     }
 
-    const currentNode = event.nodeMetaMap.get(resourceName);
+    const currentNode = event.nodeMetaMap.lookupByBaseName(resourceName);
     // For model
     if (currentNode) {
       return {

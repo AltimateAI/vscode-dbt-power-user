@@ -89,7 +89,7 @@ export const generateMacroHoverMarkdown = (
         [...event.macroMetaMap.values()].find((macro) => macro.uniqueId === m),
       ) || []),
       ...(node.depends_on.nodes?.map((m) =>
-        [...event.nodeMetaMap.values()].find((macro) => macro.uniqueId === m),
+        [...event.nodeMetaMap.nodes()].find((macro) => macro.uniqueId === m),
       ) || []),
     ];
     addSeparator(content);

@@ -104,18 +104,15 @@ abstract class ModelTreeviewProvider
     if (element) {
       return Promise.resolve(this.getTreeItems(element.key, event));
     }
-
-    const { project } = event;
     const fileName = path.basename(
       window.activeTextEditor!.document.fileName,
       ".sql",
     );
-    const packageName =
-      this.dbtProjectContainer.getPackageName(currentFilePath) ||
-      project.getProjectName();
-    return Promise.resolve(
-      this.getTreeItems(`model.${packageName}.${fileName}`, event),
-    );
+    const model = event.nodeMetaMap.lookupByBaseName(fileName);
+    if (!model) {
+      return Promise.resolve([]);
+    }
+    return Promise.resolve(this.getTreeItems(model.uniqueId, event));
   }
 
   private getNodeTreeItem(node: Node): NodeTreeItem {
@@ -229,7 +226,7 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
         window.activeTextEditor!.document.fileName,
         ".sql",
       );
-      const currentNode = nodeMetaMap.get(modelName);
+      const currentNode = nodeMetaMap.lookupByBaseName(modelName);
       if (currentNode === undefined) {
         return Promise.resolve([]);
       }

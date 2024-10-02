@@ -220,7 +220,7 @@ export class DocGenService {
     }
 
     const modelName = path.basename(filePath, ".sql");
-    const currentNode = event.nodeMetaMap.get(modelName);
+    const currentNode = event.nodeMetaMap.lookupByBaseName(modelName);
     if (currentNode === undefined) {
       return {
         documentation: undefined,

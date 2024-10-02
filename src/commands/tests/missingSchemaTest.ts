@@ -17,7 +17,7 @@ export class MissingSchemaTest implements AltimateScanStep {
       return;
     }
     const { nodeMetaMap } = projectEventMap;
-    for (const [key, value] of nodeMetaMap) {
+    for (const value of nodeMetaMap.nodes()) {
       // blacklisting node types.. should we instead whitelist just models and sources?
       if (
         // TODO - need to filter out only models here but the resource type isnt available
