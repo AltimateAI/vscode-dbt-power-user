@@ -164,7 +164,7 @@ export class GraphParser {
             return;
           }
           const url = model?.path!;
-          return new Model(model.uniqueId, parentNodeName, url);
+          return new Model(model.alias, parentNodeName, url);
         }
         case "seed": {
           // can this ever be not there?
@@ -173,7 +173,7 @@ export class GraphParser {
             return;
           }
           const url = model?.path!;
-          return new Seed(model.uniqueId, parentNodeName, url);
+          return new Seed(model.alias, parentNodeName, url);
         }
         case "test": {
           // nodeName => more interesting label possibilities?
