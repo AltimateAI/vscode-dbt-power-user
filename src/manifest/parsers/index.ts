@@ -8,7 +8,7 @@ import { ManifestCacheChangedEvent } from "../event/manifestCacheChangedEvent";
 import { DocParser } from "./docParser";
 import { GraphParser } from "./graphParser";
 import { MacroParser } from "./macroParser";
-import { NodeParser } from "./nodeParser";
+import { NodeMetaMapImpl, NodeParser } from "./nodeParser";
 import { SourceParser } from "./sourceParser";
 import { TestParser } from "./testParser";
 import { TelemetryService } from "../../telemetry";
@@ -55,7 +55,7 @@ export class ManifestParser {
         added: [
           {
             project,
-            nodeMetaMap: new Map(),
+            nodeMetaMap: new NodeMetaMapImpl(),
             macroMetaMap: new Map(),
             metricMetaMap: new Map(),
             sourceMetaMap: new Map(),

@@ -489,9 +489,8 @@ export class NewLineagePanel
           .sort((a, b) => a.name.localeCompare(b.name)),
       };
     }
-    const tableName = splits[2];
-    const { nodeMetaMap } = event.event;
-    const node = nodeMetaMap.get(tableName);
+    const { nodeMetaMap } = event;
+    const node = nodeMetaMap.lookupByUniqueId(table);
     if (!node) {
       return;
     }
@@ -869,7 +868,7 @@ export class NewLineagePanel
       };
     }
 
-    const node = nodeMetaMap.get(table);
+    const node = nodeMetaMap.lookupByUniqueId(key);
     if (!node) {
       return;
     }
@@ -877,7 +876,7 @@ export class NewLineagePanel
     const materialization = node.config.materialized;
     return {
       table: key,
-      label: table,
+      label: node.alias,
       url: tableUrl,
       upstreamCount,
       downstreamCount,
@@ -938,7 +937,7 @@ export class NewLineagePanel
     }
     const { nodeMetaMap, graphMetaMap, testMetaMap } = event.event;
     const tableName = this.getFilename();
-    const _node = nodeMetaMap.get(tableName);
+    const _node = nodeMetaMap.lookupByBaseName(tableName);
     if (!_node) {
       return {
         aiEnabled,

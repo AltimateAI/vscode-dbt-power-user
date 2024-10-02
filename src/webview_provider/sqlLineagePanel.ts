@@ -62,7 +62,7 @@ export class SQLLineagePanel
       usersService,
     );
     window.onDidChangeActiveColorTheme(
-      async (e) => {
+      async () => {
         this.changedActiveColorTheme();
       },
       null,
@@ -138,7 +138,7 @@ export class SQLLineagePanel
     if (!event) {
       throw new Error(this.getMissingLineageMessage());
     }
-    const { graphMetaMap, nodeMetaMap, sourceMetaMap } = event;
+    const { nodeMetaMap, sourceMetaMap } = event;
     const project = this.getProject();
     if (!project) {
       throw new Error("Unable to find the project");
@@ -156,7 +156,7 @@ export class SQLLineagePanel
     if (!compiledSQL) {
       throw new Error(`Unable to compile sql for model ${modelName}`);
     }
-    const currNode = nodeMetaMap.get(modelName);
+    const currNode = nodeMetaMap.lookupByBaseName(modelName);
     if (!currNode) {
       throw new Error(`Unable to find model for model ${modelName}`);
     }
@@ -206,7 +206,7 @@ export class SQLLineagePanel
           continue;
         }
       }
-      const _node = nodeMetaMap.get(splits[splits.length - 1]);
+      const _node = nodeMetaMap.lookupByUniqueId(modelId);
       if (_node) {
         for (const key in details) {
           if (
@@ -424,9 +424,8 @@ export class SQLLineagePanel
           .sort((a, b) => a.name.localeCompare(b.name)),
       };
     }
-    const tableName = splits[2];
     const { nodeMetaMap } = event;
-    const node = nodeMetaMap.get(tableName);
+    const node = nodeMetaMap.lookupByUniqueId(table);
     if (!node) {
       return;
     }
