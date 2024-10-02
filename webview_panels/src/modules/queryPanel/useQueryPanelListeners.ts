@@ -8,7 +8,7 @@ import {
   setLimit,
   setLoading,
   setPerspectiveTheme,
-  setQueryBookmarksEnabled,
+  setQueryHistoryDisabled,
   setQueryExecutionInfo,
   setQueryHistory,
   setQueryResults,
@@ -160,7 +160,7 @@ const useQueryPanelListeners = (): { loading: boolean } => {
           dispatch(setPerspectiveTheme(args.perspectiveTheme as string));
           dispatch(
             // @ts-expect-error valid type
-            setQueryBookmarksEnabled(args.queryBookmarksEnabled as boolean)
+            setQueryHistoryDisabled(args.queryHistoryDisabled as boolean)
           );
           break;
         case "collectQueryResultsDebugInfo":
@@ -175,8 +175,6 @@ const useQueryPanelListeners = (): { loading: boolean } => {
 
   useEffect(() => {
     void executeRequestInSync("getQueryPanelContext", {});
-
-    void executeRequestInSync("getQueryHistory", {});
   }, []);
 
   useEffect(() => {

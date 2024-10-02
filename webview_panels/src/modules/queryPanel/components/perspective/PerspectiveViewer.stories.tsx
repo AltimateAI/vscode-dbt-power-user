@@ -1,6 +1,7 @@
 import type { Meta } from "@storybook/react";
 import PerspectiveViewer from "./PerspectiveViewer";
 import { TableData } from "@finos/perspective";
+import PerspectiveErrorBoundary from "./PerspectiveErrorBoundary";
 
 const meta = {
   title: "PerspectiveViewer",
@@ -18,6 +19,8 @@ export default meta;
 export const DefaultPerspectiveViewerView = {
   render: (): JSX.Element => {
     return (
+    <PerspectiveErrorBoundary>
+
       <PerspectiveViewer
         columnNames={[
           "customer_id",
@@ -243,6 +246,7 @@ export const DefaultPerspectiveViewerView = {
           ] as unknown as TableData
         }
       />
+    </PerspectiveErrorBoundary>
     );
   },
 };
