@@ -132,7 +132,9 @@ export class QueryManifestService {
     return items;
   }
 
-  public getModelsInProject(currentFilePath?: Uri) {
+  public getModelsInProject(
+    currentFilePath?: Uri,
+  ): Iterable<string> | undefined {
     if (!currentFilePath) {
       return;
     }
@@ -148,16 +150,8 @@ export class QueryManifestService {
       return;
     }
 
-    const models = event.nodeMetaMap.entries();
-
-    const items = Array.from(models)
-      .filter(
-        ([key, model]) =>
-          model.resource_type !== DBTProject.RESOURCE_TYPE_ANALYSIS,
-      )
-      .map(([key]) => key);
-
-    return items;
+    // TODO: fix for model versions
+    return Array.from(event.nodeMetaMap.nodes()).map((node) => node.name);
   }
 
   // get project based on current active editor

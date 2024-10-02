@@ -19,7 +19,7 @@ export class UndocumentedModelColumnTest implements AltimateScanStep {
       return;
     }
     const { nodeMetaMap } = projectEventMap;
-    for (const [key, value] of nodeMetaMap) {
+    for (const value of nodeMetaMap.nodes()) {
       if (
         (scanResults["missingDoc"] !== undefined &&
           scanResults["missingDoc"].has(value.uniqueId)) ||

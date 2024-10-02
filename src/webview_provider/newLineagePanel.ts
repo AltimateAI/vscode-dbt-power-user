@@ -463,9 +463,8 @@ export class NewLineagePanel implements LineagePanelView {
           .sort((a, b) => a.name.localeCompare(b.name)),
       };
     }
-    const tableName = splits[2];
     const { nodeMetaMap } = event;
-    const node = nodeMetaMap.get(tableName);
+    const node = nodeMetaMap.lookupByUniqueId(table);
     if (!node) {
       return;
     }
@@ -840,7 +839,7 @@ export class NewLineagePanel implements LineagePanelView {
       };
     }
 
-    const node = nodeMetaMap.get(table);
+    const node = nodeMetaMap.lookupByUniqueId(key);
     if (!node) {
       return;
     }
@@ -848,7 +847,7 @@ export class NewLineagePanel implements LineagePanelView {
     const materialization = node.config.materialized;
     return {
       table: key,
-      label: table,
+      label: node.alias,
       url: tableUrl,
       upstreamCount,
       downstreamCount,
@@ -934,7 +933,7 @@ export class NewLineagePanel implements LineagePanelView {
     }
     const { nodeMetaMap, graphMetaMap, testMetaMap } = event;
     const tableName = this.getFilename();
-    const _node = nodeMetaMap.get(tableName);
+    const _node = nodeMetaMap.lookupByBaseName(tableName);
     if (!_node) {
       return {
         aiEnabled,

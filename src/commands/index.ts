@@ -721,7 +721,7 @@ export class VSCodeCommands implements Disposable {
             return;
           }
           const { nodeMetaMap } = event;
-          const model = nodeMetaMap.get(modelName);
+          const model = nodeMetaMap.lookupByBaseName(modelName);
           if (!model?.path) {
             return;
           }
