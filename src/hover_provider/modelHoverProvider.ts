@@ -147,7 +147,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
     if (nodeMap === undefined) {
       return;
     }
-    const node = nodeMap.get(modelName);
+    const node = nodeMap.lookupByBaseName(modelName);
     if (node) {
       return generateHoverMarkdownString(node, "ref");
     }

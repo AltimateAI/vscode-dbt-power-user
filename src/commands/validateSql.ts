@@ -106,7 +106,7 @@ export class ValidateSql {
       return;
     }
     const { graphMetaMap, nodeMetaMap } = event;
-    const node = nodeMetaMap.get(modelName);
+    const node = nodeMetaMap.lookupByBaseName(modelName);
     if (!node) {
       return;
     }
