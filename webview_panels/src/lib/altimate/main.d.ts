@@ -265,7 +265,7 @@ export { Label }
 export declare interface Learning extends z.infer<typeof learningSchema> {
 }
 
-export declare const Learnings: ({ filters }: Props_12) => JSX_2.Element;
+export declare const Learnings: ({ filters, learning }: Props_12) => JSX_2.Element;
 
 export declare const learningSchema: z.ZodObject<{
     train_doc_uid: z.ZodString;
@@ -390,6 +390,7 @@ declare interface Props_12 {
     filters?: {
         taskLabel?: keyof typeof TaskLabels;
     };
+    learning?: string;
 }
 
 declare interface Props_13 {
