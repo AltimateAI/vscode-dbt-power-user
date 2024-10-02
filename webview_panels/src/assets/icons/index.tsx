@@ -25,6 +25,7 @@ export { default as NoBookmarksIcon } from "./no-bookmarks.svg?react";
 export { default as NoHistoryIcon } from "./no-history.svg?react";
 export { default as NoNotebooksIcon } from "./notebook.svg?react";
 export { default as ThinkingIcon } from "./thinking.svg?react";
+export { default as CoachAIIcon } from "./coachAi.svg?react";
 import LoadingSpinnerUrl from "./spinner.gif";
 import "./styles.css";
 

@@ -10,7 +10,7 @@ export const initialState = {
   tenantInfo: {
     frontendUrl: null,
     currency: "USD",
-    teammatesEnabled: false
+    teammatesEnabled: true
   },
 } as AppStateProps;
 

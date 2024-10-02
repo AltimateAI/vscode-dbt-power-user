@@ -5,7 +5,7 @@ import CommonActionButtons from "@modules/commonActionButtons/CommonActionButton
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
-import { Alert, Button, Stack } from "@uicore";
+import { Button, Stack } from "@uicore";
 import { useMemo } from "react";
 import DocGeneratorColumnsList from "./components/docGenerator/DocGeneratorColumnsList";
 import DocGeneratorInput from "./components/docGenerator/DocGeneratorInput";
@@ -27,14 +27,13 @@ import { TelemetryEvents } from "@telemetryEvents";
 import { sendTelemetryEvent } from "./components/telemetry";
 import CoachAiIfModified from "./components/docGenerator/CoachAiIfModified";
 import Citations from "./components/docGenerator/Citations";
-import CoachAi from "@modules/teammate/CoachAi";
 
 const DocumentationEditor = (): JSX.Element => {
   const {
     state: { currentDocsData, currentDocsTests, selectedPages },
     dispatch,
   } = useDocumentationContext();
-  const { postMessageToDataPilot, state: {teammatesEnabled, tenantInfo} } = useAppContext();
+  const { postMessageToDataPilot } = useAppContext();
   useIncomingDocsDataHandler();
 
   const handleClick = (page: Pages) => {
@@ -54,11 +53,11 @@ const DocumentationEditor = (): JSX.Element => {
 
   const isDocumentationPageSelected = useMemo(
     () => selectedPages.includes(Pages.DOCUMENTATION),
-    [selectedPages],
+    [selectedPages]
   );
   const isTestsPageSelected = useMemo(
     () => selectedPages.includes(Pages.TESTS),
-    [selectedPages],
+    [selectedPages]
   );
 
   const onModelDocSubmit = async (data: DocsGenerateModelRequestV2) => {
@@ -87,7 +86,7 @@ const DocumentationEditor = (): JSX.Element => {
               ...requestData,
               modelName: currentDocsData.name,
             },
-            "generateDocsForModel",
+            "generateDocsForModel"
           ),
           state: RequestState.COMPLETED,
         });
@@ -175,27 +174,17 @@ const DocumentationEditor = (): JSX.Element => {
         <CommonActionButtons />
       </Stack>
       <div className={classes.docGenerator}>
-        {teammatesEnabled && tenantInfo.teammatesEnabled ? (
-          <Alert color="secondary" className="px-3 py-2 mt-1">
-            Provide more context or setup guidelines for your project to help us generate better documentation.{" "}
-            <CoachAi context={{ model: currentDocsData?.name }} />
-          </Alert>
-        ) : null}
-        <Stack className={classes.head}>
-          <Stack>
-            <h3 className="mb-2">Model: {currentDocsData.name}</h3>
-          </Stack>
-        </Stack>
         <Stack className={classes.bodyWrap}>
           <Stack direction="column" className={classes.body}>
             <Stack direction="column">
-              <Stack direction="column" style={{ margin: "0px 0 10px 0" }}>
+              <Stack direction="column" style={{ margin: "1rem 0 10px 0" }}>
                 {isDocumentationPageSelected ? (
                   <DocGeneratorInput
                     entity={currentDocsData}
                     type={EntityType.MODEL}
                     onSubmit={onModelDocSubmit}
                     placeholder="Describe your model"
+                    title={`Model: ${currentDocsData.name}`}
                   />
                 ) : null}
                 <EntityWithTests
@@ -203,8 +192,10 @@ const DocumentationEditor = (): JSX.Element => {
                   tests={modelTests}
                   type={EntityType.MODEL}
                 />
-                <Citations citations={currentDocsData.citations} />
-                <CoachAiIfModified model={currentDocsData.name} />
+                <Stack>
+                  <Citations citations={currentDocsData.citations} />
+                  <CoachAiIfModified model={currentDocsData.name} />
+                </Stack>
               </Stack>
               <DocGeneratorColumnsList />
             </Stack>

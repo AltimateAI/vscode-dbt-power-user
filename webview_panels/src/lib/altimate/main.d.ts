@@ -270,7 +270,7 @@ export declare const Learnings: ({ filters }: Props_12) => JSX_2.Element;
 export declare const learningSchema: z.ZodObject<{
     train_doc_uid: z.ZodString;
     userId: z.ZodString;
-    user_name: z.ZodOptional<z.ZodString>;
+    display_name: z.ZodString;
     taskLabel: z.ZodString;
     category: z.ZodEnum<[string, ...string[]]>;
     personalizationScope: z.ZodDefault<z.ZodEnum<[string, ...string[]]>>;
@@ -281,6 +281,7 @@ export declare const learningSchema: z.ZodObject<{
     isActive: z.ZodDefault<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
     content: string;
+    display_name: string;
     userId: string;
     train_doc_uid: string;
     taskLabel: string;
@@ -290,9 +291,9 @@ export declare const learningSchema: z.ZodObject<{
     updatedDate: string;
     isActive: boolean;
     metadata?: Record<string, unknown> | undefined;
-    user_name?: string | undefined;
 }, {
     content: string;
+    display_name: string;
     userId: string;
     train_doc_uid: string;
     taskLabel: string;
@@ -300,7 +301,6 @@ export declare const learningSchema: z.ZodObject<{
     createdDate: string;
     updatedDate: string;
     metadata?: Record<string, unknown> | undefined;
-    user_name?: string | undefined;
     personalizationScope?: string | undefined;
     isActive?: boolean | undefined;
 }>;
@@ -518,7 +518,7 @@ export declare interface Table {
 export declare enum TaskLabels {
     DocGen = "DocGen",
     ChartBot = "ChartBot",
-    SqlBot = "SqlBot"
+    SqlBot = "SqlExpert"
 }
 
 export declare const TeammateActions: CaseReducerActions<    {

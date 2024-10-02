@@ -2,6 +2,7 @@ import { Badge } from "@lib";
 import useAppContext from "@modules/app/useAppContext";
 import { Citation } from "@modules/documentationEditor/state/types";
 import { Stack } from "@uicore";
+import classes from "./coachAi.module.scss";
 
 const Citations = ({
   citations,
@@ -19,8 +20,8 @@ const Citations = ({
     return null;
   }
   return (
-    <Stack className="mt-2">
-      <h5>Learnings applied:</h5>
+    <Stack className={classes.coachAi}>
+      Learnings applied:
       <ul style={{ padding: 0, display: "flex", gap: 8, marginTop: -2 }}>
         {citations.map((citation, index) => (
           <li key={index} style={{ listStyle: "none" }}>

@@ -20,6 +20,7 @@ import EntityWithTests from "../tests/EntityWithTests";
 import { useMemo } from "react";
 import CoachAiIfModified from "./CoachAiIfModified";
 import Citations from "./Citations";
+import { Stack } from "@uicore";
 
 interface Props {
   column: DBTDocumentationColumn;
@@ -93,13 +94,13 @@ const DocGeneratorColumn = ({ column, tests }: Props): JSX.Element => {
   };
   return (
     <div>
-      <h4>{column.name + (column.type ? " (" + column.type + ")" : "")} </h4>
       {isDocumentationPageSelected ? (
         <DocGeneratorInput
           onSubmit={handleColumnSubmit}
           placeholder={`Describe ${column.name}`}
           type={EntityType.COLUMN}
           entity={column}
+          title={column.name + (column.type ? " (" + column.type + ")" : "")}
         />
       ) : null}
       <EntityWithTests
@@ -107,8 +108,10 @@ const DocGeneratorColumn = ({ column, tests }: Props): JSX.Element => {
         tests={tests}
         type={EntityType.COLUMN}
       />
+      <Stack className="mt-2">
       <Citations citations={column.citations}/>
       <CoachAiIfModified column={column.name}/>
+      </Stack>
     </div>
   );
 };
