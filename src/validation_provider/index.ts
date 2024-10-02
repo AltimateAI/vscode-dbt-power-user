@@ -74,6 +74,7 @@ export class ValidationProvider implements Disposable {
     }
     const connectivity = await this.altimate.checkApiConnectivity();
     if (connectivity?.status !== "ok") {
+      this._isAuthenticated = false;
       if (!silent) {
         window.showErrorMessage("Unable to connect to altimate backend.");
       }
