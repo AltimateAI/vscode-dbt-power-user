@@ -753,16 +753,26 @@ export class AltimateRequest {
   }
 
   async validateCredentials(instance: string, key: string) {
-    const url = `${AltimateRequest.ALTIMATE_URL}/dbt/v3/validate-credentials`;
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "x-tenant": instance,
-        Authorization: "Bearer " + key,
-        "Content-Type": "application/json",
-      },
-    });
-    return (await response.json()) as Record<string, any> | undefined;
+    const url = `${AltimateRequest.ALTIMATE_URL}/dbt/v3/validate-credentials-2`;
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "x-tenant": instance,
+          Authorization: "Bearer " + key,
+          "Content-Type": "application/json",
+        },
+      });
+      return (await response.json()) as Record<string, any> | undefined;
+    } catch (e) {
+      this.dbtTerminal.error(
+        "validateCredentials",
+        "Error while validating credentials",
+        e,
+        true,
+      );
+      return { ok: false, detail: "Unable to connect to altimate backend." };
+    }
   }
 
   async checkApiConnectivity() {

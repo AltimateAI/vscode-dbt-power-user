@@ -77,7 +77,7 @@ export class ValidationProvider implements Disposable {
       this._isAuthenticated = false;
       if (!silent) {
         window.showErrorMessage(
-          `Credentials are invalid. ${validation?.detail}`,
+          validation?.detail || "Credentials are invalid.",
         );
       }
       return;
