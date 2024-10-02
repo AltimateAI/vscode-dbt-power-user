@@ -6,10 +6,12 @@ export const initialState = {
   isComponentsApiInitialized: false,
   users: {},
   currentUser: null,
+  // This is extension setting
   teammatesEnabled: false,
   tenantInfo: {
     frontendUrl: null,
     currency: "USD",
+    // This is tenant level global setting
     teammatesEnabled: true
   },
 } as AppStateProps;
