@@ -150,7 +150,8 @@ export class QueryManifestService {
       return;
     }
 
-    return Array.from(event.nodeMetaMap.nodes()).map((node) => node.uniqueId);
+    // TODO: fix for model versions
+    return Array.from(event.nodeMetaMap.nodes()).map((node) => node.name);
   }
 
   // get project based on current active editor
