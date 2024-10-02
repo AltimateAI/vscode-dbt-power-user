@@ -28,7 +28,8 @@ const CodeBlockComponent = ({
         showLineNumbers={showLineNumbers}
         code={code}
         fileName={fileName}
-        theme={codeBlockTheme}
+        theme={theme}
+        editorTheme={codeBlockTheme}
         language={language}
         titleActions={titleActions}
       />

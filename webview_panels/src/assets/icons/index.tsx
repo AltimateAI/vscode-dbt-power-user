@@ -24,6 +24,7 @@ export { default as NoBookmarksIcon } from "./no-bookmarks.svg?react";
 export { default as NoHistoryIcon } from "./no-history.svg?react";
 export { default as NoNotebooksIcon } from "./notebook.svg?react";
 import LoadingSpinnerUrl from "./spinner.gif";
+import LineageGif from "./lineage.gif";
 import "./styles.css";
 
 interface Props {
@@ -126,6 +127,14 @@ export const LoadingSpinner = (): JSX.Element => (
     // @ts-expect-error added in altimateWebViewProvider
     src={(window.spinnerUrl as string) ?? LoadingSpinnerUrl}
     alt="Altimate loader"
+  />
+);
+
+export const LineageDemo = (): JSX.Element => (
+  <img
+    // @ts-expect-error added in altimateWebViewProvider
+    src={(window.lineageGif as string) ?? LineageGif}
+    alt="Lineage demo"
   />
 );
 
