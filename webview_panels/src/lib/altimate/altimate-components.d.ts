@@ -307,7 +307,7 @@ export declare const learningSchema: z.ZodObject<{
 
 export declare const Lineage: (props: Omit<Parameters<typeof LineageProvider>["0"], "children">) => JSX_2.Element;
 
-declare const LineageProvider: ({ theme, lineageType, sqlLineage, dynamicLineage, staticLineage, allowSyncColumnsWithDB, }: LineageProviderProps) => JSX_2.Element;
+declare const LineageProvider: ({ theme, lineageType, sqlLineage, dynamicLineage, staticLineage, allowSyncColumnsWithDB, externalSidePanel }: LineageProviderProps) => JSX_2.Element;
 
 declare interface LineageProviderProps {
     dynamicLineage?: {
@@ -319,6 +319,7 @@ declare interface LineageProviderProps {
     theme: "dark" | "light";
     lineageType: "static" | "dynamic" | "sql";
     allowSyncColumnsWithDB?: boolean;
+    externalSidePanel?: boolean;
 }
 
 export { List }
