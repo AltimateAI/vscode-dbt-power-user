@@ -77,7 +77,7 @@ export class ValidationProvider implements Disposable {
       this._isAuthenticated = false;
       if (!silent) {
         window.showErrorMessage(
-          "Unable to connect to altimate backend. Please check you firewall settings or check backend [status](https://altimateai.instatus.com/).",
+          "Unable to connect to Altimate Service. Please check your Firewall/VPN settings or check service [status](https://altimateai.instatus.com/).",
         );
       }
       return;
