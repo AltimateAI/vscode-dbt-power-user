@@ -477,7 +477,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             infoMessage: string;
             items: any[];
           };
-          window.showErrorMessage(args.infoMessage, ...args.items);
+          window.showErrorMessage(args.infoMessage, ...(args.items || []));
           break;
         case "showWarningMessage":
           this.handleWarningMessage(
