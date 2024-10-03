@@ -27,8 +27,7 @@ const Citations = ({
           <li key={index} style={{ listStyle: "none" }}>
             <Badge
               tag={"a"}
-              // TODO: make it dynamic with backend data
-              href={`${frontendUrl}/teammates/DocGen?learning=${citation.id}`}
+              href={`${frontendUrl}/teammates/${citation.taskLabel as string}?learning=${citation.id}`}
               tooltip={citation.content}
             >
               {index + 1}

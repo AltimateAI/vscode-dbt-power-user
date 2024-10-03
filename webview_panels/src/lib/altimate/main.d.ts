@@ -527,8 +527,8 @@ setShowCoachingForm: (state: WritableDraft<TeamMateState>, action: PayloadAction
 }, "teamMate">;
 
 export declare enum TeamMateAvailability {
-    EXTENSION = "extension",
-    SAAS = "saas"
+    EXTENSION = "VSCode Extension",
+    SAAS = "SaaS"
 }
 
 export declare interface TeamMateConfig {
