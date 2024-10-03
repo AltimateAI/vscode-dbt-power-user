@@ -54,7 +54,7 @@ const AiDocActionButton = ({ action, onNewGeneration }: Props): JSX.Element => {
         ...generatedResult,
         description: result.model_description,
         citations: result.model_citations,
-        model: chat?.meta?.name as string,
+        model: chat?.meta?.name ?? "",
       };
     }
 

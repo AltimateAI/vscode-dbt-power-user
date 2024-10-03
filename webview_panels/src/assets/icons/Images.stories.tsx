@@ -1,6 +1,7 @@
 import type { Meta } from "@storybook/react";
 import { useState } from "react";
 import * as Icons from "./index";
+import { panelLogger } from "@modules/logger";
 
 const meta = {
   title: "UiToolKit/Images",
@@ -56,6 +57,10 @@ export const Default = {
         >
           {filteredIcons.map((name) => {
             const IconComponent = Icons[name as keyof typeof Icons];
+            if (!IconComponent) {  
+              panelLogger.warn(`Icon ${name} not found`);  
+              return null;  
+            }  
             return (
               <div key={name} style={{ textAlign: "center" }}>
                 <IconComponent width="48px" height="48px" />

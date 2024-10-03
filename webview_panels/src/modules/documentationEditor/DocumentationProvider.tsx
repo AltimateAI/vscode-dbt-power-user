@@ -88,7 +88,7 @@ const DocumentationProvider = (): JSX.Element => {
     );
   };
 
-  const onMesssage = useCallback(
+  const onMessage = useCallback(
     (
       event: MessageEvent<
         IncomingMessageProps & {
@@ -206,12 +206,12 @@ const DocumentationProvider = (): JSX.Element => {
 
   useEffect(() => {
     sendTelemetryEvent(TelemetryEvents["DocumentationEditor/Load"]);
-    window.addEventListener("message", onMesssage);
+    window.addEventListener("message", onMessage);
     // Load current editor documentation
     executeRequestInAsync("getCurrentModelDocumentation", {});
 
     return () => {
-      window.removeEventListener("message", onMesssage);
+      window.removeEventListener("message", onMessage);
     };
   }, []);
 
