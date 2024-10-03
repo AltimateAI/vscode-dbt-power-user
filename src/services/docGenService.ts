@@ -160,7 +160,7 @@ export class DocGenService {
   }
 
   private async transmitAIGeneratedModelDocs(
-    description: string,
+    response: DocsGenerateResponse,
     syncRequestId?: string,
     panel?: WebviewView | WebviewPanel,
   ) {
@@ -168,11 +168,11 @@ export class DocGenService {
       const result = syncRequestId
         ? {
             command: "response",
-            args: { body: { description }, syncRequestId, status: true },
+            args: { body: response, syncRequestId, status: true },
           }
         : {
             command: "renderAIGeneratedModelDocs",
-            description,
+            response,
           };
       await panel.webview.postMessage(result);
     }
@@ -375,6 +375,7 @@ export class DocGenService {
             generatedDocsForColumn.column_descriptions.map((entry) => ({
               name: entry.column_name,
               description: entry.column_description,
+              citations: entry.column_citations,
             })),
             message.syncRequestId,
           );
@@ -471,7 +472,7 @@ export class DocGenService {
             return;
           }
           this.transmitAIGeneratedModelDocs(
-            generateDocsForModel.model_description,
+            generateDocsForModel,
             message.syncRequestId,
             panel,
           );

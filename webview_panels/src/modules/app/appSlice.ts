@@ -6,14 +6,31 @@ export const initialState = {
   isComponentsApiInitialized: false,
   users: {},
   currentUser: null,
+  // This is extension setting
+  teammatesEnabled: false,
+  tenantInfo: {
+    frontendUrl: null,
+    currency: "USD",
+    // This is tenant level global setting
+    teammatesEnabled: true
+  },
 } as AppStateProps;
 
 const appSlice = createSlice({
   name: "appState",
   initialState,
   reducers: {
+    setTenantInfo: (
+      state,
+      action: PayloadAction<AppStateProps["tenantInfo"]>
+    ) => {
+      state.tenantInfo = action.payload;
+    },
     updateTheme: (state, action: PayloadAction<Themes>) => {
       state.theme = action.payload;
+    },
+    updateTeammatesEnabled: (state, action: PayloadAction<boolean>) => {
+      state.teammatesEnabled = action.payload;
     },
     updateIsComponentsApiInitialized: (
       state,
@@ -47,5 +64,7 @@ export const {
   updateIsComponentsApiInitialized,
   setUsers,
   setCurrentUser,
+  updateTeammatesEnabled,
+  setTenantInfo,
 } = appSlice.actions;
 export default appSlice;
