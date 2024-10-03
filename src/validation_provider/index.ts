@@ -76,7 +76,9 @@ export class ValidationProvider implements Disposable {
     if (connectivity?.status !== "ok") {
       this._isAuthenticated = false;
       if (!silent) {
-        window.showErrorMessage("Unable to connect to altimate backend.");
+        window.showErrorMessage(
+          "Unable to connect to altimate backend. Please check you firewall settings or check backend [status](https://altimateai.instatus.com/).",
+        );
       }
       return;
     }
