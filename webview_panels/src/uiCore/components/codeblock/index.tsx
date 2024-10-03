@@ -21,8 +21,7 @@ const CodeBlockComponent = ({
   const {
     state: { theme },
   } = useAppContext();
-  // TODO check this
-  const codeBlockTheme = theme === Themes.Dark ? "dark" : "light";
+  const codeBlockTheme = theme === Themes.Dark ? "vsc-dark-plus" : "vs";
   return (
     <div className={classes.codeblock}>
       <CodeblockLib
