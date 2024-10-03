@@ -390,7 +390,7 @@ declare interface Props_12 {
     filters?: {
         taskLabel?: keyof typeof TaskLabels;
     };
-    learning?: string;
+    learning?: string | null;
 }
 
 declare interface Props_13 {
