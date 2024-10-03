@@ -24501,7 +24501,7 @@ const Il = () => {
             {
               type: "textarea",
               ...d,
-              placeholder: "Enter your coaching feedback here...",
+              placeholder: "Greet with nice poem",
               invalid: !!e.content
             }
           ),
@@ -24568,7 +24568,7 @@ const Il = () => {
       }
     )
   ] }) : /* @__PURE__ */ f.jsxs(at, { direction: "column", children: [
-    /* @__PURE__ */ f.jsx("p", { className: "m-0", children: "Some instructions on how to use this" }),
+    /* @__PURE__ */ f.jsx("p", { className: "m-0", children: "Here, you can provide instructions in natural language including your terminology, rules or conventions to generate better documentation" }),
     /* @__PURE__ */ f.jsx(
       Zd,
       {
@@ -24589,7 +24589,7 @@ const Il = () => {
     ),
     o && /* @__PURE__ */ f.jsxs(ln, { className: "mt-4", children: [
       /* @__PURE__ */ f.jsxs(An, { children: [
-        /* @__PURE__ */ f.jsx("p", { children: "What AI has learnt:" }),
+        /* @__PURE__ */ f.jsx("p", { children: "Below are the learnings by AI based on the entered instructions:" }),
         /* @__PURE__ */ f.jsx("div", { children: a ? /* @__PURE__ */ f.jsx(
           an,
           {

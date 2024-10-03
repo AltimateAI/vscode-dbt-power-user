@@ -16,6 +16,7 @@ const getRandomNumber = (maximum = 10, minimum = 5) =>
 export const CitationFactory = Sync.makeFactory<Citation>({
   content: each(() => faker.lorem.paragraph()),
   id: each(() => faker.string.uuid()),
+  taskLabel: each(() => faker.string.uuid()),
 });
 export const DBTDocumentationColumnFactory =
   Sync.makeFactory<DBTDocumentationColumn>({
