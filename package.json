@@ -97,6 +97,11 @@
             "description": "Enable dbt docs collaboration.",
             "default": true
           },
+          "dbt.enableTeammates": {
+            "type": "boolean",
+            "description": "Enable AltimateAI teammates feature.",
+            "default": false
+          },
           "dbt.enableQueryBookmarks": {
             "type": "boolean",
             "description": "Enable Query history and bookmarks feature",

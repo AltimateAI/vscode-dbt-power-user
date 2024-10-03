@@ -1,6 +1,6 @@
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import useDataPilotContext from "@modules/dataPilot/useDataPilotContext";
-import { DBTDocumentationColumn } from "@modules/documentationEditor/state/types";
+import { Citation, DBTDocumentationColumn } from "@modules/documentationEditor/state/types";
 import { panelLogger } from "@modules/logger";
 import { Button } from "@uicore";
 import { useState } from "react";
@@ -35,7 +35,7 @@ const AiDocActionButton = ({ action, onNewGeneration }: Props): JSX.Element => {
       follow_up_instructions: { instruction: getFollowupInstruction() },
     })) as
       | { columns: Partial<DBTDocumentationColumn>[] }
-      | { description: string };
+      | { model_description: string, model_citations?: Citation[] };
 
     setIsLoading(false);
 
@@ -49,11 +49,12 @@ const AiDocActionButton = ({ action, onNewGeneration }: Props): JSX.Element => {
         ...result.columns[0],
       };
     }
-    if ("description" in result) {
+    if ("model_description" in result) {
       generatedResult = {
         ...generatedResult,
-        description: result.description,
-        model: chat?.meta?.name as string,
+        description: result.model_description,
+        citations: result.model_citations,
+        model: (chat?.meta?.name as string | undefined) ?? "",
       };
     }
 

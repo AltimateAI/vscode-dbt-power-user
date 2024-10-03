@@ -17,7 +17,7 @@ import {
   removeFromSelectedPage,
   updateCurrentDocsData,
 } from "./state/documentationSlice";
-import { DocsGenerateModelRequestV2, Pages } from "./state/types";
+import { Citation, DocsGenerateModelRequestV2, Pages } from "./state/types";
 import useDocumentationContext from "./state/useDocumentationContext";
 import classes from "./styles.module.scss";
 import { addDefaultActions } from "./utils";
@@ -25,6 +25,8 @@ import ConversationsRightPanel from "./components/conversation/ConversationsRigh
 import useIncomingDocsDataHandler from "./useIncomingDocsDataHandler";
 import { TelemetryEvents } from "@telemetryEvents";
 import { sendTelemetryEvent } from "./components/telemetry";
+import CoachAiIfModified from "./components/docGenerator/CoachAiIfModified";
+import Citations from "./components/docGenerator/Citations";
 
 const DocumentationEditor = (): JSX.Element => {
   const {
@@ -51,11 +53,11 @@ const DocumentationEditor = (): JSX.Element => {
 
   const isDocumentationPageSelected = useMemo(
     () => selectedPages.includes(Pages.DOCUMENTATION),
-    [selectedPages],
+    [selectedPages]
   );
   const isTestsPageSelected = useMemo(
     () => selectedPages.includes(Pages.TESTS),
-    [selectedPages],
+    [selectedPages]
   );
 
   const onModelDocSubmit = async (data: DocsGenerateModelRequestV2) => {
@@ -84,7 +86,7 @@ const DocumentationEditor = (): JSX.Element => {
               ...requestData,
               modelName: currentDocsData.name,
             },
-            "generateDocsForModel",
+            "generateDocsForModel"
           ),
           state: RequestState.COMPLETED,
         });
@@ -95,14 +97,23 @@ const DocumentationEditor = (): JSX.Element => {
         description: data.description,
         user_instructions: data.user_instructions,
         columns: currentDocsData.columns,
-      })) as { description: string };
+      })) as {
+        column_descriptions?: {
+          column_name: string;
+          column_description: string;
+          column_citations?: { id: string; content: string }[];
+        }[];
+        model_description?: string;
+        model_citations?: Citation[];
+      };
 
       dispatch(
         updateCurrentDocsData({
           name: currentDocsData.name,
-          description: result.description,
+          description: result.model_description,
           isNewGeneration: true,
-        }),
+          citations: result.model_citations,
+        })
       );
     } catch (error) {
       panelLogger.error("error while generating doc for model", error);
@@ -163,21 +174,17 @@ const DocumentationEditor = (): JSX.Element => {
         <CommonActionButtons />
       </Stack>
       <div className={classes.docGenerator}>
-        <Stack className={classes.head}>
-          <Stack>
-            <h3 className="mb-2">Model: {currentDocsData.name}</h3>
-          </Stack>
-        </Stack>
         <Stack className={classes.bodyWrap}>
           <Stack direction="column" className={classes.body}>
             <Stack direction="column">
-              <Stack direction="column" style={{ margin: "0px 0 10px 0" }}>
+              <Stack direction="column" style={{ margin: "1rem 0 10px 0" }}>
                 {isDocumentationPageSelected ? (
                   <DocGeneratorInput
                     entity={currentDocsData}
                     type={EntityType.MODEL}
                     onSubmit={onModelDocSubmit}
                     placeholder="Describe your model"
+                    title={`Model: ${currentDocsData.name}`}
                   />
                 ) : null}
                 <EntityWithTests
@@ -185,6 +192,10 @@ const DocumentationEditor = (): JSX.Element => {
                   tests={modelTests}
                   type={EntityType.MODEL}
                 />
+                <Stack>
+                  <Citations citations={currentDocsData.citations} />
+                  <CoachAiIfModified model={currentDocsData.name} />
+                </Stack>
               </Stack>
               <DocGeneratorColumnsList />
             </Stack>
