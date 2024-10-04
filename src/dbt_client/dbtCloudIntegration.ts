@@ -238,7 +238,12 @@ export class DBTCloudProjectIntegration
     }
     if (!this.adapterType) {
       // We only fetch the adapter type once, as it may impact compilation preview otherwise
-      this.findAdapterType();
+      const startTime = Date.now();
+      await this.findAdapterType();
+      const elapsedTime = Date.now() - startTime;
+      this.telemetry.sendTelemetryEvent("cloudFindAdapterTypeElapsedTime", {
+        elapsedTime: elapsedTime.toString(),
+      });
     }
     if (!this.version) {
       await this.findVersion();
@@ -1029,7 +1034,13 @@ export class DBTCloudProjectIntegration
       return;
     }
     this.firstRun = true;
-    this.findAdapterType();
+    const startTime = Date.now();
+    await this.findAdapterType();
+    const elapsedTime = Date.now() - startTime;
+    this.telemetry.sendTelemetryEvent("cloudFindAdapterTypeElapsedTime", {
+      elapsedTime: elapsedTime.toString(),
+      retry: "true",
+    });
   }
 
   private async findAdapterType() {
