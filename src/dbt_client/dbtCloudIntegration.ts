@@ -1023,6 +1023,15 @@ export class DBTCloudProjectIntegration
     }
   }
 
+  private firstRun = false;
+  private async retryOnce() {
+    if (this.firstRun) {
+      return;
+    }
+    this.firstRun = true;
+    this.findAdapterType();
+  }
+
   private async findAdapterType() {
     const adapterTypeCommand = this.dbtCloudCommand(
       new DBTCommand("Getting adapter type...", [
@@ -1062,6 +1071,11 @@ export class DBTCloudProjectIntegration
         true,
         error,
       );
+    }
+    if (!this.adapterType) {
+      setTimeout(() => {
+        this.retryOnce();
+      }, 5000);
     }
   }
 
