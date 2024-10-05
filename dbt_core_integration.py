@@ -24,7 +24,7 @@ from typing import (
 
 import agate
 import json
-from dbt.adapters.factory import get_adapter_class_by_name, register_adapter
+from dbt.adapters.factory import get_adapter, register_adapter
 from dbt.config.runtime import RuntimeConfig
 from dbt.flags import set_from_args
 from dbt.parser.manifest import ManifestLoader, process_node
@@ -368,16 +368,6 @@ class DbtProject:
         self.defer_to_prod_manifest_path = manifest_path
         self.favor_state = favor_state
 
-    def get_adapter(self):
-        """This inits a new Adapter which is fundamentally different than
-        the singleton approach in the core lib"""
-        adapter_name = self.config.credentials.type
-        adapter_type = get_adapter_class_by_name(adapter_name)
-        if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
-            from dbt.mp_context import get_mp_context
-            return adapter_type(self.config, get_mp_context())
-        return adapter_type(self.config)
-
     def init_config(self):
         if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
             from dbt_common.context import set_invocation_context
@@ -402,7 +392,7 @@ class DbtProject:
     def init_project(self):
         try:
             self.init_config()
-            self.adapter = self.get_adapter()
+            self.adapter = get_adapter(self.config)
             self.adapter.connections.set_connection_name()
             if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
                 from dbt.context.providers import generate_runtime_macro_context
