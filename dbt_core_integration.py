@@ -1,17 +1,4 @@
 from decimal import Decimal
-import dbt.adapters.factory
-
-# This is critical because `get_adapter` is all over dbt-core
-# as they expect a singleton adapter instance per plugin,
-# so dbt-niceDatabase will have one adapter instance named niceDatabase.
-# This makes sense in dbt-land where we have a single Project/Profile
-# combination executed in process from start to finish or a single tenant RPC
-# This doesn't fit our paradigm of one adapter per DbtProject in a multitenant server,
-# so we create an adapter instance **independent** of the FACTORY cache
-# and attach it directly to our RuntimeConfig which is passed through
-# anywhere dbt-core needs config including in all `get_adapter` calls
-dbt.adapters.factory.get_adapter = lambda config: config.adapter
-
 import os
 import threading
 import uuid
@@ -37,7 +24,7 @@ from typing import (
 
 import agate
 import json
-from dbt.adapters.factory import get_adapter_class_by_name
+from dbt.adapters.factory import get_adapter, register_adapter
 from dbt.config.runtime import RuntimeConfig
 from dbt.flags import set_from_args
 from dbt.parser.manifest import ManifestLoader, process_node
@@ -381,16 +368,6 @@ class DbtProject:
         self.defer_to_prod_manifest_path = manifest_path
         self.favor_state = favor_state
 
-    def get_adapter(self):
-        """This inits a new Adapter which is fundamentally different than
-        the singleton approach in the core lib"""
-        adapter_name = self.config.credentials.type
-        adapter_type = get_adapter_class_by_name(adapter_name)
-        if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
-            from dbt.mp_context import get_mp_context
-            return adapter_type(self.config, get_mp_context())
-        return adapter_type(self.config)
-
     def init_config(self):
         if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
             from dbt_common.context import set_invocation_context
@@ -406,16 +383,20 @@ class DbtProject:
         self.config = RuntimeConfig.from_args(self.args)
         if hasattr(self.config, "source_paths"):
             self.config.model_paths = self.config.source_paths
+        if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
+            from dbt.mp_context import get_mp_context
+            register_adapter(self.config, get_mp_context())
+        else:
+            register_adapter(self.config)
 
     def init_project(self):
         try:
             self.init_config()
-            self.adapter = self.get_adapter()
+            self.adapter = get_adapter(self.config)
             self.adapter.connections.set_connection_name()
             if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
                 from dbt.context.providers import generate_runtime_macro_context
                 self.adapter.set_macro_context_generator(generate_runtime_macro_context)
-            self.config.adapter = self.adapter
             self.create_parser()
         except Exception as e:
             # reset project
