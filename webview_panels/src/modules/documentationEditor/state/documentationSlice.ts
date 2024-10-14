@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { GenerationDBDataProps } from "../types";
 import {
+  Citation,
   DBTDocumentation,
   DocsGenerateUserInstructions,
   DocumentationStateProps,
@@ -18,6 +19,8 @@ export const initialState = {
   isDocGeneratedForAnyColumn: false,
   isTestUpdatedForAnyColumn: false,
   insertedEntityName: undefined,
+  docUpdatedForModel: undefined,
+  docUpdatedForColumns: [],
   userInstructions: {
     language: undefined,
     persona: undefined,
@@ -141,6 +144,8 @@ const documentationSlice = createSlice({
       // incase of yml files, incoming docs data will be {}, so checking for keys length as well
       if (!action.payload || !Object.keys(action.payload).length) {
         state.currentDocsData = undefined;
+        state.docUpdatedForColumns = [];
+        state.docUpdatedForModel = undefined;
         return;
       }
       if (!action.payload.name) {
@@ -158,10 +163,21 @@ const documentationSlice = createSlice({
         action.payload.name &&
         state.currentDocsData?.name !== action.payload.name
       ) {
+        state.docUpdatedForModel = undefined;
+        state.docUpdatedForColumns = [];
         // @ts-expect-error TODO fix this type
         state.currentDocsData = action.payload;
         return;
       }
+
+      // If description is changed, then show coaching
+      if (
+        state.currentDocsData?.name === action.payload.name &&
+        state.currentDocsData.description !== action.payload.description
+      ) {
+        state.docUpdatedForModel = action.payload.name;
+      }
+
       state.currentDocsData = { ...state.currentDocsData, ...action.payload };
       if (action.payload.isNewGeneration !== undefined) {
         state.isDocGeneratedForAnyColumn = action.payload.isNewGeneration;
@@ -194,13 +210,19 @@ const documentationSlice = createSlice({
         columns: Partial<
           MetadataColumn & {
             description?: string;
+            citations?: Citation[]
           }
         >[];
         isNewGeneration?: boolean;
       }>,
     ) => {
       if (!state.currentDocsData) {
+        state.docUpdatedForColumns = [];
         return;
+      }
+      const modifiedColumns = columns?.map((column) => column.name).filter(Boolean) as string[];
+      if (modifiedColumns) {
+        state.docUpdatedForColumns = [...state.docUpdatedForColumns, ...modifiedColumns];
       }
       state.currentDocsData.columns = state.currentDocsData.columns.map((c) => {
         const updatedColumn = columns.find((column) => c.name === column.name);

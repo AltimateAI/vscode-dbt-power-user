@@ -7,7 +7,10 @@ import {
   updatePackageVersions,
   upsertFollowup,
 } from "@modules/dataPilot/dataPilotSlice";
-import { executeRequestInSync } from "@modules/app/requestExecutor";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 
 const DependentPackages = ["dbt_expectations", "dbt_utils"];
@@ -50,6 +53,23 @@ const AddCustomTest = (): JSX.Element | null => {
     }
 
     const { meta } = chat;
+    if (!meta?.column && !meta?.model) {
+      executeRequestInAsync("showErrorMessage", {
+        infoMessage:
+          "Missing column and model information. Please try again after reloading vscode.",
+      });
+      return;
+    }
+
+    const userPrompt = meta.column
+      ? `Add Custom Test for column: ${meta.column as string}`
+      : `Add Custom Test for model: ${meta.model as string}`;
+    const response = meta.column
+      ? `Generate Tests for column “${meta?.column as string}” in model “${
+          meta?.model as string
+        }“`
+      : `Generate Tests for model “${meta?.model as string}“`;
+
     dispatch(
       upsertFollowup({
         sessionId: chat?.id,
@@ -58,12 +78,8 @@ const AddCustomTest = (): JSX.Element | null => {
           datapilotTitle: " Datapilot response",
           actions: [],
           state: RequestState.COMPLETED,
-          userPrompt: `Add Custom Test for column: ${meta?.column as string}`,
-          response: `Generate Tests for column “${
-            meta?.column as string
-          }” in model “${
-            meta?.model as string
-          }“ \n\r Please provide more information about which tests you need`,
+          userPrompt,
+          response: `${response} \n\r Please provide more information about which tests you need`,
           hideFeedback: true,
         },
       }),

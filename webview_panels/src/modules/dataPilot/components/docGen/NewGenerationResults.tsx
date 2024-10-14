@@ -13,6 +13,7 @@ import UserQuery from "../common/UserQuery";
 import useAiGenerationUtils from "../common/useAiGenerationUtils";
 import { useCallback } from "react";
 import { DocGenFollowup, EntityType } from "./types";
+import Citations from "@modules/documentationEditor/components/docGenerator/Citations";
 
 interface Props {
   generatedResults: DocGenFollowup[];
@@ -72,6 +73,7 @@ const NewGenerationResults = ({
               </CardTitle>
               <CardBody>
                 <span title="Datapilot response">{result.description}</span>
+                <Citations citations={result.citations} />
                 <Stack className={classes.actionButtons}>
                   <Stack>
                     <Button

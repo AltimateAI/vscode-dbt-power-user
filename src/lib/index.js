@@ -2,34 +2,34 @@
 Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 const l = require("vscode"),
   u = require("@extension"),
-  L = require("python-bridge"),
+  B = require("python-bridge"),
   H = require("fs"),
   J = require("@nteract/messaging/lib/wire-protocol");
-function Y(n) {
+function Y(r) {
   const e = Object.create(null, { [Symbol.toStringTag]: { value: "Module" } });
-  if (n) {
-    for (const t in n)
+  if (r) {
+    for (const t in r)
       if (t !== "default") {
-        const r = Object.getOwnPropertyDescriptor(n, t);
+        const o = Object.getOwnPropertyDescriptor(r, t);
         Object.defineProperty(
           e,
           t,
-          r.get ? r : { enumerable: !0, get: () => n[t] },
+          o.get ? o : { enumerable: !0, get: () => r[t] },
         );
       }
   }
-  return (e.default = n), Object.freeze(e);
+  return (e.default = r), Object.freeze(e);
 }
 const $ = Y(J),
-  G = (n) => ("getCells" in n ? n.getCells() : n.cells),
-  Q = (n) => (n instanceof l.NotebookCellData ? n.value : n.document.getText()),
-  X = (n) =>
-    n instanceof l.NotebookCellData ? n.languageId : n.document.languageId,
-  A = (n, e, t) => {
-    var o;
-    const r = [];
-    for (const i of G(n))
-      r.push({
+  G = (r) => ("getCells" in r ? r.getCells() : r.cells),
+  Q = (r) => (r instanceof l.NotebookCellData ? r.value : r.document.getText()),
+  X = (r) =>
+    r instanceof l.NotebookCellData ? r.languageId : r.document.languageId,
+  A = (r, e, t) => {
+    var n;
+    const o = [];
+    for (const i of G(r))
+      o.push({
         cell_type: i.kind,
         source: Q(i).split(/\r?\n/g),
         languageId: X(i),
@@ -37,12 +37,12 @@ const $ = Y(J),
         outputs: t ? i.outputs : void 0,
       });
     return {
-      cells: r,
+      cells: o,
       metadata: {
-        ...n.metadata,
+        ...r.metadata,
         name: e,
         createdAt:
-          ((o = n.metadata) == null ? void 0 : o.createdAt) ||
+          ((n = r.metadata) == null ? void 0 : n.createdAt) ||
           new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
@@ -50,36 +50,36 @@ const $ = Y(J),
   },
   _ = () => Math.random().toString(36).substr(2, 9);
 function Z() {
-  const n = new Date(),
-    e = n.toLocaleDateString("en-GB").replace(/\//g, "-"),
-    t = n.toLocaleTimeString("en-GB", { hour12: !1 }).replace(/:/g, "-");
+  const r = new Date(),
+    e = r.toLocaleDateString("en-GB").replace(/\//g, "-"),
+    t = r.toLocaleTimeString("en-GB", { hour12: !1 }).replace(/:/g, "-");
   return `${e}-${t}`;
 }
-var ee = function (n, e, t, r) {
-  var o = arguments.length,
+var ee = function (r, e, t, o) {
+  var n = arguments.length,
     i =
-      o < 3 ? e : r === null ? (r = Object.getOwnPropertyDescriptor(e, t)) : r,
+      n < 3 ? e : o === null ? (o = Object.getOwnPropertyDescriptor(e, t)) : o,
     s;
   if (typeof Reflect == "object" && typeof Reflect.decorate == "function")
-    i = Reflect.decorate(n, e, t, r);
+    i = Reflect.decorate(r, e, t, o);
   else
-    for (var a = n.length - 1; a >= 0; a--)
-      (s = n[a]) && (i = (o < 3 ? s(i) : o > 3 ? s(e, t, i) : s(e, t)) || i);
-  return o > 3 && i && Object.defineProperty(e, t, i), i;
+    for (var a = r.length - 1; a >= 0; a--)
+      (s = r[a]) && (i = (n < 3 ? s(i) : n > 3 ? s(e, t, i) : s(e, t)) || i);
+  return n > 3 && i && Object.defineProperty(e, t, i), i;
 };
 let E = class {
   dispose() {
     throw new Error("Method not implemented.");
   }
   async deserializeNotebook(e, t) {
-    const r = new TextDecoder().decode(e);
-    let o;
+    const o = new TextDecoder().decode(e);
+    let n;
     try {
-      o = JSON.parse(r);
+      n = JSON.parse(o);
     } catch {
-      o = { cells: [] };
+      n = { cells: [] };
     }
-    const i = o.cells.map((a) => {
+    const i = n.cells.map((a) => {
         var d;
         const c = new l.NotebookCellData(
           a.cell_type,
@@ -92,19 +92,19 @@ let E = class {
         return (c.metadata = a.metadata), (c.outputs = a.outputs), c;
       }),
       s = new l.NotebookData(i);
-    return (s.metadata = o.metadata), s;
+    return (s.metadata = n.metadata), s;
   }
   async serializeNotebook(e, t) {
-    const r = A(e);
-    return new TextEncoder().encode(JSON.stringify(r));
+    const o = A(e);
+    return new TextEncoder().encode(JSON.stringify(o));
   }
 };
 E = ee([u.provideSingleton(E)], E);
 var g;
-(function (n) {
-  (n.error = "application/vnd.code.notebook.error"),
-    (n.stderr = "application/vnd.code.notebook.stderr"),
-    (n.stdout = "application/vnd.code.notebook.stdout");
+(function (r) {
+  (r.error = "application/vnd.code.notebook.error"),
+    (r.stderr = "application/vnd.code.notebook.stderr"),
+    (r.stdout = "application/vnd.code.notebook.stdout");
 })(g || (g = {}));
 const te = ["text/plain", "text/markdown", g.stderr, g.stdout],
   F = [
@@ -124,212 +124,212 @@ const te = ["text/plain", "text/markdown", g.stderr, g.stdout],
     "text/plain",
   ],
   k = new Map();
-k.set("display_data", S);
+k.set("display_data", M);
 k.set("error", de);
-k.set("execute_result", S);
+k.set("execute_result", M);
 k.set("stream", ue);
-k.set("update_display_data", S);
-function M(n) {
-  const e = k.get(n.output_type);
+k.set("update_display_data", M);
+function S(r) {
+  const e = k.get(r.output_type);
   let t;
   return (
     e
-      ? (t = e(n))
+      ? (t = e(r))
       : (console.warn(
-          `Unable to translate cell from ${n.output_type} to NotebookCellData for VS Code.`,
+          `Unable to translate cell from ${r.output_type} to NotebookCellData for VS Code.`,
         ),
-        (t = S(n))),
+        (t = M(r))),
     t
   );
 }
-function W(n) {
-  const e = { outputType: n.output_type };
-  switch ((n.transient && (e.transient = n.transient), n.output_type)) {
+function W(r) {
+  const e = { outputType: r.output_type };
+  switch ((r.transient && (e.transient = r.transient), r.output_type)) {
     case "display_data":
     case "execute_result":
     case "update_display_data": {
-      (e.executionCount = n.execution_count),
-        (e.metadata = n.metadata ? JSON.parse(JSON.stringify(n.metadata)) : {});
+      (e.executionCount = r.execution_count),
+        (e.metadata = r.metadata ? JSON.parse(JSON.stringify(r.metadata)) : {});
       break;
     }
   }
   return e;
 }
-function S(n) {
-  const e = W(n);
-  ("image/svg+xml" in n.data || "image/png" in n.data) &&
+function M(r) {
+  const e = W(r);
+  ("image/svg+xml" in r.data || "image/png" in r.data) &&
     (e.__displayOpenPlotIcon = !0);
   const t = [];
-  if (n.data) for (const r in n.data) t.push(ne(r, n.data[r]));
-  return new l.NotebookCellOutput(re(t), e);
+  if (r.data) for (const o in r.data) t.push(re(o, r.data[o]));
+  return new l.NotebookCellOutput(oe(t), e);
 }
-function re(n) {
-  return n.sort((e, t) => {
-    const r = (s, a) => (
+function oe(r) {
+  return r.sort((e, t) => {
+    const o = (s, a) => (
       s.endsWith(".*") && (s = s.substr(0, s.indexOf(".*"))), a.startsWith(s)
     );
-    let o = F.findIndex((s) => r(s, e.mime)),
-      i = F.findIndex((s) => r(s, t.mime));
+    let n = F.findIndex((s) => o(s, e.mime)),
+      i = F.findIndex((s) => o(s, t.mime));
     return (
-      B(e) && (o = -1),
-      B(t) && (i = -1),
-      (o = o === -1 ? 100 : o),
+      q(e) && (n = -1),
+      q(t) && (i = -1),
+      (n = n === -1 ? 100 : n),
       (i = i === -1 ? 100 : i),
-      o - i
+      n - i
     );
   });
 }
-function B(n) {
-  if (n.mime.startsWith("application/vnd."))
+function q(r) {
+  if (r.mime.startsWith("application/vnd."))
     try {
-      return new TextDecoder().decode(n.data).length === 0;
+      return new TextDecoder().decode(r.data).length === 0;
     } catch {}
   return !1;
 }
-function ne(n, e) {
-  if (!e) return l.NotebookCellOutputItem.text("", n);
+function re(r, e) {
+  if (!e) return l.NotebookCellOutputItem.text("", r);
   try {
     if (
-      (n.startsWith("text/") || te.includes(n)) &&
+      (r.startsWith("text/") || te.includes(r)) &&
       (Array.isArray(e) || typeof e == "string")
     ) {
       const t = Array.isArray(e) ? D(e) : e;
-      return l.NotebookCellOutputItem.text(t, n);
+      return l.NotebookCellOutputItem.text(t, r);
     } else
-      return n.startsWith("image/") &&
+      return r.startsWith("image/") &&
         typeof e == "string" &&
-        n !== "image/svg+xml"
-        ? new l.NotebookCellOutputItem(oe(e), n)
+        r !== "image/svg+xml"
+        ? new l.NotebookCellOutputItem(ne(e), r)
         : typeof e == "object" && e !== null && !Array.isArray(e)
-          ? l.NotebookCellOutputItem.text(JSON.stringify(e), n)
+          ? l.NotebookCellOutputItem.text(JSON.stringify(e), r)
           : ((e = Array.isArray(e) ? D(e) : e),
-            l.NotebookCellOutputItem.text(e, n));
+            l.NotebookCellOutputItem.text(e, r));
   } catch (t) {
     return (
       console.error(
-        `Failed to convert ${n} output to a buffer ${typeof e}, ${e}`,
+        `Failed to convert ${r} output to a buffer ${typeof e}, ${e}`,
         t,
       ),
       l.NotebookCellOutputItem.text("")
     );
   }
 }
-function oe(n) {
+function ne(r) {
   return typeof Buffer < "u" && typeof Buffer.from == "function"
-    ? Buffer.from(n, "base64")
-    : Uint8Array.from(atob(n), (e) => e.charCodeAt(0));
+    ? Buffer.from(r, "base64")
+    : Uint8Array.from(atob(r), (e) => e.charCodeAt(0));
 }
-function D(n) {
-  if (Array.isArray(n)) {
+function D(r) {
+  if (Array.isArray(r)) {
     let e = "";
-    for (let t = 0; t < n.length; t += 1) {
-      const r = n[t];
-      t < n.length - 1 &&
-      !r.endsWith(`
+    for (let t = 0; t < r.length; t += 1) {
+      const o = r[t];
+      t < r.length - 1 &&
+      !o.endsWith(`
 `)
-        ? (e = e.concat(`${r}
+        ? (e = e.concat(`${o}
 `))
-        : (e = e.concat(r));
+        : (e = e.concat(o));
     }
     return e;
   }
-  return n.toString();
+  return r.toString();
 }
-function ie(n) {
-  let e = n;
-  do (n = e), (e = n.replace(/[^\n]\x08/gm, ""));
-  while (e.length < n.length);
-  return n;
+function ie(r) {
+  let e = r;
+  do (r = e), (e = r.replace(/[^\n]\x08/gm, ""));
+  while (e.length < r.length);
+  return r;
 }
-function ae(n) {
+function ae(r) {
   for (
-    n = n.replace(
+    r = r.replace(
       /\r+\n/gm,
       `
 `,
     );
-    n.search(/\r[^$]/g) > -1;
+    r.search(/\r[^$]/g) > -1;
 
   ) {
-    const e = n.match(/^(.*)\r+/m)[1];
-    let t = n.match(/\r+(.*)$/m)[1];
+    const e = r.match(/^(.*)\r+/m)[1];
+    let t = r.match(/\r+(.*)$/m)[1];
     (t = t + e.slice(t.length, e.length)),
-      (n = n.replace(/\r+.*$/m, "\r").replace(/^.*\r/m, t));
+      (r = r.replace(/\r+.*$/m, "\r").replace(/^.*\r/m, t));
   }
-  return n;
+  return r;
 }
-function se(n) {
-  return ae(ie(n));
+function se(r) {
+  return ae(ie(r));
 }
-function N(n) {
-  if (n.parent_header && "msg_id" in n.parent_header)
-    return n.parent_header.msg_id;
+function N(r) {
+  if (r.parent_header && "msg_id" in r.parent_header)
+    return r.parent_header.msg_id;
 }
-function le(n) {
-  if (n.hasOwnProperty("text/html")) {
-    const e = n["text/html"];
+function le(r) {
+  if (r.hasOwnProperty("text/html")) {
+    const e = r["text/html"];
     typeof e == "string" &&
       e.includes('<iframe id="tensorboard-frame-') &&
-      (n["text/html"] = e.replace(
+      (r["text/html"] = e.replace(
         /new URL\((.*), window.location\)/,
         'new URL("http://localhost")',
       ));
   }
-  return n;
+  return r;
 }
 const ce = "e976ee50-99ed-4aba-9b6b-9dcd5634d07d:IPyWidgets:";
-function j(n) {
-  let e = typeof n == "string" ? n : "";
+function j(r) {
+  let e = typeof r == "string" ? r : "";
   return (
-    typeof n != "string" &&
-      "content" in n &&
-      "code" in n.content &&
-      typeof n.content.code == "string" &&
-      (e = n.content.code),
+    typeof r != "string" &&
+      "content" in r &&
+      "code" in r.content &&
+      typeof r.content.code == "string" &&
+      (e = r.content.code),
     !e.includes(ce)
   );
 }
-function ue(n) {
-  const e = D(n.text),
+function ue(r) {
+  const e = D(r.text),
     t =
-      n.name === "stderr"
+      r.name === "stderr"
         ? l.NotebookCellOutputItem.stderr
         : l.NotebookCellOutputItem.stdout;
-  return new l.NotebookCellOutput([t(e)], W(n));
+  return new l.NotebookCellOutput([t(e)], W(r));
 }
-function de(n) {
+function de(r) {
   return (
-    (n = n || { output_type: "error", ename: "", evalue: "", traceback: [] }),
+    (r = r || { output_type: "error", ename: "", evalue: "", traceback: [] }),
     new l.NotebookCellOutput(
       [
         l.NotebookCellOutputItem.error({
-          name: (n == null ? void 0 : n.ename) || "",
-          message: (n == null ? void 0 : n.evalue) || "",
-          stack: ((n == null ? void 0 : n.traceback) || []).join(`
+          name: (r == null ? void 0 : r.ename) || "",
+          message: (r == null ? void 0 : r.evalue) || "",
+          stack: ((r == null ? void 0 : r.traceback) || []).join(`
 `),
         }),
       ],
-      { ...W(n), originalError: n },
+      { ...W(r), originalError: r },
     )
   );
 }
 var I;
-(function (n) {
-  (n.GeneratedThemeName = "ipython-theme"),
-    (n.MatplotLibDefaultParams = "_VSCode_defaultMatplotlib_Params"),
-    (n.MatplotLibFigureFormats = "_VSCode_matplotLib_FigureFormats"),
-    (n.DefaultCodeCellMarker = "# %%"),
-    (n.DefaultCommTarget = "jupyter.widget"),
-    (n.ALL_VARIABLES = "ALL_VARIABLES"),
-    (n.KERNEL_VARIABLES = "KERNEL_VARIABLES"),
-    (n.DEBUGGER_VARIABLES = "DEBUGGER_VARIABLES"),
-    (n.PYTHON_VARIABLES_REQUESTER = "PYTHON_VARIABLES_REQUESTER"),
-    (n.MULTIPLEXING_DEBUGSERVICE = "MULTIPLEXING_DEBUGSERVICE"),
-    (n.RUN_BY_LINE_DEBUGSERVICE = "RUN_BY_LINE_DEBUGSERVICE"),
-    (n.REMOTE_URI = "https://remote/"),
-    (n.REMOTE_URI_ID_PARAM = "id"),
-    (n.REMOTE_URI_HANDLE_PARAM = "uriHandle"),
-    (n.REMOTE_URI_EXTENSION_ID_PARAM = "extensionId");
+(function (r) {
+  (r.GeneratedThemeName = "ipython-theme"),
+    (r.MatplotLibDefaultParams = "_VSCode_defaultMatplotlib_Params"),
+    (r.MatplotLibFigureFormats = "_VSCode_matplotLib_FigureFormats"),
+    (r.DefaultCodeCellMarker = "# %%"),
+    (r.DefaultCommTarget = "jupyter.widget"),
+    (r.ALL_VARIABLES = "ALL_VARIABLES"),
+    (r.KERNEL_VARIABLES = "KERNEL_VARIABLES"),
+    (r.DEBUGGER_VARIABLES = "DEBUGGER_VARIABLES"),
+    (r.PYTHON_VARIABLES_REQUESTER = "PYTHON_VARIABLES_REQUESTER"),
+    (r.MULTIPLEXING_DEBUGSERVICE = "MULTIPLEXING_DEBUGSERVICE"),
+    (r.RUN_BY_LINE_DEBUGSERVICE = "RUN_BY_LINE_DEBUGSERVICE"),
+    (r.REMOTE_URI = "https://remote/"),
+    (r.REMOTE_URI_ID_PARAM = "id"),
+    (r.REMOTE_URI_HANDLE_PARAM = "uriHandle"),
+    (r.REMOTE_URI_EXTENSION_ID_PARAM = "extensionId");
 })(I || (I = {}));
 const O = "application/vnd.jupyter.widget-view+json";
 class pe {
@@ -379,8 +379,8 @@ class pe {
         writable: !0,
         value: void 0,
       }),
-      (this._promise = new Promise((t, r) => {
-        (this._resolve = t), (this._reject = r);
+      (this._promise = new Promise((t, o) => {
+        (this._resolve = t), (this._reject = o);
       }));
   }
   resolve(e) {
@@ -405,54 +405,54 @@ class pe {
     return this._rejected || this._resolved;
   }
 }
-function he(n = null) {
-  return new pe(n);
+function he(r = null) {
+  return new pe(r);
 }
 var P = {};
 Object.defineProperty(P, "__esModule", { value: !0 });
 P.serialize = R = P.deserialize = void 0;
-function be(n) {
+function me(r) {
   let e;
-  return typeof n == "string" ? (e = JSON.parse(n)) : (e = me(n)), e;
+  return typeof r == "string" ? (e = JSON.parse(r)) : (e = be(r)), e;
 }
-var R = (P.deserialize = be);
-function fe(n) {
+var R = (P.deserialize = me);
+function fe(r) {
   var e;
   let t;
   return (
-    !((e = n.buffers) === null || e === void 0) && e.length
-      ? (t = ge(n))
-      : (t = JSON.stringify(n)),
+    !((e = r.buffers) === null || e === void 0) && e.length
+      ? (t = ge(r))
+      : (t = JSON.stringify(r)),
     t
   );
 }
 P.serialize = fe;
-function me(n) {
-  const e = new DataView(n),
+function be(r) {
+  const e = new DataView(r),
     t = e.getUint32(0),
-    r = [];
+    o = [];
   if (t < 2) throw new Error("Invalid incoming Kernel Message");
-  for (let s = 1; s <= t; s++) r.push(e.getUint32(s * 4));
-  const o = new Uint8Array(n.slice(r[0], r[1])),
-    i = JSON.parse(new TextDecoder("utf8").decode(o));
+  for (let s = 1; s <= t; s++) o.push(e.getUint32(s * 4));
+  const n = new Uint8Array(r.slice(o[0], o[1])),
+    i = JSON.parse(new TextDecoder("utf8").decode(n));
   i.buffers = [];
   for (let s = 1; s < t; s++) {
-    const a = r[s],
-      c = r[s + 1] || n.byteLength;
-    i.buffers.push(new DataView(n.slice(a, c)));
+    const a = o[s],
+      c = o[s + 1] || r.byteLength;
+    i.buffers.push(new DataView(r.slice(a, c)));
   }
   return i;
 }
-function ge(n) {
+function ge(r) {
   const e = [],
     t = [],
-    r = new TextEncoder();
-  let o = [];
-  n.buffers !== void 0 && ((o = n.buffers), delete n.buffers);
-  const i = r.encode(JSON.stringify(n));
+    o = new TextEncoder();
+  let n = [];
+  r.buffers !== void 0 && ((n = r.buffers), delete r.buffers);
+  const i = o.encode(JSON.stringify(r));
   t.push(i.buffer);
-  for (let d = 0; d < o.length; d++) {
-    const h = o[d];
+  for (let d = 0; d < n.length; d++) {
+    const h = n[d];
     t.push(ArrayBuffer.isView(h) ? h.buffer : h);
   }
   const s = t.length;
@@ -466,20 +466,20 @@ function ge(n) {
   for (let d = 0; d < t.length; d++) a.set(new Uint8Array(t[d]), e[d]);
   return a.buffer;
 }
-function ye(n) {
-  if (!n || !Array.isArray(n) || n.length === 0) return;
+function ye(r) {
+  if (!r || !Array.isArray(r) || r.length === 0) return;
   const e = [];
-  for (let t = 0; t < n.length; t += 1) {
-    const r = n[t];
-    if ("buffer" in r && "byteOffset" in r) {
-      const o = [...new Uint8Array(r.buffer)];
+  for (let t = 0; t < r.length; t += 1) {
+    const o = r[t];
+    if ("buffer" in o && "byteOffset" in o) {
+      const n = [...new Uint8Array(o.buffer)];
       e.push({
-        ...r,
-        byteLength: r.byteLength,
-        byteOffset: r.byteOffset,
-        buffer: o,
+        ...o,
+        byteLength: o.byteLength,
+        byteOffset: o.byteOffset,
+        buffer: n,
       });
-    } else e.push([...new Uint8Array(r)]);
+    } else e.push([...new Uint8Array(o)]);
   }
   return e;
 }
@@ -488,17 +488,17 @@ function y() {}
 we.join(__dirname, ".");
 function ke() {
   console.log("Trying to load zmq");
-  const n = require("zeromq");
-  return (n.context.blocky = !1), console.info("ZMQ loaded."), n;
+  const r = require("zeromq");
+  return (r.context.blocky = !1), console.info("ZMQ loaded."), r;
 }
-function _e(n, e) {
-  const t = n.transport === "tcp" ? ":" : "-",
-    r = n[`${e}_port`];
-  if (!r) throw new Error(`Port not found for channel "${e}"`);
-  return `${n.transport}://${n.ip}${t}${r}`;
+function _e(r, e) {
+  const t = r.transport === "tcp" ? ":" : "-",
+    o = r[`${e}_port`];
+  if (!o) throw new Error(`Port not found for channel "${e}"`);
+  return `${r.transport}://${r.ip}${t}${o}`;
 }
 const ve = ["username", "version", "session", "msg_id", "msg_type"],
-  q = {
+  K = {
     stream: { name: "string", text: "string" },
     display_data: { data: "object", metadata: "object" },
     execute_input: { code: "string", execution_count: "number" },
@@ -520,45 +520,45 @@ const ve = ["username", "version", "session", "msg_id", "msg_type"],
     comm_close: { comm_id: "string" },
     shutdown_reply: { restart: "boolean" },
   };
-function Pe(n) {
-  if (n.channel !== "iopub") return;
-  const e = n.header.msg_type;
-  if (e in q) {
-    const t = q[e];
+function Pe(r) {
+  if (r.channel !== "iopub") return;
+  const e = r.header.msg_type;
+  if (e in K) {
+    const t = K[e];
     if (t === void 0) return;
-    const r = Object.keys(t),
-      o = n.content;
-    for (let i = 0; i < r.length; i++) {
-      let s = t[r[i]];
+    const o = Object.keys(t),
+      n = r.content;
+    for (let i = 0; i < o.length; i++) {
+      let s = t[o[i]];
       Array.isArray(s) || (s = [s]);
-      const a = r[i];
-      if (!(a in o) || typeof o[a] !== s[0])
+      const a = o[i];
+      if (!(a in n) || typeof n[a] !== s[0])
         switch (s[0]) {
           case "string":
-            o[a] = "";
+            n[a] = "";
             break;
           case "boolean":
-            o[a] = !1;
+            n[a] = !1;
             break;
           case "object":
-            o[a] = {};
+            n[a] = {};
             break;
           case "number":
-            o[a] = 0;
+            n[a] = 0;
             break;
         }
     }
   }
 }
-function Te(n, e) {
-  const t = n.header;
-  ve.forEach((r) => {
-    typeof t[r] != "string" && (t[r] = "");
+function Te(r, e) {
+  const t = r.header;
+  ve.forEach((o) => {
+    typeof t[o] != "string" && (t[o] = "");
   }),
-    typeof n.channel != "string" && (n.channel = e),
-    n.content || (n.content = {}),
-    n.metadata || (n.metadata = {}),
-    n.channel === "iopub" && Pe(n);
+    typeof r.channel != "string" && (r.channel = e),
+    r.content || (r.content = {}),
+    r.metadata || (r.metadata = {}),
+    r.channel === "iopub" && Pe(r);
 }
 class Ne {
   constructor(e, t) {
@@ -644,8 +644,8 @@ class Ne {
     const e = (t) => {
       try {
         t.close();
-      } catch (r) {
-        console.error("Error during socket shutdown", r);
+      } catch (o) {
+        console.error("Error during socket shutdown", o);
       }
     };
     e(this.channels.control),
@@ -690,26 +690,26 @@ class Ne {
   removeSendHook(e) {
     this.sendHooks = this.sendHooks.filter((t) => t !== e);
   }
-  generateChannel(e, t, r) {
-    const o = r();
+  generateChannel(e, t, o) {
+    const n = o();
     return (
-      o.connect(_e(e, t)),
-      this.processSocketMessages(t, o).catch((i) =>
+      n.connect(_e(e, t)),
+      this.processSocketMessages(t, n).catch((i) =>
         console.error(`Failed to read messages from channel ${t}`, i),
       ),
-      o
+      n
     );
   }
   async processSocketMessages(e, t) {
-    for await (const r of t) {
+    for await (const o of t) {
       if (this.closed) break;
-      this.onIncomingMessage(e, r);
+      this.onIncomingMessage(e, o);
     }
   }
   generateChannels(e) {
     const t = ke(),
-      r = _(),
-      o = {
+      o = _(),
+      n = {
         iopub: this.generateChannel(
           e,
           "iopub",
@@ -721,7 +721,7 @@ class Ne {
           "shell",
           () =>
             new t.Dealer({
-              routingId: r,
+              routingId: o,
               sendHighWaterMark: 0,
               receiveHighWaterMark: 0,
               maxMessageSize: -1,
@@ -732,7 +732,7 @@ class Ne {
           "control",
           () =>
             new t.Dealer({
-              routingId: r,
+              routingId: o,
               sendHighWaterMark: 0,
               receiveHighWaterMark: 0,
               maxMessageSize: -1,
@@ -743,72 +743,72 @@ class Ne {
           "stdin",
           () =>
             new t.Dealer({
-              routingId: r,
+              routingId: o,
               sendHighWaterMark: 0,
               receiveHighWaterMark: 0,
               maxMessageSize: -1,
             }),
         ),
       };
-    return o.iopub.subscribe(), o;
+    return n.iopub.subscribe(), n;
   }
   onIncomingMessage(e, t) {
-    const r = this.closed
+    const o = this.closed
       ? {}
       : $.decode(t, this.connection.key, this.connection.signature_scheme);
-    (r.channel = e),
+    (o.channel = e),
       this.receiveHooks.length
         ? (this.msgChain = this.msgChain
             .then(() => {
-              const o = this.serialize(r);
-              return Promise.all(this.receiveHooks.map((i) => i(o)));
+              const n = this.serialize(o);
+              return Promise.all(this.receiveHooks.map((i) => i(n)));
             })
-            .then(() => this.fireOnMessage(r, e)))
-        : (this.msgChain = this.msgChain.then(() => this.fireOnMessage(r, e)));
+            .then(() => this.fireOnMessage(o, e)))
+        : (this.msgChain = this.msgChain.then(() => this.fireOnMessage(o, e)));
   }
   fireOnMessage(e, t) {
     if (!this.closed)
       try {
         Te(e, t), this.onmessage({ data: e, type: "message", target: this });
-      } catch (r) {
+      } catch (o) {
         console.error(
           `Failed to handle message in Jupyter Kernel package ${JSON.stringify(e)}`,
-          r,
+          o,
         );
       }
   }
   sendMessage(e, t) {
-    const r = $.encode(
+    const o = $.encode(
       e,
       this.connection.key,
       this.connection.signature_scheme,
     );
     if (!t && this.sendHooks.length) {
-      const o = this.serialize(e);
+      const n = this.serialize(e);
       this.sendChain = this.sendChain
-        .then(() => Promise.all(this.sendHooks.map((i) => i(o, y))))
+        .then(() => Promise.all(this.sendHooks.map((i) => i(n, y))))
         .then(async () => {
           try {
-            await this.postToSocket(e.channel, r);
+            await this.postToSocket(e.channel, o);
           } catch (i) {
             console.error(
               `Failed to write data to the kernel channel ${e.channel}`,
-              r,
+              o,
               i,
             );
           }
         });
     } else
       this.sendChain = this.sendChain.then(() => {
-        this.postToSocket(e.channel, r);
+        this.postToSocket(e.channel, o);
       });
     this.sendChain.catch(y);
   }
   postToSocket(e, t) {
-    const r = this.channels[e];
-    r
-      ? r.send(t).catch((o) => {
-          console.error("Error communicating with the kernel", o);
+    const o = this.channels[e];
+    o
+      ? o.send(t).catch((n) => {
+          console.error("Error communicating with the kernel", n);
         })
       : console.error(`Attempting to send message on invalid channel: ${e}`);
   }
@@ -818,7 +818,7 @@ class Ee {
   get postMessage() {
     return this._postMessageEmitter.event;
   }
-  constructor(e, t, r, o) {
+  constructor(e, t, o, n) {
     Object.defineProperty(this, "outputWidgetIds", {
       enumerable: !0,
       configurable: !0,
@@ -843,12 +843,12 @@ class Ee {
         writable: !0,
         value: new l.EventEmitter(),
       }),
-      (this.kernel = this.initializeKernel(e, t, r, o));
+      (this.kernel = this.initializeKernel(e, t, o, n));
   }
   get rawKernel() {
     return this.kernel;
   }
-  initializeKernel(e, t, r, o) {
+  initializeKernel(e, t, o, n) {
     const i = require("@jupyterlab/services"),
       s = require("@jupyterlab/services/lib/kernel/serialize");
     let a;
@@ -863,8 +863,8 @@ class Ee {
       serverSettings: d,
       clientId: t,
       handleComms: !1,
-      username: r,
-      model: o,
+      username: o,
+      model: n,
     });
     return (
       a &&
@@ -880,10 +880,10 @@ class Ee {
       e.includes("shell") &&
       e.includes("execute_request")
     ) {
-      const r = R(e);
-      if (r.channel === "shell" && r.header.msg_type === "execute_request") {
-        if (!j(r)) return;
-        this.mirrorExecuteRequest(r);
+      const o = R(e);
+      if (o.channel === "shell" && o.header.msg_type === "execute_request") {
+        if (!j(o)) return;
+        this.mirrorExecuteRequest(o);
       }
     }
   }
@@ -897,13 +897,13 @@ class Ee {
     });
   }
   async onKernelSocketMessage(e) {
-    var i, s, a, c, d, h, b, p, f;
+    var i, s, a, c, d, h, m, p, f;
     const t = _(),
-      r = he();
+      o = he();
     if (
       (this.waitingMessageIds.set(t, {
         startTime: Date.now(),
-        resultPromise: r,
+        resultPromise: o,
       }),
       typeof e == "string"
         ? j(e) && this.raisePostMessage("IPyWidgets_msg", { id: t, data: e })
@@ -918,30 +918,30 @@ class Ee {
         e.includes("comm_close") ||
         e.includes("comm_msg"))
     ) {
-      const m = R(e);
-      if (!j(m)) return;
+      const b = R(e);
+      if (!j(b)) return;
       const T =
-          ((i = m.header) == null ? void 0 : i.msg_type) === "comm_open" &&
+          ((i = b.header) == null ? void 0 : i.msg_type) === "comm_open" &&
           ((c =
-            (a = (s = m.content) == null ? void 0 : s.data) == null
+            (a = (s = b.content) == null ? void 0 : s.data) == null
               ? void 0
               : a.state) == null
             ? void 0
             : c._model_module) === "@jupyter-widgets/output" &&
-          ((b =
-            (h = (d = m.content) == null ? void 0 : d.data) == null
+          ((m =
+            (h = (d = b.content) == null ? void 0 : d.data) == null
               ? void 0
               : h.state) == null
             ? void 0
-            : b._model_name) === "OutputModel",
+            : m._model_name) === "OutputModel",
         V =
-          ((p = m.header) == null ? void 0 : p.msg_type) === "comm_close" &&
+          ((p = b.header) == null ? void 0 : p.msg_type) === "comm_close" &&
           this.outputWidgetIds.has(
-            (f = m.content) == null ? void 0 : f.comm_id,
+            (f = b.content) == null ? void 0 : f.comm_id,
           );
       T
-        ? this.outputWidgetIds.add(m.content.comm_id)
-        : V && this.outputWidgetIds.delete(m.content.comm_id);
+        ? this.outputWidgetIds.add(b.content.comm_id)
+        : V && this.outputWidgetIds.delete(b.content.comm_id);
     }
   }
   onKernelSocketResponse(e) {
@@ -954,7 +954,7 @@ class w {
   get postMessage() {
     return this._postMessageEmitter.event;
   }
-  constructor(e, t, r, o) {
+  constructor(e, t, o, n) {
     Object.defineProperty(this, "executionInfrastructure", {
       enumerable: !0,
       configurable: !0,
@@ -965,13 +965,13 @@ class w {
         enumerable: !0,
         configurable: !0,
         writable: !0,
-        value: r,
+        value: o,
       }),
       Object.defineProperty(this, "dbtTerminal", {
         enumerable: !0,
         configurable: !0,
         writable: !0,
-        value: o,
+        value: n,
       }),
       Object.defineProperty(this, "_postMessageEmitter", {
         enumerable: !0,
@@ -1070,13 +1070,13 @@ class w {
   async isInitialized() {
     return new Promise((e) => {
       const t = setInterval(() => {
-        var r, o;
+        var o, n;
         this.dbtTerminal.debug(
           "Notebookclient",
           "isInitialized",
-          !!((r = this.kernel) != null && r.rawKernel),
+          !!((o = this.kernel) != null && o.rawKernel),
         ),
-          (o = this.kernel) != null && o.rawKernel && (e(!0), clearInterval(t));
+          (n = this.kernel) != null && n.rawKernel && (e(!0), clearInterval(t));
       }, 500);
     });
   }
@@ -1103,9 +1103,9 @@ class w {
   async getKernel() {
     return new Promise((e) => {
       const t = setInterval(() => {
-        var r;
+        var o;
         this.isInitializing ||
-          (e((r = this.kernel) == null ? void 0 : r.rawKernel),
+          (e((o = this.kernel) == null ? void 0 : o.rawKernel),
           clearInterval(t));
       }, 500);
     });
@@ -1123,27 +1123,27 @@ class w {
       const t = await this.python.lock(
           (a) => a`notebook_kernel.get_connection_file()`,
         ),
-        r = JSON.parse(H.readFileSync(t, { encoding: "utf-8" })),
-        o = await this.python.lock((a) => a`notebook_kernel.get_session_id()`),
-        i = { connection: r, pid: o },
-        s = new Ee(i, _(), _(), { name: r.kernel_name, id: _() });
+        o = JSON.parse(H.readFileSync(t, { encoding: "utf-8" })),
+        n = await this.python.lock((a) => a`notebook_kernel.get_session_id()`),
+        i = { connection: o, pid: n },
+        s = new Ee(i, _(), _(), { name: o.kernel_name, id: _() });
       (this.kernel = s),
         this.disposables.push(
           s.postMessage((a) => this._postMessageEmitter.fire(a)),
         ),
         this.dbtTerminal.log(
-          `Notebook Kernel started with PID: ${o} connection: ${JSON.stringify(r)}`,
+          `Notebook Kernel started with PID: ${n} connection: ${JSON.stringify(o)}`,
         ),
         this.getDependenciesVersion();
     } catch (t) {
-      let r = t.message;
-      t instanceof L.PythonException && (r = t.exception.message),
+      let o = t.message;
+      t instanceof B.PythonException && (o = t.exception.message),
         this.dbtTerminal.error(
           u.TelemetryEvents["Notebook/KernelInitializationError"],
-          r,
+          o,
           t,
         ),
-        l.window.showErrorMessage(r);
+        l.window.showErrorMessage(o);
     }
     this.isInitializing = !1;
   }
@@ -1156,21 +1156,21 @@ class w {
       await this.python.lock((t) => t`notebook_kernel.store_context(${e})`);
   }
   async storeDataInKernel(e, t) {
-    return new Promise(async (r, o) => {
+    return new Promise(async (o, n) => {
       try {
         this.dbtTerminal.log(`storeDataInKernel: ${e}`),
           await this.python.lock(
             (i) =>
               i`notebook_kernel.store_sql_result(${e}, ${JSON.stringify(t)})`,
           ),
-          r(!0);
+          o(!0);
       } catch (i) {
         this.dbtTerminal.error(
           u.TelemetryEvents["Notebook/StoreDataInKernelError"],
           i.exception.message,
           i,
         ),
-          o(i);
+          n(i);
       }
     });
   }
@@ -1187,25 +1187,25 @@ class w {
         (this.registerdCommTargets.delete(e),
         new Error("Kernel not found for registering comm target"))
       );
-    return t.realKernel.registerCommTarget(e, (r, o) => {
-      this.dbtTerminal.log(`registerCommTarget registered: ${e}`, r, o);
+    return t.realKernel.registerCommTarget(e, (o, n) => {
+      this.dbtTerminal.log(`registerCommTarget registered: ${e}`, o, n);
     });
   }
   async getPythonCodeByType(e, t) {
     return (
       this.dbtTerminal.debug("getPythonCodeByType", e, t),
       await this.python.lock(
-        (r) => r`notebook_kernel.get_python_code_by_type(${e}, ${t})`,
+        (o) => o`notebook_kernel.get_python_code_by_type(${e}, ${t})`,
       )
     );
   }
-  async executePython(e, t, r) {
-    return new Promise(async (o, i) => {
-      var h, b;
+  async executePython(e, t, o) {
+    return new Promise(async (n, i) => {
+      var h, m;
       if (
         !(
-          (b = (h = this.kernel) == null ? void 0 : h.rawKernel) != null &&
-          b.realKernel
+          (m = (h = this.kernel) == null ? void 0 : h.rawKernel) != null &&
+          m.realKernel
         )
       ) {
         i(new Error("Kernel not found"));
@@ -1240,12 +1240,12 @@ class w {
         }
         const f = p.content;
         f.payload &&
-          f.payload.forEach((m) => {
-            if (m.data && m.data.hasOwnProperty("text/plain")) {
+          f.payload.forEach((b) => {
+            if (b.data && b.data.hasOwnProperty("text/plain")) {
               const T = this.addToCellData(
                 {
                   output_type: "stream",
-                  text: m.data["text/plain"].toString(),
+                  text: b.data["text/plain"].toString(),
                   name: "stdout",
                   metadata: {},
                   execution_count: f.execution_count,
@@ -1253,14 +1253,14 @@ class w {
                 p,
                 t,
               );
-              T && r(T);
+              T && o(T);
             }
           });
       };
       const d = [];
       return (
         c.done.finally(() => {
-          c.dispose(), o(d.filter((p) => !!p));
+          c.dispose(), n(d.filter((p) => !!p));
         }),
         (c.onStdin = (p) => {
           this.dbtTerminal.log("onStdin", p);
@@ -1277,8 +1277,8 @@ class w {
           } else if (a.KernelMessage.isStreamMsg(p)) {
             const f = this.handleStreamMessage(p, t);
             f == null ||
-              f.forEach((m) => {
-                d.push(m);
+              f.forEach((b) => {
+                d.push(b);
               });
           } else
             a.KernelMessage.isDisplayDataMsg(p)
@@ -1317,9 +1317,9 @@ class w {
     }
   }
   handleCommOpen(e) {
-    var r;
+    var o;
     this.ownedCommIds.add(e.content.comm_id);
-    const t = ((r = e.content.data) == null ? void 0 : r.state) || void 0;
+    const t = ((o = e.content.data) == null ? void 0 : o.state) || void 0;
     e.content.target_name === I.DefaultCommTarget &&
       t &&
       t._model_module === "@jupyter-widgets/output" &&
@@ -1329,9 +1329,9 @@ class w {
     const t = e.content.data;
     if (!(!t || t.method !== "update" || typeof t.state != "object")) {
       if ("msg_id" in t.state && typeof t.state.msg_id == "string") {
-        const r = "msg_id" in e.parent_header ? e.parent_header : void 0;
+        const o = "msg_id" in e.parent_header ? e.parent_header : void 0;
         (this.ownedRequestMsgIds.has(e.content.comm_id) ||
-          (r && this.ownedRequestMsgIds.has(r.msg_id))) &&
+          (o && this.ownedRequestMsgIds.has(o.msg_id))) &&
           (t.state.msg_id
             ? this.outputsAreSpecificToAWidget.push({
                 handlingCommId: e.content.comm_id,
@@ -1347,19 +1347,19 @@ class w {
         Array.isArray(t.state.children) &&
         this.ownedCommIds.has(e.content.comm_id)
       ) {
-        const r = "IPY_MODEL_";
-        t.state.children.forEach((o) => {
-          if (typeof o != "string")
+        const o = "IPY_MODEL_";
+        t.state.children.forEach((n) => {
+          if (typeof n != "string")
             return this.dbtTerminal.warn(
               "Came across a comm update message a child that isn't a string",
-              o,
+              n,
             );
-          if (!o.startsWith(r))
+          if (!n.startsWith(o))
             return this.dbtTerminal.warn(
-              `Came across a comm update message a child that start start with ${r}`,
-              o,
+              `Came across a comm update message a child that start start with ${o}`,
+              n,
             );
-          const i = o.substring(r.length);
+          const i = n.substring(o.length);
           this.ownedCommIds.add(i),
             this.commIdsMappedToParentWidgetModel.set(i, e.content.comm_id);
         });
@@ -1379,19 +1379,19 @@ class w {
       t,
     );
   }
-  addToCellData(e, t, r) {
+  addToCellData(e, t, o) {
     if (e.data && typeof e.data == "object" && O in e.data) {
       const s = e.data[O];
       if (s && "model_id" in s) {
-        const a = w.modelIdsOwnedByCells.get(r) || new Set();
-        a.add(s.model_id), w.modelIdsOwnedByCells.set(r, a);
+        const a = w.modelIdsOwnedByCells.get(o) || new Set();
+        a.add(s.model_id), w.modelIdsOwnedByCells.set(o, a);
       }
     }
-    const o = M(e);
-    if (r.document.isClosed) return;
+    const n = S(e);
+    if (o.document.isClosed) return;
     this.dbtTerminal.log(
-      r.document.uri.fsPath,
-      `Update output with mimes ${o.items.map((s) => s.mime).toString()}`,
+      o.document.uri.fsPath,
+      `Update output with mimes ${n.items.map((s) => s.mime).toString()}`,
     );
     const i = N(t);
     return (
@@ -1399,23 +1399,23 @@ class w {
         this.outputsAreSpecificToAWidget[
           this.outputsAreSpecificToAWidget.length - 1
         ].msgIdsToSwallow === i &&
-        o.items.every((s) => this.canMimeTypeBeRenderedByWidgetManager(s))) ||
+        n.items.every((s) => this.canMimeTypeBeRenderedByWidgetManager(s))) ||
         (this.outputsAreSpecificToAWidget.length &&
           this.outputsAreSpecificToAWidget[
             this.outputsAreSpecificToAWidget.length - 1
           ].msgIdsToSwallow === i &&
           this.dbtTerminal.warn("NotebookAddToCellData", "unknown operation")),
-      o
+      n
     );
   }
   canMimeTypeBeRenderedByWidgetManager(e) {
     const t = e.mime;
     if (t === g.stderr || t === g.stdout || t === g.error) return !0;
     if (t === O) {
-      const r = JSON.parse(new TextDecoder().decode(e.data));
+      const o = JSON.parse(new TextDecoder().decode(e.data));
       return !(
-        typeof r.model_id == "string" &&
-        this.commIdsMappedToWidgetOutputModels.has(r.model_id)
+        typeof o.model_id == "string" &&
+        this.commIdsMappedToWidgetOutputModels.has(o.model_id)
       );
     }
     return !t.startsWith("application/vnd");
@@ -1423,7 +1423,7 @@ class w {
   handleExecuteInput(e) {}
   handleStatusMessage(e) {}
   handleStreamMessage(e, t) {
-    var o;
+    var n;
     if (
       N(e) &&
       this.outputsAreSpecificToAWidget.length &&
@@ -1432,7 +1432,7 @@ class w {
       ].msgIdsToSwallow === N(e)
     )
       return;
-    const r =
+    const o =
       e.content.name === "stdout"
         ? l.NotebookCellOutputItem.stdout("").mime
         : l.NotebookCellOutputItem.stderr("").mime;
@@ -1441,17 +1441,17 @@ class w {
         !this.lastUsedStreamOutput &&
         t.outputs.length &&
         t.outputs[t.outputs.length - 1].items.length >= 1 &&
-        t.outputs[t.outputs.length - 1].items.every((i) => i.mime === r) &&
+        t.outputs[t.outputs.length - 1].items.every((i) => i.mime === o) &&
         (this.lastUsedStreamOutput = {
           output: t.outputs[0],
           stream: e.content.name,
         }),
       (this.streamsReAttachedToExecutingCell = !0),
-      ((o = this.lastUsedStreamOutput) == null ? void 0 : o.stream) ===
+      ((n = this.lastUsedStreamOutput) == null ? void 0 : n.stream) ===
         e.content.name)
     )
       return [
-        M({
+        S({
           output_type: "stream",
           name: e.content.name,
           text: e.content.text,
@@ -1460,17 +1460,17 @@ class w {
       ];
     {
       const i = se(D(e.content.text));
-      return [M({ output_type: "stream", name: e.content.name, text: i })];
+      return [S({ output_type: "stream", name: e.content.name, text: i })];
     }
   }
   handleDisplayData(e, t) {
-    const r = {
+    const o = {
       output_type: "display_data",
       data: le(e.content.data),
       metadata: e.content.metadata,
       transient: e.content.transient,
     };
-    return this.addToCellData(r, e, t);
+    return this.addToCellData(o, e, t);
   }
   handleClearOutput(e) {
     if (
@@ -1488,15 +1488,15 @@ class w {
     }
   }
   handleError(e, t) {
-    const r = e.content.traceback;
-    this.dbtTerminal.log(`Traceback for error ${r}`);
-    const o = {
+    const o = e.content.traceback;
+    this.dbtTerminal.log(`Traceback for error ${o}`);
+    const n = {
       output_type: "error",
       ename: e.content.ename,
       evalue: e.content.evalue,
-      traceback: r,
+      traceback: o,
     };
-    return this.addToCellData(o, e, t);
+    return this.addToCellData(n, e, t);
   }
 }
 Object.defineProperty(w, "modelIdsOwnedByCells", {
@@ -1505,28 +1505,28 @@ Object.defineProperty(w, "modelIdsOwnedByCells", {
   writable: !0,
   value: new WeakMap(),
 });
-var Ce = function (n, e, t, r) {
-    var o = arguments.length,
+var Ce = function (r, e, t, o) {
+    var n = arguments.length,
       i =
-        o < 3
+        n < 3
           ? e
-          : r === null
-            ? (r = Object.getOwnPropertyDescriptor(e, t))
-            : r,
+          : o === null
+            ? (o = Object.getOwnPropertyDescriptor(e, t))
+            : o,
       s;
     if (typeof Reflect == "object" && typeof Reflect.decorate == "function")
-      i = Reflect.decorate(n, e, t, r);
+      i = Reflect.decorate(r, e, t, o);
     else
-      for (var a = n.length - 1; a >= 0; a--)
-        (s = n[a]) && (i = (o < 3 ? s(i) : o > 3 ? s(e, t, i) : s(e, t)) || i);
-    return o > 3 && i && Object.defineProperty(e, t, i), i;
+      for (var a = r.length - 1; a >= 0; a--)
+        (s = r[a]) && (i = (n < 3 ? s(i) : n > 3 ? s(e, t, i) : s(e, t)) || i);
+    return n > 3 && i && Object.defineProperty(e, t, i), i;
   },
-  De = function (n, e) {
+  De = function (r, e) {
     if (typeof Reflect == "object" && typeof Reflect.metadata == "function")
-      return Reflect.metadata(n, e);
+      return Reflect.metadata(r, e);
   };
 exports.NotebookDependencies = class {
-  constructor(e, t, r, o) {
+  constructor(e, t, o, n) {
     Object.defineProperty(this, "dbtTerminal", {
       enumerable: !0,
       configurable: !0,
@@ -1543,53 +1543,53 @@ exports.NotebookDependencies = class {
         enumerable: !0,
         configurable: !0,
         writable: !0,
-        value: r,
+        value: o,
       }),
       Object.defineProperty(this, "pythonEnvironment", {
         enumerable: !0,
         configurable: !0,
         writable: !0,
-        value: o,
+        value: n,
       });
   }
   async checkPythonDependencies(e) {
     const t = [];
-    for (const r of e) {
-      const o = ["-m", "pip", "show", r],
+    for (const o of e) {
+      const n = ["-m", "pip", "show", o],
         { stderr: i } = await this.commandProcessExecutionFactory
           .createCommandProcessExecution({
             command: this.pythonEnvironment.pythonPath,
-            args: o,
+            args: n,
             cwd: u.getFirstWorkspacePath(),
             envVars: this.pythonEnvironment.environmentVariables,
           })
           .completeWithTerminalOutput();
-      i && t.push(r);
+      i && t.push(o);
     }
     return t;
   }
   checkDbtDependencies(e, t) {
     return e
-      .map((r) => {
+      .map((o) => {
         try {
-          return t.findPackageVersion(r), null;
+          return t.findPackageVersion(o), null;
         } catch {
-          return r;
+          return o;
         }
       })
       .filter(Boolean);
   }
   async installMissingPythonPackages(e, t) {
-    const r = await this.checkPythonDependencies(e);
-    if (!r.length) return;
+    const o = await this.checkPythonDependencies(e);
+    if (!o.length) return;
     if (
       (this.dbtTerminal.debug(
         "Notebook",
         "asking user to install missing python dependencies for notebook",
-        r,
+        o,
       ),
       (await l.window.showInformationMessage(
-        `You need the following python packages to use this notebook: ${r.join(", ")}`,
+        `You need the following python packages to use this notebook: ${o.join(", ")}`,
         "Install",
         "Cancel",
       )) !== "Install")
@@ -1601,7 +1601,7 @@ exports.NotebookDependencies = class {
         new Error("User cancelled python package installation"))
       );
     return (
-      this.dbtTerminal.debug("Notebook", "installing required dependencies", r),
+      this.dbtTerminal.debug("Notebook", "installing required dependencies", o),
       await l.window.withProgress(
         {
           title: "Installing python packages...",
@@ -1610,7 +1610,7 @@ exports.NotebookDependencies = class {
         },
         async () => {
           try {
-            const i = ["-m", "pip", "install", ...r],
+            const i = ["-m", "pip", "install", ...o],
               { stdout: s, stderr: a } =
                 await this.commandProcessExecutionFactory
                   .createCommandProcessExecution({
@@ -1650,20 +1650,20 @@ exports.NotebookDependencies = class {
     );
   }
   async installMissingDbtPackages(e, t) {
-    const r = this.checkDbtDependencies(
+    const o = this.checkDbtDependencies(
       e.map((s) => `${s.name}`),
       t,
     );
-    if (!r.length) return;
-    const o = e.filter((s) => (s.name ? r.includes(s.name) : !1));
+    if (!o.length) return;
+    const n = e.filter((s) => (s.name ? o.includes(s.name) : !1));
     if (
       (this.dbtTerminal.debug(
         "Notebook",
         "asking user to install missing dbt dependencies for notebook",
-        o,
+        n,
       ),
       (await l.window.showInformationMessage(
-        `You need following dbt packages to use this notebook: ${o.map((s) => `${s.package}`).join(", ")}`,
+        `You need following dbt packages to use this notebook: ${n.map((s) => `${s.package}`).join(", ")}`,
         "Install",
         "Cancel",
       )) !== "Install")
@@ -1682,7 +1682,7 @@ exports.NotebookDependencies = class {
       },
       async () => {
         try {
-          const s = o.map((c) => `${c.package}@${c.version}`);
+          const s = n.map((c) => `${c.package}@${c.version}`);
           this.dbtTerminal.debug("Notebook", "installing dbt packages", s),
             await t.installDbtPackages(s),
             await t.initialize();
@@ -1720,18 +1720,18 @@ exports.NotebookDependencies = class {
       await Promise.all([
         this.validateAndInstallNotebookDependencies(),
         this.installMissingPythonPackages(
-          e.filter((r) => r.type === "python").map((r) => r.package),
+          e.filter((o) => o.type === "python").map((o) => o.package),
           t,
         ),
         this.installMissingDbtPackages(
-          e.filter((r) => r.type === "dbt"),
+          e.filter((o) => o.type === "dbt"),
           t,
         ),
       ]);
   }
   async getDependenciesVersion() {
     const e = ["-m", "jupyter", "--version"],
-      { stdout: t, stderr: r } = await this.commandProcessExecutionFactory
+      { stdout: t, stderr: o } = await this.commandProcessExecutionFactory
         .createCommandProcessExecution({
           command: this.pythonEnvironment.pythonPath,
           args: e,
@@ -1742,14 +1742,14 @@ exports.NotebookDependencies = class {
     if (
       !t.includes("Successfully installed") &&
       !t.includes("Requirement already satisfied") &&
-      r
+      o
     )
-      throw new Error(r);
-    const o = t.split(`
+      throw new Error(o);
+    const n = t.split(`
 `),
       i = {};
     return (
-      o.forEach((s) => {
+      n.forEach((s) => {
         const [a, c] = s.split(":").map((d) => d.trim());
         a && c && (i[a] = c);
       }),
@@ -1784,7 +1784,7 @@ exports.NotebookDependencies = class {
         },
         async () => {
           try {
-            const r = [
+            const o = [
                 "-m",
                 "pip",
                 "install",
@@ -1793,18 +1793,18 @@ exports.NotebookDependencies = class {
                 "jupyter_contrib_nbextensions",
                 "ipywidgets",
               ],
-              { stdout: o, stderr: i } =
+              { stdout: n, stderr: i } =
                 await this.commandProcessExecutionFactory
                   .createCommandProcessExecution({
                     command: this.pythonEnvironment.pythonPath,
-                    args: r,
+                    args: o,
                     cwd: u.getFirstWorkspacePath(),
                     envVars: this.pythonEnvironment.environmentVariables,
                   })
                   .completeWithTerminalOutput();
             if (
-              !o.includes("Successfully installed") &&
-              !o.includes("Requirement already satisfied") &&
+              !n.includes("Successfully installed") &&
+              !n.includes("Requirement already satisfied") &&
               i
             )
               throw new Error(i);
@@ -1817,14 +1817,14 @@ exports.NotebookDependencies = class {
               ),
               !0
             );
-          } catch (r) {
+          } catch (o) {
             return (
               this.telemetry.sendTelemetryError(
                 u.TelemetryEvents["Notebook/DependenciesInstallError"],
-                r,
+                o,
               ),
               l.window.showErrorMessage(
-                u.extendErrorWithSupportLinks(r.message),
+                u.extendErrorWithSupportLinks(o.message),
               ),
               !1
             );
@@ -1876,28 +1876,28 @@ exports.NotebookDependencies = Ce(
   ],
   exports.NotebookDependencies,
 );
-var Ie = function (n, e, t, r) {
-    var o = arguments.length,
+var Ie = function (r, e, t, o) {
+    var n = arguments.length,
       i =
-        o < 3
+        n < 3
           ? e
-          : r === null
-            ? (r = Object.getOwnPropertyDescriptor(e, t))
-            : r,
+          : o === null
+            ? (o = Object.getOwnPropertyDescriptor(e, t))
+            : o,
       s;
     if (typeof Reflect == "object" && typeof Reflect.decorate == "function")
-      i = Reflect.decorate(n, e, t, r);
+      i = Reflect.decorate(r, e, t, o);
     else
-      for (var a = n.length - 1; a >= 0; a--)
-        (s = n[a]) && (i = (o < 3 ? s(i) : o > 3 ? s(e, t, i) : s(e, t)) || i);
-    return o > 3 && i && Object.defineProperty(e, t, i), i;
+      for (var a = r.length - 1; a >= 0; a--)
+        (s = r[a]) && (i = (n < 3 ? s(i) : n > 3 ? s(e, t, i) : s(e, t)) || i);
+    return n > 3 && i && Object.defineProperty(e, t, i), i;
   },
-  Se = function (n, e) {
+  Me = function (r, e) {
     if (typeof Reflect == "object" && typeof Reflect.metadata == "function")
-      return Reflect.metadata(n, e);
+      return Reflect.metadata(r, e);
   };
 let C = class {
-  constructor(e, t, r) {
+  constructor(e, t, o) {
     Object.defineProperty(this, "executionInfrastructure", {
       enumerable: !0,
       configurable: !0,
@@ -1914,7 +1914,7 @@ let C = class {
         enumerable: !0,
         configurable: !0,
         writable: !0,
-        value: r,
+        value: o,
       }),
       Object.defineProperty(this, "clientMap", {
         enumerable: !0,
@@ -1938,8 +1938,8 @@ let C = class {
       );
       this.clientMap.set(
         e.fsPath,
-        new Promise((r) => {
-          t.getKernel().then(() => r(t));
+        new Promise((o) => {
+          t.getKernel().then(() => o(t));
         }),
       );
     }
@@ -1954,7 +1954,7 @@ let C = class {
 C = Ie(
   [
     u.provideSingleton(C),
-    Se("design:paramtypes", [
+    Me("design:paramtypes", [
       u.DBTCommandExecutionInfrastructure,
       exports.NotebookDependencies,
       u.DBTTerminal,
@@ -1962,34 +1962,34 @@ C = Ie(
   ],
   C,
 );
-const Me = ["python", "sql", "jinja-sql"],
+const Se = ["python", "sql", "jinja-sql"],
   je = "jinja-sql",
   U = ".notebook",
   z = "datapilot",
   v = "datapilot-notebook";
-var xe = function (n, e, t, r) {
-    var o = arguments.length,
+var xe = function (r, e, t, o) {
+    var n = arguments.length,
       i =
-        o < 3
+        n < 3
           ? e
-          : r === null
-            ? (r = Object.getOwnPropertyDescriptor(e, t))
-            : r,
+          : o === null
+            ? (o = Object.getOwnPropertyDescriptor(e, t))
+            : o,
       s;
     if (typeof Reflect == "object" && typeof Reflect.decorate == "function")
-      i = Reflect.decorate(n, e, t, r);
+      i = Reflect.decorate(r, e, t, o);
     else
-      for (var a = n.length - 1; a >= 0; a--)
-        (s = n[a]) && (i = (o < 3 ? s(i) : o > 3 ? s(e, t, i) : s(e, t)) || i);
-    return o > 3 && i && Object.defineProperty(e, t, i), i;
+      for (var a = r.length - 1; a >= 0; a--)
+        (s = r[a]) && (i = (n < 3 ? s(i) : n > 3 ? s(e, t, i) : s(e, t)) || i);
+    return n > 3 && i && Object.defineProperty(e, t, i), i;
   },
-  Ae = function (n, e) {
+  Ae = function (r, e) {
     if (typeof Reflect == "object" && typeof Reflect.metadata == "function")
-      return Reflect.metadata(n, e);
+      return Reflect.metadata(r, e);
   };
 const Re = require("path");
 exports.DatapilotNotebookController = class {
-  constructor(e, t, r, o, i, s) {
+  constructor(e, t, o, n, i, s) {
     Object.defineProperty(this, "clientMapper", {
       enumerable: !0,
       configurable: !0,
@@ -2006,13 +2006,13 @@ exports.DatapilotNotebookController = class {
         enumerable: !0,
         configurable: !0,
         writable: !0,
-        value: r,
+        value: o,
       }),
       Object.defineProperty(this, "dbtTerminal", {
         enumerable: !0,
         configurable: !0,
         writable: !0,
-        value: o,
+        value: n,
       }),
       Object.defineProperty(this, "notebookDependencies", {
         enumerable: !0,
@@ -2085,7 +2085,7 @@ exports.DatapilotNotebookController = class {
         v,
         this.label,
       )),
-      (this.controller.supportedLanguages = Me),
+      (this.controller.supportedLanguages = Se),
       (this.controller.supportsExecutionOrder = !0),
       (this.controller.executeHandler = this._executeAll.bind(this)),
       this.disposables.push(
@@ -2125,22 +2125,93 @@ exports.DatapilotNotebookController = class {
       );
   }
   async getNotebookByTemplate(e) {
-    var r;
+    var o;
     return (
       this.dbtTerminal.debug("Notebook", "getting notebook by template", e),
       e
-        ? (r = (await this.altimate.getPreConfiguredNotebooks()).find(
-            (o) => o.name === e,
+        ? (o = (await this.altimate.getPreConfiguredNotebooks()).find(
+            (n) => n.name === e,
           )) == null
           ? void 0
-          : r.data
+          : o.data
         : (this.dbtTerminal.debug("Notebook", "sending blank notebook"),
           {
             cells: [
               {
+                cell_type: l.NotebookCellKind.Markup,
+                source: [
+                  "### Welcome to your new dbt Power User Notebook!",
+                  "> Note: Remember, you can delete any or all of these example cells to start fresh with your own work. Enjoy exploring and analyzing your data!",
+                  "#### Documentation and Feedback",
+                  "For more detailed information on how to use this notebook and the dbt Power User extension, please refer to our documentation:",
+                  "[dbt Power User Documentation](https://docs.myaltimate.com/govern/notebooks/)",
+                  "  ",
+                  "We value your feedback! If you have any suggestions, encounter issues, or want to share your experience, please let us know:",
+                  "[Share Feedback](https://docs.google.com/forms/d/e/1FAIpQLScwN3wRTAniQzvcO6Hn3jC0WtBoFE2NP4X_6qGQ09IZKZ3Ojw/viewform?usp=sf_link)",
+                  "  ",
+                  "Happy analyzing with your new dbt Power User Notebook!",
+                  "  ",
+                  "This notebook allows you to combine Jinja SQL queries, Python code, and Markdown text. Let's explore each of these features.",
+                  "##### 1. Jinja SQL Queries",
+                  "You can write and execute Jinja SQL queries directly in this notebook. Here's an example:",
+                ],
+                languageId: "markdown",
+                metadata: {},
+              },
+              {
                 cell_type: l.NotebookCellKind.Code,
-                source: [],
+                source: [
+                  "select * from {{ ref('your_model_name') }}",
+                  "{# Replace 'your_model_name' with the name of your dbt model. #}",
+                ],
                 languageId: je,
+                metadata: { cellId: "jinja_sql_0" },
+              },
+              {
+                cell_type: l.NotebookCellKind.Markup,
+                source: [
+                  "##### 2. Python Code",
+                  "You can also write and execute Python code on top of the results of previous `jinja-sql` cell in this notebook. Here's a simple example:",
+                ],
+                languageId: "markdown",
+                metadata: {},
+              },
+              {
+                cell_type: l.NotebookCellKind.Code,
+                source: [
+                  "import pandas as pd",
+                  "from IPython.display import display, HTML",
+                  "from ydata_profiling import ProfileReport",
+                  "from io import StringIO",
+                  "",
+                  "# Extract the data field",
+                  "# NOTE: we use the cell id from previous cell to extract the data",
+                  "data = cell_jinja_sql_0['data']",
+                  "",
+                  "# Create a DataFrame",
+                  "df = pd.DataFrame(data)",
+                  "",
+                  "# Display the DataFrame",
+                  "# display(HTML(df.to_html()))",
+                  "",
+                  'profile = ProfileReport(df, title="Profiling Report")',
+                  "profile.to_notebook_iframe()",
+                ],
+                languageId: "python",
+                metadata: {},
+              },
+              {
+                cell_type: l.NotebookCellKind.Markup,
+                source: [
+                  "This Python code creates a profile report of your query results. You can customize the code to suit your needs.",
+                  "##### 3. Markdown Text",
+                  "As you can see, you can use Markdown to structure your notebook with headings, lists, and more. You can also use it to add explanations and documentation to your queries and code.",
+                  "##### Tips for Using This Notebook",
+                  "- Use Jinja cells for your dbt model queries and data exploration",
+                  "- Use Python cells for data analysis, visualization, and custom transformations. The jinja data can be referenced using the cell id",
+                  "- Use Markdown cells to explain your process, document your findings, and create a narrative for your analysis",
+                ],
+                languageId: "markdown",
                 metadata: {},
               },
             ],
@@ -2170,11 +2241,11 @@ exports.DatapilotNotebookController = class {
   }
   async getFileName(e, t) {
     if (e) return e;
-    const r = Z();
+    const o = Z();
     if (
       (
         await this.altimate.addNotebook({
-          name: r,
+          name: o,
           description: "",
           data: t
             ? { ...t, metadata: { ...(t.metadata || {}), isDraft: !0 } }
@@ -2182,16 +2253,16 @@ exports.DatapilotNotebookController = class {
           tags_list: [],
         })
       ).ok &&
-      (await this.altimate.getNotebooks(r)).length > 0
+      (await this.altimate.getNotebooks(o)).length > 0
     )
-      return r;
+      return o;
   }
   async createNotebook(e) {
     var s;
     const {
       notebookId: t,
-      template: r,
-      context: o = {},
+      template: o,
+      context: n = {},
       notebookSchema: i,
     } = e || {};
     if (
@@ -2201,7 +2272,7 @@ exports.DatapilotNotebookController = class {
         !0,
         e,
       ),
-      !o.model &&
+      !n.model &&
         (s = l.window.activeTextEditor) != null &&
         s.document.uri.fsPath.endsWith(".sql"))
     ) {
@@ -2210,7 +2281,7 @@ exports.DatapilotNotebookController = class {
           ".sql",
         ),
         c = l.window.activeTextEditor.document.getText();
-      (o.model = a), (o.query = c);
+      (n.model = a), (n.query = c);
     }
     l.window.withProgress(
       {
@@ -2221,7 +2292,7 @@ exports.DatapilotNotebookController = class {
       async () => {
         var a;
         try {
-          const c = i || (t ? null : await this.getNotebookByTemplate(r)),
+          const c = i || (t ? null : await this.getNotebookByTemplate(o)),
             d = await this.queryManifestService.getOrPickProjectFromWorkspace();
           if (!d) {
             l.window.showErrorMessage("No dbt project selected.");
@@ -2234,22 +2305,22 @@ exports.DatapilotNotebookController = class {
                 c.metadata.dependencies,
                 d,
               )),
-            o && c)
+            n && c)
           )
-            for (const f in o)
-              o.hasOwnProperty(f) &&
-                typeof o[f] == "string" &&
-                (c.cells[0].source = c.cells[0].source.map((m) =>
-                  m.replace(`%_${f}_%`, o[f]),
+            for (const f in n)
+              n.hasOwnProperty(f) &&
+                typeof n[f] == "string" &&
+                (c.cells[0].source = c.cells[0].source.map((b) =>
+                  b.replace(`%_${f}_%`, n[f]),
                 ));
           const h = await this.getFileName(t, c),
-            b = l.Uri.parse(`${d.projectRoot}/${h}${U}`).with({ scheme: z });
-          this.dbtTerminal.debug("Notebook", "opening notebook", b);
-          const p = await l.workspace.openNotebookDocument(b);
+            m = l.Uri.parse(`${d.projectRoot}/${h}${U}`).with({ scheme: z });
+          this.dbtTerminal.debug("Notebook", "opening notebook", m);
+          const p = await l.workspace.openNotebookDocument(m);
           await l.window.showNotebookDocument(p);
         } catch (c) {
           const d =
-            c instanceof L.PythonException ? c.exception.message : c.message;
+            c instanceof B.PythonException ? c.exception.message : c.message;
           this.dbtTerminal.error(
             `${u.TelemetryEvents["Notebook/LaunchError"]}`,
             d,
@@ -2271,7 +2342,7 @@ exports.DatapilotNotebookController = class {
       )
     )
       return;
-    const o = [];
+    const n = [];
     if (
       (e.forEach((i) => {
         let s = i.metadata.cellId;
@@ -2279,7 +2350,7 @@ exports.DatapilotNotebookController = class {
           s = this.genUniqueId(i);
           const a = { ...i.metadata, cellId: s },
             c = l.NotebookEdit.updateCellMetadata(i.index, a);
-          o.push(c);
+          n.push(c);
         }
         this._onNotebookCellEvent.fire({
           cellId: s,
@@ -2289,10 +2360,10 @@ exports.DatapilotNotebookController = class {
           languageId: i.document.languageId,
         });
       }),
-      o.length > 0)
+      n.length > 0)
     ) {
       const i = new l.WorkspaceEdit();
-      i.set(t.uri, o), await l.workspace.applyEdit(i);
+      i.set(t.uri, n), await l.workspace.applyEdit(i);
     }
   }
   async onNotebookClose(e) {
@@ -2312,8 +2383,8 @@ exports.DatapilotNotebookController = class {
       `notebook controller selected: ${e.uri.fsPath}`,
       t,
     );
-    const r = e.uri.toString();
-    t ? this.associatedNotebooks.add(r) : this.associatedNotebooks.delete(r);
+    const o = e.uri.toString();
+    t ? this.associatedNotebooks.add(o) : this.associatedNotebooks.delete(o);
   }
   async onNotebookOpen(e) {
     var i;
@@ -2327,16 +2398,16 @@ exports.DatapilotNotebookController = class {
         `notebook open and controller associated: ${e.uri.fsPath}`,
       );
     const t = await this.clientMapper.initializeNotebookClient(e.uri),
-      r = await t.getKernel();
-    if (!(r != null && r.realKernel))
+      o = await t.getKernel();
+    if (!(o != null && o.realKernel))
       throw new Error("Unable to initialize kernel");
     this.disposables.push(
       t.postMessage((s) => {
         this.sendMessageToPreloadScript(s);
       }, this),
     );
-    const o = e.getCells();
-    await this.updateCellId(o, e);
+    const n = e.getCells();
+    await this.updateCellId(n, e);
     try {
       await this.waitForControllerAssociation(e);
     } catch {
@@ -2351,11 +2422,11 @@ exports.DatapilotNotebookController = class {
       (await this._executeAll(e.getCells(), e, this.controller));
   }
   async waitForControllerAssociation(e, t = 2e3) {
-    const r = Date.now();
+    const o = Date.now();
     for (; !this.isControllerAssociatedWithNotebook(e); ) {
-      if (Date.now() - r > t)
+      if (Date.now() - o > t)
         throw new Error("Timeout waiting for controller association");
-      await new Promise((o) => setTimeout(o, 500));
+      await new Promise((n) => setTimeout(n, 500));
     }
   }
   isControllerAssociatedWithNotebook(e) {
@@ -2364,10 +2435,10 @@ exports.DatapilotNotebookController = class {
   dispose() {
     this.disposables.forEach((e) => e.dispose());
   }
-  async _executeAll(e, t, r) {
+  async _executeAll(e, t, o) {
     var s, a;
-    const o = await this.queryManifestService.getOrPickProjectFromWorkspace();
-    if (!o) {
+    const n = await this.queryManifestService.getOrPickProjectFromWorkspace();
+    if (!n) {
       l.window.showErrorMessage("No dbt project selected.");
       return;
     }
@@ -2375,49 +2446,49 @@ exports.DatapilotNotebookController = class {
       s.dependencies &&
       (await this.notebookDependencies.verifyAndInstallDependenciesIfNeeded(
         t.metadata.dependencies,
-        o,
+        n,
       ));
     const i = await this.clientMapper.getNotebookClient(t.uri);
-    await this.updateContextVariablesInKernel(o, i, e[0]);
+    await this.updateContextVariablesInKernel(n, i, e[0]);
     for (const c of e)
       await this._doExecution(
         c,
         t,
         (a = t.metadata) == null ? void 0 : a.isUserNotebook,
-        r,
         o,
+        n,
         i,
       );
   }
   filterIPyWidgets(e, t = !1) {
-    return e.map((r) => {
-      const i = r.items.find(
+    return e.map((o) => {
+      const i = o.items.find(
         (s) => s.mime === "application/vnd.jupyter.widget-view+json",
       )
         ? t
           ? [l.NotebookCellOutputItem.text("IPyWidgets not supported")]
           : []
-        : r.items;
+        : o.items;
       return new l.NotebookCellOutput(i);
     });
   }
-  updateContextVariablesInKernel(e, t, r) {
+  updateContextVariablesInKernel(e, t, o) {
     return t.executePython(
       `
 manifest_path="${e.getManifestPath()}"
 project_name="${e.getProjectName()}"
             `,
-      r,
+      o,
       () => {},
     );
   }
-  async _doExecution(e, t, r, o, i, s) {
+  async _doExecution(e, t, o, n, i, s) {
     this.dbtTerminal.debug("Notebook", "executing cell", e.index, t.uri.fsPath);
     let a;
     try {
       const c = [];
       switch (
-        ((a = o.createNotebookCellExecution(e)),
+        ((a = n.createNotebookCellExecution(e)),
         (a.executionOrder = ++this.executionOrder),
         a.start(Date.now()),
         a.token.onCancellationRequested((d) => {
@@ -2433,10 +2504,10 @@ project_name="${e.getProjectName()}"
           );
           const d = await (s == null
             ? void 0
-            : s.executePython(e.document.getText(), e, (b) => {
-                a == null || a.appendOutput(this.filterIPyWidgets([b], r));
+            : s.executePython(e.document.getText(), e, (m) => {
+                a == null || a.appendOutput(this.filterIPyWidgets([m], o));
               }));
-          d && a.appendOutput(this.filterIPyWidgets(d, r));
+          d && a.appendOutput(this.filterIPyWidgets(d, o));
           break;
         case "jinja-sql":
         case "sql":
@@ -2451,33 +2522,33 @@ project_name="${e.getProjectName()}"
             );
           const { metadata: h } = e;
           if ((h == null ? void 0 : h.execution_type) === "compile") {
-            const b = await i.unsafeCompileQuery(e.document.getText());
+            const m = await i.unsafeCompileQuery(e.document.getText());
             a.appendOutput(
               new l.NotebookCellOutput([
                 l.NotebookCellOutputItem.text(
-                  b,
+                  m,
                   h == null ? void 0 : h.output_mime_type,
                 ),
               ]),
             );
           } else {
-            const b = await i.executeSQL(e.document.getText(), "", !0);
+            const m = await i.executeSQL(e.document.getText(), "", !0);
             this._onNotebookCellEvent.fire({
               cellId: e.metadata.cellId,
               notebook: t.uri.fsPath,
-              result: b,
+              result: m,
               event: "add",
               languageId: e.document.languageId,
             }),
-              r ||
+              o ||
                 (c.push(
                   l.NotebookCellOutputItem.json(
-                    b,
+                    m,
                     "application/perspective-json",
                   ),
                 ),
                 a.appendOutput(new l.NotebookCellOutput(c))),
-              await s.storeDataInKernel(e.metadata.cellId, b);
+              await s.storeDataInKernel(e.metadata.cellId, m);
           }
           break;
         default:
@@ -2549,27 +2620,27 @@ class We {
     );
   }
 }
-var $e = function (n, e, t, r) {
-    var o = arguments.length,
+var $e = function (r, e, t, o) {
+    var n = arguments.length,
       i =
-        o < 3
+        n < 3
           ? e
-          : r === null
-            ? (r = Object.getOwnPropertyDescriptor(e, t))
-            : r,
+          : o === null
+            ? (o = Object.getOwnPropertyDescriptor(e, t))
+            : o,
       s;
     if (typeof Reflect == "object" && typeof Reflect.decorate == "function")
-      i = Reflect.decorate(n, e, t, r);
+      i = Reflect.decorate(r, e, t, o);
     else
-      for (var a = n.length - 1; a >= 0; a--)
-        (s = n[a]) && (i = (o < 3 ? s(i) : o > 3 ? s(e, t, i) : s(e, t)) || i);
-    return o > 3 && i && Object.defineProperty(e, t, i), i;
+      for (var a = r.length - 1; a >= 0; a--)
+        (s = r[a]) && (i = (n < 3 ? s(i) : n > 3 ? s(e, t, i) : s(e, t)) || i);
+    return n > 3 && i && Object.defineProperty(e, t, i), i;
   },
-  Fe = function (n, e) {
+  Fe = function (r, e) {
     if (typeof Reflect == "object" && typeof Reflect.metadata == "function")
-      return Reflect.metadata(n, e);
+      return Reflect.metadata(r, e);
   };
-const K = require("path");
+const L = require("path");
 exports.NotebookFileSystemProvider = class {
   constructor(e, t) {
     Object.defineProperty(this, "dbtTerminal", {
@@ -2625,44 +2696,44 @@ exports.NotebookFileSystemProvider = class {
   }
   async readFile(e) {
     const t = this.getFileNameFromUri(e),
-      r = await this.getNotebookData(t),
-      o = (r == null ? void 0 : r.data) || {};
+      o = await this.getNotebookData(t),
+      n = (o == null ? void 0 : o.data) || {};
     return (
-      "cells" in o &&
-        "metadata" in o &&
-        (o.metadata
-          ? (o.metadata = { ...o.metadata, id: r == null ? void 0 : r.id })
-          : (o.metadata = { id: r == null ? void 0 : r.id })),
-      r && this.notebookDataMap.set(t, r),
-      new TextEncoder().encode(JSON.stringify(o))
+      "cells" in n &&
+        "metadata" in n &&
+        (n.metadata
+          ? (n.metadata = { ...n.metadata, id: o == null ? void 0 : o.id })
+          : (n.metadata = { id: o == null ? void 0 : o.id })),
+      o && this.notebookDataMap.set(t, o),
+      new TextEncoder().encode(JSON.stringify(n))
     );
   }
-  async writeFile(e, t, r) {
+  async writeFile(e, t, o) {
     await this.customSave(e, t);
   }
   delete(e, t) {
-    const r = e.with({ path: K.posix.dirname(e.path) });
+    const o = e.with({ path: L.posix.dirname(e.path) });
     this._emitter.fire([
-      { type: l.FileChangeType.Changed, uri: r },
+      { type: l.FileChangeType.Changed, uri: o },
       { uri: e, type: l.FileChangeType.Deleted },
     ]);
   }
-  rename(e, t, r) {
+  rename(e, t, o) {
     this._emitter.fire([
       { type: l.FileChangeType.Deleted, uri: e },
       { type: l.FileChangeType.Created, uri: t },
     ]);
   }
   getFileNameFromUri(e) {
-    return K.basename(e.fsPath, U);
+    return L.basename(e.fsPath, U);
   }
   async customSave(e, t) {
-    var r;
+    var o;
     try {
       console.log("custom save", e, new TextDecoder().decode(t));
-      const o =
-        (r = l.window.activeNotebookEditor) == null ? void 0 : r.notebook;
-      if (!o)
+      const n =
+        (o = l.window.activeNotebookEditor) == null ? void 0 : o.notebook;
+      if (!n)
         return (
           this.dbtTerminal.warn(
             u.TelemetryEvents["Notebook/SaveError"],
@@ -2670,13 +2741,41 @@ exports.NotebookFileSystemProvider = class {
           ),
           !1
         );
-      this.dbtTerminal.log("saving notebook", o);
-      const { name: i } = o.metadata;
+      this.dbtTerminal.log("saving notebook", n);
+      const { name: i } = n.metadata;
       return (
-        await this.saveNotebook(o, i),
+        await this.saveNotebook(n, i),
         this._emitter.fire([{ type: l.FileChangeType.Changed, uri: e }]),
         !0
       );
+    } catch (n) {
+      this.dbtTerminal.error(
+        u.TelemetryEvents["Notebook/SaveError"],
+        n.message,
+        n,
+      ),
+        l.window.showErrorMessage(
+          u.extendErrorWithSupportLinks(
+            `Failed to save notebook. Error: ${n.message}`,
+          ),
+        );
+    }
+    return !1;
+  }
+  async saveNotebook(e, t) {
+    try {
+      const o = A(e, t);
+      this.dbtTerminal.log("saving notebook", t, o),
+        await this.altimate.updateNotebook(e.metadata.id, {
+          name: t,
+          description: "",
+          data: o,
+          tags_list: [],
+        }),
+        this.dbtTerminal.log("notebook saved", t, o);
+      const n = this.getFileNameFromUri(e.uri),
+        i = this.notebookDataMap.get(n);
+      return i && ((i.data = A(e, t, !0)), this.notebookDataMap.set(n, i)), o;
     } catch (o) {
       this.dbtTerminal.error(
         u.TelemetryEvents["Notebook/SaveError"],
@@ -2689,34 +2788,6 @@ exports.NotebookFileSystemProvider = class {
           ),
         );
     }
-    return !1;
-  }
-  async saveNotebook(e, t) {
-    try {
-      const r = A(e, t);
-      this.dbtTerminal.log("saving notebook", t, r),
-        await this.altimate.updateNotebook(e.metadata.id, {
-          name: t,
-          description: "",
-          data: r,
-          tags_list: [],
-        }),
-        this.dbtTerminal.log("notebook saved", t, r);
-      const o = this.getFileNameFromUri(e.uri),
-        i = this.notebookDataMap.get(o);
-      return i && ((i.data = A(e, t, !0)), this.notebookDataMap.set(o, i)), r;
-    } catch (r) {
-      this.dbtTerminal.error(
-        u.TelemetryEvents["Notebook/SaveError"],
-        r.message,
-        r,
-      ),
-        l.window.showErrorMessage(
-          u.extendErrorWithSupportLinks(
-            `Failed to save notebook. Error: ${r.message}`,
-          ),
-        );
-    }
   }
 };
 exports.NotebookFileSystemProvider = $e(
@@ -2726,25 +2797,25 @@ exports.NotebookFileSystemProvider = $e(
   ],
   exports.NotebookFileSystemProvider,
 );
-var Be = function (n, e, t, r) {
-    var o = arguments.length,
+var qe = function (r, e, t, o) {
+    var n = arguments.length,
       i =
-        o < 3
+        n < 3
           ? e
-          : r === null
-            ? (r = Object.getOwnPropertyDescriptor(e, t))
-            : r,
+          : o === null
+            ? (o = Object.getOwnPropertyDescriptor(e, t))
+            : o,
       s;
     if (typeof Reflect == "object" && typeof Reflect.decorate == "function")
-      i = Reflect.decorate(n, e, t, r);
+      i = Reflect.decorate(r, e, t, o);
     else
-      for (var a = n.length - 1; a >= 0; a--)
-        (s = n[a]) && (i = (o < 3 ? s(i) : o > 3 ? s(e, t, i) : s(e, t)) || i);
-    return o > 3 && i && Object.defineProperty(e, t, i), i;
+      for (var a = r.length - 1; a >= 0; a--)
+        (s = r[a]) && (i = (n < 3 ? s(i) : n > 3 ? s(e, t, i) : s(e, t)) || i);
+    return n > 3 && i && Object.defineProperty(e, t, i), i;
   },
-  qe = function (n, e) {
+  Ke = function (r, e) {
     if (typeof Reflect == "object" && typeof Reflect.metadata == "function")
-      return Reflect.metadata(n, e);
+      return Reflect.metadata(r, e);
   };
 exports.NotebookService = class {
   constructor(e) {
@@ -2788,32 +2859,32 @@ exports.NotebookService = class {
         fragment: e.fragment,
         languageId: e.languageId,
       },
-      r = this.cellByNotebookAutocompleteMap.get(e.notebook) || [];
+      o = this.cellByNotebookAutocompleteMap.get(e.notebook) || [];
     switch (e.event) {
       case "add":
       case "update":
         this.cellByNotebookAutocompleteMap.set(e.notebook, [
-          ...r.filter((o) => o.cellId !== e.cellId),
+          ...o.filter((n) => n.cellId !== e.cellId),
           t,
         ]);
         break;
       case "delete":
         this.cellByNotebookAutocompleteMap.set(
           e.notebook,
-          r.filter((o) => o.cellId !== e.cellId),
+          o.filter((n) => n.cellId !== e.cellId),
         );
         break;
     }
   }
 };
-exports.NotebookService = Be(
+exports.NotebookService = qe(
   [
     u.provideSingleton(exports.NotebookService),
-    qe("design:paramtypes", [exports.DatapilotNotebookController]),
+    Ke("design:paramtypes", [exports.DatapilotNotebookController]),
   ],
   exports.NotebookService,
 );
-const Ke = {
+const Le = {
   notebooks: [
     {
       name: "Profile your query",
@@ -2859,28 +2930,28 @@ const Ke = {
     },
   ],
 };
-var Le = function (n, e, t, r) {
-    var o = arguments.length,
+var Be = function (r, e, t, o) {
+    var n = arguments.length,
       i =
-        o < 3
+        n < 3
           ? e
-          : r === null
-            ? (r = Object.getOwnPropertyDescriptor(e, t))
-            : r,
+          : o === null
+            ? (o = Object.getOwnPropertyDescriptor(e, t))
+            : o,
       s;
     if (typeof Reflect == "object" && typeof Reflect.decorate == "function")
-      i = Reflect.decorate(n, e, t, r);
+      i = Reflect.decorate(r, e, t, o);
     else
-      for (var a = n.length - 1; a >= 0; a--)
-        (s = n[a]) && (i = (o < 3 ? s(i) : o > 3 ? s(e, t, i) : s(e, t)) || i);
-    return o > 3 && i && Object.defineProperty(e, t, i), i;
+      for (var a = r.length - 1; a >= 0; a--)
+        (s = r[a]) && (i = (n < 3 ? s(i) : n > 3 ? s(e, t, i) : s(e, t)) || i);
+    return n > 3 && i && Object.defineProperty(e, t, i), i;
   },
-  Ue = function (n, e) {
+  Ue = function (r, e) {
     if (typeof Reflect == "object" && typeof Reflect.metadata == "function")
-      return Reflect.metadata(n, e);
+      return Reflect.metadata(r, e);
   };
 exports.NotebookProviders = class {
-  constructor(e, t, r, o) {
+  constructor(e, t, o, n) {
     Object.defineProperty(this, "notebookProvider", {
       enumerable: !0,
       configurable: !0,
@@ -2897,13 +2968,13 @@ exports.NotebookProviders = class {
         enumerable: !0,
         configurable: !0,
         writable: !0,
-        value: r,
+        value: o,
       }),
       Object.defineProperty(this, "dbtTerminal", {
         enumerable: !0,
         configurable: !0,
         writable: !0,
-        value: o,
+        value: n,
       }),
       Object.defineProperty(this, "disposables", {
         enumerable: !0,
@@ -2942,7 +3013,7 @@ exports.NotebookProviders = class {
     }
   }
 };
-exports.NotebookProviders = Le(
+exports.NotebookProviders = Be(
   [
     u.provideSingleton(exports.NotebookProviders),
     Ue("design:paramtypes", [
@@ -2954,5 +3025,5 @@ exports.NotebookProviders = Le(
   ],
   exports.NotebookProviders,
 );
-exports.CustomNotebooks = Ke;
+exports.CustomNotebooks = Le;
 exports.NotebookKernelClient = w;

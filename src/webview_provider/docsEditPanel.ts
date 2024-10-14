@@ -74,6 +74,7 @@ export interface DBTDocumentation {
 export interface AIColumnDescription {
   name: string;
   description: string;
+  citations?: { id: string; content: string }[];
 }
 
 export interface DocsGenPanelView extends WebviewViewProvider {

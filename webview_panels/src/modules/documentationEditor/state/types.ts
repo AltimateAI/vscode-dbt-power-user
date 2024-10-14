@@ -1,4 +1,4 @@
-import { ConversationGroup, DbtDocsShareDetails } from "@lib";
+import { ConversationGroup, DbtDocsShareDetails, TaskLabels } from "@lib";
 import { GenerationDBDataProps } from "../types";
 
 export enum Source {
@@ -11,6 +11,11 @@ export enum Pages {
   TESTS,
   TAGS,
 }
+export interface Citation {
+  id: string;
+  content: string;
+  taskLabel: keyof typeof TaskLabels;
+}
 export interface MetadataColumn {
   name: string;
   type?: string;
@@ -20,6 +25,7 @@ export interface DBTDocumentationColumn extends MetadataColumn {
   description?: string;
   generated: boolean;
   source: Source;
+  citations?: Citation[];
 }
 
 export interface DBTDocumentation {
@@ -31,6 +37,7 @@ export interface DBTDocumentation {
   patchPath?: string;
   resource_type: string;
   uniqueId: string;
+  citations?: Citation[];
 }
 
 export interface TestMetadataKwArgs {
@@ -65,6 +72,8 @@ export interface TestMetadataRelationshipsKwArgs extends TestMetadataKwArgs {
 }
 
 export interface DocumentationStateProps {
+  docUpdatedForModel?: string;
+  docUpdatedForColumns: string[];
   incomingDocsData?: { docs?: DBTDocumentation; tests?: DBTModelTest[] };
   currentDocsData?: DBTDocumentation;
   currentDocsTests?: DBTModelTest[];
