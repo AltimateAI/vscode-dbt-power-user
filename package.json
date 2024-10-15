@@ -104,7 +104,7 @@
           },
           "dbt.disableQueryHistory": {
             "type": "boolean",
-            "description": "Disable Query history",
+            "description": "Disable Query history and bookmarks",
             "default": false
           },
           "dbt.enableNotebooks": {

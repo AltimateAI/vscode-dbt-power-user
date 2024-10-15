@@ -167,6 +167,11 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._disposables.push(
       workspace.onDidChangeConfiguration(
         (e) => {
+          if (e.affectsConfiguration("dbt.disableQueryHistory")) {
+            if (this._panel) {
+              this.renderWebviewView(this._panel.webview);
+            }
+          }
           if (e.affectsConfiguration("dbt.enableNotebooks")) {
             this.updateEnableNotebooksInContext();
             const event = workspace
@@ -427,22 +432,24 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             }
             break;
           case InboundCommand.GetQueryPanelContext:
-            const perspectiveTheme = workspace
-              .getConfiguration("dbt")
-              .get("perspectiveTheme", "Vintage");
-            const queryHistoryDisabled = workspace
-              .getConfiguration("dbt")
-              .get("disableQueryHistory", false);
+            {
+              const perspectiveTheme = workspace
+                .getConfiguration("dbt")
+                .get("perspectiveTheme", "Vintage");
+              const queryHistoryDisabled = workspace
+                .getConfiguration("dbt")
+                .get("disableQueryHistory", false);
 
-            const limit = workspace
-              .getConfiguration("dbt")
-              .get<number>("queryLimit");
-            await this._panel!.webview.postMessage({
-              command: OutboundCommand.GetContext,
-              limit,
-              perspectiveTheme,
-              queryHistoryDisabled,
-            });
+              const limit = workspace
+                .getConfiguration("dbt")
+                .get<number>("queryLimit");
+              await this._panel!.webview.postMessage({
+                command: OutboundCommand.GetContext,
+                limit,
+                perspectiveTheme,
+                queryHistoryDisabled,
+              });
+            }
             break;
           case InboundCommand.CancelQuery:
             if (this.queryExecution) {
@@ -676,13 +683,15 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       );
       return;
     }
-    const currentSize = getStringSizeInMb(JSON.stringify(this._queryHistory));
+    const queryHistoryCurrentSize = getStringSizeInMb(
+      JSON.stringify(this._queryHistory),
+    );
     // if current history size > 3MB, remove the oldest entry
-    if (currentSize > 3) {
+    if (queryHistoryCurrentSize > 3) {
       this._queryHistory.pop();
       this.dbtTerminal.info(
         "updateQueryHistory",
-        "Query history size exceeded 5MB, cleared oldest entry",
+        "Query history size exceeded 3MB, cleared oldest entry",
       );
     }
     this._queryHistory.unshift({

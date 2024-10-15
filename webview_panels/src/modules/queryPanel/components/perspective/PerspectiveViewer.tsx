@@ -154,7 +154,7 @@ const PerspectiveViewer = ({
       return;
     }
 
-    const styles = {
+    const dataFormats = {
       types: {
         integer: {
           format: {
@@ -177,50 +177,50 @@ const PerspectiveViewer = ({
     }
 
     try {
-    // @ts-expect-error valid parameter
-    const worker = perspective.worker(styles);
-    const table = await worker.table(schema);
-    await table.replace(data);
+      // @ts-expect-error valid parameter
+      const worker = perspective.worker(dataFormats);
+      const table = await worker.table(schema);
+      await table.replace(data);
 
-    await perspectiveViewerRef.current.load(table);
-    await perspectiveViewerRef.current.resetThemes([
-      "Vintage",
-      "Pro Light",
-      "Pro Dark",
-      "Vaporwave",
-      "Solarized",
-      "Solarized Dark",
-      "Monokai",
-    ]);
-    await perspectiveViewerRef.current.restore(config);
-    const datagridShadowRoot = perspectiveViewerRef.current?.shadowRoot;
-    if (datagridShadowRoot) {
-      const exportButton = datagridShadowRoot.getElementById("export");
-      if (!exportButton) {
-        return;
-      }
-      exportButton.removeEventListener("click", downloadAsCSV);
-      exportButton.addEventListener("click", downloadAsCSV);
-    }
-    updateCustomStyles(perspectiveTheme);
-    perspectiveViewerRef.current.addEventListener(
-      "perspective-config-update",
-      (event) => {
-        const ev = event as CustomEvent<PerspectiveViewerConfig>;
-        panelLogger.log("perspective-config-update", ev.detail);
-        if (ev.detail.theme) {
-          updateCustomStyles(ev.detail.theme);
-          executeRequestInAsync("updateConfig", {
-            perspectiveTheme: ev.detail.theme,
-          });
-          dispatch(setPerspectiveTheme(ev.detail.theme));
+      await perspectiveViewerRef.current.load(table);
+      await perspectiveViewerRef.current.resetThemes([
+        "Vintage",
+        "Pro Light",
+        "Pro Dark",
+        "Vaporwave",
+        "Solarized",
+        "Solarized Dark",
+        "Monokai",
+      ]);
+      await perspectiveViewerRef.current.restore(config);
+      const datagridShadowRoot = perspectiveViewerRef.current?.shadowRoot;
+      if (datagridShadowRoot) {
+        const exportButton = datagridShadowRoot.getElementById("export");
+        if (!exportButton) {
+          return;
         }
-      },
-    );
-  }catch(err){
-    panelLogger.error("error while loading perspective data", err);
-    showBoundary(err)
-  }
+        exportButton.removeEventListener("click", downloadAsCSV);
+        exportButton.addEventListener("click", downloadAsCSV);
+      }
+      updateCustomStyles(perspectiveTheme);
+      perspectiveViewerRef.current.addEventListener(
+        "perspective-config-update",
+        (event) => {
+          const ev = event as CustomEvent<PerspectiveViewerConfig>;
+          panelLogger.log("perspective-config-update", ev.detail);
+          if (ev.detail.theme) {
+            updateCustomStyles(ev.detail.theme);
+            executeRequestInAsync("updateConfig", {
+              perspectiveTheme: ev.detail.theme,
+            });
+            dispatch(setPerspectiveTheme(ev.detail.theme));
+          }
+        },
+      );
+    } catch (err) {
+      panelLogger.error("error while loading perspective data", err);
+      showBoundary(err);
+    }
     setTableRendered(true);
   };
 
