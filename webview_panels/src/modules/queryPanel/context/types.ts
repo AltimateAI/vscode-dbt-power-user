@@ -10,6 +10,7 @@ export interface QueryHistory {
   adapter: string;
   projectName: string;
   modelName: string;
+  data?: TableData;
 }
 
 export interface QueryBookmarkResponse {

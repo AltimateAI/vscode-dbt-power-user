@@ -127,11 +127,13 @@ const QueryPanelHistory = (): JSX.Element => {
             <ChevronRightIcon />
           </IconButton>
           <div>
-            <Stack className="justify-content-end mb-2">
-              <Button color="primary" onClick={handleViewResultSet}>
-                Show results
-              </Button>
-            </Stack>
+            {activeHistory.data ? (
+              <Stack className="justify-content-end mb-2">
+                <Button color="primary" onClick={handleViewResultSet}>
+                  Show results
+                </Button>
+              </Stack>
+            ) : null}
             <Stack>
               <Label>Adapter</Label>
               {activeHistory.adapter}

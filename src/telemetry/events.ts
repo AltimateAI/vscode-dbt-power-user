@@ -57,4 +57,5 @@ export enum TelemetryEvents {
   "Notebook/LaunchError" = "Notebook/LaunchError",
   "Notebook/StoreDataInKernelError" = "Notebook/StoreDataInKernelError",
   "QueryHistory/Disabled" = "QueryHistory/Disabled",
+  "QueryHistory/Cleared" = "QueryHistory/Cleared",
 }

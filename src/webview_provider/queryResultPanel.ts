@@ -95,7 +95,7 @@ enum InboundCommand {
   RunAdhocQuery = "runAdhocQuery",
   ViewResultSet = "viewResultSet",
   OpenCodeInEditor = "openCodeInEditor",
-  DisableQueryHistory = "disableQueryHistory",
+  ClearQueryHistory = "clearQueryHistory",
 }
 
 interface RecInfo {
@@ -126,7 +126,7 @@ interface QueryHistory {
   duration: number;
   adapter: string;
   projectName: string;
-  data: JsonObj[];
+  data?: JsonObj[];
   columnNames: string[];
   columnTypes: string[];
   modelName: string;
@@ -363,12 +363,9 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         switch (message.command) {
           // Incase of error in rendering perspective viewer query results, user can click button
           // to disable query history and retry
-          case InboundCommand.DisableQueryHistory:
-            await workspace
-              .getConfiguration("dbt")
-              .update("disableQueryHistory", true);
+          case InboundCommand.ClearQueryHistory:
             this.telemetry.sendTelemetryError(
-              TelemetryEvents["QueryHistory/Disabled"],
+              TelemetryEvents["QueryHistory/Cleared"],
               message.error,
             );
             this._queryHistory = [];
@@ -679,11 +676,9 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       );
       return;
     }
-    const currentSize = getStringSizeInMb(
-      JSON.stringify(this._queryHistory),
-    );
-    // if current history size > 5MB, remove the oldest entry
-    if (currentSize > 5) {
+    const currentSize = getStringSizeInMb(JSON.stringify(this._queryHistory));
+    // if current history size > 3MB, remove the oldest entry
+    if (currentSize > 3) {
       this._queryHistory.pop();
       this.dbtTerminal.info(
         "updateQueryHistory",
