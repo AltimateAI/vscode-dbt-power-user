@@ -29,7 +29,7 @@ const QueryPanelContent = ({
     return (
       <div style={{ width: "fit-content" }}>
         <PreTag text={compiledCodeMarkup}>
-          <CodeBlock code={compiledCodeMarkup} language="sql" />
+          <CodeBlock code={compiledCodeMarkup} language="sql" showLineNumbers/>
         </PreTag>
       </div>
     );
