@@ -332,19 +332,14 @@ export class DBTCoreProjectIntegration
             python!`to_dict(project.execute_macro('get_show_sql', ${args}, ${query}))`,
         );
 
-        // `get_show_sql` adds extra newlines at the start of the query
-        // so removing those extra newlines to make sure the line numbers match in sql tab in query results
-        const trimmedQuery = queryTemplateFromMacro.startsWith("\n  \n  ")
-          ? queryTemplateFromMacro.replace("\n  \n  ", "")
-          : queryTemplateFromMacro;
         this.dbtTerminal.debug(
           "DBTCoreProjectIntegration",
           "Using query template from macro",
-          trimmedQuery,
+          queryTemplateFromMacro,
         );
         return {
-          queryTemplate: trimmedQuery,
-          limitQuery: trimmedQuery,
+          queryTemplate: queryTemplateFromMacro,
+          limitQuery: queryTemplateFromMacro,
         };
       }
     } catch (err) {
