@@ -10,6 +10,7 @@ export interface QueryHistory {
   adapter: string;
   projectName: string;
   modelName: string;
+  data?: TableData;
 }
 
 export interface QueryBookmarkResponse {
@@ -64,7 +65,7 @@ export interface QueryPanelStateProps {
     private?: QueryBookmarkResponse;
     public?: QueryBookmarkResponse;
   };
-  queryBookmarksEnabled: boolean;
+  queryHistoryDisabled: boolean;
   queryBookmarksTagsFromDB?: { id: number; tag: string }[];
   tabState: QueryPanelTitleTabState;
 }

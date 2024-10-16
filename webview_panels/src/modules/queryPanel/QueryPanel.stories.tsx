@@ -89,7 +89,7 @@ export const DefaultQueryPanelView = {
         if (request.command === "getQueryPanelContext") {
           window.postMessage({
             command: "getContext",
-            queryBookmarksEnabled: true,
+            queryHistoryDisabled: false,
           });
 
           window.postMessage({

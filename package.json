@@ -102,10 +102,10 @@
             "description": "Enable AltimateAI teammates feature.",
             "default": false
           },
-          "dbt.enableQueryBookmarks": {
+          "dbt.disableQueryHistory": {
             "type": "boolean",
-            "description": "Enable Query history and bookmarks feature",
-            "default": true
+            "description": "Disable Query history and bookmarks",
+            "default": false
           },
           "dbt.enableNotebooks": {
             "type": "boolean",
@@ -701,8 +701,7 @@
     "menus": {
       "file/newFile": [
         {
-          "command": "dbtPowerUser.createSqlFile",
-          "when": "dbt.enableQueryBookmarks == true"
+          "command": "dbtPowerUser.createSqlFile"
         },
         {
           "command": "dbtPowerUser.createDatapilotNotebook",

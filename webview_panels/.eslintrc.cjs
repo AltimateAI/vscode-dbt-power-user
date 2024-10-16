@@ -15,7 +15,7 @@ module.exports = {
     "plugin:you-dont-need-lodash-underscore/compatible",
     "plugin:storybook/recommended",
   ],
-  ignorePatterns: ["dist", ".eslintrc.cjs"],
+  ignorePatterns: ["dist", ".eslintrc.cjs", "src/lib/altimate/*"],
   parser: "@typescript-eslint/parser",
   settings: {
     react: {
@@ -107,12 +107,6 @@ module.exports = {
           },
         ],
       },
-    },
-      {
-        "files": ["src/lib/altimate/altimate-components.d.ts"],
-        "rules": {
-          "@typescript-eslint/naming-convention": "off"
-        }
-      }
+    }
   ],
 };
