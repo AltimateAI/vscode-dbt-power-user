@@ -477,6 +477,18 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     return this.modifyColumnNames(columns, existingColumnNames);
   }
 
+  private setOrDeleteInParsedDocument(
+    doc: YAMLMap<unknown, unknown>,
+    key: string,
+    value: any,
+  ) {
+    if (value) {
+      doc.set(key, value);
+    } else {
+      doc.delete(key);
+    }
+  }
+
   private findEntityInParsedDoc(
     models:
       | YAMLSeq<DocumentationSchema["models"]["0"]>
@@ -760,15 +772,21 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     });
                   } else {
                     // The model already exists
-                    existingModel.set(
+                    this.setOrDeleteInParsedDocument(
+                      existingModel,
                       "description",
-                      message.description || undefined,
+                      message.description,
                     );
                     const modelTests = this.getTestDataByModel(
                       message,
                       existingModel.get("name") as string,
                     );
-                    existingModel.set("tests", modelTests);
+                    this.setOrDeleteInParsedDocument(
+                      existingModel,
+                      "tests",
+                      modelTests,
+                    );
+
                     if (!existingModel.get("columns")) {
                       existingModel.set("columns", []);
                     }
@@ -785,11 +803,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                         // ignore tests, data_tests from existing column, as it will be recreated in `getTestDataByColumn`
                         const { tests, data_tests, ...rest } =
                           existingColumn.toJSON();
-                        existingColumn.set(
+                        this.setOrDeleteInParsedDocument(
+                          existingColumn,
                           "description",
-                          column.description || undefined,
+                          column.description,
                         );
-                        existingColumn.set(
+                        this.setOrDeleteInParsedDocument(
+                          existingColumn,
                           "data_type",
                           (rest.data_type || column.type)?.toLowerCase(),
                         );
@@ -799,13 +819,15 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                           project,
                           existingColumn,
                         );
-                        existingColumn.set(
+                        this.setOrDeleteInParsedDocument(
+                          existingColumn,
                           "tests",
-                          allTests?.tests || undefined,
+                          allTests?.tests,
                         );
-                        existingColumn.set(
+                        this.setOrDeleteInParsedDocument(
+                          existingColumn,
                           "data_tests",
-                          allTests?.data_tests || undefined,
+                          allTests?.data_tests,
                         );
                       } else {
                         const name = getColumnNameByCase(
@@ -833,8 +855,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   }
                   // Force reload from manifest after manifest refresh
                   this.loadedFromManifest = false;
-                  console.log("parsedDocFile", parsedDocFile.toJSON());
-                  writeFileSync(patchPath, stringify(parsedDocFile.contents));
+                  writeFileSync(
+                    patchPath,
+                    stringify(parsedDocFile, { lineWidth: 0 }),
+                  );
                   this.documentation = (
                     await this.docGenService.getDocumentationForCurrentActiveFile()
                   ).documentation;
