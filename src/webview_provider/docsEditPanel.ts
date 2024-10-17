@@ -735,14 +735,14 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     // this is a fresh file or one without models, so init the models
                     parsedDocFile.set("models", []);
                   }
-                  const existingModel = this.findEntityInParsedDoc(
+                  const model = this.findEntityInParsedDoc(
                     parsedDocFile.get("models") as
                       | YAMLSeq<DocumentationSchema["models"]["0"]>
                       | undefined,
                     (name: string) => name === message.name,
                   );
 
-                  if (!existingModel) {
+                  if (!model) {
                     // there is a models section but the model does not exist yet.
                     parsedDocFile.addIn(["models"], {
                       name: message.name,
@@ -773,24 +773,24 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   } else {
                     // The model already exists
                     this.setOrDeleteInParsedDocument(
-                      existingModel,
+                      model,
                       "description",
                       message.description,
                     );
                     const modelTests = this.getTestDataByModel(
                       message,
-                      existingModel.get("name") as string,
+                      model.get("name") as string,
                     );
                     this.setOrDeleteInParsedDocument(
-                      existingModel,
+                      model,
                       "tests",
                       modelTests,
                     );
 
-                    if (!existingModel.get("columns")) {
-                      existingModel.set("columns", []);
+                    if (!model.get("columns")) {
+                      model.set("columns", []);
                     }
-                    const existingColumns = existingModel.get(
+                    const existingColumns = model.get(
                       "columns",
                     ) as YAMLSeq<DocumentationSchemaColumn>;
                     message.columns.forEach((column: any) => {
