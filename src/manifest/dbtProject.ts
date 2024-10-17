@@ -207,7 +207,7 @@ export class DBTProject implements Disposable {
   }
 
   public getProjectName() {
-    return this.projectConfig.name;
+    return this.dbtProjectIntegration.getProjectName();
   }
 
   getSelectedTarget() {

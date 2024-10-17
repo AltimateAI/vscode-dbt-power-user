@@ -336,6 +336,7 @@ export interface DBTProjectIntegration extends Disposable {
   getPackageInstallPath(): string | undefined;
   getAdapterType(): string | undefined;
   getVersion(): number[] | undefined;
+  getProjectName(): string;
   getSelectedTarget(): string | undefined;
   // parse manifest
   rebuildManifest(): Promise<void>;
