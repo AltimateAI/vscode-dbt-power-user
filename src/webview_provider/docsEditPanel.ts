@@ -730,52 +730,62 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     strict: false,
                     uniqueKeys: false,
                   });
+                  const existingModels = parsedDocFile.get("models") as
+                    | YAMLSeq<DocumentationSchema["models"]["0"]>
+                    | undefined;
 
-                  if (parsedDocFile.get("models") === undefined) {
-                    // this is a fresh file or one without models, so init the models
-                    parsedDocFile.set("models", []);
-                  }
                   const model = this.findEntityInParsedDoc(
-                    parsedDocFile.get("models") as
-                      | YAMLSeq<DocumentationSchema["models"]["0"]>
-                      | undefined,
+                    existingModels,
                     (name: string) => name === message.name,
                   );
 
                   if (!model) {
                     // there is a models section but the model does not exist yet.
-                    parsedDocFile.addIn(["models"], {
+                    const newModelData = {
                       name: message.name,
-                      description: message.description || undefined,
-                      columns: message.columns.map((column: any) => {
-                        const name = getColumnNameByCase(
-                          column.name,
-                          projectByFilePath.getAdapterType(),
-                        );
-                        return {
-                          name,
-                          description: column.description || undefined,
-                          data_type: column.type?.toLowerCase(),
-                          ...this.getTestDataByColumn(
-                            message,
-                            column.name,
-                            project,
-                          ),
-                          ...(isQuotedIdentifier(
-                            column.name,
-                            projectByFilePath.getAdapterType(),
-                          )
-                            ? { quote: true }
-                            : undefined),
-                        };
-                      }),
-                    });
+                      description: message.description?.trim() || undefined,
+                      columns: message.columns.length
+                        ? message.columns.map((column: any) => {
+                            const name = getColumnNameByCase(
+                              column.name,
+                              projectByFilePath.getAdapterType(),
+                            );
+                            return {
+                              name,
+                              description:
+                                column.description?.trim() || undefined,
+                              data_type: column.type?.toLowerCase(),
+                              ...this.getTestDataByColumn(
+                                message,
+                                column.name,
+                                project,
+                                // passing column to get correct key: data_tests or tests
+                                // https://github.com/AltimateAI/vscode-dbt-power-user/issues/1449
+                                { name: column.name },
+                              ),
+                              ...(isQuotedIdentifier(
+                                column.name,
+                                projectByFilePath.getAdapterType(),
+                              )
+                                ? { quote: true }
+                                : undefined),
+                            };
+                          })
+                        : undefined,
+                    };
+                    // Models does not exist
+                    if (existingModels?.items.length) {
+                      parsedDocFile.addIn(["models"], newModelData);
+                    } else {
+                      // Models  exist, but current one is new model
+                      parsedDocFile.set("models", [newModelData]);
+                    }
                   } else {
                     // The model already exists
                     this.setOrDeleteInParsedDocument(
                       model,
                       "description",
-                      message.description,
+                      message.description?.trim(),
                     );
                     const modelTests = this.getTestDataByModel(
                       message,
@@ -787,15 +797,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       modelTests,
                     );
 
-                    if (!model.get("columns")) {
-                      model.set("columns", []);
-                    }
-                    const existingColumns = model.get(
-                      "columns",
-                    ) as YAMLSeq<DocumentationSchemaColumn>;
                     message.columns.forEach((column: any) => {
                       const existingColumn = this.findEntityInParsedDoc(
-                        existingColumns,
+                        model.get("columns") as
+                          | YAMLSeq<DocumentationSchemaColumn>
+                          | undefined,
                         (name: string) => isColumnNameEqual(name, column.name),
                       );
 
@@ -806,7 +812,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                         this.setOrDeleteInParsedDocument(
                           existingColumn,
                           "description",
-                          column.description,
+                          column.description?.trim(),
                         );
                         this.setOrDeleteInParsedDocument(
                           existingColumn,
@@ -817,7 +823,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                           message,
                           column.name,
                           project,
-                          existingColumn,
+                          existingColumn.toJSON(),
                         );
                         this.setOrDeleteInParsedDocument(
                           existingColumn,
@@ -834,9 +840,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                           column.name,
                           projectByFilePath.getAdapterType(),
                         );
-                        existingColumns.add({
+                        model.addIn(["columns"], {
                           name,
-                          description: column.description || undefined,
+                          description: column.description?.trim() || undefined,
                           data_type: column.type?.toLowerCase(),
                           ...this.getTestDataByColumn(
                             message,
