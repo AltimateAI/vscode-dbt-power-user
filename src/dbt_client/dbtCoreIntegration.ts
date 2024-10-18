@@ -243,6 +243,7 @@ export class DBTCoreProjectIntegration
   private adapterType?: string;
   private targetName?: string;
   private version?: number[];
+  private projectName: string = "unknown_" + crypto.randomUUID();
   private packagesInstallPath?: string;
   private modelPaths?: string[];
   private seedPaths?: string[];
@@ -378,6 +379,7 @@ export class DBTCoreProjectIntegration
     this.macroPaths = await this.findMacroPaths();
     this.packagesInstallPath = await this.findPackagesInstallPath();
     this.version = await this.findVersion();
+    this.projectName = await this.findProjectName();
     this.adapterType = await this.findAdapterType();
   }
 
@@ -558,6 +560,10 @@ export class DBTCoreProjectIntegration
 
   getVersion(): number[] | undefined {
     return this.version;
+  }
+
+  getProjectName(): string {
+    return this.projectName;
   }
 
   async findAdapterType(): Promise<string | undefined> {
@@ -1057,6 +1063,12 @@ export class DBTCoreProjectIntegration
   private async findVersion(): Promise<number[]> {
     return this.python?.lock<number[]>(
       (python) => python!`to_dict(project.get_dbt_version())`,
+    );
+  }
+
+  private async findProjectName(): Promise<string> {
+    return this.python?.lock<string>(
+      (python) => python!`to_dict(project.config.project_name)`,
     );
   }
 

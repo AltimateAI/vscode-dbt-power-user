@@ -174,6 +174,7 @@ export class DBTCloudProjectIntegration
   private static QUEUE_ALL = "all";
   private targetPath?: string;
   private version: number[] | undefined;
+  private projectName: string = "unknown_" + crypto.randomUUID();
   private adapterType: string = "unknown";
   private packagesInstallPath?: string;
   private modelPaths?: string[];
@@ -374,6 +375,10 @@ export class DBTCloudProjectIntegration
 
   getVersion(): number[] {
     return this.version || [0, 0, 0];
+  }
+
+  getProjectName(): string {
+    return this.projectName;
   }
 
   getPythonBridgeStatus(): boolean {
@@ -988,6 +993,15 @@ export class DBTCloudProjectIntegration
           stderr,
         );
       }
+      const lookupValue = (lookupString: string) => {
+        const regexString = `${lookupString}\\s*(.*)`;
+        const regexp = new RegExp(regexString, "gm");
+        const matches = regexp.exec(stdout);
+        if (matches?.length === 2) {
+          return matches[1];
+        }
+        throw new Error(`Could not find any entries for ${lookupString}`);
+      };
       const lookupEntries = (lookupString: string) => {
         const regexString = `${lookupString}\\s*\\[(.*)\\]`;
         const regexp = new RegExp(regexString, "gm");
@@ -1007,6 +1021,7 @@ export class DBTCloudProjectIntegration
       this.macroPaths = lookupEntries("Macro paths").map((p) =>
         join(this.projectRoot.fsPath, p),
       );
+      this.projectName = lookupValue("Project name");
       this.packagesInstallPath = join(this.projectRoot.fsPath, "dbt_packages");
     } catch (error) {
       this.terminal.warn(
