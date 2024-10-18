@@ -219,7 +219,13 @@ const PerspectiveViewer = ({
       );
     } catch (err) {
       panelLogger.error("error while loading perspective data", err);
-      showBoundary(err);
+      // catching this error: Uncaught (in promise) RangeError: WebAssembly.instantiate(): Out of memory: Cannot allocate Wasm memory for new instance
+      const isWasmError = (err as Error)?.message?.includes(
+        "WebAssembly.instantiate",
+      );
+      if (isWasmError) {
+        showBoundary(err);
+      }
     }
     setTableRendered(true);
   };
