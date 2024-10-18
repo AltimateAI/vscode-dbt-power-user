@@ -22,6 +22,24 @@ import {
 import { QueryManifestService } from "./queryManifestService";
 import { TelemetryEvents } from "../telemetry/events";
 
+export interface DocumentationSchemaColumn {
+  name: string;
+  description: string;
+  data_type?: string;
+  quote?: boolean;
+  [key: string]: unknown;
+}
+interface DocumentationSchemaModel {
+  name: string;
+  description: string;
+  tests: any;
+  columns: [];
+}
+export interface DocumentationSchema {
+  version: number;
+  models: DocumentationSchemaModel[];
+}
+
 interface GenerateDocsForColumnsProps {
   panel: WebviewView | WebviewPanel | undefined;
   message: any;
