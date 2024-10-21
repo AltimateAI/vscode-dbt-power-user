@@ -12,7 +12,6 @@ import {
   window,
   workspace,
   env,
-  WebviewOptions,
 } from "vscode";
 import { AltimateRequest, ModelInfo } from "../altimate";
 import {
@@ -86,7 +85,7 @@ export class NewLineagePanel
     private altimate: AltimateRequest,
     protected telemetry: TelemetryService,
     private terminal: DBTTerminal,
-    private eventEmitterService: SharedStateService,
+    eventEmitterService: SharedStateService,
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
   ) {
@@ -98,21 +97,6 @@ export class NewLineagePanel
       terminal,
       queryManifestService,
       usersService,
-    );
-
-    this._disposables.push(
-      workspace.onDidChangeConfiguration(
-        (e) => {
-          if (!e.affectsConfiguration("dbt.enableLineagePanelV2")) {
-            return;
-          }
-          if (this._panel) {
-            this.renderWebviewView(this._panel.webview);
-          }
-        },
-        this,
-        this._disposables,
-      ),
     );
   }
 
@@ -972,76 +956,10 @@ export class NewLineagePanel
     return { node, aiEnabled };
   }
 
-  private isV2Enabled = () =>
-    workspace
-      .getConfiguration("dbt")
-      .get<boolean>("enableLineagePanelV2", false);
-
   protected renderWebviewView(webview: Webview) {
-    if (this.isV2Enabled()) {
-      this._panel!.webview.html = super.getHtml(
-        webview,
-        this.dbtProjectContainer.extensionUri,
-      );
-      return;
-    }
-    this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
-    this._panel!.webview.html = getHtml(
+    this._panel!.webview.html = super.getHtml(
       webview,
       this.dbtProjectContainer.extensionUri,
     );
   }
-}
-
-/** Gets webview HTML */
-function getHtml(webview: Webview, extensionUri: Uri) {
-  const indexJs = getUri(webview, extensionUri, [
-    "new_lineage_panel",
-    "dist",
-    "assets",
-    "index.js",
-  ]);
-  const resourceDir = getUri(webview, extensionUri, [
-    "new_lineage_panel",
-    "dist",
-  ]).toString();
-  replaceInFile(indexJs, "/__ROOT__/", resourceDir + "/");
-  const indexPath = getUri(webview, extensionUri, [
-    "new_lineage_panel",
-    "dist",
-    "index.html",
-  ]);
-  return readFileSync(indexPath.fsPath)
-    .toString()
-    .replace(/\/__ROOT__/g, resourceDir)
-    .replace(/__ROOT__/g, resourceDir)
-    .replace(/__NONCE__/g, getNonce())
-    .replace(/__CSPSOURCE__/g, webview.cspSource)
-    .replace(/__LINEAGE_TYPE__/g, "dynamic");
-}
-
-/** Used to enforce a secure CSP */
-function getNonce() {
-  let text = "";
-  const possible =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  for (let i = 0; i < 32; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-  return text;
-}
-
-/** Utility method for generating webview Uris for resources */
-function getUri(webview: Webview, extensionUri: Uri, pathList: string[]) {
-  return webview.asWebviewUri(Uri.joinPath(extensionUri, ...pathList));
-}
-
-async function replaceInFile(
-  filename: Uri,
-  searchString: string,
-  replacementString: string,
-) {
-  const contents = readFileSync(filename.fsPath, "utf8");
-  const replacedContents = contents.replace(searchString, replacementString);
-  writeFileSync(filename.fsPath, replacedContents, "utf8");
 }
