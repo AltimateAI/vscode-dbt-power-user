@@ -489,7 +489,7 @@ export class NewLineagePanel
           .sort((a, b) => a.name.localeCompare(b.name)),
       };
     }
-    const { nodeMetaMap } = event;
+    const { nodeMetaMap } = event.event;
     const node = nodeMetaMap.lookupByUniqueId(table);
     if (!node) {
       return;
