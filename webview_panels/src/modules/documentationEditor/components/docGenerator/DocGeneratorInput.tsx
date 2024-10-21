@@ -29,12 +29,14 @@ interface Props {
   onSubmit: (data: DocsGenerateModelRequestV2) => void;
   placeholder?: string;
   type: EntityType;
+  title: string;
 }
 const DocGeneratorInput = ({
   onSubmit,
   entity,
   placeholder,
   type,
+  title,
 }: Props): JSX.Element => {
   const stackRef = useRef<HTMLDivElement | null>(null);
   const {
@@ -47,7 +49,6 @@ const DocGeneratorInput = ({
     },
     dispatch,
   } = useDocumentationContext();
-  const [showButton, setShowButton] = useState(true);
   const [description, setDescription] = useState("");
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
 
@@ -59,7 +60,7 @@ const DocGeneratorInput = ({
     return conversations[selectedConversationGroup.shareId]?.find(
       (c) =>
         c.conversation_group_id ===
-        selectedConversationGroup.conversationGroupId,
+        selectedConversationGroup.conversationGroupId
     );
   }, [conversations, selectedConversationGroup]);
 
@@ -121,7 +122,7 @@ const DocGeneratorInput = ({
         updateColumnsInCurrentDocsData({
           columns: [{ name: entity.name, description: e.target.value }],
           isNewGeneration: true,
-        }),
+        })
       );
     }
 
@@ -131,48 +132,45 @@ const DocGeneratorInput = ({
           name: entity.name,
           description: e.target.value,
           isNewGeneration: true,
-        }),
+        })
       );
     }
   };
 
-  const handleHideButton = () => setShowButton(false);
-  const handleShowButton = () => setShowButton(true);
-
   const variant = entity.description ? Variants.ICON : Variants.ICON_WITH_TEXT;
 
   return (
-    <Stack ref={stackRef}>
-      <InputGroup className={classes.inputGroup}>
-        <Input
-          innerRef={inputRef}
-          value={description}
-          onChange={onChange}
-          onFocus={handleHideButton}
-          onBlur={handleShowButton}
-          type="textarea"
-          rows={description ? 5 : 1}
-          placeholder={placeholder}
-        />
-
-        {showButton ? (
-          <Stack className={classes.actionButtons}>
-            <AddCoversationButton
-              field="description"
-              value={description}
-              name={entity.name}
-              type={type}
-              model={currentDocsData?.name}
-            />
-            <GenerateButton
-              onSubmit={handleSubmit}
-              variant={variant}
-              entityName={entity.name}
-            />
-          </Stack>
-        ) : null}
-      </InputGroup>
-    </Stack>
+    <>
+      <Stack className="justify-content-between">
+        <h4>{title}</h4>
+        <Stack className={classes.actionButtons}>
+          <AddCoversationButton
+            field="description"
+            value={description}
+            name={entity.name}
+            type={type}
+            model={currentDocsData?.name}
+          />
+          <GenerateButton
+            onSubmit={handleSubmit}
+            variant={variant}
+            entityName={entity.name}
+          />
+        </Stack>
+      </Stack>
+      <Stack ref={stackRef}>
+        <InputGroup className={classes.inputGroup}>
+          <Input
+            innerRef={inputRef}
+            value={description}
+            onChange={onChange}
+            type="textarea"
+            rows={description ? 5 : 1}
+            placeholder={placeholder}
+          />
+        </InputGroup>
+      </Stack>
+    </>
   );
 };
 

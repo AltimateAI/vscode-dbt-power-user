@@ -238,7 +238,7 @@ export class DBTCloudProjectIntegration
     }
     if (!this.adapterType) {
       // We only fetch the adapter type once, as it may impact compilation preview otherwise
-      this.findAdapterType();
+      await this.findAdapterType();
     }
     if (!this.version) {
       await this.findVersion();

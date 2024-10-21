@@ -10,6 +10,7 @@ interface Props {
   fileName?: string;
   showLineNumbers?: boolean;
   titleActions?: ReactNode;
+  classname?: string;
 }
 const CodeBlockComponent = ({
   code,
@@ -17,21 +18,24 @@ const CodeBlockComponent = ({
   fileName,
   showLineNumbers,
   titleActions,
+  classname
 }: Props): JSX.Element => {
   const {
     state: { theme },
   } = useAppContext();
-  const codeBlockTheme = theme === Themes.Dark ? "vsc-dark-plus" : "vs";
+  const codeBlockTheme = theme === Themes.Dark ? "dark" : "light";
+  const editorTheme = theme === Themes.Dark ? "vsc-dark-plus" : "vs";
   return (
     <div className={classes.codeblock}>
       <CodeblockLib
         showLineNumbers={showLineNumbers}
         code={code}
         fileName={fileName}
-        theme={theme}
-        editorTheme={codeBlockTheme}
+        theme={codeBlockTheme}
+        editorTheme={editorTheme}
         language={language}
         titleActions={titleActions}
+        className={classname}
       />
     </div>
   );

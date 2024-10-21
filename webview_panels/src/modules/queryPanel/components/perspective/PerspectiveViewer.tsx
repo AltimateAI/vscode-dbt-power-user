@@ -24,6 +24,7 @@ import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
 import { setPerspectiveTheme } from "@modules/queryPanel/context/queryPanelSlice";
 import { Drawer, DrawerRef } from "@uicore";
+import { useErrorBoundary } from "react-error-boundary";
 
 interface Props {
   data: TableData;
@@ -40,6 +41,9 @@ const PerspectiveViewer = ({
   const {
     state: { theme },
   } = useAppContext();
+
+  const { showBoundary } = useErrorBoundary();
+
   const { perspectiveTheme } = useQueryPanelState();
   const dispatch = useQueryPanelDispatch();
   const [tableRendered, setTableRendered] = useState(false);
@@ -150,7 +154,7 @@ const PerspectiveViewer = ({
       return;
     }
 
-    const styles = {
+    const dataFormats = {
       types: {
         integer: {
           format: {
@@ -172,46 +176,57 @@ const PerspectiveViewer = ({
       schema[columnNames[i]] = mapType(columnTypes[i]);
     }
 
-    // @ts-expect-error valid parameter
-    const worker = perspective.worker(styles);
-    const table = await worker.table(schema);
-    await table.replace(data);
+    try {
+      // @ts-expect-error valid parameter
+      const worker = perspective.worker(dataFormats);
+      const table = await worker.table(schema);
+      await table.replace(data);
 
-    await perspectiveViewerRef.current.load(table);
-    await perspectiveViewerRef.current.resetThemes([
-      "Vintage",
-      "Pro Light",
-      "Pro Dark",
-      "Vaporwave",
-      "Solarized",
-      "Solarized Dark",
-      "Monokai",
-    ]);
-    await perspectiveViewerRef.current.restore(config);
-    const datagridShadowRoot = perspectiveViewerRef.current?.shadowRoot;
-    if (datagridShadowRoot) {
-      const exportButton = datagridShadowRoot.getElementById("export");
-      if (!exportButton) {
-        return;
-      }
-      exportButton.removeEventListener("click", downloadAsCSV);
-      exportButton.addEventListener("click", downloadAsCSV);
-    }
-    updateCustomStyles(perspectiveTheme);
-    perspectiveViewerRef.current.addEventListener(
-      "perspective-config-update",
-      (event) => {
-        const ev = event as CustomEvent<PerspectiveViewerConfig>;
-        panelLogger.log("perspective-config-update", ev.detail);
-        if (ev.detail.theme) {
-          updateCustomStyles(ev.detail.theme);
-          executeRequestInAsync("updateConfig", {
-            perspectiveTheme: ev.detail.theme,
-          });
-          dispatch(setPerspectiveTheme(ev.detail.theme));
+      await perspectiveViewerRef.current.load(table);
+      await perspectiveViewerRef.current.resetThemes([
+        "Vintage",
+        "Pro Light",
+        "Pro Dark",
+        "Vaporwave",
+        "Solarized",
+        "Solarized Dark",
+        "Monokai",
+      ]);
+      await perspectiveViewerRef.current.restore(config);
+      const datagridShadowRoot = perspectiveViewerRef.current?.shadowRoot;
+      if (datagridShadowRoot) {
+        const exportButton = datagridShadowRoot.getElementById("export");
+        if (!exportButton) {
+          return;
         }
-      },
-    );
+        exportButton.removeEventListener("click", downloadAsCSV);
+        exportButton.addEventListener("click", downloadAsCSV);
+      }
+      updateCustomStyles(perspectiveTheme);
+      perspectiveViewerRef.current.addEventListener(
+        "perspective-config-update",
+        (event) => {
+          const ev = event as CustomEvent<PerspectiveViewerConfig>;
+          panelLogger.log("perspective-config-update", ev.detail);
+          if (ev.detail.theme) {
+            updateCustomStyles(ev.detail.theme);
+            executeRequestInAsync("updateConfig", {
+              perspectiveTheme: ev.detail.theme,
+            });
+            dispatch(setPerspectiveTheme(ev.detail.theme));
+          }
+        },
+      );
+    } catch (err) {
+      panelLogger.error("error while loading perspective data", err);
+      // catching this error: Uncaught (in promise) RangeError: WebAssembly.instantiate(): Out of memory: Cannot allocate Wasm memory for new instance
+      const isWasmError = (err as Error)?.message?.includes(
+        "WebAssembly.instantiate",
+      );
+      if (isWasmError) {
+        showBoundary(err);
+      }
+    }
     setTableRendered(true);
   };
 

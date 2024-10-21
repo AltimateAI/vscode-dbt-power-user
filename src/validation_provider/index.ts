@@ -72,6 +72,16 @@ export class ValidationProvider implements Disposable {
       }
       return;
     }
+    const connectivity = await this.altimate.checkApiConnectivity();
+    if (connectivity?.status !== "ok") {
+      this._isAuthenticated = false;
+      if (!silent) {
+        window.showErrorMessage(
+          "Unable to connect to Altimate Service. Please check your Firewall/VPN settings or check service [status](https://altimateai.instatus.com/).",
+        );
+      }
+      return;
+    }
     const validation = await this.altimate.validateCredentials(instance, key);
     if (!validation?.ok) {
       this._isAuthenticated = false;

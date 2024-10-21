@@ -16,7 +16,7 @@ import classes from "./styles.module.scss";
 import { Button } from "../..";
 
 interface Props {
-  title?: string;
+  title?: string | ReactNode;
   buttonProps?: ButtonProps;
   buttonText?: ReactNode | string;
   icon?: ReactNode;

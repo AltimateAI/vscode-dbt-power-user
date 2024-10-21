@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.46.0",
+  "version": "0.47.3",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -97,10 +97,15 @@
             "description": "Enable dbt docs collaboration.",
             "default": true
           },
-          "dbt.enableQueryBookmarks": {
+          "dbt.enableTeammates": {
             "type": "boolean",
-            "description": "Enable Query history and bookmarks feature",
-            "default": true
+            "description": "Enable AltimateAI teammates feature.",
+            "default": false
+          },
+          "dbt.disableQueryHistory": {
+            "type": "boolean",
+            "description": "Disable Query history and bookmarks",
+            "default": false
           },
           "dbt.enableNotebooks": {
             "type": "boolean",
@@ -696,8 +701,7 @@
     "menus": {
       "file/newFile": [
         {
-          "command": "dbtPowerUser.createSqlFile",
-          "when": "dbt.enableQueryBookmarks == true"
+          "command": "dbtPowerUser.createSqlFile"
         },
         {
           "command": "dbtPowerUser.createDatapilotNotebook",

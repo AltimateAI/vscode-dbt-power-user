@@ -236,8 +236,10 @@ export interface DocsGenerateResponse {
   column_descriptions?: {
     column_name: string;
     column_description: string;
+    column_citations?: { id: string; content: string }[];
   }[];
   model_description?: string;
+  model_citations?: { id: string; content: string }[];
 }
 
 export interface DBTCoreIntegration {
