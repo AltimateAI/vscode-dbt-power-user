@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Modal, Button } from "@uicore";
 import styles from "../../lineage.module.scss";
 
-const DemoButton = () => {
+const DemoButton = (): JSX.Element => {
   const [showDemoButton, setShowDemoButton] = useState(true);
   const [showDemoModal, setShowDemoModal] = useState(false);
 
