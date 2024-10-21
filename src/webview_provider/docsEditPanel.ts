@@ -32,15 +32,7 @@ import path = require("path");
 import { PythonException } from "python-bridge";
 import { TelemetryService } from "../telemetry";
 import { AltimateRequest } from "../altimate";
-import {
-  stringify,
-  parse,
-  parseDocument,
-  Document,
-  YAMLSeq,
-  YAMLMap,
-  ParsedNode,
-} from "yaml";
+import { stringify, parse, parseDocument, YAMLSeq, YAMLMap } from "yaml";
 import { NewDocsGenPanel } from "./newDocsGenPanel";
 import { DBTProject } from "../manifest/dbtProject";
 import {
