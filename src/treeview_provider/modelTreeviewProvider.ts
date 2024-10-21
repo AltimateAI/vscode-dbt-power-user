@@ -104,10 +104,9 @@ abstract class ModelTreeviewProvider
     if (element) {
       return Promise.resolve(this.getTreeItems(element.key, event));
     }
-    const fileName = path.basename(
+    const fileName = path.parse(
       window.activeTextEditor!.document.fileName,
-      ".sql",
-    );
+    ).name;
     const model = event.nodeMetaMap.lookupByBaseName(fileName);
     if (!model) {
       return Promise.resolve([]);
@@ -222,10 +221,9 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
     const { nodeMetaMap } = event;
 
     if (!element) {
-      const modelName = path.basename(
+      const modelName = path.parse(
         window.activeTextEditor!.document.fileName,
-        ".sql",
-      );
+      ).name;
       const currentNode = nodeMetaMap.lookupByBaseName(modelName);
       if (currentNode === undefined) {
         return Promise.resolve([]);
