@@ -869,9 +869,9 @@ class DbtProject:
     def get_target_names(self):
         from dbt.config.profile import read_profile
         profile = read_profile(self.args.profiles_dir)
-        project = profile[self.project_name]
-        if "outputs" in project:
-            outputs = project["outputs"]
+        profile = profile[self.config.profile_name]
+        if "outputs" in profile:
+            outputs = profile["outputs"]
             return outputs.keys()
         return []
     
