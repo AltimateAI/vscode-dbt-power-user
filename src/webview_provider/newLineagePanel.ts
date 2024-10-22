@@ -264,7 +264,7 @@ export class NewLineagePanel
     }
 
     if (command === "showInfoNotification") {
-      window.showInformationMessage(args.message);
+      window.showInformationMessage(params.message);
       return;
     }
 
