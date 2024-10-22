@@ -362,7 +362,7 @@ declare interface SqlLineage {
     nodePositions?: Record<string, [number, number]>;
 }
 
-declare interface StaticLineage {
+export declare interface StaticLineage {
     selectedColumn: {
         table: string;
         name: string;
