@@ -1,82 +1,25 @@
-import { Alert } from 'reactstrap';
 import { BadgeProps } from 'reactstrap';
-import { Button } from 'reactstrap';
-import { ButtonGroup } from 'reactstrap';
 import { ButtonHTMLAttributes } from 'react';
-import { Card } from 'reactstrap';
-import { CardBody } from 'reactstrap';
-import { CardFooter } from 'reactstrap';
-import { CardImg } from 'reactstrap';
-import { CardSubtitle } from 'reactstrap';
-import { CardText } from 'reactstrap';
-import { CardTitle } from 'reactstrap';
+import { ButtonProps } from 'reactstrap';
 import { CaseReducerActions } from '@reduxjs/toolkit';
 import { ChatMessage } from '@ant-design/pro-chat';
-import { Col } from 'reactstrap';
-import { Container } from 'reactstrap';
 import { Dispatch } from 'react';
-import { Fade } from 'reactstrap';
-import { Form } from 'reactstrap';
-import { FormFeedback } from 'reactstrap';
-import { FormGroup } from 'reactstrap';
-import { ForwardRefExoticComponent } from 'react';
-import { HTMLAttributes } from 'react';
-import { Input } from 'reactstrap';
-import { InputGroup } from 'reactstrap';
 import { JSX as JSX_2 } from 'react/jsx-runtime';
-import { Label } from 'reactstrap';
-import { List } from 'reactstrap';
-import { ListGroup } from 'reactstrap';
-import { ListGroupItem } from 'reactstrap';
-import { Modal } from 'reactstrap';
-import { ModalBody } from 'reactstrap';
-import { Nav } from 'reactstrap';
-import { NavItem } from 'reactstrap';
-import { NavLink } from 'reactstrap';
-import { Offcanvas } from 'reactstrap';
-import { OffcanvasBody } from 'reactstrap';
-import { OffcanvasHeader } from 'reactstrap';
 import { PayloadAction } from '@reduxjs/toolkit';
-import { Popover } from 'reactstrap';
-import { PopoverBody } from 'reactstrap';
-import { PopoverHeader } from 'reactstrap';
 import { ProChatProps } from '@ant-design/pro-chat/es/ProChat/container';
 import { ReactNode } from 'react';
-import { RefAttributes } from 'react';
-import { Row } from 'reactstrap';
-import { Spinner } from 'reactstrap';
 import { UnknownAction } from '@reduxjs/toolkit';
 import { WritableDraft } from 'immer';
 import { z } from 'zod';
-
-export { Alert }
 
 export declare const ApiHelper: {
     get: <T>(_url: string, _data?: Record<string, unknown>, _request?: RequestInit) => Promise<T>;
     post: <T>(_url: string, _data: Record<string, unknown>, _request?: RequestInit) => Promise<T>;
 };
 
-export declare const Badge: ({ tooltip, ...props }: Props_9) => JSX_2.Element;
+export declare const Badge: ({ tooltip, ...props }: Props_5) => JSX_2.Element;
 
-export { Button }
-
-export { ButtonGroup }
-
-export { Card }
-
-export { CardBody }
-
-export { CardFooter }
-
-export { CardImg }
-
-export { CardSubtitle }
-
-export { CardText }
-
-export { CardTitle }
-
-export declare const Chatbot: ({ loading, onRequest, sessionId: sessionIdProp, ...props }: Props_5) => JSX_2.Element;
+export declare const Chatbot: ({ loading, onRequest, sessionId: sessionIdProp, ...props }: Props_9) => JSX_2.Element;
 
 export declare class CLL {
     static isCancelled: boolean;
@@ -112,9 +55,7 @@ export declare const CoachForm: ({ taskLabel, context, onClose }: Props_10) => J
 
 export declare const CoachFormButton: ({}: Props_11) => JSX_2.Element;
 
-export declare const CodeBlock: ({ code, language, fileName, editorTheme, theme, showLineNumbers, className, titleActions, }: Props) => JSX.Element;
-
-export { Col }
+export declare const CodeBlock: ({ code, language, fileName, editorTheme, theme, showLineNumbers, className, titleActions, }: Props_4) => JSX.Element;
 
 export declare interface CollectColumn {
     column: string;
@@ -147,8 +88,6 @@ export declare interface Confidence {
     confidence: string;
     operator_list?: string[];
 }
-
-export { Container }
 
 export declare enum ContentCategory {
     TERM_CLARIFICATION = "TermClarification",
@@ -188,9 +127,9 @@ export declare interface ConversationGroup {
     };
 }
 
-export declare const ConversationGroupProvider: ({ currentUser, conversationGroup, shareId, onSelect, isSelected, users, onResolve, onReplyAdd, source, }: Props_4) => JSX.Element | null;
+export declare const ConversationGroupProvider: ({ currentUser, conversationGroup, shareId, onSelect, isSelected, users, onResolve, onReplyAdd, source, }: Props_8) => JSX.Element | null;
 
-export declare const ConversationInputForm: ({ comment, setComment, loading, users, currentUser, placeholder, onEnterKeypress, }: Props_3) => JSX_2.Element;
+export declare const ConversationInputForm: ({ comment, setComment, loading, users, currentUser, placeholder, onEnterKeypress, }: Props_7) => JSX_2.Element;
 
 export declare enum ConversationSources {
     DBT_DOCS = "dbt-docs",
@@ -198,7 +137,7 @@ export declare enum ConversationSources {
     SAAS = "saas"
 }
 
-export declare const DbtDocs: ({ shareId, userId, conversationGroupId, source }: Props_2) => JSX_2.Element;
+export declare const DbtDocs: ({ shareId, userId, conversationGroupId, source }: Props_6) => JSX_2.Element;
 
 export declare interface DbtDocsShareDetails {
     catalog_presigned_url?: string;
@@ -246,21 +185,7 @@ export declare interface ExposureMetaData {
     meta?: Record<string, unknown>;
 }
 
-export { Fade }
-
-export { Form }
-
-export { FormFeedback }
-
-export { FormGroup }
-
-export declare const IconButton: (props: Props_6) => JSX.Element;
-
-export { Input }
-
-export { InputGroup }
-
-export { Label }
+export declare const IconButton: (props: Props) => JSX.Element;
 
 export declare interface Learning extends z.infer<typeof learningSchema> {
 }
@@ -322,34 +247,12 @@ declare interface LineageProviderProps {
     externalSidePanel?: boolean;
 }
 
-export { List }
-
-export { ListGroup }
-
-export { ListGroupItem }
-
-export declare const LoadingButton: ({ loading, ...rest }: Props_8) => JSX.Element;
-
-export { Modal }
+export declare const LoadingButton: ({ loading, ...rest }: Props_3) => JSX.Element;
 
 export declare interface ModalArgs {
     type: "none" | "views_code" | "op_node";
     args?: ViewsCodeModalArgs | OpNodeArgs;
 }
-
-export { ModalBody }
-
-export { Nav }
-
-export { NavItem }
-
-export { NavLink }
-
-export { Offcanvas }
-
-export { OffcanvasBody }
-
-export { OffcanvasHeader }
 
 export declare interface OpNodeArgs {
     op_type: string;
@@ -361,21 +264,8 @@ export declare enum PersonalizationScope {
     ALL_USERS = "AllUsers"
 }
 
-export { Popover }
-
-export { PopoverBody }
-
-export { PopoverHeader }
-
-declare interface Props {
-    code: string;
-    language: "sql" | "yaml" | "markdown" | "json" | "javascript";
-    fileName?: string;
-    showLineNumbers?: boolean;
-    editorTheme?: "vs" | "vsc-dark-plus" | "solarizedLight" | "tomorrow";
-    theme: "light" | "dark";
-    className?: string;
-    titleActions?: ReactNode;
+declare interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
+    color?: string;
 }
 
 declare interface Props_10 {
@@ -395,18 +285,44 @@ declare interface Props_12 {
 }
 
 declare interface Props_13 {
-    onSelect: (selected: (typeof TeamMatesConfig)[0], seeInAction?: boolean) => void;
+    onSelect: (selected: (typeof TeamMatesConfig)[0], action: TeamMateActionType) => Promise<boolean | undefined>;
     client: keyof typeof TeamMateAvailability;
 }
 
 declare interface Props_2 {
+    children: ReactNode;
+    title?: string | ReactNode;
+    id?: string;
+    className?: string;
+}
+
+declare interface Props_3 extends ButtonProps {
+    loading: boolean;
+}
+
+declare interface Props_4 {
+    code: string;
+    language: "sql" | "yaml" | "markdown" | "json" | "javascript";
+    fileName?: string;
+    showLineNumbers?: boolean;
+    editorTheme?: "vs" | "vsc-dark-plus" | "solarizedLight" | "tomorrow";
+    theme: "light" | "dark";
+    className?: string;
+    titleActions?: ReactNode;
+}
+
+declare interface Props_5 extends BadgeProps {
+    tooltip: Parameters<typeof Tooltip>[0]["title"];
+}
+
+declare interface Props_6 {
     shareId: number;
     userId?: number;
     conversationGroupId?: number;
     source: ConversationSources;
 }
 
-declare interface Props_3 {
+declare interface Props_7 {
     comment: string;
     setComment: (comment: string) => void;
     loading: boolean;
@@ -416,7 +332,7 @@ declare interface Props_3 {
     onEnterKeypress?: () => void;
 }
 
-declare interface Props_4 {
+declare interface Props_8 {
     currentUser?: User;
     conversationGroup?: ConversationGroup;
     shareId?: DbtDocsShareDetails["share_id"];
@@ -428,39 +344,16 @@ declare interface Props_4 {
     source: ConversationSources;
 }
 
-declare interface Props_5 extends ProChatProps<any> {
+declare interface Props_9 extends ProChatProps<any> {
     loading?: boolean;
     onRequest: (messages: ChatMessage[], sessionId: string) => any;
     sessionId?: string;
 }
 
-declare interface Props_6 extends ButtonHTMLAttributes<HTMLButtonElement> {
-    color?: string;
-}
-
-declare interface Props_7 {
-    children: ReactNode;
-    title?: string | ReactNode;
-    id?: string;
-    className?: string;
-}
-
-declare interface Props_8 extends ButtonHTMLAttributes<HTMLButtonElement> {
-    loading: boolean;
-}
-
-declare interface Props_9 extends BadgeProps {
-    tooltip: Parameters<typeof Tooltip>[0]["title"];
-}
-
-export { Row }
-
 export declare interface SelectedColumn {
     name: string;
     table: string;
 }
-
-export { Spinner }
 
 declare interface SqlLineage {
     tableEdges: [string, string][];
@@ -468,11 +361,6 @@ declare interface SqlLineage {
     errorMessage?: undefined;
     nodePositions?: Record<string, [number, number]>;
 }
-
-export declare const Stack: ForwardRefExoticComponent<    {
-children: ReactNode;
-direction?: "row" | "column";
-} & HTMLAttributes<HTMLDivElement> & RefAttributes<HTMLDivElement>>;
 
 declare interface StaticLineage {
     selectedColumn: {
@@ -520,12 +408,19 @@ export declare interface Table {
 export declare enum TaskLabels {
     DocGen = "DocGen",
     ChartBot = "ChartBot",
-    SqlBot = "SqlExpert"
+    SqlBot = "SqlExpert",
+    OpportunitiesBot = "OpportunitiesBot"
 }
 
 export declare const TeammateActions: CaseReducerActions<    {
 setShowCoachingForm: (state: WritableDraft<TeamMateState>, action: PayloadAction<TeamMateState["showCoachingForm"]>) => void;
 }, "teamMate">;
+
+export declare enum TeamMateActionType {
+    SEE_IN_ACTION = "SEE_IN_ACTION",
+    REQUEST_ACCESS = "REQUEST_ACCESS",
+    VIEW_DETAILS = "VIEW_DETAILS"
+}
 
 export declare enum TeamMateAvailability {
     EXTENSION = "VSCode Extension",
@@ -539,6 +434,7 @@ export declare interface TeamMateConfig {
     availability: TeamMateAvailability[];
     key: TaskLabels;
     seeInAction?: boolean;
+    comingSoon?: boolean;
 }
 
 export declare interface TeamMateContextProps {
@@ -558,7 +454,7 @@ export declare interface TeamMateState {
     showCoachingForm: boolean;
 }
 
-export declare const Tooltip: (props: Props_7) => JSX.Element;
+export declare const Tooltip: (props: Props_2) => JSX.Element;
 
 declare interface User {
     display_name: string;

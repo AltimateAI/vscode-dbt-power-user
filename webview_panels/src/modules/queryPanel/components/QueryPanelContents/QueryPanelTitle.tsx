@@ -19,7 +19,7 @@ const QueryPanelTitle = ({
     queryExecutionInfo,
     compiledCodeMarkup,
     queryResultsRowCount,
-    queryBookmarksEnabled,
+    queryHistoryDisabled,
     viewType,
   } = useQueryPanelState();
 
@@ -29,7 +29,7 @@ const QueryPanelTitle = ({
 
   const commonTabs = useMemo(
     () =>
-      queryBookmarksEnabled && viewType === QueryPanelViewType.DEFAULT ? (
+      !queryHistoryDisabled && viewType === QueryPanelViewType.DEFAULT ? (
         <>
           <NavItem>
             <NewFeatureIndicator featureKey="query-results-history-clicked">
@@ -57,7 +57,7 @@ const QueryPanelTitle = ({
           </NavItem>
         </>
       ) : null,
-    [queryBookmarksEnabled, tabState, viewType],
+    [queryHistoryDisabled, tabState, viewType],
   );
 
   if (loading || hasData || hasError) {

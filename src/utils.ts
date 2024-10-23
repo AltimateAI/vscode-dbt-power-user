@@ -341,3 +341,21 @@ export function getFormattedDateTime(): string {
 
   return `${date}-${time}`;
 }
+
+export const getStringSizeInMb = (str: string): number => {
+  let sizeInBytes = 0;
+  for (let i = 0; i < str.length; i++) {
+    const charCode = str.charCodeAt(i);
+    if (charCode <= 0x7f) {
+      sizeInBytes += 1;
+    } else if (charCode <= 0x7ff) {
+      sizeInBytes += 2;
+    } else if (charCode <= 0xffff) {
+      sizeInBytes += 3;
+    } else {
+      sizeInBytes += 4;
+    }
+  }
+  const sizeInMB = sizeInBytes / (1024 * 1024);
+  return sizeInMB;
+};
