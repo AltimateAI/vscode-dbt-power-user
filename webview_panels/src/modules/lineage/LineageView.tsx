@@ -14,7 +14,7 @@ import DemoButton from "./components/demo/DemoButton";
 
 const LineageView = (): JSX.Element | null => {
   const {
-    state: { theme, isComponentsApiInitialized },
+    state: { theme },
   } = useAppContext();
 
   const [isApiHelperInitialized, setIsApiHelperInitialized] = useState(false);
@@ -28,14 +28,32 @@ const LineageView = (): JSX.Element | null => {
     MissingLineageMessage | undefined
   >();
 
-  useEffect(() => {
-    if (!isComponentsApiInitialized) {
-      return;
-    }
+  const render = (
+    _data: {
+      node?: Table;
+      aiEnabled: boolean;
+      missingLineageMessage?: MissingLineageMessage;
+    } & StaticLineageProps,
+  ) => {
+    panelLogger.log("thisisiit", "render");
+    setMissingLineageMessage(_data.missingLineageMessage);
+    // const event = new CustomEvent("renderStartNode", {
+    //   detail: data,
+    // });
+    // document.dispatchEvent(event);
+    setRenderNode(_data);
     panelLogger.info("LineageView updating components api helper");
     // @ts-expect-error TODO: add type generic for executeRequestInSync
     ApiHelper.get = async (url: string, data?: Record<string, unknown>) => {
+      panelLogger.log("thisisiit", "ApiHelper.get", url, data);
       switch (url) {
+        case "init": {
+          const event = new CustomEvent("renderStartNode", {
+            detail: _data,
+          });
+          document.dispatchEvent(event);
+          return;
+        }
         case "upstreamTables":
         case "downstreamTables":
         case "getExposureDetails":
@@ -44,7 +62,6 @@ const LineageView = (): JSX.Element | null => {
         case "sendFeedback":
         case "getLineageSettings":
         case "persistLineageSettings":
-        case "init":
         case "openFile":
         case "openChat":
         case "showInfoNotification":
@@ -59,21 +76,6 @@ const LineageView = (): JSX.Element | null => {
       }
     };
     setIsApiHelperInitialized(true);
-  }, [isComponentsApiInitialized]);
-
-  const render = (
-    data: {
-      node?: Table;
-      aiEnabled: boolean;
-      missingLineageMessage?: MissingLineageMessage;
-    } & StaticLineageProps,
-  ) => {
-    setMissingLineageMessage(data.missingLineageMessage);
-    const event = new CustomEvent("renderStartNode", {
-      detail: data,
-    });
-    document.dispatchEvent(event);
-    setRenderNode(data);
   };
 
   const columnLineage = ({ event }: { event: CllEvents }) => {
@@ -117,12 +119,14 @@ const LineageView = (): JSX.Element | null => {
     document.documentElement.classList.add(styles.lineageBody);
     executeRequestInAsync("init", {});
   }, []);
+  panelLogger.log("thisisiit", renderNode);
 
-  if (!isApiHelperInitialized || !renderNode) {
+  if (!isApiHelperInitialized) {
     return null;
   }
 
-  const lineageType = renderNode.details ? "sql" : "dynamic";
+  // const lineageType = renderNode.details ? "sql" : "dynamic";
+  const lineageType = "dynamic" as "dynamic" | "sql";
 
   return (
     <div className={styles.lineageView}>
@@ -139,7 +143,7 @@ const LineageView = (): JSX.Element | null => {
       <div className={styles.lineageWrap}>
         <Lineage
           theme={theme}
-          dynamicLineage={renderNode}
+          dynamicLineage={{ aiEnabled: true }}
           lineageType={lineageType}
           sqlLineage={
             lineageType === "sql"
