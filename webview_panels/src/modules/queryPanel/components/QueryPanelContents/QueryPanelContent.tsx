@@ -8,6 +8,7 @@ import PreTag from "@modules/markdown/PreTag";
 import { QueryPanelTitleTabState } from "./types";
 import QueryPanelHistory from "../queryPanelQueryHistory/QueryPanelHistory";
 import QueryPanelBookmarks from "../queryPanelBookmarks/QueryPanelBookmarks";
+import PerspectiveErrorBoundary from "../perspective/PerspectiveErrorBoundary";
 
 const QueryPanelContent = ({
   tabState,
@@ -29,7 +30,7 @@ const QueryPanelContent = ({
     return (
       <div style={{ width: "fit-content" }}>
         <PreTag text={compiledCodeMarkup}>
-          <CodeBlock code={compiledCodeMarkup} language="sql" />
+          <CodeBlock code={compiledCodeMarkup} language="sql" showLineNumbers/>
         </PreTag>
       </div>
     );
@@ -41,11 +42,13 @@ const QueryPanelContent = ({
 
   if (queryResults) {
     return (
+    <PerspectiveErrorBoundary>
       <PerspectiveViewer
         data={queryResults.data}
         columnNames={queryResults.columnNames}
         columnTypes={queryResults.columnTypes}
       />
+    </PerspectiveErrorBoundary>
     );
   }
 

@@ -39,9 +39,24 @@ const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
     []
   );
 
+  const isDark = (element: HTMLElement) => {
+    const classList = element.classList;
+    if (classList.contains("vscode-dark")) {
+      return true;
+    }
+
+    if (classList.contains("vscode-high-contrast-light")) {
+      return false;
+    }
+
+    if (classList.contains("vscode-high-contrast")) {
+      return true;
+    }
+
+    return false;
+  };
   const setTheme = (element: HTMLElement) => {
-    const isDark = element.classList.contains("vscode-dark");
-    dispatch(updateTheme(isDark ? Themes.Dark : Themes.Light));
+    dispatch(updateTheme(isDark(element) ? Themes.Dark : Themes.Light));
   };
 
   const loadUsersDetails = () => {
