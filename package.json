@@ -100,7 +100,7 @@
           "dbt.enableTeammates": {
             "type": "boolean",
             "description": "Enable AltimateAI teammates feature.",
-            "default": false
+            "default": true
           },
           "dbt.disableQueryHistory": {
             "type": "boolean",
