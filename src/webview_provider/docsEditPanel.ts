@@ -32,10 +32,14 @@ import path = require("path");
 import { PythonException } from "python-bridge";
 import { TelemetryService } from "../telemetry";
 import { AltimateRequest } from "../altimate";
-import { stringify, parse } from "yaml";
+import { stringify, parse, parseDocument, YAMLSeq, YAMLMap } from "yaml";
 import { NewDocsGenPanel } from "./newDocsGenPanel";
 import { DBTProject } from "../manifest/dbtProject";
-import { DocGenService } from "../services/docGenService";
+import {
+  DocGenService,
+  DocumentationSchema,
+  DocumentationSchemaColumn,
+} from "../services/docGenService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import {
   TestMetaData,
@@ -465,6 +469,46 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     return this.modifyColumnNames(columns, existingColumnNames);
   }
 
+  private setOrDeleteInParsedDocument(
+    doc: YAMLMap<unknown, unknown>,
+    key: string,
+    value: any,
+  ) {
+    if (value) {
+      doc.set(key, value);
+    } else {
+      doc.delete(key);
+    }
+  }
+
+  private findEntityInParsedDoc(
+    models:
+      | YAMLSeq<DocumentationSchema["models"]["0"]>
+      | YAMLSeq<DocumentationSchemaColumn>
+      | undefined,
+    predicate: (name: string) => boolean,
+  ) {
+    if (models && models.items) {
+      return (
+        // @ts-ignore
+        (models.items.find(
+          (
+            item:
+              | DocumentationSchema["models"]["0"]
+              | DocumentationSchemaColumn,
+          ) => {
+            if (item instanceof YAMLMap) {
+              const name = item.get("name");
+              return name && predicate(name as string);
+            }
+            return false;
+          },
+        ) as YAMLMap | undefined) || null
+      );
+    }
+    return null;
+  }
+
   private setupWebviewHooks(context: WebviewViewResolveContext) {
     // Clear this listener before subscribing again
     if (this.onMessageDisposable) {
@@ -672,33 +716,125 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
                   const docFile: string =
                     readFileSync(patchPath).toString("utf8");
-                  const parsedDocFile =
-                    parse(docFile, {
-                      strict: false,
-                      uniqueKeys: false,
-                      maxAliasCount: -1,
-                    }) || {};
-                  if (parsedDocFile.models === undefined) {
-                    // this is a fresh file or one without models, so init the models
-                    parsedDocFile.models = [];
-                  }
-                  if (
-                    parsedDocFile.models.find(
-                      (model: any) => model.name === message.name,
-                    ) === undefined
-                  ) {
+                  const parsedDocFile = parseDocument<
+                    YAMLSeq<DocumentationSchema>
+                  >(docFile, {
+                    strict: false,
+                    uniqueKeys: false,
+                  });
+                  const existingModels = parsedDocFile.get("models") as
+                    | YAMLSeq<DocumentationSchema["models"]["0"]>
+                    | undefined;
+
+                  const model = this.findEntityInParsedDoc(
+                    existingModels,
+                    (name: string) => name === message.name,
+                  );
+
+                  if (!model) {
                     // there is a models section but the model does not exist yet.
-                    parsedDocFile.models.push({
+                    const newModelData = {
                       name: message.name,
-                      description: message.description || undefined,
-                      columns: message.columns.map((column: any) => {
+                      description: message.description?.trim() || undefined,
+                      columns: message.columns.length
+                        ? message.columns.map((column: any) => {
+                            const name = getColumnNameByCase(
+                              column.name,
+                              projectByFilePath.getAdapterType(),
+                            );
+                            return {
+                              name,
+                              description:
+                                column.description?.trim() || undefined,
+                              data_type: column.type?.toLowerCase(),
+                              ...this.getTestDataByColumn(
+                                message,
+                                column.name,
+                                project,
+                                // passing column to get correct key: data_tests or tests
+                                // https://github.com/AltimateAI/vscode-dbt-power-user/issues/1449
+                                { name: column.name },
+                              ),
+                              ...(isQuotedIdentifier(
+                                column.name,
+                                projectByFilePath.getAdapterType(),
+                              )
+                                ? { quote: true }
+                                : undefined),
+                            };
+                          })
+                        : undefined,
+                    };
+                    // Models does not exist
+                    if (existingModels?.items.length) {
+                      parsedDocFile.addIn(["models"], newModelData);
+                    } else {
+                      // Models  exist, but current one is new model
+                      parsedDocFile.set("models", [newModelData]);
+                    }
+                  } else {
+                    // The model already exists
+                    this.setOrDeleteInParsedDocument(
+                      model,
+                      "description",
+                      message.description?.trim(),
+                    );
+                    const modelTests = this.getTestDataByModel(
+                      message,
+                      model.get("name") as string,
+                    );
+                    this.setOrDeleteInParsedDocument(
+                      model,
+                      "tests",
+                      modelTests,
+                    );
+
+                    message.columns.forEach((column: any) => {
+                      const existingColumn = this.findEntityInParsedDoc(
+                        model.get("columns") as
+                          | YAMLSeq<DocumentationSchemaColumn>
+                          | undefined,
+                        (name: string) => isColumnNameEqual(name, column.name),
+                      );
+
+                      if (existingColumn) {
+                        // ignore tests, data_tests from existing column, as it will be recreated in `getTestDataByColumn`
+                        const { tests, data_tests, ...rest } =
+                          existingColumn.toJSON();
+                        this.setOrDeleteInParsedDocument(
+                          existingColumn,
+                          "description",
+                          column.description?.trim(),
+                        );
+                        this.setOrDeleteInParsedDocument(
+                          existingColumn,
+                          "data_type",
+                          (rest.data_type || column.type)?.toLowerCase(),
+                        );
+                        const allTests = this.getTestDataByColumn(
+                          message,
+                          column.name,
+                          project,
+                          existingColumn.toJSON(),
+                        );
+                        this.setOrDeleteInParsedDocument(
+                          existingColumn,
+                          "tests",
+                          allTests?.tests,
+                        );
+                        this.setOrDeleteInParsedDocument(
+                          existingColumn,
+                          "data_tests",
+                          allTests?.data_tests,
+                        );
+                      } else {
                         const name = getColumnNameByCase(
                           column.name,
                           projectByFilePath.getAdapterType(),
                         );
-                        return {
+                        model.addIn(["columns"], {
                           name,
-                          description: column.description || undefined,
+                          description: column.description?.trim() || undefined,
                           data_type: column.type?.toLowerCase(),
                           ...this.getTestDataByColumn(
                             message,
@@ -711,74 +847,16 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                           )
                             ? { quote: true }
                             : undefined),
-                        };
-                      }),
+                        });
+                      }
                     });
-                  } else {
-                    // The model already exists
-                    parsedDocFile.models = parsedDocFile.models.map(
-                      (model: any) => {
-                        if (model.name === message.name) {
-                          model.description = message.description || undefined;
-                          model.tests = this.getTestDataByModel(
-                            message,
-                            model.name,
-                          );
-                          model.columns = message.columns.map((column: any) => {
-                            const existingColumn =
-                              model.columns &&
-                              model.columns.find((yamlColumn: any) =>
-                                isColumnNameEqual(yamlColumn.name, column.name),
-                              );
-                            if (existingColumn !== undefined) {
-                              // ignore tests, data_tests from existing column, as it will be recreated in `getTestDataByColumn`
-                              const { tests, data_tests, ...rest } =
-                                existingColumn;
-                              return {
-                                ...rest,
-                                name: existingColumn.name,
-                                data_type: (
-                                  rest.data_type || column.type
-                                )?.toLowerCase(),
-                                description: column.description || undefined,
-                                ...this.getTestDataByColumn(
-                                  message,
-                                  column.name,
-                                  project,
-                                  existingColumn,
-                                ),
-                              };
-                            } else {
-                              const name = getColumnNameByCase(
-                                column.name,
-                                projectByFilePath.getAdapterType(),
-                              );
-                              return {
-                                name,
-                                description: column.description || undefined,
-                                data_type: column.type?.toLowerCase(),
-                                ...this.getTestDataByColumn(
-                                  message,
-                                  column.name,
-                                  project,
-                                ),
-                                ...(isQuotedIdentifier(
-                                  column.name,
-                                  projectByFilePath.getAdapterType(),
-                                )
-                                  ? { quote: true }
-                                  : undefined),
-                              };
-                            }
-                          });
-                        }
-                        return model;
-                      },
-                    );
                   }
                   // Force reload from manifest after manifest refresh
                   this.loadedFromManifest = false;
-                  writeFileSync(patchPath, stringify(parsedDocFile));
+                  writeFileSync(
+                    patchPath,
+                    stringify(parsedDocFile, { lineWidth: 0 }),
+                  );
                   this.documentation = (
                     await this.docGenService.getDocumentationForCurrentActiveFile()
                   ).documentation;
