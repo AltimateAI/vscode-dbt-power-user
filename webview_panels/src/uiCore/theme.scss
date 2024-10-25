@@ -176,3 +176,7 @@ body.vscode-high-contrast:not(.vscode-high-contrast-light) {
   background-color: var(--background--base);
   color: var(--text-color--title)
 }
+
+.modal-content {
+  background-color: var(--background--04);
+}

@@ -1,11 +1,8 @@
-import { readFileSync, writeFileSync } from "fs";
 import * as path from "path";
 import {
   CancellationToken,
   ColorThemeKind,
   Uri,
-  Webview,
-  WebviewOptions,
   window,
   Disposable,
   WebviewPanel,
@@ -15,7 +12,7 @@ import {
   ProgressLocation,
   TextEditor,
 } from "vscode";
-import { AltimateRequest, Details, ModelNode } from "../altimate";
+import { AltimateRequest, SqlLineageDetails, ModelNode } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
@@ -25,28 +22,45 @@ import * as crypto from "crypto";
 import { DBTProject } from "../manifest/dbtProject";
 import { NodeMetaData, SourceTable } from "../domain";
 import { QueryManifestService } from "../services/queryManifestService";
+import { AltimateWebviewProvider } from "./altimateWebviewProvider";
+import { SharedStateService } from "../services/sharedStateService";
+import { UsersService } from "../services/usersService";
 
 type SQLLineage = {
   tableEdges: [string, string][];
-  details: Details;
+  details: SqlLineageDetails;
   nodePositions?: Record<string, [number, number]>;
   errorMessage?: undefined;
 };
 
 @provideSingleton(SQLLineagePanel)
-export class SQLLineagePanel implements Disposable {
+export class SQLLineagePanel
+  extends AltimateWebviewProvider
+  implements Disposable
+{
+  protected viewPath = "/lineage";
   public static readonly viewType = "dbtPowerUser.sqlLineage";
   private disposables: Disposable[] = [];
-  private _panel?: WebviewPanel;
   private activeTextEditor?: TextEditor;
 
   public constructor(
-    private dbtProjectContainer: DBTProjectContainer,
-    private altimate: AltimateRequest,
-    private telemetry: TelemetryService,
-    private terminal: DBTTerminal,
-    private queryManifestService: QueryManifestService,
+    protected dbtProjectContainer: DBTProjectContainer,
+    protected altimate: AltimateRequest,
+    protected telemetry: TelemetryService,
+    protected terminal: DBTTerminal,
+    protected queryManifestService: QueryManifestService,
+    protected eventEmitterService: SharedStateService,
+    protected usersService: UsersService,
   ) {
+    super(
+      dbtProjectContainer,
+      altimate,
+      telemetry,
+      eventEmitterService,
+      terminal,
+      queryManifestService,
+      usersService,
+    );
     window.onDidChangeActiveColorTheme(
       async () => {
         this.changedActiveColorTheme();
@@ -176,8 +190,7 @@ export class SQLLineagePanel implements Disposable {
     });
     const { details, nodePositions } = response;
 
-    const nodeMapping: Record<string, { nodeType: string; nodeId: string }> =
-      {};
+    const nodeMapping: Record<string, { nodeId: string; type: string }> = {};
     for (const modelId of modelsToFetch) {
       const splits = modelId.split(".");
       if (splits[0] === "source") {
@@ -186,7 +199,7 @@ export class SQLLineagePanel implements Disposable {
         if (_source) {
           for (const key in details) {
             if (details[key].type === "table" && key.toLowerCase() === _table) {
-              nodeMapping[key] = { nodeType: "source", nodeId: modelId };
+              nodeMapping[key] = { nodeId: modelId, type: "source" };
               break;
             }
           }
@@ -200,10 +213,7 @@ export class SQLLineagePanel implements Disposable {
             details[key].type === "table" &&
             key.toLowerCase() === _node.alias.toLowerCase()
           ) {
-            nodeMapping[key] = {
-              nodeType: _node.resource_type,
-              nodeId: modelId,
-            };
+            nodeMapping[key] = { nodeId: modelId, type: _node.resource_type };
             break;
           }
         }
@@ -211,8 +221,8 @@ export class SQLLineagePanel implements Disposable {
       }
     }
     nodeMapping[modelName] = {
-      nodeType: currNode.resource_type,
       nodeId: currNode.uniqueId,
+      type: currNode.resource_type,
     };
     const FINAL_SELECT = "__final_select__";
     const tableEdges = response.tableEdges.map(
@@ -237,69 +247,79 @@ export class SQLLineagePanel implements Disposable {
     return { tableEdges, details, nodePositions };
   }
 
-  resolveWebviewView(
+  async renderSqlVisualizer(
     panel: WebviewPanel,
     lineage: SQLLineage,
-  ): void | Thenable<void> {
-    this._panel = panel;
+  ): Promise<void | Thenable<void>> {
     this.terminal.debug(
       "sqlLineagePanel:resolveWebviewView",
       "onResolveWebviewView",
     );
-    this.setupWebviewOptions();
-    this.renderWebviewView();
-    this.changedActiveColorTheme();
-    this._panel.webview.onDidReceiveMessage(
-      this.handleWebviewMessage,
-      null,
-      [],
-    );
-    this._panel.webview.postMessage({
+    this._panel = panel;
+    this.renderWebviewView(panel.webview);
+    await this.checkIfWebviewReady();
+    panel.webview.postMessage({
       command: "render",
       args: lineage,
     });
   }
 
-  private handleWebviewMessage = async (message: {
+  async handleCommand(message: {
     command: string;
     args: any;
-  }) => {
+    syncRequestId?: string;
+  }): Promise<void> {
     this.terminal.debug(
       "sqlLineagePanel:handleWebviewMessage",
       "message",
       message,
     );
-    const { command, args } = message;
+    const { command, args = {}, syncRequestId } = message;
     const { id, params } = args;
-    if (command === "openURL") {
-      if (!args.url) {
-        return;
-      }
-      env.openExternal(Uri.parse(args.url));
-      return;
-    }
-    // common commands
-    if (command === "openFile") {
-      const { url } = args;
-      if (!url) {
-        return;
-      }
-      await commands.executeCommand("vscode.open", Uri.file(url), {
-        preview: false,
-        preserveFocus: true,
-      });
-      return;
-    }
+    switch (command) {
+      case "openFile":
+        const { url } = args;
+        if (!url) {
+          return;
+        }
+        await commands.executeCommand("vscode.open", Uri.file(url), {
+          preview: false,
+          preserveFocus: true,
+        });
+        break;
+      case "getColumns":
+        const body = await this.getColumns(params);
+        this._panel?.webview.postMessage({
+          command: "response",
+          args: { id, syncRequestId, body, status: true },
+        });
+        break;
 
-    if (command === "getColumns") {
-      const body = await this.getColumns(params);
-      this._panel?.webview.postMessage({
-        command: "response",
-        args: { id, body, status: true },
-      });
-      return;
+      case "getLineageSettings":
+        const config = workspace.getConfiguration("dbt.lineage");
+        this._panel?.webview.postMessage({
+          command: "response",
+          args: {
+            id,
+            syncRequestId,
+            status: true,
+            body: {
+              showSelectEdges: config.get("showSelectEdges", true),
+              showNonSelectEdges: config.get("showNonSelectEdges", true),
+              defaultExpansion: config.get("defaultExpansion", 1),
+              useSchemaForQueryVisualizer: config.get(
+                "useSchemaForQueryVisualizer",
+                false,
+              ),
+            },
+          },
+        });
+        break;
+      default:
+        super.handleCommand(message);
+        break;
     }
-  };
+  }
 
   private async addModelColumnsFromDB(project: DBTProject, node: NodeMetaData) {
     const columnsFromDB = await project.getColumnsOfModel(node.name);
@@ -454,69 +474,4 @@ export class SQLLineagePanel implements Disposable {
         .sort((a, b) => a.name.localeCompare(b.name)),
     };
   }
-
-  private setupWebviewOptions() {
-    this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
-  }
-
-  private renderWebviewView() {
-    const webview = this._panel!.webview!;
-    this._panel!.webview.html = getHtml(
-      webview,
-      this.dbtProjectContainer.extensionUri,
-    );
-  }
-}
-
-/** Gets webview HTML */
-function getHtml(webview: Webview, extensionUri: Uri) {
-  const indexJs = getUri(webview, extensionUri, [
-    "new_lineage_panel",
-    "dist",
-    "assets",
-    "index.js",
-  ]);
-  const resourceDir = getUri(webview, extensionUri, [
-    "new_lineage_panel",
-    "dist",
-  ]).toString();
-  replaceInFile(indexJs, "/__ROOT__/", resourceDir + "/");
-  const indexPath = getUri(webview, extensionUri, [
-    "new_lineage_panel",
-    "dist",
-    "index.html",
-  ]);
-  return readFileSync(indexPath.fsPath)
-    .toString()
-    .replace(/\/__ROOT__/g, resourceDir)
-    .replace(/__ROOT__/g, resourceDir)
-    .replace(/__NONCE__/g, getNonce())
-    .replace(/__CSPSOURCE__/g, webview.cspSource)
-    .replace(/__LINEAGE_TYPE__/g, "static");
-}
-
-/** Used to enforce a secure CSP */
-function getNonce() {
-  let text = "";
-  const possible =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  for (let i = 0; i < 32; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-  return text;
-}
-
-/** Utility method for generating webview Uris for resources */
-function getUri(webview: Webview, extensionUri: Uri, pathList: string[]) {
-  return webview.asWebviewUri(Uri.joinPath(extensionUri, ...pathList));
-}
-
-async function replaceInFile(
-  filename: Uri,
-  searchString: string,
-  replacementString: string,
-) {
-  const contents = readFileSync(filename.fsPath, "utf8");
-  const replacedContents = contents.replace(searchString, replacementString);
-  writeFileSync(filename.fsPath, replacedContents, "utf8");
 }

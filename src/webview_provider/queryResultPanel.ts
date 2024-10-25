@@ -213,17 +213,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     );
   }
 
-  private async checkIfWebviewReady() {
-    return new Promise<void>((resolve) => {
-      const interval = setInterval(() => {
-        if (this.isWebviewReady) {
-          clearInterval(interval);
-          resolve();
-        }
-      }, 500);
-    });
-  }
-
   private async createQueryResultsPanelVirtualDocument(editorName: string) {
     this.isWebviewReady = false;
     const webviewPanel = window.createWebviewPanel(
