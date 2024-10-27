@@ -8,9 +8,10 @@ import {
   TextDocument,
   Uri,
   workspace,
+  window,
 } from "vscode";
 import { readFileSync } from "fs";
-import { parse } from "yaml";
+import { parse, parseDocument } from "yaml";
 import {
   TestMetadataAcceptedValues,
   TestMetadataRelationships,
@@ -359,3 +360,40 @@ export const getStringSizeInMb = (str: string): number => {
   const sizeInMB = sizeInBytes / (1024 * 1024);
   return sizeInMB;
 };
+
+export function getModelNameInActiveEditor(): string {
+  if (
+    window.activeTextEditor === undefined ||
+    window.activeTextEditor.document.languageId !== "yaml"
+  ) {
+    return "";
+  }
+
+  const parsedYaml = parseDocument(window.activeTextEditor.document.getText());
+  if (parsedYaml.contents === null) {
+    return "";
+  }
+  const cursorPosition = window.activeTextEditor.selection.active;
+  const offset = window.activeTextEditor.document.offsetAt(cursorPosition);
+
+  // parseDocument returns Pair of Key-Value
+  // So, we need to find the node with key "models", and extract items of it
+  const models = (parsedYaml.contents as any).items.find(
+    (y: any) => y.key.value === "models",
+  ).value.items;
+
+  // Find a model at the current position
+  for (const model of models) {
+    // each element of models is a Pair of Key-Value, and Value is Scalar Type.
+    // So, we need to find the node with key "name", and extract value of it by toString
+    const name = model.items
+      .find((x: any) => x.key.value === "name")
+      .value.toString();
+
+    if (model.range[0] < offset && offset < model.range[1]) {
+      return name;
+    }
+  }
+
+  return "";
+}
