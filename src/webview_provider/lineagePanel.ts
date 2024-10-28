@@ -139,7 +139,7 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     const { command, args } = message;
     // common commands
     if (command === "openFile") {
-      const { url } = args;
+      const url = args.params?.url;
       if (!url) {
         return;
       }
@@ -170,14 +170,6 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
 
     if (command === "init") {
       this.getPanel()?.init();
-      return;
-    }
-
-    if (command === "openURL") {
-      if (!args.url) {
-        return;
-      }
-      env.openExternal(Uri.parse(args.url));
       return;
     }
 
