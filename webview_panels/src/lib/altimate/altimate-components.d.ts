@@ -19,7 +19,11 @@ export declare const ApiHelper: {
 
 export declare const Badge: ({ tooltip, ...props }: Props_5) => JSX_2.Element;
 
-export declare const Chatbot: ({ loading, onRequest, sessionId: sessionIdProp, ...props }: Props_9) => JSX_2.Element;
+export declare const Chatbot: ({ loading, onRequest, sessionId: sessionIdProp, onFollowupRequest, ...props }: Props_9) => JSX_2.Element;
+
+export declare const ChatTriggerLink: ({ text }: {
+    text: string;
+}) => JSX_2.Element;
 
 export declare class CLL {
     static isCancelled: boolean;
@@ -346,8 +350,12 @@ declare interface Props_8 {
 
 declare interface Props_9 extends ProChatProps<any> {
     loading?: boolean;
-    onRequest: (messages: ChatMessage[], sessionId: string) => any;
+    onRequest: (messages: ChatMessage[], sessionId: string, onStatusUpdate: (info: {
+        type: string;
+        message: string;
+    }) => void) => any;
     sessionId?: string;
+    onFollowupRequest?: (sessionId: string) => Promise<string[] | undefined>;
 }
 
 export declare interface SelectedColumn {
