@@ -243,17 +243,16 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     try {
       switch (command) {
-        case "getTeammatesStatus":
-          {
-            const isEnabled = workspace
-              .getConfiguration("dbt")
-              .get<boolean>("enableTeammates", false);
-            this.sendResponseToWebview({
-              command: "teammatesUpdated",
-              data: isEnabled,
-            });
-            break;
-          }
+        case "getTeammatesStatus": {
+          const isEnabled = workspace
+            .getConfiguration("dbt")
+            .get<boolean>("enableTeammates", false);
+          this.sendResponseToWebview({
+            command: "teammatesUpdated",
+            data: isEnabled,
+          });
+          break;
+        }
         case "configEnabled":
           this.handleSyncRequestFromWebview(
             syncRequestId,
