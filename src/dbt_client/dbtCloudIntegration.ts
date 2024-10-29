@@ -41,6 +41,7 @@ import { DeferToProdService } from "../services/deferToProdService";
 import { ProjectHealthcheck } from "./dbtCoreIntegration";
 import semver = require("semver");
 import { NodeMetaData } from "../domain";
+import * as crypto from "crypto";
 
 function getDBTPath(
   pythonEnvironment: PythonEnvironment,
