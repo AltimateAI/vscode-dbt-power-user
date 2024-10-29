@@ -12,6 +12,7 @@ import {
   EventEmitter,
   FileSystemWatcher,
   languages,
+  ProgressLocation,
   Range,
   RelativePattern,
   Uri,
@@ -219,7 +220,17 @@ export class DBTProject implements Disposable {
   }
 
   async setSelectedTarget(targetName: string) {
-    await this.dbtProjectIntegration.setSelectedTarget(targetName);
+    await window.withProgress(
+      {
+        location: ProgressLocation.Notification,
+        title: "Changing target...",
+        cancellable: false,
+      },
+      async () => {
+        await this.dbtProjectIntegration.setSelectedTarget(targetName);
+        await this.dbtProjectIntegration.applySelectedTarget();
+      },
+    );
   }
 
   getDBTProjectFilePath() {

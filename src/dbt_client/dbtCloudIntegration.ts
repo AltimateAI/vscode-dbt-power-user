@@ -1192,6 +1192,8 @@ export class DBTCloudProjectIntegration
 
   async applyDeferConfig(): Promise<void> {}
 
+  async applySelectedTarget(): Promise<void> {}
+
   throwDiagnosticsErrorIfAvailable(): void {
     this.throwBridgeErrorIfAvailable();
   }

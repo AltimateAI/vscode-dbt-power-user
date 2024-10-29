@@ -1199,6 +1199,12 @@ export class DBTCoreProjectIntegration
       (python) =>
         python!`project.set_defer_config(${deferToProduction}, ${manifestPath}, ${favorState})`,
     );
+    await this.refreshProjectConfig();
+    await this.rebuildManifest();
+  }
+
+  async applySelectedTarget(): Promise<void> {
+    await this.refreshProjectConfig();
     await this.rebuildManifest();
   }
 
