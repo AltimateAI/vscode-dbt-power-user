@@ -28,6 +28,7 @@ export {
   ListGroupItem,
   Fade,
   Spinner,
+  Modal,
 } from "reactstrap";
 
 export { Button } from "./components/button/Button";
