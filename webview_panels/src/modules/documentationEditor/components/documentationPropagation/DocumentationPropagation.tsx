@@ -4,6 +4,7 @@ import { Drawer, Stack, DrawerRef, Button } from "@uicore";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { panelLogger } from "@modules/logger";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
+import { executeRequestInSync } from "@modules/app/requestExecutor";
 
 interface Props {
   name: string;
@@ -19,8 +20,12 @@ export const DocumentationPropagationButton = ({
   } = useDocumentationContext();
   const drawerRef = useRef<DrawerRef | null>(null);
 
-  const propagate = () => {
+  const propagate = async () => {
     panelLogger.log("thisisit", currentDocsData, name);
+    await executeRequestInSync("getDownstreamColumns", {
+      model: currentDocsData?.uniqueId,
+      column: name,
+    });
   };
 
   if (type !== EntityType.COLUMN) {
