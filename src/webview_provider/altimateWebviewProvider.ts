@@ -42,6 +42,18 @@ const CAN_COMPILE_SQL_NODE = [
 const canCompileSQL = (nodeType: string) =>
   CAN_COMPILE_SQL_NODE.includes(nodeType);
 
+type Table = {
+  label: string;
+  table: string;
+  url: string | undefined;
+  downstreamCount: number;
+  upstreamCount: number;
+  nodeType: string;
+  materialization?: string;
+  tests: any[];
+  isExternalProject: boolean;
+};
+
 class DerivedCancellationTokenSource extends CancellationTokenSource {
   constructor(linkedToken: CancellationToken) {
     super();
@@ -536,16 +548,16 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         case "getDownstreamColumns": {
           const model = params.model as string;
           const column = params.column as string;
-          // const { model, column } = params;
-          // this.getConnectedColumns({ model, column });
-          const tables = this.getConnectedTables("children", model);
-          if (!tables) {
+          const _tables = this.getConnectedTables("children", model);
+          if (!_tables) {
             return;
           }
+          const tables = _tables.map((t) => t.table);
           const selectedColumn = { table: model, name: column };
           const currAnd1HopTables = [...tables, model];
           const targets = [[model, column] as [string, string]];
           console.log("thisisit", tables);
+          let tempPromise: any;
           window.withProgress(
             {
               title: "Retrieving column level lineage",
@@ -557,7 +569,8 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
                 this.cancellationTokenSource =
                   new DerivedCancellationTokenSource(token);
                 // this.cllProgressResolve = resolve;
-                resolve();
+                // resolve();
+                tempPromise = resolve;
                 token.onCancellationRequested(() => {
                   console.log("thisiiiiiii");
                 });
@@ -577,6 +590,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             },
             command,
           );
+          tempPromise();
           break;
         }
         default:
@@ -594,7 +608,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
   private getConnectedTables(
     key: keyof GraphMetaMap,
     table: string,
-  ): string[] | undefined {
+  ): Table[] | undefined {
     const _event = this.queryManifestService.getEventByCurrentProject();
     if (!_event) {
       return;
@@ -609,7 +623,107 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     if (!node) {
       return;
     }
-    return node.nodes.map((n) => n.key);
+    const tables: Map<string, Table> = new Map();
+    node.nodes.forEach(({ url, key }) => {
+      const _node = this.createTable(event, url, key);
+      if (!_node) {
+        return;
+      }
+      if (!tables.has(_node.table)) {
+        tables.set(_node.table, _node);
+      }
+    });
+    return Array.from(tables.values()).sort((a, b) =>
+      a.table.localeCompare(b.table),
+    );
+  }
+
+  private createTable(
+    event: ManifestCacheProjectAddedEvent,
+    tableUrl: string | undefined,
+    key: string,
+  ): Table | undefined {
+    const splits = key.split(".");
+    const nodeType = splits[0];
+    const { graphMetaMap, testMetaMap } = event;
+    const upstreamCount = 0;
+    const downstreamCount = 0;
+    if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
+      const { sourceMetaMap } = event;
+      const schema = splits[2];
+      const table = splits[3];
+      const _node = sourceMetaMap.get(schema);
+      if (!_node) {
+        return;
+      }
+      const _table = _node.tables.find((t) => t.name === table);
+      if (!_table) {
+        return;
+      }
+      return {
+        table: key,
+        label: table,
+        url: tableUrl,
+        upstreamCount,
+        downstreamCount,
+        nodeType,
+        isExternalProject: _node.is_external_project,
+        tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
+          const testKey = n.label.split(".")[0];
+          return { ...testMetaMap.get(testKey), key: testKey };
+        }),
+      };
+    }
+    if (nodeType === DBTProject.RESOURCE_TYPE_METRIC) {
+      return {
+        table: key,
+        label: splits[2],
+        url: tableUrl,
+        upstreamCount,
+        downstreamCount,
+        nodeType,
+        materialization: undefined,
+        tests: [],
+        isExternalProject: false,
+      };
+    }
+    const { nodeMetaMap } = event;
+
+    const table = splits[2];
+    if (nodeType === DBTProject.RESOURCE_TYPE_EXPOSURE) {
+      return {
+        table: key,
+        label: table,
+        url: tableUrl,
+        upstreamCount,
+        downstreamCount,
+        nodeType,
+        materialization: undefined,
+        tests: [],
+        isExternalProject: false,
+      };
+    }
+
+    const node = nodeMetaMap.lookupByUniqueId(key);
+    if (!node) {
+      return;
+    }
+
+    const materialization = node.config.materialized;
+    return {
+      table: key,
+      label: node.alias,
+      url: tableUrl,
+      upstreamCount,
+      downstreamCount,
+      isExternalProject: node.is_external_project,
+      nodeType,
+      materialization,
+      tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
+        const testKey = n.label.split(".")[0];
+        return { ...testMetaMap.get(testKey), key: testKey };
+      }),
+    };
   }
 
   private cancellationTokenSource: CancellationTokenSource | undefined;

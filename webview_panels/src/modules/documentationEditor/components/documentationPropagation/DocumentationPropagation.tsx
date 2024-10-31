@@ -64,26 +64,31 @@ export const DocumentationPropagationButton = ({
       <Stack direction="column" className="gap-md">
         {allColumns.map((item) => {
           const key = item[0] + "/" + item[1];
-          {
-            return (
-              <Stack key={key}>
-                <Input
-                  type="checkbox"
-                  checked={selectedColumns[key]}
-                  onChange={() =>
-                    setSelectedColumns((prev) => ({
-                      ...prev,
-                      [key]: !prev[key],
-                    }))
-                  }
-                />
-                <Stack direction="column" className="gap-0">
+
+          return (
+            <Stack key={key}>
+              <Input
+                type="checkbox"
+                checked={selectedColumns[key]}
+                onChange={() =>
+                  setSelectedColumns((prev) => ({
+                    ...prev,
+                    [key]: !prev[key],
+                  }))
+                }
+              />
+              <Stack direction="column" className="gap-0">
+                <Stack>
                   <div>{item[0]}</div>
                   <div>{item[1]}</div>
                 </Stack>
+                <div>
+                  {currentDocsData?.columns?.find((c) => c.name === item[1])
+                    ?.description ?? ""}
+                </div>
               </Stack>
-            );
-          }
+            </Stack>
+          );
         })}
         <Button color="primary" onClick={loadMoreDownstreamModels}>
           Load 3 more downstream models
