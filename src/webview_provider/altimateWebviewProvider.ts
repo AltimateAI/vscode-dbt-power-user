@@ -32,7 +32,7 @@ import { UsersService } from "../services/usersService";
 import { NotebookSchema } from "@lib";
 import { DBTProject } from "@extension";
 import { AbortError } from "node-fetch";
-import { GraphMetaMap } from "../domain";
+import { ColumnMetaData, GraphMetaMap } from "../domain";
 
 const CAN_COMPILE_SQL_NODE = [
   DBTProject.RESOURCE_TYPE_MODEL,
@@ -52,6 +52,7 @@ type Table = {
   materialization?: string;
   tests: any[];
   isExternalProject: boolean;
+  columns: { [columnName: string]: ColumnMetaData };
 };
 
 class DerivedCancellationTokenSource extends CancellationTokenSource {
@@ -548,7 +549,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         case "getDownstreamColumns": {
           const model = params.model as string;
           const column = params.column as string;
-          const _tables = this.getConnectedTables("children", model);
+          const _tables = this.getConnectedTables("parents", model);
           if (!_tables) {
             return;
           }
@@ -586,7 +587,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           this.handleSyncRequestFromWebview(
             syncRequestId,
             () => {
-              return columns;
+              return { ...columns, tables: _tables };
             },
             command,
           );
@@ -672,6 +673,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           const testKey = n.label.split(".")[0];
           return { ...testMetaMap.get(testKey), key: testKey };
         }),
+        columns: _table.columns,
       };
     }
     if (nodeType === DBTProject.RESOURCE_TYPE_METRIC) {
@@ -684,6 +686,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         nodeType,
         materialization: undefined,
         tests: [],
+        columns: {},
         isExternalProject: false,
       };
     }
@@ -700,6 +703,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         nodeType,
         materialization: undefined,
         tests: [],
+        columns: {},
         isExternalProject: false,
       };
     }
@@ -719,6 +723,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
       isExternalProject: node.is_external_project,
       nodeType,
       materialization,
+      columns: node.columns,
       tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
         const testKey = n.label.split(".")[0];
         return { ...testMetaMap.get(testKey), key: testKey };

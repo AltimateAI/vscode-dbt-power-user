@@ -2,14 +2,20 @@ import { CommentIcon } from "@assets/icons";
 import { useRef, useState } from "react";
 import { Drawer, Stack, DrawerRef, Button, Input } from "@uicore";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
-import { panelLogger } from "@modules/logger";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { ColumnLineage } from "@lib";
+import { panelLogger } from "@modules/logger";
 
 interface Props {
   name: string;
   type: EntityType;
+}
+
+interface DocsItem {
+  model: string;
+  column: string;
+  description: string;
 }
 
 export const DocumentationPropagationButton = ({
@@ -20,30 +26,59 @@ export const DocumentationPropagationButton = ({
     state: { currentDocsData },
   } = useDocumentationContext();
   const drawerRef = useRef<DrawerRef | null>(null);
-  const [allColumns, setAllColumns] = useState<[string, string][]>(
-    currentDocsData ? [[currentDocsData.uniqueId, name]] : [],
-  );
-  const [currColumns, setCurrColumns] = useState<[string, string][]>(
-    currentDocsData ? [[currentDocsData.uniqueId, name]] : [],
-  );
+  const startColumn = currentDocsData
+    ? [
+        {
+          model: currentDocsData.uniqueId,
+          column: name,
+          description:
+            currentDocsData.columns?.find((c) => c.name === name)
+              ?.description ?? "",
+        },
+      ]
+    : [];
+  const [allColumns, setAllColumns] = useState<DocsItem[]>(startColumn);
+  const [currColumns, setCurrColumns] = useState<DocsItem[]>(startColumn);
   const [selectedColumns, setSelectedColumns] = useState<
     Record<string, boolean>
   >({});
 
   const loadMoreDownstreamModels = async () => {
-    panelLogger.log("thisisit", currentDocsData, name);
     const result = (await executeRequestInSync("getDownstreamColumns", {
       model: currentDocsData?.uniqueId,
       column: name,
-    })) as { column_lineage: ColumnLineage[] };
-    panelLogger.log("thisisitresult", result);
-    const newColumns: [string, string][] = [];
-    const oldColumns = currColumns.map((c) => c.join("/"));
+    })) as {
+      column_lineage: ColumnLineage[];
+      tables: {
+        table: string;
+        columns: Record<
+          string,
+          {
+            name: string;
+            description: string;
+            data_type: string;
+          }
+        >;
+      }[];
+    };
+    panelLogger.log("thisisisis", result);
+    const newColumns: DocsItem[] = [];
     for (const item of result.column_lineage) {
       if (item.type === "indirect") continue;
       // if (item.viewsType !== "Unchanged") continue;
-      if (oldColumns.includes(item.target.join("/"))) {
-        newColumns.push(item.source);
+      if (
+        currColumns.find(
+          (c) => c.model === item.target[0] && c.column === item.target[1],
+        )
+      ) {
+        newColumns.push({
+          model: item.source[0],
+          column: item.source[1],
+          description:
+            result.tables.find((t) => t.table === item.source[0])?.columns[
+              item.source[1]
+            ]?.description ?? "",
+        });
       }
     }
     setCurrColumns(newColumns);
@@ -63,8 +98,7 @@ export const DocumentationPropagationButton = ({
     >
       <Stack direction="column" className="gap-md">
         {allColumns.map((item) => {
-          const key = item[0] + "/" + item[1];
-
+          const key = item.model + "/" + item.column;
           return (
             <Stack key={key}>
               <Input
@@ -79,13 +113,10 @@ export const DocumentationPropagationButton = ({
               />
               <Stack direction="column" className="gap-0">
                 <Stack>
-                  <div>{item[0]}</div>
-                  <div>{item[1]}</div>
+                  <div>{item.model}</div>
+                  <div>{item.column}</div>
                 </Stack>
-                <div>
-                  {currentDocsData?.columns?.find((c) => c.name === item[1])
-                    ?.description ?? ""}
-                </div>
+                <div>{item.description}</div>
               </Stack>
             </Stack>
           );
