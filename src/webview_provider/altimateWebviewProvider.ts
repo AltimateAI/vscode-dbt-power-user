@@ -570,6 +570,13 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             selectedColumn,
           });
           console.log("thisisit", columns);
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            () => {
+              return columns;
+            },
+            command,
+          );
           break;
         }
         default:
