@@ -103,6 +103,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
   protected eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   // Flag to know if panel's webview is rendered and ready to receive message
   protected isWebviewReady = false;
+  private cllProgressResolve: () => void = () => {};
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
@@ -557,8 +558,6 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           const selectedColumn = { table: model, name: column };
           const currAnd1HopTables = [...tables, model];
           const targets = [[model, column] as [string, string]];
-          console.log("thisisit", tables);
-          let tempPromise: any;
           window.withProgress(
             {
               title: "Retrieving column level lineage",
@@ -569,11 +568,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               await new Promise<void>((resolve) => {
                 this.cancellationTokenSource =
                   new DerivedCancellationTokenSource(token);
-                // this.cllProgressResolve = resolve;
-                // resolve();
-                tempPromise = resolve;
+                this.cllProgressResolve = resolve;
                 token.onCancellationRequested(() => {
-                  console.log("thisiiiiiii");
+                  // this._panel?.webview.postMessage({
+                  //   command: "columnLineage",
+                  //   args: { event: CllEvents.CANCEL },
+                  // });
                 });
               });
             },
@@ -591,7 +591,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             },
             command,
           );
-          tempPromise();
+          this.cllProgressResolve();
           break;
         }
         default:

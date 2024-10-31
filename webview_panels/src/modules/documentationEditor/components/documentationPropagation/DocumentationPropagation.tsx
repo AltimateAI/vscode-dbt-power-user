@@ -53,11 +53,7 @@ export const DocumentationPropagationButton = ({
         table: string;
         columns: Record<
           string,
-          {
-            name: string;
-            description: string;
-            data_type: string;
-          }
+          { name: string; description: string; data_type: string }
         >;
       }[];
     };
