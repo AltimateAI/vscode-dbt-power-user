@@ -1,6 +1,6 @@
 import { CommentIcon } from "@assets/icons";
 import { useRef, useState } from "react";
-import { Drawer, Stack, DrawerRef, Button } from "@uicore";
+import { Drawer, Stack, DrawerRef, Button, Input } from "@uicore";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { panelLogger } from "@modules/logger";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
@@ -26,8 +26,11 @@ export const DocumentationPropagationButton = ({
   const [currColumns, setCurrColumns] = useState<[string, string][]>(
     currentDocsData ? [[currentDocsData.uniqueId, name]] : [],
   );
+  const [selectedColumns, setSelectedColumns] = useState<
+    Record<string, boolean>
+  >({});
 
-  const propagate = async () => {
+  const loadMoreDownstreamModels = async () => {
     panelLogger.log("thisisit", currentDocsData, name);
     const result = (await executeRequestInSync("getDownstreamColumns", {
       model: currentDocsData?.uniqueId,
@@ -59,18 +62,34 @@ export const DocumentationPropagationButton = ({
       ref={drawerRef}
     >
       <Stack direction="column" className="gap-md">
-        {allColumns.map((item) => (
-          <Stack
-            direction="column"
-            key={item[0] + "/" + item[1]}
-            className="gap-0"
-          >
-            <div>{item[0]}</div>
-            <div>{item[1]}</div>
-          </Stack>
-        ))}
-        <Button color="primary" onClick={propagate}>
-          Propagate documentation to 3 downstream models
+        {allColumns.map((item) => {
+          const key = item[0] + "/" + item[1];
+          {
+            return (
+              <Stack key={key}>
+                <Input
+                  type="checkbox"
+                  checked={selectedColumns[key]}
+                  onChange={() =>
+                    setSelectedColumns((prev) => ({
+                      ...prev,
+                      [key]: !prev[key],
+                    }))
+                  }
+                />
+                <Stack direction="column" className="gap-0">
+                  <div>{item[0]}</div>
+                  <div>{item[1]}</div>
+                </Stack>
+              </Stack>
+            );
+          }
+        })}
+        <Button color="primary" onClick={loadMoreDownstreamModels}>
+          Load 3 more downstream models
+        </Button>
+        <Button color="primary">
+          Propagate documentation to selected models
         </Button>
       </Stack>
     </Drawer>
