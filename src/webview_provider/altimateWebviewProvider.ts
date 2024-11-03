@@ -54,6 +54,7 @@ type Table = {
   tests: any[];
   isExternalProject: boolean;
   columns: { [columnName: string]: ColumnMetaData };
+  patchPath?: string;
 };
 
 class DerivedCancellationTokenSource extends CancellationTokenSource {
@@ -749,6 +750,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
       nodeType,
       materialization,
       columns: node.columns,
+      patchPath: node.patch_path,
       tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
         const testKey = n.label.split(".")[0];
         return { ...testMetaMap.get(testKey), key: testKey };

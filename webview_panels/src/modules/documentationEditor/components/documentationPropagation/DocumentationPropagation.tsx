@@ -21,6 +21,20 @@ interface DocsItem {
   description: string;
 }
 
+interface TableMetadata {
+  table: string;
+  patchPath?: string;
+  url: string;
+  columns: Record<
+    string,
+    { name: string; description: string; data_type: string }
+  >;
+}
+interface DownstreamColumns {
+  column_lineage: ColumnLineage[];
+  tables: TableMetadata[];
+}
+
 export const DocumentationPropagationButton = ({
   name,
   type,
@@ -43,6 +57,7 @@ export const DocumentationPropagationButton = ({
   const [allColumns, setAllColumns] = useState<DocsItem[]>([]);
   const [currColumns, setCurrColumns] = useState<DocsItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [tableMetadata, setTableMetadata] = useState<TableMetadata[]>([]);
   const [selectedColumns, setSelectedColumns] = useState<
     Record<string, boolean>
   >({});
@@ -50,6 +65,7 @@ export const DocumentationPropagationButton = ({
   useEffect(() => {
     setAllColumns([]);
     setCurrColumns(startColumn);
+    setTableMetadata([]);
   }, [currentDocsData?.uniqueId, name]);
 
   const loadMoreDownstreamModels = async () => {
@@ -66,16 +82,8 @@ export const DocumentationPropagationButton = ({
         targets: iCurrColumns.map((c) => [c.model, c.column]),
         model: currentDocsData?.uniqueId,
         column: name,
-      })) as {
-        column_lineage: ColumnLineage[];
-        tables: {
-          table: string;
-          columns: Record<
-            string,
-            { name: string; description: string; data_type: string }
-          >;
-        }[];
-      };
+      })) as DownstreamColumns;
+      setTableMetadata((prev) => [...prev, ...result.tables]);
       const newColumns: DocsItem[] = [];
       for (const item of result.column_lineage) {
         if (item.type === "indirect") continue;
@@ -192,6 +200,28 @@ export const DocumentationPropagationButton = ({
             Object.values(selectedColumns).filter((v) => Boolean(v)).length ===
             0
           }
+          onClick={async () => {
+            for (const item of allColumns) {
+              const key = item.model + "/" + item.column;
+              if (!selectedColumns[key]) continue;
+              const splits = item.model.split(".");
+              const modelName = splits[splits.length - 1];
+
+              const result = (await executeRequestInSync("saveDocumentation", {
+                name: modelName,
+                description: item.description,
+                columns: [
+                  { name: item.column, description: currColumnDescription },
+                ],
+                dialogType: "Existing file",
+                patchPath: tableMetadata.find((t) => t.table === item.model)
+                  ?.patchPath,
+                filePath: tableMetadata.find((t) => t.table === item.model)
+                  ?.url,
+              })) as { saved: boolean };
+              panelLogger.log("thisisit", item, result);
+            }
+          }}
         >
           Propagate documentation to selected models
         </Button>
