@@ -52,6 +52,9 @@ export const DocumentationPropagationButton = ({
     const iAllColumns = [...allColumns];
     let iCurrColumns = currColumns;
     while (i++ < 3) {
+      if (iCurrColumns.length === 0) {
+        break;
+      }
       const result = (await executeRequestInSync("getDownstreamColumns", {
         targets: iCurrColumns.map((c) => [c.model, c.column]),
         model: currentDocsData?.uniqueId,
