@@ -45,7 +45,7 @@ type Table = {
   isExternalProject: boolean;
 };
 
-enum CllEvents {
+export enum CllEvents {
   START = "start",
   END = "end",
   CANCEL = "cancel",

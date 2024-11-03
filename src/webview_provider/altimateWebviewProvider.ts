@@ -33,6 +33,7 @@ import { NotebookSchema } from "@lib";
 import { DBTProject } from "@extension";
 import { AbortError } from "node-fetch";
 import { ColumnMetaData, GraphMetaMap } from "../domain";
+import { CllEvents } from "./newLineagePanel";
 
 const CAN_COMPILE_SQL_NODE = [
   DBTProject.RESOURCE_TYPE_MODEL,
@@ -547,43 +548,28 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             payload: params,
           });
           break;
+        case "columnLineageBase": {
+          // @ts-ignore
+          this.handleColumnLineage(params);
+          break;
+        }
         case "getDownstreamColumns": {
-          const model = params.model as string;
-          const column = params.column as string;
-          const _tables = this.getConnectedTables("parents", model);
-          if (!_tables) {
-            return;
-          }
-          const tables = _tables.map((t) => t.table);
-          const selectedColumn = { table: model, name: column };
-          const currAnd1HopTables = [...tables, model];
-          const targets = [[model, column] as [string, string]];
-          window.withProgress(
-            {
-              title: "Retrieving column level lineage",
-              location: ProgressLocation.Notification,
-              cancellable: true,
-            },
-            async (_, token) => {
-              await new Promise<void>((resolve) => {
-                this.cancellationTokenSource =
-                  new DerivedCancellationTokenSource(token);
-                this.cllProgressResolve = resolve;
-                token.onCancellationRequested(() => {
-                  // this._panel?.webview.postMessage({
-                  //   command: "columnLineage",
-                  //   args: { event: CllEvents.CANCEL },
-                  // });
-                });
-              });
-            },
-          );
+          const targets = params.targets as [string, string][];
+          const _tables = targets
+            .map((t) => this.getConnectedTables("parents", t[0]))
+            .filter((t) => Boolean(t))
+            .flat() as Table[];
+          const tables = _tables.map((t) => t?.table);
+          const selectedColumn = {
+            table: params.model as string,
+            name: params.column as string,
+          };
+          const currAnd1HopTables = [...tables, ...targets.map((t) => t[0])];
           const columns = await this.getConnectedColumns({
             targets,
             currAnd1HopTables,
             selectedColumn,
           });
-          console.log("thisisit", columns);
           this.handleSyncRequestFromWebview(
             syncRequestId,
             () => {
@@ -591,7 +577,6 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             },
             command,
           );
-          this.cllProgressResolve();
           break;
         }
         default:
@@ -603,6 +588,46 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         "error while handling command",
         err,
       );
+    }
+  }
+
+  private async handleColumnLineage({ event }: { event: CllEvents }) {
+    if (event === CllEvents.START) {
+      window.withProgress(
+        {
+          title: "Retrieving column level lineage",
+          location: ProgressLocation.Notification,
+          cancellable: true,
+        },
+        async (_, token) => {
+          await new Promise<void>((resolve) => {
+            this.cancellationTokenSource = new DerivedCancellationTokenSource(
+              token,
+            );
+            this.cllProgressResolve = resolve;
+            token.onCancellationRequested(() => {
+              this._panel?.webview.postMessage({
+                command: "columnLineage",
+                args: { event: CllEvents.CANCEL },
+              });
+            });
+          });
+        },
+      );
+      return;
+    }
+    this.cancellationTokenSource?.token.onCancellationRequested((e) => {
+      console.log(e);
+    });
+    if (event === CllEvents.END) {
+      this.cllProgressResolve();
+      this.cancellationTokenSource?.dispose();
+      return;
+    }
+    if (event === CllEvents.CANCEL) {
+      this.cllProgressResolve();
+      this.cancellationTokenSource?.cancel();
+      return;
     }
   }
 
