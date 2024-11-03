@@ -671,6 +671,7 @@ export class NewLineagePanel implements LineagePanelView {
         upstream_models,
         session_id: sessionId,
         show_indirect_edges: showIndirectEdges,
+        event_type: "column_lineage",
       };
       this.terminal.debug(
         "newLineagePanel:getConnectedColumns",

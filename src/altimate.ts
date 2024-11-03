@@ -63,6 +63,7 @@ export interface DBTColumnLineageRequest {
   selected_column: { model_node?: ModelNode; column: string };
   session_id: string;
   show_indirect_edges: boolean;
+  event_type: string;
 }
 
 export interface DBTColumnLineageResponse {

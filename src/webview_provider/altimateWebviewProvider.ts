@@ -905,6 +905,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         selected_column: selected_column!,
         session_id: sessionId,
         show_indirect_edges: false,
+        event_type: "documentation_propagation",
       };
       this.dbtTerminal.debug(
         "newLineagePanel:getConnectedColumns",
