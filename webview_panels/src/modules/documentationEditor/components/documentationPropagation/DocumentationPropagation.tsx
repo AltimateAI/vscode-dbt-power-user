@@ -42,6 +42,7 @@ export const DocumentationPropagationButton = ({
     : [];
   const [allColumns, setAllColumns] = useState<DocsItem[]>([]);
   const [currColumns, setCurrColumns] = useState<DocsItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedColumns, setSelectedColumns] = useState<
     Record<string, boolean>
   >({});
@@ -53,6 +54,7 @@ export const DocumentationPropagationButton = ({
 
   const loadMoreDownstreamModels = async () => {
     executeRequestInAsync("columnLineageBase", { event: "start" });
+    setIsLoading(true);
     let i = 0;
     const iAllColumns = [...allColumns];
     let iCurrColumns = currColumns;
@@ -98,8 +100,21 @@ export const DocumentationPropagationButton = ({
       panelLogger.log("thisisit", iCurrColumns, iAllColumns);
     }
     executeRequestInAsync("columnLineageBase", { event: "end" });
+    setIsLoading(false);
     setAllColumns(iAllColumns);
     setCurrColumns(iCurrColumns);
+  };
+
+  const setAllColumnsValue = (value: boolean) => {
+    setSelectedColumns(
+      allColumns.reduce(
+        (acc, curr) => ({
+          ...acc,
+          [curr.model + "/" + curr.column]: value,
+        }),
+        {},
+      ),
+    );
   };
 
   if (type !== EntityType.COLUMN) {
@@ -129,6 +144,14 @@ export const DocumentationPropagationButton = ({
           </Stack>
         )}
       </Stack>
+      <Stack className="mb-2">
+        <Button color="primary" onClick={() => setAllColumnsValue(true)}>
+          Select All
+        </Button>
+        <Button color="primary" onClick={() => setAllColumnsValue(false)}>
+          Unselect All
+        </Button>
+      </Stack>
       <Stack direction="column" className="gap-md">
         {allColumns.map((item) => {
           const key = item.model + "/" + item.column;
@@ -154,9 +177,15 @@ export const DocumentationPropagationButton = ({
             </Stack>
           );
         })}
-        <Button color="primary" onClick={loadMoreDownstreamModels}>
-          Load 3 more downstream models
-        </Button>
+        {currColumns.length > 0 && (
+          <Button
+            color="primary"
+            onClick={loadMoreDownstreamModels}
+            disabled={isLoading}
+          >
+            Load 3 more downstream models
+          </Button>
+        )}
         <Button
           color="primary"
           disabled={
