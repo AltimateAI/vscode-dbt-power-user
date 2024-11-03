@@ -1,5 +1,5 @@
 import { CommentIcon } from "@assets/icons";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Drawer, Stack, DrawerRef, Button, Input } from "@uicore";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
@@ -29,22 +29,27 @@ export const DocumentationPropagationButton = ({
     state: { currentDocsData },
   } = useDocumentationContext();
   const drawerRef = useRef<DrawerRef | null>(null);
+  const currColumnDescription =
+    currentDocsData?.columns.find((c) => c.name === name)?.description ?? "";
   const startColumn = currentDocsData
     ? [
         {
           model: currentDocsData.uniqueId,
           column: name,
-          description:
-            currentDocsData.columns?.find((c) => c.name === name)
-              ?.description ?? "",
+          description: currColumnDescription,
         },
       ]
     : [];
-  const [allColumns, setAllColumns] = useState<DocsItem[]>(startColumn);
-  const [currColumns, setCurrColumns] = useState<DocsItem[]>(startColumn);
+  const [allColumns, setAllColumns] = useState<DocsItem[]>([]);
+  const [currColumns, setCurrColumns] = useState<DocsItem[]>([]);
   const [selectedColumns, setSelectedColumns] = useState<
     Record<string, boolean>
   >({});
+
+  useEffect(() => {
+    setAllColumns([]);
+    setCurrColumns(startColumn);
+  }, [currentDocsData?.uniqueId, name]);
 
   const loadMoreDownstreamModels = async () => {
     executeRequestInAsync("columnLineageBase", { event: "start" });
@@ -108,6 +113,22 @@ export const DocumentationPropagationButton = ({
       title="Propagate documentation"
       ref={drawerRef}
     >
+      <Stack direction="column" className="gap-0 mb-2">
+        <Stack>
+          <div className="fw-semibold">Model:</div>
+          <div>{currentDocsData?.name}</div>
+        </Stack>
+        <Stack>
+          <div className="fw-semibold">Column:</div>
+          <div>{name}</div>
+        </Stack>
+        {currColumnDescription && (
+          <Stack>
+            <div className="fw-semibold">Description:</div>
+            <div>{currColumnDescription}</div>
+          </Stack>
+        )}
+      </Stack>
       <Stack direction="column" className="gap-md">
         {allColumns.map((item) => {
           const key = item.model + "/" + item.column;
@@ -136,7 +157,13 @@ export const DocumentationPropagationButton = ({
         <Button color="primary" onClick={loadMoreDownstreamModels}>
           Load 3 more downstream models
         </Button>
-        <Button color="primary">
+        <Button
+          color="primary"
+          disabled={
+            Object.values(selectedColumns).filter((v) => Boolean(v)).length ===
+            0
+          }
+        >
           Propagate documentation to selected models
         </Button>
       </Stack>
