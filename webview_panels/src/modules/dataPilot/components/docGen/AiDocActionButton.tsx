@@ -1,11 +1,12 @@
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import useDataPilotContext from "@modules/dataPilot/useDataPilotContext";
-import { Citation, DBTDocumentationColumn } from "@modules/documentationEditor/state/types";
+import { DBTDocumentationColumn } from "@modules/documentationEditor/state/types";
 import { panelLogger } from "@modules/logger";
 import { Button } from "@uicore";
 import { useState } from "react";
 import { DataPilotChatAction } from "../../types";
 import { DocGenFollowup } from "./types";
+import { Citation } from "@lib";
 
 interface Props {
   action: DataPilotChatAction;
@@ -35,7 +36,7 @@ const AiDocActionButton = ({ action, onNewGeneration }: Props): JSX.Element => {
       follow_up_instructions: { instruction: getFollowupInstruction() },
     })) as
       | { columns: Partial<DBTDocumentationColumn>[] }
-      | { model_description: string, model_citations?: Citation[] };
+      | { model_description: string; model_citations?: Citation[] };
 
     setIsLoading(false);
 

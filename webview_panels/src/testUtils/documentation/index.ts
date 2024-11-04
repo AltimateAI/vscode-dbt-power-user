@@ -7,8 +7,8 @@ import {
   DBTModelTest,
   DbtGenericTests,
   TestMetadataAcceptedValuesKwArgs,
-  Citation,
 } from "@modules/documentationEditor/state/types";
+import { Citation, TaskLabels } from "@lib";
 
 const getRandomNumber = (maximum = 10, minimum = 5) =>
   Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
@@ -16,7 +16,7 @@ const getRandomNumber = (maximum = 10, minimum = 5) =>
 export const CitationFactory = Sync.makeFactory<Citation>({
   content: each(() => faker.lorem.paragraph()),
   id: each(() => faker.string.uuid()),
-  taskLabel: "DocGen",
+  taskLabel: TaskLabels.DocGen,
 });
 export const DBTDocumentationColumnFactory =
   Sync.makeFactory<DBTDocumentationColumn>({
@@ -70,11 +70,11 @@ const getRandomDbtTestMetadata = (
     name === DbtGenericTests.ACCEPTED_VALUES
       ? { values: faker.lorem.words().split(" ") }
       : name === DbtGenericTests.RELATIONSHIPS
-      ? {
-          field: faker.database.column(),
-          to: `ref('dim_hosts_cleansed')`,
-        }
-      : {};
+        ? {
+            field: faker.database.column(),
+            to: `ref('dim_hosts_cleansed')`,
+          }
+        : {};
   return {
     kwargs: {
       column_name: columnName ?? "",

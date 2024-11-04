@@ -1,4 +1,4 @@
-import { ConversationGroup, DbtDocsShareDetails, TaskLabels } from "@lib";
+import { Citation, ConversationGroup, DbtDocsShareDetails } from "@lib";
 import { GenerationDBDataProps } from "../types";
 
 export enum Source {
@@ -11,11 +11,7 @@ export enum Pages {
   TESTS,
   TAGS,
 }
-export interface Citation {
-  id: string;
-  content: string;
-  taskLabel: keyof typeof TaskLabels;
-}
+
 export interface MetadataColumn {
   name: string;
   type?: string;

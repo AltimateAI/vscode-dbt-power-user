@@ -17,7 +17,7 @@ import {
   removeFromSelectedPage,
   updateCurrentDocsData,
 } from "./state/documentationSlice";
-import { Citation, DocsGenerateModelRequestV2, Pages } from "./state/types";
+import { DocsGenerateModelRequestV2, Pages } from "./state/types";
 import useDocumentationContext from "./state/useDocumentationContext";
 import classes from "./styles.module.scss";
 import { addDefaultActions } from "./utils";
@@ -27,6 +27,7 @@ import { TelemetryEvents } from "@telemetryEvents";
 import { sendTelemetryEvent } from "./components/telemetry";
 import CoachAiIfModified from "./components/docGenerator/CoachAiIfModified";
 import Citations from "./components/docGenerator/Citations";
+import { Citation } from "@lib";
 
 const DocumentationEditor = (): JSX.Element => {
   const {
@@ -53,11 +54,11 @@ const DocumentationEditor = (): JSX.Element => {
 
   const isDocumentationPageSelected = useMemo(
     () => selectedPages.includes(Pages.DOCUMENTATION),
-    [selectedPages]
+    [selectedPages],
   );
   const isTestsPageSelected = useMemo(
     () => selectedPages.includes(Pages.TESTS),
-    [selectedPages]
+    [selectedPages],
   );
 
   const onModelDocSubmit = async (data: DocsGenerateModelRequestV2) => {
@@ -86,7 +87,7 @@ const DocumentationEditor = (): JSX.Element => {
               ...requestData,
               modelName: currentDocsData.name,
             },
-            "generateDocsForModel"
+            "generateDocsForModel",
           ),
           state: RequestState.COMPLETED,
         });
@@ -113,7 +114,7 @@ const DocumentationEditor = (): JSX.Element => {
           description: result.model_description,
           isNewGeneration: true,
           citations: result.model_citations,
-        })
+        }),
       );
     } catch (error) {
       panelLogger.error("error while generating doc for model", error);

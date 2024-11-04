@@ -73,7 +73,9 @@ const NewGenerationResults = ({
               </CardTitle>
               <CardBody>
                 <span title="Datapilot response">{result.description}</span>
-                <Citations citations={result.citations} />
+                <Stack className="align-items-center my-4">
+                  <Citations citations={result.citations} />
+                </Stack>
                 <Stack className={classes.actionButtons}>
                   <Stack>
                     <Button
