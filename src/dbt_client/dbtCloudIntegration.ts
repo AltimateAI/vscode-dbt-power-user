@@ -994,15 +994,6 @@ export class DBTCloudProjectIntegration
           stderr,
         );
       }
-      const lookupValue = (lookupString: string) => {
-        const regexString = `${lookupString}\\s*(.*)`;
-        const regexp = new RegExp(regexString, "gm");
-        const matches = regexp.exec(stdout);
-        if (matches?.length === 2) {
-          return matches[1];
-        }
-        throw new Error(`Could not find any entries for ${lookupString}`);
-      };
       const lookupEntries = (lookupString: string) => {
         const regexString = `${lookupString}\\s*\\[(.*)\\]`;
         const regexp = new RegExp(regexString, "gm");
@@ -1022,12 +1013,11 @@ export class DBTCloudProjectIntegration
       this.macroPaths = lookupEntries("Macro paths").map((p) =>
         join(this.projectRoot.fsPath, p),
       );
-      this.projectName = lookupValue("Project name");
       this.packagesInstallPath = join(this.projectRoot.fsPath, "dbt_packages");
     } catch (error) {
       this.terminal.warn(
         "DbtCloudIntegrationInitializePathsExceptionError",
-        "adapter type throws error, ignoring",
+        "dbt environment show not returning required info, ignoring",
         true,
         error,
       );
@@ -1036,6 +1026,20 @@ export class DBTCloudProjectIntegration
       this.seedPaths = [join(this.projectRoot.fsPath, "seeds")];
       this.macroPaths = [join(this.projectRoot.fsPath, "macros")];
       this.packagesInstallPath = join(this.projectRoot.fsPath, "dbt_packages");
+    }
+
+    try {
+      const projectConfig = DBTProject.readAndParseProjectConfig(
+        this.projectRoot,
+      );
+      this.projectName = projectConfig.name;
+    } catch (error) {
+      this.terminal.warn(
+        "DbtCloudIntegrationProjectNameFromConfigExceptionError",
+        "project name could not be read from dbt_project.yml, ignoring",
+        true,
+        error,
+      );
     }
   }
 
@@ -1191,6 +1195,8 @@ export class DBTCloudProjectIntegration
   }
 
   async applyDeferConfig(): Promise<void> {}
+
+  async applySelectedTarget(): Promise<void> {}
 
   throwDiagnosticsErrorIfAvailable(): void {
     this.throwBridgeErrorIfAvailable();
