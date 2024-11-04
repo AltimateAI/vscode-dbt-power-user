@@ -11,12 +11,11 @@ const Citations = ({
 }): JSX.Element | null => {
   const {
     state: {
-      teammatesEnabled,
       tenantInfo: { frontendUrl, teammatesEnabled: isEnabledInTenant },
     },
   } = useAppContext();
 
-  if (!teammatesEnabled || !isEnabledInTenant || !citations?.length) {
+  if (!isEnabledInTenant || !citations?.length) {
     return null;
   }
   return (
