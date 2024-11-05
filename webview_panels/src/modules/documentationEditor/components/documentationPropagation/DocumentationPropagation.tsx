@@ -84,6 +84,9 @@ export const DocumentationPropagationButton = ({
         column: name,
       })) as DownstreamColumns;
       setTableMetadata((prev) => [...prev, ...result.tables]);
+      if (!result.column_lineage || result.column_lineage.length === 0) {
+        break;
+      }
       const newColumns: DocsItem[] = [];
       for (const item of result.column_lineage) {
         if (item.type === "indirect") continue;
