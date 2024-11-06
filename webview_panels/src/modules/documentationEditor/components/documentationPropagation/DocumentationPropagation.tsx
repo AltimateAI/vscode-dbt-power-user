@@ -1,4 +1,4 @@
-import { CommentIcon } from "@assets/icons";
+import { PropagateIcon } from "@assets/icons";
 import { useEffect, useRef, useState } from "react";
 import { Drawer, Stack, DrawerRef, Button, Input } from "@uicore";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
@@ -135,7 +135,7 @@ export const DocumentationPropagationButton = ({
   return (
     <Drawer
       buttonProps={{ color: "primary", title: "Propagate documentation" }}
-      buttonText={<CommentIcon />}
+      buttonText={<PropagateIcon />}
       title="Propagate documentation"
       ref={drawerRef}
     >

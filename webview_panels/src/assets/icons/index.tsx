@@ -27,6 +27,7 @@ export { default as NoNotebooksIcon } from "./notebook.svg?react";
 export { default as ThinkingIcon } from "./thinking.svg?react";
 export { default as CoachAIIcon } from "./coachAi.svg?react";
 export { default as ErrorIcon } from "./error.svg?react";
+export { default as PropagateIcon } from "./propagate.svg?react";
 import LoadingSpinnerUrl from "./spinner.gif";
 import "./styles.css";
 
