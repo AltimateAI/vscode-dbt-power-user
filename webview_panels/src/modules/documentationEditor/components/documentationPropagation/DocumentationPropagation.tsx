@@ -109,7 +109,6 @@ export const DocumentationPropagationButton = ({
       }
       iCurrColumns = newColumns;
       iAllColumns.push(...newColumns);
-      panelLogger.log("thisisit", iCurrColumns, iAllColumns);
     }
     executeRequestInAsync("columnLineageBase", { event: "end" });
     setIsLoading(false);
@@ -139,6 +138,7 @@ export const DocumentationPropagationButton = ({
       buttonText={<PropagateIcon />}
       title="Propagate documentation"
       ref={drawerRef}
+      onOpen={() => loadMoreDownstreamModels()}
     >
       <Stack direction="column" className="gap-0 mb-2">
         <div className={styles.itemRow}>
@@ -231,7 +231,7 @@ export const DocumentationPropagationButton = ({
                 filePath: tableMetadata.find((t) => t.table === item.model)
                   ?.url,
               })) as { saved: boolean };
-              panelLogger.log("thisisit", item, result);
+              panelLogger.log("saveFile", item, result);
             }
           }}
         >
