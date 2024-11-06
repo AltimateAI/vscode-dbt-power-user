@@ -2,18 +2,18 @@
   background-color: var(--background--base);
   padding: 0.5rem;
   border-radius: 4px;
+}
 
-  .row {
-    display: grid;
-    grid-template-columns: 1fr 3fr;
+.itemRow {
+  display: grid;
+  grid-template-columns: 1fr 3fr;
 
-    :nth-child(1) {
-      font-weight: 500;
-    }
+  :nth-child(1) {
+    font-weight: 500;
+  }
 
-    :nth-child(2) {
-      line-break: anywhere;
-      color: var(--text-grey2-color);
-    }
+  :nth-child(2) {
+    line-break: anywhere;
+    color: var(--text-grey2-color);
   }
 }

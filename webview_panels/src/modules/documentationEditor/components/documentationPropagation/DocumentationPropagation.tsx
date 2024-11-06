@@ -141,19 +141,19 @@ export const DocumentationPropagationButton = ({
       ref={drawerRef}
     >
       <Stack direction="column" className="gap-0 mb-2">
-        <Stack>
+        <div className={styles.itemRow}>
           <div className="fw-semibold">Model:</div>
           <div>{currentDocsData?.name}</div>
-        </Stack>
-        <Stack>
+        </div>
+        <div className={styles.itemRow}>
           <div className="fw-semibold">Column:</div>
           <div>{name}</div>
-        </Stack>
+        </div>
         {currColumnDescription && (
-          <Stack>
+          <div className={styles.itemRow}>
             <div className="fw-semibold">Description:</div>
             <div>{currColumnDescription}</div>
-          </Stack>
+          </div>
         )}
       </Stack>
       <Stack className="mb-2">
@@ -180,15 +180,15 @@ export const DocumentationPropagationButton = ({
                 }
               />
               <Stack direction="column" className="gap-0 w-100">
-                <div className={styles.row}>
+                <div className={styles.itemRow}>
                   <div>Model:</div>
                   <div>{item.model.split(".").pop()}</div>
                 </div>
-                <div className={styles.row}>
+                <div className={styles.itemRow}>
                   <div>Column:</div>
                   <div>{item.column}</div>
                 </div>
-                <div className={styles.row}>
+                <div className={styles.itemRow}>
                   <div>Description:</div>
                   <div>{item.description}</div>
                 </div>
@@ -203,7 +203,7 @@ export const DocumentationPropagationButton = ({
             onClick={loadMoreDownstreamModels}
             disabled={isLoading}
           >
-            Load 3 more downstream models
+            Load 3 more downstream levels
           </Button>
         )}
         <Button
