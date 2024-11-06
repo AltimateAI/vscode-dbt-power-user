@@ -24710,45 +24710,46 @@ const Kc = () => {
   }, {});
 }, Jx = pt.object({
   content: pt.string().min(10, { message: "Feedback must be at least 10 characters" }).max(500, { message: "Feedback must not exceed 500 characters" }).min(1, { message: "Feedback is required" })
-}), rA = ({ taskLabel: e, context: t, onClose: n }) => {
-  const [o, r] = ue(), [a, i] = ue(!1), l = (b) => {
-    r(b);
-  }, s = () => {
-    i(!0);
+}), rA = ({ taskLabel: e, context: t, onClose: n, extra: o = {} }) => {
+  const [r, a] = ue(), [i, l] = ue(!1), s = (y) => {
+    a(y);
   }, u = () => {
-    i(!1);
-  }, c = async () => {
-    if (o)
-      return u(), await Pe.post(
+    l(!0);
+  }, c = () => {
+    l(!1);
+  }, d = async () => {
+    if (r)
+      return c(), await Pe.post(
         "coach/training/confirm",
         {
-          content: o.ai_response,
-          category: o.category,
+          content: r.ai_response,
+          category: r.category,
           taskLabel: e,
-          personalizationScope: o.personalizationScope,
-          metadata: t
+          personalizationScope: r.personalizationScope,
+          metadata: t,
+          ...o
         }
       );
   }, {
-    mutate: d,
-    error: h,
-    loading: f,
-    data: m
+    mutate: h,
+    error: f,
+    loading: m,
+    data: b
   } = Wa({
     // @ts-ignore
-    queryFn: c,
+    queryFn: d,
     onSuccess: () => {
-      i(!1);
+      l(!1);
     }
   });
-  return m != null && m.frontend_url ? /* @__PURE__ */ p.jsxs(Us, { children: [
+  return b != null && b.frontend_url ? /* @__PURE__ */ p.jsxs(Us, { children: [
     "Thank you for coaching Datapilot. Click the link to",
     " ",
     /* @__PURE__ */ p.jsx(
       "a",
       {
         className: "alert-link",
-        href: `${m.frontend_url}/teammates/${e}?learning=${m.train_doc_uid}`,
+        href: `${b.frontend_url}/teammates/${e}?learning=${b.train_doc_uid}`,
         children: "View learnings"
       }
     )
@@ -24761,39 +24762,39 @@ const Kc = () => {
         onSubmit: () => {
         },
         validate: Qx(Jx),
-        children: (b) => /* @__PURE__ */ p.jsx(
+        children: (y) => /* @__PURE__ */ p.jsx(
           Xx,
           {
-            ...b,
+            ...y,
             taskLabel: e,
-            onSuccess: l,
+            onSuccess: s,
             onCancel: n
           }
         )
       }
     ),
-    o && /* @__PURE__ */ p.jsxs(sn, { className: "mt-4", children: [
+    r && /* @__PURE__ */ p.jsxs(sn, { className: "mt-4", children: [
       /* @__PURE__ */ p.jsxs(Rn, { children: [
         /* @__PURE__ */ p.jsx("p", { children: "Below are the learnings by AI based on the entered instructions:" }),
-        /* @__PURE__ */ p.jsx("div", { children: a ? /* @__PURE__ */ p.jsx(
+        /* @__PURE__ */ p.jsx("div", { children: i ? /* @__PURE__ */ p.jsx(
           Ln,
           {
             type: "textarea",
-            value: o.ai_response,
-            onChange: (b) => {
-              r({
-                ...o,
-                ai_response: b.target.value
+            value: r.ai_response,
+            onChange: (y) => {
+              a({
+                ...r,
+                ai_response: y.target.value
               });
             },
             style: { fieldSizing: "content" }
           }
-        ) : o.ai_response }),
-        h && /* @__PURE__ */ p.jsx("div", { className: "text-danger", children: h.message })
+        ) : r.ai_response }),
+        f && /* @__PURE__ */ p.jsx("div", { className: "text-danger", children: f.message })
       ] }),
       /* @__PURE__ */ p.jsxs(M5, { className: "d-flex justify-content-end mt-2 gap-2 border-0", children: [
-        a ? /* @__PURE__ */ p.jsx($e, { variant: "secondary", onClick: u, children: "Cancel" }) : /* @__PURE__ */ p.jsx($e, { variant: "secondary", onClick: s, children: "Edit" }),
-        /* @__PURE__ */ p.jsx($a, { loading: f, onClick: d, color: "primary", children: "Save" })
+        i ? /* @__PURE__ */ p.jsx($e, { variant: "secondary", onClick: c, children: "Cancel" }) : /* @__PURE__ */ p.jsx($e, { variant: "secondary", onClick: u, children: "Edit" }),
+        /* @__PURE__ */ p.jsx($a, { loading: m, onClick: h, color: "primary", children: "Save" })
       ] })
     ] })
   ] });

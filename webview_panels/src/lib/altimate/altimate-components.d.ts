@@ -66,7 +66,7 @@ export declare interface CoachAiResponse {
     personalizationScope: string;
 }
 
-export declare const CoachForm: ({ taskLabel, context, onClose }: Props_10) => JSX_2.Element;
+export declare const CoachForm: ({ taskLabel, context, onClose, extra }: Props_10) => JSX_2.Element;
 
 export declare const CoachFormButton: ({}: Props_11) => JSX_2.Element;
 
@@ -286,6 +286,7 @@ declare interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 declare interface Props_10 {
     taskLabel: keyof typeof TaskLabels;
     context?: Record<string, unknown>;
+    extra?: Record<string, unknown>;
     onClose: () => void;
 }
 
