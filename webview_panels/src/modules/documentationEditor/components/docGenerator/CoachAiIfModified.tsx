@@ -19,10 +19,10 @@ const CoachAiIfModified = ({
     },
   } = useDocumentationContext();
   const {
-    state: { teammatesEnabled, tenantInfo },
+    state: { tenantInfo },
   } = useAppContext();
 
-  if (!teammatesEnabled || !tenantInfo.teammatesEnabled) {
+  if (!tenantInfo.teammatesEnabled) {
     return null;
   }
 

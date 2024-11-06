@@ -1,7 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { GenerationDBDataProps } from "../types";
 import {
-  Citation,
   DBTDocumentation,
   DocsGenerateUserInstructions,
   DocumentationStateProps,
@@ -9,6 +8,7 @@ import {
   Pages,
 } from "./types";
 import { mergeCurrentAndIncomingDocumentationColumns } from "../utils";
+import { Citation } from "@lib";
 
 export const initialState = {
   incomingDocsData: undefined,
@@ -210,7 +210,7 @@ const documentationSlice = createSlice({
         columns: Partial<
           MetadataColumn & {
             description?: string;
-            citations?: Citation[]
+            citations?: Citation[];
           }
         >[];
         isNewGeneration?: boolean;
@@ -220,9 +220,14 @@ const documentationSlice = createSlice({
         state.docUpdatedForColumns = [];
         return;
       }
-      const modifiedColumns = columns?.map((column) => column.name).filter(Boolean) as string[];
+      const modifiedColumns = columns
+        ?.map((column) => column.name)
+        .filter(Boolean) as string[];
       if (modifiedColumns) {
-        state.docUpdatedForColumns = [...state.docUpdatedForColumns, ...modifiedColumns];
+        state.docUpdatedForColumns = [
+          ...state.docUpdatedForColumns,
+          ...modifiedColumns,
+        ];
       }
       state.currentDocsData.columns = state.currentDocsData.columns.map((c) => {
         const updatedColumn = columns.find((column) => c.name === column.name);

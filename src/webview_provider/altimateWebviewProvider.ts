@@ -90,26 +90,6 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         t.onEvent(d as SharedStateEventEmitterProps),
       ),
     );
-
-    workspace.onDidChangeConfiguration(
-      (e) => {
-        if (e.affectsConfiguration("dbt.enableTeammates")) {
-          const isEnabled = workspace
-            .getConfiguration("dbt")
-            .get<boolean>("enableTeammates", false);
-          const event = isEnabled ? "TeammatesEnabled" : "TeammatesDisabled";
-          this.telemetry.sendTelemetryEvent(event);
-          if (this._panel) {
-            this.sendResponseToWebview({
-              command: "teammatesUpdated",
-              data: isEnabled,
-            });
-          }
-        }
-      },
-      this,
-      this._disposables,
-    );
   }
 
   public isWebviewView(
@@ -243,16 +223,6 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     try {
       switch (command) {
-        case "getTeammatesStatus": {
-          const isEnabled = workspace
-            .getConfiguration("dbt")
-            .get<boolean>("enableTeammates", false);
-          this.sendResponseToWebview({
-            command: "teammatesUpdated",
-            data: isEnabled,
-          });
-          break;
-        }
         case "configEnabled":
           this.handleSyncRequestFromWebview(
             syncRequestId,

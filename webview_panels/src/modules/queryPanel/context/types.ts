@@ -49,6 +49,7 @@ export interface QueryPanelStateProps {
     columnNames: string[];
     columnTypes: string[];
     raw_sql: string;
+    compiled_sql: string;
   };
   queryExecutionInfo?: { elapsedTime: number };
   queryResultsError?: {

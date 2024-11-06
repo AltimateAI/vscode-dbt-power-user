@@ -19,11 +19,22 @@ export declare const ApiHelper: {
 
 export declare const Badge: ({ tooltip, ...props }: Props_5) => JSX_2.Element;
 
-export declare const Chatbot: ({ loading, onRequest, sessionId: sessionIdProp, onFollowupRequest, ...props }: Props_9) => JSX_2.Element;
+export declare const Chatbot: ({ loading, onRequest, sessionId: sessionIdProp, onFollowupRequest, frontendUrl, ...props }: Props_9) => JSX_2.Element;
 
 export declare const ChatTriggerLink: ({ text }: {
     text: string;
 }) => JSX_2.Element;
+
+export declare interface Citation {
+    id: string;
+    content: string;
+    taskLabel: TaskLabels;
+}
+
+export declare const Citations: ({ citations, frontendUrl, }: {
+    citations?: Citation[];
+    frontendUrl: string;
+}) => JSX.Element | null;
 
 export declare class CLL {
     static isCancelled: boolean;
@@ -350,12 +361,10 @@ declare interface Props_8 {
 
 declare interface Props_9 extends ProChatProps<any> {
     loading?: boolean;
-    onRequest: (messages: ChatMessage[], sessionId: string, onStatusUpdate: (info: {
-        type: string;
-        message: string;
-    }) => void) => any;
+    onRequest: (messages: ChatMessage[], sessionId: string, onStatusUpdate: (info: StatusInfoMessage) => void) => any;
     sessionId?: string;
     onFollowupRequest?: (sessionId: string) => Promise<string[] | undefined>;
+    frontendUrl: string;
 }
 
 export declare interface SelectedColumn {
@@ -396,6 +405,13 @@ export declare type StaticLineageDetails = Record<string, {
     expression?: string;
     join_type?: string;
 }>;
+
+export declare interface StatusInfoMessage {
+    type: "info" | "agent_outcome" | "citations";
+    message: string;
+    citations?: Citation[];
+    id?: string;
+}
 
 export declare interface Table {
     table: string;

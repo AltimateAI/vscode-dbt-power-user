@@ -2497,6 +2497,8 @@ project_name="${e.getProjectName()}"
         a.clearOutput(),
         e.document.languageId)
       ) {
+        case "markdown":
+          break;
         case "python":
           this.telemetry.startTelemetryEvent(
             u.TelemetryEvents["Notebook/Execute"],
