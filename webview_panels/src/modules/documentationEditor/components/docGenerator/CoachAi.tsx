@@ -7,8 +7,10 @@ import classes from "./coachAi.module.scss";
 
 const CoachAi = ({
   context,
+  extra,
 }: {
   context?: Record<string, unknown>;
+  extra?: Record<string, unknown>;
 }): JSX.Element | null => {
   const drawerRef = useRef<DrawerRef>(null);
   const { dispatch } = useTeamMateContext();
@@ -41,6 +43,7 @@ const CoachAi = ({
         taskLabel="DocGen"
         context={context}
         onClose={() => drawerRef.current?.close()}
+        extra={extra}
       />
     </Drawer>
   );

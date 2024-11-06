@@ -195,7 +195,10 @@ const DocumentationEditor = (): JSX.Element => {
                 />
                 <Stack>
                   <Citations citations={currentDocsData.citations} />
-                  <CoachAiIfModified model={currentDocsData.name} />
+                  <CoachAiIfModified
+                    model={currentDocsData.name}
+                    extra={{ isModelDoc: true }}
+                  />
                 </Stack>
               </Stack>
               <DocGeneratorColumnsList />
