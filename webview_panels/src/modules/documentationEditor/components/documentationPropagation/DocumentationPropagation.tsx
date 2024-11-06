@@ -111,8 +111,19 @@ export const DocumentationPropagationButton = ({
       iAllColumns.push(...newColumns);
     }
     executeRequestInAsync("columnLineageBase", { event: "end" });
+    const finalAllColumns: DocsItem[] = [];
+    for (const c of iAllColumns) {
+      if (
+        finalAllColumns.find(
+          (_c) => _c.model === c.model && _c.column === c.column,
+        )
+      ) {
+        continue;
+      }
+      finalAllColumns.push(c);
+    }
     setIsLoading(false);
-    setAllColumns(iAllColumns);
+    setAllColumns(finalAllColumns);
     setCurrColumns(iCurrColumns);
   };
 
