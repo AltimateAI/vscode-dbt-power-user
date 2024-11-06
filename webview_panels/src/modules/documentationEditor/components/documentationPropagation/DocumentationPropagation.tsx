@@ -9,6 +9,7 @@ import {
 } from "@modules/app/requestExecutor";
 import { ColumnLineage } from "@lib";
 import { panelLogger } from "@modules/logger";
+import styles from "./styles.module.scss";
 
 interface Props {
   name: string;
@@ -167,7 +168,7 @@ export const DocumentationPropagationButton = ({
         {allColumns.map((item) => {
           const key = item.model + "/" + item.column;
           return (
-            <Stack key={key}>
+            <Stack key={key} className={styles.itemCard}>
               <Input
                 type="checkbox"
                 checked={selectedColumns[key]}
@@ -178,12 +179,19 @@ export const DocumentationPropagationButton = ({
                   }))
                 }
               />
-              <Stack direction="column" className="gap-0">
-                <Stack>
-                  <div>{item.model}</div>
+              <Stack direction="column" className="gap-0 w-100">
+                <div className={styles.row}>
+                  <div>Model:</div>
+                  <div>{item.model.split(".").pop()}</div>
+                </div>
+                <div className={styles.row}>
+                  <div>Column:</div>
                   <div>{item.column}</div>
-                </Stack>
-                <div>{item.description}</div>
+                </div>
+                <div className={styles.row}>
+                  <div>Description:</div>
+                  <div>{item.description}</div>
+                </div>
               </Stack>
             </Stack>
           );
@@ -191,6 +199,7 @@ export const DocumentationPropagationButton = ({
         {currColumns.length > 0 && (
           <Button
             color="primary"
+            outline
             onClick={loadMoreDownstreamModels}
             disabled={isLoading}
           >
