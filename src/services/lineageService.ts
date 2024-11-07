@@ -44,6 +44,7 @@ export type Table = {
   isExternalProject: boolean;
   columns: { [columnName: string]: ColumnMetaData };
   patchPath?: string;
+  packageName?: string;
 };
 
 class DerivedCancellationTokenSource extends CancellationTokenSource {
@@ -176,6 +177,7 @@ export class LineageService {
         }),
         columns: _table.columns,
         description: _table?.description,
+        packageName: _node.package_name,
       };
     }
     if (nodeType === DBTProject.RESOURCE_TYPE_METRIC) {
@@ -232,6 +234,7 @@ export class LineageService {
         const testKey = n.label.split(".")[0];
         return { ...testMetaMap.get(testKey), key: testKey };
       }),
+      packageName: node.package_name,
     };
   }
 
