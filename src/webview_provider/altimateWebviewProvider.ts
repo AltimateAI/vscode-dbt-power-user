@@ -34,6 +34,7 @@ import { DBTProject } from "@extension";
 import { AbortError } from "node-fetch";
 import { ColumnMetaData, GraphMetaMap } from "../domain";
 import { CllEvents } from "./newLineagePanel";
+import { DbtTestService } from "../services/dbtTestService";
 
 const CAN_COMPILE_SQL_NODE = [
   DBTProject.RESOURCE_TYPE_MODEL,
@@ -115,6 +116,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
+    protected dbtTestService: DbtTestService,
   ) {
     this._disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
@@ -571,10 +573,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             currAnd1HopTables,
             selectedColumn,
           });
+          const testsResult = await Promise.all(
+            targets.map((t) => this.dbtTestService.getTestsForModel(t[0])),
+          );
+          const tests: Record<string, unknown> = {};
+          targets.forEach((t, i) => {
+            tests[t[0]] = testsResult[i];
+          });
           this.handleSyncRequestFromWebview(
             syncRequestId,
             () => {
-              return { ...columns, tables: _tables };
+              return { ...columns, tables: _tables, tests };
             },
             command,
           );

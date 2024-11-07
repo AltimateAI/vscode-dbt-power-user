@@ -34,6 +34,7 @@ interface TableMetadata {
 interface DownstreamColumns {
   column_lineage: ColumnLineage[];
   tables: TableMetadata[];
+  tests: Record<string, unknown>;
 }
 
 export const DocumentationPropagationButton = ({
@@ -59,6 +60,9 @@ export const DocumentationPropagationButton = ({
   const [currColumns, setCurrColumns] = useState<DocsItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [tableMetadata, setTableMetadata] = useState<TableMetadata[]>([]);
+  const [testsMetadata, setTestsMetadata] = useState<Record<string, unknown>>(
+    {},
+  );
   const [selectedColumns, setSelectedColumns] = useState<
     Record<string, boolean>
   >({});
@@ -85,6 +89,7 @@ export const DocumentationPropagationButton = ({
         column: name,
       })) as DownstreamColumns;
       setTableMetadata((prev) => [...prev, ...result.tables]);
+      setTestsMetadata((prev) => ({ ...prev, ...result.tests }));
       if (!result.column_lineage || result.column_lineage.length === 0) {
         break;
       }
@@ -241,6 +246,7 @@ export const DocumentationPropagationButton = ({
                   ?.patchPath,
                 filePath: tableMetadata.find((t) => t.table === item.model)
                   ?.url,
+                tests: testsMetadata[item.model],
               })) as { saved: boolean };
               panelLogger.log("saveFile", item, result);
             }
