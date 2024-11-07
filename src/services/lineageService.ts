@@ -39,6 +39,7 @@ export type Table = {
   upstreamCount: number;
   nodeType: string;
   materialization?: string;
+  description?: string;
   tests: any[];
   isExternalProject: boolean;
   columns: { [columnName: string]: ColumnMetaData };
@@ -174,6 +175,7 @@ export class LineageService {
           return { ...testMetaMap.get(testKey), key: testKey };
         }),
         columns: _table.columns,
+        description: _table?.description,
       };
     }
     if (nodeType === DBTProject.RESOURCE_TYPE_METRIC) {
@@ -223,6 +225,7 @@ export class LineageService {
       isExternalProject: node.is_external_project,
       nodeType,
       materialization,
+      description: node.description,
       columns: node.columns,
       patchPath: node.patch_path,
       tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {

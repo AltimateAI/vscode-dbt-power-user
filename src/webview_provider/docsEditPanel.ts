@@ -673,6 +673,14 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               .filter((t) => Boolean(t))
               .flat() as Table[];
             const tables = _tables.map((t) => t?.table);
+            if (tables.length === 0) {
+              this.handleSyncRequestFromWebview(
+                syncRequestId,
+                () => ({}),
+                command,
+              );
+              return;
+            }
             const selectedColumn = {
               table: params.model as string,
               name: params.column as string,

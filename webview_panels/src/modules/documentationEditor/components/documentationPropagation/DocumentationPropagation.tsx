@@ -24,6 +24,7 @@ interface DocsItem {
 
 interface TableMetadata {
   table: string;
+  description: string;
   patchPath?: string;
   url: string;
   columns: Record<
@@ -88,11 +89,11 @@ export const DocumentationPropagationButton = ({
         model: currentDocsData?.uniqueId,
         column: name,
       })) as DownstreamColumns;
-      setTableMetadata((prev) => [...prev, ...result.tables]);
-      setTestsMetadata((prev) => ({ ...prev, ...result.tests }));
       if (!result.column_lineage || result.column_lineage.length === 0) {
         break;
       }
+      setTableMetadata((prev) => [...prev, ...result.tables]);
+      setTestsMetadata((prev) => ({ ...prev, ...result.tests }));
       const newColumns: DocsItem[] = [];
       for (const item of result.column_lineage) {
         if (item.type === "indirect") continue;
@@ -234,18 +235,17 @@ export const DocumentationPropagationButton = ({
               if (!selectedColumns[key]) continue;
               const splits = item.model.split(".");
               const modelName = splits[splits.length - 1];
+              const node = tableMetadata.find((t) => t.table === item.model);
 
               const result = (await executeRequestInSync("saveDocumentation", {
                 name: modelName,
-                description: item.description,
+                description: node?.description,
                 columns: [
                   { name: item.column, description: currColumnDescription },
                 ],
                 dialogType: "Existing file",
-                patchPath: tableMetadata.find((t) => t.table === item.model)
-                  ?.patchPath,
-                filePath: tableMetadata.find((t) => t.table === item.model)
-                  ?.url,
+                patchPath: node?.patchPath,
+                filePath: node?.url,
                 updatedTests: testsMetadata[item.model],
               })) as { saved: boolean };
               panelLogger.log("saveFile", item, result);
