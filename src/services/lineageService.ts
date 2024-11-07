@@ -7,7 +7,7 @@ import {
   TelemetryService,
 } from "@extension";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { ColumnMetaData, GraphMetaMap } from "../domain";
+import { ColumnMetaData, GraphMetaMap, NodeGraphMap } from "../domain";
 import { CllEvents } from "../webview_provider/newLineagePanel";
 
 import {
@@ -141,7 +141,7 @@ export class LineageService {
     );
   }
 
-  private createTable(
+  createTable(
     event: ManifestCacheProjectAddedEvent,
     tableUrl: string | undefined,
     key: string,
@@ -149,8 +149,14 @@ export class LineageService {
     const splits = key.split(".");
     const nodeType = splits[0];
     const { graphMetaMap, testMetaMap } = event;
-    const upstreamCount = 0;
-    const downstreamCount = 0;
+    const upstreamCount = this.getConnectedNodeCount(
+      graphMetaMap["children"],
+      key,
+    );
+    const downstreamCount = this.getConnectedNodeCount(
+      graphMetaMap["parents"],
+      key,
+    );
     if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
       const { sourceMetaMap } = event;
       const schema = splits[2];
@@ -236,6 +242,10 @@ export class LineageService {
       }),
       packageName: node.package_name,
     };
+  }
+
+  private getConnectedNodeCount(g: NodeGraphMap, key: string) {
+    return g.get(key)?.nodes.length || 0;
   }
 
   private cancellationTokenSource: CancellationTokenSource | undefined;
