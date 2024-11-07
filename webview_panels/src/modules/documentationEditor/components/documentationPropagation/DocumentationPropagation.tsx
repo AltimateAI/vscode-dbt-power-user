@@ -135,55 +135,26 @@ export const DocumentationPropagationButton = ({
   };
 
   const propagateDocumentation = async () => {
-    const noSchemaFile: DocsItem[] = [];
+    const defaultPackageName = tableMetadata.filter((t) => t.packageName)[0]
+      ?.packageName;
+    const defaultPatchPath = defaultPackageName
+      ? defaultPackageName + "://models/schema.yml"
+      : "";
+
     for (const item of allColumns) {
       const key = item.model + "/" + item.column;
       if (!selectedColumns[key]) continue;
       const splits = item.model.split(".");
       const modelName = splits[splits.length - 1];
       const node = tableMetadata.find((t) => t.table === item.model);
-      if (!node?.patchPath) {
-        noSchemaFile.push(item);
-        continue;
-      }
 
       const result = (await executeRequestInSync("saveDocumentation", {
         name: modelName,
         description: node?.description,
         columns: [{ name: item.column, description: currColumnDescription }],
         dialogType: "Existing file",
-        patchPath: node?.patchPath,
-        filePath: node?.url,
-        updatedTests: testsMetadata[item.model],
-      })) as { saved: boolean };
-      if (!result.saved) {
-        panelLogger.error("Unable to save documentation", item);
-      }
-    }
-
-    if (noSchemaFile.length === 0) {
-      return;
-    }
-    const packageName = tableMetadata.find(
-      (t) => t.table === noSchemaFile[0].model,
-    )?.packageName;
-    if (!packageName) {
-      return;
-    }
-    const patchPath = packageName + "://models/schema.yml";
-    for (const item of noSchemaFile) {
-      const key = item.model + "/" + item.column;
-      if (!selectedColumns[key]) continue;
-      const splits = item.model.split(".");
-      const modelName = splits[splits.length - 1];
-      const node = tableMetadata.find((t) => t.table === item.model);
-
-      const result = (await executeRequestInSync("saveDocumentation", {
-        name: modelName,
-        description: node?.description,
-        columns: [{ name: item.column, description: currColumnDescription }],
-        dialogType: "Existing file",
-        patchPath: patchPath,
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+        patchPath: node?.patchPath || defaultPatchPath,
         filePath: node?.url,
         updatedTests: testsMetadata[item.model],
       })) as { saved: boolean };
