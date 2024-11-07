@@ -246,7 +246,7 @@ export const DocumentationPropagationButton = ({
                   ?.patchPath,
                 filePath: tableMetadata.find((t) => t.table === item.model)
                   ?.url,
-                tests: testsMetadata[item.model],
+                updatedTests: testsMetadata[item.model],
               })) as { saved: boolean };
               panelLogger.log("saveFile", item, result);
             }

@@ -684,7 +684,14 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               selectedColumn,
             });
             const testsResult = await Promise.all(
-              targets.map((t) => this.dbtTestService.getTestsForModel(t[0])),
+              targets.map(async (t) => {
+                if (!t[0].startsWith("model")) {
+                  return;
+                }
+                const splits = t[0].split(".");
+                const modelName = splits[splits.length - 1];
+                return await this.dbtTestService.getTestsForModel(modelName);
+              }),
             );
             const tests: Record<string, unknown> = {};
             targets.forEach((t, i) => {
