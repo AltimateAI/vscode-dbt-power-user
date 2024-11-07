@@ -20,6 +20,7 @@ import {
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import {
+  extendErrorWithSupportLinks,
   getColumnNameByCase,
   getColumnTestConfigFromYml,
   isAcceptedValues,
@@ -31,7 +32,7 @@ import {
 import path = require("path");
 import { PythonException } from "python-bridge";
 import { TelemetryService } from "../telemetry";
-import { AltimateRequest } from "../altimate";
+import { AltimateRequest, UserInputError } from "../altimate";
 import { stringify, parse, parseDocument, YAMLSeq, YAMLMap } from "yaml";
 import { NewDocsGenPanel } from "./newDocsGenPanel";
 import { DBTProject } from "../manifest/dbtProject";
@@ -49,6 +50,9 @@ import {
 import { DbtTestService } from "../services/dbtTestService";
 import { gte } from "semver";
 import { TelemetryEvents } from "../telemetry/events";
+import { LineageService, Table } from "../services/lineageService";
+import { SendMessageProps } from "./altimateWebviewProvider";
+import { CllEvents } from "./newLineagePanel";
 
 export enum Source {
   YAML = "YAML",
@@ -111,6 +115,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     private docGenService: DocGenService,
     private dbtTestService: DbtTestService,
     private terminal: DBTTerminal,
+    private lineageService: LineageService,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
@@ -535,7 +540,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
           return undefined;
         }
 
-        const { command, syncRequestId, args } = message;
+        const { command, syncRequestId, ...params } = message;
         switch (command) {
           case "fetchMetadataFromDatabase":
             this.telemetry.startTelemetryEvent(
@@ -649,6 +654,51 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               panel: this._panel,
             });
             break;
+          case "columnLineageBase": {
+            // @ts-ignore
+            this.lineageService.handleColumnLineage(params, () => {
+              this._panel?.webview.postMessage({
+                command: "columnLineage",
+                args: { event: CllEvents.CANCEL },
+              });
+            });
+            break;
+          }
+          case "getDownstreamColumns": {
+            const targets = params.targets as [string, string][];
+            const _tables = targets
+              .map((t) =>
+                this.lineageService.getConnectedTables("parents", t[0]),
+              )
+              .filter((t) => Boolean(t))
+              .flat() as Table[];
+            const tables = _tables.map((t) => t?.table);
+            const selectedColumn = {
+              table: params.model as string,
+              name: params.column as string,
+            };
+            const currAnd1HopTables = [...tables, ...targets.map((t) => t[0])];
+            const columns = await this.lineageService.getConnectedColumns({
+              targets,
+              currAnd1HopTables,
+              selectedColumn,
+            });
+            const testsResult = await Promise.all(
+              targets.map((t) => this.dbtTestService.getTestsForModel(t[0])),
+            );
+            const tests: Record<string, unknown> = {};
+            targets.forEach((t, i) => {
+              tests[t[0]] = testsResult[i];
+            });
+            this.handleSyncRequestFromWebview(
+              syncRequestId,
+              () => {
+                return { ...columns, tables: _tables, tests };
+              },
+              command,
+            );
+            break;
+          }
           case "saveDocumentation":
             this.telemetry.sendTelemetryEvent(
               TelemetryEvents["DocumentationEditor/SaveClick"],
@@ -911,6 +961,60 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       null,
       this._disposables,
     );
+  }
+
+  private async handleSyncRequestFromWebview(
+    syncRequestId: string | undefined,
+    callback: () => any,
+    command: string,
+    showErrorNotification?: boolean,
+  ) {
+    try {
+      const response = await callback();
+
+      this.sendResponseToWebview({
+        command: "response",
+        syncRequestId,
+        data: response,
+      });
+    } catch (error) {
+      const message =
+        error instanceof PythonException
+          ? error.exception.message
+          : (error as Error).message;
+      if (error instanceof UserInputError) {
+        this.terminal.debug(command, message, error);
+      } else {
+        this.terminal.error(command, message, error);
+      }
+      if (showErrorNotification) {
+        window.showErrorMessage(extendErrorWithSupportLinks(message));
+      }
+      this.sendResponseToWebview({
+        command: "response",
+        syncRequestId,
+        error: message,
+      });
+    }
+  }
+
+  private sendResponseToWebview({
+    command,
+    data,
+    error,
+    syncRequestId,
+    ...rest
+  }: SendMessageProps) {
+    this._panel?.webview?.postMessage({
+      command,
+      args: {
+        syncRequestId,
+        body: data,
+        status: !error,
+        error,
+      },
+      ...rest,
+    });
   }
 
   private async onManifestCacheChanged(event: ManifestCacheChangedEvent) {
