@@ -1,6 +1,7 @@
 import { faker } from "@faker-js/faker";
 import type { Meta, StoryObj } from "@storybook/react";
 import Insights from "./Insights";
+import { ProjectGovernorCheckTypes, TaskLabels } from "@lib";
 
 export default {
   title: "Actions panel",
@@ -27,6 +28,24 @@ export const SingleProject: StoryObj = {
               projectName: faker.lorem.word(),
             },
           ];
+        }
+
+        if (request.command === "fetch") {
+          switch (request.endpoint) {
+            case `projectgovernor/training`:
+              return {
+                ai_response: faker.lorem.paragraph(),
+                category: "Business",
+                personalizationScope: TaskLabels.ProjectGovernor,
+                type: ProjectGovernorCheckTypes.Modelling,
+              };
+              case `projectgovernor/training/confirm`:
+                return {
+                  ok: true,
+                };
+            default:
+              break;
+          }
         }
       },
       timer: 500,
