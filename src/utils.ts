@@ -369,31 +369,47 @@ export function getModelNameInActiveEditor(): string {
     return "";
   }
 
-  const parsedYaml = parseDocument(window.activeTextEditor.document.getText());
-  if (parsedYaml.contents === null) {
-    return "";
-  }
-  const cursorPosition = window.activeTextEditor.selection.active;
-  const offset = window.activeTextEditor.document.offsetAt(cursorPosition);
-
-  // parseDocument returns Pair of Key-Value
-  // So, we need to find the node with key "models", and extract items of it
-  const models = (parsedYaml.contents as any).items.find(
-    (y: any) => y.key.value === "models",
-  ).value.items;
-
-  // Find a model at the current position
-  for (const model of models) {
-    // each element of models is a Pair of Key-Value, and Value is Scalar Type.
-    // So, we need to find the node with key "name", and extract value of it by toString
-    const name = model.items
-      .find((x: any) => x.key.value === "name")
-      .value.toString();
-
-    if (model.range[0] < offset && offset < model.range[1]) {
-      return name;
+  try {
+    const parsedYaml = parseDocument(
+      window.activeTextEditor.document.getText(),
+    );
+    if (parsedYaml.contents === null) {
+      return "";
     }
-  }
+    const cursorPosition = window.activeTextEditor.selection.active;
+    const offset = window.activeTextEditor.document.offsetAt(cursorPosition);
 
+    const contents = parsedYaml.contents as { items?: Array<any> };
+    if (!contents.items) {
+      return "";
+    }
+
+    const modelsNode = contents.items.find(
+      (item) => item?.key?.value === "models",
+    );
+    if (!modelsNode?.value?.items) {
+      return "";
+    }
+
+    // Find a model at the current position
+    for (const model of modelsNode.value.items) {
+      if (!model?.items) {
+        continue;
+      }
+
+      const nameNode = model.items.find(
+        (item: any) => item?.key?.value === "name",
+      );
+      if (!nameNode?.value) {
+        continue;
+      }
+
+      if (model.range?.[0] < offset && offset < model.range?.[1]) {
+        return nameNode.value.toString();
+      }
+    }
+  } catch (error) {
+    console.error("Error parsing YAML document:", error);
+  }
   return "";
 }
