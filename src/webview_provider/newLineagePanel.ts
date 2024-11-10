@@ -33,7 +33,7 @@ import { TelemetryService } from "../telemetry";
 import { AbortError } from "node-fetch";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { LineageService } from "../services/lineageService";
-import { DbtLineageService } from "../services/dummyService";
+import { DbtLineageService } from "../services/dbtLineageService";
 
 type Table = {
   label: string;

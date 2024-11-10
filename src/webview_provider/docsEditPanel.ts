@@ -53,7 +53,7 @@ import { TelemetryEvents } from "../telemetry/events";
 import { LineageService, Table } from "../services/lineageService";
 import { SendMessageProps } from "./altimateWebviewProvider";
 import { CllEvents } from "./newLineagePanel";
-import { DbtLineageService } from "../services/dummyService";
+import { DbtLineageService } from "../services/dbtLineageService";
 
 export enum Source {
   YAML = "YAML",
