@@ -7,8 +7,6 @@ import {
 } from "@extension";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { ColumnMetaData, GraphMetaMap, NodeGraphMap } from "../domain";
-import { CllEvents } from "../webview_provider/newLineagePanel";
-
 import {
   CancellationToken,
   CancellationTokenSource,
@@ -21,6 +19,12 @@ import {
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { ModelInfo } from "../altimate";
 import { AbortError } from "node-fetch";
+
+export enum CllEvents {
+  START = "start",
+  END = "end",
+  CANCEL = "cancel",
+}
 
 const CAN_COMPILE_SQL_NODE = [
   DBTProject.RESOURCE_TYPE_MODEL,

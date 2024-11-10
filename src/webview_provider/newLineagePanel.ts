@@ -2,7 +2,6 @@ import { readFileSync, writeFileSync } from "fs";
 import * as path from "path";
 import {
   CancellationToken,
-  CancellationTokenSource,
   ColorThemeKind,
   commands,
   ProgressLocation,
@@ -14,56 +13,26 @@ import {
   WebviewViewResolveContext,
   window,
   workspace,
-  env,
 } from "vscode";
-import { AltimateRequest, ModelInfo } from "../altimate";
-import {
-  ExposureMetaData,
-  GraphMetaMap,
-  NodeGraphMap,
-  NodeMetaData,
-  SourceTable,
-} from "../domain";
+import { AltimateRequest } from "../altimate";
+import { ExposureMetaData, NodeMetaData, SourceTable } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { LineagePanelView } from "./lineagePanel";
 import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
-import { AbortError } from "node-fetch";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { DbtLineageService, Table } from "../services/dbtLineageService";
-
-export enum CllEvents {
-  START = "start",
-  END = "end",
-  CANCEL = "cancel",
-}
-
-const CAN_COMPILE_SQL_NODE = [
-  DBTProject.RESOURCE_TYPE_MODEL,
-  DBTProject.RESOURCE_TYPE_SNAPSHOT,
-  DBTProject.RESOURCE_TYPE_ANALYSIS,
-];
-const canCompileSQL = (nodeType: string) =>
-  CAN_COMPILE_SQL_NODE.includes(nodeType);
-
-class DerivedCancellationTokenSource extends CancellationTokenSource {
-  constructor(linkedToken: CancellationToken) {
-    super();
-    linkedToken.onCancellationRequested(() => {
-      super.cancel();
-    });
-  }
-}
+import {
+  CllEvents,
+  DbtLineageService,
+  Table,
+} from "../services/dbtLineageService";
 
 @provideSingleton(NewLineagePanel)
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
-  // since lineage can be cancelled from 2 places: progress bar and panel actions
-  private cancellationTokenSource: DerivedCancellationTokenSource | undefined;
-  private cllProgressResolve: () => void = () => {};
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
