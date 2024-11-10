@@ -17,7 +17,6 @@ import {
   setCurrentUser,
   setTenantInfo,
   setUsers,
-  updateTeammatesEnabled,
   updateTheme,
 } from "./appSlice";
 
@@ -29,14 +28,11 @@ const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
         case "response":
           handleIncomingResponse(args as unknown as IncomingSyncResponse);
           break;
-        case "teammatesUpdated":
-          dispatch(updateTeammatesEnabled(args.body as boolean));
-          break;
         default:
           break;
       }
     },
-    []
+    [],
   );
 
   const isDark = (element: HTMLElement) => {
@@ -66,7 +62,7 @@ const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
         dispatch(setUsers(data as User[]));
       })
       .catch((err) =>
-        panelLogger.error("error while fetching users list", err)
+        panelLogger.error("error while fetching users list", err),
       );
   };
 
@@ -77,7 +73,7 @@ const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
         dispatch(setCurrentUser(data as User));
       })
       .catch((err) =>
-        panelLogger.error("error while fetching current user", err)
+        panelLogger.error("error while fetching current user", err),
       );
   };
 
@@ -91,7 +87,7 @@ const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
         dispatch(setTenantInfo(data as AppStateProps["tenantInfo"]));
       })
       .catch((err) =>
-        panelLogger.error("error while fetching tenant info", err)
+        panelLogger.error("error while fetching tenant info", err),
       );
   };
 
@@ -109,7 +105,6 @@ const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
     loadUsersDetails();
     loadCurrentUser();
     loadTenantInfo();
-    executeRequestInAsync("getTeammatesStatus", {});
 
     themeObserver.observe(document.body, {
       attributes: true,

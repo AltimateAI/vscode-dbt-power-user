@@ -19,7 +19,22 @@ export declare const ApiHelper: {
 
 export declare const Badge: ({ tooltip, ...props }: Props_5) => JSX_2.Element;
 
-export declare const Chatbot: ({ loading, onRequest, sessionId: sessionIdProp, ...props }: Props_9) => JSX_2.Element;
+export declare const Chatbot: ({ loading, onRequest, sessionId: sessionIdProp, onFollowupRequest, frontendUrl, ...props }: Props_9) => JSX_2.Element;
+
+export declare const ChatTriggerLink: ({ text }: {
+    text: string;
+}) => JSX_2.Element;
+
+export declare interface Citation {
+    id: string;
+    content: string;
+    taskLabel: TaskLabels;
+}
+
+export declare const Citations: ({ citations, frontendUrl, }: {
+    citations?: Citation[];
+    frontendUrl: string;
+}) => JSX.Element | null;
 
 export declare class CLL {
     static isCancelled: boolean;
@@ -51,7 +66,7 @@ export declare interface CoachAiResponse {
     personalizationScope: string;
 }
 
-export declare const CoachForm: ({ taskLabel, context, onClose }: Props_10) => JSX_2.Element;
+export declare const CoachForm: ({ taskLabel, context, onClose, extra }: Props_10) => JSX_2.Element;
 
 export declare const CoachFormButton: ({}: Props_11) => JSX_2.Element;
 
@@ -271,6 +286,7 @@ declare interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 declare interface Props_10 {
     taskLabel: keyof typeof TaskLabels;
     context?: Record<string, unknown>;
+    extra?: Record<string, unknown>;
     onClose: () => void;
 }
 
@@ -346,8 +362,10 @@ declare interface Props_8 {
 
 declare interface Props_9 extends ProChatProps<any> {
     loading?: boolean;
-    onRequest: (messages: ChatMessage[], sessionId: string) => any;
+    onRequest: (messages: ChatMessage[], sessionId: string, onStatusUpdate: (info: StatusInfoMessage) => void) => any;
     sessionId?: string;
+    onFollowupRequest?: (sessionId: string) => Promise<string[] | undefined>;
+    frontendUrl: string;
 }
 
 export declare interface SelectedColumn {
@@ -388,6 +406,13 @@ export declare type StaticLineageDetails = Record<string, {
     expression?: string;
     join_type?: string;
 }>;
+
+export declare interface StatusInfoMessage {
+    type: "info" | "agent_outcome" | "citations";
+    message: string;
+    citations?: Citation[];
+    id?: string;
+}
 
 export declare interface Table {
     table: string;

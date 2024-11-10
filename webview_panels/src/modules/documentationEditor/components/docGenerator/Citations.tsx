@@ -1,42 +1,27 @@
-import { Badge } from "@lib";
+import { Citation, Citations } from "@lib";
 import useAppContext from "@modules/app/useAppContext";
-import { Citation } from "@modules/documentationEditor/state/types";
 import { Stack } from "@uicore";
 import classes from "./coachAi.module.scss";
 
-const Citations = ({
+const CitationsList = ({
   citations,
 }: {
   citations?: Citation[];
 }): JSX.Element | null => {
   const {
     state: {
-      teammatesEnabled,
       tenantInfo: { frontendUrl, teammatesEnabled: isEnabledInTenant },
     },
   } = useAppContext();
 
-  if (!teammatesEnabled || !isEnabledInTenant || !citations?.length) {
+  if (!isEnabledInTenant) {
     return null;
   }
   return (
-    <Stack className={classes.coachAi}>
-      Learnings applied:
-      <ul style={{ padding: 0, display: "flex", gap: 8, marginTop: -2 }}>
-        {citations.map((citation, index) => (
-          <li key={index} style={{ listStyle: "none" }}>
-            <Badge
-              tag={"a"}
-              href={`${frontendUrl}/teammates/${citation.taskLabel as string}?learning=${citation.id}`}
-              tooltip={citation.content}
-            >
-              {index + 1}
-            </Badge>
-          </li>
-        ))}
-      </ul>
+    <Stack className={classes.citations}>
+      <Citations citations={citations} frontendUrl={frontendUrl ?? ""} />
     </Stack>
   );
 };
 
-export default Citations;
+export default CitationsList;

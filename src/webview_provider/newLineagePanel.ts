@@ -8,9 +8,6 @@ import {
   TextEditor,
   Uri,
   Webview,
-  WebviewOptions,
-  WebviewView,
-  WebviewViewResolveContext,
   window,
   workspace,
 } from "vscode";
@@ -23,6 +20,10 @@ import { LineagePanelView } from "./lineagePanel";
 import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { AltimateWebviewProvider } from "./altimateWebviewProvider";
+import { QueryManifestService } from "../services/queryManifestService";
+import { SharedStateService } from "../services/sharedStateService";
+import { UsersService } from "../services/usersService";
 import {
   CllEvents,
   DbtLineageService,
@@ -30,17 +31,33 @@ import {
 } from "../services/dbtLineageService";
 
 @provideSingleton(NewLineagePanel)
-export class NewLineagePanel implements LineagePanelView {
-  private _panel: WebviewView | undefined;
-  private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
+export class NewLineagePanel
+  extends AltimateWebviewProvider
+  implements LineagePanelView
+{
+  protected viewPath = "/lineage";
+  protected panelDescription = "Lineage panel";
 
   public constructor(
-    private dbtProjectContainer: DBTProjectContainer,
+    protected dbtProjectContainer: DBTProjectContainer,
     private altimate: AltimateRequest,
-    private telemetry: TelemetryService,
+    protected telemetry: TelemetryService,
     private terminal: DBTTerminal,
     private dbtLineageService: DbtLineageService,
-  ) {}
+    eventEmitterService: SharedStateService,
+    protected queryManifestService: QueryManifestService,
+    protected usersService: UsersService,
+  ) {
+    super(
+      dbtProjectContainer,
+      altimate,
+      telemetry,
+      eventEmitterService,
+      terminal,
+      queryManifestService,
+      usersService,
+    );
+  }
 
   public changedActiveTextEditor(event: TextEditor | undefined) {
     if (event === undefined) {
@@ -88,23 +105,13 @@ export class NewLineagePanel implements LineagePanelView {
     });
   }
 
-  resolveWebviewView(
-    panel: WebviewView,
-    context: WebviewViewResolveContext<unknown>,
-    _token: CancellationToken,
-  ): void | Thenable<void> {
-    this.terminal.debug(
-      "newLineagePanel:resolveWebviewView",
-      "onResolveWebviewView",
-    );
-    this._panel = panel;
-    this.setupWebviewOptions(context);
-    this.renderWebviewView(context);
-  }
-
-  async handleCommand(message: { command: string; args: any }): Promise<void> {
-    const { command, args } = message;
-    const { id, params } = args;
+  async handleCommand(message: {
+    command: string;
+    args: any;
+    syncRequestId?: string;
+  }): Promise<void> {
+    const { command, args = {}, syncRequestId } = message;
+    const { id = syncRequestId, params } = args;
 
     if (command === "openProblemsTab") {
       commands.executeCommand("workbench.action.problems.focus");
@@ -114,7 +121,7 @@ export class NewLineagePanel implements LineagePanelView {
       const body = this.dbtLineageService.getUpstreamTables(params);
       this._panel?.webview.postMessage({
         command: "response",
-        args: { id, body, status: true },
+        args: { id, syncRequestId, body, status: true },
       });
       return;
     }
@@ -123,7 +130,7 @@ export class NewLineagePanel implements LineagePanelView {
       const body = this.dbtLineageService.getDownstreamTables(params);
       this._panel?.webview.postMessage({
         command: "response",
-        args: { id, body, status: true },
+        args: { id, syncRequestId, body, status: true },
       });
       return;
     }
@@ -132,7 +139,7 @@ export class NewLineagePanel implements LineagePanelView {
       const body = await this.getColumns(params);
       this._panel?.webview.postMessage({
         command: "response",
-        args: { id, body, status: true },
+        args: { id, syncRequestId, body, status: true },
       });
       return;
     }
@@ -141,7 +148,7 @@ export class NewLineagePanel implements LineagePanelView {
       const body = await this.getExposureDetails(params);
       this._panel?.webview.postMessage({
         command: "response",
-        args: { id, body, status: true },
+        args: { id, syncRequestId, body, status: true },
       });
       return;
     }
@@ -154,7 +161,7 @@ export class NewLineagePanel implements LineagePanelView {
         });
         this._panel?.webview.postMessage({
           command: "response",
-          args: { id, body, status: !!body },
+          args: { id, syncRequestId, body, status: !!body },
         });
       } catch (error) {
         window.showErrorMessage(
@@ -183,12 +190,12 @@ export class NewLineagePanel implements LineagePanelView {
         });
         this._panel?.webview.postMessage({
           command: "response",
-          args: { id, status: true },
+          args: { id, syncRequestId, status: true },
         });
       } catch (error) {
         this._panel?.webview.postMessage({
           command: "response",
-          args: { id, status: false },
+          args: { id, syncRequestId, status: false },
         });
         window.showErrorMessage(
           extendErrorWithSupportLinks(
@@ -224,7 +231,7 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     if (command === "showInfoNotification") {
-      window.showInformationMessage(args.message);
+      window.showInformationMessage(params.message);
       return;
     }
 
@@ -234,6 +241,7 @@ export class NewLineagePanel implements LineagePanelView {
         command: "response",
         args: {
           id,
+          syncRequestId,
           status: true,
           body: {
             showSelectEdges: config.get("showSelectEdges", true),
@@ -254,6 +262,7 @@ export class NewLineagePanel implements LineagePanelView {
         command: "response",
         args: {
           id,
+          syncRequestId,
           status: true,
           body: { ok: true },
         },
@@ -266,6 +275,7 @@ export class NewLineagePanel implements LineagePanelView {
       "Unsupported command",
       message,
     );
+    super.handleCommand(message);
   }
 
   private async addModelColumnsFromDB(project: DBTProject, node: NodeMetaData) {
@@ -292,16 +302,16 @@ export class NewLineagePanel implements LineagePanelView {
   }: {
     name: string;
   }): Promise<ExposureMetaData | undefined> {
-    const event = this.getEvent();
-    if (!event) {
+    const event = this.queryManifestService.getEventByCurrentProject();
+    if (!event?.event) {
       return;
     }
-    const project = this.getProject();
+    const project = this.queryManifestService.getProject();
     if (!project) {
       return;
     }
 
-    const { exposureMetaMap } = event;
+    const { exposureMetaMap } = event.event;
 
     return exposureMetaMap.get(name);
   }
@@ -326,18 +336,18 @@ export class NewLineagePanel implements LineagePanelView {
       }
     | undefined
   > {
-    const event = this.getEvent();
-    if (!event) {
+    const event = this.queryManifestService.getEventByCurrentProject();
+    if (!event?.event) {
       return;
     }
-    const project = this.getProject();
+    const project = this.queryManifestService.getProject();
     if (!project) {
       return;
     }
     const splits = table.split(".");
     const nodeType = splits[0];
     if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
-      const { sourceMetaMap } = event;
+      const { sourceMetaMap } = event.event;
       const sourceName = splits[2];
       const tableName = splits[3];
       const node = sourceMetaMap.get(sourceName);
@@ -390,7 +400,7 @@ export class NewLineagePanel implements LineagePanelView {
           .sort((a, b) => a.name.localeCompare(b.name)),
       };
     }
-    const { nodeMetaMap } = event;
+    const { nodeMetaMap } = event.event;
     const node = nodeMetaMap.lookupByUniqueId(table);
     if (!node) {
       return;
@@ -464,19 +474,13 @@ export class NewLineagePanel implements LineagePanelView {
     return path.basename(window.activeTextEditor!.document.fileName, ".sql");
   }
 
-  private getProject() {
-    const currentFilePath = window.activeTextEditor?.document.uri;
-    if (!currentFilePath) {
-      return;
-    }
-    return this.dbtProjectContainer.findDBTProject(currentFilePath);
-  }
-
   private getMissingLineageMessage() {
     const message =
       "A valid dbt file (model, seed etc.) needs to be open and active in the editor area above to view lineage";
     try {
-      this.getProject()?.throwDiagnosticsErrorIfAvailable();
+      this.queryManifestService
+        .getProject()
+        ?.throwDiagnosticsErrorIfAvailable();
     } catch (err) {
       return { message: (err as Error).message, type: "error" };
     }
@@ -492,14 +496,14 @@ export class NewLineagePanel implements LineagePanelView {
       }
     | undefined {
     const aiEnabled = this.altimate.enabled();
-    const event = this.getEvent();
-    if (!event) {
+    const event = this.queryManifestService.getEventByCurrentProject();
+    if (!event?.event) {
       return {
         aiEnabled,
         missingLineageMessage: this.getMissingLineageMessage(),
       };
     }
-    const { nodeMetaMap } = event;
+    const { nodeMetaMap } = event.event;
     const tableName = this.getFilename();
     const _node = nodeMetaMap.lookupByBaseName(tableName);
     if (!_node) {
@@ -510,74 +514,14 @@ export class NewLineagePanel implements LineagePanelView {
     }
     const key = _node.uniqueId;
     const url = window.activeTextEditor!.document.uri.path;
-    const node = this.dbtLineageService.createTable(event, url, key);
+    const node = this.dbtLineageService.createTable(event.event, url, key);
     return { node, aiEnabled };
   }
 
-  private setupWebviewOptions(context: WebviewViewResolveContext) {
-    this._panel!.description =
-      "Show table level and column level lineage SQL queries";
-    this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
-  }
-
-  private renderWebviewView(context: WebviewViewResolveContext) {
-    const webview = this._panel!.webview!;
-    this._panel!.webview.html = getHtml(
+  protected renderWebviewView(webview: Webview) {
+    this._panel!.webview.html = super.getHtml(
       webview,
       this.dbtProjectContainer.extensionUri,
     );
   }
-}
-
-/** Gets webview HTML */
-function getHtml(webview: Webview, extensionUri: Uri) {
-  const indexJs = getUri(webview, extensionUri, [
-    "new_lineage_panel",
-    "dist",
-    "assets",
-    "index.js",
-  ]);
-  const resourceDir = getUri(webview, extensionUri, [
-    "new_lineage_panel",
-    "dist",
-  ]).toString();
-  replaceInFile(indexJs, "/__ROOT__/", resourceDir + "/");
-  const indexPath = getUri(webview, extensionUri, [
-    "new_lineage_panel",
-    "dist",
-    "index.html",
-  ]);
-  return readFileSync(indexPath.fsPath)
-    .toString()
-    .replace(/\/__ROOT__/g, resourceDir)
-    .replace(/__ROOT__/g, resourceDir)
-    .replace(/__NONCE__/g, getNonce())
-    .replace(/__CSPSOURCE__/g, webview.cspSource)
-    .replace(/__LINEAGE_TYPE__/g, "dynamic");
-}
-
-/** Used to enforce a secure CSP */
-function getNonce() {
-  let text = "";
-  const possible =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  for (let i = 0; i < 32; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-  return text;
-}
-
-/** Utility method for generating webview Uris for resources */
-function getUri(webview: Webview, extensionUri: Uri, pathList: string[]) {
-  return webview.asWebviewUri(Uri.joinPath(extensionUri, ...pathList));
-}
-
-async function replaceInFile(
-  filename: Uri,
-  searchString: string,
-  replacementString: string,
-) {
-  const contents = readFileSync(filename.fsPath, "utf8");
-  const replacedContents = contents.replace(searchString, replacementString);
-  writeFileSync(filename.fsPath, replacedContents, "utf8");
 }

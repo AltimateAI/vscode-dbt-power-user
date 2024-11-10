@@ -90,26 +90,6 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         t.onEvent(d as SharedStateEventEmitterProps),
       ),
     );
-
-    workspace.onDidChangeConfiguration(
-      (e) => {
-        if (e.affectsConfiguration("dbt.enableTeammates")) {
-          const isEnabled = workspace
-            .getConfiguration("dbt")
-            .get<boolean>("enableTeammates", false);
-          const event = isEnabled ? "TeammatesEnabled" : "TeammatesDisabled";
-          this.telemetry.sendTelemetryEvent(event);
-          if (this._panel) {
-            this.sendResponseToWebview({
-              command: "teammatesUpdated",
-              data: isEnabled,
-            });
-          }
-        }
-      },
-      this,
-      this._disposables,
-    );
   }
 
   public isWebviewView(
@@ -243,16 +223,6 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     try {
       switch (command) {
-        case "getTeammatesStatus": {
-          const isEnabled = workspace
-            .getConfiguration("dbt")
-            .get<boolean>("enableTeammates", false);
-          this.sendResponseToWebview({
-            command: "teammatesUpdated",
-            data: isEnabled,
-          });
-          break;
-        }
         case "configEnabled":
           this.handleSyncRequestFromWebview(
             syncRequestId,
@@ -523,6 +493,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     }
   }
 
+  protected async checkIfWebviewReady() {
+    return new Promise<void>((resolve) => {
+      const interval = setInterval(() => {
+        if (this.isWebviewReady) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 500);
+    });
+  }
+
   resolveWebviewView(
     panel: WebviewView,
     context: WebviewViewResolveContext<unknown>,
@@ -586,6 +567,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         ),
       ),
     );
+    const LineageGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "lineage.gif",
+        ),
+      ),
+    );
     const codiconsUri = webview.asWebviewUri(
       Uri.joinPath(
         extensionUri,
@@ -615,12 +607,14 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             <link rel="stylesheet" type="text/css" href="${codiconsUri}">
           </head>
       
-          <body>
+          <body class="${this.viewPath.replace(/\//g, "")}">
             <div id="root"></div>
             <div id="sidebar"></div>
+            <div id="modal"></div>
             <script nonce="${nonce}" >
               window.viewPath = "${this.viewPath}";
               var spinnerUrl = "${SpinnerUrl}"
+              var lineageGif = "${LineageGif}"
             </script>
             
             <script nonce="${nonce}" type="module" src="${indexJs}"></script>

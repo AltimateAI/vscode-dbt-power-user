@@ -55,6 +55,7 @@ import { DBTTerminal } from "./dbtTerminal";
 import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
 import { NodeMetaData } from "../domain";
+import * as crypto from "crypto";
 
 const DEFAULT_QUERY_TEMPLATE = "select * from ({query}) as query limit {limit}";
 
@@ -1198,6 +1199,12 @@ export class DBTCoreProjectIntegration
       (python) =>
         python!`project.set_defer_config(${deferToProduction}, ${manifestPath}, ${favorState})`,
     );
+    await this.refreshProjectConfig();
+    await this.rebuildManifest();
+  }
+
+  async applySelectedTarget(): Promise<void> {
+    await this.refreshProjectConfig();
     await this.rebuildManifest();
   }
 
