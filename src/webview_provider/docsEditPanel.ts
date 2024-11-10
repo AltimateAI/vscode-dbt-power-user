@@ -691,6 +691,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               targets,
               currAnd1HopTables,
               selectedColumn,
+              upstreamExpansion: false,
+              showIndirectEdges: false,
+              eventType: "documentation_propagation",
             });
             const testsResult = await Promise.all(
               targets.map(async (t) => {

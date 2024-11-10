@@ -257,13 +257,19 @@ export class DbtLineageService {
   private cancellationTokenSource: CancellationTokenSource | undefined;
   async getConnectedColumns({
     targets,
+    upstreamExpansion,
     currAnd1HopTables,
     selectedColumn,
+    showIndirectEdges,
+    eventType,
   }: {
     targets: [string, string][];
+    upstreamExpansion: boolean;
     currAnd1HopTables: string[];
     // select_column is used for pricing not business logic
     selectedColumn: { name: string; table: string };
+    showIndirectEdges: boolean;
+    eventType: string;
   }) {
     const _event = this.queryManifestService.getEventByCurrentProject();
     if (!_event) {
@@ -279,15 +285,23 @@ export class DbtLineageService {
     }
 
     const modelInfos: ModelInfo[] = [];
+    let upstream_models: string[] = [];
     let auxiliaryTables: string[] = []; // these are used for better sqlglot parsing
     let sqlTables: string[] = []; // these are used which models should be compiled sql
     currAnd1HopTables = Array.from(new Set(currAnd1HopTables));
     const currTables = new Set(targets.map((t) => t[0]));
-    auxiliaryTables = DBTProject.getNonEphemeralParents(
-      event,
-      Array.from(currTables),
-    );
-    sqlTables = Array.from(currTables);
+    if (upstreamExpansion) {
+      const hop1Tables = currAnd1HopTables.filter((t) => !currTables.has(t));
+      upstream_models = [...hop1Tables];
+      sqlTables = [...hop1Tables];
+      auxiliaryTables = DBTProject.getNonEphemeralParents(event, hop1Tables);
+    } else {
+      auxiliaryTables = DBTProject.getNonEphemeralParents(
+        event,
+        Array.from(currTables),
+      );
+      sqlTables = Array.from(currTables);
+    }
     currAnd1HopTables = Array.from(new Set(currAnd1HopTables));
     const modelsToFetch = Array.from(
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
@@ -371,6 +385,7 @@ export class DbtLineageService {
       this.telemetry.sendTelemetryError("columnLineageLogicError", {
         targets,
         modelInfos,
+        upstreamExpansion,
         currAnd1HopTables,
         selectedColumn,
       });
@@ -397,13 +412,13 @@ export class DbtLineageService {
       const request = {
         model_dialect: modelDialect,
         model_info: modelInfos,
-        upstream_expansion: false,
-        upstream_models: [],
+        upstream_expansion: upstreamExpansion,
+        upstream_models,
         targets: targets.map((t) => ({ uniqueId: t[0], column_name: t[1] })),
         selected_column: selected_column!,
         session_id: sessionId,
-        show_indirect_edges: false,
-        event_type: "documentation_propagation",
+        show_indirect_edges: showIndirectEdges,
+        event_type: eventType,
       };
       this.dbtTerminal.debug(
         "newLineagePanel:getConnectedColumns",

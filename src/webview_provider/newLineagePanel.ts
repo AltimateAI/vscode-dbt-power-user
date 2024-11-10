@@ -32,19 +32,7 @@ import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { AbortError } from "node-fetch";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { DbtLineageService } from "../services/dbtLineageService";
-
-type Table = {
-  label: string;
-  table: string;
-  url: string | undefined;
-  downstreamCount: number;
-  upstreamCount: number;
-  nodeType: string;
-  materialization?: string;
-  tests: any[];
-  isExternalProject: boolean;
-};
+import { DbtLineageService, Table } from "../services/dbtLineageService";
 
 export enum CllEvents {
   START = "start",
@@ -191,7 +179,10 @@ export class NewLineagePanel implements LineagePanelView {
 
     if (command === "getConnectedColumns") {
       try {
-        const body = await this.getConnectedColumns(params);
+        const body = await this.dbtLineageService.getConnectedColumns({
+          ...params,
+          eventType: "column_lineage",
+        });
         this._panel?.webview.postMessage({
           command: "response",
           args: { id, body, status: !!body },
@@ -244,7 +235,12 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     if (command === "columnLineage") {
-      this.handleColumnLineage(args);
+      this.dbtLineageService.handleColumnLineage(args, () => {
+        this._panel?.webview.postMessage({
+          command: "columnLineage",
+          args: { event: CllEvents.CANCEL },
+        });
+      });
       return;
     }
 
@@ -301,46 +297,6 @@ export class NewLineagePanel implements LineagePanelView {
       "Unsupported command",
       message,
     );
-  }
-
-  private async handleColumnLineage({ event }: { event: CllEvents }) {
-    if (event === CllEvents.START) {
-      window.withProgress(
-        {
-          title: "Retrieving column level lineage",
-          location: ProgressLocation.Notification,
-          cancellable: true,
-        },
-        async (_, token) => {
-          await new Promise<void>((resolve) => {
-            this.cancellationTokenSource = new DerivedCancellationTokenSource(
-              token,
-            );
-            this.cllProgressResolve = resolve;
-            token.onCancellationRequested(() => {
-              this._panel?.webview.postMessage({
-                command: "columnLineage",
-                args: { event: CllEvents.CANCEL },
-              });
-            });
-          });
-        },
-      );
-      return;
-    }
-    this.cancellationTokenSource?.token.onCancellationRequested((e) => {
-      console.log(e);
-    });
-    if (event === CllEvents.END) {
-      this.cllProgressResolve();
-      this.cancellationTokenSource?.dispose();
-      return;
-    }
-    if (event === CllEvents.CANCEL) {
-      this.cllProgressResolve();
-      this.cancellationTokenSource?.cancel();
-      return;
-    }
   }
 
   private async addModelColumnsFromDB(project: DBTProject, node: NodeMetaData) {
@@ -514,231 +470,6 @@ export class NewLineagePanel implements LineagePanelView {
         }))
         .sort((a, b) => a.name.localeCompare(b.name)),
     };
-  }
-
-  private async getConnectedColumns({
-    targets,
-    upstreamExpansion,
-    currAnd1HopTables,
-    selectedColumn,
-    showIndirectEdges,
-  }: {
-    targets: [string, string][];
-    upstreamExpansion: boolean;
-    currAnd1HopTables: string[];
-    // select_column is used for pricing not business logic
-    selectedColumn: { name: string; table: string };
-    showIndirectEdges: boolean;
-  }) {
-    const event = this.getEvent();
-    if (!event) {
-      return;
-    }
-    const project = this.getProject();
-    if (!project) {
-      return;
-    }
-
-    const modelInfos: ModelInfo[] = [];
-    let upstream_models: string[] = [];
-    let auxiliaryTables: string[] = []; // these are used for better sqlglot parsing
-    let sqlTables: string[] = []; // these are used which models should be compiled sql
-    currAnd1HopTables = Array.from(new Set(currAnd1HopTables));
-    const currTables = new Set(targets.map((t) => t[0]));
-    if (upstreamExpansion) {
-      const hop1Tables = currAnd1HopTables.filter((t) => !currTables.has(t));
-      upstream_models = [...hop1Tables];
-      sqlTables = [...hop1Tables];
-      auxiliaryTables = DBTProject.getNonEphemeralParents(event, hop1Tables);
-    } else {
-      auxiliaryTables = DBTProject.getNonEphemeralParents(
-        event,
-        Array.from(currTables),
-      );
-      sqlTables = Array.from(currTables);
-    }
-    currAnd1HopTables = Array.from(new Set(currAnd1HopTables));
-    const modelsToFetch = Array.from(
-      new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
-    );
-    // using artifacts(mappedCompiledSql) from getNodesWithDBColumns as optimization
-    const { mappedNode, relationsWithoutColumns, mappedCompiledSql } =
-      await project.getNodesWithDBColumns(
-        event,
-        modelsToFetch,
-        this.cancellationTokenSource!.token,
-      );
-
-    const selected_column = {
-      model_node: mappedNode[selectedColumn.table],
-      column: selectedColumn.name,
-    };
-
-    if (this.cancellationTokenSource?.token.isCancellationRequested) {
-      return { column_lineage: [] };
-    }
-
-    const modelsToCompile = modelsToFetch.filter((key) => {
-      if (!sqlTables.includes(key)) {
-        return false;
-      }
-      const nodeType = key.split(".")[0];
-      if (!canCompileSQL(nodeType)) {
-        return false;
-      }
-      return true;
-    });
-    const bulkCompiledSql = await project.getBulkCompiledSql(
-      event,
-      modelsToCompile.filter((m) => !mappedCompiledSql[m]),
-    );
-    for (const key of modelsToFetch) {
-      const node = mappedNode[key];
-      if (!node) {
-        continue;
-      }
-      if (modelsToCompile.includes(key)) {
-        // rawSql only for debuging propose in backend
-        let rawSql: string = "";
-        if (node.path) {
-          try {
-            rawSql = (
-              await workspace.fs.readFile(Uri.file(node.path))
-            ).toString();
-          } catch (e) {
-            this.terminal.warn(
-              "readRawSql",
-              `Unable to read raw sql file ${node.path}`,
-            );
-          }
-        }
-        modelInfos.push({
-          model_node: node,
-          compiled_sql: mappedCompiledSql[key] || bulkCompiledSql[key],
-          raw_sql: rawSql,
-        });
-      } else {
-        modelInfos.push({ model_node: node });
-      }
-    }
-
-    if (relationsWithoutColumns.length !== 0) {
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "Failed to fetch columns for " +
-            relationsWithoutColumns.join(", ") +
-            ". Probably the dbt models are not yet materialized.",
-        ),
-      );
-      // we still show the lineage for the rest of the models whose
-      // schemas we could get so not returning here
-    }
-
-    const targetTables = Array.from(new Set(targets.map((t) => t[0])));
-    // targets should not empty
-    if (targets.length === 0 || modelInfos.length < targetTables.length) {
-      this.telemetry.sendTelemetryError("columnLineageLogicError", {
-        targets,
-        modelInfos,
-        upstreamExpansion,
-        currAnd1HopTables,
-        selectedColumn,
-      });
-      return { column_lineage: [] };
-    }
-
-    // the case where upstream/downstream only has ephemeral models
-    if (modelInfos.length === targetTables.length) {
-      return { column_lineage: [] };
-    }
-    const models = modelInfos.map((m) => m.model_node.uniqueId);
-    const hasAllModels = targets.every((t) => models.includes(t[0]));
-    if (!hasAllModels) {
-      // most probably error message is already shown in above checks
-      return { column_lineage: [] };
-    }
-
-    const modelDialect = project.getAdapterType();
-    try {
-      if (this.cancellationTokenSource?.token.isCancellationRequested) {
-        return { column_lineage: [] };
-      }
-      const sessionId = `${env.sessionId}-${selectedColumn.table}-${selectedColumn.name}`;
-      const request = {
-        model_dialect: modelDialect,
-        model_info: modelInfos,
-        upstream_expansion: upstreamExpansion,
-        targets: targets.map((t) => ({ uniqueId: t[0], column_name: t[1] })),
-        selected_column: selected_column!,
-        upstream_models,
-        session_id: sessionId,
-        show_indirect_edges: showIndirectEdges,
-        event_type: "column_lineage",
-      };
-      this.terminal.debug(
-        "newLineagePanel:getConnectedColumns",
-        "request",
-        request,
-      );
-      const startTime = Date.now();
-      const result = await this.altimate.getColumnLevelLineage(request);
-      const apiTime = Date.now() - startTime;
-      this.terminal.debug(
-        "newLineagePanel:getConnectedColumns",
-        "response",
-        result,
-      );
-      this.telemetry.sendTelemetryEvent("columnLineageTimes", {
-        apiTime: apiTime.toString(),
-        modelInfosLength: modelInfos.length.toString(),
-      });
-      console.log("lineageTimings:", {
-        apiTime: apiTime.toString(),
-        modelInfosLength: modelInfos.length.toString(),
-      });
-      if (!result.errors_dict && result.errors && result.errors.length > 0) {
-        window.showErrorMessage(
-          extendErrorWithSupportLinks(result.errors.join("\n")),
-        );
-        this.telemetry.sendTelemetryError("columnLineageApiError", {
-          errors: result.errors,
-        });
-      }
-      const column_lineage =
-        result.column_lineage.map((c) => ({
-          source: [c.source.uniqueId, c.source.column_name],
-          target: [c.target.uniqueId, c.target.column_name],
-          type: c.type,
-          viewsType: c.views_type,
-          viewsCode: c.views_code,
-        })) || [];
-      return {
-        column_lineage,
-        confindence: result.confidence,
-        errors: result.errors_dict,
-      };
-    } catch (error) {
-      if (error instanceof AbortError) {
-        window.showErrorMessage(
-          extendErrorWithSupportLinks(
-            "Fetching column level lineage timed out.",
-          ),
-        );
-        this.telemetry.sendTelemetryError(
-          "columnLevelLineageRequestTimeout",
-          error,
-        );
-        return;
-      }
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "Could not generate column level lineage: " +
-            (error as Error).message,
-        ),
-      );
-      this.telemetry.sendTelemetryError("ColumnLevelLineageError", error);
-      return;
-    }
   }
 
   private getEvent(): ManifestCacheProjectAddedEvent | undefined {
