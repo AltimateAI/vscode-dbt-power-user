@@ -59,15 +59,12 @@ class DerivedCancellationTokenSource extends CancellationTokenSource {
 export class DbtLineageService {
   private cllProgressResolve: () => void = () => {};
 
-  public constructor() {}
-  // @ts-ignore
-  private altimateRequest: AltimateRequest;
-  // @ts-ignore
-  protected telemetry: TelemetryService;
-  // @ts-ignore
-  private dbtTerminal: DBTTerminal;
-  // @ts-ignore
-  private queryManifestService: QueryManifestService;
+  public constructor(
+    private altimateRequest: AltimateRequest,
+    protected telemetry: TelemetryService,
+    private dbtTerminal: DBTTerminal,
+    private queryManifestService: QueryManifestService,
+  ) {}
 
   async handleColumnLineage(
     { event }: { event: CllEvents },
@@ -109,7 +106,15 @@ export class DbtLineageService {
     }
   }
 
-  public getConnectedTables(
+  getUpstreamTables({ table }: { table: string }) {
+    return { tables: this.getConnectedTables("children", table) };
+  }
+
+  getDownstreamTables({ table }: { table: string }) {
+    return { tables: this.getConnectedTables("parents", table) };
+  }
+
+  private getConnectedTables(
     key: keyof GraphMetaMap,
     table: string,
   ): Table[] | undefined {
@@ -142,7 +147,7 @@ export class DbtLineageService {
     );
   }
 
-  createTable(
+  private createTable(
     event: ManifestCacheProjectAddedEvent,
     tableUrl: string | undefined,
     key: string,

@@ -154,7 +154,7 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
     if (command === "upstreamTables") {
-      const body = await this.getUpstreamTables(params);
+      const body = this.dbtLineageService.getUpstreamTables(params);
       this._panel?.webview.postMessage({
         command: "response",
         args: { id, body, status: true },
@@ -163,7 +163,7 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     if (command === "downstreamTables") {
-      const body = await this.getDownstreamTables(params);
+      const body = this.dbtLineageService.getDownstreamTables(params);
       this._panel?.webview.postMessage({
         command: "response",
         args: { id, body, status: true },
@@ -739,137 +739,6 @@ export class NewLineagePanel implements LineagePanelView {
       this.telemetry.sendTelemetryError("ColumnLevelLineageError", error);
       return;
     }
-  }
-
-  private getConnectedTables(
-    key: keyof GraphMetaMap,
-    table: string,
-  ): Table[] | undefined {
-    const event = this.getEvent();
-    if (!event) {
-      return;
-    }
-    const { graphMetaMap } = event;
-    const dependencyNodes = graphMetaMap[key];
-    const node = dependencyNodes.get(table);
-    if (!node) {
-      return;
-    }
-    const tables: Map<string, Table> = new Map();
-    node.nodes.forEach(({ url, key }) => {
-      const _node = this.dbtLineageService.createTable(event, url, key);
-      if (!_node) {
-        return;
-      }
-      if (!tables.has(_node.table)) {
-        tables.set(_node.table, _node);
-      }
-    });
-    return Array.from(tables.values()).sort((a, b) =>
-      a.table.localeCompare(b.table),
-    );
-  }
-
-  private createTable(
-    event: ManifestCacheProjectAddedEvent,
-    tableUrl: string | undefined,
-    key: string,
-  ): Table | undefined {
-    const splits = key.split(".");
-    const nodeType = splits[0];
-    const { graphMetaMap, testMetaMap } = event;
-    const upstreamCount = this.getConnectedNodeCount(
-      graphMetaMap["children"],
-      key,
-    );
-    const downstreamCount = this.getConnectedNodeCount(
-      graphMetaMap["parents"],
-      key,
-    );
-    if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
-      const { sourceMetaMap } = event;
-      const schema = splits[2];
-      const table = splits[3];
-      const _node = sourceMetaMap.get(schema);
-      if (!_node) {
-        return;
-      }
-      const _table = _node.tables.find((t) => t.name === table);
-      if (!_table) {
-        return;
-      }
-      return {
-        table: key,
-        label: table,
-        url: tableUrl,
-        upstreamCount,
-        downstreamCount,
-        nodeType,
-        isExternalProject: _node.is_external_project,
-        tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
-          const testKey = n.label.split(".")[0];
-          return { ...testMetaMap.get(testKey), key: testKey };
-        }),
-      };
-    }
-    if (nodeType === DBTProject.RESOURCE_TYPE_METRIC) {
-      return {
-        table: key,
-        label: splits[2],
-        url: tableUrl,
-        upstreamCount,
-        downstreamCount,
-        nodeType,
-        materialization: undefined,
-        tests: [],
-        isExternalProject: false,
-      };
-    }
-    const { nodeMetaMap } = event;
-
-    const table = splits[2];
-    if (nodeType === DBTProject.RESOURCE_TYPE_EXPOSURE) {
-      return {
-        table: key,
-        label: table,
-        url: tableUrl,
-        upstreamCount,
-        downstreamCount,
-        nodeType,
-        materialization: undefined,
-        tests: [],
-        isExternalProject: false,
-      };
-    }
-
-    const node = nodeMetaMap.lookupByUniqueId(key);
-    if (!node) {
-      return;
-    }
-
-    const materialization = node.config.materialized;
-    return {
-      table: key,
-      label: node.alias,
-      url: tableUrl,
-      upstreamCount,
-      downstreamCount,
-      isExternalProject: node.is_external_project,
-      nodeType,
-      materialization,
-      tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
-        const testKey = n.label.split(".")[0];
-        return { ...testMetaMap.get(testKey), key: testKey };
-      }),
-    };
-  }
-
-  private getUpstreamTables({ table }: { table: string }) {
-    return { tables: this.getConnectedTables("children", table) };
-  }
-
-  private getDownstreamTables({ table }: { table: string }) {
-    return { tables: this.getConnectedTables("parents", table) };
   }
 
   private getEvent(): ManifestCacheProjectAddedEvent | undefined {

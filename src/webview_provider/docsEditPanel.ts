@@ -666,8 +666,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
           case "getDownstreamColumns": {
             const targets = params.targets as [string, string][];
             const _tables = targets
-              .map((t) =>
-                this.dbtLineageService.getConnectedTables("parents", t[0]),
+              .map(
+                (t) =>
+                  this.dbtLineageService.getDownstreamTables({ table: t[0] })
+                    ?.tables,
               )
               .filter((t) => Boolean(t))
               .flat() as Table[];
