@@ -760,10 +760,6 @@ export class NewLineagePanel implements LineagePanelView {
     return event;
   }
 
-  private getConnectedNodeCount(g: NodeGraphMap, key: string) {
-    return g.get(key)?.nodes.length || 0;
-  }
-
   private getFilename() {
     return path.basename(window.activeTextEditor!.document.fileName, ".sql");
   }
@@ -803,7 +799,7 @@ export class NewLineagePanel implements LineagePanelView {
         missingLineageMessage: this.getMissingLineageMessage(),
       };
     }
-    const { nodeMetaMap, graphMetaMap, testMetaMap } = event;
+    const { nodeMetaMap } = event;
     const tableName = this.getFilename();
     const _node = nodeMetaMap.lookupByBaseName(tableName);
     if (!_node) {
@@ -813,30 +809,8 @@ export class NewLineagePanel implements LineagePanelView {
       };
     }
     const key = _node.uniqueId;
-    const nodeType = key.split(".")[0];
-    const downstreamCount = this.getConnectedNodeCount(
-      graphMetaMap["parents"],
-      key,
-    );
-    const upstreamCount = this.getConnectedNodeCount(
-      graphMetaMap["children"],
-      key,
-    );
-    const materialization = _node.config.materialized;
-    const node = {
-      table: key,
-      label: tableName,
-      url: window.activeTextEditor!.document.uri.path,
-      upstreamCount,
-      downstreamCount,
-      nodeType,
-      materialization,
-      isExternalProject: _node.is_external_project,
-      tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
-        const testKey = n.label.split(".")[0];
-        return { ...testMetaMap.get(testKey), key: testKey };
-      }),
-    };
+    const url = window.activeTextEditor!.document.uri.path;
+    const node = this.dbtLineageService.createTable(event, url, key);
     return { node, aiEnabled };
   }
 

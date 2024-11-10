@@ -147,7 +147,7 @@ export class DbtLineageService {
     );
   }
 
-  private createTable(
+  createTable(
     event: ManifestCacheProjectAddedEvent,
     tableUrl: string | undefined,
     key: string,
