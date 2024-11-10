@@ -245,13 +245,15 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
       const fileName = path.parse(
         window.activeTextEditor!.document.fileName,
       ).name;
-      const currentNodeByFileName =
-        event.nodeMetaMap.lookupByBaseName(fileName);
+      // Try content-based lookup first
       const currentNodeByFileContent = event.nodeMetaMap.lookupByBaseName(
         getModelNameInActiveEditor(),
       );
+      // Fall back to filename-based lookup
+      const currentNode =
+        currentNodeByFileContent ??
+        event.nodeMetaMap.lookupByBaseName(fileName);
 
-      const currentNode = currentNodeByFileContent || currentNodeByFileName;
       if (currentNode === undefined) {
         return Promise.resolve([]);
       }
