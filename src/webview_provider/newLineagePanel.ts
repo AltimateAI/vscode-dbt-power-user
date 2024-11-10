@@ -32,7 +32,6 @@ import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { AbortError } from "node-fetch";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { LineageService } from "../services/lineageService";
 import { DbtLineageService } from "../services/dbtLineageService";
 
 type Table = {
@@ -80,7 +79,6 @@ export class NewLineagePanel implements LineagePanelView {
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
-    private lineageService: LineageService,
     private altimate: AltimateRequest,
     private telemetry: TelemetryService,
     private terminal: DBTTerminal,

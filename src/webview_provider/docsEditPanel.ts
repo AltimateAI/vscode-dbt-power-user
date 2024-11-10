@@ -50,10 +50,9 @@ import {
 import { DbtTestService } from "../services/dbtTestService";
 import { gte } from "semver";
 import { TelemetryEvents } from "../telemetry/events";
-import { LineageService, Table } from "../services/lineageService";
 import { SendMessageProps } from "./altimateWebviewProvider";
 import { CllEvents } from "./newLineagePanel";
-import { DbtLineageService } from "../services/dbtLineageService";
+import { DbtLineageService, Table } from "../services/dbtLineageService";
 
 export enum Source {
   YAML = "YAML",
@@ -107,8 +106,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private _disposables: Disposable[] = [];
   private onMessageDisposable: Disposable | undefined;
-  // @ts-ignore
-  private lineageService: LineageService;
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -658,7 +655,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             });
             break;
           case "columnLineageBase": {
-            this.lineageService.handleColumnLineage(params, () => {
+            this.dbtLineageService.handleColumnLineage(params, () => {
               this._panel?.webview.postMessage({
                 command: "columnLineage",
                 args: { event: CllEvents.CANCEL },
@@ -670,7 +667,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             const targets = params.targets as [string, string][];
             const _tables = targets
               .map((t) =>
-                this.lineageService.getConnectedTables("parents", t[0]),
+                this.dbtLineageService.getConnectedTables("parents", t[0]),
               )
               .filter((t) => Boolean(t))
               .flat() as Table[];
@@ -688,7 +685,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               name: params.column as string,
             };
             const currAnd1HopTables = [...tables, ...targets.map((t) => t[0])];
-            const columns = await this.lineageService.getConnectedColumns({
+            const columns = await this.dbtLineageService.getConnectedColumns({
               targets,
               currAnd1HopTables,
               selectedColumn,
