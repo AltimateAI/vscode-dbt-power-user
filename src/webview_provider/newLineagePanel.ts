@@ -1,12 +1,9 @@
-import { readFileSync, writeFileSync } from "fs";
 import * as path from "path";
 import {
-  CancellationToken,
   ColorThemeKind,
   commands,
   ProgressLocation,
   TextEditor,
-  Uri,
   Webview,
   window,
   workspace,
@@ -449,25 +446,6 @@ export class NewLineagePanel
         }))
         .sort((a, b) => a.name.localeCompare(b.name)),
     };
-  }
-
-  private getEvent(): ManifestCacheProjectAddedEvent | undefined {
-    if (window.activeTextEditor === undefined || this.eventMap === undefined) {
-      return;
-    }
-
-    const currentFilePath = window.activeTextEditor.document.uri;
-    const projectRootpath =
-      this.dbtProjectContainer.getProjectRootpath(currentFilePath);
-    if (projectRootpath === undefined) {
-      return;
-    }
-
-    const event = this.eventMap.get(projectRootpath.fsPath);
-    if (event === undefined) {
-      return;
-    }
-    return event;
   }
 
   private getFilename() {
