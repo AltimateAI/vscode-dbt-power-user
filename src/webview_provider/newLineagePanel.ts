@@ -32,6 +32,8 @@ import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { AbortError } from "node-fetch";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { LineageService } from "../services/lineageService";
+import { DbtLineageService } from "../services/dummyService";
 
 type Table = {
   label: string;
@@ -78,9 +80,11 @@ export class NewLineagePanel implements LineagePanelView {
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
+    private lineageService: LineageService,
     private altimate: AltimateRequest,
     private telemetry: TelemetryService,
     private terminal: DBTTerminal,
+    private dbtLineageService: DbtLineageService,
   ) {}
 
   public changedActiveTextEditor(event: TextEditor | undefined) {
@@ -755,7 +759,7 @@ export class NewLineagePanel implements LineagePanelView {
     }
     const tables: Map<string, Table> = new Map();
     node.nodes.forEach(({ url, key }) => {
-      const _node = this.createTable(event, url, key);
+      const _node = this.dbtLineageService.createTable(event, url, key);
       if (!_node) {
         return;
       }

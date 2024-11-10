@@ -21,7 +21,6 @@ import {
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { ModelInfo } from "../altimate";
 import { AbortError } from "node-fetch";
-import { provide } from "inversify-binding-decorators";
 
 const CAN_COMPILE_SQL_NODE = [
   DBTProject.RESOURCE_TYPE_MODEL,
@@ -56,8 +55,8 @@ class DerivedCancellationTokenSource extends CancellationTokenSource {
   }
 }
 
-@provide(LineageService)
-export class LineageService {
+@provideSingleton(DbtLineageService)
+export class DbtLineageService {
   private cllProgressResolve: () => void = () => {};
 
   public constructor() {}

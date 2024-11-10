@@ -53,6 +53,7 @@ import { TelemetryEvents } from "../telemetry/events";
 import { LineageService, Table } from "../services/lineageService";
 import { SendMessageProps } from "./altimateWebviewProvider";
 import { CllEvents } from "./newLineagePanel";
+import { DbtLineageService } from "../services/dummyService";
 
 export enum Source {
   YAML = "YAML",
@@ -106,6 +107,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private _disposables: Disposable[] = [];
   private onMessageDisposable: Disposable | undefined;
+  // @ts-ignore
+  private lineageService: LineageService;
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -115,7 +118,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     private docGenService: DocGenService,
     private dbtTestService: DbtTestService,
     private terminal: DBTTerminal,
-    private lineageService: LineageService,
+    private dbtLineageService: DbtLineageService,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
@@ -655,7 +658,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             });
             break;
           case "columnLineageBase": {
-            // @ts-ignore
             this.lineageService.handleColumnLineage(params, () => {
               this._panel?.webview.postMessage({
                 command: "columnLineage",
