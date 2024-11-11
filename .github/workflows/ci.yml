@@ -37,6 +37,16 @@ jobs:
           fi
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+      - name: Send Slack notification
+        if: ${{ always() && (failure() || cancelled()) }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: "Release to vsstudio-marketplace: ${{ job.status == 'success' && 'succeeded' || 'failed' }} :${{ job.status == 'success' && 'tada' || 'disappointed' }}:"
+  
   release-openvsx-marketplace:
     runs-on: ubuntu-latest
     if: success() && startsWith( github.ref, 'refs/tags/')
@@ -54,3 +64,13 @@ jobs:
           fi
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
+
+      - name: Send Slack notification
+        if: ${{ always() && (failure() || cancelled()) }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: "Release to openvsx-marketplace: ${{ job.status == 'success' && 'succeeded' || 'failed' }} :${{ job.status == 'success' && 'tada' || 'disappointed' }}:"
+  
