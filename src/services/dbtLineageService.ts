@@ -463,7 +463,7 @@ export class DbtLineageService {
         })) || [];
       return {
         column_lineage,
-        confindence: result.confidence,
+        confidence: result.confidence,
         errors: result.errors_dict,
       };
     } catch (error) {
