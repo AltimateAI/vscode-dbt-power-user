@@ -39,13 +39,13 @@ jobs:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
       - name: Send Slack notification
-        if: ${{ always() && (failure() || cancelled()) }}
+        if: ${{ always() }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
-          text: "Release to vsstudio-marketplace: ${{ job.status == 'success' && 'succeeded' || 'failed' }} :${{ job.status == 'success' && 'tada' || 'disappointed' }}:"
+          text: "Tag: ${{  github.ref_name }} release to Visual Studio Marketplace status: ${{ job.status == 'success' && 'succeeded' || 'failed' }} :${{ job.status == 'success' && 'tada' || 'disappointed' }}:"
   
   release-openvsx-marketplace:
     runs-on: ubuntu-latest
@@ -66,11 +66,11 @@ jobs:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
 
       - name: Send Slack notification
-        if: ${{ always() && (failure() || cancelled()) }}
+        if: ${{ always() }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
-          text: "Release to openvsx-marketplace: ${{ job.status == 'success' && 'succeeded' || 'failed' }} :${{ job.status == 'success' && 'tada' || 'disappointed' }}:"
+          text: "Tag: ${{  github.ref_name }} release to openvsx marketplace status: ${{ job.status == 'success' && 'succeeded' || 'failed' }} :${{ job.status == 'success' && 'tada' || 'disappointed' }}:"
   
