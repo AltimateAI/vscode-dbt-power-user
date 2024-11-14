@@ -299,31 +299,29 @@ export declare interface ProjectGovernorCheck {
     type: ProjectGovernorCheckTypes;
     description: string;
     files_required: ProjectGovernorAllowedFiles[];
+    config?: Record<string, unknown>;
 }
 
 export declare interface ProjectGovernorCheckConfirmationResponse {
     ok: boolean;
+    frontend_url: string;
 }
 
 export declare interface ProjectGovernorCheckFormValues {
-    content: string;
-    type: ProjectGovernorCheckTypes;
+    description: string;
+    category: ProjectGovernorCheckTypes;
 }
 
 export declare enum ProjectGovernorCheckTypes {
-    Modelling = "Modelling",
-    Governance = "governance",
-    Performance = "Performance",
-    Test = "Test",
-    Structure = "structure",
-    Checks = "Checks"
+    DOCUMENTATION = "documentation",
+    TESTS = "tests",
+    MODEL = "model",
+    FILE_STRUCTURE = "file_structure"
 }
 
 export declare interface ProjectGovernorCheckValidateResponse {
-    ai_response: string;
-    category: string;
-    personalizationScope: string;
-    type: ProjectGovernorCheckTypes;
+    name: string;
+    description: string;
 }
 
 declare interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
