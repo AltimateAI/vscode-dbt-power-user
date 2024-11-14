@@ -293,24 +293,40 @@ export declare enum ProjectGovernorAllowedFiles {
     Catalog = "Catalog"
 }
 
-export declare interface ProjectGovernorCheck {
-    name: string;
-    alias: string;
-    type: ProjectGovernorCheckTypes;
-    description: string;
-    files_required: ProjectGovernorAllowedFiles[];
-    config?: Record<string, unknown>;
+export declare interface ProjectGovernorCheck extends z.infer<typeof ProjectGovernorCheckSchema> {
 }
 
 export declare interface ProjectGovernorCheckConfirmationResponse {
     ok: boolean;
-    frontend_url: string;
 }
 
 export declare interface ProjectGovernorCheckFormValues {
     description: string;
-    category: ProjectGovernorCheckTypes;
+    type: ProjectGovernorCheckTypes;
 }
+
+export declare const ProjectGovernorCheckSchema: z.ZodObject<{
+    name: z.ZodString;
+    alias: z.ZodString;
+    type: z.ZodEnum<[string, ...string[]]>;
+    description: z.ZodString;
+    files_required: z.ZodArray<z.ZodEnum<[string, ...string[]]>, "many">;
+    config: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+}, "strip", z.ZodTypeAny, {
+    type: string;
+    name: string;
+    description: string;
+    alias: string;
+    files_required: string[];
+    config: Record<string, unknown>;
+}, {
+    type: string;
+    name: string;
+    description: string;
+    alias: string;
+    files_required: string[];
+    config: Record<string, unknown>;
+}>;
 
 export declare enum ProjectGovernorCheckTypes {
     DOCUMENTATION = "documentation",

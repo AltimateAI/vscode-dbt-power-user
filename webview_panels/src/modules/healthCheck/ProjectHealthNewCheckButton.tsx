@@ -1,10 +1,10 @@
 import {
   CoachForm,
-  ProjectGovernorCheckConfirmationResponse,
   TaskLabels,
   TeammateActions,
   useTeamMateContext,
 } from "@lib";
+import useAppContext from "@modules/app/useAppContext";
 import { vscode } from "@modules/vscode";
 import { Drawer, DrawerRef } from "@uicore";
 import { useRef } from "react";
@@ -18,10 +18,17 @@ const ProjectHealthNewCheckButton = ({
 }): JSX.Element | null => {
   const drawerRef = useRef<DrawerRef>(null);
   const { dispatch } = useTeamMateContext();
+  const {
+    state: {
+      tenantInfo: { frontendUrl, teammatesEnabled },
+    },
+  } = useAppContext();
 
   const onOpen = () => {
     dispatch(TeammateActions.setShowCoachingForm(true));
   };
+
+  if (!teammatesEnabled) return null;
 
   return (
     <Drawer
@@ -33,12 +40,12 @@ const ProjectHealthNewCheckButton = ({
       <CoachForm
         taskLabel={TaskLabels.ProjectGovernor}
         context={context}
-        onClose={(data?: ProjectGovernorCheckConfirmationResponse) => {
+        onClose={() => {
           drawerRef.current?.close();
-          if (data?.frontend_url)
+          if (frontendUrl)
             vscode.postMessage({
               command: "openURL",
-              url: `${data.frontend_url}/teammates/${TaskLabels.ProjectGovernor}`,
+              url: `${frontendUrl}/teammates/${TaskLabels.ProjectGovernor}`,
             });
         }}
         extra={extra}
