@@ -8,7 +8,6 @@ import {
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
 import { ColumnLineage } from "@lib";
-import { panelLogger } from "@modules/logger";
 import styles from "./styles.module.scss";
 
 interface Props {
@@ -141,14 +140,15 @@ export const DocumentationPropagationButton = ({
       ? defaultPackageName + "://models/schema.yml"
       : "";
 
+    const req = [];
+
     for (const item of allColumns) {
       const key = item.model + "/" + item.column;
       if (!selectedColumns[key]) continue;
       const splits = item.model.split(".");
       const modelName = splits[splits.length - 1];
       const node = tableMetadata.find((t) => t.table === item.model);
-
-      const result = (await executeRequestInSync("saveDocumentation", {
+      req.push({
         name: modelName,
         description: node?.description,
         columns: [{ name: item.column, description: currColumnDescription }],
@@ -157,11 +157,10 @@ export const DocumentationPropagationButton = ({
         patchPath: node?.patchPath || defaultPatchPath,
         filePath: node?.url,
         updatedTests: testsMetadata[item.model],
-      })) as { saved: boolean };
-      if (!result.saved) {
-        panelLogger.error("Unable to save documentation", item);
-      }
+      });
     }
+
+    await executeRequestInSync("saveDocumentationBulk", { models: req });
   };
 
   const setAllColumnsValue = (value: boolean) => {

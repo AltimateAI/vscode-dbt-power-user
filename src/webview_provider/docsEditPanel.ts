@@ -734,6 +734,24 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               () => this.saveDocumentation(message, syncRequestId),
             );
             break;
+          case "saveDocumentationBulk": {
+            this.telemetry.sendTelemetryEvent(
+              TelemetryEvents["DocumentationEditor/SaveClick"],
+            );
+            window.withProgress(
+              {
+                title: "Saving documentation",
+                location: ProgressLocation.Notification,
+                cancellable: false,
+              },
+              async () => {
+                for (const item of message.models) {
+                  await this.saveDocumentation(item, syncRequestId);
+                }
+              },
+            );
+            break;
+          }
         }
       },
       null,
