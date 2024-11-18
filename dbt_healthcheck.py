@@ -1,5 +1,7 @@
+from typing import Optional
+
 def project_healthcheck(
-    manifest_path, catalog_path=None, config_path=None, config=None
+    manifest_path, catalog_path=None, config_path=None, config=None, token=None, tenant=None, backend_url: Optional[str] = None,
 ):
     try:
         import logging
@@ -20,6 +22,9 @@ def project_healthcheck(
             manifest=manifest,
             catalog=catalog,
             config=config,
+            token=token,
+            tenant=tenant,
+            backend_url=backend_url,
         )
         reports = insight_generator.run()
 

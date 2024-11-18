@@ -334,7 +334,7 @@ export interface ConversationGroup {
 
 @provideSingleton(AltimateRequest)
 export class AltimateRequest {
-  private static ALTIMATE_URL = workspace
+  public static ALTIMATE_URL = workspace
     .getConfiguration("dbt")
     .get<string>("altimateUrl", "https://api.myaltimate.com");
 
