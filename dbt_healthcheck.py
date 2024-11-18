@@ -10,7 +10,7 @@ def project_healthcheck(
         from datapilot.config.config import load_config
         from datapilot.core.platforms.dbt.utils import load_catalog
         from datapilot.core.platforms.dbt.utils import load_manifest
-        from datapilot.core.platforms.dbt.constants import MODEL
+        from datapilot.core.platforms.dbt.constants import MODEL, LLM
         from datapilot.core.platforms.dbt.executor import DBTInsightGenerator
 
         logging.basicConfig(level=logging.INFO)
@@ -23,7 +23,7 @@ def project_healthcheck(
             catalog=catalog,
             config=config,
             token=token,
-            tenant=tenant,
+            instance_name=tenant,
             backend_url=backend_url,
         )
         reports = insight_generator.run()
@@ -33,6 +33,22 @@ def project_healthcheck(
             k: [json.loads(item.json()) for item in v]
             for k, v in reports[MODEL].items()
         }
-        return {"model_insights": model_insights}
+
+        llm_reports = reports[LLM]
+        llm_insights = {}
+        for report in llm_reports:
+            location = report["answer"]["Location"]
+            if location not in llm_insights:
+                llm_insights[location] = []
+            llm_insights[location].append(
+                {
+                    "name": report["name"],
+                    "rule": report["answer"]["Rule"],
+                    "issue": report["answer"]["Issue"],
+                    "fix": report["answer"]["Fix"],
+                }
+            )
+
+        return {"model_insights": model_insights, "llm_insights": llm_insights}
     except Exception as e:
         raise Exception(str(e))
