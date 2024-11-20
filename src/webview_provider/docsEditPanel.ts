@@ -668,6 +668,20 @@ export class DocsEditViewPanel implements WebviewViewProvider {
           }
           case "getDownstreamColumns": {
             const targets = params.targets as [string, string][];
+            const testsResult = await Promise.all(
+              targets.map(async (t) => {
+                if (!t[0].startsWith("model")) {
+                  return;
+                }
+                const splits = t[0].split(".");
+                const modelName = splits[splits.length - 1];
+                return await this.dbtTestService.getTestsForModel(modelName);
+              }),
+            );
+            const tests: Record<string, unknown> = {};
+            targets.forEach((t, i) => {
+              tests[t[0]] = testsResult[i];
+            });
             const _tables = targets
               .map(
                 (t) =>
@@ -680,7 +694,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             if (tables.length === 0) {
               this.handleSyncRequestFromWebview(
                 syncRequestId,
-                () => ({}),
+                () => ({ column_lineage: [], tables: [], tests }),
                 command,
               );
               return;
@@ -697,20 +711,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               upstreamExpansion: false,
               showIndirectEdges: false,
               eventType: "documentation_propagation",
-            });
-            const testsResult = await Promise.all(
-              targets.map(async (t) => {
-                if (!t[0].startsWith("model")) {
-                  return;
-                }
-                const splits = t[0].split(".");
-                const modelName = splits[splits.length - 1];
-                return await this.dbtTestService.getTestsForModel(modelName);
-              }),
-            );
-            const tests: Record<string, unknown> = {};
-            targets.forEach((t, i) => {
-              tests[t[0]] = testsResult[i];
             });
             this.handleSyncRequestFromWebview(
               syncRequestId,

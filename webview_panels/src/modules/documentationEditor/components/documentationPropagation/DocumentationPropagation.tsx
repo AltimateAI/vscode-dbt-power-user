@@ -89,11 +89,15 @@ export const DocumentationPropagationButton = ({
         model: currentDocsData?.uniqueId,
         column: name,
       })) as DownstreamColumns;
-      if (!result.column_lineage || result.column_lineage.length === 0) {
+      if (!result.column_lineage) {
         break;
       }
       setTableMetadata((prev) => [...prev, ...result.tables]);
       setTestsMetadata((prev) => ({ ...prev, ...result.tests }));
+      if (result.column_lineage.length === 0) {
+        iCurrColumns = [];
+        break;
+      }
       const newColumns: DocsItem[] = [];
       for (const item of result.column_lineage) {
         if (item.type === "indirect") continue;
