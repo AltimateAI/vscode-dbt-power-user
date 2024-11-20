@@ -37,18 +37,37 @@ def project_healthcheck(
         llm_reports = reports[LLM]
         llm_insights = {}
         for report in llm_reports:
-            location = report["answer"]["Location"]
-            if location not in llm_insights:
-                llm_insights[location] = []
-            llm_insights[location].append(
-                {
-                    "name": report["name"],
-                    "rule": report["answer"]["Rule"],
-                    "issue": report["answer"]["Issue"],
-                    "fix": report["answer"]["Fix"],
-                }
-            )
+            for answer in report["answer"]:
+                location = answer["unique_id"]
+                if location not in llm_insights:
+                    llm_insights[location] = []
+                    metadata = answer.get("metadata", {})
+                    metadata["source"] = LLM
+                llm_insights[location].append(
+                    {
+                        "insights": {
+                            "type": report["type"],
+                            "name": report["name"],
+                            "message": answer["message"],
+                            "reason_to_flag": answer["reason_to_flag"],
+                            "recommendation": answer["recommendation"],
+                            "metadata": metadata
+                        },
+                        "severity": answer["severity"],
+                        "path": answer["path"],
+                        "original_file_path": answer["original_file_path"],
+                        "package_name": answer["package_name"],
+                        "unique_id": answer["unique_id"],
+                    }
+                )
 
-        return {"model_insights": model_insights, "llm_insights": llm_insights}
+        # Combine llm_insights into model_insights
+        for key, value in llm_insights.items():
+            if key in model_insights:
+                model_insights[key].extend(value)
+            else:
+                model_insights[key] = value
+
+            return {"model_insights": model_insights}
     except Exception as e:
         raise Exception(str(e))
