@@ -266,10 +266,12 @@ declare interface LineageProviderProps {
     sqlLineage?: SqlLineage;
     staticLineage?: StaticLineage;
     theme: "dark" | "light";
-    lineageType: "static" | "dynamic" | "sql";
+    lineageType: LineageType;
     allowSyncColumnsWithDB?: boolean;
     externalSidePanel?: boolean;
 }
+
+declare type LineageType = "static" | "dynamic" | "sql";
 
 export declare const LoadingButton: ({ loading, ...rest }: Props_3) => JSX.Element;
 
@@ -294,6 +296,7 @@ export declare enum ProjectGovernorAllowedFiles {
 }
 
 export declare interface ProjectGovernorCheck extends z.infer<typeof ProjectGovernorCheckSchema> {
+    id: string;
 }
 
 export declare interface ProjectGovernorCheckConfirmationResponse {
