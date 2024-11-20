@@ -45,7 +45,7 @@ def project_healthcheck(
                     metadata["source"] = LLM
                 llm_insights[location].append(
                     {
-                        "insights": {
+                        "insight": {
                             "type": report["type"],
                             "name": report["name"],
                             "message": answer["message"],
