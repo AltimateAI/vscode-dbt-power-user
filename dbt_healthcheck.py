@@ -10,7 +10,7 @@ def project_healthcheck(
         from datapilot.config.config import load_config
         from datapilot.core.platforms.dbt.utils import load_catalog
         from datapilot.core.platforms.dbt.utils import load_manifest
-        from datapilot.core.platforms.dbt.constants import MODEL, LLM
+        from datapilot.core.platforms.dbt.constants import MODEL
         from datapilot.core.platforms.dbt.executor import DBTInsightGenerator
 
         logging.basicConfig(level=logging.INFO)
