@@ -101,7 +101,7 @@ export const DocumentationPropagationButton = ({
       const newColumns: DocsItem[] = [];
       for (const item of result.column_lineage) {
         if (item.type === "indirect") continue;
-        // if (item.viewsType !== "Unchanged") continue;
+        if (item.viewsType !== "Unchanged") continue;
         if (
           iCurrColumns.find(
             (c) => c.model === item.target[0] && c.column === item.target[1],
