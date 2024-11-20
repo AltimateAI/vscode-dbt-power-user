@@ -75,7 +75,7 @@ declare interface CoachFormProps {
     taskLabel: keyof typeof TaskLabels;
     context?: Record<string, unknown>;
     extra?: Record<string, unknown>;
-    onClose: () => void;
+    onClose: (data?: unknown) => void;
 }
 
 export declare const CodeBlock: ({ code, language, fileName, editorTheme, theme, showLineNumbers, className, titleActions, }: Props_4) => JSX.Element;

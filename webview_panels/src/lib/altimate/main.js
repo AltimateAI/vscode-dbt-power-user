@@ -25227,126 +25227,134 @@ function kw(e, t) {
 }
 Gn.toFormikValidate = kw;
 const _w = ({ check: e, refetch: t }) => {
-  const [n, o] = ce(!1), [r, i] = f4.useNotification(), {
-    errors: a,
-    isValid: l,
-    isSubmitting: s,
-    handleSubmit: u,
-    values: c,
-    handleChange: d,
-    setSubmitting: p,
-    resetForm: h
+  const [n, o] = ce(!1), [r, i] = f4.useNotification(), a = new URLSearchParams(window.location.search).get("id") === `${e.id}`, {
+    errors: l,
+    isValid: s,
+    isSubmitting: u,
+    handleSubmit: c,
+    values: d,
+    handleChange: p,
+    setSubmitting: h,
+    resetForm: m
   } = rd({
     initialValues: e,
     validationSchema: u1(yw),
-    onSubmit: async (x) => {
-      const { id: C, ...E } = x;
+    onSubmit: async (C) => {
+      const { id: E, ...w } = C;
       try {
-        await Me.post(`project_governance/check/${e.id}`, E, {
+        await Me.post(`project_governance/check/${e.id}`, w, {
           method: "PUT"
-        }), o(!1), p(!1), t();
-      } catch (w) {
+        }), o(!1), h(!1), t();
+      } catch (S) {
         r.error({
           message: "Failed to update project governance check",
-          description: w.message || w
+          description: S.message || S
         });
       }
     }
-  }), { mutate: m, loading: b } = oo({
-    queryFn: (x) => Me.post(
+  }), { mutate: b, loading: y } = oo({
+    queryFn: (C) => Me.post(
       `project_governance/check/${e.id}`,
-      { data: { check_name: x } },
+      { data: { check_name: C } },
       { method: "DELETE" }
     ),
     onSuccess: () => {
       t();
     }
-  }), y = () => {
+  }), g = () => {
     o(!0);
-  }, g = () => {
-    o(!1), h();
+  }, x = () => {
+    o(!1), m();
   };
-  return /* @__PURE__ */ f.jsxs(zt, { children: [
-    i,
-    /* @__PURE__ */ f.jsxs("form", { onSubmit: u, children: [
-      /* @__PURE__ */ f.jsxs(Io, { className: "px-3 pt-3 mb-0 d-flex justify-content-between", children: [
-        n ? /* @__PURE__ */ f.jsxs(Kn, { children: [
-          /* @__PURE__ */ f.jsx(
-            Xt,
-            {
-              name: "name",
-              value: c.name,
-              placeholder: "Project governance check name...",
-              invalid: !!a.name,
-              onChange: d
-            }
-          ),
-          a.name ? /* @__PURE__ */ f.jsx(sr, { children: a.name }) : null
-        ] }) : e.name,
-        /* @__PURE__ */ f.jsx(Ke, { className: "gap-0 align-items-center", children: n ? /* @__PURE__ */ f.jsxs(Ke, { children: [
-          /* @__PURE__ */ f.jsx(Re, { onClick: g, outline: !0, size: "sm", children: "Cancel" }),
-          /* @__PURE__ */ f.jsx(
-            In,
-            {
-              size: "sm",
-              color: "primary",
-              loading: s,
-              disabled: s || !l,
-              type: "submit",
-              children: "Save"
-            }
-          )
-        ] }) : /* @__PURE__ */ f.jsxs(f.Fragment, { children: [
-          /* @__PURE__ */ f.jsx(jn, { title: "Edit this learning", onClick: y, children: /* @__PURE__ */ f.jsx(Ad, {}) }),
-          /* @__PURE__ */ f.jsx(
-            id,
-            {
-              title: "Delete the task",
-              description: "Are you sure to delete this task?",
-              onConfirm: () => m(e.name),
-              okText: "Yes",
-              cancelText: "No",
-              children: /* @__PURE__ */ f.jsx(
+  return /* @__PURE__ */ f.jsxs(
+    zt,
+    {
+      color: a ? "primary" : "",
+      style: { borderWidth: 1 },
+      outline: !0,
+      children: [
+        i,
+        /* @__PURE__ */ f.jsxs("form", { onSubmit: c, children: [
+          /* @__PURE__ */ f.jsxs(Io, { className: "px-3 pt-3 mb-0 d-flex justify-content-between", children: [
+            n ? /* @__PURE__ */ f.jsxs(Kn, { children: [
+              /* @__PURE__ */ f.jsx(
+                Xt,
+                {
+                  name: "name",
+                  value: d.name,
+                  placeholder: "Project governance check name...",
+                  invalid: !!l.name,
+                  onChange: p
+                }
+              ),
+              l.name ? /* @__PURE__ */ f.jsx(sr, { children: l.name }) : null
+            ] }) : e.name,
+            /* @__PURE__ */ f.jsx(Ke, { className: "gap-0 align-items-center", children: n ? /* @__PURE__ */ f.jsxs(Ke, { children: [
+              /* @__PURE__ */ f.jsx(Re, { onClick: x, outline: !0, size: "sm", children: "Cancel" }),
+              /* @__PURE__ */ f.jsx(
                 In,
                 {
-                  title: "Delete check",
-                  color: "link",
-                  className: "py-0 px-1",
-                  loading: b,
-                  children: /* @__PURE__ */ f.jsx(pc, {})
+                  size: "sm",
+                  color: "primary",
+                  loading: u,
+                  disabled: u || !s,
+                  type: "submit",
+                  children: "Save"
                 }
               )
-            }
-          )
-        ] }) })
-      ] }),
-      /* @__PURE__ */ f.jsxs(dn, { children: [
-        /* @__PURE__ */ f.jsx("p", { children: n ? /* @__PURE__ */ f.jsxs(Kn, { children: [
-          /* @__PURE__ */ f.jsx(
-            Xt,
-            {
-              name: "description",
-              value: c.description,
-              type: "textarea",
-              placeholder: "Describe the project governance check...",
-              invalid: !!a.description,
-              onChange: d,
-              style: { fieldSizing: "content" }
-            }
-          ),
-          a.description ? /* @__PURE__ */ f.jsx(sr, { children: a.description }) : null
-        ] }) : e.description }),
-        /* @__PURE__ */ f.jsxs("p", { children: [
-          "Type: ",
-          e.type
-        ] }),
-        /* @__PURE__ */ f.jsxs("p", { children: [
-          "Files required: ",
-          e.files_required.join(", ")
+            ] }) : /* @__PURE__ */ f.jsxs(f.Fragment, { children: [
+              /* @__PURE__ */ f.jsx(jn, { title: "Edit this learning", onClick: g, children: /* @__PURE__ */ f.jsx(Ad, {}) }),
+              /* @__PURE__ */ f.jsx(
+                id,
+                {
+                  title: "Delete the task",
+                  description: "Are you sure to delete this task?",
+                  onConfirm: () => b(e.name),
+                  okText: "Yes",
+                  cancelText: "No",
+                  children: /* @__PURE__ */ f.jsx(
+                    In,
+                    {
+                      title: "Delete check",
+                      color: "link",
+                      className: "py-0 px-1",
+                      loading: y,
+                      children: /* @__PURE__ */ f.jsx(pc, {})
+                    }
+                  )
+                }
+              )
+            ] }) })
+          ] }),
+          /* @__PURE__ */ f.jsxs(dn, { children: [
+            /* @__PURE__ */ f.jsx("p", { children: n ? /* @__PURE__ */ f.jsxs(Kn, { children: [
+              /* @__PURE__ */ f.jsx(
+                Xt,
+                {
+                  name: "description",
+                  value: d.description,
+                  type: "textarea",
+                  placeholder: "Describe the project governance check...",
+                  invalid: !!l.description,
+                  onChange: p,
+                  style: { fieldSizing: "content" }
+                }
+              ),
+              l.description ? /* @__PURE__ */ f.jsx(sr, { children: l.description }) : null
+            ] }) : e.description }),
+            /* @__PURE__ */ f.jsxs("p", { children: [
+              "Type: ",
+              e.type
+            ] }),
+            /* @__PURE__ */ f.jsxs("p", { children: [
+              "Files required: ",
+              e.files_required.join(", ")
+            ] })
+          ] })
         ] })
-      ] })
-    ] })
-  ] });
+      ]
+    }
+  );
 }, Aw = ({}) => {
   const [e, t] = ce(!1), {
     data: n,
@@ -25426,7 +25434,7 @@ const o5 = [
   {
     name: "Project Governor",
     avatar: o0,
-    description: "AI teammate to help you create checks or rules for project governance",
+    description: "AI teammate to help you create checks or rules for project governance config",
     availability: [$n.SAAS],
     key: po.ProjectGovernor,
     displayComponent: Aw,
