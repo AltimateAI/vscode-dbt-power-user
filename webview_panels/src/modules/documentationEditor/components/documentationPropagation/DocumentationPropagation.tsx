@@ -104,15 +104,15 @@ export const DocumentationPropagationButton = ({
         if (item.viewsType === "Transformation") continue;
         if (
           iCurrColumns.find(
-            (c) => c.model === item.target[0] && c.column === item.target[1],
+            (c) => c.model === item.source[0] && c.column === item.source[1],
           )
         ) {
           newColumns.push({
-            model: item.source[0],
-            column: item.source[1],
+            model: item.target[0],
+            column: item.target[1],
             description:
-              result.tables.find((t) => t.table === item.source[0])?.columns[
-                item.source[1]
+              result.tables.find((t) => t.table === item.target[0])?.columns[
+                item.target[1]
               ]?.description ?? "",
           });
         }

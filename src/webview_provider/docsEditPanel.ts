@@ -685,7 +685,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             const _tables = targets
               .map(
                 (t) =>
-                  this.dbtLineageService.getDownstreamTables({ table: t[0] })
+                  this.dbtLineageService.getUpstreamTables({ table: t[0] })
                     ?.tables,
               )
               .filter((t) => Boolean(t))
@@ -708,7 +708,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               targets,
               currAnd1HopTables,
               selectedColumn,
-              upstreamExpansion: false,
+              upstreamExpansion: true,
               showIndirectEdges: false,
               eventType: "documentation_propagation",
             });
