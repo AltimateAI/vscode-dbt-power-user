@@ -317,7 +317,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               );
             },
             command,
-            true,
+            params.endpoint === "auth/tenant-info" ? false : true,
           );
           break;
         case "getProjectAdapterType":
