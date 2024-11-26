@@ -19,11 +19,8 @@ import {
   setUsers,
   updateTheme,
 } from "./appSlice";
-import { useLocation } from "react-router-dom";
 
 const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
-  const location = useLocation();
-
   const onMesssage = useCallback(
     (event: MessageEvent<IncomingMessageProps>) => {
       const { command, args } = event.data;
@@ -107,9 +104,7 @@ const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
 
     loadUsersDetails();
     loadCurrentUser();
-    if (location.pathname !== "/lineage") {
-      loadTenantInfo();
-    }
+    loadTenantInfo();
 
     themeObserver.observe(document.body, {
       attributes: true,
