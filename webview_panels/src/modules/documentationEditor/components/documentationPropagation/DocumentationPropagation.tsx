@@ -197,16 +197,16 @@ export const DocumentationPropagationButton = ({
     >
       <Stack direction="column" className="gap-0 mb-2">
         <div className={styles.itemRow}>
-          <div className="fw-semibold">Model:</div>
+          <div>Model:</div>
           <div>{currentDocsData?.name}</div>
         </div>
         <div className={styles.itemRow}>
-          <div className="fw-semibold">Column:</div>
+          <div>Column:</div>
           <div>{name}</div>
         </div>
         {currColumnDescription && (
-          <div className={styles.itemRow}>
-            <div className="fw-semibold">Description:</div>
+          <div className={styles.colDesc}>
+            <div>Description:</div>
             <div>{currColumnDescription}</div>
           </div>
         )}
