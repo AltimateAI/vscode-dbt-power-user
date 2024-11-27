@@ -183,6 +183,10 @@ export const DocumentationPropagationButton = ({
     return null;
   }
 
+  if (!currColumnDescription) {
+    return null;
+  }
+
   return (
     <Drawer
       buttonProps={{ color: "primary", title: "Propagate documentation" }}
