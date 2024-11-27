@@ -211,67 +211,76 @@ export const DocumentationPropagationButton = ({
           </div>
         )}
       </Stack>
-      <Stack className="mb-2">
-        <Button color="primary" onClick={() => setAllColumnsValue(true)}>
-          Select All
-        </Button>
-        <Button color="primary" onClick={() => setAllColumnsValue(false)}>
-          Unselect All
-        </Button>
-      </Stack>
-      <Stack direction="column" className="gap-md">
-        {allColumns.map((item) => {
-          const key = item.model + "/" + item.column;
-          return (
-            <Stack key={key} className={styles.itemCard}>
-              <Input
-                type="checkbox"
-                checked={selectedColumns[key]}
-                onChange={() =>
-                  setSelectedColumns((prev) => ({
-                    ...prev,
-                    [key]: !prev[key],
-                  }))
-                }
-              />
-              <Stack direction="column" className="gap-0 w-100">
-                <div className={styles.itemRow}>
-                  <div>Model:</div>
-                  <div>{item.model.split(".").pop()}</div>
-                </div>
-                <div className={styles.itemRow}>
-                  <div>Column:</div>
-                  <div>{item.column}</div>
-                </div>
-                <div className={styles.itemRow}>
-                  <div>Description:</div>
-                  <div>{item.description}</div>
-                </div>
-              </Stack>
-            </Stack>
-          );
-        })}
-        {currColumns.length > 0 && (
-          <Button
-            color="primary"
-            outline
-            onClick={loadMoreDownstreamModels}
-            disabled={isLoading}
-          >
-            Load 3 more downstream levels
-          </Button>
-        )}
-        <Button
-          color="primary"
-          disabled={
-            Object.values(selectedColumns).filter((v) => Boolean(v)).length ===
-            0
-          }
-          onClick={() => propagateDocumentation()}
-        >
-          Propagate documentation to selected models
-        </Button>
-      </Stack>
+      {!isLoading && allColumns.length === 0 ? (
+        <div className="mt-4">
+          No downstream column level lineage detected to propagate the
+          documentation
+        </div>
+      ) : (
+        <>
+          <Stack className="mb-2">
+            <Button color="primary" onClick={() => setAllColumnsValue(true)}>
+              Select All
+            </Button>
+            <Button color="primary" onClick={() => setAllColumnsValue(false)}>
+              Unselect All
+            </Button>
+          </Stack>
+          <Stack direction="column" className="gap-md">
+            {allColumns.map((item) => {
+              const key = item.model + "/" + item.column;
+              return (
+                <Stack key={key} className={styles.itemCard}>
+                  <Input
+                    type="checkbox"
+                    checked={selectedColumns[key]}
+                    onChange={() =>
+                      setSelectedColumns((prev) => ({
+                        ...prev,
+                        [key]: !prev[key],
+                      }))
+                    }
+                  />
+                  <Stack direction="column" className="gap-0 w-100">
+                    <div className={styles.itemRow}>
+                      <div>Model:</div>
+                      <div>{item.model.split(".").pop()}</div>
+                    </div>
+                    <div className={styles.itemRow}>
+                      <div>Column:</div>
+                      <div>{item.column}</div>
+                    </div>
+                    <div className={styles.itemRow}>
+                      <div>Description:</div>
+                      <div>{item.description}</div>
+                    </div>
+                  </Stack>
+                </Stack>
+              );
+            })}
+            {currColumns.length > 0 && (
+              <Button
+                color="primary"
+                outline
+                onClick={loadMoreDownstreamModels}
+                disabled={isLoading}
+              >
+                Load 3 more downstream levels
+              </Button>
+            )}
+            <Button
+              color="primary"
+              disabled={
+                Object.values(selectedColumns).filter((v) => Boolean(v))
+                  .length === 0
+              }
+              onClick={() => propagateDocumentation()}
+            >
+              Propagate documentation to selected models
+            </Button>
+          </Stack>
+        </>
+      )}
     </Drawer>
   );
 };
