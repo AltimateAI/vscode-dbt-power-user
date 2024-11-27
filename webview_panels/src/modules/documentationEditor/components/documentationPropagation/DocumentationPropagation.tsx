@@ -60,6 +60,7 @@ export const DocumentationPropagationButton = ({
   const [allColumns, setAllColumns] = useState<DocsItem[]>([]);
   const [currColumns, setCurrColumns] = useState<DocsItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [tableMetadata, setTableMetadata] = useState<TableMetadata[]>([]);
   const [testsMetadata, setTestsMetadata] = useState<Record<string, unknown>>(
     {},
@@ -72,6 +73,7 @@ export const DocumentationPropagationButton = ({
     setAllColumns([]);
     setCurrColumns(startColumn);
     setTableMetadata([]);
+    setIsSaved(false);
   }, [currentDocsData?.uniqueId, name]);
 
   const loadMoreDownstreamModels = async () => {
@@ -165,6 +167,7 @@ export const DocumentationPropagationButton = ({
     }
 
     await executeRequestInSync("saveDocumentationBulk", { models: req });
+    setIsSaved(true);
   };
 
   const setAllColumnsValue = (value: boolean) => {
@@ -278,6 +281,7 @@ export const DocumentationPropagationButton = ({
             >
               Propagate documentation to selected models
             </Button>
+            {isSaved && <div>Saved documentation successfully</div>}
           </Stack>
         </>
       )}
