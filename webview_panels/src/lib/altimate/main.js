@@ -32865,7 +32865,7 @@ const dx = ({ datatype: e, color: t, size: n = "1rem" }) => {
     if (!i) return 0;
     const { level: a } = i,
       l = e.length,
-      [s] = await Pi(e, t, n, a - o, a + r);
+      [s] = await Pi(e, t, n, a - o, a + r, 1 / 0);
     return s.length - l;
   },
   Cx = (e, t, n, o) => {
@@ -35222,7 +35222,7 @@ const o1 = () => {
           let _ = [],
             A = [];
           (_ = [To(E, 0, "")]),
-            ([_, A] = await Pi(_, A, E.table, -m.current, m.current)),
+            ([_, A] = await Pi(_, A, E.table, -m.current, m.current, 1 / 0)),
             f(Xn(E.table)),
             f(Vn({ table: "", name: "" })),
             f(cr({})),
