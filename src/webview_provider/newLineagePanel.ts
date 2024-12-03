@@ -460,6 +460,11 @@ export class NewLineagePanel
         .getProject()
         ?.throwDiagnosticsErrorIfAvailable();
     } catch (err) {
+      this.dbtTerminal.error(
+        "Lineage:getMissingLineageMessage",
+        (err as Error).message,
+        err,
+      );
       return { message: (err as Error).message, type: "error" };
     }
 
