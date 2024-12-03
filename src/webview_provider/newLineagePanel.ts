@@ -476,6 +476,7 @@ export class NewLineagePanel
     const aiEnabled = this.altimate.enabled();
     const event = this.queryManifestService.getEventByCurrentProject();
     if (!event?.event) {
+      this.dbtTerminal.info("Lineage:getStartingNode", "No event found");
       return {
         aiEnabled,
         missingLineageMessage: this.getMissingLineageMessage(),
@@ -485,6 +486,10 @@ export class NewLineagePanel
     const tableName = this.getFilename();
     const _node = nodeMetaMap.lookupByBaseName(tableName);
     if (!_node) {
+      this.dbtTerminal.info(
+        "Lineage:getStartingNode",
+        `No node found for ${tableName}`,
+      );
       return {
         aiEnabled,
         missingLineageMessage: this.getMissingLineageMessage(),
