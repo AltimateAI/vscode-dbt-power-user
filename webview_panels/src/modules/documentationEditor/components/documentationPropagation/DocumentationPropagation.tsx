@@ -60,6 +60,7 @@ export const DocumentationPropagationButton = ({
   const [allColumns, setAllColumns] = useState<DocsItem[]>([]);
   const [currColumns, setCurrColumns] = useState<DocsItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [tableMetadata, setTableMetadata] = useState<TableMetadata[]>([]);
   const [testsMetadata, setTestsMetadata] = useState<Record<string, unknown>>(
     {},
@@ -72,6 +73,7 @@ export const DocumentationPropagationButton = ({
     setAllColumns([]);
     setCurrColumns(startColumn);
     setTableMetadata([]);
+    setIsSaved(false);
   }, [currentDocsData?.uniqueId, name]);
 
   const loadMoreDownstreamModels = async () => {
@@ -165,6 +167,7 @@ export const DocumentationPropagationButton = ({
     }
 
     await executeRequestInSync("saveDocumentationBulk", { models: req });
+    setIsSaved(true);
   };
 
   const setAllColumnsValue = (value: boolean) => {
@@ -183,6 +186,10 @@ export const DocumentationPropagationButton = ({
     return null;
   }
 
+  if (!currColumnDescription) {
+    return null;
+  }
+
   return (
     <Drawer
       buttonProps={{ color: "primary", title: "Propagate documentation" }}
@@ -193,81 +200,91 @@ export const DocumentationPropagationButton = ({
     >
       <Stack direction="column" className="gap-0 mb-2">
         <div className={styles.itemRow}>
-          <div className="fw-semibold">Model:</div>
+          <div>Model:</div>
           <div>{currentDocsData?.name}</div>
         </div>
         <div className={styles.itemRow}>
-          <div className="fw-semibold">Column:</div>
+          <div>Column:</div>
           <div>{name}</div>
         </div>
         {currColumnDescription && (
-          <div className={styles.itemRow}>
-            <div className="fw-semibold">Description:</div>
+          <div className={styles.colDesc}>
+            <div>Description:</div>
             <div>{currColumnDescription}</div>
           </div>
         )}
       </Stack>
-      <Stack className="mb-2">
-        <Button color="primary" onClick={() => setAllColumnsValue(true)}>
-          Select All
-        </Button>
-        <Button color="primary" onClick={() => setAllColumnsValue(false)}>
-          Unselect All
-        </Button>
-      </Stack>
-      <Stack direction="column" className="gap-md">
-        {allColumns.map((item) => {
-          const key = item.model + "/" + item.column;
-          return (
-            <Stack key={key} className={styles.itemCard}>
-              <Input
-                type="checkbox"
-                checked={selectedColumns[key]}
-                onChange={() =>
-                  setSelectedColumns((prev) => ({
-                    ...prev,
-                    [key]: !prev[key],
-                  }))
-                }
-              />
-              <Stack direction="column" className="gap-0 w-100">
-                <div className={styles.itemRow}>
-                  <div>Model:</div>
-                  <div>{item.model.split(".").pop()}</div>
-                </div>
-                <div className={styles.itemRow}>
-                  <div>Column:</div>
-                  <div>{item.column}</div>
-                </div>
-                <div className={styles.itemRow}>
-                  <div>Description:</div>
-                  <div>{item.description}</div>
-                </div>
-              </Stack>
-            </Stack>
-          );
-        })}
-        {currColumns.length > 0 && (
-          <Button
-            color="primary"
-            outline
-            onClick={loadMoreDownstreamModels}
-            disabled={isLoading}
-          >
-            Load 3 more downstream levels
-          </Button>
-        )}
-        <Button
-          color="primary"
-          disabled={
-            Object.values(selectedColumns).filter((v) => Boolean(v)).length ===
-            0
-          }
-          onClick={() => propagateDocumentation()}
-        >
-          Propagate documentation to selected models
-        </Button>
-      </Stack>
+      {!isLoading && allColumns.length === 0 ? (
+        <div className="mt-4">
+          No downstream column level lineage detected to propagate the
+          documentation
+        </div>
+      ) : (
+        <>
+          <Stack className="mb-2">
+            <Button color="primary" onClick={() => setAllColumnsValue(true)}>
+              Select All
+            </Button>
+            <Button color="primary" onClick={() => setAllColumnsValue(false)}>
+              Unselect All
+            </Button>
+          </Stack>
+          <Stack direction="column" className="gap-md">
+            {allColumns.map((item) => {
+              const key = item.model + "/" + item.column;
+              return (
+                <Stack key={key} className={styles.itemCard}>
+                  <Input
+                    type="checkbox"
+                    checked={selectedColumns[key]}
+                    onChange={() =>
+                      setSelectedColumns((prev) => ({
+                        ...prev,
+                        [key]: !prev[key],
+                      }))
+                    }
+                  />
+                  <Stack direction="column" className="gap-0 w-100">
+                    <div className={styles.itemRow}>
+                      <div>Model:</div>
+                      <div>{item.model.split(".").pop()}</div>
+                    </div>
+                    <div className={styles.itemRow}>
+                      <div>Column:</div>
+                      <div>{item.column}</div>
+                    </div>
+                    <div className={styles.itemRow}>
+                      <div>Description:</div>
+                      <div>{item.description}</div>
+                    </div>
+                  </Stack>
+                </Stack>
+              );
+            })}
+            {currColumns.length > 0 && (
+              <Button
+                color="primary"
+                outline
+                onClick={loadMoreDownstreamModels}
+                disabled={isLoading}
+              >
+                Load 3 more downstream levels
+              </Button>
+            )}
+            <Button
+              color="primary"
+              disabled={
+                Object.values(selectedColumns).filter((v) => Boolean(v))
+                  .length === 0
+              }
+              onClick={() => propagateDocumentation()}
+            >
+              Propagate documentation to selected models
+            </Button>
+            {isSaved && <div>Saved documentation successfully</div>}
+          </Stack>
+        </>
+      )}
     </Drawer>
   );
 };
