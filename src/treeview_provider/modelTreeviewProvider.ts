@@ -1,6 +1,7 @@
 import { unmanaged } from "inversify";
 import { provide } from "inversify-binding-decorators";
 import * as path from "path";
+
 import {
   Command,
   Disposable,
@@ -29,7 +30,7 @@ import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
-import { provideSingleton } from "../utils";
+import { getModelNameInActiveEditor, provideSingleton } from "../utils";
 
 @provide(ModelTreeviewProvider)
 abstract class ModelTreeviewProvider
@@ -54,6 +55,9 @@ abstract class ModelTreeviewProvider
       this.dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event),
       ),
+      window.onDidChangeTextEditorSelection(() => {
+        this._onDidChangeTreeData.fire();
+      }),
     );
   }
 
@@ -104,15 +108,28 @@ abstract class ModelTreeviewProvider
     if (element) {
       return Promise.resolve(this.getTreeItems(element.key, event));
     }
-    const fileName = path.basename(
-      window.activeTextEditor!.document.fileName,
-      ".sql",
+
+    const model_by_file_content = event.nodeMetaMap.lookupByBaseName(
+      getModelNameInActiveEditor(),
     );
-    const model = event.nodeMetaMap.lookupByBaseName(fileName);
-    if (!model) {
-      return Promise.resolve([]);
+
+    if (model_by_file_content) {
+      return Promise.resolve(
+        this.getTreeItems(model_by_file_content.uniqueId, event),
+      );
     }
-    return Promise.resolve(this.getTreeItems(model.uniqueId, event));
+
+    const fileName = path.parse(
+      window.activeTextEditor!.document.fileName,
+    ).name;
+    const model_by_file_name = event.nodeMetaMap.lookupByBaseName(fileName);
+    if (model_by_file_name) {
+      return Promise.resolve(
+        this.getTreeItems(model_by_file_name.uniqueId, event),
+      );
+    }
+
+    return Promise.resolve([]);
   }
 
   private getNodeTreeItem(node: Node): NodeTreeItem {
@@ -180,6 +197,9 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
       this.dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event),
       ),
+      window.onDidChangeTextEditorSelection(() => {
+        this._onDidChangeTreeData.fire();
+      }),
     );
   }
 
@@ -222,14 +242,23 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
     const { nodeMetaMap } = event;
 
     if (!element) {
-      const modelName = path.basename(
+      const fileName = path.parse(
         window.activeTextEditor!.document.fileName,
-        ".sql",
+      ).name;
+      // Try content-based lookup first
+      const currentNodeByFileContent = event.nodeMetaMap.lookupByBaseName(
+        getModelNameInActiveEditor(),
       );
-      const currentNode = nodeMetaMap.lookupByBaseName(modelName);
+      // Fall back to filename-based lookup
+      const currentNode =
+        currentNodeByFileContent ??
+        event.nodeMetaMap.lookupByBaseName(fileName);
+
       if (currentNode === undefined) {
         return Promise.resolve([]);
       }
+      const modelName = currentNode.name;
+
       const children = [];
 
       if (Object.keys(currentNode.columns).length !== 0) {
