@@ -561,27 +561,33 @@ export class InsightsPanel extends AltimateWebviewProvider {
       args: JSON.stringify(args),
     });
     try {
-      await window.withProgress(
-        {
-          title: `Performing healthcheck...`,
-          location: ProgressLocation.Notification,
-          cancellable: false,
-        },
-        async () => {
-          const projectHealthcheck =
-            await this.dbtProjectContainer.executeAltimateDatapilotHealthcheck(
-              args,
-            );
-          this._panel!.webview.postMessage({
-            command: "response",
-            args: {
-              syncRequestId,
-              body: { projectHealthcheck },
-              status: true,
-            },
-          });
-        },
+      window.showInformationMessage(
+        "Started performing healthcheck. We will notify you once it's done.",
       );
+
+      const projectHealthcheck =
+        await this.dbtProjectContainer.executeAltimateDatapilotHealthcheck(
+          args,
+        );
+      const result = await window.showInformationMessage(
+        "Healthcheck completed successfully.",
+        "View results",
+      );
+      if (result === "View results") {
+        this.dbtTerminal.debug(
+          "InsightsPanel",
+          "Sending healthcheck results to webview",
+        );
+        await commands.executeCommand("dbtPowerUser.Insights.focus");
+      }
+      this._panel!.webview.postMessage({
+        command: "response",
+        args: {
+          syncRequestId,
+          body: { projectHealthcheck },
+          status: true,
+        },
+      });
     } catch (e) {
       this.emitError(
         syncRequestId,
