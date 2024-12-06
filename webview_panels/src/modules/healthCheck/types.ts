@@ -1,3 +1,5 @@
+import { ProjectGovernorCheckTypes } from "@lib";
+
 export interface Insight {
   name: string;
   type: string;
@@ -9,6 +11,9 @@ export interface Insight {
     model_unique_id?: string;
     model_type?: string;
     convention?: string | null;
+    source?: "llm";
+    teammate_check_id?: string;
+    category?: ProjectGovernorCheckTypes; 
   };
 }
 
