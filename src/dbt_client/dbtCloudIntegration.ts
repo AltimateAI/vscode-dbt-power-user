@@ -176,7 +176,7 @@ export class DBTCloudProjectIntegration
   private targetPath?: string;
   private version: number[] | undefined;
   private projectName: string = "unknown_" + crypto.randomUUID();
-  private adapterType: string = "unknown";
+  private adapterType: string = "";
   private packagesInstallPath?: string;
   private modelPaths?: string[];
   private seedPaths?: string[];
