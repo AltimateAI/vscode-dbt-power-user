@@ -28,6 +28,22 @@ export const SingleProject: StoryObj = {
             },
           ];
         }
+
+        if (request.command === "fetch") {
+          switch (request.endpoint) {
+            case `projectgovernor/training`:
+              return {
+                ai_response: faker.lorem.paragraph(),
+                category: "Business",
+              };
+              case `projectgovernor/training/confirm`:
+                return {
+                  ok: true,
+                };
+            default:
+              break;
+          }
+        }
       },
       timer: 500,
     },
