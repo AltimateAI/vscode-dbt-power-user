@@ -176,7 +176,7 @@ export class DBTCloudProjectIntegration
   private targetPath?: string;
   private version: number[] | undefined;
   private projectName: string = "unknown_" + crypto.randomUUID();
-  private adapterType: string = "";
+  private adapterType: string = "unknown";
   private packagesInstallPath?: string;
   private modelPaths?: string[];
   private seedPaths?: string[];
@@ -238,7 +238,7 @@ export class DBTCloudProjectIntegration
     } else {
       this.initializePaths();
     }
-    if (!this.adapterType) {
+    if (this.adapterType === "unknown") {
       // We only fetch the adapter type once, as it may impact compilation preview otherwise
       await this.findAdapterType();
     }
