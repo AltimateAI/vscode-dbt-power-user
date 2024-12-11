@@ -8,6 +8,12 @@ import { decorator as VsCodeDecorator } from "./__mocks__/vscode";
 import AppProvider from "../src/modules/app/AppProvider";
 
 const theme = "vscode-dark"; // vscode-light
+const css = `
+    .sb-show-main.vscode-dark {
+      --vscode-panel-background: #1e1e1e;
+    }
+`;
+
 const preview: Preview = {
   decorators: [
     (story) => {
@@ -17,6 +23,7 @@ const preview: Preview = {
     VsCodeDecorator,
     (Story) => (
       <AppProvider>
+        <style>{css}</style>
         <Story />
       </AppProvider>
     ),
