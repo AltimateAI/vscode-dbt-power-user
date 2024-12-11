@@ -238,7 +238,7 @@ export class DBTCloudProjectIntegration
     } else {
       this.initializePaths();
     }
-    if (!this.adapterType) {
+    if (this.adapterType === "unknown") {
       // We only fetch the adapter type once, as it may impact compilation preview otherwise
       await this.findAdapterType();
     }

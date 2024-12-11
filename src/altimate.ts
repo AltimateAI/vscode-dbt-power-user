@@ -647,8 +647,12 @@ export class AltimateRequest {
         status: response.status,
         textResponse,
       });
+      let jsonResponse: any;
+      try {
+        jsonResponse = JSON.parse(textResponse);
+      } catch {}
       throw new APIError(
-        `Could not process request, server responded with ${response.status}: ${textResponse}`,
+        `Could not process request, server responded with ${response.status}: ${jsonResponse?.detail || textResponse}`,
       );
     } catch (e) {
       this.dbtTerminal.error("apiCatchAllError", "catchAllError", e, true, {
