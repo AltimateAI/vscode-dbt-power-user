@@ -82,11 +82,14 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   async discoverProjects() {
+    // Ignore dbt_packages and venv/site-packages/dbt project folders
+    const excludePattern = "**/{dbt_packages,site-packages}";
     const dbtProjectFiles = await workspace.findFiles(
       new RelativePattern(
         this.workspaceFolder,
         `**/${DBTProject.DBT_PROJECT_FILE}`,
       ),
+      new RelativePattern(this.workspaceFolder, excludePattern),
     );
     this.dbtTerminal.info(
       "discoverProjects",
