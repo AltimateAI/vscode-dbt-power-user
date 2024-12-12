@@ -569,6 +569,18 @@ export class InsightsPanel extends AltimateWebviewProvider {
         await this.dbtProjectContainer.executeAltimateDatapilotHealthcheck(
           args,
         );
+      if (this._panel?.visible) {
+        window.showInformationMessage("Healthcheck completed successfully.");
+        this._panel!.webview.postMessage({
+          command: "response",
+          args: {
+            syncRequestId,
+            body: { projectHealthcheck },
+            status: true,
+          },
+        });
+        return;
+      }
       const result = await window.showInformationMessage(
         "Healthcheck completed successfully.",
         "View results",
