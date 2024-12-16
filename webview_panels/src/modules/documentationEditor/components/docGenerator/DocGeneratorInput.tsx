@@ -23,6 +23,7 @@ import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import AddCoversationButton from "../conversation/AddCoversationButton";
 import { panelLogger } from "@modules/logger";
+import { DocumentationPropagationButton } from "../documentationPropagation/DocumentationPropagation";
 
 interface Props {
   entity: DBTDocumentationColumn | DBTDocumentation;
@@ -60,7 +61,7 @@ const DocGeneratorInput = ({
     return conversations[selectedConversationGroup.shareId]?.find(
       (c) =>
         c.conversation_group_id ===
-        selectedConversationGroup.conversationGroupId
+        selectedConversationGroup.conversationGroupId,
     );
   }, [conversations, selectedConversationGroup]);
 
@@ -122,7 +123,7 @@ const DocGeneratorInput = ({
         updateColumnsInCurrentDocsData({
           columns: [{ name: entity.name, description: e.target.value }],
           isNewGeneration: true,
-        })
+        }),
       );
     }
 
@@ -132,7 +133,7 @@ const DocGeneratorInput = ({
           name: entity.name,
           description: e.target.value,
           isNewGeneration: true,
-        })
+        }),
       );
     }
   };
@@ -144,6 +145,7 @@ const DocGeneratorInput = ({
       <Stack className="justify-content-between">
         <h4>{title}</h4>
         <Stack className={classes.actionButtons}>
+          <DocumentationPropagationButton type={type} name={entity.name} />
           <AddCoversationButton
             field="description"
             value={description}

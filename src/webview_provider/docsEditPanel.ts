@@ -20,6 +20,7 @@ import {
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import {
+  extendErrorWithSupportLinks,
   getColumnNameByCase,
   getColumnTestConfigFromYml,
   isAcceptedValues,
@@ -31,7 +32,7 @@ import {
 import path = require("path");
 import { PythonException } from "python-bridge";
 import { TelemetryService } from "../telemetry";
-import { AltimateRequest } from "../altimate";
+import { AltimateRequest, UserInputError } from "../altimate";
 import { stringify, parse, parseDocument, YAMLSeq, YAMLMap } from "yaml";
 import { NewDocsGenPanel } from "./newDocsGenPanel";
 import { DBTProject } from "../manifest/dbtProject";
@@ -49,6 +50,12 @@ import {
 import { DbtTestService } from "../services/dbtTestService";
 import { gte } from "semver";
 import { TelemetryEvents } from "../telemetry/events";
+import { SendMessageProps } from "./altimateWebviewProvider";
+import {
+  CllEvents,
+  DbtLineageService,
+  Table,
+} from "../services/dbtLineageService";
 
 export enum Source {
   YAML = "YAML",
@@ -111,6 +118,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     private docGenService: DocGenService,
     private dbtTestService: DbtTestService,
     private terminal: DBTTerminal,
+    private dbtLineageService: DbtLineageService,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
@@ -535,7 +543,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
           return undefined;
         }
 
-        const { command, syncRequestId, args } = message;
+        const { command, syncRequestId, ...params } = message;
         switch (command) {
           case "fetchMetadataFromDatabase":
             this.telemetry.startTelemetryEvent(
@@ -649,11 +657,87 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               panel: this._panel,
             });
             break;
+          case "columnLineageBase": {
+            this.dbtLineageService.handleColumnLineage(params, () => {
+              this._panel?.webview.postMessage({
+                command: "columnLineage",
+                args: { event: CllEvents.CANCEL },
+              });
+            });
+            break;
+          }
+          case "getDownstreamColumns": {
+            const targets = params.targets as [string, string][];
+            const testsResult = await Promise.all(
+              targets.map(async (t) => {
+                if (!t[0].startsWith("model")) {
+                  return;
+                }
+                const splits = t[0].split(".");
+                const modelName = splits[splits.length - 1];
+                return await this.dbtTestService.getTestsForModel(modelName);
+              }),
+            );
+            const tests: Record<string, unknown> = {};
+            targets.forEach((t, i) => {
+              tests[t[0]] = testsResult[i];
+            });
+            const _tables = targets
+              .map(
+                (t) =>
+                  this.dbtLineageService.getUpstreamTables({ table: t[0] })
+                    ?.tables,
+              )
+              .filter((t) => Boolean(t))
+              .flat() as Table[];
+            const tables = _tables.map((t) => t?.table);
+            if (tables.length === 0) {
+              this.handleSyncRequestFromWebview(
+                syncRequestId,
+                () => ({ column_lineage: [], tables: [], tests }),
+                command,
+              );
+              return;
+            }
+            const selectedColumn = {
+              table: params.model as string,
+              name: params.column as string,
+            };
+            const currAnd1HopTables = [...tables, ...targets.map((t) => t[0])];
+            const columns = await this.dbtLineageService.getConnectedColumns({
+              targets,
+              currAnd1HopTables,
+              selectedColumn,
+              upstreamExpansion: true,
+              showIndirectEdges: false,
+              eventType: "documentation_propagation",
+            });
+            this.handleSyncRequestFromWebview(
+              syncRequestId,
+              () => {
+                return { ...columns, tables: _tables, tests };
+              },
+              command,
+            );
+            break;
+          }
           case "saveDocumentation":
             this.telemetry.sendTelemetryEvent(
               TelemetryEvents["DocumentationEditor/SaveClick"],
             );
-            let patchPath = message.patchPath;
+            window.withProgress(
+              {
+                title: "Saving documentation",
+                location: ProgressLocation.Notification,
+                cancellable: false,
+              },
+              () => this.saveDocumentation(message, syncRequestId),
+            );
+            break;
+          case "saveDocumentationBulk": {
+            this.telemetry.sendTelemetryEvent(
+              TelemetryEvents["DocumentationEditor/SaveClick"],
+            );
             window.withProgress(
               {
                 title: "Saving documentation",
@@ -661,256 +745,300 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 cancellable: false,
               },
               async () => {
-                try {
-                  const projectByFilePath =
-                    this.dbtProjectContainer.findDBTProject(
-                      Uri.file(message.filePath),
-                    );
-                  if (!projectByFilePath) {
-                    throw new Error(
-                      "Unable to find project for saving documentation",
-                    );
-                  }
-
-                  if (!patchPath) {
-                    switch (message.dialogType) {
-                      case "Existing file":
-                        const openDialog = await window.showOpenDialog({
-                          filters: { Yaml: ["yml"] },
-                          canSelectMany: false,
-                        });
-                        if (
-                          openDialog === undefined ||
-                          openDialog.length === 0
-                        ) {
-                          return;
-                        }
-                        patchPath = openDialog[0].fsPath;
-                        break;
-                      case "New file":
-                        const saveDialog = await window.showSaveDialog({
-                          filters: { Yaml: ["yml"] },
-                        });
-                        if (!saveDialog) {
-                          return;
-                        }
-                        this.telemetry.sendTelemetryEvent(
-                          TelemetryEvents[
-                            "DocumentationEditor/SaveNewFilePathSelect"
-                          ],
-                        );
-                        patchPath = saveDialog.fsPath;
-                        break;
-                    }
-                  } else {
-                    // the location comes from the manifest, parse it
-                    patchPath = path.join(
-                      projectByFilePath.projectRoot.fsPath,
-                      patchPath.split("://")[1],
-                    );
-                  }
-                  // check if file exists, if not create an empty file
-                  if (!existsSync(patchPath)) {
-                    writeFileSync(patchPath, "");
-                  }
-
-                  const docFile: string =
-                    readFileSync(patchPath).toString("utf8");
-                  const parsedDocFile = parseDocument<
-                    YAMLSeq<DocumentationSchema>
-                  >(docFile, {
-                    strict: false,
-                    uniqueKeys: false,
-                  });
-                  const existingModels = parsedDocFile.get("models") as
-                    | YAMLSeq<DocumentationSchema["models"]["0"]>
-                    | undefined;
-
-                  const model = this.findEntityInParsedDoc(
-                    existingModels,
-                    (name: string) => name === message.name,
-                  );
-
-                  if (!model) {
-                    // there is a models section but the model does not exist yet.
-                    const newModelData = {
-                      name: message.name,
-                      description: message.description?.trim() || undefined,
-                      columns: message.columns.length
-                        ? message.columns.map((column: any) => {
-                            const name = getColumnNameByCase(
-                              column.name,
-                              projectByFilePath.getAdapterType(),
-                            );
-                            return {
-                              name,
-                              description:
-                                column.description?.trim() || undefined,
-                              data_type: column.type?.toLowerCase(),
-                              ...this.getTestDataByColumn(
-                                message,
-                                column.name,
-                                project,
-                                // passing column to get correct key: data_tests or tests
-                                // https://github.com/AltimateAI/vscode-dbt-power-user/issues/1449
-                                { name: column.name },
-                              ),
-                              ...(isQuotedIdentifier(
-                                column.name,
-                                projectByFilePath.getAdapterType(),
-                              )
-                                ? { quote: true }
-                                : undefined),
-                            };
-                          })
-                        : undefined,
-                    };
-                    // Models does not exist
-                    if (existingModels?.items.length) {
-                      parsedDocFile.addIn(["models"], newModelData);
-                    } else {
-                      // Models  exist, but current one is new model
-                      parsedDocFile.set("models", [newModelData]);
-                    }
-                  } else {
-                    // The model already exists
-                    this.setOrDeleteInParsedDocument(
-                      model,
-                      "description",
-                      message.description?.trim(),
-                    );
-                    const modelTests = this.getTestDataByModel(
-                      message,
-                      model.get("name") as string,
-                    );
-                    this.setOrDeleteInParsedDocument(
-                      model,
-                      "tests",
-                      modelTests,
-                    );
-
-                    message.columns.forEach((column: any) => {
-                      const existingColumn = this.findEntityInParsedDoc(
-                        model.get("columns") as
-                          | YAMLSeq<DocumentationSchemaColumn>
-                          | undefined,
-                        (name: string) => isColumnNameEqual(name, column.name),
-                      );
-
-                      if (existingColumn) {
-                        // ignore tests, data_tests from existing column, as it will be recreated in `getTestDataByColumn`
-                        const { tests, data_tests, ...rest } =
-                          existingColumn.toJSON();
-                        this.setOrDeleteInParsedDocument(
-                          existingColumn,
-                          "description",
-                          column.description?.trim(),
-                        );
-                        this.setOrDeleteInParsedDocument(
-                          existingColumn,
-                          "data_type",
-                          (rest.data_type || column.type)?.toLowerCase(),
-                        );
-                        const allTests = this.getTestDataByColumn(
-                          message,
-                          column.name,
-                          project,
-                          existingColumn.toJSON(),
-                        );
-                        this.setOrDeleteInParsedDocument(
-                          existingColumn,
-                          "tests",
-                          allTests?.tests,
-                        );
-                        this.setOrDeleteInParsedDocument(
-                          existingColumn,
-                          "data_tests",
-                          allTests?.data_tests,
-                        );
-                      } else {
-                        const name = getColumnNameByCase(
-                          column.name,
-                          projectByFilePath.getAdapterType(),
-                        );
-                        model.addIn(["columns"], {
-                          name,
-                          description: column.description?.trim() || undefined,
-                          data_type: column.type?.toLowerCase(),
-                          ...this.getTestDataByColumn(
-                            message,
-                            column.name,
-                            project,
-                          ),
-                          ...(isQuotedIdentifier(
-                            column.name,
-                            projectByFilePath.getAdapterType(),
-                          )
-                            ? { quote: true }
-                            : undefined),
-                        });
-                      }
-                    });
-                  }
-                  // Force reload from manifest after manifest refresh
-                  this.loadedFromManifest = false;
-                  writeFileSync(
-                    patchPath,
-                    stringify(parsedDocFile, { lineWidth: 0 }),
-                  );
-                  this.documentation = (
-                    await this.docGenService.getDocumentationForCurrentActiveFile()
-                  ).documentation;
-                  const tests =
-                    await this.dbtTestService.getTestsForCurrentModel();
-                  if (syncRequestId) {
-                    this._panel!.webview.postMessage({
-                      command: "response",
-                      args: {
-                        syncRequestId,
-                        body: {
-                          saved: true,
-                          tests,
-                        },
-                        status: true,
-                      },
-                    });
-                  }
-                } catch (error) {
-                  this.transmitError();
-                  this.telemetry.sendTelemetryError(
-                    TelemetryEvents["DocumentationEditor/SaveError"],
-                    error,
-                  );
-                  window.showErrorMessage(
-                    `Could not save documentation to ${patchPath}: ${error}`,
-                  );
-                  this.terminal.error(
-                    "saveDocumentationError",
-                    `Could not save documentation to ${patchPath}`,
-                    error,
-                    false,
-                  );
-                  if (syncRequestId) {
-                    this._panel!.webview.postMessage({
-                      command: "response",
-                      args: {
-                        syncRequestId,
-                        body: {
-                          saved: false,
-                        },
-                        status: true,
-                      },
-                    });
-                  }
+                for (const item of message.models) {
+                  await this.saveDocumentation(item, syncRequestId);
                 }
               },
             );
             break;
+          }
         }
       },
       null,
       this._disposables,
     );
+  }
+
+  private async saveDocumentation(message: any, syncRequestId: string) {
+    let patchPath = message.patchPath;
+    try {
+      const projectByFilePath = this.dbtProjectContainer.findDBTProject(
+        Uri.file(message.filePath),
+      );
+      if (!projectByFilePath) {
+        throw new Error("Unable to find project for saving documentation");
+      }
+      const project = this.getProject();
+      if (project === undefined) {
+        return undefined;
+      }
+
+      if (!patchPath) {
+        switch (message.dialogType) {
+          case "Existing file":
+            const openDialog = await window.showOpenDialog({
+              filters: { Yaml: ["yml"] },
+              canSelectMany: false,
+            });
+            if (openDialog === undefined || openDialog.length === 0) {
+              return;
+            }
+            patchPath = openDialog[0].fsPath;
+            break;
+          case "New file":
+            const saveDialog = await window.showSaveDialog({
+              filters: { Yaml: ["yml"] },
+            });
+            if (!saveDialog) {
+              return;
+            }
+            this.telemetry.sendTelemetryEvent(
+              TelemetryEvents["DocumentationEditor/SaveNewFilePathSelect"],
+            );
+            patchPath = saveDialog.fsPath;
+            break;
+        }
+      } else {
+        // the location comes from the manifest, parse it
+        patchPath = path.join(
+          projectByFilePath.projectRoot.fsPath,
+          patchPath.split("://")[1],
+        );
+      }
+      // check if file exists, if not create an empty file
+      if (!existsSync(patchPath)) {
+        writeFileSync(patchPath, "");
+      }
+
+      const docFile: string = readFileSync(patchPath).toString("utf8");
+      const parsedDocFile = parseDocument<YAMLSeq<DocumentationSchema>>(
+        docFile,
+        {
+          strict: false,
+          uniqueKeys: false,
+        },
+      );
+      const existingModels = parsedDocFile.get("models") as
+        | YAMLSeq<DocumentationSchema["models"]["0"]>
+        | undefined;
+
+      const model = this.findEntityInParsedDoc(
+        existingModels,
+        (name: string) => name === message.name,
+      );
+
+      if (!model) {
+        // there is a models section but the model does not exist yet.
+        const newModelData = {
+          name: message.name,
+          description: message.description?.trim() || undefined,
+          columns: message.columns.length
+            ? message.columns.map((column: any) => {
+                const name = getColumnNameByCase(
+                  column.name,
+                  projectByFilePath.getAdapterType(),
+                );
+                return {
+                  name,
+                  description: column.description?.trim() || undefined,
+                  data_type: column.type?.toLowerCase(),
+                  ...this.getTestDataByColumn(
+                    message,
+                    column.name,
+                    project,
+                    // passing column to get correct key: data_tests or tests
+                    // https://github.com/AltimateAI/vscode-dbt-power-user/issues/1449
+                    { name: column.name },
+                  ),
+                  ...(isQuotedIdentifier(
+                    column.name,
+                    projectByFilePath.getAdapterType(),
+                  )
+                    ? { quote: true }
+                    : undefined),
+                };
+              })
+            : undefined,
+        };
+        // Models does not exist
+        if (existingModels?.items.length) {
+          parsedDocFile.addIn(["models"], newModelData);
+        } else {
+          // Models  exist, but current one is new model
+          parsedDocFile.set("models", [newModelData]);
+        }
+      } else {
+        // The model already exists
+        this.setOrDeleteInParsedDocument(
+          model,
+          "description",
+          message.description?.trim(),
+        );
+        const modelTests = this.getTestDataByModel(
+          message,
+          model.get("name") as string,
+        );
+        this.setOrDeleteInParsedDocument(model, "tests", modelTests);
+
+        message.columns.forEach((column: any) => {
+          const existingColumn = this.findEntityInParsedDoc(
+            model.get("columns") as
+              | YAMLSeq<DocumentationSchemaColumn>
+              | undefined,
+            (name: string) => isColumnNameEqual(name, column.name),
+          );
+
+          if (existingColumn) {
+            // ignore tests, data_tests from existing column, as it will be recreated in `getTestDataByColumn`
+            const { tests, data_tests, ...rest } = existingColumn.toJSON();
+            this.setOrDeleteInParsedDocument(
+              existingColumn,
+              "description",
+              column.description?.trim(),
+            );
+            this.setOrDeleteInParsedDocument(
+              existingColumn,
+              "data_type",
+              (rest.data_type || column.type)?.toLowerCase(),
+            );
+            const allTests = this.getTestDataByColumn(
+              message,
+              column.name,
+              project,
+              existingColumn.toJSON(),
+            );
+            this.setOrDeleteInParsedDocument(
+              existingColumn,
+              "tests",
+              allTests?.tests,
+            );
+            this.setOrDeleteInParsedDocument(
+              existingColumn,
+              "data_tests",
+              allTests?.data_tests,
+            );
+          } else {
+            const name = getColumnNameByCase(
+              column.name,
+              projectByFilePath.getAdapterType(),
+            );
+            model.addIn(["columns"], {
+              name,
+              description: column.description?.trim() || undefined,
+              data_type: column.type?.toLowerCase(),
+              ...this.getTestDataByColumn(message, column.name, project),
+              ...(isQuotedIdentifier(
+                column.name,
+                projectByFilePath.getAdapterType(),
+              )
+                ? { quote: true }
+                : undefined),
+            });
+          }
+        });
+      }
+      // Force reload from manifest after manifest refresh
+      this.loadedFromManifest = false;
+      writeFileSync(patchPath, stringify(parsedDocFile, { lineWidth: 0 }));
+      this.documentation = (
+        await this.docGenService.getDocumentationForCurrentActiveFile()
+      ).documentation;
+      const tests = await this.dbtTestService.getTestsForCurrentModel();
+      if (syncRequestId) {
+        this._panel!.webview.postMessage({
+          command: "response",
+          args: {
+            syncRequestId,
+            body: {
+              saved: true,
+              tests,
+            },
+            status: true,
+          },
+        });
+      }
+    } catch (error) {
+      this.transmitError();
+      this.telemetry.sendTelemetryError(
+        TelemetryEvents["DocumentationEditor/SaveError"],
+        error,
+      );
+      window.showErrorMessage(
+        `Could not save documentation to ${patchPath}: ${error}`,
+      );
+      this.terminal.error(
+        "saveDocumentationError",
+        `Could not save documentation to ${patchPath}`,
+        error,
+        false,
+      );
+      if (syncRequestId) {
+        this._panel!.webview.postMessage({
+          command: "response",
+          args: {
+            syncRequestId,
+            body: {
+              saved: false,
+            },
+            status: true,
+          },
+        });
+      }
+    }
+  }
+
+  private async handleSyncRequestFromWebview(
+    syncRequestId: string | undefined,
+    callback: () => any,
+    command: string,
+    showErrorNotification?: boolean,
+  ) {
+    try {
+      const response = await callback();
+
+      this.sendResponseToWebview({
+        command: "response",
+        syncRequestId,
+        data: response,
+      });
+    } catch (error) {
+      const message =
+        error instanceof PythonException
+          ? error.exception.message
+          : (error as Error).message;
+      if (error instanceof UserInputError) {
+        this.terminal.debug(command, message, error);
+      } else {
+        this.terminal.error(command, message, error);
+      }
+      if (showErrorNotification) {
+        window.showErrorMessage(extendErrorWithSupportLinks(message));
+      }
+      this.sendResponseToWebview({
+        command: "response",
+        syncRequestId,
+        error: message,
+      });
+    }
+  }
+
+  private sendResponseToWebview({
+    command,
+    data,
+    error,
+    syncRequestId,
+    ...rest
+  }: SendMessageProps) {
+    this._panel?.webview?.postMessage({
+      command,
+      args: {
+        syncRequestId,
+        body: data,
+        status: !error,
+        error,
+      },
+      ...rest,
+    });
   }
 
   private async onManifestCacheChanged(event: ManifestCacheChangedEvent) {

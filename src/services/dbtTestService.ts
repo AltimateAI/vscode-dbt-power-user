@@ -260,13 +260,28 @@ export class DbtTestService {
     if (!project) {
       return undefined;
     }
+
+    const { currentDocument } = eventResult;
+    const modelName = path.basename(currentDocument.uri.fsPath, ".sql");
+    return this.getTestsForModel(modelName);
+  }
+
+  public async getTestsForModel(modelName: string) {
+    const eventResult = this.queryManifestService.getEventByCurrentProject();
+    if (!eventResult?.event || !eventResult?.currentDocument) {
+      return undefined;
+    }
+
+    const project = this.queryManifestService.getProject();
+    if (!project) {
+      return undefined;
+    }
     const projectName = project.getProjectName();
 
     const {
       event: { nodeMetaMap, graphMetaMap, testMetaMap, macroMetaMap },
-      currentDocument,
     } = eventResult;
-    const modelName = path.basename(currentDocument.uri.fsPath, ".sql");
+
     this.dbtTerminal.debug(
       "dbtTests",
       "getting tests by modelName:",

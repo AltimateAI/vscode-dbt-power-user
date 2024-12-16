@@ -171,6 +171,7 @@ export declare type Details = Record<string, {
     nodeId?: string;
     name?: string;
     type: string;
+    purpose?: string;
 }>;
 
 export declare interface ExposureMetaData {
@@ -257,10 +258,12 @@ declare interface LineageProviderProps {
     sqlLineage?: SqlLineage;
     staticLineage?: StaticLineage;
     theme: "dark" | "light";
-    lineageType: "static" | "dynamic" | "sql";
+    lineageType: LineageType;
     allowSyncColumnsWithDB?: boolean;
     externalSidePanel?: boolean;
 }
+
+declare type LineageType = "static" | "dynamic" | "sql";
 
 export declare const LoadingButton: ({ loading, ...rest }: Props_3) => JSX.Element;
 
@@ -380,13 +383,13 @@ declare interface SqlLineage {
     nodePositions?: Record<string, [number, number]>;
 }
 
-declare interface StaticLineage {
+export declare interface StaticLineage {
     selectedColumn: {
         table: string;
         name: string;
     };
     collectColumns: Record<string, CollectColumn[]>;
-    columnEdges?: [string, string][];
+    columnEdges?: [string, string, string][];
     tableEdges: [string, string][];
     details: Details;
 }
