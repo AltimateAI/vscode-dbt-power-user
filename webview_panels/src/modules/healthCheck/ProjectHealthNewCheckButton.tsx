@@ -36,6 +36,7 @@ const ProjectHealthNewCheckButton = ({
       buttonText="+ Add new check"
       onOpen={onOpen}
       ref={drawerRef}
+      disableBackdropClick
     >
       <CoachForm
         taskLabel={TaskLabels.ProjectGovernor}

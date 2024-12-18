@@ -36111,67 +36111,71 @@ const yw = He.object({
       { mutate: s, error: u } = oo({
         // @ts-ignore
         queryFn: l,
-        onSuccess: (c) => {
-          n(c, a.type), i(!1);
+        onSuccess: (d) => {
+          n(d, a.type), i(!1);
         },
       });
-    return (
-      ue(() => {
-        u != null && u.message && (r("content", u.message), i(!1));
-      }, [u, r]),
-      /* @__PURE__ */ f.jsxs(od, {
-        children: [
-          /* @__PURE__ */ f.jsx(os, {
-            name: "description",
-            render: ({ field: c }) =>
-              /* @__PURE__ */ f.jsxs(Kn, {
-                children: [
-                  /* @__PURE__ */ f.jsx(Xt, {
-                    type: "textarea",
-                    ...c,
-                    placeholder: "Describe the check in natural language",
-                    invalid: !!e.description,
-                  }),
-                  e.description
-                    ? /* @__PURE__ */ f.jsx(sr, { children: e.description })
-                    : null,
-                ],
-              }),
-          }),
-          /* @__PURE__ */ f.jsx(os, {
-            name: "type",
-            render: ({ field: c }) =>
-              /* @__PURE__ */ f.jsxs(Kn, {
-                children: [
-                  /* @__PURE__ */ f.jsx(pi, { children: "Type:" }),
-                  /* @__PURE__ */ f.jsx(rs, {
-                    style: { width: 120 },
-                    onChange: (d) =>
-                      c.onChange({ target: { value: d, name: c.name } }),
-                    options: Object.entries(Rr).map(([, d]) => ({
-                      value: d,
-                      label: d,
-                    })),
-                  }),
-                ],
-              }),
-          }),
-          /* @__PURE__ */ f.jsxs(Ke, {
-            className: "justify-content-end",
-            children: [
-              /* @__PURE__ */ f.jsx(Re, { onClick: o, children: "Cancel" }),
-              /* @__PURE__ */ f.jsx(In, {
-                color: "primary",
-                loading: t,
-                type: "submit",
-                onClick: s,
-                children: "Submit",
-              }),
-            ],
-          }),
-        ],
-      })
-    );
+    ue(() => {
+      u != null && u.message && (r("content", u.message), i(!1));
+    }, [u, r]);
+    const c = (d) => {
+      const p = d.target;
+      (p.style.height = "inherit"),
+        (p.style.height = `${Math.min(p.scrollHeight + 5, 200)}px`);
+    };
+    return /* @__PURE__ */ f.jsxs(od, {
+      children: [
+        /* @__PURE__ */ f.jsx(os, {
+          name: "description",
+          render: ({ field: d }) =>
+            /* @__PURE__ */ f.jsxs(Kn, {
+              children: [
+                /* @__PURE__ */ f.jsx(Xt, {
+                  type: "textarea",
+                  ...d,
+                  onKeyDown: c,
+                  placeholder: "Describe the check in natural language",
+                  invalid: !!e.description,
+                }),
+                e.description
+                  ? /* @__PURE__ */ f.jsx(sr, { children: e.description })
+                  : null,
+              ],
+            }),
+        }),
+        /* @__PURE__ */ f.jsx(os, {
+          name: "type",
+          render: ({ field: d }) =>
+            /* @__PURE__ */ f.jsxs(Kn, {
+              children: [
+                /* @__PURE__ */ f.jsx(pi, { children: "Type: " }),
+                /* @__PURE__ */ f.jsx(rs, {
+                  style: { width: 200 },
+                  onChange: (p) =>
+                    d.onChange({ target: { value: p, name: d.name } }),
+                  options: Object.entries(Rr).map(([, p]) => ({
+                    value: p,
+                    label: p,
+                  })),
+                }),
+              ],
+            }),
+        }),
+        /* @__PURE__ */ f.jsxs(Ke, {
+          className: "justify-content-end",
+          children: [
+            /* @__PURE__ */ f.jsx(Re, { onClick: o, children: "Cancel" }),
+            /* @__PURE__ */ f.jsx(In, {
+              color: "primary",
+              loading: t,
+              type: "submit",
+              onClick: s,
+              children: "Submit",
+            }),
+          ],
+        }),
+      ],
+    });
   },
   vw = He.object({
     content: He.string()
@@ -36612,8 +36616,8 @@ const _w = ({ check: e, refetch: t }) => {
                             children: /* @__PURE__ */ f.jsx(Md, {}),
                           }),
                           /* @__PURE__ */ f.jsx(ad, {
-                            title: "Delete the task",
-                            description: "Are you sure to delete this task?",
+                            title: "Delete the check",
+                            description: "Are you sure to delete this check?",
                             onConfirm: () => b(e.name),
                             okText: "Yes",
                             cancelText: "No",
