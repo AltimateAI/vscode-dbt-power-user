@@ -143,6 +143,7 @@ container
         container.get(ValidationProvider),
         container.get(DeferToProdService),
         projectRoot,
+        container.get(AltimateRequest),
       );
     };
   });
