@@ -49,7 +49,7 @@ const Drawer: ForwardRefRenderFunction<DrawerRef, Props> = (
 ) => {
   const [show, setShow] = useState(false);
 
-  const handleClose = (e: SyntheticEvent) => {
+  const handleClose = (e?: SyntheticEvent) => {
     if (
       disableBackdropClick &&
       e &&
