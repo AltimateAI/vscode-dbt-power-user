@@ -827,6 +827,7 @@ export class DBTProject implements Disposable {
         error,
         { column, model },
       );
+      throw error;
     }
   }
 
