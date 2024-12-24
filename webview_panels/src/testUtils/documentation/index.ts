@@ -32,7 +32,7 @@ export const DBTDocumentationColumnFactory =
 
 export const DBTDocumentationFactory = Sync.makeFactory<DBTDocumentation>({
   aiEnabled: true,
-  columns: DBTDocumentationColumnFactory.buildList(10),
+  columns: DBTDocumentationColumnFactory.buildList(20),
   description: each(() => faker.lorem.paragraph()),
   generated: faker.datatype.boolean(),
   name: each(() => faker.database.column()),

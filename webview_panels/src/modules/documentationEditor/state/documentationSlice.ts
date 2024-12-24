@@ -5,7 +5,6 @@ import {
   DocsGenerateUserInstructions,
   DocumentationStateProps,
   MetadataColumn,
-  Pages,
 } from "./types";
 import { mergeCurrentAndIncomingDocumentationColumns } from "../utils";
 import { Citation } from "@lib";
@@ -26,17 +25,23 @@ export const initialState = {
     persona: undefined,
     prompt_hint: undefined,
   },
-  selectedPages: [Pages.DOCUMENTATION],
   conversations: {},
   showConversationsRightPanel: false,
   collaborationEnabled: false,
   missingDocumentationMessage: undefined,
+  searchQuery: "",
 } as DocumentationStateProps;
 
 const documentationSlice = createSlice({
   name: "documentationState",
   initialState,
   reducers: {
+    setSearchQuery: (
+      state,
+      action: PayloadAction<DocumentationStateProps["searchQuery"]>,
+    ) => {
+      state.searchQuery = action.payload;
+    },
     updatConversations: (
       state,
       { payload }: PayloadAction<DocumentationStateProps["conversations"]>,
@@ -44,9 +49,6 @@ const documentationSlice = createSlice({
       Object.entries(payload).forEach(([shareId, conversationGroups]) => {
         state.conversations[parseInt(shareId)] = conversationGroups;
       });
-    },
-    addToSelectedPage: (state, action: PayloadAction<Pages>) => {
-      state.selectedPages.push(action.payload);
     },
     setMissingDocumentationMessage: (
       state,
@@ -77,14 +79,6 @@ const documentationSlice = createSlice({
       >,
     ) => {
       state.selectedConversationGroup = action.payload;
-    },
-    removeFromSelectedPage: (state, action: PayloadAction<Pages>) => {
-      if (state.selectedPages.length === 1) {
-        return;
-      }
-      state.selectedPages = state.selectedPages.filter(
-        (p) => p !== action.payload,
-      );
     },
     setProject: (
       state,
@@ -286,12 +280,11 @@ export const {
   setIsTestUpdatedForAnyColumn,
   setInsertedEntityName,
   updateCurrentDocsTests,
-  addToSelectedPage,
-  removeFromSelectedPage,
   updatConversations,
   updateConversationsRightPanelState,
   updateSelectedConversationGroup,
   updateCollaborationEnabled,
   setMissingDocumentationMessage,
+  setSearchQuery,
 } = documentationSlice.actions;
 export default documentationSlice;

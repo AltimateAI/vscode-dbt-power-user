@@ -6,12 +6,6 @@ export enum Source {
   YAML = "YAML",
 }
 
-export enum Pages {
-  DOCUMENTATION,
-  TESTS,
-  TAGS,
-}
-
 export interface MetadataColumn {
   name: string;
   type?: string;
@@ -79,7 +73,6 @@ export interface DocumentationStateProps {
   isDocGeneratedForAnyColumn: boolean;
   isTestUpdatedForAnyColumn: boolean;
   insertedEntityName?: string;
-  selectedPages: Pages[];
   conversations: Record<DbtDocsShareDetails["share_id"], ConversationGroup[]>;
   showConversationsRightPanel: boolean;
   selectedConversationGroup?: {
@@ -88,6 +81,7 @@ export interface DocumentationStateProps {
   };
   collaborationEnabled: boolean;
   missingDocumentationMessage?: { message: string; type: "warning" | "error" };
+  searchQuery: string;
 }
 
 export interface DBTModelTest {

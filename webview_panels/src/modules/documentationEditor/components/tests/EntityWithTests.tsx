@@ -1,12 +1,11 @@
 import Test from "./Test";
 import AddTest from "./AddTest";
-import { DBTModelTest, Pages } from "@modules/documentationEditor/state/types";
+import { DBTModelTest } from "@modules/documentationEditor/state/types";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { Stack, Drawer, DrawerRef, Button } from "@uicore";
 import { useMemo, useRef, useState } from "react";
 import DisplayTestDetails from "./DisplayTestDetails";
 import classes from "../../styles.module.scss";
-import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { TestsIcon } from "@assets/icons";
 import { sendTelemetryEvent } from "../telemetry";
 import { TelemetryEvents } from "@telemetryEvents";
@@ -20,9 +19,6 @@ interface Props {
 const MaxVisibleTests = 3;
 
 const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
-  const {
-    state: { selectedPages },
-  } = useDocumentationContext();
   const [selectedTest, setSelectedTest] = useState<DBTModelTest | null>(null);
   const [showAllTests, setshowAllTests] = useState(false);
   const drawerRef = useRef<DrawerRef | null>(null);
@@ -51,19 +47,12 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
         .filter((item): item is string => !!item),
     [tests],
   );
-  const isTestEnabled = useMemo(
-    () => selectedPages.includes(Pages.TESTS),
-    [selectedPages],
-  );
 
   const visibleTests = showAllTests
     ? tests
     : (tests ?? []).slice(0, MaxVisibleTests);
   const remainingTests = (tests ?? []).length - MaxVisibleTests;
 
-  if (!isTestEnabled) {
-    return null;
-  }
   return (
     <div className={classes.entityTests}>
       <Stack className={type}>

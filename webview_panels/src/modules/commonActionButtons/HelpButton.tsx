@@ -1,14 +1,23 @@
-import { HelpIcon } from "@assets/icons";
 import DocumentationHelpContent from "@modules/documentationEditor/components/help/DocumentationHelpContent";
 import TestsHelpContent from "@modules/documentationEditor/components/help/TestsHelpContent";
 import { sendTelemetryEvent } from "@modules/documentationEditor/components/telemetry";
-import { Pages } from "@modules/documentationEditor/state/types";
-import { Button, ButtonGroup, Drawer } from "@uicore";
-import { useState } from "react";
+import { Button, ButtonGroup, Drawer, DrawerRef } from "@uicore";
+import { useEffect, useRef, useState } from "react";
 import { TelemetryEvents } from "@telemetryEvents";
+
+enum Pages {
+  DOCUMENTATION,
+  TESTS,
+}
 
 const HelpButton = (): JSX.Element => {
   const [selectedPage, setSelectedPage] = useState(Pages.DOCUMENTATION);
+  const drawerRef = useRef<DrawerRef | null>(null);
+
+  useEffect(() => {
+    drawerRef.current?.open();
+  }, []);
+
   const handleClick = (page: Pages) => {
     setSelectedPage(page);
   };
@@ -21,13 +30,7 @@ const HelpButton = (): JSX.Element => {
     sendTelemetryEvent(TelemetryEvents["DocumentationEditor/HelpTestsOpen"]);
   };
   return (
-    <Drawer
-      buttonProps={{ outline: true }}
-      buttonText="Help"
-      icon={<HelpIcon />}
-      title="Help"
-      onOpen={onOpen}
-    >
+    <Drawer title="Help" onOpen={onOpen} ref={drawerRef}>
       <ButtonGroup className="mb-2">
         <Button
           color={selectedPage === Pages.DOCUMENTATION ? "primary" : "secondary"}
