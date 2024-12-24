@@ -13,8 +13,8 @@ const FeedbackButton = ({ url }: { url: string }): JSX.Element => {
     });
   };
   return (
-    <Button outline onClick={handleFeedbackClick} icon={<FeedbackIcon />}>
-      Feedback
+    <Button color="default" onClick={handleFeedbackClick}>
+      <FeedbackIcon /> Feedback
     </Button>
   );
 };
