@@ -2,10 +2,14 @@ import { HelpIcon } from "@assets/icons";
 import DocumentationHelpContent from "@modules/documentationEditor/components/help/DocumentationHelpContent";
 import TestsHelpContent from "@modules/documentationEditor/components/help/TestsHelpContent";
 import { sendTelemetryEvent } from "@modules/documentationEditor/components/telemetry";
-import { Pages } from "@modules/documentationEditor/state/types";
 import { Button, ButtonGroup, Drawer } from "@uicore";
 import { useState } from "react";
 import { TelemetryEvents } from "@telemetryEvents";
+
+enum Pages {
+  DOCUMENTATION,
+  TESTS,
+}
 
 const HelpButton = (): JSX.Element => {
   const [selectedPage, setSelectedPage] = useState(Pages.DOCUMENTATION);

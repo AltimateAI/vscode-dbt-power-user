@@ -5,16 +5,12 @@ import classes from "../../styles.module.scss";
 import BulkGenerateButton from "./BulkGenerateButton";
 import SyncWithDatabase from "./SyncWithDatabase";
 import { useMemo } from "react";
-import { DBTModelTest, Pages } from "@modules/documentationEditor/state/types";
+import { DBTModelTest } from "@modules/documentationEditor/state/types";
 
 const DocGeneratorColumnsList = (): JSX.Element => {
   const {
-    state: { currentDocsData, currentDocsTests, selectedPages },
+    state: { currentDocsData, currentDocsTests },
   } = useDocumentationContext();
-  const isDocumentationPageSelected = useMemo(
-    () => selectedPages.includes(Pages.DOCUMENTATION),
-    [selectedPages],
-  );
 
   const testsPerColumns = useMemo(() => {
     return (
@@ -45,14 +41,12 @@ const DocGeneratorColumnsList = (): JSX.Element => {
             <h3>Columns</h3>
             <SyncWithDatabase />
           </Stack>
-          {isDocumentationPageSelected ? <BulkGenerateButton /> : null}
+          <BulkGenerateButton />
         </Stack>
-        {isDocumentationPageSelected ? (
-          <Alert color="warning">
-            Note: If you don’t want to override existing documentation, please
-            (re)generate documentation at the individual column level below
-          </Alert>
-        ) : null}
+        <Alert color="warning">
+          Note: If you don’t want to override existing documentation, please
+          (re)generate documentation at the individual column level below
+        </Alert>
       </div>
       {!currentDocsData?.columns ? (
         <Stack>

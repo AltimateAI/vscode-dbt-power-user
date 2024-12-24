@@ -1,65 +1,38 @@
-import { CheckedSquareIcon, EmptySquareIcon } from "@assets/icons";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import useAppContext from "@modules/app/useAppContext";
 import CommonActionButtons from "@modules/commonActionButtons/CommonActionButtons";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
-import { Button, Stack } from "@uicore";
+import { Stack } from "@uicore";
 import { useMemo } from "react";
 import DocGeneratorColumnsList from "./components/docGenerator/DocGeneratorColumnsList";
 import DocGeneratorInput from "./components/docGenerator/DocGeneratorInput";
 import DocumentationHelpContent from "./components/help/DocumentationHelpContent";
 import SaveDocumentation from "./components/saveDocumentation/SaveDocumentation";
 import EntityWithTests from "./components/tests/EntityWithTests";
-import {
-  addToSelectedPage,
-  removeFromSelectedPage,
-  updateCurrentDocsData,
-} from "./state/documentationSlice";
-import { DocsGenerateModelRequestV2, Pages } from "./state/types";
+import { updateCurrentDocsData } from "./state/documentationSlice";
+import { DocsGenerateModelRequestV2 } from "./state/types";
 import useDocumentationContext from "./state/useDocumentationContext";
 import classes from "./styles.module.scss";
 import { addDefaultActions } from "./utils";
 import ConversationsRightPanel from "./components/conversation/ConversationsRightPanel";
 import useIncomingDocsDataHandler from "./useIncomingDocsDataHandler";
-import { TelemetryEvents } from "@telemetryEvents";
-import { sendTelemetryEvent } from "./components/telemetry";
 import CoachAiIfModified from "./components/docGenerator/CoachAiIfModified";
 import Citations from "./components/docGenerator/Citations";
 import { Citation } from "@lib";
 
 const DocumentationEditor = (): JSX.Element => {
   const {
-    state: { currentDocsData, currentDocsTests, selectedPages },
+    state: { currentDocsData, currentDocsTests },
     dispatch,
   } = useDocumentationContext();
   const { postMessageToDataPilot } = useAppContext();
   useIncomingDocsDataHandler();
 
-  const handleClick = (page: Pages) => {
-    if (selectedPages.includes(page)) {
-      dispatch(removeFromSelectedPage(page));
-      return;
-    }
-    dispatch(addToSelectedPage(page));
-    if (page === Pages.TESTS) {
-      sendTelemetryEvent(TelemetryEvents["DocumentationEditor/TestsTabClick"]);
-    }
-  };
-
   const modelTests = useMemo(() => {
     return currentDocsTests?.filter((test) => !test.column_name);
   }, [currentDocsTests]);
-
-  const isDocumentationPageSelected = useMemo(
-    () => selectedPages.includes(Pages.DOCUMENTATION),
-    [selectedPages],
-  );
-  const isTestsPageSelected = useMemo(
-    () => selectedPages.includes(Pages.TESTS),
-    [selectedPages],
-  );
 
   const onModelDocSubmit = async (data: DocsGenerateModelRequestV2) => {
     if (!currentDocsData) {
@@ -138,40 +111,7 @@ const DocumentationEditor = (): JSX.Element => {
   return (
     <div className={`${classes.documentationWrapper} ${classes.limitWidth}`}>
       <Stack className="mb-2 justify-content-between">
-        <Stack>
-          <Button
-            color={isDocumentationPageSelected ? "primary" : "secondary"}
-            onClick={() => handleClick(Pages.DOCUMENTATION)}
-          >
-            <span className="d-inline-block me-2">
-              {isDocumentationPageSelected ? (
-                <CheckedSquareIcon />
-              ) : (
-                <EmptySquareIcon />
-              )}
-            </span>
-            Documentation
-          </Button>
-          <Button
-            color={isTestsPageSelected ? "primary" : "secondary"}
-            onClick={() => handleClick(Pages.TESTS)}
-          >
-            <span className="d-inline-block me-2">
-              {isTestsPageSelected ? (
-                <CheckedSquareIcon />
-              ) : (
-                <EmptySquareIcon />
-              )}
-            </span>
-            Tests
-          </Button>
-          {/* <Button
-          color={activePage === Pages.TAGS ? "primary" : "secondary"}
-          onClick={() => handleClick(Pages.TAGS)}
-        >
-          Tags
-        </Button> */}
-        </Stack>
+        <Stack>hi</Stack>
         <CommonActionButtons />
       </Stack>
       <div className={classes.docGenerator}>
@@ -179,15 +119,13 @@ const DocumentationEditor = (): JSX.Element => {
           <Stack direction="column" className={classes.body}>
             <Stack direction="column">
               <Stack direction="column" style={{ margin: "1rem 0 10px 0" }}>
-                {isDocumentationPageSelected ? (
-                  <DocGeneratorInput
-                    entity={currentDocsData}
-                    type={EntityType.MODEL}
-                    onSubmit={onModelDocSubmit}
-                    placeholder="Describe your model"
-                    title={`Model: ${currentDocsData.name}`}
-                  />
-                ) : null}
+                <DocGeneratorInput
+                  entity={currentDocsData}
+                  type={EntityType.MODEL}
+                  onSubmit={onModelDocSubmit}
+                  placeholder="Describe your model"
+                  title={`Model: ${currentDocsData.name}`}
+                />
                 <EntityWithTests
                   title={currentDocsData.name}
                   tests={modelTests}

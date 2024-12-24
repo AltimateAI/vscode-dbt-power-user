@@ -5,7 +5,6 @@ import {
   DocsGenerateUserInstructions,
   DocumentationStateProps,
   MetadataColumn,
-  Pages,
 } from "./types";
 import { mergeCurrentAndIncomingDocumentationColumns } from "../utils";
 import { Citation } from "@lib";
@@ -26,7 +25,6 @@ export const initialState = {
     persona: undefined,
     prompt_hint: undefined,
   },
-  selectedPages: [Pages.DOCUMENTATION],
   conversations: {},
   showConversationsRightPanel: false,
   collaborationEnabled: false,
@@ -44,9 +42,6 @@ const documentationSlice = createSlice({
       Object.entries(payload).forEach(([shareId, conversationGroups]) => {
         state.conversations[parseInt(shareId)] = conversationGroups;
       });
-    },
-    addToSelectedPage: (state, action: PayloadAction<Pages>) => {
-      state.selectedPages.push(action.payload);
     },
     setMissingDocumentationMessage: (
       state,
@@ -77,14 +72,6 @@ const documentationSlice = createSlice({
       >,
     ) => {
       state.selectedConversationGroup = action.payload;
-    },
-    removeFromSelectedPage: (state, action: PayloadAction<Pages>) => {
-      if (state.selectedPages.length === 1) {
-        return;
-      }
-      state.selectedPages = state.selectedPages.filter(
-        (p) => p !== action.payload,
-      );
     },
     setProject: (
       state,
@@ -286,8 +273,6 @@ export const {
   setIsTestUpdatedForAnyColumn,
   setInsertedEntityName,
   updateCurrentDocsTests,
-  addToSelectedPage,
-  removeFromSelectedPage,
   updatConversations,
   updateConversationsRightPanelState,
   updateSelectedConversationGroup,
