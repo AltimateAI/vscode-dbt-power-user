@@ -29,12 +29,19 @@ export const initialState = {
   showConversationsRightPanel: false,
   collaborationEnabled: false,
   missingDocumentationMessage: undefined,
+  searchQuery: "",
 } as DocumentationStateProps;
 
 const documentationSlice = createSlice({
   name: "documentationState",
   initialState,
   reducers: {
+    setSearchQuery: (
+      state,
+      action: PayloadAction<DocumentationStateProps["searchQuery"]>,
+    ) => {
+      state.searchQuery = action.payload;
+    },
     updatConversations: (
       state,
       { payload }: PayloadAction<DocumentationStateProps["conversations"]>,
@@ -278,5 +285,6 @@ export const {
   updateSelectedConversationGroup,
   updateCollaborationEnabled,
   setMissingDocumentationMessage,
+  setSearchQuery,
 } = documentationSlice.actions;
 export default documentationSlice;

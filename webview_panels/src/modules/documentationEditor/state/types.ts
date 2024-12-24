@@ -81,6 +81,7 @@ export interface DocumentationStateProps {
   };
   collaborationEnabled: boolean;
   missingDocumentationMessage?: { message: string; type: "warning" | "error" };
+  searchQuery: string;
 }
 
 export interface DBTModelTest {

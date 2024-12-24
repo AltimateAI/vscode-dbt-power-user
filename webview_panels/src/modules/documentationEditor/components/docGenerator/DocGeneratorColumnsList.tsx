@@ -9,7 +9,7 @@ import { DBTModelTest } from "@modules/documentationEditor/state/types";
 
 const DocGeneratorColumnsList = (): JSX.Element => {
   const {
-    state: { currentDocsData, currentDocsTests },
+    state: { currentDocsData, currentDocsTests, searchQuery },
   } = useDocumentationContext();
 
   const testsPerColumns = useMemo(() => {
@@ -33,6 +33,14 @@ const DocGeneratorColumnsList = (): JSX.Element => {
     );
   }, [currentDocsTests]);
 
+  const filteredColumns = useMemo(() => {
+    if (!currentDocsData?.columns) return [];
+    if (!searchQuery) return currentDocsData.columns;
+    return currentDocsData.columns.filter((column) =>
+      column.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  }, [currentDocsData?.columns, searchQuery]);
+
   return (
     <div>
       <div style={{ marginBottom: 40 }}>
@@ -54,9 +62,9 @@ const DocGeneratorColumnsList = (): JSX.Element => {
         </Stack>
       ) : null}
       <Stack direction="column" className={classes.columns}>
-        {currentDocsData?.columns.map((column) => (
+        {filteredColumns.map((column) => (
           <DocGeneratorColumn
-            key={column.name}
+            key={`${column.name}-${column.type}`}
             column={column}
             tests={testsPerColumns[column.name]}
           />

@@ -103,7 +103,7 @@ const DocGenSelectedColumns = ({
           <List>
             {filteredColumns.map((column) => (
               <ListGroupItem
-                key={`${column.name}-${column.description}-${column.type}`}
+                key={`${column.name}-${column.type}`}
                 tag={"label"}
               >
                 <Input
