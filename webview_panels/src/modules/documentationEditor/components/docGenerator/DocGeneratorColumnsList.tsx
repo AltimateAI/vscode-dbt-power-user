@@ -2,7 +2,6 @@ import useDocumentationContext from "@modules/documentationEditor/state/useDocum
 import { Alert, Stack } from "@uicore";
 import DocGeneratorColumn from "./DocGeneratorColumn";
 import classes from "../../styles.module.scss";
-import BulkGenerateButton from "./BulkGenerateButton";
 import SyncWithDatabase from "./SyncWithDatabase";
 import { useMemo } from "react";
 import { DBTModelTest } from "@modules/documentationEditor/state/types";
@@ -49,7 +48,6 @@ const DocGeneratorColumnsList = (): JSX.Element => {
             <h3>Columns</h3>
             <SyncWithDatabase />
           </Stack>
-          <BulkGenerateButton />
         </Stack>
         <Alert color="warning">
           Note: If you don’t want to override existing documentation, please

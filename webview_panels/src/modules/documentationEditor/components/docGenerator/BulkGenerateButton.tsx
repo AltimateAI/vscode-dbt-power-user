@@ -7,18 +7,18 @@ import { updateColumnsInCurrentDocsData } from "@modules/documentationEditor/sta
 import { DBTDocumentationColumn } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { panelLogger } from "@modules/logger";
-import { Button, DropdownButton, List, Popover, PopoverBody } from "@uicore";
+import { Button, DropdownButton, List, PopoverWithButton } from "@uicore";
 import { useRef, useState } from "react";
 import classes from "../../styles.module.scss";
 import { mergeCurrentAndIncomingDocumentationColumns } from "@modules/documentationEditor/utils";
 import DocGenSelectedColumns from "./DocGenSelectedColumns";
+import { noop } from "antd/es/_util/warning";
 
 enum SidePanelState {
   DOCUMENTATION_SELECTED = "documentationSelected",
 }
 
 const BulkGenerateButton = (): JSX.Element => {
-  const [openPopover, setOpenPopover] = useState(false);
   const [sidePanelState, setSidePanelState] = useState<
     SidePanelState | undefined
   >();
@@ -27,10 +27,6 @@ const BulkGenerateButton = (): JSX.Element => {
     state: { currentDocsData, userInstructions },
     dispatch,
   } = useDocumentationContext();
-
-  const onToggleClick = () => {
-    setOpenPopover((prev) => !prev);
-  };
 
   const resetSidepanelState = () => {
     setSidePanelState(undefined);
@@ -117,7 +113,6 @@ const BulkGenerateButton = (): JSX.Element => {
   };
 
   const onOptionSelect = async (value: string) => {
-    setOpenPopover(false);
     const startTime = Date.now();
     sendTelemetryEvent(value);
 
@@ -151,41 +146,50 @@ const BulkGenerateButton = (): JSX.Element => {
   return (
     <>
       <div ref={ref}>
-        <DropdownButton onToggleClick={onToggleClick} onClick={onToggleClick}>
-          <ShinesIcon /> Bulk generate
-        </DropdownButton>
-        <Popover
-          isOpen={openPopover}
-          target={ref}
-          placement="bottom"
-          hideArrow
-          className={classes.popover}
+        <PopoverWithButton
+          width="auto"
+          button={
+            <DropdownButton onToggleClick={noop} onClick={noop}>
+              <ShinesIcon /> Bulk generate
+            </DropdownButton>
+          }
+          popoverProps={{
+            placement: "bottom",
+            hideArrow: true,
+          }}
         >
-          <PopoverBody>
-            <List>
-              {Object.entries(options).map(([key, actions]) => (
-                <>
-                  <li>{key}</li>
-                  {actions.map((option) => (
-                    <li key={option.label}>
-                      <Button
-                        color="link"
-                        onClick={() => onOptionSelect(option.value)}
-                      >
-                        {option.label}
-                      </Button>
-                    </li>
+          {({ styles, close }) => (
+            <div className={classes.popover}>
+              <div className={styles.popoverActions}>
+                <List>
+                  {Object.entries(options).map(([key, actions]) => (
+                    <>
+                      <li className={classes.sectionTitle}>{key}</li>
+                      {actions.map((option) => (
+                        <li key={option.label}>
+                          <Button
+                            color="secondary"
+                            onClick={() => {
+                              close();
+                              void onOptionSelect(option.value);
+                            }}
+                          >
+                            {option.label}
+                          </Button>
+                        </li>
+                      ))}
+                    </>
                   ))}
-                </>
-              ))}
-            </List>
-          </PopoverBody>
-        </Popover>
+                </List>
+              </div>
+            </div>
+          )}
+        </PopoverWithButton>
       </div>
       {sidePanelState === SidePanelState.DOCUMENTATION_SELECTED ? (
         <DocGenSelectedColumns
           onClose={resetSidepanelState}
-          generateForColumns={(c) => bulkGenerateDocs(c, false)}
+          generateForColumns={bulkGenerateDocs}
         />
       ) : null}
     </>

@@ -1,3 +1,4 @@
+import { DocsIcon, SearchIcon } from "@assets/icons";
 import { DBTDocumentationColumn } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import {
@@ -7,19 +8,27 @@ import {
   Input,
   List,
   ListGroupItem,
+  LoadingButton,
   Stack,
+  Tooltip,
 } from "@uicore";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import classes from "../../styles.module.scss";
+import { panelLogger } from "@modules/logger";
 
 interface Props {
   onClose: () => void;
-  generateForColumns: (columns: DBTDocumentationColumn[]) => void;
+  generateForColumns: (
+    columns: DBTDocumentationColumn[],
+    isAll: boolean,
+  ) => Promise<DBTDocumentationColumn[]>;
 }
 const DocGenSelectedColumns = ({
   onClose,
   generateForColumns,
 }: Props): JSX.Element => {
   const drawerRef = useRef<DrawerRef | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [searchQuery, setsearchQuery] = useState("");
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
   const {
@@ -38,12 +47,21 @@ const DocGenSelectedColumns = ({
     );
   }, [searchQuery, currentDocsData?.columns]);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     const columns = currentDocsData?.columns.filter((column) =>
       selectedColumns.includes(column.name),
     );
     if (!columns) return;
-    generateForColumns(columns);
+    setIsGenerating(true);
+    try {
+      await generateForColumns(columns, false);
+      drawerRef.current?.close();
+      onClose();
+    } catch (error) {
+      panelLogger.error("error while generating documentation", error);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleFilterChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -74,23 +92,42 @@ const DocGenSelectedColumns = ({
     }
   };
 
+  const handleSelectedColumns = (e: ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    if (selectedColumns.includes(value)) {
+      setSelectedColumns(selectedColumns.filter((column) => column !== value));
+    } else {
+      setSelectedColumns([...selectedColumns, value]);
+    }
+  };
+
   return (
     <Drawer ref={drawerRef} onClose={onClose}>
       <Stack direction="column" className="h-100">
         <Stack className="justify-content-between">
           Generate documentation{" "}
-          <Button onClick={handleGenerate}>Generate</Button>
+          <LoadingButton
+            disabled={selectedColumns.length === 0}
+            loading={isGenerating}
+            color="primary"
+            onClick={handleGenerate}
+          >
+            Generate{" "}
+            {selectedColumns.length ? `(${selectedColumns.length})` : ""}
+          </LoadingButton>
         </Stack>
-        <div>
+        <Stack className={classes.search}>
+          <SearchIcon />
           <Input placeholder="Search columns" onChange={handleFilterChange} />
-        </div>
+        </Stack>
+        <div></div>
         <Stack>
           <Button onClick={() => handleSelectColumns("all")}>Select All</Button>
           <Button
             color="success"
             onClick={() => handleSelectColumns("documented")}
           >
-            Documented
+            <DocsIcon className={classes.docsIconInBtn} /> Documented
           </Button>
           <Button
             color="warning"
@@ -100,18 +137,27 @@ const DocGenSelectedColumns = ({
           </Button>
         </Stack>
         <Stack className="overflow-auto">
-          <List>
+          <List className="m-0 p-0">
             {filteredColumns.map((column) => (
               <ListGroupItem
                 key={`${column.name}-${column.type}`}
                 tag={"label"}
+                className="mb-1"
               >
-                <Input
-                  type="checkbox"
-                  value={column.name}
-                  checked={selectedColumns.includes(column.name)}
-                />
-                {column.name}
+                <Stack>
+                  <Input
+                    type="checkbox"
+                    value={column.name}
+                    checked={selectedColumns.includes(column.name)}
+                    onChange={handleSelectedColumns}
+                  />
+                  {column.name}
+                  {column.description ? (
+                    <Tooltip title="Documented" placement="top">
+                      <DocsIcon className={classes.docsIcon} />
+                    </Tooltip>
+                  ) : null}
+                </Stack>
               </ListGroupItem>
             ))}
           </List>

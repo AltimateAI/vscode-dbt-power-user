@@ -292,28 +292,23 @@
 }
 
 .popover {
-  :global .popover {
-    margin-top: -18px;
-    :global .popover-body {
-      padding: 0;
-
-      & ul {
-        padding: 0.5rem 0;
-        margin: 0;
-        list-style: none;
-        li {
-          :global .btn-link {
-            text-decoration: none;
-            color: #1e1e1e;
-            width: 100%;
-            text-align: left;
-            &:hover,
-            &.active {
-              color: var(--primary-color);
-              background-color: #eee;
-            }
-          }
-        }
+  margin-top: -1rem;
+  
+  ul {
+    padding: 0.5rem 0;
+    margin: 0;
+    list-style: none;
+    .section_title{
+      background-color: var(--background--base);
+      padding: 0.5rem;
+      border-radius: 6px;
+    }
+    li {
+      :global .btn {
+        text-decoration: none;
+        width: 100%;
+        text-align: left;
+        background-color: transparent;
       }
     }
   }
@@ -334,5 +329,37 @@
 @media (min-width: 1400px) {
   .limitWidth {
     max-width: 1440px;
+  }
+}
+
+.docsIcon {
+  width: 13px;
+  height: 13px;
+
+  path {
+    fill: #198754;
+  }
+}
+
+.docsIconInBtn {
+  height: 13px;
+  width: 13px;
+  vertical-align: text-bottom;
+
+  path {
+    fill: #fff;
+  }
+}
+
+.search{
+  position: relative;
+  :global .codicon{
+    position: absolute;
+    top: 8px;
+    left: 5px;
+  }
+  input {
+    padding-left: 25px;
+    min-width: 200px;
   }
 }

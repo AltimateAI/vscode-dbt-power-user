@@ -1,5 +1,5 @@
 .dropdownButton {
-  gap: 0;
+  gap: 0 !important;
   & button:first-child {
     border-radius: 2px 0 0 2px;
   }
