@@ -115,6 +115,7 @@ const DocumentationEditor = (): JSX.Element => {
       <Stack className="mb-2 justify-content-between">
         <SearchColumnsInput />
         <Stack>
+          <SaveDocumentation />
           <BulkGenerateButton />
           <CommonActionButtons />
         </Stack>
@@ -146,7 +147,6 @@ const DocumentationEditor = (): JSX.Element => {
               </Stack>
               <DocGeneratorColumnsList />
             </Stack>
-            <SaveDocumentation />
           </Stack>
         </Stack>
       </div>

@@ -24,7 +24,12 @@ const BulkGenerateButton = (): JSX.Element => {
   >();
   const ref = useRef<HTMLDivElement | null>(null);
   const {
-    state: { currentDocsData, userInstructions },
+    state: {
+      currentDocsData,
+      userInstructions,
+      isDocGeneratedForAnyColumn,
+      isTestUpdatedForAnyColumn,
+    },
     dispatch,
   } = useDocumentationContext();
 
@@ -143,13 +148,18 @@ const BulkGenerateButton = (): JSX.Element => {
     }
   };
 
+  const color =
+    isDocGeneratedForAnyColumn || isTestUpdatedForAnyColumn
+      ? "secondary"
+      : "primary";
+
   return (
     <>
       <div ref={ref}>
         <PopoverWithButton
           width="auto"
           button={
-            <DropdownButton onToggleClick={noop} onClick={noop}>
+            <DropdownButton onToggleClick={noop} onClick={noop} color={color}>
               <ShinesIcon /> Bulk generate
             </DropdownButton>
           }

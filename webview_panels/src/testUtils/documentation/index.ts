@@ -36,7 +36,7 @@ export const DBTDocumentationFactory = Sync.makeFactory<DBTDocumentation>({
   description: each(() => faker.lorem.paragraph()),
   generated: faker.datatype.boolean(),
   name: each(() => faker.database.column()),
-  patchPath: undefined,
+  patchPath: faker.system.filePath(),
   uniqueId: "",
   resource_type: "model",
 });

@@ -13,7 +13,10 @@ const DropdownButton = (props: Props): JSX.Element => {
       <Button color="primary" {...props}>
         {props.children}
       </Button>
-      <IconButton onClick={props.onToggleClick} color="primary">
+      <IconButton
+        onClick={props.onToggleClick}
+        color={props.color ?? "primary"}
+      >
         <ChevronDownIcon />
       </IconButton>
     </Stack>
