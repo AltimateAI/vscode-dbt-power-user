@@ -5,6 +5,7 @@ import {
   useTeamMateContext,
 } from "@lib";
 import useAppContext from "@modules/app/useAppContext";
+import PreviewFeatureIcon from "@modules/previewFeature/PreviewFeatureIcon";
 import { vscode } from "@modules/vscode";
 import { Drawer, DrawerRef } from "@uicore";
 import { useRef } from "react";
@@ -33,7 +34,11 @@ const ProjectHealthNewCheckButton = ({
   return (
     <Drawer
       buttonProps={{ outline: true }}
-      buttonText="+ Add new check"
+      buttonText={
+        <>
+          + Add new check <PreviewFeatureIcon />
+        </>
+      }
       onOpen={onOpen}
       ref={drawerRef}
       disableBackdropClick
