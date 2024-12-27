@@ -101,7 +101,7 @@ const SaveDocumentation = (): JSX.Element | null => {
           {currentDocsData?.patchPath ? (
             <>
               <h4 className="mb-0">Current path:</h4>
-              <p>{currentDocsData.patchPath}</p>
+              <p id="file_path">{currentDocsData.patchPath}</p>
 
               <Stack className="justify-content-end">
                 <Button color="primary" onClick={() => saveDocumentation()}>

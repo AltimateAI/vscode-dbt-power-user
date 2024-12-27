@@ -23,6 +23,11 @@ interface Props {
     isAll: boolean,
   ) => Promise<DBTDocumentationColumn[]>;
 }
+
+/**
+ * Component to handle multiple column selections for bulk documentation generation
+ * User can select all columns, documented columns or missing columns
+ */
 const DocGenSelectedColumns = ({
   onClose,
   generateForColumns,

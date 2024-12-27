@@ -334,9 +334,22 @@
 }
 
 .saveDocumentation {
+  min-width: 200px;
   li {
     list-style: none;
     padding: 0;
     margin: 0;
+  }
+
+  :global #file_path {
+    border-radius: 2px;
+    border: 1px solid var(--stroke--disable, #424750);
+    background: var(--background--02);
+    margin-bottom: 0;
+    flex: 1;
+    font-size: 1rem;
+    padding: 8px 12px;
+    background: var(--background--02);
+    color: var(--text-color--title);
   }
 }
