@@ -43,7 +43,7 @@ const BulkGenerateButton = (): JSX.Element => {
       { label: "Generate only missing columns", value: "missing" },
       { label: "Select columns", value: "selected" },
     ],
-    Tests: [{ label: "Generate all", value: "all" }],
+    // Tests: [{ label: "Generate all", value: "all" }],
   };
 
   const bulkGenerateDocs = async (
@@ -166,15 +166,16 @@ const BulkGenerateButton = (): JSX.Element => {
           popoverProps={{
             placement: "bottom",
             hideArrow: true,
+            className: classes.bulkGenPopover,
           }}
         >
           {({ styles, close }) => (
             <div className={classes.popover}>
               <div className={styles.popoverActions}>
                 <List>
-                  {Object.entries(options).map(([key, actions]) => (
+                  {Object.entries(options).map(([_key, actions]) => (
                     <>
-                      <li className={classes.sectionTitle}>{key}</li>
+                      {/* <li className={classes.sectionTitle}>{key}</li> */}
                       {actions.map((option) => (
                         <li key={option.label}>
                           <Button

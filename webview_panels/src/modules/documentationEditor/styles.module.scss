@@ -255,29 +255,33 @@
   }
 }
 
-.popover {
-  margin-top: -1rem;
-  
-  ul {
-    padding: 0.5rem 0;
-    margin: 0;
-    list-style: none;
-    .section_title{
-      background-color: var(--background--base);
-      padding: 0.5rem;
-      border-radius: 6px;
-    }
-    li {
-      :global .btn {
-        text-decoration: none;
-        width: 100%;
-        text-align: left;
-        background-color: transparent;
+.bulk_gen_popover {
+  :global .popover-body{
+    padding: 0 1rem !important;
+  }
+  .popover {
+    margin-top: -1rem;
+    
+    ul {
+      padding: 0.5rem 0;
+      margin: 0;
+      list-style: none;
+      .section_title{
+        background-color: var(--background--base);
+        padding: 0.5rem;
+        border-radius: 6px;
+      }
+      li {
+        :global .btn {
+          text-decoration: none;
+          width: 100%;
+          text-align: left;
+          background-color: transparent;
+        }
       }
     }
   }
 }
-
 .conversationInputForm{
   textarea{
     top: 5px !important;
@@ -299,6 +303,7 @@
 .docsIcon {
   width: 13px;
   height: 13px;
+  margin-left: -5px;
 
   path {
     fill: #198754;
@@ -306,7 +311,7 @@
 }
 
 .docsIconInBtn {
-  height: 13px;
+  height: 17px;
   width: 13px;
   vertical-align: text-bottom;
 
@@ -329,7 +334,6 @@
 }
 
 .saveDocumentation {
-  
   li {
     list-style: none;
     padding: 0;
