@@ -206,6 +206,7 @@ export class DBTCloudProjectIntegration
     private validationProvider: ValidationProvider,
     private deferToProdService: DeferToProdService,
     private projectRoot: Uri,
+    private altimateRequest: AltimateRequest,
   ) {
     this.terminal.debug(
       "DBTCloudProjectIntegration",
@@ -1189,7 +1190,7 @@ export class DBTCloudProjectIntegration
     this.throwBridgeErrorIfAvailable();
     const result = await this.python?.lock<ProjectHealthcheck>(
       (python) =>
-        python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
+        python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}, ${this.altimateRequest.getAIKey()}, ${this.altimateRequest.getInstanceName()}, ${AltimateRequest.ALTIMATE_URL}))`,
     );
     return result;
   }

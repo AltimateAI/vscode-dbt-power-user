@@ -1,5 +1,7 @@
+from typing import Optional
+
 def project_healthcheck(
-    manifest_path, catalog_path=None, config_path=None, config=None
+    manifest_path, catalog_path=None, config_path=None, config=None, token=None, tenant=None, backend_url: Optional[str] = None,
 ):
     try:
         import logging
@@ -20,6 +22,9 @@ def project_healthcheck(
             manifest=manifest,
             catalog=catalog,
             config=config,
+            token=token,
+            instance_name=tenant,
+            backend_url=backend_url,
         )
         reports = insight_generator.run()
 
@@ -28,6 +33,8 @@ def project_healthcheck(
             k: [json.loads(item.json()) for item in v]
             for k, v in reports[MODEL].items()
         }
+
         return {"model_insights": model_insights}
+
     except Exception as e:
         raise Exception(str(e))
