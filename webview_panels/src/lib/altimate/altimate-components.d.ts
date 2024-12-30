@@ -3,6 +3,7 @@ import { ButtonHTMLAttributes } from 'react';
 import { ButtonProps } from 'reactstrap';
 import { CaseReducerActions } from '@reduxjs/toolkit';
 import { ChatMessage } from '@ant-design/pro-chat';
+import { ComponentType } from 'react';
 import { Dispatch } from 'react';
 import { JSX as JSX_2 } from 'react/jsx-runtime';
 import { PayloadAction } from '@reduxjs/toolkit';
@@ -66,9 +67,16 @@ export declare interface CoachAiResponse {
     personalizationScope: string;
 }
 
-export declare const CoachForm: ({ taskLabel, context, onClose, extra }: Props_10) => JSX_2.Element;
+export declare const CoachForm: (props: CoachFormProps) => JSX_2.Element;
 
-export declare const CoachFormButton: ({}: Props_11) => JSX_2.Element;
+export declare const CoachFormButton: ({}: Props_10) => JSX_2.Element;
+
+declare interface CoachFormProps {
+    taskLabel: keyof typeof TaskLabels;
+    context?: Record<string, unknown>;
+    extra?: Record<string, unknown>;
+    onClose: (data?: unknown) => void;
+}
 
 export declare const CodeBlock: ({ code, language, fileName, editorTheme, theme, showLineNumbers, className, titleActions, }: Props_4) => JSX.Element;
 
@@ -206,7 +214,7 @@ export declare const IconButton: (props: Props) => JSX.Element;
 export declare interface Learning extends z.infer<typeof learningSchema> {
 }
 
-export declare const Learnings: ({ filters, learning }: Props_12) => JSX_2.Element;
+export declare const Learnings: ({ filters, learning }: Props_11) => JSX_2.Element;
 
 export declare const learningSchema: z.ZodObject<{
     train_doc_uid: z.ZodString;
@@ -282,28 +290,74 @@ export declare enum PersonalizationScope {
     ALL_USERS = "AllUsers"
 }
 
+export declare enum ProjectGovernorAllowedFiles {
+    Manifest = "Manifest",
+    Catalog = "Catalog"
+}
+
+export declare interface ProjectGovernorCheck extends z.infer<typeof ProjectGovernorCheckSchema> {
+    id: string;
+}
+
+export declare interface ProjectGovernorCheckConfirmationResponse {
+    ok: boolean;
+}
+
+export declare interface ProjectGovernorCheckFormValues {
+    description: string;
+    type: ProjectGovernorCheckTypes;
+}
+
+export declare const ProjectGovernorCheckSchema: z.ZodObject<{
+    name: z.ZodString;
+    alias: z.ZodString;
+    type: z.ZodEnum<[string, ...string[]]>;
+    description: z.ZodString;
+    files_required: z.ZodArray<z.ZodEnum<[string, ...string[]]>, "many">;
+    config: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+}, "strip", z.ZodTypeAny, {
+    type: string;
+    name: string;
+    description: string;
+    alias: string;
+    files_required: string[];
+    config: Record<string, unknown>;
+}, {
+    type: string;
+    name: string;
+    description: string;
+    alias: string;
+    files_required: string[];
+    config: Record<string, unknown>;
+}>;
+
+export declare enum ProjectGovernorCheckTypes {
+    DOCUMENTATION = "documentation",
+    TESTS = "tests",
+    MODEL = "model",
+    FILE_STRUCTURE = "file_structure"
+}
+
+export declare interface ProjectGovernorCheckValidateResponse {
+    name: string;
+    description: string;
+}
+
 declare interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
     color?: string;
 }
 
 declare interface Props_10 {
-    taskLabel: keyof typeof TaskLabels;
-    context?: Record<string, unknown>;
-    extra?: Record<string, unknown>;
-    onClose: () => void;
 }
 
 declare interface Props_11 {
-}
-
-declare interface Props_12 {
     filters?: {
         taskLabel?: keyof typeof TaskLabels;
     };
     learning?: string | null;
 }
 
-declare interface Props_13 {
+declare interface Props_12 {
     onSelect: (selected: (typeof TeamMatesConfig)[0], action: TeamMateActionType) => Promise<boolean | undefined>;
     client: keyof typeof TeamMateAvailability;
 }
@@ -437,7 +491,8 @@ export declare enum TaskLabels {
     DocGen = "DocGen",
     ChartBot = "ChartBot",
     SqlBot = "SqlExpert",
-    OpportunitiesBot = "OpportunitiesBot"
+    OpportunitiesBot = "OpportunitiesBot",
+    ProjectGovernor = "ProjectGovernor"
 }
 
 export declare const TeammateActions: CaseReducerActions<    {
@@ -463,6 +518,8 @@ export declare interface TeamMateConfig {
     key: TaskLabels;
     seeInAction?: boolean;
     comingSoon?: boolean;
+    displayComponent?: ComponentType<any>;
+    formComponent?: ComponentType<any>;
 }
 
 export declare interface TeamMateContextProps {
@@ -474,7 +531,7 @@ export declare const TeamMateProvider: ({ children, }: {
     children: ReactNode;
 }) => JSX.Element;
 
-export declare const TeamMates: ({ onSelect, client }: Props_13) => JSX_2.Element;
+export declare const TeamMates: ({ onSelect, client }: Props_12) => JSX_2.Element;
 
 export declare const TeamMatesConfig: TeamMateConfig[];
 

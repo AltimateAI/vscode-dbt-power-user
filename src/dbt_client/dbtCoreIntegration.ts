@@ -1155,7 +1155,7 @@ export class DBTCoreProjectIntegration
       await healthCheckThread.ex`from dbt_healthcheck import *`;
       const result = await healthCheckThread.lock<ProjectHealthcheck>(
         (python) =>
-          python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
+          python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}, ${this.altimateRequest.getAIKey()}, ${this.altimateRequest.getInstanceName()}, ${AltimateRequest.ALTIMATE_URL}))`,
       );
       return result;
     } finally {
