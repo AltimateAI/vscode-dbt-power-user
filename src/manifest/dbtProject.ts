@@ -1029,6 +1029,26 @@ select * from renamed
     }
   }
 
+  // TODO: check how to reuse existing function instead of this new one
+  async getRawResults(query: string, modelName: string) {
+    query = query.replace(/;\s*$/, "");
+    const limit = workspace
+      .getConfiguration("dbt")
+      .get<number>("queryLimit", 500);
+
+    if (limit <= 0) {
+      window.showErrorMessage("Please enter a positive number for query limit");
+      return;
+    }
+
+    const execution = await this.dbtProjectIntegration.executeSQL(
+      query,
+      limit,
+      modelName,
+    );
+    return await execution.executeQuery();
+  }
+
   async executeSQL(
     query: string,
     modelName: string,

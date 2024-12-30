@@ -56,6 +56,7 @@ import {
   DbtLineageService,
   Table,
 } from "../services/dbtLineageService";
+import { getTestSuggestions } from "@lib";
 
 export enum Source {
   YAML = "YAML",
@@ -545,10 +546,39 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
         const { command, syncRequestId, ...params } = message;
         switch (command) {
+          case "generateTests":
+            this.telemetry.startTelemetryEvent(
+              TelemetryEvents["DocumentationEditor/GenerateTestsClick"],
+            );
+            // const testSuggestions = await getTestSuggestions({
+            //   adapter: project.getAdapterType(),
+            //   columnsInRelation: message.columns,
+            //   tableRelation: message.name,
+            //   queryFn: async (query: string) => {
+            //     const result = await project.getRawResults(
+            //       query,
+            //       message.name,
+            //     );
+            //     return result?.table;
+            //   }
+            // })
+            break;
           case "fetchMetadataFromDatabase":
             this.telemetry.startTelemetryEvent(
               TelemetryEvents["DocumentationEditor/SyncWithDBClick"],
             );
+            const columnsInRelation =
+              await project.getColumnsOfModel("customers");
+            const testSuggestions = await getTestSuggestions({
+              adapter: project.getAdapterType(),
+              columnsInRelation: columnsInRelation,
+              tableRelation: "customers",
+              queryFn: async (query: string) => {
+                const result = await project.getRawResults(query, "customers");
+                return result?.table;
+              },
+            });
+            console.log("testSuggestions", testSuggestions);
             window.withProgress(
               {
                 title: "Syncing columns with metadata from database",
