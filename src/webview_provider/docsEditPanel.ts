@@ -573,6 +573,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               adapter: project.getAdapterType(),
               columnsInRelation: columnsInRelation,
               tableRelation: "customers",
+              tests: ["uniqueness", "range"],
               queryFn: async (query: string) => {
                 const result = await project.getRawResults(query, "customers");
                 return result?.table;
