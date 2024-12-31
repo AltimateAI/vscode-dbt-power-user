@@ -567,19 +567,48 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             this.telemetry.startTelemetryEvent(
               TelemetryEvents["DocumentationEditor/SyncWithDBClick"],
             );
-            const columnsInRelation =
-              await project.getColumnsOfModel("customers");
-            const testSuggestions = await getTestSuggestions({
-              adapter: project.getAdapterType(),
-              columnsInRelation: columnsInRelation,
-              tableRelation: "customers",
-              tests: ["uniqueness", "range"],
-              queryFn: async (query: string) => {
-                const result = await project.getRawResults(query, "customers");
-                return result?.table;
-              },
-            });
-            console.log("testSuggestions", testSuggestions);
+            {
+              const modelName = path.basename(currentFilePath.fsPath, ".sql");
+              const patchPath = this.documentation?.patchPath;
+              if (!project || !patchPath) {
+                return;
+              }
+              const contents = readFileSync(
+                path.join(
+                  project.projectRoot.fsPath,
+                  patchPath.split("://")[1],
+                ),
+              ).toString("utf8");
+
+              const dbtConfig = parse(contents, {
+                strict: false,
+                uniqueKeys: false,
+              });
+
+              const columnsInRelation =
+                await project.getColumnsOfModel(modelName);
+              const testSuggestions = await getTestSuggestions({
+                adapter: project.getAdapterType(),
+                columnsInRelation: columnsInRelation,
+                tableRelation: modelName,
+                dbtConfig,
+                // tests: [
+                // "recency",
+                // "string_length",
+                // "accepted_values",
+                // "uniqueness",
+                // "range",
+                // ],
+                queryFn: async (query: string) => {
+                  const result = await project.getRawResults(query, modelName);
+                  return result;
+                },
+              });
+              console.log(
+                "testSuggestions",
+                JSON.stringify(testSuggestions, null, 2),
+              );
+            }
             window.withProgress(
               {
                 title: "Syncing columns with metadata from database",
