@@ -4,10 +4,12 @@ import Tooltip from "../tooltip/Tooltip";
 
 interface CustomButtonProps extends ButtonProps {
   icon?: React.ReactNode;
+  showTextAlways?: boolean;
 }
 
 export const Button = ({
   icon,
+  showTextAlways,
   children,
   ...restProps
 }: CustomButtonProps): JSX.Element => {
@@ -30,7 +32,7 @@ export const Button = ({
         onMouseEnter={() => mouseHoverAction(true)}
         onMouseLeave={() => mouseHoverAction(false)}
       >
-        {icon && icon} {showButtonText && children}
+        {icon && icon} {(showTextAlways ?? showButtonText) ? children : null}
       </ReactStrapButton>
     </Tooltip>
   );

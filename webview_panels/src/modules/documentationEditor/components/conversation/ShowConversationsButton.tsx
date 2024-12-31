@@ -3,14 +3,19 @@ import { updateConversationsRightPanelState } from "@modules/documentationEditor
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { Button } from "@uicore";
 
-const ShowConversationsButton = (): JSX.Element => {
+const ShowConversationsButton = ({
+  onClose,
+}: {
+  onClose: () => void;
+}): JSX.Element => {
   const { dispatch } = useDocumentationContext();
   const handleClick = () => {
+    onClose();
     dispatch(updateConversationsRightPanelState(true));
   };
   return (
-    <Button outline onClick={handleClick} icon={<CommentIcon />}>
-      Show Conversations
+    <Button outline onClick={handleClick}>
+      <CommentIcon /> Show Conversations
     </Button>
   );
 };

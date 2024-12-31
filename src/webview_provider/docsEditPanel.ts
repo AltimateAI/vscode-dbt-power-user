@@ -1012,6 +1012,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             body: {
               saved: true,
               tests,
+              documentation: this.documentation,
             },
             status: true,
           },
