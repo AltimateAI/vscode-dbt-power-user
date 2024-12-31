@@ -39,7 +39,7 @@ const BulkGenerateButton = (): JSX.Element => {
 
   const options = {
     Documentation: [
-      { label: "Generate for all columns", value: "all" },
+      { label: "Generate all columns", value: "all" },
       { label: "Generate only missing columns", value: "missing" },
       { label: "Select columns", value: "selected" },
     ],
