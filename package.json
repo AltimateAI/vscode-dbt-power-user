@@ -1262,7 +1262,7 @@
     "which": "^4.0.0",
     "ws": "^8.18.0",
     "yaml": "^2.5.0",
-    "zeromq": "^6.1.0"
+    "zeromq": "^6.2.0"
   },
   "lint-staged": {
     "**/webview_panels/**/*.{ts,tsx}": [
