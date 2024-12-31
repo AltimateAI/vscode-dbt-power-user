@@ -56,7 +56,6 @@ import {
   DbtLineageService,
   Table,
 } from "../services/dbtLineageService";
-import { getTestSuggestions } from "@lib";
 
 export enum Source {
   YAML = "YAML",
@@ -546,69 +545,28 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
         const { command, syncRequestId, ...params } = message;
         switch (command) {
-          case "generateTests":
+          case "generateTestsForColumns":
             this.telemetry.startTelemetryEvent(
               TelemetryEvents["DocumentationEditor/GenerateTestsClick"],
             );
-            // const testSuggestions = await getTestSuggestions({
-            //   adapter: project.getAdapterType(),
-            //   columnsInRelation: message.columns,
-            //   tableRelation: message.name,
-            //   queryFn: async (query: string) => {
-            //     const result = await project.getRawResults(
-            //       query,
-            //       message.name,
-            //     );
-            //     return result?.table;
-            //   }
-            // })
+
+            const modelName = path.basename(currentFilePath.fsPath, ".sql");
+            const testSuggestions =
+              await this.dbtTestService.generateTestsForColumns(
+                currentFilePath,
+                project,
+                this.documentation?.patchPath,
+              );
+            this.handleSyncRequestFromWebview(
+              syncRequestId,
+              () => testSuggestions?.[modelName],
+              command,
+            );
             break;
           case "fetchMetadataFromDatabase":
             this.telemetry.startTelemetryEvent(
               TelemetryEvents["DocumentationEditor/SyncWithDBClick"],
             );
-            {
-              const modelName = path.basename(currentFilePath.fsPath, ".sql");
-              const patchPath = this.documentation?.patchPath;
-              if (!project || !patchPath) {
-                return;
-              }
-              const contents = readFileSync(
-                path.join(
-                  project.projectRoot.fsPath,
-                  patchPath.split("://")[1],
-                ),
-              ).toString("utf8");
-
-              const dbtConfig = parse(contents, {
-                strict: false,
-                uniqueKeys: false,
-              });
-
-              const columnsInRelation =
-                await project.getColumnsOfModel(modelName);
-              const testSuggestions = await getTestSuggestions({
-                adapter: project.getAdapterType(),
-                columnsInRelation: columnsInRelation,
-                tableRelation: modelName,
-                dbtConfig,
-                // tests: [
-                // "recency",
-                // "string_length",
-                // "accepted_values",
-                // "uniqueness",
-                // "range",
-                // ],
-                queryFn: async (query: string) => {
-                  const result = await project.getRawResults(query, modelName);
-                  return result;
-                },
-              });
-              console.log(
-                "testSuggestions",
-                JSON.stringify(testSuggestions, null, 2),
-              );
-            }
             window.withProgress(
               {
                 title: "Syncing columns with metadata from database",

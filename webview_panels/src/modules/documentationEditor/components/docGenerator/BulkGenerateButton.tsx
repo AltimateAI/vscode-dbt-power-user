@@ -3,7 +3,10 @@ import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
-import { updateColumnsInCurrentDocsData } from "@modules/documentationEditor/state/documentationSlice";
+import {
+  updateColumnsInCurrentDocsData,
+  updateCurrentDocsTests,
+} from "@modules/documentationEditor/state/documentationSlice";
 import { DBTDocumentationColumn } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { panelLogger } from "@modules/logger";
@@ -43,7 +46,7 @@ const BulkGenerateButton = (): JSX.Element => {
       { label: "Generate only missing columns", value: "missing" },
       { label: "Select columns", value: "selected" },
     ],
-    // Tests: [{ label: "Generate all", value: "all" }],
+    Tests: [{ label: "Generate all", value: "all-tests" }],
   };
 
   const bulkGenerateDocs = async (
@@ -88,6 +91,28 @@ const BulkGenerateButton = (): JSX.Element => {
       panelLogger.error("Unable to generate docs for missing columns");
     }
   };
+  const generateTestsForAllColumns = async () => {
+    try {
+      const { columns } = (await executeRequestInSync(
+        "fetchMetadataFromDatabase",
+        {},
+      )) as { columns: DBTDocumentationColumn[] };
+
+      const result = (await executeRequestInSync("generateTestsForColumns", {
+        columns,
+      })) as { columns: Partial<DBTDocumentationColumn>[] };
+
+      dispatch(
+        updateCurrentDocsTests({
+          columns: result.columns,
+          isNewGeneration: true,
+        }),
+      );
+    } catch (err) {
+      panelLogger.error("Unable to generate tests for all columns");
+    }
+  };
+
   const generateForAll = async () => {
     try {
       const { columns } = (await executeRequestInSync(
@@ -133,6 +158,10 @@ const BulkGenerateButton = (): JSX.Element => {
           }
           break;
         }
+        case "all-tests": {
+          await generateTestsForAllColumns();
+          break;
+        }
         case "missing": {
           const columns = await generateDocsForMissingColumns();
           if (columns) {
@@ -176,9 +205,9 @@ const BulkGenerateButton = (): JSX.Element => {
             <div className={classes.popover}>
               <div className={styles.popoverActions}>
                 <List>
-                  {Object.entries(options).map(([_key, actions]) => (
+                  {Object.entries(options).map(([key, actions]) => (
                     <>
-                      {/* <li className={classes.sectionTitle}>{key}</li> */}
+                      <li className={classes.sectionTitle}>{key}</li>
                       {actions.map((option) => (
                         <li key={option.label}>
                           <Button

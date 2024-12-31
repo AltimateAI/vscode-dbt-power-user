@@ -1,4 +1,4 @@
-import { window } from "vscode";
+import { Uri, window } from "vscode";
 import {
   AltimateRequest,
   CreateDbtTestRequest,
@@ -17,6 +17,8 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { MacroMetaMap, TestMetaData } from "../domain";
 import { parse, stringify } from "yaml";
 import { readFileSync } from "fs";
+import { DBTProject } from "../manifest/dbtProject";
+import { getTestSuggestions } from "@lib";
 
 @provideSingleton(DbtTestService)
 export class DbtTestService {
@@ -333,5 +335,37 @@ export class DbtTestService {
         };
       })
       .filter((t) => Boolean(t));
+  }
+
+  public async generateTestsForColumns(
+    currentFilePath: Uri,
+    project: DBTProject,
+    patchPath?: string,
+  ) {
+    const modelName = path.basename(currentFilePath.fsPath, ".sql");
+
+    const dbtConfig = patchPath
+      ? parse(
+          readFileSync(
+            path.join(project.projectRoot.fsPath, patchPath.split("://")[1]),
+          ).toString("utf8"),
+          {
+            strict: false,
+            uniqueKeys: false,
+          },
+        )
+      : {};
+
+    const columnsInRelation = await project.getColumnsOfModel(modelName);
+    return await getTestSuggestions({
+      adapter: project.getAdapterType(),
+      columnsInRelation: columnsInRelation,
+      tableRelation: modelName,
+      dbtConfig: {},
+      queryFn: async (query: string) => {
+        const result = await project.getRawResults(query, modelName);
+        return result;
+      },
+    });
   }
 }
