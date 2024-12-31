@@ -21,7 +21,6 @@ import useIncomingDocsDataHandler from "./useIncomingDocsDataHandler";
 import CoachAiIfModified from "./components/docGenerator/CoachAiIfModified";
 import Citations from "./components/docGenerator/Citations";
 import { Citation } from "@lib";
-import SearchColumnsInput from "./components/search/SearchColumnsInput";
 import BulkGenerateButton from "./components/docGenerator/BulkGenerateButton";
 
 const DocumentationEditor = (): JSX.Element => {
@@ -113,7 +112,7 @@ const DocumentationEditor = (): JSX.Element => {
   return (
     <div className={`${classes.documentationWrapper} ${classes.limitWidth}`}>
       <Stack className="mb-2 justify-content-between">
-        <SearchColumnsInput />
+        <h2>Documentation Editor</h2>
         <Stack>
           <SaveDocumentation />
           <BulkGenerateButton />

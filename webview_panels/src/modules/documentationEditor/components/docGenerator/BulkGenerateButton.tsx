@@ -39,7 +39,7 @@ const BulkGenerateButton = (): JSX.Element => {
 
   const options = {
     Documentation: [
-      { label: "Generate all", value: "all" },
+      { label: "Generate for all columns", value: "all" },
       { label: "Generate only missing columns", value: "missing" },
       { label: "Select columns", value: "selected" },
     ],
@@ -148,10 +148,8 @@ const BulkGenerateButton = (): JSX.Element => {
     }
   };
 
-  const color =
-    isDocGeneratedForAnyColumn || isTestUpdatedForAnyColumn
-      ? "secondary"
-      : "primary";
+  const isDirty = isDocGeneratedForAnyColumn || isTestUpdatedForAnyColumn;
+  const color = isDirty ? "secondary" : "primary";
 
   return (
     <>
@@ -159,7 +157,12 @@ const BulkGenerateButton = (): JSX.Element => {
         <PopoverWithButton
           width="auto"
           button={
-            <DropdownButton onToggleClick={noop} onClick={noop} color={color}>
+            <DropdownButton
+              onToggleClick={noop}
+              onClick={noop}
+              color={color}
+              outline={isDirty}
+            >
               <ShinesIcon /> Bulk generate
             </DropdownButton>
           }

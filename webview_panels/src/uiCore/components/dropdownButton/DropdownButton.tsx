@@ -1,22 +1,18 @@
 import { ChevronDownIcon } from "@assets/icons";
-import { HTMLAttributes } from "react";
-import { Button } from "reactstrap";
+import { Button, ButtonProps } from "reactstrap";
 import { IconButton, Stack } from "../../";
 import classes from "./styles.module.scss";
 
-interface Props extends HTMLAttributes<HTMLButtonElement> {
+interface Props extends ButtonProps {
   onToggleClick: () => void;
 }
-const DropdownButton = (props: Props): JSX.Element => {
+const DropdownButton = ({ onToggleClick, ...props }: Props): JSX.Element => {
   return (
     <Stack className={classes.dropdownButton}>
       <Button color="primary" {...props}>
         {props.children}
       </Button>
-      <IconButton
-        onClick={props.onToggleClick}
-        color={props.color ?? "primary"}
-      >
+      <IconButton onClick={onToggleClick} color={props.color ?? "primary"}>
         <ChevronDownIcon />
       </IconButton>
     </Stack>

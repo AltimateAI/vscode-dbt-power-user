@@ -5,6 +5,7 @@ import classes from "../../styles.module.scss";
 import SyncWithDatabase from "./SyncWithDatabase";
 import { useMemo } from "react";
 import { DBTModelTest } from "@modules/documentationEditor/state/types";
+import SearchColumnsInput from "../search/SearchColumnsInput";
 
 const DocGeneratorColumnsList = (): JSX.Element => {
   const {
@@ -48,6 +49,7 @@ const DocGeneratorColumnsList = (): JSX.Element => {
             <h3>Columns</h3>
             <SyncWithDatabase />
           </Stack>
+          <SearchColumnsInput />
         </Stack>
         <Alert color="warning">
           Note: If you don’t want to override existing documentation, please
