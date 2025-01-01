@@ -1,3 +1,9 @@
+try:
+    from dbt.version import __version__ as dbt_version
+except:
+    raise Exception("dbt not found. Please install dbt to use this extension.")
+
+
 from decimal import Decimal
 import os
 import threading
@@ -31,7 +37,6 @@ from dbt.parser.manifest import ManifestLoader, process_node
 from dbt.parser.sql import SqlBlockParser, SqlMacroParser
 from dbt.task.sql import SqlCompileRunner, SqlExecuteRunner
 from dbt.tracking import disable_tracking
-from dbt.version import __version__ as dbt_version
 
 DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER = (
     int(v) if v.isnumeric() else v for v in dbt_version.split(".")
