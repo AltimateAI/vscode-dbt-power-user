@@ -191,11 +191,20 @@ export class WalkthroughCommands {
 
   private async installDbtCore(): Promise<void> {
     const dbtVersion: QuickPickItem | undefined = await window.showQuickPick(
-      ["1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8"].map(
-        (value) => ({
-          label: value,
-        }),
-      ),
+      [
+        "1.0",
+        "1.1",
+        "1.2",
+        "1.3",
+        "1.4",
+        "1.5",
+        "1.6",
+        "1.7",
+        "1.8",
+        "1.9",
+      ].map((value) => ({
+        label: value,
+      })),
       {
         title: "Select your dbt version",
         canPickMany: false,
