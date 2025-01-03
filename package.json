@@ -1259,7 +1259,7 @@
     "python-bridge": "github:mdesmet/node-python-bridge#feat/detached",
     "reflect-metadata": "^0.2.2",
     "semver": "^7.6.3",
-    "which": "^4.0.0",
+    "which": "^5.0.0",
     "ws": "^8.18.0",
     "yaml": "^2.5.0",
     "zeromq": "^6.1.0"
