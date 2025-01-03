@@ -1189,7 +1189,7 @@
   },
   "scripts": {
     "postinstall": "node postInstall.js",
-    "prepare": "husky install",
+    "prepare": "husky",
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production && node prepareBuild.js",
     "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
