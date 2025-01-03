@@ -304,9 +304,7 @@ export class DBTProject implements Disposable {
         docsGenerateCommand.focus = false;
         docsGenerateCommand.logToTerminal = false;
         docsGenerateCommand.showProgress = false;
-        await this.dbtProjectIntegration.executeCommandImmediately(
-          docsGenerateCommand,
-        );
+        await this.generateDocsImmediately();
         healthcheckArgs.catalogPath = this.getCatalogPath();
         if (!healthcheckArgs.catalogPath) {
           throw new Error(
@@ -602,10 +600,13 @@ export class DBTProject implements Disposable {
     args?.forEach((arg) => docsGenerateCommand.addArgument(arg));
     docsGenerateCommand.focus = false;
     docsGenerateCommand.logToTerminal = false;
-    await this.dbtProjectIntegration.executeCommandImmediately(
-      docsGenerateCommand,
-    );
-    this.telemetry.sendTelemetryEvent("generateDocsImmediately");
+    const { stdout, stderr } =
+      await this.dbtProjectIntegration.executeCommandImmediately(
+        docsGenerateCommand,
+      );
+    if (stderr) {
+      throw new Error(stderr);
+    }
   }
 
   generateDocs() {
