@@ -44,6 +44,7 @@ export { default as Avatar } from "./components/avatar/Avatar";
 export { default as CodeBlock } from "./components/codeblock/index";
 export { default as Tooltip } from "./components/tooltip/Tooltip";
 export { default as Drawer } from "./components/drawer/index";
+export type { ButtonProps } from "reactstrap";
 export type { DrawerRef } from "./components/drawer/index";
 export type { OptionType } from "./components/select";
 export { default as LoadingButton } from "./components/loadingButton/index";

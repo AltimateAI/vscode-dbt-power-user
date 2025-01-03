@@ -29,7 +29,8 @@ export interface PopoverWithButtonRef {
 const PopoverWithButton: ForwardRefRenderFunction<
   PopoverWithButtonRef,
   Props
-> = ({ title, button, children, popoverProps, width = 350 }, ref) => {
+> = ({ title, button, children, popoverProps = {}, width = 350 }, ref) => {
+  const { className, ...rest } = popoverProps;
   const [showPopover, setShowPopover] = useState(false);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
@@ -68,8 +69,8 @@ const PopoverWithButton: ForwardRefRenderFunction<
       <Popover
         isOpen={showPopover}
         target={buttonRef}
-        {...popoverProps}
-        className={`${popoverProps?.className ?? ""} ${styles.popover}`}
+        {...rest}
+        className={`${className ?? ""} ${styles.popover}`}
         style={{ width }}
       >
         <div ref={popoverRef}>
