@@ -14,7 +14,12 @@ import { StreamingService } from "./streamingService";
 import { QueryManifestService } from "./queryManifestService";
 import path = require("path");
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { MacroMetaMap, TestMetaData } from "../domain";
+import {
+  MacroMetaMap,
+  TestMetaData,
+  TestMetadataAcceptedValues,
+  TestMetadataRelationships,
+} from "../domain";
 import { parse, stringify } from "yaml";
 import { readFileSync } from "fs";
 import { DBTProject } from "../manifest/dbtProject";
@@ -30,11 +35,53 @@ export class DbtTestService {
     private dbtTerminal: DBTTerminal,
   ) {}
 
+  // Remove test if existing in original array
+  // Used while generating new tests
+  private removeTestIfExisting(existingTests?: any[], newTests?: any[]) {
+    const existingModelTests = new Set([
+      ...(existingTests || []).map((t: any) => JSON.stringify(t)),
+    ]);
+
+    return newTests?.filter(
+      (test) => !existingModelTests.has(JSON.stringify(test)),
+    );
+  }
+
+  // Remove duplicate tests from tests array
+  public removeDuplicateTests(
+    array: (
+      | string
+      | TestMetadataAcceptedValues
+      | TestMetadataRelationships
+      | {
+          [x: string]: any;
+        }
+      | null
+    )[],
+  ) {
+    const seen = new Set();
+    return array.filter((item) => {
+      const stringified = JSON.stringify(item);
+      if (seen.has(stringified)) {
+        return false;
+      }
+      seen.add(stringified);
+      return true;
+    });
+  }
+
   private filterAndStringifyTest = (
     testsPerColumnOrModelFromYml: Record<string, Record<string, unknown>>[],
     test: TestMetaData,
   ) => {
     if (!testsPerColumnOrModelFromYml?.length) {
+      // If this is new test and not saved yet, show the config from kwargs
+      if (test.test_metadata?.kwargs) {
+        const { model, ...rest } = test.test_metadata.kwargs;
+        if (Object.keys(rest).length > 0) {
+          return stringify(rest);
+        }
+      }
       return;
     }
 
@@ -357,7 +404,7 @@ export class DbtTestService {
       : {};
 
     const columnsInRelation = await project.getColumnsOfModel(modelName);
-    return await getTestSuggestions({
+    const testSuggestions = await getTestSuggestions({
       adapter: project.getAdapterType(),
       columnsInRelation: columnsInRelation,
       tableRelation: modelName,
@@ -367,5 +414,37 @@ export class DbtTestService {
         return result;
       },
     });
+
+    if (!testSuggestions) {
+      return;
+    }
+
+    // Remove existing test suggestions
+    const filteredTestSuggestions = {
+      models: testSuggestions.models.map((model) => {
+        const modelFromCurrentConfig = dbtConfig.models?.find(
+          (m: { name: string }) => m.name === model.name,
+        );
+        return {
+          ...model,
+          columns: model.columns.map((column) => {
+            return {
+              ...column,
+              tests: this.removeTestIfExisting(
+                dbtConfig.models
+                  ?.find((m: any) => m.name === model.name)
+                  ?.columns.find((c: any) => c.name === column.name)?.tests,
+                column.tests,
+              ),
+            };
+          }),
+          tests: this.removeTestIfExisting(
+            modelFromCurrentConfig?.tests,
+            model.tests,
+          ),
+        };
+      }),
+    };
+    return filteredTestSuggestions;
   }
 }

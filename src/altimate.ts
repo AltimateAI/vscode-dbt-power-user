@@ -997,4 +997,10 @@ export class AltimateRequest {
       },
     );
   }
+
+  async trackBulkTestGen() {
+    return this.fetch<{ ok: boolean }>(`dbt/v2/bulk_test_gen`, {
+      method: "POST",
+    });
+  }
 }

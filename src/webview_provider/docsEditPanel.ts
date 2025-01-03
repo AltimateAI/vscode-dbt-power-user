@@ -292,7 +292,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         return testMetaKwargs || fullName;
       })
       .filter((t) => Boolean(t));
-    return finalTests.length ? finalTests : undefined;
+    const filteredTests = this.dbtTestService.removeDuplicateTests(finalTests);
+    return filteredTests.length ? filteredTests : undefined;
   }
 
   private getTestMetadataKwArgs(
@@ -398,6 +399,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     if (!data.length) {
       return;
     }
+
+    const dataWithoutDupes = this.dbtTestService.removeDuplicateTests(data);
     const dbtVersion = project.getDBTVersion();
     if (
       dbtVersion &&
@@ -406,12 +409,12 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       existingColumn?.tests === undefined
     ) {
       return {
-        data_tests: data,
+        data_tests: dataWithoutDupes,
       };
     }
 
     return {
-      tests: data,
+      tests: dataWithoutDupes,
     };
   }
 
@@ -546,21 +549,41 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         const { command, syncRequestId, ...params } = message;
         switch (command) {
           case "generateTestsForColumns":
-            this.telemetry.startTelemetryEvent(
-              TelemetryEvents["DocumentationEditor/GenerateTestsClick"],
-            );
+            if (!this.altimateRequest.handlePreviewFeatures()) {
+              return;
+            }
+            window.withProgress(
+              {
+                title: "Generating tests...",
+                location: ProgressLocation.Notification,
+                cancellable: false,
+              },
+              async () => {
+                this.telemetry.startTelemetryEvent(
+                  TelemetryEvents["DocumentationEditor/GenerateTestsClick"],
+                );
 
-            const modelName = path.basename(currentFilePath.fsPath, ".sql");
-            const testSuggestions =
-              await this.dbtTestService.generateTestsForColumns(
-                currentFilePath,
-                project,
-                this.documentation?.patchPath,
-              );
-            this.handleSyncRequestFromWebview(
-              syncRequestId,
-              () => testSuggestions?.[modelName],
-              command,
+                const modelName = path.basename(currentFilePath.fsPath, ".sql");
+                const testSuggestions =
+                  await this.dbtTestService.generateTestsForColumns(
+                    currentFilePath,
+                    project,
+                    this.documentation?.patchPath,
+                  );
+
+                this.terminal.debug(
+                  "docsEditPanel:generateTestsForColumns",
+                  "testSuggestions",
+                  testSuggestions,
+                );
+                this._panel?.webview?.postMessage({
+                  command: "testgen:insert",
+                  tests: testSuggestions?.models[0],
+                  model: modelName,
+                });
+
+                this.altimateRequest.trackBulkTestGen();
+              },
             );
             break;
           case "fetchMetadataFromDatabase":
@@ -1016,7 +1039,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       const response = await callback();
 
       this.sendResponseToWebview({
-        command: "response",
+        command: command || "response",
         syncRequestId,
         data: response,
       });

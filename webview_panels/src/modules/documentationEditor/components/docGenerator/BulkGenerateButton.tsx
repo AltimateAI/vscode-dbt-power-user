@@ -3,10 +3,7 @@ import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
-import {
-  updateColumnsInCurrentDocsData,
-  updateCurrentDocsTests,
-} from "@modules/documentationEditor/state/documentationSlice";
+import { updateColumnsInCurrentDocsData } from "@modules/documentationEditor/state/documentationSlice";
 import { DBTDocumentationColumn } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { panelLogger } from "@modules/logger";
@@ -98,16 +95,9 @@ const BulkGenerateButton = (): JSX.Element => {
         {},
       )) as { columns: DBTDocumentationColumn[] };
 
-      const result = (await executeRequestInSync("generateTestsForColumns", {
+      executeRequestInAsync("generateTestsForColumns", {
         columns,
-      })) as { columns: Partial<DBTDocumentationColumn>[] };
-
-      dispatch(
-        updateCurrentDocsTests({
-          columns: result.columns,
-          isNewGeneration: true,
-        }),
-      );
+      });
     } catch (err) {
       panelLogger.error("Unable to generate tests for all columns");
     }
