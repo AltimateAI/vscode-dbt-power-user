@@ -550,45 +550,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         const { command, syncRequestId, ...params } = message;
         switch (command) {
           case "generateTestsForColumns":
-            if (!this.altimateRequest.handlePreviewFeatures()) {
-              return;
-            }
-            window.withProgress(
-              {
-                title: "Generating tests...",
-                location: ProgressLocation.Notification,
-                cancellable: false,
-              },
-              async () => {
-                this.telemetry.startTelemetryEvent(
-                  TelemetryEvents["DocumentationEditor/GenerateTestsClick"],
-                );
-
-                const modelName = path.basename(currentFilePath.fsPath, ".sql");
-                const testSuggestions =
-                  await this.dbtTestService.generateTestsForColumns(
-                    currentFilePath,
-                    project,
-                    this.documentation?.patchPath,
-                  );
-
-                this.terminal.debug(
-                  "docsEditPanel:generateTestsForColumns",
-                  "testSuggestions",
-                  testSuggestions,
-                );
-                const testSuggestionsForModel = testSuggestions?.models[0];
-                this._panel?.webview?.postMessage({
-                  command: "testgen:insert",
-                  tests: testSuggestionsForModel,
-                  model: modelName,
-                });
-
-                const sessionID = `${
-                  env.sessionId
-                }-${modelName}-numColumns-${testSuggestionsForModel?.columns.length}-${Date.now()}`;
-                this.altimateRequest.trackBulkTestGen(sessionID);
-              },
+            await this.dbtTestService.generateTestsForColumns(
+              project,
+              this._panel,
+              this.documentation?.patchPath,
             );
             break;
           case "fetchMetadataFromDatabase":

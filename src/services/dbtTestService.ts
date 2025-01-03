@@ -1,4 +1,4 @@
-import { Uri, window } from "vscode";
+import { env, ProgressLocation, WebviewView, window } from "vscode";
 import {
   AltimateRequest,
   CreateDbtTestRequest,
@@ -24,6 +24,9 @@ import { parse, stringify } from "yaml";
 import { readFileSync } from "fs";
 import { DBTProject } from "../manifest/dbtProject";
 import { getTestSuggestions } from "@lib";
+import { ExecuteSQLResult } from "../dbt_client/dbtIntegration";
+import { TelemetryService } from "../telemetry";
+import { TelemetryEvents } from "../telemetry/events";
 
 @provideSingleton(DbtTestService)
 export class DbtTestService {
@@ -33,23 +36,31 @@ export class DbtTestService {
     private altimateRequest: AltimateRequest,
     private queryManifestService: QueryManifestService,
     private dbtTerminal: DBTTerminal,
+    private telemetryService: TelemetryService,
   ) {}
 
   // Remove test if existing in original array
   // Used while generating new tests
-  private removeTestIfExisting(existingTests?: any[], newTests?: any[]) {
+  private removeTestIfExistingInSchema(
+    existingTests?: any[],
+    newTests?: any[],
+  ) {
+    if (!newTests || !existingTests?.length) {
+      return newTests;
+    }
+
     const existingModelTests = new Set([
-      ...(existingTests || []).map((t: any) => JSON.stringify(t)),
+      ...existingTests.map((t: any) => JSON.stringify(t)),
     ]);
 
-    return newTests?.filter(
+    return newTests.filter(
       (test) => !existingModelTests.has(JSON.stringify(test)),
     );
   }
 
   // Remove duplicate tests from tests array
   public removeDuplicateTests(
-    array: (
+    tests: (
       | string
       | TestMetadataAcceptedValues
       | TestMetadataRelationships
@@ -60,7 +71,7 @@ export class DbtTestService {
     )[],
   ) {
     const seen = new Set();
-    return array.filter((item) => {
+    return tests.filter((item) => {
       const stringified = JSON.stringify(item);
       if (seen.has(stringified)) {
         return false;
@@ -70,19 +81,22 @@ export class DbtTestService {
     });
   }
 
+  private returnTestMetadataFromKwargs(test: TestMetaData) {
+    // If this is new test added in doc editor webview panel and not saved yet, return the config from kwargs
+    if (test.test_metadata?.kwargs) {
+      const { model, ...rest } = test.test_metadata.kwargs;
+      if (Object.keys(rest).length > 0) {
+        return stringify(rest);
+      }
+    }
+  }
+
   private filterAndStringifyTest = (
     testsPerColumnOrModelFromYml: Record<string, Record<string, unknown>>[],
     test: TestMetaData,
   ) => {
     if (!testsPerColumnOrModelFromYml?.length) {
-      // If this is new test and not saved yet, show the config from kwargs
-      if (test.test_metadata?.kwargs) {
-        const { model, ...rest } = test.test_metadata.kwargs;
-        if (Object.keys(rest).length > 0) {
-          return stringify(rest);
-        }
-      }
-      return;
+      return this.returnTestMetadataFromKwargs(test);
     }
 
     // Ignore these generic fields, as we handle these fields differently in UI
@@ -102,7 +116,7 @@ export class DbtTestService {
 
     if (!existingConfig) {
       this.dbtTerminal.debug("getDbtTestCode", "no test available in yml");
-      return;
+      return this.returnTestMetadataFromKwargs(test);
     }
 
     this.dbtTerminal.debug(
@@ -385,66 +399,110 @@ export class DbtTestService {
   }
 
   public async generateTestsForColumns(
-    currentFilePath: Uri,
     project: DBTProject,
+    panel: WebviewView | undefined,
     patchPath?: string,
   ) {
-    const modelName = path.basename(currentFilePath.fsPath, ".sql");
-
-    const dbtConfig = patchPath
-      ? parse(
-          readFileSync(
-            path.join(project.projectRoot.fsPath, patchPath.split("://")[1]),
-          ).toString("utf8"),
-          {
-            strict: false,
-            uniqueKeys: false,
-          },
-        )
-      : {};
-
-    const columnsInRelation = await project.getColumnsOfModel(modelName);
-    const testSuggestions = await getTestSuggestions({
-      adapter: project.getAdapterType(),
-      columnsInRelation: columnsInRelation,
-      tableRelation: modelName,
-      dbtConfig: {},
-      queryFn: async (query: string) => {
-        const result = await project.getRawResults(query, modelName);
-        return result;
-      },
-    });
-
-    if (!testSuggestions) {
+    if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
     }
-
-    // Remove existing test suggestions
-    const filteredTestSuggestions = {
-      models: testSuggestions.models.map((model) => {
-        const modelFromCurrentConfig = dbtConfig.models?.find(
-          (m: { name: string }) => m.name === model.name,
+    window.withProgress(
+      {
+        title: "Generating tests...",
+        location: ProgressLocation.Notification,
+        cancellable: false,
+      },
+      async () => {
+        this.telemetryService.startTelemetryEvent(
+          TelemetryEvents["DocumentationEditor/GenerateTestsClick"],
         );
-        return {
-          ...model,
-          columns: model.columns.map((column) => {
+
+        const currentFilePath = window.activeTextEditor?.document.uri;
+        if (!currentFilePath) {
+          return;
+        }
+        const modelName = path.basename(currentFilePath.fsPath, ".sql");
+
+        const columnsInRelation = await project.getColumnsOfModel(modelName);
+        const testSuggestions = await getTestSuggestions({
+          adapter: project.getAdapterType(),
+          columnsInRelation: columnsInRelation,
+          tableRelation: modelName,
+          dbtConfig: {},
+          queryFn: async (query: string) => {
+            const result = (await project.executeSQL(
+              query,
+              modelName,
+              true,
+              true,
+            )) as ExecuteSQLResult;
+            return result;
+          },
+        });
+
+        if (!testSuggestions) {
+          return;
+        }
+
+        const dbtConfig = patchPath
+          ? parse(
+              readFileSync(
+                path.join(
+                  project.projectRoot.fsPath,
+                  patchPath.split("://")[1],
+                ),
+              ).toString("utf8"),
+              {
+                strict: false,
+                uniqueKeys: false,
+              },
+            )
+          : {};
+
+        // Remove test suggestion if already existing in schema
+        const filteredTestSuggestions = {
+          models: testSuggestions.models.map((model) => {
+            const modelFromCurrentConfig = dbtConfig.models?.find(
+              (m: { name: string }) => m.name === model.name,
+            );
             return {
-              ...column,
-              tests: this.removeTestIfExisting(
-                dbtConfig.models
-                  ?.find((m: any) => m.name === model.name)
-                  ?.columns.find((c: any) => c.name === column.name)?.tests,
-                column.tests,
+              ...model,
+              columns: model.columns.map((column) => {
+                return {
+                  ...column,
+                  tests: this.removeTestIfExistingInSchema(
+                    dbtConfig.models
+                      ?.find((m: any) => m.name === model.name)
+                      ?.columns.find((c: any) => c.name === column.name)?.tests,
+                    column.tests,
+                  ),
+                };
+              }),
+              tests: this.removeTestIfExistingInSchema(
+                modelFromCurrentConfig?.tests,
+                model.tests,
               ),
             };
           }),
-          tests: this.removeTestIfExisting(
-            modelFromCurrentConfig?.tests,
-            model.tests,
-          ),
         };
-      }),
-    };
-    return filteredTestSuggestions;
+        this.dbtTerminal.debug(
+          "docsEditPanel:generateTestsForColumns",
+          "testSuggestions",
+          filteredTestSuggestions,
+        );
+        const testSuggestionsForModel = filteredTestSuggestions?.models[0];
+        panel?.webview?.postMessage({
+          command: "testgen:insert",
+          tests: testSuggestionsForModel,
+          model: modelName,
+        });
+
+        const sessionID = `${
+          env.sessionId
+        }-${modelName}-numColumns-${testSuggestionsForModel?.columns.length}-${Date.now()}`;
+
+        await this.altimateRequest.trackBulkTestGen(sessionID);
+      },
+    );
   }
 }

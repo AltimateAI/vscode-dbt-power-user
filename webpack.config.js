@@ -38,10 +38,7 @@ const config = {
     extensions: [".ts", ".js"],
     alias: {
       "@extension": path.resolve(__dirname, "./src/modules.ts"),
-      "@lib": path.resolve(
-        __dirname,
-        "../altimate-components/lib/extension/index.ts",
-      ),
+      "@lib": path.resolve(__dirname, "./src/lib/index"),
     },
   },
   module: {
