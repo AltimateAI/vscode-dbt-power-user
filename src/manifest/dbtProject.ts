@@ -1034,6 +1034,7 @@ select * from renamed
     query: string,
     modelName: string,
     returnImmediately?: boolean,
+    returnRawResults?: boolean,
   ) {
     // if user added a semicolon at the end, let,s remove it.
     query = query.replace(/;\s*$/, "");
@@ -1061,6 +1062,9 @@ select * from renamed
         modelName,
       );
       const result = await execution.executeQuery();
+      if (returnRawResults) {
+        return result;
+      }
       const rows: JsonObj[] = [];
       // Convert compressed array format to dict[]
       for (let i = 0; i < result.table.rows.length; i++) {

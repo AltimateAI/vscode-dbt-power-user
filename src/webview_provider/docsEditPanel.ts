@@ -3,6 +3,7 @@ import {
   CancellationToken,
   ColorThemeKind,
   Disposable,
+  env,
   ProgressLocation,
   TextEditor,
   Uri,
@@ -292,7 +293,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         return testMetaKwargs || fullName;
       })
       .filter((t) => Boolean(t));
-    return finalTests.length ? finalTests : undefined;
+    const filteredTests = this.dbtTestService.removeDuplicateTests(finalTests);
+    return filteredTests.length ? filteredTests : undefined;
   }
 
   private getTestMetadataKwArgs(
@@ -398,6 +400,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     if (!data.length) {
       return;
     }
+
+    const dataWithoutDupes = this.dbtTestService.removeDuplicateTests(data);
     const dbtVersion = project.getDBTVersion();
     if (
       dbtVersion &&
@@ -406,12 +410,12 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       existingColumn?.tests === undefined
     ) {
       return {
-        data_tests: data,
+        data_tests: dataWithoutDupes,
       };
     }
 
     return {
-      tests: data,
+      tests: dataWithoutDupes,
     };
   }
 
@@ -545,6 +549,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
         const { command, syncRequestId, ...params } = message;
         switch (command) {
+          case "generateTestsForColumns":
+            await this.dbtTestService.generateTestsForColumns(
+              project,
+              this._panel,
+              this.documentation?.patchPath,
+            );
+            break;
           case "fetchMetadataFromDatabase":
             this.telemetry.startTelemetryEvent(
               TelemetryEvents["DocumentationEditor/SyncWithDBClick"],
@@ -998,7 +1009,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       const response = await callback();
 
       this.sendResponseToWebview({
-        command: "response",
+        command: command || "response",
         syncRequestId,
         data: response,
       });
