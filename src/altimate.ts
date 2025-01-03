@@ -998,9 +998,10 @@ export class AltimateRequest {
     );
   }
 
-  async trackBulkTestGen() {
+  async trackBulkTestGen(sessionId: string) {
     return this.fetch<{ ok: boolean }>(`dbt/v2/bulk_test_gen`, {
       method: "POST",
+      body: JSON.stringify({ session_id: sessionId }),
     });
   }
 }

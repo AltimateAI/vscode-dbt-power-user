@@ -3,6 +3,7 @@ import {
   CancellationToken,
   ColorThemeKind,
   Disposable,
+  env,
   ProgressLocation,
   TextEditor,
   Uri,
@@ -576,13 +577,17 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   "testSuggestions",
                   testSuggestions,
                 );
+                const testSuggestionsForModel = testSuggestions?.models[0];
                 this._panel?.webview?.postMessage({
                   command: "testgen:insert",
-                  tests: testSuggestions?.models[0],
+                  tests: testSuggestionsForModel,
                   model: modelName,
                 });
 
-                this.altimateRequest.trackBulkTestGen();
+                const sessionID = `${
+                  env.sessionId
+                }-${modelName}-numColumns-${testSuggestionsForModel?.columns.length}-${Date.now()}`;
+                this.altimateRequest.trackBulkTestGen(sessionID);
               },
             );
             break;
