@@ -81,13 +81,16 @@ export const arrayEquals = <T>(a: Array<T>, b: Array<T>): boolean => {
   return a.sort().toString() === b.sort().toString();
 };
 
-export const debounce = (fn: Function, wait: number) => {
-  let timeout: number;
-  return () => {
-    clearTimeout(timeout);
-    timeout = setTimeout(fn, wait);
+let timeout: NodeJS.Timeout | null = null;
+
+export function debounce(fn: (...args: any[]) => void, wait: number) {
+  return function executedFunction(...args: any[]) {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+    timeout = setTimeout(() => fn(...args), wait);
   };
-};
+}
 
 export const setupWatcherHandler: (
   watcher: FileSystemWatcher,

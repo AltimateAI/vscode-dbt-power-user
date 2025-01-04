@@ -1,6 +1,5 @@
 import { CommentThread, env, Uri, window, workspace } from "vscode";
 import { provideSingleton, processStreamResponse } from "./utils";
-import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
 import { join } from "path";
@@ -420,7 +419,8 @@ export class AltimateRequest {
       abortController.abort();
     }, timeout);
     try {
-      const response = await fetch(url, {
+      const nodeFetch = (await import("node-fetch")).default;
+      const response = await nodeFetch(url, {
         method: "POST",
         body: JSON.stringify(request),
         signal: abortController.signal,
@@ -521,7 +521,8 @@ export class AltimateRequest {
     const blob = (await this.readStreamToBlob(
       createReadStream(filePath),
     )) as Blob;
-    const response = await fetch(endpoint, {
+    const nodeFetch = (await import("node-fetch")).default;
+    const response = await nodeFetch(endpoint, {
       ...fetchArgs,
       method: "PUT",
       body: blob,
@@ -597,7 +598,8 @@ export class AltimateRequest {
 
     try {
       const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
-      const response = await fetch(url, {
+      const nodeFetch = (await import("node-fetch")).default;
+      const response = await nodeFetch(url, {
         method: "GET",
         ...fetchArgs,
         signal: abortController.signal,
@@ -685,13 +687,25 @@ export class AltimateRequest {
         "AltimateRequest",
         `fetching artifactUrl: ${artifactUrl}`,
       );
-      const response = await fetch(artifactUrl, { agent: undefined });
+      const response = await fetch(artifactUrl);
+
+      if (!response.ok) {
+        throw new Error(`Failed to download file: ${response.statusText}`);
+      }
 
       const fileStream = createWriteStream(destinationPath);
-      await new Promise((resolve, reject) => {
-        response.body?.pipe(fileStream);
-        response.body?.on("error", reject);
-        fileStream.on("finish", resolve);
+      const buffer = await response.arrayBuffer();
+      const uint8Array = new Uint8Array(buffer);
+
+      await new Promise<void>((resolve, reject) => {
+        fileStream.write(uint8Array, (error) => {
+          if (error) {
+            reject(error);
+          } else {
+            fileStream.end();
+            resolve();
+          }
+        });
       });
 
       this.dbtTerminal.debug("File downloaded successfully!", fileName);
