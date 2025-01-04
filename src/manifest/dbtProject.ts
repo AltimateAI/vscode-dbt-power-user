@@ -572,7 +572,7 @@ export class DBTProject implements Disposable {
     try {
       const testModelCommand =
         this.dbtCommandFactory.createTestModelCommand(modelName);
-      this.dbtProjectIntegration.runModelTest(testModelCommand);
+      await this.dbtProjectIntegration.runModelTest(testModelCommand);
       await this.telemetry.sendTelemetryEvent("runModelTest");
     } catch (error) {
       this.handleNoCredentialsError(error);
@@ -595,17 +595,21 @@ export class DBTProject implements Disposable {
   }
 
   async generateDocsImmediately(args?: string[]) {
-    const docsGenerateCommand =
-      this.dbtCommandFactory.createDocsGenerateCommand();
-    args?.forEach((arg) => docsGenerateCommand.addArgument(arg));
-    docsGenerateCommand.focus = false;
-    docsGenerateCommand.logToTerminal = false;
-    const { stdout, stderr } =
-      await this.dbtProjectIntegration.executeCommandImmediately(
-        docsGenerateCommand,
-      );
-    if (stderr) {
-      throw new Error(stderr);
+    try {
+      const docsGenerateCommand =
+        this.dbtCommandFactory.createDocsGenerateCommand();
+      args?.forEach((arg) => docsGenerateCommand.addArgument(arg));
+      docsGenerateCommand.focus = false;
+      docsGenerateCommand.logToTerminal = false;
+      const { stdout, stderr } =
+        await this.dbtProjectIntegration.executeCommandImmediately(
+          docsGenerateCommand,
+        );
+      if (stderr) {
+        throw new Error(stderr);
+      }
+    } catch (error) {
+      this.handleNoCredentialsError(error);
     }
   }
 
