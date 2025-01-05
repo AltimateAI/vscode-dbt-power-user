@@ -16,6 +16,9 @@ async function main() {
         "--enable-proposed-api=innoverio.vscode-dbt-power-user",
         "--install-extension=samuelcolvin.jinjahtml",
       ],
+      extensionTestsEnv: {
+        NODE_V8_COVERAGE: path.resolve(__dirname, "../../coverage/tmp"),
+      },
     });
   } catch (err) {
     console.error("Failed to run tests", err);

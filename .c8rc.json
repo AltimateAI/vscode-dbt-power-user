@@ -1,7 +1,20 @@
 {
   "all": true,
   "include": ["src/**/*.ts"],
-  "exclude": ["**/*.d.ts", "src/test/**", "out/**", "dist/**"],
+  "exclude": [
+    "**/*.d.ts",
+    "src/test/**",
+    "out/**",
+    "dist/**",
+    "coverage/**",
+    "webview_panels/**",
+    "new_lineage_panel/**"
+  ],
   "reporter": ["text", "lcov"],
-  "report-dir": "./coverage"
+  "report-dir": "./coverage",
+  "extension": [".ts"],
+  "require": ["ts-node/register"],
+  "sourceMap": true,
+  "instrument": true,
+  "skipFull": false
 }

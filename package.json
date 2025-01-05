@@ -1206,8 +1206,8 @@
     "panel:webviews": "npm run build --prefix ./webview_panels",
     "panel:lineage": "npm run build --prefix ./new_lineage_panel",
     "install:panels": "npm install --prefix ./new_lineage_panel && npm install --prefix ./webview_panels",
-    "test": "c8 --reporter=lcov --reporter=text node ./out/test/runTest.js",
-    "test:coverage": "c8 --reporter=lcov --reporter=text node ./out/test/runTest.js",
+    "test": "npm run compile && c8 --require ts-node/register --reporter=lcov --reporter=text node ./out/test/runTest.js",
+    "test:coverage": "npm run compile && c8 --require ts-node/register --reporter=lcov --reporter=text node ./out/test/runTest.js",
     "test:unit": "node ./out/test/runTest.js",
     "pretest:unit": "npm run compile",
     "compile": "tsc -p ./"
