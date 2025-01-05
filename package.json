@@ -1212,9 +1212,11 @@
     "compile": "tsc -p ./"
   },
   "devDependencies": {
+    "@types/chai": "^4.3.9",
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.14.11",
+    "@types/sinon": "^17.0.1",
     "@types/vscode": "^1.81.0",
     "@types/which": "^3.0.4",
     "@types/ws": "^8.5.12",
@@ -1222,6 +1224,7 @@
     "@typescript-eslint/parser": "^5.62.0",
     "@vscode/test-electron": "^2.4.1",
     "@vscode/zeromq": "^0.2.1",
+    "chai": "^4.3.10",
     "concurrently": "^8.2.2",
     "copy-webpack-plugin": "^11.0.0",
     "cross-env": "^7.0.3",
@@ -1230,6 +1233,7 @@
     "eslint-plugin-prettier": "^5.2.1",
     "file-loader": "^6.1.0",
     "glob": "^10.4.2",
+    "glob-parent": "^6.0.2",
     "husky": "^9.1.4",
     "lint-staged": "^15.2.5",
     "mocha": "^10.3.0",
@@ -1237,17 +1241,14 @@
     "prettier": "^3.3.3",
     "prettier-eslint": "^15.0.1",
     "prettier-plugin-organize-imports": "^3.2.4",
+    "sinon": "^17.0.1",
     "terser-webpack-plugin": "^5.3.10",
     "ts-loader": "^9.4.4",
+    "ts-node": "^10.9.2",
     "typescript": "^4.9.5",
     "webpack": "^5.93.0",
     "webpack-cli": "^5.1.4",
-    "webpack-shell-plugin-next": "^2.3.1",
-    "@types/chai": "^4.3.9",
-    "chai": "^4.3.10",
-    "sinon": "^17.0.1",
-    "@types/sinon": "^17.0.1",
-    "ts-node": "^10.9.2"
+    "webpack-shell-plugin-next": "^2.3.1"
   },
   "extensionDependencies": [
     "samuelcolvin.jinjahtml",

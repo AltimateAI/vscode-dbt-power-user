@@ -1,0 +1,15 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 10%    # the required coverage value
+        threshold: 1%  # the leniency in hitting the target
+    patch:
+      default:
+        target: 10%
+        threshold: 1%
+
+ignore:
+  - "test/**/*"       # ignore test files
+  - "out/**/*"        # ignore compiled output
+  - "**/*.d.ts"      # ignore type declaration files 

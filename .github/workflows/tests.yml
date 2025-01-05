@@ -51,4 +51,20 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: test-results-${{ matrix.os }}
-        path: test-results/ 
+        path: test-results/
+
+    - name: Upload coverage results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-${{ matrix.os }}
+        path: coverage/
+
+    - name: Upload coverage to Codecov
+      if: always()
+      uses: codecov/codecov-action@v3
+      with:
+        directory: ./coverage/
+        flags: unittests
+        name: codecov-${{ matrix.os }}
+        fail_ci_if_error: false 
