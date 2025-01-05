@@ -9,3 +9,5 @@ dist
 __pycache__/
 
 src/lib/notebooks/
+.nyc_output/
+coverage/
