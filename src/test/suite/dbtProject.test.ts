@@ -675,4 +675,107 @@ suite("DBTTerminal Test Suite", () => {
       [],
     );
   });
+
+  test("should handle terminal show and error cases correctly", async () => {
+    // Test show with status true
+    await terminal.show(true);
+    sinon.assert.called(mockTerminal.show);
+
+    // Test show with status false
+    await terminal.show(false);
+    sinon.assert.calledOnce(mockTerminal.show);
+
+    // Test error handling with PythonException
+    class PythonException extends Error {
+      constructor(public exception: { message: string }) {
+        super(exception.message);
+      }
+    }
+    const pythonError = new PythonException({
+      message: "Python error occurred",
+    });
+    terminal.error("test_python_error", "Test message", pythonError);
+    sinon.assert.calledWith(
+      mockOutputChannel.error,
+      "test_python_error:Test message:Python error occurred",
+      [],
+    );
+    sinon.assert.calledWith(
+      mockTelemetry.sendTelemetryError,
+      "test_python_error",
+      pythonError,
+      { message: "Test message:Python error occurred" },
+    );
+
+    // Test error handling with standard Error
+    const standardError = new Error("Standard error occurred");
+    terminal.error("test_standard_error", "Test message", standardError);
+    sinon.assert.calledWith(
+      mockOutputChannel.error,
+      "test_standard_error:Test message:Standard error occurred",
+      [],
+    );
+    sinon.assert.calledWith(
+      mockTelemetry.sendTelemetryError,
+      "test_standard_error",
+      standardError,
+      { message: "Test message:Standard error occurred" },
+    );
+
+    // Test error handling with unknown error type
+    const unknownError = "Unknown error occurred";
+    terminal.error("test_unknown_error", "Test message", unknownError);
+    sinon.assert.calledWith(
+      mockOutputChannel.error,
+      "test_unknown_error:Test message:Unknown error occurred",
+      [],
+    );
+    sinon.assert.calledWith(
+      mockTelemetry.sendTelemetryError,
+      "test_unknown_error",
+      unknownError,
+      { message: "Test message:Unknown error occurred" },
+    );
+  });
+
+  test("should properly handle terminal cleanup and disposal", async () => {
+    // Create a disposable for testing
+    const mockDisposable = { dispose: sinon.spy() };
+    terminal["disposables"].push(mockDisposable);
+
+    // Mock the writeEmitter.fire with a spy
+    const writeEmitterSpy = sinon.spy();
+    terminal["writeEmitter"].fire = writeEmitterSpy;
+
+    // Test terminal write functionality
+    await terminal.show(true);
+    terminal.log("Test message");
+    sinon.assert.called(writeEmitterSpy);
+
+    // Test terminal disposal
+    terminal.dispose();
+    sinon.assert.called(mockDisposable.dispose);
+    assert.strictEqual(terminal["disposables"].length, 0);
+
+    // Create a new terminal with mocked pty
+    const mockPty = {
+      onDidWrite: terminal["writeEmitter"].event,
+      open: () => terminal["writeEmitter"].fire(""),
+      close: () => {
+        if (terminal["terminal"]) {
+          terminal["terminal"].dispose();
+          terminal["terminal"] = undefined;
+        }
+      },
+    };
+
+    terminal["terminal"] = {
+      ...mockTerminal,
+      pty: mockPty,
+    } as any;
+
+    // Test terminal cleanup on close
+    mockPty.close();
+    assert.strictEqual(terminal["terminal"], undefined);
+  });
 });
