@@ -22,7 +22,25 @@ jobs:
         node-version: '18'
         cache: 'npm'
 
+    # Optimize caching strategy
+    - name: Cache node modules
+      uses: actions/cache@v3
+      id: cache-nodemodules
+      with:
+        path: |
+          node_modules
+          */*/node_modules
+          !**/node_modules/.cache
+          !**.git
+          !**.github
+          !**coverage
+          !**dist
+        key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-modules-
+
     - name: Install dependencies
+      if: steps.cache-nodemodules.outputs.cache-hit != 'true'
       run: |
         npm ci
         npm run install:panels
