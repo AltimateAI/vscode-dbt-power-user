@@ -85,6 +85,7 @@ jobs:
       if: always()
       uses: codecov/codecov-action@v3
       with:
+        token: ${{ secrets.CODECOV_TOKEN }}
         directory: ./coverage/
         flags: unittests
         name: codecov-${{ matrix.os }}
