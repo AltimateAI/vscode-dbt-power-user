@@ -572,10 +572,18 @@ export class DBTProject implements Disposable {
     try {
       const testModelCommand =
         this.dbtCommandFactory.createTestModelCommand(modelName);
-      await this.dbtProjectIntegration.runModelTest(testModelCommand);
+      const result =
+        await this.dbtProjectIntegration.runModelTest(testModelCommand);
+      const returnValue = {
+        stdout: result.stdout,
+        stderr: result.stderr,
+        fullOutput: result.fullOutput,
+      };
       await this.telemetry.sendTelemetryEvent("runModelTest");
+      return returnValue;
     } catch (error) {
       this.handleNoCredentialsError(error);
+      return { stdout: "", stderr: "", fullOutput: "" };
     }
   }
 
@@ -595,9 +603,6 @@ export class DBTProject implements Disposable {
   }
 
   async generateDocsImmediately(args?: string[]) {
-    if (!this.altimate.handlePreviewFeatures()) {
-      return;
-    }
     try {
       const docsGenerateCommand =
         this.dbtCommandFactory.createDocsGenerateCommand();

@@ -665,10 +665,16 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  async runModelTest(command: DBTCommand) {
-    this.addCommandToQueue(
-      await this.addDeferParams(this.dbtCoreCommand(command)),
-    );
+  async runModelTest(
+    command: DBTCommand,
+  ): Promise<{ stdout: string; stderr: string; fullOutput: string }> {
+    const testModelCommand = this.dbtCoreCommand(command);
+    const result = await testModelCommand.execute();
+    return {
+      stdout: result.stdout,
+      stderr: result.stderr,
+      fullOutput: result.stdout + result.stderr,
+    };
   }
 
   async compileModel(command: DBTCommand) {

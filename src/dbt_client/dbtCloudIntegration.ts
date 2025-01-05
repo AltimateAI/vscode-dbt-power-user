@@ -537,11 +537,16 @@ export class DBTCloudProjectIntegration
     );
   }
 
-  async runModelTest(command: DBTCommand) {
-    this.addCommandToQueue(
-      DBTCloudProjectIntegration.QUEUE_ALL,
-      await this.addDeferParams(this.dbtCloudCommand(command)),
-    );
+  async runModelTest(
+    command: DBTCommand,
+  ): Promise<{ stdout: string; stderr: string; fullOutput: string }> {
+    const testModelCommand = this.dbtCloudCommand(command);
+    const result = await testModelCommand.execute();
+    return {
+      stdout: result.stdout,
+      stderr: result.stderr,
+      fullOutput: result.stdout + result.stderr,
+    };
   }
 
   async compileModel(command: DBTCommand) {
