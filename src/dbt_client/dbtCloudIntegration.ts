@@ -102,7 +102,7 @@ export class DBTCloudDetection implements DBTDetection {
               "dbt cloud cli was found but version is not supported. Detection command returned :  " +
                 stdout,
             );
-            return true;
+            return false;
           }
         }
         this.terminal.debug("DBTCLIDetectionSuccess", "dbt cloud cli detected");
