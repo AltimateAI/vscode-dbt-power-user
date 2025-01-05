@@ -14,6 +14,7 @@ import {
   PythonDBTCommandExecutionStrategy,
   DBTCommandExecutionInfrastructure,
   DBTCommandExecutionStrategy,
+  CLIDBTCommandExecutionStrategy,
 } from "../../dbt_client/dbtIntegration";
 import { DBTCoreProjectIntegration } from "../../dbt_client/dbtCoreIntegration";
 import { DBTCloudProjectIntegration } from "../../dbt_client/dbtCloudIntegration";
@@ -32,6 +33,7 @@ import { SharedStateService } from "../../services/sharedStateService";
 import { SharedStateEventEmitterProps } from "../../webview_provider/altimateWebviewProvider";
 import { DBTProjectContainer } from "../../manifest/dbtProjectContainer";
 import { DeferToProdService } from "../../services/deferToProdService";
+import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 
 suite("DbtProject Test Suite", () => {
   let mockProject: DBTProject;
@@ -385,6 +387,39 @@ suite("DbtProject Test Suite", () => {
   });
 });
 
+suite("DBTCommand Test Suite", () => {
+  test("should properly construct and handle command arguments", async () => {
+    const statusMessage = "Test DBT Command";
+    const initialArgs = ["run", "--select", "model1"];
+    const command = new DBTCommand(statusMessage, initialArgs);
+
+    // Test initial construction
+    assert.strictEqual(command.statusMessage, statusMessage);
+    assert.deepStrictEqual(command.args, initialArgs);
+    assert.strictEqual(command.focus, false);
+    assert.strictEqual(command.showProgress, false);
+    assert.strictEqual(command.logToTerminal, false);
+
+    // Test argument addition
+    command.addArgument("--vars");
+    assert.deepStrictEqual(command.args, [
+      "run",
+      "--select",
+      "model1",
+      "--vars",
+    ]);
+
+    // Test command string generation
+    assert.strictEqual(
+      command.getCommandAsString(),
+      "dbt run --select model1 --vars",
+    );
+
+    // Test execution strategy handling
+    assert.throws(() => command.execute(), /Execution strategy is required/);
+  });
+});
+
 class MockDBTProjectLog extends DBTProjectLog {
   constructor() {
     const mockConfigEvent = new EventEmitter<ProjectConfigChangedEvent>();
@@ -411,3 +446,233 @@ class MockValidationProvider extends ValidationProvider {
 
   dispose(): void {}
 }
+
+suite("CLIDBTCommandExecutionStrategy Tests", () => {
+  let mockPythonEnvironment: any;
+  let mockTerminal: any;
+
+  setup(() => {
+    mockPythonEnvironment = {
+      pythonPath: "/path/to/python",
+      environmentVariables: {},
+    };
+
+    mockTerminal = {
+      debug: () => {},
+      error: () => {},
+      warn: () => {},
+      log: () => {},
+      show: () => {},
+    };
+  });
+
+  test("should send telemetry event with correct command data", async () => {
+    const mockCommandProcessExecutionFactory = {
+      createCommandProcessExecution: () => ({
+        complete: () => Promise.resolve({ stdout: "", stderr: "" }),
+        completeWithTerminalOutput: () =>
+          Promise.resolve({ stdout: "", stderr: "" }),
+      }),
+    };
+
+    const mockTelemetry = {
+      sendTelemetryEvent: sinon.spy(),
+    };
+
+    const strategy = new CLIDBTCommandExecutionStrategy(
+      mockCommandProcessExecutionFactory as any,
+      mockPythonEnvironment,
+      mockTerminal,
+      mockTelemetry as any,
+      vscode.Uri.file("/test/project"),
+      "dbt",
+    );
+
+    const command = new DBTCommand(
+      "Test command",
+      ["run", "--select", "my_model"],
+      true,
+      true,
+      false,
+    );
+
+    await strategy.execute(command);
+
+    sinon.assert.calledWith(mockTelemetry.sendTelemetryEvent, "dbtCommand", {
+      command: "dbt run --select my_model",
+    });
+  });
+});
+
+suite("DBTTerminal Test Suite", () => {
+  let mockTelemetry: any;
+  let mockOutputChannel: any;
+  let mockTerminal: any;
+  let terminal: DBTTerminal;
+  let sandbox: sinon.SinonSandbox;
+
+  setup(() => {
+    sandbox = sinon.createSandbox();
+
+    mockTelemetry = {
+      sendTelemetryEvent: sandbox.spy(),
+      sendTelemetryError: sandbox.spy(),
+    };
+
+    mockOutputChannel = {
+      info: sandbox.spy(),
+      debug: sandbox.spy(),
+      warn: sandbox.spy(),
+      error: sandbox.spy(),
+      appendLine: sandbox.spy(),
+    };
+
+    mockTerminal = {
+      name: "Test Terminal",
+      processId: Promise.resolve(1),
+      creationOptions: {},
+      exitStatus: undefined,
+      state: { isInteractedWith: false },
+      shellIntegration: undefined,
+      show: sandbox.spy(),
+      hide: sandbox.spy(),
+      dispose: sandbox.spy(),
+      sendText: sandbox.spy(),
+      onDidClose: sandbox.spy(),
+      onDidOpen: sandbox.spy(),
+      onDidWrite: sandbox.spy(),
+      onDidChangeName: sandbox.spy(),
+      onDidChangeState: sandbox.spy(),
+    } as unknown as vscode.Terminal;
+
+    // Mock the window API using the existing mock
+    const mockVSCode = require("../mock/vscode").default;
+    mockVSCode.window.createOutputChannel = () => mockOutputChannel;
+    mockVSCode.window.createTerminal = () => mockTerminal;
+
+    terminal = new DBTTerminal(mockTelemetry);
+  });
+
+  teardown(() => {
+    sandbox.restore();
+  });
+
+  test("should log messages with proper formatting", async () => {
+    const message = "Test message";
+    terminal.log(message);
+
+    sinon.assert.calledWith(mockOutputChannel.info, message, []);
+  });
+
+  test("should send telemetry on info messages", () => {
+    const name = "test_event";
+    const message = "Test info message";
+    terminal.info(name, message);
+
+    sinon.assert.calledWith(mockOutputChannel.info, `${name}:${message}`, []);
+    sinon.assert.calledWith(mockTelemetry.sendTelemetryEvent, name, {
+      message,
+      level: "info",
+    });
+  });
+
+  test("should send telemetry on warning messages", () => {
+    const name = "test_warning";
+    const message = "Test warning message";
+    terminal.warn(name, message);
+
+    sinon.assert.calledWith(mockOutputChannel.warn, `${name}:${message}`, []);
+    sinon.assert.calledWith(mockTelemetry.sendTelemetryEvent, name, {
+      message,
+      level: "warn",
+    });
+  });
+
+  test("should handle errors with proper error message formatting", () => {
+    const name = "test_error";
+    const message = "Test error message";
+    const error = new Error("Test error details");
+    terminal.error(name, message, error);
+
+    const expectedErrorMessage = `${name}:${message}:${error.message}`;
+    sinon.assert.calledWith(mockOutputChannel.error, expectedErrorMessage, []);
+    sinon.assert.calledWith(mockTelemetry.sendTelemetryError, name, error, {
+      message: `${message}:${error.message}`,
+    });
+  });
+
+  test("should format block messages with horizontal rules", () => {
+    const block = ["Line 1", "Line 2", "Line 3"];
+    terminal.logBlock(block);
+
+    const calls = mockOutputChannel.info.getCalls();
+    assert.strictEqual(calls.length, 10); // HR + 3 lines with \r\n + HR + \r\n
+
+    // First call should be horizontal rule
+    sinon.assert.calledWith(
+      mockOutputChannel.info.getCall(0),
+      "--------------------------------------------------------------------------",
+      [],
+    );
+
+    // Check content lines (each line is followed by \r\n)
+    sinon.assert.calledWith(mockOutputChannel.info.getCall(2), "Line 1", []);
+    sinon.assert.calledWith(mockOutputChannel.info.getCall(4), "Line 2", []);
+    sinon.assert.calledWith(mockOutputChannel.info.getCall(6), "Line 3", []);
+
+    // Last call should be horizontal rule
+    sinon.assert.calledWith(
+      mockOutputChannel.info.getCall(8),
+      "--------------------------------------------------------------------------",
+      [],
+    );
+  });
+
+  test("should format block messages with headers correctly", () => {
+    const header = ["Header 1", "Header 2"];
+    const block = ["Content 1", "Content 2", "Content 3"];
+    terminal.logBlockWithHeader(header, block);
+
+    const calls = mockOutputChannel.info.getCalls();
+    // Expected calls: HR + 2 header lines with \r\n + HR + 3 content lines with \r\n + HR + \r\n
+    assert.strictEqual(calls.length, 16);
+
+    // First horizontal rule
+    sinon.assert.calledWith(
+      mockOutputChannel.info.getCall(0),
+      "--------------------------------------------------------------------------",
+      [],
+    );
+
+    // Header lines
+    sinon.assert.calledWith(mockOutputChannel.info.getCall(2), "Header 1", []);
+    sinon.assert.calledWith(mockOutputChannel.info.getCall(4), "Header 2", []);
+
+    // Middle horizontal rule
+    sinon.assert.calledWith(
+      mockOutputChannel.info.getCall(6),
+      "--------------------------------------------------------------------------",
+      [],
+    );
+
+    // Content lines
+    sinon.assert.calledWith(mockOutputChannel.info.getCall(8), "Content 1", []);
+    sinon.assert.calledWith(
+      mockOutputChannel.info.getCall(10),
+      "Content 2",
+      [],
+    );
+    sinon.assert.calledWith(
+      mockOutputChannel.info.getCall(12),
+      "Content 3",
+      [],
+    );
+
+    // Final horizontal rule
+    sinon.assert.calledWith(
+      mockOutputChannel.info.getCall(14),
+      "--------------------------------------------------------------------------",
+      [],
+    );
+  });
+});
