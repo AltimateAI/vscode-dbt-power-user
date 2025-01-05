@@ -39,12 +39,12 @@ jobs:
     - name: Run tests (Linux)
       if: runner.os == 'Linux'
       run: |
-        xvfb-run --auto-servernum npm run test
+        xvfb-run --auto-servernum npm run compile && xvfb-run --auto-servernum npm run test:coverage
 
     - name: Run tests (macOS/Windows)
       if: runner.os != 'Linux'
       run: |
-        npm run test
+        npm run compile && npm run test:coverage
 
     - name: Upload test results
       if: always()
@@ -58,7 +58,10 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: coverage-${{ matrix.os }}
-        path: coverage/
+        path: |
+          coverage/
+          .nyc_output/
+          *.lcov
 
     - name: Upload coverage to Codecov
       if: always()

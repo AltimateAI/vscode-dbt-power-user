@@ -1206,7 +1206,8 @@
     "panel:webviews": "npm run build --prefix ./webview_panels",
     "panel:lineage": "npm run build --prefix ./new_lineage_panel",
     "install:panels": "npm install --prefix ./new_lineage_panel && npm install --prefix ./webview_panels",
-    "test": "npm run compile && node ./out/test/runTest.js",
+    "test": "c8 --reporter=lcov --reporter=text node ./out/test/runTest.js",
+    "test:coverage": "c8 --reporter=lcov --reporter=text node ./out/test/runTest.js",
     "test:unit": "node ./out/test/runTest.js",
     "pretest:unit": "npm run compile",
     "compile": "tsc -p ./"
@@ -1224,6 +1225,7 @@
     "@typescript-eslint/parser": "^5.62.0",
     "@vscode/test-electron": "^2.4.1",
     "@vscode/zeromq": "^0.2.1",
+    "c8": "^10.1.3",
     "chai": "^4.3.10",
     "concurrently": "^8.2.2",
     "copy-webpack-plugin": "^11.0.0",
