@@ -13,7 +13,10 @@
     "**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress}.config.{js,cjs,mjs,ts}",
     "**/node_modules/**",
     "dist/**",
-    "out/**"
+    "out/**",
+    "src/test/**",
+    "src/**/*.test.ts",
+    "src/test/suite/**"
   ],
   "include": ["src/**/*.ts"],
   "branches": 5,

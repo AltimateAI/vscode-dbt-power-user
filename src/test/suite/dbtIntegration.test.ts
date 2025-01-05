@@ -195,3 +195,61 @@ suite("CLIDBTCommandExecutionStrategy Tests", () => {
     );
   });
 });
+
+suite("DBTCommand Test Suite", () => {
+  let sandbox: sinon.SinonSandbox;
+  let mockExecutionStrategy: sinon.SinonStubbedInstance<CLIDBTCommandExecutionStrategy>;
+
+  setup(() => {
+    sandbox = sinon.createSandbox();
+    mockExecutionStrategy = sandbox.createStubInstance(
+      CLIDBTCommandExecutionStrategy,
+    );
+  });
+
+  teardown(() => {
+    sandbox.restore();
+  });
+
+  test("execute should throw error when no execution strategy is set", async () => {
+    const command = new DBTCommand("Test command", ["test"]);
+    await assert.rejects(async () => await command.execute(), {
+      message: "Execution strategy is required to run dbt commands",
+    });
+  });
+
+  test("getCommandAsString should format command correctly", () => {
+    const command = new DBTCommand("Test command", [
+      "run",
+      "--select",
+      "my_model",
+    ]);
+    assert.strictEqual(
+      command.getCommandAsString(),
+      "dbt run --select my_model",
+    );
+  });
+
+  test("addArgument should append new arguments", () => {
+    const command = new DBTCommand("Test command", ["run"]);
+    command.addArgument("--select");
+    command.addArgument("my_model");
+    assert.strictEqual(
+      command.getCommandAsString(),
+      "dbt run --select my_model",
+    );
+  });
+
+  test("execute should use execution strategy when set", async () => {
+    const command = new DBTCommand("Test command", ["test"]);
+    mockExecutionStrategy.execute.resolves({
+      stdout: "success",
+      stderr: "",
+      fullOutput: "success",
+    });
+    command.setExecutionStrategy(mockExecutionStrategy);
+    await command.execute();
+    sinon.assert.calledOnce(mockExecutionStrategy.execute);
+    sinon.assert.calledWith(mockExecutionStrategy.execute, command);
+  });
+});
