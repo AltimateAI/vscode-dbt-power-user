@@ -54,6 +54,7 @@ export class SourceParser {
               columns,
               identifier,
               package_name,
+              meta,
             },
           ) => {
             let source = previousValue.get(source_name);
@@ -68,6 +69,7 @@ export class SourceParser {
                 is_external_project: Boolean(
                   externalProjectNames?.includes(package_name),
                 ),
+                meta: meta,
               };
               previousValue.set(source_name, source);
             }
