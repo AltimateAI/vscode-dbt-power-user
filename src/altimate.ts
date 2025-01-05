@@ -419,8 +419,7 @@ export class AltimateRequest {
       abortController.abort();
     }, timeout);
     try {
-      const nodeFetch = (await import("node-fetch")).default;
-      const response = await nodeFetch(url, {
+      const response = await fetch(url, {
         method: "POST",
         body: JSON.stringify(request),
         signal: abortController.signal,
@@ -734,15 +733,42 @@ export class AltimateRequest {
     return queryString ? `?${queryString}` : "";
   };
 
+  async validateCredentials(instance: string, key: string) {
+    const url = `${AltimateRequest.ALTIMATE_URL}/dbt/v3/validate-credentials`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "x-tenant": instance,
+        Authorization: "Bearer " + key,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (response.status === 403) {
+      throw new ForbiddenError();
+    }
+
+    return (await response.json()) as Record<string, any> | undefined;
+  }
+
   async isAuthenticated() {
     try {
-      await this.fetch<void>("auth_health", {
-        method: "POST",
-      });
+      const config = this.getConfig()!;
+      const response = await fetch(
+        `${AltimateRequest.ALTIMATE_URL}/auth_health`,
+        {
+          method: "POST",
+          headers: {
+            "x-tenant": config.instance,
+            Authorization: "Bearer " + config.key,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      return response.ok;
     } catch (error) {
       return false;
     }
-    return true;
   }
 
   async generateModelDocsV2(docsGenerate: DocsGenerateModelRequestV2) {
@@ -771,19 +797,6 @@ export class AltimateRequest {
       method: "POST",
       body: JSON.stringify(req),
     });
-  }
-
-  async validateCredentials(instance: string, key: string) {
-    const url = `${AltimateRequest.ALTIMATE_URL}/dbt/v3/validate-credentials`;
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "x-tenant": instance,
-        Authorization: "Bearer " + key,
-        "Content-Type": "application/json",
-      },
-    });
-    return (await response.json()) as Record<string, any> | undefined;
   }
 
   async checkApiConnectivity() {

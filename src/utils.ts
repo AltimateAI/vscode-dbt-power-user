@@ -137,19 +137,40 @@ export const getProjectRelativePath = (projectRoot: Uri) => {
   return path.relative(ws?.uri.fsPath || "", projectRoot.fsPath);
 };
 
-export const processStreamResponse = (
-  stream: NodeJS.ReadableStream,
+export const processStreamResponse = async (
+  stream: NodeJS.ReadableStream | ReadableStream,
   cb: (data: string) => void,
 ): Promise<string> => {
-  const chunks: Buffer[] = [];
-  return new Promise((resolve, reject) => {
-    stream.on("data", (chunk: Uint8Array) => {
-      cb(new TextDecoder().decode(chunk));
-      chunks.push(Buffer.from(chunk));
+  if (stream instanceof ReadableStream) {
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
+    let result = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+        const chunk = decoder.decode(value, { stream: true });
+        result += chunk;
+        cb(chunk);
+      }
+      return result;
+    } finally {
+      reader.releaseLock();
+    }
+  } else {
+    return new Promise((resolve, reject) => {
+      let result = "";
+      stream.on("data", (chunk: Buffer) => {
+        const data = chunk.toString();
+        result += data;
+        cb(data);
+      });
+      stream.on("end", () => resolve(result));
+      stream.on("error", reject);
     });
-    stream.on("error", (err: unknown) => reject(err));
-    stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
-  });
+  }
 };
 
 export const deepEqual = (obj1: any, obj2: any): boolean => {
