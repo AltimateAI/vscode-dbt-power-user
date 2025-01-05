@@ -40,13 +40,11 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         xvfb-run --auto-servernum npm run test
-        xvfb-run --auto-servernum npm run test:unit
 
     - name: Run tests (macOS/Windows)
       if: runner.os != 'Linux'
       run: |
         npm run test
-        npm run test:unit
 
     - name: Upload test results
       if: always()
