@@ -15,9 +15,13 @@ async function main() {
         workspaceFolder,
         "--enable-proposed-api=innoverio.vscode-dbt-power-user",
         "--install-extension=samuelcolvin.jinjahtml",
+        "--disable-extensions",
+        "--coverage",
       ],
       extensionTestsEnv: {
-        NODE_V8_COVERAGE: path.resolve(__dirname, "../../coverage/tmp"),
+        COVERAGE: "1",
+        COVERAGE_OUTPUT: path.resolve(extensionDevelopmentPath, "coverage"),
+        CODE_TESTS_WORKSPACE: workspaceFolder,
       },
     });
   } catch (err) {
