@@ -58,6 +58,7 @@ import { NodeMetaData } from "../domain";
 import * as crypto from "crypto";
 
 const DEFAULT_QUERY_TEMPLATE = "select * from ({query}) as query limit {limit}";
+const DEFAULT_QUERY_TEMPLATE_WITH_ORDER = "{query} limit {limit}";
 
 // TODO: we shouold really get these from manifest directly
 interface ResolveReferenceNodeResult {
@@ -364,9 +365,15 @@ export class DBTCoreProjectIntegration
       return { queryTemplate, limitQuery };
     }
 
+    // Check if query has ORDER BY clause
+    const hasOrderBy = /\border\s+by\b/i.test(query);
+    const template = hasOrderBy
+      ? DEFAULT_QUERY_TEMPLATE_WITH_ORDER
+      : DEFAULT_QUERY_TEMPLATE;
+
     return {
-      queryTemplate: DEFAULT_QUERY_TEMPLATE,
-      limitQuery: this.getLimitQuery(DEFAULT_QUERY_TEMPLATE, query, limit),
+      queryTemplate: template,
+      limitQuery: this.getLimitQuery(template, query, limit),
     };
   }
 
