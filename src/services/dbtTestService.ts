@@ -24,9 +24,10 @@ import { parse, stringify } from "yaml";
 import { readFileSync } from "fs";
 import { DBTProject } from "../manifest/dbtProject";
 import { getTestSuggestions } from "@lib";
-import { ExecuteSQLResult } from "../dbt_client/dbtIntegration";
+import { DBColumn, ExecuteSQLResult } from "../dbt_client/dbtIntegration";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
+import { DBTDocumentation } from "../webview_provider/docsEditPanel";
 
 @provideSingleton(DbtTestService)
 export class DbtTestService {
@@ -38,25 +39,6 @@ export class DbtTestService {
     private dbtTerminal: DBTTerminal,
     private telemetryService: TelemetryService,
   ) {}
-
-  // Remove test if existing in original array
-  // Used while generating new tests
-  private removeTestIfExistingInSchema(
-    existingTests?: any[],
-    newTests?: any[],
-  ) {
-    if (!newTests || !existingTests?.length) {
-      return newTests;
-    }
-
-    const existingModelTests = new Set([
-      ...existingTests.map((t: any) => JSON.stringify(t)),
-    ]);
-
-    return newTests.filter(
-      (test) => !existingModelTests.has(JSON.stringify(test)),
-    );
-  }
 
   // Remove duplicate tests from tests array
   public removeDuplicateTests(
@@ -401,7 +383,7 @@ export class DbtTestService {
   public async generateTestsForColumns(
     project: DBTProject,
     panel: WebviewView | undefined,
-    patchPath?: string,
+    columnsInRelation: DBColumn[],
   ) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
@@ -423,7 +405,8 @@ export class DbtTestService {
         }
         const modelName = path.basename(currentFilePath.fsPath, ".sql");
 
-        const columnsInRelation = await project.getColumnsOfModel(modelName);
+        const columnsInRelation1 = await project.getColumnsOfModel(modelName);
+        console.log(columnsInRelation1);
         const testSuggestions = await getTestSuggestions({
           adapter: project.getAdapterType(),
           columnsInRelation: columnsInRelation,
@@ -444,53 +427,12 @@ export class DbtTestService {
           return;
         }
 
-        const dbtConfig = patchPath
-          ? parse(
-              readFileSync(
-                path.join(
-                  project.projectRoot.fsPath,
-                  patchPath.split("://")[1],
-                ),
-              ).toString("utf8"),
-              {
-                strict: false,
-                uniqueKeys: false,
-              },
-            )
-          : {};
-
-        // Remove test suggestion if already existing in schema
-        const filteredTestSuggestions = {
-          models: testSuggestions.models.map((model) => {
-            const modelFromCurrentConfig = dbtConfig.models?.find(
-              (m: { name: string }) => m.name === model.name,
-            );
-            return {
-              ...model,
-              columns: model.columns.map((column) => {
-                return {
-                  ...column,
-                  tests: this.removeTestIfExistingInSchema(
-                    dbtConfig.models
-                      ?.find((m: any) => m.name === model.name)
-                      ?.columns.find((c: any) => c.name === column.name)?.tests,
-                    column.tests,
-                  ),
-                };
-              }),
-              tests: this.removeTestIfExistingInSchema(
-                modelFromCurrentConfig?.tests,
-                model.tests,
-              ),
-            };
-          }),
-        };
         this.dbtTerminal.debug(
           "docsEditPanel:generateTestsForColumns",
           "testSuggestions",
-          filteredTestSuggestions,
+          testSuggestions,
         );
-        const testSuggestionsForModel = filteredTestSuggestions?.models[0];
+        const testSuggestionsForModel = testSuggestions?.models[0];
         panel?.webview?.postMessage({
           command: "testgen:insert",
           tests: testSuggestionsForModel,

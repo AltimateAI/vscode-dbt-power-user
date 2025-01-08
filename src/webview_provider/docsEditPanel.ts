@@ -553,7 +553,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             await this.dbtTestService.generateTestsForColumns(
               project,
               this._panel,
-              this.documentation?.patchPath,
+              params.columns.map((c: DBTDocumentation["columns"]["0"]) => ({
+                column: c.name,
+                dtype: c.type,
+              })),
             );
             break;
           case "fetchMetadataFromDatabase":
