@@ -1,4 +1,4 @@
-import * as assert from "assert";
+import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
 import * as sinon from "sinon";
 import { Uri } from "vscode";
 import {
@@ -14,7 +14,7 @@ import { PythonEnvironment } from "../../manifest/pythonEnvironment";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { TelemetryService } from "../../telemetry";
 
-suite("CLIDBTCommandExecutionStrategy Tests", () => {
+describe("CLIDBTCommandExecutionStrategy Tests", () => {
   let sandbox: sinon.SinonSandbox;
   let strategy: CLIDBTCommandExecutionStrategy;
   let mockCommandProcessExecutionFactory: {
@@ -28,7 +28,7 @@ suite("CLIDBTCommandExecutionStrategy Tests", () => {
     completeWithTerminalOutput: sinon.SinonStub;
   };
 
-  setup(() => {
+  beforeEach(() => {
     sandbox = sinon.createSandbox();
 
     // Create mock dependencies
@@ -60,8 +60,19 @@ suite("CLIDBTCommandExecutionStrategy Tests", () => {
       pythonPath: "/path/to/python",
       environmentVariables: { PATH: "/some/path" },
     } as any;
-    mockTerminal = sandbox.createStubInstance(DBTTerminal);
-    mockTelemetry = sandbox.createStubInstance(TelemetryService);
+    mockTerminal = {
+      show: sandbox.stub(),
+      log: sandbox.stub(),
+      trace: sandbox.stub(),
+      debug: sandbox.stub(),
+      info: sandbox.stub(),
+      error: sandbox.stub(),
+      dispose: sandbox.stub(),
+    } as any;
+    mockTelemetry = {
+      sendTelemetryEvent: sandbox.stub(),
+      sendTelemetryError: sandbox.stub(),
+    } as any;
 
     // Create strategy instance
     strategy = new CLIDBTCommandExecutionStrategy(
@@ -74,11 +85,11 @@ suite("CLIDBTCommandExecutionStrategy Tests", () => {
     );
   });
 
-  teardown(() => {
+  afterEach(() => {
     sandbox.restore();
   });
 
-  test("execute should properly handle command with terminal logging", async () => {
+  it("should properly handle command with terminal logging", async () => {
     // Arrange
     const command = new DBTCommand(
       "Running dbt command",
@@ -92,11 +103,7 @@ suite("CLIDBTCommandExecutionStrategy Tests", () => {
     const result = await strategy.execute(command);
 
     // Assert
-    assert.strictEqual(
-      result.stdout,
-      "success",
-      "Should return successful result",
-    );
+    expect(result.stdout).toBe("success");
 
     // Verify terminal was shown
     sinon.assert.calledOnce(mockTerminal.show);
@@ -130,7 +137,7 @@ suite("CLIDBTCommandExecutionStrategy Tests", () => {
     );
   });
 
-  test("execute should handle command without terminal logging", async () => {
+  it("should handle command without terminal logging", async () => {
     // Arrange
     const command = new DBTCommand(
       "Running dbt command",
@@ -144,11 +151,7 @@ suite("CLIDBTCommandExecutionStrategy Tests", () => {
     const result = await strategy.execute(command);
 
     // Assert
-    assert.strictEqual(
-      result.stdout,
-      "success",
-      "Should return successful result",
-    );
+    expect(result.stdout).toBe("success");
 
     // Verify terminal was not shown
     sinon.assert.notCalled(mockTerminal.show);
@@ -177,7 +180,7 @@ suite("CLIDBTCommandExecutionStrategy Tests", () => {
     sinon.assert.calledOnce(mockCommandProcessExecution.complete);
   });
 
-  test("execute should throw error when python environment is not available", async () => {
+  it("should throw error when python environment is not available", async () => {
     // Arrange
     const command = new DBTCommand("Running dbt command", [
       "run",
@@ -189,58 +192,57 @@ suite("CLIDBTCommandExecutionStrategy Tests", () => {
     (strategy as any).pythonEnvironment = {};
 
     // Act & Assert
-    await assert.rejects(
-      () => strategy.execute(command),
-      /Could not launch command as python environment is not available/,
+    await expect(strategy.execute(command)).rejects.toThrow(
+      "Could not launch command as python environment is not available",
     );
   });
 });
 
-suite("DBTCommand Test Suite", () => {
+describe("DBTCommand Test Suite", () => {
   let sandbox: sinon.SinonSandbox;
   let mockExecutionStrategy: sinon.SinonStubbedInstance<CLIDBTCommandExecutionStrategy>;
 
-  setup(() => {
+  beforeEach(() => {
     sandbox = sinon.createSandbox();
     mockExecutionStrategy = sandbox.createStubInstance(
       CLIDBTCommandExecutionStrategy,
     );
   });
 
-  teardown(() => {
+  afterEach(() => {
     sandbox.restore();
   });
 
-  test("execute should throw error when no execution strategy is set", async () => {
+  it("should throw error when no execution strategy is set", async () => {
     const command = new DBTCommand("Test command", ["test"]);
-    await assert.rejects(async () => await command.execute(), {
-      message: "Execution strategy is required to run dbt commands",
-    });
+    try {
+      await command.execute();
+      // If we get here, the test should fail because we expected an error
+      expect(true).toBe(false);
+    } catch (error) {
+      expect((error as Error).message).toBe(
+        "Execution strategy is required to run dbt commands",
+      );
+    }
   });
 
-  test("getCommandAsString should format command correctly", () => {
+  it("should format command correctly", () => {
     const command = new DBTCommand("Test command", [
       "run",
       "--select",
       "my_model",
     ]);
-    assert.strictEqual(
-      command.getCommandAsString(),
-      "dbt run --select my_model",
-    );
+    expect(command.getCommandAsString()).toBe("dbt run --select my_model");
   });
 
-  test("addArgument should append new arguments", () => {
+  it("should append new arguments", () => {
     const command = new DBTCommand("Test command", ["run"]);
     command.addArgument("--select");
     command.addArgument("my_model");
-    assert.strictEqual(
-      command.getCommandAsString(),
-      "dbt run --select my_model",
-    );
+    expect(command.getCommandAsString()).toBe("dbt run --select my_model");
   });
 
-  test("execute should use execution strategy when set", async () => {
+  it("should use execution strategy when set", async () => {
     const command = new DBTCommand("Test command", ["test"]);
     mockExecutionStrategy.execute.resolves({
       stdout: "success",
@@ -249,7 +251,7 @@ suite("DBTCommand Test Suite", () => {
     });
     command.setExecutionStrategy(mockExecutionStrategy);
     await command.execute();
-    sinon.assert.calledOnce(mockExecutionStrategy.execute);
-    sinon.assert.calledWith(mockExecutionStrategy.execute, command);
+    expect(mockExecutionStrategy.execute.calledOnce).toBe(true);
+    expect(mockExecutionStrategy.execute.calledWith(command)).toBe(true);
   });
 });

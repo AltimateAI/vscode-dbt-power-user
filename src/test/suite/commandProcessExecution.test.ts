@@ -1,4 +1,4 @@
-import * as assert from "assert";
+import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
 import { mock, instance, when, anything, verify } from "ts-mockito";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import {
@@ -11,12 +11,12 @@ import * as path from "path";
 import * as os from "os";
 import * as fs from "fs";
 
-suite("CommandProcessExecution Tests", () => {
+describe("CommandProcessExecution Tests", () => {
   let mockTerminal: DBTTerminal;
   let factory: CommandProcessExecutionFactory;
   let testDir: string;
 
-  setup(() => {
+  beforeEach(() => {
     mockTerminal = mock(DBTTerminal);
     when(mockTerminal.debug(anything(), anything(), anything())).thenReturn();
     factory = new CommandProcessExecutionFactory(instance(mockTerminal));
@@ -29,39 +29,33 @@ suite("CommandProcessExecution Tests", () => {
     }
   });
 
-  teardown(() => {
+  afterEach(() => {
     if (fs.existsSync(testDir)) {
       fs.rmdirSync(testDir);
     }
   });
 
-  test("should execute command and return output", async () => {
+  it("should execute command and return output", async () => {
     const execution = factory.createCommandProcessExecution({
       command: process.platform === "win32" ? "cmd" : "echo",
       args: process.platform === "win32" ? ["/c", "echo test"] : ["test"],
     });
 
     const result = await execution.complete();
-    assert.strictEqual(result.stdout.trim(), "test");
-    assert.strictEqual(result.stderr, "");
+    expect(result.stdout.trim()).toBe("test");
+    expect(result.stderr).toBe("");
     verify(mockTerminal.debug(anything(), anything(), anything())).called();
   });
 
-  test("should handle command errors", async () => {
+  it("should handle command errors", async () => {
     const execution = factory.createCommandProcessExecution({
       command: "nonexistentcommand",
     });
 
-    try {
-      await execution.complete();
-      assert.fail("Expected error was not thrown");
-    } catch (error) {
-      assert.ok(error instanceof Error);
-      assert.ok((error as Error).message.includes("ENOENT"));
-    }
+    await expect(execution.complete()).rejects.toThrow(/ENOENT/);
   });
 
-  test("should handle command with environment variables", async () => {
+  it("should handle command with environment variables", async () => {
     const execution = factory.createCommandProcessExecution({
       command: process.platform === "win32" ? "cmd" : "printenv",
       args:
@@ -70,10 +64,10 @@ suite("CommandProcessExecution Tests", () => {
     });
 
     const result = await execution.complete();
-    assert.strictEqual(result.stdout.trim(), "test_value");
+    expect(result.stdout.trim()).toBe("test_value");
   });
 
-  test("should handle command cancellation", async () => {
+  it("should handle command cancellation", async () => {
     // Create a mock cancellation token
     const emitter = new EventEmitter();
     const mockToken = {
@@ -94,15 +88,10 @@ suite("CommandProcessExecution Tests", () => {
     // Trigger cancellation
     emitter.emit("cancel");
 
-    try {
-      await promise;
-      assert.fail("Expected error was not thrown");
-    } catch (error) {
-      assert.ok(error instanceof Error);
-    }
+    await expect(promise).rejects.toThrow();
   });
 
-  test("should handle command with working directory", async () => {
+  it("should handle command with working directory", async () => {
     const execution = factory.createCommandProcessExecution({
       command: process.platform === "win32" ? "cmd" : "sh",
       args: process.platform === "win32" ? ["/c", "cd"] : ["-c", "pwd"],
@@ -112,14 +101,13 @@ suite("CommandProcessExecution Tests", () => {
     const result = await execution.complete();
     const normalizedOutput = path.normalize(result.stdout.trim());
     const normalizedTestDir = path.normalize(testDir);
-    assert.ok(
-      normalizedOutput.toLowerCase().includes(normalizedTestDir.toLowerCase()),
-      `Expected path to include ${normalizedTestDir}, but got ${normalizedOutput}`,
+    expect(normalizedOutput.toLowerCase()).toContain(
+      normalizedTestDir.toLowerCase(),
     );
   });
 
-  test("should handle command with stderr output", async function () {
-    this.timeout(5000); // Increase timeout to 5 seconds
+  it("should handle command with stderr output", async () => {
+    jest.setTimeout(5000); // Increase timeout to 5 seconds
     const execution = factory.createCommandProcessExecution({
       command: process.platform === "win32" ? "cmd" : "sh",
       args:
@@ -129,6 +117,6 @@ suite("CommandProcessExecution Tests", () => {
     });
 
     const result = await execution.complete();
-    assert.strictEqual(result.stderr.trim(), "error");
+    expect(result.stderr.trim()).toBe("error");
   });
 });

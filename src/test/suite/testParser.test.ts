@@ -1,16 +1,16 @@
-import * as assert from "assert";
+import { expect, describe, it, beforeEach } from "@jest/globals";
 import { TestParser } from "../../manifest/parsers/testParser";
 import { DBTProject } from "../../manifest/dbtProject";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
-import { EventEmitter } from "vscode";
+import { MockEventEmitter } from "../setup";
 import * as path from "path";
 
-suite("TestParser Test Suite", () => {
+describe("TestParser Test Suite", () => {
   let testParser: TestParser;
   let mockProject: DBTProject;
   let mockTerminal: DBTTerminal;
 
-  setup(() => {
+  beforeEach(() => {
     // Create a proper mock of DBTTerminal with all required methods
     mockTerminal = {
       debug: () => {},
@@ -25,7 +25,7 @@ suite("TestParser Test Suite", () => {
       logWarning: () => {},
       logSuccess: () => {},
       disposables: [],
-      writeEmitter: new EventEmitter<string>(),
+      writeEmitter: new MockEventEmitter<string>(),
       outputChannel: {
         append: () => {},
         appendLine: () => {},
@@ -35,7 +35,7 @@ suite("TestParser Test Suite", () => {
       telemetry: {
         sendTelemetryEvent: () => {},
       },
-      onDidWrite: new EventEmitter<string>().event,
+      onDidWrite: new MockEventEmitter<string>().event,
       clear: () => {},
       show: () => {},
       dispose: () => {},
@@ -50,12 +50,12 @@ suite("TestParser Test Suite", () => {
     } as DBTProject;
   });
 
-  test("createTestMetaMap should handle null/undefined testsMap", async () => {
+  it("should handle null/undefined testsMap", async () => {
     const result = await testParser.createTestMetaMap([], mockProject);
-    assert.strictEqual(result.size, 0);
+    expect(result.size).toBe(0);
   });
 
-  test("createTestMetaMap should parse test metadata correctly", async () => {
+  it("should parse test metadata correctly", async () => {
     const mockTestsMap = [
       {
         name: "test_1",
@@ -84,18 +84,17 @@ suite("TestParser Test Suite", () => {
       mockTestsMap,
       mockProject,
     );
-    assert.strictEqual(result.size, 1);
+    expect(result.size).toBe(1);
     const testMeta = result.get("test_1");
-    assert.ok(testMeta);
-    assert.strictEqual(testMeta.uniqueId, "test.test_1");
-    assert.strictEqual(testMeta.raw_sql, "SELECT * FROM table");
-    assert.strictEqual(
-      testMeta.path,
+    expect(testMeta).toBeTruthy();
+    expect(testMeta?.uniqueId).toBe("test.test_1");
+    expect(testMeta?.raw_sql).toBe("SELECT * FROM table");
+    expect(testMeta?.path).toBe(
       path.join(mockProject.projectRoot.fsPath, "tests/test_1.sql"),
     );
   });
 
-  test("should handle column-level tests correctly", async () => {
+  it("should handle column-level tests correctly", async () => {
     const mockTestsMap = [
       {
         name: "not_null_column_test",
@@ -125,13 +124,13 @@ suite("TestParser Test Suite", () => {
       mockProject,
     );
     const testMeta = result.get("not_null_column_test");
-    assert.ok(testMeta);
-    assert.strictEqual(testMeta.column_name, "test_column");
-    assert.ok(testMeta.test_metadata);
-    assert.strictEqual(testMeta.test_metadata.name, "not_null");
+    expect(testMeta).toBeTruthy();
+    expect(testMeta?.column_name).toBe("test_column");
+    expect(testMeta?.test_metadata).toBeTruthy();
+    expect(testMeta?.test_metadata?.name).toBe("not_null");
   });
 
-  test("should handle custom test configurations", async () => {
+  it("should handle custom test configurations", async () => {
     const mockTestsMap = [
       {
         name: "custom_test",
@@ -165,10 +164,10 @@ suite("TestParser Test Suite", () => {
       mockProject,
     );
     const testMeta = result.get("custom_test");
-    assert.ok(testMeta);
-    assert.ok(testMeta.test_metadata);
-    assert.strictEqual(testMeta.test_metadata.name, "custom");
-    assert.deepStrictEqual(testMeta.test_metadata.kwargs, {
+    expect(testMeta).toBeTruthy();
+    expect(testMeta?.test_metadata).toBeTruthy();
+    expect(testMeta?.test_metadata?.name).toBe("custom");
+    expect(testMeta?.test_metadata?.kwargs).toEqual({
       column_name: "test_column",
       model: "test_model",
       condition: "value > 0",
@@ -176,7 +175,7 @@ suite("TestParser Test Suite", () => {
     });
   });
 
-  test("should handle test dependencies correctly", async () => {
+  it("should handle test dependencies correctly", async () => {
     const mockTestsMap = [
       {
         name: "dependent_test",
@@ -208,8 +207,8 @@ suite("TestParser Test Suite", () => {
       mockProject,
     );
     const testMeta = result.get("dependent_test");
-    assert.ok(testMeta);
-    assert.deepStrictEqual(testMeta.depends_on, {
+    expect(testMeta).toBeTruthy();
+    expect(testMeta?.depends_on).toEqual({
       macros: [],
       nodes: ["model.test_model", "model.other_model"],
       sources: [],

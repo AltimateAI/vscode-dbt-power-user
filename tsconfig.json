@@ -13,7 +13,7 @@
     "allowJs": true,
     "checkJs": false,
     "moduleResolution": "node",
-    "types": ["node", "mocha", "vscode"],
+    "types": ["node", "jest", "vscode"],
     "baseUrl": ".",
     "paths": {
       "@extension": ["./src/modules.ts"],

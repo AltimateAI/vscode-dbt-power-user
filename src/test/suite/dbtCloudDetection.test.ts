@@ -1,4 +1,4 @@
-import * as assert from "assert";
+import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
 import { DBTCloudDetection } from "../../dbt_client/dbtCloudIntegration";
 import {
   CommandProcessExecution,
@@ -9,14 +9,14 @@ import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { mock, instance, when, anything } from "ts-mockito";
 import { workspace } from "vscode";
 
-suite("DBTCloudDetection Tests", () => {
+describe("DBTCloudDetection Tests", () => {
   let mockCommandProcessExecutionFactory: CommandProcessExecutionFactory;
   let mockPythonEnvironment: PythonEnvironment;
   let mockTerminal: DBTTerminal;
   let mockCommandProcessExecution: CommandProcessExecution;
   let dbtCloudDetection: DBTCloudDetection;
 
-  setup(() => {
+  beforeEach(() => {
     mockCommandProcessExecutionFactory = mock(CommandProcessExecutionFactory);
     mockPythonEnvironment = mock(PythonEnvironment);
     mockTerminal = mock(DBTTerminal);
@@ -44,7 +44,15 @@ suite("DBTCloudDetection Tests", () => {
     );
   });
 
-  test("detectDBT should return true for supported dbt Cloud CLI version", async () => {
+  afterEach(() => {
+    // Reset workspace.workspaceFolders
+    Object.defineProperty(workspace, "workspaceFolders", {
+      get: () => undefined,
+      configurable: true,
+    });
+  });
+
+  it("should return true for supported dbt Cloud CLI version", async () => {
     when(mockCommandProcessExecution.complete()).thenResolve({
       stdout: "dbt Cloud CLI - 0.38.0",
       stderr: "",
@@ -52,10 +60,10 @@ suite("DBTCloudDetection Tests", () => {
     });
 
     const result = await dbtCloudDetection.detectDBT();
-    assert.strictEqual(result, true);
+    expect(result).toBe(true);
   });
 
-  test("detectDBT should return false for unsupported dbt Cloud CLI version", async () => {
+  it("should return false for unsupported dbt Cloud CLI version", async () => {
     when(mockCommandProcessExecution.complete()).thenResolve({
       stdout: "dbt Cloud CLI - 0.35.0",
       stderr: "",
@@ -63,23 +71,15 @@ suite("DBTCloudDetection Tests", () => {
     });
 
     const result = await dbtCloudDetection.detectDBT();
-    assert.strictEqual(result, false);
+    expect(result).toBe(false);
   });
 
-  test("detectDBT should return false when command execution fails", async () => {
+  it("should return false when command execution fails", async () => {
     when(mockCommandProcessExecution.complete()).thenReject(
       new Error("Command failed"),
     );
 
     const result = await dbtCloudDetection.detectDBT();
-    assert.strictEqual(result, false);
-  });
-
-  teardown(() => {
-    // Reset workspace.workspaceFolders
-    Object.defineProperty(workspace, "workspaceFolders", {
-      get: () => undefined,
-      configurable: true,
-    });
+    expect(result).toBe(false);
   });
 });

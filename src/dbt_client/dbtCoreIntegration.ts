@@ -1,3 +1,4 @@
+import * as vscode from "vscode";
 import {
   CancellationToken,
   Diagnostic,
@@ -1080,16 +1081,27 @@ export class DBTCoreProjectIntegration
   }
 
   private throwBridgeErrorIfAvailable() {
-    const allDiagnostics: DiagnosticCollection[] = [
+    const allDiagnostics = [
       this.pythonBridgeDiagnostics,
       this.projectConfigDiagnostics,
       this.rebuildManifestDiagnostics,
     ];
 
     for (const diagnosticCollection of allDiagnostics) {
-      for (const [_, diagnostics] of diagnosticCollection) {
+      if (!diagnosticCollection) {
+        continue;
+      }
+
+      // Convert to array if it's a Map-like object
+      const entries =
+        diagnosticCollection instanceof Map
+          ? Array.from(diagnosticCollection.entries())
+          : Array.from(diagnosticCollection);
+
+      for (const [_, diagnostics] of entries) {
         const error = diagnostics.find(
-          (diagnostic) => diagnostic.severity === DiagnosticSeverity.Error,
+          (diagnostic: vscode.Diagnostic) =>
+            diagnostic.severity === DiagnosticSeverity.Error,
         );
         if (error) {
           throw new Error(error.message);

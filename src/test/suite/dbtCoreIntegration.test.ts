@@ -1,35 +1,37 @@
-import * as assert from "assert";
-import * as sinon from "sinon";
+import { expect } from "@jest/globals";
 import { DBTCoreProjectIntegration } from "../../dbt_client/dbtCoreIntegration";
 import { Container } from "inversify";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import {
   DBTCommandExecutionInfrastructure,
   PythonDBTCommandExecutionStrategy,
 } from "../../dbt_client/dbtIntegration";
-import { PythonBridge } from "python-bridge";
-import { PythonEnvironment } from "../../manifest/pythonEnvironment";
 import { TelemetryService } from "../../telemetry";
 import { DBTProjectContainer } from "../../manifest/dbtProjectContainer";
 import { AltimateRequest } from "../../altimate";
 import { ValidationProvider } from "../../validation_provider";
 import { DeferToProdService } from "../../services/deferToProdService";
-import { Uri, languages, EventEmitter } from "vscode";
+import { Uri, languages } from "vscode";
+import { MockEventEmitter } from "../setup";
 
-suite("DBTCoreProjectIntegration Tests", () => {
-  let sandbox: sinon.SinonSandbox;
+describe("DBTCoreProjectIntegration Tests", () => {
   let dbtCoreProjectIntegration: DBTCoreProjectIntegration;
-  let mockPythonBridge: any;
+  let mockPythonBridge: jest.Mocked<any>;
+  let mockTelemetry: jest.Mocked<TelemetryService>;
 
-  setup(() => {
-    sandbox = sinon.createSandbox();
+  beforeEach(() => {
     // Create mock dependencies
     const container = new Container();
 
     // Mock all required dependencies
     mockPythonBridge = {
-      lock: sandbox.stub(),
+      lock: jest.fn(),
     };
+
+    mockTelemetry = {
+      sendTelemetryEvent: jest.fn(),
+      sendTelemetryError: jest.fn(),
+      setTelemetryCustomAttribute: jest.fn(),
+    } as any;
 
     const mockExecutionInfrastructure = {
       createPythonBridge: () => mockPythonBridge,
@@ -41,7 +43,7 @@ suite("DBTCoreProjectIntegration Tests", () => {
       languages.createDiagnosticCollection("dbt-project-config");
 
     // Create mock event emitter for Python environment changes
-    const mockPythonEnvChangeEmitter = new EventEmitter<Uri | undefined>();
+    const mockPythonEnvChangeEmitter = new MockEventEmitter<Uri | undefined>();
 
     // Create the instance directly with constructor injection
     dbtCoreProjectIntegration = new DBTCoreProjectIntegration(
@@ -51,7 +53,7 @@ suite("DBTCoreProjectIntegration Tests", () => {
         pythonPath: "/usr/bin/python3",
         environmentVariables: {},
       } as any,
-      {} as TelemetryService,
+      mockTelemetry,
       {} as PythonDBTCommandExecutionStrategy,
       {} as DBTProjectContainer,
       {} as AltimateRequest,
@@ -69,11 +71,7 @@ suite("DBTCoreProjectIntegration Tests", () => {
     (dbtCoreProjectIntegration as any).python = mockPythonBridge;
   });
 
-  teardown(() => {
-    sandbox.restore();
-  });
-
-  test("validateSql should return validation result for valid SQL", async () => {
+  it("validateSql should return validation result for valid SQL", async () => {
     // Arrange
     const query = "SELECT * FROM my_table";
     const dialect = "postgres";
@@ -83,7 +81,7 @@ suite("DBTCoreProjectIntegration Tests", () => {
       errors: [],
     };
 
-    mockPythonBridge.lock.resolves(expectedResult);
+    mockPythonBridge.lock.mockResolvedValue(expectedResult);
 
     // Act
     const result = await dbtCoreProjectIntegration.validateSql(
@@ -93,13 +91,13 @@ suite("DBTCoreProjectIntegration Tests", () => {
     );
 
     // Assert
-    assert.deepStrictEqual(result, expectedResult);
-    assert.ok(mockPythonBridge.lock.calledOnce);
-    const lockCall = mockPythonBridge.lock.getCall(0);
-    assert.ok(lockCall.args[0].toString().includes("validate_sql"));
+    expect(result).toEqual(expectedResult);
+    expect(mockPythonBridge.lock).toHaveBeenCalledTimes(1);
+    const lockCall = mockPythonBridge.lock.mock.calls[0][0];
+    expect(lockCall.toString()).toContain("validate_sql");
   });
 
-  test("validateSql should handle invalid SQL", async () => {
+  it("validateSql should handle invalid SQL", async () => {
     const query = "SELECT * FREM my_table"; // Intentional typo
     const dialect = "postgres";
     const models = {};
@@ -114,7 +112,7 @@ suite("DBTCoreProjectIntegration Tests", () => {
       ],
     };
 
-    mockPythonBridge.lock.resolves(expectedResult);
+    mockPythonBridge.lock.mockResolvedValue(expectedResult);
 
     // Act
     const result = await dbtCoreProjectIntegration.validateSql(
@@ -124,7 +122,7 @@ suite("DBTCoreProjectIntegration Tests", () => {
     );
 
     // Assert
-    assert.deepStrictEqual(result, expectedResult);
-    assert.ok(mockPythonBridge.lock.calledOnce);
+    expect(result).toEqual(expectedResult);
+    expect(mockPythonBridge.lock).toHaveBeenCalledTimes(1);
   });
 });

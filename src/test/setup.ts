@@ -1,18 +1,108 @@
 import "reflect-metadata";
-import { createSandbox } from "sinon";
-import vscode from "./mock/vscode";
 
-const sandbox = createSandbox();
+// Set up the container before tests
+import "../inversify.config";
 
-// Register the mock before any test files are loaded
-const Module = require("module");
-const originalRequire = Module.prototype.require;
+export class MockEventEmitter<T> {
+  private listeners: ((e: T) => any)[] = [];
 
-Module.prototype.require = function (path: string) {
-  if (path === "vscode") {
-    return vscode;
+  event = (listener: (e: T) => any) => {
+    this.listeners.push(listener);
+    return {
+      dispose: () => {
+        const index = this.listeners.indexOf(listener);
+        if (index > -1) {
+          this.listeners.splice(index, 1);
+        }
+      },
+    };
+  };
+
+  fire(data: T): void {
+    this.listeners.forEach((listener) => listener(data));
   }
-  return originalRequire.call(this, path);
-};
 
-export { sandbox };
+  dispose(): void {
+    this.listeners = [];
+  }
+}
+
+// Mock VS Code APIs before any imports
+jest.mock("vscode", () => ({
+  EventEmitter: jest.fn().mockImplementation(() => new MockEventEmitter()),
+  workspace: {
+    getConfiguration: jest.fn().mockReturnValue({
+      get: jest.fn(),
+      update: jest.fn(),
+    }),
+    workspaceFolders: [],
+    onDidChangeConfiguration: jest.fn(),
+    onDidChangeWorkspaceFolders: jest.fn().mockImplementation((callback) => ({
+      dispose: jest.fn(),
+    })),
+    createFileSystemWatcher: jest.fn().mockReturnValue({
+      onDidChange: jest.fn(),
+      onDidCreate: jest.fn(),
+      onDidDelete: jest.fn(),
+      dispose: jest.fn(),
+    }),
+  },
+  commands: {
+    getCommands: jest.fn().mockResolvedValue([]),
+    registerCommand: jest.fn(),
+    executeCommand: jest.fn(),
+  },
+  window: {
+    showInformationMessage: jest.fn(),
+    showErrorMessage: jest.fn(),
+    createOutputChannel: jest.fn().mockReturnValue({
+      appendLine: jest.fn(),
+      show: jest.fn(),
+      clear: jest.fn(),
+      dispose: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    }),
+  },
+  languages: {
+    createDiagnosticCollection: jest.fn().mockReturnValue({
+      set: jest.fn(),
+      delete: jest.fn(),
+      clear: jest.fn(),
+      dispose: jest.fn(),
+    }),
+  },
+  Uri: {
+    file: jest.fn((f: string) => ({ fsPath: f })),
+    parse: jest.fn(),
+  },
+  DiagnosticSeverity: {
+    Error: 0,
+    Warning: 1,
+    Information: 2,
+    Hint: 3,
+  },
+  Disposable: {
+    from: jest.fn(),
+  },
+  ExtensionKind: {
+    UI: 1,
+    Workspace: 2,
+  },
+  Diagnostic: jest.fn().mockImplementation((range, message, severity) => ({
+    range,
+    message,
+    severity,
+  })),
+  Range: jest
+    .fn()
+    .mockImplementation((startLine, startChar, endLine, endChar) => ({
+      start: { line: startLine, character: startChar },
+      end: { line: endLine, character: endChar },
+    })),
+  Position: jest.fn().mockImplementation((line, character) => ({
+    line,
+    character,
+  })),
+}));

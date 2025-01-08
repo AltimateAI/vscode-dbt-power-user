@@ -1,4 +1,4 @@
-import * as assert from "assert";
+import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
 import * as sinon from "sinon";
 import { DBTCoreDetection } from "../../dbt_client/dbtCoreIntegration";
 import {
@@ -8,7 +8,7 @@ import {
 import { PythonEnvironment } from "../../manifest/pythonEnvironment";
 import { workspace, Uri } from "vscode";
 
-suite("DBTCoreDetection Tests", () => {
+describe("DBTCoreDetection Tests", () => {
   let sandbox: sinon.SinonSandbox;
   let detection: DBTCoreDetection;
   let mockCommandProcessExecutionFactory: sinon.SinonStubbedInstance<CommandProcessExecutionFactory>;
@@ -16,7 +16,7 @@ suite("DBTCoreDetection Tests", () => {
   let mockCommandProcessExecution: sinon.SinonStubbedInstance<CommandProcessExecution>;
   let workspaceFoldersStub: sinon.SinonStub;
 
-  setup(() => {
+  beforeEach(() => {
     sandbox = sinon.createSandbox();
 
     // Mock workspace folders
@@ -59,11 +59,11 @@ suite("DBTCoreDetection Tests", () => {
     );
   });
 
-  teardown(() => {
+  afterEach(() => {
     sandbox.restore();
   });
 
-  test("detectDBT should return true when dbt is installed", async () => {
+  it("should return true when dbt is installed", async () => {
     const mockResponse = {
       stdout: "",
       stderr: "",
@@ -76,7 +76,7 @@ suite("DBTCoreDetection Tests", () => {
 
     const result = await detection.detectDBT();
 
-    assert.strictEqual(result, true);
+    expect(result).toBe(true);
     sinon.assert.calledWith(
       mockCommandProcessExecutionFactory.createCommandProcessExecution,
       {
@@ -89,7 +89,7 @@ suite("DBTCoreDetection Tests", () => {
     sinon.assert.calledOnce(mockCommandProcessExecution.complete);
   });
 
-  test("detectDBT should return false when dbt import fails with stderr", async () => {
+  it("should return false when dbt import fails with stderr", async () => {
     mockCommandProcessExecution.complete.resolves({
       stdout: "",
       stderr: "ModuleNotFoundError: No module named 'dbt'",
@@ -98,14 +98,14 @@ suite("DBTCoreDetection Tests", () => {
 
     const result = await detection.detectDBT();
 
-    assert.strictEqual(result, false);
+    expect(result).toBe(false);
   });
 
-  test("detectDBT should return false when command execution throws error", async () => {
+  it("should return false when command execution throws error", async () => {
     mockCommandProcessExecution.complete.rejects(new Error("Command failed"));
 
     const result = await detection.detectDBT();
 
-    assert.strictEqual(result, false);
+    expect(result).toBe(false);
   });
 });

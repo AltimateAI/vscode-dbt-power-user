@@ -2,12 +2,16 @@ import { Disposable, EventEmitter, Terminal, window } from "vscode";
 import { provideSingleton, stripANSI } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { PythonException } from "python-bridge";
+import { MockEventEmitter } from "../test/setup";
 
 @provideSingleton(DBTTerminal)
 export class DBTTerminal {
   private disposables: Disposable[] = [];
   private terminal?: Terminal;
-  private readonly writeEmitter = new EventEmitter<string>();
+  private readonly writeEmitter =
+    process.env.NODE_ENV === "test"
+      ? new MockEventEmitter<string>()
+      : new EventEmitter<string>();
   private outputChannel = window.createOutputChannel(`Log - dbt`, {
     log: true,
   });
@@ -17,7 +21,7 @@ export class DBTTerminal {
   async show(status: boolean) {
     if (status) {
       await this.requireTerminal();
-      this.terminal!.show(!status);
+      this.terminal!.show(true);
     }
   }
 
@@ -109,15 +113,16 @@ export class DBTTerminal {
     sendTelemetry = true,
     ...args: any[]
   ) {
+    let errorMessage = message;
     if (e instanceof PythonException) {
-      message += `:${e.exception.message}`;
+      errorMessage = `${message}:${e.toString()}`;
     } else if (e instanceof Error) {
-      message += `:${e.message}`;
-    } else {
-      message += `:${e}`;
+      errorMessage = `${message}:${e.message}`;
+    } else if (e) {
+      errorMessage = `${message}:${e}`;
     }
-    this.outputChannel?.error(`${name}:${stripANSI(message)}`, args);
-    console.error(`${name}:${message}`, args);
+    this.outputChannel?.error(`${name}:${stripANSI(errorMessage)}`, args);
+    console.error(`${name}:${errorMessage}`, args);
     if (sendTelemetry) {
       this.telemetry.sendTelemetryError(name, e, { message });
     }
