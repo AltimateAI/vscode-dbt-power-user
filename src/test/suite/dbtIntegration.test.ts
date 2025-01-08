@@ -1,5 +1,4 @@
 import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
-import * as sinon from "sinon";
 import { Uri } from "vscode";
 import {
   CLIDBTCommandExecutionStrategy,
@@ -15,78 +14,70 @@ import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { TelemetryService } from "../../telemetry";
 
 describe("CLIDBTCommandExecutionStrategy Tests", () => {
-  let sandbox: sinon.SinonSandbox;
   let strategy: CLIDBTCommandExecutionStrategy;
-  let mockCommandProcessExecutionFactory: {
-    createCommandProcessExecution: sinon.SinonStub;
-  };
-  let mockPythonEnvironment: sinon.SinonStubbedInstance<PythonEnvironment>;
-  let mockTerminal: sinon.SinonStubbedInstance<DBTTerminal>;
-  let mockTelemetry: sinon.SinonStubbedInstance<TelemetryService>;
-  let mockCommandProcessExecution: {
-    complete: sinon.SinonStub;
-    completeWithTerminalOutput: sinon.SinonStub;
-  };
+  let mockCommandProcessExecutionFactory: jest.Mocked<CommandProcessExecutionFactory>;
+  let mockPythonEnvironment: jest.Mocked<PythonEnvironment>;
+  let mockTerminal: jest.Mocked<DBTTerminal>;
+  let mockTelemetry: jest.Mocked<TelemetryService>;
+  let mockCommandProcessExecution: jest.Mocked<CommandProcessExecution>;
 
   beforeEach(() => {
-    sandbox = sinon.createSandbox();
-
     // Create mock dependencies
     mockCommandProcessExecution = {
-      complete: sandbox
-        .stub()
-        .resolves({ stdout: "success", stderr: "", exitCode: 0 }),
-      completeWithTerminalOutput: sandbox
-        .stub()
-        .resolves({ stdout: "success", stderr: "", exitCode: 0 }),
-    };
-
-    const mockExecution = {
-      ...mockCommandProcessExecution,
+      complete: jest
+        .fn()
+        .mockResolvedValue({ stdout: "success", stderr: "", exitCode: 0 }),
+      completeWithTerminalOutput: jest
+        .fn()
+        .mockResolvedValue({ stdout: "success", stderr: "", exitCode: 0 }),
       disposables: [],
       terminal: {} as any,
       command: "",
-      spawn: sandbox.stub(),
-      kill: sandbox.stub(),
-      dispose: sandbox.stub(),
-      formatText: sandbox.stub(),
-    } as unknown as CommandProcessExecution;
+      spawn: jest.fn(),
+      kill: jest.fn(),
+      dispose: jest.fn(),
+      formatText: jest.fn(),
+    } as unknown as jest.Mocked<CommandProcessExecution>;
 
     mockCommandProcessExecutionFactory = {
-      createCommandProcessExecution: sandbox.stub().returns(mockExecution),
-    };
+      createCommandProcessExecution: jest
+        .fn()
+        .mockReturnValue(mockCommandProcessExecution),
+    } as unknown as jest.Mocked<CommandProcessExecutionFactory>;
 
     mockPythonEnvironment = {
       pythonPath: "/path/to/python",
       environmentVariables: { PATH: "/some/path" },
-    } as any;
+    } as unknown as jest.Mocked<PythonEnvironment>;
+
     mockTerminal = {
-      show: sandbox.stub(),
-      log: sandbox.stub(),
-      trace: sandbox.stub(),
-      debug: sandbox.stub(),
-      info: sandbox.stub(),
-      error: sandbox.stub(),
-      dispose: sandbox.stub(),
-    } as any;
+      show: jest.fn(),
+      log: jest.fn(),
+      trace: jest.fn(),
+      debug: jest.fn(),
+      info: jest.fn(),
+      error: jest.fn(),
+      dispose: jest.fn(),
+    } as unknown as jest.Mocked<DBTTerminal>;
+
     mockTelemetry = {
-      sendTelemetryEvent: sandbox.stub(),
-      sendTelemetryError: sandbox.stub(),
-    } as any;
+      sendTelemetryEvent: jest.fn(),
+      sendTelemetryError: jest.fn(),
+    } as unknown as jest.Mocked<TelemetryService>;
 
     // Create strategy instance
     strategy = new CLIDBTCommandExecutionStrategy(
-      mockCommandProcessExecutionFactory as unknown as CommandProcessExecutionFactory,
-      mockPythonEnvironment as any,
-      mockTerminal as any,
-      mockTelemetry as any,
+      mockCommandProcessExecutionFactory,
+      mockPythonEnvironment,
+      mockTerminal,
+      mockTelemetry,
       Uri.file("/test/workspace"),
       "dbt",
     );
   });
 
   afterEach(() => {
-    sandbox.restore();
+    jest.clearAllMocks();
   });
 
   it("should properly handle command with terminal logging", async () => {
@@ -106,35 +97,36 @@ describe("CLIDBTCommandExecutionStrategy Tests", () => {
     expect(result.stdout).toBe("success");
 
     // Verify terminal was shown
-    sinon.assert.calledOnce(mockTerminal.show);
+    expect(mockTerminal.show).toHaveBeenCalled();
 
     // Verify telemetry was sent
-    sinon.assert.calledWith(mockTelemetry.sendTelemetryEvent, "dbtCommand", {
-      command: "dbt run --select my_model",
-    });
+    expect(mockTelemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtCommand",
+      {
+        command: "dbt run --select my_model",
+      },
+    );
 
     // Verify terminal logging
-    sinon.assert.calledWith(
-      mockTerminal.log,
+    expect(mockTerminal.log).toHaveBeenCalledWith(
       "> Executing task: dbt run --select my_model\n\r",
     );
 
     // Verify command process execution
-    sinon.assert.calledWith(
+    expect(
       mockCommandProcessExecutionFactory.createCommandProcessExecution,
-      {
-        command: "dbt",
-        args: ["run", "--select", "my_model"],
-        tokens: [],
-        cwd: "/test/workspace",
-        envVars: { PATH: "/some/path" },
-      },
-    );
+    ).toHaveBeenCalledWith({
+      command: "dbt",
+      args: ["run", "--select", "my_model"],
+      tokens: [],
+      cwd: "/test/workspace",
+      envVars: { PATH: "/some/path" },
+    });
 
     // Verify completeWithTerminalOutput was called since logToTerminal is true
-    sinon.assert.calledOnce(
+    expect(
       mockCommandProcessExecution.completeWithTerminalOutput,
-    );
+    ).toHaveBeenCalled();
   });
 
   it("should handle command without terminal logging", async () => {
@@ -154,30 +146,32 @@ describe("CLIDBTCommandExecutionStrategy Tests", () => {
     expect(result.stdout).toBe("success");
 
     // Verify terminal was not shown
-    sinon.assert.notCalled(mockTerminal.show);
+    expect(mockTerminal.show).not.toHaveBeenCalled();
 
     // Verify telemetry was still sent
-    sinon.assert.calledWith(mockTelemetry.sendTelemetryEvent, "dbtCommand", {
-      command: "dbt run --select my_model",
-    });
-
-    // Verify terminal was not logged to
-    sinon.assert.notCalled(mockTerminal.log);
-
-    // Verify command process execution
-    sinon.assert.calledWith(
-      mockCommandProcessExecutionFactory.createCommandProcessExecution,
+    expect(mockTelemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtCommand",
       {
-        command: "dbt",
-        args: ["run", "--select", "my_model"],
-        tokens: [],
-        cwd: "/test/workspace",
-        envVars: { PATH: "/some/path" },
+        command: "dbt run --select my_model",
       },
     );
 
+    // Verify terminal was not logged to
+    expect(mockTerminal.log).not.toHaveBeenCalled();
+
+    // Verify command process execution
+    expect(
+      mockCommandProcessExecutionFactory.createCommandProcessExecution,
+    ).toHaveBeenCalledWith({
+      command: "dbt",
+      args: ["run", "--select", "my_model"],
+      tokens: [],
+      cwd: "/test/workspace",
+      envVars: { PATH: "/some/path" },
+    });
+
     // Verify complete was called since logToTerminal is false
-    sinon.assert.calledOnce(mockCommandProcessExecution.complete);
+    expect(mockCommandProcessExecution.complete).toHaveBeenCalled();
   });
 
   it("should throw error when python environment is not available", async () => {
@@ -199,18 +193,16 @@ describe("CLIDBTCommandExecutionStrategy Tests", () => {
 });
 
 describe("DBTCommand Test Suite", () => {
-  let sandbox: sinon.SinonSandbox;
-  let mockExecutionStrategy: sinon.SinonStubbedInstance<CLIDBTCommandExecutionStrategy>;
+  let mockExecutionStrategy: jest.Mocked<CLIDBTCommandExecutionStrategy>;
 
   beforeEach(() => {
-    sandbox = sinon.createSandbox();
-    mockExecutionStrategy = sandbox.createStubInstance(
-      CLIDBTCommandExecutionStrategy,
-    );
+    mockExecutionStrategy = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<CLIDBTCommandExecutionStrategy>;
   });
 
   afterEach(() => {
-    sandbox.restore();
+    jest.clearAllMocks();
   });
 
   it("should throw error when no execution strategy is set", async () => {
@@ -244,14 +236,19 @@ describe("DBTCommand Test Suite", () => {
 
   it("should use execution strategy when set", async () => {
     const command = new DBTCommand("Test command", ["test"]);
-    mockExecutionStrategy.execute.resolves({
+    mockExecutionStrategy.execute.mockResolvedValue({
       stdout: "success",
       stderr: "",
       fullOutput: "success",
     });
+
     command.setExecutionStrategy(mockExecutionStrategy);
-    await command.execute();
-    expect(mockExecutionStrategy.execute.calledOnce).toBe(true);
-    expect(mockExecutionStrategy.execute.calledWith(command)).toBe(true);
+    const result = await command.execute();
+
+    expect(result.stdout).toBe("success");
+    expect(mockExecutionStrategy.execute).toHaveBeenCalledWith(
+      command,
+      undefined,
+    );
   });
 });

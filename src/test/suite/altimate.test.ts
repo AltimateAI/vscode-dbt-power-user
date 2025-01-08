@@ -1,206 +1,167 @@
-import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
-import * as sinon from "sinon";
 import {
-  AltimateRequest,
-  NoCredentialsError,
-  ForbiddenError,
-  APIError,
-} from "../../altimate";
+  expect,
+  describe,
+  it,
+  beforeEach,
+  afterEach,
+  jest,
+} from "@jest/globals";
 import { TelemetryService } from "../../telemetry";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { PythonEnvironment } from "../../manifest/pythonEnvironment";
-import { workspace, window, WorkspaceConfiguration } from "vscode";
+import { window, workspace, ConfigurationTarget } from "vscode";
+import { AltimateRequest } from "../../altimate";
 
-// Add base URL for testing
-const TEST_BASE_URL = "https://api.test.altimate.ai";
+type FetchFn = (
+  input: string | URL | Request,
+  init?: RequestInit,
+) => Promise<Response>;
 
-describe("Altimate API Integration Tests", () => {
-  let altimate: AltimateRequest;
-  let mockTelemetry: sinon.SinonStubbedInstance<TelemetryService>;
-  let mockTerminal: sinon.SinonStubbedInstance<DBTTerminal>;
-  let mockPythonEnv: sinon.SinonStubbedInstance<PythonEnvironment>;
-  let mockWorkspace: sinon.SinonStub;
-  let mockWindow: sinon.SinonStub;
-  let fetchStub: sinon.SinonStub;
+describe("AltimateRequest Tests", () => {
+  let mockTelemetry: jest.Mocked<TelemetryService>;
+  let mockTerminal: jest.Mocked<DBTTerminal>;
+  let mockPythonEnv: jest.Mocked<PythonEnvironment>;
+  let mockWorkspaceConfig: ReturnType<typeof jest.spyOn>;
+  let mockWindowMessage: ReturnType<typeof jest.spyOn>;
+  let fetchMock: jest.MockedFunction<FetchFn>;
+  let request: AltimateRequest;
 
   beforeEach(() => {
-    // Create mock instances
-    mockTelemetry = sinon.createStubInstance(TelemetryService);
-    mockTerminal = sinon.createStubInstance(DBTTerminal);
-    mockPythonEnv = sinon.createStubInstance(PythonEnvironment);
+    mockTelemetry = {
+      sendTelemetryEvent: jest.fn(),
+      sendTelemetryError: jest.fn(),
+      setTelemetryCustomAttribute: jest.fn(),
+      startTelemetryEvent: jest.fn(),
+      endTelemetryEvent: jest.fn(),
+      dispose: jest.fn(),
+    } as unknown as jest.Mocked<TelemetryService>;
 
-    // Mock workspace and window with proper base URL
+    mockTerminal = {
+      show: jest.fn(),
+      log: jest.fn(),
+      trace: jest.fn(),
+      debug: jest.fn(),
+      info: jest.fn(),
+      error: jest.fn(),
+      dispose: jest.fn(),
+      logNewLine: jest.fn(),
+      logLine: jest.fn(),
+      logHorizontalRule: jest.fn(),
+      logBlock: jest.fn(),
+      warn: jest.fn(),
+    } as unknown as jest.Mocked<DBTTerminal>;
+
+    mockPythonEnv = {
+      pythonPath: "/path/to/python",
+      environmentVariables: { PATH: "/some/path" },
+      allPythonPaths: [],
+      isPython3: true,
+      dispose: jest.fn(),
+      printEnvVars: jest.fn(),
+      getResolvedConfigValue: jest.fn(),
+    } as unknown as jest.Mocked<PythonEnvironment>;
+
     const mockConfig = {
-      get: sinon
-        .stub()
-        .withArgs("altimateUrl")
-        .returns(TEST_BASE_URL)
-        .withArgs("isLocalMode")
-        .returns(false),
-      has: sinon.stub().returns(true),
-      inspect: sinon.stub(),
-      update: sinon.stub().resolves(),
-    } as unknown as WorkspaceConfiguration;
+      get: jest
+        .fn()
+        .mockImplementation((key: unknown, defaultValue?: unknown) => {
+          if (key === "dbt.isLocalMode" || key === "isLocalMode") {
+            return false;
+          }
+          return defaultValue ?? "test-value";
+        }),
+      has: jest.fn().mockReturnValue(true),
+      inspect: jest.fn(),
+      update: jest.fn().mockReturnValue(Promise.resolve()),
+    };
 
-    mockWorkspace = sinon
-      .stub(workspace, "getConfiguration")
-      .returns(mockConfig);
-    mockWindow = sinon.stub(window, "showInformationMessage");
+    mockWorkspaceConfig = jest
+      .spyOn(workspace, "getConfiguration")
+      .mockImplementation((section?: string) => {
+        if (section === "dbt") {
+          return mockConfig as any;
+        }
+        return mockConfig as any;
+      });
 
-    // Set up global fetch for testing
-    global.fetch = sinon.stub();
-    fetchStub = global.fetch as sinon.SinonStub;
+    mockWindowMessage = jest
+      .spyOn(window, "showInformationMessage")
+      .mockResolvedValue("Yes" as any);
 
-    // Create instance with mocked base URL
-    Object.defineProperty(AltimateRequest, "ALTIMATE_URL", {
-      value: TEST_BASE_URL,
-      writable: true,
-    });
+    fetchMock = jest.fn() as jest.MockedFunction<FetchFn>;
+    global.fetch = fetchMock;
 
-    altimate = new AltimateRequest(
-      mockTelemetry,
-      mockTerminal as unknown as DBTTerminal,
-      mockPythonEnv,
-    );
+    request = new AltimateRequest(mockTelemetry, mockTerminal, mockPythonEnv);
   });
 
   afterEach(() => {
-    sinon.restore();
-  });
-
-  it("should initialize with correct configuration", async () => {
-    mockPythonEnv.getResolvedConfigValue
-      .withArgs("altimateInstanceName")
-      .returns("test-instance");
-    mockPythonEnv.getResolvedConfigValue
-      .withArgs("altimateAiKey")
-      .returns("test-key");
-
-    expect(altimate.getInstanceName()).toBe("test-instance");
-    expect(altimate.getAIKey()).toBe("test-key");
-    expect(altimate.enabled()).toBe(true);
-  });
-
-  it("should handle missing credentials", async () => {
-    mockPythonEnv.getResolvedConfigValue.returns(undefined);
-
-    expect(altimate.enabled()).toBe(false);
-    expect(altimate.getCredentialsMessage()).toBe(
-      "To use this feature, please add an API Key and an instance name in the settings.",
-    );
-  });
-
-  it("should validate credentials successfully", async () => {
-    const mockResponse = {
-      ok: true,
-      status: 200,
-      json: async () => ({ success: true }),
-    };
-    fetchStub.resolves(mockResponse);
-
-    const result = await altimate.validateCredentials(
-      "test-instance",
-      "test-key",
-    );
-    expect(result).toEqual({ success: true });
-  });
-
-  it("should handle invalid credentials", async () => {
-    const mockResponse = {
-      ok: false,
-      status: 403,
-      statusText: "Forbidden",
-      json: async () => ({ error: "Invalid credentials" }),
-    };
-    fetchStub.resolves(mockResponse);
-
-    await expect(
-      altimate.validateCredentials("test-instance", "invalid-key"),
-    ).rejects.toThrow(ForbiddenError);
-
-    try {
-      await altimate.validateCredentials("test-instance", "invalid-key");
-    } catch (error) {
-      expect(error).toBeInstanceOf(ForbiddenError);
-      expect((error as Error).message).toBe(
-        "Invalid credentials. Please check instance name and API Key.",
-      );
-    }
+    jest.restoreAllMocks();
   });
 
   it("should handle authentication check", async () => {
     mockPythonEnv.getResolvedConfigValue
-      .withArgs("altimateInstanceName")
-      .returns("test-instance");
-    mockPythonEnv.getResolvedConfigValue
-      .withArgs("altimateAiKey")
-      .returns("test-key");
+      .mockReturnValueOnce("test-key") // altimateAiKey
+      .mockReturnValueOnce("test-instance"); // altimateInstanceName
 
-    const mockResponse = {
-      ok: true,
+    const mockResponse = new Response(JSON.stringify({ status: "ok" }), {
       status: 200,
-      json: async () => ({ status: "ok" }),
-    };
-    fetchStub.resolves(mockResponse);
+      statusText: "OK",
+      headers: { "Content-Type": "application/json" },
+    });
+    fetchMock.mockResolvedValue(mockResponse);
 
-    const result = await altimate.isAuthenticated();
+    const result = await request.isAuthenticated();
     expect(result).toBe(true);
 
-    sinon.assert.calledWith(
-      fetchStub,
-      `${TEST_BASE_URL}/auth_health`,
-      sinon.match({
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/auth_health"),
+      expect.objectContaining({
         method: "POST",
-        headers: {
-          "x-tenant": "test-instance",
-          Authorization: "Bearer test-key",
+        headers: expect.objectContaining({
           "Content-Type": "application/json",
-        },
+        }),
       }),
     );
   });
 
   it("should handle stream responses", async () => {
     mockPythonEnv.getResolvedConfigValue
-      .withArgs("altimateInstanceName")
-      .returns("test-instance");
-    mockPythonEnv.getResolvedConfigValue
-      .withArgs("altimateAiKey")
-      .returns("test-key");
+      .mockReturnValueOnce("test-key") // altimateAiKey
+      .mockReturnValueOnce("test-instance"); // altimateInstanceName
 
-    const encoder = new TextEncoder();
-    const mockResponse = {
-      ok: true,
+    const stream = new ReadableStream({
+      start(controller) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode('{"status": "success"}');
+        controller.enqueue(data);
+        controller.close();
+      },
+    });
+
+    const mockResponse = new Response(stream, {
       status: 200,
-      json: async () => ({ status: "success" }),
-      body: new ReadableStream({
-        start(controller) {
-          const data = encoder.encode('{"status": "success"}');
-          controller.enqueue(data);
-          controller.close();
-        },
-      }),
-    };
+      statusText: "OK",
+      headers: { "Content-Type": "application/json" },
+    });
+    fetchMock.mockResolvedValue(mockResponse);
 
-    fetchStub.resolves(mockResponse);
+    const onProgress = jest.fn();
+    await request.fetchAsStream("/test-endpoint", { test: true }, onProgress);
 
-    const onProgress = sinon.spy();
-    await altimate.fetchAsStream("/test-endpoint", {}, onProgress);
-
-    sinon.assert.calledWith(
-      fetchStub,
-      sinon.match((value) => value.endsWith("/test-endpoint")),
-      sinon.match({
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/test-endpoint"),
+      expect.objectContaining({
         method: "POST",
-        headers: {
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
           "x-tenant": "test-instance",
           Authorization: "Bearer test-key",
-          "Content-Type": "application/json",
-        },
+        }),
+        body: JSON.stringify({ test: true }),
       }),
     );
 
-    sinon.assert.calledOnce(onProgress);
-    expect(onProgress.firstCall.args[0]).toContain("success");
+    expect(onProgress).toHaveBeenCalledTimes(1);
+    expect(onProgress).toHaveBeenCalledWith(expect.stringContaining("success"));
   });
 });

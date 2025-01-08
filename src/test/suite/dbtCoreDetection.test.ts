@@ -1,5 +1,4 @@
 import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
-import * as sinon from "sinon";
 import { DBTCoreDetection } from "../../dbt_client/dbtCoreIntegration";
 import {
   CommandProcessExecution,
@@ -9,49 +8,53 @@ import { PythonEnvironment } from "../../manifest/pythonEnvironment";
 import { workspace, Uri } from "vscode";
 
 describe("DBTCoreDetection Tests", () => {
-  let sandbox: sinon.SinonSandbox;
   let detection: DBTCoreDetection;
-  let mockCommandProcessExecutionFactory: sinon.SinonStubbedInstance<CommandProcessExecutionFactory>;
-  let mockPythonEnvironment: sinon.SinonStubbedInstance<PythonEnvironment>;
-  let mockCommandProcessExecution: sinon.SinonStubbedInstance<CommandProcessExecution>;
-  let workspaceFoldersStub: sinon.SinonStub;
+  let mockCommandProcessExecutionFactory: jest.Mocked<CommandProcessExecutionFactory>;
+  let mockPythonEnvironment: jest.Mocked<PythonEnvironment>;
+  let mockCommandProcessExecution: jest.Mocked<CommandProcessExecution>;
+  let workspaceFoldersSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    sandbox = sinon.createSandbox();
-
     // Mock workspace folders
-    workspaceFoldersStub = sandbox.stub(workspace, "workspaceFolders").value([
+    const mockWorkspaceFolders = [
       {
         uri: Uri.file("/test/workspace"),
         name: "test",
         index: 0,
       },
-    ]);
+    ];
+
+    Object.defineProperty(workspace, "workspaceFolders", {
+      get: () => mockWorkspaceFolders,
+      configurable: true,
+    });
 
     mockCommandProcessExecution = {
-      complete: sandbox
-        .stub()
-        .resolves({ stdout: "", stderr: "", fullOutput: "" }),
-      completeWithTerminalOutput: sandbox.stub(),
+      complete: jest
+        .fn()
+        .mockResolvedValue({ stdout: "", stderr: "", fullOutput: "" }),
+      completeWithTerminalOutput: jest
+        .fn()
+        .mockResolvedValue({ stdout: "", stderr: "", fullOutput: "" }),
       disposables: [],
       terminal: {} as any,
       command: "",
-      spawn: sandbox.stub(),
-      kill: sandbox.stub(),
-      dispose: sandbox.stub(),
-      formatText: sandbox.stub(),
-    } as unknown as sinon.SinonStubbedInstance<CommandProcessExecution>;
+      spawn: jest.fn(),
+      kill: jest.fn(),
+      dispose: jest.fn(),
+      formatText: jest.fn(),
+    } as unknown as jest.Mocked<CommandProcessExecution>;
 
     mockCommandProcessExecutionFactory = {
-      createCommandProcessExecution: sandbox
-        .stub()
-        .returns(mockCommandProcessExecution),
-    } as unknown as sinon.SinonStubbedInstance<CommandProcessExecutionFactory>;
+      createCommandProcessExecution: jest
+        .fn()
+        .mockReturnValue(mockCommandProcessExecution),
+    } as unknown as jest.Mocked<CommandProcessExecutionFactory>;
 
     mockPythonEnvironment = {
       pythonPath: "/path/to/python",
       environmentVariables: { PATH: "/some/path" },
-    } as unknown as sinon.SinonStubbedInstance<PythonEnvironment>;
+    } as unknown as jest.Mocked<PythonEnvironment>;
 
     detection = new DBTCoreDetection(
       mockPythonEnvironment as any,
@@ -60,7 +63,12 @@ describe("DBTCoreDetection Tests", () => {
   });
 
   afterEach(() => {
-    sandbox.restore();
+    jest.clearAllMocks();
+    // Restore original workspaceFolders property
+    Object.defineProperty(workspace, "workspaceFolders", {
+      get: () => undefined,
+      configurable: true,
+    });
   });
 
   it("should return true when dbt is installed", async () => {
@@ -69,28 +77,27 @@ describe("DBTCoreDetection Tests", () => {
       stderr: "",
       fullOutput: "",
     };
-    mockCommandProcessExecution.complete.resolves(mockResponse);
-    mockCommandProcessExecutionFactory.createCommandProcessExecution.returns(
+    mockCommandProcessExecution.complete.mockResolvedValue(mockResponse);
+    mockCommandProcessExecutionFactory.createCommandProcessExecution.mockReturnValue(
       mockCommandProcessExecution,
     );
 
     const result = await detection.detectDBT();
 
     expect(result).toBe(true);
-    sinon.assert.calledWith(
+    expect(
       mockCommandProcessExecutionFactory.createCommandProcessExecution,
-      {
-        command: "/path/to/python",
-        args: ["-c", "import dbt"],
-        cwd: "/test/workspace",
-        envVars: { PATH: "/some/path" },
-      },
-    );
-    sinon.assert.calledOnce(mockCommandProcessExecution.complete);
+    ).toHaveBeenCalledWith({
+      command: "/path/to/python",
+      args: ["-c", "import dbt"],
+      cwd: "/test/workspace",
+      envVars: { PATH: "/some/path" },
+    });
+    expect(mockCommandProcessExecution.complete).toHaveBeenCalled();
   });
 
   it("should return false when dbt import fails with stderr", async () => {
-    mockCommandProcessExecution.complete.resolves({
+    mockCommandProcessExecution.complete.mockResolvedValue({
       stdout: "",
       stderr: "ModuleNotFoundError: No module named 'dbt'",
       fullOutput: "ModuleNotFoundError: No module named 'dbt'",
@@ -102,7 +109,9 @@ describe("DBTCoreDetection Tests", () => {
   });
 
   it("should return false when command execution throws error", async () => {
-    mockCommandProcessExecution.complete.rejects(new Error("Command failed"));
+    mockCommandProcessExecution.complete.mockRejectedValue(
+      new Error("Command failed"),
+    );
 
     const result = await detection.detectDBT();
 

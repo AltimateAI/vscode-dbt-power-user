@@ -1,21 +1,18 @@
 import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
-import * as sinon from "sinon";
 import * as vscode from "../mock/vscode";
 
 describe("Extension Test Suite", () => {
-  let sandbox: sinon.SinonSandbox;
-  let mockExtensions: any;
+  let mockExtensions: jest.Mocked<any>;
 
   beforeEach(() => {
-    sandbox = sinon.createSandbox();
     mockExtensions = {
-      getExtension: sandbox.stub(),
+      getExtension: jest.fn(),
     };
     (vscode as any).extensions = mockExtensions;
   });
 
   afterEach(() => {
-    sandbox.restore();
+    jest.clearAllMocks();
   });
 
   it("should handle array index operations", () => {
@@ -83,7 +80,7 @@ describe("Extension Test Suite", () => {
     };
 
     // Set up the extensions API
-    mockExtensions.getExtension.callsFake((id: string) => {
+    mockExtensions.getExtension.mockImplementation((id: string) => {
       if (id === "samuelcolvin.jinjahtml") {
         return mockJinjaHtml;
       }
@@ -122,11 +119,12 @@ describe("Extension Test Suite", () => {
     }
 
     // Mock the commands API to return our commands
-    const mockCommands = ["dbt.run", "dbt.compile", "other.command"];
-    jest.spyOn(vscode.commands, "getCommands").mockResolvedValue(mockCommands);
+    const mockCommands: string[] = ["dbt.run", "dbt.compile", "other.command"];
+    const spy = jest.spyOn(vscode.commands, "getCommands");
+    (spy.mockResolvedValue as any)(mockCommands);
 
     const allCommands = await vscode.commands.getCommands();
-    const dbtCommands = allCommands.filter((cmd: string) =>
+    const dbtCommands = (allCommands as string[]).filter((cmd: string) =>
       cmd.startsWith("dbt."),
     );
 

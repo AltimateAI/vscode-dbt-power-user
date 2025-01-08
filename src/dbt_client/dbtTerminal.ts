@@ -148,6 +148,7 @@ export class DBTTerminal {
           },
         },
       });
+      this.disposables.push(this.terminal);
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }

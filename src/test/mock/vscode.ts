@@ -1,70 +1,13 @@
-import * as sinon from "sinon";
+import { jest } from "@jest/globals";
+import { Uri } from "vscode";
 
+// Export VSCode types that were previously defined
 export const ExtensionKind = {
   UI: 1,
   Workspace: 2,
 };
 
-export const Uri = {
-  file: (path: string) => ({ fsPath: path, path }),
-  parse: (uri: string) => ({ fsPath: uri, path: uri }),
-};
-
-export const extensions = {
-  getExtension: sinon.stub(),
-  all: [],
-};
-
-export const commands = {
-  registerCommand: sinon.stub(),
-  getCommands: sinon.stub(),
-  executeCommand: sinon.stub(),
-};
-
-export const window = {
-  showInformationMessage: sinon.stub(),
-  showErrorMessage: sinon.stub(),
-  createOutputChannel: sinon.stub(),
-  createTerminal: sinon.stub(),
-};
-
-export const workspace = {
-  getConfiguration: sinon.stub(),
-  workspaceFolders: [],
-  onDidChangeConfiguration: sinon.stub(),
-  onDidChangeWorkspaceFolders: sinon.stub(),
-  createFileSystemWatcher: sinon.stub(),
-};
-
-export const languages = {
-  createDiagnosticCollection: sinon.stub().returns({
-    set: sinon.stub(),
-    delete: sinon.stub(),
-    clear: sinon.stub(),
-    dispose: sinon.stub(),
-    [Symbol.iterator]: function* () {
-      // Mock implementation that yields no diagnostics by default
-      yield* new Map();
-    },
-    entries: function* () {
-      // Mock implementation that yields no entries by default
-      yield* new Map();
-    },
-    forEach: function (
-      callback: (uri: typeof Uri, diagnostics: any[]) => void,
-    ) {
-      // Mock implementation that does nothing by default
-    },
-  }),
-};
-
-export const Diagnostic = class {
-  constructor(
-    public range: any,
-    public message: string,
-    public severity?: number,
-  ) {}
-};
+export { Uri };
 
 export const Range = class {
   constructor(
@@ -87,4 +30,86 @@ export const DiagnosticSeverity = {
   Warning: 1,
   Information: 2,
   Hint: 3,
+};
+
+export const Diagnostic = class {
+  constructor(
+    public range: any,
+    public message: string,
+    public severity?: number,
+  ) {}
+};
+
+// Mock VSCode API
+export const extensions = {
+  getExtension: jest.fn(),
+  all: [],
+};
+
+export const commands = {
+  registerCommand: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+  getCommands: jest.fn().mockReturnValue(Promise.resolve([])),
+  executeCommand: jest.fn().mockReturnValue(Promise.resolve()),
+};
+
+export const window = {
+  showInformationMessage: jest.fn().mockReturnValue(Promise.resolve()),
+  showErrorMessage: jest.fn().mockReturnValue(Promise.resolve()),
+  createOutputChannel: jest.fn().mockReturnValue({
+    append: jest.fn(),
+    appendLine: jest.fn(),
+    clear: jest.fn(),
+    show: jest.fn(),
+    hide: jest.fn(),
+    dispose: jest.fn(),
+  }),
+  createTerminal: jest.fn().mockReturnValue({
+    sendText: jest.fn(),
+    show: jest.fn(),
+    hide: jest.fn(),
+    dispose: jest.fn(),
+  }),
+};
+
+export const workspace = {
+  getConfiguration: jest.fn().mockReturnValue({
+    get: jest.fn(),
+    has: jest.fn(),
+    update: jest.fn(),
+  }),
+  workspaceFolders: [],
+  onDidChangeConfiguration: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+  onDidChangeWorkspaceFolders: jest
+    .fn()
+    .mockReturnValue({ dispose: jest.fn() }),
+  createFileSystemWatcher: jest.fn().mockReturnValue({
+    onDidChange: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+    onDidCreate: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+    onDidDelete: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+    dispose: jest.fn(),
+  }),
+};
+
+export const languages = {
+  createDiagnosticCollection: jest.fn().mockReturnValue({
+    set: jest.fn(),
+    delete: jest.fn(),
+    clear: jest.fn(),
+    dispose: jest.fn(),
+    [Symbol.iterator]: function* () {
+      yield* new Map();
+    },
+    entries: function* () {
+      yield* new Map();
+    },
+    forEach: function (
+      callback: (uri: typeof Uri, diagnostics: any[]) => void,
+    ) {
+      // Mock implementation that does nothing by default
+    },
+  }),
+};
+
+export const resetMocks = () => {
+  jest.clearAllMocks();
 };
