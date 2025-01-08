@@ -5,6 +5,8 @@ import {
   UserInputError,
 } from "../altimate";
 import {
+  extendErrorWithSupportLinks,
+  getColumnNameByCase,
   getColumnTestConfigFromYml,
   isColumnNameEqual,
   provideSingleton,
@@ -395,55 +397,65 @@ export class DbtTestService {
         cancellable: false,
       },
       async () => {
-        this.telemetryService.startTelemetryEvent(
-          TelemetryEvents["DocumentationEditor/GenerateTestsClick"],
-        );
+        try {
+          this.telemetryService.startTelemetryEvent(
+            TelemetryEvents["DocumentationEditor/GenerateTestsClick"],
+          );
 
-        const currentFilePath = window.activeTextEditor?.document.uri;
-        if (!currentFilePath) {
-          return;
+          const currentFilePath = window.activeTextEditor?.document.uri;
+          if (!currentFilePath) {
+            return;
+          }
+          const modelName = path.basename(currentFilePath.fsPath, ".sql");
+
+          const testSuggestions = await getTestSuggestions({
+            adapter: project.getAdapterType(),
+            columnsInRelation: columnsInRelation,
+            tableRelation: modelName,
+            dbtConfig: {},
+            quote: getColumnNameByCase,
+            queryFn: async (query: string) => {
+              const result = (await project.executeSQL(
+                query,
+                modelName,
+                true,
+                true,
+              )) as ExecuteSQLResult;
+              return result;
+            },
+          });
+
+          if (!testSuggestions) {
+            return;
+          }
+
+          this.dbtTerminal.debug(
+            "docsEditPanel:generateTestsForColumns",
+            "testSuggestions",
+            testSuggestions,
+          );
+          const testSuggestionsForModel = testSuggestions?.models[0];
+          panel?.webview?.postMessage({
+            command: "testgen:insert",
+            tests: testSuggestionsForModel,
+            model: modelName,
+          });
+
+          const sessionID = `${
+            env.sessionId
+          }-${modelName}-numColumns-${testSuggestionsForModel?.columns.length}-${Date.now()}`;
+
+          await this.altimateRequest.trackBulkTestGen(sessionID);
+        } catch (error) {
+          this.dbtTerminal.error(
+            "docsEditPanel:generateTestsForColumns",
+            "error",
+            error,
+          );
+          window.showErrorMessage(
+            extendErrorWithSupportLinks((error as Error).message),
+          );
         }
-        const modelName = path.basename(currentFilePath.fsPath, ".sql");
-
-        const columnsInRelation1 = await project.getColumnsOfModel(modelName);
-        console.log(columnsInRelation1);
-        const testSuggestions = await getTestSuggestions({
-          adapter: project.getAdapterType(),
-          columnsInRelation: columnsInRelation,
-          tableRelation: modelName,
-          dbtConfig: {},
-          queryFn: async (query: string) => {
-            const result = (await project.executeSQL(
-              query,
-              modelName,
-              true,
-              true,
-            )) as ExecuteSQLResult;
-            return result;
-          },
-        });
-
-        if (!testSuggestions) {
-          return;
-        }
-
-        this.dbtTerminal.debug(
-          "docsEditPanel:generateTestsForColumns",
-          "testSuggestions",
-          testSuggestions,
-        );
-        const testSuggestionsForModel = testSuggestions?.models[0];
-        panel?.webview?.postMessage({
-          command: "testgen:insert",
-          tests: testSuggestionsForModel,
-          model: modelName,
-        });
-
-        const sessionID = `${
-          env.sessionId
-        }-${modelName}-numColumns-${testSuggestionsForModel?.columns.length}-${Date.now()}`;
-
-        await this.altimateRequest.trackBulkTestGen(sessionID);
       },
     );
   }

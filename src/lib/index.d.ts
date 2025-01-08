@@ -153,6 +153,7 @@ export declare const getTestSuggestions: ({
   columnsInRelation,
   adapter,
   queryFn,
+  quote,
 }: Props) => Promise<DbtConfig | undefined>;
 
 export declare interface IPyWidgetMessage {
@@ -409,9 +410,12 @@ declare interface Props {
   columnsInRelation: DBColumn[];
   adapter: string;
   queryFn: QueryFn;
+  quote: QuoteFn;
 }
 
 declare type QueryFn = (query: string) => Promise<ExecuteSQLResult | undefined>;
+
+declare type QuoteFn = (columnName: string, adapter: string) => string;
 
 declare interface RawKernelType {
   realKernel: KernelConnection;
