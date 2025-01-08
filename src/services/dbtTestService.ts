@@ -399,7 +399,7 @@ export class DbtTestService {
       async () => {
         try {
           this.telemetryService.startTelemetryEvent(
-            TelemetryEvents["DocumentationEditor/GenerateTestsClick"],
+            TelemetryEvents["DocumentationEditor/BulkGenerateTests"],
           );
 
           const currentFilePath = window.activeTextEditor?.document.uri;
@@ -425,6 +425,9 @@ export class DbtTestService {
             },
           });
 
+          this.telemetryService.endTelemetryEvent(
+            TelemetryEvents["DocumentationEditor/BulkGenerateTests"],
+          );
           if (!testSuggestions) {
             return;
           }
@@ -447,6 +450,10 @@ export class DbtTestService {
 
           await this.altimateRequest.trackBulkTestGen(sessionID);
         } catch (error) {
+          this.telemetryService.endTelemetryEvent(
+            TelemetryEvents["DocumentationEditor/BulkGenerateTests"],
+            error,
+          );
           this.dbtTerminal.error(
             "docsEditPanel:generateTestsForColumns",
             "error",

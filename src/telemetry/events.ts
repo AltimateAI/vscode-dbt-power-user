@@ -20,7 +20,7 @@ export enum TelemetryEvents {
   "DocumentationEditor/HelpDocumentationLinkInTestsClick" = "DocumentationEditor/HelpDocumentationLinkInTestsClick",
   "DocumentationEditor/HelpContactusLinkInTestsClick" = "DocumentationEditor/HelpContactusLinkInTestsClick",
   "DocumentationEditor/FeedbackClick" = "DocumentationEditor/FeedbackClick",
-  "DocumentationEditor/GenerateTestsClick" = "DocumentationEditor/GenerateTestsClick",
+  "DocumentationEditor/BulkGenerateTests" = "DocumentationEditor/BulkGenerateTests",
   "DocumentationEditor/SaveClick" = "DocumentationEditor/SaveClick",
   "DocumentationEditor/SaveError" = "DocumentationEditor/SaveError",
   "DocumentationEditor/SaveNewFilePathSelect" = "DocumentationEditor/SaveNewFilePathSelect",

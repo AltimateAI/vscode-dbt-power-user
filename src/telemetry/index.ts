@@ -36,7 +36,13 @@ export class TelemetryService implements vscode.Disposable {
         ...(measurements || {}),
         duration: new Date().getTime() - start,
       });
+      return;
     }
+
+    this.sendTelemetryEvent(`${eventName}Success`, properties, {
+      ...(measurements || {}),
+      duration: new Date().getTime() - start,
+    });
   }
 
   private getFeatureName(eventName: string) {
