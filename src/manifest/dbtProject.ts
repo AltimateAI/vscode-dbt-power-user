@@ -941,14 +941,14 @@ export class DBTProject implements Disposable {
     tableName: string,
     sourcePath: string,
   ) {
-    try {
-      window.withProgress(
-        {
-          location: ProgressLocation.Notification,
-          title: "Generating model...",
-          cancellable: false,
-        },
-        async () => {
+    await window.withProgress(
+      {
+        location: ProgressLocation.Notification,
+        title: "Generating model...",
+        cancellable: false,
+      },
+      async () => {
+        try {
           const prefix = workspace
             .getConfiguration("dbt")
             .get<string>("prefixGenerateModel", "base");
@@ -1015,28 +1015,30 @@ export class DBTProject implements Disposable {
               `A model called ${fileName} already exists in ${sourcePath}. If you want to generate the model, please rename the other model or delete it if you want to generate the model again.`,
             );
           }
-        },
-      );
-    } catch (exc: any) {
-      if (exc instanceof PythonException) {
-        this.telemetry.sendTelemetryError("generateModelPythonError", exc, {
-          adapter: this.getAdapterType(),
-        });
-        window.showErrorMessage(
-          "An error occured while trying to generate the model " +
-            exc.exception.message,
-        );
-      }
-      // Unknown error
-      this.telemetry.sendTelemetryError("generateModelUnknownError", exc, {
-        adapter: this.getAdapterType(),
-      });
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "An error occured while trying to generate the model:" + exc + ".",
-        ),
-      );
-    }
+        } catch (exc: any) {
+          if (exc instanceof PythonException) {
+            this.telemetry.sendTelemetryError("generateModelPythonError", exc, {
+              adapter: this.getAdapterType(),
+            });
+            window.showErrorMessage(
+              "An error occured while trying to generate the model " +
+                exc.exception.message,
+            );
+          }
+          // Unknown error
+          this.telemetry.sendTelemetryError("generateModelUnknownError", exc, {
+            adapter: this.getAdapterType(),
+          });
+          window.showErrorMessage(
+            extendErrorWithSupportLinks(
+              "An error occured while trying to generate the model:" +
+                exc +
+                ".",
+            ),
+          );
+        }
+      },
+    );
   }
 
   async executeSQL(
