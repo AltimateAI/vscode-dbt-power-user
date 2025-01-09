@@ -412,7 +412,6 @@ export class DbtTestService {
             columnsInRelation,
             tableRelation: modelName,
             dbtConfig: {},
-            quote: getColumnNameByCase,
             queryFn: async (query: string) => {
               const result = (await project.executeSQL(
                 query,

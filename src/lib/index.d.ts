@@ -130,7 +130,7 @@ declare interface DBColumn {
   dtype: string;
 }
 
-declare interface DbtConfig {
+export declare interface DbtConfig {
   [key: string]: Model[];
 }
 
@@ -153,7 +153,6 @@ export declare const getTestSuggestions: ({
   columnsInRelation,
   adapter,
   queryFn,
-  quote,
 }: Props) => Promise<DbtConfig | undefined>;
 
 export declare interface IPyWidgetMessage {
@@ -161,7 +160,7 @@ export declare interface IPyWidgetMessage {
   payload: any;
 }
 
-declare interface Model {
+export declare interface Model {
   name: string;
   columns: ColumnConfig[];
   tests?: any[];
@@ -410,12 +409,9 @@ declare interface Props {
   columnsInRelation: DBColumn[];
   adapter: string;
   queryFn: QueryFn;
-  quote: QuoteFn;
 }
 
 declare type QueryFn = (query: string) => Promise<ExecuteSQLResult | undefined>;
-
-declare type QuoteFn = (columnName: string, adapter: string) => string;
 
 declare interface RawKernelType {
   realKernel: KernelConnection;

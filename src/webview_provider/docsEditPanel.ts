@@ -551,21 +551,23 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         switch (command) {
           case "generateTestsForColumns":
             const testSuggestionsForModel =
-              (await this.dbtTestService.generateTestsForColumns(
+              await this.dbtTestService.generateTestsForColumns(
                 project,
                 this._panel,
-              )) || ({} as Model);
+              );
             this._panel?.webview?.postMessage({
               command: "testgen:insert",
-              tests: {
-                ...testSuggestionsForModel,
-                columns: this.convertColumnNamesByCaseConfig(
-                  testSuggestionsForModel.columns,
-                  testSuggestionsForModel.name,
-                  project,
-                ),
-              },
-              model: testSuggestionsForModel.name,
+              tests: testSuggestionsForModel
+                ? {
+                    ...testSuggestionsForModel,
+                    columns: this.convertColumnNamesByCaseConfig(
+                      testSuggestionsForModel.columns,
+                      testSuggestionsForModel.name,
+                      project,
+                    ),
+                  }
+                : undefined,
+              model: testSuggestionsForModel?.name,
             });
             break;
           case "fetchMetadataFromDatabase":

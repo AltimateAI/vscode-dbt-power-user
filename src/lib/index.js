@@ -68,7 +68,7 @@ var ge = function (o, e, t, n) {
       (a = o[i]) && (s = (r < 3 ? a(s) : r > 3 ? a(e, t, s) : a(e, t)) || s);
   return r > 3 && s && Object.defineProperty(e, t, s), s;
 };
-let B = class {
+let U = class {
   dispose() {
     throw new Error("Method not implemented.");
   }
@@ -100,7 +100,7 @@ let B = class {
     return new TextEncoder().encode(JSON.stringify(n));
   }
 };
-B = ge([p.provideSingleton(B)], B);
+U = ge([p.provideSingleton(U)], U);
 var P;
 (function (o) {
   (o.error = "application/vnd.code.notebook.error"),
@@ -262,7 +262,7 @@ function Te(o) {
 function Ee(o) {
   return Te(ve(o));
 }
-function U(o) {
+function B(o) {
   if (o.parent_header && "msg_id" in o.parent_header)
     return o.parent_header.msg_id;
 }
@@ -453,8 +453,8 @@ function Ae(o) {
   const s = n.encode(JSON.stringify(o));
   t.push(s.buffer);
   for (let u = 0; u < r.length; u++) {
-    const b = r[u];
-    t.push(ArrayBuffer.isView(b) ? b.buffer : b);
+    const f = r[u];
+    t.push(ArrayBuffer.isView(f) ? f.buffer : f);
   }
   const a = t.length;
   e.push(4 * (a + 1));
@@ -487,12 +487,12 @@ function xe(o) {
 const Re = require("path");
 function I() {}
 Re.join(__dirname, ".");
-function Le() {
+function $e() {
   console.log("Trying to load zmq");
   const o = require("zeromq");
   return (o.context.blocky = !1), console.info("ZMQ loaded."), o;
 }
-function $e(o, e) {
+function Le(o, e) {
   const t = o.transport === "tcp" ? ":" : "-",
     n = o[`${e}_port`];
   if (!n) throw new Error(`Port not found for channel "${e}"`);
@@ -561,7 +561,7 @@ function Fe(o, e) {
     o.metadata || (o.metadata = {}),
     o.channel === "iopub" && We(o);
 }
-class Ue {
+class Be {
   constructor(e, t) {
     Object.defineProperty(this, "connection", {
       enumerable: !0,
@@ -694,7 +694,7 @@ class Ue {
   generateChannel(e, t, n) {
     const r = n();
     return (
-      r.connect($e(e, t)),
+      r.connect(Le(e, t)),
       this.processSocketMessages(t, r).catch((s) =>
         console.error(`Failed to read messages from channel ${t}`, s),
       ),
@@ -708,7 +708,7 @@ class Ue {
     }
   }
   generateChannels(e) {
-    const t = Le(),
+    const t = $e(),
       n = A(),
       r = {
         iopub: this.generateChannel(
@@ -815,7 +815,7 @@ class Ue {
   }
 }
 let Q;
-class Be {
+class Ue {
   get postMessage() {
     return this._postMessageEmitter.event;
   }
@@ -853,14 +853,14 @@ class Be {
     const s = require("@jupyterlab/services"),
       a = require("@jupyterlab/services/lib/kernel/serialize");
     let i;
-    class c extends Ue {
+    class c extends Be {
       constructor() {
         super(e.connection, a.serialize), (i = this);
       }
     }
     const u = s.ServerConnection.makeSettings({ WebSocket: c, wsUrl: "RAW" });
     Q || (Q = require("@jupyterlab/services/lib/kernel/nonSerializingKernel"));
-    const b = new Q.KernelConnection({
+    const f = new Q.KernelConnection({
       serverSettings: u,
       clientId: t,
       handleComms: !1,
@@ -872,7 +872,7 @@ class Be {
         (i.emit("open"),
         i.addReceiveHook(this.onKernelSocketMessage.bind(this)),
         i.addSendHook(this.mirrorSend.bind(this))),
-      { realKernel: b, socket: i, kernelProcess: e }
+      { realKernel: f, socket: i, kernelProcess: e }
     );
   }
   async mirrorSend(e, t) {
@@ -898,7 +898,7 @@ class Be {
     });
   }
   async onKernelSocketMessage(e) {
-    var s, a, i, c, u, b, h, d, m;
+    var s, a, i, c, u, f, h, d, m;
     const t = A(),
       n = Ie();
     if (
@@ -919,30 +919,30 @@ class Be {
         e.includes("comm_close") ||
         e.includes("comm_msg"))
     ) {
-      const y = Z(e);
-      if (!J(y)) return;
+      const g = Z(e);
+      if (!J(g)) return;
       const _ =
-          ((s = y.header) == null ? void 0 : s.msg_type) === "comm_open" &&
+          ((s = g.header) == null ? void 0 : s.msg_type) === "comm_open" &&
           ((c =
-            (i = (a = y.content) == null ? void 0 : a.data) == null
+            (i = (a = g.content) == null ? void 0 : a.data) == null
               ? void 0
               : i.state) == null
             ? void 0
             : c._model_module) === "@jupyter-widgets/output" &&
           ((h =
-            (b = (u = y.content) == null ? void 0 : u.data) == null
+            (f = (u = g.content) == null ? void 0 : u.data) == null
               ? void 0
-              : b.state) == null
+              : f.state) == null
             ? void 0
             : h._model_name) === "OutputModel",
         N =
-          ((d = y.header) == null ? void 0 : d.msg_type) === "comm_close" &&
+          ((d = g.header) == null ? void 0 : d.msg_type) === "comm_close" &&
           this.outputWidgetIds.has(
-            (m = y.content) == null ? void 0 : m.comm_id,
+            (m = g.content) == null ? void 0 : m.comm_id,
           );
       _
-        ? this.outputWidgetIds.add(y.content.comm_id)
-        : N && this.outputWidgetIds.delete(y.content.comm_id);
+        ? this.outputWidgetIds.add(g.content.comm_id)
+        : N && this.outputWidgetIds.delete(g.content.comm_id);
     }
   }
   onKernelSocketResponse(e) {
@@ -1127,7 +1127,7 @@ class M {
         n = JSON.parse(ue.readFileSync(t, { encoding: "utf-8" })),
         r = await this.python.lock((i) => i`notebook_kernel.get_session_id()`),
         s = { connection: n, pid: r },
-        a = new Be(s, A(), A(), { name: n.kernel_name, id: A() });
+        a = new Ue(s, A(), A(), { name: n.kernel_name, id: A() });
       (this.kernel = a),
         this.disposables.push(
           a.postMessage((i) => this._postMessageEmitter.fire(i)),
@@ -1202,10 +1202,10 @@ class M {
   }
   async executePython(e, t, n) {
     return new Promise(async (r, s) => {
-      var b, h;
+      var f, h;
       if (
         !(
-          (h = (b = this.kernel) == null ? void 0 : b.rawKernel) != null &&
+          (h = (f = this.kernel) == null ? void 0 : f.rawKernel) != null &&
           h.realKernel
         )
       ) {
@@ -1241,12 +1241,12 @@ class M {
         }
         const m = d.content;
         m.payload &&
-          m.payload.forEach((y) => {
-            if (y.data && y.data.hasOwnProperty("text/plain")) {
+          m.payload.forEach((g) => {
+            if (g.data && g.data.hasOwnProperty("text/plain")) {
               const _ = this.addToCellData(
                 {
                   output_type: "stream",
-                  text: y.data["text/plain"].toString(),
+                  text: g.data["text/plain"].toString(),
                   name: "stdout",
                   metadata: {},
                   execution_count: m.execution_count,
@@ -1278,8 +1278,8 @@ class M {
           } else if (i.KernelMessage.isStreamMsg(d)) {
             const m = this.handleStreamMessage(d, t);
             m == null ||
-              m.forEach((y) => {
-                u.push(y);
+              m.forEach((g) => {
+                u.push(g);
               });
           } else
             i.KernelMessage.isDisplayDataMsg(d)
@@ -1394,7 +1394,7 @@ class M {
       n.document.uri.fsPath,
       `Update output with mimes ${r.items.map((a) => a.mime).toString()}`,
     );
-    const s = U(t);
+    const s = B(t);
     return (
       (this.outputsAreSpecificToAWidget.length &&
         this.outputsAreSpecificToAWidget[
@@ -1426,11 +1426,11 @@ class M {
   handleStreamMessage(e, t) {
     var r;
     if (
-      U(e) &&
+      B(e) &&
       this.outputsAreSpecificToAWidget.length &&
       this.outputsAreSpecificToAWidget[
         this.outputsAreSpecificToAWidget.length - 1
-      ].msgIdsToSwallow === U(e)
+      ].msgIdsToSwallow === B(e)
     )
       return;
     const n =
@@ -1478,7 +1478,7 @@ class M {
       this.outputsAreSpecificToAWidget.length &&
       this.outputsAreSpecificToAWidget[
         this.outputsAreSpecificToAWidget.length - 1
-      ].msgIdsToSwallow === U(e)
+      ].msgIdsToSwallow === B(e)
     ) {
       e.content.wait &&
         this.outputsAreSpecificToAWidget.length &&
@@ -2311,11 +2311,11 @@ exports.DatapilotNotebookController = class {
             for (const m in r)
               r.hasOwnProperty(m) &&
                 typeof r[m] == "string" &&
-                (c.cells[0].source = c.cells[0].source.map((y) =>
-                  y.replace(`%_${m}_%`, r[m]),
+                (c.cells[0].source = c.cells[0].source.map((g) =>
+                  g.replace(`%_${m}_%`, r[m]),
                 ));
-          const b = await this.getFileName(t, c),
-            h = l.Uri.parse(`${u.projectRoot}/${b}${ae}`).with({ scheme: le });
+          const f = await this.getFileName(t, c),
+            h = l.Uri.parse(`${u.projectRoot}/${f}${ae}`).with({ scheme: le });
           this.dbtTerminal.debug("Notebook", "opening notebook", h);
           const d = await l.workspace.openNotebookDocument(h);
           await l.window.showNotebookDocument(d);
@@ -2523,14 +2523,14 @@ project_name="${e.getProjectName()}"
               p.TelemetryEvents["Notebook/Execute"],
               { language: e.document.languageId },
             );
-          const { metadata: b } = e;
-          if ((b == null ? void 0 : b.execution_type) === "compile") {
+          const { metadata: f } = e;
+          if ((f == null ? void 0 : f.execution_type) === "compile") {
             const h = await s.unsafeCompileQuery(e.document.getText());
             i.appendOutput(
               new l.NotebookCellOutput([
                 l.NotebookCellOutputItem.text(
                   h,
-                  b == null ? void 0 : b.output_mime_type,
+                  f == null ? void 0 : f.output_mime_type,
                 ),
               ]),
             );
@@ -3020,7 +3020,7 @@ exports.NotebookProviders = it(
   [
     p.provideSingleton(exports.NotebookProviders),
     at("design:paramtypes", [
-      B,
+      U,
       exports.DatapilotNotebookController,
       exports.NotebookFileSystemProvider,
       p.DBTTerminal,
@@ -3028,8 +3028,8 @@ exports.NotebookProviders = it(
   ],
   exports.NotebookProviders,
 );
-const $ = (o) => (o === "bigquery" ? "RAND" : "RANDOM"),
-  L = async (o, e) => {
+const L = (o) => (o === "bigquery" ? "RAND" : "RANDOM"),
+  $ = async (o, e) => {
     const t = await e(o);
     return (t == null ? void 0 : t.table.rows) || [];
   },
@@ -3096,58 +3096,58 @@ const $ = (o) => (o === "bigquery" ? "RAND" : "RANDOM"),
         a = e[r] || [],
         i = new Map(s.map((h) => [h.name, h])),
         c = new Map(a.map((h) => [h.name, h])),
-        b = [
+        f = [
           ...new Set([...s.map((h) => h.name), ...a.map((h) => h.name)]),
         ].map((h) => {
-          var f, E, v, k;
+          var y, E, v, k;
           const d = i.get(h),
             m = c.get(h),
-            y = [
+            g = [
               ...((d == null ? void 0 : d.tests) || []),
               ...((m == null ? void 0 : m.tests) || []),
             ],
             _ = new Map(
-              ((f = d == null ? void 0 : d.columns) == null
+              ((y = d == null ? void 0 : d.columns) == null
                 ? void 0
-                : f.map((g) => [g.name, g])) || [],
+                : y.map((b) => [b.name, b])) || [],
             ),
             N = new Map(
               ((E = m == null ? void 0 : m.columns) == null
                 ? void 0
-                : E.map((g) => [g.name, g])) || [],
+                : E.map((b) => [b.name, b])) || [],
             ),
-            T = [
+            w = [
               ...new Set([
                 ...(((v = d == null ? void 0 : d.columns) == null
                   ? void 0
-                  : v.map((g) => g.name)) || []),
+                  : v.map((b) => b.name)) || []),
                 ...(((k = m == null ? void 0 : m.columns) == null
                   ? void 0
-                  : k.map((g) => g.name)) || []),
+                  : k.map((b) => b.name)) || []),
               ]),
-            ].map((g) => {
-              const S = _.get(g),
-                C = N.get(g);
+            ].map((b) => {
+              const S = _.get(b),
+                C = N.get(b);
               return S
                 ? C
                   ? {
                       ...S,
                       ...C,
-                      name: g,
+                      name: b,
                       tests: [...(S.tests || []), ...(C.tests || [])],
                     }
                   : S
                 : C;
             }),
-            w = { name: h, columns: T };
-          return y.length > 0 && (w.tests = y), w;
+            T = { name: h, columns: w };
+          return g.length > 0 && (T.tests = g), T;
         });
-      t[r] = b;
+      t[r] = f;
     }
     return t;
   };
 class F {
-  constructor(e, t, n) {
+  constructor(e, t) {
     Object.defineProperty(this, "quote", {
       enumerable: !0,
       configurable: !0,
@@ -3166,9 +3166,10 @@ class F {
         writable: !0,
         value: void 0,
       }),
-      (this.quote = (r) => e(r, t)),
-      (this.adapter = t),
-      (this.queryFn = n);
+      (this.quote = (n, r) =>
+        r ? `adapter.quote('${n}')` : `{{adapter.quote('${n}')}}`),
+      (this.adapter = e),
+      (this.queryFn = t);
   }
 }
 class dt extends F {
@@ -3182,18 +3183,18 @@ class dt extends F {
     columnConfig: i,
     resourceType: c,
     dbtConfig: u,
-    columnsInRelation: b,
+    columnsInRelation: f,
   }) {
-    const d = q(b, n, t).filter((f) => ut(f));
+    const d = q(f, n, t).filter((y) => ut(y));
     if (d.length === 0) return u;
     let m = "";
     s !== null &&
       (a
-        ? (m = `ORDER BY ${$(this.adapter)}() LIMIT ${s}`)
+        ? (m = `ORDER BY ${L(this.adapter)}() LIMIT ${s}`)
         : (m = `LIMIT ${s}`));
-    const y = d.map(
-        (f, E) =>
-          `SELECT '${f.column}' AS COLNAME, MIN(${this.quote(f.column)}) as COL_MIN, MAX(${this.quote(f.column)}) as COL_MAX, STDDEV(${this.quote(f.column)}) as COL_STDDEV, ${E + 1} AS ORDERING FROM base`,
+    const g = d.map(
+        (y, E) =>
+          `SELECT '${y.column}' AS COLNAME, MIN(${this.quote(y.column)}) as COL_MIN, MAX(${this.quote(y.column)}) as COL_MAX, STDDEV(${this.quote(y.column)}) as COL_STDDEV, ${E + 1} AS ORDERING FROM base`,
       ),
       _ = `
             WITH base AS (
@@ -3201,19 +3202,19 @@ class dt extends F {
                 ${m}
             )
             SELECT * FROM (
-                ${y.join(`
+                ${g.join(`
 UNION ALL
 `)}
             ) t1
             ORDER BY ORDERING ASC
         `,
-      O = (await L(_, this.queryFn)).map((f) => {
-        const E = j(f[1]),
-          v = j(f[2]),
-          k = j(f[3]);
+      O = (await $(_, this.queryFn)).map((y) => {
+        const E = j(y[1]),
+          v = j(y[2]),
+          k = j(y[3]);
         return {
           ...{
-            name: f[0],
+            name: y[0],
             tests: [
               {
                 "dbt_utils.accepted_range": {
@@ -3226,9 +3227,9 @@ UNION ALL
           ...i,
         };
       }),
-      T = { name: e, columns: O },
-      w = { [c]: [T] };
-    return W(u, w);
+      w = { name: e, columns: O },
+      T = { [c]: [w] };
+    return W(u, T);
   }
 }
 class pt extends F {
@@ -3246,7 +3247,7 @@ class pt extends F {
     return [...s, ...a];
   }
   buildLimitStatement(e, t, n) {
-    return t === null ? "" : n ? `ORDER BY ${$(e)}() LIMIT ${t}` : `LIMIT ${t}`;
+    return t === null ? "" : n ? `ORDER BY ${L(e)}() LIMIT ${t}` : `LIMIT ${t}`;
   }
   buildCountDistinctQuery(e, t, n) {
     const r = e.map((s, a) => {
@@ -3280,38 +3281,38 @@ UNION ALL
     columnConfig: i,
     resourceType: c,
     dbtConfig: u,
-    columnsInRelation: b,
+    columnsInRelation: f,
   }) {
-    const d = q(b, n, t).map((v) => v.column);
+    const d = q(f, n, t).map((v) => v.column);
     if (d.length === 0) return u;
     const m = this.getColumnCombinations(d, r),
-      y = this.buildLimitStatement(this.adapter, s, a),
-      _ = this.buildCountDistinctQuery(m, e, y),
+      g = this.buildLimitStatement(this.adapter, s, a),
+      _ = this.buildCountDistinctQuery(m, e, g),
       O = (
-        await L(
+        await $(
           `
               WITH base AS (
                   SELECT * FROM {{ref('${e}')}}
-                  ${y}
+                  ${g}
               )
               SELECT count(1) AS TABLE_COUNT FROM base
           `,
           this.queryFn,
         )
       )[0][0],
-      T = await L(_, this.queryFn),
-      w = m.filter((v, k) => T[k][1] === O),
-      f = { name: e, columns: [], tests: [] };
-    w.forEach((v) => {
+      w = await $(_, this.queryFn),
+      T = m.filter((v, k) => w[k][1] === O),
+      y = { name: e, columns: [], tests: [] };
+    T.forEach((v) => {
       v.length === 1
-        ? f.columns.push({ name: v[0], tests: ["unique", "not_null"], ...i })
-        : f.tests.push({
+        ? y.columns.push({ name: v[0], tests: ["unique", "not_null"], ...i })
+        : y.tests.push({
             "dbt_utils.unique_combination_of_columns": {
               combination_of_columns: v,
             },
           });
     });
-    const E = { [c]: [f] };
+    const E = { [c]: [y] };
     return W(u, E);
   }
 }
@@ -3326,25 +3327,25 @@ class ht extends F {
     resourceType: i,
     dbtConfig: c,
     columnsInRelation: u,
-    maxCardinality: b = 5,
+    maxCardinality: f = 5,
   }) {
-    const h = (k, g) => {
+    const h = (k, b) => {
         switch (k) {
           case "bigquery":
-            return `array_agg(CAST(${this.quote(g)} AS STRING))`;
+            return `array_agg(CAST(${this.quote(b)} AS STRING))`;
           case "redshift":
-            return `split_to_array(listagg(${this.quote(g)}::VARCHAR, '|'), '|') `;
+            return `split_to_array(listagg(${this.quote(b)}::VARCHAR, '|'), '|') `;
           case "databricks":
-            return `to_json(array_agg(CAST(${this.quote(g)} AS STRING)))`;
+            return `to_json(array_agg(CAST(${this.quote(b)} AS STRING)))`;
           default:
-            return `array_agg(${this.quote(g)}::VARCHAR)`;
+            return `array_agg(${this.quote(b)}::VARCHAR)`;
         }
       },
       d = q(u, n, t);
     if (d.length === 0) return c;
     const m = d.map(
-        (k, g) => `
-            select ${g + 1} AS ORDERING,
+        (k, b) => `
+            select ${b + 1} AS ORDERING,
                 '${k.column}' AS COLNAME,
                 count(1) as CARDINALITY,
                 ${h(this.adapter, k.column)} AS UNIQUE_VALUES
@@ -3355,40 +3356,43 @@ class ht extends F {
             ) t1
         `,
       ),
-      y = r
+      g = r
         ? s
-          ? `ORDER BY ${$(this.adapter)}() LIMIT ${r}`
+          ? `ORDER BY ${L(this.adapter)}() LIMIT ${r}`
           : `LIMIT ${r}`
         : "",
       _ = `
             WITH base AS (
                 SELECT * FROM {{ref('${e}')}}
-                ${y}
+                ${g}
             )
             SELECT * FROM (
                 ${m.join(`
 UNION ALL
 `)}
             ) t2
-            WHERE CARDINALITY <= ${b}
+            WHERE CARDINALITY <= ${f}
             ORDER BY ORDERING ASC
         `,
       N = await this.queryFn(_);
     if (!N) return c;
     const {
-        table: { column_names: O, rows: T },
+        table: { column_names: O, rows: w },
       } = N,
-      w = O.indexOf("COLNAME"),
-      f = O.indexOf("UNIQUE_VALUES"),
-      E = T.map((k) => {
-        const g = k[f],
-          S = typeof g == "string" ? JSON.parse(g) : g;
-        return {
-          name: k[w],
-          tests: [{ accepted_values: { values: S.sort() } }],
-          ...a,
-        };
-      }),
+      T = O.indexOf("COLNAME"),
+      y = O.indexOf("UNIQUE_VALUES"),
+      E = w
+        .map((k) => {
+          const b = k[y];
+          if (!b) return;
+          const S = typeof b == "string" ? JSON.parse(b) : b;
+          return {
+            name: k[T],
+            tests: [{ accepted_values: { values: S.sort() } }],
+            ...a,
+          };
+        })
+        .filter(Boolean),
       v = { [i]: [{ name: e, columns: E }] };
     return W(c, v);
   }
@@ -3404,24 +3408,24 @@ class mt extends F {
     columnConfig: i,
     resourceType: c,
     dbtConfig: u,
-    columnsInRelation: b,
+    columnsInRelation: f,
   }) {
-    const d = q(b, n, t).filter((f) => ct(f));
+    const d = q(f, n, t).filter((y) => ct(y));
     if (d.length === 0) return u;
     const m = s
         ? a
-          ? `ORDER BY ${$(this.adapter)}() LIMIT ${s}`
+          ? `ORDER BY ${L(this.adapter)}() LIMIT ${s}`
           : `LIMIT ${s}`
         : "",
-      y = d.map(
-        (f, E) => `
-            SELECT '${f.column}' AS COLNAME,
-                MIN(LENGTH(CAST(${this.quote(f.column)} as varchar))) as COL_MIN,
-                MAX(LENGTH(CAST(${this.quote(f.column)} as varchar))) as COL_MAX,
-                STDDEV(LENGTH(CAST(${this.quote(f.column)} as varchar))) as COL_STDDEV,
+      g = d.map(
+        (y, E) => `
+            SELECT '${y.column}' AS COLNAME,
+                MIN(LENGTH(CAST(${this.quote(y.column)} as varchar))) as COL_MIN,
+                MAX(LENGTH(CAST(${this.quote(y.column)} as varchar))) as COL_MAX,
+                STDDEV(LENGTH(CAST(${this.quote(y.column)} as varchar))) as COL_STDDEV,
                 ${E + 1} AS ORDERING
             FROM base
-            WHERE ${this.quote(f.column)} IS NOT NULL
+            WHERE ${this.quote(y.column)} IS NOT NULL
         `,
       ),
       _ = `
@@ -3430,14 +3434,14 @@ class mt extends F {
                 ${m}
             )
             SELECT * FROM (
-                ${y.join(`
+                ${g.join(`
 UNION ALL
 `)}
             ) t1
             ORDER BY ORDERING ASC
         `,
-      O = (await L(_, this.queryFn)).map((f) => {
-        const [E, v, k, g] = f;
+      O = (await $(_, this.queryFn)).map((y) => {
+        const [E, v, k, b] = y;
         let S;
         if (v === k)
           S = {
@@ -3447,8 +3451,8 @@ UNION ALL
             },
           };
         else {
-          let C = v - r * g;
-          const ce = k + r * g;
+          let C = v - r * b;
+          const ce = k + r * b;
           C < 0 && (C = 0),
             (S = {
               "dbt_expectations.expect_column_value_lengths_to_be_between": {
@@ -3460,9 +3464,9 @@ UNION ALL
         }
         return { name: E, tests: [S], ...i };
       }),
-      T = { name: e, columns: O },
-      w = { [c]: [T] };
-    return W(u, w);
+      w = { name: e, columns: O },
+      T = { [c]: [w] };
+    return W(u, T);
   }
 }
 class ft extends F {
@@ -3481,7 +3485,7 @@ class ft extends F {
     if (h.length === 0) return c;
     const d = s
         ? a
-          ? `ORDER BY ${$(this.adapter)}() LIMIT ${s}`
+          ? `ORDER BY ${L(this.adapter)}() LIMIT ${s}`
           : `LIMIT ${s}`
         : "",
       m = `
@@ -3490,16 +3494,16 @@ class ft extends F {
       ${d}
     )
     ${h.map(
-      (T, w) => `
+      (w, T) => `
       SELECT 
         MAX(minutes_diff) AS max_minutes_diff,
         AVG(minutes_diff) AS avg_minutes_diff,
         STDDEV(minutes_diff) AS stddev_minutes_diff,
-        ${w + 1} AS ordering
+        ${T + 1} AS ordering
       FROM (
-        SELECT 
-          DATEDIFF('minute', LAG(${T.column}, 1) OVER(ORDER BY ${T.column}), ${T.column}) AS minutes_diff
-        FROM base
+      SELECT 
+        {{ dbt.datediff("LAG("~${this.quote(w.column, !0)}~", 1) OVER(ORDER BY "~${this.quote(w.column, !0)}~")", ${this.quote(w.column, !0)}, "minute") }} AS minutes_diff
+            FROM  base
       ) t2
       WHERE minutes_diff <> 0
     `,
@@ -3508,18 +3512,18 @@ UNION ALL
 `)}
     ORDER BY ordering ASC
   `,
-      y = await L(m, this.queryFn),
-      _ = h.map((T, w) => {
-        const [, f, E] = y[w],
-          v = f + E * r;
-        let k, g;
+      g = await $(m, this.queryFn),
+      _ = h.map((w, T) => {
+        const [, y, E] = g[T],
+          v = y + E * r;
+        let k, b;
         return (
           v >= 60 * 24
-            ? ((k = "day"), (g = Math.floor(v / (60 * 24))))
+            ? ((k = "day"), (b = Math.floor(v / (60 * 24))))
             : v >= 60
-              ? ((k = "hour"), (g = Math.floor(v / 60)))
-              : ((k = "minute"), (g = Math.floor(v))),
-          { "dbt_utils.recency": { field: T.column, datepart: k, interval: g } }
+              ? ((k = "hour"), (b = Math.floor(v / 60)))
+              : ((k = "minute"), (b = Math.floor(v))),
+          { "dbt_utils.recency": { field: w.column, datepart: k, interval: b } }
         );
       }),
       N = { name: e, ...(_.length > 0 && { tests: _ }) },
@@ -3544,15 +3548,14 @@ const bt = async ({
   ],
   uniquenessCompositeKeyLength: c = 1,
   acceptedValuesMaxCardinality: u = 5,
-  rangeStddevs: b = 0,
+  rangeStddevs: f = 0,
   stringLengthStddevs: h = 0,
   recencyStddevs: d = 1,
   dbtConfig: m,
-  returnObject: y = !1,
+  returnObject: g = !1,
   columnsInRelation: _,
   adapter: N,
   queryFn: O,
-  quote: T,
 }) => {
   console.log("testgen getTestSuggestions args", {
     tableRelation: o,
@@ -3565,17 +3568,17 @@ const bt = async ({
     tests: i,
     uniquenessCompositeKeyLength: c,
     acceptedValuesMaxCardinality: u,
-    rangeStddevs: b,
+    rangeStddevs: f,
     stringLengthStddevs: h,
     recencyStddevs: d,
     dbtConfig: m,
-    returnObject: y,
+    returnObject: g,
     columnsInRelation: _,
   });
   let w = m;
   return (
     i.includes("uniqueness") &&
-      (w = await new pt(T, N, O).generateUniquenessTests({
+      (w = await new pt(N, O).generateUniquenessTests({
         tableRelation: o,
         excludeTypes: s,
         excludeCols: a,
@@ -3588,7 +3591,7 @@ const bt = async ({
         compositeKeyLength: c,
       })),
     i.includes("accepted_values") &&
-      (w = await new ht(T, N, O).getAcceptedValuesTestSuggestions({
+      (w = await new ht(N, O).getAcceptedValuesTestSuggestions({
         tableRelation: o,
         excludeTypes: s,
         excludeCols: a,
@@ -3601,7 +3604,7 @@ const bt = async ({
         maxCardinality: u,
       })),
     i.includes("range") &&
-      (w = await new dt(T, N, O).generateRangeTests({
+      (w = await new dt(N, O).generateRangeTests({
         tableRelation: o,
         excludeTypes: s,
         excludeCols: a,
@@ -3611,10 +3614,10 @@ const bt = async ({
         resourceType: n,
         dbtConfig: w,
         columnsInRelation: _,
-        stddevs: b,
+        stddevs: f,
       })),
     i.includes("string_length") &&
-      (w = await new mt(T, N, O).generateStringLengthTests({
+      (w = await new mt(N, O).generateStringLengthTests({
         tableRelation: o,
         excludeTypes: s,
         excludeCols: a,
@@ -3627,7 +3630,7 @@ const bt = async ({
         stddevs: h,
       })),
     i.includes("recency") &&
-      (w = await new ft(T, N, O).generateRecencyTests({
+      (w = await new ft(N, O).generateRecencyTests({
         tableRelation: o,
         excludeTypes: s,
         excludeCols: a,
