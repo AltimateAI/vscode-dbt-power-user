@@ -26,10 +26,9 @@ import { parse, stringify } from "yaml";
 import { readFileSync } from "fs";
 import { DBTProject } from "../manifest/dbtProject";
 import { getTestSuggestions } from "@lib";
-import { DBColumn, ExecuteSQLResult } from "../dbt_client/dbtIntegration";
+import { ExecuteSQLResult } from "../dbt_client/dbtIntegration";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
-import { DBTDocumentation } from "../webview_provider/docsEditPanel";
 
 @provideSingleton(DbtTestService)
 export class DbtTestService {
@@ -385,12 +384,11 @@ export class DbtTestService {
   public async generateTestsForColumns(
     project: DBTProject,
     panel: WebviewView | undefined,
-    columnsInRelation: DBColumn[],
   ) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
     }
-    window.withProgress(
+    return await window.withProgress(
       {
         title: "Generating tests...",
         location: ProgressLocation.Notification,
@@ -408,9 +406,10 @@ export class DbtTestService {
           }
           const modelName = path.basename(currentFilePath.fsPath, ".sql");
 
+          const columnsInRelation = await project.getColumnsOfModel(modelName);
           const testSuggestions = await getTestSuggestions({
             adapter: project.getAdapterType(),
-            columnsInRelation: columnsInRelation,
+            columnsInRelation,
             tableRelation: modelName,
             dbtConfig: {},
             quote: getColumnNameByCase,
@@ -438,17 +437,13 @@ export class DbtTestService {
             testSuggestions,
           );
           const testSuggestionsForModel = testSuggestions?.models[0];
-          panel?.webview?.postMessage({
-            command: "testgen:insert",
-            tests: testSuggestionsForModel,
-            model: modelName,
-          });
 
           const sessionID = `${
             env.sessionId
           }-${modelName}-numColumns-${testSuggestionsForModel?.columns.length}-${Date.now()}`;
 
           await this.altimateRequest.trackBulkTestGen(sessionID);
+          return testSuggestionsForModel;
         } catch (error) {
           this.telemetryService.endTelemetryEvent(
             TelemetryEvents["DocumentationEditor/BulkGenerateTests"],

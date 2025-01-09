@@ -3,7 +3,6 @@ import {
   CancellationToken,
   ColorThemeKind,
   Disposable,
-  env,
   ProgressLocation,
   TextEditor,
   Uri,
@@ -57,6 +56,7 @@ import {
   DbtLineageService,
   Table,
 } from "../services/dbtLineageService";
+import { Model } from "@lib";
 
 export enum Source {
   YAML = "YAML",
@@ -550,14 +550,23 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         const { command, syncRequestId, ...params } = message;
         switch (command) {
           case "generateTestsForColumns":
-            await this.dbtTestService.generateTestsForColumns(
-              project,
-              this._panel,
-              params.columns.map((c: DBTDocumentation["columns"]["0"]) => ({
-                column: c.name,
-                dtype: c.type,
-              })),
-            );
+            const testSuggestionsForModel =
+              (await this.dbtTestService.generateTestsForColumns(
+                project,
+                this._panel,
+              )) || ({} as Model);
+            this._panel?.webview?.postMessage({
+              command: "testgen:insert",
+              tests: {
+                ...testSuggestionsForModel,
+                columns: this.convertColumnNamesByCaseConfig(
+                  testSuggestionsForModel.columns,
+                  testSuggestionsForModel.name,
+                  project,
+                ),
+              },
+              model: testSuggestionsForModel.name,
+            });
             break;
           case "fetchMetadataFromDatabase":
             this.telemetry.startTelemetryEvent(
