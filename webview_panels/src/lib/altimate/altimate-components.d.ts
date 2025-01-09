@@ -5,10 +5,12 @@ import { CaseReducerActions } from '@reduxjs/toolkit';
 import { ChatMessage } from '@ant-design/pro-chat';
 import { ComponentType } from 'react';
 import { Dispatch } from 'react';
+import { ForwardRefExoticComponent } from 'react';
 import { JSX as JSX_2 } from 'react/jsx-runtime';
 import { PayloadAction } from '@reduxjs/toolkit';
 import { ProChatProps } from '@ant-design/pro-chat/es/ProChat/container';
 import { ReactNode } from 'react';
+import { RefAttributes } from 'react';
 import { UnknownAction } from '@reduxjs/toolkit';
 import { WritableDraft } from 'immer';
 import { z } from 'zod';
@@ -254,9 +256,7 @@ export declare const learningSchema: z.ZodObject<{
     isActive?: boolean | undefined;
 }>;
 
-export declare const Lineage: (props: Omit<Parameters<typeof LineageProvider>["0"], "children">) => JSX_2.Element;
-
-declare const LineageProvider: ({ theme, lineageType, sqlLineage, dynamicLineage, staticLineage, allowSyncColumnsWithDB, externalSidePanel }: LineageProviderProps) => JSX_2.Element;
+export declare const Lineage: ForwardRefExoticComponent<LineageProviderProps & RefAttributes<LineageRef>>;
 
 declare interface LineageProviderProps {
     dynamicLineage?: {
@@ -269,6 +269,10 @@ declare interface LineageProviderProps {
     lineageType: LineageType;
     allowSyncColumnsWithDB?: boolean;
     externalSidePanel?: boolean;
+}
+
+export declare interface LineageRef {
+    rerender: () => void;
 }
 
 declare type LineageType = "static" | "dynamic" | "sql";
