@@ -8,6 +8,7 @@ import { DBTTerminal } from "../../dependencies.d.ts";
 import { DBTTerminal as DBTTerminal_2 } from "../dependencies.d.ts";
 import { Disposable as Disposable_2 } from "vscode";
 import { Event as Event_2 } from "vscode";
+import { ExecuteSQLResult } from "../dependencies.d.ts";
 import { FileChangeEvent } from "vscode";
 import { FileStat } from "vscode";
 import { FileSystemProvider } from "vscode";
@@ -36,6 +37,12 @@ declare class ClientMapper {
   );
   initializeNotebookClient(notebookUri: Uri): Promise<NotebookKernelClient>;
   getNotebookClient(notebookUri: Uri): Promise<NotebookKernelClient>;
+}
+
+declare interface ColumnConfig {
+  name: string;
+  tests: string[];
+  [key: string]: any;
 }
 
 declare interface ConnectionSettings {
@@ -118,9 +125,45 @@ declare class DatapilotNotebookSerializer
   ): Promise<Uint8Array>;
 }
 
+declare interface DBColumn {
+  column: string;
+  dtype: string;
+}
+
+export declare interface DbtConfig {
+  [key: string]: Model[];
+}
+
+export declare const getTestSuggestions: ({
+  tableRelation,
+  sample,
+  limit,
+  resourceType,
+  columnConfig,
+  excludeTypes,
+  excludeCols,
+  tests,
+  uniquenessCompositeKeyLength,
+  acceptedValuesMaxCardinality,
+  rangeStddevs,
+  stringLengthStddevs,
+  recencyStddevs,
+  dbtConfig,
+  returnObject,
+  columnsInRelation,
+  adapter,
+  queryFn,
+}: Props) => Promise<DbtConfig | undefined>;
+
 export declare interface IPyWidgetMessage {
   type: string;
   payload: any;
+}
+
+export declare interface Model {
+  name: string;
+  columns: ColumnConfig[];
+  tests?: any[];
 }
 
 export declare interface NotebookCellEvent {
@@ -340,6 +383,35 @@ export declare interface PreconfiguredNotebookItem {
   tags: string[];
   data: NotebookSchema;
 }
+
+declare interface Props {
+  tableRelation: string;
+  sample?: boolean;
+  limit?: number;
+  resourceType?: string;
+  columnConfig?: Record<string, any>;
+  excludeTypes?: string[];
+  excludeCols?: string[];
+  tests?: (
+    | "uniqueness"
+    | "accepted_values"
+    | "range"
+    | "string_length"
+    | "recency"
+  )[];
+  uniquenessCompositeKeyLength?: number;
+  acceptedValuesMaxCardinality?: number;
+  rangeStddevs?: number;
+  stringLengthStddevs?: number;
+  recencyStddevs?: number;
+  dbtConfig?: Record<string, any>;
+  returnObject?: boolean;
+  columnsInRelation: DBColumn[];
+  adapter: string;
+  queryFn: QueryFn;
+}
+
+declare type QueryFn = (query: string) => Promise<ExecuteSQLResult | undefined>;
 
 declare interface RawKernelType {
   realKernel: KernelConnection;
