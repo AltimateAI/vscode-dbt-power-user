@@ -23,8 +23,12 @@ describe("AltimateRequest Tests", () => {
   let mockPythonEnv: jest.Mocked<PythonEnvironment>;
   let mockWorkspaceConfig: ReturnType<typeof jest.spyOn>;
   let mockWindowMessage: ReturnType<typeof jest.spyOn>;
-  let fetchMock: jest.MockedFunction<FetchFn>;
   let request: AltimateRequest;
+  const fetchMock = jest.fn() as jest.MockedFunction<FetchFn>;
+  jest.mock("node-fetch", () => ({
+    __esModule: true,
+    default: fetchMock,
+  }));
 
   beforeEach(() => {
     mockTelemetry = {
@@ -87,9 +91,6 @@ describe("AltimateRequest Tests", () => {
     mockWindowMessage = jest
       .spyOn(window, "showInformationMessage")
       .mockResolvedValue("Yes" as any);
-
-    fetchMock = jest.fn() as jest.MockedFunction<FetchFn>;
-    global.fetch = fetchMock;
 
     request = new AltimateRequest(mockTelemetry, mockTerminal, mockPythonEnv);
   });
