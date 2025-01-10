@@ -6,19 +6,14 @@ import {
   useImperativeHandle,
 } from "react";
 import { ReactNode, useState } from "react";
-import {
-  ButtonProps,
-  Offcanvas,
-  OffcanvasBody,
-  OffcanvasHeader,
-} from "reactstrap";
+import { Offcanvas, OffcanvasBody, OffcanvasHeader } from "reactstrap";
 import IconButton from "../iconButton/IconButton";
 import classes from "./styles.module.scss";
 import { Button } from "../..";
 
 interface Props {
   title?: string | ReactNode;
-  buttonProps?: ButtonProps;
+  buttonProps?: Parameters<typeof Button>[0];
   buttonText?: ReactNode | string;
   icon?: ReactNode;
   onClose?: () => void;
