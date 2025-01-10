@@ -1035,12 +1035,13 @@ select * from renamed
     modelName: string,
     returnImmediately?: boolean,
     returnRawResults?: boolean,
+    queryLimit?: number,
   ) {
     // if user added a semicolon at the end, let,s remove it.
     query = query.replace(/;\s*$/, "");
-    const limit = workspace
-      .getConfiguration("dbt")
-      .get<number>("queryLimit", 500);
+    const limit =
+      queryLimit ||
+      workspace.getConfiguration("dbt").get<number>("queryLimit", 500);
 
     if (limit <= 0) {
       window.showErrorMessage("Please enter a positive number for query limit");

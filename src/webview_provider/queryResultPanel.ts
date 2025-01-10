@@ -4,6 +4,7 @@ import {
   commands,
   env,
   ProgressLocation,
+  TextEditor,
   Uri,
   ViewColumn,
   Webview,
@@ -39,6 +40,7 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { QueryManifestService } from "../services/queryManifestService";
 import { UsersService } from "../services/usersService";
 import { TelemetryEvents } from "../telemetry/events";
+import path = require("path");
 
 interface JsonObj {
   [key: string]: string | number | undefined;
@@ -91,6 +93,7 @@ enum InboundCommand {
   GetQueryPanelContext = "getQueryPanelContext",
   GetQueryHistory = "getQueryHistory",
   ExecuteQuery = "executeQuery",
+  ExecuteQueryFromActiveWindow = "executeQueryFromActiveWindow",
   GetQueryTabData = "getQueryTabData",
   RunAdhocQuery = "runAdhocQuery",
   ViewResultSet = "viewResultSet",
@@ -165,6 +168,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       usersService,
     );
     this._disposables.push(
+      window.onDidChangeActiveTextEditor((event: TextEditor | undefined) => {
+        // to reset the limit on editor change
+        this.sendUpdatedContextToWebview();
+      }),
       workspace.onDidChangeConfiguration(
         (e) => {
           if (e.affectsConfiguration("dbt.disableQueryHistory")) {
@@ -306,6 +313,25 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     return project;
   }
 
+  private async executeQueryFromActiveWindow(message: { limit: number }) {
+    const activeEditor = window.activeTextEditor;
+    if (!activeEditor) {
+      window.showErrorMessage("No active editor found");
+      return;
+    }
+    const query = activeEditor.document.getText();
+    const project = await this.getProject();
+    if (!project) {
+      window.showErrorMessage(
+        "Unable to find dbt project for executing query.",
+      );
+      return;
+    }
+    const modelName = path.basename(activeEditor.document.uri.fsPath, ".sql");
+    this.telemetry.sendTelemetryEvent("QueryActiveWindowExecuteSql");
+    await project.executeSQL(query, modelName, false, false, message.limit);
+  }
+
   private async executeIncomingQuery(message: {
     query: string;
     projectName: string;
@@ -347,6 +373,24 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     commands.executeCommand("dbtPowerUser.createSqlFile", {
       code: message?.code,
       name: message?.name,
+    });
+  }
+
+  private async sendUpdatedContextToWebview() {
+    const perspectiveTheme = workspace
+      .getConfiguration("dbt")
+      .get("perspectiveTheme", "Vintage");
+    const queryHistoryDisabled = workspace
+      .getConfiguration("dbt")
+      .get("disableQueryHistory", false);
+
+    const limit = workspace.getConfiguration("dbt").get<number>("queryLimit");
+    await this._panel!.webview.postMessage({
+      command: OutboundCommand.GetContext,
+      limit,
+      perspectiveTheme,
+      queryHistoryDisabled,
+      queryInActiveEditor: window.activeTextEditor?.document.getText(),
     });
   }
 
@@ -398,6 +442,9 @@ export class QueryResultPanel extends AltimateWebviewProvider {
               fileName: "Custom Query",
             });
             break;
+          case InboundCommand.ExecuteQueryFromActiveWindow:
+            await this.executeQueryFromActiveWindow(message);
+            break;
           case InboundCommand.ExecuteQuery:
             await this.executeIncomingQuery(message);
             break;
@@ -422,22 +469,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             break;
           case InboundCommand.GetQueryPanelContext:
             {
-              const perspectiveTheme = workspace
-                .getConfiguration("dbt")
-                .get("perspectiveTheme", "Vintage");
-              const queryHistoryDisabled = workspace
-                .getConfiguration("dbt")
-                .get("disableQueryHistory", false);
-
-              const limit = workspace
-                .getConfiguration("dbt")
-                .get<number>("queryLimit");
-              await this._panel!.webview.postMessage({
-                command: OutboundCommand.GetContext,
-                limit,
-                perspectiveTheme,
-                queryHistoryDisabled,
-              });
+              await this.sendUpdatedContextToWebview();
             }
             break;
           case InboundCommand.CancelQuery:

@@ -16,6 +16,7 @@ import RunAdhocQueryButton from "./components/runAdhocQueryButton/RunAdhocQueryB
 import { QueryPanelViewType } from "./context/types";
 import NewNotebookButton from "./components/runAdhocQueryButton/NewNotebook";
 import { HelpIcon, MoreIcon } from "@assets/icons";
+import RunQueryWithLimit from "./components/runAdhocQueryButton/RunQueryWithLimit";
 
 const QueryPanel = (): JSX.Element => {
   const { tabState, viewType } = useQueryPanelState();
@@ -42,6 +43,7 @@ const QueryPanel = (): JSX.Element => {
         <Stack>
           {viewType === QueryPanelViewType.DEFAULT && (
             <>
+              <RunQueryWithLimit />
               <NewNotebookButton />
               <ClearResultsButton />
               <PopoverWithButton

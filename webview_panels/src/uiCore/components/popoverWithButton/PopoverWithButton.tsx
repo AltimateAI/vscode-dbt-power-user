@@ -15,6 +15,7 @@ interface Props {
   title?: string | ReactNode;
   width?: number | string;
   popoverProps?: Omit<PopoverProps, "target">;
+  onClose?: () => void;
   children: (args: {
     styles: CSSModuleClasses;
     close: () => void;
@@ -29,7 +30,17 @@ export interface PopoverWithButtonRef {
 const PopoverWithButton: ForwardRefRenderFunction<
   PopoverWithButtonRef,
   Props
-> = ({ title, button, children, popoverProps = {}, width = 350 }, ref) => {
+> = (
+  {
+    title,
+    button,
+    onClose: onPopoverClose,
+    children,
+    popoverProps = {},
+    width = 350,
+  },
+  ref,
+) => {
   const { className, ...rest } = popoverProps;
   const [showPopover, setShowPopover] = useState(false);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -50,6 +61,7 @@ const PopoverWithButton: ForwardRefRenderFunction<
   const onClose = () => {
     setShowPopover(false);
     document.body.removeEventListener("mouseup", onBodyClick);
+    onPopoverClose?.();
   };
 
   useImperativeHandle(ref, () => ({
