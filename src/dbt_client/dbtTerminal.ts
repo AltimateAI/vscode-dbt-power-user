@@ -2,7 +2,7 @@ import { Disposable, EventEmitter, Terminal, window } from "vscode";
 import { provideSingleton, stripANSI } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { PythonException } from "python-bridge";
-import { MockEventEmitter } from "../test/setup";
+import { MockEventEmitter } from "../test/common";
 
 @provideSingleton(DBTTerminal)
 export class DBTTerminal {

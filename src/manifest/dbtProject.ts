@@ -63,7 +63,7 @@ import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryEvents } from "../telemetry/events";
 import { RunResultsEvent } from "./event/runResultsEvent";
-import { MockEventEmitter } from "../test/setup";
+import { MockEventEmitter } from "../test/common";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -620,7 +620,6 @@ export class DBTProject implements Disposable {
       args?.forEach((arg) => docsGenerateCommand.addArgument(arg));
       docsGenerateCommand.focus = false;
       docsGenerateCommand.logToTerminal = false;
-      this.telemetry.sendTelemetryEvent("executeCommandImmediately");
       const { stdout, stderr } =
         await this.dbtProjectIntegration.executeCommandImmediately(
           docsGenerateCommand,

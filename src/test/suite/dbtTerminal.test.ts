@@ -2,7 +2,6 @@ import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
 import * as vscode from "vscode";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { PythonException } from "python-bridge";
-import { MockEventEmitter } from "../setup";
 
 // Set test environment
 process.env.NODE_ENV = "test";

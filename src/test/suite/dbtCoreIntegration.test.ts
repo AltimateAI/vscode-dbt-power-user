@@ -14,11 +14,11 @@ import { AltimateRequest } from "../../altimate";
 import { ValidationProvider } from "../../validation_provider";
 import { DeferToProdService } from "../../services/deferToProdService";
 import { Uri, workspace, languages } from "vscode";
-import { MockEventEmitter } from "../setup";
 import {
   CommandProcessExecutionFactory,
   CommandProcessExecution,
 } from "../../commandProcessExecution";
+import { MockEventEmitter } from "../common";
 
 // Mock workspace folders
 jest.mock("vscode", () => ({

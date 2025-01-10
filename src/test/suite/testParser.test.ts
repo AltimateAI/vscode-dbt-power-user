@@ -2,8 +2,8 @@ import { expect, describe, it, beforeEach } from "@jest/globals";
 import { TestParser } from "../../manifest/parsers/testParser";
 import { DBTProject } from "../../manifest/dbtProject";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
-import { MockEventEmitter } from "../setup";
 import * as path from "path";
+import { MockEventEmitter } from "../common";
 
 describe("TestParser Test Suite", () => {
   let testParser: TestParser;

@@ -2,30 +2,7 @@ import "reflect-metadata";
 
 // Set up the container before tests
 import "../inversify.config";
-
-export class MockEventEmitter<T> {
-  private listeners: ((e: T) => any)[] = [];
-
-  event = (listener: (e: T) => any) => {
-    this.listeners.push(listener);
-    return {
-      dispose: () => {
-        const index = this.listeners.indexOf(listener);
-        if (index > -1) {
-          this.listeners.splice(index, 1);
-        }
-      },
-    };
-  };
-
-  fire(data: T): void {
-    this.listeners.forEach((listener) => listener(data));
-  }
-
-  dispose(): void {
-    this.listeners = [];
-  }
-}
+import { MockEventEmitter } from "./common";
 
 // Mock VS Code APIs before any imports
 jest.mock("vscode", () => ({
