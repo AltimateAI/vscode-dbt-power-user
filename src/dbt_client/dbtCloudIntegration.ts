@@ -540,7 +540,9 @@ export class DBTCloudProjectIntegration
   async runModelTest(
     command: DBTCommand,
   ): Promise<{ stdout: string; stderr: string; fullOutput: string }> {
-    const testModelCommand = this.dbtCloudCommand(command);
+    const testModelCommand = await this.addDeferParams(
+      this.dbtCloudCommand(command),
+    );
     const result = await testModelCommand.execute();
     return {
       stdout: result.stdout,

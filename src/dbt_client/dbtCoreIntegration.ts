@@ -669,7 +669,9 @@ export class DBTCoreProjectIntegration
   async runModelTest(
     command: DBTCommand,
   ): Promise<{ stdout: string; stderr: string; fullOutput: string }> {
-    const testModelCommand = this.dbtCoreCommand(command);
+    const testModelCommand = await this.addDeferParams(
+      this.dbtCoreCommand(command),
+    );
     const result = await testModelCommand.execute();
     return {
       stdout: result.stdout,

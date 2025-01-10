@@ -419,7 +419,8 @@ export class AltimateRequest {
       abortController.abort();
     }, timeout);
     try {
-      const response = await fetch(url, {
+      const nodeFetch = (await import("node-fetch")).default;
+      const response = await nodeFetch(url, {
         method: "POST",
         body: JSON.stringify(request),
         signal: abortController.signal,
@@ -686,7 +687,8 @@ export class AltimateRequest {
         "AltimateRequest",
         `fetching artifactUrl: ${artifactUrl}`,
       );
-      const response = await fetch(artifactUrl);
+      const nodeFetch = (await import("node-fetch")).default;
+      const response = await nodeFetch(artifactUrl);
 
       if (!response.ok) {
         throw new Error(`Failed to download file: ${response.statusText}`);
@@ -735,7 +737,8 @@ export class AltimateRequest {
 
   async validateCredentials(instance: string, key: string) {
     const url = `${AltimateRequest.ALTIMATE_URL}/dbt/v3/validate-credentials`;
-    const response = await fetch(url, {
+    const nodeFetch = (await import("node-fetch")).default;
+    const response = await nodeFetch(url, {
       method: "GET",
       headers: {
         "x-tenant": instance,
@@ -754,7 +757,8 @@ export class AltimateRequest {
   async isAuthenticated() {
     try {
       const config = this.getConfig()!;
-      const response = await fetch(
+      const nodeFetch = (await import("node-fetch")).default;
+      const response = await nodeFetch(
         `${AltimateRequest.ALTIMATE_URL}/auth_health`,
         {
           method: "POST",
@@ -802,7 +806,8 @@ export class AltimateRequest {
   async checkApiConnectivity() {
     const url = `${AltimateRequest.ALTIMATE_URL}/health`;
     try {
-      const response = await fetch(url, { method: "GET" });
+      const nodeFetch = (await import("node-fetch")).default;
+      const response = await nodeFetch(url, { method: "GET" });
       const { status } = (await response.json()) as { status: string };
       return { status };
     } catch (e) {

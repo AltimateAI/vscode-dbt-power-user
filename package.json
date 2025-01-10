@@ -17,9 +17,6 @@
   "engines": {
     "vscode": "^1.81.0"
   },
-  "enabledApiProposals": [
-    "extensionsAny"
-  ],
   "capabilities": {
     "hoverProvider": true
   },
@@ -1196,7 +1193,7 @@
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production && node prepareBuild.js",
     "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
-    "watch": "tsc -watch -p ./",
+    "watch": "concurrently \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
