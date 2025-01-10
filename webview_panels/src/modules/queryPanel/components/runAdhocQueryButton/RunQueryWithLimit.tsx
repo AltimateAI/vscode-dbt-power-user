@@ -56,20 +56,25 @@ const RunQueryWithLimit = (): JSX.Element => {
   return (
     <div className={classes.runQueryWithLimit}>
       <FormGroup row>
-        <Label for="queryLimit" sm={2}>
+        <Label for="queryLimit" sm={4} className="p-0 pt-2">
           Limit
         </Label>
-        <Col sm={8}>
+        <Col sm={4} className="p-0">
           <Input
             id="queryLimit"
             name="limit"
             type="number"
             onChange={handleChange}
             value={limit}
+            style={{ width: 70, height: 30 }}
           />
         </Col>
-        <Col sm={2}>
-          <IconButton onClick={executeQuery}>
+        <Col sm={2} className="p-0">
+          <IconButton
+            title={`Execute query with limit: ${limit}`}
+            onClick={executeQuery}
+            color="primary"
+          >
             <PlayIcon />
           </IconButton>
         </Col>
@@ -78,6 +83,7 @@ const RunQueryWithLimit = (): JSX.Element => {
         onClose={() => setIsChanged(false)}
         ref={popoverRef}
         button={<></>}
+        width={150}
         popoverProps={{
           placement: "bottom",
           hideArrow: true,
@@ -86,15 +92,17 @@ const RunQueryWithLimit = (): JSX.Element => {
         {({ close }) => (
           <div>
             <FormGroup switch>
-              <Label>Set as default</Label>
-              <Input
-                type="switch"
-                role="switch"
-                onClick={() => {
-                  close();
-                  handleDefaultChange();
-                }}
-              />
+              <Label>
+                Set as default{" "}
+                <Input
+                  type="switch"
+                  role="switch"
+                  onClick={() => {
+                    close();
+                    handleDefaultChange();
+                  }}
+                />
+              </Label>
             </FormGroup>
           </div>
         )}
