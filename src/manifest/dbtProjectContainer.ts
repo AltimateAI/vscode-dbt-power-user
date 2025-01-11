@@ -88,6 +88,8 @@ export class DBTProjectContainer implements Disposable {
           this.unregisterWorkspaceFolder(removedWorkspaceFolder),
         );
       }),
+      this.dbtClient,
+      this.dbtTerminal,
     );
     this._onProjectRegisteredUnregistered.event((event) => {
       if (event.registered) {

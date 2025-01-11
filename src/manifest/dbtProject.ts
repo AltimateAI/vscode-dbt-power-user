@@ -63,6 +63,7 @@ import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryEvents } from "../telemetry/events";
 import { RunResultsEvent } from "./event/runResultsEvent";
+import { MockEventEmitter } from "../test/common";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -90,10 +91,17 @@ export class DBTProject implements Disposable {
   private dbtProjectIntegration: DBTProjectIntegration;
 
   private _onProjectConfigChanged =
-    new EventEmitter<ProjectConfigChangedEvent>();
+    process.env.NODE_ENV === "test"
+      ? new MockEventEmitter<ProjectConfigChangedEvent>()
+      : new EventEmitter<ProjectConfigChangedEvent>();
   public onProjectConfigChanged = this._onProjectConfigChanged.event;
-  private _onRunResults = new EventEmitter<RunResultsEvent>();
+
+  private _onRunResults =
+    process.env.NODE_ENV === "test"
+      ? new MockEventEmitter<RunResultsEvent>()
+      : new EventEmitter<RunResultsEvent>();
   public onRunResults = this._onRunResults.event;
+
   private sourceFileWatchers: SourceFileWatchers;
   public onSourceFileChanged: Event<void>;
   private dbtProjectLog?: DBTProjectLog;
@@ -101,8 +109,11 @@ export class DBTProject implements Disposable {
   private readonly projectConfigDiagnostics =
     languages.createDiagnosticCollection("dbt");
   public readonly projectHealth = languages.createDiagnosticCollection("dbt");
+
   private _onRebuildManifestStatusChange =
-    new EventEmitter<RebuildManifestStatusChange>();
+    process.env.NODE_ENV === "test"
+      ? new MockEventEmitter<RebuildManifestStatusChange>()
+      : new EventEmitter<RebuildManifestStatusChange>();
   readonly onRebuildManifestStatusChange =
     this._onRebuildManifestStatusChange.event;
 
@@ -572,10 +583,18 @@ export class DBTProject implements Disposable {
     try {
       const testModelCommand =
         this.dbtCommandFactory.createTestModelCommand(modelName);
-      this.dbtProjectIntegration.runModelTest(testModelCommand);
+      const result =
+        await this.dbtProjectIntegration.runModelTest(testModelCommand);
+      const returnValue = {
+        stdout: result.stdout,
+        stderr: result.stderr,
+        fullOutput: result.fullOutput,
+      };
       await this.telemetry.sendTelemetryEvent("runModelTest");
+      return returnValue;
     } catch (error) {
       this.handleNoCredentialsError(error);
+      return { stdout: "", stderr: "", fullOutput: "" };
     }
   }
 
@@ -595,17 +614,21 @@ export class DBTProject implements Disposable {
   }
 
   async generateDocsImmediately(args?: string[]) {
-    const docsGenerateCommand =
-      this.dbtCommandFactory.createDocsGenerateCommand();
-    args?.forEach((arg) => docsGenerateCommand.addArgument(arg));
-    docsGenerateCommand.focus = false;
-    docsGenerateCommand.logToTerminal = false;
-    const { stdout, stderr } =
-      await this.dbtProjectIntegration.executeCommandImmediately(
-        docsGenerateCommand,
-      );
-    if (stderr) {
-      throw new Error(stderr);
+    try {
+      const docsGenerateCommand =
+        this.dbtCommandFactory.createDocsGenerateCommand();
+      args?.forEach((arg) => docsGenerateCommand.addArgument(arg));
+      docsGenerateCommand.focus = false;
+      docsGenerateCommand.logToTerminal = false;
+      const { stdout, stderr } =
+        await this.dbtProjectIntegration.executeCommandImmediately(
+          docsGenerateCommand,
+        );
+      if (stderr) {
+        throw new Error(stderr);
+      }
+    } catch (error) {
+      this.handleNoCredentialsError(error);
     }
   }
 
