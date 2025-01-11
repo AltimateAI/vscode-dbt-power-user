@@ -4,9 +4,14 @@ import NewFeatureIndicator from "@modules/newFeature/NewFeatureIndicator";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import { Button } from "@uicore";
 
-const OpenInTabButton = (): JSX.Element | null => {
+const OpenInTabButton = ({
+  onClose,
+}: {
+  onClose: () => void;
+}): JSX.Element | null => {
   const queryTabData = useQueryPanelState();
   const handleClick = () => {
+    onClose();
     executeRequestInAsync("queryResultTab:render", { queryTabData });
   };
   if (!queryTabData?.queryResults) {

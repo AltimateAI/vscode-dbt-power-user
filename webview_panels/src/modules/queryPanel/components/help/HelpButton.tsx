@@ -1,15 +1,15 @@
-import { HelpIcon } from "@assets/icons";
-import { Drawer } from "@uicore";
+import { Drawer, DrawerRef } from "@uicore";
 import HelpContent from "./HelpContent";
+import { useEffect, useRef } from "react";
 
-const HelpButton = (): JSX.Element => {
+const HelpButton = ({ onClose }: { onClose: () => void }): JSX.Element => {
+  const drawerRef = useRef<DrawerRef | null>(null);
+  useEffect(() => {
+    drawerRef.current?.open();
+  }, []);
+
   return (
-    <Drawer
-      buttonProps={{ outline: true }}
-      buttonText="Help"
-      icon={<HelpIcon />}
-      title="Help"
-    >
+    <Drawer title="Help" onClose={onClose} ref={drawerRef}>
       <HelpContent />
     </Drawer>
   );

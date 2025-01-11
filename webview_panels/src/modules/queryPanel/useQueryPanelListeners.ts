@@ -14,6 +14,7 @@ import {
   setQueryResults,
   setQueryResultsError,
   setViewType,
+  setQueryInActiveEditor,
 } from "./context/queryPanelSlice";
 import useQueryPanelState from "./useQueryPanelState";
 import { panelLogger } from "@modules/logger";
@@ -27,8 +28,7 @@ import {
 
 const useQueryPanelListeners = (): { loading: boolean } => {
   const dispatch = useQueryPanelDispatch();
-  const { loading, hintIndex, queryResults } =
-    useQueryPanelState();
+  const { loading, hintIndex, queryResults } = useQueryPanelState();
   const hintInterval = useRef<NodeJS.Timeout>();
   const hintIndexRef = useRef<number>(hintIndex);
   const queryExecutionTimer = useRef<NodeJS.Timeout>();
@@ -79,8 +79,8 @@ const useQueryPanelListeners = (): { loading: boolean } => {
   const handleError = (args: Record<string, unknown>) => {
     dispatch(
       setQueryResultsError(
-        args.error as QueryPanelStateProps["queryResultsError"]
-      )
+        args.error as QueryPanelStateProps["queryResultsError"],
+      ),
     );
     dispatch(setCompiledCodeMarkup(args.compiled_sql as string));
     clearHintInterval();
@@ -149,8 +149,8 @@ const useQueryPanelListeners = (): { loading: boolean } => {
           dispatch(
             setViewType(
               (args.args.body as { type: QueryPanelViewType })
-                .type as QueryPanelViewType
-            )
+                .type as QueryPanelViewType,
+            ),
           );
           break;
         case "getContext":
@@ -160,8 +160,10 @@ const useQueryPanelListeners = (): { loading: boolean } => {
           dispatch(setPerspectiveTheme(args.perspectiveTheme as string));
           dispatch(
             // @ts-expect-error valid type
-            setQueryHistoryDisabled(args.queryHistoryDisabled as boolean)
+            setQueryHistoryDisabled(args.queryHistoryDisabled as boolean),
           );
+          // @ts-expect-error valid type
+          dispatch(setQueryInActiveEditor(args.queryInActiveEditor as string));
           break;
         case "collectQueryResultsDebugInfo":
           collectQueryResultsDebugInfo();
@@ -170,7 +172,7 @@ const useQueryPanelListeners = (): { loading: boolean } => {
           break;
       }
     },
-    [handleLoading, dispatch]
+    [handleLoading, dispatch],
   );
 
   useEffect(() => {
@@ -198,7 +200,7 @@ const useQueryPanelListeners = (): { loading: boolean } => {
         dispatch(
           setQueryExecutionInfo({
             elapsedTime: typedData.queryExecutionInfo!.elapsedTime,
-          })
+          }),
         );
       }
     });

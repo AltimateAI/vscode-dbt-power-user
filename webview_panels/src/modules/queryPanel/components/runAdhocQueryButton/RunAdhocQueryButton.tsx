@@ -2,12 +2,23 @@ import { AddIcon } from "@assets/icons";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import { Button } from "@uicore";
 
-const RunAdhocQueryButton = (): JSX.Element => {
+const RunAdhocQueryButton = ({
+  onClose,
+}: {
+  onClose: () => void;
+}): JSX.Element => {
   const handleClick = () => {
+    onClose();
     executeRequestInAsync("runAdhocQuery", {});
   };
   return (
-    <Button outline onClick={handleClick} icon={<AddIcon />}>
+    <Button
+      className="w-100"
+      outline
+      onClick={handleClick}
+      icon={<AddIcon />}
+      showTextAlways
+    >
       New query
     </Button>
   );

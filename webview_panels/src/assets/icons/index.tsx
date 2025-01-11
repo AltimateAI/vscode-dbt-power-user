@@ -174,3 +174,7 @@ export const FileCodeIcon = (
 export const OpenNewIcon = (
   props: HTMLAttributes<HTMLElement>,
 ): JSX.Element => <Icon icon="link-external" {...props} />;
+
+export const PlayIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
+  <Icon icon="debug-start" {...props} />
+);

@@ -186,3 +186,16 @@
 .searchInput::-webkit-search-cancel-button {
   display: none;
 }
+
+.runQueryWithLimit{
+  label {
+    border: 1px solid var(--stroke--disable);
+    border-width: 1px 0 1px 1px;
+    padding-top: 5px !important;
+    padding-left: 6px !important;
+  }
+
+  input {
+    background-color: transparent;
+  }
+}
