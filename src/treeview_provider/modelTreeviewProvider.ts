@@ -109,13 +109,13 @@ abstract class ModelTreeviewProvider
       return Promise.resolve(this.getTreeItems(element.key, event));
     }
 
-    const model_by_file_content = event.nodeMetaMap.lookupByBaseName(
+    const modelByFileContent = event.nodeMetaMap.lookupByBaseName(
       getModelNameInActiveEditor(),
     );
 
-    if (model_by_file_content) {
+    if (modelByFileContent) {
       return Promise.resolve(
-        this.getTreeItems(model_by_file_content.uniqueId, event),
+        this.getTreeItems(modelByFileContent.uniqueId, event),
       );
     }
 
