@@ -1,12 +1,14 @@
 import { unmanaged } from "inversify";
 import { provide } from "inversify-binding-decorators";
 import * as path from "path";
+
 import {
   Command,
   Disposable,
   Event,
   EventEmitter,
   ProviderResult,
+  TextDocument,
   ThemeIcon,
   TreeDataProvider,
   TreeItem,
@@ -19,6 +21,8 @@ import {
   Exposure,
   GraphMetaMap,
   Node,
+  NodeMetaData,
+  NodeMetaMap,
   Seed,
   Snapshot,
   Source,
@@ -29,7 +33,10 @@ import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
-import { provideSingleton } from "../utils";
+import {
+  getCurrentlySelectedModelNameInYamlConfig,
+  provideSingleton,
+} from "../utils";
 
 @provide(ModelTreeviewProvider)
 abstract class ModelTreeviewProvider
@@ -54,6 +61,9 @@ abstract class ModelTreeviewProvider
       this.dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event),
       ),
+      window.onDidChangeTextEditorSelection(() => {
+        this._onDidChangeTreeData.fire();
+      }),
     );
   }
 
@@ -104,11 +114,11 @@ abstract class ModelTreeviewProvider
     if (element) {
       return Promise.resolve(this.getTreeItems(element.key, event));
     }
-    const fileName = path.basename(
-      window.activeTextEditor!.document.fileName,
-      ".sql",
+
+    const model = lookupModelByEditorContent(
+      event.nodeMetaMap,
+      window.activeTextEditor.document,
     );
-    const model = event.nodeMetaMap.lookupByBaseName(fileName);
     if (!model) {
       return Promise.resolve([]);
     }
@@ -180,6 +190,9 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
       this.dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event),
       ),
+      window.onDidChangeTextEditorSelection(() => {
+        this._onDidChangeTreeData.fire();
+      }),
     );
   }
 
@@ -222,14 +235,16 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
     const { nodeMetaMap } = event;
 
     if (!element) {
-      const modelName = path.basename(
-        window.activeTextEditor!.document.fileName,
-        ".sql",
+      const currentNode = lookupModelByEditorContent(
+        event.nodeMetaMap,
+        window.activeTextEditor.document,
       );
-      const currentNode = nodeMetaMap.lookupByBaseName(modelName);
+
       if (currentNode === undefined) {
         return Promise.resolve([]);
       }
+      const modelName = currentNode.name;
+
       const children = [];
 
       if (Object.keys(currentNode.columns).length !== 0) {
@@ -500,3 +515,16 @@ export class DocumentationTreeview extends DocumentationTreeviewProvider {
 
 @provideSingleton(IconActionsTreeview)
 export class IconActionsTreeview extends IconActionsTreeviewProvider {}
+
+// Find appropriate a model from file content (if YAML) or from a file name (otherwise)
+export function lookupModelByEditorContent(
+  nodeMetaMap: NodeMetaMap,
+  document: TextDocument,
+): NodeMetaData | undefined {
+  const modelCandidateName =
+    document.languageId === "yaml" &&
+    getCurrentlySelectedModelNameInYamlConfig()
+      ? getCurrentlySelectedModelNameInYamlConfig()
+      : path.parse(document.fileName).name;
+  return nodeMetaMap.lookupByBaseName(modelCandidateName);
+}
