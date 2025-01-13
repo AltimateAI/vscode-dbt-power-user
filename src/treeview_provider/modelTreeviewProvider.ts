@@ -112,24 +112,16 @@ abstract class ModelTreeviewProvider
       return Promise.resolve(this.getTreeItems(element.key, event));
     }
 
-    const modelByFileContent = event.nodeMetaMap.lookupByBaseName(
-      getCurrentlySelectedModelNameInYamlConfig(),
-    );
+    // Find appropriate a model from file content (if YAML) or from a file name (otherwise)
+    const modelCandidateName =
+      window.activeTextEditor.document.languageId === "yaml" &&
+      getCurrentlySelectedModelNameInYamlConfig()
+        ? getCurrentlySelectedModelNameInYamlConfig()
+        : path.parse(window.activeTextEditor!.document.fileName).name;
 
-    if (modelByFileContent) {
-      return Promise.resolve(
-        this.getTreeItems(modelByFileContent.uniqueId, event),
-      );
-    }
-
-    const fileName = path.parse(
-      window.activeTextEditor!.document.fileName,
-    ).name;
-    const modelByFileName = event.nodeMetaMap.lookupByBaseName(fileName);
-    if (modelByFileName) {
-      return Promise.resolve(
-        this.getTreeItems(modelByFileName.uniqueId, event),
-      );
+    const model = event.nodeMetaMap.lookupByBaseName(modelCandidateName);
+    if (model) {
+      return Promise.resolve(this.getTreeItems(model.uniqueId, event));
     }
 
     return Promise.resolve([]);
