@@ -376,6 +376,19 @@ export const getStringSizeInMb = (str: string): number => {
   return sizeInMB;
 };
 
+interface YamlModel {
+  key?: { value: string };
+  value?: { items?: Array<YamlModelItem> };
+}
+
+interface YamlModelItem {
+  items?: Array<{
+    key?: { value: string };
+    value?: { toString(): string };
+  }>;
+  range?: [number, number];
+}
+
 export function getCurrentlySelectedModelNameInYamlConfig(): string {
   if (
     window.activeTextEditor === undefined ||
@@ -394,7 +407,7 @@ export function getCurrentlySelectedModelNameInYamlConfig(): string {
     const cursorPosition = window.activeTextEditor.selection.active;
     const offset = window.activeTextEditor.document.offsetAt(cursorPosition);
 
-    const contents = parsedYaml.contents as { items?: Array<any> };
+    const contents = parsedYaml.contents as { items?: Array<YamlModel> };
     if (!contents.items) {
       return "";
     }
@@ -412,19 +425,21 @@ export function getCurrentlySelectedModelNameInYamlConfig(): string {
         continue;
       }
 
-      const nameNode = model.items.find(
-        (item: any) => item?.key?.value === "name",
-      );
+      const nameNode = model.items.find((item) => item?.key?.value === "name");
       if (!nameNode?.value) {
         continue;
       }
 
-      if (model.range?.[0] < offset && offset < model.range?.[1]) {
+      if (model.range && model.range[0] < offset && offset < model.range[1]) {
         return nameNode.value.toString();
       }
     }
   } catch (error) {
-    console.error("Error parsing YAML document:", error);
+    console.error("Error parsing YAML document:", {
+      error,
+      document: window.activeTextEditor?.document.fileName,
+      position: window.activeTextEditor?.selection.active,
+    });
   }
   return "";
 }
