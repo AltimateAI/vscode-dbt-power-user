@@ -119,11 +119,10 @@ abstract class ModelTreeviewProvider
       event.nodeMetaMap,
       window.activeTextEditor.document,
     );
-    if (model) {
-      return Promise.resolve(this.getTreeItems(model.uniqueId, event));
+    if (!model) {
+      return Promise.resolve([]);
     }
-
-    return Promise.resolve([]);
+    return Promise.resolve(this.getTreeItems(model.uniqueId, event));
   }
 
   private getNodeTreeItem(node: Node): NodeTreeItem {
