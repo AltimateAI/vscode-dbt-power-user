@@ -361,7 +361,7 @@ export const getStringSizeInMb = (str: string): number => {
   return sizeInMB;
 };
 
-export function getModelNameInActiveEditor(): string {
+export function getCurrentlySelectedModelNameInYamlConfig(): string {
   if (
     window.activeTextEditor === undefined ||
     window.activeTextEditor.document.languageId !== "yaml"

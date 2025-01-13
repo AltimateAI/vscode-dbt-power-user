@@ -30,7 +30,10 @@ import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
-import { getModelNameInActiveEditor, provideSingleton } from "../utils";
+import {
+  getCurrentlySelectedModelNameInYamlConfig,
+  provideSingleton,
+} from "../utils";
 
 @provide(ModelTreeviewProvider)
 abstract class ModelTreeviewProvider
@@ -110,7 +113,7 @@ abstract class ModelTreeviewProvider
     }
 
     const modelByFileContent = event.nodeMetaMap.lookupByBaseName(
-      getModelNameInActiveEditor(),
+      getCurrentlySelectedModelNameInYamlConfig(),
     );
 
     if (modelByFileContent) {
@@ -247,7 +250,7 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
       ).name;
       // Try content-based lookup first
       const currentNodeByFileContent = event.nodeMetaMap.lookupByBaseName(
-        getModelNameInActiveEditor(),
+        getCurrentlySelectedModelNameInYamlConfig(),
       );
       // Fall back to filename-based lookup
       const currentNode =
