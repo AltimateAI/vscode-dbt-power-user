@@ -8,6 +8,7 @@ import {
   Event,
   EventEmitter,
   ProviderResult,
+  TextDocument,
   ThemeIcon,
   TreeDataProvider,
   TreeItem,
@@ -20,6 +21,8 @@ import {
   Exposure,
   GraphMetaMap,
   Node,
+  NodeMetaData,
+  NodeMetaMap,
   Seed,
   Snapshot,
   Source,
@@ -112,14 +115,10 @@ abstract class ModelTreeviewProvider
       return Promise.resolve(this.getTreeItems(element.key, event));
     }
 
-    // Find appropriate a model from file content (if YAML) or from a file name (otherwise)
-    const modelCandidateName =
-      window.activeTextEditor.document.languageId === "yaml" &&
-      getCurrentlySelectedModelNameInYamlConfig()
-        ? getCurrentlySelectedModelNameInYamlConfig()
-        : path.parse(window.activeTextEditor!.document.fileName).name;
-
-    const model = event.nodeMetaMap.lookupByBaseName(modelCandidateName);
+    const model = lookupModelByEditorContent(
+      event.nodeMetaMap,
+      window.activeTextEditor.document,
+    );
     if (model) {
       return Promise.resolve(this.getTreeItems(model.uniqueId, event));
     }
@@ -237,17 +236,10 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
     const { nodeMetaMap } = event;
 
     if (!element) {
-      const fileName = path.parse(
-        window.activeTextEditor!.document.fileName,
-      ).name;
-      // Try content-based lookup first
-      const currentNodeByFileContent = event.nodeMetaMap.lookupByBaseName(
-        getCurrentlySelectedModelNameInYamlConfig(),
+      const currentNode = lookupModelByEditorContent(
+        event.nodeMetaMap,
+        window.activeTextEditor.document,
       );
-      // Fall back to filename-based lookup
-      const currentNode =
-        currentNodeByFileContent ??
-        event.nodeMetaMap.lookupByBaseName(fileName);
 
       if (currentNode === undefined) {
         return Promise.resolve([]);
@@ -524,3 +516,16 @@ export class DocumentationTreeview extends DocumentationTreeviewProvider {
 
 @provideSingleton(IconActionsTreeview)
 export class IconActionsTreeview extends IconActionsTreeviewProvider {}
+
+// Find appropriate a model from file content (if YAML) or from a file name (otherwise)
+export function lookupModelByEditorContent(
+  nodeMetaMap: NodeMetaMap,
+  document: TextDocument,
+): NodeMetaData | undefined {
+  const modelCandidateName =
+    document.languageId === "yaml" &&
+    getCurrentlySelectedModelNameInYamlConfig()
+      ? getCurrentlySelectedModelNameInYamlConfig()
+      : path.parse(document.fileName).name;
+  return nodeMetaMap.lookupByBaseName(modelCandidateName);
+}
