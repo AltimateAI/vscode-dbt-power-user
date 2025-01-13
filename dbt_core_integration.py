@@ -1,3 +1,9 @@
+try:
+    from dbt.version import __version__ as dbt_version
+except:
+    raise Exception("dbt not found. Please install dbt to use this extension.")
+
+
 from decimal import Decimal
 import os
 import threading
@@ -31,7 +37,6 @@ from dbt.parser.manifest import ManifestLoader, process_node
 from dbt.parser.sql import SqlBlockParser, SqlMacroParser
 from dbt.task.sql import SqlCompileRunner, SqlExecuteRunner
 from dbt.tracking import disable_tracking
-from dbt.version import __version__ as dbt_version
 
 DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER = (
     int(v) if v.isnumeric() else v for v in dbt_version.split(".")
@@ -196,11 +201,23 @@ def memoize_get_rendered(function):
 
 
 def default_profiles_dir(project_dir):
+    """Determines the directory where dbt will look for profiles.yml.
+    
+    When DBT_PROFILES_DIR is set:
+    - If it's an absolute path, use it as is
+    - If it's a relative path, resolve it relative to the project directory
+      This matches dbt core's behavior and other path handling in the codebase
+      (see https://github.com/AltimateAI/vscode-dbt-power-user/issues/1518)
+    
+    When DBT_PROFILES_DIR is not set:
+    - Look for profiles.yml in the project directory
+    - If not found, default to ~/.dbt/
+    """
     if "DBT_PROFILES_DIR" in os.environ:
         profiles_dir = os.path.expanduser(os.environ["DBT_PROFILES_DIR"])
         if os.path.isabs(profiles_dir):
             return os.path.normpath(profiles_dir)
-        return os.path.join(project_dir, profiles_dir)
+        return os.path.normpath(os.path.join(project_dir, profiles_dir))
     project_profiles_file = os.path.normpath(os.path.join(project_dir, "profiles.yml"))
     return (
         project_dir

@@ -28,6 +28,7 @@ import {
 } from "@assets/icons";
 import { ProjectHealthcheck } from "./types";
 import { IssueList } from "./IssueList";
+import ProjectHealthNewCheckButton from "./ProjectHealthNewCheckButton";
 
 interface DBTConfig {
   id: number;
@@ -322,7 +323,8 @@ const ProjectHealthcheckInput = ({
             loadConfigs={loadConfigs}
           />
 
-          <Stack>
+          <Stack className="justify-content-between">
+            <Stack>
             <Button
               color={isStartScanEnabled ? "primary" : "secondary"}
               onClick={async () => {
@@ -363,6 +365,8 @@ const ProjectHealthcheckInput = ({
             >
               Clear problems
             </Button>
+            </Stack>
+            <ProjectHealthNewCheckButton />
           </Stack>
         </Stack>
       </CardBody>

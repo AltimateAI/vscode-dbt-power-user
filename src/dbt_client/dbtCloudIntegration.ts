@@ -35,13 +35,14 @@ import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./dbtTerminal";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
 import { ProjectHealthcheck } from "./dbtCoreIntegration";
 import semver = require("semver");
 import { NodeMetaData } from "../domain";
 import * as crypto from "crypto";
+import { parse } from "yaml";
 
 function getDBTPath(
   pythonEnvironment: PythonEnvironment,
@@ -206,6 +207,7 @@ export class DBTCloudProjectIntegration
     private validationProvider: ValidationProvider,
     private deferToProdService: DeferToProdService,
     private projectRoot: Uri,
+    private altimateRequest: AltimateRequest,
   ) {
     this.terminal.debug(
       "DBTCloudProjectIntegration",
@@ -238,7 +240,7 @@ export class DBTCloudProjectIntegration
     } else {
       this.initializePaths();
     }
-    if (!this.adapterType) {
+    if (this.adapterType === "unknown") {
       // We only fetch the adapter type once, as it may impact compilation preview otherwise
       await this.findAdapterType();
     }
@@ -1158,7 +1160,42 @@ export class DBTCloudProjectIntegration
     }
   }
 
-  findPackageVersion(_packageName: string) {
+  private getYamlContent(uri: Uri): string | undefined {
+    try {
+      return readFileSync(uri.fsPath, "utf-8");
+    } catch (error) {
+      this.terminal.error(
+        "getYamlContent",
+        "Error occured while reading file: " + uri.fsPath,
+        error,
+      );
+      return undefined;
+    }
+  }
+
+  findPackageVersion(packageName: string) {
+    const packagesYmlPath = Uri.joinPath(this.projectRoot, "packages.yml");
+    const dependenciesYmlPath = Uri.joinPath(
+      this.projectRoot,
+      "dependencies.yml",
+    );
+
+    const fileContents =
+      this.getYamlContent(packagesYmlPath) ||
+      this.getYamlContent(dependenciesYmlPath);
+    if (!fileContents) {
+      return undefined;
+    }
+
+    const packages = parse(fileContents) as
+      | { packages: { package: string; version: string }[] }
+      | undefined;
+    if (packages?.packages?.length) {
+      const packageObject = packages.packages.find(
+        (p) => p.package.indexOf(packageName) > -1,
+      );
+      return packageObject?.version as string;
+    }
     return undefined;
   }
 
@@ -1189,7 +1226,7 @@ export class DBTCloudProjectIntegration
     this.throwBridgeErrorIfAvailable();
     const result = await this.python?.lock<ProjectHealthcheck>(
       (python) =>
-        python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
+        python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}, ${this.altimateRequest.getAIKey()}, ${this.altimateRequest.getInstanceName()}, ${AltimateRequest.ALTIMATE_URL}))`,
     );
     return result;
   }

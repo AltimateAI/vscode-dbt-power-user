@@ -30,6 +30,7 @@ const ActionWidget = ({
       />
 
       <div id="expand-container" />
+      <div id="export-container" />
       <div id="settings-container" />
       <Button
         outline

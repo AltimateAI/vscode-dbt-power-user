@@ -96,14 +96,20 @@ const useTestFormSave = (): {
           typeof t === "object" && typeof t[key] === "object"
             ? (t[key] as Record<string, unknown>)
             : {};
-
+        const testKey = params.model
+          ? `${key}_${params.model}_${column.name}`
+          : `${key}_${column.name}`;
+        // Remove already existing tests
+        if (testsData.find((test) => test.key === testKey)) {
+          return;
+        }
         if (key) {
           testsData.push({
             alias: "",
             database: "",
             schema: "",
             column_name: column.name,
-            key: `${key}_${column.name}`,
+            key: testKey,
             test_metadata: {
               kwargs: {
                 column_name: column.name,

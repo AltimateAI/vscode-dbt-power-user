@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.48.5",
+  "version": "0.51.0",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -1189,7 +1189,7 @@
   },
   "scripts": {
     "postinstall": "node postInstall.js",
-    "prepare": "husky install",
+    "prepare": "husky",
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production && node prepareBuild.js",
     "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",

@@ -63,6 +63,7 @@ export interface DBTColumnLineageRequest {
   selected_column: { model_node?: ModelNode; column: string };
   session_id: string;
   show_indirect_edges: boolean;
+  event_type: string;
 }
 
 export interface DBTColumnLineageResponse {
@@ -334,7 +335,7 @@ export interface ConversationGroup {
 
 @provideSingleton(AltimateRequest)
 export class AltimateRequest {
-  private static ALTIMATE_URL = workspace
+  public static ALTIMATE_URL = workspace
     .getConfiguration("dbt")
     .get<string>("altimateUrl", "https://api.myaltimate.com");
 
@@ -646,8 +647,12 @@ export class AltimateRequest {
         status: response.status,
         textResponse,
       });
+      let jsonResponse: any;
+      try {
+        jsonResponse = JSON.parse(textResponse);
+      } catch {}
       throw new APIError(
-        `Could not process request, server responded with ${response.status}: ${textResponse}`,
+        `Could not process request, server responded with ${response.status}: ${jsonResponse?.detail || textResponse}`,
       );
     } catch (e) {
       this.dbtTerminal.error("apiCatchAllError", "catchAllError", e, true, {
@@ -991,5 +996,12 @@ export class AltimateRequest {
         method: "PUT",
       },
     );
+  }
+
+  async trackBulkTestGen(sessionId: string) {
+    return this.fetch<{ ok: boolean }>(`dbt/v2/bulk_test_gen`, {
+      method: "POST",
+      body: JSON.stringify({ session_id: sessionId }),
+    });
   }
 }

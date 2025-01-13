@@ -4,7 +4,6 @@ import {
   DocsGenerateModelRequestV2,
   DBTDocumentationColumn,
   DBTModelTest,
-  Pages,
 } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import {
@@ -17,7 +16,6 @@ import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import EntityWithTests from "../tests/EntityWithTests";
-import { useMemo } from "react";
 import CoachAiIfModified from "./CoachAiIfModified";
 import Citations from "./Citations";
 import { Stack } from "@uicore";
@@ -28,13 +26,10 @@ interface Props {
 }
 const DocGeneratorColumn = ({ column, tests }: Props): JSX.Element => {
   const {
-    state: { currentDocsData, project, selectedPages },
+    state: { currentDocsData, project },
     dispatch,
   } = useDocumentationContext();
-  const isDocumentationPageSelected = useMemo(
-    () => selectedPages.includes(Pages.DOCUMENTATION),
-    [selectedPages],
-  );
+
   const { postMessageToDataPilot } = useAppContext();
   const handleColumnSubmit = async (data: DocsGenerateModelRequestV2) => {
     if (!currentDocsData || !project) {
@@ -94,23 +89,21 @@ const DocGeneratorColumn = ({ column, tests }: Props): JSX.Element => {
   };
   return (
     <div>
-      {isDocumentationPageSelected ? (
-        <DocGeneratorInput
-          onSubmit={handleColumnSubmit}
-          placeholder={`Describe ${column.name}`}
-          type={EntityType.COLUMN}
-          entity={column}
-          title={column.name + (column.type ? " (" + column.type + ")" : "")}
-        />
-      ) : null}
+      <DocGeneratorInput
+        onSubmit={handleColumnSubmit}
+        placeholder={`Describe ${column.name}`}
+        type={EntityType.COLUMN}
+        entity={column}
+        title={column.name + (column.type ? " (" + column.type + ")" : "")}
+      />
       <EntityWithTests
         title={column.name}
         tests={tests}
         type={EntityType.COLUMN}
       />
       <Stack className="mt-2">
-      <Citations citations={column.citations}/>
-      <CoachAiIfModified column={column.name}/>
+        <Citations citations={column.citations} />
+        <CoachAiIfModified column={column.name} />
       </Stack>
     </div>
   );

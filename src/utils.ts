@@ -263,20 +263,32 @@ export const getExternalProjectNamesFromDbtLoomConfig = (
 };
 
 export const isRelationship = (
-  metadata: TestMetadataRelationships | TestMetadataAcceptedValues,
+  metadata:
+    | TestMetadataRelationships
+    | TestMetadataAcceptedValues
+    | { [x: string]: unknown },
 ): metadata is TestMetadataRelationships => {
-  return (metadata as TestMetadataRelationships).field !== undefined;
+  return (
+    (metadata as TestMetadataRelationships).field !== undefined &&
+    (metadata as TestMetadataRelationships).to !== undefined
+  );
 };
 
 export const isAcceptedValues = (
-  metadata: TestMetadataRelationships | TestMetadataAcceptedValues,
+  metadata:
+    | TestMetadataRelationships
+    | TestMetadataAcceptedValues
+    | { [x: string]: unknown },
 ): metadata is TestMetadataAcceptedValues => {
   return (metadata as TestMetadataAcceptedValues).values !== undefined;
 };
 
 export const getColumnTestConfigFromYml = (
   allTests: any[] | undefined,
-  kwargs: TestMetadataAcceptedValues | TestMetadataRelationships,
+  kwargs:
+    | TestMetadataAcceptedValues
+    | TestMetadataRelationships
+    | { [x: string]: unknown },
   testName: string,
 ) => {
   const testsByTestName = allTests?.filter((t: any) => {
@@ -306,7 +318,10 @@ export const getColumnTestConfigFromYml = (
       );
     }
 
-    return true;
+    // For multiple tests with same name but diff config from  external packages like dbt_utils,
+    // match all the config values
+    const { model, column_name, ...rest } = kwargs;
+    return Object.entries(rest).every(([k, v]) => t[testName][k] === v);
   });
 
   if (isRelationship(kwargs)) {

@@ -7,26 +7,44 @@ import { updateColumnsInCurrentDocsData } from "@modules/documentationEditor/sta
 import { DBTDocumentationColumn } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { panelLogger } from "@modules/logger";
-import { Button, DropdownButton, List, Popover, PopoverBody } from "@uicore";
+import { Button, DropdownButton, List, PopoverWithButton } from "@uicore";
 import { useRef, useState } from "react";
 import classes from "../../styles.module.scss";
 import { mergeCurrentAndIncomingDocumentationColumns } from "@modules/documentationEditor/utils";
+import DocGenSelectedColumns from "./DocGenSelectedColumns";
+import { noop } from "antd/es/_util/warning";
+
+enum SidePanelState {
+  DOCUMENTATION_SELECTED = "documentationSelected",
+}
 
 const BulkGenerateButton = (): JSX.Element => {
-  const [openPopover, setOpenPopover] = useState(false);
+  const [sidePanelState, setSidePanelState] = useState<
+    SidePanelState | undefined
+  >();
   const ref = useRef<HTMLDivElement | null>(null);
   const {
-    state: { currentDocsData, userInstructions },
+    state: {
+      currentDocsData,
+      userInstructions,
+      isDocGeneratedForAnyColumn,
+      isTestUpdatedForAnyColumn,
+    },
     dispatch,
   } = useDocumentationContext();
 
-  const onToggleClick = () => {
-    setOpenPopover((prev) => !prev);
+  const resetSidepanelState = () => {
+    setSidePanelState(undefined);
   };
-  const options = [
-    { label: "Generate all", value: "all" },
-    { label: "Generate only missing columns", value: "missing" },
-  ];
+
+  const options = {
+    Documentation: [
+      { label: "Generate all columns", value: "all" },
+      { label: "Generate only missing columns", value: "missing" },
+      { label: "Select columns", value: "selected" },
+    ],
+    Tests: [{ label: "Generate all", value: "all-tests" }],
+  };
 
   const bulkGenerateDocs = async (
     columns: DBTDocumentationColumn[],
@@ -70,6 +88,21 @@ const BulkGenerateButton = (): JSX.Element => {
       panelLogger.error("Unable to generate docs for missing columns");
     }
   };
+  const generateTestsForAllColumns = async () => {
+    try {
+      const { columns } = (await executeRequestInSync(
+        "fetchMetadataFromDatabase",
+        {},
+      )) as { columns: DBTDocumentationColumn[] };
+
+      executeRequestInAsync("generateTestsForColumns", {
+        columns,
+      });
+    } catch (err) {
+      panelLogger.error("Unable to generate tests for all columns");
+    }
+  };
+
   const generateForAll = async () => {
     try {
       const { columns } = (await executeRequestInSync(
@@ -100,63 +133,99 @@ const BulkGenerateButton = (): JSX.Element => {
   };
 
   const onOptionSelect = async (value: string) => {
-    setOpenPopover(false);
     const startTime = Date.now();
     sendTelemetryEvent(value);
 
-    if (value === "all") {
-      try {
-        const columns = await generateForAll();
-        if (columns) {
-          sendTelemetryEvent(value, columns, startTime);
+    try {
+      switch (value) {
+        case "selected":
+          setSidePanelState(SidePanelState.DOCUMENTATION_SELECTED);
+          return;
+        case "all": {
+          const columns = await generateForAll();
+          if (columns) {
+            sendTelemetryEvent(value, columns, startTime);
+          }
+          break;
         }
-      } catch (err) {
-        panelLogger.error("error generating for all columns", err);
-      }
-      return;
-    }
-
-    if (value === "missing") {
-      try {
-        const columns = await generateDocsForMissingColumns();
-        if (columns) {
-          sendTelemetryEvent(value, columns, startTime);
+        case "all-tests": {
+          await generateTestsForAllColumns();
+          break;
         }
-      } catch (err) {
-        panelLogger.error("error generating for missing columns", err);
+        case "missing": {
+          const columns = await generateDocsForMissingColumns();
+          if (columns) {
+            sendTelemetryEvent(value, columns, startTime);
+          }
+          break;
+        }
+        default:
+          return;
       }
-      return;
+    } catch (err) {
+      panelLogger.error("error generating for columns", value, err);
     }
   };
 
+  const isDirty = isDocGeneratedForAnyColumn || isTestUpdatedForAnyColumn;
+  const color = isDirty ? "secondary" : "primary";
+
   return (
-    <div ref={ref}>
-      <DropdownButton onToggleClick={onToggleClick} onClick={onToggleClick}>
-        <ShinesIcon /> Bulk generate
-      </DropdownButton>
-      <Popover
-        isOpen={openPopover}
-        target={ref}
-        placement="bottom"
-        hideArrow
-        className={classes.popover}
-      >
-        <PopoverBody>
-          <List>
-            {options.map((option) => (
-              <li key={option.label}>
-                <Button
-                  color="link"
-                  onClick={() => onOptionSelect(option.value)}
-                >
-                  {option.label}
-                </Button>
-              </li>
-            ))}
-          </List>
-        </PopoverBody>
-      </Popover>
-    </div>
+    <>
+      <div ref={ref}>
+        <PopoverWithButton
+          width="auto"
+          button={
+            <DropdownButton
+              onToggleClick={noop}
+              onClick={noop}
+              color={color}
+              outline={isDirty}
+            >
+              <ShinesIcon /> Bulk generate
+            </DropdownButton>
+          }
+          popoverProps={{
+            placement: "bottom",
+            hideArrow: true,
+            className: classes.bulkGenPopover,
+          }}
+        >
+          {({ styles, close }) => (
+            <div className={classes.popover}>
+              <div className={styles.popoverActions}>
+                <List>
+                  {Object.entries(options).map(([key, actions]) => (
+                    <>
+                      <li className={classes.sectionTitle}>{key}</li>
+                      {actions.map((option) => (
+                        <li key={option.label}>
+                          <Button
+                            color="secondary"
+                            onClick={() => {
+                              close();
+                              void onOptionSelect(option.value);
+                            }}
+                          >
+                            {option.label}
+                          </Button>
+                        </li>
+                      ))}
+                    </>
+                  ))}
+                </List>
+              </div>
+            </div>
+          )}
+        </PopoverWithButton>
+      </div>
+      {sidePanelState === SidePanelState.DOCUMENTATION_SELECTED ? (
+        <DocGenSelectedColumns
+          onClose={resetSidepanelState}
+          generateForColumns={bulkGenerateDocs}
+        />
+      ) : null}
+    </>
   );
 };
 
