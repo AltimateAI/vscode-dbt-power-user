@@ -125,10 +125,10 @@ abstract class ModelTreeviewProvider
     const fileName = path.parse(
       window.activeTextEditor!.document.fileName,
     ).name;
-    const model_by_file_name = event.nodeMetaMap.lookupByBaseName(fileName);
-    if (model_by_file_name) {
+    const modelByFileName = event.nodeMetaMap.lookupByBaseName(fileName);
+    if (modelByFileName) {
       return Promise.resolve(
-        this.getTreeItems(model_by_file_name.uniqueId, event),
+        this.getTreeItems(modelByFileName.uniqueId, event),
       );
     }
 
