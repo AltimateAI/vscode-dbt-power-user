@@ -27,7 +27,7 @@
 }
 
 .playButton {
-  padding: 0.25rem;
+  padding: 0.5rem;
   color: #ffffff;
   background-color: var(--primary-color);
   border-top-right-radius: 0.25rem;
@@ -39,8 +39,7 @@
   align-items: center;
 
   .label {
-    padding: 0.25rem;
-    margin-left: 0.75rem;
+    margin: 0.25rem 0.75rem;
   }
 }
 
