@@ -2,7 +2,6 @@
   display: flex;
   flex-direction: column;
   border-radius: 0.5rem;
-  border: 1px solid var(--gray--gray-02);
 }
 
 .input {
@@ -14,6 +13,7 @@
   caret-color: var(--primary-color);
   border-radius: 0;
   height: 100%;
+  padding: calc(0.5rem - 1px) 0.25rem !important;
 
   &:focus {
     border: none;
@@ -27,10 +27,10 @@
 }
 
 .playButton {
-  padding: 0.5rem;
+  padding: calc(0.5rem - 1px);
   color: #ffffff;
   background-color: var(--primary-color);
-  border-top-right-radius: 0.25rem;
+  border-top-right-radius: 0.15rem;
   display: flex;
 }
 
@@ -39,7 +39,24 @@
   align-items: center;
 
   .label {
-    margin: 0.25rem 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--gray--gray-02);
+    border-right: none;
+    border-top-left-radius: 0.25rem;
+  }
+
+  .content {
+    display: flex;
+    align-items: center;
+    border-top-right-radius: 0.25rem;
+
+    &.inactive {
+      border: 1px solid var(--gray--gray-02);
+    }
+
+    &.active {
+      border: 1px solid var(--primary-color);
+    }
   }
 }
 

@@ -9,10 +9,11 @@ import { PlayIcon } from "@assets/icons";
 
 const QueryLimit = (): JSX.Element => {
   const { limit } = useQueryPanelState();
-  const [value, setValue] = useState(limit);
+  const [value, setValue] = useState(limit?.toString());
+  const [isFocused, setIsFocused] = useState(false);
   const dispatch = useQueryPanelDispatch();
   const handleChange = () => {
-    dispatch(setLimit(value));
+    dispatch(setLimit(parseInt(value ?? "0")));
     executeRequestInAsync("updateConfig", { limit: value });
   };
 
@@ -25,19 +26,32 @@ const QueryLimit = (): JSX.Element => {
     <div className={styles.container}>
       <Stack className={styles.limitContainer}>
         <span className={styles.label}>Limit</span>
-        <Input
-          value={value}
-          onChange={(e) => setValue(Number(e.target.value))}
-          className={styles.input}
-        />
-
         <div
-          className={styles.playButton}
-          onClick={() => {
-            /* */
-          }}
+          className={[
+            styles.content,
+            isFocused ? styles.active : styles.inactive,
+          ].join(" ")}
         >
-          <PlayIcon />
+          <Input
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            className={styles.input}
+            onFocus={() => {
+              setIsFocused(true);
+            }}
+            onBlur={() => {
+              setIsFocused(false);
+            }}
+          />
+
+          <div
+            className={styles.playButton}
+            onClick={() => {
+              /* */
+            }}
+          >
+            <PlayIcon />
+          </div>
         </div>
       </Stack>
       <Stack className={styles.saveContainer}>
