@@ -11,6 +11,12 @@
   outline: none;
   max-width: 80px;
   width: auto;
+
+  &:focus {
+    border: none;
+    outline: none;
+    background-color: var(--gray--gray-02);
+  }
 }
 
 .saveButton {
@@ -21,6 +27,7 @@
   padding: 0.25rem;
   color: #ffffff;
   background-color: var(--primary-color);
+  border-top-right-radius: 0.25rem;
 }
 
 .limitContainer {
@@ -29,12 +36,16 @@
 
   .label {
     padding: 0.25rem;
+    margin-left: 0.75rem;
   }
 }
 
 .saveContainer {
   background-color: var(--gray--gray-02);
-  padding: 0.25rem;
+  padding: 0.25rem 0.75rem;
   justify-content: space-between;
   font-size: 0.8em;
+  border-bottom-right-radius: 0.25rem;
+  border-bottom-left-radius: 0.25rem;
+  line-height: 120%;
 }
