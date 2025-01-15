@@ -318,9 +318,9 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       if (!project) {
         throw new Error("Unable to find project to execute query");
       }
-      await this.createQueryResultsPanelVirtualDocument(
-        message.editorName || "Custom query",
-      );
+      if (message.editorName) {
+        await this.createQueryResultsPanelVirtualDocument(message.editorName);
+      }
       this.updateViewTypeToWebview(
         QueryPanelViewType.OPEN_RESULTS_FROM_HISTORY_BOOKMARKS,
       );
