@@ -3,24 +3,26 @@ import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
 import { setLimit } from "@modules/queryPanel/context/queryPanelSlice";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import { Input, Stack } from "@uicore";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "./styles.module.scss";
 import { PlayIcon } from "@assets/icons";
 
 const QueryLimit = (): JSX.Element => {
-  const { limit } = useQueryPanelState();
-  const [value, setValue] = useState(limit?.toString());
+  const { limit, queryResults } = useQueryPanelState();
+  const [value, setValue] = useState(limit?.toString() ?? "");
   const [isFocused, setIsFocused] = useState(false);
   const dispatch = useQueryPanelDispatch();
-  const handleChange = () => {
-    dispatch(setLimit(parseInt(value ?? "0")));
-    executeRequestInAsync("updateConfig", { limit: value });
+  const saveLimit = () => {
+    if (!value) {
+      return;
+    }
+    dispatch(setLimit(parseInt(value)));
+    executeRequestInAsync("updateConfig", { limit: parseInt(value) });
   };
 
-  const handleSubmit = () => {
-    // onSave?.(value);
-    handleChange();
-  };
+  useEffect(() => {
+    setValue(limit?.toString() ?? "");
+  }, [limit]);
 
   return (
     <div className={styles.container}>
@@ -47,7 +49,12 @@ const QueryLimit = (): JSX.Element => {
           <div
             className={styles.playButton}
             onClick={() => {
-              /* */
+              executeRequestInAsync("executeQuery", {
+                query: queryResults?.raw_sql,
+                projectName: "",
+                editorName: "",
+                limit: parseInt(value),
+              });
             }}
           >
             <PlayIcon />
@@ -56,7 +63,7 @@ const QueryLimit = (): JSX.Element => {
       </Stack>
       <Stack className={styles.saveContainer}>
         <div>Set as default</div>
-        <div className={styles.saveButton} onClick={handleSubmit}>
+        <div className={styles.saveButton} onClick={saveLimit}>
           Save
         </div>
       </Stack>

@@ -310,6 +310,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     query: string;
     projectName: string;
     editorName: string;
+    limit: number;
   }) {
     try {
       const isHistoryTab = Boolean(message.projectName);
@@ -326,7 +327,11 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       this.telemetry.sendTelemetryEvent(
         isHistoryTab ? "QueryHistoryExecuteSql" : "QueryBookmarkExecuteSql",
       );
-      await project.executeSQL(message.query, "");
+      if (message.limit) {
+        await project.executeSQLWithLimit(message.query, "", message.limit);
+      } else {
+        await project.executeSQL(message.query, "");
+      }
       return;
     } catch (error) {
       window.showErrorMessage(
