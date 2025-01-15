@@ -11,6 +11,9 @@
   outline: none;
   max-width: 80px;
   width: auto;
+  caret-color: var(--primary-color);
+  border-radius: 0;
+  height: 100%;
 
   &:focus {
     border: none;
@@ -28,6 +31,7 @@
   color: #ffffff;
   background-color: var(--primary-color);
   border-top-right-radius: 0.25rem;
+  display: flex;
 }
 
 .limitContainer {
