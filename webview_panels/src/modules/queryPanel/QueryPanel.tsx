@@ -15,6 +15,7 @@ import ShowInTabButton from "./components/openInTabButton/OpenInTabButton";
 import RunAdhocQueryButton from "./components/runAdhocQueryButton/RunAdhocQueryButton";
 import { QueryPanelViewType } from "./context/types";
 import NewNotebookButton from "./components/runAdhocQueryButton/NewNotebook";
+import QueryLimit from "./components/queryLimit/QueryLimit";
 
 const QueryPanel = (): JSX.Element => {
   const { tabState, viewType } = useQueryPanelState();
@@ -40,6 +41,7 @@ const QueryPanel = (): JSX.Element => {
         <Stack>
           {viewType === QueryPanelViewType.DEFAULT && (
             <>
+              <QueryLimit />
               <NewNotebookButton />
               <RunAdhocQueryButton />
               <ClearResultsButton />

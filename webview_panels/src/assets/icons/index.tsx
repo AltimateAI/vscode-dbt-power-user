@@ -43,6 +43,10 @@ const Icon = ({
   <i className={`${className} codicon codicon-${icon}`} {...rest} />
 );
 
+export const PlayIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
+  <Icon icon="play" {...props} />
+);
+
 export const RemoveIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
   <Icon icon="remove" {...props} />
 );

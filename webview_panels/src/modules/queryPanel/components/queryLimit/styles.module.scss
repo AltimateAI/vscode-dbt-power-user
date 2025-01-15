@@ -1,0 +1,40 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  border-radius: 0.5rem;
+  border: 1px solid var(--gray--gray-02);
+}
+
+.input {
+  background-color: var(--gray--gray-02);
+  border: none;
+  outline: none;
+  max-width: 80px;
+  width: auto;
+}
+
+.saveButton {
+  color: var(--primary-color);
+}
+
+.playButton {
+  padding: 0.25rem;
+  color: #ffffff;
+  background-color: var(--primary-color);
+}
+
+.limitContainer {
+  gap: 0;
+  align-items: center;
+
+  .label {
+    padding: 0.25rem;
+  }
+}
+
+.saveContainer {
+  background-color: var(--gray--gray-02);
+  padding: 0.25rem;
+  justify-content: space-between;
+  font-size: 0.8em;
+}
