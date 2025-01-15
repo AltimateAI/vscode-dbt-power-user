@@ -7,9 +7,16 @@ import { useEffect, useState } from "react";
 import styles from "./styles.module.scss";
 import { PlayIcon } from "@assets/icons";
 
+enum LimitSaveState {
+  Default = 1,
+  Dirty,
+  Saved,
+}
+
 const QueryLimit = (): JSX.Element => {
   const { limit, queryResults } = useQueryPanelState();
   const [value, setValue] = useState(limit?.toString() ?? "");
+  const [limitSaveState, setLimitSaveState] = useState(LimitSaveState.Default);
   const [isFocused, setIsFocused] = useState(false);
   const dispatch = useQueryPanelDispatch();
   const saveLimit = () => {
@@ -18,6 +25,10 @@ const QueryLimit = (): JSX.Element => {
     }
     dispatch(setLimit(parseInt(value)));
     executeRequestInAsync("updateConfig", { limit: parseInt(value) });
+    setLimitSaveState(LimitSaveState.Saved);
+    setTimeout(() => {
+      setLimitSaveState(LimitSaveState.Default);
+    }, 2000);
   };
 
   useEffect(() => {
@@ -36,7 +47,14 @@ const QueryLimit = (): JSX.Element => {
         >
           <Input
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={(e) => {
+              setValue(e.target.value);
+              setLimitSaveState(
+                e.target.value !== (limit?.toString() ?? "")
+                  ? LimitSaveState.Dirty
+                  : LimitSaveState.Default,
+              );
+            }}
             className={styles.input}
             onFocus={() => {
               setIsFocused(true);
@@ -61,12 +79,18 @@ const QueryLimit = (): JSX.Element => {
           </div>
         </div>
       </Stack>
-      <Stack className={styles.saveContainer}>
-        <div>Set as default</div>
-        <div className={styles.saveButton} onClick={saveLimit}>
-          Save
-        </div>
-      </Stack>
+      {limitSaveState !== LimitSaveState.Default && (
+        <Stack className={styles.saveContainer}>
+          <div>Set as default</div>
+          {limitSaveState === LimitSaveState.Dirty ? (
+            <div className={styles.saveButton} onClick={saveLimit}>
+              Save
+            </div>
+          ) : (
+            <div className={styles.saveButton}>Saved</div>
+          )}
+        </Stack>
+      )}
     </div>
   );
 };
