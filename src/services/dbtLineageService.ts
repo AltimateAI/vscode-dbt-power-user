@@ -44,6 +44,7 @@ export type Table = {
   materialization?: string;
   description?: string;
   tests: any[];
+  meta?: Map<string, any>;
   isExternalProject: boolean;
   columns: { [columnName: string]: ColumnMetaData };
   patchPath?: string;
@@ -251,6 +252,7 @@ export class DbtLineageService {
         return { ...testMetaMap.get(testKey), key: testKey };
       }),
       packageName: node.package_name,
+      meta: node.meta,
     };
   }
 
