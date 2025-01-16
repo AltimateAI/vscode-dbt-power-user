@@ -88,6 +88,8 @@ export class PythonEnvironment implements Disposable {
     if (typeof value !== "string") {
       return value;
     }
+
+    // Handle ${env:VARIABLE} format
     const regexVsCodeEnv = /\$\{env\:(.*?)\}/gm;
     let matchResult;
     while ((matchResult = regexVsCodeEnv.exec(value)) !== null) {
@@ -108,6 +110,25 @@ export class PythonEnvironment implements Disposable {
         );
       }
     }
+
+    // Handle $VARIABLE format
+    const regexShellEnv = /\$([A-Za-z_][A-Za-z0-9_]*)/g;
+    while ((matchResult = regexShellEnv.exec(value)) !== null) {
+      const envVar = matchResult[1];
+      if (vsCodeEnv[envVar] !== undefined) {
+        value = value.replace(
+          new RegExp(`\\\$${envVar}`, "g"),
+          vsCodeEnv[envVar]!,
+        );
+        this.dbtTerminal.debug(
+          "pythonEnvironment:substituteSettingsVariables",
+          `Picking shell env var ${envVar} from ${
+            this.environmentVariableSource[envVar]
+          }`,
+        );
+      }
+    }
+
     value = value.replace(
       "${workspaceFolder}",
       workspace.workspaceFolders![0].uri.fsPath,
