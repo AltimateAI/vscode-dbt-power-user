@@ -48,9 +48,10 @@ const QueryLimit = (): JSX.Element => {
           <Input
             value={value}
             onChange={(e) => {
-              setValue(e.target.value);
+              const newValue = e.target.value.replace(/[^\d]/g, "");
+              setValue(newValue);
               setLimitSaveState(
-                e.target.value !== (limit?.toString() ?? "")
+                newValue && newValue !== (limit?.toString() ?? "500")
                   ? LimitSaveState.Dirty
                   : LimitSaveState.Default,
               );
