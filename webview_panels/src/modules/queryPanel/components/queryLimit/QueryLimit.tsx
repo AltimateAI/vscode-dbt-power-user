@@ -37,11 +37,11 @@ const QueryLimit = (): JSX.Element => {
   }, [limitStr, activeEditor?.filepath]);
 
   useEffect(() => {
-    setLimitSaveState(
-      value && value !== limitStr
-        ? LimitSaveState.Dirty
-        : LimitSaveState.Default,
-    );
+    if (value && value !== limitStr) {
+      setLimitSaveState(LimitSaveState.Dirty);
+    } else if (limitSaveState !== LimitSaveState.Saved) {
+      setLimitSaveState(LimitSaveState.Default);
+    }
   }, [value, limitStr]);
 
   return (
