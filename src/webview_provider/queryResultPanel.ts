@@ -12,6 +12,7 @@ import {
   WebviewViewResolveContext,
   window,
   workspace,
+  Range,
 } from "vscode";
 
 import { PythonException } from "python-bridge";
@@ -548,7 +549,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       window.showErrorMessage("No active editor found");
       return;
     }
-    const query = activeEditor.document.getText();
     const project = await this.getProject();
     if (!project) {
       window.showErrorMessage(
@@ -557,6 +557,17 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       return;
     }
     const modelName = path.basename(activeEditor.document.uri.fsPath, ".sql");
+    let query = activeEditor.document.getText();
+    const selection = activeEditor.selection;
+    if (selection && !selection.isEmpty) {
+      const selectionRange = new Range(
+        selection.start.line,
+        selection.start.character,
+        selection.end.line,
+        selection.end.character,
+      );
+      query = activeEditor.document.getText(selectionRange);
+    }
     this.telemetry.sendTelemetryEvent("QueryActiveWindowExecuteSql");
     await project.executeSQLWithLimit(
       query,
