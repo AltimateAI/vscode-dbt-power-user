@@ -30,9 +30,16 @@
 .playButton {
   padding: calc(0.5rem - 1px);
   color: #ffffff;
-  background-color: var(--primary-color);
   border-top-right-radius: 0.15rem;
   display: flex;
+
+  &.active {
+    background-color: var(--primary-color);
+  }
+
+  &.inactive {
+    background-color: var(--background--04);
+  }
 }
 
 .limitContainer {

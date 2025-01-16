@@ -66,7 +66,10 @@ const QueryLimit = (): JSX.Element => {
           />
 
           <div
-            className={styles.playButton}
+            className={[
+              styles.playButton,
+              value ? styles.active : styles.inactive,
+            ].join(" ")}
             onClick={() => {
               executeRequestInAsync("executeQueryFromActiveWindow", {
                 limit: parseInt(value),
