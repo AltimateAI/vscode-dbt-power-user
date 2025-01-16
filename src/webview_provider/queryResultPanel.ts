@@ -165,6 +165,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       usersService,
     );
     this._disposables.push(
+      window.onDidChangeActiveTextEditor(() => {
+        // to reset the limit on editor change
+        this.sendUpdatedContextToWebview();
+      }),
       workspace.onDidChangeConfiguration(
         (e) => {
           if (e.affectsConfiguration("dbt.disableQueryHistory")) {
@@ -195,6 +199,24 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       ),
       this,
     );
+  }
+
+  private async sendUpdatedContextToWebview() {
+    const perspectiveTheme = workspace
+      .getConfiguration("dbt")
+      .get("perspectiveTheme", "Vintage");
+    const queryHistoryDisabled = workspace
+      .getConfiguration("dbt")
+      .get("disableQueryHistory", false);
+
+    const limit = workspace.getConfiguration("dbt").get<number>("queryLimit");
+    await this._panel!.webview.postMessage({
+      command: OutboundCommand.GetContext,
+      limit,
+      perspectiveTheme,
+      queryHistoryDisabled,
+      queryInActiveEditor: window.activeTextEditor?.document.getText(),
+    });
   }
 
   private collectQueryResultsDebugInfo() {
@@ -427,22 +449,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             break;
           case InboundCommand.GetQueryPanelContext:
             {
-              const perspectiveTheme = workspace
-                .getConfiguration("dbt")
-                .get("perspectiveTheme", "Vintage");
-              const queryHistoryDisabled = workspace
-                .getConfiguration("dbt")
-                .get("disableQueryHistory", false);
-
-              const limit = workspace
-                .getConfiguration("dbt")
-                .get<number>("queryLimit");
-              await this._panel!.webview.postMessage({
-                command: OutboundCommand.GetContext,
-                limit,
-                perspectiveTheme,
-                queryHistoryDisabled,
-              });
+              await this.sendUpdatedContextToWebview();
             }
             break;
           case InboundCommand.CancelQuery:

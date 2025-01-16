@@ -69,4 +69,5 @@ export interface QueryPanelStateProps {
   queryHistoryDisabled: boolean;
   queryBookmarksTagsFromDB?: { id: number; tag: string }[];
   tabState: QueryPanelTitleTabState;
+  queryInActiveEditor?: string;
 }

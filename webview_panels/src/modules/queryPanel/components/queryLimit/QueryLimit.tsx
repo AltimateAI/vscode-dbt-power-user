@@ -14,7 +14,7 @@ enum LimitSaveState {
 }
 
 const QueryLimit = (): JSX.Element => {
-  const { limit, queryResults } = useQueryPanelState();
+  const { limit, queryResults, queryInActiveEditor } = useQueryPanelState();
   const [value, setValue] = useState(limit?.toString() ?? "");
   const [limitSaveState, setLimitSaveState] = useState(LimitSaveState.Default);
   const [isFocused, setIsFocused] = useState(false);
@@ -33,7 +33,7 @@ const QueryLimit = (): JSX.Element => {
 
   useEffect(() => {
     setValue(limit?.toString() ?? "");
-  }, [limit]);
+  }, [limit, queryInActiveEditor]);
 
   return (
     <div className={styles.container}>
