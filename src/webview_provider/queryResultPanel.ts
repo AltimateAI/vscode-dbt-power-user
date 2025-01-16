@@ -39,6 +39,7 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { QueryManifestService } from "../services/queryManifestService";
 import { UsersService } from "../services/usersService";
 import { TelemetryEvents } from "../telemetry/events";
+import path = require("path");
 
 interface JsonObj {
   [key: string]: string | number | undefined;
@@ -91,6 +92,7 @@ enum InboundCommand {
   GetQueryPanelContext = "getQueryPanelContext",
   GetQueryHistory = "getQueryHistory",
   ExecuteQuery = "executeQuery",
+  ExecuteQueryFromActiveWindow = "executeQueryFromActiveWindow",
   GetQueryTabData = "getQueryTabData",
   RunAdhocQuery = "runAdhocQuery",
   ViewResultSet = "viewResultSet",
@@ -425,6 +427,9 @@ export class QueryResultPanel extends AltimateWebviewProvider {
               fileName: "Custom Query",
             });
             break;
+          case InboundCommand.ExecuteQueryFromActiveWindow:
+            await this.executeQueryFromActiveWindow(message);
+            break;
           case InboundCommand.ExecuteQuery:
             await this.executeIncomingQuery(message);
             break;
@@ -534,6 +539,31 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       },
       this,
       this._disposables,
+    );
+  }
+
+  private async executeQueryFromActiveWindow(message: { limit: number }) {
+    const activeEditor = window.activeTextEditor;
+    if (!activeEditor) {
+      window.showErrorMessage("No active editor found");
+      return;
+    }
+    const query = activeEditor.document.getText();
+    const project = await this.getProject();
+    if (!project) {
+      window.showErrorMessage(
+        "Unable to find dbt project for executing query.",
+      );
+      return;
+    }
+    const modelName = path.basename(activeEditor.document.uri.fsPath, ".sql");
+    this.telemetry.sendTelemetryEvent("QueryActiveWindowExecuteSql");
+    await project.executeSQLWithLimit(
+      query,
+      modelName,
+      message.limit,
+      false,
+      false,
     );
   }
 

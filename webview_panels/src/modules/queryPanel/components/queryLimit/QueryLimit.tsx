@@ -14,7 +14,7 @@ enum LimitSaveState {
 }
 
 const QueryLimit = (): JSX.Element => {
-  const { limit, queryResults, queryInActiveEditor } = useQueryPanelState();
+  const { limit, queryInActiveEditor } = useQueryPanelState();
   const [value, setValue] = useState(limit?.toString() ?? "");
   const [limitSaveState, setLimitSaveState] = useState(LimitSaveState.Default);
   const [isFocused, setIsFocused] = useState(false);
@@ -67,10 +67,7 @@ const QueryLimit = (): JSX.Element => {
           <div
             className={styles.playButton}
             onClick={() => {
-              executeRequestInAsync("executeQuery", {
-                query: queryResults?.raw_sql,
-                projectName: "",
-                editorName: "",
+              executeRequestInAsync("executeQueryFromActiveWindow", {
                 limit: parseInt(value),
               });
             }}
