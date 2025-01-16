@@ -162,9 +162,9 @@ const useQueryPanelListeners = (): { loading: boolean } => {
             // @ts-expect-error valid type
             setQueryHistoryDisabled(args.queryHistoryDisabled as boolean),
           );
-          // @ts-expect-error valid type
           dispatch(
             setActiveEditor(
+              // @ts-expect-error valid type
               args.activeEditor as QueryPanelStateProps["activeEditor"],
             ),
           );

@@ -34,7 +34,15 @@ const QueryLimit = (): JSX.Element => {
 
   useEffect(() => {
     setValue(limitStr);
-  }, [limit, activeEditor?.filepath]);
+  }, [limitStr, activeEditor?.filepath]);
+
+  useEffect(() => {
+    setLimitSaveState(
+      value && value !== limitStr
+        ? LimitSaveState.Dirty
+        : LimitSaveState.Default,
+    );
+  }, [value, limitStr]);
 
   return (
     <div className={styles.container}>
@@ -51,11 +59,6 @@ const QueryLimit = (): JSX.Element => {
             onChange={(e) => {
               const newValue = e.target.value.replace(/[^\d]/g, "");
               setValue(newValue);
-              setLimitSaveState(
-                newValue && newValue !== limitStr
-                  ? LimitSaveState.Dirty
-                  : LimitSaveState.Default,
-              );
             }}
             className={styles.input}
             onFocus={() => {
