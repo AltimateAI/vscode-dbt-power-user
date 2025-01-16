@@ -218,7 +218,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       limit,
       perspectiveTheme,
       queryHistoryDisabled,
-      queryInActiveEditor: window.activeTextEditor?.document.getText(),
+      activeEditor: {
+        query: window.activeTextEditor?.document.getText(),
+        filepath: window.activeTextEditor?.document.uri.fsPath,
+      },
     });
   }
 

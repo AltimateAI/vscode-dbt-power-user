@@ -35,6 +35,7 @@
 
   &.active {
     background-color: var(--primary-color);
+    cursor: pointer;
   }
 
   &.inactive {

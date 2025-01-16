@@ -21,18 +21,18 @@ export const initialState = {
   queryHistoryDisabled: false,
   tabState: QueryPanelTitleTabState.Preview,
   queryBookmarksTagsFromDB: undefined,
-  queryInActiveEditor: undefined,
+  activeEditor: undefined,
 } as QueryPanelStateProps;
 
 const queryPanelSlice = createSlice({
   name: "queryPanelState",
   initialState,
   reducers: {
-    setQueryInActiveEditor: (
+    setActiveEditor: (
       state,
-      action: PayloadAction<QueryPanelStateProps["queryInActiveEditor"]>,
+      action: PayloadAction<QueryPanelStateProps["activeEditor"]>,
     ) => {
-      state.queryInActiveEditor = action.payload;
+      state.activeEditor = action.payload;
     },
     resetData: (state) => {
       return {
@@ -148,7 +148,7 @@ export const {
   setQueryHistoryDisabled,
   setTabState,
   setQueryBookmarksTagsFromDB,
-  setQueryInActiveEditor,
+  setActiveEditor,
 } = queryPanelSlice.actions;
 
 export default queryPanelSlice;

@@ -14,8 +14,9 @@ enum LimitSaveState {
 }
 
 const QueryLimit = (): JSX.Element => {
-  const { limit, queryInActiveEditor } = useQueryPanelState();
-  const [value, setValue] = useState(limit?.toString() ?? "");
+  const { limit, activeEditor } = useQueryPanelState();
+  const limitStr = limit?.toString() ?? "500";
+  const [value, setValue] = useState(limitStr);
   const [limitSaveState, setLimitSaveState] = useState(LimitSaveState.Default);
   const [isFocused, setIsFocused] = useState(false);
   const dispatch = useQueryPanelDispatch();
@@ -32,8 +33,8 @@ const QueryLimit = (): JSX.Element => {
   };
 
   useEffect(() => {
-    setValue(limit?.toString() ?? "");
-  }, [limit, queryInActiveEditor]);
+    setValue(limitStr);
+  }, [limit, activeEditor?.filepath]);
 
   return (
     <div className={styles.container}>
@@ -51,7 +52,7 @@ const QueryLimit = (): JSX.Element => {
               const newValue = e.target.value.replace(/[^\d]/g, "");
               setValue(newValue);
               setLimitSaveState(
-                newValue && newValue !== (limit?.toString() ?? "500")
+                newValue && newValue !== limitStr
                   ? LimitSaveState.Dirty
                   : LimitSaveState.Default,
               );
@@ -68,12 +69,16 @@ const QueryLimit = (): JSX.Element => {
           <div
             className={[
               styles.playButton,
-              value ? styles.active : styles.inactive,
+              value && activeEditor?.filepath?.endsWith(".sql")
+                ? styles.active
+                : styles.inactive,
             ].join(" ")}
             onClick={() => {
-              executeRequestInAsync("executeQueryFromActiveWindow", {
-                limit: parseInt(value),
-              });
+              if (value && activeEditor?.filepath?.endsWith(".sql")) {
+                executeRequestInAsync("executeQueryFromActiveWindow", {
+                  limit: parseInt(value),
+                });
+              }
             }}
           >
             <PlayIcon />

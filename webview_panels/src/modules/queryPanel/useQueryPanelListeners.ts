@@ -14,7 +14,7 @@ import {
   setQueryResults,
   setQueryResultsError,
   setViewType,
-  setQueryInActiveEditor,
+  setActiveEditor,
 } from "./context/queryPanelSlice";
 import useQueryPanelState from "./useQueryPanelState";
 import { panelLogger } from "@modules/logger";
@@ -163,7 +163,11 @@ const useQueryPanelListeners = (): { loading: boolean } => {
             setQueryHistoryDisabled(args.queryHistoryDisabled as boolean),
           );
           // @ts-expect-error valid type
-          dispatch(setQueryInActiveEditor(args.queryInActiveEditor as string));
+          dispatch(
+            setActiveEditor(
+              args.activeEditor as QueryPanelStateProps["activeEditor"],
+            ),
+          );
           break;
         case "collectQueryResultsDebugInfo":
           collectQueryResultsDebugInfo();
