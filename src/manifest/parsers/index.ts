@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, statSync } from "fs";
 import { provide } from "inversify-binding-decorators";
 import * as path from "path";
 import { Uri } from "vscode";
@@ -49,7 +49,7 @@ export class ManifestParser {
       return;
     }
     const projectRoot = project.projectRoot;
-    const manifest = this.readAndParseManifest(projectRoot, targetPath);
+    const manifest = await this.readAndParseManifest(projectRoot, targetPath);
     if (manifest === undefined) {
       const event: ManifestCacheChangedEvent = {
         added: [
@@ -187,7 +187,7 @@ export class ManifestParser {
     return event;
   }
 
-  private readAndParseManifest(projectRoot: Uri, targetPath: string) {
+  private async readAndParseManifest(projectRoot: Uri, targetPath: string) {
     const pathParts = [targetPath];
     if (!path.isAbsolute(targetPath)) {
       pathParts.unshift(projectRoot.fsPath);
@@ -198,15 +198,119 @@ export class ManifestParser {
       `Reading manifest at ${manifestLocation} for project at ${projectRoot}`,
     );
 
-    try {
-      const manifestFile = readFileSync(manifestLocation, "utf8");
-      return JSON.parse(manifestFile);
-    } catch (error) {
-      this.terminal.error(
-        "ManifestParser",
-        `Could not read manifest file at ${manifestLocation}, ignoring error`,
-        error,
-      );
+    // MANIFEST CORRUPTION PREVENTION
+    // The manifest file can become corrupted when it's read while dbt is still writing to it.
+    // This happens because dbt writes the manifest file in a single operation, but the file
+    // can be quite large (often >1MB). During this write operation, if we try to read the file,
+    // we may get a partially written manifest that is invalid JSON or missing critical data.
+
+    // To prevent this, we implement three safety mechanisms:
+    // 1. File Size Stability Check: We check if the file size remains stable for a period,
+    //    indicating dbt has finished writing
+    // 2. Retry Logic: If reading fails, we retry multiple times with delays
+    // 3. Basic Validation: We verify the manifest has required fields before accepting it
+
+    const maxRetries = 3;
+    const stabilityDelay = 1000; // 1 second between file size checks
+    const maxStabilityChecks = 3; // Number of times file size must remain stable
+
+    let lastAttemptError: any;
+    let lastFileSize: number = 0;
+    let stabilityCheckAttempts = 0;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // FILE SIZE STABILITY CHECK
+        // We check the file size multiple times to ensure it's not actively being written to.
+        // If the size changes between checks, we reset our counter and wait longer.
+        let lastSize = -1;
+        let stableChecks = 0;
+        stabilityCheckAttempts = 0;
+
+        while (stableChecks < maxStabilityChecks) {
+          if (!existsSync(manifestLocation)) {
+            throw new Error("Manifest file does not exist");
+          }
+          const stats = statSync(manifestLocation);
+          const currentSize = stats.size;
+          lastFileSize = currentSize;
+
+          if (currentSize === lastSize) {
+            stableChecks++;
+          } else {
+            stableChecks = 0;
+            lastSize = currentSize;
+          }
+
+          stabilityCheckAttempts++;
+
+          if (stableChecks === maxStabilityChecks) {
+            break;
+          }
+          await new Promise((resolve) => setTimeout(resolve, stabilityDelay));
+        }
+
+        const manifestFile = readFileSync(manifestLocation, "utf8");
+        const parsed = JSON.parse(manifestFile);
+
+        // MANIFEST VALIDATION
+        // The manifest must have these core sections to be considered valid.
+        // If any are missing, the manifest is likely corrupted or incomplete.
+        if (!parsed.nodes || !parsed.sources || !parsed.macros) {
+          throw new Error("Manifest file appears to be incomplete");
+        }
+
+        // If we successfully read and parsed the manifest after retries, log it
+        if (attempt > 0) {
+          this.telemetry.sendTelemetryEvent("manifestReadRetrySuccess", {
+            retryAttempt: attempt.toString(),
+            fileSize: lastFileSize.toString(),
+            stabilityChecks: stabilityCheckAttempts.toString(),
+          });
+        }
+
+        return parsed;
+      } catch (error) {
+        lastAttemptError = error;
+        this.terminal.error(
+          "ManifestParser",
+          `Attempt ${attempt + 1}/${maxRetries} failed to read manifest file at ${manifestLocation}`,
+          error,
+        );
+
+        // Send telemetry for each failed attempt
+        this.telemetry.sendTelemetryEvent("manifestReadError", {
+          attempt: attempt.toString(),
+          fileSize: lastFileSize.toString(),
+          errorType: error instanceof Error ? error.name : "unknown",
+          errorMessage: error instanceof Error ? error.message : "unknown",
+          stabilityChecks: stabilityCheckAttempts.toString(),
+        });
+
+        if (attempt === maxRetries - 1) {
+          // After all retries fail, send a final telemetry event
+          this.telemetry.sendTelemetryEvent("manifestReadFinalFailure", {
+            totalAttempts: maxRetries.toString(),
+            finalFileSize: lastFileSize.toString(),
+            finalErrorType:
+              lastAttemptError instanceof Error
+                ? lastAttemptError.name
+                : "unknown",
+            finalErrorMessage:
+              lastAttemptError instanceof Error
+                ? lastAttemptError.message
+                : "unknown",
+            totalStabilityChecks: stabilityCheckAttempts.toString(),
+          });
+
+          // Return undefined to trigger empty cache event
+          // This allows the extension to continue functioning with reduced capabilities
+          // rather than breaking completely
+          return undefined;
+        }
+        // Wait before retry to allow potential write operations to complete
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
     }
   }
 }

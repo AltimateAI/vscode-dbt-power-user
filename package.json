@@ -263,6 +263,20 @@
                 }
               }
             }
+          },
+          "dbt.preRebuildDelay": {
+            "type": "number",
+            "default": 0,
+            "description": "Delay in milliseconds before rebuilding manifest after file changes. Increase this value (e.g. to 2000) if you experience manifest corruption issues.",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "dbt.manifestRebuildDebounce": {
+            "type": "number",
+            "default": 1000,
+            "description": "Debounce time in milliseconds for manifest rebuilds. Increase this value if you have many rapid file changes causing frequent rebuilds.",
+            "minimum": 500,
+            "maximum": 10000
           }
         }
       }

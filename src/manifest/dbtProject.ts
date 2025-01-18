@@ -360,8 +360,56 @@ export class DBTProject implements Disposable {
               this.projectRoot
             }`,
           );
-          await this.rebuildManifest();
-        }, this.dbtProjectIntegration.getDebounceForRebuildManifest()),
+
+          // Get configurable delays from settings with reasonable defaults
+          const preRebuildDelay = workspace
+            .getConfiguration("dbt")
+            .get<number>("preRebuildDelay", 0); // Default to 0ms for fast systems
+
+          const defaultDebounceTime = workspace
+            .getConfiguration("dbt")
+            .get<number>("manifestRebuildDebounce", 1000); // Default to 1s
+
+          // Send telemetry about the current delay settings
+          this.telemetry.sendTelemetryEvent("manifestRebuildSettings", {
+            preRebuildDelay: preRebuildDelay.toString(),
+            debounceTime: (
+              this.dbtProjectIntegration.getDebounceForRebuildManifest() ||
+              defaultDebounceTime
+            ).toString(),
+            projectName: DBTProject.hashProjectRoot(this.projectRoot.fsPath),
+          });
+
+          const startTime = Date.now();
+
+          // Only add delay if configured (for systems experiencing issues)
+          if (preRebuildDelay > 0) {
+            await new Promise((resolve) =>
+              setTimeout(resolve, preRebuildDelay),
+            );
+          }
+
+          try {
+            await this.rebuildManifest();
+
+            // Track successful rebuilds and their timing
+            this.telemetry.sendTelemetryEvent("manifestRebuildSuccess", {
+              duration: (Date.now() - startTime).toString(),
+              preRebuildDelay: preRebuildDelay.toString(),
+              projectName: DBTProject.hashProjectRoot(this.projectRoot.fsPath),
+            });
+          } catch (error) {
+            // Track failed rebuilds
+            this.telemetry.sendTelemetryEvent("manifestRebuildError", {
+              duration: (Date.now() - startTime).toString(),
+              preRebuildDelay: preRebuildDelay.toString(),
+              projectName: DBTProject.hashProjectRoot(this.projectRoot.fsPath),
+              errorType: error instanceof Error ? error.name : "unknown",
+              errorMessage: error instanceof Error ? error.message : "unknown",
+            });
+            throw error; // Re-throw to maintain original error handling
+          }
+        }, this.dbtProjectIntegration.getDebounceForRebuildManifest() || defaultDebounceTime),
       ),
     );
 
