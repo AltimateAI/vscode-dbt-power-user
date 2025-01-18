@@ -204,11 +204,10 @@ export class ManifestParser {
     // can be quite large (often >1MB). During this write operation, if we try to read the file,
     // we may get a partially written manifest that is invalid JSON or missing critical data.
 
-    // To prevent this, we implement three safety mechanisms:
-    // 1. File Size Stability Check: We check if the file size remains stable for a period,
-    //    indicating dbt has finished writing
-    // 2. Retry Logic: If reading fails, we retry multiple times with delays
-    // 3. Basic Validation: We verify the manifest has required fields before accepting it
+    // To prevent this, we implement a progressive retry strategy:
+    // 1. First Attempt: Try immediate read for best performance
+    // 2. If that fails, use file size stability checks to ensure write is complete
+    // 3. Basic validation to verify manifest completeness
 
     const maxRetries = 3;
     const stabilityDelay = 1000; // 1 second between file size checks
@@ -218,11 +217,38 @@ export class ManifestParser {
     let lastFileSize: number = 0;
     let stabilityCheckAttempts = 0;
 
+    // First attempt: Try immediate read for best performance
+    try {
+      if (!existsSync(manifestLocation)) {
+        throw new Error("Manifest file does not exist");
+      }
+      const stats = statSync(manifestLocation);
+      lastFileSize = stats.size;
+
+      const manifestFile = readFileSync(manifestLocation, "utf8");
+      const parsed = JSON.parse(manifestFile);
+
+      if (!parsed.nodes || !parsed.sources || !parsed.macros) {
+        throw new Error("Manifest file appears to be incomplete");
+      }
+
+      // Fast path succeeded - no telemetry needed for successful first attempt
+      return parsed;
+    } catch (error) {
+      // First attempt failed, log it and move to retry with stability checks
+      this.telemetry.sendTelemetryEvent("manifestReadFirstAttemptError", {
+        fileSize: lastFileSize.toString(),
+        errorType: error instanceof Error ? error.name : "unknown",
+        errorMessage: error instanceof Error ? error.message : "unknown",
+      });
+      lastAttemptError = error;
+    }
+
+    // If we get here, first attempt failed - try again with stability checks
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         // FILE SIZE STABILITY CHECK
-        // We check the file size multiple times to ensure it's not actively being written to.
-        // If the size changes between checks, we reset our counter and wait longer.
+        // Only done on retry attempts after first attempt fails
         let lastSize = -1;
         let stableChecks = 0;
         stabilityCheckAttempts = 0;
@@ -253,21 +279,16 @@ export class ManifestParser {
         const manifestFile = readFileSync(manifestLocation, "utf8");
         const parsed = JSON.parse(manifestFile);
 
-        // MANIFEST VALIDATION
-        // The manifest must have these core sections to be considered valid.
-        // If any are missing, the manifest is likely corrupted or incomplete.
         if (!parsed.nodes || !parsed.sources || !parsed.macros) {
           throw new Error("Manifest file appears to be incomplete");
         }
 
-        // If we successfully read and parsed the manifest after retries, log it
-        if (attempt > 0) {
-          this.telemetry.sendTelemetryEvent("manifestReadRetrySuccess", {
-            retryAttempt: attempt.toString(),
-            fileSize: lastFileSize.toString(),
-            stabilityChecks: stabilityCheckAttempts.toString(),
-          });
-        }
+        // Log successful retry with stability checks
+        this.telemetry.sendTelemetryEvent("manifestReadRetrySuccess", {
+          retryAttempt: attempt.toString(),
+          fileSize: lastFileSize.toString(),
+          stabilityChecks: stabilityCheckAttempts.toString(),
+        });
 
         return parsed;
       } catch (error) {
@@ -278,7 +299,6 @@ export class ManifestParser {
           error,
         );
 
-        // Send telemetry for each failed attempt
         this.telemetry.sendTelemetryEvent("manifestReadError", {
           attempt: attempt.toString(),
           fileSize: lastFileSize.toString(),
@@ -288,9 +308,8 @@ export class ManifestParser {
         });
 
         if (attempt === maxRetries - 1) {
-          // After all retries fail, send a final telemetry event
           this.telemetry.sendTelemetryEvent("manifestReadFinalFailure", {
-            totalAttempts: maxRetries.toString(),
+            totalAttempts: (maxRetries + 1).toString(), // +1 for first attempt
             finalFileSize: lastFileSize.toString(),
             finalErrorType:
               lastAttemptError instanceof Error
@@ -303,12 +322,8 @@ export class ManifestParser {
             totalStabilityChecks: stabilityCheckAttempts.toString(),
           });
 
-          // Return undefined to trigger empty cache event
-          // This allows the extension to continue functioning with reduced capabilities
-          // rather than breaking completely
           return undefined;
         }
-        // Wait before retry to allow potential write operations to complete
         await new Promise((resolve) => setTimeout(resolve, 2000));
       }
     }
