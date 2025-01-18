@@ -1254,6 +1254,7 @@ export class DBTProject implements Disposable {
         name: columnNameFromDB,
         data_type: c.dtype?.toLowerCase(),
         description: "",
+        meta: {},
       };
     }
     if (Object.keys(node.columns).length > columnsFromDB.length) {

@@ -93,6 +93,7 @@ export declare interface Column {
     datatype?: string;
     can_lineage_expand: boolean;
     description: string;
+    meta?: Map<any, any>;
 }
 
 export declare interface ColumnLineage {
@@ -489,6 +490,7 @@ export declare interface Table {
         path: string;
     }[];
     schema?: string;
+    meta?: Map<any, any>;
 }
 
 export declare enum TaskLabels {
