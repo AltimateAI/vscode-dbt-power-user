@@ -8,9 +8,10 @@ import {
   TextDocument,
   Uri,
   workspace,
+  window,
 } from "vscode";
 import { readFileSync } from "fs";
-import { parse } from "yaml";
+import { parse, parseDocument } from "yaml";
 import {
   TestMetadataAcceptedValues,
   TestMetadataRelationships,
@@ -374,3 +375,71 @@ export const getStringSizeInMb = (str: string): number => {
   const sizeInMB = sizeInBytes / (1024 * 1024);
   return sizeInMB;
 };
+
+interface YamlModel {
+  key?: { value: string };
+  value?: { items?: Array<YamlModelItem> };
+}
+
+interface YamlModelItem {
+  items?: Array<{
+    key?: { value: string };
+    value?: { toString(): string };
+  }>;
+  range?: [number, number];
+}
+
+export function getCurrentlySelectedModelNameInYamlConfig(): string {
+  if (
+    window.activeTextEditor === undefined ||
+    window.activeTextEditor.document.languageId !== "yaml"
+  ) {
+    return "";
+  }
+
+  try {
+    const parsedYaml = parseDocument(
+      window.activeTextEditor.document.getText(),
+    );
+    if (parsedYaml.contents === null) {
+      return "";
+    }
+    const cursorPosition = window.activeTextEditor.selection.active;
+    const offset = window.activeTextEditor.document.offsetAt(cursorPosition);
+
+    const contents = parsedYaml.contents as { items?: Array<YamlModel> };
+    if (!contents.items) {
+      return "";
+    }
+
+    const modelsNode = contents.items.find(
+      (item) => item?.key?.value === "models",
+    );
+    if (!modelsNode?.value?.items) {
+      return "";
+    }
+
+    // Find a model at the current position
+    for (const model of modelsNode.value.items) {
+      if (!model?.items) {
+        continue;
+      }
+
+      const nameNode = model.items.find((item) => item?.key?.value === "name");
+      if (!nameNode?.value) {
+        continue;
+      }
+
+      if (model.range && model.range[0] < offset && offset < model.range[1]) {
+        return nameNode.value.toString();
+      }
+    }
+  } catch (error) {
+    console.error("Error parsing YAML document:", {
+      error,
+      document: window.activeTextEditor?.document.fileName,
+      position: window.activeTextEditor?.selection.active,
+    });
+  }
+  return "";
+}
