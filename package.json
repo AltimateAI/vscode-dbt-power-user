@@ -135,7 +135,8 @@
             "type": "string",
             "enum": [
               "core",
-              "cloud"
+              "cloud",
+              "corecommand"
             ],
             "default": "core",
             "description": "Select dbt core or dbt cloud"
