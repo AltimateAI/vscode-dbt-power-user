@@ -1041,17 +1041,15 @@ export class DBTProject implements Disposable {
     );
   }
 
-  async executeSQL(
+  async executeSQLWithLimit(
     query: string,
     modelName: string,
+    limit: number,
     returnImmediately?: boolean,
     returnRawResults?: boolean,
   ) {
     // if user added a semicolon at the end, let,s remove it.
     query = query.replace(/;\s*$/, "");
-    const limit = workspace
-      .getConfiguration("dbt")
-      .get<number>("queryLimit", 500);
 
     if (limit <= 0) {
       window.showErrorMessage("Please enter a positive number for query limit");
@@ -1101,6 +1099,24 @@ export class DBTProject implements Disposable {
         projectName: this.getProjectName(),
       },
     });
+  }
+
+  executeSQL(
+    query: string,
+    modelName: string,
+    returnImmediately?: boolean,
+    returnRawResults?: boolean,
+  ) {
+    const limit = workspace
+      .getConfiguration("dbt")
+      .get<number>("queryLimit", 500);
+    return this.executeSQLWithLimit(
+      query,
+      modelName,
+      limit,
+      returnImmediately,
+      returnRawResults,
+    );
   }
 
   async dispose() {
@@ -1238,6 +1254,7 @@ export class DBTProject implements Disposable {
         name: columnNameFromDB,
         data_type: c.dtype?.toLowerCase(),
         description: "",
+        meta: {},
       };
     }
     if (Object.keys(node.columns).length > columnsFromDB.length) {

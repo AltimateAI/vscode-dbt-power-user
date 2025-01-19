@@ -88,6 +88,7 @@ export class NodeParser {
           config,
           resource_type,
           depends_on,
+          meta,
         } = nodesMap;
         const fullPath = createFullPathForNode(
           projectName,
@@ -130,6 +131,7 @@ export class NodeParser {
                 original_file_path,
               )
             : "",
+          meta: meta,
         });
       }
       this.terminal.debug(
