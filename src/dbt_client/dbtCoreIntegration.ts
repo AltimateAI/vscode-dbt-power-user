@@ -249,7 +249,7 @@ export class DBTCoreProjectIntegration
   private modelPaths?: string[];
   private seedPaths?: string[];
   private macroPaths?: string[];
-  private python: PythonBridge;
+  protected python: PythonBridge;
   private disposables: Disposable[] = [];
   private readonly rebuildManifestDiagnostics =
     languages.createDiagnosticCollection("dbt");
@@ -823,7 +823,7 @@ export class DBTCoreProjectIntegration
     return command;
   }
 
-  private dbtCoreCommand(command: DBTCommand) {
+  protected dbtCoreCommand(command: DBTCommand) {
     command.addArgument("--project-dir");
     command.addArgument(this.projectRoot.fsPath);
     if (this.profilesDir) {
@@ -1073,7 +1073,7 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  private throwBridgeErrorIfAvailable() {
+  protected throwBridgeErrorIfAvailable() {
     const allDiagnostics: DiagnosticCollection[] = [
       this.pythonBridgeDiagnostics,
       this.projectConfigDiagnostics,
