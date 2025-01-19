@@ -330,6 +330,7 @@ export class NewLineagePanel
           can_lineage_expand: boolean;
           description: string;
         }[];
+        meta?: { [key: string]: any };
       }
     | undefined
   > {
@@ -445,6 +446,7 @@ export class NewLineagePanel
           description: c.description,
         }))
         .sort((a, b) => a.name.localeCompare(b.name)),
+      meta: node.meta,
     };
   }
 

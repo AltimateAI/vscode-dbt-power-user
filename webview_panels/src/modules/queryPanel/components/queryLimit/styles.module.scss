@@ -1,0 +1,80 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  border-radius: 0.5rem;
+}
+
+.input {
+  background-color: var(--gray--gray-02);
+  border: none;
+  outline: none;
+  max-width: 80px;
+  width: auto;
+  caret-color: var(--primary-color);
+  border-radius: 0;
+  height: 100%;
+  padding: calc(0.5rem - 1px) 0.25rem !important;
+
+  &:focus {
+    border: none;
+    outline: none;
+    background-color: var(--gray--gray-02);
+  }
+}
+
+.saveButton {
+  color: var(--primary-color);
+  cursor: pointer;
+}
+
+.playButton {
+  padding: calc(0.5rem - 1px);
+  color: #ffffff;
+  border-top-right-radius: 0.15rem;
+  display: flex;
+
+  &.active {
+    background-color: var(--primary-color);
+    cursor: pointer;
+  }
+
+  &.inactive {
+    background-color: var(--background--04);
+  }
+}
+
+.limitContainer {
+  gap: 0;
+  align-items: center;
+
+  .label {
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--gray--gray-02);
+    border-right: none;
+    border-top-left-radius: 0.25rem;
+  }
+
+  .content {
+    display: flex;
+    align-items: center;
+    border-top-right-radius: 0.25rem;
+
+    &.inactive {
+      border: 1px solid var(--gray--gray-02);
+    }
+
+    &.active {
+      border: 1px solid var(--primary-color);
+    }
+  }
+}
+
+.saveContainer {
+  background-color: var(--gray--gray-02);
+  padding: 0.25rem 0.75rem;
+  justify-content: space-between;
+  font-size: 0.8em;
+  border-bottom-right-radius: 0.25rem;
+  border-bottom-left-radius: 0.25rem;
+  line-height: 120%;
+}

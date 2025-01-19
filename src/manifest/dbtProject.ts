@@ -964,106 +964,115 @@ export class DBTProject implements Disposable {
     tableName: string,
     sourcePath: string,
   ) {
-    try {
-      const prefix = workspace
-        .getConfiguration("dbt")
-        .get<string>("prefixGenerateModel", "base");
+    await window.withProgress(
+      {
+        location: ProgressLocation.Notification,
+        title: "Generating model...",
+        cancellable: false,
+      },
+      async () => {
+        try {
+          const prefix = workspace
+            .getConfiguration("dbt")
+            .get<string>("prefixGenerateModel", "base");
 
-      // Map setting to fileName
-      const fileNameTemplateMap: FileNameTemplateMap = {
-        "{prefix}_{sourceName}_{tableName}": `${prefix}_${sourceName}_${tableName}`,
-        "{prefix}_{sourceName}__{tableName}": `${prefix}_${sourceName}__${tableName}`,
-        "{prefix}_{tableName}": `${prefix}_${tableName}`,
-        "{tableName}": `${tableName}`,
-      };
+          // Map setting to fileName
+          const fileNameTemplateMap: FileNameTemplateMap = {
+            "{prefix}_{sourceName}_{tableName}": `${prefix}_${sourceName}_${tableName}`,
+            "{prefix}_{sourceName}__{tableName}": `${prefix}_${sourceName}__${tableName}`,
+            "{prefix}_{tableName}": `${prefix}_${tableName}`,
+            "{tableName}": `${tableName}`,
+          };
 
-      // Default filename template
-      let fileName = `${prefix}_${sourceName}_${tableName}`;
+          // Default filename template
+          let fileName = `${prefix}_${sourceName}_${tableName}`;
 
-      const fileNameTemplate = workspace
-        .getConfiguration("dbt")
-        .get<string>(
-          "fileNameTemplateGenerateModel",
-          "{prefix}_{sourceName}_{tableName}",
-        );
+          const fileNameTemplate = workspace
+            .getConfiguration("dbt")
+            .get<string>(
+              "fileNameTemplateGenerateModel",
+              "{prefix}_{sourceName}_{tableName}",
+            );
 
-      this.telemetry.sendTelemetryEvent("generateModel", {
-        prefix: prefix,
-        filenametemplate: fileNameTemplate,
-        adapter: this.getAdapterType(),
-      });
+          this.telemetry.sendTelemetryEvent("generateModel", {
+            prefix: prefix,
+            filenametemplate: fileNameTemplate,
+            adapter: this.getAdapterType(),
+          });
 
-      // Parse setting to fileName
-      if (fileNameTemplate in fileNameTemplateMap) {
-        fileName = fileNameTemplateMap[fileNameTemplate];
-      }
-      // Create filePath based on source.yml location
-      const location = path.join(sourcePath, fileName + ".sql");
-      if (!existsSync(location)) {
-        const columnsInRelation = await this.getColumnsOfSource(
-          sourceName,
-          tableName,
-        );
-        this.terminal.debug(
-          "dbtProject:generateModel",
-          `Generating columns for source ${sourceName} and table ${tableName}`,
-          columnsInRelation,
-        );
+          // Parse setting to fileName
+          if (fileNameTemplate in fileNameTemplateMap) {
+            fileName = fileNameTemplateMap[fileNameTemplate];
+          }
+          // Create filePath based on source.yml location
+          const location = path.join(sourcePath, fileName + ".sql");
+          if (!existsSync(location)) {
+            const columnsInRelation = await this.getColumnsOfSource(
+              sourceName,
+              tableName,
+            );
+            this.terminal.debug(
+              "dbtProject:generateModel",
+              `Generating columns for source ${sourceName} and table ${tableName}`,
+              columnsInRelation,
+            );
 
-        const fileContents = `with source as (
-      select * from {{ source('${sourceName}', '${tableName}') }}
-),
-renamed as (
-    select
-        ${columnsInRelation
-          .map((column) => `{{ adapter.quote("${column.column}") }}`)
-          .join(",\n        ")}
+            const fileContents = `with source as (
+        select * from {{ source('${sourceName}', '${tableName}') }}
+  ),
+  renamed as (
+      select
+          ${columnsInRelation
+            .map((column) => `{{ adapter.quote("${column.column}") }}`)
+            .join(",\n        ")}
 
-    from source
-)
-select * from renamed
-  `;
-        writeFileSync(location, fileContents);
-        const doc = await workspace.openTextDocument(Uri.file(location));
-        window.showTextDocument(doc);
-      } else {
-        window.showErrorMessage(
-          `A model called ${fileName} already exists in ${sourcePath}. If you want to generate the model, please rename the other model or delete it if you want to generate the model again.`,
-        );
-      }
-    } catch (exc: any) {
-      if (exc instanceof PythonException) {
-        this.telemetry.sendTelemetryError("generateModelPythonError", exc, {
-          adapter: this.getAdapterType(),
-        });
-        window.showErrorMessage(
-          "An error occured while trying to generate the model " +
-            exc.exception.message,
-        );
-      }
-      // Unknown error
-      this.telemetry.sendTelemetryError("generateModelUnknownError", exc, {
-        adapter: this.getAdapterType(),
-      });
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "An error occured while trying to generate the model:" + exc + ".",
-        ),
-      );
-    }
+      from source
+  )
+  select * from renamed
+    `;
+            writeFileSync(location, fileContents);
+            const doc = await workspace.openTextDocument(Uri.file(location));
+            window.showTextDocument(doc);
+          } else {
+            window.showErrorMessage(
+              `A model called ${fileName} already exists in ${sourcePath}. If you want to generate the model, please rename the other model or delete it if you want to generate the model again.`,
+            );
+          }
+        } catch (exc: any) {
+          if (exc instanceof PythonException) {
+            this.telemetry.sendTelemetryError("generateModelPythonError", exc, {
+              adapter: this.getAdapterType(),
+            });
+            window.showErrorMessage(
+              "An error occured while trying to generate the model " +
+                exc.exception.message,
+            );
+          }
+          // Unknown error
+          this.telemetry.sendTelemetryError("generateModelUnknownError", exc, {
+            adapter: this.getAdapterType(),
+          });
+          window.showErrorMessage(
+            extendErrorWithSupportLinks(
+              "An error occured while trying to generate the model:" +
+                exc +
+                ".",
+            ),
+          );
+        }
+      },
+    );
   }
 
-  async executeSQL(
+  async executeSQLWithLimit(
     query: string,
     modelName: string,
+    limit: number,
     returnImmediately?: boolean,
     returnRawResults?: boolean,
   ) {
     // if user added a semicolon at the end, let,s remove it.
     query = query.replace(/;\s*$/, "");
-    const limit = workspace
-      .getConfiguration("dbt")
-      .get<number>("queryLimit", 500);
 
     if (limit <= 0) {
       window.showErrorMessage("Please enter a positive number for query limit");
@@ -1113,6 +1122,24 @@ select * from renamed
         projectName: this.getProjectName(),
       },
     });
+  }
+
+  executeSQL(
+    query: string,
+    modelName: string,
+    returnImmediately?: boolean,
+    returnRawResults?: boolean,
+  ) {
+    const limit = workspace
+      .getConfiguration("dbt")
+      .get<number>("queryLimit", 500);
+    return this.executeSQLWithLimit(
+      query,
+      modelName,
+      limit,
+      returnImmediately,
+      returnRawResults,
+    );
   }
 
   async dispose() {
@@ -1250,6 +1277,7 @@ select * from renamed
         name: columnNameFromDB,
         data_type: c.dtype?.toLowerCase(),
         description: "",
+        meta: {},
       };
     }
     if (Object.keys(node.columns).length > columnsFromDB.length) {
