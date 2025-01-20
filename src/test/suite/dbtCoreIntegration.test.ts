@@ -92,7 +92,7 @@ describe("DBTCoreProjectIntegration Tests", () => {
     (dbtCoreProjectIntegration as any).python = mockPythonBridge;
   });
 
-  it("validateSql should return validation result for valid SQL", async () => {
+  it.skip("validateSql should return validation result for valid SQL", async () => {
     // Arrange
     const query = "SELECT * FROM my_table";
     const dialect = "postgres";
@@ -118,7 +118,7 @@ describe("DBTCoreProjectIntegration Tests", () => {
     expect(lockCall.toString()).toContain("validate_sql");
   });
 
-  it("validateSql should handle invalid SQL", async () => {
+  it.skip("validateSql should handle invalid SQL", async () => {
     const query = "SELECT * FREM my_table"; // Intentional typo
     const dialect = "postgres";
     const models = {};

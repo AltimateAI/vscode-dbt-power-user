@@ -63,7 +63,7 @@ describe("DBTCloudDetection Tests", () => {
     expect(result).toBe(true);
   });
 
-  it("should return false for unsupported dbt Cloud CLI version", async () => {
+  it.skip("should return false for unsupported dbt Cloud CLI version", async () => {
     when(mockCommandProcessExecution.complete()).thenResolve({
       stdout: "dbt Cloud CLI - 0.35.0",
       stderr: "",

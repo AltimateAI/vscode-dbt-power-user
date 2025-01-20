@@ -100,10 +100,15 @@ describe("AltimateRequest Tests", () => {
   });
 
   it("should handle authentication check", async () => {
-    mockPythonEnv.getResolvedConfigValue
-      .mockReturnValueOnce("test-key") // altimateAiKey
-      .mockReturnValueOnce("test-instance"); // altimateInstanceName
-
+    mockPythonEnv.getResolvedConfigValue.mockImplementation((key: string) => {
+      if (key === "altimateAiKey") {
+        return "test-key";
+      }
+      if (key === "altimateInstanceName") {
+        return "test-instance";
+      }
+      return "";
+    });
     const mockResponse = new Response(JSON.stringify({ status: "ok" }), {
       status: 200,
       statusText: "OK",
