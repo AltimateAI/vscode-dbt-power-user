@@ -595,9 +595,9 @@ export class DBTProject implements Disposable {
       const testModelCommand =
         this.dbtCommandFactory.createTestModelCommand(modelName);
       this.dbtProjectIntegration.runModelTest(testModelCommand);
+      await this.telemetry.sendTelemetryEvent("runModelTest");
     } catch (error) {
       this.handleNoCredentialsError(error);
-      return { stdout: "", stderr: "", fullOutput: "" };
     }
   }
 
