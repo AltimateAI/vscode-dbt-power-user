@@ -169,7 +169,7 @@ export class PythonDBTCommandExecutionStrategy
   }
 
   private dbtCommand(args: string[]): string {
-    args = args.map((arg) => `r'${arg}'`);
+    args = args.map((arg) => `r"""${arg.replace(/"/g, '\\"')}"""`);
     const dbtCustomRunnerImport = workspace
       .getConfiguration("dbt")
       .get<string>(
@@ -348,12 +348,10 @@ export interface DBTProjectIntegration extends Disposable {
   ): Promise<QueryExecution>;
   // dbt commands
   runModel(command: DBTCommand): Promise<void>;
-  runModelTest(
-    command: DBTCommand,
-  ): Promise<{ stdout: string; stderr: string; fullOutput: string } | void>;
   buildModel(command: DBTCommand): Promise<void>;
   buildProject(command: DBTCommand): Promise<void>;
   runTest(command: DBTCommand): Promise<void>;
+  runModelTest(command: DBTCommand): Promise<void>;
   compileModel(command: DBTCommand): Promise<void>;
   generateDocs(command: DBTCommand): Promise<void>;
   executeCommandImmediately(command: DBTCommand): Promise<CommandProcessResult>;

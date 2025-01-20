@@ -1,4 +1,3 @@
-import * as vscode from "vscode";
 import {
   CancellationToken,
   Diagnostic,
@@ -250,7 +249,7 @@ export class DBTCoreProjectIntegration
   private modelPaths?: string[];
   private seedPaths?: string[];
   private macroPaths?: string[];
-  private python: PythonBridge;
+  protected python: PythonBridge;
   private disposables: Disposable[] = [];
   private readonly rebuildManifestDiagnostics =
     languages.createDiagnosticCollection("dbt");
@@ -666,18 +665,10 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  async runModelTest(
-    command: DBTCommand,
-  ): Promise<{ stdout: string; stderr: string; fullOutput: string }> {
-    const testModelCommand = await this.addDeferParams(
-      this.dbtCoreCommand(command),
+  async runModelTest(command: DBTCommand) {
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
     );
-    const result = await testModelCommand.execute();
-    return {
-      stdout: result.stdout,
-      stderr: result.stderr,
-      fullOutput: result.stdout + result.stderr,
-    };
   }
 
   async compileModel(command: DBTCommand) {
@@ -832,7 +823,7 @@ export class DBTCoreProjectIntegration
     return command;
   }
 
-  private dbtCoreCommand(command: DBTCommand) {
+  protected dbtCoreCommand(command: DBTCommand) {
     command.addArgument("--project-dir");
     command.addArgument(this.projectRoot.fsPath);
     if (this.profilesDir) {
@@ -1082,28 +1073,17 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  private throwBridgeErrorIfAvailable() {
-    const allDiagnostics = [
+  protected throwBridgeErrorIfAvailable() {
+    const allDiagnostics: DiagnosticCollection[] = [
       this.pythonBridgeDiagnostics,
       this.projectConfigDiagnostics,
       this.rebuildManifestDiagnostics,
     ];
 
     for (const diagnosticCollection of allDiagnostics) {
-      if (!diagnosticCollection) {
-        continue;
-      }
-
-      // Convert to array if it's a Map-like object
-      const entries =
-        diagnosticCollection instanceof Map
-          ? Array.from(diagnosticCollection.entries())
-          : Array.from(diagnosticCollection);
-
-      for (const [_, diagnostics] of entries) {
+      for (const [_, diagnostics] of diagnosticCollection) {
         const error = diagnostics.find(
-          (diagnostic: vscode.Diagnostic) =>
-            diagnostic.severity === DiagnosticSeverity.Error,
+          (diagnostic) => diagnostic.severity === DiagnosticSeverity.Error,
         );
         if (error) {
           throw new Error(error.message);
