@@ -277,6 +277,20 @@
             "description": "Debounce time in milliseconds for manifest rebuilds. Increase this value if you have many rapid file changes causing frequent rebuilds.",
             "minimum": 500,
             "maximum": 10000
+          },
+          "dbt.manifestStabilityChecks": {
+            "type": "number",
+            "default": 3,
+            "minimum": 1,
+            "maximum": 10,
+            "description": "Number of consecutive checks where file size must remain stable before reading manifest (only used when initial read fails)"
+          },
+          "dbt.manifestStabilityDelay": {
+            "type": "number",
+            "default": 1000,
+            "minimum": 100,
+            "maximum": 5000,
+            "description": "Delay in milliseconds between manifest stability checks (only used when initial read fails)"
           }
         }
       }

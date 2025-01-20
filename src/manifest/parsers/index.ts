@@ -14,6 +14,7 @@ import { TestParser } from "./testParser";
 import { TelemetryService } from "../../telemetry";
 import { ExposureParser } from "./exposureParser";
 import { MetricParser } from "./metricParser";
+import { workspace } from "vscode";
 
 @provide(ManifestParser)
 export class ManifestParser {
@@ -210,8 +211,12 @@ export class ManifestParser {
     // 3. Basic validation to verify manifest completeness
 
     const maxRetries = 3;
-    const stabilityDelay = 1000; // 1 second between file size checks
-    const maxStabilityChecks = 3; // Number of times file size must remain stable
+    const maxStabilityChecks = workspace
+      .getConfiguration("dbt")
+      .get<number>("manifestStabilityChecks", 3); // Default to 3 checks
+    const stabilityDelay = workspace
+      .getConfiguration("dbt")
+      .get<number>("manifestStabilityDelay", 1000); // Default to 1000ms
 
     let lastAttemptError: any;
     let lastFileSize: number = 0;
