@@ -173,7 +173,7 @@ describe("DBTTerminal Test Suite", () => {
 
     // Test showing terminal
     await terminal.show(true);
-    expect(mockTerminal.show).toHaveBeenCalledWith(true);
+    expect(mockTerminal.show).toHaveBeenCalledWith(false);
 
     // Reset the mock for the next test
     jest.clearAllMocks();

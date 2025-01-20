@@ -1,3 +1,4 @@
+import type { RequestInit } from "node-fetch";
 import { CommentThread, env, Uri, window, workspace } from "vscode";
 import { provideSingleton, processStreamResponse } from "./utils";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
@@ -344,6 +345,11 @@ export class AltimateRequest {
     private pythonEnvironment: PythonEnvironment,
   ) {}
 
+  private async customFetch<T>(url: string, init?: RequestInit) {
+    const nodeFetch = (await import("node-fetch")).default;
+    return nodeFetch(url, init);
+  }
+
   getInstanceName() {
     return this.pythonEnvironment.getResolvedConfigValue(
       "altimateInstanceName",
@@ -419,8 +425,7 @@ export class AltimateRequest {
       abortController.abort();
     }, timeout);
     try {
-      const nodeFetch = (await import("node-fetch")).default;
-      const response = await nodeFetch(url, {
+      const response = await this.customFetch(url, {
         method: "POST",
         body: JSON.stringify(request),
         signal: abortController.signal,
@@ -521,8 +526,7 @@ export class AltimateRequest {
     const blob = (await this.readStreamToBlob(
       createReadStream(filePath),
     )) as Blob;
-    const nodeFetch = (await import("node-fetch")).default;
-    const response = await nodeFetch(endpoint, {
+    const response = await this.customFetch(endpoint, {
       ...fetchArgs,
       method: "PUT",
       body: blob,
@@ -598,8 +602,7 @@ export class AltimateRequest {
 
     try {
       const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
-      const nodeFetch = (await import("node-fetch")).default;
-      const response = await nodeFetch(url, {
+      const response = await this.customFetch(url, {
         method: "GET",
         ...fetchArgs,
         signal: abortController.signal,
@@ -687,8 +690,9 @@ export class AltimateRequest {
         "AltimateRequest",
         `fetching artifactUrl: ${artifactUrl}`,
       );
-      const nodeFetch = (await import("node-fetch")).default;
-      const response = await nodeFetch(artifactUrl, { agent: undefined });
+      const response = await this.customFetch(artifactUrl, {
+        agent: undefined,
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to download file: ${response.statusText}`);
@@ -781,8 +785,7 @@ export class AltimateRequest {
   async checkApiConnectivity() {
     const url = `${AltimateRequest.ALTIMATE_URL}/health`;
     try {
-      const nodeFetch = (await import("node-fetch")).default;
-      const response = await nodeFetch(url, { method: "GET" });
+      const response = await this.customFetch(url, { method: "GET" });
       const { status } = (await response.json()) as { status: string };
       return { status };
     } catch (e) {

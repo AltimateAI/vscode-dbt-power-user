@@ -21,7 +21,7 @@ export class DBTTerminal {
   async show(status: boolean) {
     if (status) {
       await this.requireTerminal();
-      this.terminal!.show(true);
+      this.terminal!.show(!status);
     }
   }
 
