@@ -693,20 +693,11 @@ export class AltimateRequest {
       if (!response.ok) {
         throw new Error(`Failed to download file: ${response.statusText}`);
       }
-
       const fileStream = createWriteStream(destinationPath);
-      const buffer = await response.arrayBuffer();
-      const uint8Array = new Uint8Array(buffer);
-
-      await new Promise<void>((resolve, reject) => {
-        fileStream.write(uint8Array, (error) => {
-          if (error) {
-            reject(error);
-          } else {
-            fileStream.end();
-            resolve();
-          }
-        });
+      await new Promise((resolve, reject) => {
+        response.body?.pipe(fileStream);
+        response.body?.on("error", reject);
+        fileStream.on("finish", resolve);
       });
 
       this.dbtTerminal.debug("File downloaded successfully!", fileName);
@@ -735,44 +726,15 @@ export class AltimateRequest {
     return queryString ? `?${queryString}` : "";
   };
 
-  async validateCredentials(instance: string, key: string) {
-    const url = `${AltimateRequest.ALTIMATE_URL}/dbt/v3/validate-credentials`;
-    const nodeFetch = (await import("node-fetch")).default;
-    const response = await nodeFetch(url, {
-      method: "GET",
-      headers: {
-        "x-tenant": instance,
-        Authorization: "Bearer " + key,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (response.status === 403) {
-      throw new ForbiddenError();
-    }
-
-    return (await response.json()) as Record<string, any> | undefined;
-  }
-
   async isAuthenticated() {
     try {
-      const config = this.getConfig()!;
-      const nodeFetch = (await import("node-fetch")).default;
-      const response = await nodeFetch(
-        `${AltimateRequest.ALTIMATE_URL}/auth_health`,
-        {
-          method: "POST",
-          headers: {
-            "x-tenant": config.instance,
-            Authorization: "Bearer " + config.key,
-            "Content-Type": "application/json",
-          },
-        },
-      );
-      return response.ok;
+      await this.fetch<void>("auth_health", {
+        method: "POST",
+      });
     } catch (error) {
       return false;
     }
+    return true;
   }
 
   async generateModelDocsV2(docsGenerate: DocsGenerateModelRequestV2) {
@@ -801,6 +763,19 @@ export class AltimateRequest {
       method: "POST",
       body: JSON.stringify(req),
     });
+  }
+
+  async validateCredentials(instance: string, key: string) {
+    const url = `${AltimateRequest.ALTIMATE_URL}/dbt/v3/validate-credentials`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "x-tenant": instance,
+        Authorization: "Bearer " + key,
+        "Content-Type": "application/json",
+      },
+    });
+    return (await response.json()) as Record<string, any> | undefined;
   }
 
   async checkApiConnectivity() {
