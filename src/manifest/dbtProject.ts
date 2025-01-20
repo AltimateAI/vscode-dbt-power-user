@@ -64,6 +64,7 @@ import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryEvents } from "../telemetry/events";
 import { RunResultsEvent } from "./event/runResultsEvent";
 import { MockEventEmitter } from "../test/common";
+import { DBTCoreCommandProjectIntegration } from "../dbt_client/dbtCoreCommandIntegration";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -132,6 +133,10 @@ export class DBTProject implements Disposable {
       path: Uri,
       projectConfigDiagnostics: DiagnosticCollection,
     ) => DBTCoreProjectIntegration,
+    private dbtCoreCommandIntegrationFactory: (
+      path: Uri,
+      projectConfigDiagnostics: DiagnosticCollection,
+    ) => DBTCoreCommandProjectIntegration,
     private dbtCloudIntegrationFactory: (
       path: Uri,
     ) => DBTCloudProjectIntegration,
@@ -160,6 +165,12 @@ export class DBTProject implements Disposable {
       case "cloud":
         this.dbtProjectIntegration = this.dbtCloudIntegrationFactory(
           this.projectRoot,
+        );
+        break;
+      case "corecommand":
+        this.dbtProjectIntegration = this.dbtCoreCommandIntegrationFactory(
+          this.projectRoot,
+          this.projectConfigDiagnostics,
         );
         break;
       default:
