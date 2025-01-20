@@ -586,9 +586,9 @@ export class DBTProject implements Disposable {
       const result =
         await this.dbtProjectIntegration.runModelTest(testModelCommand);
       const returnValue = {
-        stdout: result.stdout,
-        stderr: result.stderr,
-        fullOutput: result.fullOutput,
+        stdout: result?.stdout,
+        stderr: result?.stderr,
+        fullOutput: result?.fullOutput,
       };
       await this.telemetry.sendTelemetryEvent("runModelTest");
       return returnValue;

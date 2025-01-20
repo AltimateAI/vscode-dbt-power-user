@@ -350,7 +350,7 @@ export interface DBTProjectIntegration extends Disposable {
   runModel(command: DBTCommand): Promise<void>;
   runModelTest(
     command: DBTCommand,
-  ): Promise<{ stdout: string; stderr: string; fullOutput: string }>;
+  ): Promise<{ stdout: string; stderr: string; fullOutput: string } | void>;
   buildModel(command: DBTCommand): Promise<void>;
   buildProject(command: DBTCommand): Promise<void>;
   runTest(command: DBTCommand): Promise<void>;

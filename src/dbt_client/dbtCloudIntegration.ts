@@ -44,7 +44,7 @@ import { NodeMetaData } from "../domain";
 import * as crypto from "crypto";
 import { parse } from "yaml";
 
-function getDBTPath(
+export function getDBTPath(
   pythonEnvironment: PythonEnvironment,
   terminal: DBTTerminal,
 ): string {
@@ -103,7 +103,7 @@ export class DBTCloudDetection implements DBTDetection {
               "dbt cloud cli was found but version is not supported. Detection command returned :  " +
                 stdout,
             );
-            return false;
+            return true;
           }
         }
         this.terminal.debug("DBTCLIDetectionSuccess", "dbt cloud cli detected");
@@ -538,18 +538,11 @@ export class DBTCloudProjectIntegration
     );
   }
 
-  async runModelTest(
-    command: DBTCommand,
-  ): Promise<{ stdout: string; stderr: string; fullOutput: string }> {
-    const testModelCommand = await this.addDeferParams(
-      this.dbtCloudCommand(command),
+  async runModelTest(command: DBTCommand) {
+    this.addCommandToQueue(
+      DBTCloudProjectIntegration.QUEUE_ALL,
+      await this.addDeferParams(this.dbtCloudCommand(command)),
     );
-    const result = await testModelCommand.execute();
-    return {
-      stdout: result.stdout,
-      stderr: result.stderr,
-      fullOutput: result.stdout + result.stderr,
-    };
   }
 
   async compileModel(command: DBTCommand) {

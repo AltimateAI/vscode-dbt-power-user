@@ -688,7 +688,7 @@ export class AltimateRequest {
         `fetching artifactUrl: ${artifactUrl}`,
       );
       const nodeFetch = (await import("node-fetch")).default;
-      const response = await nodeFetch(artifactUrl);
+      const response = await nodeFetch(artifactUrl, { agent: undefined });
 
       if (!response.ok) {
         throw new Error(`Failed to download file: ${response.statusText}`);
