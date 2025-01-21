@@ -345,7 +345,7 @@ export class AltimateRequest {
     private pythonEnvironment: PythonEnvironment,
   ) {}
 
-  private async customFetch<T>(url: string, init?: RequestInit) {
+  private async internalFetch<T>(url: string, init?: RequestInit) {
     const nodeFetch = (await import("node-fetch")).default;
     return nodeFetch(url, init);
   }
@@ -425,7 +425,7 @@ export class AltimateRequest {
       abortController.abort();
     }, timeout);
     try {
-      const response = await this.customFetch(url, {
+      const response = await this.internalFetch(url, {
         method: "POST",
         body: JSON.stringify(request),
         signal: abortController.signal,
@@ -526,7 +526,7 @@ export class AltimateRequest {
     const blob = (await this.readStreamToBlob(
       createReadStream(filePath),
     )) as Blob;
-    const response = await this.customFetch(endpoint, {
+    const response = await this.internalFetch(endpoint, {
       ...fetchArgs,
       method: "PUT",
       body: blob,
@@ -602,7 +602,7 @@ export class AltimateRequest {
 
     try {
       const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
-      const response = await this.customFetch(url, {
+      const response = await this.internalFetch(url, {
         method: "GET",
         ...fetchArgs,
         signal: abortController.signal,
@@ -690,7 +690,7 @@ export class AltimateRequest {
         "AltimateRequest",
         `fetching artifactUrl: ${artifactUrl}`,
       );
-      const response = await this.customFetch(artifactUrl, {
+      const response = await this.internalFetch(artifactUrl, {
         agent: undefined,
       });
 
@@ -785,7 +785,7 @@ export class AltimateRequest {
   async checkApiConnectivity() {
     const url = `${AltimateRequest.ALTIMATE_URL}/health`;
     try {
-      const response = await this.customFetch(url, { method: "GET" });
+      const response = await this.internalFetch(url, { method: "GET" });
       const { status } = (await response.json()) as { status: string };
       return { status };
     } catch (e) {
