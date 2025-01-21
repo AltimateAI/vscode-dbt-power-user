@@ -64,7 +64,6 @@ import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryEvents } from "../telemetry/events";
 import { RunResultsEvent } from "./event/runResultsEvent";
 import { DBTCoreCommandProjectIntegration } from "../dbt_client/dbtCoreCommandIntegration";
-import { EventEmitterFactory } from "../utils/EventEmitterFactory";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -92,12 +91,10 @@ export class DBTProject implements Disposable {
   private dbtProjectIntegration: DBTProjectIntegration;
 
   private _onProjectConfigChanged =
-    EventEmitterFactory.create<ProjectConfigChangedEvent>();
+    new EventEmitter<ProjectConfigChangedEvent>();
   public onProjectConfigChanged = this._onProjectConfigChanged.event;
-
-  private _onRunResults = EventEmitterFactory.create<RunResultsEvent>();
+  private _onRunResults = new EventEmitter<RunResultsEvent>();
   public onRunResults = this._onRunResults.event;
-
   private sourceFileWatchers: SourceFileWatchers;
   public onSourceFileChanged: Event<void>;
   private dbtProjectLog?: DBTProjectLog;
@@ -105,9 +102,8 @@ export class DBTProject implements Disposable {
   private readonly projectConfigDiagnostics =
     languages.createDiagnosticCollection("dbt");
   public readonly projectHealth = languages.createDiagnosticCollection("dbt");
-
   private _onRebuildManifestStatusChange =
-    EventEmitterFactory.create<RebuildManifestStatusChange>();
+    new EventEmitter<RebuildManifestStatusChange>();
   readonly onRebuildManifestStatusChange =
     this._onRebuildManifestStatusChange.event;
 
@@ -610,21 +606,17 @@ export class DBTProject implements Disposable {
   }
 
   async generateDocsImmediately(args?: string[]) {
-    try {
-      const docsGenerateCommand =
-        this.dbtCommandFactory.createDocsGenerateCommand();
-      args?.forEach((arg) => docsGenerateCommand.addArgument(arg));
-      docsGenerateCommand.focus = false;
-      docsGenerateCommand.logToTerminal = false;
-      const { stdout, stderr } =
-        await this.dbtProjectIntegration.executeCommandImmediately(
-          docsGenerateCommand,
-        );
-      if (stderr) {
-        throw new Error(stderr);
-      }
-    } catch (error) {
-      this.handleNoCredentialsError(error);
+    const docsGenerateCommand =
+      this.dbtCommandFactory.createDocsGenerateCommand();
+    args?.forEach((arg) => docsGenerateCommand.addArgument(arg));
+    docsGenerateCommand.focus = false;
+    docsGenerateCommand.logToTerminal = false;
+    const { stdout, stderr } =
+      await this.dbtProjectIntegration.executeCommandImmediately(
+        docsGenerateCommand,
+      );
+    if (stderr) {
+      throw new Error(stderr);
     }
   }
 

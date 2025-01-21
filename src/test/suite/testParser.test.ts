@@ -3,7 +3,7 @@ import { TestParser } from "../../manifest/parsers/testParser";
 import { DBTProject } from "../../manifest/dbtProject";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import * as path from "path";
-import { MockEventEmitter } from "../common";
+import { EventEmitter } from "vscode";
 
 describe("TestParser Test Suite", () => {
   let testParser: TestParser;
@@ -25,7 +25,7 @@ describe("TestParser Test Suite", () => {
       logWarning: () => {},
       logSuccess: () => {},
       disposables: [],
-      writeEmitter: new MockEventEmitter<string>(),
+      writeEmitter: new EventEmitter<string>(),
       outputChannel: {
         append: () => {},
         appendLine: () => {},
@@ -35,7 +35,7 @@ describe("TestParser Test Suite", () => {
       telemetry: {
         sendTelemetryEvent: () => {},
       },
-      onDidWrite: new MockEventEmitter<string>().event,
+      onDidWrite: new EventEmitter<string>().event,
       clear: () => {},
       show: () => {},
       dispose: () => {},

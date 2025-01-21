@@ -4,21 +4,17 @@ import {
   DBTCoreDetection,
 } from "../../dbt_client/dbtCoreIntegration";
 import { Container } from "inversify";
-import {
-  DBTCommandExecutionInfrastructure,
-  PythonDBTCommandExecutionStrategy,
-} from "../../dbt_client/dbtIntegration";
+import { PythonDBTCommandExecutionStrategy } from "../../dbt_client/dbtIntegration";
 import { TelemetryService } from "../../telemetry";
 import { DBTProjectContainer } from "../../manifest/dbtProjectContainer";
 import { AltimateRequest } from "../../altimate";
 import { ValidationProvider } from "../../validation_provider";
 import { DeferToProdService } from "../../services/deferToProdService";
-import { Uri, workspace, languages } from "vscode";
+import { Uri, workspace, languages, EventEmitter } from "vscode";
 import {
   CommandProcessExecutionFactory,
   CommandProcessExecution,
 } from "../../commandProcessExecution";
-import { MockEventEmitter } from "../common";
 
 // Mock workspace folders
 jest.mock("vscode", () => ({
@@ -64,7 +60,7 @@ describe("DBTCoreProjectIntegration Tests", () => {
       languages.createDiagnosticCollection("dbt-project-config");
 
     // Create mock event emitter for Python environment changes
-    const mockPythonEnvChangeEmitter = new MockEventEmitter<Uri | undefined>();
+    const mockPythonEnvChangeEmitter = new EventEmitter<Uri | undefined>();
 
     // Create the instance directly with constructor injection
     dbtCoreProjectIntegration = new DBTCoreProjectIntegration(
