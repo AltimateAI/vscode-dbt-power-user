@@ -91,8 +91,6 @@ export class CommandProcessExecution {
       let stdoutBuffer = "";
       let stderrBuffer = "";
       let fullOutput = "";
-      let isTerminated = false;
-
       commandProcess.stdout!.on("data", (chunk) => {
         chunk = chunk.toString();
         stdoutBuffer += chunk;
@@ -104,18 +102,14 @@ export class CommandProcessExecution {
         fullOutput += chunk;
       });
 
-      commandProcess.once("close", (code) => {
+      commandProcess.once("close", () => {
         this.terminal.debug(
           "CommandProcessExecution",
           "Return value from command: " + this.command,
           this.args,
           fullOutput,
         );
-        if (isTerminated) {
-          reject(new Error("Process was terminated"));
-        } else {
-          resolve({ stdout: stdoutBuffer, stderr: stderrBuffer, fullOutput });
-        }
+        resolve({ stdout: stdoutBuffer, stderr: stderrBuffer, fullOutput });
       });
 
       commandProcess.once("error", (error) => {
@@ -130,17 +124,6 @@ export class CommandProcessExecution {
         );
         reject(new Error(`${error}`));
       });
-
-      if (this.tokens !== undefined) {
-        this.tokens.forEach((token) =>
-          this.disposables.push(
-            token.onCancellationRequested(() => {
-              isTerminated = true;
-              commandProcess.kill("SIGTERM");
-            }),
-          ),
-        );
-      }
 
       if (this.stdin) {
         commandProcess.stdin.write(this.stdin);

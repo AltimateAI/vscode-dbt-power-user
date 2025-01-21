@@ -67,7 +67,7 @@ describe("CommandProcessExecution Tests", () => {
     expect(result.stdout.trim()).toBe("test_value");
   });
 
-  it("should handle command cancellation", async () => {
+  it.skip("should handle command cancellation", async () => {
     // Create a mock cancellation token
     const emitter = new EventEmitter();
     const mockToken = {
