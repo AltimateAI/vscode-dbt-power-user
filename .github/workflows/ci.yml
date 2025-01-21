@@ -1,76 +1,76 @@
-name: Tests
-
 on:
   push:
-    branches: [ "*" ]
-  
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  release:
+    types:
+      - created
+
 jobs:
-  test:
+  build:
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-
     steps:
-    - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run common build steps
+        uses: ./.github/actions/common-build
+  release-vsstudio-marketplace:
+    runs-on: ubuntu-latest
+    if: success() && startsWith( github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run common build steps
+        uses: ./.github/actions/common-build
+      - name: Publish Visual Studio Marketplace
+        run: |
+          if [ "${{ github.event_name }}" == "release" ] && [ "${{ github.event.release.prerelease }}" == "true" ]; then
+            npm run deploy-vscode -- --pre-release
+          else
+            npm run deploy-vscode
+          fi
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: |
-          package-lock.json
-          new_lineage_panel/package-lock.json
-          webview_panels/package-lock.json
+      - name: Send Slack notification
+        if: ${{ always() }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: "Tag: ${{  github.ref_name }} release to Visual Studio Marketplace status: ${{ job.status == 'success' && 'succeeded' || 'failed' }} :${{ job.status == 'success' && 'tada' || 'disappointed' }}:"
+  
+  release-openvsx-marketplace:
+    runs-on: ubuntu-latest
+    if: success() && startsWith( github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run common build steps
+        uses: ./.github/actions/common-build
+      - name: Publish OpenVSX Marketplace
+        run: |
+          if [ "${{ github.event_name }}" == "release" ] && [ "${{ github.event.release.prerelease }}" == "true" ]; then
+            npm run deploy-openvsx -- --pre-release
+          else
+            npm run deploy-openvsx
+          fi
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
 
-    - name: Install dependencies
-      run: |
-        npm ci
-        npm run install:panels
-
-    - name: Compile
-      run: npm run compile
-
-    - name: Install xvfb
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y xvfb
-
-    - name: Run tests (Linux)
-      if: runner.os == 'Linux'
-      run: |
-        xvfb-run --auto-servernum npm run compile && xvfb-run --auto-servernum npm run test:coverage
-
-    - name: Run tests (macOS/Windows)
-      if: runner.os != 'Linux'
-      run: |
-        npm run compile && npm run test:coverage
-
-    - name: Upload test results
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: test-results-${{ matrix.os }}
-        path: test-results/
-
-    - name: Upload coverage results
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: coverage-${{ matrix.os }}
-        path: |
-          coverage/
-          .nyc_output/
-          *.lcov
-
-    - name: Upload coverage to Codecov
-      if: always()
-      uses: codecov/codecov-action@v3
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        directory: ./coverage/
-        flags: unittests
-        name: codecov-${{ matrix.os }}
-        fail_ci_if_error: false 
+      - name: Send Slack notification
+        if: ${{ always() }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: "Tag: ${{  github.ref_name }} release to openvsx marketplace status: ${{ job.status == 'success' && 'succeeded' || 'failed' }} :${{ job.status == 'success' && 'tada' || 'disappointed' }}:"
+  
