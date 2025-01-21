@@ -63,8 +63,8 @@ import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryEvents } from "../telemetry/events";
 import { RunResultsEvent } from "./event/runResultsEvent";
-import { MockEventEmitter } from "../test/common";
 import { DBTCoreCommandProjectIntegration } from "../dbt_client/dbtCoreCommandIntegration";
+import { EventEmitterFactory } from "../utils/EventEmitterFactory";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -92,15 +92,10 @@ export class DBTProject implements Disposable {
   private dbtProjectIntegration: DBTProjectIntegration;
 
   private _onProjectConfigChanged =
-    process.env.NODE_ENV === "test"
-      ? new MockEventEmitter<ProjectConfigChangedEvent>()
-      : new EventEmitter<ProjectConfigChangedEvent>();
+    EventEmitterFactory.create<ProjectConfigChangedEvent>();
   public onProjectConfigChanged = this._onProjectConfigChanged.event;
 
-  private _onRunResults =
-    process.env.NODE_ENV === "test"
-      ? new MockEventEmitter<RunResultsEvent>()
-      : new EventEmitter<RunResultsEvent>();
+  private _onRunResults = EventEmitterFactory.create<RunResultsEvent>();
   public onRunResults = this._onRunResults.event;
 
   private sourceFileWatchers: SourceFileWatchers;
@@ -112,9 +107,7 @@ export class DBTProject implements Disposable {
   public readonly projectHealth = languages.createDiagnosticCollection("dbt");
 
   private _onRebuildManifestStatusChange =
-    process.env.NODE_ENV === "test"
-      ? new MockEventEmitter<RebuildManifestStatusChange>()
-      : new EventEmitter<RebuildManifestStatusChange>();
+    EventEmitterFactory.create<RebuildManifestStatusChange>();
   readonly onRebuildManifestStatusChange =
     this._onRebuildManifestStatusChange.event;
 

@@ -2,16 +2,13 @@ import { Disposable, EventEmitter, Terminal, window } from "vscode";
 import { provideSingleton, stripANSI } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { PythonException } from "python-bridge";
-import { MockEventEmitter } from "../test/common";
+import { EventEmitterFactory } from "../utils/EventEmitterFactory";
 
 @provideSingleton(DBTTerminal)
 export class DBTTerminal {
   private disposables: Disposable[] = [];
   private terminal?: Terminal;
-  private readonly writeEmitter =
-    process.env.NODE_ENV === "test"
-      ? new MockEventEmitter<string>()
-      : new EventEmitter<string>();
+  private readonly writeEmitter = EventEmitterFactory.create<string>();
   private outputChannel = window.createOutputChannel(`Log - dbt`, {
     log: true,
   });
