@@ -47,7 +47,9 @@ const QueryLimit = (): JSX.Element => {
   return (
     <div className={styles.container}>
       <Stack className={styles.limitContainer}>
-        <span className={styles.label}>Limit</span>
+        <label className={styles.label} htmlFor="query-limit">
+          Limit
+        </label>
         <div
           className={[
             styles.content,
@@ -55,6 +57,8 @@ const QueryLimit = (): JSX.Element => {
           ].join(" ")}
         >
           <Input
+            id="query-limit"
+            type="number"
             value={value}
             onChange={(e) => {
               const newValue = e.target.value.replace(/[^\d]/g, "");
