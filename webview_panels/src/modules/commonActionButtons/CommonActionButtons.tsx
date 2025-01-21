@@ -17,7 +17,7 @@ const CommonActionButtons = (): JSX.Element => {
     <Stack className="align-items-center text-nowrap">
       <PopoverWithButton
         width="auto"
-        button={<Button outline icon={<MoreIcon />} />}
+        button={<Button outline title="More actions" icon={<MoreIcon />} />}
         popoverProps={{
           placement: "bottom",
           hideArrow: true,

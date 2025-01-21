@@ -7,5 +7,32 @@ dist
 .idea
 .history
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
 
+# Build and dependencies
 src/lib/notebooks/
+.nyc_output/
+coverage/
+test-results/
+.venv/
+
+# Test directories
+test_dbt_project/
+test-workspace/
+
+# IDE and editor files
+*.swp
+*.swo
+.vscode/
+*.code-workspace
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
