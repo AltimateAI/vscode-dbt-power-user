@@ -13,6 +13,9 @@ const config: StorybookConfig = {
     name: "@storybook/react-vite",
     options: {},
   },
+  typescript: {
+    reactDocgen: false,
+  },
   core: {
     builder: "@storybook/builder-vite",
   },
@@ -25,9 +28,7 @@ const config: StorybookConfig = {
         "./__mocks__/vscode.ts"
       );
 
-      config.resolve.alias["crypto"] = require.resolve(
-        "./__mocks__/crypto.ts"
-      );
+      config.resolve.alias["crypto"] = require.resolve("./__mocks__/crypto.ts");
     }
     // Merge custom configuration into the default config
     return mergeConfig(config, {

@@ -1,6 +1,6 @@
+import type { RequestInit } from "node-fetch";
 import { CommentThread, env, Uri, window, workspace } from "vscode";
 import { provideSingleton, processStreamResponse } from "./utils";
-import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
 import { join } from "path";
@@ -345,6 +345,11 @@ export class AltimateRequest {
     private pythonEnvironment: PythonEnvironment,
   ) {}
 
+  private async internalFetch<T>(url: string, init?: RequestInit) {
+    const nodeFetch = (await import("node-fetch")).default;
+    return nodeFetch(url, init);
+  }
+
   getInstanceName() {
     return this.pythonEnvironment.getResolvedConfigValue(
       "altimateInstanceName",
@@ -420,7 +425,7 @@ export class AltimateRequest {
       abortController.abort();
     }, timeout);
     try {
-      const response = await fetch(url, {
+      const response = await this.internalFetch(url, {
         method: "POST",
         body: JSON.stringify(request),
         signal: abortController.signal,
@@ -521,7 +526,7 @@ export class AltimateRequest {
     const blob = (await this.readStreamToBlob(
       createReadStream(filePath),
     )) as Blob;
-    const response = await fetch(endpoint, {
+    const response = await this.internalFetch(endpoint, {
       ...fetchArgs,
       method: "PUT",
       body: blob,
@@ -597,7 +602,7 @@ export class AltimateRequest {
 
     try {
       const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
-      const response = await fetch(url, {
+      const response = await this.internalFetch(url, {
         method: "GET",
         ...fetchArgs,
         signal: abortController.signal,
@@ -685,8 +690,13 @@ export class AltimateRequest {
         "AltimateRequest",
         `fetching artifactUrl: ${artifactUrl}`,
       );
-      const response = await fetch(artifactUrl, { agent: undefined });
+      const response = await this.internalFetch(artifactUrl, {
+        agent: undefined,
+      });
 
+      if (!response.ok) {
+        throw new Error(`Failed to download file: ${response.statusText}`);
+      }
       const fileStream = createWriteStream(destinationPath);
       await new Promise((resolve, reject) => {
         response.body?.pipe(fileStream);
@@ -775,7 +785,7 @@ export class AltimateRequest {
   async checkApiConnectivity() {
     const url = `${AltimateRequest.ALTIMATE_URL}/health`;
     try {
-      const response = await fetch(url, { method: "GET" });
+      const response = await this.internalFetch(url, { method: "GET" });
       const { status } = (await response.json()) as { status: string };
       return { status };
     } catch (e) {

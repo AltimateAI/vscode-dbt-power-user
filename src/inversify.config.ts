@@ -40,6 +40,7 @@ import { ValidationProvider } from "./validation_provider";
 import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
 import { NotebookKernelClient, NotebookDependencies } from "@lib";
+import { DBTCoreCommandProjectIntegration } from "./dbt_client/dbtCoreCommandIntegration";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -87,6 +88,35 @@ container
     ) => {
       const { container } = context;
       return new DBTCoreProjectIntegration(
+        container.get(DBTCommandExecutionInfrastructure),
+        container.get(PythonEnvironment),
+        container.get(TelemetryService),
+        container.get(PythonDBTCommandExecutionStrategy),
+        container.get(DBTProjectContainer),
+        container.get(AltimateRequest),
+        container.get(DBTTerminal),
+        container.get(ValidationProvider),
+        container.get(DeferToProdService),
+        projectRoot,
+        projectConfigDiagnostics,
+      );
+    };
+  });
+
+container
+  .bind<
+    interfaces.Factory<DBTCoreProjectIntegration>
+  >("Factory<DBTCoreCommandProjectIntegration>")
+  .toFactory<
+    DBTCoreCommandProjectIntegration,
+    [Uri, DiagnosticCollection]
+  >((context: interfaces.Context) => {
+    return (
+      projectRoot: Uri,
+      projectConfigDiagnostics: DiagnosticCollection,
+    ) => {
+      const { container } = context;
+      return new DBTCoreCommandProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
         container.get(PythonEnvironment),
         container.get(TelemetryService),
@@ -170,6 +200,7 @@ container
         container.get(SharedStateService),
         container.get(TelemetryService),
         container.get("Factory<DBTCoreProjectIntegration>"),
+        container.get("Factory<DBTCoreCommandProjectIntegration>"),
         container.get("Factory<DBTCloudProjectIntegration>"),
         container.get(AltimateRequest),
         container.get(ValidationProvider),

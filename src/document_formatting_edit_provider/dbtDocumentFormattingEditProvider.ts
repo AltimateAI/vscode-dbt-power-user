@@ -1,4 +1,4 @@
-import * as parseDiff from "parse-diff";
+import parseDiff from "parse-diff";
 import {
   CancellationToken,
   DocumentFormattingEditProvider,
@@ -9,7 +9,7 @@ import {
   window,
   workspace,
 } from "vscode";
-import * as which from "which";
+import which from "which";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";

@@ -44,7 +44,7 @@ import { NodeMetaData } from "../domain";
 import * as crypto from "crypto";
 import { parse } from "yaml";
 
-function getDBTPath(
+export function getDBTPath(
   pythonEnvironment: PythonEnvironment,
   terminal: DBTTerminal,
 ): string {

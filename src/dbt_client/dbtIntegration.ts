@@ -169,7 +169,7 @@ export class PythonDBTCommandExecutionStrategy
   }
 
   private dbtCommand(args: string[]): string {
-    args = args.map((arg) => `r'${arg}'`);
+    args = args.map((arg) => `r"""${arg.replace(/"/g, '\\"')}"""`);
     const dbtCustomRunnerImport = workspace
       .getConfiguration("dbt")
       .get<string>(
