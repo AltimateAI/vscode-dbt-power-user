@@ -206,7 +206,7 @@ const DocGeneratorInput = ({
             type="textarea"
             rows={inputRows}
             placeholder={placeholder}
-            className={isDirty ? classes.dirty : ""}
+            className={isDirty ? "border-orange" : ""}
           />
         </InputGroup>
       </Stack>

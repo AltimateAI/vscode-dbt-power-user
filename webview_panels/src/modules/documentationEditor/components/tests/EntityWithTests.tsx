@@ -71,7 +71,7 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
               test={test}
               onSelect={onSelect}
               selectedTest={selectedTest}
-              className={!testKeys?.includes(test.key) ? classes.dirty : ""}
+              className={!testKeys?.includes(test.key) ? "border-orange" : ""}
             />
           ))}
           {!showAllTests && tests && tests.length > MaxVisibleTests ? (

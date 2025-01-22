@@ -180,3 +180,7 @@ body.vscode-high-contrast:not(.vscode-high-contrast-light) {
 .modal-content {
   background-color: var(--background--04);
 }
+
+.border-orange {
+  border-color: var(--stroke--orange) !important;
+}
