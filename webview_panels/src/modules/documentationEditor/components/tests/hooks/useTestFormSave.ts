@@ -189,7 +189,7 @@ const useTestFormSave = (): {
         database: "",
         schema: "",
         column_name: column,
-        key: `${data.test}_${column}`,
+        key: `${data.test}_${currentDocsData?.name}_${column}`,
         test_metadata: {
           name: data.test!,
           kwargs: {
