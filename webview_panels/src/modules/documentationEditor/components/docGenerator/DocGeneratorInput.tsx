@@ -43,6 +43,7 @@ const DocGeneratorInput = ({
   const {
     state: {
       userInstructions,
+      incomingDocsData,
       currentDocsData,
       insertedEntityName,
       selectedConversationGroup,
@@ -139,11 +140,18 @@ const DocGeneratorInput = ({
   };
 
   const variant = entity.description ? Variants.ICON : Variants.ICON_WITH_TEXT;
+  const isDirty =
+    type === EntityType.MODEL
+      ? currentDocsData?.description !== incomingDocsData?.docs?.description
+      : entity.description !==
+        incomingDocsData?.docs?.columns?.find((c) => c.name === entity.name)
+          ?.description;
 
   return (
     <>
-      <Stack className="justify-content-between">
+      <Stack>
         <h4>{title}</h4>
+        <div className="spacer" />
         <Stack className={classes.actionButtons}>
           <DocumentationPropagationButton type={type} name={entity.name} />
           <AddCoversationButton
@@ -169,6 +177,7 @@ const DocGeneratorInput = ({
             type="textarea"
             rows={description ? 5 : 1}
             placeholder={placeholder}
+            className={isDirty ? classes.dirty : ""}
           />
         </InputGroup>
       </Stack>

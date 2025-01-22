@@ -118,6 +118,7 @@ const documentationSlice = createSlice({
         !state.currentDocsData || // if first load, currentDocsData will be undefined
         isCleanForm
       ) {
+        state.incomingDocsData = action.payload ?? {};
         state.currentDocsData = action.payload?.docs;
         state.currentDocsTests = action.payload?.tests;
         return;
@@ -134,7 +135,6 @@ const documentationSlice = createSlice({
         (Partial<DBTDocumentation> & { isNewGeneration?: boolean }) | undefined
       >,
     ) => {
-      state.incomingDocsData = undefined;
       // incase of yml files, incoming docs data will be {}, so checking for keys length as well
       if (!action.payload || !Object.keys(action.payload).length) {
         state.currentDocsData = undefined;
