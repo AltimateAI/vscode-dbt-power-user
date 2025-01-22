@@ -184,12 +184,20 @@ const useTestFormSave = (): {
       });
     }
     if (operation === TestOperation.CREATE) {
+      let testKey = `${data.test}_${currentDocsData?.name}_${column}`;
+      if (data.test === DbtGenericTests.ACCEPTED_VALUES) {
+        for (const value of newValues ?? []) {
+          testKey += `__${value}`;
+        }
+      } else if (data.test === DbtGenericTests.RELATIONSHIPS) {
+        testKey += `__${data.field}__${data.to?.replace(/['()]+/g, "_")}`;
+      }
       testsData.push({
         alias: "",
         database: "",
         schema: "",
         column_name: column,
-        key: `${data.test}_${currentDocsData?.name}_${column}`,
+        key: testKey,
         test_metadata: {
           name: data.test!,
           kwargs: {
