@@ -53,6 +53,25 @@ const DocGeneratorInput = ({
   } = useDocumentationContext();
   const [description, setDescription] = useState("");
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const [inputRows, setInputRows] = useState(2);
+
+  useEffect(() => {
+    setTimeout(() => {
+      if (!inputRef.current) {
+        return;
+      }
+      try {
+        const lineHeight = parseFloat(
+          window.getComputedStyle(inputRef.current).lineHeight,
+        );
+        const scrollHeight = inputRef.current?.scrollHeight;
+        const rows = Math.floor(scrollHeight / lineHeight) - 1;
+        setInputRows(rows);
+      } catch (e) {
+        panelLogger.error("Error in setting input height", e);
+      }
+    }, 200);
+  }, []);
 
   const selectedConversationGroupData = useMemo(() => {
     if (!selectedConversationGroup) {
@@ -183,7 +202,7 @@ const DocGeneratorInput = ({
             value={description}
             onChange={onChange}
             type="textarea"
-            rows={description ? 5 : 1}
+            rows={inputRows}
             placeholder={placeholder}
             className={isDirty ? classes.dirty : ""}
           />
