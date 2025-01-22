@@ -192,7 +192,7 @@ export class DBTCloudProjectIntegration
   private rebuildManifestCancellationTokenSource:
     | CancellationTokenSource
     | undefined;
-  private pathsInitalized = false;
+  private pathsInitialized = false;
 
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
@@ -233,10 +233,10 @@ export class DBTCloudProjectIntegration
   }
 
   async refreshProjectConfig(): Promise<void> {
-    if (!this.pathsInitalized) {
+    if (!this.pathsInitialized) {
       // First time let,s block
       await this.initializePaths();
-      this.pathsInitalized = true;
+      this.pathsInitialized = true;
     } else {
       this.initializePaths();
     }
@@ -395,7 +395,7 @@ export class DBTCloudProjectIntegration
     ];
   }
 
-  async rebuildManifest(retryCount: number = 0): Promise<void> {
+  async rebuildManifest(): Promise<void> {
     // TODO: check whether we should allow parsing for unauthenticated users
     // this.throwIfNotAuthenticated();
     if (this.rebuildManifestCancellationTokenSource) {
@@ -564,7 +564,11 @@ export class DBTCloudProjectIntegration
   }
 
   async deps(command: DBTCommand): Promise<string> {
-    throw new Error("dbt deps is not supported in dbt cloud");
+    const { stdout, stderr } = await this.dbtCloudCommand(command).execute();
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    return stdout;
   }
 
   async debug(command: DBTCommand): Promise<string> {
