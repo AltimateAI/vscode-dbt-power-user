@@ -1,14 +1,19 @@
 import { DBTModelTest } from "@modules/documentationEditor/state/types";
 import { Tag, Tooltip } from "@uicore";
-import classes from "../../styles.module.scss";
 
 interface Props {
   test: DBTModelTest;
   onSelect: (test: DBTModelTest) => void;
   selectedTest: DBTModelTest | null;
+  className?: string;
 }
 
-const Test = ({ test, onSelect, selectedTest }: Props): JSX.Element => {
+const Test = ({
+  test,
+  onSelect,
+  selectedTest,
+  className,
+}: Props): JSX.Element => {
   const handleClick = () => {
     onSelect(test);
   };
@@ -22,7 +27,7 @@ const Test = ({ test, onSelect, selectedTest }: Props): JSX.Element => {
         color={selectedTest?.key === test.key ? "primary" : ""}
         key={test.key}
         onClick={handleClick}
-        className={classes.testTag}
+        className={className}
       >
         {test.test_metadata?.name ?? test.key}
       </Tag>
