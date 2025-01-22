@@ -94,7 +94,7 @@ const DocGeneratorColumn = ({ column, tests }: Props): JSX.Element => {
         placeholder={`Describe ${column.name}`}
         type={EntityType.COLUMN}
         entity={column}
-        title={column.name + (column.type ? " (" + column.type + ")" : "")}
+        title={column.name}
       />
       <EntityWithTests
         title={column.name}

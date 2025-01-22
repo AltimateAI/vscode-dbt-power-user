@@ -4,7 +4,7 @@ import {
   DocsGenerateModelRequestV2,
 } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
-import { Input, InputGroup, Stack } from "@uicore";
+import { Input, InputGroup, Stack, Tag } from "@uicore";
 import {
   ChangeEvent,
   useCallback,
@@ -140,17 +140,25 @@ const DocGeneratorInput = ({
   };
 
   const variant = entity.description ? Variants.ICON : Variants.ICON_WITH_TEXT;
+  const entityColumn = incomingDocsData?.docs?.columns?.find(
+    (c) => c.name === entity.name,
+  );
   const isDirty =
     type === EntityType.MODEL
       ? currentDocsData?.description !== incomingDocsData?.docs?.description
-      : entity.description !==
-        incomingDocsData?.docs?.columns?.find((c) => c.name === entity.name)
-          ?.description;
+      : entity.description !== entityColumn?.description;
 
   return (
     <>
-      <Stack>
-        <h4>{title}</h4>
+      <Stack className="align-items-center mb-2">
+        <h4 className="mb-0">{title}</h4>
+        {type === EntityType.COLUMN &&
+        (entity as DBTDocumentationColumn).type ? (
+          <Tag className={classes.datatypeTag}>
+            {(entity as DBTDocumentationColumn).type}
+          </Tag>
+        ) : null}
+        {isDirty ? <Tag className={classes.modifiedTag}>modified</Tag> : null}
         <div className="spacer" />
         <Stack className={classes.actionButtons}>
           <DocumentationPropagationButton type={type} name={entity.name} />
