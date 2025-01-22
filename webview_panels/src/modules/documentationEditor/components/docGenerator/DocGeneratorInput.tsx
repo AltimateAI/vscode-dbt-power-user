@@ -173,11 +173,13 @@ const DocGeneratorInput = ({
         <h4 className="mb-0">{title}</h4>
         {type === EntityType.COLUMN &&
         (entity as DBTDocumentationColumn).type ? (
-          <Tag className={classes.datatypeTag}>
-            {(entity as DBTDocumentationColumn).type}
+          <Tag type="rounded">{(entity as DBTDocumentationColumn).type}</Tag>
+        ) : null}
+        {isDirty ? (
+          <Tag color="orange" type="rounded">
+            modified
           </Tag>
         ) : null}
-        {isDirty ? <Tag className={classes.modifiedTag}>modified</Tag> : null}
         <div className="spacer" />
         <Stack className={classes.actionButtons}>
           <DocumentationPropagationButton type={type} name={entity.name} />

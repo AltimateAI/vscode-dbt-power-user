@@ -24,7 +24,7 @@ const Test = ({
       id={`tooltip-${test.column_name ?? ""}-${test.test_metadata?.name ?? ""}`}
     >
       <Tag
-        color={selectedTest?.key === test.key ? "primary" : ""}
+        color={selectedTest?.key === test.key ? "primary" : "default"}
         key={test.key}
         onClick={handleClick}
         className={className}
