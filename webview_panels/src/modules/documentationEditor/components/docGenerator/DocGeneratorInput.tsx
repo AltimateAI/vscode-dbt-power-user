@@ -59,10 +59,19 @@ const DocGeneratorInput = ({
     if (!inputRef.current) {
       return;
     }
+    let fontSize = 13; // default font size
+    try {
+      fontSize = parseFloat(window.getComputedStyle(inputRef.current).fontSize);
+    } catch (e) {
+      panelLogger.error("Error parsing font size", e);
+    }
+    // generally character width is 0.5 of font size
+    const charWidth = fontSize * 0.5;
     const newLines = (description.match(/\n/g) ?? []).length;
     const rows =
       Math.ceil(
-        ((description.length - newLines) * 6.5) / inputRef.current.clientWidth,
+        ((description.length - newLines) * charWidth) /
+          inputRef.current.clientWidth,
       ) + newLines;
     setInputRows(rows);
   }, [description]);
