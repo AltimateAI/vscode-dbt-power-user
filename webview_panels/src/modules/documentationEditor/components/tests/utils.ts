@@ -33,3 +33,13 @@ export const findDbtTestType = (test: DBTModelTest): DbtTestTypes => {
 
   return DbtTestTypes.MACRO;
 };
+
+export function generateHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i); // Get character code
+    hash = (hash << 5) - hash + char; // Shift and add
+    hash |= 0; // Convert to 32-bit integer
+  }
+  return hash.toString(16);
+}
