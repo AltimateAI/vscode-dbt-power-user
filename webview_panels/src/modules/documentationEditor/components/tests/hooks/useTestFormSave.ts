@@ -168,7 +168,7 @@ const useTestFormSave = (): {
     return temp;
   };
 
-  const getUpdatedTestsData = (
+  const getUpdatedTestsData = async (
     data: SaveRequest,
     column: string,
     operation: TestOperation,
@@ -185,7 +185,7 @@ const useTestFormSave = (): {
       });
     }
     if (operation === TestOperation.CREATE) {
-      const hashKey = generateHash(JSON.stringify({ ...data, column }));
+      const hashKey = await generateHash(JSON.stringify({ ...data, column }));
       testsData.push({
         alias: "",
         database: "",
@@ -229,7 +229,7 @@ const useTestFormSave = (): {
     return testsData;
   };
 
-  const handleSave = (
+  const handleSave = async (
     data: SaveRequest,
     column: string,
     operation: TestOperation,
@@ -240,7 +240,7 @@ const useTestFormSave = (): {
       return;
     }
 
-    const testsData = getUpdatedTestsData(data, column, operation);
+    const testsData = await getUpdatedTestsData(data, column, operation);
     panelLogger.info("add/update test data", testsData);
     dispatch(updateCurrentDocsTests(testsData));
     dispatch(setIsTestUpdatedForAnyColumn(true));
