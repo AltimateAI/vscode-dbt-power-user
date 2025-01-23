@@ -12,10 +12,14 @@ import {
   setIsDocGeneratedForAnyColumn,
   setIsTestUpdatedForAnyColumn,
   updateCurrentDocsData,
+  setIncomingDocsData,
 } from "@modules/documentationEditor/state/documentationSlice";
 import classes from "../../styles.module.scss";
 import { noop } from "antd/es/_util/warning";
-import { DBTDocumentation } from "@modules/documentationEditor/state/types";
+import {
+  DBTDocumentation,
+  DBTModelTest,
+} from "@modules/documentationEditor/state/types";
 
 /**
  * Handles save documentation functionality
@@ -46,12 +50,25 @@ const SaveDocumentation = (): JSX.Element | null => {
       updatedTests: currentDocsTests,
       patchPath,
       dialogType,
-    })) as { saved: boolean; documentation: DBTDocumentation };
+    })) as {
+      saved: boolean;
+      documentation: DBTDocumentation;
+      tests: DBTModelTest[];
+    };
     if (result.saved) {
       dispatch(setIsDocGeneratedForAnyColumn(false));
       dispatch(setIsTestUpdatedForAnyColumn(false));
       if (result.documentation) {
         dispatch(updateCurrentDocsData(result.documentation));
+      }
+
+      if (result.tests) {
+        dispatch(
+          setIncomingDocsData({
+            docs: result.documentation,
+            tests: result.tests,
+          }),
+        );
       }
     }
   };

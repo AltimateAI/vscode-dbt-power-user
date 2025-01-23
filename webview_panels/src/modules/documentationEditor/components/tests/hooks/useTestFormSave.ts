@@ -73,9 +73,6 @@ const useTestFormSave = (): {
 
       if (key) {
         testsData.push({
-          alias: "",
-          database: "",
-          schema: "",
           key: `${key}_${params.model}`,
           test_metadata: {
             // @ts-expect-error test
@@ -106,9 +103,6 @@ const useTestFormSave = (): {
         }
         if (key) {
           testsData.push({
-            alias: "",
-            database: "",
-            schema: "",
             column_name: column.name,
             key: testKey,
             test_metadata: {
@@ -187,9 +181,6 @@ const useTestFormSave = (): {
     if (operation === TestOperation.CREATE) {
       const hashKey = await generateHash(JSON.stringify({ ...data, column }));
       testsData.push({
-        alias: "",
-        database: "",
-        schema: "",
         column_name: column,
         key: hashKey,
         test_metadata: {

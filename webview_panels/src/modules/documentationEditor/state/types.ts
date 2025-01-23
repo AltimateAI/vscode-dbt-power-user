@@ -85,12 +85,9 @@ export interface DocumentationStateProps {
 }
 
 export interface DBTModelTest {
-  alias: string;
   column_name?: string;
-  database: string;
   key: string;
   path?: string;
-  schema: string;
   test_metadata?: {
     kwargs: TestMetadataAcceptedValuesKwArgs | TestMetadataRelationshipsKwArgs;
     name: string;
