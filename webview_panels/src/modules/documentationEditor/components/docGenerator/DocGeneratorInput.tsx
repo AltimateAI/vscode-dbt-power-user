@@ -55,6 +55,8 @@ const DocGeneratorInput = ({
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
   const [inputRows, setInputRows] = useState(2);
 
+  const LAYOUT_STABILIZATION_DELAY = 200; // ms - Wait for DOM to stabilize
+  const SCROLLBAR_ADJUSTMENT = 1; // Subtract 1 line to prevent scrollbar from appearing prematurely
   useEffect(() => {
     setTimeout(() => {
       if (!inputRef.current) {
@@ -65,13 +67,13 @@ const DocGeneratorInput = ({
           window.getComputedStyle(inputRef.current).lineHeight,
         );
         const scrollHeight = inputRef.current?.scrollHeight;
-        const rows = Math.floor(scrollHeight / lineHeight) - 1;
+        const rows = Math.floor(scrollHeight / lineHeight) - SCROLLBAR_ADJUSTMENT;
         setInputRows(rows);
       } catch (e) {
         panelLogger.error("Error in setting input height", e);
       }
-    }, 200);
-  }, []);
+    }, LAYOUT_STABILIZATION_DELAY);
+  }, [description]); // Recalculate when content changes
 
   const selectedConversationGroupData = useMemo(() => {
     if (!selectedConversationGroup) {
