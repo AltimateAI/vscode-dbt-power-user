@@ -53,7 +53,7 @@ const DocGeneratorInput = ({
   } = useDocumentationContext();
   const [description, setDescription] = useState("");
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
-  const [inputRows, setInputRows] = useState(2);
+  const [inputRows, setInputRows] = useState(1);
 
   const LAYOUT_STABILIZATION_DELAY = 200; // ms - Wait for DOM to stabilize
   const SCROLLBAR_ADJUSTMENT = 1; // Subtract 1 line to prevent scrollbar from appearing prematurely
@@ -67,7 +67,8 @@ const DocGeneratorInput = ({
           window.getComputedStyle(inputRef.current).lineHeight,
         );
         const scrollHeight = inputRef.current?.scrollHeight;
-        const rows = Math.floor(scrollHeight / lineHeight) - SCROLLBAR_ADJUSTMENT;
+        const rows =
+          Math.floor(scrollHeight / lineHeight) - SCROLLBAR_ADJUSTMENT;
         setInputRows(rows);
       } catch (e) {
         panelLogger.error("Error in setting input height", e);
