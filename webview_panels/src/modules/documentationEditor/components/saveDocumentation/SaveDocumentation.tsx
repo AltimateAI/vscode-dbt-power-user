@@ -62,14 +62,12 @@ const SaveDocumentation = (): JSX.Element | null => {
         dispatch(updateCurrentDocsData(result.documentation));
       }
 
-      if (result.tests) {
-        dispatch(
-          setIncomingDocsData({
-            docs: result.documentation,
-            tests: result.tests,
-          }),
-        );
-      }
+      dispatch(
+        setIncomingDocsData({
+          docs: result.documentation,
+          tests: result.tests,
+        }),
+      );
     }
   };
 
