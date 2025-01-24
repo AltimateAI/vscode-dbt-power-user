@@ -47,14 +47,14 @@ jobs:
         npm run compile && npm run test:coverage
     - name: Upload test results
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-results-${{ matrix.os }}
         path: test-results/
 
     - name: Upload coverage results
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: coverage-${{ matrix.os }}
         path: |
