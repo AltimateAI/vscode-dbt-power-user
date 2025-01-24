@@ -1,4 +1,7 @@
-import { executeRequestInAsync } from "@modules/app/requestExecutor";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
 import { IncomingMessageProps } from "@modules/app/types";
 import { panelLogger } from "@modules/logger";
 import {
@@ -7,12 +10,15 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
 } from "react";
 import documentationSlice, {
   initialState,
   setGenerationsHistory,
   setIncomingDocsData,
   setInsertedEntityName,
+  setIsDocGeneratedForAnyColumn,
+  setIsTestUpdatedForAnyColumn,
   setMissingDocumentationMessage,
   setProject,
   updatConversations,
@@ -21,6 +27,7 @@ import documentationSlice, {
   updateColumnsInCurrentDocsData,
   updateConversationsRightPanelState,
   updateCurrentDocsData,
+  updateCurrentDocsTests,
   updateSelectedConversationGroup,
   updateUserInstructions,
 } from "./state/documentationSlice";
@@ -38,9 +45,6 @@ import { ConversationGroup, DbtDocsShareDetails } from "@lib";
 import { TelemetryEvents } from "@telemetryEvents";
 import { sendTelemetryEvent } from "./components/telemetry";
 import useAppContext from "@modules/app/useAppContext";
-import useIncomingDocsDataHandler, {
-  ActionState,
-} from "./useIncomingDocsDataHandler";
 
 export const DocumentationContext = createContext<ContextProps>({
   state: initialState,
@@ -63,6 +67,12 @@ type IncomingMessageEvent = MessageEvent<
     };
   }
 >;
+
+enum ActionState {
+  CANCEL_STAY = "Stay",
+  DISCARD_PROCEED = "Discard",
+  SAVE_PROCEED = "Save changes",
+}
 
 const isDirty = (state: DocumentationStateProps) => {
   panelLogger.log("thisisit1", state);
@@ -99,12 +109,7 @@ const DocumentationProvider = (): JSX.Element => {
     documentationSlice.reducer,
     documentationSlice.getInitialState(),
   );
-  const {
-    showUnsavedChangesDialog,
-    saveDocumentation,
-    cancelDocumentation,
-    discardDocumentation,
-  } = useIncomingDocsDataHandler();
+  const stateRef = useRef(state);
 
   const updateFocus = (name?: string) => {
     dispatch(setInsertedEntityName(name));
@@ -174,22 +179,54 @@ const DocumentationProvider = (): JSX.Element => {
         );
         break;
       case "renderDocumentation":
-        panelLogger.info("thisisit2", isDirty(state), state);
-        if (isDirty(state)) {
-          showUnsavedChangesDialog()
+        panelLogger.info(
+          "thisisit2",
+          isDirty(stateRef.current),
+          stateRef.current,
+        );
+        if (isDirty(stateRef.current)) {
+          const { currentDocsData, currentDocsTests } = stateRef.current;
+          executeRequestInSync("showWarningMessage", {
+            infoMessage: `You have unsaved changes in model: ‘${currentDocsData?.name}’. Would you
+            like to discard the changes, save them and proceed, or remain in the
+            current state?`,
+            items: [
+              ActionState.DISCARD_PROCEED,
+              ActionState.CANCEL_STAY,
+              ActionState.SAVE_PROCEED,
+            ],
+          })
             .then(async (action) => {
               switch (action) {
-                case ActionState.SAVE_PROCEED:
-                  await saveDocumentation();
+                case ActionState.SAVE_PROCEED: {
+                  const result = (await executeRequestInSync(
+                    "saveDocumentation",
+                    {
+                      ...currentDocsData,
+                      updatedTests: currentDocsTests,
+                      dialogType: "Existing file",
+                    },
+                  )) as { saved: boolean };
+                  if (result.saved) {
+                    dispatch(setIsDocGeneratedForAnyColumn(false));
+                    dispatch(setIsTestUpdatedForAnyColumn(false));
+                    dispatch(updateCurrentDocsData(event.data.docs));
+                    dispatch(updateCurrentDocsTests(event.data.tests));
+                  }
                   renderDocumentation(event);
                   break;
-                case ActionState.DISCARD_PROCEED:
-                  discardDocumentation();
+                }
+                case ActionState.DISCARD_PROCEED: {
+                  dispatch(setIsDocGeneratedForAnyColumn(false));
+                  dispatch(setIsTestUpdatedForAnyColumn(false));
+                  dispatch(updateCurrentDocsData(event.data.docs));
+                  dispatch(updateCurrentDocsTests(event.data.tests));
                   renderDocumentation(event);
                   break;
-                case ActionState.CANCEL_STAY:
-                  cancelDocumentation();
+                }
+                case ActionState.CANCEL_STAY: {
                   break;
+                }
                 default:
                   break;
               }
@@ -286,6 +323,11 @@ const DocumentationProvider = (): JSX.Element => {
     }),
     [state, dispatch],
   );
+
+  // hack to get latest state in onMessage
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   if (!isComponentsApiInitialized) {
     return <div>Loading...</div>;
