@@ -1,6 +1,7 @@
 import {
   DBTDocumentation,
   DBTDocumentationColumn,
+  DBTModelTest,
   DocsGenerateModelRequestV2,
 } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
@@ -31,6 +32,7 @@ interface Props {
   placeholder?: string;
   type: EntityType;
   title: string;
+  tests?: DBTModelTest[];
 }
 const DocGeneratorInput = ({
   onSubmit,
@@ -38,6 +40,7 @@ const DocGeneratorInput = ({
   placeholder,
   type,
   title,
+  tests,
 }: Props): JSX.Element => {
   const stackRef = useRef<HTMLDivElement | null>(null);
   const {
@@ -165,10 +168,13 @@ const DocGeneratorInput = ({
   const entityColumn = incomingDocsData?.docs?.columns?.find(
     (c) => c.name === entity.name,
   );
-  const isDirty =
+  const testKeys = incomingDocsData?.tests?.map((t) => t.key);
+  const isTestsDirty = tests?.some((t) => !testKeys?.includes(t.key));
+  const isDescriptionDirty =
     type === EntityType.MODEL
       ? currentDocsData?.description !== incomingDocsData?.docs?.description
       : entity.description !== entityColumn?.description;
+  const isDirty = isDescriptionDirty || isTestsDirty;
 
   return (
     <>
@@ -209,7 +215,7 @@ const DocGeneratorInput = ({
             type="textarea"
             rows={inputRows}
             placeholder={placeholder}
-            className={isDirty ? "border-orange" : ""}
+            className={isDescriptionDirty ? "border-orange" : ""}
           />
         </InputGroup>
       </Stack>
