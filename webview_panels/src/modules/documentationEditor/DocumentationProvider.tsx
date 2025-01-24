@@ -97,6 +97,14 @@ const isDirty = (state: DocumentationStateProps) => {
   if (state.currentDocsTests?.length !== state.incomingDocsData.tests?.length) {
     return true;
   }
+  for (const test of state.currentDocsTests ?? []) {
+    const incomingTest = state.incomingDocsData.tests?.find(
+      (t) => t.key === test.key,
+    );
+    if (!incomingTest) {
+      return true;
+    }
+  }
   return false;
 };
 
