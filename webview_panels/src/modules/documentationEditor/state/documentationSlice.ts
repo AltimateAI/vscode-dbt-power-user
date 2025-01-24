@@ -102,14 +102,6 @@ const documentationSlice = createSlice({
       state,
       action: PayloadAction<DocumentationStateProps["incomingDocsData"]>,
     ) => {
-      const isDifferentEntity =
-        action.payload?.docs?.uniqueId !== state.currentDocsData?.uniqueId;
-
-      // if current file is not changed, then keep the current changes
-      if (!isDifferentEntity) {
-        return;
-      }
-
       // if test/docs data is not changed, then update the state
       const isCleanForm =
         !state.isDocGeneratedForAnyColumn && !state.isTestUpdatedForAnyColumn;

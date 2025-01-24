@@ -75,7 +75,6 @@ enum ActionState {
 }
 
 const isDirty = (state: DocumentationStateProps) => {
-  panelLogger.log("thisisit1", state);
   if (!state.currentDocsData && !state.currentDocsTests) return false;
   if (!state.incomingDocsData) return false;
   if (!state.incomingDocsData.docs && !state.incomingDocsData.tests)
@@ -179,11 +178,6 @@ const DocumentationProvider = (): JSX.Element => {
         );
         break;
       case "renderDocumentation":
-        panelLogger.info(
-          "thisisit2",
-          isDirty(stateRef.current),
-          stateRef.current,
-        );
         if (isDirty(stateRef.current)) {
           const { currentDocsData, currentDocsTests } = stateRef.current;
           executeRequestInSync("showWarningMessage", {
