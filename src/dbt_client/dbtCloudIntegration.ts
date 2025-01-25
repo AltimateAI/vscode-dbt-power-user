@@ -240,10 +240,6 @@ export class DBTCloudProjectIntegration
     } else {
       this.initializePaths();
     }
-    if (this.adapterType === "unknown") {
-      // We only fetch the adapter type once, as it may impact compilation preview otherwise
-      await this.findAdapterType();
-    }
     if (!this.version) {
       await this.findVersion();
     }
@@ -996,6 +992,15 @@ export class DBTCloudProjectIntegration
           stderr,
         );
       }
+      const lookupValue = (lookupString: string) => {
+        const regexString = `${lookupString}\\s*(.*)`;
+        const regexp = new RegExp(regexString, "gm");
+        const matches = regexp.exec(stdout);
+        if (matches?.length === 2) {
+          return matches[1];
+        }
+        throw new Error(`Could not find any entries for ${lookupString}`);
+      };
       const lookupEntries = (lookupString: string) => {
         const regexString = `${lookupString}\\s*\\[(.*)\\]`;
         const regexp = new RegExp(regexString, "gm");
@@ -1016,6 +1021,7 @@ export class DBTCloudProjectIntegration
         join(this.projectRoot.fsPath, p),
       );
       this.packagesInstallPath = join(this.projectRoot.fsPath, "dbt_packages");
+      this.adapterType = lookupValue("Connection type");
     } catch (error) {
       this.terminal.warn(
         "DbtCloudIntegrationInitializePathsExceptionError",
@@ -1039,48 +1045,6 @@ export class DBTCloudProjectIntegration
       this.terminal.warn(
         "DbtCloudIntegrationProjectNameFromConfigExceptionError",
         "project name could not be read from dbt_project.yml, ignoring",
-        true,
-        error,
-      );
-    }
-  }
-
-  private async findAdapterType() {
-    const adapterTypeCommand = this.dbtCloudCommand(
-      new DBTCommand("Getting adapter type...", [
-        "compile",
-        "--inline",
-        "{{ adapter.type() }}",
-        "--output",
-        "json",
-        "--log-format",
-        "json",
-      ]),
-    );
-    try {
-      const { stdout, stderr } = await adapterTypeCommand.execute();
-      if (stderr) {
-        this.terminal.warn(
-          "DbtCloudIntegrationAdapterDetectionStdError",
-          "adapter type returns stderr, ignoring",
-          true,
-          stderr,
-        );
-      }
-      const compiledLine = stdout
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()))
-        .filter((line) => line.data.hasOwnProperty("compiled"));
-      this.adapterType = compiledLine[0].data.compiled;
-      this.terminal.debug(
-        "dbtCloudIntegration",
-        `Set adapter type to ${this.adapterType}`,
-      );
-    } catch (error) {
-      this.terminal.warn(
-        "DbtCloudIntegrationAdapterDetectionExceptionError",
-        "adapter type throws error, ignoring",
         true,
         error,
       );
