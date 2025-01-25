@@ -108,6 +108,7 @@ export class DBTProject implements Disposable {
     this._onRebuildManifestStatusChange.event;
 
   private dbSchemaCache: Record<string, ModelNode> = {};
+  private depsInitialized = false;
 
   constructor(
     private PythonEnvironment: PythonEnvironment,
@@ -522,6 +523,15 @@ export class DBTProject implements Disposable {
       project: this,
       inProgress: true,
     });
+    if (!this.depsInitialized) {
+      try {
+        await this.installDeps();
+      } catch (error: any) {
+        // this is best effort
+        console.warn("An error occured while installing dependencies", error);
+      }
+      this.depsInitialized = true;
+    }
     await this.dbtProjectIntegration.rebuildManifest();
     this._onRebuildManifestStatusChange.fire({
       project: this,
@@ -645,7 +655,7 @@ export class DBTProject implements Disposable {
     );
   }
 
-  installDeps() {
+  async installDeps() {
     this.telemetry.sendTelemetryEvent("installDeps");
     const installDepsCommand =
       this.dbtCommandFactory.createInstallDepsCommand();
