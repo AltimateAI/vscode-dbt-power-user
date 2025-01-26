@@ -1,4 +1,4 @@
-import { CancellationTokenSource } from "vscode";
+import { CancellationToken, CancellationTokenSource } from "vscode";
 import { provideSingleton } from "../utils";
 import {
   DBTCoreDetection,
@@ -10,7 +10,9 @@ import {
   DBTCommand,
   DBColumn,
   Catalog,
+  DBTNode,
 } from "./dbtIntegration";
+import { getDBTPath } from "./dbtCloudIntegration";
 
 @provideSingleton(DBTCoreCommandDetection)
 export class DBTCoreCommandDetection extends DBTCoreDetection {}
@@ -20,6 +22,13 @@ export class DBTCoreCommandProjectDetection extends DBTCoreProjectDetection {}
 
 @provideSingleton(DBTCoreProjectIntegration)
 export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration {
+  private dbtPath = "dbt";
+
+  refreshProjectConfig(): Promise<void> {
+    this.dbtPath = getDBTPath(this.pythonEnvironment, this.dbtTerminal);
+    return super.refreshProjectConfig();
+  }
+
   async executeSQL(
     query: string,
     limit: number,
@@ -93,6 +102,17 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
         };
       },
     );
+  }
+
+  protected dbtCoreCommand(command: DBTCommand) {
+    const newCommand = super.dbtCoreCommand(command);
+    newCommand.setExecutionStrategy(
+      this.cliDBTCommandExecutionStrategyFactory(
+        this.projectRoot,
+        this.dbtPath,
+      ),
+    );
+    return newCommand;
   }
 
   // internal commands
@@ -377,5 +397,64 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
     }
     const result: Catalog = JSON.parse(compiledLine[0].data.compiled);
     return result;
+  }
+
+  async getBulkSchemaFromDB(
+    nodes: DBTNode[],
+    cancellationToken: CancellationToken,
+  ): Promise<Record<string, DBColumn[]>> {
+    if (nodes.length === 0) {
+      return {};
+    }
+    this.throwBridgeErrorIfAvailable();
+    const bulkModelQuery = `
+  {% set result = {} %}
+  {% for n in ${JSON.stringify(nodes)} %}
+    {% set columns = adapter.get_columns_in_relation(ref(n["name"])) %}
+    {% set new_columns = [] %}
+    {% for column in columns %}
+      {% do new_columns.append({"column": column.name, "dtype": column.dtype}) %}
+    {% endfor %}
+    {% do result.update({n["unique_id"]:new_columns}) %}
+  {% endfor %}
+  {% for n in graph.sources.values() %}
+    {% set columns = adapter.get_columns_in_relation(source(n["source_name"], n["identifier"])) %}
+    {% set new_columns = [] %}
+    {% for column in columns %}
+      {% do new_columns.append({"column": column.name, "dtype": column.dtype}) %}
+    {% endfor %}
+    {% do result.update({n["unique_id"]:new_columns}) %}
+  {% endfor %}
+  {{ tojson(result) }}`;
+    console.log(bulkModelQuery);
+    const compileQueryCommand = this.dbtCoreCommand(
+      new DBTCommand("Getting catalog...", [
+        "compile",
+        "--inline",
+        bulkModelQuery,
+        "--output",
+        "json",
+        "--log-format",
+        "json",
+      ]),
+    );
+    const { stdout, stderr } =
+      await compileQueryCommand.execute(cancellationToken);
+    const compiledLine = stdout
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line.trim()))
+      .filter(
+        (line) =>
+          line.hasOwnProperty("data") && line.data.hasOwnProperty("compiled"),
+      );
+    if (compiledLine.length === 0) {
+      throw new Error("Could not get bulk schema from response: " + stdout);
+    }
+    const exception = this.processJSONErrors(stderr);
+    if (exception) {
+      throw exception;
+    }
+    return JSON.parse(compiledLine[0].data.compiled);
   }
 }

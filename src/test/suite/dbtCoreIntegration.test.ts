@@ -4,7 +4,10 @@ import {
   DBTCoreDetection,
 } from "../../dbt_client/dbtCoreIntegration";
 import { Container } from "inversify";
-import { PythonDBTCommandExecutionStrategy } from "../../dbt_client/dbtIntegration";
+import {
+  CLIDBTCommandExecutionStrategy,
+  PythonDBTCommandExecutionStrategy,
+} from "../../dbt_client/dbtIntegration";
 import { TelemetryService } from "../../telemetry";
 import { DBTProjectContainer } from "../../manifest/dbtProjectContainer";
 import { AltimateRequest } from "../../altimate";
@@ -72,6 +75,10 @@ describe("DBTCoreProjectIntegration Tests", () => {
       } as any,
       mockTelemetry,
       {} as PythonDBTCommandExecutionStrategy,
+      {} as (
+        projectRoot: Uri,
+        dbtPath: string,
+      ) => CLIDBTCommandExecutionStrategy,
       {} as DBTProjectContainer,
       {} as AltimateRequest,
       {
