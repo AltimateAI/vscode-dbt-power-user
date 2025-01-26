@@ -17,8 +17,6 @@ import documentationSlice, {
   setGenerationsHistory,
   setIncomingDocsData,
   setInsertedEntityName,
-  setIsDocGeneratedForAnyColumn,
-  setIsTestUpdatedForAnyColumn,
   setMissingDocumentationMessage,
   setProject,
   updatConversations,
@@ -35,11 +33,10 @@ import {
   DBTDocumentation,
   DBTModelTest,
   DocsGenerateUserInstructions,
-  DocumentationStateProps,
   MetadataColumn,
 } from "./state/types";
 import { ContextProps } from "./types";
-import { getGenerationsInModel } from "./utils";
+import { getGenerationsInModel, isStateDirty } from "./utils";
 import DocumentationEditor from "./DocumentationEditor";
 import { ConversationGroup, DbtDocsShareDetails } from "@lib";
 import { TelemetryEvents } from "@telemetryEvents";
@@ -73,40 +70,6 @@ enum ActionState {
   DISCARD_PROCEED = "Discard",
   SAVE_PROCEED = "Save changes",
 }
-
-const isDirty = (state: DocumentationStateProps) => {
-  if (!state.currentDocsData && !state.currentDocsTests) return false;
-  if (!state.incomingDocsData) return false;
-  if (!state.incomingDocsData.docs && !state.incomingDocsData.tests)
-    return false;
-  if (
-    state.currentDocsData?.description !==
-    state.incomingDocsData.docs?.description
-  ) {
-    return true;
-  }
-
-  for (const column of state.currentDocsData?.columns ?? []) {
-    const incomingColumn = state.incomingDocsData.docs?.columns?.find(
-      (c) => c.name === column.name,
-    );
-    if (column.description !== incomingColumn?.description) {
-      return true;
-    }
-  }
-  if (state.currentDocsTests?.length !== state.incomingDocsData.tests?.length) {
-    return true;
-  }
-  for (const test of state.currentDocsTests ?? []) {
-    const incomingTest = state.incomingDocsData.tests?.find(
-      (t) => t.key === test.key,
-    );
-    if (!incomingTest) {
-      return true;
-    }
-  }
-  return false;
-};
 
 const DocumentationProvider = (): JSX.Element => {
   const {
@@ -186,7 +149,7 @@ const DocumentationProvider = (): JSX.Element => {
         );
         break;
       case "renderDocumentation":
-        if (isDirty(stateRef.current)) {
+        if (isStateDirty(stateRef.current)) {
           const { currentDocsData, currentDocsTests } = stateRef.current;
           executeRequestInSync("showWarningMessage", {
             infoMessage: `You have unsaved changes in model: ‘${currentDocsData?.name}’. Would you
@@ -210,8 +173,6 @@ const DocumentationProvider = (): JSX.Element => {
                     },
                   )) as { saved: boolean };
                   if (result.saved) {
-                    dispatch(setIsDocGeneratedForAnyColumn(false));
-                    dispatch(setIsTestUpdatedForAnyColumn(false));
                     dispatch(updateCurrentDocsData(event.data.docs));
                     dispatch(updateCurrentDocsTests(event.data.tests));
                   }
@@ -219,8 +180,6 @@ const DocumentationProvider = (): JSX.Element => {
                   break;
                 }
                 case ActionState.DISCARD_PROCEED: {
-                  dispatch(setIsDocGeneratedForAnyColumn(false));
-                  dispatch(setIsTestUpdatedForAnyColumn(false));
                   dispatch(updateCurrentDocsData(event.data.docs));
                   dispatch(updateCurrentDocsTests(event.data.tests));
                   renderDocumentation(event);

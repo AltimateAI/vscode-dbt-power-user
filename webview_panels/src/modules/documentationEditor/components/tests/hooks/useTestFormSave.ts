@@ -1,10 +1,7 @@
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { useCallback, useEffect, useState } from "react";
 import { SaveRequest } from "../types";
-import {
-  setIsTestUpdatedForAnyColumn,
-  updateCurrentDocsTests,
-} from "@modules/documentationEditor/state/documentationSlice";
+import { updateCurrentDocsTests } from "@modules/documentationEditor/state/documentationSlice";
 import { panelLogger } from "@modules/logger";
 import {
   DBTModelTest,
@@ -119,7 +116,6 @@ const useTestFormSave = (): {
     });
     panelLogger.info("insert test data", testsData);
     dispatch(updateCurrentDocsTests(testsData));
-    dispatch(setIsTestUpdatedForAnyColumn(true));
   };
 
   useEffect(() => {
@@ -234,7 +230,6 @@ const useTestFormSave = (): {
     const testsData = await getUpdatedTestsData(data, column, operation);
     panelLogger.info("add/update test data", testsData);
     dispatch(updateCurrentDocsTests(testsData));
-    dispatch(setIsTestUpdatedForAnyColumn(true));
   };
 
   return { handleSave, isSaving };

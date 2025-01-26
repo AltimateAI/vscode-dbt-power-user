@@ -6,7 +6,10 @@ import {
   DocumentationStateProps,
   MetadataColumn,
 } from "./types";
-import { mergeCurrentAndIncomingDocumentationColumns } from "../utils";
+import {
+  isStateDirty,
+  mergeCurrentAndIncomingDocumentationColumns,
+} from "../utils";
 import { Citation } from "@lib";
 
 export const initialState = {
@@ -15,8 +18,6 @@ export const initialState = {
   currentDocsTests: undefined,
   project: undefined,
   generationHistory: [],
-  isDocGeneratedForAnyColumn: false,
-  isTestUpdatedForAnyColumn: false,
   insertedEntityName: undefined,
   docUpdatedForModel: undefined,
   docUpdatedForColumns: [],
@@ -103,8 +104,7 @@ const documentationSlice = createSlice({
       action: PayloadAction<DocumentationStateProps["incomingDocsData"]>,
     ) => {
       // if test/docs data is not changed, then update the state
-      const isCleanForm =
-        !state.isDocGeneratedForAnyColumn && !state.isTestUpdatedForAnyColumn;
+      const isCleanForm = !isStateDirty(state);
 
       if (
         !state.currentDocsData || // if first load, currentDocsData will be undefined
@@ -165,9 +165,6 @@ const documentationSlice = createSlice({
       }
 
       state.currentDocsData = { ...state.currentDocsData, ...action.payload };
-      if (action.payload.isNewGeneration !== undefined) {
-        state.isDocGeneratedForAnyColumn = action.payload.isNewGeneration;
-      }
     },
     updateColumnsAfterSync: (
       state,
@@ -186,12 +183,11 @@ const documentationSlice = createSlice({
           state.currentDocsData.columns,
           columns,
         );
-      state.isDocGeneratedForAnyColumn = true;
     },
     updateColumnsInCurrentDocsData: (
       state,
       {
-        payload: { columns, isNewGeneration },
+        payload: { columns },
       }: PayloadAction<{
         columns: Partial<
           MetadataColumn & {
@@ -222,9 +218,6 @@ const documentationSlice = createSlice({
         }
         return c;
       });
-      if (isNewGeneration !== undefined) {
-        state.isDocGeneratedForAnyColumn = isNewGeneration;
-      }
     },
     addToGenerationsHistory: (
       state,
@@ -239,12 +232,6 @@ const documentationSlice = createSlice({
       action: PayloadAction<GenerationDBDataProps[]>,
     ) => {
       state.generationHistory = action.payload;
-    },
-    setIsDocGeneratedForAnyColumn: (state, action: PayloadAction<boolean>) => {
-      state.isDocGeneratedForAnyColumn = action.payload;
-    },
-    setIsTestUpdatedForAnyColumn: (state, action: PayloadAction<boolean>) => {
-      state.isTestUpdatedForAnyColumn = action.payload;
     },
     resetGenerationsHistory: (state, _action: PayloadAction<undefined>) => {
       state.generationHistory = [];
@@ -268,8 +255,6 @@ export const {
   resetGenerationsHistory,
   setGenerationsHistory,
   updateUserInstructions,
-  setIsDocGeneratedForAnyColumn,
-  setIsTestUpdatedForAnyColumn,
   setInsertedEntityName,
   updateCurrentDocsTests,
   updatConversations,

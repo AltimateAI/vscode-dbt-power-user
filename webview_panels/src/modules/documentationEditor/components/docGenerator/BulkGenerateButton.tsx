@@ -10,7 +10,10 @@ import { panelLogger } from "@modules/logger";
 import { Button, DropdownButton, List, PopoverWithButton } from "@uicore";
 import { useRef, useState } from "react";
 import classes from "../../styles.module.scss";
-import { mergeCurrentAndIncomingDocumentationColumns } from "@modules/documentationEditor/utils";
+import {
+  isStateDirty,
+  mergeCurrentAndIncomingDocumentationColumns,
+} from "@modules/documentationEditor/utils";
 import DocGenSelectedColumns from "./DocGenSelectedColumns";
 import { noop } from "antd/es/_util/warning";
 
@@ -23,15 +26,8 @@ const BulkGenerateButton = (): JSX.Element => {
     SidePanelState | undefined
   >();
   const ref = useRef<HTMLDivElement | null>(null);
-  const {
-    state: {
-      currentDocsData,
-      userInstructions,
-      isDocGeneratedForAnyColumn,
-      isTestUpdatedForAnyColumn,
-    },
-    dispatch,
-  } = useDocumentationContext();
+  const { state, dispatch } = useDocumentationContext();
+  const { currentDocsData, userInstructions } = state;
 
   const resetSidepanelState = () => {
     setSidePanelState(undefined);
@@ -167,7 +163,7 @@ const BulkGenerateButton = (): JSX.Element => {
     }
   };
 
-  const isDirty = isDocGeneratedForAnyColumn || isTestUpdatedForAnyColumn;
+  const isDirty = isStateDirty(state);
   const color = isDirty ? "secondary" : "primary";
 
   return (

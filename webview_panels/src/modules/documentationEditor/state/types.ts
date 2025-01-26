@@ -70,8 +70,6 @@ export interface DocumentationStateProps {
   project?: string;
   generationHistory: GenerationDBDataProps[];
   userInstructions: DocsGenerateUserInstructions;
-  isDocGeneratedForAnyColumn: boolean;
-  isTestUpdatedForAnyColumn: boolean;
   insertedEntityName?: string;
   conversations: Record<DbtDocsShareDetails["share_id"], ConversationGroup[]>;
   showConversationsRightPanel: boolean;
