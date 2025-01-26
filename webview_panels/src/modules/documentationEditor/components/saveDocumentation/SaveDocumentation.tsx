@@ -8,10 +8,7 @@ import {
   PopoverWithButtonRef,
 } from "@uicore";
 import { MouseEvent, useEffect, useRef, useState } from "react";
-import {
-  updateCurrentDocsData,
-  setIncomingDocsData,
-} from "@modules/documentationEditor/state/documentationSlice";
+import { setIncomingDocsData } from "@modules/documentationEditor/state/documentationSlice";
 import classes from "../../styles.module.scss";
 import { noop } from "antd/es/_util/warning";
 import {
@@ -48,14 +45,10 @@ const SaveDocumentation = (): JSX.Element | null => {
       tests: DBTModelTest[];
     };
     if (result.saved) {
-      if (result.documentation) {
-        dispatch(updateCurrentDocsData(result.documentation));
-      }
-
       dispatch(
         setIncomingDocsData({
-          docs: result.documentation,
-          tests: result.tests,
+          docs: currentDocsData,
+          tests: currentDocsTests,
         }),
       );
     }
