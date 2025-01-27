@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.51.2",
+  "version": "0.52.0",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -121,6 +121,11 @@
             "type": "number",
             "description": "By default how much lineage should expand.",
             "default": 1
+          },
+          "dbt.installDepsOnProjectInitialization": {
+            "type": "boolean",
+            "description": "Install dbt deps on project initialization",
+            "default": true
           }
         }
       },

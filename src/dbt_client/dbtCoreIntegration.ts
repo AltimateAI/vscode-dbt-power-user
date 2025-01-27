@@ -35,6 +35,8 @@ import {
   Node,
   ExecuteSQLError,
   HealthcheckArgs,
+  CLIDBTCommandExecutionStrategy,
+  DBTCommandExecutionStrategy,
 } from "./dbtIntegration";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
@@ -259,15 +261,19 @@ export class DBTCoreProjectIntegration
 
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
-    private pythonEnvironment: PythonEnvironment,
+    protected pythonEnvironment: PythonEnvironment,
     private telemetry: TelemetryService,
     private pythonDBTCommandExecutionStrategy: PythonDBTCommandExecutionStrategy,
+    protected cliDBTCommandExecutionStrategyFactory: (
+      path: Uri,
+      dbtPath: string,
+    ) => DBTCommandExecutionStrategy,
     private dbtProjectContainer: DBTProjectContainer,
     private altimateRequest: AltimateRequest,
-    private dbtTerminal: DBTTerminal,
+    protected dbtTerminal: DBTTerminal,
     private validationProvider: ValidationProvider,
     private deferToProdService: DeferToProdService,
-    private projectRoot: Uri,
+    protected projectRoot: Uri,
     private projectConfigDiagnostics: DiagnosticCollection,
   ) {
     this.dbtTerminal.debug(

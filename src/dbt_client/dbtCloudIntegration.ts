@@ -952,7 +952,7 @@ export class DBTCloudProjectIntegration
       new DBTCommand("Getting catalog...", [
         "compile",
         "--inline",
-        bulkModelQuery.trim().split("\n").join(""),
+        bulkModelQuery,
         "--output",
         "json",
         "--log-format",
@@ -964,7 +964,13 @@ export class DBTCloudProjectIntegration
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
+      .filter(
+        (line) =>
+          line.hasOwnProperty("data") && line.data.hasOwnProperty("compiled"),
+      );
+    if (compiledLine.length === 0) {
+      throw new Error("Could not get bulk schema from response: " + stdout);
+    }
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
