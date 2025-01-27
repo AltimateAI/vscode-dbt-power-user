@@ -128,6 +128,7 @@ const DocumentationEditor = (): JSX.Element => {
                   onSubmit={onModelDocSubmit}
                   placeholder="Describe your model"
                   title={`Model: ${currentDocsData.name}`}
+                  tests={modelTests}
                 />
                 <EntityWithTests
                   title={currentDocsData.name}

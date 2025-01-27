@@ -25,6 +25,7 @@ import { executeRequestInSync } from "@modules/app/requestExecutor";
 import AddCoversationButton from "../conversation/AddCoversationButton";
 import { panelLogger } from "@modules/logger";
 import { DocumentationPropagationButton } from "../documentationPropagation/DocumentationPropagation";
+import { isArrayEqual } from "@modules/documentationEditor/utils";
 
 interface Props {
   entity: DBTDocumentationColumn | DBTDocumentation;
@@ -168,8 +169,18 @@ const DocGeneratorInput = ({
   const entityColumn = incomingDocsData?.docs?.columns?.find(
     (c) => c.name === entity.name,
   );
-  const testKeys = incomingDocsData?.tests?.map((t) => t.key);
-  const isTestsDirty = tests?.some((t) => !testKeys?.includes(t.key));
+  const incomingTestKeys = incomingDocsData?.tests
+    ?.filter((t) =>
+      type === EntityType.MODEL
+        ? !t.column_name
+        : t.column_name === entity.name,
+    )
+    .map((t) => t.key);
+  const currTestKeys = tests?.map((t) => t.key);
+  const isTestsDirty = !isArrayEqual(
+    incomingTestKeys ?? [],
+    currTestKeys ?? [],
+  );
   const isDescriptionDirty =
     type === EntityType.MODEL
       ? currentDocsData?.description !== incomingDocsData?.docs?.description
