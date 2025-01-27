@@ -523,9 +523,12 @@ export class DBTProject implements Disposable {
       project: this,
       inProgress: true,
     });
-    if (!this.depsInitialized) {
+    const installDepsOnProjectInitialization = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("installDepsOnProjectInitialization", true);
+    if (!this.depsInitialized && installDepsOnProjectInitialization) {
       try {
-        await this.installDeps();
+        await this.installDeps(true);
       } catch (error: any) {
         // this is best effort
         console.warn("An error occured while installing dependencies", error);
@@ -655,10 +658,13 @@ export class DBTProject implements Disposable {
     );
   }
 
-  async installDeps() {
+  async installDeps(silent = false) {
     this.telemetry.sendTelemetryEvent("installDeps");
     const installDepsCommand =
       this.dbtCommandFactory.createInstallDepsCommand();
+    if (silent) {
+      installDepsCommand.focus = false;
+    }
     return this.dbtProjectIntegration.deps(installDepsCommand);
   }
 

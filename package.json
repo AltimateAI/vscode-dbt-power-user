@@ -121,6 +121,11 @@
             "type": "number",
             "description": "By default how much lineage should expand.",
             "default": 1
+          },
+          "dbt.installDepsOnProjectInitialization": {
+            "type": "boolean",
+            "description": "Install dbt deps on project initialization",
+            "default": true
           }
         }
       },
