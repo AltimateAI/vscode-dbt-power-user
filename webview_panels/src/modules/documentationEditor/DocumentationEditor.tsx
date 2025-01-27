@@ -17,7 +17,6 @@ import useDocumentationContext from "./state/useDocumentationContext";
 import classes from "./styles.module.scss";
 import { addDefaultActions } from "./utils";
 import ConversationsRightPanel from "./components/conversation/ConversationsRightPanel";
-import useIncomingDocsDataHandler from "./useIncomingDocsDataHandler";
 import CoachAiIfModified from "./components/docGenerator/CoachAiIfModified";
 import Citations from "./components/docGenerator/Citations";
 import { Citation } from "@lib";
@@ -29,7 +28,6 @@ const DocumentationEditor = (): JSX.Element => {
     dispatch,
   } = useDocumentationContext();
   const { postMessageToDataPilot } = useAppContext();
-  useIncomingDocsDataHandler();
 
   const modelTests = useMemo(() => {
     return currentDocsTests?.filter((test) => !test.column_name);
@@ -130,6 +128,7 @@ const DocumentationEditor = (): JSX.Element => {
                   onSubmit={onModelDocSubmit}
                   placeholder="Describe your model"
                   title={`Model: ${currentDocsData.name}`}
+                  tests={modelTests}
                 />
                 <EntityWithTests
                   title={currentDocsData.name}

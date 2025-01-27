@@ -1,10 +1,11 @@
 import {
   DBTDocumentation,
   DBTDocumentationColumn,
+  DBTModelTest,
   DocsGenerateModelRequestV2,
 } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
-import { Input, InputGroup, Stack } from "@uicore";
+import { Input, InputGroup, Stack, Tag } from "@uicore";
 import {
   ChangeEvent,
   useCallback,
@@ -24,6 +25,7 @@ import { executeRequestInSync } from "@modules/app/requestExecutor";
 import AddCoversationButton from "../conversation/AddCoversationButton";
 import { panelLogger } from "@modules/logger";
 import { DocumentationPropagationButton } from "../documentationPropagation/DocumentationPropagation";
+import { isArrayEqual } from "@modules/documentationEditor/utils";
 
 interface Props {
   entity: DBTDocumentationColumn | DBTDocumentation;
@@ -31,6 +33,7 @@ interface Props {
   placeholder?: string;
   type: EntityType;
   title: string;
+  tests?: DBTModelTest[];
 }
 const DocGeneratorInput = ({
   onSubmit,
@@ -38,11 +41,13 @@ const DocGeneratorInput = ({
   placeholder,
   type,
   title,
+  tests,
 }: Props): JSX.Element => {
   const stackRef = useRef<HTMLDivElement | null>(null);
   const {
     state: {
       userInstructions,
+      incomingDocsData,
       currentDocsData,
       insertedEntityName,
       selectedConversationGroup,
@@ -52,6 +57,28 @@ const DocGeneratorInput = ({
   } = useDocumentationContext();
   const [description, setDescription] = useState("");
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const [inputRows, setInputRows] = useState(1);
+
+  useEffect(() => {
+    if (!inputRef.current) {
+      return;
+    }
+    let fontSize = 13; // default font size
+    try {
+      fontSize = parseFloat(window.getComputedStyle(inputRef.current).fontSize);
+    } catch (e) {
+      panelLogger.error("Error parsing font size", e);
+    }
+    // generally character width is 0.5 of font size
+    const charWidth = fontSize * 0.5;
+    const newLines = (description.match(/\n/g) ?? []).length;
+    const rows =
+      Math.ceil(
+        ((description.length - newLines) * charWidth) /
+          inputRef.current.clientWidth,
+      ) + newLines;
+    setInputRows(rows);
+  }, [description]);
 
   const selectedConversationGroupData = useMemo(() => {
     if (!selectedConversationGroup) {
@@ -139,11 +166,41 @@ const DocGeneratorInput = ({
   };
 
   const variant = entity.description ? Variants.ICON : Variants.ICON_WITH_TEXT;
+  const entityColumn = incomingDocsData?.docs?.columns?.find(
+    (c) => c.name === entity.name,
+  );
+  const incomingTestKeys = incomingDocsData?.tests
+    ?.filter((t) =>
+      type === EntityType.MODEL
+        ? !t.column_name
+        : t.column_name === entity.name,
+    )
+    .map((t) => t.key);
+  const currTestKeys = tests?.map((t) => t.key);
+  const isTestsDirty = !isArrayEqual(
+    incomingTestKeys ?? [],
+    currTestKeys ?? [],
+  );
+  const isDescriptionDirty =
+    type === EntityType.MODEL
+      ? currentDocsData?.description !== incomingDocsData?.docs?.description
+      : entity.description !== entityColumn?.description;
+  const isDirty = isDescriptionDirty || isTestsDirty;
 
   return (
     <>
-      <Stack className="justify-content-between">
-        <h4>{title}</h4>
+      <Stack className="align-items-center mb-2">
+        <h4 className="mb-0">{title}</h4>
+        {type === EntityType.COLUMN &&
+        (entity as DBTDocumentationColumn).type ? (
+          <Tag type="rounded">{(entity as DBTDocumentationColumn).type}</Tag>
+        ) : null}
+        {isDirty ? (
+          <Tag color="orange" type="rounded">
+            modified
+          </Tag>
+        ) : null}
+        <div className="spacer" />
         <Stack className={classes.actionButtons}>
           <DocumentationPropagationButton type={type} name={entity.name} />
           <AddCoversationButton
@@ -167,8 +224,9 @@ const DocGeneratorInput = ({
             value={description}
             onChange={onChange}
             type="textarea"
-            rows={description ? 5 : 1}
+            rows={inputRows}
             placeholder={placeholder}
+            className={isDescriptionDirty ? "border-orange" : ""}
           />
         </InputGroup>
       </Stack>

@@ -1,4 +1,7 @@
-import { executeRequestInAsync } from "@modules/app/requestExecutor";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
 import { IncomingMessageProps } from "@modules/app/types";
 import { panelLogger } from "@modules/logger";
 import {
@@ -7,6 +10,7 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
 } from "react";
 import documentationSlice, {
   initialState,
@@ -21,6 +25,7 @@ import documentationSlice, {
   updateColumnsInCurrentDocsData,
   updateConversationsRightPanelState,
   updateCurrentDocsData,
+  updateCurrentDocsTests,
   updateSelectedConversationGroup,
   updateUserInstructions,
 } from "./state/documentationSlice";
@@ -31,7 +36,7 @@ import {
   MetadataColumn,
 } from "./state/types";
 import { ContextProps } from "./types";
-import { getGenerationsInModel } from "./utils";
+import { getGenerationsInModel, isStateDirty } from "./utils";
 import DocumentationEditor from "./DocumentationEditor";
 import { ConversationGroup, DbtDocsShareDetails } from "@lib";
 import { TelemetryEvents } from "@telemetryEvents";
@@ -43,14 +48,38 @@ export const DocumentationContext = createContext<ContextProps>({
   dispatch: () => null,
 });
 
+type IncomingMessageEvent = MessageEvent<
+  IncomingMessageProps & {
+    docs?: DBTDocumentation;
+    tests?: DBTModelTest[];
+    project?: string;
+    columns?: DBTDocumentation["columns"];
+    model?: string;
+    name?: string;
+    description?: string;
+    collaborationEnabled?: boolean;
+    missingDocumentationMessage?: {
+      message: string;
+      type: "error" | "warning";
+    };
+  }
+>;
+
+enum ActionState {
+  CANCEL_STAY = "Stay",
+  DISCARD_PROCEED = "Discard",
+  SAVE_PROCEED = "Save changes",
+}
+
 const DocumentationProvider = (): JSX.Element => {
   const {
     state: { isComponentsApiInitialized },
   } = useAppContext();
   const [state, dispatch] = useReducer(
     documentationSlice.reducer,
-    documentationSlice.getInitialState()
+    documentationSlice.getInitialState(),
   );
+  const stateRef = useRef(state);
 
   const updateFocus = (name?: string) => {
     dispatch(setInsertedEntityName(name));
@@ -84,99 +113,139 @@ const DocumentationProvider = (): JSX.Element => {
       updateSelectedConversationGroup({
         shareId,
         conversationGroupId: conversation_group_id,
-      })
+      }),
     );
   };
 
-  const onMessage = useCallback(
-    (
-      event: MessageEvent<
-        IncomingMessageProps & {
-          docs?: DBTDocumentation;
-          tests?: DBTModelTest[];
-          project?: string;
-          columns?: DBTDocumentation["columns"];
-          model?: string;
-          name?: string;
-          description?: string;
-          collaborationEnabled?: boolean;
-          missingDocumentationMessage?: {
-            message: string;
-            type: "error" | "warning";
-          };
-        }
-      >
-    ) => {
-      const { command, ...params } = event.data;
-      switch (command) {
-        case "viewConversation":
-          handleViewConversation(
-            params as unknown as Parameters<typeof handleViewConversation>["0"]
-          );
-          break;
-        case "conversations:updates":
-          handleConversationUpdates(
-            params as unknown as Parameters<
-              typeof handleConversationUpdates
-            >["0"]
-          );
-          break;
-        case "renderDocumentation":
-          dispatch(
-            setIncomingDocsData({
-              docs: event.data.docs,
-              tests: event.data.tests,
-            })
-          );
-          dispatch(setProject(event.data.project));
-          dispatch(
-            updateCollaborationEnabled(Boolean(event.data.collaborationEnabled))
-          );
-          dispatch(
-            setMissingDocumentationMessage(
-              event.data.missingDocumentationMessage
-            )
-          );
-          break;
-        case "renderColumnsFromMetadataFetch":
-          if (event.data.columns) {
-            dispatch(
-              updateColumnsAfterSync({
-                columns: event.data.columns,
-              })
-            );
-          }
-          break;
-        case "docgen:insert":
-          panelLogger.info("received new doc gen", event.data);
-          // insert model desc
-          if (params.model) {
-            dispatch(
-              updateCurrentDocsData({
-                description: params.description,
-                name: params.model,
-                isNewGeneration: true,
-              })
-            );
-            updateFocus(params.model);
-            return;
-          }
-          // insert column desc
-          dispatch(
-            updateColumnsInCurrentDocsData({
-              columns: [params as Partial<MetadataColumn>],
-              isNewGeneration: true,
-            })
-          );
-          updateFocus((params as Partial<MetadataColumn>).name);
+  const renderDocumentation = (event: IncomingMessageEvent) => {
+    dispatch(
+      setIncomingDocsData({
+        docs: event.data.docs,
+        tests: event.data.tests,
+      }),
+    );
+    dispatch(setProject(event.data.project));
+    dispatch(
+      updateCollaborationEnabled(Boolean(event.data.collaborationEnabled)),
+    );
+    dispatch(
+      setMissingDocumentationMessage(event.data.missingDocumentationMessage),
+    );
+  };
 
+  const onMessage = useCallback((event: IncomingMessageEvent) => {
+    const { command, ...params } = event.data;
+    switch (command) {
+      case "viewConversation":
+        handleViewConversation(
+          params as unknown as Parameters<typeof handleViewConversation>["0"],
+        );
+        break;
+      case "conversations:updates":
+        handleConversationUpdates(
+          params as unknown as Parameters<
+            typeof handleConversationUpdates
+          >["0"],
+        );
+        break;
+      case "renderDocumentation": {
+        if (
+          event.data.docs?.uniqueId ===
+          stateRef.current.currentDocsData?.uniqueId
+        ) {
           break;
-        default:
+        }
+        if (!isStateDirty(stateRef.current)) {
+          renderDocumentation(event);
           break;
+        }
+        const { currentDocsData, currentDocsTests } = stateRef.current;
+        executeRequestInSync("showWarningMessage", {
+          infoMessage: `You have unsaved changes in model: ‘${currentDocsData?.name}’. Would you
+          like to discard the changes, save them and proceed, or remain in the
+          current state?`,
+          items: [
+            ActionState.DISCARD_PROCEED,
+            ActionState.CANCEL_STAY,
+            ActionState.SAVE_PROCEED,
+          ],
+        })
+          .then(async (action) => {
+            switch (action) {
+              case ActionState.SAVE_PROCEED: {
+                const result = (await executeRequestInSync(
+                  "saveDocumentation",
+                  {
+                    ...currentDocsData,
+                    updatedTests: currentDocsTests,
+                    dialogType: "Existing file",
+                  },
+                )) as { saved: boolean };
+                if (result.saved) {
+                  dispatch(updateCurrentDocsData(event.data.docs));
+                  dispatch(updateCurrentDocsTests(event.data.tests));
+                }
+                renderDocumentation(event);
+                break;
+              }
+              case ActionState.DISCARD_PROCEED: {
+                dispatch(updateCurrentDocsData(event.data.docs));
+                dispatch(updateCurrentDocsTests(event.data.tests));
+                renderDocumentation(event);
+                break;
+              }
+              case ActionState.CANCEL_STAY: {
+                break;
+              }
+              default:
+                break;
+            }
+          })
+          .catch((err) => {
+            panelLogger.error(
+              "error while showing unsaved changes dialog",
+              err,
+            );
+          });
+        break;
       }
-    },
-    []
-  );
+      case "renderColumnsFromMetadataFetch":
+        if (event.data.columns) {
+          dispatch(
+            updateColumnsAfterSync({
+              columns: event.data.columns,
+            }),
+          );
+        }
+        break;
+      case "docgen:insert":
+        panelLogger.info("received new doc gen", event.data);
+        // insert model desc
+        if (params.model) {
+          dispatch(
+            updateCurrentDocsData({
+              description: params.description,
+              name: params.model,
+              isNewGeneration: true,
+            }),
+          );
+          updateFocus(params.model);
+          return;
+        }
+        // insert column desc
+        dispatch(
+          updateColumnsInCurrentDocsData({
+            columns: [params as Partial<MetadataColumn>],
+            isNewGeneration: true,
+          }),
+        );
+        updateFocus((params as Partial<MetadataColumn>).name);
+
+        break;
+      default:
+        break;
+    }
+  }, []);
 
   const loadGenerationsHistory = (project: string, model: string) => {
     getGenerationsInModel(project, model)
@@ -184,7 +253,7 @@ const DocumentationProvider = (): JSX.Element => {
         dispatch(setGenerationsHistory(data));
       })
       .catch((err) =>
-        panelLogger.error("error while loading generations history", err)
+        panelLogger.error("error while loading generations history", err),
       );
   };
 
@@ -197,8 +266,8 @@ const DocumentationProvider = (): JSX.Element => {
     if (userInstructions) {
       dispatch(
         updateUserInstructions(
-          JSON.parse(userInstructions) as DocsGenerateUserInstructions
-        )
+          JSON.parse(userInstructions) as DocsGenerateUserInstructions,
+        ),
       );
     }
     loadGenerationsHistory(state.project, state.currentDocsData.name);
@@ -220,8 +289,13 @@ const DocumentationProvider = (): JSX.Element => {
       state,
       dispatch,
     }),
-    [state, dispatch]
+    [state, dispatch],
   );
+
+  // hack to get latest state in onMessage
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   if (!isComponentsApiInitialized) {
     return <div>Loading...</div>;

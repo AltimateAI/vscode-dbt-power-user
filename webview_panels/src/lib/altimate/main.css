@@ -1695,6 +1695,7 @@
   --gray--gray-02: #3a3d41;
   --gray--blue--gray-01: #082247;
   --gray--blue--gray-02: #374c6a;
+  --background-orange: #32240c;
 }
 .altimate-component.vscode-dark {
   --primary-color: #247efe;
@@ -1730,6 +1731,7 @@
   --gray--gray-02: #3a3d41;
   --gray--blue--gray-01: #082247;
   --gray--blue--gray-02: #374c6a;
+  --background-orange: #32240c;
 }
 .altimate-component .card {
   padding: 16px;
