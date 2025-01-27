@@ -1,5 +1,9 @@
 import { CoachAIIcon } from "@assets/icons";
-import { CoachForm, TeammateActions, useTeamMateContext } from "@lib";
+import {
+  CoachForm,
+  TeammateActions,
+  useTeamMateContext,
+} from "@altimate-components/web";
 import useAppContext from "@modules/app/useAppContext";
 import { Drawer, DrawerRef } from "@uicore";
 import { useRef } from "react";

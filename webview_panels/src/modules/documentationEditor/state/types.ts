@@ -1,5 +1,9 @@
-import { Citation, ConversationGroup, DbtDocsShareDetails } from "@lib";
+import {
+  ConversationGroup,
+  DbtDocsShareDetails,
+} from "@altimate-components/web";
 import { GenerationDBDataProps } from "../types";
+import { Citation } from "@altimate-components/web/chatbot";
 
 export enum Source {
   DATABASE = "DATABASE",
@@ -85,12 +89,9 @@ export interface DocumentationStateProps {
 }
 
 export interface DBTModelTest {
-  alias: string;
   column_name?: string;
-  database: string;
   key: string;
   path?: string;
-  schema: string;
   test_metadata?: {
     kwargs: TestMetadataAcceptedValuesKwArgs | TestMetadataRelationshipsKwArgs;
     name: string;

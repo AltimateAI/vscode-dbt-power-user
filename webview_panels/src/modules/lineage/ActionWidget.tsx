@@ -4,7 +4,7 @@ import FeedbackButton from "@modules/commonActionButtons/FeedbackButton";
 import HelpButton from "./components/help/HelpButton";
 import { Button } from "@uicore";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
-import { CLL } from "@lib";
+import { CLL } from "@altimate-components/web/lineage";
 import styles from "./lineage.module.scss";
 
 const ActionWidget = ({

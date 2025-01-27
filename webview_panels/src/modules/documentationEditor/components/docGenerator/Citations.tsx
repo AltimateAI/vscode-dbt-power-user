@@ -1,4 +1,4 @@
-import { Citation, Citations } from "@lib";
+import { Citation, Citations } from "@altimate-components/web/chatbot";
 import useAppContext from "@modules/app/useAppContext";
 import { Stack } from "@uicore";
 import classes from "./coachAi.module.scss";

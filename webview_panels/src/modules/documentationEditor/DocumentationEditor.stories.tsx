@@ -10,13 +10,13 @@ import {
 } from "@testUtils";
 import { faker } from "@faker-js/faker";
 import DocumentationEditor from "./DocumentationEditor";
-import { TeamMateProvider } from "@lib";
+import { TeamMateProvider } from "@altimate-components/web";
 // import {
 //   aiLearningsFactory,
 //   coachAiResponseFactory,
 //   delay,
 //   getRandomDelay,
-// } from "@lib-testUtils";
+// } from "@altimate-components/web-testUtils";
 import { useEffect } from "react";
 
 const meta = {
@@ -49,7 +49,7 @@ const testsDataForTests = docsDataForTests.columns
   .map((c, i) =>
     DBTDocumentationTestsFactory.build({
       column_name: i % 3 === 0 ? undefined : c.name,
-    })
+    }),
   )
   .map((test) => {
     if (test.test_metadata) {
@@ -79,7 +79,7 @@ export const ModelDocGenView = {
             project: faker.system.fileName(),
             collaborationEnabled: true,
           },
-          "*"
+          "*",
         );
       }, 100);
     }, []);
@@ -100,20 +100,20 @@ export const ModelDocGenView = {
             return TenantUserFactory.buildList(5);
           case "fetch":
             return {};
-            // switch (request.endpoint) {
-              // case `/coach/training`:
-              //   await delay(getRandomDelay());
-              //   if (
-              //     (request.fetchArgs as RequestInit | undefined)?.method ===
-              //     "POST"
-              //   ) {
-              //   return coachAiResponseFactory.build();
-              //   }
-              //   return { train_docs: aiLearningsFactory.buildList(5) };
-              // case `/coach/training/confirm`:
-              //   await delay(getRandomDelay());
-              //   return coachAiResponseFactory.build();
-            // }
+          // switch (request.endpoint) {
+          // case `/coach/training`:
+          //   await delay(getRandomDelay());
+          //   if (
+          //     (request.fetchArgs as RequestInit | undefined)?.method ===
+          //     "POST"
+          //   ) {
+          //   return coachAiResponseFactory.build();
+          //   }
+          //   return { train_docs: aiLearningsFactory.buildList(5) };
+          // case `/coach/training/confirm`:
+          //   await delay(getRandomDelay());
+          //   return coachAiResponseFactory.build();
+          // }
         }
       },
       timer: 500,

@@ -7,7 +7,7 @@
     "skipLibCheck": true,
 
     /* Bundler mode */
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
@@ -25,8 +25,6 @@
     "baseUrl": ".",
     "paths": {
       "@uicore": ["src/uiCore/index.ts"],
-      "@lib": ["src/lib/index.ts"],
-      "@lib-testUtils": ["src/lib/testUtils.ts"],
       "@assets/*": ["src/assets/*"],
       "@modules/*": ["src/modules/*"],
       "@testUtils": ["src/testUtils/index.ts"],

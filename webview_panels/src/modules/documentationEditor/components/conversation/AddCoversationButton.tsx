@@ -3,7 +3,7 @@ import {
   ConversationGroup,
   ConversationInputForm,
   DbtDocsShareDetails,
-} from "@lib";
+} from "@altimate-components/web";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import useAppContext from "@modules/app/useAppContext";
 import { panelLogger } from "@modules/logger";

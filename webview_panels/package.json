@@ -18,6 +18,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@altimate-components/web": "file:../../altimate-components/packages/web/package.tgz",
     "@ant-design/pro-chat": "^1.15.2",
     "@finos/perspective": "^2.10.0",
     "@finos/perspective-viewer": "^2.10.0",

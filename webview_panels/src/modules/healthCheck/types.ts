@@ -1,4 +1,4 @@
-import { ProjectGovernorCheckTypes } from "@lib";
+import { ProjectGovernorCheckTypes } from "@altimate-components/web";
 
 export interface Insight {
   name: string;
@@ -13,7 +13,7 @@ export interface Insight {
     convention?: string | null;
     source?: "llm";
     teammate_check_id?: string;
-    category?: ProjectGovernorCheckTypes; 
+    category?: ProjectGovernorCheckTypes;
   };
 }
 
