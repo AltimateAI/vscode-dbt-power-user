@@ -1,6 +1,15 @@
 import { PropagateIcon } from "@assets/icons";
 import { useEffect, useRef, useState } from "react";
-import { Drawer, Stack, DrawerRef, Button, Input, Loader } from "@uicore";
+import {
+  Drawer,
+  Stack,
+  DrawerRef,
+  Button,
+  Input,
+  Loader,
+  Card,
+  CardBody,
+} from "@uicore";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
@@ -213,37 +222,46 @@ export const DocumentationPropagationButton = ({
       onOpen={() => loadMoreDownstreamModels()}
     >
       <Stack direction="column" className="h-100">
-        <Stack direction="column" className="gap-0 mb-2">
-          <div className={styles.itemRow}>
-            <div>Model:</div>
-            <div>{currentDocsData?.name}</div>
-          </div>
-          <div className={styles.itemRow}>
-            <div>Column:</div>
-            <div>{name}</div>
-          </div>
-          {currColumnDescription && (
-            <div className={styles.colDesc}>
-              <div>Description:</div>
-              <div>{currColumnDescription}</div>
-            </div>
-          )}
-        </Stack>
-        {!isLoading && allColumns.length === 0 ? (
-          <div className="mt-4">
-            No downstream column level lineage detected to propagate the
-            documentation
-          </div>
-        ) : (
-          <>
-            <Stack className="mb-2">
-              <Button color="primary" onClick={() => setAllColumnsValue(true)}>
-                Select All
-              </Button>
-              <Button color="primary" onClick={() => setAllColumnsValue(false)}>
-                Unselect All
-              </Button>
+        <Card>
+          <CardBody>
+            <Stack direction="column" className="gap-0 mb-2">
+              <div className={styles.itemRow}>
+                <div>Model:</div>
+                <div>{currentDocsData?.name}</div>
+              </div>
+              <div className={styles.itemRow}>
+                <div>Column:</div>
+                <div>{name}</div>
+              </div>
+              {currColumnDescription && (
+                <div className={styles.colDesc}>
+                  <div>Description:</div>
+                  <div>{currColumnDescription}</div>
+                </div>
+              )}
             </Stack>
+            {!isLoading && allColumns.length === 0 ? (
+              <div className="mt-4">
+                No downstream column level lineage detected to propagate the
+                documentation
+              </div>
+            ) : null}
+            {!isLoading && allColumns.length > 0 ? (
+              <Stack className="mb-2">
+                <Button
+                  color="primary"
+                  onClick={() => setAllColumnsValue(true)}
+                >
+                  Select All
+                </Button>
+                <Button
+                  color="primary"
+                  onClick={() => setAllColumnsValue(false)}
+                >
+                  Unselect All
+                </Button>
+              </Stack>
+            ) : null}
             <Stack direction="column" className="gap-md">
               {allColumns.map((item) => {
                 const key = item.model + "/" + item.column;
@@ -277,8 +295,8 @@ export const DocumentationPropagationButton = ({
                 );
               })}
             </Stack>
-          </>
-        )}
+          </CardBody>
+        </Card>
         <div className="spacer" />
         <Stack direction="column">
           <Stack className="align-items-center">
