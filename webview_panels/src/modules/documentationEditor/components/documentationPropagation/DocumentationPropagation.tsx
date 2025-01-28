@@ -77,7 +77,6 @@ export const DocumentationPropagationButton = ({
   const loadMoreDownstreamModels = async () => {
     isCancelled.current = false;
     setIsLoading(true);
-    const iAllColumns = [...allColumns];
     let iCurrColumns = currColumns;
     while (iCurrColumns.length > 0 && !isCancelled.current) {
       const result = (await executeRequestInSync("getDownstreamColumns", {
@@ -114,21 +113,22 @@ export const DocumentationPropagationButton = ({
         }
       }
       iCurrColumns = newColumns;
-      iAllColumns.push(...newColumns);
-    }
-    const finalAllColumns: DocsItem[] = [];
-    for (const c of iAllColumns) {
-      if (
-        finalAllColumns.find(
-          (_c) => _c.model === c.model && _c.column === c.column,
-        )
-      ) {
-        continue;
-      }
-      finalAllColumns.push(c);
+      setAllColumns((prev) => {
+        const uniqueColumns = [...prev];
+        for (const c of newColumns) {
+          if (
+            uniqueColumns.find(
+              (_c) => _c.model === c.model && _c.column === c.column,
+            )
+          ) {
+            continue;
+          }
+          uniqueColumns.push(c);
+        }
+        return uniqueColumns;
+      });
     }
     setIsLoading(false);
-    setAllColumns(finalAllColumns);
     setCurrColumns(iCurrColumns);
   };
 
@@ -284,7 +284,7 @@ export const DocumentationPropagationButton = ({
             color="primary"
             disabled={
               Object.values(selectedColumns).filter((v) => Boolean(v))
-                .length === 0 && !isLoading
+                .length === 0 || isLoading
             }
             onClick={() => propagateDocumentation()}
             className="w-100"
