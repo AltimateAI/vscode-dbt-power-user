@@ -73,6 +73,7 @@ export interface DocumentationStateProps {
   insertedEntityName?: string;
   conversations: Record<DbtDocsShareDetails["share_id"], ConversationGroup[]>;
   showConversationsRightPanel: boolean;
+  showBulkDocsPropRightPanel: boolean;
   selectedConversationGroup?: {
     shareId: DbtDocsShareDetails["share_id"];
     conversationGroupId: ConversationGroup["conversation_group_id"];

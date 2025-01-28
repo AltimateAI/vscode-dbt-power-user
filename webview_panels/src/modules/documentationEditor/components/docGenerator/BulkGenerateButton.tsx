@@ -3,7 +3,10 @@ import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
-import { updateColumnsInCurrentDocsData } from "@modules/documentationEditor/state/documentationSlice";
+import {
+  updateBulkDocsPropRightPanel,
+  updateColumnsInCurrentDocsData,
+} from "@modules/documentationEditor/state/documentationSlice";
 import { DBTDocumentationColumn } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { panelLogger } from "@modules/logger";
@@ -38,6 +41,7 @@ const BulkGenerateButton = (): JSX.Element => {
       { label: "Generate all columns", value: "all" },
       { label: "Generate only missing columns", value: "missing" },
       { label: "Select columns", value: "selected" },
+      { label: "Propagate docs to downstream models", value: "docs-prop" },
     ],
     Tests: [{ label: "Generate all", value: "all-tests" }],
   };
@@ -153,6 +157,10 @@ const BulkGenerateButton = (): JSX.Element => {
           if (columns) {
             sendTelemetryEvent(value, columns, startTime);
           }
+          break;
+        }
+        case "docs-prop": {
+          dispatch(updateBulkDocsPropRightPanel(true));
           break;
         }
         default:

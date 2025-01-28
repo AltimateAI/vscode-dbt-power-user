@@ -31,6 +31,7 @@ export const initialState = {
   collaborationEnabled: false,
   missingDocumentationMessage: undefined,
   searchQuery: "",
+  showBulkDocsPropRightPanel: false,
 } as DocumentationStateProps;
 
 const documentationSlice = createSlice({
@@ -66,6 +67,14 @@ const documentationSlice = createSlice({
       >,
     ) => {
       state.showConversationsRightPanel = action.payload;
+    },
+    updateBulkDocsPropRightPanel: (
+      state,
+      action: PayloadAction<
+        DocumentationStateProps["showBulkDocsPropRightPanel"]
+      >,
+    ) => {
+      state.showBulkDocsPropRightPanel = action.payload;
     },
     updateCollaborationEnabled: (
       state,
@@ -263,5 +272,6 @@ export const {
   updateCollaborationEnabled,
   setMissingDocumentationMessage,
   setSearchQuery,
+  updateBulkDocsPropRightPanel,
 } = documentationSlice.actions;
 export default documentationSlice;

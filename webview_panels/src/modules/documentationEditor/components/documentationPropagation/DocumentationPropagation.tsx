@@ -35,6 +35,22 @@ interface DownstreamColumns {
   tests: Record<string, unknown>;
 }
 
+export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
+  const {
+    state: { showBulkDocsPropRightPanel },
+  } = useDocumentationContext();
+  const drawerRef = useRef<DrawerRef | null>(null);
+  useEffect(() => {
+    if (!drawerRef.current) return;
+    if (showBulkDocsPropRightPanel) {
+      drawerRef.current.open();
+    } else {
+      drawerRef.current.close();
+    }
+  }, [showBulkDocsPropRightPanel]);
+  return <Drawer ref={drawerRef}>abcd</Drawer>;
+};
+
 export const DocumentationPropagationButton = ({
   name,
   type,
