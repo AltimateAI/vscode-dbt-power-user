@@ -1,12 +1,9 @@
 import { PropagateIcon } from "@assets/icons";
 import { useEffect, useRef, useState } from "react";
-import { Drawer, Stack, DrawerRef, Button, Input } from "@uicore";
+import { Drawer, Stack, DrawerRef, Button, Input, Loader } from "@uicore";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
-import {
-  executeRequestInAsync,
-  executeRequestInSync,
-} from "@modules/app/requestExecutor";
+import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { ColumnLineage } from "@lib";
 import styles from "./styles.module.scss";
 
@@ -77,7 +74,6 @@ export const DocumentationPropagationButton = ({
   }, [currentDocsData?.uniqueId, name]);
 
   const loadMoreDownstreamModels = async () => {
-    executeRequestInAsync("columnLineageBase", { event: "start" });
     setIsLoading(true);
     const iAllColumns = [...allColumns];
     let iCurrColumns = currColumns;
@@ -118,7 +114,6 @@ export const DocumentationPropagationButton = ({
       iCurrColumns = newColumns;
       iAllColumns.push(...newColumns);
     }
-    executeRequestInAsync("columnLineageBase", { event: "end" });
     const finalAllColumns: DocsItem[] = [];
     for (const c of iAllColumns) {
       if (
@@ -267,6 +262,7 @@ export const DocumentationPropagationButton = ({
                 Load 3 more downstream levels
               </Button>
             )}
+            {isLoading && <Loader />}
             <Button
               color="primary"
               disabled={
