@@ -79,13 +79,9 @@ export const DocumentationPropagationButton = ({
   const loadMoreDownstreamModels = async () => {
     executeRequestInAsync("columnLineageBase", { event: "start" });
     setIsLoading(true);
-    let i = 0;
     const iAllColumns = [...allColumns];
     let iCurrColumns = currColumns;
-    while (i++ < 3) {
-      if (iCurrColumns.length === 0) {
-        break;
-      }
+    while (iCurrColumns.length > 0) {
       const result = (await executeRequestInSync("getDownstreamColumns", {
         targets: iCurrColumns.map((c) => [c.model, c.column]),
         model: currentDocsData?.uniqueId,
