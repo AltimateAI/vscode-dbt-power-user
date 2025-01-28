@@ -720,7 +720,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               this.handleSyncRequestFromWebview(
                 syncRequestId,
                 () => ({ column_lineage: [], tables: [], tests }),
-                command,
+                "response",
               );
               return;
             }
@@ -739,10 +739,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             });
             this.handleSyncRequestFromWebview(
               syncRequestId,
-              () => {
-                return { ...columns, tables: _tables, tests };
-              },
-              command,
+              () => ({ ...columns, tables: _tables, tests }),
+              "response",
             );
             break;
           }
