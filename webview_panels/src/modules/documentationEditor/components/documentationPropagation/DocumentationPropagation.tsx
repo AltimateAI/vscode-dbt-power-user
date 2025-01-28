@@ -44,6 +44,111 @@ interface DownstreamColumns {
   tests: Record<string, unknown>;
 }
 
+const SingleColumnCard = ({
+  isLoading,
+  columnName,
+  columnDescription,
+  selectedColumns,
+  setSelectedColumns,
+  downstreamColumns,
+}: {
+  isLoading: boolean;
+  columnName: string;
+  columnDescription: string;
+  selectedColumns: Record<string, boolean>;
+  setSelectedColumns: React.Dispatch<
+    React.SetStateAction<Record<string, boolean>>
+  >;
+  downstreamColumns: DocsItem[];
+}) => {
+  const setAllColumnsValue = (value: boolean) => {
+    setSelectedColumns(
+      downstreamColumns.reduce(
+        (acc, curr) => ({
+          ...acc,
+          [curr.model + "/" + curr.column]: value,
+        }),
+        {},
+      ),
+    );
+  };
+  return (
+    <Card>
+      <CardBody>
+        <Stack direction="column" className="gap-0 mb-2">
+          <div className={styles.itemRow}>
+            <div>Column:</div>
+            <div>{columnName}</div>
+          </div>
+          {columnDescription && (
+            <div className={styles.itemRow}>
+              <div>Description:</div>
+              <div>{columnDescription}</div>
+            </div>
+          )}
+        </Stack>
+        {!isLoading && downstreamColumns.length === 0 ? (
+          <div className="mt-4">
+            No downstream column level lineage detected to propagate the
+            documentation
+          </div>
+        ) : null}
+        {!isLoading && downstreamColumns.length > 0 ? (
+          <Stack className="mb-2">
+            <Button
+              color="primary"
+              outline
+              onClick={() => setAllColumnsValue(true)}
+            >
+              Select All
+            </Button>
+            <Button
+              color="primary"
+              outline
+              onClick={() => setAllColumnsValue(false)}
+            >
+              Unselect All
+            </Button>
+          </Stack>
+        ) : null}
+        <Stack direction="column" className="gap-md">
+          {downstreamColumns.map((item) => {
+            const key = item.model + "/" + item.column;
+            return (
+              <Stack key={key} className={styles.itemCard}>
+                <Input
+                  type="checkbox"
+                  checked={selectedColumns[key]}
+                  onChange={() =>
+                    setSelectedColumns((prev) => ({
+                      ...prev,
+                      [key]: !prev[key],
+                    }))
+                  }
+                />
+                <Stack direction="column" className="gap-0 w-100">
+                  <div className={styles.itemRow}>
+                    <div>Model:</div>
+                    <div>{item.model.split(".").pop()}</div>
+                  </div>
+                  <div className={styles.itemRow}>
+                    <div>Column:</div>
+                    <div>{item.column}</div>
+                  </div>
+                  <div className={styles.itemRow}>
+                    <div>Description:</div>
+                    <div>{item.description}</div>
+                  </div>
+                </Stack>
+              </Stack>
+            );
+          })}
+        </Stack>
+      </CardBody>
+    </Card>
+  );
+};
+
 export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
   const {
     state: { showBulkDocsPropRightPanel },
@@ -193,18 +298,6 @@ export const DocumentationPropagationButton = ({
     isCancelled.current = true;
   };
 
-  const setAllColumnsValue = (value: boolean) => {
-    setSelectedColumns(
-      allColumns.reduce(
-        (acc, curr) => ({
-          ...acc,
-          [curr.model + "/" + curr.column]: value,
-        }),
-        {},
-      ),
-    );
-  };
-
   if (type !== EntityType.COLUMN) {
     return null;
   }
@@ -222,81 +315,18 @@ export const DocumentationPropagationButton = ({
       onOpen={() => loadMoreDownstreamModels()}
     >
       <Stack direction="column" className="h-100">
-        <Card>
-          <CardBody>
-            <Stack direction="column" className="gap-0 mb-2">
-              <div className={styles.itemRow}>
-                <div>Model:</div>
-                <div>{currentDocsData?.name}</div>
-              </div>
-              <div className={styles.itemRow}>
-                <div>Column:</div>
-                <div>{name}</div>
-              </div>
-              {currColumnDescription && (
-                <div className={styles.colDesc}>
-                  <div>Description:</div>
-                  <div>{currColumnDescription}</div>
-                </div>
-              )}
-            </Stack>
-            {!isLoading && allColumns.length === 0 ? (
-              <div className="mt-4">
-                No downstream column level lineage detected to propagate the
-                documentation
-              </div>
-            ) : null}
-            {!isLoading && allColumns.length > 0 ? (
-              <Stack className="mb-2">
-                <Button
-                  color="primary"
-                  onClick={() => setAllColumnsValue(true)}
-                >
-                  Select All
-                </Button>
-                <Button
-                  color="primary"
-                  onClick={() => setAllColumnsValue(false)}
-                >
-                  Unselect All
-                </Button>
-              </Stack>
-            ) : null}
-            <Stack direction="column" className="gap-md">
-              {allColumns.map((item) => {
-                const key = item.model + "/" + item.column;
-                return (
-                  <Stack key={key} className={styles.itemCard}>
-                    <Input
-                      type="checkbox"
-                      checked={selectedColumns[key]}
-                      onChange={() =>
-                        setSelectedColumns((prev) => ({
-                          ...prev,
-                          [key]: !prev[key],
-                        }))
-                      }
-                    />
-                    <Stack direction="column" className="gap-0 w-100">
-                      <div className={styles.itemRow}>
-                        <div>Model:</div>
-                        <div>{item.model.split(".").pop()}</div>
-                      </div>
-                      <div className={styles.itemRow}>
-                        <div>Column:</div>
-                        <div>{item.column}</div>
-                      </div>
-                      <div className={styles.itemRow}>
-                        <div>Description:</div>
-                        <div>{item.description}</div>
-                      </div>
-                    </Stack>
-                  </Stack>
-                );
-              })}
-            </Stack>
-          </CardBody>
-        </Card>
+        <div className={styles.itemRow}>
+          <div>Model:</div>
+          <div>{currentDocsData?.name}</div>
+        </div>
+        <SingleColumnCard
+          setSelectedColumns={setSelectedColumns}
+          selectedColumns={selectedColumns}
+          columnDescription={currColumnDescription}
+          columnName={name}
+          isLoading={isLoading}
+          downstreamColumns={allColumns}
+        />
         <div className="spacer" />
         <Stack direction="column">
           <Stack className="align-items-center">
