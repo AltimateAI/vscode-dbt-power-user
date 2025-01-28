@@ -260,7 +260,7 @@ export class DbtLineageService {
     return g.get(key)?.nodes.length || 0;
   }
 
-  private cancellationTokenSource: CancellationTokenSource | undefined;
+  cancellationTokenSource: CancellationTokenSource | undefined;
   async getConnectedColumns({
     targets,
     upstreamExpansion,

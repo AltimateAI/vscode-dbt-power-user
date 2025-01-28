@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import {
   CancellationToken,
+  CancellationTokenSource,
   ColorThemeKind,
   Disposable,
   ProgressLocation,
@@ -729,6 +730,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               name: params.column as string,
             };
             const currAnd1HopTables = [...tables, ...targets.map((t) => t[0])];
+            this.dbtLineageService.cancellationTokenSource =
+              new CancellationTokenSource();
             const columns = await this.dbtLineageService.getConnectedColumns({
               targets,
               currAnd1HopTables,
@@ -742,6 +745,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               () => ({ ...columns, tables: _tables, tests }),
               "response",
             );
+            break;
+          }
+          case "cancelColumnLineage": {
+            this.dbtLineageService.cancellationTokenSource?.cancel();
             break;
           }
           case "saveDocumentation":
