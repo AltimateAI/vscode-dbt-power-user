@@ -45,6 +45,18 @@ interface DownstreamColumns {
   tests: Record<string, unknown>;
 }
 
+const mergeDocItems = (a: DocsItem[], b: DocsItem[]): DocsItem[] => {
+  const result = [...a];
+  for (const item of b) {
+    if (
+      !result.find((i) => i.model === item.model && i.column === item.column)
+    ) {
+      result.push(item);
+    }
+  }
+  return result;
+};
+
 const SingleColumnCard = ({
   isLoading,
   columnName,
@@ -150,7 +162,11 @@ const SingleColumnCard = ({
   );
 };
 
-const useDocumentationPropagation = () => {
+const useDocumentationPropagation = ({
+  startColumns,
+}: {
+  startColumns: DocsItem[];
+}) => {
   const {
     state: { currentDocsData },
   } = useDocumentationContext();
@@ -206,8 +222,7 @@ const useDocumentationPropagation = () => {
         });
       }
       iCurrColumns = newColumns;
-      // TODO: merge columns uniquely
-      setAllColumns((prev) => [...prev, ...newColumns]);
+      setAllColumns((prev) => mergeDocItems(prev, newColumns));
     }
     setIsLoading(false);
     setCurrColumns(iCurrColumns);
@@ -251,19 +266,23 @@ const useDocumentationPropagation = () => {
     await executeRequestInSync("saveDocumentationBulk", { models: req });
     setIsSaved(true);
   };
+
+  const reset = () => {
+    setAllColumns([]);
+    setCurrColumns(startColumns);
+    setTableMetadata([]);
+    setIsSaved(false);
+  };
   return {
     isSaved,
     isLoading,
     allColumns,
     selectedColumns,
     setSelectedColumns,
-    setAllColumns,
-    setCurrColumns,
-    setTableMetadata,
-    setIsSaved,
     loadMoreDownstreamModels,
     propagateDocumentation,
     cancelColumnLineage,
+    reset,
   };
 };
 
@@ -273,7 +292,7 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
   } = useDocumentationContext();
   const drawerRef = useRef<DrawerRef | null>(null);
 
-  const startColumn =
+  const startColumns =
     currentDocsData?.columns
       .filter((c) => Boolean(c.description))
       .map((c) => ({
@@ -289,20 +308,14 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
     allColumns,
     selectedColumns,
     setSelectedColumns,
-    setAllColumns,
-    setCurrColumns,
-    setTableMetadata,
-    setIsSaved,
     loadMoreDownstreamModels,
     propagateDocumentation,
     cancelColumnLineage,
-  } = useDocumentationPropagation();
+    reset,
+  } = useDocumentationPropagation({ startColumns });
 
   useEffect(() => {
-    setAllColumns([]);
-    setCurrColumns(startColumn);
-    setTableMetadata([]);
-    setIsSaved(false);
+    reset();
   }, [currentDocsData?.uniqueId]);
 
   useEffect(() => {
@@ -326,7 +339,8 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
           .filter(
             (c) =>
               Boolean(c.description) &&
-              allColumns.filter((item) => item.root === c.name).length > 0,
+              (isLoading ||
+                allColumns.filter((item) => item.root === c.name).length > 0),
           )
           .map((c) => (
             <SingleColumnCard
@@ -386,7 +400,7 @@ export const DocumentationPropagationButton = ({
   const drawerRef = useRef<DrawerRef | null>(null);
   const currColumnDescription =
     currentDocsData?.columns.find((c) => c.name === name)?.description ?? "";
-  const startColumn = currentDocsData
+  const startColumns = currentDocsData
     ? [
         {
           model: currentDocsData.uniqueId,
@@ -401,20 +415,14 @@ export const DocumentationPropagationButton = ({
     allColumns,
     selectedColumns,
     setSelectedColumns,
-    setAllColumns,
-    setCurrColumns,
-    setTableMetadata,
-    setIsSaved,
     loadMoreDownstreamModels,
     propagateDocumentation,
     cancelColumnLineage,
-  } = useDocumentationPropagation();
+    reset,
+  } = useDocumentationPropagation({ startColumns });
 
   useEffect(() => {
-    setAllColumns([]);
-    setCurrColumns(startColumn);
-    setTableMetadata([]);
-    setIsSaved(false);
+    reset();
   }, [currentDocsData?.uniqueId, name]);
 
   if (type !== EntityType.COLUMN) {
