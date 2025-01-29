@@ -15,6 +15,7 @@ import useDocumentationContext from "@modules/documentationEditor/state/useDocum
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { ColumnLineage } from "@lib";
 import styles from "./styles.module.scss";
+import { updateBulkDocsPropRightPanel } from "@modules/documentationEditor/state/documentationSlice";
 
 interface Props {
   name: string;
@@ -229,8 +230,8 @@ const useDocumentationPropagation = ({
   };
 
   const cancelColumnLineage = async () => {
-    await executeRequestInSync("cancelColumnLineage", {});
     isCancelled.current = true;
+    await executeRequestInSync("cancelColumnLineage", {});
   };
 
   const propagateDocumentation = async () => {
@@ -289,6 +290,7 @@ const useDocumentationPropagation = ({
 export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
   const {
     state: { showBulkDocsPropRightPanel, currentDocsData },
+    dispatch,
   } = useDocumentationContext();
   const drawerRef = useRef<DrawerRef | null>(null);
 
@@ -341,7 +343,13 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
   };
 
   return (
-    <Drawer ref={drawerRef}>
+    <Drawer
+      ref={drawerRef}
+      onClose={() => {
+        dispatch(updateBulkDocsPropRightPanel(false));
+        void cancelColumnLineage();
+      }}
+    >
       <Stack direction="column" className="h-100">
         <div className={styles.itemRow}>
           <div>Model:</div>
