@@ -328,6 +328,18 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
     }
   }, [showBulkDocsPropRightPanel]);
 
+  const setAllColumnsValue = (value: boolean) => {
+    setSelectedColumns(
+      allColumns.reduce(
+        (acc, curr) => ({
+          ...acc,
+          [curr.model + "/" + curr.column]: value,
+        }),
+        {},
+      ),
+    );
+  };
+
   return (
     <Drawer ref={drawerRef}>
       <Stack direction="column" className="h-100">
@@ -335,6 +347,24 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
           <div>Model:</div>
           <div>{currentDocsData?.name}</div>
         </div>
+        {!isLoading && allColumns.length > 0 ? (
+          <Stack className="mb-2">
+            <Button
+              color="primary"
+              outline
+              onClick={() => setAllColumnsValue(true)}
+            >
+              Select All
+            </Button>
+            <Button
+              color="primary"
+              outline
+              onClick={() => setAllColumnsValue(false)}
+            >
+              Unselect All
+            </Button>
+          </Stack>
+        ) : null}
         {currentDocsData?.columns
           .filter(
             (c) =>
