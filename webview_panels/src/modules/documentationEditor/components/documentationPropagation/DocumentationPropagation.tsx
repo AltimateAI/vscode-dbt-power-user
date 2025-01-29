@@ -150,11 +150,10 @@ const SingleColumnCard = ({
   );
 };
 
-export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
+const useDocumentationPropagation = () => {
   const {
-    state: { showBulkDocsPropRightPanel, currentDocsData },
+    state: { currentDocsData },
   } = useDocumentationContext();
-  const drawerRef = useRef<DrawerRef | null>(null);
   const [allColumns, setAllColumns] = useState<DocsItem[]>([]);
   const [currColumns, setCurrColumns] = useState<DocsItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -167,23 +166,6 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
   const [selectedColumns, setSelectedColumns] = useState<
     Record<string, boolean>
   >({});
-
-  const startColumn =
-    currentDocsData?.columns
-      .filter((c) => Boolean(c.description))
-      .map((c) => ({
-        model: currentDocsData.uniqueId,
-        column: c.name,
-        description: c.description ?? "",
-        root: c.name,
-      })) ?? [];
-
-  useEffect(() => {
-    setAllColumns([]);
-    setCurrColumns(startColumn);
-    setTableMetadata([]);
-    setIsSaved(false);
-  }, [currentDocsData?.uniqueId]);
 
   const loadMoreDownstreamModels = async () => {
     isCancelled.current = false;
@@ -269,6 +251,59 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
     await executeRequestInSync("saveDocumentationBulk", { models: req });
     setIsSaved(true);
   };
+  return {
+    isSaved,
+    isLoading,
+    allColumns,
+    selectedColumns,
+    setSelectedColumns,
+    setAllColumns,
+    setCurrColumns,
+    setTableMetadata,
+    setIsSaved,
+    loadMoreDownstreamModels,
+    propagateDocumentation,
+    cancelColumnLineage,
+  };
+};
+
+export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
+  const {
+    state: { showBulkDocsPropRightPanel, currentDocsData },
+  } = useDocumentationContext();
+  const drawerRef = useRef<DrawerRef | null>(null);
+
+  const startColumn =
+    currentDocsData?.columns
+      .filter((c) => Boolean(c.description))
+      .map((c) => ({
+        model: currentDocsData.uniqueId,
+        column: c.name,
+        description: c.description ?? "",
+        root: c.name,
+      })) ?? [];
+
+  const {
+    isSaved,
+    isLoading,
+    allColumns,
+    selectedColumns,
+    setSelectedColumns,
+    setAllColumns,
+    setCurrColumns,
+    setTableMetadata,
+    setIsSaved,
+    loadMoreDownstreamModels,
+    propagateDocumentation,
+    cancelColumnLineage,
+  } = useDocumentationPropagation();
+
+  useEffect(() => {
+    setAllColumns([]);
+    setCurrColumns(startColumn);
+    setTableMetadata([]);
+    setIsSaved(false);
+  }, [currentDocsData?.uniqueId]);
 
   useEffect(() => {
     if (!drawerRef.current) return;
@@ -360,18 +395,20 @@ export const DocumentationPropagationButton = ({
         },
       ]
     : [];
-  const [allColumns, setAllColumns] = useState<DocsItem[]>([]);
-  const [currColumns, setCurrColumns] = useState<DocsItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-  const [tableMetadata, setTableMetadata] = useState<TableMetadata[]>([]);
-  const isCancelled = useRef(false);
-  const [testsMetadata, setTestsMetadata] = useState<Record<string, unknown>>(
-    {},
-  );
-  const [selectedColumns, setSelectedColumns] = useState<
-    Record<string, boolean>
-  >({});
+  const {
+    isSaved,
+    isLoading,
+    allColumns,
+    selectedColumns,
+    setSelectedColumns,
+    setAllColumns,
+    setCurrColumns,
+    setTableMetadata,
+    setIsSaved,
+    loadMoreDownstreamModels,
+    propagateDocumentation,
+    cancelColumnLineage,
+  } = useDocumentationPropagation();
 
   useEffect(() => {
     setAllColumns([]);
@@ -379,87 +416,6 @@ export const DocumentationPropagationButton = ({
     setTableMetadata([]);
     setIsSaved(false);
   }, [currentDocsData?.uniqueId, name]);
-
-  const loadMoreDownstreamModels = async () => {
-    isCancelled.current = false;
-    setIsLoading(true);
-    let iCurrColumns = currColumns;
-    while (iCurrColumns.length > 0 && !isCancelled.current) {
-      const result = (await executeRequestInSync("getDownstreamColumns", {
-        targets: iCurrColumns.map((c) => [c.model, c.column]),
-        model: currentDocsData?.uniqueId,
-        column: name,
-      })) as DownstreamColumns;
-      if (!result.column_lineage) {
-        break;
-      }
-      setTableMetadata((prev) => [...prev, ...result.tables]);
-      setTestsMetadata((prev) => ({ ...prev, ...result.tests }));
-      if (result.column_lineage.length === 0) {
-        iCurrColumns = [];
-        break;
-      }
-      const newColumns: DocsItem[] = [];
-      for (const item of result.column_lineage) {
-        if (item.type === "indirect") continue;
-        if (item.viewsType === "Transformation") continue;
-        const [model, column] = item.source;
-        const sourceColumn = iCurrColumns.find(
-          (c) => c.model === model && c.column === column,
-        );
-        if (!sourceColumn) continue;
-        newColumns.push({
-          model: item.target[0],
-          column: item.target[1],
-          description:
-            result.tables.find((t) => t.table === item.target[0])?.columns[
-              item.target[1]
-            ]?.description ?? "",
-        });
-      }
-      iCurrColumns = newColumns;
-      // TODO: merge columns uniquely
-      setAllColumns((prev) => [...prev, ...newColumns]);
-    }
-    setIsLoading(false);
-    setCurrColumns(iCurrColumns);
-  };
-
-  const propagateDocumentation = async () => {
-    const defaultPackageName = tableMetadata.filter((t) => t.packageName)[0]
-      ?.packageName;
-    const defaultPatchPath = defaultPackageName
-      ? defaultPackageName + "://models/schema.yml"
-      : "";
-
-    const req = [];
-
-    for (const item of allColumns) {
-      const key = item.model + "/" + item.column;
-      if (!selectedColumns[key]) continue;
-      const splits = item.model.split(".");
-      const modelName = splits[splits.length - 1];
-      const node = tableMetadata.find((t) => t.table === item.model);
-      req.push({
-        name: modelName,
-        description: node?.description,
-        columns: [{ name: item.column, description: currColumnDescription }],
-        dialogType: "Existing file",
-        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-        patchPath: node?.patchPath || defaultPatchPath,
-        filePath: node?.url,
-        updatedTests: testsMetadata[item.model],
-      });
-    }
-
-    await executeRequestInSync("saveDocumentationBulk", { models: req });
-    setIsSaved(true);
-  };
-
-  const cancelColumnLineage = async () => {
-    await executeRequestInSync("cancelColumnLineage", {});
-    isCancelled.current = true;
-  };
 
   if (type !== EntityType.COLUMN) {
     return null;
