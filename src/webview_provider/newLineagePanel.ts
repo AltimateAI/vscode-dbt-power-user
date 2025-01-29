@@ -1,5 +1,7 @@
 import * as path from "path";
 import {
+  CancellationToken,
+  CancellationTokenSource,
   ColorThemeKind,
   commands,
   ProgressLocation,
@@ -27,6 +29,15 @@ import {
   Table,
 } from "../services/dbtLineageService";
 
+class DerivedCancellationTokenSource extends CancellationTokenSource {
+  constructor(linkedToken: CancellationToken) {
+    super();
+    linkedToken.onCancellationRequested(() => {
+      super.cancel();
+    });
+  }
+}
+
 @provideSingleton(NewLineagePanel)
 export class NewLineagePanel
   extends AltimateWebviewProvider
@@ -34,6 +45,8 @@ export class NewLineagePanel
 {
   protected viewPath = "/lineage";
   protected panelDescription = "Lineage panel";
+  private cllProgressResolve: () => void = () => {};
+  private cancellationTokenSource: CancellationTokenSource | undefined;
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
@@ -152,10 +165,13 @@ export class NewLineagePanel
 
     if (command === "getConnectedColumns") {
       try {
-        const body = await this.dbtLineageService.getConnectedColumns({
-          ...params,
-          eventType: "column_lineage",
-        });
+        const body = await this.dbtLineageService.getConnectedColumns(
+          {
+            ...params,
+            eventType: "column_lineage",
+          },
+          this.cancellationTokenSource ?? new CancellationTokenSource(),
+        );
         this._panel?.webview.postMessage({
           command: "response",
           args: { id, syncRequestId, body, status: !!body },
@@ -208,7 +224,7 @@ export class NewLineagePanel
     }
 
     if (command === "columnLineage") {
-      this.dbtLineageService.handleColumnLineage(args, () => {
+      this.handleColumnLineage(args, () => {
         this._panel?.webview.postMessage({
           command: "columnLineage",
           args: { event: CllEvents.CANCEL },
@@ -273,6 +289,46 @@ export class NewLineagePanel
       message,
     );
     super.handleCommand(message);
+  }
+
+  private async handleColumnLineage(
+    { event }: { event: CllEvents },
+    onCancel: () => void,
+  ) {
+    if (event === CllEvents.START) {
+      window.withProgress(
+        {
+          title: "Retrieving column level lineage",
+          location: ProgressLocation.Notification,
+          cancellable: true,
+        },
+        async (_, token) => {
+          await new Promise<void>((resolve) => {
+            this.cancellationTokenSource = new DerivedCancellationTokenSource(
+              token,
+            );
+            this.cllProgressResolve = resolve;
+            token.onCancellationRequested(() => {
+              onCancel();
+            });
+          });
+        },
+      );
+      return;
+    }
+    this.cancellationTokenSource?.token.onCancellationRequested((e) => {
+      console.log(e);
+    });
+    if (event === CllEvents.END) {
+      this.cllProgressResolve();
+      this.cancellationTokenSource?.dispose();
+      return;
+    }
+    if (event === CllEvents.CANCEL) {
+      this.cllProgressResolve();
+      this.cancellationTokenSource?.cancel();
+      return;
+    }
   }
 
   private async addModelColumnsFromDB(project: DBTProject, node: NodeMetaData) {

@@ -111,6 +111,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private _disposables: Disposable[] = [];
   private onMessageDisposable: Disposable | undefined;
+  private cancellationTokenSource: CancellationTokenSource | undefined;
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -683,15 +684,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               panel: this._panel,
             });
             break;
-          case "columnLineageBase": {
-            this.dbtLineageService.handleColumnLineage(params, () => {
-              this._panel?.webview.postMessage({
-                command: "columnLineage",
-                args: { event: CllEvents.CANCEL },
-              });
-            });
-            break;
-          }
           case "getDownstreamColumns": {
             const targets = params.targets as [string, string][];
             const testsResult = await Promise.all(
@@ -730,16 +722,18 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               name: params.column as string,
             };
             const currAnd1HopTables = [...tables, ...targets.map((t) => t[0])];
-            this.dbtLineageService.cancellationTokenSource =
-              new CancellationTokenSource();
-            const columns = await this.dbtLineageService.getConnectedColumns({
-              targets,
-              currAnd1HopTables,
-              selectedColumn,
-              upstreamExpansion: true,
-              showIndirectEdges: false,
-              eventType: "documentation_propagation",
-            });
+            this.cancellationTokenSource = new CancellationTokenSource();
+            const columns = await this.dbtLineageService.getConnectedColumns(
+              {
+                targets,
+                currAnd1HopTables,
+                selectedColumn,
+                upstreamExpansion: true,
+                showIndirectEdges: false,
+                eventType: "documentation_propagation",
+              },
+              this.cancellationTokenSource!,
+            );
             this.handleSyncRequestFromWebview(
               syncRequestId,
               () => ({ ...columns, tables: _tables, tests }),
@@ -748,7 +742,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             break;
           }
           case "cancelColumnLineage": {
-            this.dbtLineageService.cancellationTokenSource?.cancel();
+            this.cancellationTokenSource?.cancel();
             break;
           }
           case "saveDocumentation":

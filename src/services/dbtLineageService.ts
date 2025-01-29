@@ -51,65 +51,14 @@ export type Table = {
   packageName?: string;
 };
 
-class DerivedCancellationTokenSource extends CancellationTokenSource {
-  constructor(linkedToken: CancellationToken) {
-    super();
-    linkedToken.onCancellationRequested(() => {
-      super.cancel();
-    });
-  }
-}
-
 @provideSingleton(DbtLineageService)
 export class DbtLineageService {
-  private cllProgressResolve: () => void = () => {};
-
   public constructor(
     private altimateRequest: AltimateRequest,
     protected telemetry: TelemetryService,
     private dbtTerminal: DBTTerminal,
     private queryManifestService: QueryManifestService,
   ) {}
-
-  async handleColumnLineage(
-    { event }: { event: CllEvents },
-    onCancel: () => void,
-  ) {
-    if (event === CllEvents.START) {
-      window.withProgress(
-        {
-          title: "Retrieving column level lineage",
-          location: ProgressLocation.Notification,
-          cancellable: true,
-        },
-        async (_, token) => {
-          await new Promise<void>((resolve) => {
-            this.cancellationTokenSource = new DerivedCancellationTokenSource(
-              token,
-            );
-            this.cllProgressResolve = resolve;
-            token.onCancellationRequested(() => {
-              onCancel();
-            });
-          });
-        },
-      );
-      return;
-    }
-    this.cancellationTokenSource?.token.onCancellationRequested((e) => {
-      console.log(e);
-    });
-    if (event === CllEvents.END) {
-      this.cllProgressResolve();
-      this.cancellationTokenSource?.dispose();
-      return;
-    }
-    if (event === CllEvents.CANCEL) {
-      this.cllProgressResolve();
-      this.cancellationTokenSource?.cancel();
-      return;
-    }
-  }
 
   getUpstreamTables({ table }: { table: string }) {
     return { tables: this.getConnectedTables("children", table) };
@@ -260,23 +209,25 @@ export class DbtLineageService {
     return g.get(key)?.nodes.length || 0;
   }
 
-  cancellationTokenSource: CancellationTokenSource | undefined;
-  async getConnectedColumns({
-    targets,
-    upstreamExpansion,
-    currAnd1HopTables,
-    selectedColumn,
-    showIndirectEdges,
-    eventType,
-  }: {
-    targets: [string, string][];
-    upstreamExpansion: boolean;
-    currAnd1HopTables: string[];
-    // select_column is used for pricing not business logic
-    selectedColumn: { name: string; table: string };
-    showIndirectEdges: boolean;
-    eventType: string;
-  }) {
+  async getConnectedColumns(
+    {
+      targets,
+      upstreamExpansion,
+      currAnd1HopTables,
+      selectedColumn,
+      showIndirectEdges,
+      eventType,
+    }: {
+      targets: [string, string][];
+      upstreamExpansion: boolean;
+      currAnd1HopTables: string[];
+      // select_column is used for pricing not business logic
+      selectedColumn: { name: string; table: string };
+      showIndirectEdges: boolean;
+      eventType: string;
+    },
+    cancellationTokenSource: CancellationTokenSource,
+  ) {
     const _event = this.queryManifestService.getEventByCurrentProject();
     if (!_event) {
       return;
@@ -317,7 +268,7 @@ export class DbtLineageService {
       await project.getNodesWithDBColumns(
         event,
         modelsToFetch,
-        this.cancellationTokenSource!.token,
+        cancellationTokenSource.token,
       );
 
     const selected_column = {
@@ -325,7 +276,7 @@ export class DbtLineageService {
       column: selectedColumn.name,
     };
 
-    if (this.cancellationTokenSource?.token.isCancellationRequested) {
+    if (cancellationTokenSource.token.isCancellationRequested) {
       return { column_lineage: [] };
     }
 
@@ -411,7 +362,7 @@ export class DbtLineageService {
 
     const modelDialect = project.getAdapterType();
     try {
-      if (this.cancellationTokenSource?.token.isCancellationRequested) {
+      if (cancellationTokenSource.token.isCancellationRequested) {
         return { column_lineage: [] };
       }
       const sessionId = `${env.sessionId}-${selectedColumn.table}-${selectedColumn.name}`;
