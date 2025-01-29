@@ -213,7 +213,7 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
           (c) => c.model === model && c.column === column,
         );
         if (!sourceColumn) continue;
-        const newColumnItem = {
+        newColumns.push({
           model: item.target[0],
           column: item.target[1],
           description:
@@ -221,9 +221,7 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
               item.target[1]
             ]?.description ?? "",
           root: sourceColumn.root,
-        };
-
-        newColumns.push(newColumnItem);
+        });
       }
       iCurrColumns = newColumns;
       // TODO: merge columns uniquely
@@ -290,7 +288,11 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
           <div>{currentDocsData?.name}</div>
         </div>
         {currentDocsData?.columns
-          .filter((c) => Boolean(c.description))
+          .filter(
+            (c) =>
+              Boolean(c.description) &&
+              allColumns.filter((item) => item.root === c.name).length > 0,
+          )
           .map((c) => (
             <SingleColumnCard
               key={c.name}
@@ -401,21 +403,19 @@ export const DocumentationPropagationButton = ({
       for (const item of result.column_lineage) {
         if (item.type === "indirect") continue;
         if (item.viewsType === "Transformation") continue;
-
-        if (
-          iCurrColumns.find(
-            (c) => c.model === item.source[0] && c.column === item.source[1],
-          )
-        ) {
-          newColumns.push({
-            model: item.target[0],
-            column: item.target[1],
-            description:
-              result.tables.find((t) => t.table === item.target[0])?.columns[
-                item.target[1]
-              ]?.description ?? "",
-          });
-        }
+        const [model, column] = item.source;
+        const sourceColumn = iCurrColumns.find(
+          (c) => c.model === model && c.column === column,
+        );
+        if (!sourceColumn) continue;
+        newColumns.push({
+          model: item.target[0],
+          column: item.target[1],
+          description:
+            result.tables.find((t) => t.table === item.target[0])?.columns[
+              item.target[1]
+            ]?.description ?? "",
+        });
       }
       iCurrColumns = newColumns;
       // TODO: merge columns uniquely
