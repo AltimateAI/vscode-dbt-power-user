@@ -149,10 +149,12 @@ const SingleColumnCard = ({
                     <div>Column:</div>
                     <div>{item.column}</div>
                   </div>
-                  <div className={styles.itemRow}>
-                    <div>Description:</div>
-                    <div>{item.description}</div>
-                  </div>
+                  {item.description && (
+                    <div className={styles.itemRow}>
+                      <div>Description:</div>
+                      <div>{item.description}</div>
+                    </div>
+                  )}
                 </Stack>
               </Stack>
             );

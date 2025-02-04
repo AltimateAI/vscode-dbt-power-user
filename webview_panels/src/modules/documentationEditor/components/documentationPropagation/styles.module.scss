@@ -6,7 +6,7 @@
 
 .itemRow {
   display: grid;
-  grid-template-columns: 1fr 3fr;
+  grid-template-columns: 1.2fr 3fr;
 
   :nth-child(1) {
     font-weight: 600;
