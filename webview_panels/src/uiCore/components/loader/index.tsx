@@ -3,11 +3,12 @@ import { FC } from "react";
 import styles from "./styles.module.scss";
 
 interface LoaderProps {
-  size?: "small" | "medium" | "large";
+  size?: "xsmall" | "small" | "medium" | "large";
   className?: string;
 }
 
 const styleSizeMap = {
+  xsmall: styles.sizeXSmall,
   small: styles.sizeSmall,
   medium: styles.sizeMedium,
   large: styles.sizeLarge,

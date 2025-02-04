@@ -160,6 +160,12 @@ const SingleColumnCard = ({
             );
           })}
         </Stack>
+        {isLoading && (
+          <Stack className="align-items-center mt-2">
+            <Loader size="xsmall" />
+            <div className="text-grey">Loading...</div>
+          </Stack>
+        )}
       </CardBody>
     </Card>
   );
@@ -176,6 +182,9 @@ const useDocumentationPropagation = ({
   const [allColumns, setAllColumns] = useState<DocsItem[]>([]);
   const [currColumns, setCurrColumns] = useState<DocsItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isColumnLineageLoading, setIsColumnLineageLoading] = useState<
+    Record<string, boolean>
+  >({});
   const [isSaved, setIsSaved] = useState(false);
   const [tableMetadata, setTableMetadata] = useState<TableMetadata[]>([]);
   const isCancelled = useRef(false);
@@ -189,6 +198,9 @@ const useDocumentationPropagation = ({
   const loadMoreDownstreamModels = async () => {
     isCancelled.current = false;
     setIsLoading(true);
+    setIsColumnLineageLoading(
+      currColumns.reduce((acc, curr) => ({ ...acc, [curr.column]: true }), {}),
+    );
     let iCurrColumns = currColumns;
     while (iCurrColumns.length > 0 && !isCancelled.current) {
       const result = (await executeRequestInSync("getDownstreamColumns", {
@@ -205,6 +217,11 @@ const useDocumentationPropagation = ({
         iCurrColumns = [];
         break;
       }
+      const tempColumnLoadingState: Record<string, boolean> =
+        currColumns.reduce(
+          (acc, curr) => ({ ...acc, [curr.column]: false }),
+          {},
+        );
       const newColumns: DocsItem[] = [];
       for (const item of result.column_lineage) {
         if (item.type === "indirect") continue;
@@ -223,9 +240,11 @@ const useDocumentationPropagation = ({
             ]?.description ?? "",
           root: sourceColumn.root,
         });
+        if (sourceColumn.root) tempColumnLoadingState[sourceColumn.root] = true;
       }
       iCurrColumns = newColumns;
       setAllColumns((prev) => mergeDocItems(prev, newColumns));
+      setIsColumnLineageLoading(tempColumnLoadingState);
     }
     setIsLoading(false);
     setCurrColumns(iCurrColumns);
@@ -286,6 +305,7 @@ const useDocumentationPropagation = ({
     propagateDocumentation,
     cancelColumnLineage,
     reset,
+    isColumnLineageLoading,
   };
 };
 
@@ -316,6 +336,7 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
     propagateDocumentation,
     cancelColumnLineage,
     reset,
+    isColumnLineageLoading,
   } = useDocumentationPropagation({ startColumns });
 
   useEffect(() => {
@@ -372,7 +393,7 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
                 selectedColumns={selectedColumns}
                 columnDescription={c.description ?? ""}
                 columnName={c.name}
-                isLoading={isLoading}
+                isLoading={isColumnLineageLoading[c.name]}
                 downstreamColumns={allColumns.filter(
                   (item) => item.root === c.name,
                 )}
