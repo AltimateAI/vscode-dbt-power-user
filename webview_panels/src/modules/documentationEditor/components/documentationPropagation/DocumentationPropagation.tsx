@@ -355,46 +355,47 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
           <div>Model:</div>
           <div>{currentDocsData?.name}</div>
         </div>
-        {!isLoading && allColumns.length > 0 ? (
-          <Stack className="mb-2">
-            <Button
-              color="primary"
-              outline
-              onClick={() => setAllColumnsValue(true)}
-            >
-              Select All
-            </Button>
-            <Button
-              color="primary"
-              outline
-              onClick={() => setAllColumnsValue(false)}
-            >
-              Unselect All
-            </Button>
-          </Stack>
-        ) : null}
-        {currentDocsData?.columns
-          .filter(
-            (c) =>
-              Boolean(c.description) &&
-              (isLoading ||
-                allColumns.filter((item) => item.root === c.name).length > 0),
-          )
-          .map((c) => (
-            <SingleColumnCard
-              key={c.name}
-              setSelectedColumns={setSelectedColumns}
-              selectedColumns={selectedColumns}
-              columnDescription={c.description ?? ""}
-              columnName={c.name}
-              isLoading={isLoading}
-              downstreamColumns={allColumns.filter(
-                (item) => item.root === c.name,
-              )}
-            />
-          ))}
-        <div className="spacer" />
-        <Stack direction="column">
+        <Stack direction="column" className="mb-1 overflow-y">
+          {currentDocsData?.columns
+            .filter(
+              (c) =>
+                Boolean(c.description) &&
+                (isLoading ||
+                  allColumns.filter((item) => item.root === c.name).length > 0),
+            )
+            .map((c) => (
+              <SingleColumnCard
+                key={c.name}
+                setSelectedColumns={setSelectedColumns}
+                selectedColumns={selectedColumns}
+                columnDescription={c.description ?? ""}
+                columnName={c.name}
+                isLoading={isLoading}
+                downstreamColumns={allColumns.filter(
+                  (item) => item.root === c.name,
+                )}
+              />
+            ))}
+        </Stack>
+        <Stack direction="column" className={styles.propagateContainer}>
+          {!isLoading && allColumns.length > 0 ? (
+            <Stack className="mb-2">
+              <Button
+                color="primary"
+                outline
+                onClick={() => setAllColumnsValue(true)}
+              >
+                Select All
+              </Button>
+              <Button
+                color="primary"
+                outline
+                onClick={() => setAllColumnsValue(false)}
+              >
+                Unselect All
+              </Button>
+            </Stack>
+          ) : null}
           <Stack className="align-items-center">
             <div>Downstream columns found:</div>
             <div>{Object.values(allColumns).flat().length}</div>
