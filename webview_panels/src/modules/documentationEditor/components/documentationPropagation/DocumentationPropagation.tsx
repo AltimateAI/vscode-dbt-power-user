@@ -357,11 +357,11 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
         </div>
         <Stack direction="column" className="mb-1 overflow-y">
           {currentDocsData?.columns
-            .filter(
-              (c) =>
-                Boolean(c.description) &&
-                (isLoading ||
-                  allColumns.filter((item) => item.root === c.name).length > 0),
+            .filter((c) => Boolean(c.description))
+            .sort(
+              (a, b) =>
+                allColumns.filter((item) => item.root === b.name).length -
+                allColumns.filter((item) => item.root === a.name).length,
             )
             .map((c) => (
               <SingleColumnCard
@@ -378,30 +378,12 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
             ))}
         </Stack>
         <Stack direction="column" className={styles.propagateContainer}>
-          {!isLoading && allColumns.length > 0 ? (
-            <Stack className="mb-2">
-              <Button
-                color="primary"
-                outline
-                onClick={() => setAllColumnsValue(true)}
-              >
-                Select All
-              </Button>
-              <Button
-                color="primary"
-                outline
-                onClick={() => setAllColumnsValue(false)}
-              >
-                Unselect All
-              </Button>
-            </Stack>
-          ) : null}
           <Stack className="align-items-center">
-            <div>Downstream columns found:</div>
+            <div>Downstream columns:</div>
             <div>{Object.values(allColumns).flat().length}</div>
             {isLoading && <Loader size="small" />}
             <div className="spacer" />
-            {isLoading && (
+            {isLoading ? (
               <Button
                 color="primary"
                 outline
@@ -409,7 +391,24 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
               >
                 Cancel
               </Button>
-            )}
+            ) : allColumns.length > 0 ? (
+              <Stack>
+                <Button
+                  color="primary"
+                  outline
+                  onClick={() => setAllColumnsValue(true)}
+                >
+                  Select All
+                </Button>
+                <Button
+                  color="primary"
+                  outline
+                  onClick={() => setAllColumnsValue(false)}
+                >
+                  Unselect All
+                </Button>
+              </Stack>
+            ) : null}
           </Stack>
           <Button
             color="primary"
@@ -420,7 +419,8 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
             onClick={() => propagateDocumentation()}
             className="w-100"
           >
-            Propagate documentation
+            Propagate documentation (
+            {Object.values(selectedColumns).filter((v) => Boolean(v)).length})
           </Button>
           {isSaved && <div>Saved documentation successfully</div>}
         </Stack>
