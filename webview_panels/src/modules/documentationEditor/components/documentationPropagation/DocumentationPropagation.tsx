@@ -1,4 +1,4 @@
-import { PropagateIcon } from "@assets/icons";
+import { ArrowDownIcon, ArrowUpIcon, PropagateIcon } from "@assets/icons";
 import { useEffect, useRef, useState } from "react";
 import {
   Drawer,
@@ -75,6 +75,7 @@ const SingleColumnCard = ({
   >;
   downstreamColumns: DocsItem[];
 }) => {
+  const [isExpanded, setIsExpanded] = useState(true);
   const setAllColumnsValue = (value: boolean) => {
     setSelectedColumns(
       downstreamColumns.reduce(
@@ -86,9 +87,45 @@ const SingleColumnCard = ({
       ),
     );
   };
+  if (!isExpanded) {
+    return (
+      <Card>
+        <CardBody>
+          <div
+            className={styles.singleColumnAccordion}
+            onClick={() => setIsExpanded(true)}
+          >
+            <ArrowDownIcon />
+          </div>
+          <Stack direction="column">
+            <div className={styles.itemRow}>
+              <div>Column:</div>
+              <div>{columnName}</div>
+            </div>
+            {isLoading ? (
+              <Stack className="align-items-center">
+                <Loader size="xsmall" />
+                <div className={styles.captionText}>Loading...</div>
+              </Stack>
+            ) : (
+              <div className={styles.captionText}>
+                Downstream columns: {downstreamColumns.length}
+              </div>
+            )}
+          </Stack>
+        </CardBody>
+      </Card>
+    );
+  }
   return (
     <Card>
       <CardBody>
+        <div
+          className={styles.singleColumnAccordion}
+          onClick={() => setIsExpanded(false)}
+        >
+          <ArrowUpIcon />
+        </div>
         <Stack direction="column" className="gap-0 mb-2">
           <div className={styles.itemRow}>
             <div>Column:</div>
@@ -125,7 +162,7 @@ const SingleColumnCard = ({
             </Button>
           </Stack>
         ) : null}
-        <Stack direction="column" className="gap-md">
+        <Stack direction="column" className="gap-sm">
           {downstreamColumns.map((item) => {
             const key = item.model + "/" + item.column;
             return (
@@ -163,7 +200,7 @@ const SingleColumnCard = ({
         {isLoading && (
           <Stack className="align-items-center mt-2">
             <Loader size="xsmall" />
-            <div className="text-grey">Loading...</div>
+            <div className={styles.captionText}>Loading...</div>
           </Stack>
         )}
       </CardBody>

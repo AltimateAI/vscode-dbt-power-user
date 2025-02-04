@@ -34,3 +34,15 @@
   margin: -12px;
   padding: 12px;
 }
+
+.singleColumnAccordion {
+  cursor: pointer;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.captionText {
+  color: var(--text-color--caption);
+  font-size: 0.8em;
+}
