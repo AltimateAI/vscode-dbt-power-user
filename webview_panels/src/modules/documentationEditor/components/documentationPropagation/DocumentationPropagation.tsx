@@ -78,12 +78,11 @@ const SingleColumnCard = ({
   const [isExpanded, setIsExpanded] = useState(true);
   const setAllColumnsValue = (value: boolean) => {
     setSelectedColumns(
-      downstreamColumns.reduce(
-        (acc, curr) => ({
-          ...acc,
-          [curr.model + "/" + curr.column]: value,
-        }),
-        {},
+      Object.fromEntries(
+        downstreamColumns.map((curr) => [
+          curr.model + "/" + curr.column,
+          value,
+        ]),
       ),
     );
   };
@@ -236,7 +235,7 @@ const useDocumentationPropagation = ({
     isCancelled.current = false;
     setIsLoading(true);
     setIsColumnLineageLoading(
-      currColumns.reduce((acc, curr) => ({ ...acc, [curr.column]: true }), {}),
+      Object.fromEntries(currColumns.map((curr) => [curr.column, true])),
     );
     let iCurrColumns = currColumns;
     while (iCurrColumns.length > 0 && !isCancelled.current) {
@@ -254,11 +253,9 @@ const useDocumentationPropagation = ({
         iCurrColumns = [];
         break;
       }
-      const tempColumnLoadingState: Record<string, boolean> =
-        currColumns.reduce(
-          (acc, curr) => ({ ...acc, [curr.column]: false }),
-          {},
-        );
+      const tempColumnLoadingState = Object.fromEntries(
+        currColumns.map((curr) => [curr.column, false]),
+      );
       const newColumns: DocsItem[] = [];
       for (const item of result.column_lineage) {
         if (item.type === "indirect") continue;
@@ -392,12 +389,8 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
 
   const setAllColumnsValue = (value: boolean) => {
     setSelectedColumns(
-      allColumns.reduce(
-        (acc, curr) => ({
-          ...acc,
-          [curr.model + "/" + curr.column]: value,
-        }),
-        {},
+      Object.fromEntries(
+        allColumns.map((curr) => [curr.model + "/" + curr.column, value]),
       ),
     );
   };
