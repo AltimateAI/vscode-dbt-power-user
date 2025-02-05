@@ -3,6 +3,7 @@ import { FC } from "react";
 import styles from "./styles.module.scss";
 
 interface LoaderProps {
+  [key: string]: unknown;
   size?: "xsmall" | "small" | "medium" | "large";
   className?: string;
 }
@@ -14,9 +15,16 @@ const styleSizeMap = {
   large: styles.sizeLarge,
 };
 
-const Loader: FC<LoaderProps> = ({ size = "medium", className = "" }) => {
+const Loader: FC<LoaderProps> = ({
+  size = "medium",
+  className = "",
+  ...rest
+}) => {
   return (
-    <div className={`${styles.loader} ${styleSizeMap[size]} ${className}`}>
+    <div
+      {...rest}
+      className={`${styles.loader} ${styleSizeMap[size]} ${className}`}
+    >
       <LoaderIcon />
     </div>
   );

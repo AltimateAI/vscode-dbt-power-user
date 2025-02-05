@@ -527,7 +527,11 @@ export const DocumentationPropagationButton = ({
 
   return (
     <Drawer
-      buttonProps={{ color: "primary", title: "Propagate documentation" }}
+      buttonProps={{
+        color: "primary",
+        title: "Propagate documentation",
+        "data-testid": `doc_prop_${name}`,
+      }}
       buttonText={<PropagateIcon />}
       title="Propagate documentation"
       ref={drawerRef}
@@ -549,9 +553,11 @@ export const DocumentationPropagationButton = ({
         <div className="spacer" />
         <Stack direction="column">
           <Stack className="align-items-center">
-            <div>Downstream columns found:</div>
+            <div>Downstream columns:</div>
             <div>{allColumns.length}</div>
-            {isLoading && <Loader size="small" />}
+            {isLoading && (
+              <Loader size="small" data-testid="docs_prop_loader" />
+            )}
             <div className="spacer" />
             {isLoading && (
               <Button
