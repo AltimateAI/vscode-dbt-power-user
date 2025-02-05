@@ -316,9 +316,6 @@ export class NewLineagePanel
       );
       return;
     }
-    this.cancellationTokenSource?.token.onCancellationRequested((e) => {
-      console.log(e);
-    });
     if (event === CllEvents.END) {
       this.cllProgressResolve();
       this.cancellationTokenSource?.dispose();
