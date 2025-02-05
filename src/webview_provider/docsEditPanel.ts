@@ -760,7 +760,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             break;
           case "saveDocumentationBulk": {
             this.telemetry.sendTelemetryEvent(
-              TelemetryEvents["DocumentationEditor/SaveClick"],
+              TelemetryEvents["DocumentationEditor/SaveBulk"],
             );
             window.withProgress(
               {

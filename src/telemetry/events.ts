@@ -22,6 +22,7 @@ export enum TelemetryEvents {
   "DocumentationEditor/FeedbackClick" = "DocumentationEditor/FeedbackClick",
   "DocumentationEditor/BulkGenerateTests" = "DocumentationEditor/BulkGenerateTests",
   "DocumentationEditor/SaveClick" = "DocumentationEditor/SaveClick",
+  "DocumentationEditor/SaveBulk" = "DocumentationEditor/SaveBulk",
   "DocumentationEditor/SaveError" = "DocumentationEditor/SaveError",
   "DocumentationEditor/SaveNewFilePathSelect" = "DocumentationEditor/SaveNewFilePathSelect",
   "DocumentationEditor/BulkGenerateAllClick" = "DocumentationEditor/BulkGenerateAllClick",
