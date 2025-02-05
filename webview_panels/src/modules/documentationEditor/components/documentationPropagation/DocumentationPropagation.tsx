@@ -117,7 +117,7 @@ const SingleColumnCard = ({
     );
   }
   return (
-    <Card>
+    <Card data-testid={`docs_prop_column_card_${columnName}`}>
       <CardBody>
         <div
           className={styles.singleColumnAccordion}
@@ -161,7 +161,11 @@ const SingleColumnCard = ({
             </Button>
           </Stack>
         ) : null}
-        <Stack direction="column" className="gap-sm">
+        <Stack
+          direction="column"
+          className="gap-sm"
+          data-testid={`docs_prop_downstream_columns_${columnName}`}
+        >
           {downstreamColumns.map((item) => {
             const key = item.model + "/" + item.column;
             return (
