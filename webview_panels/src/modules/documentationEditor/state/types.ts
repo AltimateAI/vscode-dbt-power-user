@@ -1,9 +1,9 @@
 import {
   ConversationGroup,
   DbtDocsShareDetails,
-} from "@altimate-components/web";
+} from "@altimate/ui-components";
 import { GenerationDBDataProps } from "../types";
-import { Citation } from "@altimate-components/web/chatbot";
+import { Citation } from "@altimate/ui-components/chatbot";
 
 export enum Source {
   DATABASE = "DATABASE",

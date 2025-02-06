@@ -16,6 +16,6 @@ module.exports = {
   coverageDirectory: "coverage",
   moduleNameMapper: {
     "^vscode$": "<rootDir>/src/test/mock/vscode.ts",
-    "^@lib$": "<rootDir>/src/test/mock/lib.ts",
+    "^@altimate/extension-components$": "<rootDir>/src/test/mock/lib.ts",
   },
 };

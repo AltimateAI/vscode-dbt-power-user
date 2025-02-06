@@ -8,8 +8,8 @@ import {
   DbtGenericTests,
   TestMetadataAcceptedValuesKwArgs,
 } from "@modules/documentationEditor/state/types";
-import { TaskLabels } from "@altimate-components/web";
-import { Citation } from "@altimate-components/web/chatbot";
+import { TaskLabels } from "@altimate/ui-components";
+import { Citation } from "@altimate/ui-components/chatbot";
 
 const getRandomNumber = (maximum = 10, minimum = 5) =>
   Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;

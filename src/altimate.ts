@@ -10,7 +10,11 @@ import { RateLimitException, ExecutionsExhaustedException } from "./exceptions";
 import { DBTProject } from "./manifest/dbtProject";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
-import { PreconfiguredNotebookItem, NotebookItem, NotebookSchema } from "@lib";
+import {
+  PreconfiguredNotebookItem,
+  NotebookItem,
+  NotebookSchema,
+} from "@altimate/extension-components";
 
 export class NoCredentialsError extends Error {}
 

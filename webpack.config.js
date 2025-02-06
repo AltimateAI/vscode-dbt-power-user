@@ -38,7 +38,6 @@ const config = {
     extensions: [".ts", ".js"],
     alias: {
       "@extension": path.resolve(__dirname, "./src/modules.ts"),
-      "@lib": path.resolve(__dirname, "./src/lib/index"),
     },
   },
   module: {
@@ -165,7 +164,6 @@ const rendererConfig = {
         __dirname,
         "./webview_panels/src/modules/vscode",
       ),
-      "@lib": path.resolve(__dirname, "./webview_panels/src/lib"),
     },
   },
   experiments: {

@@ -10,13 +10,13 @@ import {
 } from "@testUtils";
 import { faker } from "@faker-js/faker";
 import DocumentationEditor from "./DocumentationEditor";
-import { TeamMateProvider } from "@altimate-components/web";
+import { TeamMateProvider } from "@altimate/ui-components";
 // import {
 //   aiLearningsFactory,
 //   coachAiResponseFactory,
 //   delay,
 //   getRandomDelay,
-// } from "@altimate-components/web-testUtils";
+// } from "@altimate/ui-components-testUtils";
 import { useEffect } from "react";
 
 const meta = {

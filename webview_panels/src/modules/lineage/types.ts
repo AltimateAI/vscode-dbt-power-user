@@ -1,4 +1,4 @@
-import { CollectColumn, Details } from "@altimate-components/web/lineage";
+import { CollectColumn, Details } from "@altimate/ui-components/lineage";
 
 export interface MissingLineageMessage {
   message: string;

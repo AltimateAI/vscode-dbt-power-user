@@ -3,7 +3,7 @@ import { ModelInsight } from "./types";
 import classes from "./healthcheck.module.scss";
 import useAppContext from "@modules/app/useAppContext";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
-import { TaskLabels } from "@altimate-components/web";
+import { TaskLabels } from "@altimate/ui-components";
 
 const DetailItem = ({ label, value }: { label: string; value: string }) => (
   <div>

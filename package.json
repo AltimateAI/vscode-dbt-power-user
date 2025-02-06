@@ -1192,7 +1192,7 @@
     "postinstall": "node postInstall.js",
     "prepare": "husky",
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production && node prepareBuild.js",
-    "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
+    "webpack": "npm run panel:webviews && webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "watch": "concurrently \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",
@@ -1262,6 +1262,10 @@
     "ms-python.python"
   ],
   "dependencies": {
+    "@altimate/components": "file:../altimate-components/packages/web/package.tgz",
+    "@altimate/components-extension": "file:../altimate-components/packages/extension/package.tgz",
+    "@altimate/extension-components": "file:../altimate-components/packages/extension/package.tgz",
+    "@altimate/ui-components": "file:../altimate-components/packages/web/package.tgz",
     "@jupyterlab/coreutils": "^6.2.4",
     "@jupyterlab/nbformat": "^4.2.4",
     "@jupyterlab/services": "^6.6.7",

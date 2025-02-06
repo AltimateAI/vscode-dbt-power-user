@@ -3,7 +3,7 @@ import {
   CoachForm,
   TeammateActions,
   useTeamMateContext,
-} from "@altimate-components/web";
+} from "@altimate/ui-components";
 import useAppContext from "@modules/app/useAppContext";
 import { Drawer, DrawerRef } from "@uicore";
 import { useRef } from "react";

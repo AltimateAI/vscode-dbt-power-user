@@ -7,7 +7,7 @@ import {
   MetadataColumn,
 } from "./types";
 import { mergeCurrentAndIncomingDocumentationColumns } from "../utils";
-import { Citation } from "@altimate-components/web/chatbot";
+import { Citation } from "@altimate/ui-components/chatbot";
 
 export const initialState = {
   incomingDocsData: undefined,

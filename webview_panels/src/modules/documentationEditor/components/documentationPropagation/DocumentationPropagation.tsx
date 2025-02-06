@@ -7,7 +7,7 @@ import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
-import { ColumnLineage } from "@altimate-components/web/lineage";
+import { ColumnLineage } from "@altimate/ui-components/lineage";
 import styles from "./styles.module.scss";
 
 interface Props {

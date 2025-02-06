@@ -15,7 +15,7 @@ import { executeRequestInAsync, executeRequestInSync } from "./requestExecutor";
 import { ContextProps } from "./types";
 import useListeners from "./useListeners";
 import { panelLogger } from "@modules/logger";
-import { ApiHelper } from "@altimate-components/web";
+import { ApiHelper } from "@altimate/ui-components";
 
 export const AppContext = createContext<ContextProps>({
   state: initialState,

@@ -1,6 +1,6 @@
 import { Sync } from "factory.ts";
 import { faker } from "@faker-js/faker";
-import { Conversation, ConversationGroup } from "@altimate-components/web";
+import { Conversation, ConversationGroup } from "@altimate/ui-components";
 
 export const ConversationFactory = Sync.makeFactory<Conversation>({
   conversation_id: faker.number.int(),

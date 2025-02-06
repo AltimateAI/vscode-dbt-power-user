@@ -1,4 +1,4 @@
-import { ProjectGovernorCheckTypes } from "@altimate-components/web";
+import { ProjectGovernorCheckTypes } from "@altimate/ui-components";
 
 export interface Insight {
   name: string;

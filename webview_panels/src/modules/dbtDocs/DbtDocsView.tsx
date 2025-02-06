@@ -1,4 +1,4 @@
-import { ConversationSources, DbtDocs } from "@altimate-components/web";
+import { ConversationSources, DbtDocs } from "@altimate/ui-components";
 import { IncomingMessageProps } from "@modules/app/types";
 import useAppContext from "@modules/app/useAppContext";
 import { useCallback, useEffect, useState } from "react";

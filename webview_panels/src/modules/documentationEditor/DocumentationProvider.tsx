@@ -36,7 +36,7 @@ import DocumentationEditor from "./DocumentationEditor";
 import {
   ConversationGroup,
   DbtDocsShareDetails,
-} from "@altimate-components/web";
+} from "@altimate/ui-components";
 import { TelemetryEvents } from "@telemetryEvents";
 import { sendTelemetryEvent } from "./components/telemetry";
 import useAppContext from "@modules/app/useAppContext";

@@ -3,7 +3,7 @@ import {
   TaskLabels,
   TeammateActions,
   useTeamMateContext,
-} from "@altimate-components/web";
+} from "@altimate/ui-components";
 import useAppContext from "@modules/app/useAppContext";
 import PreviewFeatureIcon from "@modules/previewFeature/PreviewFeatureIcon";
 import { vscode } from "@modules/vscode";

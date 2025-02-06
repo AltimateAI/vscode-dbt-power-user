@@ -25,7 +25,7 @@ import {
 import { parse, stringify } from "yaml";
 import { readFileSync } from "fs";
 import { DBTProject } from "../manifest/dbtProject";
-import { getTestSuggestions } from "@lib";
+import { getTestSuggestions } from "@altimate/extension-components";
 import { ExecuteSQLResult } from "../dbt_client/dbtIntegration";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";

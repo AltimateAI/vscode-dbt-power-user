@@ -20,7 +20,7 @@ import ConversationsRightPanel from "./components/conversation/ConversationsRigh
 import useIncomingDocsDataHandler from "./useIncomingDocsDataHandler";
 import CoachAiIfModified from "./components/docGenerator/CoachAiIfModified";
 import Citations from "./components/docGenerator/Citations";
-import { Citation } from "@altimate-components/web/chatbot";
+import { Citation } from "@altimate/ui-components/chatbot";
 import BulkGenerateButton from "./components/docGenerator/BulkGenerateButton";
 
 const DocumentationEditor = (): JSX.Element => {

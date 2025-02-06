@@ -7,7 +7,7 @@ import {
   ConversationGroupProvider,
   ConversationSources,
   DbtDocsShareDetails,
-} from "@altimate-components/web";
+} from "@altimate/ui-components";
 import { panelLogger } from "@modules/logger";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import {

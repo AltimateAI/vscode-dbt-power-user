@@ -39,7 +39,10 @@ import { AltimateRequest } from "./altimate";
 import { ValidationProvider } from "./validation_provider";
 import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
-import { NotebookKernelClient, NotebookDependencies } from "@lib";
+import {
+  NotebookKernelClient,
+  NotebookDependencies,
+} from "@altimate/extension-components";
 import { DBTCoreCommandProjectIntegration } from "./dbt_client/dbtCoreCommandIntegration";
 
 export const container = new Container();
