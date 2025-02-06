@@ -762,18 +762,31 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             this.telemetry.sendTelemetryEvent(
               TelemetryEvents["DocumentationEditor/SaveBulk"],
             );
-            window.withProgress(
+            const successfulSaves = await window.withProgress(
               {
                 title: "Saving documentation",
                 location: ProgressLocation.Notification,
                 cancellable: false,
               },
               async () => {
+                const successfulSaves: string[] = [];
                 for (const item of message.models) {
-                  await this.saveDocumentation(item, syncRequestId);
+                  const model = await this.saveDocumentation(
+                    item,
+                    syncRequestId,
+                  );
+                  if (model) {
+                    successfulSaves.push(model);
+                  }
                 }
+                return successfulSaves;
               },
             );
+            if (successfulSaves.length > 0) {
+              await window.showInformationMessage(
+                `Successfully saved: ${successfulSaves.join(", ")}`,
+              );
+            }
             break;
           }
         }
@@ -982,6 +995,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
           },
         });
       }
+      return this.documentation?.name;
     } catch (error) {
       this.transmitError();
       this.telemetry.sendTelemetryError(
