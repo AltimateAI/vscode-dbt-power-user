@@ -771,7 +771,7 @@ export class DBTCloudProjectIntegration
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
+      .filter((line) => line.data?.hasOwnProperty("compiled"));
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
