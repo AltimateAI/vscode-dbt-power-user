@@ -473,7 +473,10 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
               Object.values(selectedColumns).filter((v) => Boolean(v))
                 .length === 0 || isLoading
             }
-            onClick={() => propagateDocumentation()}
+            onClick={async () => {
+              await propagateDocumentation();
+              drawerRef.current?.close();
+            }}
             className="w-100"
           >
             Propagate documentation (
@@ -579,7 +582,10 @@ export const DocumentationPropagationButton = ({
               Object.values(selectedColumns).filter((v) => Boolean(v))
                 .length === 0 || isLoading
             }
-            onClick={() => propagateDocumentation()}
+            onClick={async () => {
+              await propagateDocumentation();
+              drawerRef.current?.close();
+            }}
             className="w-100"
           >
             Propagate documentation
