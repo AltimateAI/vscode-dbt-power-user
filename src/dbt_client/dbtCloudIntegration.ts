@@ -646,7 +646,7 @@ export class DBTCloudProjectIntegration
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
+      .filter((line) => line.data?.hasOwnProperty("compiled"));
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
@@ -673,7 +673,7 @@ export class DBTCloudProjectIntegration
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
+      .filter((line) => line.data?.hasOwnProperty("compiled"));
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
@@ -714,7 +714,7 @@ export class DBTCloudProjectIntegration
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
+      .filter((line) => line.data?.hasOwnProperty("compiled"));
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
@@ -744,7 +744,7 @@ export class DBTCloudProjectIntegration
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
+      .filter((line) => line.data?.hasOwnProperty("compiled"));
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
@@ -903,7 +903,7 @@ export class DBTCloudProjectIntegration
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
+      .filter((line) => line.data?.hasOwnProperty("compiled"));
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
@@ -966,7 +966,7 @@ export class DBTCloudProjectIntegration
       .map((line) => JSON.parse(line.trim()))
       .filter(
         (line) =>
-          line.hasOwnProperty("data") && line.data.hasOwnProperty("compiled"),
+          line.hasOwnProperty("data") && line.data?.hasOwnProperty("compiled"),
       );
     if (compiledLine.length === 0) {
       throw new Error("Could not get bulk schema from response: " + stdout);
