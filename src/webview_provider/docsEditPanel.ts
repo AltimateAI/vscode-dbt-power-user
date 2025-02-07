@@ -14,6 +14,7 @@ import {
   WebviewViewResolveContext,
   window,
   workspace,
+  env,
 } from "vscode";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
@@ -784,8 +785,12 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             );
             if (successfulSaves.length > 0) {
               await window.showInformationMessage(
-                `Successfully saved: ${successfulSaves.join(", ")}`,
+                `Successfully saved: ${Array.from(new Set(successfulSaves)).join(", ")}`,
               );
+              this.altimateRequest.bulkDocsPropCredit({
+                num_columns: successfulSaves.length,
+                session_id: env.sessionId,
+              });
             }
             break;
           }
