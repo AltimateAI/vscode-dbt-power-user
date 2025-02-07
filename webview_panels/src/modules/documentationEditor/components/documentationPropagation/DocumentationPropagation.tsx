@@ -503,7 +503,6 @@ export const DocumentationPropagationButton = ({
       ]
     : [];
   const {
-    isSaved,
     isLoading,
     allColumns,
     selectedColumns,
@@ -584,7 +583,6 @@ export const DocumentationPropagationButton = ({
           >
             Propagate documentation
           </Button>
-          {isSaved && <div>Saved documentation successfully</div>}
         </Stack>
       </Stack>
     </Drawer>
