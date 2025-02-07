@@ -225,7 +225,6 @@ const useDocumentationPropagation = ({
   const [isColumnLineageLoading, setIsColumnLineageLoading] = useState<
     Record<string, boolean>
   >({});
-  const [isSaved, setIsSaved] = useState(false);
   const [tableMetadata, setTableMetadata] = useState<TableMetadata[]>([]);
   const isCancelled = useRef(false);
   const [testsMetadata, setTestsMetadata] = useState<Record<string, unknown>>(
@@ -324,17 +323,14 @@ const useDocumentationPropagation = ({
     }
 
     await executeRequestInSync("saveDocumentationBulk", { models: req });
-    setIsSaved(true);
   };
 
   const reset = () => {
     setAllColumns([]);
     setCurrColumns(startColumns);
     setTableMetadata([]);
-    setIsSaved(false);
   };
   return {
-    isSaved,
     isLoading,
     allColumns,
     selectedColumns,
@@ -365,7 +361,6 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
       })) ?? [];
 
   const {
-    isSaved,
     isLoading,
     allColumns,
     selectedColumns,
@@ -482,7 +477,6 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
             Propagate documentation (
             {Object.values(selectedColumns).filter((v) => Boolean(v)).length})
           </Button>
-          {isSaved && <div>Saved documentation successfully</div>}
         </Stack>
       </Stack>
     </Drawer>
