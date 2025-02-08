@@ -322,7 +322,10 @@ const useDocumentationPropagation = ({
       });
     }
 
-    await executeRequestInSync("saveDocumentationBulk", { models: req });
+    await executeRequestInSync("saveDocumentationBulk", {
+      models: req,
+      numColumns: startColumns.length,
+    });
   };
 
   const reset = () => {

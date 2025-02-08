@@ -788,7 +788,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 `Successfully saved: ${Array.from(new Set(successfulSaves)).join(", ")}`,
               );
               this.altimateRequest.bulkDocsPropCredit({
-                num_columns: successfulSaves.length,
+                num_columns: message.numColumns,
                 session_id: env.sessionId,
               });
             }
