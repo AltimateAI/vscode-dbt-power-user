@@ -372,7 +372,6 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
     propagateDocumentation,
     cancelColumnLineage,
     reset,
-    isColumnLineageLoading,
   } = useDocumentationPropagation({ startColumns });
 
   useEffect(() => {
@@ -425,7 +424,7 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
                 selectedColumns={selectedColumns}
                 columnDescription={c.description ?? ""}
                 columnName={c.name}
-                isLoading={isColumnLineageLoading[c.name]}
+                isLoading={isLoading}
                 downstreamColumns={allColumns.filter(
                   (item) => item.root === c.name,
                 )}
