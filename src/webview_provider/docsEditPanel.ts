@@ -763,26 +763,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             this.telemetry.sendTelemetryEvent(
               TelemetryEvents["DocumentationEditor/SaveBulk"],
             );
-            const successfulSaves = await window.withProgress(
-              {
-                title: "Saving documentation",
-                location: ProgressLocation.Notification,
-                cancellable: false,
-              },
-              async () => {
-                const successfulSaves: string[] = [];
-                for (const item of message.models) {
-                  const model = await this.saveDocumentation(
-                    item,
-                    syncRequestId,
-                  );
-                  if (model) {
-                    successfulSaves.push(model);
-                  }
-                }
-                return successfulSaves;
-              },
-            );
+            const successfulSaves: string[] = [];
+            for (const item of message.models) {
+              const model = await this.saveDocumentation(item, syncRequestId);
+              if (model) {
+                successfulSaves.push(model);
+              }
+            }
             if (successfulSaves.length > 0) {
               await window.showInformationMessage(
                 `Successfully saved: ${Array.from(new Set(successfulSaves)).join(", ")}`,
