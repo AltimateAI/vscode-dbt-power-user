@@ -15,7 +15,10 @@ import useDocumentationContext from "@modules/documentationEditor/state/useDocum
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { ColumnLineage } from "@lib";
 import styles from "./styles.module.scss";
-import { updateBulkDocsPropRightPanel } from "@modules/documentationEditor/state/documentationSlice";
+import {
+  updateBulkDocsPropRightPanel,
+  updateSingleDocsPropRightPanel,
+} from "@modules/documentationEditor/state/documentationSlice";
 
 interface Props {
   name: string;
@@ -491,7 +494,7 @@ export const DocumentationPropagationButton = ({
   type,
 }: Props): JSX.Element | null => {
   const {
-    state: { currentDocsData, showBulkDocsPropRightPanel },
+    state: { showSingleDocsPropRightPanel, currentDocsData },
     dispatch,
   } = useDocumentationContext();
   const drawerRef = useRef<DrawerRef | null>(null);
@@ -523,13 +526,13 @@ export const DocumentationPropagationButton = ({
 
   useEffect(() => {
     if (!drawerRef.current) return;
-    if (showBulkDocsPropRightPanel) {
+    if (showSingleDocsPropRightPanel) {
       void loadMoreDownstreamModels();
       drawerRef.current.open();
     } else {
       drawerRef.current.close();
     }
-  }, [showBulkDocsPropRightPanel]);
+  }, [showSingleDocsPropRightPanel]);
 
   if (type !== EntityType.COLUMN) {
     return null;
@@ -550,7 +553,7 @@ export const DocumentationPropagationButton = ({
       title="Propagate documentation"
       ref={drawerRef}
       onClose={() => {
-        dispatch(updateBulkDocsPropRightPanel(false));
+        dispatch(updateSingleDocsPropRightPanel(false));
         void cancelColumnLineage();
       }}
     >

@@ -28,6 +28,7 @@ import documentationSlice, {
   updateCurrentDocsData,
   updateCurrentDocsTests,
   updateSelectedConversationGroup,
+  updateSingleDocsPropRightPanel,
   updateUserInstructions,
 } from "./state/documentationSlice";
 import {
@@ -155,9 +156,18 @@ const DocumentationProvider = (): JSX.Element => {
         ) {
           break;
         }
-        const { currentDocsData, showBulkDocsPropRightPanel } =
-          stateRef.current;
-        if (!isStateDirty(stateRef.current) && !showBulkDocsPropRightPanel) {
+        const {
+          currentDocsData,
+          showBulkDocsPropRightPanel,
+          showSingleDocsPropRightPanel,
+        } = stateRef.current;
+        if (
+          !(
+            isStateDirty(stateRef.current) ||
+            showBulkDocsPropRightPanel ||
+            showSingleDocsPropRightPanel
+          )
+        ) {
           renderDocumentation(event);
           break;
         }
@@ -172,7 +182,12 @@ const DocumentationProvider = (): JSX.Element => {
               case ActionState.DISCARD_PROCEED: {
                 dispatch(updateCurrentDocsData(event.data.docs));
                 dispatch(updateCurrentDocsTests(event.data.tests));
-                dispatch(updateBulkDocsPropRightPanel(false));
+                if (showBulkDocsPropRightPanel) {
+                  dispatch(updateBulkDocsPropRightPanel(false));
+                }
+                if (showSingleDocsPropRightPanel) {
+                  dispatch(updateSingleDocsPropRightPanel(false));
+                }
                 renderDocumentation(event);
                 break;
               }
