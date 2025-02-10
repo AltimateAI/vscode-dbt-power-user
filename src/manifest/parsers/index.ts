@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, statSync } from "fs";
 import { provide } from "inversify-binding-decorators";
 import * as path from "path";
 import { Uri } from "vscode";
@@ -14,6 +14,7 @@ import { TestParser } from "./testParser";
 import { TelemetryService } from "../../telemetry";
 import { ExposureParser } from "./exposureParser";
 import { MetricParser } from "./metricParser";
+import { workspace } from "vscode";
 
 @provide(ManifestParser)
 export class ManifestParser {
@@ -49,7 +50,7 @@ export class ManifestParser {
       return;
     }
     const projectRoot = project.projectRoot;
-    const manifest = this.readAndParseManifest(projectRoot, targetPath);
+    const manifest = await this.readAndParseManifest(projectRoot, targetPath);
     if (manifest === undefined) {
       const event: ManifestCacheChangedEvent = {
         added: [
@@ -187,7 +188,7 @@ export class ManifestParser {
     return event;
   }
 
-  private readAndParseManifest(projectRoot: Uri, targetPath: string) {
+  private async readAndParseManifest(projectRoot: Uri, targetPath: string) {
     const pathParts = [targetPath];
     if (!path.isAbsolute(targetPath)) {
       pathParts.unshift(projectRoot.fsPath);
@@ -198,15 +199,138 @@ export class ManifestParser {
       `Reading manifest at ${manifestLocation} for project at ${projectRoot}`,
     );
 
+    // MANIFEST CORRUPTION PREVENTION
+    // The manifest file can become corrupted when it's read while dbt is still writing to it.
+    // This happens because dbt writes the manifest file in a single operation, but the file
+    // can be quite large (often >1MB). During this write operation, if we try to read the file,
+    // we may get a partially written manifest that is invalid JSON or missing critical data.
+
+    // To prevent this, we implement a progressive retry strategy:
+    // 1. First Attempt: Try immediate read for best performance
+    // 2. If that fails, use file size stability checks to ensure write is complete
+    // 3. Basic validation to verify manifest completeness
+
+    const maxRetries = 3;
+    const maxStabilityChecks = workspace
+      .getConfiguration("dbt")
+      .get<number>("manifestStabilityChecks", 3); // Default to 3 checks
+    const stabilityDelay = workspace
+      .getConfiguration("dbt")
+      .get<number>("manifestStabilityDelay", 1000); // Default to 1000ms
+
+    let lastAttemptError: any;
+    let lastFileSize: number = 0;
+    let stabilityCheckAttempts = 0;
+
+    // First attempt: Try immediate read for best performance
     try {
+      if (!existsSync(manifestLocation)) {
+        throw new Error("Manifest file does not exist");
+      }
+      const stats = statSync(manifestLocation);
+      lastFileSize = stats.size;
+
       const manifestFile = readFileSync(manifestLocation, "utf8");
-      return JSON.parse(manifestFile);
+      const parsed = JSON.parse(manifestFile);
+
+      if (!parsed.nodes || !parsed.sources || !parsed.macros) {
+        throw new Error("Manifest file appears to be incomplete");
+      }
+
+      // Fast path succeeded - no telemetry needed for successful first attempt
+      return parsed;
     } catch (error) {
-      this.terminal.error(
-        "ManifestParser",
-        `Could not read manifest file at ${manifestLocation}, ignoring error`,
-        error,
-      );
+      // First attempt failed, log it and move to retry with stability checks
+      this.telemetry.sendTelemetryEvent("manifestReadFirstAttemptError", {
+        fileSize: lastFileSize.toString(),
+        errorType: error instanceof Error ? error.name : "unknown",
+        errorMessage: error instanceof Error ? error.message : "unknown",
+      });
+      lastAttemptError = error;
+    }
+
+    // If we get here, first attempt failed - try again with stability checks
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // FILE SIZE STABILITY CHECK
+        // Only done on retry attempts after first attempt fails
+        let lastSize = -1;
+        let stableChecks = 0;
+        stabilityCheckAttempts = 0;
+
+        while (stableChecks < maxStabilityChecks) {
+          if (!existsSync(manifestLocation)) {
+            throw new Error("Manifest file does not exist");
+          }
+          const stats = statSync(manifestLocation);
+          const currentSize = stats.size;
+          lastFileSize = currentSize;
+
+          if (currentSize === lastSize) {
+            stableChecks++;
+          } else {
+            stableChecks = 0;
+            lastSize = currentSize;
+          }
+
+          stabilityCheckAttempts++;
+
+          if (stableChecks === maxStabilityChecks) {
+            break;
+          }
+          await new Promise((resolve) => setTimeout(resolve, stabilityDelay));
+        }
+
+        const manifestFile = readFileSync(manifestLocation, "utf8");
+        const parsed = JSON.parse(manifestFile);
+
+        if (!parsed.nodes || !parsed.sources || !parsed.macros) {
+          throw new Error("Manifest file appears to be incomplete");
+        }
+
+        // Log successful retry with stability checks
+        this.telemetry.sendTelemetryEvent("manifestReadRetrySuccess", {
+          retryAttempt: attempt.toString(),
+          fileSize: lastFileSize.toString(),
+          stabilityChecks: stabilityCheckAttempts.toString(),
+        });
+
+        return parsed;
+      } catch (error) {
+        lastAttemptError = error;
+        this.terminal.error(
+          "ManifestParser",
+          `Attempt ${attempt + 1}/${maxRetries} failed to read manifest file at ${manifestLocation}`,
+          error,
+        );
+
+        this.telemetry.sendTelemetryEvent("manifestReadError", {
+          attempt: attempt.toString(),
+          fileSize: lastFileSize.toString(),
+          errorType: error instanceof Error ? error.name : "unknown",
+          errorMessage: error instanceof Error ? error.message : "unknown",
+          stabilityChecks: stabilityCheckAttempts.toString(),
+        });
+
+        if (attempt === maxRetries - 1) {
+          this.telemetry.sendTelemetryEvent("manifestReadFinalFailure", {
+            totalAttempts: (maxRetries + 1).toString(), // +1 for first attempt
+            finalFileSize: lastFileSize.toString(),
+            finalErrorType:
+              lastAttemptError instanceof Error
+                ? lastAttemptError.name
+                : "unknown",
+            finalErrorMessage:
+              lastAttemptError instanceof Error
+                ? lastAttemptError.message
+                : "unknown",
+            totalStabilityChecks: stabilityCheckAttempts.toString(),
+          });
+
+          return undefined;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
     }
   }
 }
