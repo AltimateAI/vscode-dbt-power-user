@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import {
   CancellationToken,
+  CancellationTokenSource,
   ColorThemeKind,
   Disposable,
   ProgressLocation,
@@ -13,6 +14,7 @@ import {
   WebviewViewResolveContext,
   window,
   workspace,
+  env,
 } from "vscode";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
@@ -110,6 +112,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private _disposables: Disposable[] = [];
   private onMessageDisposable: Disposable | undefined;
+  private cancellationTokenSource: CancellationTokenSource | undefined;
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -682,15 +685,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               panel: this._panel,
             });
             break;
-          case "columnLineageBase": {
-            this.dbtLineageService.handleColumnLineage(params, () => {
-              this._panel?.webview.postMessage({
-                command: "columnLineage",
-                args: { event: CllEvents.CANCEL },
-              });
-            });
-            break;
-          }
           case "getDownstreamColumns": {
             const targets = params.targets as [string, string][];
             const testsResult = await Promise.all(
@@ -720,7 +714,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               this.handleSyncRequestFromWebview(
                 syncRequestId,
                 () => ({ column_lineage: [], tables: [], tests }),
-                command,
+                "response",
               );
               return;
             }
@@ -729,21 +723,27 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               name: params.column as string,
             };
             const currAnd1HopTables = [...tables, ...targets.map((t) => t[0])];
-            const columns = await this.dbtLineageService.getConnectedColumns({
-              targets,
-              currAnd1HopTables,
-              selectedColumn,
-              upstreamExpansion: true,
-              showIndirectEdges: false,
-              eventType: "documentation_propagation",
-            });
+            this.cancellationTokenSource = new CancellationTokenSource();
+            const columns = await this.dbtLineageService.getConnectedColumns(
+              {
+                targets,
+                currAnd1HopTables,
+                selectedColumn,
+                upstreamExpansion: true,
+                showIndirectEdges: false,
+                eventType: "documentation_propagation",
+              },
+              this.cancellationTokenSource!,
+            );
             this.handleSyncRequestFromWebview(
               syncRequestId,
-              () => {
-                return { ...columns, tables: _tables, tests };
-              },
-              command,
+              () => ({ ...columns, tables: _tables, tests }),
+              "response",
             );
+            break;
+          }
+          case "cancelColumnLineage": {
+            this.cancellationTokenSource?.cancel();
             break;
           }
           case "saveDocumentation":
@@ -761,20 +761,24 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             break;
           case "saveDocumentationBulk": {
             this.telemetry.sendTelemetryEvent(
-              TelemetryEvents["DocumentationEditor/SaveClick"],
+              TelemetryEvents["DocumentationEditor/SaveBulk"],
             );
-            window.withProgress(
-              {
-                title: "Saving documentation",
-                location: ProgressLocation.Notification,
-                cancellable: false,
-              },
-              async () => {
-                for (const item of message.models) {
-                  await this.saveDocumentation(item, syncRequestId);
-                }
-              },
-            );
+            const successfulSaves: string[] = [];
+            for (const item of message.models) {
+              const model = await this.saveDocumentation(item, syncRequestId);
+              if (model) {
+                successfulSaves.push(model);
+              }
+            }
+            if (successfulSaves.length > 0) {
+              window.showInformationMessage(
+                `Successfully propagated to: ${Array.from(new Set(successfulSaves)).join(", ")}`,
+              );
+              this.altimateRequest.bulkDocsPropCredit({
+                num_columns: message.numColumns,
+                session_id: env.sessionId,
+              });
+            }
             break;
           }
         }
@@ -983,6 +987,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
           },
         });
       }
+      return this.documentation?.name;
     } catch (error) {
       this.transmitError();
       this.telemetry.sendTelemetryError(
