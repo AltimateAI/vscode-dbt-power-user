@@ -244,7 +244,7 @@ const useDocumentationPropagation = ({
     setIsColumnLineageLoading(
       Object.fromEntries(currColumns.map((curr) => [curr.column, true])),
     );
-    let iCurrColumns = currColumns;
+    let iCurrColumns = startColumns;
     while (iCurrColumns.length > 0 && !isCancelled.current) {
       const result = (await executeRequestInSync("getDownstreamColumns", {
         targets: iCurrColumns.map((c) => [c.model, c.column]),
@@ -336,6 +336,7 @@ const useDocumentationPropagation = ({
     setAllColumns([]);
     setCurrColumns(startColumns);
     setTableMetadata([]);
+    isCancelled.current = false;
   };
   return {
     isLoading,
@@ -389,6 +390,7 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
       drawerRef.current.open();
     } else {
       void cancelColumnLineage();
+      reset();
       drawerRef.current.close();
     }
   }, [showBulkDocsPropRightPanel]);
@@ -475,7 +477,7 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
             }
             onClick={async () => {
               await propagateDocumentation();
-              drawerRef.current?.close();
+              dispatch(updateBulkDocsPropRightPanel(false));
             }}
             className="w-100"
           >
