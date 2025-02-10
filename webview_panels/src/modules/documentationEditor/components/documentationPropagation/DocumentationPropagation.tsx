@@ -388,6 +388,7 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
       void loadMoreDownstreamModels();
       drawerRef.current.open();
     } else {
+      void cancelColumnLineage();
       drawerRef.current.close();
     }
   }, [showBulkDocsPropRightPanel]);
@@ -403,10 +404,8 @@ export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
   return (
     <Drawer
       ref={drawerRef}
-      onClose={() => {
-        dispatch(updateBulkDocsPropRightPanel(false));
-        void cancelColumnLineage();
-      }}
+      onOpen={() => dispatch(updateBulkDocsPropRightPanel(true))}
+      onClose={() => dispatch(updateBulkDocsPropRightPanel(false))}
     >
       <Stack direction="column" className="h-100">
         <div className={styles.itemRow}>
@@ -530,6 +529,7 @@ export const DocumentationPropagationButton = ({
       void loadMoreDownstreamModels();
       drawerRef.current.open();
     } else {
+      void cancelColumnLineage();
       drawerRef.current.close();
     }
   }, [showSingleDocsPropRightPanel]);
@@ -552,10 +552,8 @@ export const DocumentationPropagationButton = ({
       buttonText={<PropagateIcon />}
       title="Propagate documentation"
       ref={drawerRef}
-      onClose={() => {
-        dispatch(updateSingleDocsPropRightPanel(false));
-        void cancelColumnLineage();
-      }}
+      onOpen={() => void loadMoreDownstreamModels()}
+      onClose={() => dispatch(updateSingleDocsPropRightPanel(false))}
     >
       <Stack direction="column" className="h-100">
         <div className={styles.itemRow}>
@@ -597,7 +595,7 @@ export const DocumentationPropagationButton = ({
             }
             onClick={async () => {
               await propagateDocumentation();
-              drawerRef.current?.close();
+              dispatch(updateSingleDocsPropRightPanel(false));
             }}
             className="w-100"
           >
