@@ -772,7 +772,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             }
             if (successfulSaves.length > 0) {
               window.showInformationMessage(
-                `Successfully saved: ${Array.from(new Set(successfulSaves)).join(", ")}`,
+                `Successfully propagated to: ${Array.from(new Set(successfulSaves)).join(", ")}`,
               );
               this.altimateRequest.bulkDocsPropCredit({
                 num_columns: message.numColumns,
