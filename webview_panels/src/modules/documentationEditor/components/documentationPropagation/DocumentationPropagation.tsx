@@ -336,6 +336,8 @@ const useDocumentationPropagation = ({
     setAllColumns([]);
     setCurrColumns(startColumns);
     setTableMetadata([]);
+    setTestsMetadata({});
+    setSelectedColumns({});
     isCancelled.current = false;
   };
   return {
