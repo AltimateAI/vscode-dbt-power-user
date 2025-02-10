@@ -77,14 +77,15 @@ const SingleColumnCard = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const setAllColumnsValue = (value: boolean) => {
-    setSelectedColumns(
-      Object.fromEntries(
+    setSelectedColumns((prev) => ({
+      ...prev,
+      ...Object.fromEntries(
         downstreamColumns.map((curr) => [
           curr.model + "/" + curr.column,
           value,
         ]),
       ),
-    );
+    }));
   };
   if (!isExpanded) {
     return (
