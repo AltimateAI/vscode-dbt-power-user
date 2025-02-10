@@ -173,8 +173,7 @@ const DocumentationProvider = (): JSX.Element => {
         }
         executeRequestInSync("showWarningMessage", {
           infoMessage: `You have unsaved changes in model: ‘${currentDocsData?.name}’. Would you
-          like to discard the changes, save them and proceed, or remain in the
-          current state?`,
+          like to discard the changes or remain in the current state?`,
           items: [ActionState.DISCARD_PROCEED, ActionState.CANCEL_STAY],
         })
           .then((action) => {
