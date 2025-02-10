@@ -20,6 +20,7 @@ import documentationSlice, {
   setMissingDocumentationMessage,
   setProject,
   updatConversations,
+  updateBulkDocsPropRightPanel,
   updateCollaborationEnabled,
   updateColumnsAfterSync,
   updateColumnsInCurrentDocsData,
@@ -154,11 +155,12 @@ const DocumentationProvider = (): JSX.Element => {
         ) {
           break;
         }
-        if (!isStateDirty(stateRef.current)) {
+        const { currentDocsData, showBulkDocsPropRightPanel } =
+          stateRef.current;
+        if (!isStateDirty(stateRef.current) && !showBulkDocsPropRightPanel) {
           renderDocumentation(event);
           break;
         }
-        const { currentDocsData } = stateRef.current;
         executeRequestInSync("showWarningMessage", {
           infoMessage: `You have unsaved changes in model: ‘${currentDocsData?.name}’. Would you
           like to discard the changes, save them and proceed, or remain in the
@@ -170,6 +172,7 @@ const DocumentationProvider = (): JSX.Element => {
               case ActionState.DISCARD_PROCEED: {
                 dispatch(updateCurrentDocsData(event.data.docs));
                 dispatch(updateCurrentDocsTests(event.data.tests));
+                dispatch(updateBulkDocsPropRightPanel(false));
                 renderDocumentation(event);
                 break;
               }

@@ -491,7 +491,8 @@ export const DocumentationPropagationButton = ({
   type,
 }: Props): JSX.Element | null => {
   const {
-    state: { currentDocsData },
+    state: { currentDocsData, showBulkDocsPropRightPanel },
+    dispatch,
   } = useDocumentationContext();
   const drawerRef = useRef<DrawerRef | null>(null);
   const currColumnDescription =
@@ -520,6 +521,16 @@ export const DocumentationPropagationButton = ({
     reset();
   }, [currentDocsData?.uniqueId, name]);
 
+  useEffect(() => {
+    if (!drawerRef.current) return;
+    if (showBulkDocsPropRightPanel) {
+      void loadMoreDownstreamModels();
+      drawerRef.current.open();
+    } else {
+      drawerRef.current.close();
+    }
+  }, [showBulkDocsPropRightPanel]);
+
   if (type !== EntityType.COLUMN) {
     return null;
   }
@@ -538,7 +549,10 @@ export const DocumentationPropagationButton = ({
       buttonText={<PropagateIcon />}
       title="Propagate documentation"
       ref={drawerRef}
-      onOpen={() => loadMoreDownstreamModels()}
+      onClose={() => {
+        dispatch(updateBulkDocsPropRightPanel(false));
+        void cancelColumnLineage();
+      }}
     >
       <Stack direction="column" className="h-100">
         <div className={styles.itemRow}>
