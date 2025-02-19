@@ -11,9 +11,15 @@ import {
 } from "vscode";
 import which from "which";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
+import {
+  extendErrorWithSupportLinks,
+  getFirstWorkspacePath,
+  provideSingleton,
+} from "../utils";
 import { TelemetryService } from "../telemetry";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
+import path from "path";
+import fs from "fs";
 
 @provideSingleton(DbtDocumentFormattingEditProvider)
 export class DbtDocumentFormattingEditProvider
@@ -52,7 +58,7 @@ export class DbtDocumentFormattingEditProvider
     ];
     try {
       // try to find sqlfmt on PATH if not set
-      const sqlFmtPath = sqlFmtPathSetting || (await which("sqlfmt"));
+      const sqlFmtPath = sqlFmtPathSetting || (await this.findSqlFmtPath());
       this.telemetry.sendTelemetryEvent("formatDbtModel", {
         sqlFmtPath: sqlFmtPathSetting ? "setting" : "path",
       });
@@ -62,6 +68,7 @@ export class DbtDocumentFormattingEditProvider
             command: sqlFmtPath,
             args: sqlFmtArgs,
             stdin: document.getText(),
+            cwd: getFirstWorkspacePath(),
           })
           .complete();
         if (stderr) {
@@ -96,6 +103,17 @@ export class DbtDocumentFormattingEditProvider
       );
     }
     return [];
+  }
+
+  private async findSqlFmtPath(): Promise<string | undefined> {
+    const pythonPath = this.pythonEnvironment.pythonPath;
+    if (pythonPath) {
+      const candidatePath = path.join(path.dirname(pythonPath), "sqlfmt");
+      if (fs.existsSync(candidatePath)) {
+        return candidatePath;
+      }
+    }
+    return await which("sqlfmt");
   }
 
   private processDiffOutput(

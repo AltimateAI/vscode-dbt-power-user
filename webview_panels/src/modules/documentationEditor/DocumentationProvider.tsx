@@ -20,6 +20,7 @@ import documentationSlice, {
   setMissingDocumentationMessage,
   setProject,
   updatConversations,
+  updateBulkDocsPropRightPanel,
   updateCollaborationEnabled,
   updateColumnsAfterSync,
   updateColumnsInCurrentDocsData,
@@ -27,6 +28,7 @@ import documentationSlice, {
   updateCurrentDocsData,
   updateCurrentDocsTests,
   updateSelectedConversationGroup,
+  updateSingleDocsPropRightPanel,
   updateUserInstructions,
 } from "./state/documentationSlice";
 import {
@@ -68,7 +70,6 @@ type IncomingMessageEvent = MessageEvent<
 enum ActionState {
   CANCEL_STAY = "Stay",
   DISCARD_PROCEED = "Discard",
-  SAVE_PROCEED = "Save changes",
 }
 
 const DocumentationProvider = (): JSX.Element => {
@@ -155,42 +156,37 @@ const DocumentationProvider = (): JSX.Element => {
         ) {
           break;
         }
-        if (!isStateDirty(stateRef.current)) {
+        const {
+          currentDocsData,
+          showBulkDocsPropRightPanel,
+          showSingleDocsPropRightPanel,
+        } = stateRef.current;
+        if (
+          !(
+            isStateDirty(stateRef.current) ||
+            showBulkDocsPropRightPanel ||
+            showSingleDocsPropRightPanel
+          )
+        ) {
           renderDocumentation(event);
           break;
         }
-        const { currentDocsData, currentDocsTests } = stateRef.current;
         executeRequestInSync("showWarningMessage", {
           infoMessage: `You have unsaved changes in model: ‘${currentDocsData?.name}’. Would you
-          like to discard the changes, save them and proceed, or remain in the
-          current state?`,
-          items: [
-            ActionState.DISCARD_PROCEED,
-            ActionState.CANCEL_STAY,
-            ActionState.SAVE_PROCEED,
-          ],
+          like to discard the changes or remain in the current state?`,
+          items: [ActionState.DISCARD_PROCEED, ActionState.CANCEL_STAY],
         })
-          .then(async (action) => {
+          .then((action) => {
             switch (action) {
-              case ActionState.SAVE_PROCEED: {
-                const result = (await executeRequestInSync(
-                  "saveDocumentation",
-                  {
-                    ...currentDocsData,
-                    updatedTests: currentDocsTests,
-                    dialogType: "Existing file",
-                  },
-                )) as { saved: boolean };
-                if (result.saved) {
-                  dispatch(updateCurrentDocsData(event.data.docs));
-                  dispatch(updateCurrentDocsTests(event.data.tests));
-                }
-                renderDocumentation(event);
-                break;
-              }
               case ActionState.DISCARD_PROCEED: {
                 dispatch(updateCurrentDocsData(event.data.docs));
                 dispatch(updateCurrentDocsTests(event.data.tests));
+                if (showBulkDocsPropRightPanel) {
+                  dispatch(updateBulkDocsPropRightPanel(false));
+                }
+                if (showSingleDocsPropRightPanel) {
+                  dispatch(updateSingleDocsPropRightPanel(false));
+                }
                 renderDocumentation(event);
                 break;
               }

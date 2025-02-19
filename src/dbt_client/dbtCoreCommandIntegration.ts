@@ -142,7 +142,7 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
         (line) =>
           line &&
           line.hasOwnProperty("data") &&
-          line.data.hasOwnProperty("compiled"),
+          line.data?.hasOwnProperty("compiled"),
       );
     const exception = this.processJSONErrors(stderr);
     if (exception) {
@@ -177,7 +177,7 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
         (line) =>
           line &&
           line.hasOwnProperty("data") &&
-          line.data.hasOwnProperty("compiled"),
+          line.data?.hasOwnProperty("compiled"),
       );
     const exception = this.processJSONErrors(stderr);
     if (exception) {
@@ -212,7 +212,7 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
         (line) =>
           line &&
           line.hasOwnProperty("data") &&
-          line.data.hasOwnProperty("compiled"),
+          line.data?.hasOwnProperty("compiled"),
       );
     const exception = this.processJSONErrors(stderr);
     if (exception) {
@@ -250,7 +250,7 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
         (line) =>
           line &&
           line.hasOwnProperty("data") &&
-          line.data.hasOwnProperty("compiled"),
+          line.data?.hasOwnProperty("compiled"),
       );
     const exception = this.processJSONErrors(stderr);
     if (exception) {
@@ -285,7 +285,7 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
         (line) =>
           line &&
           line.hasOwnProperty("data") &&
-          line.data.hasOwnProperty("compiled"),
+          line.data?.hasOwnProperty("compiled"),
       );
     const exception = this.processJSONErrors(stderr);
     if (exception) {
@@ -389,7 +389,7 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
         (line) =>
           line &&
           line.hasOwnProperty("data") &&
-          line.data.hasOwnProperty("compiled"),
+          line.data?.hasOwnProperty("compiled"),
       );
     const exception = this.processJSONErrors(stderr);
     if (exception) {
@@ -446,7 +446,7 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
       .map((line) => JSON.parse(line.trim()))
       .filter(
         (line) =>
-          line.hasOwnProperty("data") && line.data.hasOwnProperty("compiled"),
+          line.hasOwnProperty("data") && line.data?.hasOwnProperty("compiled"),
       );
     if (compiledLine.length === 0) {
       throw new Error("Could not get bulk schema from response: " + stdout);

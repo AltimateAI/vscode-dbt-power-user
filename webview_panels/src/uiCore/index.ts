@@ -50,3 +50,4 @@ export type { OptionType } from "./components/select";
 export { default as LoadingButton } from "./components/loadingButton/index";
 export { default as PopoverWithButton } from "./components/popoverWithButton/PopoverWithButton";
 export type { PopoverWithButtonRef } from "./components/popoverWithButton/PopoverWithButton";
+export { default as Loader } from "./components/loader";

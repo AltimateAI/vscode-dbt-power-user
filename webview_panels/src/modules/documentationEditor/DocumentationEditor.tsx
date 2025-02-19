@@ -21,6 +21,7 @@ import CoachAiIfModified from "./components/docGenerator/CoachAiIfModified";
 import Citations from "./components/docGenerator/Citations";
 import { Citation } from "@lib";
 import BulkGenerateButton from "./components/docGenerator/BulkGenerateButton";
+import { BulkDocumentationPropagationPanel } from "./components/documentationPropagation/DocumentationPropagation";
 
 const DocumentationEditor = (): JSX.Element => {
   const {
@@ -149,6 +150,7 @@ const DocumentationEditor = (): JSX.Element => {
         </Stack>
       </div>
       <ConversationsRightPanel />
+      <BulkDocumentationPropagationPanel />
     </div>
   );
 };
