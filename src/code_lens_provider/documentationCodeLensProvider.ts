@@ -40,62 +40,10 @@ export class DocumentationCodeLensProvider implements CodeLensProvider {
       if (isNotebooksEnabled) {
         codeLenses.push(
           new CodeLens(new Range(0, 0, 1, 1), {
-            title: "Profile this query",
-            tooltip: "Profile this query",
-            command: "dbtPowerUser.createDatapilotNotebook",
-            arguments: [
-              {
-                template: "Profile your query",
-              },
-            ],
-          }),
-        );
-        codeLenses.push(
-          new CodeLens(new Range(0, 0, 1, 1), {
-            title: "Get test suggestions",
-            tooltip: "Get test suggestions",
-            command: "dbtPowerUser.createDatapilotNotebook",
-            arguments: [
-              {
-                template: "Get test suggestions",
-              },
-            ],
-          }),
-        );
-        codeLenses.push(
-          new CodeLens(new Range(0, 0, 1, 1), {
-            title: "Generate dbt base model sql",
-            tooltip: "Generate dbt base model sql",
-            command: "dbtPowerUser.createDatapilotNotebook",
-            arguments: [
-              {
-                template: "Generate dbt base model sql",
-              },
-            ],
-          }),
-        );
-        codeLenses.push(
-          new CodeLens(new Range(0, 0, 1, 1), {
-            title: "Generate dbt model yaml",
-            tooltip: "Generate dbt model yaml",
-            command: "dbtPowerUser.createDatapilotNotebook",
-            arguments: [
-              {
-                template: "Generate dbt model yaml",
-              },
-            ],
-          }),
-        );
-        codeLenses.push(
-          new CodeLens(new Range(0, 0, 1, 1), {
-            title: "Generate dbt model CTE",
-            tooltip: "Generate dbt model CTE",
-            command: "dbtPowerUser.createDatapilotNotebook",
-            arguments: [
-              {
-                template: "Generate dbt model CTE",
-              },
-            ],
+            title: "Datapilot Notebooks",
+            tooltip: "Open Datapilot Notebooks Quick Pick",
+            command: "dbtPowerUser.showDatapilotNotebooksQuickPick",
+            arguments: [],
           }),
         );
       }
