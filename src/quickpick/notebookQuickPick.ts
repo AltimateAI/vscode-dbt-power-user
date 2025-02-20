@@ -60,7 +60,11 @@ export class NotebookQuickPick {
     });
 
     if (pick) {
-      await commands.executeCommand(pick.command, ...pick.arguments);
+      try {
+        await commands.executeCommand(pick.command, ...pick.arguments);
+      } catch (error) {
+        window.showErrorMessage(`Failed to execute notebook command: ${error}`);
+      }
     }
   }
 }
