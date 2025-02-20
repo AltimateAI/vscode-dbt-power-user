@@ -105,7 +105,7 @@
           "dbt.enableNotebooks": {
             "type": "boolean",
             "description": "Enable Datapilot notebooks feature",
-            "default": false
+            "default": true
           },
           "dbt.lineage.showSelectEdges": {
             "type": "boolean",
