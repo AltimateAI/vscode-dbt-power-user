@@ -105,7 +105,7 @@
           "dbt.enableNotebooks": {
             "type": "boolean",
             "description": "Enable Datapilot notebooks feature",
-            "default": false
+            "default": true
           },
           "dbt.lineage.showSelectEdges": {
             "type": "boolean",
@@ -684,6 +684,36 @@
         "command": "dbtPowerUser.showDocumentation",
         "title": "Show documentation",
         "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.showDatapilotNotebooksQuickPick",
+        "title": "Show Datapilot Notebooks Quick Pick",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.showNotebookProfileQuery",
+        "title": "Profile this query",
+        "group": "notebooks@1"
+      },
+      {
+        "command": "dbtPowerUser.showNotebookTestSuggestions",
+        "title": "Get test suggestions",
+        "group": "notebooks@2"
+      },
+      {
+        "command": "dbtPowerUser.showNotebookGenerateBaseModelSql",
+        "title": "Generate dbt base model sql",
+        "group": "notebooks@3"
+      },
+      {
+        "command": "dbtPowerUser.showNotebookGenerateModelYaml",
+        "title": "Generate dbt model yaml",
+        "group": "notebooks@4"
+      },
+      {
+        "command": "dbtPowerUser.showNotebookGenerateModelCTE",
+        "title": "Generate dbt model CTE",
+        "group": "notebooks@5"
       }
     ],
     "keybindings": [
@@ -764,6 +794,26 @@
         {
           "command": "dbtPowerUser.sqlLineage",
           "group": "datapilot@5"
+        },
+        {
+          "command": "dbtPowerUser.showNotebookProfileQuery",
+          "group": "notebooks@1"
+        },
+        {
+          "command": "dbtPowerUser.showNotebookTestSuggestions",
+          "group": "notebooks@2"
+        },
+        {
+          "command": "dbtPowerUser.showNotebookGenerateBaseModelSql",
+          "group": "notebooks@3"
+        },
+        {
+          "command": "dbtPowerUser.showNotebookGenerateModelYaml",
+          "group": "notebooks@4"
+        },
+        {
+          "command": "dbtPowerUser.showNotebookGenerateModelCTE",
+          "group": "notebooks@5"
         }
       ],
       "editor/title": [
