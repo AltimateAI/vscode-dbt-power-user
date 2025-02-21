@@ -213,16 +213,18 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       .get("disableQueryHistory", false);
 
     const limit = workspace.getConfiguration("dbt").get<number>("queryLimit");
-    await this._panel!.webview.postMessage({
-      command: OutboundCommand.GetContext,
-      limit,
-      perspectiveTheme,
-      queryHistoryDisabled,
-      activeEditor: {
-        query: window.activeTextEditor?.document.getText(),
-        filepath: window.activeTextEditor?.document.uri.fsPath,
-      },
-    });
+    if (this._panel) {
+      await this._panel.webview.postMessage({
+        command: OutboundCommand.GetContext,
+        limit,
+        perspectiveTheme,
+        queryHistoryDisabled,
+        activeEditor: {
+          query: window.activeTextEditor?.document.getText(),
+          filepath: window.activeTextEditor?.document.uri.fsPath,
+        },
+      });
+    }
   }
 
   private collectQueryResultsDebugInfo() {
