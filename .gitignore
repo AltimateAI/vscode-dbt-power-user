@@ -36,3 +36,4 @@ test-workspace/
 .Trashes
 ehthumbs.db
 Thumbs.db
+.aider*
