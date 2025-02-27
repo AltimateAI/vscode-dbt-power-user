@@ -338,7 +338,7 @@ export interface ConversationGroup {
   conversations: Conversation[];
 }
 
-const getAltimateUrl = () => {
+const getAltimateUrl = (): string => {
   const altimateUrlInSettings = workspace
     .getConfiguration("dbt")
     .get<string>("altimateUrl");
