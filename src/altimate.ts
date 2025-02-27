@@ -338,11 +338,26 @@ export interface ConversationGroup {
   conversations: Conversation[];
 }
 
+const getAltimateUrl = () => {
+  const altimateUrlInSettings = workspace
+    .getConfiguration("dbt")
+    .get<string>("altimateUrl");
+
+  if (altimateUrlInSettings) {
+    return altimateUrlInSettings;
+  }
+
+  const altimatePlan = workspace
+    .getConfiguration("dbt")
+    .get<string>("altimatePlan", "Community, Pro or Team Plan");
+  return altimatePlan === "Enterprise"
+    ? "https://api.getaltimate.com"
+    : "https://api.myaltimate.com";
+};
+
 @provideSingleton(AltimateRequest)
 export class AltimateRequest {
-  public static ALTIMATE_URL = workspace
-    .getConfiguration("dbt")
-    .get<string>("altimateUrl", "https://api.myaltimate.com");
+  public static ALTIMATE_URL = getAltimateUrl();
 
   constructor(
     private telemetry: TelemetryService,
