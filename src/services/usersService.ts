@@ -41,8 +41,17 @@ export class UsersService implements Disposable {
     event: DBTInstallationVerificationEvent,
   ) {
     if (event.installed) {
-      this.loadCurrentUser();
-      this.loadUsersInTenant();
+      try {
+        this.loadCurrentUser();
+        this.loadUsersInTenant();
+      } catch (e) {
+        this.dbtTerminal.error(
+          "UsersService.onDBTInstallationVerification",
+          "Could not load user from backend",
+          e,
+          true,
+        );
+      }
     }
   }
 
