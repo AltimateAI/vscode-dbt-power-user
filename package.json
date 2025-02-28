@@ -86,7 +86,7 @@
           "dbt.altimatePlan": {
             "type": "boolean",
             "displayName": "Altimate Plan",
-            "description": "Are you on enterprise edition",
+            "description": "Enterprise plan",
             "default": false
           },
           "dbt.altimateInstanceName": {
@@ -1253,7 +1253,7 @@
     "postinstall": "node postInstall.js",
     "prepare": "husky",
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production && node prepareBuild.js",
-    "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
+    "webpack": "webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "watch": "concurrently \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",
