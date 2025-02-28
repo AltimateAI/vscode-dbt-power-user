@@ -70,7 +70,7 @@ const LineageView = (): JSX.Element | null => {
   ) => {
     setMissingLineageMessage(data.missingLineageMessage);
     const event = new CustomEvent("renderStartNode", {
-      detail: data,
+      detail: { ...data, lightdashEnabled: true },
     });
     document.dispatchEvent(event);
     setRenderNode(data);
