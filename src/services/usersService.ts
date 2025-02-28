@@ -37,12 +37,24 @@ export class UsersService implements Disposable {
     }
   }
 
-  private onDBTInstallationVerification(
+  private async onDBTInstallationVerification(
     event: DBTInstallationVerificationEvent,
   ) {
     if (event.installed) {
-      this.loadCurrentUser();
-      this.loadUsersInTenant();
+      try {
+        // Run both load operations in parallel
+        await Promise.all([
+          this.loadCurrentUser(),
+          this.loadUsersInTenant()
+        ]);
+      } catch (e) {
+        this.dbtTerminal.error(
+          "UsersService.onDBTInstallationVerification",
+          "Could not load user from backend",
+          e,
+          true,
+        );
+      }
     }
   }
 
