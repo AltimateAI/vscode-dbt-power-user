@@ -84,18 +84,10 @@
             "markdownDescription": "Needed for features that require backend support. Sign up for a free Altimate AI account [here](https://app.myaltimate.com/register). API Key can be copied from Altimate AI UI (navigate to Settings->API Key)"
           },
           "dbt.altimatePlan": {
-            "type": "string",
+            "type": "boolean",
             "displayName": "Altimate Plan",
-            "description": "Select the type of your Altimate subscription plan",
-            "enum": [
-              "Enterprise",
-              "Community, Pro or Team Plan"
-            ],
-            "enumDescriptions": [
-              "Enterprise Plan",
-              "Community, Pro or Team Plan"
-            ],
-            "default": "Community, Pro or Team Plan"
+            "description": "Are you on enterprise edition",
+            "default": false
           },
           "dbt.altimateInstanceName": {
             "type": "string",

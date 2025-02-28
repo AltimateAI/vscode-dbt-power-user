@@ -347,10 +347,10 @@ const getAltimateUrl = () => {
     return altimateUrlInSettings;
   }
 
-  const altimatePlan = workspace
+  const isEnterprise = workspace
     .getConfiguration("dbt")
-    .get<string>("altimatePlan", "Community, Pro or Team Plan");
-  return altimatePlan === "Enterprise"
+    .get<boolean>("altimatePlan", false);
+  return isEnterprise
     ? "https://api.getaltimate.com"
     : "https://api.myaltimate.com";
 };
