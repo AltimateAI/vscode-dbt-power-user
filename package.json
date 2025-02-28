@@ -86,7 +86,7 @@
           "dbt.altimatePlan": {
             "type": "boolean",
             "displayName": "Altimate Plan",
-            "description": "Enterprise plan",
+            "description": "Enterprise",
             "default": false
           },
           "dbt.altimateInstanceName": {
