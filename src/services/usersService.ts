@@ -43,10 +43,7 @@ export class UsersService implements Disposable {
     if (event.installed) {
       try {
         // Run both load operations in parallel
-        await Promise.all([
-          this.loadCurrentUser(),
-          this.loadUsersInTenant()
-        ]);
+        await Promise.all([this.loadCurrentUser(), this.loadUsersInTenant()]);
       } catch (e) {
         this.dbtTerminal.error(
           "UsersService.onDBTInstallationVerification",
