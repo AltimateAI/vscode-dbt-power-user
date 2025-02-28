@@ -83,11 +83,19 @@
             "displayName": "Altimate AI API Key",
             "markdownDescription": "Needed for features that require backend support. Sign up for a free Altimate AI account [here](https://app.myaltimate.com/register). API Key can be copied from Altimate AI UI (navigate to Settings->API Key)"
           },
-          "dbt.altimatePlan": {
-            "type": "boolean",
-            "displayName": "Altimate Plan",
-            "description": "Enterprise",
-            "default": false
+          "dbt.altimateUrl": {
+            "type": "string",
+            "displayName": "Altimate API endpoint",
+            "description": "Select Altimate API endpoint",
+            "enum": [
+              "https://api.myaltimate.com",
+              "https://api.getaltimate.com"
+            ],
+            "enumDescriptions": [
+              "Community, Pro or Team Plan",
+              "Enterprise Plan"
+            ],
+            "default": "https://api.myaltimate.com"
           },
           "dbt.altimateInstanceName": {
             "type": "string",
@@ -1253,7 +1261,7 @@
     "postinstall": "node postInstall.js",
     "prepare": "husky",
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production && node prepareBuild.js",
-    "webpack": "webpack --mode development",
+    "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "watch": "concurrently \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",
