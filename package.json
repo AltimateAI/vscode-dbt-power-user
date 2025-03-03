@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.53.0",
+  "version": "0.54.3",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -83,6 +83,20 @@
             "displayName": "Altimate AI API Key",
             "markdownDescription": "Needed for features that require backend support. Sign up for a free Altimate AI account [here](https://app.myaltimate.com/register). API Key can be copied from Altimate AI UI (navigate to Settings->API Key)"
           },
+          "dbt.altimateUrl": {
+            "type": "string",
+            "displayName": "Altimate API endpoint",
+            "description": "Select Altimate API endpoint",
+            "enum": [
+              "https://api.myaltimate.com",
+              "https://api.getaltimate.com"
+            ],
+            "enumDescriptions": [
+              "Community, Pro or Team Plan",
+              "Enterprise Plan"
+            ],
+            "default": "https://api.myaltimate.com"
+          },
           "dbt.altimateInstanceName": {
             "type": "string",
             "displayName": "Altimate AI Instance Name",
@@ -105,7 +119,7 @@
           "dbt.enableNotebooks": {
             "type": "boolean",
             "description": "Enable Datapilot notebooks feature",
-            "default": false
+            "default": true
           },
           "dbt.lineage.showSelectEdges": {
             "type": "boolean",
@@ -684,6 +698,36 @@
         "command": "dbtPowerUser.showDocumentation",
         "title": "Show documentation",
         "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.showDatapilotNotebooksQuickPick",
+        "title": "Show Datapilot Notebooks Quick Pick",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.showNotebookProfileQuery",
+        "title": "Profile this query",
+        "group": "notebooks@1"
+      },
+      {
+        "command": "dbtPowerUser.showNotebookTestSuggestions",
+        "title": "Get test suggestions",
+        "group": "notebooks@2"
+      },
+      {
+        "command": "dbtPowerUser.showNotebookGenerateBaseModelSql",
+        "title": "Generate dbt base model sql",
+        "group": "notebooks@3"
+      },
+      {
+        "command": "dbtPowerUser.showNotebookGenerateModelYaml",
+        "title": "Generate dbt model yaml",
+        "group": "notebooks@4"
+      },
+      {
+        "command": "dbtPowerUser.showNotebookGenerateModelCTE",
+        "title": "Generate dbt model CTE",
+        "group": "notebooks@5"
       }
     ],
     "keybindings": [
@@ -764,6 +808,26 @@
         {
           "command": "dbtPowerUser.sqlLineage",
           "group": "datapilot@5"
+        },
+        {
+          "command": "dbtPowerUser.showNotebookProfileQuery",
+          "group": "notebooks@1"
+        },
+        {
+          "command": "dbtPowerUser.showNotebookTestSuggestions",
+          "group": "notebooks@2"
+        },
+        {
+          "command": "dbtPowerUser.showNotebookGenerateBaseModelSql",
+          "group": "notebooks@3"
+        },
+        {
+          "command": "dbtPowerUser.showNotebookGenerateModelYaml",
+          "group": "notebooks@4"
+        },
+        {
+          "command": "dbtPowerUser.showNotebookGenerateModelCTE",
+          "group": "notebooks@5"
         }
       ],
       "editor/title": [

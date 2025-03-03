@@ -139,7 +139,16 @@ export class DBTProject implements Disposable {
     this.projectRoot = path;
     this.projectConfig = projectConfig;
 
-    this.validationProvider.validateCredentialsSilently();
+    try {
+      this.validationProvider.validateCredentialsSilently();
+    } catch (error) {
+      this.terminal.error(
+        "validateCredentialsSilently",
+        "Credential validation failed",
+        error,
+        false,
+      );
+    }
 
     this.sourceFileWatchers =
       this.sourceFileWatchersFactory.createSourceFileWatchers(
