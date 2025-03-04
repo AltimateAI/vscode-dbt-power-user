@@ -283,6 +283,14 @@
                 }
               }
             }
+          },
+          "dbt.specifiedProjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "Specify dbt project paths to override the discovered projects."
           }
         }
       }
