@@ -150,6 +150,14 @@ export class DBTCloudProjectDetection
 
   async discoverProjects(projectDirectories: Uri[]): Promise<Uri[]> {
     this.altimate.handlePreviewFeatures();
+    const specifiedProjects = workspace
+      .getConfiguration("dbt")
+      .get<string[]>("specifiedProjects", []);
+
+    if (specifiedProjects.length > 0) {
+      return specifiedProjects.map((projectPath) => Uri.file(projectPath));
+    }
+
     const packagesInstallPaths = projectDirectories.map((projectDirectory) =>
       path.join(projectDirectory.fsPath, "dbt_packages"),
     );
