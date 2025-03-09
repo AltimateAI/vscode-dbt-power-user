@@ -16,6 +16,7 @@ import {
   TextEditorDecorationType,
   DecorationRangeBehavior,
   QuickPickItem,
+  env,
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { RunModelType } from "../domain";
@@ -135,6 +136,9 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand("dbtPowerUser.runParentModels", (model) =>
         this.runModel.runModelOnNodeTreeItem(RunModelType.RUN_PARENTS)(model),
+      ),
+      commands.registerCommand("dbtPowerUser.copyModelName", (model) =>
+        env.clipboard.writeText(model.label.toString()),
       ),
       commands.registerCommand("dbtPowerUser.showRunSQL", () =>
         this.runModel.showRunSQLOnActiveWindow(),
