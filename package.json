@@ -546,7 +546,7 @@
       },
       {
         "command": "dbtPowerUser.copyModelName",
-        "title": "Copy Name",
+        "title": "Copy model name to clipboard",
         "category": "dbt Power User"
       },
       {
