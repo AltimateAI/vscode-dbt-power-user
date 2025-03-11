@@ -1278,7 +1278,8 @@
     "test:coverage": "jest --coverage",
     "pretest": "npm run clean && npm run compile",
     "clean": "rimraf out coverage",
-    "compile": "tsc -p ./"
+    "compile": "tsc -p ./",
+    "mcp-server": "ts-node src/mcp/mcpServer.ts"
   },
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.2",

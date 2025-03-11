@@ -2,7 +2,7 @@
 
 ![Last updated](https://img.shields.io/visual-studio-marketplace/last-updated/innoverio.vscode-dbt-power-user) ![Version](https://img.shields.io/visual-studio-marketplace/v/innoverio.vscode-dbt-power-user) ![Installs](https://img.shields.io/visual-studio-marketplace/i/innoverio.vscode-dbt-power-user) ![Build passing](https://github.com/innoverio/vscode-dbt-power-user/workflows/.github/workflows/ci.yml/badge.svg)
 
-This [open source](https://github.com/AltimateAI/vscode-dbt-power-user) extension makes VSCode seamlessly work with [dbt™](https://www.getdbt.com/).
+This [open source](https://github.com/AltimateAI/vscode-dbt-power-user) extension makes VSCode seamlessly work with [dbt™](https://www.getdbt.com/).
 
 If you need help with setting up the extension, please check the [documentation](https://docs.myaltimate.com/setup/installation/).
 For any issues or bugs, please [contact us](https://www.altimate.ai/support) via chat or Slack.
@@ -101,3 +101,48 @@ Estimate data that will be processed by dbt™ model in BigQuery [(docs)](https:
 
 Please check [documentation](https://docs.myaltimate.com/arch/faq/) for additional info.
 For any issues or bugs, please [contact us](https://www.altimate.ai/support) via chat or Slack.
+
+## Model Context Protocol (MCP) Integration
+
+The dbt Power User extension now supports the [Model Context Protocol (MCP)](https://www.anthropic.com/news/model-context-protocol), allowing you to use the extension's functionality with AI-enabled IDEs like Cursor.
+
+### What is MCP?
+
+MCP is an open standard that defines how external tools and data sources can be connected to AI models in a unified way. It allows AI assistants to discover and use tools from your development environment.
+
+### Using dbt Power User with Cursor
+
+To use dbt Power User with Cursor:
+
+1. Install the extension as usual
+2. Run the MCP server:
+
+```bash
+# Set required environment variables
+export DBT_PROJECT_PATH=/path/to/your/dbt/project
+export DBT_PROFILES_PATH=/path/to/your/profiles.yml  # Optional
+export ALTIMATE_API_KEY=your_api_key  # Optional, for AI features
+export ALTIMATE_INSTANCE=your_instance  # Optional
+
+# Run the MCP server
+npm run mcp-server
+```
+
+3. In Cursor, add the MCP server in Settings > MCP > Add MCP Server
+4. Choose "stdio" as the transport and enter the command to run the server
+5. Now Cursor's AI assistant can use dbt Power User's tools to help with your dbt development
+
+### Available MCP Tools
+
+The following tools are available via MCP:
+
+- `list_models` - Lists all models in the dbt project
+- `compile_model` - Compiles a dbt model and returns the generated SQL
+- `run_query` - Executes a SQL query against the data warehouse
+- `get_lineage` - Returns lineage information for a given model
+- `run_tests` - Runs dbt tests on a specific model or the entire project
+- `explain_query` - Provides an AI-generated explanation of a SQL query
+- `generate_model_from_sql` - Uses AI to generate a dbt model from raw SQL
+- `generate_docs` - Uses AI to generate documentation for a model
+
+For more details, see the [MCP documentation](https://docs.myaltimate.com/mcp/).
