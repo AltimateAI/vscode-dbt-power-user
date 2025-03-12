@@ -387,6 +387,11 @@
     },
     "commands": [
       {
+        "command": "dbtPowerUser.mcp.start",
+        "title": "Start MCP server",
+        "category": "dbt Power User"
+      },
+      {
         "command": "dbtPowerUser.collectQueryResultsDebugInfo",
         "title": "Query Results Debug Info",
         "category": "dbt Power User"
@@ -1261,7 +1266,7 @@
     "postinstall": "node postInstall.js",
     "prepare": "husky",
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production && node prepareBuild.js",
-    "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
+    "webpack": "webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "watch": "concurrently \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",
@@ -1303,6 +1308,7 @@
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^8.9.0",
     "eslint-plugin-prettier": "^5.2.1",
+    "eventsource": "^3.0.5",
     "file-loader": "^6.1.0",
     "glob": "^10.4.2",
     "glob-parent": "^6.0.2",
@@ -1334,12 +1340,15 @@
     "@jupyterlab/coreutils": "^6.2.4",
     "@jupyterlab/nbformat": "^4.2.4",
     "@jupyterlab/services": "^6.6.7",
+    "@modelcontextprotocol/sdk": "^1.7.0",
     "@nteract/messaging": "^7.0.20",
+    "@types/express": "^5.0.0",
     "@vscode/codicons": "^0.0.36",
     "@vscode/extension-telemetry": "0.9.6",
     "@vscode/vsce": "^2.31.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "dayjs": "^1.11.13",
+    "express": "^5.0.1",
     "inversify": "^6.0.2",
     "inversify-binding-decorators": "^4.0.0",
     "node-abort-controller": "^3.1.1",
@@ -1351,7 +1360,8 @@
     "which": "^4.0.0",
     "ws": "^8.18.0",
     "yaml": "^2.5.0",
-    "zeromq": "^6.1.0"
+    "zeromq": "^6.1.0",
+    "zod-to-json-schema": "^3.24.3"
   },
   "lint-staged": {
     "**/webview_panels/**/*.{ts,tsx}": [

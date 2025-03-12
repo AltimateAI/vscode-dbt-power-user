@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DBT Power User MCP Test Client</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      #connection-status {
+        padding: 10px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+      }
+      .connected {
+        background-color: #d4edda;
+        color: #155724;
+      }
+      .disconnected {
+        background-color: #f8d7da;
+        color: #721c24;
+      }
+      #events-log {
+        height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin-bottom: 20px;
+        background-color: #f8f9fa;
+      }
+      button {
+        padding: 8px 16px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #0069d9;
+      }
+      pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>DBT Power User MCP Test Client</h1>
+
+    <div id="connection-status" class="disconnected">Status: Disconnected</div>
+
+    <button id="connect-btn">Connect to SSE</button>
+    <button id="disconnect-btn" disabled>Disconnect</button>
+    <button id="get-projects-btn" disabled>Get Projects</button>
+
+    <h2>Events Log</h2>
+    <div id="events-log"></div>
+
+    <script>
+      let eventSource = null;
+      let connectionId = null;
+
+      const statusEl = document.getElementById("connection-status");
+      const eventsLogEl = document.getElementById("events-log");
+      const connectBtn = document.getElementById("connect-btn");
+      const disconnectBtn = document.getElementById("disconnect-btn");
+      const getProjectsBtn = document.getElementById("get-projects-btn");
+
+      function logEvent(message, data = null) {
+        const timestamp = new Date().toISOString();
+        let logEntry = `<div><strong>${timestamp}</strong>: ${message}</div>`;
+
+        if (data) {
+          logEntry += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        }
+
+        eventsLogEl.innerHTML = logEntry + eventsLogEl.innerHTML;
+      }
+
+      function setConnected(isConnected) {
+        if (isConnected) {
+          statusEl.className = "connected";
+          statusEl.textContent = "Status: Connected";
+          connectBtn.disabled = true;
+          disconnectBtn.disabled = false;
+          getProjectsBtn.disabled = false;
+        } else {
+          statusEl.className = "disconnected";
+          statusEl.textContent = "Status: Disconnected";
+          connectBtn.disabled = false;
+          disconnectBtn.disabled = true;
+          getProjectsBtn.disabled = true;
+          connectionId = null;
+        }
+      }
+
+      connectBtn.addEventListener("click", () => {
+        if (eventSource) {
+          eventSource.close();
+        }
+
+        logEvent("Connecting to SSE endpoint...");
+
+        // Connect to the SSE endpoint
+        eventSource = new EventSource("http://localhost:7891/sse");
+
+        eventSource.onopen = () => {
+          logEvent("SSE connection opened");
+        };
+
+        eventSource.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          logEvent("Received message", data);
+
+          // Check if this is a connection response
+          if (data.type === "connection_response") {
+            connectionId = data.connection_id;
+            logEvent(`Connection established with ID: ${connectionId}`);
+            setConnected(true);
+          }
+        };
+
+        eventSource.onerror = (error) => {
+          logEvent("SSE connection error", error);
+          setConnected(false);
+          eventSource.close();
+          eventSource = null;
+        };
+      });
+
+      disconnectBtn.addEventListener("click", () => {
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+          logEvent("Disconnected from SSE");
+          setConnected(false);
+        }
+      });
+
+      getProjectsBtn.addEventListener("click", async () => {
+        if (!connectionId) {
+          logEvent("Not connected to server");
+          return;
+        }
+
+        try {
+          logEvent("Sending get_projects request");
+
+          const response = await fetch("http://localhost:7891/messages", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              connection_id: connectionId,
+              type: "function_call",
+              function_name: "get_projects",
+              arguments: {},
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const result = await response.json();
+          logEvent("Received response from get_projects", result);
+        } catch (error) {
+          logEvent("Error calling get_projects", { error: error.message });
+        }
+      });
+    </script>
+  </body>
+</html>
