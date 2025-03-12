@@ -1,14 +1,14 @@
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import express from "express";
 import { createServer } from "./server";
-
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 export class DbtPowerUserMcpNewServer {
-  constructor() {
+  constructor(private dbtProjectContainer: DBTProjectContainer) {
     this.start();
   }
 
   private async start() {
-    const { server, cleanup } = createServer();
+    const { server, cleanup } = createServer(this.dbtProjectContainer);
     const app = express();
     let transport: SSEServerTransport;
     app.get("/sse", async (req, res) => {

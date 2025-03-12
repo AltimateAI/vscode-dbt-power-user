@@ -1,20 +1,20 @@
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import express from "express";
 import { createServer } from "./server";
-import { commands, Disposable } from "vscode";
+import { commands, Disposable, window } from "vscode";
 import { provideSingleton } from "../utils";
-
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 @provideSingleton(DbtPowerUserMcpServer)
 export class DbtPowerUserMcpServer implements Disposable {
   private disposables: Disposable[] = [];
-  constructor() {
+  constructor(private dbtProjectContainer: DBTProjectContainer) {
     this.disposables.push(
       commands.registerCommand("dbtPowerUser.mcp.start", () => this.start()),
     );
   }
 
   private async start() {
-    const { server, cleanup } = createServer();
+    const { server, cleanup } = createServer(this.dbtProjectContainer);
     const app = express();
     let transport: SSEServerTransport;
     app.get("/sse", async (req, res) => {
@@ -38,6 +38,9 @@ export class DbtPowerUserMcpServer implements Disposable {
     const PORT = process.env.PORT || 7891;
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
+      window.showInformationMessage(
+        `MCP server stated. Use http://localhost:${PORT}/sse to setup new sse MCP server connection.`,
+      );
     });
   }
 
