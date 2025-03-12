@@ -11,6 +11,7 @@ export class DbtPowerUserMcpServer implements Disposable {
     this.disposables.push(
       commands.registerCommand("dbtPowerUser.mcp.start", () => this.start()),
     );
+    this.start();
   }
 
   private async start() {
