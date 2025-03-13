@@ -49,6 +49,7 @@ export interface QueryPanelStateProps {
     columnNames: string[];
     columnTypes: string[];
     raw_sql: string;
+    compiled_sql: string;
   };
   queryExecutionInfo?: { elapsedTime: number };
   queryResultsError?: {
@@ -68,4 +69,8 @@ export interface QueryPanelStateProps {
   queryHistoryDisabled: boolean;
   queryBookmarksTagsFromDB?: { id: number; tag: string }[];
   tabState: QueryPanelTitleTabState;
+  activeEditor?: {
+    filepath: string;
+    query: string;
+  };
 }

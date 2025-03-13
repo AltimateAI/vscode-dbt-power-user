@@ -46,12 +46,14 @@ export interface NodeMetaData {
   depends_on: DependsOn;
   is_external_project: boolean;
   compiled_path: string;
+  meta: any;
 }
 
 export interface ColumnMetaData {
   name: string;
   description: string;
   data_type: string;
+  meta: any;
 }
 
 interface Config {
@@ -66,6 +68,7 @@ export interface SourceMetaData {
   tables: SourceTable[];
   package_name: string;
   is_external_project: boolean;
+  meta: any;
 }
 
 export interface SourceTable {

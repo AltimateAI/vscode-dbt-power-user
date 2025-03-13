@@ -6,9 +6,11 @@ import classes from "./coachAi.module.scss";
 const CoachAiIfModified = ({
   column,
   model,
+  extra,
 }: {
   column?: string;
   model?: string;
+  extra?: Record<string, unknown>;
 }): JSX.Element | null => {
   const {
     state: {
@@ -19,10 +21,10 @@ const CoachAiIfModified = ({
     },
   } = useDocumentationContext();
   const {
-    state: { teammatesEnabled, tenantInfo },
+    state: { tenantInfo },
   } = useAppContext();
 
-  if (!teammatesEnabled || !tenantInfo.teammatesEnabled) {
+  if (!tenantInfo.teammatesEnabled) {
     return null;
   }
 
@@ -39,6 +41,7 @@ const CoachAiIfModified = ({
       Do you want to coach datapilot? Click here{" "}
       <CoachAi
         context={{ column, model: model ?? currentDocsData?.name, project }}
+        extra={extra}
       />
     </div>
   );

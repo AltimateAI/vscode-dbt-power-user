@@ -2,28 +2,25 @@ import { ChevronRightIcon } from "@assets/icons";
 import {
   forwardRef,
   ForwardRefRenderFunction,
+  SyntheticEvent,
   useImperativeHandle,
 } from "react";
 import { ReactNode, useState } from "react";
-import {
-  ButtonProps,
-  Offcanvas,
-  OffcanvasBody,
-  OffcanvasHeader,
-} from "reactstrap";
+import { Offcanvas, OffcanvasBody, OffcanvasHeader } from "reactstrap";
 import IconButton from "../iconButton/IconButton";
 import classes from "./styles.module.scss";
 import { Button } from "../..";
 
 interface Props {
   title?: string | ReactNode;
-  buttonProps?: ButtonProps;
+  buttonProps?: Parameters<typeof Button>[0];
   buttonText?: ReactNode | string;
   icon?: ReactNode;
   onClose?: () => void;
   onOpen?: () => void;
   children: ReactNode;
   backdrop?: boolean;
+  disableBackdropClick?: boolean;
 }
 
 export interface DrawerRef {
@@ -41,12 +38,22 @@ const Drawer: ForwardRefRenderFunction<DrawerRef, Props> = (
     children,
     onOpen,
     backdrop = true,
+    disableBackdropClick = false,
   },
   ref,
 ) => {
   const [show, setShow] = useState(false);
 
-  const handleClose = () => {
+  const handleClose = (e?: SyntheticEvent) => {
+    if (
+      disableBackdropClick &&
+      e &&
+      (e.target as HTMLElement | undefined)?.classList?.contains(
+        "offcanvas-backdrop",
+      )
+    ) {
+      return;
+    }
     setShow(false);
     onClose?.();
   };

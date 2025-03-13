@@ -18,6 +18,7 @@ import { MetricParser } from "./metricParser";
 @provide(ManifestParser)
 export class ManifestParser {
   private lastSentParseManifestProps: any;
+  private consecutiveReadFailures = 0;
 
   constructor(
     private nodeParser: NodeParser,
@@ -200,13 +201,18 @@ export class ManifestParser {
 
     try {
       const manifestFile = readFileSync(manifestLocation, "utf8");
-      return JSON.parse(manifestFile);
+      const parsedManifest = JSON.parse(manifestFile);
+      this.consecutiveReadFailures = 0; // Reset counter on success
+      return parsedManifest;
     } catch (error) {
-      this.terminal.debug(
-        "ManifestParser",
-        `Could not read manifest file at ${manifestLocation}, ignoring error`,
-        error,
-      );
+      this.consecutiveReadFailures++;
+      if (this.consecutiveReadFailures > 3) {
+        this.terminal.error(
+          "ManifestParser",
+          `Could not read/parse manifest file at ${manifestLocation} after ${this.consecutiveReadFailures} attempts`,
+          error,
+        );
+      }
     }
   }
 }

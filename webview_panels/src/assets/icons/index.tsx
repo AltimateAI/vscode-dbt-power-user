@@ -27,7 +27,10 @@ export { default as NoNotebooksIcon } from "./notebook.svg?react";
 export { default as ThinkingIcon } from "./thinking.svg?react";
 export { default as CoachAIIcon } from "./coachAi.svg?react";
 export { default as ErrorIcon } from "./error.svg?react";
+export { default as PropagateIcon } from "./propagate.svg?react";
+export { default as LoaderIcon } from "./loader.svg?react";
 import LoadingSpinnerUrl from "./spinner.gif";
+import LineageGif from "./lineage.gif";
 import "./styles.css";
 
 interface Props {
@@ -39,6 +42,10 @@ const Icon = ({
   ...rest
 }: Props & HTMLAttributes<HTMLElement>) => (
   <i className={`${className} codicon codicon-${icon}`} {...rest} />
+);
+
+export const PlayIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
+  <Icon icon="play" {...props} />
 );
 
 export const RemoveIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
@@ -130,6 +137,14 @@ export const LoadingSpinner = (): JSX.Element => (
     // @ts-expect-error added in altimateWebViewProvider
     src={(window.spinnerUrl as string) ?? LoadingSpinnerUrl}
     alt="Altimate loader"
+  />
+);
+
+export const LineageDemo = (): JSX.Element => (
+  <img
+    // @ts-expect-error added in altimateWebViewProvider
+    src={(window.lineageGif as string) ?? LineageGif}
+    alt="Lineage demo"
   />
 );
 

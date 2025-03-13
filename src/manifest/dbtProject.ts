@@ -12,6 +12,7 @@ import {
   EventEmitter,
   FileSystemWatcher,
   languages,
+  ProgressLocation,
   Range,
   RelativePattern,
   Uri,
@@ -62,6 +63,7 @@ import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryEvents } from "../telemetry/events";
 import { RunResultsEvent } from "./event/runResultsEvent";
+import { DBTCoreCommandProjectIntegration } from "../dbt_client/dbtCoreCommandIntegration";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -106,6 +108,7 @@ export class DBTProject implements Disposable {
     this._onRebuildManifestStatusChange.event;
 
   private dbSchemaCache: Record<string, ModelNode> = {};
+  private depsInitialized = false;
 
   constructor(
     private PythonEnvironment: PythonEnvironment,
@@ -120,6 +123,10 @@ export class DBTProject implements Disposable {
       path: Uri,
       projectConfigDiagnostics: DiagnosticCollection,
     ) => DBTCoreProjectIntegration,
+    private dbtCoreCommandIntegrationFactory: (
+      path: Uri,
+      projectConfigDiagnostics: DiagnosticCollection,
+    ) => DBTCoreCommandProjectIntegration,
     private dbtCloudIntegrationFactory: (
       path: Uri,
     ) => DBTCloudProjectIntegration,
@@ -132,7 +139,16 @@ export class DBTProject implements Disposable {
     this.projectRoot = path;
     this.projectConfig = projectConfig;
 
-    this.validationProvider.validateCredentialsSilently();
+    try {
+      this.validationProvider.validateCredentialsSilently();
+    } catch (error) {
+      this.terminal.error(
+        "validateCredentialsSilently",
+        "Credential validation failed",
+        error,
+        false,
+      );
+    }
 
     this.sourceFileWatchers =
       this.sourceFileWatchersFactory.createSourceFileWatchers(
@@ -148,6 +164,12 @@ export class DBTProject implements Disposable {
       case "cloud":
         this.dbtProjectIntegration = this.dbtCloudIntegrationFactory(
           this.projectRoot,
+        );
+        break;
+      case "corecommand":
+        this.dbtProjectIntegration = this.dbtCoreCommandIntegrationFactory(
+          this.projectRoot,
+          this.projectConfigDiagnostics,
         );
         break;
       default:
@@ -207,7 +229,7 @@ export class DBTProject implements Disposable {
   }
 
   public getProjectName() {
-    return this.projectConfig.name;
+    return this.dbtProjectIntegration.getProjectName();
   }
 
   getSelectedTarget() {
@@ -219,7 +241,17 @@ export class DBTProject implements Disposable {
   }
 
   async setSelectedTarget(targetName: string) {
-    await this.dbtProjectIntegration.setSelectedTarget(targetName);
+    await window.withProgress(
+      {
+        location: ProgressLocation.Notification,
+        title: "Changing target...",
+        cancellable: false,
+      },
+      async () => {
+        await this.dbtProjectIntegration.setSelectedTarget(targetName);
+        await this.dbtProjectIntegration.applySelectedTarget();
+      },
+    );
   }
 
   getDBTProjectFilePath() {
@@ -293,9 +325,7 @@ export class DBTProject implements Disposable {
         docsGenerateCommand.focus = false;
         docsGenerateCommand.logToTerminal = false;
         docsGenerateCommand.showProgress = false;
-        await this.dbtProjectIntegration.executeCommandImmediately(
-          docsGenerateCommand,
-        );
+        await this.generateDocsImmediately();
         healthcheckArgs.catalogPath = this.getCatalogPath();
         if (!healthcheckArgs.catalogPath) {
           throw new Error(
@@ -502,6 +532,18 @@ export class DBTProject implements Disposable {
       project: this,
       inProgress: true,
     });
+    const installDepsOnProjectInitialization = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("installDepsOnProjectInitialization", true);
+    if (!this.depsInitialized && installDepsOnProjectInitialization) {
+      try {
+        await this.installDeps(true);
+      } catch (error: any) {
+        // this is best effort
+        console.warn("An error occured while installing dependencies", error);
+      }
+      this.depsInitialized = true;
+    }
     await this.dbtProjectIntegration.rebuildManifest();
     this._onRebuildManifestStatusChange.fire({
       project: this,
@@ -591,10 +633,13 @@ export class DBTProject implements Disposable {
     args?.forEach((arg) => docsGenerateCommand.addArgument(arg));
     docsGenerateCommand.focus = false;
     docsGenerateCommand.logToTerminal = false;
-    await this.dbtProjectIntegration.executeCommandImmediately(
-      docsGenerateCommand,
-    );
-    this.telemetry.sendTelemetryEvent("generateDocsImmediately");
+    const { stdout, stderr } =
+      await this.dbtProjectIntegration.executeCommandImmediately(
+        docsGenerateCommand,
+      );
+    if (stderr) {
+      throw new Error(stderr);
+    }
   }
 
   generateDocs() {
@@ -622,10 +667,13 @@ export class DBTProject implements Disposable {
     );
   }
 
-  installDeps() {
+  async installDeps(silent = false) {
     this.telemetry.sendTelemetryEvent("installDeps");
     const installDepsCommand =
       this.dbtCommandFactory.createInstallDepsCommand();
+    if (silent) {
+      installDepsCommand.focus = false;
+    }
     return this.dbtProjectIntegration.deps(installDepsCommand);
   }
 
@@ -816,6 +864,7 @@ export class DBTProject implements Disposable {
         error,
         { column, model },
       );
+      throw error;
     }
   }
 
@@ -928,105 +977,115 @@ export class DBTProject implements Disposable {
     tableName: string,
     sourcePath: string,
   ) {
-    try {
-      const prefix = workspace
-        .getConfiguration("dbt")
-        .get<string>("prefixGenerateModel", "base");
+    await window.withProgress(
+      {
+        location: ProgressLocation.Notification,
+        title: "Generating model...",
+        cancellable: false,
+      },
+      async () => {
+        try {
+          const prefix = workspace
+            .getConfiguration("dbt")
+            .get<string>("prefixGenerateModel", "base");
 
-      // Map setting to fileName
-      const fileNameTemplateMap: FileNameTemplateMap = {
-        "{prefix}_{sourceName}_{tableName}": `${prefix}_${sourceName}_${tableName}`,
-        "{prefix}_{sourceName}__{tableName}": `${prefix}_${sourceName}__${tableName}`,
-        "{prefix}_{tableName}": `${prefix}_${tableName}`,
-        "{tableName}": `${tableName}`,
-      };
+          // Map setting to fileName
+          const fileNameTemplateMap: FileNameTemplateMap = {
+            "{prefix}_{sourceName}_{tableName}": `${prefix}_${sourceName}_${tableName}`,
+            "{prefix}_{sourceName}__{tableName}": `${prefix}_${sourceName}__${tableName}`,
+            "{prefix}_{tableName}": `${prefix}_${tableName}`,
+            "{tableName}": `${tableName}`,
+          };
 
-      // Default filename template
-      let fileName = `${prefix}_${sourceName}_${tableName}`;
+          // Default filename template
+          let fileName = `${prefix}_${sourceName}_${tableName}`;
 
-      const fileNameTemplate = workspace
-        .getConfiguration("dbt")
-        .get<string>(
-          "fileNameTemplateGenerateModel",
-          "{prefix}_{sourceName}_{tableName}",
-        );
+          const fileNameTemplate = workspace
+            .getConfiguration("dbt")
+            .get<string>(
+              "fileNameTemplateGenerateModel",
+              "{prefix}_{sourceName}_{tableName}",
+            );
 
-      this.telemetry.sendTelemetryEvent("generateModel", {
-        prefix: prefix,
-        filenametemplate: fileNameTemplate,
-        adapter: this.getAdapterType(),
-      });
+          this.telemetry.sendTelemetryEvent("generateModel", {
+            prefix: prefix,
+            filenametemplate: fileNameTemplate,
+            adapter: this.getAdapterType(),
+          });
 
-      // Parse setting to fileName
-      if (fileNameTemplate in fileNameTemplateMap) {
-        fileName = fileNameTemplateMap[fileNameTemplate];
-      }
-      // Create filePath based on source.yml location
-      const location = path.join(sourcePath, fileName + ".sql");
-      if (!existsSync(location)) {
-        const columnsInRelation = await this.getColumnsOfSource(
-          sourceName,
-          tableName,
-        );
-        this.terminal.debug(
-          "dbtProject:generateModel",
-          `Generating columns for source ${sourceName} and table ${tableName}`,
-          columnsInRelation,
-        );
+          // Parse setting to fileName
+          if (fileNameTemplate in fileNameTemplateMap) {
+            fileName = fileNameTemplateMap[fileNameTemplate];
+          }
+          // Create filePath based on source.yml location
+          const location = path.join(sourcePath, fileName + ".sql");
+          if (!existsSync(location)) {
+            const columnsInRelation = await this.getColumnsOfSource(
+              sourceName,
+              tableName,
+            );
+            this.terminal.debug(
+              "dbtProject:generateModel",
+              `Generating columns for source ${sourceName} and table ${tableName}`,
+              columnsInRelation,
+            );
 
-        const fileContents = `with source as (
-      select * from {{ source('${sourceName}', '${tableName}') }}
-),
-renamed as (
-    select
-        ${columnsInRelation
-          .map((column) => `{{ adapter.quote("${column.column}") }}`)
-          .join(",\n        ")}
+            const fileContents = `with source as (
+        select * from {{ source('${sourceName}', '${tableName}') }}
+  ),
+  renamed as (
+      select
+          ${columnsInRelation
+            .map((column) => `{{ adapter.quote("${column.column}") }}`)
+            .join(",\n        ")}
 
-    from source
-)
-select * from renamed
-  `;
-        writeFileSync(location, fileContents);
-        const doc = await workspace.openTextDocument(Uri.file(location));
-        window.showTextDocument(doc);
-      } else {
-        window.showErrorMessage(
-          `A model called ${fileName} already exists in ${sourcePath}. If you want to generate the model, please rename the other model or delete it if you want to generate the model again.`,
-        );
-      }
-    } catch (exc: any) {
-      if (exc instanceof PythonException) {
-        this.telemetry.sendTelemetryError("generateModelPythonError", exc, {
-          adapter: this.getAdapterType(),
-        });
-        window.showErrorMessage(
-          "An error occured while trying to generate the model " +
-            exc.exception.message,
-        );
-      }
-      // Unknown error
-      this.telemetry.sendTelemetryError("generateModelUnknownError", exc, {
-        adapter: this.getAdapterType(),
-      });
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "An error occured while trying to generate the model:" + exc + ".",
-        ),
-      );
-    }
+      from source
+  )
+  select * from renamed
+    `;
+            writeFileSync(location, fileContents);
+            const doc = await workspace.openTextDocument(Uri.file(location));
+            window.showTextDocument(doc);
+          } else {
+            window.showErrorMessage(
+              `A model called ${fileName} already exists in ${sourcePath}. If you want to generate the model, please rename the other model or delete it if you want to generate the model again.`,
+            );
+          }
+        } catch (exc: any) {
+          if (exc instanceof PythonException) {
+            this.telemetry.sendTelemetryError("generateModelPythonError", exc, {
+              adapter: this.getAdapterType(),
+            });
+            window.showErrorMessage(
+              "An error occured while trying to generate the model " +
+                exc.exception.message,
+            );
+          }
+          // Unknown error
+          this.telemetry.sendTelemetryError("generateModelUnknownError", exc, {
+            adapter: this.getAdapterType(),
+          });
+          window.showErrorMessage(
+            extendErrorWithSupportLinks(
+              "An error occured while trying to generate the model:" +
+                exc +
+                ".",
+            ),
+          );
+        }
+      },
+    );
   }
 
-  async executeSQL(
+  async executeSQLWithLimit(
     query: string,
     modelName: string,
+    limit: number,
     returnImmediately?: boolean,
+    returnRawResults?: boolean,
   ) {
     // if user added a semicolon at the end, let,s remove it.
     query = query.replace(/;\s*$/, "");
-    const limit = workspace
-      .getConfiguration("dbt")
-      .get<number>("queryLimit", 500);
 
     if (limit <= 0) {
       window.showErrorMessage("Please enter a positive number for query limit");
@@ -1048,6 +1107,9 @@ select * from renamed
         modelName,
       );
       const result = await execution.executeQuery();
+      if (returnRawResults) {
+        return result;
+      }
       const rows: JsonObj[] = [];
       // Convert compressed array format to dict[]
       for (let i = 0; i < result.table.rows.length; i++) {
@@ -1073,6 +1135,24 @@ select * from renamed
         projectName: this.getProjectName(),
       },
     });
+  }
+
+  executeSQL(
+    query: string,
+    modelName: string,
+    returnImmediately?: boolean,
+    returnRawResults?: boolean,
+  ) {
+    const limit = workspace
+      .getConfiguration("dbt")
+      .get<number>("queryLimit", 500);
+    return this.executeSQLWithLimit(
+      query,
+      modelName,
+      limit,
+      returnImmediately,
+      returnRawResults,
+    );
   }
 
   async dispose() {
@@ -1210,6 +1290,7 @@ select * from renamed
         name: columnNameFromDB,
         data_type: c.dtype?.toLowerCase(),
         description: "",
+        meta: {},
       };
     }
     if (Object.keys(node.columns).length > columnsFromDB.length) {

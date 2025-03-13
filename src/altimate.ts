@@ -1,6 +1,6 @@
+import type { RequestInit } from "node-fetch";
 import { CommentThread, env, Uri, window, workspace } from "vscode";
 import { provideSingleton, processStreamResponse } from "./utils";
-import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
 import { join } from "path";
@@ -63,6 +63,7 @@ export interface DBTColumnLineageRequest {
   selected_column: { model_node?: ModelNode; column: string };
   session_id: string;
   show_indirect_edges: boolean;
+  event_type: string;
 }
 
 export interface DBTColumnLineageResponse {
@@ -79,7 +80,7 @@ interface SQLLineageRequest {
   session_id: string;
 }
 
-export type Details = Record<
+export type SqlLineageDetails = Record<
   string,
   {
     name: string;
@@ -90,9 +91,9 @@ export type Details = Record<
     columns: { name: string; datatype?: string; expression?: string }[];
   }
 >;
-type StaticLineageResponse = {
+type SqlLineageResponse = {
   tableEdges: [string, string][];
-  details: Details;
+  details: SqlLineageDetails;
   nodePositions?: Record<string, [number, number]>;
 };
 
@@ -289,6 +290,11 @@ interface FeedbackResponse {
   ok: boolean;
 }
 
+interface BulkDocsPropRequest {
+  num_columns: number;
+  session_id: string;
+}
+
 interface AltimateConfig {
   key: string;
   instance: string;
@@ -334,7 +340,7 @@ export interface ConversationGroup {
 
 @provideSingleton(AltimateRequest)
 export class AltimateRequest {
-  private static ALTIMATE_URL = workspace
+  public static ALTIMATE_URL = workspace
     .getConfiguration("dbt")
     .get<string>("altimateUrl", "https://api.myaltimate.com");
 
@@ -343,6 +349,11 @@ export class AltimateRequest {
     private dbtTerminal: DBTTerminal,
     private pythonEnvironment: PythonEnvironment,
   ) {}
+
+  private async internalFetch<T>(url: string, init?: RequestInit) {
+    const nodeFetch = (await import("node-fetch")).default;
+    return nodeFetch(url, init);
+  }
 
   getInstanceName() {
     return this.pythonEnvironment.getResolvedConfigValue(
@@ -419,7 +430,7 @@ export class AltimateRequest {
       abortController.abort();
     }, timeout);
     try {
-      const response = await fetch(url, {
+      const response = await this.internalFetch(url, {
         method: "POST",
         body: JSON.stringify(request),
         signal: abortController.signal,
@@ -520,7 +531,7 @@ export class AltimateRequest {
     const blob = (await this.readStreamToBlob(
       createReadStream(filePath),
     )) as Blob;
-    const response = await fetch(endpoint, {
+    const response = await this.internalFetch(endpoint, {
       ...fetchArgs,
       method: "PUT",
       body: blob,
@@ -596,7 +607,7 @@ export class AltimateRequest {
 
     try {
       const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
-      const response = await fetch(url, {
+      const response = await this.internalFetch(url, {
         method: "GET",
         ...fetchArgs,
         signal: abortController.signal,
@@ -646,8 +657,12 @@ export class AltimateRequest {
         status: response.status,
         textResponse,
       });
+      let jsonResponse: any;
+      try {
+        jsonResponse = JSON.parse(textResponse);
+      } catch {}
       throw new APIError(
-        `Could not process request, server responded with ${response.status}: ${textResponse}`,
+        `Could not process request, server responded with ${response.status}: ${jsonResponse?.detail || textResponse}`,
       );
     } catch (e) {
       this.dbtTerminal.error("apiCatchAllError", "catchAllError", e, true, {
@@ -680,8 +695,13 @@ export class AltimateRequest {
         "AltimateRequest",
         `fetching artifactUrl: ${artifactUrl}`,
       );
-      const response = await fetch(artifactUrl, { agent: undefined });
+      const response = await this.internalFetch(artifactUrl, {
+        agent: undefined,
+      });
 
+      if (!response.ok) {
+        throw new Error(`Failed to download file: ${response.statusText}`);
+      }
       const fileStream = createWriteStream(destinationPath);
       await new Promise((resolve, reject) => {
         response.body?.pipe(fileStream);
@@ -770,7 +790,7 @@ export class AltimateRequest {
   async checkApiConnectivity() {
     const url = `${AltimateRequest.ALTIMATE_URL}/health`;
     try {
-      const response = await fetch(url, { method: "GET" });
+      const response = await this.internalFetch(url, { method: "GET" });
       const { status } = (await response.json()) as { status: string };
       return { status };
     } catch (e) {
@@ -933,7 +953,14 @@ export class AltimateRequest {
   }
 
   async sqlLineage(req: SQLLineageRequest) {
-    return this.fetch<StaticLineageResponse>("dbt/v3/sql_lineage", {
+    return this.fetch<SqlLineageResponse>("dbt/v3/sql_lineage", {
+      method: "POST",
+      body: JSON.stringify(req),
+    });
+  }
+
+  async bulkDocsPropCredit(req: BulkDocsPropRequest) {
+    return this.fetch<FeedbackResponse>("dbt/v4/bulk-docs-prop-credits", {
       method: "POST",
       body: JSON.stringify(req),
     });
@@ -991,5 +1018,12 @@ export class AltimateRequest {
         method: "PUT",
       },
     );
+  }
+
+  async trackBulkTestGen(sessionId: string) {
+    return this.fetch<{ ok: boolean }>(`dbt/v2/bulk_test_gen`, {
+      method: "POST",
+      body: JSON.stringify({ session_id: sessionId }),
+    });
   }
 }

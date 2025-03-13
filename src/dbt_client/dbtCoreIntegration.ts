@@ -35,6 +35,8 @@ import {
   Node,
   ExecuteSQLError,
   HealthcheckArgs,
+  CLIDBTCommandExecutionStrategy,
+  DBTCommandExecutionStrategy,
 } from "./dbtIntegration";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
@@ -55,6 +57,7 @@ import { DBTTerminal } from "./dbtTerminal";
 import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
 import { NodeMetaData } from "../domain";
+import * as crypto from "crypto";
 
 const DEFAULT_QUERY_TEMPLATE = "select * from ({query}) as query limit {limit}";
 
@@ -243,11 +246,12 @@ export class DBTCoreProjectIntegration
   private adapterType?: string;
   private targetName?: string;
   private version?: number[];
+  private projectName: string = "unknown_" + crypto.randomUUID();
   private packagesInstallPath?: string;
   private modelPaths?: string[];
   private seedPaths?: string[];
   private macroPaths?: string[];
-  private python: PythonBridge;
+  protected python: PythonBridge;
   private disposables: Disposable[] = [];
   private readonly rebuildManifestDiagnostics =
     languages.createDiagnosticCollection("dbt");
@@ -257,15 +261,19 @@ export class DBTCoreProjectIntegration
 
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
-    private pythonEnvironment: PythonEnvironment,
+    protected pythonEnvironment: PythonEnvironment,
     private telemetry: TelemetryService,
     private pythonDBTCommandExecutionStrategy: PythonDBTCommandExecutionStrategy,
+    protected cliDBTCommandExecutionStrategyFactory: (
+      path: Uri,
+      dbtPath: string,
+    ) => DBTCommandExecutionStrategy,
     private dbtProjectContainer: DBTProjectContainer,
     private altimateRequest: AltimateRequest,
-    private dbtTerminal: DBTTerminal,
+    protected dbtTerminal: DBTTerminal,
     private validationProvider: ValidationProvider,
     private deferToProdService: DeferToProdService,
-    private projectRoot: Uri,
+    protected projectRoot: Uri,
     private projectConfigDiagnostics: DiagnosticCollection,
   ) {
     this.dbtTerminal.debug(
@@ -378,6 +386,7 @@ export class DBTCoreProjectIntegration
     this.macroPaths = await this.findMacroPaths();
     this.packagesInstallPath = await this.findPackagesInstallPath();
     this.version = await this.findVersion();
+    this.projectName = await this.findProjectName();
     this.adapterType = await this.findAdapterType();
   }
 
@@ -558,6 +567,10 @@ export class DBTCoreProjectIntegration
 
   getVersion(): number[] | undefined {
     return this.version;
+  }
+
+  getProjectName(): string {
+    return this.projectName;
   }
 
   async findAdapterType(): Promise<string | undefined> {
@@ -816,7 +829,7 @@ export class DBTCoreProjectIntegration
     return command;
   }
 
-  private dbtCoreCommand(command: DBTCommand) {
+  protected dbtCoreCommand(command: DBTCommand) {
     command.addArgument("--project-dir");
     command.addArgument(this.projectRoot.fsPath);
     if (this.profilesDir) {
@@ -1060,7 +1073,13 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  private throwBridgeErrorIfAvailable() {
+  private async findProjectName(): Promise<string> {
+    return this.python?.lock<string>(
+      (python) => python!`to_dict(project.config.project_name)`,
+    );
+  }
+
+  protected throwBridgeErrorIfAvailable() {
     const allDiagnostics: DiagnosticCollection[] = [
       this.pythonBridgeDiagnostics,
       this.projectConfigDiagnostics,
@@ -1142,7 +1161,7 @@ export class DBTCoreProjectIntegration
       await healthCheckThread.ex`from dbt_healthcheck import *`;
       const result = await healthCheckThread.lock<ProjectHealthcheck>(
         (python) =>
-          python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
+          python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}, ${this.altimateRequest.getAIKey()}, ${this.altimateRequest.getInstanceName()}, ${AltimateRequest.ALTIMATE_URL}))`,
       );
       return result;
     } finally {
@@ -1186,6 +1205,12 @@ export class DBTCoreProjectIntegration
       (python) =>
         python!`project.set_defer_config(${deferToProduction}, ${manifestPath}, ${favorState})`,
     );
+    await this.refreshProjectConfig();
+    await this.rebuildManifest();
+  }
+
+  async applySelectedTarget(): Promise<void> {
+    await this.refreshProjectConfig();
     await this.rebuildManifest();
   }
 

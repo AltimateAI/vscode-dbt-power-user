@@ -9,13 +9,18 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: "20"
-    - run: npm install
-      shell: bash  # Explicitly define the shell
-    - run: npm install
-      shell: bash  # Explicitly define the shell
+        cache: 'npm'
+        cache-dependency-path: |
+          package-lock.json
+          new_lineage_panel/package-lock.json
+          webview_panels/package-lock.json
+    - run: npm ci
+      shell: bash
+    - run: npm ci
+      shell: bash
       working-directory: ./new_lineage_panel
-    - run: npm install
-      shell: bash  # Explicitly define the shell
+    - run: npm ci
+      shell: bash
       working-directory: ./webview_panels
     - run: npm run postinstall
       shell: bash

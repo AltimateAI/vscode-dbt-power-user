@@ -3,11 +3,14 @@ import { ButtonHTMLAttributes } from 'react';
 import { ButtonProps } from 'reactstrap';
 import { CaseReducerActions } from '@reduxjs/toolkit';
 import { ChatMessage } from '@ant-design/pro-chat';
+import { ComponentType } from 'react';
 import { Dispatch } from 'react';
+import { ForwardRefExoticComponent } from 'react';
 import { JSX as JSX_2 } from 'react/jsx-runtime';
 import { PayloadAction } from '@reduxjs/toolkit';
 import { ProChatProps } from '@ant-design/pro-chat/es/ProChat/container';
 import { ReactNode } from 'react';
+import { RefAttributes } from 'react';
 import { UnknownAction } from '@reduxjs/toolkit';
 import { WritableDraft } from 'immer';
 import { z } from 'zod';
@@ -19,7 +22,22 @@ export declare const ApiHelper: {
 
 export declare const Badge: ({ tooltip, ...props }: Props_5) => JSX_2.Element;
 
-export declare const Chatbot: ({ loading, onRequest, sessionId: sessionIdProp, ...props }: Props_9) => JSX_2.Element;
+export declare const Chatbot: ({ loading, onRequest, sessionId: sessionIdProp, onFollowupRequest, frontendUrl, ...props }: Props_9) => JSX_2.Element;
+
+export declare const ChatTriggerLink: ({ text }: {
+    text: string;
+}) => JSX_2.Element;
+
+export declare interface Citation {
+    id: string;
+    content: string;
+    taskLabel: TaskLabels;
+}
+
+export declare const Citations: ({ citations, frontendUrl, }: {
+    citations?: Citation[];
+    frontendUrl: string;
+}) => JSX.Element | null;
 
 export declare class CLL {
     static isCancelled: boolean;
@@ -51,9 +69,16 @@ export declare interface CoachAiResponse {
     personalizationScope: string;
 }
 
-export declare const CoachForm: ({ taskLabel, context, onClose }: Props_10) => JSX_2.Element;
+export declare const CoachForm: (props: CoachFormProps) => JSX_2.Element;
 
-export declare const CoachFormButton: ({}: Props_11) => JSX_2.Element;
+export declare const CoachFormButton: ({}: Props_10) => JSX_2.Element;
+
+declare interface CoachFormProps {
+    taskLabel: keyof typeof TaskLabels;
+    context?: Record<string, unknown>;
+    extra?: Record<string, unknown>;
+    onClose: (data?: unknown) => void;
+}
 
 export declare const CodeBlock: ({ code, language, fileName, editorTheme, theme, showLineNumbers, className, titleActions, }: Props_4) => JSX.Element;
 
@@ -68,6 +93,7 @@ export declare interface Column {
     datatype?: string;
     can_lineage_expand: boolean;
     description: string;
+    meta?: Map<any, any>;
 }
 
 export declare interface ColumnLineage {
@@ -156,6 +182,7 @@ export declare type Details = Record<string, {
     nodeId?: string;
     name?: string;
     type: string;
+    purpose?: string;
 }>;
 
 export declare interface ExposureMetaData {
@@ -190,7 +217,7 @@ export declare const IconButton: (props: Props) => JSX.Element;
 export declare interface Learning extends z.infer<typeof learningSchema> {
 }
 
-export declare const Learnings: ({ filters, learning }: Props_12) => JSX_2.Element;
+export declare const Learnings: ({ filters, learning }: Props_11) => JSX_2.Element;
 
 export declare const learningSchema: z.ZodObject<{
     train_doc_uid: z.ZodString;
@@ -230,9 +257,7 @@ export declare const learningSchema: z.ZodObject<{
     isActive?: boolean | undefined;
 }>;
 
-export declare const Lineage: (props: Omit<Parameters<typeof LineageProvider>["0"], "children">) => JSX_2.Element;
-
-declare const LineageProvider: ({ theme, lineageType, sqlLineage, dynamicLineage, staticLineage, allowSyncColumnsWithDB, externalSidePanel }: LineageProviderProps) => JSX_2.Element;
+export declare const Lineage: ForwardRefExoticComponent<LineageProviderProps & RefAttributes<LineageRef>>;
 
 declare interface LineageProviderProps {
     dynamicLineage?: {
@@ -242,10 +267,16 @@ declare interface LineageProviderProps {
     sqlLineage?: SqlLineage;
     staticLineage?: StaticLineage;
     theme: "dark" | "light";
-    lineageType: "static" | "dynamic" | "sql";
+    lineageType: LineageType;
     allowSyncColumnsWithDB?: boolean;
     externalSidePanel?: boolean;
 }
+
+export declare interface LineageRef {
+    rerender: () => void;
+}
+
+declare type LineageType = "static" | "dynamic" | "sql";
 
 export declare const LoadingButton: ({ loading, ...rest }: Props_3) => JSX.Element;
 
@@ -264,27 +295,74 @@ export declare enum PersonalizationScope {
     ALL_USERS = "AllUsers"
 }
 
+export declare enum ProjectGovernorAllowedFiles {
+    Manifest = "Manifest",
+    Catalog = "Catalog"
+}
+
+export declare interface ProjectGovernorCheck extends z.infer<typeof ProjectGovernorCheckSchema> {
+    id: string;
+}
+
+export declare interface ProjectGovernorCheckConfirmationResponse {
+    ok: boolean;
+}
+
+export declare interface ProjectGovernorCheckFormValues {
+    description: string;
+    type: ProjectGovernorCheckTypes;
+}
+
+export declare const ProjectGovernorCheckSchema: z.ZodObject<{
+    name: z.ZodString;
+    alias: z.ZodString;
+    type: z.ZodEnum<[string, ...string[]]>;
+    description: z.ZodString;
+    files_required: z.ZodArray<z.ZodEnum<[string, ...string[]]>, "many">;
+    config: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+}, "strip", z.ZodTypeAny, {
+    type: string;
+    name: string;
+    description: string;
+    alias: string;
+    files_required: string[];
+    config: Record<string, unknown>;
+}, {
+    type: string;
+    name: string;
+    description: string;
+    alias: string;
+    files_required: string[];
+    config: Record<string, unknown>;
+}>;
+
+export declare enum ProjectGovernorCheckTypes {
+    DOCUMENTATION = "documentation",
+    TESTS = "tests",
+    MODEL = "model",
+    FILE_STRUCTURE = "file_structure"
+}
+
+export declare interface ProjectGovernorCheckValidateResponse {
+    name: string;
+    description: string;
+}
+
 declare interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
     color?: string;
 }
 
 declare interface Props_10 {
-    taskLabel: keyof typeof TaskLabels;
-    context?: Record<string, unknown>;
-    onClose: () => void;
 }
 
 declare interface Props_11 {
-}
-
-declare interface Props_12 {
     filters?: {
         taskLabel?: keyof typeof TaskLabels;
     };
     learning?: string | null;
 }
 
-declare interface Props_13 {
+declare interface Props_12 {
     onSelect: (selected: (typeof TeamMatesConfig)[0], action: TeamMateActionType) => Promise<boolean | undefined>;
     client: keyof typeof TeamMateAvailability;
 }
@@ -346,8 +424,10 @@ declare interface Props_8 {
 
 declare interface Props_9 extends ProChatProps<any> {
     loading?: boolean;
-    onRequest: (messages: ChatMessage[], sessionId: string) => any;
+    onRequest: (messages: ChatMessage[], sessionId: string, onStatusUpdate: (info: StatusInfoMessage) => void) => any;
     sessionId?: string;
+    onFollowupRequest?: (sessionId: string) => Promise<string[] | undefined>;
+    frontendUrl: string;
 }
 
 export declare interface SelectedColumn {
@@ -362,13 +442,13 @@ declare interface SqlLineage {
     nodePositions?: Record<string, [number, number]>;
 }
 
-declare interface StaticLineage {
+export declare interface StaticLineage {
     selectedColumn: {
         table: string;
         name: string;
     };
     collectColumns: Record<string, CollectColumn[]>;
-    columnEdges?: [string, string][];
+    columnEdges?: [string, string, string][];
     tableEdges: [string, string][];
     details: Details;
 }
@@ -389,6 +469,13 @@ export declare type StaticLineageDetails = Record<string, {
     join_type?: string;
 }>;
 
+export declare interface StatusInfoMessage {
+    type: "info" | "agent_outcome" | "citations";
+    message: string;
+    citations?: Citation[];
+    id?: string;
+}
+
 export declare interface Table {
     table: string;
     label: string;
@@ -403,13 +490,15 @@ export declare interface Table {
         path: string;
     }[];
     schema?: string;
+    meta?: Map<any, any>;
 }
 
 export declare enum TaskLabels {
     DocGen = "DocGen",
     ChartBot = "ChartBot",
     SqlBot = "SqlExpert",
-    OpportunitiesBot = "OpportunitiesBot"
+    OpportunitiesBot = "OpportunitiesBot",
+    ProjectGovernor = "ProjectGovernor"
 }
 
 export declare const TeammateActions: CaseReducerActions<    {
@@ -435,6 +524,8 @@ export declare interface TeamMateConfig {
     key: TaskLabels;
     seeInAction?: boolean;
     comingSoon?: boolean;
+    displayComponent?: ComponentType<any>;
+    formComponent?: ComponentType<any>;
 }
 
 export declare interface TeamMateContextProps {
@@ -446,7 +537,7 @@ export declare const TeamMateProvider: ({ children, }: {
     children: ReactNode;
 }) => JSX.Element;
 
-export declare const TeamMates: ({ onSelect, client }: Props_13) => JSX_2.Element;
+export declare const TeamMates: ({ onSelect, client }: Props_12) => JSX_2.Element;
 
 export declare const TeamMatesConfig: TeamMateConfig[];
 

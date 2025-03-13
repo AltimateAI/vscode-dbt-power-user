@@ -1,24 +1,66 @@
 import DocGeneratorSettings from "@modules/documentationEditor/components/settings/DocGeneratorSettings";
-import { Stack } from "@uicore";
-import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
-import { Pages } from "@modules/documentationEditor/state/types";
+import { Button, PopoverWithButton, Stack } from "@uicore";
 import FeedbackButton from "./FeedbackButton";
 import HelpButton from "./HelpButton";
 import ShowConversationsButton from "@modules/documentationEditor/components/conversation/ShowConversationsButton";
+import { HelpIcon, MoreIcon, SettingsIcon } from "@assets/icons";
+import { useState } from "react";
 
+enum SelectedAction {
+  SETTINGS,
+  HELP,
+}
 const CommonActionButtons = (): JSX.Element => {
-  const {
-    state: { selectedPages },
-  } = useDocumentationContext();
+  const [action, setAction] = useState<SelectedAction | undefined>();
 
   return (
     <Stack className="align-items-center text-nowrap">
-      <ShowConversationsButton />
-      {selectedPages.includes(Pages.DOCUMENTATION) ? (
-        <DocGeneratorSettings />
-      ) : null}
-      <HelpButton />
-      <FeedbackButton url="https://docs.google.com/forms/d/e/1FAIpQLSeqFBZX_P4chScTTw8w-reRn2fr7NmeGdy8jISJOPdKEWfLaw/viewform" />
+      <PopoverWithButton
+        width="auto"
+        button={<Button outline title="More actions" icon={<MoreIcon />} />}
+        popoverProps={{
+          placement: "bottom",
+          hideArrow: true,
+        }}
+      >
+        {({ close }) => (
+          <Stack direction="column">
+            <ShowConversationsButton onClose={close} />
+            <Button
+              outline
+              onClick={() => {
+                close();
+                setAction(SelectedAction.SETTINGS);
+              }}
+              className="w-100 text-start"
+            >
+              <SettingsIcon style={{ height: 16 }} /> Settings
+            </Button>
+            <Button
+              outline
+              className="w-100 text-start"
+              onClick={() => {
+                close();
+                setAction(SelectedAction.HELP);
+              }}
+            >
+              <HelpIcon style={{ height: 16 }} /> Help
+            </Button>
+            <FeedbackButton
+              onClose={close}
+              url="https://docs.google.com/forms/d/e/1FAIpQLSeqFBZX_P4chScTTw8w-reRn2fr7NmeGdy8jISJOPdKEWfLaw/viewform"
+              buttonProps={{
+                outline: true,
+                className: "w-100 text-start",
+                showTextAlways: true,
+              }}
+            />
+          </Stack>
+        )}
+      </PopoverWithButton>
+
+      {action === SelectedAction.SETTINGS ? <DocGeneratorSettings /> : null}
+      {action === SelectedAction.HELP ? <HelpButton /> : null}
     </Stack>
   );
 };

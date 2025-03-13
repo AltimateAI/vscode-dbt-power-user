@@ -1,4 +1,4 @@
-import { ConversationGroup, DbtDocsShareDetails, TaskLabels } from "@lib";
+import { Citation, ConversationGroup, DbtDocsShareDetails } from "@lib";
 import { GenerationDBDataProps } from "../types";
 
 export enum Source {
@@ -6,16 +6,6 @@ export enum Source {
   YAML = "YAML",
 }
 
-export enum Pages {
-  DOCUMENTATION,
-  TESTS,
-  TAGS,
-}
-export interface Citation {
-  id: string;
-  content: string;
-  taskLabel: keyof typeof TaskLabels;
-}
 export interface MetadataColumn {
   name: string;
   type?: string;
@@ -80,27 +70,24 @@ export interface DocumentationStateProps {
   project?: string;
   generationHistory: GenerationDBDataProps[];
   userInstructions: DocsGenerateUserInstructions;
-  isDocGeneratedForAnyColumn: boolean;
-  isTestUpdatedForAnyColumn: boolean;
   insertedEntityName?: string;
-  selectedPages: Pages[];
   conversations: Record<DbtDocsShareDetails["share_id"], ConversationGroup[]>;
   showConversationsRightPanel: boolean;
+  showSingleDocsPropRightPanel: boolean;
+  showBulkDocsPropRightPanel: boolean;
   selectedConversationGroup?: {
     shareId: DbtDocsShareDetails["share_id"];
     conversationGroupId: ConversationGroup["conversation_group_id"];
   };
   collaborationEnabled: boolean;
   missingDocumentationMessage?: { message: string; type: "warning" | "error" };
+  searchQuery: string;
 }
 
 export interface DBTModelTest {
-  alias: string;
   column_name?: string;
-  database: string;
   key: string;
   path?: string;
-  schema: string;
   test_metadata?: {
     kwargs: TestMetadataAcceptedValuesKwArgs | TestMetadataRelationshipsKwArgs;
     name: string;

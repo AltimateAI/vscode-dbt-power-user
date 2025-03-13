@@ -88,6 +88,7 @@ export class NodeParser {
           config,
           resource_type,
           depends_on,
+          meta,
         } = nodesMap;
         const fullPath = createFullPathForNode(
           projectName,
@@ -98,7 +99,7 @@ export class NodeParser {
         );
         const targetPath = project.getTargetPath();
         if (fullPath) {
-          modelNameLookupMap.set(basename(fullPath, ".sql"), unique_id);
+          modelNameLookupMap.set(path.parse(fullPath).name, unique_id);
         }
         if (version && latest_version && version === latest_version) {
           const parts = unique_id.split(".");
@@ -130,6 +131,7 @@ export class NodeParser {
                 original_file_path,
               )
             : "",
+          meta: meta,
         });
       }
       this.terminal.debug(

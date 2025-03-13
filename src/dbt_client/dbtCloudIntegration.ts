@@ -35,14 +35,16 @@ import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./dbtTerminal";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
 import { ProjectHealthcheck } from "./dbtCoreIntegration";
 import semver = require("semver");
 import { NodeMetaData } from "../domain";
+import * as crypto from "crypto";
+import { parse } from "yaml";
 
-function getDBTPath(
+export function getDBTPath(
   pythonEnvironment: PythonEnvironment,
   terminal: DBTTerminal,
 ): string {
@@ -174,6 +176,7 @@ export class DBTCloudProjectIntegration
   private static QUEUE_ALL = "all";
   private targetPath?: string;
   private version: number[] | undefined;
+  private projectName: string = "unknown_" + crypto.randomUUID();
   private adapterType: string = "unknown";
   private packagesInstallPath?: string;
   private modelPaths?: string[];
@@ -189,7 +192,7 @@ export class DBTCloudProjectIntegration
   private rebuildManifestCancellationTokenSource:
     | CancellationTokenSource
     | undefined;
-  private pathsInitalized = false;
+  private pathsInitialized = false;
 
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
@@ -204,6 +207,7 @@ export class DBTCloudProjectIntegration
     private validationProvider: ValidationProvider,
     private deferToProdService: DeferToProdService,
     private projectRoot: Uri,
+    private altimateRequest: AltimateRequest,
   ) {
     this.terminal.debug(
       "DBTCloudProjectIntegration",
@@ -229,16 +233,12 @@ export class DBTCloudProjectIntegration
   }
 
   async refreshProjectConfig(): Promise<void> {
-    if (!this.pathsInitalized) {
+    if (!this.pathsInitialized) {
       // First time let,s block
       await this.initializePaths();
-      this.pathsInitalized = true;
+      this.pathsInitialized = true;
     } else {
       this.initializePaths();
-    }
-    if (!this.adapterType) {
-      // We only fetch the adapter type once, as it may impact compilation preview otherwise
-      await this.findAdapterType();
     }
     if (!this.version) {
       await this.findVersion();
@@ -376,6 +376,10 @@ export class DBTCloudProjectIntegration
     return this.version || [0, 0, 0];
   }
 
+  getProjectName(): string {
+    return this.projectName;
+  }
+
   getPythonBridgeStatus(): boolean {
     return this.python.connected;
   }
@@ -387,7 +391,7 @@ export class DBTCloudProjectIntegration
     ];
   }
 
-  async rebuildManifest(retryCount: number = 0): Promise<void> {
+  async rebuildManifest(): Promise<void> {
     // TODO: check whether we should allow parsing for unauthenticated users
     // this.throwIfNotAuthenticated();
     if (this.rebuildManifestCancellationTokenSource) {
@@ -556,7 +560,11 @@ export class DBTCloudProjectIntegration
   }
 
   async deps(command: DBTCommand): Promise<string> {
-    throw new Error("dbt deps is not supported in dbt cloud");
+    const { stdout, stderr } = await this.dbtCloudCommand(command).execute();
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    return stdout;
   }
 
   async debug(command: DBTCommand): Promise<string> {
@@ -638,7 +646,7 @@ export class DBTCloudProjectIntegration
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
+      .filter((line) => line.data?.hasOwnProperty("compiled"));
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
@@ -665,7 +673,7 @@ export class DBTCloudProjectIntegration
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
+      .filter((line) => line.data?.hasOwnProperty("compiled"));
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
@@ -706,7 +714,7 @@ export class DBTCloudProjectIntegration
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
+      .filter((line) => line.data?.hasOwnProperty("compiled"));
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
@@ -736,7 +744,7 @@ export class DBTCloudProjectIntegration
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
+      .filter((line) => line.data?.hasOwnProperty("compiled"));
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
@@ -763,7 +771,7 @@ export class DBTCloudProjectIntegration
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
+      .filter((line) => line.data?.hasOwnProperty("compiled"));
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
@@ -895,7 +903,7 @@ export class DBTCloudProjectIntegration
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
+      .filter((line) => line.data?.hasOwnProperty("compiled"));
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
@@ -944,7 +952,7 @@ export class DBTCloudProjectIntegration
       new DBTCommand("Getting catalog...", [
         "compile",
         "--inline",
-        bulkModelQuery.trim().split("\n").join(""),
+        bulkModelQuery,
         "--output",
         "json",
         "--log-format",
@@ -956,7 +964,13 @@ export class DBTCloudProjectIntegration
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
+      .filter(
+        (line) =>
+          line.hasOwnProperty("data") && line.data?.hasOwnProperty("compiled"),
+      );
+    if (compiledLine.length === 0) {
+      throw new Error("Could not get bulk schema from response: " + stdout);
+    }
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
@@ -988,6 +1002,15 @@ export class DBTCloudProjectIntegration
           stderr,
         );
       }
+      const lookupValue = (lookupString: string) => {
+        const regexString = `${lookupString}\\s*(.*)`;
+        const regexp = new RegExp(regexString, "gm");
+        const matches = regexp.exec(stdout);
+        if (matches?.length === 2) {
+          return matches[1];
+        }
+        throw new Error(`Could not find any entries for ${lookupString}`);
+      };
       const lookupEntries = (lookupString: string) => {
         const regexString = `${lookupString}\\s*\\[(.*)\\]`;
         const regexp = new RegExp(regexString, "gm");
@@ -1008,10 +1031,11 @@ export class DBTCloudProjectIntegration
         join(this.projectRoot.fsPath, p),
       );
       this.packagesInstallPath = join(this.projectRoot.fsPath, "dbt_packages");
+      this.adapterType = lookupValue("Connection type");
     } catch (error) {
       this.terminal.warn(
         "DbtCloudIntegrationInitializePathsExceptionError",
-        "adapter type throws error, ignoring",
+        "dbt environment show not returning required info, ignoring",
         true,
         error,
       );
@@ -1021,44 +1045,16 @@ export class DBTCloudProjectIntegration
       this.macroPaths = [join(this.projectRoot.fsPath, "macros")];
       this.packagesInstallPath = join(this.projectRoot.fsPath, "dbt_packages");
     }
-  }
 
-  private async findAdapterType() {
-    const adapterTypeCommand = this.dbtCloudCommand(
-      new DBTCommand("Getting adapter type...", [
-        "compile",
-        "--inline",
-        "{{ adapter.type() }}",
-        "--output",
-        "json",
-        "--log-format",
-        "json",
-      ]),
-    );
     try {
-      const { stdout, stderr } = await adapterTypeCommand.execute();
-      if (stderr) {
-        this.terminal.warn(
-          "DbtCloudIntegrationAdapterDetectionStdError",
-          "adapter type returns stderr, ignoring",
-          true,
-          stderr,
-        );
-      }
-      const compiledLine = stdout
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()))
-        .filter((line) => line.data.hasOwnProperty("compiled"));
-      this.adapterType = compiledLine[0].data.compiled;
-      this.terminal.debug(
-        "dbtCloudIntegration",
-        `Set adapter type to ${this.adapterType}`,
+      const projectConfig = DBTProject.readAndParseProjectConfig(
+        this.projectRoot,
       );
+      this.projectName = projectConfig.name;
     } catch (error) {
       this.terminal.warn(
-        "DbtCloudIntegrationAdapterDetectionExceptionError",
-        "adapter type throws error, ignoring",
+        "DbtCloudIntegrationProjectNameFromConfigExceptionError",
+        "project name could not be read from dbt_project.yml, ignoring",
         true,
         error,
       );
@@ -1138,7 +1134,42 @@ export class DBTCloudProjectIntegration
     }
   }
 
-  findPackageVersion(_packageName: string) {
+  private getYamlContent(uri: Uri): string | undefined {
+    try {
+      return readFileSync(uri.fsPath, "utf-8");
+    } catch (error) {
+      this.terminal.error(
+        "getYamlContent",
+        "Error occured while reading file: " + uri.fsPath,
+        error,
+      );
+      return undefined;
+    }
+  }
+
+  findPackageVersion(packageName: string) {
+    const packagesYmlPath = Uri.joinPath(this.projectRoot, "packages.yml");
+    const dependenciesYmlPath = Uri.joinPath(
+      this.projectRoot,
+      "dependencies.yml",
+    );
+
+    const fileContents =
+      this.getYamlContent(packagesYmlPath) ||
+      this.getYamlContent(dependenciesYmlPath);
+    if (!fileContents) {
+      return undefined;
+    }
+
+    const packages = parse(fileContents) as
+      | { packages: { package: string; version: string }[] }
+      | undefined;
+    if (packages?.packages?.length) {
+      const packageObject = packages.packages.find(
+        (p) => p.package.indexOf(packageName) > -1,
+      );
+      return packageObject?.version as string;
+    }
     return undefined;
   }
 
@@ -1169,12 +1200,14 @@ export class DBTCloudProjectIntegration
     this.throwBridgeErrorIfAvailable();
     const result = await this.python?.lock<ProjectHealthcheck>(
       (python) =>
-        python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
+        python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}, ${this.altimateRequest.getAIKey()}, ${this.altimateRequest.getInstanceName()}, ${AltimateRequest.ALTIMATE_URL}))`,
     );
     return result;
   }
 
   async applyDeferConfig(): Promise<void> {}
+
+  async applySelectedTarget(): Promise<void> {}
 
   throwDiagnosticsErrorIfAvailable(): void {
     this.throwBridgeErrorIfAvailable();

@@ -115,7 +115,7 @@ export class DBTPowerUserExtension implements Disposable {
         .get<string>("dbtIntegration", "core");
       if (
         dbtIntegration !== newDbtIntegration &&
-        ["core", "cloud"].includes(newDbtIntegration)
+        ["core", "cloud", "corecommand"].includes(newDbtIntegration)
       ) {
         commands.executeCommand("workbench.action.reloadWindow");
       }

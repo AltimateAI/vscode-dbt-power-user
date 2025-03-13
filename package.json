@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.47.4",
+  "version": "0.54.3",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -83,6 +83,20 @@
             "displayName": "Altimate AI API Key",
             "markdownDescription": "Needed for features that require backend support. Sign up for a free Altimate AI account [here](https://app.myaltimate.com/register). API Key can be copied from Altimate AI UI (navigate to Settings->API Key)"
           },
+          "dbt.altimateUrl": {
+            "type": "string",
+            "displayName": "Altimate API endpoint",
+            "description": "Select Altimate API endpoint",
+            "enum": [
+              "https://api.myaltimate.com",
+              "https://api.getaltimate.com"
+            ],
+            "enumDescriptions": [
+              "Community, Pro or Team Plan",
+              "Enterprise Plan"
+            ],
+            "default": "https://api.myaltimate.com"
+          },
           "dbt.altimateInstanceName": {
             "type": "string",
             "displayName": "Altimate AI Instance Name",
@@ -97,11 +111,6 @@
             "description": "Enable dbt docs collaboration.",
             "default": true
           },
-          "dbt.enableTeammates": {
-            "type": "boolean",
-            "description": "Enable AltimateAI teammates feature.",
-            "default": false
-          },
           "dbt.disableQueryHistory": {
             "type": "boolean",
             "description": "Disable Query history and bookmarks",
@@ -110,7 +119,7 @@
           "dbt.enableNotebooks": {
             "type": "boolean",
             "description": "Enable Datapilot notebooks feature",
-            "default": false
+            "default": true
           },
           "dbt.lineage.showSelectEdges": {
             "type": "boolean",
@@ -126,6 +135,11 @@
             "type": "number",
             "description": "By default how much lineage should expand.",
             "default": 1
+          },
+          "dbt.installDepsOnProjectInitialization": {
+            "type": "boolean",
+            "description": "Install dbt deps on project initialization",
+            "default": true
           }
         }
       },
@@ -140,7 +154,8 @@
             "type": "string",
             "enum": [
               "core",
-              "cloud"
+              "cloud",
+              "corecommand"
             ],
             "default": "core",
             "description": "Select dbt core or dbt cloud"
@@ -688,6 +703,36 @@
         "command": "dbtPowerUser.showDocumentation",
         "title": "Show documentation",
         "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.showDatapilotNotebooksQuickPick",
+        "title": "Show Datapilot Notebooks Quick Pick",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.showNotebookProfileQuery",
+        "title": "Profile this query",
+        "group": "notebooks@1"
+      },
+      {
+        "command": "dbtPowerUser.showNotebookTestSuggestions",
+        "title": "Get test suggestions",
+        "group": "notebooks@2"
+      },
+      {
+        "command": "dbtPowerUser.showNotebookGenerateBaseModelSql",
+        "title": "Generate dbt base model sql",
+        "group": "notebooks@3"
+      },
+      {
+        "command": "dbtPowerUser.showNotebookGenerateModelYaml",
+        "title": "Generate dbt model yaml",
+        "group": "notebooks@4"
+      },
+      {
+        "command": "dbtPowerUser.showNotebookGenerateModelCTE",
+        "title": "Generate dbt model CTE",
+        "group": "notebooks@5"
       }
     ],
     "keybindings": [
@@ -768,6 +813,26 @@
         {
           "command": "dbtPowerUser.sqlLineage",
           "group": "datapilot@5"
+        },
+        {
+          "command": "dbtPowerUser.showNotebookProfileQuery",
+          "group": "notebooks@1"
+        },
+        {
+          "command": "dbtPowerUser.showNotebookTestSuggestions",
+          "group": "notebooks@2"
+        },
+        {
+          "command": "dbtPowerUser.showNotebookGenerateBaseModelSql",
+          "group": "notebooks@3"
+        },
+        {
+          "command": "dbtPowerUser.showNotebookGenerateModelYaml",
+          "group": "notebooks@4"
+        },
+        {
+          "command": "dbtPowerUser.showNotebookGenerateModelCTE",
+          "group": "notebooks@5"
         }
       ],
       "editor/title": [
@@ -1204,11 +1269,11 @@
   },
   "scripts": {
     "postinstall": "node postInstall.js",
-    "prepare": "husky install",
+    "prepare": "husky",
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production && node prepareBuild.js",
     "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
-    "watch": "concurrently \"npm:watch --prefix ./new_lineage_panel\" \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
+    "watch": "concurrently \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
@@ -1217,19 +1282,31 @@
     "deploy-openvsx": "ovsx publish",
     "panel:webviews": "npm run build --prefix ./webview_panels",
     "panel:lineage": "npm run build --prefix ./new_lineage_panel",
-    "install:panels": "npm install --prefix ./new_lineage_panel && npm install --prefix ./webview_panels"
+    "install:panels": "npm install --prefix ./new_lineage_panel && npm install --prefix ./webview_panels",
+    "test": "jest",
+    "test:unit": "jest",
+    "test:coverage": "jest --coverage",
+    "pretest": "npm run clean && npm run compile",
+    "clean": "rimraf out coverage",
+    "compile": "tsc -p ./"
   },
   "devDependencies": {
+    "@istanbuljs/nyc-config-typescript": "^1.0.2",
+    "@types/chai": "^4.3.9",
     "@types/glob": "^8.1.0",
-    "@types/mocha": "^10.0.6",
+    "@types/istanbul-lib-coverage": "^2.0.6",
+    "@types/jest": "^29.5.0",
     "@types/node": "^20.14.11",
     "@types/vscode": "^1.81.0",
     "@types/which": "^3.0.4",
     "@types/ws": "^8.5.12",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
+    "@vscode/debugadapter": "^1.68.0",
+    "@vscode/debugprotocol": "^1.68.0",
     "@vscode/test-electron": "^2.4.1",
     "@vscode/zeromq": "^0.2.1",
+    "chai": "^4.3.10",
     "concurrently": "^8.2.2",
     "copy-webpack-plugin": "^11.0.0",
     "cross-env": "^7.0.3",
@@ -1238,15 +1315,22 @@
     "eslint-plugin-prettier": "^5.2.1",
     "file-loader": "^6.1.0",
     "glob": "^10.4.2",
+    "glob-parent": "^6.0.2",
     "husky": "^9.1.4",
+    "istanbul-lib-coverage": "^3.2.2",
+    "istanbul-lib-instrument": "^6.0.3",
+    "jest": "^29.5.0",
     "lint-staged": "^15.2.5",
-    "mocha": "^10.3.0",
     "ovsx": "^0.9.2",
     "prettier": "^3.3.3",
     "prettier-eslint": "^15.0.1",
     "prettier-plugin-organize-imports": "^3.2.4",
+    "source-map-support": "^0.5.21",
     "terser-webpack-plugin": "^5.3.10",
+    "ts-jest": "^29.1.0",
     "ts-loader": "^9.4.4",
+    "ts-mockito": "^2.6.1",
+    "ts-node": "^10.9.2",
     "typescript": "^4.9.5",
     "webpack": "^5.93.0",
     "webpack-cli": "^5.1.4",
@@ -1277,7 +1361,7 @@
     "which": "^4.0.0",
     "ws": "^8.18.0",
     "yaml": "^2.5.0",
-    "zeromq": "^6.0.0-beta.16"
+    "zeromq": "^6.1.0"
   },
   "lint-staged": {
     "**/webview_panels/**/*.{ts,tsx}": [

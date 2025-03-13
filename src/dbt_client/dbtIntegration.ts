@@ -169,7 +169,7 @@ export class PythonDBTCommandExecutionStrategy
   }
 
   private dbtCommand(args: string[]): string {
-    args = args.map((arg) => `r'${arg}'`);
+    args = args.map((arg) => `r"""${arg.replace(/"/g, '\\"')}"""`);
     const dbtCustomRunnerImport = workspace
       .getConfiguration("dbt")
       .get<string>(
@@ -336,6 +336,7 @@ export interface DBTProjectIntegration extends Disposable {
   getPackageInstallPath(): string | undefined;
   getAdapterType(): string | undefined;
   getVersion(): number[] | undefined;
+  getProjectName(): string;
   getSelectedTarget(): string | undefined;
   // parse manifest
   rebuildManifest(): Promise<void>;
@@ -389,6 +390,7 @@ export interface DBTProjectIntegration extends Disposable {
     args: HealthcheckArgs,
   ): Promise<ProjectHealthcheck>;
   applyDeferConfig(): Promise<void>;
+  applySelectedTarget(): Promise<void>;
   getAllDiagnostic(): Diagnostic[];
   throwDiagnosticsErrorIfAvailable(): void;
   getPythonBridgeStatus(): boolean;

@@ -4,6 +4,7 @@ import { panelLogger } from "@modules/logger";
 import {
   DBTDocumentation,
   DBTDocumentationColumn,
+  DocumentationStateProps,
   Source,
 } from "./state/types";
 import { GenerationDBDataProps } from "./types";
@@ -133,4 +134,42 @@ export const mergeCurrentAndIncomingDocumentationColumns = (
       source: existingColumn !== undefined ? Source.YAML : Source.DATABASE,
     };
   });
+};
+
+export const isStateDirty = (state: DocumentationStateProps): boolean => {
+  if (!state.currentDocsData && !state.currentDocsTests) return false;
+  if (!state.incomingDocsData) return false;
+  if (!state.incomingDocsData.docs && !state.incomingDocsData.tests)
+    return false;
+  if (
+    state.currentDocsData?.description !==
+    state.incomingDocsData.docs?.description
+  ) {
+    return true;
+  }
+
+  for (const column of state.currentDocsData?.columns ?? []) {
+    const incomingColumn = state.incomingDocsData.docs?.columns?.find(
+      (c) => c.name === column.name,
+    );
+    if (column.description !== incomingColumn?.description) {
+      return true;
+    }
+  }
+  if (state.currentDocsTests?.length !== state.incomingDocsData.tests?.length) {
+    return true;
+  }
+  for (const test of state.currentDocsTests ?? []) {
+    const incomingTest = state.incomingDocsData.tests?.find(
+      (t) => t.key === test.key,
+    );
+    if (!incomingTest) {
+      return true;
+    }
+  }
+  return false;
+};
+
+export const isArrayEqual = (a: string[], b: string[]): boolean => {
+  return a.length === b.length && a.every((v, i) => v === b[i]);
 };

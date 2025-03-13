@@ -40,6 +40,7 @@ import { ValidationProvider } from "./validation_provider";
 import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
 import { NotebookKernelClient, NotebookDependencies } from "@lib";
+import { DBTCoreCommandProjectIntegration } from "./dbt_client/dbtCoreCommandIntegration";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -75,6 +76,27 @@ container
 
 container
   .bind<
+    interfaces.Factory<DBTCommandExecutionStrategy>
+  >("Factory<CLIDBTCommandExecutionStrategy>")
+  .toFactory<
+    CLIDBTCommandExecutionStrategy,
+    [Uri, string]
+  >((context: interfaces.Context) => {
+    return (projectRoot: Uri, dbtPath: string) => {
+      const { container } = context;
+      return new CLIDBTCommandExecutionStrategy(
+        container.get(CommandProcessExecutionFactory),
+        container.get(PythonEnvironment),
+        container.get(DBTTerminal),
+        container.get(TelemetryService),
+        projectRoot,
+        dbtPath,
+      );
+    };
+  });
+
+container
+  .bind<
     interfaces.Factory<DBTCoreProjectIntegration>
   >("Factory<DBTCoreProjectIntegration>")
   .toFactory<
@@ -91,6 +113,7 @@ container
         container.get(PythonEnvironment),
         container.get(TelemetryService),
         container.get(PythonDBTCommandExecutionStrategy),
+        container.get("Factory<CLIDBTCommandExecutionStrategy>"),
         container.get(DBTProjectContainer),
         container.get(AltimateRequest),
         container.get(DBTTerminal),
@@ -104,21 +127,30 @@ container
 
 container
   .bind<
-    interfaces.Factory<DBTCommandExecutionStrategy>
-  >("Factory<CLIDBTCommandExecutionStrategy>")
+    interfaces.Factory<DBTCoreProjectIntegration>
+  >("Factory<DBTCoreCommandProjectIntegration>")
   .toFactory<
-    CLIDBTCommandExecutionStrategy,
-    [Uri, string]
+    DBTCoreCommandProjectIntegration,
+    [Uri, DiagnosticCollection]
   >((context: interfaces.Context) => {
-    return (projectRoot: Uri, dbtPath: string) => {
+    return (
+      projectRoot: Uri,
+      projectConfigDiagnostics: DiagnosticCollection,
+    ) => {
       const { container } = context;
-      return new CLIDBTCommandExecutionStrategy(
-        container.get(CommandProcessExecutionFactory),
+      return new DBTCoreCommandProjectIntegration(
+        container.get(DBTCommandExecutionInfrastructure),
         container.get(PythonEnvironment),
-        container.get(DBTTerminal),
         container.get(TelemetryService),
+        container.get(PythonDBTCommandExecutionStrategy),
+        container.get("Factory<CLIDBTCommandExecutionStrategy>"),
+        container.get(DBTProjectContainer),
+        container.get(AltimateRequest),
+        container.get(DBTTerminal),
+        container.get(ValidationProvider),
+        container.get(DeferToProdService),
         projectRoot,
-        dbtPath,
+        projectConfigDiagnostics,
       );
     };
   });
@@ -143,6 +175,7 @@ container
         container.get(ValidationProvider),
         container.get(DeferToProdService),
         projectRoot,
+        container.get(AltimateRequest),
       );
     };
   });
@@ -169,6 +202,7 @@ container
         container.get(SharedStateService),
         container.get(TelemetryService),
         container.get("Factory<DBTCoreProjectIntegration>"),
+        container.get("Factory<DBTCoreCommandProjectIntegration>"),
         container.get("Factory<DBTCloudProjectIntegration>"),
         container.get(AltimateRequest),
         container.get(ValidationProvider),

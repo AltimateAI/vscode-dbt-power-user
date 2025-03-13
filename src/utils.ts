@@ -8,9 +8,10 @@ import {
   TextDocument,
   Uri,
   workspace,
+  window,
 } from "vscode";
 import { readFileSync } from "fs";
-import { parse } from "yaml";
+import { parse, parseDocument } from "yaml";
 import {
   TestMetadataAcceptedValues,
   TestMetadataRelationships,
@@ -81,8 +82,8 @@ export const arrayEquals = <T>(a: Array<T>, b: Array<T>): boolean => {
   return a.sort().toString() === b.sort().toString();
 };
 
-export const debounce = (fn: Function, wait: number) => {
-  let timeout: number;
+export const debounce = (fn: (args: unknown) => void, wait: number) => {
+  let timeout: NodeJS.Timeout;
   return () => {
     clearTimeout(timeout);
     timeout = setTimeout(fn, wait);
@@ -134,19 +135,40 @@ export const getProjectRelativePath = (projectRoot: Uri) => {
   return path.relative(ws?.uri.fsPath || "", projectRoot.fsPath);
 };
 
-export const processStreamResponse = (
-  stream: NodeJS.ReadableStream,
+export const processStreamResponse = async (
+  stream: NodeJS.ReadableStream | ReadableStream,
   cb: (data: string) => void,
 ): Promise<string> => {
-  const chunks: Buffer[] = [];
-  return new Promise((resolve, reject) => {
-    stream.on("data", (chunk: Uint8Array) => {
-      cb(new TextDecoder().decode(chunk));
-      chunks.push(Buffer.from(chunk));
+  if (stream instanceof ReadableStream) {
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
+    let result = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+        const chunk = decoder.decode(value, { stream: true });
+        result += chunk;
+        cb(chunk);
+      }
+      return result;
+    } finally {
+      reader.releaseLock();
+    }
+  } else {
+    return new Promise((resolve, reject) => {
+      let result = "";
+      stream.on("data", (chunk: Buffer) => {
+        const data = chunk.toString();
+        result += data;
+        cb(data);
+      });
+      stream.on("end", () => resolve(result));
+      stream.on("error", reject);
     });
-    stream.on("error", (err: unknown) => reject(err));
-    stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
-  });
+  }
 };
 
 export const deepEqual = (obj1: any, obj2: any): boolean => {
@@ -262,20 +284,32 @@ export const getExternalProjectNamesFromDbtLoomConfig = (
 };
 
 export const isRelationship = (
-  metadata: TestMetadataRelationships | TestMetadataAcceptedValues,
+  metadata:
+    | TestMetadataRelationships
+    | TestMetadataAcceptedValues
+    | { [x: string]: unknown },
 ): metadata is TestMetadataRelationships => {
-  return (metadata as TestMetadataRelationships).field !== undefined;
+  return (
+    (metadata as TestMetadataRelationships).field !== undefined &&
+    (metadata as TestMetadataRelationships).to !== undefined
+  );
 };
 
 export const isAcceptedValues = (
-  metadata: TestMetadataRelationships | TestMetadataAcceptedValues,
+  metadata:
+    | TestMetadataRelationships
+    | TestMetadataAcceptedValues
+    | { [x: string]: unknown },
 ): metadata is TestMetadataAcceptedValues => {
   return (metadata as TestMetadataAcceptedValues).values !== undefined;
 };
 
 export const getColumnTestConfigFromYml = (
   allTests: any[] | undefined,
-  kwargs: TestMetadataAcceptedValues | TestMetadataRelationships,
+  kwargs:
+    | TestMetadataAcceptedValues
+    | TestMetadataRelationships
+    | { [x: string]: unknown },
   testName: string,
 ) => {
   const testsByTestName = allTests?.filter((t: any) => {
@@ -305,7 +339,10 @@ export const getColumnTestConfigFromYml = (
       );
     }
 
-    return true;
+    // For multiple tests with same name but diff config from  external packages like dbt_utils,
+    // match all the config values
+    const { model, column_name, ...rest } = kwargs;
+    return Object.entries(rest).every(([k, v]) => t[testName][k] === v);
   });
 
   if (isRelationship(kwargs)) {
@@ -359,3 +396,71 @@ export const getStringSizeInMb = (str: string): number => {
   const sizeInMB = sizeInBytes / (1024 * 1024);
   return sizeInMB;
 };
+
+interface YamlModel {
+  key?: { value: string };
+  value?: { items?: Array<YamlModelItem> };
+}
+
+interface YamlModelItem {
+  items?: Array<{
+    key?: { value: string };
+    value?: { toString(): string };
+  }>;
+  range?: [number, number];
+}
+
+export function getCurrentlySelectedModelNameInYamlConfig(): string {
+  if (
+    window.activeTextEditor === undefined ||
+    window.activeTextEditor.document.languageId !== "yaml"
+  ) {
+    return "";
+  }
+
+  try {
+    const parsedYaml = parseDocument(
+      window.activeTextEditor.document.getText(),
+    );
+    if (parsedYaml.contents === null) {
+      return "";
+    }
+    const cursorPosition = window.activeTextEditor.selection.active;
+    const offset = window.activeTextEditor.document.offsetAt(cursorPosition);
+
+    const contents = parsedYaml.contents as { items?: Array<YamlModel> };
+    if (!contents.items) {
+      return "";
+    }
+
+    const modelsNode = contents.items.find(
+      (item) => item?.key?.value === "models",
+    );
+    if (!modelsNode?.value?.items) {
+      return "";
+    }
+
+    // Find a model at the current position
+    for (const model of modelsNode.value.items) {
+      if (!model?.items) {
+        continue;
+      }
+
+      const nameNode = model.items.find((item) => item?.key?.value === "name");
+      if (!nameNode?.value) {
+        continue;
+      }
+
+      if (model.range && model.range[0] < offset && offset < model.range[1]) {
+        return nameNode.value.toString();
+      }
+    }
+  } catch (error) {
+    console.error("Error parsing YAML document:", {
+      error,
+      document: window.activeTextEditor?.document.fileName,
+      position: window.activeTextEditor?.selection.active,
+    });
+  }
+  return "";
+}
