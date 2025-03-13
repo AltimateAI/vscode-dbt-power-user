@@ -11,6 +11,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { Uri, Disposable } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProject, DBTTerminal } from "@extension";
+import { RunModelParams } from "src/dbt_client/dbtIntegration";
 
 const ToolInputSchema = ToolSchema.shape.inputSchema;
 type ToolInput = z.infer<typeof ToolInputSchema>;
@@ -73,14 +74,6 @@ const UnsafeCompileNodeSchema = BaseProjectRootSchema.extend({
 });
 
 enum ToolName {
-  RUN_MODEL = "run_model",
-  BUILD_MODEL = "build_model",
-  BUILD_PROJECT = "build_project",
-  RUN_TEST = "run_test",
-  RUN_MODEL_TEST = "run_model_test",
-  INSTALL_DBT_PACKAGES = "install_dbt_packages",
-  INSTALL_DEPS = "install_deps",
-  UNSAFE_COMPILE_NODE = "unsafe_compile_node",
   GET_PROJECTS = "get_projects",
   GET_PROJECT_NAME = "get_project_name",
   GET_SELECTED_TARGET = "get_selected_target",
@@ -92,7 +85,6 @@ enum ToolName {
   GET_MACRO_PATHS = "get_macro_paths",
   GET_MANIFEST_PATH = "get_manifest_path",
   GET_CATALOG_PATH = "get_catalog_path",
-  GET_PYTHON_BRIDGE_STATUS = "get_python_bridge_status",
   GET_ALL_DIAGNOSTIC = "get_all_diagnostic",
   GET_DBT_VERSION = "get_dbt_version",
   GET_ADAPTER_TYPE = "get_adapter_type",
@@ -104,6 +96,14 @@ enum ToolName {
   COMPILE_QUERY = "compile_query",
   EXECUTE_SQL_WITH_LIMIT = "execute_sql_with_limit",
   SET_SELECTED_TARGET = "set_selected_target",
+  RUN_MODEL = "run_model",
+  BUILD_MODEL = "build_model",
+  BUILD_PROJECT = "build_project",
+  RUN_TEST = "run_test",
+  RUN_MODEL_TEST = "run_model_test",
+  INSTALL_DBT_PACKAGES = "install_dbt_packages",
+  INSTALL_DEPS = "install_deps",
+  UNSAFE_COMPILE_NODE = "unsafe_compile_node",
 }
 
 @provideSingleton(DbtPowerUserMcpServerTools)
@@ -191,11 +191,6 @@ export class DbtPowerUserMcpServerTools implements Disposable {
         {
           name: ToolName.GET_CATALOG_PATH,
           description: "Get catalog path",
-          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-        },
-        {
-          name: ToolName.GET_PYTHON_BRIDGE_STATUS,
-          description: "Get python bridge status",
           inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
         },
         {
@@ -391,12 +386,6 @@ export class DbtPowerUserMcpServerTools implements Disposable {
         };
       }
 
-      if (name === ToolName.GET_PYTHON_BRIDGE_STATUS) {
-        return {
-          content: [{ type: "text", text: project.getPythonBridgeStatus() }],
-        };
-      }
-
       if (name === ToolName.GET_ALL_DIAGNOSTIC) {
         return {
           content: [
@@ -476,42 +465,70 @@ export class DbtPowerUserMcpServerTools implements Disposable {
       }
 
       if (name === ToolName.RUN_MODEL) {
-        await project.runModel(args);
+        const runModelParams: RunModelParams = {
+          plusOperatorLeft: args.plusOperatorLeft as string,
+          modelName: args.modelName as string,
+          plusOperatorRight: args.plusOperatorRight as string,
+        };
+        await project.runModel(runModelParams);
         return { content: [{ type: "text", text: "Model run successfully" }] };
       }
 
       if (name === ToolName.BUILD_MODEL) {
-        await project.buildModel(args);
-        return { content: [{ type: "text", text: "Model built successfully" }] };
+        const runModelParams: RunModelParams = {
+          plusOperatorLeft: args.plusOperatorLeft as string,
+          modelName: args.modelName as string,
+          plusOperatorRight: args.plusOperatorRight as string,
+        };
+        // TODO: should capture output and return it
+        await project.buildModel(runModelParams);
+        return {
+          content: [{ type: "text", text: "Model built successfully" }],
+        };
       }
 
       if (name === ToolName.BUILD_PROJECT) {
+        // TODO: should capture output and return it
         await project.buildProject();
-        return { content: [{ type: "text", text: "Project built successfully" }] };
+        return {
+          content: [{ type: "text", text: "Project built successfully" }],
+        };
       }
 
       if (name === ToolName.RUN_TEST) {
+        // TODO: should capture output and return it
         await project.runTest(args.testName as string);
         return { content: [{ type: "text", text: "Test run successfully" }] };
       }
 
       if (name === ToolName.RUN_MODEL_TEST) {
+        // TODO: should capture output and return it
         await project.runModelTest(args.modelName as string);
-        return { content: [{ type: "text", text: "Model test run successfully" }] };
+        return {
+          content: [{ type: "text", text: "Model test run successfully" }],
+        };
       }
 
       if (name === ToolName.INSTALL_DBT_PACKAGES) {
+        // TODO: should capture output and return it
         await project.installDbtPackages(args.packages as string[]);
-        return { content: [{ type: "text", text: "Packages installed successfully" }] };
+        return {
+          content: [{ type: "text", text: "Packages installed successfully" }],
+        };
       }
 
       if (name === ToolName.INSTALL_DEPS) {
+        // TODO: should capture output and return it
         await project.installDeps();
-        return { content: [{ type: "text", text: "Deps installed successfully" }] };
+        return {
+          content: [{ type: "text", text: "Deps installed successfully" }],
+        };
       }
 
       if (name === ToolName.UNSAFE_COMPILE_NODE) {
-        const result = await project.unsafeCompileNode(args.modelName as string);
+        const result = await project.unsafeCompileNode(
+          args.modelName as string,
+        );
         return { content: [{ type: "text", text: result || "" }] };
       }
 
