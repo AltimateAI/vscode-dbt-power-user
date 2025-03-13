@@ -51,7 +51,6 @@ enum ToolName {
   GET_PROJECT_NAME = "get_project_name",
   GET_SELECTED_TARGET = "get_selected_target",
   GET_TARGET_NAMES = "get_target_names",
-  GET_DBT_PROJECT_FILE_PATH = "get_dbt_project_file_path",
   GET_TARGET_PATH = "get_target_path",
   GET_PACKAGE_INSTALL_PATH = "get_package_install_path",
   GET_MODEL_PATHS = "get_model_paths",
@@ -109,11 +108,6 @@ export const createServer = (dbtProjectContainer: DBTProjectContainer) => {
       {
         name: ToolName.GET_TARGET_NAMES,
         description: "Get target names",
-        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-      },
-      {
-        name: ToolName.GET_DBT_PROJECT_FILE_PATH,
-        description: "Get dbt project file path",
         inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
       },
       {
@@ -247,12 +241,6 @@ export const createServer = (dbtProjectContainer: DBTProjectContainer) => {
       const targetNames = await project.getTargetNames();
       return {
         content: [{ type: "text", text: targetNames.join(", ") }],
-      };
-    }
-
-    if (name === ToolName.GET_DBT_PROJECT_FILE_PATH) {
-      return {
-        content: [{ type: "text", text: project.getDBTProjectFilePath() }],
       };
     }
 
