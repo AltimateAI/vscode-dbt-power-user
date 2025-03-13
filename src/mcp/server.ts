@@ -47,7 +47,40 @@ const SetSelectedTargetSchema = BaseProjectRootSchema.extend({
   targetName: z.string(),
 });
 
+const RunModelSchema = BaseProjectRootSchema.extend({
+  plusOperatorLeft: z.string(),
+  modelName: z.string(),
+  plusOperatorRight: z.string(),
+});
+const BuildModelSchema = BaseProjectRootSchema.extend({
+  plusOperatorLeft: z.string(),
+  modelName: z.string(),
+  plusOperatorRight: z.string(),
+});
+const BuildProjectSchema = BaseProjectRootSchema.extend({});
+const RunTestSchema = BaseProjectRootSchema.extend({
+  testName: z.string(),
+});
+const RunModelTestSchema = BaseProjectRootSchema.extend({
+  modelName: z.string(),
+});
+const InstallDbtPackagesSchema = BaseProjectRootSchema.extend({
+  packages: z.array(z.string()),
+});
+const InstallDepsSchema = BaseProjectRootSchema.extend({});
+const UnsafeCompileNodeSchema = BaseProjectRootSchema.extend({
+  modelName: z.string(),
+});
+
 enum ToolName {
+  RUN_MODEL = "run_model",
+  BUILD_MODEL = "build_model",
+  BUILD_PROJECT = "build_project",
+  RUN_TEST = "run_test",
+  RUN_MODEL_TEST = "run_model_test",
+  INSTALL_DBT_PACKAGES = "install_dbt_packages",
+  INSTALL_DEPS = "install_deps",
+  UNSAFE_COMPILE_NODE = "unsafe_compile_node",
   GET_PROJECTS = "get_projects",
   GET_PROJECT_NAME = "get_project_name",
   GET_SELECTED_TARGET = "get_selected_target",
@@ -214,6 +247,46 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           name: ToolName.SET_SELECTED_TARGET,
           description: "Set selected target",
           inputSchema: zodToJsonSchema(SetSelectedTargetSchema) as ToolInput,
+        },
+        {
+          name: ToolName.RUN_MODEL,
+          description: "Run model",
+          inputSchema: zodToJsonSchema(RunModelSchema) as ToolInput,
+        },
+        {
+          name: ToolName.BUILD_MODEL,
+          description: "Build model",
+          inputSchema: zodToJsonSchema(BuildModelSchema) as ToolInput,
+        },
+        {
+          name: ToolName.BUILD_PROJECT,
+          description: "Build project",
+          inputSchema: zodToJsonSchema(BuildProjectSchema) as ToolInput,
+        },
+        {
+          name: ToolName.RUN_TEST,
+          description: "Run test",
+          inputSchema: zodToJsonSchema(RunTestSchema) as ToolInput,
+        },
+        {
+          name: ToolName.RUN_MODEL_TEST,
+          description: "Run model test",
+          inputSchema: zodToJsonSchema(RunModelTestSchema) as ToolInput,
+        },
+        {
+          name: ToolName.INSTALL_DBT_PACKAGES,
+          description: "Install dbt packages",
+          inputSchema: zodToJsonSchema(InstallDbtPackagesSchema) as ToolInput,
+        },
+        {
+          name: ToolName.INSTALL_DEPS,
+          description: "Install deps",
+          inputSchema: zodToJsonSchema(InstallDepsSchema) as ToolInput,
+        },
+        {
+          name: ToolName.UNSAFE_COMPILE_NODE,
+          description: "Unsafe compile node",
+          inputSchema: zodToJsonSchema(UnsafeCompileNodeSchema) as ToolInput,
         },
       ];
 
@@ -400,6 +473,46 @@ export class DbtPowerUserMcpServerTools implements Disposable {
         }
         await project.setSelectedTarget(args.targetName as string);
         return { content: [{ type: "text", text: "Target set successfully" }] };
+      }
+
+      if (name === ToolName.RUN_MODEL) {
+        await project.runModel(args);
+        return { content: [{ type: "text", text: "Model run successfully" }] };
+      }
+
+      if (name === ToolName.BUILD_MODEL) {
+        await project.buildModel(args);
+        return { content: [{ type: "text", text: "Model built successfully" }] };
+      }
+
+      if (name === ToolName.BUILD_PROJECT) {
+        await project.buildProject();
+        return { content: [{ type: "text", text: "Project built successfully" }] };
+      }
+
+      if (name === ToolName.RUN_TEST) {
+        await project.runTest(args.testName as string);
+        return { content: [{ type: "text", text: "Test run successfully" }] };
+      }
+
+      if (name === ToolName.RUN_MODEL_TEST) {
+        await project.runModelTest(args.modelName as string);
+        return { content: [{ type: "text", text: "Model test run successfully" }] };
+      }
+
+      if (name === ToolName.INSTALL_DBT_PACKAGES) {
+        await project.installDbtPackages(args.packages as string[]);
+        return { content: [{ type: "text", text: "Packages installed successfully" }] };
+      }
+
+      if (name === ToolName.INSTALL_DEPS) {
+        await project.installDeps();
+        return { content: [{ type: "text", text: "Deps installed successfully" }] };
+      }
+
+      if (name === ToolName.UNSAFE_COMPILE_NODE) {
+        const result = await project.unsafeCompileNode(args.modelName as string);
+        return { content: [{ type: "text", text: result || "" }] };
       }
 
       throw new Error(`Unknown tool: ${name}`);
