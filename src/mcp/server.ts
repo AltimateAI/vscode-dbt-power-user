@@ -9,22 +9,30 @@ import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { Uri } from "vscode";
-import path from "path";
-import { readFileSync } from "fs";
+
 const ToolInputSchema = ToolSchema.shape.inputSchema;
 type ToolInput = z.infer<typeof ToolInputSchema>;
 
-const GetProjectsSchema = z.object({});
-const CompileQuerySchema = z.object({
-  model: z.string(),
-});
+const BaseSchema = z.object({ projectRoot: z.string() });
 
 enum ToolName {
-  GET_PROJECTS = "get_projects",
-  COMPILE_QUERY = "compile_query",
+  GET_PROJECT_NAME = "get_project_name",
+  GET_SELECTED_TARGET = "get_selected_target",
+  GET_TARGET_NAMES = "get_target_names",
+  GET_DBT_PROJECT_FILE_PATH = "get_dbt_project_file_path",
+  GET_TARGET_PATH = "get_target_path",
+  GET_PACKAGE_INSTALL_PATH = "get_package_install_path",
+  GET_MODEL_PATHS = "get_model_paths",
+  GET_SEED_PATHS = "get_seed_paths",
+  GET_MACRO_PATHS = "get_macro_paths",
+  GET_MANIFEST_PATH = "get_manifest_path",
+  GET_CATALOG_PATH = "get_catalog_path",
+  GET_PYTHON_BRIDGE_STATUS = "get_python_bridge_status",
+  GET_ALL_DIAGNOSTIC = "get_all_diagnostic",
+  GET_DBT_VERSION = "get_dbt_version",
+  GET_ADAPTER_TYPE = "get_adapter_type",
 }
 
-console.log("Creating server");
 export const createServer = (dbtProjectContainer: DBTProjectContainer) => {
   const server = new Server(
     {
@@ -43,16 +51,21 @@ export const createServer = (dbtProjectContainer: DBTProjectContainer) => {
 
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     const tools: Tool[] = [
-      {
-        name: ToolName.GET_PROJECTS,
-        description: "Get all projects",
-        inputSchema: zodToJsonSchema(GetProjectsSchema) as ToolInput,
-      },
-      {
-        name: ToolName.COMPILE_QUERY,
-        description: "Compile a query",
-        inputSchema: zodToJsonSchema(CompileQuerySchema) as ToolInput,
-      },
+      { name: ToolName.GET_PROJECT_NAME, description: "Get project name", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
+      { name: ToolName.GET_SELECTED_TARGET, description: "Get selected target", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
+      { name: ToolName.GET_TARGET_NAMES, description: "Get target names", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
+      { name: ToolName.GET_DBT_PROJECT_FILE_PATH, description: "Get dbt project file path", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
+      { name: ToolName.GET_TARGET_PATH, description: "Get target path", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
+      { name: ToolName.GET_PACKAGE_INSTALL_PATH, description: "Get package install path", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
+      { name: ToolName.GET_MODEL_PATHS, description: "Get model paths", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
+      { name: ToolName.GET_SEED_PATHS, description: "Get seed paths", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
+      { name: ToolName.GET_MACRO_PATHS, description: "Get macro paths", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
+      { name: ToolName.GET_MANIFEST_PATH, description: "Get manifest path", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
+      { name: ToolName.GET_CATALOG_PATH, description: "Get catalog path", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
+      { name: ToolName.GET_PYTHON_BRIDGE_STATUS, description: "Get python bridge status", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
+      { name: ToolName.GET_ALL_DIAGNOSTIC, description: "Get all diagnostic", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
+      { name: ToolName.GET_DBT_VERSION, description: "Get dbt version", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
+      { name: ToolName.GET_ADAPTER_TYPE, description: "Get adapter type", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
     ];
 
     return { tools };
@@ -60,38 +73,73 @@ export const createServer = (dbtProjectContainer: DBTProjectContainer) => {
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
-
-    if (name === ToolName.GET_PROJECTS) {
-      const projects = dbtProjectContainer.getProjects();
-      return {
-        content: [
-          {
-            type: "text",
-            text: projects.map((p) => p.projectRoot.fsPath).join(", "),
-          },
-        ],
-      };
+    const project = dbtProjectContainer.findDBTProject(Uri.file(args.projectRoot));
+    if (!project) {
+      throw new Error(`Project not found for root: ${args.projectRoot}`);
     }
 
-    if (name === ToolName.COMPILE_QUERY) {
-      const modelName = args?.model as string;
-      const modelPath = modelName.endsWith(".sql")
-        ? modelName
-        : `models/${modelName}.sql`;
-      // TODO: assuming single workspace folder for now
-      const projectRoot = dbtProjectContainer.getProjects()[0].projectRoot;
-      const fileUri = Uri.file(path.join(projectRoot.fsPath, modelPath));
-      // get contents of file
-      const query = readFileSync(fileUri.fsPath, "utf8");
-      const result = await dbtProjectContainer.compileQuery(fileUri, query);
-      return { content: [{ type: "text", text: result }] };
+    if (name === ToolName.GET_PROJECT_NAME) {
+      return { content: [{ type: "text", text: project.getProjectName() }] };
     }
 
-    console.log("Unknown tool", name);
+    if (name === ToolName.GET_SELECTED_TARGET) {
+      return { content: [{ type: "text", text: project.getSelectedTarget() }] };
+    }
+
+    if (name === ToolName.GET_TARGET_NAMES) {
+      return { content: [{ type: "text", text: project.getTargetNames().join(", ") }] };
+    }
+
+    if (name === ToolName.GET_DBT_PROJECT_FILE_PATH) {
+      return { content: [{ type: "text", text: project.getDBTProjectFilePath() }] };
+    }
+
+    if (name === ToolName.GET_TARGET_PATH) {
+      return { content: [{ type: "text", text: project.getTargetPath() || "" }] };
+    }
+
+    if (name === ToolName.GET_PACKAGE_INSTALL_PATH) {
+      return { content: [{ type: "text", text: project.getPackageInstallPath() || "" }] };
+    }
+
+    if (name === ToolName.GET_MODEL_PATHS) {
+      return { content: [{ type: "text", text: project.getModelPaths()?.join(", ") || "" }] };
+    }
+
+    if (name === ToolName.GET_SEED_PATHS) {
+      return { content: [{ type: "text", text: project.getSeedPaths()?.join(", ") || "" }] };
+    }
+
+    if (name === ToolName.GET_MACRO_PATHS) {
+      return { content: [{ type: "text", text: project.getMacroPaths()?.join(", ") || "" }] };
+    }
+
+    if (name === ToolName.GET_MANIFEST_PATH) {
+      return { content: [{ type: "text", text: project.getManifestPath() || "" }] };
+    }
+
+    if (name === ToolName.GET_CATALOG_PATH) {
+      return { content: [{ type: "text", text: project.getCatalogPath() || "" }] };
+    }
+
+    if (name === ToolName.GET_PYTHON_BRIDGE_STATUS) {
+      return { content: [{ type: "text", text: project.getPythonBridgeStatus() }] };
+    }
+
+    if (name === ToolName.GET_ALL_DIAGNOSTIC) {
+      return { content: [{ type: "text", text: JSON.stringify(project.getAllDiagnostic()) }] };
+    }
+
+    if (name === ToolName.GET_DBT_VERSION) {
+      return { content: [{ type: "text", text: project.getDBTVersion()?.join(".") || "" }] };
+    }
+
+    if (name === ToolName.GET_ADAPTER_TYPE) {
+      return { content: [{ type: "text", text: project.getAdapterType() }] };
+    }
+
     throw new Error(`Unknown tool: ${name}`);
   });
 
-  const cleanup = async () => {};
-
-  return { server, cleanup };
+  return { server, cleanup: async () => {} };
 };
