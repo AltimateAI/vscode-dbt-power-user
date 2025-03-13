@@ -222,7 +222,10 @@ export class DbtPowerUserMcpServerTools implements Disposable {
 
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
-      this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Calling tool", { name, args });
+      this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Calling tool", {
+        name,
+        args,
+      });
 
       if (name === ToolName.GET_PROJECTS) {
         const projects = this.dbtProjectContainer
@@ -241,7 +244,9 @@ export class DbtPowerUserMcpServerTools implements Disposable {
       if (!args || !args.projectRoot) {
         throw new Error("projectRoot is required");
       }
-      const project = this.dbtProjectContainer.findDBTProject(Uri.file(args.projectRoot as string));
+      const project = this.dbtProjectContainer.findDBTProject(
+        Uri.file(args.projectRoot as string),
+      );
       if (!project) {
         throw new Error(`Project not found for root: ${args.projectRoot}`);
       }
@@ -271,25 +276,33 @@ export class DbtPowerUserMcpServerTools implements Disposable {
 
       if (name === ToolName.GET_PACKAGE_INSTALL_PATH) {
         return {
-          content: [{ type: "text", text: project.getPackageInstallPath() || "" }],
+          content: [
+            { type: "text", text: project.getPackageInstallPath() || "" },
+          ],
         };
       }
 
       if (name === ToolName.GET_MODEL_PATHS) {
         return {
-          content: [{ type: "text", text: project.getModelPaths()?.join(", ") || "" }],
+          content: [
+            { type: "text", text: project.getModelPaths()?.join(", ") || "" },
+          ],
         };
       }
 
       if (name === ToolName.GET_SEED_PATHS) {
         return {
-          content: [{ type: "text", text: project.getSeedPaths()?.join(", ") || "" }],
+          content: [
+            { type: "text", text: project.getSeedPaths()?.join(", ") || "" },
+          ],
         };
       }
 
       if (name === ToolName.GET_MACRO_PATHS) {
         return {
-          content: [{ type: "text", text: project.getMacroPaths()?.join(", ") || "" }],
+          content: [
+            { type: "text", text: project.getMacroPaths()?.join(", ") || "" },
+          ],
         };
       }
 
@@ -313,13 +326,17 @@ export class DbtPowerUserMcpServerTools implements Disposable {
 
       if (name === ToolName.GET_ALL_DIAGNOSTIC) {
         return {
-          content: [{ type: "text", text: JSON.stringify(project.getAllDiagnostic()) }],
+          content: [
+            { type: "text", text: JSON.stringify(project.getAllDiagnostic()) },
+          ],
         };
       }
 
       if (name === ToolName.GET_DBT_VERSION) {
         return {
-          content: [{ type: "text", text: project.getDBTVersion()?.join(".") || "" }],
+          content: [
+            { type: "text", text: project.getDBTVersion()?.join(".") || "" },
+          ],
         };
       }
 
@@ -328,7 +345,9 @@ export class DbtPowerUserMcpServerTools implements Disposable {
       }
 
       if (name === ToolName.GET_COLUMNS_OF_MODEL) {
-        const result = await project.getColumnsOfModel(args.modelName as string);
+        const result = await project.getColumnsOfModel(
+          args.modelName as string,
+        );
         return { content: [{ type: "text", text: JSON.stringify(result) }] };
       }
 
@@ -341,7 +360,10 @@ export class DbtPowerUserMcpServerTools implements Disposable {
       }
 
       if (name === ToolName.GET_COLUMN_VALUES) {
-        const result = await project.getColumnValues(args.model as string, args.column as string);
+        const result = await project.getColumnValues(
+          args.model as string,
+          args.column as string,
+        );
         return { content: [{ type: "text", text: JSON.stringify(result) }] };
       }
 
