@@ -42,6 +42,10 @@ const ExecuteSQLWithLimitSchema = BaseProjectRootSchema.extend({
   returnRawResults: z.boolean().optional(),
 });
 
+const SetSelectedTargetSchema = BaseProjectRootSchema.extend({
+  targetName: z.string(),
+});
+
 enum ToolName {
   GET_PROJECTS = "get_projects",
   GET_PROJECT_NAME = "get_project_name",
@@ -66,6 +70,7 @@ enum ToolName {
   GET_BULK_SCHEMA_FROM_DB = "get_bulk_schema_from_db",
   COMPILE_QUERY = "compile_query",
   EXECUTE_SQL_WITH_LIMIT = "execute_sql_with_limit",
+  SET_SELECTED_TARGET = "set_selected_target",
 }
 
 export const createServer = (dbtProjectContainer: DBTProjectContainer) => {
@@ -195,6 +200,11 @@ export const createServer = (dbtProjectContainer: DBTProjectContainer) => {
         name: ToolName.EXECUTE_SQL_WITH_LIMIT,
         description: "Execute SQL with limit",
         inputSchema: zodToJsonSchema(ExecuteSQLWithLimitSchema) as ToolInput,
+      },
+      {
+        name: ToolName.SET_SELECTED_TARGET,
+        description: "Set selected target",
+        inputSchema: zodToJsonSchema(SetSelectedTargetSchema) as ToolInput,
       },
     ];
 
@@ -365,6 +375,17 @@ export const createServer = (dbtProjectContainer: DBTProjectContainer) => {
         args.returnRawResults as boolean,
       );
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
+    }
+
+    if (name === ToolName.SET_SELECTED_TARGET) {
+      const project = dbtProjectContainer.findDBTProject(
+        Uri.file(args.projectRoot as string),
+      );
+      if (!project) {
+        throw new Error(`Project not found for root: ${args.projectRoot}`);
+      }
+      await project.setSelectedTarget(args.targetName as string);
+      return { content: [{ type: "text", text: "Target set successfully" }] };
     }
 
     throw new Error(`Unknown tool: ${name}`);
