@@ -387,11 +387,6 @@
     },
     "commands": [
       {
-        "command": "dbtPowerUser.mcp.start",
-        "title": "Start MCP server",
-        "category": "dbt Power User"
-      },
-      {
         "command": "dbtPowerUser.collectQueryResultsDebugInfo",
         "title": "Query Results Debug Info",
         "category": "dbt Power User"

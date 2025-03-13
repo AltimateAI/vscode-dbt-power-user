@@ -8,8 +8,9 @@ import {
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { Uri } from "vscode";
-import { DBTProject } from "@extension";
+import { Uri, Disposable } from "vscode";
+import { provideSingleton } from "../utils";
+import { DBTProject, DBTTerminal } from "@extension";
 
 const ToolInputSchema = ToolSchema.shape.inputSchema;
 type ToolInput = z.infer<typeof ToolInputSchema>;
@@ -72,312 +73,316 @@ enum ToolName {
   SET_SELECTED_TARGET = "set_selected_target",
 }
 
-export const createServer = (dbtProjectContainer: DBTProjectContainer) => {
-  const server = new Server(
-    {
-      name: "example-servers/everything",
-      version: "1.0.0",
-    },
-    {
-      capabilities: {
-        prompts: {},
-        resources: { subscribe: true },
-        tools: {},
-        logging: {},
-      },
-    },
-  );
+@provideSingleton(DbtPowerUserMcpServerTools)
+export class DbtPowerUserMcpServerTools implements Disposable {
+  constructor(
+    private dbtProjectContainer: DBTProjectContainer,
+    private dbtTerminal: DBTTerminal,
+  ) {}
 
-  server.setRequestHandler(ListToolsRequestSchema, async () => {
-    const tools: Tool[] = [
-      {
-        name: ToolName.GET_PROJECTS,
-        description: "Get projects",
-        inputSchema: zodToJsonSchema(BaseSchema) as ToolInput,
-      },
-      {
-        name: ToolName.GET_PROJECT_NAME,
-        description: "Get project name",
-        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-      },
-      {
-        name: ToolName.GET_SELECTED_TARGET,
-        description: "Get selected target",
-        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-      },
-      {
-        name: ToolName.GET_TARGET_NAMES,
-        description: "Get target names",
-        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-      },
-      {
-        name: ToolName.GET_TARGET_PATH,
-        description: "Get target path",
-        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-      },
-      {
-        name: ToolName.GET_PACKAGE_INSTALL_PATH,
-        description: "Get package install path",
-        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-      },
-      {
-        name: ToolName.GET_MODEL_PATHS,
-        description: "Get model paths",
-        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-      },
-      {
-        name: ToolName.GET_SEED_PATHS,
-        description: "Get seed paths",
-        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-      },
-      {
-        name: ToolName.GET_MACRO_PATHS,
-        description: "Get macro paths",
-        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-      },
-      {
-        name: ToolName.GET_MANIFEST_PATH,
-        description: "Get manifest path",
-        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-      },
-      {
-        name: ToolName.GET_CATALOG_PATH,
-        description: "Get catalog path",
-        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-      },
-      {
-        name: ToolName.GET_PYTHON_BRIDGE_STATUS,
-        description: "Get python bridge status",
-        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-      },
-      {
-        name: ToolName.GET_ALL_DIAGNOSTIC,
-        description: "Get all diagnostic",
-        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-      },
-      {
-        name: ToolName.GET_DBT_VERSION,
-        description: "Get dbt version",
-        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-      },
-      {
-        name: ToolName.GET_ADAPTER_TYPE,
-        description: "Get adapter type",
-        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-      },
-      {
-        name: ToolName.GET_COLUMNS_OF_MODEL,
-        description: "Get columns of model",
-        inputSchema: zodToJsonSchema(GetColumnsOfModelSchema) as ToolInput,
-      },
-      {
-        name: ToolName.GET_COLUMNS_OF_SOURCE,
-        description: "Get columns of source",
-        inputSchema: zodToJsonSchema(GetColumnsOfSourceSchema) as ToolInput,
-      },
-      {
-        name: ToolName.GET_COLUMN_VALUES,
-        description: "Get column values",
-        inputSchema: zodToJsonSchema(GetColumnValuesSchema) as ToolInput,
-      },
-      {
-        name: ToolName.COMPILE_MODEL,
-        description: "Compile model",
-        inputSchema: zodToJsonSchema(CompileModelSchema) as ToolInput,
-      },
-      {
-        name: ToolName.COMPILE_QUERY,
-        description: "Compile query",
-        inputSchema: zodToJsonSchema(CompileQuerySchema) as ToolInput,
-      },
-      {
-        name: ToolName.EXECUTE_SQL_WITH_LIMIT,
-        description: "Execute SQL with limit",
-        inputSchema: zodToJsonSchema(ExecuteSQLWithLimitSchema) as ToolInput,
-      },
-      {
-        name: ToolName.SET_SELECTED_TARGET,
-        description: "Set selected target",
-        inputSchema: zodToJsonSchema(SetSelectedTargetSchema) as ToolInput,
-      },
-    ];
+  dispose() {}
 
-    return { tools };
-  });
-
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name, arguments: args } = request.params;
-    if (name === ToolName.GET_PROJECTS) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: dbtProjectContainer
-              .getProjects()
-              .map((project: DBTProject) => project.projectRoot.fsPath),
-          },
-        ],
-      };
-    }
-    if (!args || !args.projectRoot) {
-      throw new Error("projectRoot is required");
-    }
-    const project = dbtProjectContainer.findDBTProject(
-      Uri.file(args.projectRoot as string),
+  public createServer = () => {
+    const server = new Server(
+      {
+        name: "DbtPowerUserMcpServerTools",
+        version: "1.0.0",
+      },
+      {
+        capabilities: {
+          prompts: {},
+          resources: { subscribe: true },
+          tools: {},
+          logging: {},
+        },
+      },
     );
-    if (!project) {
-      throw new Error(`Project not found for root: ${args.projectRoot}`);
-    }
 
-    if (name === ToolName.GET_PROJECT_NAME) {
-      return { content: [{ type: "text", text: project.getProjectName() }] };
-    }
+    server.onerror = (error) => {
+      this.dbtTerminal.error("DbtPowerUserMcpServerTools", "Error", { error });
+    };
 
-    if (name === ToolName.GET_SELECTED_TARGET) {
-      return { content: [{ type: "text", text: project.getSelectedTarget() }] };
-    }
+    server.setRequestHandler(ListToolsRequestSchema, async () => {
+      this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Listing tools");
+      const tools: Tool[] = [
+        {
+          name: ToolName.GET_PROJECTS,
+          description: "Get projects",
+          inputSchema: zodToJsonSchema(BaseSchema) as ToolInput,
+        },
+        {
+          name: ToolName.GET_PROJECT_NAME,
+          description: "Get project name",
+          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+        },
+        {
+          name: ToolName.GET_SELECTED_TARGET,
+          description: "Get selected target",
+          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+        },
+        {
+          name: ToolName.GET_TARGET_NAMES,
+          description: "Get target names",
+          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+        },
+        {
+          name: ToolName.GET_TARGET_PATH,
+          description: "Get target path",
+          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+        },
+        {
+          name: ToolName.GET_PACKAGE_INSTALL_PATH,
+          description: "Get package install path",
+          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+        },
+        {
+          name: ToolName.GET_MODEL_PATHS,
+          description: "Get model paths",
+          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+        },
+        {
+          name: ToolName.GET_SEED_PATHS,
+          description: "Get seed paths",
+          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+        },
+        {
+          name: ToolName.GET_MACRO_PATHS,
+          description: "Get macro paths",
+          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+        },
+        {
+          name: ToolName.GET_MANIFEST_PATH,
+          description: "Get manifest path",
+          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+        },
+        {
+          name: ToolName.GET_CATALOG_PATH,
+          description: "Get catalog path",
+          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+        },
+        {
+          name: ToolName.GET_PYTHON_BRIDGE_STATUS,
+          description: "Get python bridge status",
+          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+        },
+        {
+          name: ToolName.GET_ALL_DIAGNOSTIC,
+          description: "Get all diagnostic",
+          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+        },
+        {
+          name: ToolName.GET_DBT_VERSION,
+          description: "Get dbt version",
+          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+        },
+        {
+          name: ToolName.GET_ADAPTER_TYPE,
+          description: "Get adapter type",
+          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+        },
+        {
+          name: ToolName.GET_COLUMNS_OF_MODEL,
+          description: "Get columns of model",
+          inputSchema: zodToJsonSchema(GetColumnsOfModelSchema) as ToolInput,
+        },
+        {
+          name: ToolName.GET_COLUMNS_OF_SOURCE,
+          description: "Get columns of source",
+          inputSchema: zodToJsonSchema(GetColumnsOfSourceSchema) as ToolInput,
+        },
+        {
+          name: ToolName.GET_COLUMN_VALUES,
+          description: "Get column values",
+          inputSchema: zodToJsonSchema(GetColumnValuesSchema) as ToolInput,
+        },
+        {
+          name: ToolName.COMPILE_MODEL,
+          description: "Compile model",
+          inputSchema: zodToJsonSchema(CompileModelSchema) as ToolInput,
+        },
+        {
+          name: ToolName.COMPILE_QUERY,
+          description: "Compile query or dbt model",
+          inputSchema: zodToJsonSchema(CompileQuerySchema) as ToolInput,
+        },
+        {
+          name: ToolName.EXECUTE_SQL_WITH_LIMIT,
+          description: "Execute SQL with limit",
+          inputSchema: zodToJsonSchema(ExecuteSQLWithLimitSchema) as ToolInput,
+        },
+        {
+          name: ToolName.SET_SELECTED_TARGET,
+          description: "Set selected target",
+          inputSchema: zodToJsonSchema(SetSelectedTargetSchema) as ToolInput,
+        },
+      ];
 
-    if (name === ToolName.GET_TARGET_NAMES) {
-      const targetNames = await project.getTargetNames();
-      return {
-        content: [{ type: "text", text: targetNames.join(", ") }],
-      };
-    }
+      return { tools };
+    });
 
-    if (name === ToolName.GET_TARGET_PATH) {
-      return {
-        content: [{ type: "text", text: project.getTargetPath() || "" }],
-      };
-    }
+    server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      const { name, arguments: args } = request.params;
+      this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Calling tool", { name, args });
 
-    if (name === ToolName.GET_PACKAGE_INSTALL_PATH) {
-      return {
-        content: [
-          { type: "text", text: project.getPackageInstallPath() || "" },
-        ],
-      };
-    }
+      if (name === ToolName.GET_PROJECTS) {
+        const projects = this.dbtProjectContainer
+          .getProjects()
+          .map((project: DBTProject) => project.projectRoot.fsPath);
 
-    if (name === ToolName.GET_MODEL_PATHS) {
-      return {
-        content: [
-          { type: "text", text: project.getModelPaths()?.join(", ") || "" },
-        ],
-      };
-    }
-
-    if (name === ToolName.GET_SEED_PATHS) {
-      return {
-        content: [
-          { type: "text", text: project.getSeedPaths()?.join(", ") || "" },
-        ],
-      };
-    }
-
-    if (name === ToolName.GET_MACRO_PATHS) {
-      return {
-        content: [
-          { type: "text", text: project.getMacroPaths()?.join(", ") || "" },
-        ],
-      };
-    }
-
-    if (name === ToolName.GET_MANIFEST_PATH) {
-      return {
-        content: [{ type: "text", text: project.getManifestPath() || "" }],
-      };
-    }
-
-    if (name === ToolName.GET_CATALOG_PATH) {
-      return {
-        content: [{ type: "text", text: project.getCatalogPath() || "" }],
-      };
-    }
-
-    if (name === ToolName.GET_PYTHON_BRIDGE_STATUS) {
-      return {
-        content: [{ type: "text", text: project.getPythonBridgeStatus() }],
-      };
-    }
-
-    if (name === ToolName.GET_ALL_DIAGNOSTIC) {
-      return {
-        content: [
-          { type: "text", text: JSON.stringify(project.getAllDiagnostic()) },
-        ],
-      };
-    }
-
-    if (name === ToolName.GET_DBT_VERSION) {
-      return {
-        content: [
-          { type: "text", text: project.getDBTVersion()?.join(".") || "" },
-        ],
-      };
-    }
-
-    if (name === ToolName.GET_ADAPTER_TYPE) {
-      return { content: [{ type: "text", text: project.getAdapterType() }] };
-    }
-
-    if (name === ToolName.GET_COLUMNS_OF_MODEL) {
-      const result = await project.getColumnsOfModel(args.modelName as string);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
-    }
-
-    if (name === ToolName.GET_COLUMNS_OF_SOURCE) {
-      const result = await project.getColumnsOfSource(
-        args.sourceName as string,
-        args.tableName as string,
-      );
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
-    }
-
-    if (name === ToolName.GET_COLUMN_VALUES) {
-      const result = await project.getColumnValues(
-        args.model as string,
-        args.column as string,
-      );
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
-    }
-
-    if (name === ToolName.COMPILE_MODEL) {
-      const result = await project.compileNode(args.modelName as string);
-      return { content: [{ type: "text", text: result || "" }] };
-    }
-
-    if (name === ToolName.COMPILE_QUERY) {
-      const result = await project.compileQuery(
-        args.query as string,
-        args.originalModelName as string | undefined,
-      );
-      return { content: [{ type: "text", text: result || "" }] };
-    }
-
-    if (name === ToolName.EXECUTE_SQL_WITH_LIMIT) {
-      const result = await project.executeSQLWithLimit(
-        args.query as string,
-        args.modelName as string,
-        args.limit as number,
-        args.returnImmediately as boolean,
-        args.returnRawResults as boolean,
-      );
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
-    }
-
-    if (name === ToolName.SET_SELECTED_TARGET) {
-      const project = dbtProjectContainer.findDBTProject(
-        Uri.file(args.projectRoot as string),
-      );
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(projects),
+            },
+          ],
+        };
+      }
+      if (!args || !args.projectRoot) {
+        throw new Error("projectRoot is required");
+      }
+      const project = this.dbtProjectContainer.findDBTProject(Uri.file(args.projectRoot as string));
       if (!project) {
         throw new Error(`Project not found for root: ${args.projectRoot}`);
       }
-      await project.setSelectedTarget(args.targetName as string);
-      return { content: [{ type: "text", text: "Target set successfully" }] };
-    }
 
-    throw new Error(`Unknown tool: ${name}`);
-  });
+      if (name === ToolName.GET_PROJECT_NAME) {
+        return { content: [{ type: "text", text: project.getProjectName() }] };
+      }
 
-  return { server, cleanup: async () => {} };
-};
+      if (name === ToolName.GET_SELECTED_TARGET) {
+        return {
+          content: [{ type: "text", text: project.getSelectedTarget() }],
+        };
+      }
+
+      if (name === ToolName.GET_TARGET_NAMES) {
+        const targetNames = await project.getTargetNames();
+        return {
+          content: [{ type: "text", text: targetNames.join(", ") }],
+        };
+      }
+
+      if (name === ToolName.GET_TARGET_PATH) {
+        return {
+          content: [{ type: "text", text: project.getTargetPath() || "" }],
+        };
+      }
+
+      if (name === ToolName.GET_PACKAGE_INSTALL_PATH) {
+        return {
+          content: [{ type: "text", text: project.getPackageInstallPath() || "" }],
+        };
+      }
+
+      if (name === ToolName.GET_MODEL_PATHS) {
+        return {
+          content: [{ type: "text", text: project.getModelPaths()?.join(", ") || "" }],
+        };
+      }
+
+      if (name === ToolName.GET_SEED_PATHS) {
+        return {
+          content: [{ type: "text", text: project.getSeedPaths()?.join(", ") || "" }],
+        };
+      }
+
+      if (name === ToolName.GET_MACRO_PATHS) {
+        return {
+          content: [{ type: "text", text: project.getMacroPaths()?.join(", ") || "" }],
+        };
+      }
+
+      if (name === ToolName.GET_MANIFEST_PATH) {
+        return {
+          content: [{ type: "text", text: project.getManifestPath() || "" }],
+        };
+      }
+
+      if (name === ToolName.GET_CATALOG_PATH) {
+        return {
+          content: [{ type: "text", text: project.getCatalogPath() || "" }],
+        };
+      }
+
+      if (name === ToolName.GET_PYTHON_BRIDGE_STATUS) {
+        return {
+          content: [{ type: "text", text: project.getPythonBridgeStatus() }],
+        };
+      }
+
+      if (name === ToolName.GET_ALL_DIAGNOSTIC) {
+        return {
+          content: [{ type: "text", text: JSON.stringify(project.getAllDiagnostic()) }],
+        };
+      }
+
+      if (name === ToolName.GET_DBT_VERSION) {
+        return {
+          content: [{ type: "text", text: project.getDBTVersion()?.join(".") || "" }],
+        };
+      }
+
+      if (name === ToolName.GET_ADAPTER_TYPE) {
+        return { content: [{ type: "text", text: project.getAdapterType() }] };
+      }
+
+      if (name === ToolName.GET_COLUMNS_OF_MODEL) {
+        const result = await project.getColumnsOfModel(args.modelName as string);
+        return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      }
+
+      if (name === ToolName.GET_COLUMNS_OF_SOURCE) {
+        const result = await project.getColumnsOfSource(
+          args.sourceName as string,
+          args.tableName as string,
+        );
+        return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      }
+
+      if (name === ToolName.GET_COLUMN_VALUES) {
+        const result = await project.getColumnValues(args.model as string, args.column as string);
+        return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      }
+
+      if (name === ToolName.COMPILE_MODEL) {
+        const result = await project.compileNode(args.modelName as string);
+        return { content: [{ type: "text", text: result || "" }] };
+      }
+
+      if (name === ToolName.COMPILE_QUERY) {
+        const result = await project.compileQuery(
+          args.query as string,
+          args.originalModelName as string | undefined,
+        );
+        return { content: [{ type: "text", text: result || "" }] };
+      }
+
+      if (name === ToolName.EXECUTE_SQL_WITH_LIMIT) {
+        const result = await project.executeSQLWithLimit(
+          args.query as string,
+          args.modelName as string,
+          args.limit as number,
+          args.returnImmediately as boolean,
+          args.returnRawResults as boolean,
+        );
+        return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      }
+
+      if (name === ToolName.SET_SELECTED_TARGET) {
+        const project = this.dbtProjectContainer.findDBTProject(
+          Uri.file(args.projectRoot as string),
+        );
+        if (!project) {
+          throw new Error(`Project not found for root: ${args.projectRoot}`);
+        }
+        await project.setSelectedTarget(args.targetName as string);
+        return { content: [{ type: "text", text: "Target set successfully" }] };
+      }
+
+      throw new Error(`Unknown tool: ${name}`);
+    });
+
+    return { server, cleanup: async () => {} };
+  };
+}

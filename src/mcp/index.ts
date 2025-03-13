@@ -1,47 +1,85 @@
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import express from "express";
-import { createServer } from "./server";
-import { commands, Disposable, window } from "vscode";
+import { Disposable } from "vscode";
 import { provideSingleton } from "../utils";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DbtPowerUserMcpServerTools } from "./server";
+
+const PORT = 7891;
+
 @provideSingleton(DbtPowerUserMcpServer)
 export class DbtPowerUserMcpServer implements Disposable {
   private disposables: Disposable[] = [];
-  constructor(private dbtProjectContainer: DBTProjectContainer) {
-    this.disposables.push(
-      commands.registerCommand("dbtPowerUser.mcp.start", () => this.start()),
-    );
+  constructor(
+    private dbtPowerUserMcpServerTools: DbtPowerUserMcpServerTools,
+    private dbtTerminal: DBTTerminal,
+  ) {
     this.start();
   }
 
   private async start() {
-    const { server, cleanup } = createServer(this.dbtProjectContainer);
+    const { server, cleanup } = this.dbtPowerUserMcpServerTools.createServer();
     const app = express();
     let transport: SSEServerTransport;
-    app.get("/sse", async (req, res) => {
-      console.log("Received connection");
-      transport = new SSEServerTransport("/message", res);
-      await server.connect(transport);
 
-      server.onclose = async () => {
-        await cleanup();
-        await server.close();
-        process.exit(0);
+    // Add error handling middleware
+    app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+      this.dbtTerminal.error("DbtPowerUserMcpServer", "Express error", {
+        error: err.message,
+        stack: err.stack,
+        path: req.path,
+        method: req.method,
+      });
+      res.status(500).json({
+        error: "Internal Server Error",
+        message: err.message,
+      });
+    });
+
+    // Add async error handling wrapper
+    const asyncHandler =
+      (fn: Function) =>
+      (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        Promise.resolve(fn(req, res, next)).catch(next);
       };
-    });
 
-    app.post("/message", async (req, res) => {
-      console.log("Received message");
+    app.get(
+      "/sse",
+      asyncHandler(async (req: express.Request, res: express.Response) => {
+        this.dbtTerminal.info("DbtPowerUserMcpServer", "Received connection");
+        transport = new SSEServerTransport("/message", res);
+        await server.connect(transport);
 
-      await transport.handlePostMessage(req, res);
-    });
+        server.onclose = async () => {
+          await cleanup();
+          await server.close();
+        };
 
-    const PORT = process.env.PORT || 7891;
+        transport.onerror = (error) => {
+          this.dbtTerminal.error("DbtPowerUserMcpServer", "Error", { error });
+        };
+      }),
+    );
+
+    app.post(
+      "/message",
+      asyncHandler(async (req: express.Request, res: express.Response) => {
+        this.dbtTerminal.debug("DbtPowerUserMcpServer", "Received message", {
+          params: req.params,
+        });
+
+        try {
+          await transport.handlePostMessage(req, res);
+        } catch (error) {
+          this.dbtTerminal.error("DbtPowerUserMcpServer", "Error", { error });
+        }
+      }),
+    );
+
     app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-      window.showInformationMessage(
-        `MCP server stated. Use http://localhost:${PORT}/sse to setup new sse MCP server connection.`,
-      );
+      this.dbtTerminal.debug("DbtPowerUserMcpServer", "Server is running", {
+        port: PORT,
+      });
     });
   }
 
