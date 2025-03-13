@@ -9,54 +9,41 @@ import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { Uri } from "vscode";
+import { DBTProject } from "@extension";
 
 const ToolInputSchema = ToolSchema.shape.inputSchema;
 type ToolInput = z.infer<typeof ToolInputSchema>;
 
-const BaseSchema = z.object({ projectRoot: z.string() });
-const GetColumnsOfModelSchema = BaseSchema.extend({ modelName: z.string() });
-const GetColumnsOfSourceSchema = BaseSchema.extend({ sourceName: z.string(), tableName: z.string() });
-const GetColumnValuesSchema = BaseSchema.extend({ model: z.string(), column: z.string() });
-const CompileModelSchema = BaseSchema.extend({ modelName: z.string() });
-const GetBulkCompiledSqlSchema = BaseSchema.extend({ models: z.array(z.string()) });
-const GetNodesWithDBColumnsSchema = BaseSchema.extend({ 
-  modelsToFetch: z.array(z.string()),
-  cancellationToken: z.any() 
+const BaseSchema = z.object({});
+const BaseProjectRootSchema = BaseSchema.extend({ projectRoot: z.string() });
+const GetColumnsOfModelSchema = BaseProjectRootSchema.extend({
+  modelName: z.string(),
 });
-const GetBulkSchemaFromDBSchema = BaseSchema.extend({
-  req: z.array(z.object({
-    unique_id: z.string(),
-    name: z.string(),
-    resource_type: z.string(),
-    table: z.string().optional()
-  })),
-  cancellationToken: z.any()
+const GetColumnsOfSourceSchema = BaseProjectRootSchema.extend({
+  sourceName: z.string(),
+  tableName: z.string(),
 });
-const ValidateSqlSchema = BaseSchema.extend({
-  sql: z.string(),
-  dialect: z.string(),
-  models: z.array(z.any())
+const GetColumnValuesSchema = BaseProjectRootSchema.extend({
+  model: z.string(),
+  column: z.string(),
 });
-const ValidateSQLDryRunSchema = BaseSchema.extend({ query: z.string() });
-const CompileQuerySchema = BaseSchema.extend({ 
+const CompileModelSchema = BaseProjectRootSchema.extend({
+  modelName: z.string(),
+});
+const CompileQuerySchema = BaseProjectRootSchema.extend({
   query: z.string(),
-  originalModelName: z.string().optional()
+  originalModelName: z.string().optional(),
 });
-const ExecuteSQLWithLimitSchema = BaseSchema.extend({
+const ExecuteSQLWithLimitSchema = BaseProjectRootSchema.extend({
   query: z.string(),
   modelName: z.string(),
   limit: z.number(),
   returnImmediately: z.boolean().optional(),
-  returnRawResults: z.boolean().optional()
-});
-const ExecuteSQLSchema = BaseSchema.extend({
-  query: z.string(),
-  modelName: z.string(),
-  returnImmediately: z.boolean().optional(),
-  returnRawResults: z.boolean().optional()
+  returnRawResults: z.boolean().optional(),
 });
 
 enum ToolName {
+  GET_PROJECTS = "get_projects",
   GET_PROJECT_NAME = "get_project_name",
   GET_SELECTED_TARGET = "get_selected_target",
   GET_TARGET_NAMES = "get_target_names",
@@ -76,14 +63,9 @@ enum ToolName {
   GET_COLUMNS_OF_SOURCE = "get_columns_of_source",
   GET_COLUMN_VALUES = "get_column_values",
   COMPILE_MODEL = "compile_model",
-  GET_BULK_COMPILED_SQL = "get_bulk_compiled_sql",
-  GET_NODES_WITH_DB_COLUMNS = "get_nodes_with_db_columns",
   GET_BULK_SCHEMA_FROM_DB = "get_bulk_schema_from_db",
-  VALIDATE_SQL = "validate_sql",
-  VALIDATE_SQL_DRY_RUN = "validate_sql_dry_run",
   COMPILE_QUERY = "compile_query",
   EXECUTE_SQL_WITH_LIMIT = "execute_sql_with_limit",
-  EXECUTE_SQL = "execute_sql",
 }
 
 export const createServer = (dbtProjectContainer: DBTProjectContainer) => {
@@ -104,54 +86,116 @@ export const createServer = (dbtProjectContainer: DBTProjectContainer) => {
 
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     const tools: Tool[] = [
-      { name: ToolName.GET_PROJECT_NAME, description: "Get project name", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_SELECTED_TARGET, description: "Get selected target", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_TARGET_NAMES, description: "Get target names", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_DBT_PROJECT_FILE_PATH, description: "Get dbt project file path", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_TARGET_PATH, description: "Get target path", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_PACKAGE_INSTALL_PATH, description: "Get package install path", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_MODEL_PATHS, description: "Get model paths", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_SEED_PATHS, description: "Get seed paths", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_MACRO_PATHS, description: "Get macro paths", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_MANIFEST_PATH, description: "Get manifest path", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_CATALOG_PATH, description: "Get catalog path", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_PYTHON_BRIDGE_STATUS, description: "Get python bridge status", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_ALL_DIAGNOSTIC, description: "Get all diagnostic", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_DBT_VERSION, description: "Get dbt version", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_ADAPTER_TYPE, description: "Get adapter type", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_COLUMNS_OF_MODEL, description: "Get columns of model", inputSchema: zodToJsonSchema(GetColumnsOfModelSchema) as ToolInput },
-      { name: ToolName.GET_COLUMNS_OF_SOURCE, description: "Get columns of source", inputSchema: zodToJsonSchema(GetColumnsOfSourceSchema) as ToolInput },
-      { name: ToolName.GET_COLUMN_VALUES, description: "Get column values", inputSchema: zodToJsonSchema(GetColumnValuesSchema) as ToolInput },
-    ];
-
-    const tools: Tool[] = [
-      { name: ToolName.GET_PROJECT_NAME, description: "Get project name", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_SELECTED_TARGET, description: "Get selected target", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_TARGET_NAMES, description: "Get target names", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_DBT_PROJECT_FILE_PATH, description: "Get dbt project file path", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_TARGET_PATH, description: "Get target path", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_PACKAGE_INSTALL_PATH, description: "Get package install path", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_MODEL_PATHS, description: "Get model paths", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_SEED_PATHS, description: "Get seed paths", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_MACRO_PATHS, description: "Get macro paths", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_MANIFEST_PATH, description: "Get manifest path", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_CATALOG_PATH, description: "Get catalog path", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_PYTHON_BRIDGE_STATUS, description: "Get python bridge status", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_ALL_DIAGNOSTIC, description: "Get all diagnostic", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_DBT_VERSION, description: "Get dbt version", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_ADAPTER_TYPE, description: "Get adapter type", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
-      { name: ToolName.GET_COLUMNS_OF_MODEL, description: "Get columns of model", inputSchema: zodToJsonSchema(GetColumnsOfModelSchema) as ToolInput },
-      { name: ToolName.GET_COLUMNS_OF_SOURCE, description: "Get columns of source", inputSchema: zodToJsonSchema(GetColumnsOfSourceSchema) as ToolInput },
-      { name: ToolName.GET_COLUMN_VALUES, description: "Get column values", inputSchema: zodToJsonSchema(GetColumnValuesSchema) as ToolInput },
-      { name: ToolName.COMPILE_MODEL, description: "Compile model", inputSchema: zodToJsonSchema(CompileModelSchema) as ToolInput },
-      { name: ToolName.GET_BULK_COMPILED_SQL, description: "Get bulk compiled SQL", inputSchema: zodToJsonSchema(GetBulkCompiledSqlSchema) as ToolInput },
-      { name: ToolName.GET_NODES_WITH_DB_COLUMNS, description: "Get nodes with DB columns", inputSchema: zodToJsonSchema(GetNodesWithDBColumnsSchema) as ToolInput },
-      { name: ToolName.GET_BULK_SCHEMA_FROM_DB, description: "Get bulk schema from DB", inputSchema: zodToJsonSchema(GetBulkSchemaFromDBSchema) as ToolInput },
-      { name: ToolName.VALIDATE_SQL, description: "Validate SQL", inputSchema: zodToJsonSchema(ValidateSqlSchema) as ToolInput },
-      { name: ToolName.VALIDATE_SQL_DRY_RUN, description: "Validate SQL dry run", inputSchema: zodToJsonSchema(ValidateSQLDryRunSchema) as ToolInput },
-      { name: ToolName.COMPILE_QUERY, description: "Compile query", inputSchema: zodToJsonSchema(CompileQuerySchema) as ToolInput },
-      { name: ToolName.EXECUTE_SQL_WITH_LIMIT, description: "Execute SQL with limit", inputSchema: zodToJsonSchema(ExecuteSQLWithLimitSchema) as ToolInput },
-      { name: ToolName.EXECUTE_SQL, description: "Execute SQL", inputSchema: zodToJsonSchema(ExecuteSQLSchema) as ToolInput }
+      {
+        name: ToolName.GET_PROJECTS,
+        description: "Get projects",
+        inputSchema: zodToJsonSchema(BaseSchema) as ToolInput,
+      },
+      {
+        name: ToolName.GET_PROJECT_NAME,
+        description: "Get project name",
+        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+      },
+      {
+        name: ToolName.GET_SELECTED_TARGET,
+        description: "Get selected target",
+        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+      },
+      {
+        name: ToolName.GET_TARGET_NAMES,
+        description: "Get target names",
+        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+      },
+      {
+        name: ToolName.GET_DBT_PROJECT_FILE_PATH,
+        description: "Get dbt project file path",
+        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+      },
+      {
+        name: ToolName.GET_TARGET_PATH,
+        description: "Get target path",
+        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+      },
+      {
+        name: ToolName.GET_PACKAGE_INSTALL_PATH,
+        description: "Get package install path",
+        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+      },
+      {
+        name: ToolName.GET_MODEL_PATHS,
+        description: "Get model paths",
+        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+      },
+      {
+        name: ToolName.GET_SEED_PATHS,
+        description: "Get seed paths",
+        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+      },
+      {
+        name: ToolName.GET_MACRO_PATHS,
+        description: "Get macro paths",
+        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+      },
+      {
+        name: ToolName.GET_MANIFEST_PATH,
+        description: "Get manifest path",
+        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+      },
+      {
+        name: ToolName.GET_CATALOG_PATH,
+        description: "Get catalog path",
+        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+      },
+      {
+        name: ToolName.GET_PYTHON_BRIDGE_STATUS,
+        description: "Get python bridge status",
+        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+      },
+      {
+        name: ToolName.GET_ALL_DIAGNOSTIC,
+        description: "Get all diagnostic",
+        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+      },
+      {
+        name: ToolName.GET_DBT_VERSION,
+        description: "Get dbt version",
+        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+      },
+      {
+        name: ToolName.GET_ADAPTER_TYPE,
+        description: "Get adapter type",
+        inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+      },
+      {
+        name: ToolName.GET_COLUMNS_OF_MODEL,
+        description: "Get columns of model",
+        inputSchema: zodToJsonSchema(GetColumnsOfModelSchema) as ToolInput,
+      },
+      {
+        name: ToolName.GET_COLUMNS_OF_SOURCE,
+        description: "Get columns of source",
+        inputSchema: zodToJsonSchema(GetColumnsOfSourceSchema) as ToolInput,
+      },
+      {
+        name: ToolName.GET_COLUMN_VALUES,
+        description: "Get column values",
+        inputSchema: zodToJsonSchema(GetColumnValuesSchema) as ToolInput,
+      },
+      {
+        name: ToolName.COMPILE_MODEL,
+        description: "Compile model",
+        inputSchema: zodToJsonSchema(CompileModelSchema) as ToolInput,
+      },
+      {
+        name: ToolName.COMPILE_QUERY,
+        description: "Compile query",
+        inputSchema: zodToJsonSchema(CompileQuerySchema) as ToolInput,
+      },
+      {
+        name: ToolName.EXECUTE_SQL_WITH_LIMIT,
+        description: "Execute SQL with limit",
+        inputSchema: zodToJsonSchema(ExecuteSQLWithLimitSchema) as ToolInput,
+      },
     ];
 
     return { tools };
@@ -159,7 +203,24 @@ export const createServer = (dbtProjectContainer: DBTProjectContainer) => {
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
-    const project = dbtProjectContainer.findDBTProject(Uri.file(args.projectRoot));
+    if (name === ToolName.GET_PROJECTS) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: dbtProjectContainer
+              .getProjects()
+              .map((project: DBTProject) => project.projectRoot.fsPath),
+          },
+        ],
+      };
+    }
+    if (!args || !args.projectRoot) {
+      throw new Error("projectRoot is required");
+    }
+    const project = dbtProjectContainer.findDBTProject(
+      Uri.file(args.projectRoot as string),
+    );
     if (!project) {
       throw new Error(`Project not found for root: ${args.projectRoot}`);
     }
@@ -173,51 +234,88 @@ export const createServer = (dbtProjectContainer: DBTProjectContainer) => {
     }
 
     if (name === ToolName.GET_TARGET_NAMES) {
-      return { content: [{ type: "text", text: project.getTargetNames().join(", ") }] };
+      const targetNames = await project.getTargetNames();
+      return {
+        content: [{ type: "text", text: targetNames.join(", ") }],
+      };
     }
 
     if (name === ToolName.GET_DBT_PROJECT_FILE_PATH) {
-      return { content: [{ type: "text", text: project.getDBTProjectFilePath() }] };
+      return {
+        content: [{ type: "text", text: project.getDBTProjectFilePath() }],
+      };
     }
 
     if (name === ToolName.GET_TARGET_PATH) {
-      return { content: [{ type: "text", text: project.getTargetPath() || "" }] };
+      return {
+        content: [{ type: "text", text: project.getTargetPath() || "" }],
+      };
     }
 
     if (name === ToolName.GET_PACKAGE_INSTALL_PATH) {
-      return { content: [{ type: "text", text: project.getPackageInstallPath() || "" }] };
+      return {
+        content: [
+          { type: "text", text: project.getPackageInstallPath() || "" },
+        ],
+      };
     }
 
     if (name === ToolName.GET_MODEL_PATHS) {
-      return { content: [{ type: "text", text: project.getModelPaths()?.join(", ") || "" }] };
+      return {
+        content: [
+          { type: "text", text: project.getModelPaths()?.join(", ") || "" },
+        ],
+      };
     }
 
     if (name === ToolName.GET_SEED_PATHS) {
-      return { content: [{ type: "text", text: project.getSeedPaths()?.join(", ") || "" }] };
+      return {
+        content: [
+          { type: "text", text: project.getSeedPaths()?.join(", ") || "" },
+        ],
+      };
     }
 
     if (name === ToolName.GET_MACRO_PATHS) {
-      return { content: [{ type: "text", text: project.getMacroPaths()?.join(", ") || "" }] };
+      return {
+        content: [
+          { type: "text", text: project.getMacroPaths()?.join(", ") || "" },
+        ],
+      };
     }
 
     if (name === ToolName.GET_MANIFEST_PATH) {
-      return { content: [{ type: "text", text: project.getManifestPath() || "" }] };
+      return {
+        content: [{ type: "text", text: project.getManifestPath() || "" }],
+      };
     }
 
     if (name === ToolName.GET_CATALOG_PATH) {
-      return { content: [{ type: "text", text: project.getCatalogPath() || "" }] };
+      return {
+        content: [{ type: "text", text: project.getCatalogPath() || "" }],
+      };
     }
 
     if (name === ToolName.GET_PYTHON_BRIDGE_STATUS) {
-      return { content: [{ type: "text", text: project.getPythonBridgeStatus() }] };
+      return {
+        content: [{ type: "text", text: project.getPythonBridgeStatus() }],
+      };
     }
 
     if (name === ToolName.GET_ALL_DIAGNOSTIC) {
-      return { content: [{ type: "text", text: JSON.stringify(project.getAllDiagnostic()) }] };
+      return {
+        content: [
+          { type: "text", text: JSON.stringify(project.getAllDiagnostic()) },
+        ],
+      };
     }
 
     if (name === ToolName.GET_DBT_VERSION) {
-      return { content: [{ type: "text", text: project.getDBTVersion()?.join(".") || "" }] };
+      return {
+        content: [
+          { type: "text", text: project.getDBTVersion()?.join(".") || "" },
+        ],
+      };
     }
 
     if (name === ToolName.GET_ADAPTER_TYPE) {
@@ -225,62 +323,47 @@ export const createServer = (dbtProjectContainer: DBTProjectContainer) => {
     }
 
     if (name === ToolName.GET_COLUMNS_OF_MODEL) {
-      const result = await project.getColumnsOfModel(args.modelName);
+      const result = await project.getColumnsOfModel(args.modelName as string);
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
 
     if (name === ToolName.GET_COLUMNS_OF_SOURCE) {
-      const result = await project.getColumnsOfSource(args.sourceName, args.tableName);
+      const result = await project.getColumnsOfSource(
+        args.sourceName as string,
+        args.tableName as string,
+      );
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
 
     if (name === ToolName.GET_COLUMN_VALUES) {
-      const result = await project.getColumnValues(args.model, args.column);
+      const result = await project.getColumnValues(
+        args.model as string,
+        args.column as string,
+      );
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
 
     if (name === ToolName.COMPILE_MODEL) {
-      const result = await project.compileNode(args.modelName);
+      const result = await project.compileNode(args.modelName as string);
       return { content: [{ type: "text", text: result || "" }] };
     }
 
-    if (name === ToolName.GET_BULK_COMPILED_SQL) {
-      const result = await project.getBulkCompiledSql(args.event, args.models);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
-    }
-
-    if (name === ToolName.GET_NODES_WITH_DB_COLUMNS) {
-      const result = await project.getNodesWithDBColumns(args.event, args.modelsToFetch, args.cancellationToken);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
-    }
-
-    if (name === ToolName.GET_BULK_SCHEMA_FROM_DB) {
-      const result = await project.getBulkSchemaFromDB(args.req, args.cancellationToken);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
-    }
-
-    if (name === ToolName.VALIDATE_SQL) {
-      const result = await project.validateSql(args);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
-    }
-
-    if (name === ToolName.VALIDATE_SQL_DRY_RUN) {
-      const result = await project.validateSQLDryRun(args.query);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
-    }
-
     if (name === ToolName.COMPILE_QUERY) {
-      const result = await project.compileQuery(args.query, args.originalModelName);
+      const result = await project.compileQuery(
+        args.query as string,
+        args.originalModelName as string | undefined,
+      );
       return { content: [{ type: "text", text: result || "" }] };
     }
 
     if (name === ToolName.EXECUTE_SQL_WITH_LIMIT) {
-      const result = await project.executeSQLWithLimit(args.query, args.modelName, args.limit, args.returnImmediately, args.returnRawResults);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
-    }
-
-    if (name === ToolName.EXECUTE_SQL) {
-      const result = await project.executeSQL(args.query, args.modelName, args.returnImmediately, args.returnRawResults);
+      const result = await project.executeSQLWithLimit(
+        args.query as string,
+        args.modelName as string,
+        args.limit as number,
+        args.returnImmediately as boolean,
+        args.returnRawResults as boolean,
+      );
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
 
