@@ -92,7 +92,6 @@ enum ToolName {
   GET_COLUMNS_OF_SOURCE = "get_columns_of_source",
   GET_COLUMN_VALUES = "get_column_values",
   COMPILE_MODEL = "compile_model",
-  GET_BULK_SCHEMA_FROM_DB = "get_bulk_schema_from_db",
   COMPILE_QUERY = "compile_query",
   EXECUTE_SQL_WITH_LIMIT = "execute_sql_with_limit",
   SET_SELECTED_TARGET = "set_selected_target",
