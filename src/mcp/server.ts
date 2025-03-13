@@ -14,6 +14,9 @@ const ToolInputSchema = ToolSchema.shape.inputSchema;
 type ToolInput = z.infer<typeof ToolInputSchema>;
 
 const BaseSchema = z.object({ projectRoot: z.string() });
+const GetColumnsOfModelSchema = BaseSchema.extend({ modelName: z.string() });
+const GetColumnsOfSourceSchema = BaseSchema.extend({ sourceName: z.string(), tableName: z.string() });
+const GetColumnValuesSchema = BaseSchema.extend({ model: z.string(), column: z.string() });
 
 enum ToolName {
   GET_PROJECT_NAME = "get_project_name",
@@ -31,6 +34,9 @@ enum ToolName {
   GET_ALL_DIAGNOSTIC = "get_all_diagnostic",
   GET_DBT_VERSION = "get_dbt_version",
   GET_ADAPTER_TYPE = "get_adapter_type",
+  GET_COLUMNS_OF_MODEL = "get_columns_of_model",
+  GET_COLUMNS_OF_SOURCE = "get_columns_of_source",
+  GET_COLUMN_VALUES = "get_column_values",
 }
 
 export const createServer = (dbtProjectContainer: DBTProjectContainer) => {
@@ -66,6 +72,9 @@ export const createServer = (dbtProjectContainer: DBTProjectContainer) => {
       { name: ToolName.GET_ALL_DIAGNOSTIC, description: "Get all diagnostic", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
       { name: ToolName.GET_DBT_VERSION, description: "Get dbt version", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
       { name: ToolName.GET_ADAPTER_TYPE, description: "Get adapter type", inputSchema: zodToJsonSchema(BaseSchema) as ToolInput },
+      { name: ToolName.GET_COLUMNS_OF_MODEL, description: "Get columns of model", inputSchema: zodToJsonSchema(GetColumnsOfModelSchema) as ToolInput },
+      { name: ToolName.GET_COLUMNS_OF_SOURCE, description: "Get columns of source", inputSchema: zodToJsonSchema(GetColumnsOfSourceSchema) as ToolInput },
+      { name: ToolName.GET_COLUMN_VALUES, description: "Get column values", inputSchema: zodToJsonSchema(GetColumnValuesSchema) as ToolInput },
     ];
 
     return { tools };
@@ -136,6 +145,21 @@ export const createServer = (dbtProjectContainer: DBTProjectContainer) => {
 
     if (name === ToolName.GET_ADAPTER_TYPE) {
       return { content: [{ type: "text", text: project.getAdapterType() }] };
+    }
+
+    if (name === ToolName.GET_COLUMNS_OF_MODEL) {
+      const result = await project.getColumnsOfModel(args.modelName);
+      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+    }
+
+    if (name === ToolName.GET_COLUMNS_OF_SOURCE) {
+      const result = await project.getColumnsOfSource(args.sourceName, args.tableName);
+      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+    }
+
+    if (name === ToolName.GET_COLUMN_VALUES) {
+      const result = await project.getColumnValues(args.model, args.column);
+      return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
 
     throw new Error(`Unknown tool: ${name}`);
