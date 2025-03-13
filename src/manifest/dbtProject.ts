@@ -568,12 +568,15 @@ export class DBTProject implements Disposable {
     }
   }
 
-  async buildModel(runModelParams: RunModelParams) {
+  async buildModel(runModelParams: RunModelParams, returnImmediately = false) {
     try {
       const buildModelCommand =
         this.dbtCommandFactory.createBuildModelCommand(runModelParams);
-      await this.dbtProjectIntegration.buildModel(buildModelCommand);
+      buildModelCommand.returnImmediately = returnImmediately;
+      const result =
+        await this.dbtProjectIntegration.buildModel(buildModelCommand);
       this.telemetry.sendTelemetryEvent("buildModel");
+      return result;
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
@@ -633,12 +636,12 @@ export class DBTProject implements Disposable {
     args?.forEach((arg) => docsGenerateCommand.addArgument(arg));
     docsGenerateCommand.focus = false;
     docsGenerateCommand.logToTerminal = false;
-    const { stdout, stderr } =
+    const result =
       await this.dbtProjectIntegration.executeCommandImmediately(
         docsGenerateCommand,
       );
-    if (stderr) {
-      throw new Error(stderr);
+    if (result?.stderr) {
+      throw new Error(result.stderr);
     }
   }
 

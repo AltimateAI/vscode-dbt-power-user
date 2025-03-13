@@ -484,10 +484,19 @@ export class DbtPowerUserMcpServerTools implements Disposable {
               modelName: args.modelName as string,
               plusOperatorRight: args.plusOperatorRight as string,
             };
-            // TODO: should capture output and return it
-            await project.buildModel(runModelParams);
+            const result = await project.buildModel(runModelParams, true);
+            if (result?.stderr) {
+              throw new Error(result.stderr);
+            }
             return {
-              content: [{ type: "text", text: "Model built successfully" }],
+              content: [
+                {
+                  type: "text",
+                  text:
+                    "Model built successfully. Results: " +
+                    JSON.stringify(result?.stdout),
+                },
+              ],
             };
           }
 

@@ -648,43 +648,43 @@ export class DBTCoreProjectIntegration
   }
 
   async runModel(command: DBTCommand) {
-    this.addCommandToQueue(
+    return this.addCommandToQueue(
       await this.addDeferParams(this.dbtCoreCommand(command)),
     );
   }
 
   async buildModel(command: DBTCommand) {
-    this.addCommandToQueue(
+    return this.addCommandToQueue(
       await this.addDeferParams(this.dbtCoreCommand(command)),
     );
   }
 
   async buildProject(command: DBTCommand) {
-    this.addCommandToQueue(
+    return this.addCommandToQueue(
       await this.addDeferParams(this.dbtCoreCommand(command)),
     );
   }
 
   async runTest(command: DBTCommand) {
-    this.addCommandToQueue(
+    return this.addCommandToQueue(
       await this.addDeferParams(this.dbtCoreCommand(command)),
     );
   }
 
   async runModelTest(command: DBTCommand) {
-    this.addCommandToQueue(
+    return this.addCommandToQueue(
       await this.addDeferParams(this.dbtCoreCommand(command)),
     );
   }
 
   async compileModel(command: DBTCommand) {
-    this.addCommandToQueue(
+    return this.addCommandToQueue(
       await this.addDeferParams(this.dbtCoreCommand(command)),
     );
   }
 
   async generateDocs(command: DBTCommand) {
-    this.addCommandToQueue(this.dbtCoreCommand(command));
+    return this.addCommandToQueue(this.dbtCoreCommand(command));
   }
 
   async executeCommandImmediately(command: DBTCommand) {
@@ -713,7 +713,7 @@ export class DBTCoreProjectIntegration
     if (!isInstalled) {
       return;
     }
-    this.executionInfrastructure.addCommandToQueue(
+    return this.executionInfrastructure.addCommandToQueue(
       DBTCoreProjectIntegration.QUEUE_ALL,
       command,
     );

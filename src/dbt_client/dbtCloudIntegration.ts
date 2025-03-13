@@ -507,49 +507,49 @@ export class DBTCloudProjectIntegration
   }
 
   async runModel(command: DBTCommand) {
-    this.addCommandToQueue(
+    return this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_ALL,
       await this.addDeferParams(this.dbtCloudCommand(command)),
     );
   }
 
   async buildModel(command: DBTCommand) {
-    this.addCommandToQueue(
+    return this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_ALL,
       await this.addDeferParams(this.dbtCloudCommand(command)),
     );
   }
 
   async buildProject(command: DBTCommand) {
-    this.addCommandToQueue(
+    return this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_ALL,
       await this.addDeferParams(this.dbtCloudCommand(command)),
     );
   }
 
   async runTest(command: DBTCommand) {
-    this.addCommandToQueue(
+    return this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_ALL,
       await this.addDeferParams(this.dbtCloudCommand(command)),
     );
   }
 
   async runModelTest(command: DBTCommand) {
-    this.addCommandToQueue(
+    return this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_ALL,
       await this.addDeferParams(this.dbtCloudCommand(command)),
     );
   }
 
   async compileModel(command: DBTCommand) {
-    this.addCommandToQueue(
+    return this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_ALL,
       await this.addDeferParams(this.dbtCloudCommand(command)),
     );
   }
 
   async generateDocs(command: DBTCommand) {
-    this.addCommandToQueue(
+    return this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_ALL,
       this.dbtCloudCommand(command),
     );
@@ -620,7 +620,7 @@ export class DBTCloudProjectIntegration
   private addCommandToQueue(queueName: string, command: DBTCommand) {
     try {
       this.throwIfNotAuthenticated();
-      this.executionInfrastructure.addCommandToQueue(queueName, command);
+      return this.executionInfrastructure.addCommandToQueue(queueName, command);
     } catch (e) {
       window.showErrorMessage((e as Error).message);
     }
