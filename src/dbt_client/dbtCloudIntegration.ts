@@ -542,14 +542,14 @@ export class DBTCloudProjectIntegration
   }
 
   async compileModel(command: DBTCommand) {
-    return this.addCommandToQueue(
+    this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_ALL,
       await this.addDeferParams(this.dbtCloudCommand(command)),
     );
   }
 
   async generateDocs(command: DBTCommand) {
-    return this.addCommandToQueue(
+    this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_ALL,
       this.dbtCloudCommand(command),
     );

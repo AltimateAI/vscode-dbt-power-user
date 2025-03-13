@@ -678,13 +678,13 @@ export class DBTCoreProjectIntegration
   }
 
   async compileModel(command: DBTCommand) {
-    return this.addCommandToQueue(
+    this.addCommandToQueue(
       await this.addDeferParams(this.dbtCoreCommand(command)),
     );
   }
 
   async generateDocs(command: DBTCommand) {
-    return this.addCommandToQueue(this.dbtCoreCommand(command));
+    this.addCommandToQueue(this.dbtCoreCommand(command));
   }
 
   async executeCommandImmediately(command: DBTCommand) {

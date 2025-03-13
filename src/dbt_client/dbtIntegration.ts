@@ -353,11 +353,9 @@ export interface DBTProjectIntegration extends Disposable {
   buildProject(command: DBTCommand): Promise<CommandProcessResult | undefined>;
   runTest(command: DBTCommand): Promise<CommandProcessResult | undefined>;
   runModelTest(command: DBTCommand): Promise<CommandProcessResult | undefined>;
-  compileModel(command: DBTCommand): Promise<CommandProcessResult | undefined>;
-  generateDocs(command: DBTCommand): Promise<CommandProcessResult | undefined>;
-  executeCommandImmediately(
-    command: DBTCommand,
-  ): Promise<CommandProcessResult | undefined>;
+  compileModel(command: DBTCommand): Promise<void>;
+  generateDocs(command: DBTCommand): Promise<void>;
+  executeCommandImmediately(command: DBTCommand): Promise<CommandProcessResult>;
   deps(command: DBTCommand): Promise<string>;
   debug(command: DBTCommand): Promise<string>;
   // altimate commands

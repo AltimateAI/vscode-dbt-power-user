@@ -11,7 +11,8 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { Uri, Disposable } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProject, DBTTerminal } from "@extension";
-import { RunModelParams } from "src/dbt_client/dbtIntegration";
+import { RunModelParams } from "../dbt_client/dbtIntegration";
+import { CommandProcessResult } from "../commandProcessExecution";
 
 const ToolInputSchema = ToolSchema.shape.inputSchema;
 type ToolInput = z.infer<typeof ToolInputSchema>;
@@ -106,6 +107,20 @@ export class DbtPowerUserMcpServerTools implements Disposable {
   ) {}
 
   dispose() {}
+
+  private handleDbtCommandOutput = (result?: CommandProcessResult) => {
+    if (result?.stderr) {
+      throw new Error(result.stderr);
+    }
+    return {
+      content: [
+        {
+          type: "text",
+          text: result?.stdout,
+        },
+      ],
+    };
+  };
 
   public createServer = () => {
     const server = new Server(
@@ -472,10 +487,8 @@ export class DbtPowerUserMcpServerTools implements Disposable {
               modelName: args.modelName as string,
               plusOperatorRight: args.plusOperatorRight as string,
             };
-            await project.runModel(runModelParams);
-            return {
-              content: [{ type: "text", text: "Model run successfully" }],
-            };
+            const result = await project.runModel(runModelParams, true);
+            return this.handleDbtCommandOutput(result);
           }
 
           case ToolName.BUILD_MODEL: {
@@ -485,43 +498,25 @@ export class DbtPowerUserMcpServerTools implements Disposable {
               plusOperatorRight: args.plusOperatorRight as string,
             };
             const result = await project.buildModel(runModelParams, true);
-            if (result?.stderr) {
-              throw new Error(result.stderr);
-            }
-            return {
-              content: [
-                {
-                  type: "text",
-                  text:
-                    "Model built successfully. Results: " +
-                    JSON.stringify(result?.stdout),
-                },
-              ],
-            };
+            return this.handleDbtCommandOutput(result);
           }
 
           case ToolName.BUILD_PROJECT: {
-            // TODO: should capture output and return it
-            await project.buildProject();
-            return {
-              content: [{ type: "text", text: "Project built successfully" }],
-            };
+            const result = await project.buildProject(true);
+            return this.handleDbtCommandOutput(result);
           }
 
           case ToolName.RUN_TEST: {
-            // TODO: should capture output and return it
-            await project.runTest(args.testName as string);
-            return {
-              content: [{ type: "text", text: "Test run successfully" }],
-            };
+            const result = await project.runTest(args.testName as string, true);
+            return this.handleDbtCommandOutput(result);
           }
 
           case ToolName.RUN_MODEL_TEST: {
-            // TODO: should capture output and return it
-            await project.runModelTest(args.modelName as string);
-            return {
-              content: [{ type: "text", text: "Model test run successfully" }],
-            };
+            const result = await project.runModelTest(
+              args.modelName as string,
+              true,
+            );
+            return this.handleDbtCommandOutput(result);
           }
 
           case ToolName.INSTALL_DBT_PACKAGES: {

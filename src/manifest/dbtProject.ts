@@ -557,12 +557,14 @@ export class DBTProject implements Disposable {
     );
   }
 
-  async runModel(runModelParams: RunModelParams) {
+  async runModel(runModelParams: RunModelParams, returnImmediately = false) {
     try {
       const runModelCommand =
         this.dbtCommandFactory.createRunModelCommand(runModelParams);
-      await this.dbtProjectIntegration.runModel(runModelCommand);
+      runModelCommand.returnImmediately = returnImmediately;
+      const result = await this.dbtProjectIntegration.runModel(runModelCommand);
       this.telemetry.sendTelemetryEvent("runModel");
+      return result;
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
@@ -582,34 +584,42 @@ export class DBTProject implements Disposable {
     }
   }
 
-  async buildProject() {
+  async buildProject(returnImmediately = false) {
     try {
       const buildProjectCommand =
         this.dbtCommandFactory.createBuildProjectCommand();
-      await this.dbtProjectIntegration.buildProject(buildProjectCommand);
+      buildProjectCommand.returnImmediately = returnImmediately;
+      const result =
+        await this.dbtProjectIntegration.buildProject(buildProjectCommand);
       this.telemetry.sendTelemetryEvent("buildProject");
+      return result;
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
   }
 
-  async runTest(testName: string) {
+  async runTest(testName: string, returnImmediately = false) {
     try {
       const testModelCommand =
         this.dbtCommandFactory.createTestModelCommand(testName);
-      await this.dbtProjectIntegration.runTest(testModelCommand);
+      testModelCommand.returnImmediately = returnImmediately;
+      const result = await this.dbtProjectIntegration.runTest(testModelCommand);
       this.telemetry.sendTelemetryEvent("runTest");
+      return result;
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
   }
 
-  async runModelTest(modelName: string) {
+  async runModelTest(modelName: string, returnImmediately = false) {
     try {
       const testModelCommand =
         this.dbtCommandFactory.createTestModelCommand(modelName);
-      this.dbtProjectIntegration.runModelTest(testModelCommand);
-      await this.telemetry.sendTelemetryEvent("runModelTest");
+      testModelCommand.returnImmediately = returnImmediately;
+      const result =
+        await this.dbtProjectIntegration.runModelTest(testModelCommand);
+      this.telemetry.sendTelemetryEvent("runModelTest");
+      return result;
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
