@@ -560,6 +560,11 @@
         "icon": "$(run-above)"
       },
       {
+        "command": "dbtPowerUser.copyModelName",
+        "title": "Copy model name to clipboard",
+        "category": "dbt Power User"
+      },
+      {
         "command": "dbtPowerUser.showRunSQL",
         "title": "Open dbt target folder run SQL",
         "category": "dbt Power User",
@@ -998,6 +1003,11 @@
           "command": "dbtPowerUser.runParentModels",
           "when": "view == parent_model_treeview && viewItem != source",
           "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.copyModelName",
+          "when": "(view == parent_model_treeview || view ==  children_model_treeview || view == documentation_treeview) && viewItem != source",
+          "group": "navigation"
         },
         {
           "command": "dbtPowerUser.goToDocumentationEditor",
