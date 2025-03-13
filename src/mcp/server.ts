@@ -40,6 +40,7 @@ const CompileQuerySchema = BaseProjectRootSchema.extend({
 const ExecuteSQLWithLimitSchema = BaseProjectRootSchema.extend({
   query: z.string(),
   modelName: z.string(),
+  limit: z.number(),
 });
 
 const SetSelectedTargetSchema = BaseProjectRootSchema.extend({
@@ -47,14 +48,14 @@ const SetSelectedTargetSchema = BaseProjectRootSchema.extend({
 });
 
 const RunModelSchema = BaseProjectRootSchema.extend({
-  plusOperatorLeft: z.string(),
+  plusOperatorLeft: z.string().optional(),
   modelName: z.string(),
-  plusOperatorRight: z.string(),
+  plusOperatorRight: z.string().optional(),
 });
 const BuildModelSchema = BaseProjectRootSchema.extend({
-  plusOperatorLeft: z.string(),
+  plusOperatorLeft: z.string().optional(),
   modelName: z.string(),
-  plusOperatorRight: z.string(),
+  plusOperatorRight: z.string().optional(),
 });
 const BuildProjectSchema = BaseProjectRootSchema.extend({});
 const RunTestSchema = BaseProjectRootSchema.extend({
@@ -227,7 +228,7 @@ export class DbtPowerUserMcpServerTools implements Disposable {
         },
         {
           name: ToolName.GET_COLUMN_VALUES,
-          description: "Get column values",
+          description: "Get distinct column values",
           inputSchema: zodToJsonSchema(GetColumnValuesSchema) as ToolInput,
         },
         {
@@ -466,8 +467,8 @@ export class DbtPowerUserMcpServerTools implements Disposable {
               args.query as string,
               args.modelName as string,
               args.limit as number,
-              args.returnImmediately as boolean,
-              args.returnRawResults as boolean,
+              true,
+              false,
             );
             return {
               content: [{ type: "text", text: JSON.stringify(result) }],
@@ -520,25 +521,22 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           }
 
           case ToolName.INSTALL_DBT_PACKAGES: {
-            // TODO: should capture output and return it
-            await project.installDbtPackages(args.packages as string[]);
+            const result = await project.installDbtPackages(
+              args.packages as string[],
+            );
             return {
-              content: [
-                { type: "text", text: "Packages installed successfully" },
-              ],
+              content: [{ type: "text", text: result }],
             };
           }
 
           case ToolName.INSTALL_DEPS: {
-            // TODO: should capture output and return it
-            await project.installDeps();
+            const result = await project.installDeps();
             return {
-              content: [{ type: "text", text: "Deps installed successfully" }],
+              content: [{ type: "text", text: result }],
             };
           }
 
           case ToolName.COMPILE_QUERY: {
-            // TODO: should have an unsafe method and exceptions should be captured and returned as string
             const result = await project.unsafeCompileQuery(
               args.modelName as string,
               // TODO: should have an optional originalModelName
