@@ -310,234 +310,240 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           throw new Error(`Project not found for root: ${args.projectRoot}`);
         }
 
-        if (name === ToolName.GET_PROJECT_NAME) {
-          return {
-            content: [{ type: "text", text: project.getProjectName() }],
-          };
-        }
+        switch (name) {
+          case ToolName.GET_PROJECT_NAME:
+            return {
+              content: [{ type: "text", text: project.getProjectName() }],
+            };
 
-        if (name === ToolName.GET_SELECTED_TARGET) {
-          return {
-            content: [{ type: "text", text: project.getSelectedTarget() }],
-          };
-        }
+          case ToolName.GET_SELECTED_TARGET:
+            return {
+              content: [{ type: "text", text: project.getSelectedTarget() }],
+            };
 
-        if (name === ToolName.GET_TARGET_NAMES) {
-          const targetNames = await project.getTargetNames();
-          return {
-            content: [{ type: "text", text: targetNames.join(", ") }],
-          };
-        }
-
-        if (name === ToolName.GET_TARGET_PATH) {
-          return {
-            content: [{ type: "text", text: project.getTargetPath() || "" }],
-          };
-        }
-
-        if (name === ToolName.GET_PACKAGE_INSTALL_PATH) {
-          return {
-            content: [
-              { type: "text", text: project.getPackageInstallPath() || "" },
-            ],
-          };
-        }
-
-        if (name === ToolName.GET_MODEL_PATHS) {
-          return {
-            content: [
-              { type: "text", text: project.getModelPaths()?.join(", ") || "" },
-            ],
-          };
-        }
-
-        if (name === ToolName.GET_SEED_PATHS) {
-          return {
-            content: [
-              { type: "text", text: project.getSeedPaths()?.join(", ") || "" },
-            ],
-          };
-        }
-
-        if (name === ToolName.GET_MACRO_PATHS) {
-          return {
-            content: [
-              { type: "text", text: project.getMacroPaths()?.join(", ") || "" },
-            ],
-          };
-        }
-
-        if (name === ToolName.GET_MANIFEST_PATH) {
-          return {
-            content: [{ type: "text", text: project.getManifestPath() || "" }],
-          };
-        }
-
-        if (name === ToolName.GET_CATALOG_PATH) {
-          return {
-            content: [{ type: "text", text: project.getCatalogPath() || "" }],
-          };
-        }
-
-        if (name === ToolName.GET_ALL_DIAGNOSTIC) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify(project.getAllDiagnostic()),
-              },
-            ],
-          };
-        }
-
-        if (name === ToolName.GET_DBT_VERSION) {
-          return {
-            content: [
-              { type: "text", text: project.getDBTVersion()?.join(".") || "" },
-            ],
-          };
-        }
-
-        if (name === ToolName.GET_ADAPTER_TYPE) {
-          return {
-            content: [{ type: "text", text: project.getAdapterType() }],
-          };
-        }
-
-        if (name === ToolName.GET_COLUMNS_OF_MODEL) {
-          const result = await project.getColumnsOfModel(
-            args.modelName as string,
-          );
-          return { content: [{ type: "text", text: JSON.stringify(result) }] };
-        }
-
-        if (name === ToolName.GET_COLUMNS_OF_SOURCE) {
-          const result = await project.getColumnsOfSource(
-            args.sourceName as string,
-            args.tableName as string,
-          );
-          return { content: [{ type: "text", text: JSON.stringify(result) }] };
-        }
-
-        if (name === ToolName.GET_COLUMN_VALUES) {
-          const result = await project.getColumnValues(
-            args.model as string,
-            args.column as string,
-          );
-          return { content: [{ type: "text", text: JSON.stringify(result) }] };
-        }
-
-        if (name === ToolName.COMPILE_MODEL) {
-          const result = await project.unsafeCompileNode(
-            args.modelName as string,
-          );
-          return { content: [{ type: "text", text: result || "" }] };
-        }
-
-        if (name === ToolName.EXECUTE_SQL_WITH_LIMIT) {
-          const result = await project.executeSQLWithLimit(
-            args.query as string,
-            args.modelName as string,
-            args.limit as number,
-            args.returnImmediately as boolean,
-            args.returnRawResults as boolean,
-          );
-          return { content: [{ type: "text", text: JSON.stringify(result) }] };
-        }
-
-        if (name === ToolName.SET_SELECTED_TARGET) {
-          const project = this.dbtProjectContainer.findDBTProject(
-            Uri.file(args.projectRoot as string),
-          );
-          if (!project) {
-            throw new Error(`Project not found for root: ${args.projectRoot}`);
+          case ToolName.GET_TARGET_NAMES: {
+            const targetNames = await project.getTargetNames();
+            return {
+              content: [{ type: "text", text: targetNames.join(", ") }],
+            };
           }
-          await project.setSelectedTarget(args.targetName as string);
-          return {
-            content: [{ type: "text", text: "Target set successfully" }],
-          };
-        }
 
-        if (name === ToolName.RUN_MODEL) {
-          const runModelParams: RunModelParams = {
-            plusOperatorLeft: args.plusOperatorLeft as string,
-            modelName: args.modelName as string,
-            plusOperatorRight: args.plusOperatorRight as string,
-          };
-          await project.runModel(runModelParams);
-          return {
-            content: [{ type: "text", text: "Model run successfully" }],
-          };
-        }
+          case ToolName.GET_TARGET_PATH:
+            return {
+              content: [{ type: "text", text: project.getTargetPath() || "" }],
+            };
 
-        if (name === ToolName.BUILD_MODEL) {
-          const runModelParams: RunModelParams = {
-            plusOperatorLeft: args.plusOperatorLeft as string,
-            modelName: args.modelName as string,
-            plusOperatorRight: args.plusOperatorRight as string,
-          };
-          // TODO: should capture output and return it
-          await project.buildModel(runModelParams);
-          return {
-            content: [{ type: "text", text: "Model built successfully" }],
-          };
-        }
+          case ToolName.GET_PACKAGE_INSTALL_PATH:
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: project.getPackageInstallPath() || "",
+                },
+              ],
+            };
 
-        if (name === ToolName.BUILD_PROJECT) {
-          // TODO: should capture output and return it
-          await project.buildProject();
-          return {
-            content: [{ type: "text", text: "Project built successfully" }],
-          };
-        }
+          case ToolName.GET_MODEL_PATHS:
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: project.getModelPaths()?.join(", ") || "",
+                },
+              ],
+            };
 
-        if (name === ToolName.RUN_TEST) {
-          // TODO: should capture output and return it
-          await project.runTest(args.testName as string);
-          return { content: [{ type: "text", text: "Test run successfully" }] };
-        }
+          case ToolName.GET_SEED_PATHS:
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: project.getSeedPaths()?.join(", ") || "",
+                },
+              ],
+            };
 
-        if (name === ToolName.RUN_MODEL_TEST) {
-          // TODO: should capture output and return it
-          await project.runModelTest(args.modelName as string);
-          return {
-            content: [{ type: "text", text: "Model test run successfully" }],
-          };
-        }
+          case ToolName.GET_MACRO_PATHS:
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: project.getMacroPaths()?.join(", ") || "",
+                },
+              ],
+            };
 
-        if (name === ToolName.INSTALL_DBT_PACKAGES) {
-          // TODO: should capture output and return it
-          await project.installDbtPackages(args.packages as string[]);
-          return {
-            content: [
-              { type: "text", text: "Packages installed successfully" },
-            ],
-          };
-        }
+          case ToolName.GET_MANIFEST_PATH:
+            return {
+              content: [
+                { type: "text", text: project.getManifestPath() || "" },
+              ],
+            };
 
-        if (name === ToolName.INSTALL_DEPS) {
-          // TODO: should capture output and return it
-          await project.installDeps();
-          return {
-            content: [{ type: "text", text: "Deps installed successfully" }],
-          };
-        }
+          case ToolName.GET_CATALOG_PATH:
+            return {
+              content: [{ type: "text", text: project.getCatalogPath() || "" }],
+            };
 
-        if (name === ToolName.COMPILE_MODEL) {
-          // TODO: should have an unsafe method and exceptions should be captured and returned as string
-          const result = await project.unsafeCompileNode(
-            args.modelName as string,
-          );
-          return { content: [{ type: "text", text: result || "" }] };
-        }
+          case ToolName.GET_ALL_DIAGNOSTIC:
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify(project.getAllDiagnostic()),
+                },
+              ],
+            };
 
-        if (name === ToolName.COMPILE_QUERY) {
-          // TODO: should have an unsafe method and exceptions should be captured and returned as string
-          const result = await project.unsafeCompileQuery(
-            args.modelName as string,
-            // TODO: should have an optional originalModelName
-          );
-          return { content: [{ type: "text", text: result || "" }] };
+          case ToolName.GET_DBT_VERSION:
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: project.getDBTVersion()?.join(".") || "",
+                },
+              ],
+            };
+
+          case ToolName.GET_ADAPTER_TYPE:
+            return {
+              content: [{ type: "text", text: project.getAdapterType() }],
+            };
+
+          case ToolName.GET_COLUMNS_OF_MODEL: {
+            const result = await project.getColumnsOfModel(
+              args.modelName as string,
+            );
+            return {
+              content: [{ type: "text", text: JSON.stringify(result) }],
+            };
+          }
+
+          case ToolName.GET_COLUMNS_OF_SOURCE: {
+            const result = await project.getColumnsOfSource(
+              args.sourceName as string,
+              args.tableName as string,
+            );
+            return {
+              content: [{ type: "text", text: JSON.stringify(result) }],
+            };
+          }
+
+          case ToolName.GET_COLUMN_VALUES: {
+            const result = await project.getColumnValues(
+              args.model as string,
+              args.column as string,
+            );
+            return {
+              content: [{ type: "text", text: JSON.stringify(result) }],
+            };
+          }
+
+          case ToolName.COMPILE_MODEL: {
+            const result = await project.unsafeCompileNode(
+              args.modelName as string,
+            );
+            return { content: [{ type: "text", text: result || "" }] };
+          }
+
+          case ToolName.EXECUTE_SQL_WITH_LIMIT: {
+            const result = await project.executeSQLWithLimit(
+              args.query as string,
+              args.modelName as string,
+              args.limit as number,
+              args.returnImmediately as boolean,
+              args.returnRawResults as boolean,
+            );
+            return {
+              content: [{ type: "text", text: JSON.stringify(result) }],
+            };
+          }
+
+          case ToolName.SET_SELECTED_TARGET: {
+            await project.setSelectedTarget(args.targetName as string);
+            return {
+              content: [{ type: "text", text: "Target set successfully" }],
+            };
+          }
+
+          case ToolName.RUN_MODEL: {
+            const runModelParams: RunModelParams = {
+              plusOperatorLeft: args.plusOperatorLeft as string,
+              modelName: args.modelName as string,
+              plusOperatorRight: args.plusOperatorRight as string,
+            };
+            await project.runModel(runModelParams);
+            return {
+              content: [{ type: "text", text: "Model run successfully" }],
+            };
+          }
+
+          case ToolName.BUILD_MODEL: {
+            const runModelParams: RunModelParams = {
+              plusOperatorLeft: args.plusOperatorLeft as string,
+              modelName: args.modelName as string,
+              plusOperatorRight: args.plusOperatorRight as string,
+            };
+            // TODO: should capture output and return it
+            await project.buildModel(runModelParams);
+            return {
+              content: [{ type: "text", text: "Model built successfully" }],
+            };
+          }
+
+          case ToolName.BUILD_PROJECT: {
+            // TODO: should capture output and return it
+            await project.buildProject();
+            return {
+              content: [{ type: "text", text: "Project built successfully" }],
+            };
+          }
+
+          case ToolName.RUN_TEST: {
+            // TODO: should capture output and return it
+            await project.runTest(args.testName as string);
+            return {
+              content: [{ type: "text", text: "Test run successfully" }],
+            };
+          }
+
+          case ToolName.RUN_MODEL_TEST: {
+            // TODO: should capture output and return it
+            await project.runModelTest(args.modelName as string);
+            return {
+              content: [{ type: "text", text: "Model test run successfully" }],
+            };
+          }
+
+          case ToolName.INSTALL_DBT_PACKAGES: {
+            // TODO: should capture output and return it
+            await project.installDbtPackages(args.packages as string[]);
+            return {
+              content: [
+                { type: "text", text: "Packages installed successfully" },
+              ],
+            };
+          }
+
+          case ToolName.INSTALL_DEPS: {
+            // TODO: should capture output and return it
+            await project.installDeps();
+            return {
+              content: [{ type: "text", text: "Deps installed successfully" }],
+            };
+          }
+
+          case ToolName.COMPILE_QUERY: {
+            // TODO: should have an unsafe method and exceptions should be captured and returned as string
+            const result = await project.unsafeCompileQuery(
+              args.modelName as string,
+              // TODO: should have an optional originalModelName
+            );
+            return { content: [{ type: "text", text: result || "" }] };
+          }
+
+          default:
+            throw new Error(`Unknown tool: ${name}`);
         }
       } catch (error) {
         this.dbtTerminal.error("DbtPowerUserMcpServerTools", "Error", {
@@ -554,8 +560,6 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           error: error,
         };
       }
-
-      throw new Error(`Unknown tool: ${name}`);
     });
 
     return { server, cleanup: async () => {} };
