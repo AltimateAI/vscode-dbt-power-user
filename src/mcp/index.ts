@@ -4,6 +4,7 @@ import { Disposable } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DbtPowerUserMcpServerTools } from "./server";
+import { AltimateRequest } from "@extension";
 
 const PORT = 7891;
 
@@ -13,33 +14,52 @@ export class DbtPowerUserMcpServer implements Disposable {
   constructor(
     private dbtPowerUserMcpServerTools: DbtPowerUserMcpServerTools,
     private dbtTerminal: DBTTerminal,
+    private altimate: AltimateRequest,
   ) {
     this.start();
   }
 
   private async start() {
+    if (!this.altimate.handlePreviewFeatures()) {
+      this.dbtTerminal.info(
+        "DbtPowerUserMcpServer",
+        "Preview features are not enabled, skipping MCP server start",
+      );
+      return;
+    }
     const { server, cleanup } = this.dbtPowerUserMcpServerTools.createServer();
     const app = express();
     let transport: SSEServerTransport;
 
     // Add error handling middleware
-    app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-      this.dbtTerminal.error("DbtPowerUserMcpServer", "Express error", {
-        error: err.message,
-        stack: err.stack,
-        path: req.path,
-        method: req.method,
-      });
-      res.status(500).json({
-        error: "Internal Server Error",
-        message: err.message,
-      });
-    });
+    app.use(
+      (
+        err: any,
+        req: express.Request,
+        res: express.Response,
+        next: express.NextFunction,
+      ) => {
+        this.dbtTerminal.error("DbtPowerUserMcpServer", "Express error", {
+          error: err.message,
+          stack: err.stack,
+          path: req.path,
+          method: req.method,
+        });
+        res.status(500).json({
+          error: "Internal Server Error",
+          message: err.message,
+        });
+      },
+    );
 
     // Add async error handling wrapper
     const asyncHandler =
       (fn: Function) =>
-      (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      (
+        req: express.Request,
+        res: express.Response,
+        next: express.NextFunction,
+      ) => {
         Promise.resolve(fn(req, res, next)).catch(next);
       };
 
