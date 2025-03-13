@@ -39,9 +39,6 @@ const CompileQuerySchema = BaseProjectRootSchema.extend({
 const ExecuteSQLWithLimitSchema = BaseProjectRootSchema.extend({
   query: z.string(),
   modelName: z.string(),
-  limit: z.number(),
-  returnImmediately: z.boolean().optional(),
-  returnRawResults: z.boolean().optional(),
 });
 
 const SetSelectedTargetSchema = BaseProjectRootSchema.extend({
@@ -69,9 +66,6 @@ const InstallDbtPackagesSchema = BaseProjectRootSchema.extend({
   packages: z.array(z.string()),
 });
 const InstallDepsSchema = BaseProjectRootSchema.extend({});
-const UnsafeCompileNodeSchema = BaseProjectRootSchema.extend({
-  modelName: z.string(),
-});
 
 enum ToolName {
   GET_PROJECTS = "get_projects",
@@ -102,7 +96,6 @@ enum ToolName {
   RUN_MODEL_TEST = "run_model_test",
   INSTALL_DBT_PACKAGES = "install_dbt_packages",
   INSTALL_DEPS = "install_deps",
-  UNSAFE_COMPILE_NODE = "unsafe_compile_node",
 }
 
 @provideSingleton(DbtPowerUserMcpServerTools)
@@ -229,7 +222,7 @@ export class DbtPowerUserMcpServerTools implements Disposable {
         },
         {
           name: ToolName.COMPILE_QUERY,
-          description: "Compile query or dbt model",
+          description: "Compile query",
           inputSchema: zodToJsonSchema(CompileQuerySchema) as ToolInput,
         },
         {
@@ -276,11 +269,6 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           name: ToolName.INSTALL_DEPS,
           description: "Install deps",
           inputSchema: zodToJsonSchema(InstallDepsSchema) as ToolInput,
-        },
-        {
-          name: ToolName.UNSAFE_COMPILE_NODE,
-          description: "Unsafe compile node",
-          inputSchema: zodToJsonSchema(UnsafeCompileNodeSchema) as ToolInput,
         },
       ];
 
@@ -429,15 +417,8 @@ export class DbtPowerUserMcpServerTools implements Disposable {
       }
 
       if (name === ToolName.COMPILE_MODEL) {
+        // TODO: should have an unsafe method and exceptions should be captured and returned as string
         const result = await project.compileNode(args.modelName as string);
-        return { content: [{ type: "text", text: result || "" }] };
-      }
-
-      if (name === ToolName.COMPILE_QUERY) {
-        const result = await project.compileQuery(
-          args.query as string,
-          args.originalModelName as string | undefined,
-        );
         return { content: [{ type: "text", text: result || "" }] };
       }
 
@@ -524,9 +505,19 @@ export class DbtPowerUserMcpServerTools implements Disposable {
         };
       }
 
-      if (name === ToolName.UNSAFE_COMPILE_NODE) {
+      if (name === ToolName.COMPILE_MODEL) {
+        // TODO: should have an unsafe method and exceptions should be captured and returned as string
         const result = await project.unsafeCompileNode(
           args.modelName as string,
+        );
+        return { content: [{ type: "text", text: result || "" }] };
+      }
+
+      if (name === ToolName.COMPILE_QUERY) {
+        // TODO: should have an unsafe method and exceptions should be captured and returned as string
+        const result = await project.unsafeCompileQuery(
+          args.modelName as string,
+          // TODO: should have an optional originalModelName
         );
         return { content: [{ type: "text", text: result || "" }] };
       }
