@@ -42,13 +42,17 @@ const Step = ({
   );
 };
 
-const McpOnboarding = () => {
+const McpOnboarding = (): JSX.Element => {
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
 
   const handleStepComplete = async (step: number) => {
     if (step === 1) {
       const result = await executeRequestInSync("configureMcp", {});
+      panelLogger.log(result);
+    }
+    if (step === 3) {
+      const result = await executeRequestInSync("completeMcpOnboarding", {});
       panelLogger.log(result);
     }
 

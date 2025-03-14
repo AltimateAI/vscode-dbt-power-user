@@ -338,11 +338,6 @@
           "id": "insights_view",
           "title": "Actions",
           "icon": "./media/images/dbt_icon.svg"
-        },
-        {
-          "id": "mcp_view",
-          "title": "MCP",
-          "icon": "./media/images/dbt_icon.svg"
         }
       ]
     },
@@ -401,13 +396,6 @@
       "insights_view": [
         {
           "id": "dbtPowerUser.Insights",
-          "name": "",
-          "type": "webview"
-        }
-      ],
-      "mcp_view": [
-        {
-          "id": "dbtPowerUser.Mcp",
           "name": "",
           "type": "webview"
         }
@@ -1289,7 +1277,7 @@
     "postinstall": "node postInstall.js",
     "prepare": "husky",
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production && node prepareBuild.js",
-    "webpack": "webpack --mode development",
+    "webpack": "npm run panel:webviews && webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "watch": "concurrently \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",

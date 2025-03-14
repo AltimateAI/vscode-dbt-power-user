@@ -25,6 +25,7 @@ import {
   commands,
   WebviewPanel,
   Webview,
+  WebviewView,
 } from "vscode";
 import path from "path";
 import { DbtPowerUserMcpServer } from "../mcp";
@@ -93,6 +94,22 @@ export class McpPanel
             return {
               status: true,
               step: 2,
+            };
+          },
+          command,
+        );
+        break;
+      case "completeMcpOnboarding":
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            // Close the MCP walkthrough editor
+            if (this._panel) {
+              (this._panel as WebviewPanel).dispose();
+            }
+            return {
+              status: true,
+              step: 3,
             };
           },
           command,
