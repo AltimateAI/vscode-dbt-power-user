@@ -793,6 +793,14 @@ export class VSCodeCommands implements Disposable {
           );
         },
       ),
+      commands.registerCommand("dbtPowerUser.applyDeferConfig", () => {
+        const pickedProject: ProjectQuickPickItem | undefined =
+          this.dbtProjectContainer.getFromWorkspaceState(
+            "dbtPowerUser.projectSelected",
+          );
+
+        this.dbtProjectContainer.findDBTProject(pickedProject?.uri,)?.applyDeferConfig();
+      }),
     );
   }
 

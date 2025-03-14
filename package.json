@@ -728,6 +728,11 @@
         "command": "dbtPowerUser.showNotebookGenerateModelCTE",
         "title": "Generate dbt model CTE",
         "group": "notebooks@5"
+      },
+      {
+        "command": "dbtPowerUser.applyDeferConfig",
+        "category": "dbt Power User",
+        "title": "Apply defer configuration"
       }
     ],
     "keybindings": [
