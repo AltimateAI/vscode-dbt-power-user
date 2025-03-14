@@ -1,10 +1,23 @@
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import express from "express";
-import { Disposable } from "vscode";
+import {
+  commands,
+  Disposable,
+  ProgressLocation,
+  Uri,
+  window,
+  workspace,
+} from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DbtPowerUserMcpServerTools } from "./server";
-import { AltimateRequest } from "@extension";
+import {
+  AltimateRequest,
+  DBTProjectContainer,
+  TelemetryEvents,
+  TelemetryService,
+} from "@extension";
+import { SharedStateService } from "../services/sharedStateService";
 
 const PORT = 7891;
 
@@ -15,8 +28,72 @@ export class DbtPowerUserMcpServer implements Disposable {
     private dbtPowerUserMcpServerTools: DbtPowerUserMcpServerTools,
     private dbtTerminal: DBTTerminal,
     private altimate: AltimateRequest,
+    private emitterService: SharedStateService,
+    private telemetry: TelemetryService,
+    private dbtProjectContainer: DBTProjectContainer,
   ) {
-    this.start();
+    this.disposables.push(
+      emitterService.eventEmitter.event((d) => {
+        if (d.command === "dbtProjectsInitialized") {
+          this.start();
+          // this.startOnboarding();
+        }
+      }),
+    );
+  }
+
+  private async startOnboarding() {
+    this.dbtTerminal.info("DbtPowerUserMcpServer", "Starting onboarding");
+    this.telemetry.sendTelemetryEvent(TelemetryEvents["MCP/Onboarding"], {
+      name: "Onboarding",
+    });
+
+    const isCursorIde =
+      process.env.VSCODE_CWD?.includes("Cursor") ||
+      !!process.env.CURSOR_TRACE_ID;
+    const mcpServerOnboardingCompleted =
+      this.dbtProjectContainer.getFromGlobalState(
+        "mcpServerOnboardingCompleted",
+      );
+
+    if (isCursorIde && !mcpServerOnboardingCompleted) {
+      const answer = await window.showInformationMessage(
+        "dbt Power User now supports enhanced features in Cursor IDE through MCP server integration. Would you like to set it up?",
+        { modal: false },
+        "Set Up Now",
+        "Later",
+      );
+
+      if (answer === "Set Up Now") {
+        this.telemetry.sendTelemetryEvent(
+          TelemetryEvents["MCP/Onboarding/SetUpNow"],
+        );
+        const workspaceFolders = workspace.workspaceFolders;
+        if (!workspaceFolders) {
+          window.showErrorMessage(
+            "Setting up MCP server currently requires opening a workspace",
+          );
+          return;
+        }
+        // convert this to series of window.showInformationMessage
+        const steps = [
+          "Step 1: Configure MCP server",
+          "Step 2: Enable the MCP server in Cursor settings",
+          "Step 3: Try out the chat",
+        ];
+        for (const step of steps) {
+          const result = await window.showInformationMessage(step, "Next");
+          if (result === "Next") {
+            continue;
+          }
+          return;
+        }
+        return;
+      }
+      this.telemetry.sendTelemetryEvent(
+        TelemetryEvents["MCP/Onboarding/Later"],
+      );
+    }
   }
 
   private async start() {
@@ -27,6 +104,7 @@ export class DbtPowerUserMcpServer implements Disposable {
       );
       return;
     }
+    this.dbtTerminal.info("DbtPowerUserMcpServer", "Starting MCP server");
     const { server, cleanup } = this.dbtPowerUserMcpServerTools.createServer();
     const app = express();
     let transport: SSEServerTransport;

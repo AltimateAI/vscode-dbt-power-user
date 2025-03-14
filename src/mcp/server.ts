@@ -10,7 +10,12 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { Uri, Disposable } from "vscode";
 import { provideSingleton } from "../utils";
-import { DBTProject, DBTTerminal } from "@extension";
+import {
+  DBTProject,
+  DBTTerminal,
+  TelemetryEvents,
+  TelemetryService,
+} from "@extension";
 import { RunModelParams } from "../dbt_client/dbtIntegration";
 import { CommandProcessResult } from "../commandProcessExecution";
 
@@ -105,6 +110,7 @@ export class DbtPowerUserMcpServerTools implements Disposable {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private dbtTerminal: DBTTerminal,
+    private telemetry: TelemetryService,
   ) {}
 
   dispose() {}
@@ -292,10 +298,14 @@ export class DbtPowerUserMcpServerTools implements Disposable {
     });
 
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      const { name, arguments: args } = request.params;
+      const { name, arguments: args = {} } = request.params;
       this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Calling tool", {
         name,
         args,
+      });
+      this.telemetry.sendTelemetryEvent(TelemetryEvents["MCP/ToolCall"], {
+        name,
+        ...args,
       });
 
       try {
