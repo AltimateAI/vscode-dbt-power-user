@@ -102,6 +102,11 @@
             "displayName": "Altimate AI Instance Name",
             "markdownDescription": "Needed for features that require backend support. Sign up for a free Altimate AI account [here](https://app.myaltimate.com/register). If your Altimate AI instance URL is https://betatest.app.myaltimate.com/, The instance name is betatest"
           },
+          "dbt.enableMcpServer": {
+            "type": "boolean",
+            "description": "Enable MCP server",
+            "default": false
+          },
           "dbt.enableNewLineagePanel": {
             "type": "boolean",
             "description": "Enable the new lineage panel in dbt."
@@ -287,6 +292,17 @@
         }
       }
     ],
+    "customEditors": [
+      {
+        "viewType": "dbtPowerUser.Mcp",
+        "displayName": "MCP Walkthrough",
+        "selector": [
+          {
+            "filenamePattern": "*.mcpwalkthrough"
+          }
+        ]
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {
@@ -321,6 +337,11 @@
         {
           "id": "insights_view",
           "title": "Actions",
+          "icon": "./media/images/dbt_icon.svg"
+        },
+        {
+          "id": "mcp_view",
+          "title": "MCP",
           "icon": "./media/images/dbt_icon.svg"
         }
       ]
@@ -380,6 +401,13 @@
       "insights_view": [
         {
           "id": "dbtPowerUser.Insights",
+          "name": "",
+          "type": "webview"
+        }
+      ],
+      "mcp_view": [
+        {
+          "id": "dbtPowerUser.Mcp",
           "name": "",
           "type": "webview"
         }
@@ -1261,7 +1289,7 @@
     "postinstall": "node postInstall.js",
     "prepare": "husky",
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production && node prepareBuild.js",
-    "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
+    "webpack": "webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "watch": "concurrently \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",

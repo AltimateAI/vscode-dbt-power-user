@@ -1,6 +1,6 @@
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import express from "express";
-import { Disposable, window, workspace, env } from "vscode";
+import { Disposable, window, workspace, Uri, commands } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DbtPowerUserMcpServerTools } from "./server";
@@ -13,12 +13,14 @@ import {
 import { SharedStateService } from "../services/sharedStateService";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { findAvailablePort } from "./utils";
-
+import path from "path";
+import { McpPanel } from "../webview_provider/mcpPanel";
 @provideSingleton(DbtPowerUserMcpServer)
 export class DbtPowerUserMcpServer implements Disposable {
   private disposables: Disposable[] = [];
   private mcpServer: Server | undefined;
   private mcpTransport: SSEServerTransport | undefined;
+  private port: number | undefined;
 
   constructor(
     private dbtPowerUserMcpServerTools: DbtPowerUserMcpServerTools,
@@ -31,8 +33,8 @@ export class DbtPowerUserMcpServer implements Disposable {
     this.disposables.push(
       emitterService.eventEmitter.event((d) => {
         if (d.command === "dbtProjectsInitialized") {
-          this.start();
-          // this.startOnboarding();
+          // this.start();
+          this.startOnboarding();
         }
       }),
     );
@@ -40,19 +42,25 @@ export class DbtPowerUserMcpServer implements Disposable {
 
   private async startOnboarding() {
     this.dbtTerminal.info("DbtPowerUserMcpServer", "Starting onboarding");
-    this.telemetry.sendTelemetryEvent(TelemetryEvents["MCP/Onboarding"], {
-      name: "Onboarding",
-    });
+    const mcpServerEnabled = workspace
+      .getConfiguration("dbt")
+      .get("enableMcpServer");
+
+    if (mcpServerEnabled) {
+      const port = await this.start();
+      if (port) {
+        await this.updatePortInCursorMcpSettings(port);
+      }
+      return;
+    }
 
     const isCursorIde =
       process.env.VSCODE_CWD?.includes("Cursor") ||
       !!process.env.CURSOR_TRACE_ID;
-    const mcpServerOnboardingCompleted =
-      this.dbtProjectContainer.getFromGlobalState(
-        "mcpServerOnboardingCompleted",
-      );
-
-    if (isCursorIde && !mcpServerOnboardingCompleted) {
+    if (isCursorIde) {
+      this.telemetry.sendTelemetryEvent(TelemetryEvents["MCP/Onboarding"], {
+        name: "Onboarding",
+      });
       const answer = await window.showInformationMessage(
         "dbt Power User now supports enhanced features in Cursor IDE through MCP server integration. Would you like to set it up?",
         { modal: false },
@@ -61,29 +69,19 @@ export class DbtPowerUserMcpServer implements Disposable {
       );
 
       if (answer === "Set Up Now") {
-        this.telemetry.sendTelemetryEvent(
-          TelemetryEvents["MCP/Onboarding/SetUpNow"],
-        );
-        const workspaceFolders = workspace.workspaceFolders;
-        if (!workspaceFolders) {
-          window.showErrorMessage(
-            "Setting up MCP server currently requires opening a workspace",
+        if (!this.altimate.handlePreviewFeatures()) {
+          this.dbtTerminal.info(
+            "DbtPowerUserMcpServer",
+            "Preview features are not enabled, skipping MCP server start",
           );
           return;
         }
-        // convert this to series of window.showInformationMessage
-        const steps = [
-          "Step 1: Configure MCP server",
-          "Step 2: Enable the MCP server in Cursor settings",
-          "Step 3: Try out the chat in Agent mode",
-        ];
-        for (const step of steps) {
-          const result = await window.showInformationMessage(step, "Next");
-          if (result === "Next") {
-            continue;
-          }
-          return;
-        }
+        await workspace.getConfiguration("dbt").update("enableMcpServer", true);
+
+        this.telemetry.sendTelemetryEvent(
+          TelemetryEvents["MCP/Onboarding/SetUpNow"],
+        );
+        this.showOnboardingSteps();
         return;
       }
       this.telemetry.sendTelemetryEvent(
@@ -92,11 +90,44 @@ export class DbtPowerUserMcpServer implements Disposable {
     }
   }
 
-  private async start() {
+  private async showOnboardingSteps() {
+    const workspaceFolders = workspace.workspaceFolders;
+    if (!workspaceFolders) {
+      window.showErrorMessage(
+        "Setting up MCP server currently requires opening a workspace",
+      );
+      return;
+    }
+
+    const uri = Uri.joinPath(workspaceFolders[0].uri, `MCP.mcpwalkthrough`);
+
+    commands.executeCommand("vscode.openWith", uri, McpPanel.viewType);
+  }
+
+  public async start() {
     if (!this.altimate.handlePreviewFeatures()) {
       this.dbtTerminal.info(
         "DbtPowerUserMcpServer",
         "Preview features are not enabled, skipping MCP server start",
+      );
+      return;
+    }
+
+    if (this.mcpServer) {
+      this.dbtTerminal.info(
+        "DbtPowerUserMcpServer",
+        "MCP server is already running, skipping start",
+      );
+      return this.port;
+    }
+
+    const mcpServerEnabled = workspace
+      .getConfiguration("dbt")
+      .get("enableMcpServer");
+    if (!mcpServerEnabled) {
+      this.dbtTerminal.info(
+        "DbtPowerUserMcpServer",
+        "MCP server is not enabled, skipping start",
       );
       return;
     }
@@ -173,11 +204,19 @@ export class DbtPowerUserMcpServer implements Disposable {
 
     const port = await findAvailablePort();
     app.listen(port, () => {
-      this.dbtTerminal.debug("DbtPowerUserMcpServer", "Server is running", {
-        port,
-      });
-      this.updatePortInCursorMcpSettings(port);
+      this.port = port;
+      this.dbtTerminal.info(
+        "DbtPowerUserMcpServer",
+        "Server is running",
+        false,
+        {
+          port,
+        },
+      );
+      // this.updatePortInCursorMcpSettings(port);
     });
+
+    return port;
   }
 
   dispose() {
@@ -186,7 +225,7 @@ export class DbtPowerUserMcpServer implements Disposable {
     this.disposables.forEach((disposable) => disposable.dispose());
   }
 
-  private async updatePortInCursorMcpSettings(port: number) {
+  public async updatePortInCursorMcpSettings(port: number) {
     try {
       this.dbtTerminal.debug(
         "DbtPowerUserMcpServer",
@@ -200,14 +239,49 @@ export class DbtPowerUserMcpServer implements Disposable {
         1,
       );
 
+      // if no mcp.json file is found, create one in first workspace folder
       if (!mcpJsonPaths.length) {
         this.dbtTerminal.debug(
           "DbtPowerUserMcpServer",
           "No MCP settings file found",
         );
-        return;
+        if (!workspace.workspaceFolders) {
+          window.showErrorMessage(
+            "No workspace folders found, please open a workspace to use MCP server",
+          );
+          this.dbtTerminal.info(
+            "DbtPowerUserMcpServer",
+            "No workspace folders found",
+          );
+          return false;
+        }
+
+        await workspace.fs.writeFile(
+          Uri.file(
+            path.join(
+              workspace.workspaceFolders[0].uri.fsPath,
+              ".cursor",
+              "mcp.json",
+            ),
+          ),
+          new Uint8Array(
+            Buffer.from(
+              JSON.stringify(
+                {
+                  mcpServers: {
+                    dbtPowerUser: { url: `http://localhost:${port}/sse` },
+                  },
+                },
+                null,
+                2,
+              ),
+            ),
+          ),
+        );
+        return true;
       }
 
+      // if there is more than one mcp.json file, use the first one and update port
       const mcpJsonPath = mcpJsonPaths[0];
       // Try to read the existing file
       const fileContent = await workspace.fs.readFile(mcpJsonPath);
@@ -233,12 +307,14 @@ export class DbtPowerUserMcpServer implements Disposable {
         false,
         { port },
       );
+      return true;
     } catch (err) {
       this.dbtTerminal.error(
         "DbtPowerUserMcpServer",
         "Failed to update MCP settings",
         { error: err },
       );
+      return false;
     }
   }
 }

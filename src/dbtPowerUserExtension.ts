@@ -67,7 +67,6 @@ export class DBTPowerUserExtension implements Disposable {
     private validationProvider: ValidationProvider,
     private commentProviders: CommentProviders,
     private notebookProviders: NotebookProviders,
-    private mcpServer: DbtPowerUserMcpServer,
   ) {
     this.disposables.push(
       this.dbtProjectContainer,
@@ -86,7 +85,6 @@ export class DBTPowerUserExtension implements Disposable {
       this.validationProvider,
       this.commentProviders,
       this.notebookProviders,
-      this.mcpServer,
     );
   }
 

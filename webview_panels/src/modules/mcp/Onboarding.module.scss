@@ -1,0 +1,84 @@
+.onboarding {
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.stepsIndicator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 2rem;
+  gap: 1rem;
+
+  .indicator {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--background--02);
+    border: 1px solid var(--stroke--disable);
+    color: var(--text-color--title);
+    font-size: 14px;
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 100%;
+      top: 50%;
+      width: 1rem;
+      height: 1px;
+      background: var(--stroke--disable);
+    }
+
+    &:last-child::after {
+      display: none;
+    }
+
+    &.active {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+      color: white;
+    }
+
+    &.completed {
+      background: var(--background--success);
+      border-color: var(--background--success);
+      color: white;
+    }
+  }
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.step {
+  opacity: 0.6;
+  transition: all 0.3s ease;
+
+  &.active {
+    opacity: 1;
+    border-color: var(--primary-color);
+  }
+
+  &.completed {
+    opacity: 0.8;
+    border-color: var(--background--success);
+  }
+}
+
+.description {
+  color: var(--text-color--paragraph);
+  font-size: 14px;
+  margin: 0.5rem 0 1rem;
+}
+
+.actionButton {
+  min-width: 100px;
+} 
