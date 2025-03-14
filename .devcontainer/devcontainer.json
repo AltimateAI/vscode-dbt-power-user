@@ -1,0 +1,28 @@
+{
+    "name": "dbt Power User Development",
+    "image": "mcr.microsoft.com/vscode/devcontainers/javascript-node:0-14",
+    "settings": {
+      "terminal.integrated.shell.linux": "/bin/bash"
+    },
+    "postCreateCommand": "npm install && npm run install:panels",
+    "customizations": {
+      "vscode": {
+        "extensions": [
+          "ms-vscode.vscode-typescript-tslint-plugin",
+          "esbenp.prettier-vscode",
+          "dbaeumer.vscode-eslint"
+        ]
+      }
+    },
+    "forwardPorts": [3000, 4000],
+    "portsAttributes": {
+      "3000": {
+        "label": "Frontend"
+      },
+      "4000": {
+        "label": "Backend"
+      }
+    },
+    "remoteUser": "node"
+  }
+  
