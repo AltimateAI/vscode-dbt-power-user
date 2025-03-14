@@ -76,7 +76,9 @@ export class DbtPowerUserMcpServer implements Disposable {
           );
           return;
         }
-        await workspace.getConfiguration("dbt").update("enableMcpServer", true);
+        await workspace
+          .getConfiguration("dbt")
+          .update("enableMcpServer", true, true);
 
         this.telemetry.sendTelemetryEvent(
           TelemetryEvents["MCP/Onboarding/SetUpNow"],

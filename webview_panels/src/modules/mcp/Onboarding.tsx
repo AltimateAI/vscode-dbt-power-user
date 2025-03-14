@@ -3,6 +3,7 @@ import { Card, CardBody, CardTitle, Button, Container } from "@uicore";
 import styles from "./Onboarding.module.scss";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
+import { EnableMcpImage, TryChatImage } from "./assets";
 
 interface StepProps {
   title: string;
@@ -11,6 +12,7 @@ interface StepProps {
   isActive: boolean;
   isCompleted: boolean;
   onButtonClick: () => void;
+  image?: string;
 }
 
 const Step = ({
@@ -20,23 +22,31 @@ const Step = ({
   isActive,
   isCompleted,
   onButtonClick,
+  image,
 }: StepProps) => {
   return (
     <Card
       className={`${styles.step} ${isActive ? styles.active : ""} ${isCompleted ? styles.completed : ""}`}
     >
       <CardBody>
-        <CardTitle tag="h6">{title}</CardTitle>
-        <p className={styles.description}>{description}</p>
-        {isActive && (
-          <Button
-            color="primary"
-            onClick={onButtonClick}
-            className={styles.actionButton}
-          >
-            {buttonText}
-          </Button>
-        )}
+        <div className={styles.content}>
+          <CardTitle tag="h6">{title}</CardTitle>
+          <p className={styles.description}>{description}</p>
+          {isActive && image && (
+            <div className={styles.imageContainer}>
+              <img src={image} alt={title} />
+            </div>
+          )}
+          {isActive && (
+            <Button
+              color="primary"
+              onClick={onButtonClick}
+              className={styles.actionButton}
+            >
+              {buttonText}
+            </Button>
+          )}
+        </div>
       </CardBody>
     </Card>
   );
@@ -65,19 +75,21 @@ const McpOnboarding = (): JSX.Element => {
       title: "Setup MCP server",
       description:
         "In this step, MCP server will be started and a configuration file will be created",
-      buttonText: "Setup",
+      buttonText: "Let's do it!",
     },
     {
       title: "Enable MCP server",
       description:
         "Open Cursor Settings and select the MCP from sidebar. Click 'Disabled' button next to 'dbtPowerUser' to enable it.",
-      buttonText: "Enabled",
+      image: EnableMcpImage,
+      buttonText: "Ok done!",
     },
     {
       title: "Try out the chat!",
       description:
         "Open chat and select agent mode. Try this prompt 'Get list of projects'. If you see message like 'Called MCP tool', then you are all set!",
-      buttonText: "Works",
+      image: TryChatImage,
+      buttonText: "All set!",
     },
   ];
 

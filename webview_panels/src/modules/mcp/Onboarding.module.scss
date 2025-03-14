@@ -1,13 +1,12 @@
 .onboarding {
-  padding: 2rem;
   max-width: 800px;
   margin: 0 auto;
+  padding: 2rem;
 }
 
 .stepsIndicator {
   display: flex;
   justify-content: center;
-  align-items: center;
   margin-bottom: 2rem;
   gap: 1rem;
 
@@ -18,36 +17,19 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--background--02);
-    border: 1px solid var(--stroke--disable);
-    color: var(--text-color--title);
-    font-size: 14px;
-    position: relative;
-
-    &::after {
-      content: '';
-      position: absolute;
-      left: 100%;
-      top: 50%;
-      width: 1rem;
-      height: 1px;
-      background: var(--stroke--disable);
-    }
-
-    &:last-child::after {
-      display: none;
-    }
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+    font-weight: 500;
 
     &.active {
-      background: var(--primary-color);
-      border-color: var(--primary-color);
-      color: white;
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
     }
 
     &.completed {
-      background: var(--background--success);
-      border-color: var(--background--success);
-      color: white;
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      opacity: 0.7;
     }
   }
 }
@@ -55,28 +37,53 @@
 .steps {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
 .step {
-  opacity: 0.6;
+  border: 1px solid var(--vscode-widget-border);
   transition: all 0.3s ease;
+  opacity: 0.7;
 
   &.active {
     opacity: 1;
-    border-color: var(--primary-color);
+    border-color: var(--vscode-button-background);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   }
 
   &.completed {
+    border-color: var(--vscode-button-background);
     opacity: 0.8;
-    border-color: var(--background--success);
   }
-}
 
-.description {
-  color: var(--text-color--paragraph);
-  font-size: 14px;
-  margin: 0.5rem 0 1rem;
+  .description {
+    margin: 0.5rem 0 1rem;
+    color: var(--vscode-foreground);
+    opacity: 0.9;
+  }
+
+  .content {
+    
+  }
+
+  .imageContainer {
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--vscode-widget-border);
+    
+    img {
+      width: auto;
+      height: auto;
+      display: block;
+      max-height: 300px;
+      object-fit: contain;
+    }
+  }
+
+  .actionButton {
+    align-self: flex-start;
+    margin-top: 1rem;
+  }
 }
 
 .actionButton {
