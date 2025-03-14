@@ -798,8 +798,11 @@ export class VSCodeCommands implements Disposable {
           this.dbtProjectContainer.getFromWorkspaceState(
             "dbtPowerUser.projectSelected",
           );
-
-        this.dbtProjectContainer.findDBTProject(pickedProject?.uri,)?.applyDeferConfig();
+        if (pickedProject && pickedProject.uri) {
+          this.dbtProjectContainer
+            .findDBTProject(pickedProject.uri)
+            ?.applyDeferConfig();
+        }
       }),
     );
   }
