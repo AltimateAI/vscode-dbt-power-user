@@ -1304,14 +1304,18 @@ export class DBTProject implements Disposable {
         "No manifest has been generated. Maybe dbt project has not been parsed yet?",
       );
     }
-    const { graphMetaMap } = event;
-    const dependencyNodes = graphMetaMap[key];
-    const node = dependencyNodes.get(table);
+    const { graphMetaMap, nodeMetaMap } = event;
+    const node = nodeMetaMap.lookupByBaseName(table);
     if (!node) {
+      throw Error("nodeMetaMap has no entries for " + table);
+    }
+    const dependencyNodes = graphMetaMap[key];
+    const dependencyNode = dependencyNodes.get(node.uniqueId);
+    if (!dependencyNode) {
       throw Error("graphMetaMap[" + key + "] has no entries for " + table);
     }
     const tables: Map<string, Table> = new Map();
-    node.nodes.forEach(({ url, key }) => {
+    dependencyNode.nodes.forEach(({ url, key }) => {
       const _node = this.createTable(event, url, key);
       if (!_node) {
         return;
