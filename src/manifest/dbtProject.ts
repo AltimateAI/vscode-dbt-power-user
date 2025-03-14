@@ -72,6 +72,8 @@ interface JsonObj {
   [key: string]: string | number | undefined;
 }
 export class DBTProject implements Disposable {
+  private _manifestCacheEvent?: ManifestCacheProjectAddedEvent;
+
   static DBT_PROJECT_FILE = "dbt_project.yml";
   static MANIFEST_FILE = "manifest.json";
   static CATALOG_FILE = "catalog.json";
@@ -134,7 +136,7 @@ export class DBTProject implements Disposable {
     private validationProvider: ValidationProvider,
     path: Uri,
     projectConfig: any,
-    _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+    private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
   ) {
     this.projectRoot = path;
     this.projectConfig = projectConfig;
@@ -187,6 +189,14 @@ export class DBTProject implements Disposable {
         this._onRunResults,
         this.onProjectConfigChanged,
       ),
+      this._onManifestChanged.event((event) => {
+        const addedEvent = event.added?.find(
+          (e) => e.project.projectRoot.fsPath === this.projectRoot.fsPath,
+        );
+        if (addedEvent) {
+          this._manifestCacheEvent = addedEvent;
+        }
+      }),
       this.PythonEnvironment.onPythonEnvironmentChanged(() =>
         this.onPythonEnvironmentChanged(),
       ),
@@ -1518,5 +1528,9 @@ export class DBTProject implements Disposable {
 
   throwDiagnosticsErrorIfAvailable() {
     this.dbtProjectIntegration.throwDiagnosticsErrorIfAvailable();
+  }
+
+  public getManifestCacheEvent(): ManifestCacheProjectAddedEvent | undefined {
+    return this._manifestCacheEvent;
   }
 }
