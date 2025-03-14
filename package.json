@@ -1348,6 +1348,7 @@
     "node-abort-controller": "^3.1.1",
     "node-fetch": "^3.3.2",
     "parse-diff": "^0.11.1",
+    "portfinder": "^1.0.34",
     "python-bridge": "github:mdesmet/node-python-bridge#feat/detached",
     "reflect-metadata": "^0.2.2",
     "semver": "^7.6.3",

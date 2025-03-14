@@ -1,13 +1,6 @@
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import express from "express";
-import {
-  commands,
-  Disposable,
-  ProgressLocation,
-  Uri,
-  window,
-  workspace,
-} from "vscode";
+import { Disposable, window, workspace, env } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DbtPowerUserMcpServerTools } from "./server";
@@ -18,12 +11,15 @@ import {
   TelemetryService,
 } from "@extension";
 import { SharedStateService } from "../services/sharedStateService";
-
-const PORT = 7891;
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { findAvailablePort } from "./utils";
 
 @provideSingleton(DbtPowerUserMcpServer)
 export class DbtPowerUserMcpServer implements Disposable {
   private disposables: Disposable[] = [];
+  private mcpServer: Server | undefined;
+  private mcpTransport: SSEServerTransport | undefined;
+
   constructor(
     private dbtPowerUserMcpServerTools: DbtPowerUserMcpServerTools,
     private dbtTerminal: DBTTerminal,
@@ -79,7 +75,7 @@ export class DbtPowerUserMcpServer implements Disposable {
         const steps = [
           "Step 1: Configure MCP server",
           "Step 2: Enable the MCP server in Cursor settings",
-          "Step 3: Try out the chat",
+          "Step 3: Try out the chat in Agent mode",
         ];
         for (const step of steps) {
           const result = await window.showInformationMessage(step, "Next");
@@ -106,8 +102,8 @@ export class DbtPowerUserMcpServer implements Disposable {
     }
     this.dbtTerminal.info("DbtPowerUserMcpServer", "Starting MCP server");
     const { server, cleanup } = this.dbtPowerUserMcpServerTools.createServer();
+    this.mcpServer = server;
     const app = express();
-    let transport: SSEServerTransport;
 
     // Add error handling middleware
     app.use(
@@ -145,15 +141,16 @@ export class DbtPowerUserMcpServer implements Disposable {
       "/sse",
       asyncHandler(async (req: express.Request, res: express.Response) => {
         this.dbtTerminal.info("DbtPowerUserMcpServer", "Received connection");
-        transport = new SSEServerTransport("/message", res);
-        await server.connect(transport);
+        this.mcpTransport = new SSEServerTransport("/message", res);
+        await this.mcpServer?.connect(this.mcpTransport);
 
-        server.onclose = async () => {
-          await cleanup();
-          await server.close();
-        };
+        if (this.mcpServer) {
+          this.mcpServer.onclose = async () => {
+            await cleanup();
+          };
+        }
 
-        transport.onerror = (error) => {
+        this.mcpTransport.onerror = (error) => {
           this.dbtTerminal.error("DbtPowerUserMcpServer", "Error", { error });
         };
       }),
@@ -167,21 +164,81 @@ export class DbtPowerUserMcpServer implements Disposable {
         });
 
         try {
-          await transport.handlePostMessage(req, res);
+          await this.mcpTransport?.handlePostMessage(req, res);
         } catch (error) {
           this.dbtTerminal.error("DbtPowerUserMcpServer", "Error", { error });
         }
       }),
     );
 
-    app.listen(PORT, () => {
+    const port = await findAvailablePort();
+    app.listen(port, () => {
       this.dbtTerminal.debug("DbtPowerUserMcpServer", "Server is running", {
-        port: PORT,
+        port,
       });
+      this.updatePortInCursorMcpSettings(port);
     });
   }
 
   dispose() {
+    this.mcpServer?.close();
+    this.mcpTransport?.close();
     this.disposables.forEach((disposable) => disposable.dispose());
+  }
+
+  private async updatePortInCursorMcpSettings(port: number) {
+    try {
+      this.dbtTerminal.debug(
+        "DbtPowerUserMcpServer",
+        "Updating port in Cursor MCP settings",
+        { port },
+      );
+      const excludePattern = "**/{dbt_packages,site-packages}";
+      const mcpJsonPaths = await workspace.findFiles(
+        "**/.cursor/mcp.json",
+        excludePattern,
+        1,
+      );
+
+      if (!mcpJsonPaths.length) {
+        this.dbtTerminal.debug(
+          "DbtPowerUserMcpServer",
+          "No MCP settings file found",
+        );
+        return;
+      }
+
+      const mcpJsonPath = mcpJsonPaths[0];
+      // Try to read the existing file
+      const fileContent = await workspace.fs.readFile(mcpJsonPath);
+      const config = JSON.parse(fileContent.toString());
+
+      // Update the port in the config
+      if (!config.mcpServers) {
+        config.mcpServers = {};
+      }
+      config.mcpServers.dbtPowerUser = {
+        url: `http://localhost:${port}/sse`,
+      };
+
+      // Write the updated config back to the file
+      await workspace.fs.writeFile(
+        mcpJsonPath,
+        new Uint8Array(Buffer.from(JSON.stringify(config, null, 2))),
+      );
+
+      this.dbtTerminal.info(
+        "DbtPowerUserMcpServer",
+        "Updated Cursor MCP settings",
+        false,
+        { port },
+      );
+    } catch (err) {
+      this.dbtTerminal.error(
+        "DbtPowerUserMcpServer",
+        "Failed to update MCP settings",
+        { error: err },
+      );
+    }
   }
 }
