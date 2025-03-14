@@ -175,6 +175,14 @@ export class DBTCoreProjectDetection
   }
 
   async discoverProjects(projectDirectories: Uri[]): Promise<Uri[]> {
+    const specifiedProjects = workspace
+      .getConfiguration("dbt")
+      .get<string[]>("specifiedProjects", []);
+
+    if (specifiedProjects.length > 0) {
+      return specifiedProjects.map((projectPath) => Uri.file(projectPath));
+    }
+
     let packagesInstallPaths = projectDirectories.map((projectDirectory) =>
       path.join(projectDirectory.fsPath, "dbt_packages"),
     );
