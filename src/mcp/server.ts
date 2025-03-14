@@ -74,8 +74,18 @@ const InstallDbtPackagesSchema = BaseProjectRootSchema.extend({
 });
 const InstallDepsSchema = BaseProjectRootSchema.extend({});
 
+const GetChildrenModelsSchema = BaseProjectRootSchema.extend({
+  table: z.string(),
+});
+
+const GetParentModelsSchema = BaseProjectRootSchema.extend({
+  table: z.string(),
+});
+
 enum ToolName {
   GET_PROJECTS = "get_projects",
+  GET_CHILDREN_MODELS = "get_children_models",
+  GET_PARENT_MODELS = "get_parent_models",
   GET_PROJECT_NAME = "get_project_name",
   GET_SELECTED_TARGET = "get_selected_target",
   GET_TARGET_NAMES = "get_target_names",
@@ -291,6 +301,16 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           name: ToolName.INSTALL_DEPS,
           description: "Install deps",
           inputSchema: zodToJsonSchema(InstallDepsSchema) as ToolInput,
+        },
+        {
+          name: ToolName.GET_CHILDREN_MODELS,
+          description: "Get children models",
+          inputSchema: zodToJsonSchema(GetChildrenModelsSchema) as ToolInput,
+        },
+        {
+          name: ToolName.GET_PARENT_MODELS,
+          description: "Get parent models",
+          inputSchema: zodToJsonSchema(GetParentModelsSchema) as ToolInput,
         },
       ];
 
@@ -552,6 +572,24 @@ export class DbtPowerUserMcpServerTools implements Disposable {
               // TODO: should have an optional originalModelName
             );
             return { content: [{ type: "text", text: result || "" }] };
+          }
+
+          case ToolName.GET_CHILDREN_MODELS: {
+            const result = project.getChildrenModels({
+              table: args.table as string,
+            });
+            return {
+              content: [{ type: "text", text: JSON.stringify(result) }],
+            };
+          }
+
+          case ToolName.GET_PARENT_MODELS: {
+            const result = project.getParentModels({
+              table: args.table as string,
+            });
+            return {
+              content: [{ type: "text", text: JSON.stringify(result) }],
+            };
           }
 
           default:
