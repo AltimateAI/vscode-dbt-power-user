@@ -47,20 +47,15 @@ const ExecuteSQLWithLimitSchema = BaseProjectRootSchema.extend({
   modelName: z.string(),
   limit: z.number(),
 });
-
-const SetSelectedTargetSchema = BaseProjectRootSchema.extend({
-  targetName: z.string(),
-});
-
 const RunModelSchema = BaseProjectRootSchema.extend({
-  plusOperatorLeft: z.string().optional(),
+  plusOperatorLeft: z.enum(["", "+"]),
   modelName: z.string(),
-  plusOperatorRight: z.string().optional(),
+  plusOperatorRight: z.enum(["", "+"]),
 });
 const BuildModelSchema = BaseProjectRootSchema.extend({
-  plusOperatorLeft: z.string().optional(),
+  plusOperatorLeft: z.enum(["", "+"]),
   modelName: z.string(),
-  plusOperatorRight: z.string().optional(),
+  plusOperatorRight: z.enum(["", "+"]),
 });
 const BuildProjectSchema = BaseProjectRootSchema.extend({});
 const RunTestSchema = BaseProjectRootSchema.extend({
@@ -96,7 +91,6 @@ enum ToolName {
   GET_MACRO_PATHS = "get_macro_paths",
   GET_MANIFEST_PATH = "get_manifest_path",
   GET_CATALOG_PATH = "get_catalog_path",
-  GET_ALL_DIAGNOSTIC = "get_all_diagnostic",
   GET_DBT_VERSION = "get_dbt_version",
   GET_ADAPTER_TYPE = "get_adapter_type",
   GET_COLUMNS_OF_MODEL = "get_columns_of_model",
@@ -105,7 +99,6 @@ enum ToolName {
   COMPILE_MODEL = "compile_model",
   COMPILE_QUERY = "compile_query",
   EXECUTE_SQL_WITH_LIMIT = "execute_sql_with_limit",
-  SET_SELECTED_TARGET = "set_selected_target",
   RUN_MODEL = "run_model",
   BUILD_MODEL = "build_model",
   BUILD_PROJECT = "build_project",
@@ -164,7 +157,8 @@ export class DbtPowerUserMcpServerTools implements Disposable {
       const tools: Tool[] = [
         {
           name: ToolName.GET_PROJECTS,
-          description: "Get projects",
+          description:
+            "Get projects, this method should be typically called first to get the list of projects, as other tools take the projectRoot as input",
           inputSchema: zodToJsonSchema(BaseSchema) as ToolInput,
         },
         {
@@ -218,11 +212,6 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
         },
         {
-          name: ToolName.GET_ALL_DIAGNOSTIC,
-          description: "Get all diagnostic",
-          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-        },
-        {
           name: ToolName.GET_DBT_VERSION,
           description: "Get dbt version",
           inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
@@ -263,18 +252,15 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           inputSchema: zodToJsonSchema(ExecuteSQLWithLimitSchema) as ToolInput,
         },
         {
-          name: ToolName.SET_SELECTED_TARGET,
-          description: "Set selected target",
-          inputSchema: zodToJsonSchema(SetSelectedTargetSchema) as ToolInput,
-        },
-        {
           name: ToolName.RUN_MODEL,
-          description: "Run model",
+          description:
+            "Run model, set plusOperatorLeft to + if you want to run the model including its parents, setplusOperatorRight to + to run the model including its children",
           inputSchema: zodToJsonSchema(RunModelSchema) as ToolInput,
         },
         {
           name: ToolName.BUILD_MODEL,
-          description: "Build model",
+          description:
+            "Build model, set plusOperatorLeft to + if you want to build the model including its parents, setplusOperatorRight to + to build the model including its children",
           inputSchema: zodToJsonSchema(BuildModelSchema) as ToolInput,
         },
         {
@@ -294,22 +280,23 @@ export class DbtPowerUserMcpServerTools implements Disposable {
         },
         {
           name: ToolName.INSTALL_DBT_PACKAGES,
-          description: "Install dbt packages",
+          description:
+            "Install dbt package, the dbt package string should be in the form of packageName@version",
           inputSchema: zodToJsonSchema(InstallDbtPackagesSchema) as ToolInput,
         },
         {
           name: ToolName.INSTALL_DEPS,
-          description: "Install deps",
+          description: "Install dependencies",
           inputSchema: zodToJsonSchema(InstallDepsSchema) as ToolInput,
         },
         {
           name: ToolName.GET_CHILDREN_MODELS,
-          description: "Get children models",
+          description: "Get downstream lineage of a model (the children)",
           inputSchema: zodToJsonSchema(GetChildrenModelsSchema) as ToolInput,
         },
         {
           name: ToolName.GET_PARENT_MODELS,
-          description: "Get parent models",
+          description: "Get upstream lineage of a model (the parents)",
           inputSchema: zodToJsonSchema(GetParentModelsSchema) as ToolInput,
         },
       ];
@@ -431,16 +418,6 @@ export class DbtPowerUserMcpServerTools implements Disposable {
               content: [{ type: "text", text: project.getCatalogPath() || "" }],
             };
 
-          case ToolName.GET_ALL_DIAGNOSTIC:
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: JSON.stringify(project.getAllDiagnostic()),
-                },
-              ],
-            };
-
           case ToolName.GET_DBT_VERSION:
             return {
               content: [
@@ -502,13 +479,6 @@ export class DbtPowerUserMcpServerTools implements Disposable {
             );
             return {
               content: [{ type: "text", text: JSON.stringify(result) }],
-            };
-          }
-
-          case ToolName.SET_SELECTED_TARGET: {
-            await project.setSelectedTarget(args.targetName as string);
-            return {
-              content: [{ type: "text", text: "Target set successfully" }],
             };
           }
 
