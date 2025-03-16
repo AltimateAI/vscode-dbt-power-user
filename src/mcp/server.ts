@@ -223,32 +223,36 @@ export class DbtPowerUserMcpServerTools implements Disposable {
         },
         {
           name: ToolName.GET_COLUMNS_OF_MODEL,
-          description: "Get columns of model",
+          description: "Get columns of dbt model",
           inputSchema: zodToJsonSchema(GetColumnsOfModelSchema) as ToolInput,
         },
         {
           name: ToolName.GET_COLUMNS_OF_SOURCE,
-          description: "Get columns of source",
+          description: "Get columns of a dbt source table.",
           inputSchema: zodToJsonSchema(GetColumnsOfSourceSchema) as ToolInput,
         },
         {
           name: ToolName.GET_COLUMN_VALUES,
-          description: "Get distinct column values",
+          description:
+            "Get distinct column values, can be used to get the list of values for a column in a table.",
           inputSchema: zodToJsonSchema(GetColumnValuesSchema) as ToolInput,
         },
         {
           name: ToolName.COMPILE_MODEL,
-          description: "Compile model",
+          description:
+            "Compile model, this will only convert the Jinja SQL to SQL, not determine if the SQL actually works. If the compilation succeeds, use the execute SQL and validate the data.",
           inputSchema: zodToJsonSchema(CompileModelSchema) as ToolInput,
         },
         {
           name: ToolName.COMPILE_QUERY,
-          description: "Compile query",
+          description:
+            "Compile query, this will only convert the Jinja SQL to SQL, not determine if the SQL actually works. If the compilation succeeds, use the execute SQL and validate the data.",
           inputSchema: zodToJsonSchema(CompileQuerySchema) as ToolInput,
         },
         {
           name: ToolName.EXECUTE_SQL_WITH_LIMIT,
-          description: "Execute SQL with limit",
+          description:
+            "Execute SQL with limit, can be used to retrieve data and check if the query can be executed on the database.",
           inputSchema: zodToJsonSchema(ExecuteSQLWithLimitSchema) as ToolInput,
         },
         {
