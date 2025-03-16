@@ -158,7 +158,7 @@ export class DbtPowerUserMcpServerTools implements Disposable {
         {
           name: ToolName.GET_PROJECTS,
           description:
-            "Get projects, this method should be typically called first to get the list of projects, as other tools take the projectRoot as input",
+            "Returns a list of all available dbt project root paths. This must be called first to get the projectRoot parameter needed for all other tools.",
           inputSchema: zodToJsonSchema(BaseSchema) as ToolInput,
         },
         {
@@ -223,24 +223,26 @@ export class DbtPowerUserMcpServerTools implements Disposable {
         },
         {
           name: ToolName.GET_COLUMNS_OF_MODEL,
-          description: "Get columns of dbt model",
+          description:
+            "Returns the column names and data types for a specified dbt model. Use this to understand a model's schema before querying it.",
           inputSchema: zodToJsonSchema(GetColumnsOfModelSchema) as ToolInput,
         },
         {
           name: ToolName.GET_COLUMNS_OF_SOURCE,
-          description: "Get columns of a dbt source table.",
+          description:
+            "Returns the column names and data types for a specified dbt source. Use this to understand a source's schema before querying it.",
           inputSchema: zodToJsonSchema(GetColumnsOfSourceSchema) as ToolInput,
         },
         {
           name: ToolName.GET_COLUMN_VALUES,
           description:
-            "Get distinct column values, can be used to get the list of values for a column in a table.",
+            "Returns the distinct values for a specified column in a model or source. Use this to understand the data distribution and possible values in a column.",
           inputSchema: zodToJsonSchema(GetColumnValuesSchema) as ToolInput,
         },
         {
           name: ToolName.COMPILE_MODEL,
           description:
-            "Compile model, this will only convert the Jinja SQL to SQL, not determine if the SQL actually works. If the compilation succeeds, use the execute SQL and validate the data.",
+            "Converts a dbt model's Jinja SQL into raw SQL. Use this to inspect the generated SQL before executing it. Note: This does not validate if the SQL will run successfully.",
           inputSchema: zodToJsonSchema(CompileModelSchema) as ToolInput,
         },
         {
@@ -252,19 +254,19 @@ export class DbtPowerUserMcpServerTools implements Disposable {
         {
           name: ToolName.EXECUTE_SQL_WITH_LIMIT,
           description:
-            "Execute SQL with limit, can be used to retrieve data and check if the query can be executed on the database.",
+            "Executes a SQL query with a specified row limit and returns the results. Use this to test queries for newly created dbt models and retrieve sample data from the database.",
           inputSchema: zodToJsonSchema(ExecuteSQLWithLimitSchema) as ToolInput,
         },
         {
           name: ToolName.RUN_MODEL,
           description:
-            "Run model, set plusOperatorLeft to + if you want to run the model including its parents, setplusOperatorRight to + to run the model including its children",
+            "Executes a dbt model in the database. Use + for plusOperatorLeft to include parent models, and + for plusOperatorRight to include child models in the run.",
           inputSchema: zodToJsonSchema(RunModelSchema) as ToolInput,
         },
         {
           name: ToolName.BUILD_MODEL,
           description:
-            "Build model, set plusOperatorLeft to + if you want to build the model including its parents, setplusOperatorRight to + to build the model including its children",
+            "Builds a dbt model in the database. Use + for plusOperatorLeft to include parent models, and + for plusOperatorRight to include child models in the build.",
           inputSchema: zodToJsonSchema(BuildModelSchema) as ToolInput,
         },
         {
@@ -279,28 +281,32 @@ export class DbtPowerUserMcpServerTools implements Disposable {
         },
         {
           name: ToolName.RUN_MODEL_TEST,
-          description: "Run model test",
+          description:
+            "Run model tests, use this tool to run the existing tests defined for the dbt model",
           inputSchema: zodToJsonSchema(RunModelTestSchema) as ToolInput,
         },
         {
           name: ToolName.INSTALL_DBT_PACKAGES,
           description:
-            "Install dbt package, the dbt package string should be in the form of packageName@version",
+            "Install dbt package(s), the dbt package string should be in the form of packageName@version",
           inputSchema: zodToJsonSchema(InstallDbtPackagesSchema) as ToolInput,
         },
         {
           name: ToolName.INSTALL_DEPS,
-          description: "Install dependencies",
+          description:
+            "Install dbt package dependencies based on the dbt projects's packages.yml file",
           inputSchema: zodToJsonSchema(InstallDepsSchema) as ToolInput,
         },
         {
           name: ToolName.GET_CHILDREN_MODELS,
-          description: "Get downstream lineage of a model (the children)",
+          description:
+            "Returns the list of models that depend on the specified model (its children). Use this to understand a model's downstream impact and lineage.",
           inputSchema: zodToJsonSchema(GetChildrenModelsSchema) as ToolInput,
         },
         {
           name: ToolName.GET_PARENT_MODELS,
-          description: "Get upstream lineage of a model (the parents)",
+          description:
+            "Returns the list of models that the specified model depends on (its parents). Use this to understand a model's upstream dependencies and lineage.",
           inputSchema: zodToJsonSchema(GetParentModelsSchema) as ToolInput,
         },
       ];
