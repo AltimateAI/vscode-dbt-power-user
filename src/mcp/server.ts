@@ -81,7 +81,7 @@ const GetParentModelsSchema = BaseProjectRootSchema.extend({
 enum ToolName {
   GET_PROJECTS = "get_projects",
   GET_CHILDREN_MODELS = "get_children_models",
-  GET_PARENT_MODELS = "get_parent_models", 
+  GET_PARENT_MODELS = "get_parent_models",
   GET_MANIFEST = "get_manifest",
   GET_PROJECT_NAME = "get_project_name",
   GET_SELECTED_TARGET = "get_selected_target",
