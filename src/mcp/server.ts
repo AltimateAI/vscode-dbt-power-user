@@ -83,6 +83,7 @@ enum ToolName {
   GET_CHILDREN_MODELS = "get_children_models",
   GET_PARENT_MODELS = "get_parent_models",
   GET_MANIFEST = "get_manifest",
+  GET_CATALOG = "get_catalog",
   GET_PROJECT_NAME = "get_project_name",
   GET_SELECTED_TARGET = "get_selected_target",
   GET_TARGET_NAMES = "get_target_names",
@@ -315,6 +316,12 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           name: ToolName.GET_MANIFEST,
           description:
             "Returns the full contents of the manifest.json file for the project. Use this to get all compiled metadata about models, sources, tests, etc.",
+          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
+        },
+        {
+          name: ToolName.GET_CATALOG,
+          description:
+            "Returns the full contents of the catalog.json file for the project. Use this to get all database metadata including column types and table statistics.",
           inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
         },
       ];
@@ -587,6 +594,16 @@ export class DbtPowerUserMcpServerTools implements Disposable {
             const manifest = readFileSync(manifestPath, "utf8");
             return {
               content: [{ type: "text", text: manifest }],
+            };
+          }
+          case ToolName.GET_CATALOG: {
+            const catalogPath = project.getCatalogPath();
+            if (!catalogPath) {
+              throw new Error("Catalog path not found");
+            }
+            const catalog = readFileSync(catalogPath, "utf8");
+            return {
+              content: [{ type: "text", text: catalog }],
             };
           }
 
