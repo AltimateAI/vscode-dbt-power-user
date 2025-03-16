@@ -274,12 +274,14 @@ export class DbtPowerUserMcpServerTools implements Disposable {
         },
         {
           name: ToolName.BUILD_PROJECT,
-          description: "Build project",
+          description:
+            "Builds the dbt project, this will run seeds, models and all related tests",
           inputSchema: zodToJsonSchema(BuildProjectSchema) as ToolInput,
         },
         {
           name: ToolName.RUN_TEST,
-          description: "Run test",
+          description:
+            "Run an indivdual test based on the test name in the dbt manifest.",
           inputSchema: zodToJsonSchema(RunTestSchema) as ToolInput,
         },
         {
