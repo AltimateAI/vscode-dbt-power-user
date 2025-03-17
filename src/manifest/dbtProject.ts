@@ -577,7 +577,6 @@ export class DBTProject implements Disposable {
     try {
       const runModelCommand =
         this.dbtCommandFactory.createRunModelCommand(runModelParams);
-      runModelCommand.returnImmediately = returnImmediately;
       const result = await this.dbtProjectIntegration.runModel(runModelCommand);
       this.telemetry.sendTelemetryEvent("runModel");
       return result;
@@ -590,7 +589,6 @@ export class DBTProject implements Disposable {
     try {
       const buildModelCommand =
         this.dbtCommandFactory.createBuildModelCommand(runModelParams);
-      buildModelCommand.returnImmediately = returnImmediately;
       const result =
         await this.dbtProjectIntegration.buildModel(buildModelCommand);
       this.telemetry.sendTelemetryEvent("buildModel");
@@ -604,7 +602,6 @@ export class DBTProject implements Disposable {
     try {
       const buildProjectCommand =
         this.dbtCommandFactory.createBuildProjectCommand();
-      buildProjectCommand.returnImmediately = returnImmediately;
       const result =
         await this.dbtProjectIntegration.buildProject(buildProjectCommand);
       this.telemetry.sendTelemetryEvent("buildProject");
@@ -618,7 +615,6 @@ export class DBTProject implements Disposable {
     try {
       const testModelCommand =
         this.dbtCommandFactory.createTestModelCommand(testName);
-      testModelCommand.returnImmediately = returnImmediately;
       const result = await this.dbtProjectIntegration.runTest(testModelCommand);
       this.telemetry.sendTelemetryEvent("runTest");
       return result;
@@ -631,7 +627,6 @@ export class DBTProject implements Disposable {
     try {
       const testModelCommand =
         this.dbtCommandFactory.createTestModelCommand(modelName);
-      testModelCommand.returnImmediately = returnImmediately;
       const result =
         await this.dbtProjectIntegration.runModelTest(testModelCommand);
       this.telemetry.sendTelemetryEvent("runModelTest");

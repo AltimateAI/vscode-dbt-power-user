@@ -200,7 +200,6 @@ export class DBTCommand {
     public executionStrategy?: DBTCommandExecutionStrategy,
     public token?: CancellationToken,
     public downloadArtifacts: boolean = false,
-    public returnImmediately: boolean = false,
   ) {}
 
   addArgument(arg: string) {
@@ -462,9 +461,6 @@ export class DBTCommandExecutionInfrastructure {
     queueName: string,
     command: DBTCommand,
   ): Promise<CommandProcessResult | undefined> {
-    if (command.returnImmediately) {
-      return await command.execute();
-    }
     this.queues.get(queueName)!.push({
       command: async (token) => {
         await command.execute(token);
