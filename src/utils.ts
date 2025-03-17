@@ -466,7 +466,7 @@ export function getCurrentlySelectedModelNameInYamlConfig(): string {
 }
 
 export async function retryWithBackoff<T>(
-  fn: () => Promise<T>,
+  fn: () => Thenable<T>,
   retries: number = 5,
   backoff: number = 1000,
 ): Promise<T> {
