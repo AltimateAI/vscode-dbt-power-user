@@ -565,8 +565,8 @@ export class DbtPowerUserMcpServerTools implements Disposable {
 
           case ToolName.COMPILE_QUERY: {
             const result = await project.unsafeCompileQuery(
-              args.modelName as string,
-              // TODO: should have an optional originalModelName
+              args.query as string,
+              args.originalModelName as string,
             );
             return { content: [{ type: "text", text: result || "" }] };
           }

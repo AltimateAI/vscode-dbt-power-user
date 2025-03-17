@@ -171,8 +171,13 @@ export class DbtPowerUserMcpServer implements Disposable {
     );
 
     // Add async error handling wrapper
+    type ExpressHandler = (
+      req: express.Request,
+      res: express.Response,
+      next: express.NextFunction,
+    ) => Promise<void>;
     const asyncHandler =
-      (fn: Function) =>
+      (fn: ExpressHandler) =>
       (
         req: express.Request,
         res: express.Response,
