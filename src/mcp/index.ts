@@ -44,7 +44,7 @@ export class DbtPowerUserMcpServer implements Disposable {
     this.dbtTerminal.info("DbtPowerUserMcpServer", "Starting onboarding");
     const enableMcpServer = workspace
       .getConfiguration("dbt")
-      .get("enableMcpServer");
+      .get<boolean>("enableMcpServer", false);
     if (!enableMcpServer) {
       this.dbtTerminal.info(
         "DbtPowerUserMcpServer",
@@ -55,7 +55,7 @@ export class DbtPowerUserMcpServer implements Disposable {
 
     const onboardedMcpServer = workspace
       .getConfiguration("dbt")
-      .get("onboardedMcpServer");
+      .get<boolean>("onboardedMcpServer", false);
 
     if (onboardedMcpServer) {
       const port = await this.start();
@@ -136,7 +136,7 @@ export class DbtPowerUserMcpServer implements Disposable {
 
     const onboardedMcpServer = workspace
       .getConfiguration("dbt")
-      .get("onboardedMcpServer");
+      .get<boolean>("onboardedMcpServer", false);
     if (!onboardedMcpServer) {
       this.dbtTerminal.info(
         "DbtPowerUserMcpServer",
