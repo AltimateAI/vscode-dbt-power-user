@@ -573,26 +573,6 @@ export class DbtPowerUserMcpServerTools implements Disposable {
               content: [{ type: "text", text: JSON.stringify(result) }],
             };
           }
-          // case ToolName.GET_MANIFEST: {
-          //   const manifestPath = project.getManifestPath();
-          //   if (!manifestPath) {
-          //     throw new Error("Manifest path not found");
-          //   }
-          //   const manifest = readFileSync(manifestPath, "utf8");
-          //   return {
-          //     content: [{ type: "text", text: manifest }],
-          //   };
-          // }
-          // case ToolName.GET_CATALOG: {
-          //   const catalogPath = project.getCatalogPath();
-          //   if (!catalogPath) {
-          //     throw new Error("Catalog path not found");
-          //   }
-          //   const catalog = readFileSync(catalogPath, "utf8");
-          //   return {
-          //     content: [{ type: "text", text: catalog }],
-          //   };
-          // }
 
           default:
             throw new Error(`Unknown tool: ${name}`);
