@@ -145,36 +145,172 @@ interface ToolResponse {
 }
 ```
 
-### 4. Tool Implementations
+## Tool Implementations
 
-#### Project Information
-```typescript
-interface ProjectInfo {
-  name: string;
-  root: string;
-  target: string;
-  profiles: string[];
+### 1. Project Information Tools
+
+#### `get_projects`
+**Description**: Returns list of available dbt project root paths  
+**Parameters**: None  
+**Example**:
+```json
+{"name": "get_projects"}
+```
+
+#### `get_project_name`
+**Description**: Get project name  
+**Parameters**:
+- `projectRoot` (string) - Path to project root
+
+#### `get_selected_target`
+**Description**: Get currently selected target  
+**Parameters**:
+- `projectRoot` (string)
+
+#### `get_target_names`
+**Description**: List available target names  
+**Parameters**:
+- `projectRoot` (string)
+
+### 2. Schema Inspection Tools
+
+#### `get_columns_of_model`
+**Description**: Get column metadata for a model  
+**Parameters**:
+- `projectRoot` (string)
+- `modelName` (string)
+
+#### `get_columns_of_source`
+**Description**: Get column metadata for a source  
+**Parameters**:
+- `projectRoot` (string)
+- `sourceName` (string)
+- `tableName` (string)
+
+#### `get_column_values`
+**Description**: Get distinct values from a column  
+**Parameters**:
+- `projectRoot` (string)
+- `model` (string)
+- `column` (string)
+
+### 3. Compilation & Execution Tools
+
+#### `compile_model`
+**Description**: Compile a model to raw SQL  
+**Parameters**:
+- `projectRoot` (string) 
+- `modelName` (string)
+
+#### `execute_sql_with_limit`
+**Description**: Execute SQL query with row limit  
+**Parameters**:
+- `projectRoot` (string)
+- `query` (string)
+- `modelName` (string)
+- `limit` (number)
+
+**Example**:
+```json
+{
+  "name": "execute_sql_with_limit",
+  "arguments": {
+    "projectRoot": "/path/to/project",
+    "query": "SELECT * FROM customers",
+    "modelName": "dim_customers",
+    "limit": 100
+  }
 }
 ```
 
-#### Model Operations
-```typescript
-interface ModelOperation {
-  modelName: string;
-  operation: 'compile' | 'run' | 'test';
-  options?: ModelOperationOptions;
-}
-```
+#### `compile_query`
+**Description**: Compile raw query with Jinja  
+**Parameters**:
+- `projectRoot` (string)
+- `query` (string)
+- `originalModelName` (string, optional)
 
-#### Data Operations
-```typescript
-interface DataQuery {
-  model: string;
-  columns: string[];
-  limit?: number;
-  where?: string;
-}
-```
+### 4. Model Operations
+
+#### `run_model`
+**Description**: Run model with dependency selection  
+**Parameters**:
+- `projectRoot` (string)
+- `plusOperatorLeft` ("" or "+")
+- `modelName` (string) 
+- `plusOperatorRight` ("" or "+")
+
+#### `build_model`
+**Description**: Build model with dependencies  
+**Parameters**: Same as `run_model`
+
+### 5. Testing Tools
+
+#### `run_test`
+**Description**: Run specific test by name  
+**Parameters**:
+- `projectRoot` (string)
+- `testName` (string)
+
+#### `run_model_test`
+**Description**: Run tests for a model  
+**Parameters**:
+- `projectRoot` (string)
+- `modelName` (string)
+
+### 6. Dependency Management
+
+#### `install_dbt_packages`
+**Description**: Install specified packages  
+**Parameters**:
+- `projectRoot` (string)
+- `packages` (array of strings)
+
+#### `install_deps`
+**Description**: Install all dependencies  
+**Parameters**:
+- `projectRoot` (string)
+
+### 7. Lineage Tools
+
+#### `get_children_models`
+**Description**: Get downstream dependencies  
+**Parameters**:
+- `projectRoot` (string)
+- `table` (string)
+
+#### `get_parent_models`
+**Description**: Get upstream dependencies  
+**Parameters**:
+- `projectRoot` (string)
+- `table` (string)
+
+### 8. Path Information
+
+Tools for retrieving project paths (`get_target_path`, `get_manifest_path`, etc.) share similar parameters:
+- `projectRoot` (string)
+- Returns: String path
+
+**Available Path Tools**:
+- `get_target_path`
+- `get_package_install_path` 
+- `get_model_paths`
+- `get_seed_paths`
+- `get_macro_paths`
+- `get_manifest_path`
+- `get_catalog_path`
+
+### 9. Environment Info
+
+#### `get_dbt_version`
+**Description**: Get installed dbt version  
+**Parameters**:
+- `projectRoot` (string)
+
+#### `get_adapter_type`
+**Description**: Get database adapter type  
+**Parameters**: 
+- `projectRoot` (string)
 
 ## Setup and Configuration
 
