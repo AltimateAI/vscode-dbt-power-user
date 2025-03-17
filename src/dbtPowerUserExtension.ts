@@ -22,7 +22,6 @@ import { DbtPowerUserActionsCenter } from "./quickpick";
 import { ValidationProvider } from "./validation_provider";
 import { CommentProviders } from "./comment_provider";
 import { NotebookProviders } from "@lib";
-import { DbtPowerUserMcpServer } from "./mcp";
 
 enum PromptAnswer {
   YES = "Yes",
