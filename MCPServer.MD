@@ -1,10 +1,24 @@
 # MCP (Model Context Protocol) Server Integration
 
 ## Overview
-The MCP (Model Context Protocol) server integration in the dbt Power User extension implements a standardized communication protocol between Cursor IDE and dbt functionality. This integration enables AI-powered features by exposing dbt operations through a well-defined API, allowing Cursor's AI capabilities to interact with dbt projects programmatically.
+The MCP (Model Context Protocol) server integration enables seamless communication between Cursor IDE's AI capabilities and dbt functionality. This integration allows AI-powered features to interact with dbt projects programmatically through a standardized protocol.
 
-## Architecture
+## System Architecture Overview
 
+### High-Level Components
+1. **Cursor IDE**: The client application that initiates requests through AI interactions
+2. **MCP Server**: The bridge between Cursor IDE and dbt functionality
+3. **dbt Power User Extension**: Provides dbt-specific functionality and tools
+4. **dbt Project**: The underlying dbt project being managed
+
+### Communication Flow
+1. User interacts with Cursor IDE's AI features
+2. AI generates tool requests through MCP protocol
+3. MCP Server processes requests using registered tools
+4. Tools interact with dbt project through dbt Power User Extension
+5. Results are sent back to Cursor IDE through SSE transport
+
+### Architecture Diagram
 ```mermaid
 graph TD
     A[Cursor IDE] <--> |MCP Protocol| B[MCP Server]
@@ -48,7 +62,20 @@ graph TD
     M --> P
 ```
 
-## Technical Implementation
+### Core Features
+1. **Tool Registry**: Exposes dbt functionality through standardized tools
+2. **Real-time Communication**: Uses SSE for live updates and responses
+3. **State Management**: Maintains server and connection state
+4. **Error Handling**: Comprehensive error management and telemetry
+5. **Security**: Local-only communication with request validation
+
+### Available Tool Categories
+1. **Project Management**: Project discovery and configuration
+2. **Model Operations**: Compilation, running, and testing models
+3. **Query Execution**: SQL execution and data retrieval
+4. **Package Management**: Managing dbt packages and dependencies
+
+## Technical Implementation Details
 
 ### 1. MCP Server (DbtPowerUserMcpServer)
 - **Core Implementation**:
@@ -95,156 +122,32 @@ graph TD
   }
   ```
 
-- **Available Tools**:
-  1. **Project Management Tools**
-     ```typescript
-     {
-       name: "get_projects",
-       description: "Returns list of dbt project roots",
-       inputSchema: zodToJsonSchema(BaseSchema)
-     }
-     ```
-  2. **Model Operations**
-     ```typescript
-     {
-       name: "compile_model",
-       description: "Compiles specified dbt model",
-       inputSchema: zodToJsonSchema(CompileModelSchema)
-     }
-     ```
+### 3. Communication Protocol
 
-### 3. Integration Components
-- **McpPanel Implementation**:
-  ```typescript
-  @provideSingleton(McpPanel)
-  export class McpPanel extends AltimateWebviewProvider {
-    protected viewPath = "/mcp";
-    protected panelDescription = "MCP view";
-    
-    async handleCommand(message: HandleCommandProps) {
-      // Command handling logic
-    }
-  }
-  ```
+#### Request Format
+```typescript
+interface ToolRequest {
+  name: string;
+  arguments: Record<string, unknown>;
+  requestId: string;
+}
+```
 
-## Setup Process
+#### Response Format
+```typescript
+interface ToolResponse {
+  content: Array<{
+    type: "text" | "error";
+    text: string;
+  }>;
+  isError?: boolean;
+  error?: Error;
+}
+```
 
-1. **Initialization**
-   ```typescript
-   // Server initialization
-   const port = await findAvailablePort();
-   const app = express();
-   app.listen(port, () => {
-     this.port = port;
-     this.updatePortInCursorMcpSettings(port);
-   });
-   ```
+### 4. Tool Implementations
 
-2. **Onboarding Flow**
-   - **Step 1**: Server Configuration
-     ```typescript
-     async configureMcp() {
-       const port = await this.mcpServer.start();
-       await this.mcpServer.updatePortInCursorMcpSettings(port);
-     }
-     ```
-   - **Step 2**: Cursor Settings Update
-   - **Step 3**: Verification Process
-
-3. **Configuration**
-   - **File Structure**:
-     ```json
-     {
-       "mcpServers": {
-         "dbtPowerUser": {
-           "url": "http://localhost:3000/sse",
-           "capabilities": ["tools", "prompts", "resources"]
-         }
-       }
-     }
-     ```
-
-## Communication Protocol
-
-1. **Request Format**
-   ```typescript
-   interface ToolRequest {
-     name: string;
-     arguments: Record<string, unknown>;
-     requestId: string;
-   }
-   ```
-
-2. **Response Format**
-   ```typescript
-   interface ToolResponse {
-     content: Array<{
-       type: "text" | "error";
-       text: string;
-     }>;
-     isError?: boolean;
-     error?: Error;
-   }
-   ```
-
-3. **Error Handling**
-   ```typescript
-   class MCPError extends Error {
-     constructor(
-       message: string,
-       public code: string,
-       public details?: unknown
-     ) {
-       super(message);
-     }
-   }
-   ```
-
-## Security Implementation
-
-1. **Local Communication**
-   ```typescript
-   const isLocalRequest = (req: express.Request): boolean => {
-     return req.hostname === 'localhost' || req.hostname === '127.0.0.1';
-   };
-   ```
-
-2. **Request Validation**
-   ```typescript
-   const validateRequest = (req: ToolRequest): void => {
-     if (!req.name || typeof req.name !== 'string') {
-       throw new MCPError('Invalid tool name', 'INVALID_TOOL');
-     }
-     // Additional validation
-   };
-   ```
-
-## Error Handling
-
-1. **Error Types**
-   ```typescript
-   enum MCPErrorCode {
-     SERVER_START_FAILED = 'SERVER_START_FAILED',
-     TOOL_NOT_FOUND = 'TOOL_NOT_FOUND',
-     INVALID_REQUEST = 'INVALID_REQUEST',
-     EXECUTION_ERROR = 'EXECUTION_ERROR'
-   }
-   ```
-
-2. **Telemetry Implementation**
-   ```typescript
-   private logError(error: MCPError): void {
-     this.telemetry.sendTelemetryEvent(TelemetryEvents["MCP/Error"], {
-       code: error.code,
-       message: error.message,
-       details: JSON.stringify(error.details)
-     });
-   }
-   ```
-
-## Tool Categories
-
-### 1. Project Information
+#### Project Information
 ```typescript
 interface ProjectInfo {
   name: string;
@@ -254,7 +157,7 @@ interface ProjectInfo {
 }
 ```
 
-### 2. Model Operations
+#### Model Operations
 ```typescript
 interface ModelOperation {
   modelName: string;
@@ -263,7 +166,7 @@ interface ModelOperation {
 }
 ```
 
-### 3. Data Operations
+#### Data Operations
 ```typescript
 interface DataQuery {
   model: string;
@@ -273,78 +176,112 @@ interface DataQuery {
 }
 ```
 
-## Best Practices
+## Setup and Configuration
 
-1. **Server Management**
-   ```typescript
-   class ServerManager {
-     private static instance: ServerManager;
-     private status: ServerStatus;
-     
-     public async healthCheck(): Promise<boolean> {
-       // Health check implementation
-     }
-   }
-   ```
+### 1. Server Initialization
+```typescript
+// Server initialization
+const port = await findAvailablePort();
+const app = express();
+app.listen(port, () => {
+  this.port = port;
+  this.updatePortInCursorMcpSettings(port);
+});
+```
 
-2. **Tool Implementation**
-   ```typescript
-   abstract class BaseTool implements Tool {
-     abstract execute(params: unknown): Promise<ToolResponse>;
-     
-     protected validate(params: unknown): void {
-       // Validation logic
-     }
-   }
-   ```
+### 2. Configuration File
+```json
+{
+  "mcpServers": {
+    "dbtPowerUser": {
+      "url": "http://localhost:3000/sse",
+      "capabilities": ["tools", "prompts", "resources"]
+    }
+  }
+}
+```
 
-## Performance Optimization
+## Security and Error Handling
 
-1. **Caching Implementation**
-   ```typescript
-   class ToolCache {
-     private cache: Map<string, CacheEntry>;
-     private readonly TTL: number = 5 * 60 * 1000; // 5 minutes
-     
-     public get(key: string): CacheEntry | undefined {
-       // Cache retrieval logic
-     }
-   }
-   ```
+### 1. Security Implementation
+```typescript
+const isLocalRequest = (req: express.Request): boolean => {
+  return req.hostname === 'localhost' || req.hostname === '127.0.0.1';
+};
 
-2. **Request Batching**
-   ```typescript
-   class RequestBatcher {
-     private queue: ToolRequest[] = [];
-     private batchSize: number = 10;
-     
-     public async processBatch(): Promise<void> {
-       // Batch processing logic
-     }
-   }
-   ```
+const validateRequest = (req: ToolRequest): void => {
+  if (!req.name || typeof req.name !== 'string') {
+    throw new MCPError('Invalid tool name', 'INVALID_TOOL');
+  }
+  // Additional validation
+};
+```
 
-## Testing Guidelines
+### 2. Error Management
+```typescript
+enum MCPErrorCode {
+  SERVER_START_FAILED = 'SERVER_START_FAILED',
+  TOOL_NOT_FOUND = 'TOOL_NOT_FOUND',
+  INVALID_REQUEST = 'INVALID_REQUEST',
+  EXECUTION_ERROR = 'EXECUTION_ERROR'
+}
 
-1. **Unit Tests**
-   ```typescript
-   describe('MCPServer', () => {
-     it('should start server on available port', async () => {
-       // Test implementation
-     });
-   });
-   ```
+private logError(error: MCPError): void {
+  this.telemetry.sendTelemetryEvent(TelemetryEvents["MCP/Error"], {
+    code: error.code,
+    message: error.message,
+    details: JSON.stringify(error.details)
+  });
+}
+```
 
-2. **Integration Tests**
-   ```typescript
-   describe('Tool Execution', () => {
-     it('should execute dbt commands', async () => {
-       // Test implementation
-     });
-   });
-   ```
+## Performance and Best Practices
 
-## API Documentation
+### 1. Caching Strategy
+```typescript
+class ToolCache {
+  private cache: Map<string, CacheEntry>;
+  private readonly TTL: number = 5 * 60 * 1000; // 5 minutes
+  
+  public get(key: string): CacheEntry | undefined {
+    // Cache retrieval logic
+  }
+}
+```
+
+### 2. Request Batching
+```typescript
+class RequestBatcher {
+  private queue: ToolRequest[] = [];
+  private batchSize: number = 10;
+  
+  public async processBatch(): Promise<void> {
+    // Batch processing logic
+  }
+}
+```
+
+## Testing and Quality Assurance
+
+### 1. Unit Testing
+```typescript
+describe('MCPServer', () => {
+  it('should start server on available port', async () => {
+    // Test implementation
+  });
+});
+```
+
+### 2. Integration Testing
+```typescript
+describe('Tool Execution', () => {
+  it('should execute dbt commands', async () => {
+    // Test implementation
+  });
+});
+```
+
+## API Reference
 
 ### Tool Registry API
 ```typescript
@@ -372,26 +309,25 @@ interface EventSystem {
 }
 ```
 
-## Contributing
+## Contributing Guidelines
 
-1. **Code Style**
-   ```typescript
-   // Example of expected code style
-   class NewTool extends BaseTool {
-     public readonly name = 'new_tool';
-     
-     public async execute(params: unknown): Promise<ToolResponse> {
-       // Implementation
-     }
-   }
-   ```
+### 1. Code Style
+```typescript
+class NewTool extends BaseTool {
+  public readonly name = 'new_tool';
+  
+  public async execute(params: unknown): Promise<ToolResponse> {
+    // Implementation
+  }
+}
+```
 
-2. **Documentation Requirements**
-   - API documentation using TypeDoc
-   - Inline comments for complex logic
-   - Update README.md with new features
+### 2. Documentation Requirements
+- API documentation using TypeDoc
+- Inline comments for complex logic
+- Update README.md with new features
 
-3. **Testing Requirements**
-   - Unit tests for new tools
-   - Integration tests for new features
-   - Performance benchmarks for optimizations 
+### 3. Testing Requirements
+- Unit tests for new tools
+- Integration tests for new features
+- Performance benchmarks for optimizations 
