@@ -26,6 +26,7 @@ import { DBTCoreProjectDetection } from "../dbt_client/dbtCoreIntegration";
 import { DBTCloudProjectDetection } from "../dbt_client/dbtCloudIntegration";
 import { DBTProjectDetection } from "../dbt_client/dbtIntegration";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { retryWithBackoff } from "../utils";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
@@ -84,12 +85,17 @@ export class DBTWorkspaceFolder implements Disposable {
   async discoverProjects() {
     // Ignore dbt_packages and venv/site-packages/dbt project folders
     const excludePattern = "**/{dbt_packages,site-packages}";
-    const dbtProjectFiles = await workspace.findFiles(
-      new RelativePattern(
-        this.workspaceFolder,
-        `**/${DBTProject.DBT_PROJECT_FILE}`,
-      ),
-      new RelativePattern(this.workspaceFolder, excludePattern),
+    const dbtProjectFiles = await retryWithBackoff(
+      () =>
+        workspace.findFiles(
+          new RelativePattern(
+            this.workspaceFolder,
+            `**/${DBTProject.DBT_PROJECT_FILE}`,
+          ),
+          new RelativePattern(this.workspaceFolder, excludePattern),
+        ),
+      5,
+      1000,
     );
     this.dbtTerminal.info(
       "discoverProjects",

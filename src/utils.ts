@@ -464,3 +464,27 @@ export function getCurrentlySelectedModelNameInYamlConfig(): string {
   }
   return "";
 }
+
+export async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  retries: number = 5,
+  backoff: number = 1000,
+): Promise<T> {
+  let attempt = 0;
+  while (attempt < retries) {
+    try {
+      const result = await fn();
+      if (Array.isArray(result) && result.length === 0) {
+        throw new Error("Empty array returned");
+      }
+      return result;
+    } catch (error) {
+      attempt++;
+      if (attempt >= retries) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, backoff * attempt));
+    }
+  }
+  throw new Error("Failed after maximum retries");
+}
