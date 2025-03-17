@@ -574,9 +574,18 @@ export class DBTProject implements Disposable {
   }
 
   async runModel(runModelParams: RunModelParams, returnImmediately = false) {
+    const runModelCommand =
+      this.dbtCommandFactory.createRunModelCommand(runModelParams);
+
+    if (returnImmediately) {
+      runModelCommand.showProgress = false;
+      runModelCommand.logToTerminal = false;
+      return this.dbtProjectIntegration.executeCommandImmediately(
+        runModelCommand,
+      );
+    }
+
     try {
-      const runModelCommand =
-        this.dbtCommandFactory.createRunModelCommand(runModelParams);
       const result = await this.dbtProjectIntegration.runModel(runModelCommand);
       this.telemetry.sendTelemetryEvent("runModel");
       return result;
@@ -586,9 +595,18 @@ export class DBTProject implements Disposable {
   }
 
   async buildModel(runModelParams: RunModelParams, returnImmediately = false) {
+    const buildModelCommand =
+      this.dbtCommandFactory.createBuildModelCommand(runModelParams);
+
+    if (returnImmediately) {
+      buildModelCommand.showProgress = false;
+      buildModelCommand.logToTerminal = false;
+      return this.dbtProjectIntegration.executeCommandImmediately(
+        buildModelCommand,
+      );
+    }
+
     try {
-      const buildModelCommand =
-        this.dbtCommandFactory.createBuildModelCommand(runModelParams);
       const result =
         await this.dbtProjectIntegration.buildModel(buildModelCommand);
       this.telemetry.sendTelemetryEvent("buildModel");
@@ -599,9 +617,18 @@ export class DBTProject implements Disposable {
   }
 
   async buildProject(returnImmediately = false) {
+    const buildProjectCommand =
+      this.dbtCommandFactory.createBuildProjectCommand();
+
+    if (returnImmediately) {
+      buildProjectCommand.showProgress = false;
+      buildProjectCommand.logToTerminal = false;
+      return this.dbtProjectIntegration.executeCommandImmediately(
+        buildProjectCommand,
+      );
+    }
+
     try {
-      const buildProjectCommand =
-        this.dbtCommandFactory.createBuildProjectCommand();
       const result =
         await this.dbtProjectIntegration.buildProject(buildProjectCommand);
       this.telemetry.sendTelemetryEvent("buildProject");
@@ -612,9 +639,18 @@ export class DBTProject implements Disposable {
   }
 
   async runTest(testName: string, returnImmediately = false) {
+    const testModelCommand =
+      this.dbtCommandFactory.createTestModelCommand(testName);
+
+    if (returnImmediately) {
+      testModelCommand.showProgress = false;
+      testModelCommand.logToTerminal = false;
+      return this.dbtProjectIntegration.executeCommandImmediately(
+        testModelCommand,
+      );
+    }
+
     try {
-      const testModelCommand =
-        this.dbtCommandFactory.createTestModelCommand(testName);
       const result = await this.dbtProjectIntegration.runTest(testModelCommand);
       this.telemetry.sendTelemetryEvent("runTest");
       return result;
