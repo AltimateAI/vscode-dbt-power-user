@@ -660,11 +660,17 @@ export class DBTProject implements Disposable {
   }
 
   async runModelTest(modelName: string, returnImmediately = false) {
+    const testModelCommand =
+      this.dbtCommandFactory.createTestModelCommand(modelName);
+
+    if (returnImmediately) {
+      testModelCommand.showProgress = false;
+      testModelCommand.logToTerminal = false;
+      return this.dbtProjectIntegration.executeCommandImmediately(testModelCommand);
+    }
+
     try {
-      const testModelCommand =
-        this.dbtCommandFactory.createTestModelCommand(modelName);
-      const result =
-        await this.dbtProjectIntegration.runModelTest(testModelCommand);
+      const result = await this.dbtProjectIntegration.runModelTest(testModelCommand);
       this.telemetry.sendTelemetryEvent("runModelTest");
       return result;
     } catch (error) {
