@@ -15,6 +15,7 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { findAvailablePort } from "./utils";
 import path from "path";
 import { McpPanel } from "../webview_provider/mcpPanel";
+
 @provideSingleton(DbtPowerUserMcpServer)
 export class DbtPowerUserMcpServer implements Disposable {
   private disposables: Disposable[] = [];
@@ -33,7 +34,6 @@ export class DbtPowerUserMcpServer implements Disposable {
     this.disposables.push(
       emitterService.eventEmitter.event((d) => {
         if (d.command === "dbtProjectsInitialized") {
-          // this.start();
           this.startOnboarding();
         }
       }),
@@ -42,11 +42,22 @@ export class DbtPowerUserMcpServer implements Disposable {
 
   private async startOnboarding() {
     this.dbtTerminal.info("DbtPowerUserMcpServer", "Starting onboarding");
-    const mcpServerEnabled = workspace
+    const enableMcpServer = workspace
       .getConfiguration("dbt")
       .get("enableMcpServer");
+    if (!enableMcpServer) {
+      this.dbtTerminal.info(
+        "DbtPowerUserMcpServer",
+        "MCP server is not enabled",
+      );
+      return;
+    }
 
-    if (mcpServerEnabled) {
+    const onboardedMcpServer = workspace
+      .getConfiguration("dbt")
+      .get("onboardedMcpServer");
+
+    if (onboardedMcpServer) {
       const port = await this.start();
       if (port) {
         await this.updatePortInCursorMcpSettings(port);
@@ -78,7 +89,7 @@ export class DbtPowerUserMcpServer implements Disposable {
         }
         await workspace
           .getConfiguration("dbt")
-          .update("enableMcpServer", true, true);
+          .update("onboardedMcpServer", true, true);
 
         this.telemetry.sendTelemetryEvent(
           TelemetryEvents["MCP/Onboarding/SetUpNow"],
@@ -123,10 +134,10 @@ export class DbtPowerUserMcpServer implements Disposable {
       return this.port;
     }
 
-    const mcpServerEnabled = workspace
+    const onboardedMcpServer = workspace
       .getConfiguration("dbt")
-      .get("enableMcpServer");
-    if (!mcpServerEnabled) {
+      .get("onboardedMcpServer");
+    if (!onboardedMcpServer) {
       this.dbtTerminal.info(
         "DbtPowerUserMcpServer",
         "MCP server is not enabled, skipping start",

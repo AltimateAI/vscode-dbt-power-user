@@ -102,9 +102,14 @@
             "displayName": "Altimate AI Instance Name",
             "markdownDescription": "Needed for features that require backend support. Sign up for a free Altimate AI account [here](https://app.myaltimate.com/register). If your Altimate AI instance URL is https://betatest.app.myaltimate.com/, The instance name is betatest"
           },
+          "dbt.onboardedMcpServer": {
+            "type": "boolean",
+            "description": "Flag to identify if onboarding is done for MCP server",
+            "default": false
+          },
           "dbt.enableMcpServer": {
             "type": "boolean",
-            "description": "Enable MCP server",
+            "description": "Enable MCP server feature for Cursor IDE",
             "default": false
           },
           "dbt.enableNewLineagePanel": {
