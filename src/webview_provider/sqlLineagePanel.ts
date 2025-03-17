@@ -163,7 +163,7 @@ export class SQLLineagePanel
     let model_info: { model_node: ModelNode }[] = [];
     const config = workspace.getConfiguration("dbt.lineage");
     const modelId = currNode.uniqueId;
-    const modelsToFetch = DBTProject.getNonEphemeralParents(event, [modelId]);
+    const modelsToFetch = project.getNonEphemeralParents([modelId]);
     let shouldFetchSchema = false;
     if (currNode.path) {
       const sql = (

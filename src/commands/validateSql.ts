@@ -151,9 +151,7 @@ export class ValidateSql {
           if (cancellationToken.isCancellationRequested) {
             return;
           }
-          const modelsToFetch = DBTProject.getNonEphemeralParents(event, [
-            node.uniqueId,
-          ]);
+          const modelsToFetch = project.getNonEphemeralParents([node.uniqueId]);
           const {
             mappedNode,
             relationsWithoutColumns: _relationsWithoutColumns,
