@@ -8,7 +8,6 @@ import {
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { existsSync, readFileSync } from "fs";
 import { Uri, Disposable } from "vscode";
 import { provideSingleton } from "../utils";
 import {
@@ -82,8 +81,6 @@ enum ToolName {
   GET_PROJECTS = "get_projects",
   GET_CHILDREN_MODELS = "get_children_models",
   GET_PARENT_MODELS = "get_parent_models",
-  // GET_MANIFEST = "get_manifest",
-  // GET_CATALOG = "get_catalog",
   GET_PROJECT_NAME = "get_project_name",
   GET_SELECTED_TARGET = "get_selected_target",
   GET_TARGET_NAMES = "get_target_names",
@@ -314,18 +311,6 @@ export class DbtPowerUserMcpServerTools implements Disposable {
             "Returns the list of models that the specified model depends on (its parents). Use this to understand a model's upstream dependencies and lineage.",
           inputSchema: zodToJsonSchema(GetParentModelsSchema) as ToolInput,
         },
-        // {
-        //   name: ToolName.GET_MANIFEST,
-        //   description:
-        //     "Returns the full contents of the manifest.json file for the project. Use this to get all compiled metadata about models, sources, tests, etc.",
-        //   inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-        // },
-        // {
-        //   name: ToolName.GET_CATALOG,
-        //   description:
-        //     "Returns the full contents of the catalog.json file for the project. Use this to get all database metadata including column types and table statistics.",
-        //   inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-        // },
       ];
 
       return { tools };
