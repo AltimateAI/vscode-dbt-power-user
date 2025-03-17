@@ -666,11 +666,14 @@ export class DBTProject implements Disposable {
     if (returnImmediately) {
       testModelCommand.showProgress = false;
       testModelCommand.logToTerminal = false;
-      return this.dbtProjectIntegration.executeCommandImmediately(testModelCommand);
+      return this.dbtProjectIntegration.executeCommandImmediately(
+        testModelCommand,
+      );
     }
 
     try {
-      const result = await this.dbtProjectIntegration.runModelTest(testModelCommand);
+      const result =
+        await this.dbtProjectIntegration.runModelTest(testModelCommand);
       this.telemetry.sendTelemetryEvent("runModelTest");
       return result;
     } catch (error) {
