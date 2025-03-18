@@ -112,6 +112,11 @@
             "description": "Enable MCP server feature for Cursor IDE",
             "default": false
           },
+          "dbt.enableMCPDataSourceQueryTools": {
+            "type": "boolean",
+            "description": "Enable data source query tools (EXECUTE_SQL_WITH_LIMIT and GET_COLUMN_VALUES)",
+            "default": false
+          },
           "dbt.enableNewLineagePanel": {
             "type": "boolean",
             "description": "Enable the new lineage panel in dbt."
