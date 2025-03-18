@@ -28,6 +28,9 @@ export const SingleProject: StoryObj = {
             },
           ];
         }
+        if (request.command === "ide") {
+          return "cursor";
+        }
 
         if (request.command === "fetch") {
           switch (request.endpoint) {
@@ -36,10 +39,10 @@ export const SingleProject: StoryObj = {
                 ai_response: faker.lorem.paragraph(),
                 category: "Business",
               };
-              case `projectgovernor/training/confirm`:
-                return {
-                  ok: true,
-                };
+            case `projectgovernor/training/confirm`:
+              return {
+                ok: true,
+              };
             default:
               break;
           }

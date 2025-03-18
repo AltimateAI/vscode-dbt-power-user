@@ -16,6 +16,7 @@ import {
   TextEditorDecorationType,
   DecorationRangeBehavior,
   QuickPickItem,
+  env,
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { RunModelType } from "../domain";
@@ -47,10 +48,8 @@ import { DBTProject } from "../manifest/dbtProject";
 import { SQLLineagePanel } from "../webview_provider/sqlLineagePanel";
 import { QueryManifestService } from "../services/queryManifestService";
 import { AltimateRequest } from "../altimate";
-import {
-  DatapilotNotebookController,
-  OpenNotebookRequest,
-} from "@altimate/extension-components";
+import { DatapilotNotebookController, OpenNotebookRequest } from "@lib";
+import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -138,6 +137,9 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand("dbtPowerUser.runParentModels", (model) =>
         this.runModel.runModelOnNodeTreeItem(RunModelType.RUN_PARENTS)(model),
+      ),
+      commands.registerCommand("dbtPowerUser.copyModelName", (model) =>
+        env.clipboard.writeText(model.label.toString()),
       ),
       commands.registerCommand("dbtPowerUser.showRunSQL", () =>
         this.runModel.showRunSQLOnActiveWindow(),
@@ -731,6 +733,68 @@ export class VSCodeCommands implements Disposable {
           const doc = await workspace.openTextDocument(Uri.file(model.path));
           await window.showTextDocument(doc);
           await commands.executeCommand("dbtPowerUser.DocsEdit.focus");
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.showDatapilotNotebooksQuickPick",
+        async () => {
+          const notebookQuickPick = new NotebookQuickPick();
+          await notebookQuickPick.showNotebookPicker();
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.showNotebookProfileQuery",
+        async () => {
+          await commands.executeCommand(
+            "dbtPowerUser.createDatapilotNotebook",
+            {
+              template: "Profile your query",
+            },
+          );
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.showNotebookTestSuggestions",
+        async () => {
+          await commands.executeCommand(
+            "dbtPowerUser.createDatapilotNotebook",
+            {
+              template: "Get test suggestions",
+            },
+          );
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.showNotebookGenerateBaseModelSql",
+        async () => {
+          await commands.executeCommand(
+            "dbtPowerUser.createDatapilotNotebook",
+            {
+              template: "Generate dbt base model sql",
+            },
+          );
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.showNotebookGenerateModelYaml",
+        async () => {
+          await commands.executeCommand(
+            "dbtPowerUser.createDatapilotNotebook",
+            {
+              template: "Generate dbt model yaml",
+            },
+          );
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.showNotebookGenerateModelCTE",
+        async () => {
+          await commands.executeCommand(
+            "dbtPowerUser.createDatapilotNotebook",
+            {
+              template: "Generate dbt model CTE",
+            },
+          );
         },
       ),
     );

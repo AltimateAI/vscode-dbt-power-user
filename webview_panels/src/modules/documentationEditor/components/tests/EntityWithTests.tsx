@@ -9,6 +9,7 @@ import classes from "../../styles.module.scss";
 import { TestsIcon } from "@assets/icons";
 import { sendTelemetryEvent } from "../telemetry";
 import { TelemetryEvents } from "@telemetryEvents";
+import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 
 interface Props {
   title: string;
@@ -19,6 +20,9 @@ interface Props {
 const MaxVisibleTests = 3;
 
 const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
+  const {
+    state: { incomingDocsData },
+  } = useDocumentationContext();
   const [selectedTest, setSelectedTest] = useState<DBTModelTest | null>(null);
   const [showAllTests, setshowAllTests] = useState(false);
   const drawerRef = useRef<DrawerRef | null>(null);
@@ -52,6 +56,7 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
     ? tests
     : (tests ?? []).slice(0, MaxVisibleTests);
   const remainingTests = (tests ?? []).length - MaxVisibleTests;
+  const testKeys = incomingDocsData?.tests?.map((t) => t.key);
 
   return (
     <div className={classes.entityTests}>
@@ -66,6 +71,7 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
               test={test}
               onSelect={onSelect}
               selectedTest={selectedTest}
+              className={!testKeys?.includes(test.key) ? "border-orange" : ""}
             />
           ))}
           {!showAllTests && tests && tests.length > MaxVisibleTests ? (

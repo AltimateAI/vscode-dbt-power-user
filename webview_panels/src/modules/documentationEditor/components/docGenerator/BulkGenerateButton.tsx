@@ -3,14 +3,20 @@ import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
-import { updateColumnsInCurrentDocsData } from "@modules/documentationEditor/state/documentationSlice";
+import {
+  updateBulkDocsPropRightPanel,
+  updateColumnsInCurrentDocsData,
+} from "@modules/documentationEditor/state/documentationSlice";
 import { DBTDocumentationColumn } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { panelLogger } from "@modules/logger";
 import { Button, DropdownButton, List, PopoverWithButton } from "@uicore";
 import { useRef, useState } from "react";
 import classes from "../../styles.module.scss";
-import { mergeCurrentAndIncomingDocumentationColumns } from "@modules/documentationEditor/utils";
+import {
+  isStateDirty,
+  mergeCurrentAndIncomingDocumentationColumns,
+} from "@modules/documentationEditor/utils";
 import DocGenSelectedColumns from "./DocGenSelectedColumns";
 import { noop } from "antd/es/_util/warning";
 
@@ -23,15 +29,8 @@ const BulkGenerateButton = (): JSX.Element => {
     SidePanelState | undefined
   >();
   const ref = useRef<HTMLDivElement | null>(null);
-  const {
-    state: {
-      currentDocsData,
-      userInstructions,
-      isDocGeneratedForAnyColumn,
-      isTestUpdatedForAnyColumn,
-    },
-    dispatch,
-  } = useDocumentationContext();
+  const { state, dispatch } = useDocumentationContext();
+  const { currentDocsData, userInstructions } = state;
 
   const resetSidepanelState = () => {
     setSidePanelState(undefined);
@@ -42,6 +41,7 @@ const BulkGenerateButton = (): JSX.Element => {
       { label: "Generate all columns", value: "all" },
       { label: "Generate only missing columns", value: "missing" },
       { label: "Select columns", value: "selected" },
+      { label: "Propagate to downstream models", value: "docs-prop" },
     ],
     Tests: [{ label: "Generate all", value: "all-tests" }],
   };
@@ -159,6 +159,10 @@ const BulkGenerateButton = (): JSX.Element => {
           }
           break;
         }
+        case "docs-prop": {
+          dispatch(updateBulkDocsPropRightPanel(true));
+          break;
+        }
         default:
           return;
       }
@@ -167,7 +171,7 @@ const BulkGenerateButton = (): JSX.Element => {
     }
   };
 
-  const isDirty = isDocGeneratedForAnyColumn || isTestUpdatedForAnyColumn;
+  const isDirty = isStateDirty(state);
   const color = isDirty ? "secondary" : "primary";
 
   return (
@@ -182,7 +186,7 @@ const BulkGenerateButton = (): JSX.Element => {
               color={color}
               outline={isDirty}
             >
-              <ShinesIcon /> Bulk generate
+              <ShinesIcon /> Bulk actions
             </DropdownButton>
           }
           popoverProps={{

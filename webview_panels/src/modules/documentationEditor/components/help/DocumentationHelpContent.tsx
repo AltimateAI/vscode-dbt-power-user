@@ -56,7 +56,7 @@ const DocumentationHelpContent = ({
         <b>Generate Documentation:</b> This functionality requires an API key.
         You can generate descriptions for models and columns using the generate
         button. You can also bulk generate in a single action using the “Bulk
-        Generate” button. If you want to change settings like language, or
+        actions” button. If you want to change settings like language, or
         persona, please use the “Settings” button in the right top corner.{" "}
       </p>
       <p>

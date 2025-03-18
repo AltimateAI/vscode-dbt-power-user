@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.52.0",
+  "version": "0.55.0",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -83,10 +83,34 @@
             "displayName": "Altimate AI API Key",
             "markdownDescription": "Needed for features that require backend support. Sign up for a free Altimate AI account [here](https://app.myaltimate.com/register). API Key can be copied from Altimate AI UI (navigate to Settings->API Key)"
           },
+          "dbt.altimateUrl": {
+            "type": "string",
+            "displayName": "Altimate API endpoint",
+            "description": "Select Altimate API endpoint",
+            "enum": [
+              "https://api.myaltimate.com",
+              "https://api.getaltimate.com"
+            ],
+            "enumDescriptions": [
+              "Community, Pro or Team Plan",
+              "Enterprise Plan"
+            ],
+            "default": "https://api.myaltimate.com"
+          },
           "dbt.altimateInstanceName": {
             "type": "string",
             "displayName": "Altimate AI Instance Name",
             "markdownDescription": "Needed for features that require backend support. Sign up for a free Altimate AI account [here](https://app.myaltimate.com/register). If your Altimate AI instance URL is https://betatest.app.myaltimate.com/, The instance name is betatest"
+          },
+          "dbt.onboardedMcpServer": {
+            "type": "boolean",
+            "description": "Flag to identify if onboarding is done for MCP server",
+            "default": false
+          },
+          "dbt.enableMcpServer": {
+            "type": "boolean",
+            "description": "Enable MCP server feature for Cursor IDE",
+            "default": false
           },
           "dbt.enableNewLineagePanel": {
             "type": "boolean",
@@ -105,7 +129,7 @@
           "dbt.enableNotebooks": {
             "type": "boolean",
             "description": "Enable Datapilot notebooks feature",
-            "default": false
+            "default": true
           },
           "dbt.lineage.showSelectEdges": {
             "type": "boolean",
@@ -121,6 +145,11 @@
             "type": "number",
             "description": "By default how much lineage should expand.",
             "default": 1
+          },
+          "dbt.installDepsOnProjectInitialization": {
+            "type": "boolean",
+            "description": "Install dbt deps on project initialization",
+            "default": true
           }
         }
       },
@@ -266,6 +295,17 @@
             }
           }
         }
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "dbtPowerUser.Mcp",
+        "displayName": "MCP Walkthrough",
+        "selector": [
+          {
+            "filenamePattern": "*.mcpwalkthrough"
+          }
+        ]
       }
     ],
     "viewsContainers": {
@@ -541,6 +581,11 @@
         "icon": "$(run-above)"
       },
       {
+        "command": "dbtPowerUser.copyModelName",
+        "title": "Copy model name to clipboard",
+        "category": "dbt Power User"
+      },
+      {
         "command": "dbtPowerUser.showRunSQL",
         "title": "Open dbt target folder run SQL",
         "category": "dbt Power User",
@@ -679,6 +724,36 @@
         "command": "dbtPowerUser.showDocumentation",
         "title": "Show documentation",
         "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.showDatapilotNotebooksQuickPick",
+        "title": "Show Datapilot Notebooks Quick Pick",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.showNotebookProfileQuery",
+        "title": "Profile this query",
+        "group": "notebooks@1"
+      },
+      {
+        "command": "dbtPowerUser.showNotebookTestSuggestions",
+        "title": "Get test suggestions",
+        "group": "notebooks@2"
+      },
+      {
+        "command": "dbtPowerUser.showNotebookGenerateBaseModelSql",
+        "title": "Generate dbt base model sql",
+        "group": "notebooks@3"
+      },
+      {
+        "command": "dbtPowerUser.showNotebookGenerateModelYaml",
+        "title": "Generate dbt model yaml",
+        "group": "notebooks@4"
+      },
+      {
+        "command": "dbtPowerUser.showNotebookGenerateModelCTE",
+        "title": "Generate dbt model CTE",
+        "group": "notebooks@5"
       }
     ],
     "keybindings": [
@@ -759,6 +834,26 @@
         {
           "command": "dbtPowerUser.sqlLineage",
           "group": "datapilot@5"
+        },
+        {
+          "command": "dbtPowerUser.showNotebookProfileQuery",
+          "group": "notebooks@1"
+        },
+        {
+          "command": "dbtPowerUser.showNotebookTestSuggestions",
+          "group": "notebooks@2"
+        },
+        {
+          "command": "dbtPowerUser.showNotebookGenerateBaseModelSql",
+          "group": "notebooks@3"
+        },
+        {
+          "command": "dbtPowerUser.showNotebookGenerateModelYaml",
+          "group": "notebooks@4"
+        },
+        {
+          "command": "dbtPowerUser.showNotebookGenerateModelCTE",
+          "group": "notebooks@5"
         }
       ],
       "editor/title": [
@@ -929,6 +1024,11 @@
           "command": "dbtPowerUser.runParentModels",
           "when": "view == parent_model_treeview && viewItem != source",
           "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.copyModelName",
+          "when": "(view == parent_model_treeview || view ==  children_model_treeview || view == documentation_treeview) && viewItem != source",
+          "group": "navigation"
         },
         {
           "command": "dbtPowerUser.goToDocumentationEditor",
@@ -1191,9 +1291,9 @@
   "scripts": {
     "postinstall": "node postInstall.js",
     "prepare": "husky",
-    "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production && node prepareBuild.js",
+    "vscode:prepublish": "npm run panel:webviews && webpack --mode production && node prepareBuild.js",
     "webpack": "npm run panel:webviews && webpack --mode development",
-    "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
+    "webpack-dev": "npm run panel:webviews && webpack --mode development --watch",
     "watch": "concurrently \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
@@ -1202,8 +1302,7 @@
     "build-vsix": "vsce package",
     "deploy-openvsx": "ovsx publish",
     "panel:webviews": "npm run build --prefix ./webview_panels",
-    "panel:lineage": "npm run build --prefix ./new_lineage_panel",
-    "install:panels": "npm install --prefix ./new_lineage_panel && npm install --prefix ./webview_panels",
+    "install:panels": "npm install --prefix ./webview_panels",
     "test": "jest",
     "test:unit": "jest",
     "test:coverage": "jest --coverage",
@@ -1269,24 +1368,29 @@
     "@jupyterlab/coreutils": "^6.2.4",
     "@jupyterlab/nbformat": "^4.2.4",
     "@jupyterlab/services": "^6.6.7",
+    "@modelcontextprotocol/sdk": "^1.7.0",
     "@nteract/messaging": "^7.0.20",
+    "@types/express": "^5.0.0",
     "@vscode/codicons": "^0.0.36",
     "@vscode/extension-telemetry": "0.9.6",
     "@vscode/vsce": "^2.31.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "dayjs": "^1.11.13",
+    "express": "^5.0.1",
     "inversify": "^6.0.2",
     "inversify-binding-decorators": "^4.0.0",
     "node-abort-controller": "^3.1.1",
     "node-fetch": "^3.3.2",
     "parse-diff": "^0.11.1",
+    "portfinder": "^1.0.34",
     "python-bridge": "github:mdesmet/node-python-bridge#feat/detached",
     "reflect-metadata": "^0.2.2",
     "semver": "^7.6.3",
     "which": "^4.0.0",
     "ws": "^8.18.0",
     "yaml": "^2.5.0",
-    "zeromq": "^6.1.0"
+    "zeromq": "^6.1.0",
+    "zod-to-json-schema": "^3.24.3"
   },
   "lint-staged": {
     "**/webview_panels/**/*.{ts,tsx}": [

@@ -1,14 +1,24 @@
-import { PropagateIcon } from "@assets/icons";
+import { ArrowDownIcon, ArrowUpIcon, PropagateIcon } from "@assets/icons";
 import { useEffect, useRef, useState } from "react";
-import { Drawer, Stack, DrawerRef, Button, Input } from "@uicore";
+import {
+  Drawer,
+  Stack,
+  DrawerRef,
+  Button,
+  Input,
+  Loader,
+  Card,
+  CardBody,
+} from "@uicore";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
-import {
-  executeRequestInAsync,
-  executeRequestInSync,
-} from "@modules/app/requestExecutor";
+import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { ColumnLineage } from "@altimate/ui-components/lineage";
 import styles from "./styles.module.scss";
+import {
+  updateBulkDocsPropRightPanel,
+  updateSingleDocsPropRightPanel,
+} from "@modules/documentationEditor/state/documentationSlice";
 
 interface Props {
   name: string;
@@ -19,6 +29,7 @@ interface DocsItem {
   model: string;
   column: string;
   description: string;
+  root?: string;
 }
 
 interface TableMetadata {
@@ -38,30 +49,188 @@ interface DownstreamColumns {
   tests: Record<string, unknown>;
 }
 
-export const DocumentationPropagationButton = ({
-  name,
-  type,
-}: Props): JSX.Element | null => {
+const mergeDocItems = (a: DocsItem[], b: DocsItem[]): DocsItem[] => {
+  const result = [...a];
+  for (const item of b) {
+    if (
+      !result.find((i) => i.model === item.model && i.column === item.column)
+    ) {
+      result.push(item);
+    }
+  }
+  return result;
+};
+
+const SingleColumnCard = ({
+  isLoading,
+  columnName,
+  columnDescription,
+  selectedColumns,
+  setSelectedColumns,
+  downstreamColumns,
+}: {
+  isLoading: boolean;
+  columnName: string;
+  columnDescription: string;
+  selectedColumns: Record<string, boolean>;
+  setSelectedColumns: React.Dispatch<
+    React.SetStateAction<Record<string, boolean>>
+  >;
+  downstreamColumns: DocsItem[];
+}) => {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const setAllColumnsValue = (value: boolean) => {
+    setSelectedColumns((prev) => ({
+      ...prev,
+      ...Object.fromEntries(
+        downstreamColumns.map((curr) => [
+          curr.model + "/" + curr.column,
+          value,
+        ]),
+      ),
+    }));
+  };
+  if (!isExpanded) {
+    return (
+      <Card>
+        <CardBody>
+          <div
+            className={styles.singleColumnAccordion}
+            onClick={() => setIsExpanded(true)}
+          >
+            <ArrowDownIcon />
+          </div>
+          <Stack direction="column">
+            <div className={styles.itemRow}>
+              <div>Column:</div>
+              <div>{columnName}</div>
+            </div>
+            {isLoading ? (
+              <Stack className="align-items-center">
+                <Loader size="xsmall" />
+                <div className={styles.captionText}>Loading...</div>
+              </Stack>
+            ) : (
+              <div className={styles.captionText}>
+                Downstream columns: {downstreamColumns.length}
+              </div>
+            )}
+          </Stack>
+        </CardBody>
+      </Card>
+    );
+  }
+  return (
+    <Card data-testid={`docs_prop_column_card_${columnName}`}>
+      <CardBody>
+        <div
+          className={styles.singleColumnAccordion}
+          onClick={() => setIsExpanded(false)}
+        >
+          <ArrowUpIcon />
+        </div>
+        <Stack direction="column" className="gap-0 mb-2">
+          <div className={styles.itemRow}>
+            <div>Column:</div>
+            <div>{columnName}</div>
+          </div>
+          {columnDescription && (
+            <div className={styles.itemRow}>
+              <div>Description:</div>
+              <div>{columnDescription}</div>
+            </div>
+          )}
+        </Stack>
+        {!isLoading && downstreamColumns.length === 0 ? (
+          <div className="mt-4">
+            No downstream column level lineage detected to propagate the
+            documentation
+          </div>
+        ) : null}
+        {!isLoading && downstreamColumns.length > 0 ? (
+          <Stack className="mb-2">
+            <Button
+              color="primary"
+              outline
+              onClick={() => setAllColumnsValue(true)}
+            >
+              Select All
+            </Button>
+            <Button
+              color="primary"
+              outline
+              onClick={() => setAllColumnsValue(false)}
+            >
+              Unselect All
+            </Button>
+          </Stack>
+        ) : null}
+        <Stack
+          direction="column"
+          className="gap-sm"
+          data-testid={`docs_prop_downstream_columns_${columnName}`}
+        >
+          {downstreamColumns.map((item) => {
+            const key = item.model + "/" + item.column;
+            return (
+              <Stack key={key} className={styles.itemCard}>
+                <Input
+                  type="checkbox"
+                  checked={selectedColumns[key]}
+                  onChange={() =>
+                    setSelectedColumns((prev) => ({
+                      ...prev,
+                      [key]: !prev[key],
+                    }))
+                  }
+                />
+                <Stack direction="column" className="gap-0 w-100">
+                  <div className={styles.itemRow}>
+                    <div>Model:</div>
+                    <div>{item.model.split(".").pop()}</div>
+                  </div>
+                  <div className={styles.itemRow}>
+                    <div>Column:</div>
+                    <div>{item.column}</div>
+                  </div>
+                  {item.description && (
+                    <div className={styles.itemRow}>
+                      <div>Description:</div>
+                      <div>{item.description}</div>
+                    </div>
+                  )}
+                </Stack>
+              </Stack>
+            );
+          })}
+        </Stack>
+        {isLoading && (
+          <Stack className="align-items-center mt-2">
+            <Loader size="xsmall" />
+            <div className={styles.captionText}>Loading...</div>
+          </Stack>
+        )}
+      </CardBody>
+    </Card>
+  );
+};
+
+const useDocumentationPropagation = ({
+  startColumns,
+}: {
+  startColumns: DocsItem[];
+}) => {
   const {
     state: { currentDocsData },
   } = useDocumentationContext();
-  const drawerRef = useRef<DrawerRef | null>(null);
-  const currColumnDescription =
-    currentDocsData?.columns.find((c) => c.name === name)?.description ?? "";
-  const startColumn = currentDocsData
-    ? [
-        {
-          model: currentDocsData.uniqueId,
-          column: name,
-          description: currColumnDescription,
-        },
-      ]
-    : [];
   const [allColumns, setAllColumns] = useState<DocsItem[]>([]);
   const [currColumns, setCurrColumns] = useState<DocsItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
+  const [isColumnLineageLoading, setIsColumnLineageLoading] = useState<
+    Record<string, boolean>
+  >({});
   const [tableMetadata, setTableMetadata] = useState<TableMetadata[]>([]);
+  const isCancelled = useRef(false);
   const [testsMetadata, setTestsMetadata] = useState<Record<string, unknown>>(
     {},
   );
@@ -69,27 +238,18 @@ export const DocumentationPropagationButton = ({
     Record<string, boolean>
   >({});
 
-  useEffect(() => {
-    setAllColumns([]);
-    setCurrColumns(startColumn);
-    setTableMetadata([]);
-    setIsSaved(false);
-  }, [currentDocsData?.uniqueId, name]);
-
   const loadMoreDownstreamModels = async () => {
-    executeRequestInAsync("columnLineageBase", { event: "start" });
+    isCancelled.current = false;
     setIsLoading(true);
-    let i = 0;
-    const iAllColumns = [...allColumns];
-    let iCurrColumns = currColumns;
-    while (i++ < 3) {
-      if (iCurrColumns.length === 0) {
-        break;
-      }
+    setIsColumnLineageLoading(
+      Object.fromEntries(currColumns.map((curr) => [curr.column, true])),
+    );
+    let iCurrColumns = startColumns;
+    while (iCurrColumns.length > 0 && !isCancelled.current) {
       const result = (await executeRequestInSync("getDownstreamColumns", {
         targets: iCurrColumns.map((c) => [c.model, c.column]),
         model: currentDocsData?.uniqueId,
-        column: name,
+        column: iCurrColumns[0].column,
       })) as DownstreamColumns;
       if (!result.column_lineage) {
         break;
@@ -100,43 +260,40 @@ export const DocumentationPropagationButton = ({
         iCurrColumns = [];
         break;
       }
+      const tempColumnLoadingState = Object.fromEntries(
+        currColumns.map((curr) => [curr.column, false]),
+      );
       const newColumns: DocsItem[] = [];
       for (const item of result.column_lineage) {
         if (item.type === "indirect") continue;
         if (item.viewsType === "Transformation") continue;
-        if (
-          iCurrColumns.find(
-            (c) => c.model === item.source[0] && c.column === item.source[1],
-          )
-        ) {
-          newColumns.push({
-            model: item.target[0],
-            column: item.target[1],
-            description:
-              result.tables.find((t) => t.table === item.target[0])?.columns[
-                item.target[1]
-              ]?.description ?? "",
-          });
-        }
+        const [model, column] = item.source;
+        const sourceColumn = iCurrColumns.find(
+          (c) => c.model === model && c.column === column,
+        );
+        if (!sourceColumn) continue;
+        newColumns.push({
+          model: item.target[0],
+          column: item.target[1],
+          description:
+            result.tables.find((t) => t.table === item.target[0])?.columns[
+              item.target[1]
+            ]?.description ?? "",
+          root: sourceColumn.root,
+        });
+        if (sourceColumn.root) tempColumnLoadingState[sourceColumn.root] = true;
       }
       iCurrColumns = newColumns;
-      iAllColumns.push(...newColumns);
-    }
-    executeRequestInAsync("columnLineageBase", { event: "end" });
-    const finalAllColumns: DocsItem[] = [];
-    for (const c of iAllColumns) {
-      if (
-        finalAllColumns.find(
-          (_c) => _c.model === c.model && _c.column === c.column,
-        )
-      ) {
-        continue;
-      }
-      finalAllColumns.push(c);
+      setAllColumns((prev) => mergeDocItems(prev, newColumns));
+      setIsColumnLineageLoading(tempColumnLoadingState);
     }
     setIsLoading(false);
-    setAllColumns(finalAllColumns);
     setCurrColumns(iCurrColumns);
+  };
+
+  const cancelColumnLineage = async () => {
+    isCancelled.current = true;
+    await executeRequestInSync("cancelColumnLineage", {});
   };
 
   const propagateDocumentation = async () => {
@@ -154,10 +311,13 @@ export const DocumentationPropagationButton = ({
       const splits = item.model.split(".");
       const modelName = splits[splits.length - 1];
       const node = tableMetadata.find((t) => t.table === item.model);
+      const columnDescription =
+        currentDocsData?.columns.find((c) => c.name === item.root)
+          ?.description ?? "";
       req.push({
         name: modelName,
         description: node?.description,
-        columns: [{ name: item.column, description: currColumnDescription }],
+        columns: [{ name: item.column, description: columnDescription }],
         dialogType: "Existing file",
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         patchPath: node?.patchPath || defaultPatchPath,
@@ -166,21 +326,217 @@ export const DocumentationPropagationButton = ({
       });
     }
 
-    await executeRequestInSync("saveDocumentationBulk", { models: req });
-    setIsSaved(true);
+    await executeRequestInSync("saveDocumentationBulk", {
+      models: req,
+      numColumns: startColumns.length,
+    });
   };
+
+  const reset = () => {
+    setAllColumns([]);
+    setCurrColumns(startColumns);
+    setTableMetadata([]);
+    setTestsMetadata({});
+    setSelectedColumns({});
+    isCancelled.current = false;
+  };
+  return {
+    isLoading,
+    allColumns,
+    selectedColumns,
+    setSelectedColumns,
+    loadMoreDownstreamModels,
+    propagateDocumentation,
+    cancelColumnLineage,
+    reset,
+    isColumnLineageLoading,
+  };
+};
+
+export const BulkDocumentationPropagationPanel = (): JSX.Element | null => {
+  const {
+    state: { showBulkDocsPropRightPanel, currentDocsData },
+    dispatch,
+  } = useDocumentationContext();
+  const drawerRef = useRef<DrawerRef | null>(null);
+
+  const startColumns =
+    currentDocsData?.columns
+      .filter((c) => Boolean(c.description))
+      .map((c) => ({
+        model: currentDocsData.uniqueId,
+        column: c.name,
+        description: c.description ?? "",
+        root: c.name,
+      })) ?? [];
+
+  const {
+    isLoading,
+    allColumns,
+    selectedColumns,
+    setSelectedColumns,
+    loadMoreDownstreamModels,
+    propagateDocumentation,
+    cancelColumnLineage,
+    reset,
+  } = useDocumentationPropagation({ startColumns });
+
+  useEffect(() => {
+    reset();
+  }, [currentDocsData?.uniqueId]);
+
+  useEffect(() => {
+    if (!drawerRef.current) return;
+    if (showBulkDocsPropRightPanel) {
+      void loadMoreDownstreamModels();
+      drawerRef.current.open();
+    } else {
+      void cancelColumnLineage();
+      reset();
+      drawerRef.current.close();
+    }
+  }, [showBulkDocsPropRightPanel]);
 
   const setAllColumnsValue = (value: boolean) => {
     setSelectedColumns(
-      allColumns.reduce(
-        (acc, curr) => ({
-          ...acc,
-          [curr.model + "/" + curr.column]: value,
-        }),
-        {},
+      Object.fromEntries(
+        allColumns.map((curr) => [curr.model + "/" + curr.column, value]),
       ),
     );
   };
+
+  return (
+    <Drawer
+      ref={drawerRef}
+      onOpen={() => dispatch(updateBulkDocsPropRightPanel(true))}
+      onClose={() => dispatch(updateBulkDocsPropRightPanel(false))}
+    >
+      <Stack direction="column" className="h-100">
+        <div className={styles.itemRow}>
+          <div>Model:</div>
+          <div>{currentDocsData?.name}</div>
+        </div>
+        <Stack direction="column" className="mb-1 overflow-y">
+          {currentDocsData?.columns
+            .filter((c) => Boolean(c.description))
+            .sort(
+              (a, b) =>
+                allColumns.filter((item) => item.root === b.name).length -
+                allColumns.filter((item) => item.root === a.name).length,
+            )
+            .map((c) => (
+              <SingleColumnCard
+                key={c.name}
+                setSelectedColumns={setSelectedColumns}
+                selectedColumns={selectedColumns}
+                columnDescription={c.description ?? ""}
+                columnName={c.name}
+                isLoading={isLoading}
+                downstreamColumns={allColumns.filter(
+                  (item) => item.root === c.name,
+                )}
+              />
+            ))}
+        </Stack>
+        <Stack direction="column" className={styles.propagateContainer}>
+          <Stack className="align-items-center">
+            <div>Downstream columns:</div>
+            <div>{Object.values(allColumns).flat().length}</div>
+            {isLoading && <Loader size="small" />}
+            <div className="spacer" />
+            {isLoading ? (
+              <Button
+                color="primary"
+                outline
+                onClick={() => cancelColumnLineage()}
+              >
+                Cancel
+              </Button>
+            ) : allColumns.length > 0 ? (
+              <Stack>
+                <Button
+                  color="primary"
+                  outline
+                  onClick={() => setAllColumnsValue(true)}
+                >
+                  Select All
+                </Button>
+                <Button
+                  color="primary"
+                  outline
+                  onClick={() => setAllColumnsValue(false)}
+                >
+                  Unselect All
+                </Button>
+              </Stack>
+            ) : null}
+          </Stack>
+          <Button
+            color="primary"
+            disabled={
+              Object.values(selectedColumns).filter((v) => Boolean(v))
+                .length === 0 || isLoading
+            }
+            onClick={async () => {
+              await propagateDocumentation();
+              dispatch(updateBulkDocsPropRightPanel(false));
+            }}
+            className="w-100"
+          >
+            Propagate documentation (
+            {Object.values(selectedColumns).filter((v) => Boolean(v)).length})
+          </Button>
+        </Stack>
+      </Stack>
+    </Drawer>
+  );
+};
+
+export const DocumentationPropagationButton = ({
+  name,
+  type,
+}: Props): JSX.Element | null => {
+  const {
+    state: { showSingleDocsPropRightPanel, currentDocsData },
+    dispatch,
+  } = useDocumentationContext();
+  const drawerRef = useRef<DrawerRef | null>(null);
+  const currColumnDescription =
+    currentDocsData?.columns.find((c) => c.name === name)?.description ?? "";
+  const startColumns = currentDocsData
+    ? [
+        {
+          model: currentDocsData.uniqueId,
+          column: name,
+          description: currColumnDescription,
+        },
+      ]
+    : [];
+  const {
+    isLoading,
+    allColumns,
+    selectedColumns,
+    setSelectedColumns,
+    loadMoreDownstreamModels,
+    propagateDocumentation,
+    cancelColumnLineage,
+    reset,
+  } = useDocumentationPropagation({ startColumns });
+
+  useEffect(() => {
+    reset();
+  }, [currentDocsData?.uniqueId, name]);
+
+  useEffect(() => {
+    if (!drawerRef.current) return;
+    if (showSingleDocsPropRightPanel) {
+      void loadMoreDownstreamModels();
+      drawerRef.current.open();
+    } else {
+      void cancelColumnLineage();
+      drawerRef.current.close();
+    }
+  }, [showSingleDocsPropRightPanel]);
 
   if (type !== EntityType.COLUMN) {
     return null;
@@ -192,99 +548,65 @@ export const DocumentationPropagationButton = ({
 
   return (
     <Drawer
-      buttonProps={{ color: "primary", title: "Propagate documentation" }}
+      buttonProps={{
+        color: "primary",
+        title: "Propagate documentation",
+        "data-testid": `doc_prop_${name}`,
+      }}
       buttonText={<PropagateIcon />}
       title="Propagate documentation"
       ref={drawerRef}
-      onOpen={() => loadMoreDownstreamModels()}
+      onOpen={() => void loadMoreDownstreamModels()}
+      onClose={() => dispatch(updateSingleDocsPropRightPanel(false))}
     >
-      <Stack direction="column" className="gap-0 mb-2">
+      <Stack direction="column" className="h-100">
         <div className={styles.itemRow}>
           <div>Model:</div>
           <div>{currentDocsData?.name}</div>
         </div>
-        <div className={styles.itemRow}>
-          <div>Column:</div>
-          <div>{name}</div>
-        </div>
-        {currColumnDescription && (
-          <div className={styles.colDesc}>
-            <div>Description:</div>
-            <div>{currColumnDescription}</div>
-          </div>
-        )}
-      </Stack>
-      {!isLoading && allColumns.length === 0 ? (
-        <div className="mt-4">
-          No downstream column level lineage detected to propagate the
-          documentation
-        </div>
-      ) : (
-        <>
-          <Stack className="mb-2">
-            <Button color="primary" onClick={() => setAllColumnsValue(true)}>
-              Select All
-            </Button>
-            <Button color="primary" onClick={() => setAllColumnsValue(false)}>
-              Unselect All
-            </Button>
-          </Stack>
-          <Stack direction="column" className="gap-md">
-            {allColumns.map((item) => {
-              const key = item.model + "/" + item.column;
-              return (
-                <Stack key={key} className={styles.itemCard}>
-                  <Input
-                    type="checkbox"
-                    checked={selectedColumns[key]}
-                    onChange={() =>
-                      setSelectedColumns((prev) => ({
-                        ...prev,
-                        [key]: !prev[key],
-                      }))
-                    }
-                  />
-                  <Stack direction="column" className="gap-0 w-100">
-                    <div className={styles.itemRow}>
-                      <div>Model:</div>
-                      <div>{item.model.split(".").pop()}</div>
-                    </div>
-                    <div className={styles.itemRow}>
-                      <div>Column:</div>
-                      <div>{item.column}</div>
-                    </div>
-                    <div className={styles.itemRow}>
-                      <div>Description:</div>
-                      <div>{item.description}</div>
-                    </div>
-                  </Stack>
-                </Stack>
-              );
-            })}
-            {currColumns.length > 0 && (
+        <SingleColumnCard
+          setSelectedColumns={setSelectedColumns}
+          selectedColumns={selectedColumns}
+          columnDescription={currColumnDescription}
+          columnName={name}
+          isLoading={isLoading}
+          downstreamColumns={allColumns}
+        />
+        <div className="spacer" />
+        <Stack direction="column">
+          <Stack className="align-items-center">
+            <div>Downstream columns:</div>
+            <div>{allColumns.length}</div>
+            {isLoading && (
+              <Loader size="small" data-testid="docs_prop_loader" />
+            )}
+            <div className="spacer" />
+            {isLoading && (
               <Button
                 color="primary"
                 outline
-                onClick={loadMoreDownstreamModels}
-                disabled={isLoading}
+                onClick={() => cancelColumnLineage()}
               >
-                Load 3 more downstream levels
+                Cancel
               </Button>
             )}
-            <Button
-              color="primary"
-              disabled={
-                Object.values(selectedColumns).filter((v) => Boolean(v))
-                  .length === 0
-              }
-              onClick={() => propagateDocumentation()}
-            >
-              Propagate documentation to selected models
-            </Button>
-            {isSaved && <div>Saved documentation successfully</div>}
           </Stack>
-        </>
-      )}
+          <Button
+            color="primary"
+            disabled={
+              Object.values(selectedColumns).filter((v) => Boolean(v))
+                .length === 0 || isLoading
+            }
+            onClick={async () => {
+              await propagateDocumentation();
+              dispatch(updateSingleDocsPropRightPanel(false));
+            }}
+            className="w-100"
+          >
+            Propagate documentation
+          </Button>
+        </Stack>
+      </Stack>
     </Drawer>
   );
 };

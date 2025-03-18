@@ -22,6 +22,7 @@ export enum TelemetryEvents {
   "DocumentationEditor/FeedbackClick" = "DocumentationEditor/FeedbackClick",
   "DocumentationEditor/BulkGenerateTests" = "DocumentationEditor/BulkGenerateTests",
   "DocumentationEditor/SaveClick" = "DocumentationEditor/SaveClick",
+  "DocumentationEditor/SaveBulk" = "DocumentationEditor/SaveBulk",
   "DocumentationEditor/SaveError" = "DocumentationEditor/SaveError",
   "DocumentationEditor/SaveNewFilePathSelect" = "DocumentationEditor/SaveNewFilePathSelect",
   "DocumentationEditor/BulkGenerateAllClick" = "DocumentationEditor/BulkGenerateAllClick",
@@ -59,4 +60,10 @@ export enum TelemetryEvents {
   "Notebook/StoreDataInKernelError" = "Notebook/StoreDataInKernelError",
   "QueryHistory/Disabled" = "QueryHistory/Disabled",
   "QueryHistory/Cleared" = "QueryHistory/Cleared",
+  "MCP/ToolCall" = "MCP/ToolCall",
+  "MCP/Onboarding" = "MCP/Onboarding",
+  "MCP/Onboarding/SetUpNow" = "MCP/Onboarding/SetUpNow",
+  "MCP/Onboarding/Later" = "MCP/Onboarding/Later",
+  "MCP/Onboarding/Success" = "MCP/Onboarding/Success",
+  "MCP/Onboarding/Failed" = "MCP/Onboarding/Failed",
 }

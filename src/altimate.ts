@@ -294,6 +294,11 @@ interface FeedbackResponse {
   ok: boolean;
 }
 
+interface BulkDocsPropRequest {
+  num_columns: number;
+  session_id: string;
+}
+
 interface AltimateConfig {
   key: string;
   instance: string;
@@ -953,6 +958,13 @@ export class AltimateRequest {
 
   async sqlLineage(req: SQLLineageRequest) {
     return this.fetch<SqlLineageResponse>("dbt/v3/sql_lineage", {
+      method: "POST",
+      body: JSON.stringify(req),
+    });
+  }
+
+  async bulkDocsPropCredit(req: BulkDocsPropRequest) {
+    return this.fetch<FeedbackResponse>("dbt/v4/bulk-docs-prop-credits", {
       method: "POST",
       body: JSON.stringify(req),
     });

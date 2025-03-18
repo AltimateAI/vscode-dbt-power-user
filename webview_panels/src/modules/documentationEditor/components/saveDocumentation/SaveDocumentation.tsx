@@ -8,14 +8,14 @@ import {
   PopoverWithButtonRef,
 } from "@uicore";
 import { MouseEvent, useEffect, useRef, useState } from "react";
-import {
-  setIsDocGeneratedForAnyColumn,
-  setIsTestUpdatedForAnyColumn,
-  updateCurrentDocsData,
-} from "@modules/documentationEditor/state/documentationSlice";
+import { setIncomingDocsData } from "@modules/documentationEditor/state/documentationSlice";
 import classes from "../../styles.module.scss";
 import { noop } from "antd/es/_util/warning";
-import { DBTDocumentation } from "@modules/documentationEditor/state/types";
+import {
+  DBTDocumentation,
+  DBTModelTest,
+} from "@modules/documentationEditor/state/types";
+import { isStateDirty } from "@modules/documentationEditor/utils";
 
 /**
  * Handles save documentation functionality
@@ -28,15 +28,8 @@ import { DBTDocumentation } from "@modules/documentationEditor/state/types";
 const SaveDocumentation = (): JSX.Element | null => {
   const [patchPath, setPatchPath] = useState("");
   const popoverRef = useRef<PopoverWithButtonRef | null>(null);
-  const {
-    state: {
-      currentDocsData,
-      isDocGeneratedForAnyColumn,
-      currentDocsTests,
-      isTestUpdatedForAnyColumn,
-    },
-    dispatch,
-  } = useDocumentationContext();
+  const { state, dispatch } = useDocumentationContext();
+  const { currentDocsData, currentDocsTests } = state;
 
   const saveDocumentation = async (
     dialogType?: "New file" | "Existing file",
@@ -46,13 +39,18 @@ const SaveDocumentation = (): JSX.Element | null => {
       updatedTests: currentDocsTests,
       patchPath,
       dialogType,
-    })) as { saved: boolean; documentation: DBTDocumentation };
+    })) as {
+      saved: boolean;
+      documentation: DBTDocumentation;
+      tests: DBTModelTest[];
+    };
     if (result.saved) {
-      dispatch(setIsDocGeneratedForAnyColumn(false));
-      dispatch(setIsTestUpdatedForAnyColumn(false));
-      if (result.documentation) {
-        dispatch(updateCurrentDocsData(result.documentation));
-      }
+      dispatch(
+        setIncomingDocsData({
+          docs: currentDocsData,
+          tests: currentDocsTests,
+        }),
+      );
     }
   };
 
@@ -74,7 +72,7 @@ const SaveDocumentation = (): JSX.Element | null => {
     { label: "New file", value: "New file" },
   ];
 
-  if (!isDocGeneratedForAnyColumn && !isTestUpdatedForAnyColumn) {
+  if (!isStateDirty(state)) {
     return null;
   }
 
