@@ -13,4 +13,3 @@ vsc-extension-quickstart.md
 .github
 webview_panels
 !webview_panels/dist
-query_panel
