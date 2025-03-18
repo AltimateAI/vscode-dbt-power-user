@@ -510,7 +510,8 @@ export class DbtPowerUserMcpServerTools implements Disposable {
               modelName: args.modelName as string,
               plusOperatorRight: args.plusOperatorRight as string,
             };
-            const result = await project.runModel(runModelParams, true);
+            const result =
+              await project.unsafeRunModelImmediately(runModelParams);
             return this.handleDbtCommandOutput(result);
           }
 
@@ -520,17 +521,18 @@ export class DbtPowerUserMcpServerTools implements Disposable {
               modelName: args.modelName as string,
               plusOperatorRight: args.plusOperatorRight as string,
             };
-            const result = await project.buildModel(runModelParams, true);
+            const result =
+              await project.unsafeBuildModelImmediately(runModelParams);
             return this.handleDbtCommandOutput(result);
           }
 
           case ToolName.BUILD_PROJECT: {
-            const result = await project.buildProject(true);
+            const result = await project.unsafeBuildProjectImmediately();
             return this.handleDbtCommandOutput(result);
           }
 
           case ToolName.RUN_TEST: {
-            const result = await project.runTest(args.testName as string, true);
+            const result = await project.runTest(args.testName as string);
             return this.handleDbtCommandOutput(result);
           }
 
