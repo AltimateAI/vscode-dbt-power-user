@@ -532,14 +532,15 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           }
 
           case ToolName.RUN_TEST: {
-            const result = await project.runTest(args.testName as string);
+            const result = await project.unsafeRunTestImmediately(
+              args.testName as string,
+            );
             return this.handleDbtCommandOutput(result);
           }
 
           case ToolName.RUN_MODEL_TEST: {
-            const result = await project.runModelTest(
+            const result = await project.unsafeRunModelTestImmediately(
               args.modelName as string,
-              true,
             );
             return this.handleDbtCommandOutput(result);
           }

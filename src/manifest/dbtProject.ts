@@ -647,17 +647,9 @@ export class DBTProject implements Disposable {
     );
   }
 
-  async runTest(testName: string, returnImmediately = false) {
+  async runTest(testName: string) {
     const testModelCommand =
       this.dbtCommandFactory.createTestModelCommand(testName);
-
-    if (returnImmediately) {
-      testModelCommand.showProgress = false;
-      testModelCommand.logToTerminal = false;
-      return this.dbtProjectIntegration.executeCommandImmediately(
-        testModelCommand,
-      );
-    }
 
     try {
       const result = await this.dbtProjectIntegration.runTest(testModelCommand);
@@ -668,17 +660,20 @@ export class DBTProject implements Disposable {
     }
   }
 
-  async runModelTest(modelName: string, returnImmediately = false) {
+  async unsafeRunTestImmediately(testName: string) {
+    const testModelCommand =
+      this.dbtCommandFactory.createTestModelCommand(testName);
+    testModelCommand.showProgress = false;
+    testModelCommand.logToTerminal = false;
+    this.telemetry.sendTelemetryEvent("runTest");
+    return this.dbtProjectIntegration.executeCommandImmediately(
+      testModelCommand,
+    );
+  }
+
+  async runModelTest(modelName: string) {
     const testModelCommand =
       this.dbtCommandFactory.createTestModelCommand(modelName);
-
-    if (returnImmediately) {
-      testModelCommand.showProgress = false;
-      testModelCommand.logToTerminal = false;
-      return this.dbtProjectIntegration.executeCommandImmediately(
-        testModelCommand,
-      );
-    }
 
     try {
       const result =
@@ -688,6 +683,17 @@ export class DBTProject implements Disposable {
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
+  }
+
+  async unsafeRunModelTestImmediately(modelName: string) {
+    const testModelCommand =
+      this.dbtCommandFactory.createTestModelCommand(modelName);
+    testModelCommand.showProgress = false;
+    testModelCommand.logToTerminal = false;
+    this.telemetry.sendTelemetryEvent("runModelTest");
+    return this.dbtProjectIntegration.executeCommandImmediately(
+      testModelCommand,
+    );
   }
 
   private handleNoCredentialsError(error: unknown) {
