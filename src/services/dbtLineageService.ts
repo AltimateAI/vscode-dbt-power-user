@@ -251,12 +251,9 @@ export class DbtLineageService {
       const hop1Tables = currAnd1HopTables.filter((t) => !currTables.has(t));
       upstream_models = [...hop1Tables];
       sqlTables = [...hop1Tables];
-      auxiliaryTables = DBTProject.getNonEphemeralParents(event, hop1Tables);
+      auxiliaryTables = project.getNonEphemeralParents(hop1Tables);
     } else {
-      auxiliaryTables = DBTProject.getNonEphemeralParents(
-        event,
-        Array.from(currTables),
-      );
+      auxiliaryTables = project.getNonEphemeralParents(Array.from(currTables));
       sqlTables = Array.from(currTables);
     }
     currAnd1HopTables = Array.from(new Set(currAnd1HopTables));
