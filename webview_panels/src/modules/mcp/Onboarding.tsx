@@ -12,7 +12,9 @@ interface StepProps {
   disableButton?: string;
   isActive: boolean;
   isCompleted: boolean;
+  isFirstStep: boolean;
   onButtonClick: (enabled: boolean) => void;
+  onBackClick: () => void;
   image?: string;
 }
 
@@ -23,7 +25,9 @@ const Step = ({
   disableButton,
   isActive,
   isCompleted,
+  isFirstStep,
   onButtonClick,
+  onBackClick,
   image,
 }: StepProps) => {
   return (
@@ -40,7 +44,16 @@ const Step = ({
             </div>
           )}
           {isActive && (
-            <div className="d-flex gap-1">
+            <div className="d-flex gap-1 align-items-center">
+              {!isFirstStep && (
+                <Button
+                  color="secondary"
+                  onClick={onBackClick}
+                  className={styles.navButton}
+                >
+                  Back
+                </Button>
+              )}
               <Button
                 color="primary"
                 onClick={() => onButtonClick(true)}
@@ -68,6 +81,12 @@ const Step = ({
 const McpOnboarding = (): JSX.Element => {
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+
+  const handleStepBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
 
   const handleStepComplete = async (step: number, enabled: boolean) => {
     if (step === 1) {
@@ -99,7 +118,7 @@ const McpOnboarding = (): JSX.Element => {
     {
       title: "Advanced Data Tools",
       description:
-        "Adjust enhanced data exploration features:\n• Query column values\n• Execute sample SQL\n• Get data previews",
+        "Enable enhanced data exploration features (data will be available to the chat):\n• Query column values\n• Execute sample SQL\n• Get data preview",
       enableButton: "Enable Features",
       disableButton: "Disable Features",
     },
@@ -138,7 +157,9 @@ const McpOnboarding = (): JSX.Element => {
             {...step}
             isActive={currentStep === index + 1}
             isCompleted={completedSteps.includes(index + 1)}
+            isFirstStep={index === 0}
             onButtonClick={(enabled) => handleStepComplete(index + 1, enabled)}
+            onBackClick={handleStepBack}
           />
         ))}
       </div>

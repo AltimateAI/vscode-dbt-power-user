@@ -81,7 +81,7 @@
     }
   }
 
-  .actionButton {
+  .actionButton, .navButton {
     align-self: flex-start;
     margin-top: 1rem;
   }
@@ -89,4 +89,8 @@
 
 .actionButton {
   min-width: 100px;
-} 
+}
+
+.navButton {
+  min-width: 80px;
+}
