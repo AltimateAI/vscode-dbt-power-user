@@ -1,7 +1,10 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
   CallToolRequestSchema,
+  ListResourcesRequestSchema,
   ListToolsRequestSchema,
+  ReadResourceRequestSchema,
+  Resource,
   Tool,
   ToolSchema,
 } from "@modelcontextprotocol/sdk/types.js";
@@ -18,6 +21,7 @@ import {
 } from "@extension";
 import { RunModelParams } from "../dbt_client/dbtIntegration";
 import { CommandProcessResult } from "../commandProcessExecution";
+import { existsSync, readFileSync } from "fs";
 
 const ToolInputSchema = ToolSchema.shape.inputSchema;
 type ToolInput = z.infer<typeof ToolInputSchema>;
@@ -152,6 +156,68 @@ export class DbtPowerUserMcpServerTools implements Disposable {
       this.dbtTerminal.error("DbtPowerUserMcpServerTools", "Error", { error });
     };
 
+    const getProjectResources = () => {
+      return this.dbtProjectContainer.getProjects().flatMap((project) => {
+        const projectRoot = project.projectRoot.fsPath;
+        const resources: Resource[] = [];
+
+        // Add manifest if exists
+        const manifestPath = project.getManifestPath();
+        if (manifestPath && existsSync(manifestPath)) {
+          resources.push({
+            uri: `file://${encodeURI(manifestPath)}`,
+            name: "manifest.json",
+            description: `dbt manifest for ${project.getProjectName()}`,
+            mimeType: "application/json",
+          });
+        }
+
+        // Add catalog if exists
+        const catalogPath = project.getCatalogPath();
+        if (catalogPath && existsSync(catalogPath)) {
+          resources.push({
+            uri: `file://${encodeURI(catalogPath)}`,
+            name: "catalog.json",
+            description: `dbt catalog for ${project.getProjectName()}`,
+            mimeType: "application/json",
+          });
+        }
+
+        return resources;
+      });
+    };
+
+    // List available resources
+    server.setRequestHandler(ListResourcesRequestSchema, async () => {
+      return { resources: getProjectResources() };
+    });
+
+    // Read resource contents
+    server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+      const decodedUri = decodeURIComponent(request.params.uri);
+      const filePath = Uri.parse(decodedUri).fsPath;
+
+      // Security: Validate path belongs to a known project
+      const isValid = this.dbtProjectContainer.getProjects().some((project) => {
+        return project.contains(Uri.file(filePath));
+      });
+
+      if (!existsSync(filePath) || !isValid) {
+        throw new Error("Resource not found or unauthorized");
+      }
+
+      return {
+        contents: [
+          {
+            uri: request.params.uri,
+            mimeType: "application/json",
+            text: readFileSync(filePath, "utf8"),
+          },
+        ],
+      };
+    });
+
+    // Existing tools handler continues below
     server.setRequestHandler(ListToolsRequestSchema, async () => {
       this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Listing tools");
       const tools: Tool[] = [
