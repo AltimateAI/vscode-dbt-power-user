@@ -26,6 +26,8 @@ import {
   WebviewPanel,
   Webview,
   WebviewView,
+  ConfigurationTarget,
+  workspace,
 } from "vscode";
 import path from "path";
 import { DbtPowerUserMcpServer } from "../mcp";
@@ -94,6 +96,24 @@ export class McpPanel
             return {
               status: true,
               step: 2,
+            };
+          },
+          command,
+        );
+        break;
+      case "enableDataSourceQueryTools":
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            await workspace
+              .getConfiguration("dbt")
+              .update(
+                "enableMCPDataSourceQueryTools",
+                true,
+                ConfigurationTarget.Global,
+              );
+            return {
+              status: true,
             };
           },
           command,

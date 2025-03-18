@@ -61,7 +61,11 @@ const McpOnboarding = (): JSX.Element => {
       const result = await executeRequestInSync("configureMcp", {});
       panelLogger.log(result);
     }
-    if (step === 3) {
+    if (step === 2) {
+      const result = await executeRequestInSync("enableDataSourceQueryTools", {});
+      panelLogger.log(result);
+    }
+    if (step === 4) {
       const result = await executeRequestInSync("completeMcpOnboarding", {});
       panelLogger.log(result);
     }
@@ -76,6 +80,11 @@ const McpOnboarding = (): JSX.Element => {
       description:
         "In this step, MCP server will be started and a configuration file will be created",
       buttonText: "Let's do it!",
+    },
+    {
+      title: "Enable Advanced Data Tools",
+      description: "Allow enhanced data exploration features for better code generation:\n• Query column values\n• Execute sample SQL\n• Get data previews",
+      buttonText: "Enable Features",
     },
     {
       title: "Enable MCP server",
