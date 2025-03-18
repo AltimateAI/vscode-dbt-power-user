@@ -19,6 +19,9 @@ export const Default: StoryObj<typeof McpOnboarding> = {
         if (request.command === "configureMcp") {
           return { success: true };
         }
+        if (request.command === "enableDataSourceQueryTools") {
+          return { success: true };
+        }
         if (request.command === "completeMcpOnboarding") {
           return { success: true };
         }

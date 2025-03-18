@@ -8,7 +8,7 @@ import {
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { Uri, Disposable } from "vscode";
+import { Uri, Disposable, workspace } from "vscode";
 import { provideSingleton } from "../utils";
 import {
   DBTProject,
@@ -233,12 +233,28 @@ export class DbtPowerUserMcpServerTools implements Disposable {
             "Returns the column names and data types for a specified dbt source. Use this to understand a source's schema before querying it.",
           inputSchema: zodToJsonSchema(GetColumnsOfSourceSchema) as ToolInput,
         },
-        {
-          name: ToolName.GET_COLUMN_VALUES,
-          description:
-            "Returns the distinct values for a specified column in a model or source. Use this to understand the data distribution and possible values in a column.",
-          inputSchema: zodToJsonSchema(GetColumnValuesSchema) as ToolInput,
-        },
+        ...(workspace
+          .getConfiguration("dbt")
+          .get<boolean>("enableMcpDataSourceQueryTools", false)
+          ? [
+              {
+                name: ToolName.GET_COLUMN_VALUES,
+                description:
+                  "Returns the distinct values for a specified column in a model or source. Use this to understand the data distribution and possible values in a column.",
+                inputSchema: zodToJsonSchema(
+                  GetColumnValuesSchema,
+                ) as ToolInput,
+              },
+              {
+                name: ToolName.EXECUTE_SQL_WITH_LIMIT,
+                description:
+                  "Executes a SQL query with a specified row limit and returns the results. Use this to test queries for newly created dbt models and retrieve sample data from the database.",
+                inputSchema: zodToJsonSchema(
+                  ExecuteSQLWithLimitSchema,
+                ) as ToolInput,
+              },
+            ]
+          : []),
         {
           name: ToolName.COMPILE_MODEL,
           description:
@@ -250,12 +266,6 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           description:
             "Compile query, this will only convert the Jinja SQL to SQL, not determine if the SQL actually works. If the compilation succeeds, use the execute SQL and validate the data.",
           inputSchema: zodToJsonSchema(CompileQuerySchema) as ToolInput,
-        },
-        {
-          name: ToolName.EXECUTE_SQL_WITH_LIMIT,
-          description:
-            "Executes a SQL query with a specified row limit and returns the results. Use this to test queries for newly created dbt models and retrieve sample data from the database.",
-          inputSchema: zodToJsonSchema(ExecuteSQLWithLimitSchema) as ToolInput,
         },
         {
           name: ToolName.RUN_MODEL,
