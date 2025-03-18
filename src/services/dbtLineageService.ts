@@ -1,8 +1,10 @@
-import { AltimateRequest } from "../altimate";
-import { DBTProject } from "../manifest/dbtProject";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { QueryManifestService } from "./queryManifestService";
-import { TelemetryService } from "../telemetry";
+import {
+  AltimateRequest,
+  DBTProject,
+  DBTTerminal,
+  QueryManifestService,
+  TelemetryService,
+} from "@extension";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { ColumnMetaData, GraphMetaMap, NodeGraphMap } from "../domain";
 import {
