@@ -8,17 +8,19 @@ import { EnableMcpImage, TryChatImage } from "./assets";
 interface StepProps {
   title: string;
   description: string;
-  buttonText: string;
+  enableButton: string;
+  disableButton?: string;
   isActive: boolean;
   isCompleted: boolean;
-  onButtonClick: () => void;
+  onButtonClick: (enabled: boolean) => void;
   image?: string;
 }
 
 const Step = ({
   title,
   description,
-  buttonText,
+  enableButton,
+  disableButton,
   isActive,
   isCompleted,
   onButtonClick,
@@ -38,13 +40,24 @@ const Step = ({
             </div>
           )}
           {isActive && (
-            <Button
-              color="primary"
-              onClick={onButtonClick}
-              className={styles.actionButton}
-            >
-              {buttonText}
-            </Button>
+            <div className="d-flex gap-1">
+              <Button
+                color="primary"
+                onClick={() => onButtonClick(true)}
+                className={styles.actionButton}
+              >
+                {enableButton}
+              </Button>
+              {disableButton && (
+                <Button
+                  color="secondary"
+                  onClick={() => onButtonClick(false)}
+                  className={styles.actionButton}
+                >
+                  {disableButton}
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </CardBody>
@@ -56,13 +69,15 @@ const McpOnboarding = (): JSX.Element => {
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
 
-  const handleStepComplete = async (step: number) => {
+  const handleStepComplete = async (step: number, enabled: boolean) => {
     if (step === 1) {
       const result = await executeRequestInSync("configureMcp", {});
       panelLogger.log(result);
     }
     if (step === 2) {
-      const result = await executeRequestInSync("enableDataSourceQueryTools", {});
+      const result = await executeRequestInSync("enableDataSourceQueryTools", {
+        enabled: enabled,
+      });
       panelLogger.log(result);
     }
     if (step === 4) {
@@ -79,26 +94,28 @@ const McpOnboarding = (): JSX.Element => {
       title: "Setup MCP server",
       description:
         "In this step, MCP server will be started and a configuration file will be created",
-      buttonText: "Let's do it!",
+      enableButton: "Let's do it!",
     },
     {
-      title: "Enable Advanced Data Tools",
-      description: "Allow enhanced data exploration features for better code generation:\n• Query column values\n• Execute sample SQL\n• Get data previews",
-      buttonText: "Enable Features",
+      title: "Advanced Data Tools",
+      description:
+        "Adjust enhanced data exploration features:\n• Query column values\n• Execute sample SQL\n• Get data previews",
+      enableButton: "Enable Features",
+      disableButton: "Disable Features",
     },
     {
       title: "Enable MCP server",
       description:
         "Open Cursor Settings and select the MCP from sidebar. Click 'Disabled' button next to 'dbtPowerUser' to enable it.",
       image: EnableMcpImage,
-      buttonText: "Ok done!",
+      enableButton: "Ok done!",
     },
     {
       title: "Try out the chat!",
       description:
         "Open chat and select agent mode. Try this prompt 'Get list of projects'. If you see message like 'Called MCP tool', then you are all set!",
       image: TryChatImage,
-      buttonText: "All set!",
+      enableButton: "All set!",
     },
   ];
 
@@ -121,7 +138,7 @@ const McpOnboarding = (): JSX.Element => {
             {...step}
             isActive={currentStep === index + 1}
             isCompleted={completedSteps.includes(index + 1)}
-            onButtonClick={() => handleStepComplete(index + 1)}
+            onButtonClick={(enabled) => handleStepComplete(index + 1, enabled)}
           />
         ))}
       </div>

@@ -105,11 +105,12 @@ export class McpPanel
         this.handleSyncRequestFromWebview(
           syncRequestId,
           async () => {
+            const enabled = params.enabled ?? true;
             await workspace
               .getConfiguration("dbt")
               .update(
                 "enableMCPDataSourceQueryTools",
-                true,
+                enabled,
                 ConfigurationTarget.Global,
               );
             return {
