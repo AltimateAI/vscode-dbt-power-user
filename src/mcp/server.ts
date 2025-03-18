@@ -10,15 +10,12 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { Uri, Disposable } from "vscode";
 import { provideSingleton } from "../utils";
-import {
-  DBTProject,
-  DBTTerminal,
-  TelemetryEvents,
-  TelemetryService,
-} from "@extension";
+import { TelemetryService } from "../telemetry";
+import { TelemetryEvents } from "../telemetry/events";
 import { RunModelParams } from "../dbt_client/dbtIntegration";
 import { CommandProcessResult } from "../commandProcessExecution";
-
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTProject } from "../manifest/dbtProject";
 const ToolInputSchema = ToolSchema.shape.inputSchema;
 type ToolInput = z.infer<typeof ToolInputSchema>;
 

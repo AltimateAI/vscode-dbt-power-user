@@ -58,7 +58,7 @@ import {
   DbtLineageService,
   Table,
 } from "../services/dbtLineageService";
-import { Model } from "@altimate/extension-components";
+import { Model } from "@altimateai/extension-components";
 
 export enum Source {
   YAML = "YAML",

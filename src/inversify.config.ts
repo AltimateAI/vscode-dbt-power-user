@@ -42,7 +42,7 @@ import { SharedStateService } from "./services/sharedStateService";
 import {
   NotebookKernelClient,
   NotebookDependencies,
-} from "@altimate/extension-components";
+} from "@altimateai/extension-components";
 import { DBTCoreCommandProjectIntegration } from "./dbt_client/dbtCoreCommandIntegration";
 
 export const container = new Container();

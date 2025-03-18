@@ -8,7 +8,7 @@ import {
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { QueryManifestService } from "@extension";
+import { QueryManifestService } from "../services/queryManifestService";
 
 @provideSingleton(TargetStatusBar)
 export class TargetStatusBar implements Disposable {

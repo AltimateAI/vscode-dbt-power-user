@@ -10,7 +10,7 @@ import {
   isStateDirty,
   mergeCurrentAndIncomingDocumentationColumns,
 } from "../utils";
-import { Citation } from "@altimate/ui-components/chatbot";
+import { Citation } from "@altimateai/ui-components/chatbot";
 
 export const initialState = {
   incomingDocsData: undefined,

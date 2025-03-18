@@ -1361,10 +1361,7 @@
     "ms-python.python"
   ],
   "dependencies": {
-    "@altimate/components": "file:../altimate-components/packages/web/package.tgz",
-    "@altimate/components-extension": "file:../altimate-components/packages/extension/package.tgz",
-    "@altimate/extension-components": "file:../altimate-components/packages/extension/package.tgz",
-    "@altimate/ui-components": "file:../altimate-components/packages/web/package.tgz",
+    "@altimateai/extension-components": "../altimate-components/packages/extension/package.tgz",
     "@jupyterlab/coreutils": "^6.2.4",
     "@jupyterlab/nbformat": "^4.2.4",
     "@jupyterlab/services": "^6.6.7",

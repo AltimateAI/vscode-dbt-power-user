@@ -1,5 +1,5 @@
-import { Lineage, CllEvents, CLL } from "@altimate/ui-components/lineage";
-import type { Table } from "@altimate/ui-components/lineage";
+import { Lineage, CllEvents, CLL } from "@altimateai/ui-components/lineage";
+import type { Table } from "@altimateai/ui-components/lineage";
 import { useEffect, useState } from "react";
 import { MissingLineageMessage, StaticLineageProps } from "./types";
 import ActionWidget from "./ActionWidget";
@@ -11,7 +11,7 @@ import {
 } from "@modules/app/requestExecutor";
 import styles from "./lineage.module.scss";
 import DemoButton from "./components/demo/DemoButton";
-import { ApiHelper } from "@altimate/ui-components";
+import { ApiHelper } from "@altimateai/ui-components";
 
 const LineageView = (): JSX.Element | null => {
   const {

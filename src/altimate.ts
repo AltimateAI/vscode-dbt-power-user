@@ -14,7 +14,7 @@ import {
   PreconfiguredNotebookItem,
   NotebookItem,
   NotebookSchema,
-} from "@altimate/extension-components";
+} from "@altimateai/extension-components";
 
 export class NoCredentialsError extends Error {}
 

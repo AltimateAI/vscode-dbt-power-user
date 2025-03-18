@@ -1,11 +1,8 @@
-import {
-  AltimateRequest,
-  DBTProjectContainer,
-  DBTTerminal,
-  provideSingleton,
-  QueryManifestService,
-  TelemetryService,
-} from "@extension";
+import { AltimateRequest } from "../altimate";
+import { TelemetryService } from "../telemetry";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { QueryManifestService } from "../services/queryManifestService";
 import {
   AltimateWebviewProvider,
   HandleCommandProps,
@@ -29,6 +26,7 @@ import {
 } from "vscode";
 import path from "path";
 import { DbtPowerUserMcpServer } from "../mcp";
+import { provideSingleton } from "../utils";
 
 @provideSingleton(McpPanel)
 export class McpPanel

@@ -3,7 +3,7 @@ import {
   ConversationGroup,
   ConversationInputForm,
   DbtDocsShareDetails,
-} from "@altimate/ui-components";
+} from "@altimateai/ui-components";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import useAppContext from "@modules/app/useAppContext";
 import { panelLogger } from "@modules/logger";

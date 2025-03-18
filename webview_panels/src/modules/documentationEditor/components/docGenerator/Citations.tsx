@@ -1,7 +1,8 @@
-import { Citation, Citations } from "@altimate/ui-components/chatbot";
+import { Citation } from "@altimateai/ui-components";
 import useAppContext from "@modules/app/useAppContext";
 import { Stack } from "@uicore";
 import classes from "./coachAi.module.scss";
+import { Citations } from "@altimateai/ui-components/chatbot";
 
 const CitationsList = ({
   citations,
@@ -19,7 +20,7 @@ const CitationsList = ({
   }
   return (
     <Stack className={classes.citations}>
-      <Citations citations={citations} frontendUrl={frontendUrl ?? ""} />
+      <Citations citations={citations} frontEndUrl={frontendUrl ?? ""} />
     </Stack>
   );
 };

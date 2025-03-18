@@ -4,17 +4,15 @@ import { Disposable, window, workspace, Uri, commands } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DbtPowerUserMcpServerTools } from "./server";
-import {
-  AltimateRequest,
-  DBTProjectContainer,
-  TelemetryEvents,
-  TelemetryService,
-} from "@extension";
 import { SharedStateService } from "../services/sharedStateService";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { findAvailablePort } from "./utils";
 import path from "path";
 import { McpPanel } from "../webview_provider/mcpPanel";
+import { AltimateRequest } from "../altimate";
+import { TelemetryService } from "../telemetry";
+import { TelemetryEvents } from "../telemetry/events";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 
 @provideSingleton(DbtPowerUserMcpServer)
 export class DbtPowerUserMcpServer implements Disposable {

@@ -3,7 +3,7 @@ import { Themes } from "@modules/app/types";
 import classes from "./codeblock.module.scss";
 import { ReactNode } from "react";
 import { panelLogger } from "@modules/logger";
-// import { CodeBlock } from "@altimate/ui-components";
+// import { CodeBlock } from "@altimateai/ui-components";
 
 interface Props {
   code: string;

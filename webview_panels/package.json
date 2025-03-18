@@ -11,15 +11,14 @@
   "scripts": {
     "dev": "vite",
     "watch": "rm -Rf ./dist; tsc && vite build --watch",
-    "build": "rm -Rf ./dist; NODE_OPTIONS=--max-old-space-size=16384 tsc && concurrently \"vite build\"  \"vite build --config vite.config.renderer.ts --emptyOutDir=false\"",
+    "build": "rm -Rf ./dist; NODE_OPTIONS=--max-old-space-size=16384 tsc && vite build &&  vite build --config vite.config.renderer.ts --emptyOutDir=false",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 7",
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
   "dependencies": {
-    "@altimate-components/web": "file:../../altimate-components/packages/web/package.tgz",
-    "@altimate/ui-components": "file:../../altimate-components/packages/web/package.tgz",
+    "@altimateai/ui-components": "../../altimate-components/packages/web/package.tgz",
     "@ant-design/pro-chat": "^1.15.2",
     "@finos/perspective": "^2.10.0",
     "@finos/perspective-viewer": "^2.10.0",
