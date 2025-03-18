@@ -109,7 +109,7 @@ export class McpPanel
             await workspace
               .getConfiguration("dbt")
               .update(
-                "enableMCPDataSourceQueryTools",
+                "enableMcpDataSourceQueryTools",
                 enabled,
                 ConfigurationTarget.Global,
               );

@@ -235,7 +235,7 @@ export class DbtPowerUserMcpServerTools implements Disposable {
         },
         ...(workspace
           .getConfiguration("dbt")
-          .get<boolean>("enableMCPDataSourceQueryTools", false)
+          .get<boolean>("enableMcpDataSourceQueryTools", false)
           ? [
               {
                 name: ToolName.GET_COLUMN_VALUES,

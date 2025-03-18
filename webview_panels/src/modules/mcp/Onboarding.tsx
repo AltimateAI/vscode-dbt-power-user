@@ -118,8 +118,8 @@ const McpOnboarding = (): JSX.Element => {
     {
       title: "Advanced Data Tools",
       description:
-        "Enable enhanced data exploration features (data will be available to the chat):\n• Query column values\n• Execute sample SQL\n• Get data preview",
-      enableButton: "Enable Features",
+        "Enhance your experience with advanced data exploration features. By enabling this option, you allow data lookup queries to be processed and shared with Cursor. Features include:\n• Query specific column values\n• Execute SQL\n• Previewing data structures",
+      enableButton: "Enable Advanced Features",
       disableButton: "Disable Features",
     },
     {
