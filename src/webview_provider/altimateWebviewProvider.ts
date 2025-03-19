@@ -27,7 +27,7 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { QueryManifestService } from "../services/queryManifestService";
 import { PythonException } from "python-bridge";
 import { UsersService } from "../services/usersService";
-import { NotebookSchema } from "@lib";
+import { NotebookSchema } from "@altimateai/extension-components";
 
 export type UpdateConfigProps = {
   key: string;

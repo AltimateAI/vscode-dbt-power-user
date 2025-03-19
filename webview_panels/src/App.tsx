@@ -3,7 +3,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "@uicore/theme.scss";
 import { AppRoutes } from "./AppRoutes";
 import AppProvider from "./modules/app/AppProvider";
-import { TeamMateProvider } from "@lib";
+import { TeamMateProvider } from "@altimateai/ui-components";
 
 const Loader = () => <div>Loading...</div>;
 const App = (): JSX.Element => (

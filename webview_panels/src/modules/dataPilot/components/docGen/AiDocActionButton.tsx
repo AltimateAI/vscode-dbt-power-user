@@ -6,7 +6,7 @@ import { Button } from "@uicore";
 import { useState } from "react";
 import { DataPilotChatAction } from "../../types";
 import { DocGenFollowup } from "./types";
-import { Citation } from "@lib";
+import { Citation } from "@altimateai/ui-components";
 
 interface Props {
   action: DataPilotChatAction;
