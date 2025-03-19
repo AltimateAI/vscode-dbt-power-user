@@ -42,16 +42,6 @@ export class DbtPowerUserMcpServer implements Disposable {
 
   private async startOnboarding() {
     this.dbtTerminal.info("DbtPowerUserMcpServer", "Starting onboarding");
-    const enableMcpServer = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("enableMcpServer", false);
-    if (!enableMcpServer) {
-      this.dbtTerminal.info(
-        "DbtPowerUserMcpServer",
-        "MCP server is not enabled",
-      );
-      return;
-    }
 
     const onboardedMcpServer = workspace
       .getConfiguration("dbt")
