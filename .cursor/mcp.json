@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "dbtPowerUser": {
+      "url": "http://localhost:7800/sse"
+    }
+  }
+}
