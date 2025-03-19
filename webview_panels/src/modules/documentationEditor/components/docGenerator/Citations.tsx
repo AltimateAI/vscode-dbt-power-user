@@ -2,7 +2,7 @@ import { Citation } from "@altimateai/ui-components";
 import useAppContext from "@modules/app/useAppContext";
 import { Stack } from "@uicore";
 import classes from "./coachAi.module.scss";
-import { Citations } from "@altimateai/ui-components/chatbot";
+import { Citations } from "@altimateai/ui-components/chatbotV2";
 
 const CitationsList = ({
   citations,
