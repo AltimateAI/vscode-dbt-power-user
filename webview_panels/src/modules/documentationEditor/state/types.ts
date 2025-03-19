@@ -3,7 +3,7 @@ import {
   DbtDocsShareDetails,
 } from "@altimateai/ui-components";
 import { GenerationDBDataProps } from "../types";
-import { Citation } from "@altimateai/ui-components/chatbot";
+import { Citation } from "@altimateai/ui-components";
 
 export enum Source {
   DATABASE = "DATABASE",
