@@ -1326,6 +1326,7 @@
     "@vscode/debugprotocol": "^1.68.0",
     "@vscode/test-electron": "^2.4.1",
     "@vscode/zeromq": "^0.2.1",
+    "babel-loader": "^10.0.0",
     "chai": "^4.3.10",
     "concurrently": "^8.2.2",
     "copy-webpack-plugin": "^11.0.0",
@@ -1361,7 +1362,7 @@
     "ms-python.python"
   ],
   "dependencies": {
-    "@altimateai/extension-components": "../altimate-components/packages/extension/package.tgz",
+    "@altimateai/extension-components": "0.0.10-beta.3",
     "@jupyterlab/coreutils": "^6.2.4",
     "@jupyterlab/nbformat": "^4.2.4",
     "@jupyterlab/services": "^6.6.7",

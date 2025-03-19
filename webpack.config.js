@@ -42,6 +42,22 @@ const config = {
   },
   module: {
     rules: [
+      // Added for processing @altimateai/extension-components to use @extension imports
+      {
+        test: /\.js$/,
+        include: [
+          path.resolve(
+            __dirname,
+            "node_modules/@altimateai/extension-components",
+          ),
+        ],
+        type: "javascript/auto",
+        use: [
+          {
+            loader: "babel-loader",
+          },
+        ],
+      },
       {
         test: /\.ts$/,
         exclude: /(node_modules|src\/test)/,
