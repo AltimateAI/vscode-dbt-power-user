@@ -307,7 +307,7 @@ export class DBTProjectContainer implements Disposable {
   }
 
   compileQuery(modelPath: Uri, query: string) {
-    this.findDBTProject(modelPath)?.compileQuery(query);
+    return this.findDBTProject(modelPath)?.compileQuery(query);
   }
 
   showRunSQL(modelPath: Uri) {
