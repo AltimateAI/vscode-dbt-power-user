@@ -573,17 +573,9 @@ export class DBTProject implements Disposable {
     );
   }
 
-  async runModel(runModelParams: RunModelParams, returnImmediately = false) {
+  async runModel(runModelParams: RunModelParams) {
     const runModelCommand =
       this.dbtCommandFactory.createRunModelCommand(runModelParams);
-
-    if (returnImmediately) {
-      runModelCommand.showProgress = false;
-      runModelCommand.logToTerminal = false;
-      return this.dbtProjectIntegration.executeCommandImmediately(
-        runModelCommand,
-      );
-    }
 
     try {
       const result = await this.dbtProjectIntegration.runModel(runModelCommand);
@@ -594,17 +586,20 @@ export class DBTProject implements Disposable {
     }
   }
 
-  async buildModel(runModelParams: RunModelParams, returnImmediately = false) {
+  async unsafeRunModelImmediately(runModelParams: RunModelParams) {
+    const runModelCommand =
+      this.dbtCommandFactory.createRunModelCommand(runModelParams);
+    runModelCommand.showProgress = false;
+    runModelCommand.logToTerminal = false;
+    this.telemetry.sendTelemetryEvent("runModel");
+    return this.dbtProjectIntegration.executeCommandImmediately(
+      runModelCommand,
+    );
+  }
+
+  async buildModel(runModelParams: RunModelParams) {
     const buildModelCommand =
       this.dbtCommandFactory.createBuildModelCommand(runModelParams);
-
-    if (returnImmediately) {
-      buildModelCommand.showProgress = false;
-      buildModelCommand.logToTerminal = false;
-      return this.dbtProjectIntegration.executeCommandImmediately(
-        buildModelCommand,
-      );
-    }
 
     try {
       const result =
@@ -616,17 +611,20 @@ export class DBTProject implements Disposable {
     }
   }
 
-  async buildProject(returnImmediately = false) {
+  async unsafeBuildModelImmediately(runModelParams: RunModelParams) {
+    const buildModelCommand =
+      this.dbtCommandFactory.createBuildModelCommand(runModelParams);
+    buildModelCommand.showProgress = false;
+    buildModelCommand.logToTerminal = false;
+    this.telemetry.sendTelemetryEvent("buildModel");
+    return this.dbtProjectIntegration.executeCommandImmediately(
+      buildModelCommand,
+    );
+  }
+
+  async buildProject() {
     const buildProjectCommand =
       this.dbtCommandFactory.createBuildProjectCommand();
-
-    if (returnImmediately) {
-      buildProjectCommand.showProgress = false;
-      buildProjectCommand.logToTerminal = false;
-      return this.dbtProjectIntegration.executeCommandImmediately(
-        buildProjectCommand,
-      );
-    }
 
     try {
       const result =
@@ -638,17 +636,20 @@ export class DBTProject implements Disposable {
     }
   }
 
-  async runTest(testName: string, returnImmediately = false) {
+  async unsafeBuildProjectImmediately() {
+    const buildProjectCommand =
+      this.dbtCommandFactory.createBuildProjectCommand();
+    buildProjectCommand.showProgress = false;
+    buildProjectCommand.logToTerminal = false;
+    this.telemetry.sendTelemetryEvent("buildProject");
+    return this.dbtProjectIntegration.executeCommandImmediately(
+      buildProjectCommand,
+    );
+  }
+
+  async runTest(testName: string) {
     const testModelCommand =
       this.dbtCommandFactory.createTestModelCommand(testName);
-
-    if (returnImmediately) {
-      testModelCommand.showProgress = false;
-      testModelCommand.logToTerminal = false;
-      return this.dbtProjectIntegration.executeCommandImmediately(
-        testModelCommand,
-      );
-    }
 
     try {
       const result = await this.dbtProjectIntegration.runTest(testModelCommand);
@@ -659,17 +660,20 @@ export class DBTProject implements Disposable {
     }
   }
 
-  async runModelTest(modelName: string, returnImmediately = false) {
+  async unsafeRunTestImmediately(testName: string) {
+    const testModelCommand =
+      this.dbtCommandFactory.createTestModelCommand(testName);
+    testModelCommand.showProgress = false;
+    testModelCommand.logToTerminal = false;
+    this.telemetry.sendTelemetryEvent("runTest");
+    return this.dbtProjectIntegration.executeCommandImmediately(
+      testModelCommand,
+    );
+  }
+
+  async runModelTest(modelName: string) {
     const testModelCommand =
       this.dbtCommandFactory.createTestModelCommand(modelName);
-
-    if (returnImmediately) {
-      testModelCommand.showProgress = false;
-      testModelCommand.logToTerminal = false;
-      return this.dbtProjectIntegration.executeCommandImmediately(
-        testModelCommand,
-      );
-    }
 
     try {
       const result =
@@ -679,6 +683,17 @@ export class DBTProject implements Disposable {
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
+  }
+
+  async unsafeRunModelTestImmediately(modelName: string) {
+    const testModelCommand =
+      this.dbtCommandFactory.createTestModelCommand(modelName);
+    testModelCommand.showProgress = false;
+    testModelCommand.logToTerminal = false;
+    this.telemetry.sendTelemetryEvent("runModelTest");
+    return this.dbtProjectIntegration.executeCommandImmediately(
+      testModelCommand,
+    );
   }
 
   private handleNoCredentialsError(error: unknown) {

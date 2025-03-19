@@ -475,13 +475,15 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           }
 
           case ToolName.GET_COLUMN_VALUES: {
-            const result = await project.getColumnValues(
-              args.model as string,
-              args.column as string,
-            );
-            return {
-              content: [{ type: "text", text: JSON.stringify(result) }],
-            };
+            return await this.runWithProgress(server, async () => {
+              const result = await project.getColumnValues(
+                args.model as string,
+                args.column as string,
+              );
+              return {
+                content: [{ type: "text", text: JSON.stringify(result) }],
+              };
+            });
           }
 
           case ToolName.COMPILE_MODEL: {
@@ -492,54 +494,69 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           }
 
           case ToolName.EXECUTE_SQL_WITH_LIMIT: {
-            const result = await project.executeSQLWithLimit(
-              args.query as string,
-              args.modelName as string,
-              args.limit as number,
-              true,
-              false,
-            );
-            return {
-              content: [{ type: "text", text: JSON.stringify(result) }],
-            };
+            return await this.runWithProgress(server, async () => {
+              const result = await project.executeSQLWithLimit(
+                args.query as string,
+                args.modelName as string,
+                args.limit as number,
+                true,
+                false,
+              );
+              return {
+                content: [{ type: "text", text: JSON.stringify(result) }],
+              };
+            });
           }
 
           case ToolName.RUN_MODEL: {
-            const runModelParams: RunModelParams = {
-              plusOperatorLeft: args.plusOperatorLeft as string,
-              modelName: args.modelName as string,
-              plusOperatorRight: args.plusOperatorRight as string,
-            };
-            const result = await project.runModel(runModelParams, true);
-            return this.handleDbtCommandOutput(result);
+            return await this.runWithProgress(server, async () => {
+              const runModelParams: RunModelParams = {
+                plusOperatorLeft: args.plusOperatorLeft as string,
+                modelName: args.modelName as string,
+                plusOperatorRight: args.plusOperatorRight as string,
+              };
+              const result =
+                await project.unsafeRunModelImmediately(runModelParams);
+              return this.handleDbtCommandOutput(result);
+            });
           }
 
           case ToolName.BUILD_MODEL: {
-            const runModelParams: RunModelParams = {
-              plusOperatorLeft: args.plusOperatorLeft as string,
-              modelName: args.modelName as string,
-              plusOperatorRight: args.plusOperatorRight as string,
-            };
-            const result = await project.buildModel(runModelParams, true);
-            return this.handleDbtCommandOutput(result);
+            return await this.runWithProgress(server, async () => {
+              const runModelParams: RunModelParams = {
+                plusOperatorLeft: args.plusOperatorLeft as string,
+                modelName: args.modelName as string,
+                plusOperatorRight: args.plusOperatorRight as string,
+              };
+              const result =
+                await project.unsafeBuildModelImmediately(runModelParams);
+              return this.handleDbtCommandOutput(result);
+            });
           }
 
           case ToolName.BUILD_PROJECT: {
-            const result = await project.buildProject(true);
-            return this.handleDbtCommandOutput(result);
+            return await this.runWithProgress(server, async () => {
+              const result = await project.unsafeBuildProjectImmediately();
+              return this.handleDbtCommandOutput(result);
+            });
           }
 
           case ToolName.RUN_TEST: {
-            const result = await project.runTest(args.testName as string, true);
-            return this.handleDbtCommandOutput(result);
+            return await this.runWithProgress(server, async () => {
+              const result = await project.unsafeRunTestImmediately(
+                args.testName as string,
+              );
+              return this.handleDbtCommandOutput(result);
+            });
           }
 
           case ToolName.RUN_MODEL_TEST: {
-            const result = await project.runModelTest(
-              args.modelName as string,
-              true,
-            );
-            return this.handleDbtCommandOutput(result);
+            return await this.runWithProgress(server, async () => {
+              const result = await project.unsafeRunModelTestImmediately(
+                args.modelName as string,
+              );
+              return this.handleDbtCommandOutput(result);
+            });
           }
 
           case ToolName.INSTALL_DBT_PACKAGES: {
@@ -606,4 +623,55 @@ export class DbtPowerUserMcpServerTools implements Disposable {
 
     return { server, cleanup: async () => {} };
   };
+
+  private async runWithProgress<T>(
+    server: Server,
+    mainOperation: () => Promise<T>,
+    progressToken?: string,
+    interval: number = 5000,
+  ): Promise<T> {
+    let operationCompleted = false;
+
+    // Function to send progress updates every `interval` ms
+    const sendProgressUpdates = async () => {
+      let progress = 0;
+
+      while (!operationCompleted) {
+        const sleep = new Promise((resolve) => setTimeout(resolve, interval));
+        await Promise.race([
+          sleep,
+          new Promise((resolve) => {
+            if (operationCompleted) {
+              resolve(undefined);
+            }
+          }),
+        ]);
+
+        if (operationCompleted) {
+          break; // Stop sending updates if operation is done
+        }
+
+        progress += interval / 1000; // Convert ms to seconds
+        if (progressToken !== undefined) {
+          await server.notification({
+            method: "notifications/progress",
+            params: {
+              progress,
+              progressToken,
+            },
+          });
+        }
+      }
+    };
+
+    // Run both tasks in parallel and return the result of mainOperation
+    const resultPromise = mainOperation().then((res) => {
+      operationCompleted = true; // Mark operation as completed
+      return res;
+    });
+
+    await Promise.race([resultPromise, sendProgressUpdates()]); // Stop progress updates as soon as mainOperation finishes
+
+    return resultPromise; // Ensure the main operation result is returned
+  }
 }
