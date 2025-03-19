@@ -624,12 +624,12 @@ export class DbtPowerUserMcpServerTools implements Disposable {
     return { server, cleanup: async () => {} };
   };
 
-  private async runWithProgress(
+  private async runWithProgress<T>(
     server: Server,
-    mainOperation: () => Promise<any>,
+    mainOperation: () => Promise<T>,
     progressToken?: string,
     interval: number = 5000,
-  ) {
+  ): Promise<T> {
     let operationCompleted = false;
 
     // Function to send progress updates every `interval` ms
@@ -637,7 +637,15 @@ export class DbtPowerUserMcpServerTools implements Disposable {
       let progress = 0;
 
       while (!operationCompleted) {
-        await new Promise((resolve) => setTimeout(resolve, interval));
+        const sleep = new Promise((resolve) => setTimeout(resolve, interval));
+        await Promise.race([
+          sleep,
+          new Promise((resolve) => {
+            if (operationCompleted) {
+              resolve(undefined);
+            }
+          }),
+        ]);
 
         if (operationCompleted) {
           break; // Stop sending updates if operation is done
@@ -656,17 +664,14 @@ export class DbtPowerUserMcpServerTools implements Disposable {
       }
     };
 
-    // Run both in parallel and wait for main operation to finish
-    const result = await Promise.all([
-      (async () => {
-        const result = await mainOperation();
-        operationCompleted = true; // Mark operation as completed
-        return result;
-      })(),
-      sendProgressUpdates(),
-    ]);
+    // Run both tasks in parallel and return the result of mainOperation
+    const resultPromise = mainOperation().then((res) => {
+      operationCompleted = true; // Mark operation as completed
+      return res;
+    });
 
-    // Return the main operation's result
-    return result[0];
+    await Promise.race([resultPromise, sendProgressUpdates()]); // Stop progress updates as soon as mainOperation finishes
+
+    return resultPromise; // Ensure the main operation result is returned
   }
 }
