@@ -64,7 +64,7 @@ const RunTestSchema = BaseProjectRootSchema.extend({
 const RunModelTestSchema = BaseProjectRootSchema.extend({
   modelName: z.string(),
 });
-const InstallDbtPackagesSchema = BaseProjectRootSchema.extend({
+const AddDbtPackagesSchema = BaseProjectRootSchema.extend({
   packages: z.array(z.string()),
 });
 const InstallDepsSchema = BaseProjectRootSchema.extend({});
@@ -104,7 +104,7 @@ enum ToolName {
   BUILD_PROJECT = "build_project",
   RUN_TEST = "run_test",
   RUN_MODEL_TEST = "run_model_test",
-  INSTALL_DBT_PACKAGES = "install_dbt_packages",
+  ADD_DBT_PACKAGES = "add_dbt_packages",
   INSTALL_DEPS = "install_deps",
 }
 
@@ -298,10 +298,10 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           inputSchema: zodToJsonSchema(RunModelTestSchema) as ToolInput,
         },
         {
-          name: ToolName.INSTALL_DBT_PACKAGES,
+          name: ToolName.ADD_DBT_PACKAGES,
           description:
-            "Install dbt package(s), the dbt package string should be in the form of packageName@version",
-          inputSchema: zodToJsonSchema(InstallDbtPackagesSchema) as ToolInput,
+            "Add dbt package(s) to the project, the dbt package string should be in the form of packageName@version",
+          inputSchema: zodToJsonSchema(AddDbtPackagesSchema) as ToolInput,
         },
         {
           name: ToolName.INSTALL_DEPS,
@@ -559,7 +559,7 @@ export class DbtPowerUserMcpServerTools implements Disposable {
             });
           }
 
-          case ToolName.INSTALL_DBT_PACKAGES: {
+          case ToolName.ADD_DBT_PACKAGES: {
             const result = await project.installDbtPackages(
               args.packages as string[],
             );
