@@ -350,16 +350,15 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           };
         }
 
-        if (!args || !args.projectRoot) {
-          throw new Error("projectRoot is required");
-        }
-
-        const projectRoot = decodeURIComponent(args.projectRoot as string);
+        const validatedBaseArgs = BaseProjectRootSchema.parse(args);
+        const projectRoot = decodeURIComponent(validatedBaseArgs.projectRoot);
         const project = this.dbtProjectContainer.findDBTProject(
           Uri.file(projectRoot),
         );
         if (!project) {
-          throw new Error(`Project not found for root: ${args.projectRoot}`);
+          throw new Error(
+            `Project not found for root: ${validatedBaseArgs.projectRoot}`,
+          );
         }
 
         switch (name) {
@@ -453,8 +452,9 @@ export class DbtPowerUserMcpServerTools implements Disposable {
             };
 
           case ToolName.GET_COLUMNS_OF_MODEL: {
+            const validatedArgs = GetColumnsOfModelSchema.parse(args);
             const result = await project.getColumnsOfModel(
-              args.modelName as string,
+              validatedArgs.modelName,
             );
             return {
               content: [{ type: "text", text: JSON.stringify(result) }],
@@ -462,9 +462,10 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           }
 
           case ToolName.GET_COLUMNS_OF_SOURCE: {
+            const validatedArgs = GetColumnsOfSourceSchema.parse(args);
             const result = await project.getColumnsOfSource(
-              args.sourceName as string,
-              args.tableName as string,
+              validatedArgs.sourceName,
+              validatedArgs.tableName,
             );
             return {
               content: [{ type: "text", text: JSON.stringify(result) }],
@@ -472,10 +473,11 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           }
 
           case ToolName.GET_COLUMN_VALUES: {
+            const validatedArgs = GetColumnValuesSchema.parse(args);
             return await this.runWithProgress(server, async () => {
               const result = await project.getColumnValues(
-                args.model as string,
-                args.column as string,
+                validatedArgs.model,
+                validatedArgs.column,
               );
               return {
                 content: [{ type: "text", text: JSON.stringify(result) }],
@@ -484,17 +486,19 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           }
 
           case ToolName.COMPILE_MODEL: {
+            const validatedArgs = CompileModelSchema.parse(args);
             const result = await project.unsafeCompileNode(
-              args.modelName as string,
+              validatedArgs.modelName,
             );
             return { content: [{ type: "text", text: result || "" }] };
           }
 
           case ToolName.EXECUTE_SQL: {
+            const validatedArgs = ExecuteSQLSchema.parse(args);
             return await this.runWithProgress(server, async () => {
               const result = await project.executeSQL(
-                args.query as string,
-                args.modelName as string,
+                validatedArgs.query,
+                validatedArgs.modelName,
                 true, // returnImmediately
                 false, // returnRawResults
               );
@@ -505,27 +509,25 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           }
 
           case ToolName.RUN_MODEL: {
+            const validatedArgs = RunModelSchema.parse(args);
             return await this.runWithProgress(server, async () => {
-              const runModelParams: RunModelParams = {
-                plusOperatorLeft: args.plusOperatorLeft as string,
-                modelName: args.modelName as string,
-                plusOperatorRight: args.plusOperatorRight as string,
-              };
-              const result =
-                await project.unsafeRunModelImmediately(runModelParams);
+              const result = await project.unsafeRunModelImmediately({
+                plusOperatorLeft: validatedArgs.plusOperatorLeft,
+                modelName: validatedArgs.modelName,
+                plusOperatorRight: validatedArgs.plusOperatorRight,
+              });
               return this.handleDbtCommandOutput(result);
             });
           }
 
           case ToolName.BUILD_MODEL: {
+            const validatedArgs = BuildModelSchema.parse(args);
             return await this.runWithProgress(server, async () => {
-              const runModelParams: RunModelParams = {
-                plusOperatorLeft: args.plusOperatorLeft as string,
-                modelName: args.modelName as string,
-                plusOperatorRight: args.plusOperatorRight as string,
-              };
-              const result =
-                await project.unsafeBuildModelImmediately(runModelParams);
+              const result = await project.unsafeBuildModelImmediately({
+                plusOperatorLeft: validatedArgs.plusOperatorLeft,
+                modelName: validatedArgs.modelName,
+                plusOperatorRight: validatedArgs.plusOperatorRight,
+              });
               return this.handleDbtCommandOutput(result);
             });
           }
@@ -538,26 +540,29 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           }
 
           case ToolName.RUN_TEST: {
+            const validatedArgs = RunTestSchema.parse(args);
             return await this.runWithProgress(server, async () => {
               const result = await project.unsafeRunTestImmediately(
-                args.testName as string,
+                validatedArgs.testName,
               );
               return this.handleDbtCommandOutput(result);
             });
           }
 
           case ToolName.RUN_MODEL_TEST: {
+            const validatedArgs = RunModelTestSchema.parse(args);
             return await this.runWithProgress(server, async () => {
               const result = await project.unsafeRunModelTestImmediately(
-                args.modelName as string,
+                validatedArgs.modelName,
               );
               return this.handleDbtCommandOutput(result);
             });
           }
 
           case ToolName.ADD_DBT_PACKAGES: {
+            const validatedArgs = AddDbtPackagesSchema.parse(args);
             const result = await project.installDbtPackages(
-              args.packages as string[],
+              validatedArgs.packages,
             );
             return {
               content: [{ type: "text", text: result }],
@@ -572,16 +577,18 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           }
 
           case ToolName.COMPILE_QUERY: {
+            const validatedArgs = CompileQuerySchema.parse(args);
             const result = await project.unsafeCompileQuery(
-              args.query as string,
-              args.originalModelName as string,
+              validatedArgs.query,
+              validatedArgs.originalModelName,
             );
             return { content: [{ type: "text", text: result || "" }] };
           }
 
           case ToolName.GET_CHILDREN_MODELS: {
+            const validatedArgs = GetChildrenModelsSchema.parse(args);
             const result = project.getChildrenModels({
-              table: args.table as string,
+              table: validatedArgs.table,
             });
             return {
               content: [{ type: "text", text: JSON.stringify(result) }],
@@ -589,8 +596,9 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           }
 
           case ToolName.GET_PARENT_MODELS: {
+            const validatedArgs = GetParentModelsSchema.parse(args);
             const result = project.getParentModels({
-              table: args.table as string,
+              table: validatedArgs.table,
             });
             return {
               content: [{ type: "text", text: JSON.stringify(result) }],
