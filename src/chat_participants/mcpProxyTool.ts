@@ -70,7 +70,11 @@ export class McpProxyTool implements vscode.LanguageModelChatTool {
           timeout: 2 * 60 * 1000,
           // TODO: handle progress for long running tools
           onprogress: (progress) => {
-            console.log("Tool progress:", progress);
+            this.dbtTerminal.debug(
+              "McpProxyTool",
+              `Tool progress ${toolName}: `,
+              progress,
+            );
           },
         },
       );
@@ -116,7 +120,7 @@ export class McpProxyTool implements vscode.LanguageModelChatTool {
 
       return new vscode.LanguageModelToolResult(content);
     } catch (error) {
-      console.error("Tool invocation error:", error);
+      this.dbtTerminal.error("McpProxyTool", "Tool invocation error:", error);
       throw new Error(
         `Tool "${this._tool.name}" failed: ${error instanceof Error ? error.message : "Unknown error"}`,
       );

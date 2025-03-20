@@ -159,93 +159,78 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           description:
             "Returns a list of all available dbt project root paths. This must be called first to get the projectRoot parameter needed for all other tools.",
           inputSchema: zodToJsonSchema(BaseSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.GET_PROJECT_NAME,
           description: "Get project name",
           inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.GET_SELECTED_TARGET,
           description: "Get selected target",
           inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.GET_TARGET_NAMES,
           description: "Get target names",
           inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.GET_TARGET_PATH,
           description: "Get target path",
           inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.GET_PACKAGE_INSTALL_PATH,
           description: "Get package install path",
           inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.GET_MODEL_PATHS,
           description: "Get model paths",
           inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.GET_SEED_PATHS,
           description: "Get seed paths",
           inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.GET_MACRO_PATHS,
           description: "Get macro paths",
           inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.GET_MANIFEST_PATH,
           description: "Get manifest path",
           inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.GET_CATALOG_PATH,
           description: "Get catalog path",
           inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.GET_DBT_VERSION,
           description: "Get dbt version",
           inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.GET_ADAPTER_TYPE,
           description: "Get adapter type",
           inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.GET_COLUMNS_OF_MODEL,
           description:
             "Returns the column names and data types for a specified dbt model. Use this to understand a model's schema before querying it.",
           inputSchema: zodToJsonSchema(GetColumnsOfModelSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.GET_COLUMNS_OF_SOURCE,
           description:
             "Returns the column names and data types for a specified dbt source. Use this to understand a source's schema before querying it.",
           inputSchema: zodToJsonSchema(GetColumnsOfSourceSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         ...(workspace
           .getConfiguration("dbt")
@@ -258,14 +243,12 @@ export class DbtPowerUserMcpServerTools implements Disposable {
                 inputSchema: zodToJsonSchema(
                   GetColumnValuesSchema,
                 ) as ToolInput,
-                tags: ["datapilot"],
               },
               {
                 name: ToolName.EXECUTE_SQL,
                 description:
                   "Executes SQL queries against the database, returning processed results immediately. Use this to test queries and retrieve data from the database.",
                 inputSchema: zodToJsonSchema(ExecuteSQLSchema) as ToolInput,
-                tags: ["datapilot"],
               },
             ]
           : []),
@@ -274,77 +257,66 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           description:
             "Converts a dbt model's Jinja SQL into raw SQL. Use this to inspect the generated SQL before executing it. Note: This does not validate if the SQL will run successfully.",
           inputSchema: zodToJsonSchema(CompileModelSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.COMPILE_QUERY,
           description:
             "Compile query, this will only convert the Jinja SQL to SQL, not determine if the SQL actually works. If the compilation succeeds, use the execute SQL and validate the data.",
           inputSchema: zodToJsonSchema(CompileQuerySchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.RUN_MODEL,
           description:
             "Executes a dbt model in the database. Use + for plusOperatorLeft to include parent models, and + for plusOperatorRight to include child models in the run.",
           inputSchema: zodToJsonSchema(RunModelSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.BUILD_MODEL,
           description:
             "Builds a dbt model in the database. Use + for plusOperatorLeft to include parent models, and + for plusOperatorRight to include child models in the build.",
           inputSchema: zodToJsonSchema(BuildModelSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.BUILD_PROJECT,
           description:
             "Builds the dbt project, this will run seeds, models and all related tests",
           inputSchema: zodToJsonSchema(BuildProjectSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.RUN_TEST,
           description:
             "Run an indivdual test based on the test name in the dbt manifest.",
           inputSchema: zodToJsonSchema(RunTestSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.RUN_MODEL_TEST,
           description:
             "Run model tests, use this tool to run the existing tests defined for the dbt model",
           inputSchema: zodToJsonSchema(RunModelTestSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.ADD_DBT_PACKAGES,
           description:
             "Add dbt package(s) to the project, the dbt package string should be in the form of packageName@version",
           inputSchema: zodToJsonSchema(AddDbtPackagesSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.INSTALL_DEPS,
           description:
             "Install dbt package dependencies based on the dbt projects's packages.yml file",
           inputSchema: zodToJsonSchema(InstallDepsSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.GET_CHILDREN_MODELS,
           description:
             "Returns the list of models that depend on the specified model (its children). Use this to understand a model's downstream impact and lineage.",
           inputSchema: zodToJsonSchema(GetChildrenModelsSchema) as ToolInput,
-          tags: ["datapilot"],
         },
         {
           name: ToolName.GET_PARENT_MODELS,
           description:
             "Returns the list of models that the specified model depends on (its parents). Use this to understand a model's upstream dependencies and lineage.",
           inputSchema: zodToJsonSchema(GetParentModelsSchema) as ToolInput,
-          tags: ["datapilot"],
         },
       ];
 
