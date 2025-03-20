@@ -81,7 +81,7 @@ export class DBTWorkspaceFolder implements Disposable {
     return allowListFolders;
   }
 
-  async retryWithBackoff<T>(
+  private async retryWithBackoff<T>(
     fn: () => Thenable<T>,
     retries: number = 5,
     backoff: number = 1000,
