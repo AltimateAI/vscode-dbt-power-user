@@ -4,25 +4,29 @@ import {
   Tool,
   CallToolResultSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { MCPClient } from "./mcpClient";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { DBTTerminal } from "@extension";
+
 /**
  * A proxy tool that forwards calls to an MCP tool
  */
 export class McpProxyTool implements vscode.LanguageModelChatTool {
-  private _client: MCPClient;
+  private _client: Client;
   private _tool: Tool;
   public name: string;
   public inputSchema: Tool["inputSchema"];
   public description: string;
 
-  constructor(client: MCPClient, tool: Tool) {
+  constructor(
+    client: Client,
+    tool: Tool,
+    private dbtTerminal: DBTTerminal,
+  ) {
     this._client = client;
     this._tool = tool;
     this.name = tool.name;
     this.inputSchema = tool.inputSchema;
     this.description = tool.description || "";
-
-    // this._callTool = callTool;
   }
 
   private _handleNotification(notification: any): Promise<void> {
@@ -43,30 +47,38 @@ export class McpProxyTool implements vscode.LanguageModelChatTool {
     options: vscode.LanguageModelToolInvocationOptions<any>,
     token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
-    console.log("Invoking tool:", this._tool.name, options.input);
+    const toolName = this._tool.name;
+    this.dbtTerminal.debug(
+      "McpProxyTool",
+      `Invoking tool: ${toolName}`,
+      options.input,
+    );
     try {
-      // Define the payload
       const payload: CallToolRequest["params"] = {
-        name: this._tool.name,
+        name: toolName,
         arguments: options.input,
-        // _meta: {
-        // 	toolCallId: options.toolInvocationToken,
-        // 	progressToken: options.toolInvocationToken
-        // }
       };
-      console.log("CallToolRequest Params:", payload);
+      this.dbtTerminal.debug(
+        "McpProxyTool",
+        `CallToolRequest Params for ${toolName}:`,
+        payload,
+      );
       const result = await this._client.callTool(
         payload,
         CallToolResultSchema,
         {
-          // timeout in milliseconds, we should set it to 5 minutes
-          timeout: 5 * 60 * 1000,
+          timeout: 2 * 60 * 1000,
+          // TODO: handle progress for long running tools
           onprogress: (progress) => {
             console.log("Tool progress:", progress);
           },
         },
       );
-      console.log("Tool result:", result);
+      this.dbtTerminal.debug(
+        "McpProxyTool",
+        `Tool result for ${toolName}:`,
+        result,
+      );
       // Parse the CallToolResponse
       const parsedResult = CallToolResultSchema.parse(result);
 

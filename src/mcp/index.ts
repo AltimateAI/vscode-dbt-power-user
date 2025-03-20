@@ -1,3 +1,4 @@
+import { EventSource } from "eventsource";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import express from "express";
 import { Disposable, window, workspace, Uri, commands } from "vscode";
@@ -15,6 +16,7 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { findAvailablePort } from "./utils";
 import path from "path";
 import { McpPanel } from "../webview_provider/mcpPanel";
+import { DataPilotChatParticipant } from "../chat_participants/dataPilot";
 
 @provideSingleton(DbtPowerUserMcpServer)
 export class DbtPowerUserMcpServer implements Disposable {
@@ -30,6 +32,7 @@ export class DbtPowerUserMcpServer implements Disposable {
     private emitterService: SharedStateService,
     private telemetry: TelemetryService,
     private dbtProjectContainer: DBTProjectContainer,
+    private dbtChatParticipant: DataPilotChatParticipant,
   ) {
     this.disposables.push(
       emitterService.eventEmitter.event((d) => {
@@ -43,22 +46,20 @@ export class DbtPowerUserMcpServer implements Disposable {
   private async startOnboarding() {
     this.dbtTerminal.info("DbtPowerUserMcpServer", "Starting onboarding");
 
+    const port = await this.start();
+    if (port) {
+      await this.updatePortInCursorMcpSettings(port);
+    }
+
     const onboardedMcpServer = workspace
       .getConfiguration("dbt")
       .get<boolean>("onboardedMcpServer", false);
 
-    if (onboardedMcpServer) {
-      const port = await this.start();
-      if (port) {
-        await this.updatePortInCursorMcpSettings(port);
-      }
-      return;
-    }
-
     const isCursorIde =
       process.env.VSCODE_CWD?.includes("Cursor") ||
       !!process.env.CURSOR_TRACE_ID;
-    if (isCursorIde) {
+
+    if (isCursorIde && !onboardedMcpServer) {
       this.telemetry.sendTelemetryEvent(TelemetryEvents["MCP/Onboarding"], {
         name: "Onboarding",
       });
@@ -124,16 +125,6 @@ export class DbtPowerUserMcpServer implements Disposable {
       return this.port;
     }
 
-    const onboardedMcpServer = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("onboardedMcpServer", false);
-    if (!onboardedMcpServer) {
-      this.dbtTerminal.info(
-        "DbtPowerUserMcpServer",
-        "MCP server is not enabled, skipping start",
-      );
-      return;
-    }
     this.dbtTerminal.info("DbtPowerUserMcpServer", "Starting MCP server");
     const { server, cleanup } = this.dbtPowerUserMcpServerTools.createServer();
     this.mcpServer = server;
@@ -187,6 +178,12 @@ export class DbtPowerUserMcpServer implements Disposable {
           this.mcpServer.onclose = async () => {
             await cleanup();
           };
+          this.mcpServer.oninitialized = async () => {
+            this.dbtTerminal.info(
+              "DbtPowerUserMcpServer",
+              "MCP server initialized",
+            );
+          };
         }
 
         this.mcpTransport.onerror = (error) => {
@@ -223,6 +220,39 @@ export class DbtPowerUserMcpServer implements Disposable {
           port,
         },
       );
+      this.dbtChatParticipant.initializeChatParticipant(port);
+
+      // const eventSource = new EventSource(`http://localhost:${port}/sse`);
+
+      // eventSource.onopen = async () => {
+      //   this.dbtTerminal.info(
+      //     "DbtPowerUserMcpServer",
+      //     "EventSource connection opened",
+      //   );
+      //   eventSource.close();
+      //   await this.dbtChatParticipant.initializeChatParticipant(port);
+      // };
+      // eventSource.onmessage = (event) => {
+      //   console.log("event", event);
+      // };
+      // eventSource.addEventListener("command_result", (event) => {
+      //   console.log("event", event);
+      // });
+      // eventSource.addEventListener("connection", (event) => {
+      //   console.log("event", event);
+      // });
+      // eventSource.onerror = (error) => {
+      //   console.log("error", error);
+      // };
+      // })
+      // .catch((error) => {
+      //   this.dbtTerminal.error(
+      //     "DbtPowerUserMcpServer",
+      //     "Failed to ping MCP server",
+      //     { error },
+      //   );
+      // });
+
       // this.updatePortInCursorMcpSettings(port);
     });
 

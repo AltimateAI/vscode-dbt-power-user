@@ -2,12 +2,7 @@ import {
   Client,
   ClientOptions,
 } from "@modelcontextprotocol/sdk/client/index.js";
-import {
-  CreateMessageRequestSchema,
-  Implementation,
-  ListRootsRequestSchema,
-  Tool,
-} from "@modelcontextprotocol/sdk/types.js";
+import { Implementation } from "@modelcontextprotocol/sdk/types.js";
 
 export class MCPClient extends Client {
   protected _name: string;
