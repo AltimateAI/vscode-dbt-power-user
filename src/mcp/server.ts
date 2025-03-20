@@ -42,10 +42,9 @@ const CompileQuerySchema = BaseProjectRootSchema.extend({
   query: z.string(),
   originalModelName: z.string().optional(),
 });
-const ExecuteSQLWithLimitSchema = BaseProjectRootSchema.extend({
+const ExecuteSQLSchema = BaseProjectRootSchema.extend({
   query: z.string(),
   modelName: z.string(),
-  limit: z.number(),
 });
 const RunModelSchema = BaseProjectRootSchema.extend({
   plusOperatorLeft: z.enum(["", "+"]),
@@ -98,7 +97,7 @@ enum ToolName {
   GET_COLUMN_VALUES = "get_column_values",
   COMPILE_MODEL = "compile_model",
   COMPILE_QUERY = "compile_query",
-  EXECUTE_SQL_WITH_LIMIT = "execute_sql_with_limit",
+  EXECUTE_SQL = "execute_sql",
   RUN_MODEL = "run_model",
   BUILD_MODEL = "build_model",
   BUILD_PROJECT = "build_project",
@@ -246,12 +245,10 @@ export class DbtPowerUserMcpServerTools implements Disposable {
                 ) as ToolInput,
               },
               {
-                name: ToolName.EXECUTE_SQL_WITH_LIMIT,
+                name: ToolName.EXECUTE_SQL,
                 description:
-                  "Executes a SQL query with a specified row limit and returns the results. Use this to test queries for newly created dbt models and retrieve sample data from the database.",
-                inputSchema: zodToJsonSchema(
-                  ExecuteSQLWithLimitSchema,
-                ) as ToolInput,
+                  "Executes SQL queries against the database, returning processed results immediately. Use this to test queries and retrieve data from the database.",
+                inputSchema: zodToJsonSchema(ExecuteSQLSchema) as ToolInput,
               },
             ]
           : []),
@@ -493,14 +490,13 @@ export class DbtPowerUserMcpServerTools implements Disposable {
             return { content: [{ type: "text", text: result || "" }] };
           }
 
-          case ToolName.EXECUTE_SQL_WITH_LIMIT: {
+          case ToolName.EXECUTE_SQL: {
             return await this.runWithProgress(server, async () => {
-              const result = await project.executeSQLWithLimit(
+              const result = await project.executeSQL(
                 args.query as string,
                 args.modelName as string,
-                args.limit as number,
-                true,
-                false,
+                true, // returnImmediately
+                false, // returnRawResults
               );
               return {
                 content: [{ type: "text", text: JSON.stringify(result) }],
