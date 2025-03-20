@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardBody, CardTitle, Button, Container } from "@uicore";
 import styles from "./Onboarding.module.scss";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
@@ -94,9 +94,9 @@ const McpOnboarding = (): JSX.Element => {
   useEffect(() => {
     const fetchSteps = async () => {
       const result = await executeRequestInSync("getMcpOnboardingSteps", {});
-      setSteps(result);
+      setSteps(result as StepConfig[]);
     };
-    fetchSteps();
+    void fetchSteps();
   }, []);
 
   const handleStepBack = () => {
