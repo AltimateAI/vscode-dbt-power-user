@@ -3,7 +3,7 @@ import { Card, CardBody, CardTitle, Button, Container } from "@uicore";
 import styles from "./Onboarding.module.scss";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
-import { EnableMcpImage, TryChatImage } from "./assets";
+import { MCP_ONBOARDING_STEPS } from "./constants";
 
 interface StepProps {
   title: string;
@@ -92,11 +92,16 @@ const McpOnboarding = (): JSX.Element => {
   const [steps, setSteps] = useState<StepConfig[]>([]);
 
   useEffect(() => {
-    const fetchSteps = async () => {
-      const result = await executeRequestInSync("getMcpOnboardingSteps", {});
-      setSteps(result as StepConfig[]);
+    const fetchMcpOnboardingConfig = async () => {
+      const result = (await executeRequestInSync(
+        "getMcpOnboardingConfig",
+        {},
+      )) as { ide: "cursor" | "vscode" };
+      setSteps(
+        MCP_ONBOARDING_STEPS.filter((step) => step.ide.includes(result.ide)),
+      );
     };
-    void fetchSteps();
+    void fetchMcpOnboardingConfig();
   }, []);
 
   const handleStepBack = () => {
@@ -124,7 +129,6 @@ const McpOnboarding = (): JSX.Element => {
     setCompletedSteps([...completedSteps, step]);
     setCurrentStep(step + 1);
   };
-
 
   return (
     <Container className={styles.onboarding}>

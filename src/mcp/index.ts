@@ -13,7 +13,7 @@ import {
 } from "@extension";
 import { SharedStateService } from "../services/sharedStateService";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { findAvailablePort } from "./utils";
+import { findAvailablePort, isCursor } from "./utils";
 import path from "path";
 import { McpPanel } from "../webview_provider/mcpPanel";
 import { DataPilotChatParticipant } from "../chat_participants/dataPilot";
@@ -43,19 +43,11 @@ export class DbtPowerUserMcpServer implements Disposable {
     );
   }
 
-  private isCursor() {
-    return (
-      process.env.VSCODE_CWD?.includes("Cursor") ||
-      !!process.env.CURSOR_TRACE_ID
-    );
-  }
-
   private async startOnboarding() {
     this.dbtTerminal.info("DbtPowerUserMcpServer", "Starting onboarding");
 
-    const isCursor = this.isCursor();
     const port = await this.start();
-    if (isCursor && port) {
+    if (isCursor() && port) {
       await this.updatePortInCursorMcpSettings(port);
     }
 
@@ -64,7 +56,7 @@ export class DbtPowerUserMcpServer implements Disposable {
       .get<boolean>("onboardedMcpServer", false);
 
     let ide = "Copilot Chat";
-    if (this.isCursor()) {
+    if (isCursor()) {
       ide = "Cursor";
     }
 
