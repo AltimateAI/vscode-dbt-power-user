@@ -799,7 +799,13 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand("dbtPowerUser.applyDeferConfig", async () => {
         const projects = this.dbtProjectContainer.getProjects();
-        await Promise.all(projects.map((project) => project.applyDeferConfig()));
+        try {
+          await Promise.all(projects.map((project) => project.applyDeferConfig()));
+          window.showInformationMessage("Applied defer configuration");
+        } catch (error) {
+          this.dbtTerminal.error("applyDeferConfig", "Failed to apply defer configuration", error);
+          window.showErrorMessage(`Failed to apply defer configuration: ${error}`);
+        }
       }),
     );
   }
