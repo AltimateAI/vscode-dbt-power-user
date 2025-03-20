@@ -797,7 +797,7 @@ export class VSCodeCommands implements Disposable {
           );
         },
       ),
-      commands.registerCommand("dbtPowerUser.applyDeferConfig", () => {
+      commands.registerCommand("dbtPowerUser.applyDeferConfig", async () => {
         const projects = this.dbtProjectContainer.getProjects();
         await Promise.all(projects.map((project) => project.applyDeferConfig()));
       }),
