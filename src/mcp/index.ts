@@ -1,4 +1,3 @@
-import { EventSource } from "eventsource";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import express from "express";
 import { Disposable, window, workspace, Uri, commands } from "vscode";
