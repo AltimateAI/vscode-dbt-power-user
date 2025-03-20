@@ -39,69 +39,6 @@
   ],
   "main": "./dist/extension",
   "contributes": {
-    "languageModelTools": [
-      {
-        "name": "vscode-dbt-power-user-find-files",
-        "tags": [
-          "sql",
-          "dbt",
-          "files",
-          "files",
-          "search"
-        ],
-        "toolReferenceName": "findSqlFiles",
-        "displayName": "Find SQL Files",
-        "modelDescription": "Finds SQL files in a specified directory of the workspace",
-        "icon": "$(files)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "pattern": {
-              "type": "string",
-              "description": "Search for files that match this glob pattern"
-            }
-          },
-          "required": [
-            "pattern"
-          ]
-        }
-      },
-      {
-        "name": "vscode-dbt-power-user-execute-sql",
-        "tags": [
-          "sql",
-          "dbt",
-          "files",
-          "files",
-          "execute"
-        ],
-        "toolReferenceName": "executeSql",
-        "displayName": "Execute SQL",
-        "modelDescription": "Execute SQL query",
-        "icon": "$(files)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "description": "SQL query to execute"
-            },
-            "model": {
-              "type": "string",
-              "description": "DBT Model file"
-            },
-            "project": {
-              "type": "string",
-              "description": "DBT Project root"
-            }
-          },
-          "required": [
-            "model",
-            "project"
-          ]
-        }
-      }
-    ],
     "chatParticipants": [
       {
         "id": "vscode-dbt-power-user.datapilot",
@@ -111,24 +48,8 @@
         "isSticky": true,
         "commands": [
           {
-            "name": "explain",
-            "description": "Explain the SQL query"
-          },
-          {
-            "name": "change",
-            "description": "Change the SQL query"
-          },
-          {
-            "name": "translate",
-            "description": "Translate the SQL query to different dialects"
-          },
-          {
             "name": "list",
             "description": "List all available tools"
-          },
-          {
-            "name": "all",
-            "description": "Use all registered tools. By default, only this extension's tools are used."
           }
         ]
       }
@@ -1412,7 +1333,7 @@
     "@types/istanbul-lib-coverage": "^2.0.6",
     "@types/jest": "^29.5.0",
     "@types/node": "^20.14.11",
-    "@types/vscode": "^1.98.0",
+    "@types/vscode": "^1.95.0",
     "@types/which": "^3.0.4",
     "@types/ws": "^8.5.12",
     "@typescript-eslint/eslint-plugin": "^5.62.0",

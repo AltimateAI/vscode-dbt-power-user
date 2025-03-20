@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { unmanaged } from "inversify";
 import { provide } from "inversify-binding-decorators";
 import * as path from "path";

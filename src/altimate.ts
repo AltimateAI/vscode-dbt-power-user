@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { RequestInit } from "node-fetch";
 import { CommentThread, env, Uri, window, workspace } from "vscode";
 import { provideSingleton, processStreamResponse } from "./utils";
