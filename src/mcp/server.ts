@@ -42,10 +42,9 @@ const CompileQuerySchema = BaseProjectRootSchema.extend({
   query: z.string(),
   originalModelName: z.string().optional(),
 });
-const ExecuteSQLWithLimitSchema = BaseProjectRootSchema.extend({
+const ExecuteSQLSchema = BaseProjectRootSchema.extend({
   query: z.string(),
   modelName: z.string(),
-  limit: z.number(),
 });
 const RunModelSchema = BaseProjectRootSchema.extend({
   plusOperatorLeft: z.enum(["", "+"]),
@@ -64,7 +63,7 @@ const RunTestSchema = BaseProjectRootSchema.extend({
 const RunModelTestSchema = BaseProjectRootSchema.extend({
   modelName: z.string(),
 });
-const InstallDbtPackagesSchema = BaseProjectRootSchema.extend({
+const AddDbtPackagesSchema = BaseProjectRootSchema.extend({
   packages: z.array(z.string()),
 });
 const InstallDepsSchema = BaseProjectRootSchema.extend({});
@@ -98,13 +97,13 @@ enum ToolName {
   GET_COLUMN_VALUES = "get_column_values",
   COMPILE_MODEL = "compile_model",
   COMPILE_QUERY = "compile_query",
-  EXECUTE_SQL_WITH_LIMIT = "execute_sql_with_limit",
+  EXECUTE_SQL = "execute_sql",
   RUN_MODEL = "run_model",
   BUILD_MODEL = "build_model",
   BUILD_PROJECT = "build_project",
   RUN_TEST = "run_test",
   RUN_MODEL_TEST = "run_model_test",
-  INSTALL_DBT_PACKAGES = "install_dbt_packages",
+  ADD_DBT_PACKAGES = "add_dbt_packages",
   INSTALL_DEPS = "install_deps",
 }
 
@@ -246,12 +245,10 @@ export class DbtPowerUserMcpServerTools implements Disposable {
                 ) as ToolInput,
               },
               {
-                name: ToolName.EXECUTE_SQL_WITH_LIMIT,
+                name: ToolName.EXECUTE_SQL,
                 description:
-                  "Executes a SQL query with a specified row limit and returns the results. Use this to test queries for newly created dbt models and retrieve sample data from the database.",
-                inputSchema: zodToJsonSchema(
-                  ExecuteSQLWithLimitSchema,
-                ) as ToolInput,
+                  "Executes SQL queries against the database, returning processed results immediately. Use this to test queries and retrieve data from the database.",
+                inputSchema: zodToJsonSchema(ExecuteSQLSchema) as ToolInput,
               },
             ]
           : []),
@@ -298,10 +295,10 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           inputSchema: zodToJsonSchema(RunModelTestSchema) as ToolInput,
         },
         {
-          name: ToolName.INSTALL_DBT_PACKAGES,
+          name: ToolName.ADD_DBT_PACKAGES,
           description:
-            "Install dbt package(s), the dbt package string should be in the form of packageName@version",
-          inputSchema: zodToJsonSchema(InstallDbtPackagesSchema) as ToolInput,
+            "Add dbt package(s) to the project, the dbt package string should be in the form of packageName@version",
+          inputSchema: zodToJsonSchema(AddDbtPackagesSchema) as ToolInput,
         },
         {
           name: ToolName.INSTALL_DEPS,
@@ -353,16 +350,15 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           };
         }
 
-        if (!args || !args.projectRoot) {
-          throw new Error("projectRoot is required");
-        }
-
-        const projectRoot = decodeURIComponent(args.projectRoot as string);
+        const validatedBaseArgs = BaseProjectRootSchema.parse(args);
+        const projectRoot = decodeURIComponent(validatedBaseArgs.projectRoot);
         const project = this.dbtProjectContainer.findDBTProject(
           Uri.file(projectRoot),
         );
         if (!project) {
-          throw new Error(`Project not found for root: ${args.projectRoot}`);
+          throw new Error(
+            `Project not found for root: ${validatedBaseArgs.projectRoot}`,
+          );
         }
 
         switch (name) {
@@ -456,8 +452,9 @@ export class DbtPowerUserMcpServerTools implements Disposable {
             };
 
           case ToolName.GET_COLUMNS_OF_MODEL: {
+            const validatedArgs = GetColumnsOfModelSchema.parse(args);
             const result = await project.getColumnsOfModel(
-              args.modelName as string,
+              validatedArgs.modelName,
             );
             return {
               content: [{ type: "text", text: JSON.stringify(result) }],
@@ -465,9 +462,10 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           }
 
           case ToolName.GET_COLUMNS_OF_SOURCE: {
+            const validatedArgs = GetColumnsOfSourceSchema.parse(args);
             const result = await project.getColumnsOfSource(
-              args.sourceName as string,
-              args.tableName as string,
+              validatedArgs.sourceName,
+              validatedArgs.tableName,
             );
             return {
               content: [{ type: "text", text: JSON.stringify(result) }],
@@ -475,76 +473,96 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           }
 
           case ToolName.GET_COLUMN_VALUES: {
-            const result = await project.getColumnValues(
-              args.model as string,
-              args.column as string,
-            );
-            return {
-              content: [{ type: "text", text: JSON.stringify(result) }],
-            };
+            const validatedArgs = GetColumnValuesSchema.parse(args);
+            return await this.runWithProgress(server, async () => {
+              const result = await project.getColumnValues(
+                validatedArgs.model,
+                validatedArgs.column,
+              );
+              return {
+                content: [{ type: "text", text: JSON.stringify(result) }],
+              };
+            });
           }
 
           case ToolName.COMPILE_MODEL: {
+            const validatedArgs = CompileModelSchema.parse(args);
             const result = await project.unsafeCompileNode(
-              args.modelName as string,
+              validatedArgs.modelName,
             );
             return { content: [{ type: "text", text: result || "" }] };
           }
 
-          case ToolName.EXECUTE_SQL_WITH_LIMIT: {
-            const result = await project.executeSQLWithLimit(
-              args.query as string,
-              args.modelName as string,
-              args.limit as number,
-              true,
-              false,
-            );
-            return {
-              content: [{ type: "text", text: JSON.stringify(result) }],
-            };
+          case ToolName.EXECUTE_SQL: {
+            const validatedArgs = ExecuteSQLSchema.parse(args);
+            return await this.runWithProgress(server, async () => {
+              const result = await project.executeSQL(
+                validatedArgs.query,
+                validatedArgs.modelName,
+                true, // returnImmediately
+                false, // returnRawResults
+              );
+              return {
+                content: [{ type: "text", text: JSON.stringify(result) }],
+              };
+            });
           }
 
           case ToolName.RUN_MODEL: {
-            const runModelParams: RunModelParams = {
-              plusOperatorLeft: args.plusOperatorLeft as string,
-              modelName: args.modelName as string,
-              plusOperatorRight: args.plusOperatorRight as string,
-            };
-            const result = await project.runModel(runModelParams, true);
-            return this.handleDbtCommandOutput(result);
+            const validatedArgs = RunModelSchema.parse(args);
+            return await this.runWithProgress(server, async () => {
+              const result = await project.unsafeRunModelImmediately({
+                plusOperatorLeft: validatedArgs.plusOperatorLeft,
+                modelName: validatedArgs.modelName,
+                plusOperatorRight: validatedArgs.plusOperatorRight,
+              });
+              return this.handleDbtCommandOutput(result);
+            });
           }
 
           case ToolName.BUILD_MODEL: {
-            const runModelParams: RunModelParams = {
-              plusOperatorLeft: args.plusOperatorLeft as string,
-              modelName: args.modelName as string,
-              plusOperatorRight: args.plusOperatorRight as string,
-            };
-            const result = await project.buildModel(runModelParams, true);
-            return this.handleDbtCommandOutput(result);
+            const validatedArgs = BuildModelSchema.parse(args);
+            return await this.runWithProgress(server, async () => {
+              const result = await project.unsafeBuildModelImmediately({
+                plusOperatorLeft: validatedArgs.plusOperatorLeft,
+                modelName: validatedArgs.modelName,
+                plusOperatorRight: validatedArgs.plusOperatorRight,
+              });
+              return this.handleDbtCommandOutput(result);
+            });
           }
 
           case ToolName.BUILD_PROJECT: {
-            const result = await project.buildProject(true);
-            return this.handleDbtCommandOutput(result);
+            return await this.runWithProgress(server, async () => {
+              const result = await project.unsafeBuildProjectImmediately();
+              return this.handleDbtCommandOutput(result);
+            });
           }
 
           case ToolName.RUN_TEST: {
-            const result = await project.runTest(args.testName as string, true);
-            return this.handleDbtCommandOutput(result);
+            const validatedArgs = RunTestSchema.parse(args);
+            return await this.runWithProgress(server, async () => {
+              const result = await project.unsafeRunTestImmediately(
+                validatedArgs.testName,
+              );
+              return this.handleDbtCommandOutput(result);
+            });
           }
 
           case ToolName.RUN_MODEL_TEST: {
-            const result = await project.runModelTest(
-              args.modelName as string,
-              true,
-            );
-            return this.handleDbtCommandOutput(result);
+            const validatedArgs = RunModelTestSchema.parse(args);
+            return await this.runWithProgress(server, async () => {
+              const result = await project.unsafeRunModelTestImmediately(
+                validatedArgs.modelName,
+              );
+              return this.handleDbtCommandOutput(result);
+            });
           }
 
-          case ToolName.INSTALL_DBT_PACKAGES: {
+          case ToolName.ADD_DBT_PACKAGES: {
+            const validatedArgs = AddDbtPackagesSchema.parse(args);
             const result = await project.installDbtPackages(
-              args.packages as string[],
+              validatedArgs.packages,
             );
             return {
               content: [{ type: "text", text: result }],
@@ -559,16 +577,18 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           }
 
           case ToolName.COMPILE_QUERY: {
+            const validatedArgs = CompileQuerySchema.parse(args);
             const result = await project.unsafeCompileQuery(
-              args.query as string,
-              args.originalModelName as string,
+              validatedArgs.query,
+              validatedArgs.originalModelName,
             );
             return { content: [{ type: "text", text: result || "" }] };
           }
 
           case ToolName.GET_CHILDREN_MODELS: {
+            const validatedArgs = GetChildrenModelsSchema.parse(args);
             const result = project.getChildrenModels({
-              table: args.table as string,
+              table: validatedArgs.table,
             });
             return {
               content: [{ type: "text", text: JSON.stringify(result) }],
@@ -576,8 +596,9 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           }
 
           case ToolName.GET_PARENT_MODELS: {
+            const validatedArgs = GetParentModelsSchema.parse(args);
             const result = project.getParentModels({
-              table: args.table as string,
+              table: validatedArgs.table,
             });
             return {
               content: [{ type: "text", text: JSON.stringify(result) }],
@@ -606,4 +627,55 @@ export class DbtPowerUserMcpServerTools implements Disposable {
 
     return { server, cleanup: async () => {} };
   };
+
+  private async runWithProgress<T>(
+    server: Server,
+    mainOperation: () => Promise<T>,
+    progressToken?: string,
+    interval: number = 5000,
+  ): Promise<T> {
+    let operationCompleted = false;
+
+    // Function to send progress updates every `interval` ms
+    const sendProgressUpdates = async () => {
+      let progress = 0;
+
+      while (!operationCompleted) {
+        const sleep = new Promise((resolve) => setTimeout(resolve, interval));
+        await Promise.race([
+          sleep,
+          new Promise((resolve) => {
+            if (operationCompleted) {
+              resolve(undefined);
+            }
+          }),
+        ]);
+
+        if (operationCompleted) {
+          break; // Stop sending updates if operation is done
+        }
+
+        progress += interval / 1000; // Convert ms to seconds
+        if (progressToken !== undefined) {
+          await server.notification({
+            method: "notifications/progress",
+            params: {
+              progress,
+              progressToken,
+            },
+          });
+        }
+      }
+    };
+
+    // Run both tasks in parallel and return the result of mainOperation
+    const resultPromise = mainOperation().then((res) => {
+      operationCompleted = true; // Mark operation as completed
+      return res;
+    });
+
+    await Promise.race([resultPromise, sendProgressUpdates()]); // Stop progress updates as soon as mainOperation finishes
+
+    return resultPromise; // Ensure the main operation result is returned
+  }
 }

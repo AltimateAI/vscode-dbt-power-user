@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.55.1",
+  "version": "0.55.5",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -105,11 +105,6 @@
           "dbt.onboardedMcpServer": {
             "type": "boolean",
             "description": "Flag to identify if onboarding is done for MCP server",
-            "default": false
-          },
-          "dbt.enableMcpServer": {
-            "type": "boolean",
-            "description": "Enable MCP server feature for Cursor IDE",
             "default": false
           },
           "dbt.enableMcpDataSourceQueryTools": {
