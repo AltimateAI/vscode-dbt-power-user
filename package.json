@@ -15,7 +15,7 @@
   },
   "version": "0.55.5",
   "engines": {
-    "vscode": "^1.81.0"
+    "vscode": "^1.95.0"
   },
   "capabilities": {
     "hoverProvider": true
@@ -39,6 +39,112 @@
   ],
   "main": "./dist/extension",
   "contributes": {
+    "languageModelTools": [
+      {
+        "name": "vscode-dbt-power-user-find-files",
+        "tags": [
+          "sql",
+          "dbt",
+          "files",
+          "files",
+          "search"
+        ],
+        "toolReferenceName": "findSqlFiles",
+        "displayName": "Find SQL Files",
+        "modelDescription": "Finds SQL files in a specified directory of the workspace",
+        "icon": "$(files)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "type": "string",
+              "description": "Search for files that match this glob pattern"
+            }
+          },
+          "required": [
+            "pattern"
+          ]
+        }
+      },
+      {
+        "name": "vscode-dbt-power-user-execute-sql",
+        "tags": [
+          "sql",
+          "dbt",
+          "files",
+          "files",
+          "execute"
+        ],
+        "toolReferenceName": "executeSql",
+        "displayName": "Execute SQL",
+        "modelDescription": "Execute SQL query",
+        "icon": "$(files)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "SQL query to execute"
+            },
+            "model": {
+              "type": "string",
+              "description": "DBT Model file"
+            },
+            "project": {
+              "type": "string",
+              "description": "DBT Project root"
+            }
+          },
+          "required": [
+            "model",
+            "project"
+          ]
+        }
+      },
+      {
+        "name": "vscode-dbt-power-user-get-projects",
+        "tags": [
+          "dbt",
+          "projects"
+        ],
+        "toolReferenceName": "getProjects",
+        "displayName": "Get Projects",
+        "modelDescription": "Get all projects in the workspace",
+        "icon": "$(files)",
+        "inputSchema": {}
+      }
+    ],
+    "chatParticipants": [
+      {
+        "id": "vscode-dbt-power-user.datapilot",
+        "name": "datapilot",
+        "fullName": "Data Pilot",
+        "description": "Your AI assistant for data operations",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "explain",
+            "description": "Explain the SQL query"
+          },
+          {
+            "name": "change",
+            "description": "Change the SQL query"
+          },
+          {
+            "name": "translate",
+            "description": "Translate the SQL query to different dialects"
+          },
+          {
+            "name": "list",
+            "description": "List all available tools"
+          },
+          {
+            "name": "all",
+            "description": "Use all registered tools. By default, only this extension's tools are used."
+          }
+        ]
+      }
+    ],
     "notebookRenderer": [
       {
         "id": "datapilot-notebook-perspective-renderer",
@@ -1318,7 +1424,7 @@
     "@types/istanbul-lib-coverage": "^2.0.6",
     "@types/jest": "^29.5.0",
     "@types/node": "^20.14.11",
-    "@types/vscode": "^1.81.0",
+    "@types/vscode": "^1.98.0",
     "@types/which": "^3.0.4",
     "@types/ws": "^8.5.12",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
@@ -1368,6 +1474,7 @@
     "@modelcontextprotocol/sdk": "^1.7.0",
     "@nteract/messaging": "^7.0.20",
     "@types/express": "^5.0.0",
+    "@vscode/chat-extension-utils": "^0.0.0-alpha.5",
     "@vscode/codicons": "^0.0.36",
     "@vscode/extension-telemetry": "0.9.6",
     "@vscode/vsce": "^2.31.1",

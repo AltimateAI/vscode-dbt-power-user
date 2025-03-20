@@ -22,6 +22,7 @@ import { DbtPowerUserActionsCenter } from "./quickpick";
 import { ValidationProvider } from "./validation_provider";
 import { CommentProviders } from "./comment_provider";
 import { NotebookProviders } from "@lib";
+import { DataPilotChatParticipant } from "./chat/dataPilot";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -66,6 +67,7 @@ export class DBTPowerUserExtension implements Disposable {
     private validationProvider: ValidationProvider,
     private commentProviders: CommentProviders,
     private notebookProviders: NotebookProviders,
+    private dataPilotChatParticipant: DataPilotChatParticipant,
   ) {
     this.disposables.push(
       this.dbtProjectContainer,
@@ -84,6 +86,7 @@ export class DBTPowerUserExtension implements Disposable {
       this.validationProvider,
       this.commentProviders,
       this.notebookProviders,
+      this.dataPilotChatParticipant,
     );
   }
 

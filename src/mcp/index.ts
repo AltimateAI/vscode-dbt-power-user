@@ -190,7 +190,9 @@ export class DbtPowerUserMcpServer implements Disposable {
         }
 
         this.mcpTransport.onerror = (error) => {
-          this.dbtTerminal.error("DbtPowerUserMcpServer", "Error", { error });
+          this.dbtTerminal.error("DbtPowerUserMcpServer", "Error", {
+            error: error.message,
+          });
         };
       }),
     );
