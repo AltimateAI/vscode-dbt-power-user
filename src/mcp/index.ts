@@ -43,11 +43,19 @@ export class DbtPowerUserMcpServer implements Disposable {
     );
   }
 
+  private isCursor() {
+    return (
+      process.env.VSCODE_CWD?.includes("Cursor") ||
+      !!process.env.CURSOR_TRACE_ID
+    );
+  }
+
   private async startOnboarding() {
     this.dbtTerminal.info("DbtPowerUserMcpServer", "Starting onboarding");
 
+    const isCursor = this.isCursor();
     const port = await this.start();
-    if (port) {
+    if (isCursor && port) {
       await this.updatePortInCursorMcpSettings(port);
     }
 
@@ -55,16 +63,17 @@ export class DbtPowerUserMcpServer implements Disposable {
       .getConfiguration("dbt")
       .get<boolean>("onboardedMcpServer", false);
 
-    const isCursorIde =
-      process.env.VSCODE_CWD?.includes("Cursor") ||
-      !!process.env.CURSOR_TRACE_ID;
+    let ide = "Copilot Chat";
+    if (this.isCursor()) {
+      ide = "Cursor";
+    }
 
-    if (isCursorIde && !onboardedMcpServer) {
+    if (!onboardedMcpServer) {
       this.telemetry.sendTelemetryEvent(TelemetryEvents["MCP/Onboarding"], {
         name: "Onboarding",
       });
       const answer = await window.showInformationMessage(
-        "dbt Power User now supports enhanced features in Cursor IDE through MCP server integration. Would you like to set it up?",
+        `${ide} can now leverage dbt Power User features to provide better answers, help you understand and refactor your code, and assess impact of changes more effectively. Ready to set it up?`,
         { modal: false },
         "Set Up Now",
         "Later",
@@ -221,39 +230,6 @@ export class DbtPowerUserMcpServer implements Disposable {
         },
       );
       this.dbtChatParticipant.initializeChatParticipant(port);
-
-      // const eventSource = new EventSource(`http://localhost:${port}/sse`);
-
-      // eventSource.onopen = async () => {
-      //   this.dbtTerminal.info(
-      //     "DbtPowerUserMcpServer",
-      //     "EventSource connection opened",
-      //   );
-      //   eventSource.close();
-      //   await this.dbtChatParticipant.initializeChatParticipant(port);
-      // };
-      // eventSource.onmessage = (event) => {
-      //   console.log("event", event);
-      // };
-      // eventSource.addEventListener("command_result", (event) => {
-      //   console.log("event", event);
-      // });
-      // eventSource.addEventListener("connection", (event) => {
-      //   console.log("event", event);
-      // });
-      // eventSource.onerror = (error) => {
-      //   console.log("error", error);
-      // };
-      // })
-      // .catch((error) => {
-      //   this.dbtTerminal.error(
-      //     "DbtPowerUserMcpServer",
-      //     "Failed to ping MCP server",
-      //     { error },
-      //   );
-      // });
-
-      // this.updatePortInCursorMcpSettings(port);
     });
 
     return port;
