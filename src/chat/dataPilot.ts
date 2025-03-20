@@ -2,7 +2,10 @@ import * as chatUtils from "@vscode/chat-extension-utils";
 import * as vscode from "vscode";
 import * as path from "path";
 import { DBTProjectContainer, provideSingleton } from "@extension";
-
+import { MCPClient } from "./mcpClient";
+import { McpProxyTool } from "./proxyTool";
+import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
+import { ListRootsRequestSchema } from "@modelcontextprotocol/sdk/types";
 interface IFindFilesParameters {
   pattern: string;
 }
@@ -65,7 +68,7 @@ export class ExecuteSqlTool
       params.model,
       100,
       true,
-      true,
+      false,
     );
     return new vscode.LanguageModelToolResult([
       new vscode.LanguageModelTextPart(JSON.stringify(result)),
@@ -146,12 +149,14 @@ export class DataPilotChatParticipant implements vscode.Disposable {
       ),
     );
 
-    this.disposables.push(
-      vscode.lm.registerTool(
-        "vscode-dbt-power-user-get-projects",
-        this.getProjectsTool,
-      ),
-    );
+    this.registerMCPClient();
+
+    // this.disposables.push(
+    //   vscode.lm.registerTool(
+    //     "vscode-dbt-power-user-get-projects",
+    //     this.getProjectsTool
+    //   )
+    // );
 
     this.disposables.push(
       vscode.lm.registerTool(
@@ -159,6 +164,62 @@ export class DataPilotChatParticipant implements vscode.Disposable {
         this.executeSqlTool,
       ),
     );
+  }
+
+  private async registerMCPClient() {
+    const transport = new SSEClientTransport(
+      new URL("http://localhost:7800/sse"),
+      {},
+    );
+
+    const client = new MCPClient(
+      {
+        name: "dbtpoweruserclient",
+        version: "0.0.0",
+        command: "",
+        enabled: true,
+      },
+      {
+        capabilities: {
+          prompts: {},
+          resources: {},
+          tools: {},
+          roots: {
+            listChanged: true,
+          },
+          sampling: {},
+        },
+      },
+    );
+    await client.connect(transport);
+
+    const tools = await client.listTools();
+
+    client.setRequestHandler(ListRootsRequestSchema, async () => {
+      const roots = vscode.workspace.workspaceFolders?.map(
+        (folder) => `${folder.uri.scheme}://${folder.uri.fsPath}`,
+      );
+      if (!roots || roots.length === 0) {
+        return {
+          roots: [],
+        };
+      }
+      return {
+        roots: roots.map((root) => ({
+          uri: root,
+          name: "workspace_directory",
+          type: "directory",
+        })),
+      };
+    });
+
+    for (const tool of tools.tools) {
+      const vscodeTool: vscode.LanguageModelTool<(typeof tool)["inputSchema"]> =
+        new McpProxyTool(client, tool);
+      console.log(`Registering tool: ${tool.name}`);
+      const disposable = vscode.lm.registerTool(tool.name, vscodeTool);
+      this.disposables.push(disposable);
+    }
   }
 
   private async countSqlFiles(
@@ -243,7 +304,9 @@ In summary, this query is designed to create a comprehensive view of customer ac
         request,
         context,
         {
-          prompt: "You are a cat! Answer as a cat.",
+          // TODO: validate this
+          prompt:
+            "You are a helpful assistant for dbt or data related operations. Answer the user's question or request using the tools available to you.",
           responseStreamOptions: {
             stream,
             references: true,

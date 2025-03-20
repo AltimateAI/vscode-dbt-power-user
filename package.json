@@ -100,18 +100,6 @@
             "project"
           ]
         }
-      },
-      {
-        "name": "vscode-dbt-power-user-get-projects",
-        "tags": [
-          "dbt",
-          "projects"
-        ],
-        "toolReferenceName": "getProjects",
-        "displayName": "Get Projects",
-        "modelDescription": "Get all projects in the workspace",
-        "icon": "$(files)",
-        "inputSchema": {}
       }
     ],
     "chatParticipants": [
@@ -1398,7 +1386,7 @@
     "postinstall": "node postInstall.js",
     "prepare": "husky",
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production && node prepareBuild.js",
-    "webpack": "npm run panel:webviews && webpack --mode development",
+    "webpack": "webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "watch": "concurrently \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",
