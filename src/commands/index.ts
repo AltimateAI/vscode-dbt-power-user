@@ -798,6 +798,7 @@ export class VSCodeCommands implements Disposable {
         },
       ),
       commands.registerCommand("dbtPowerUser.applyDeferConfig", () => {
+        // If user has completed walkthrough:
         const pickedProject: ProjectQuickPickItem | undefined =
           this.dbtProjectContainer.getFromWorkspaceState(
             "dbtPowerUser.projectSelected",
@@ -806,6 +807,23 @@ export class VSCodeCommands implements Disposable {
           this.dbtProjectContainer
             .findDBTProject(pickedProject.uri)
             ?.applyDeferConfig();
+            return;
+        }
+        // If active text editor
+        if (window.activeTextEditor && window.activeTextEditor.document.uri) {
+          const activeFileUri = window.activeTextEditor.document.uri;
+          const dbtProject = this.dbtProjectContainer.findDBTProject(activeFileUri);
+          if (dbtProject) {
+            dbtProject.applyDeferConfig()
+            return;
+          }
+        }
+        // Loop projects
+        const projects = this.dbtProjectContainer.getProjects();
+        if (projects.length >= 0) {
+          for (const project of projects) {
+            project.applyDeferConfig()
+          }
         }
       }),
     );
