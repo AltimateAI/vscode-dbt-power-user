@@ -80,18 +80,6 @@ enum ToolName {
   GET_PROJECTS = "get_projects",
   GET_CHILDREN_MODELS = "get_children_models",
   GET_PARENT_MODELS = "get_parent_models",
-  GET_PROJECT_NAME = "get_project_name",
-  GET_SELECTED_TARGET = "get_selected_target",
-  GET_TARGET_NAMES = "get_target_names",
-  GET_TARGET_PATH = "get_target_path",
-  GET_PACKAGE_INSTALL_PATH = "get_package_install_path",
-  GET_MODEL_PATHS = "get_model_paths",
-  GET_SEED_PATHS = "get_seed_paths",
-  GET_MACRO_PATHS = "get_macro_paths",
-  GET_MANIFEST_PATH = "get_manifest_path",
-  GET_CATALOG_PATH = "get_catalog_path",
-  GET_DBT_VERSION = "get_dbt_version",
-  GET_ADAPTER_TYPE = "get_adapter_type",
   GET_COLUMNS_OF_MODEL = "get_columns_of_model",
   GET_COLUMNS_OF_SOURCE = "get_columns_of_source",
   GET_COLUMN_VALUES = "get_column_values",
@@ -157,68 +145,8 @@ export class DbtPowerUserMcpServerTools implements Disposable {
         {
           name: ToolName.GET_PROJECTS,
           description:
-            "Returns a list of all available dbt project root paths. This must be called first to get the projectRoot parameter needed for all other tools.",
+            "Returns detailed information about all available dbt projects including project root, name, paths, targets, and configuration. This must be called first to get the projectRoot parameter needed for all other tools.",
           inputSchema: zodToJsonSchema(BaseSchema) as ToolInput,
-        },
-        {
-          name: ToolName.GET_PROJECT_NAME,
-          description: "Get project name",
-          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-        },
-        {
-          name: ToolName.GET_SELECTED_TARGET,
-          description: "Get selected target",
-          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-        },
-        {
-          name: ToolName.GET_TARGET_NAMES,
-          description: "Get target names",
-          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-        },
-        {
-          name: ToolName.GET_TARGET_PATH,
-          description: "Get target path",
-          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-        },
-        {
-          name: ToolName.GET_PACKAGE_INSTALL_PATH,
-          description: "Get package install path",
-          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-        },
-        {
-          name: ToolName.GET_MODEL_PATHS,
-          description: "Get model paths",
-          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-        },
-        {
-          name: ToolName.GET_SEED_PATHS,
-          description: "Get seed paths",
-          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-        },
-        {
-          name: ToolName.GET_MACRO_PATHS,
-          description: "Get macro paths",
-          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-        },
-        {
-          name: ToolName.GET_MANIFEST_PATH,
-          description: "Get manifest path",
-          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-        },
-        {
-          name: ToolName.GET_CATALOG_PATH,
-          description: "Get catalog path",
-          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-        },
-        {
-          name: ToolName.GET_DBT_VERSION,
-          description: "Get dbt version",
-          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
-        },
-        {
-          name: ToolName.GET_ADAPTER_TYPE,
-          description: "Get adapter type",
-          inputSchema: zodToJsonSchema(BaseProjectRootSchema) as ToolInput,
         },
         {
           name: ToolName.GET_COLUMNS_OF_MODEL,
@@ -336,15 +264,39 @@ export class DbtPowerUserMcpServerTools implements Disposable {
 
       try {
         if (name === ToolName.GET_PROJECTS) {
-          const projects = this.dbtProjectContainer
-            .getProjects()
-            .map((project: DBTProject) => project.projectRoot.fsPath);
+          const projects = this.dbtProjectContainer.getProjects();
+
+          const projectDetails = await Promise.all(
+            projects.map(async (project: DBTProject) => {
+              return {
+                projectRoot: project.projectRoot.fsPath,
+                projectName: project.getProjectName(),
+                selectedTarget: project.getSelectedTarget(),
+                targetNames: await project.getTargetNames(),
+                targetPath: project.getTargetPath(),
+                packageInstallPath: project.getPackageInstallPath(),
+                modelPaths: project.getModelPaths(),
+                seedPaths: project.getSeedPaths(),
+                macroPaths: project.getMacroPaths(),
+                manifestPath: project.getManifestPath(),
+                catalogPath: project.getCatalogPath(),
+                dbtVersion: project.getDBTVersion()?.join("."),
+                adapterType: project.getAdapterType(),
+              };
+            }),
+          );
+
+          this.dbtTerminal.debug(
+            "DbtPowerUserMcpServerTools",
+            "Projects loaded",
+            projectDetails,
+          );
 
           return {
             content: [
               {
                 type: "text",
-                text: JSON.stringify(projects),
+                text: JSON.stringify(projectDetails), // Pretty-print for easier debugging
               },
             ],
           };
@@ -362,95 +314,6 @@ export class DbtPowerUserMcpServerTools implements Disposable {
         }
 
         switch (name) {
-          case ToolName.GET_PROJECT_NAME:
-            return {
-              content: [{ type: "text", text: project.getProjectName() }],
-            };
-
-          case ToolName.GET_SELECTED_TARGET:
-            return {
-              content: [{ type: "text", text: project.getSelectedTarget() }],
-            };
-
-          case ToolName.GET_TARGET_NAMES: {
-            const targetNames = await project.getTargetNames();
-            return {
-              content: [{ type: "text", text: targetNames.join(", ") }],
-            };
-          }
-
-          case ToolName.GET_TARGET_PATH:
-            return {
-              content: [{ type: "text", text: project.getTargetPath() || "" }],
-            };
-
-          case ToolName.GET_PACKAGE_INSTALL_PATH:
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: project.getPackageInstallPath() || "",
-                },
-              ],
-            };
-
-          case ToolName.GET_MODEL_PATHS:
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: project.getModelPaths()?.join(", ") || "",
-                },
-              ],
-            };
-
-          case ToolName.GET_SEED_PATHS:
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: project.getSeedPaths()?.join(", ") || "",
-                },
-              ],
-            };
-
-          case ToolName.GET_MACRO_PATHS:
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: project.getMacroPaths()?.join(", ") || "",
-                },
-              ],
-            };
-
-          case ToolName.GET_MANIFEST_PATH:
-            return {
-              content: [
-                { type: "text", text: project.getManifestPath() || "" },
-              ],
-            };
-
-          case ToolName.GET_CATALOG_PATH:
-            return {
-              content: [{ type: "text", text: project.getCatalogPath() || "" }],
-            };
-
-          case ToolName.GET_DBT_VERSION:
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: project.getDBTVersion()?.join(".") || "",
-                },
-              ],
-            };
-
-          case ToolName.GET_ADAPTER_TYPE:
-            return {
-              content: [{ type: "text", text: project.getAdapterType() }],
-            };
-
           case ToolName.GET_COLUMNS_OF_MODEL: {
             const validatedArgs = GetColumnsOfModelSchema.parse(args);
             const result = await project.getColumnsOfModel(
