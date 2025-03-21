@@ -1,6 +1,13 @@
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import express from "express";
-import { Disposable, window, workspace, Uri, commands } from "vscode";
+import {
+  Disposable,
+  window,
+  workspace,
+  Uri,
+  commands,
+  extensions,
+} from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DbtPowerUserMcpServerTools } from "./server";
@@ -59,7 +66,10 @@ export class DbtPowerUserMcpServer implements Disposable {
       ide = "Cursor";
     }
 
-    if (!onboardedMcpServer) {
+    const copilotExtension = extensions.getExtension("GitHub.copilot");
+    const copilotEnabled = copilotExtension && copilotExtension.isActive;
+
+    if (!onboardedMcpServer && (isCursor() || copilotEnabled)) {
       this.telemetry.sendTelemetryEvent(TelemetryEvents["MCP/Onboarding"], {
         name: "Onboarding",
       });
