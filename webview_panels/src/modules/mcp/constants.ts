@@ -2,10 +2,22 @@ import { CopilotTryChatImage, EnableMcpImage, TryChatImage } from "./assets";
 
 export const MCP_ONBOARDING_STEPS = [
   {
+    title: "Supercharge Your Productivity with dbt Power User copilot support",
+    description: "Want to become a 10x analytics engineer? Meet dbt Power User copilot, your AI-powered assistant designed to accelerate your workflow. With dbt Power User copilot, you can:\n\n✅ Write SQL & YAML faster – Get AI-powered suggestions, auto-generate models, and reduce manual work.\n✅ Debug with ease – Identify and fix errors quickly with smart troubleshooting.\n✅ Automate documentation – Generate clear, structured descriptions effortlessly.\n✅ Stay in flow – Reduce context switching and focus on insights, not boilerplate code.\n\nBoost your efficiency, minimize errors, and ship data models faster than ever. Try dbt Power User copilot today! 🚀",
+    enableButton: "Let's do it!",
+    ide: ["vscode"],
+  },
+  {
+    title: "Supercharge Your Productivity with dbt Power User Cursor support",
+    description: "Want to become a 10x analytics engineer? Meet dbt Power User Cursor, your AI-powered assistant designed to accelerate your workflow. With dbt Power User Cursor, you can:\n\n✅ Write SQL & YAML faster – Get AI-powered suggestions, auto-generate models, and reduce manual work.\n✅ Debug with ease – Identify and fix errors quickly with smart troubleshooting.\n✅ Automate documentation – Generate clear, structured descriptions effortlessly.\n✅ Stay in flow – Reduce context switching and focus on insights, not boilerplate code.\n\nBoost your efficiency, minimize errors, and ship data models faster than ever. Try dbt Power User Cursor today! 🚀",
+    enableButton: "Let's do it!",
+    ide: ["cursor"],
+  },
+  {
     title: "Setup MCP server",
     description:
       "In this step, MCP server will be started and a configuration file will be created",
-    enableButton: "Let's do it!",
+    enableButton: "Set it up!",
     ide: ["cursor"],
   },
   {

@@ -103,7 +103,10 @@ export class DbtPowerUserMcpServer implements Disposable {
       return;
     }
 
-    const uri = Uri.joinPath(workspaceFolders[0].uri, `MCP.mcpwalkthrough`);
+    const uri = Uri.joinPath(
+      workspaceFolders[0].uri,
+      `Supercharge Your Productivity`,
+    );
 
     commands.executeCommand("vscode.openWith", uri, McpPanel.viewType);
   }
