@@ -310,7 +310,10 @@ class DocTreeItem extends TreeItem {
       };
     }
     if (node.iconPath !== undefined) {
-      this.iconPath = node.iconPath;
+      this.iconPath = {
+        light: Uri.file(node.iconPath.light),
+        dark: Uri.file(node.iconPath.dark),
+      };
     }
   }
 }
@@ -334,7 +337,10 @@ export class NodeTreeItem extends TreeItem {
     this.key = node.key;
     this.url = node.url;
     if (node.iconPath !== undefined) {
-      this.iconPath = node.iconPath;
+      this.iconPath = {
+        light: Uri.file(node.iconPath.light),
+        dark: Uri.file(node.iconPath.dark),
+      };
     }
     if (node.url) {
       this.command = {
@@ -425,19 +431,24 @@ class ModelTreeItem extends NodeTreeItem {
 
 class SourceTreeItem extends NodeTreeItem {
   iconPath = {
-    light: path.join(
-      path.resolve(__dirname),
-      "../media/images/source_light.svg",
+    light: Uri.file(
+      path.join(path.resolve(__dirname), "../media/images/source_light.svg"),
     ),
-    dark: path.join(path.resolve(__dirname), "../media/images/source_dark.svg"),
+    dark: Uri.file(
+      path.join(path.resolve(__dirname), "../media/images/source_dark.svg"),
+    ),
   };
   contextValue = "source";
 }
 
 class SeedTreeItem extends NodeTreeItem {
   iconPath = {
-    light: path.join(path.resolve(__dirname), "../media/images/seed_light.svg"),
-    dark: path.join(path.resolve(__dirname), "../media/images/seed_dark.svg"),
+    light: Uri.file(
+      path.join(path.resolve(__dirname), "../media/images/seed_light.svg"),
+    ),
+    dark: Uri.file(
+      path.join(path.resolve(__dirname), "../media/images/seed_dark.svg"),
+    ),
   };
   contextValue = "seed";
 }
@@ -445,13 +456,11 @@ class SeedTreeItem extends NodeTreeItem {
 class SnapshotTreeItem extends NodeTreeItem {
   contextValue = "snapshot";
   iconPath = {
-    light: path.join(
-      path.resolve(__dirname),
-      "../media/images/snapshot_light.svg",
+    light: Uri.file(
+      path.join(path.resolve(__dirname), "../media/images/snapshot_light.svg"),
     ),
-    dark: path.join(
-      path.resolve(__dirname),
-      "../media/images/snapshot_dark.svg",
+    dark: Uri.file(
+      path.join(path.resolve(__dirname), "../media/images/snapshot_dark.svg"),
     ),
   };
 }
@@ -459,13 +468,11 @@ class SnapshotTreeItem extends NodeTreeItem {
 class ExposureTreeItem extends NodeTreeItem {
   contextValue = "exposure";
   iconPath = {
-    light: path.join(
-      path.resolve(__dirname),
-      "../media/images/exposure_light.svg",
+    light: Uri.file(
+      path.join(path.resolve(__dirname), "../media/images/exposure_light.svg"),
     ),
-    dark: path.join(
-      path.resolve(__dirname),
-      "../media/images/exposure_dark.svg",
+    dark: Uri.file(
+      path.join(path.resolve(__dirname), "../media/images/exposure_dark.svg"),
     ),
   };
 }
@@ -476,11 +483,12 @@ class AnalysisTreeItem extends NodeTreeItem {
 
 class TestTreeItem extends NodeTreeItem {
   iconPath = {
-    light: path.join(
-      path.resolve(__dirname),
-      "../media/images/tests_light.svg",
+    light: Uri.file(
+      path.join(path.resolve(__dirname), "../media/images/tests_light.svg"),
     ),
-    dark: path.join(path.resolve(__dirname), "../media/images/tests_dark.svg"),
+    dark: Uri.file(
+      path.join(path.resolve(__dirname), "../media/images/tests_dark.svg"),
+    ),
   };
   contextValue = "test";
 }

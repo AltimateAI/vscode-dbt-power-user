@@ -31,6 +31,7 @@ import {
 } from "vscode";
 import path from "path";
 import { DbtPowerUserMcpServer } from "../mcp";
+import { isCursor } from "../mcp/utils";
 
 @provideSingleton(McpPanel)
 export class McpPanel
@@ -131,6 +132,17 @@ export class McpPanel
             return {
               status: true,
               step: 3,
+            };
+          },
+          command,
+        );
+        break;
+      case "getMcpOnboardingConfig":
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            return {
+              ide: isCursor() ? "cursor" : "vscode",
             };
           },
           command,
