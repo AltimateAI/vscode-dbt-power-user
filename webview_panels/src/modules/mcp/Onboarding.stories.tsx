@@ -9,7 +9,7 @@ export default {
   },
 } satisfies Meta<typeof McpOnboarding>;
 
-export const Default: StoryObj<typeof McpOnboarding> = {
+export const Vscode: StoryObj<typeof McpOnboarding> = {
   render: (): JSX.Element => {
     return <McpOnboarding />;
   },
