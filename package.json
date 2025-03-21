@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.55.0",
+  "version": "0.55.5",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -107,9 +107,9 @@
             "description": "Flag to identify if onboarding is done for MCP server",
             "default": false
           },
-          "dbt.enableMcpServer": {
+          "dbt.enableMcpDataSourceQueryTools": {
             "type": "boolean",
-            "description": "Enable MCP server feature for Cursor IDE",
+            "description": "Enable data source query tools (EXECUTE_SQL_WITH_LIMIT and GET_COLUMN_VALUES)",
             "default": false
           },
           "dbt.enableNewLineagePanel": {
