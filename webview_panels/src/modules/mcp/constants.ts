@@ -47,7 +47,7 @@ export const MCP_ONBOARDING_STEPS = [
   {
     title: "Try out the chat!",
     description:
-      "Open copilot and try this prompt 'Get list of projects'. If you see message like 'Running tool \"get_projects\"', then you are all set!",
+      "Open copilot and try this prompt '@datapilot Get list of projects'. If you see message like 'Running tool \"get_projects\"', then you are all set!",
     image: CopilotTryChatImage,
     enableButton: "All set!",
     ide: ["vscode"],
