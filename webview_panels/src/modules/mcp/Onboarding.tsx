@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardBody, CardTitle, Button, Container } from "@uicore";
 import styles from "./Onboarding.module.scss";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
-import { EnableMcpImage, TryChatImage } from "./assets";
+import { MCP_ONBOARDING_STEPS } from "./constants";
 
 interface StepProps {
   title: string;
@@ -78,9 +78,31 @@ const Step = ({
   );
 };
 
+interface StepConfig {
+  title: string;
+  description: string;
+  enableButton: string;
+  disableButton?: string;
+  image?: string;
+}
+
 const McpOnboarding = (): JSX.Element => {
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [steps, setSteps] = useState<StepConfig[]>([]);
+
+  useEffect(() => {
+    const fetchMcpOnboardingConfig = async () => {
+      const result = (await executeRequestInSync(
+        "getMcpOnboardingConfig",
+        {},
+      )) as { ide: "cursor" | "vscode" };
+      setSteps(
+        MCP_ONBOARDING_STEPS.filter((step) => step.ide.includes(result.ide)),
+      );
+    };
+    void fetchMcpOnboardingConfig();
+  }, []);
 
   const handleStepBack = () => {
     if (currentStep > 1) {
@@ -107,36 +129,6 @@ const McpOnboarding = (): JSX.Element => {
     setCompletedSteps([...completedSteps, step]);
     setCurrentStep(step + 1);
   };
-
-  const steps = [
-    {
-      title: "Setup MCP server",
-      description:
-        "In this step, MCP server will be started and a configuration file will be created",
-      enableButton: "Let's do it!",
-    },
-    {
-      title: "Advanced Data Tools",
-      description:
-        "Enhance your experience with advanced data exploration features. By enabling this option, you allow data lookup queries to be processed and shared with Cursor. Features include:\n• Query specific column values\n• Execute SQL\n• Previewing data structures",
-      enableButton: "Enable Advanced Features",
-      disableButton: "Disable Features",
-    },
-    {
-      title: "Enable MCP server",
-      description:
-        "Open Cursor Settings and select the MCP from sidebar. Click 'Disabled' button next to 'dbtPowerUser' to enable it.",
-      image: EnableMcpImage,
-      enableButton: "Ok done!",
-    },
-    {
-      title: "Try out the chat!",
-      description:
-        "Open chat and select agent mode. Try this prompt 'Get list of projects'. If you see message like 'Called MCP tool', then you are all set!",
-      image: TryChatImage,
-      enableButton: "All set!",
-    },
-  ];
 
   return (
     <Container className={styles.onboarding}>
