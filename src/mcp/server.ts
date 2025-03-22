@@ -268,21 +268,63 @@ export class DbtPowerUserMcpServerTools implements Disposable {
 
           const projectDetails = await Promise.all(
             projects.map(async (project: DBTProject) => {
-              return {
-                projectRoot: project.projectRoot.fsPath,
-                projectName: project.getProjectName(),
-                selectedTarget: project.getSelectedTarget(),
-                targetNames: await project.getTargetNames(),
-                targetPath: project.getTargetPath(),
-                packageInstallPath: project.getPackageInstallPath(),
-                modelPaths: project.getModelPaths(),
-                seedPaths: project.getSeedPaths(),
-                macroPaths: project.getMacroPaths(),
-                manifestPath: project.getManifestPath(),
-                catalogPath: project.getCatalogPath(),
-                dbtVersion: project.getDBTVersion()?.join("."),
-                adapterType: project.getAdapterType(),
+              const details: Record<string, any> = {
+                projectRoot: project.projectRoot.fsPath
               };
+
+              // Safely get each property, only add if successful
+              try {
+                details.projectName = project.getProjectName();
+              } catch {}
+              
+              try {
+                details.selectedTarget = project.getSelectedTarget();
+              } catch {}
+              
+              try {
+                details.targetNames = await project.getTargetNames();
+              } catch {}
+              
+              try {
+                details.targetPath = project.getTargetPath();
+              } catch {}
+              
+              try {
+                details.packageInstallPath = project.getPackageInstallPath();
+              } catch {}
+              
+              try {
+                details.modelPaths = project.getModelPaths();
+              } catch {}
+              
+              try {
+                details.seedPaths = project.getSeedPaths();
+              } catch {}
+              
+              try {
+                details.macroPaths = project.getMacroPaths();
+              } catch {}
+              
+              try {
+                details.manifestPath = project.getManifestPath();
+              } catch {}
+              
+              try {
+                details.catalogPath = project.getCatalogPath();
+              } catch {}
+              
+              try {
+                const version = project.getDBTVersion();
+                if (version) {
+                  details.dbtVersion = version.join(".");
+                }
+              } catch {}
+              
+              try {
+                details.adapterType = project.getAdapterType();
+              } catch {}
+
+              return details;
             }),
           );
 
