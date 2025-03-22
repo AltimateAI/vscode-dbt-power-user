@@ -275,54 +275,78 @@ export class DbtPowerUserMcpServerTools implements Disposable {
               // Safely get each property, only add if successful
               try {
                 details.projectName = project.getProjectName();
-              } catch {}
+              } catch (error) {
+                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get projectName", error);
+              }
               
               try {
                 details.selectedTarget = project.getSelectedTarget();
-              } catch {}
+              } catch (error) {
+                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get selectedTarget", error);
+              }
               
               try {
                 details.targetNames = await project.getTargetNames();
-              } catch {}
+              } catch (error) {
+                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get targetNames", error);
+              }
               
               try {
                 details.targetPath = project.getTargetPath();
-              } catch {}
+              } catch (error) {
+                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get targetPath", error);
+              }
               
               try {
                 details.packageInstallPath = project.getPackageInstallPath();
-              } catch {}
+              } catch (error) {
+                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get packageInstallPath", error);
+              }
               
               try {
                 details.modelPaths = project.getModelPaths();
-              } catch {}
+              } catch (error) {
+                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get modelPaths", error);
+              }
               
               try {
                 details.seedPaths = project.getSeedPaths();
-              } catch {}
+              } catch (error) {
+                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get seedPaths", error);
+              }
               
               try {
                 details.macroPaths = project.getMacroPaths();
-              } catch {}
+              } catch (error) {
+                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get macroPaths", error);
+              }
               
               try {
                 details.manifestPath = project.getManifestPath();
-              } catch {}
+              } catch (error) {
+                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get manifestPath", error);
+              }
               
               try {
                 details.catalogPath = project.getCatalogPath();
-              } catch {}
+              } catch (error) {
+                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get catalogPath", error);
+              }
               
               try {
                 const version = project.getDBTVersion();
                 if (version) {
                   details.dbtVersion = version.join(".");
                 }
-              } catch {}
+              } catch (error) {
+                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get dbtVersion", error);
+              }
               
               try {
                 details.adapterType = project.getAdapterType();
-              } catch {}
+              } catch (error) {
+                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get adapterType", error);
+              }
 
               return details;
             }),
