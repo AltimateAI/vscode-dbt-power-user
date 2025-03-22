@@ -269,83 +269,131 @@ export class DbtPowerUserMcpServerTools implements Disposable {
           const projectDetails = await Promise.all(
             projects.map(async (project: DBTProject) => {
               const details: Record<string, any> = {
-                projectRoot: project.projectRoot.fsPath
+                projectRoot: project.projectRoot.fsPath,
               };
 
               // Safely get each property, only add if successful
               try {
                 details.projectName = project.getProjectName();
               } catch (error) {
-                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get projectName", error);
+                this.dbtTerminal.debug(
+                  "DbtPowerUserMcpServerTools",
+                  "Failed to get projectName",
+                  error,
+                );
               }
-              
+
               try {
                 details.selectedTarget = project.getSelectedTarget();
               } catch (error) {
-                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get selectedTarget", error);
+                this.dbtTerminal.debug(
+                  "DbtPowerUserMcpServerTools",
+                  "Failed to get selectedTarget",
+                  error,
+                );
               }
-              
+
               try {
                 details.targetNames = await project.getTargetNames();
               } catch (error) {
-                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get targetNames", error);
+                this.dbtTerminal.debug(
+                  "DbtPowerUserMcpServerTools",
+                  "Failed to get targetNames",
+                  error,
+                );
               }
-              
+
               try {
                 details.targetPath = project.getTargetPath();
               } catch (error) {
-                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get targetPath", error);
+                this.dbtTerminal.debug(
+                  "DbtPowerUserMcpServerTools",
+                  "Failed to get targetPath",
+                  error,
+                );
               }
-              
+
               try {
                 details.packageInstallPath = project.getPackageInstallPath();
               } catch (error) {
-                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get packageInstallPath", error);
+                this.dbtTerminal.debug(
+                  "DbtPowerUserMcpServerTools",
+                  "Failed to get packageInstallPath",
+                  error,
+                );
               }
-              
+
               try {
                 details.modelPaths = project.getModelPaths();
               } catch (error) {
-                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get modelPaths", error);
+                this.dbtTerminal.debug(
+                  "DbtPowerUserMcpServerTools",
+                  "Failed to get modelPaths",
+                  error,
+                );
               }
-              
+
               try {
                 details.seedPaths = project.getSeedPaths();
               } catch (error) {
-                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get seedPaths", error);
+                this.dbtTerminal.debug(
+                  "DbtPowerUserMcpServerTools",
+                  "Failed to get seedPaths",
+                  error,
+                );
               }
-              
+
               try {
                 details.macroPaths = project.getMacroPaths();
               } catch (error) {
-                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get macroPaths", error);
+                this.dbtTerminal.debug(
+                  "DbtPowerUserMcpServerTools",
+                  "Failed to get macroPaths",
+                  error,
+                );
               }
-              
+
               try {
                 details.manifestPath = project.getManifestPath();
               } catch (error) {
-                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get manifestPath", error);
+                this.dbtTerminal.debug(
+                  "DbtPowerUserMcpServerTools",
+                  "Failed to get manifestPath",
+                  error,
+                );
               }
-              
+
               try {
                 details.catalogPath = project.getCatalogPath();
               } catch (error) {
-                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get catalogPath", error);
+                this.dbtTerminal.debug(
+                  "DbtPowerUserMcpServerTools",
+                  "Failed to get catalogPath",
+                  error,
+                );
               }
-              
+
               try {
                 const version = project.getDBTVersion();
                 if (version) {
                   details.dbtVersion = version.join(".");
                 }
               } catch (error) {
-                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get dbtVersion", error);
+                this.dbtTerminal.debug(
+                  "DbtPowerUserMcpServerTools",
+                  "Failed to get dbtVersion",
+                  error,
+                );
               }
-              
+
               try {
                 details.adapterType = project.getAdapterType();
               } catch (error) {
-                this.dbtTerminal.debug("DbtPowerUserMcpServerTools", "Failed to get adapterType", error);
+                this.dbtTerminal.debug(
+                  "DbtPowerUserMcpServerTools",
+                  "Failed to get adapterType",
+                  error,
+                );
               }
 
               return details;
@@ -362,7 +410,7 @@ export class DbtPowerUserMcpServerTools implements Disposable {
             content: [
               {
                 type: "text",
-                text: JSON.stringify(projectDetails), // Pretty-print for easier debugging
+                text: JSON.stringify(projectDetails),
               },
             ],
           };
