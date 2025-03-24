@@ -577,7 +577,7 @@ export class DbtPowerUserMcpServerTools implements Disposable {
     details: Record<string, any>,
   ): Promise<void> {
     try {
-      const value = getter();
+      const value = await getter();
       if (value !== undefined && value !== null) {
         details[propertyName] = value;
       }
