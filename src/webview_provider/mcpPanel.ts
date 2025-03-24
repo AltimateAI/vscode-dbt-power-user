@@ -26,9 +26,12 @@ import {
   WebviewPanel,
   Webview,
   WebviewView,
+  ConfigurationTarget,
+  workspace,
 } from "vscode";
 import path from "path";
 import { DbtPowerUserMcpServer } from "../mcp";
+import { isCursor } from "../mcp/utils";
 
 @provideSingleton(McpPanel)
 export class McpPanel
@@ -99,6 +102,25 @@ export class McpPanel
           command,
         );
         break;
+      case "enableDataSourceQueryTools":
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const enabled = params.enabled ?? true;
+            await workspace
+              .getConfiguration("dbt")
+              .update(
+                "enableMcpDataSourceQueryTools",
+                enabled,
+                ConfigurationTarget.Global,
+              );
+            return {
+              status: true,
+            };
+          },
+          command,
+        );
+        break;
       case "completeMcpOnboarding":
         this.handleSyncRequestFromWebview(
           syncRequestId,
@@ -110,6 +132,17 @@ export class McpPanel
             return {
               status: true,
               step: 3,
+            };
+          },
+          command,
+        );
+        break;
+      case "getMcpOnboardingConfig":
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            return {
+              ide: isCursor() ? "cursor" : "vscode",
             };
           },
           command,

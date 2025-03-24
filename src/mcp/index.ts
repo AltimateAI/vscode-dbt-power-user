@@ -1,6 +1,13 @@
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import express from "express";
-import { Disposable, window, workspace, Uri, commands } from "vscode";
+import {
+  Disposable,
+  window,
+  workspace,
+  Uri,
+  commands,
+  extensions,
+} from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DbtPowerUserMcpServerTools } from "./server";
@@ -12,9 +19,10 @@ import {
 } from "@extension";
 import { SharedStateService } from "../services/sharedStateService";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { findAvailablePort } from "./utils";
+import { findAvailablePort, isCursor } from "./utils";
 import path from "path";
 import { McpPanel } from "../webview_provider/mcpPanel";
+import { DataPilotChatParticipant } from "../chat_participants/dataPilot";
 
 @provideSingleton(DbtPowerUserMcpServer)
 export class DbtPowerUserMcpServer implements Disposable {
@@ -30,6 +38,7 @@ export class DbtPowerUserMcpServer implements Disposable {
     private emitterService: SharedStateService,
     private telemetry: TelemetryService,
     private dbtProjectContainer: DBTProjectContainer,
+    private dbtChatParticipant: DataPilotChatParticipant,
   ) {
     this.disposables.push(
       emitterService.eventEmitter.event((d) => {
@@ -42,38 +51,30 @@ export class DbtPowerUserMcpServer implements Disposable {
 
   private async startOnboarding() {
     this.dbtTerminal.info("DbtPowerUserMcpServer", "Starting onboarding");
-    const enableMcpServer = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("enableMcpServer", false);
-    if (!enableMcpServer) {
-      this.dbtTerminal.info(
-        "DbtPowerUserMcpServer",
-        "MCP server is not enabled",
-      );
-      return;
+
+    const port = await this.start();
+    if (isCursor() && port) {
+      await this.updatePortInCursorMcpSettings(port);
     }
 
     const onboardedMcpServer = workspace
       .getConfiguration("dbt")
       .get<boolean>("onboardedMcpServer", false);
 
-    if (onboardedMcpServer) {
-      const port = await this.start();
-      if (port) {
-        await this.updatePortInCursorMcpSettings(port);
-      }
-      return;
+    let ide = "Copilot Chat";
+    if (isCursor()) {
+      ide = "Cursor";
     }
 
-    const isCursorIde =
-      process.env.VSCODE_CWD?.includes("Cursor") ||
-      !!process.env.CURSOR_TRACE_ID;
-    if (isCursorIde) {
+    const copilotExtension = extensions.getExtension("GitHub.copilot");
+    const copilotEnabled = copilotExtension && copilotExtension.isActive;
+
+    if (!onboardedMcpServer && (isCursor() || copilotEnabled)) {
       this.telemetry.sendTelemetryEvent(TelemetryEvents["MCP/Onboarding"], {
         name: "Onboarding",
       });
       const answer = await window.showInformationMessage(
-        "dbt Power User now supports enhanced features in Cursor IDE through MCP server integration. Would you like to set it up?",
+        `${ide} can now leverage dbt Power User features to provide better answers, help you understand and refactor your code, and assess impact of changes more effectively. Ready to set it up?`,
         { modal: false },
         "Set Up Now",
         "Later",
@@ -112,7 +113,10 @@ export class DbtPowerUserMcpServer implements Disposable {
       return;
     }
 
-    const uri = Uri.joinPath(workspaceFolders[0].uri, `MCP.mcpwalkthrough`);
+    const uri = Uri.joinPath(
+      workspaceFolders[0].uri,
+      `Supercharge Your Productivity`,
+    );
 
     commands.executeCommand("vscode.openWith", uri, McpPanel.viewType);
   }
@@ -134,16 +138,6 @@ export class DbtPowerUserMcpServer implements Disposable {
       return this.port;
     }
 
-    const onboardedMcpServer = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("onboardedMcpServer", false);
-    if (!onboardedMcpServer) {
-      this.dbtTerminal.info(
-        "DbtPowerUserMcpServer",
-        "MCP server is not enabled, skipping start",
-      );
-      return;
-    }
     this.dbtTerminal.info("DbtPowerUserMcpServer", "Starting MCP server");
     const { server, cleanup } = this.dbtPowerUserMcpServerTools.createServer();
     this.mcpServer = server;
@@ -197,10 +191,18 @@ export class DbtPowerUserMcpServer implements Disposable {
           this.mcpServer.onclose = async () => {
             await cleanup();
           };
+          this.mcpServer.oninitialized = async () => {
+            this.dbtTerminal.info(
+              "DbtPowerUserMcpServer",
+              "MCP server initialized",
+            );
+          };
         }
 
         this.mcpTransport.onerror = (error) => {
-          this.dbtTerminal.error("DbtPowerUserMcpServer", "Error", { error });
+          this.dbtTerminal.error("DbtPowerUserMcpServer", "Error", {
+            error: error.message,
+          });
         };
       }),
     );
@@ -231,7 +233,7 @@ export class DbtPowerUserMcpServer implements Disposable {
           port,
         },
       );
-      // this.updatePortInCursorMcpSettings(port);
+      this.dbtChatParticipant.initializeChatParticipant(port);
     });
 
     return port;

@@ -60,6 +60,7 @@
     margin: 0.5rem 0 1rem;
     color: var(--vscode-foreground);
     opacity: 0.9;
+    white-space: pre-wrap;
   }
 
   .content {
@@ -80,7 +81,7 @@
     }
   }
 
-  .actionButton {
+  .actionButton, .navButton {
     align-self: flex-start;
     margin-top: 1rem;
   }
@@ -88,4 +89,8 @@
 
 .actionButton {
   min-width: 100px;
-} 
+}
+
+.navButton {
+  min-width: 80px;
+}

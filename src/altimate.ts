@@ -334,10 +334,12 @@ export interface ConversationGroup {
     uniqueId?: string;
     filePath: string;
     resource_type?: string;
-    range: {
-      end: CommentThread["range"]["end"];
-      start: CommentThread["range"]["start"];
-    };
+    range:
+      | {
+          end: vscode.Range["end"];
+          start: vscode.Range["start"];
+        }
+      | undefined;
   };
   conversations: Conversation[];
 }
