@@ -144,8 +144,21 @@ export class DbtPowerUserMcpServerTools implements Disposable {
       const tools: Tool[] = [
         {
           name: ToolName.GET_PROJECTS,
-          description:
-            "Returns detailed information about all available dbt projects including project root, name, paths, targets, and configuration. This must be called first to get the projectRoot parameter needed for all other tools.",
+          description: `Returns detailed information about all available dbt projects including:
+  - projectRoot: The root directory path of the dbt project
+  - projectName: The name of the dbt project from dbt_project.yml
+  - selectedTarget: The currently selected target profile
+  - targetNames: List of all available target profiles
+  - targetPath: The directory where compiled artifacts are stored
+  - packageInstallPath: The directory where dbt packages are installed
+  - modelPaths: List of directories containing dbt models
+  - seedPaths: List of directories containing dbt seeds
+  - macroPaths: List of directories containing dbt macros
+  - manifestPath: Path to the manifest.json file
+  - catalogPath: Path to the catalog.json file
+  - dbtVersion: The version of dbt being used (e.g., "1.5.0")
+  - adapterType: The database adapter type (e.g., "postgres", "snowflake")
+  This must be called first to get the projectRoot parameter needed for all other tools.`,
           inputSchema: zodToJsonSchema(BaseSchema) as ToolInput,
         },
         {
