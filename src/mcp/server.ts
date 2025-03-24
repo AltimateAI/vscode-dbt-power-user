@@ -285,129 +285,81 @@ export class DbtPowerUserMcpServerTools implements Disposable {
                 projectRoot: project.projectRoot.fsPath,
               };
 
-              // Safely get each property, only add if successful
-              try {
-                details.projectName = project.getProjectName();
-              } catch (error) {
-                this.dbtTerminal.debug(
-                  "DbtPowerUserMcpServerTools",
-                  "Failed to get projectName",
-                  error,
-                );
-              }
-
-              try {
-                details.selectedTarget = project.getSelectedTarget();
-              } catch (error) {
-                this.dbtTerminal.debug(
-                  "DbtPowerUserMcpServerTools",
-                  "Failed to get selectedTarget",
-                  error,
-                );
-              }
-
-              try {
-                details.targetNames = await project.getTargetNames();
-              } catch (error) {
-                this.dbtTerminal.debug(
-                  "DbtPowerUserMcpServerTools",
-                  "Failed to get targetNames",
-                  error,
-                );
-              }
-
-              try {
-                details.targetPath = project.getTargetPath();
-              } catch (error) {
-                this.dbtTerminal.debug(
-                  "DbtPowerUserMcpServerTools",
-                  "Failed to get targetPath",
-                  error,
-                );
-              }
-
-              try {
-                details.packageInstallPath = project.getPackageInstallPath();
-              } catch (error) {
-                this.dbtTerminal.debug(
-                  "DbtPowerUserMcpServerTools",
-                  "Failed to get packageInstallPath",
-                  error,
-                );
-              }
-
-              try {
-                details.modelPaths = project.getModelPaths();
-              } catch (error) {
-                this.dbtTerminal.debug(
-                  "DbtPowerUserMcpServerTools",
-                  "Failed to get modelPaths",
-                  error,
-                );
-              }
-
-              try {
-                details.seedPaths = project.getSeedPaths();
-              } catch (error) {
-                this.dbtTerminal.debug(
-                  "DbtPowerUserMcpServerTools",
-                  "Failed to get seedPaths",
-                  error,
-                );
-              }
-
-              try {
-                details.macroPaths = project.getMacroPaths();
-              } catch (error) {
-                this.dbtTerminal.debug(
-                  "DbtPowerUserMcpServerTools",
-                  "Failed to get macroPaths",
-                  error,
-                );
-              }
-
-              try {
-                details.manifestPath = project.getManifestPath();
-              } catch (error) {
-                this.dbtTerminal.debug(
-                  "DbtPowerUserMcpServerTools",
-                  "Failed to get manifestPath",
-                  error,
-                );
-              }
-
-              try {
-                details.catalogPath = project.getCatalogPath();
-              } catch (error) {
-                this.dbtTerminal.debug(
-                  "DbtPowerUserMcpServerTools",
-                  "Failed to get catalogPath",
-                  error,
-                );
-              }
-
-              try {
-                const version = project.getDBTVersion();
-                if (version) {
-                  details.dbtVersion = version.join(".");
-                }
-              } catch (error) {
-                this.dbtTerminal.debug(
-                  "DbtPowerUserMcpServerTools",
-                  "Failed to get dbtVersion",
-                  error,
-                );
-              }
-
-              try {
-                details.adapterType = project.getAdapterType();
-              } catch (error) {
-                this.dbtTerminal.debug(
-                  "DbtPowerUserMcpServerTools",
-                  "Failed to get adapterType",
-                  error,
-                );
-              }
+              await this.safeGetProjectProperty(
+                project,
+                "projectName",
+                () => project.getProjectName(),
+                details,
+              );
+              await this.safeGetProjectProperty(
+                project,
+                "selectedTarget",
+                () => project.getSelectedTarget(),
+                details,
+              );
+              await this.safeGetProjectProperty(
+                project,
+                "targetNames",
+                () => project.getTargetNames(),
+                details,
+              );
+              await this.safeGetProjectProperty(
+                project,
+                "targetPath",
+                () => project.getTargetPath(),
+                details,
+              );
+              await this.safeGetProjectProperty(
+                project,
+                "packageInstallPath",
+                () => project.getPackageInstallPath(),
+                details,
+              );
+              await this.safeGetProjectProperty(
+                project,
+                "modelPaths",
+                () => project.getModelPaths(),
+                details,
+              );
+              await this.safeGetProjectProperty(
+                project,
+                "seedPaths",
+                () => project.getSeedPaths(),
+                details,
+              );
+              await this.safeGetProjectProperty(
+                project,
+                "macroPaths",
+                () => project.getMacroPaths(),
+                details,
+              );
+              await this.safeGetProjectProperty(
+                project,
+                "manifestPath",
+                () => project.getManifestPath(),
+                details,
+              );
+              await this.safeGetProjectProperty(
+                project,
+                "catalogPath",
+                () => project.getCatalogPath(),
+                details,
+              );
+              await this.safeGetProjectProperty(
+                project,
+                "dbtVersion",
+                () => {
+                  const version = project.getDBTVersion();
+                  return version ? version.join(".") : undefined;
+                },
+                details,
+              );
+              await this.safeGetProjectProperty(
+                project,
+                "adapterType",
+                () => project.getAdapterType(),
+                details,
+              );
 
               return details;
             }),
@@ -617,6 +569,26 @@ export class DbtPowerUserMcpServerTools implements Disposable {
 
     return { server, cleanup: async () => {} };
   };
+
+  private async safeGetProjectProperty<T>(
+    project: DBTProject,
+    propertyName: string,
+    getter: () => T,
+    details: Record<string, any>,
+  ): Promise<void> {
+    try {
+      const value = getter();
+      if (value !== undefined && value !== null) {
+        details[propertyName] = value;
+      }
+    } catch (error) {
+      this.dbtTerminal.debug(
+        "DbtPowerUserMcpServerTools",
+        `Failed to get ${propertyName}`,
+        error,
+      );
+    }
+  }
 
   private async runWithProgress<T>(
     server: Server,
