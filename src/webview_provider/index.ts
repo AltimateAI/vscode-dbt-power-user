@@ -5,6 +5,7 @@ import { DocsEditViewPanel } from "./docsEditPanel";
 import { LineagePanel } from "./lineagePanel";
 import { DataPilotPanel } from "./datapilotPanel";
 import { InsightsPanel } from "./insightsPanel";
+import { McpPanel } from "./mcpPanel";
 
 @provideSingleton(WebviewViewProviders)
 export class WebviewViewProviders implements Disposable {
@@ -16,6 +17,7 @@ export class WebviewViewProviders implements Disposable {
     private lineagePanel: LineagePanel,
     private dataPilotPanel: DataPilotPanel,
     private insightsPanel: InsightsPanel,
+    private mcpPanel: McpPanel,
   ) {
     this.disposables.push(
       window.registerWebviewViewProvider(
@@ -43,6 +45,9 @@ export class WebviewViewProviders implements Disposable {
         this.insightsPanel,
         { webviewOptions: { retainContextWhenHidden: true } },
       ),
+      window.registerCustomEditorProvider(McpPanel.viewType, this.mcpPanel, {
+        webviewOptions: { retainContextWhenHidden: true },
+      }),
     );
   }
 

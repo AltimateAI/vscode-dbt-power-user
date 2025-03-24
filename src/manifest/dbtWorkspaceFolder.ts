@@ -81,15 +81,54 @@ export class DBTWorkspaceFolder implements Disposable {
     return allowListFolders;
   }
 
+  private async retryWithBackoff<T>(
+    fn: () => Thenable<T>,
+    retries: number = 5,
+    backoff: number = 1000,
+  ): Promise<T> {
+    let attempt = 0;
+    while (attempt < retries) {
+      try {
+        const result = await fn();
+        if (Array.isArray(result) && result.length === 0) {
+          this.dbtTerminal.debug(
+            "discoverProjects",
+            "no projects found. retrying...",
+            false,
+          );
+          throw new Error("no projects found. retrying");
+        }
+        return result;
+      } catch (error) {
+        attempt++;
+        if (attempt >= retries) {
+          throw error;
+        }
+        await new Promise((resolve) => setTimeout(resolve, backoff * attempt));
+      }
+    }
+    this.dbtTerminal.debug(
+      "discoverProjects",
+      "no projects found after maximum retries",
+      false,
+    );
+    throw new Error("no projects found after maximum retries");
+  }
+
   async discoverProjects() {
     // Ignore dbt_packages and venv/site-packages/dbt project folders
     const excludePattern = "**/{dbt_packages,site-packages}";
-    const dbtProjectFiles = await workspace.findFiles(
-      new RelativePattern(
-        this.workspaceFolder,
-        `**/${DBTProject.DBT_PROJECT_FILE}`,
-      ),
-      new RelativePattern(this.workspaceFolder, excludePattern),
+    const dbtProjectFiles = await this.retryWithBackoff(
+      () =>
+        workspace.findFiles(
+          new RelativePattern(
+            this.workspaceFolder,
+            `**/${DBTProject.DBT_PROJECT_FILE}`,
+          ),
+          new RelativePattern(this.workspaceFolder, excludePattern),
+        ),
+      5,
+      1000,
     );
     this.dbtTerminal.info(
       "discoverProjects",

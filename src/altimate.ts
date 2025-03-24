@@ -11,6 +11,7 @@ import { DBTProject } from "./manifest/dbtProject";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
 import { PreconfiguredNotebookItem, NotebookItem, NotebookSchema } from "@lib";
+import * as vscode from "vscode";
 
 export class NoCredentialsError extends Error {}
 
@@ -330,10 +331,12 @@ export interface ConversationGroup {
     uniqueId?: string;
     filePath: string;
     resource_type?: string;
-    range: {
-      end: CommentThread["range"]["end"];
-      start: CommentThread["range"]["start"];
-    };
+    range:
+      | {
+          end: vscode.Range["end"];
+          start: vscode.Range["start"];
+        }
+      | undefined;
   };
   conversations: Conversation[];
 }
