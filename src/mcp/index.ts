@@ -174,7 +174,6 @@ export class DbtPowerUserMcpServer implements Disposable {
   }
 
   public async start() {
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"; // Warning: Only use in development
     if (!this.altimate.handlePreviewFeatures()) {
       this.dbtTerminal.info(
         "DbtPowerUserMcpServer",
