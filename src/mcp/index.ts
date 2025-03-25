@@ -138,13 +138,17 @@ export class DbtPowerUserMcpServer implements Disposable {
       // Create HTTPS server with certificates
       let certBuffer, keyBuffer;
       try {
-        keyBuffer = mcpSslCertKeyPath ? fs.readFileSync(mcpSslCertKeyPath) : undefined;
-        certBuffer = mcpSslCertPath ? fs.readFileSync(mcpSslCertPath) : undefined;
+        keyBuffer = mcpSslCertKeyPath
+          ? fs.readFileSync(mcpSslCertKeyPath)
+          : undefined;
+        certBuffer = mcpSslCertPath
+          ? fs.readFileSync(mcpSslCertPath)
+          : undefined;
       } catch (readErr) {
         this.dbtTerminal.error(
           "DbtPowerUserMcpServer",
           "Failed to read SSL certificates",
-          readErr
+          readErr,
         );
         throw readErr;
       }
@@ -170,6 +174,7 @@ export class DbtPowerUserMcpServer implements Disposable {
   }
 
   public async start() {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"; // Warning: Only use in development
     if (!this.altimate.handlePreviewFeatures()) {
       this.dbtTerminal.info(
         "DbtPowerUserMcpServer",
