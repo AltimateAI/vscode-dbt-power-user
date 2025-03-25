@@ -18,7 +18,7 @@ export class DataPilotChatParticipant implements vscode.Disposable {
     private terminal: DBTTerminal,
   ) {}
 
-  public async initializeChatParticipant(url?: string) {
+  public async initializeChatParticipant(url?: string): Promise<void> {
     // Create the chat participant
     const participant = vscode.chat.createChatParticipant(
       DataPilotChatParticipant.PARTICIPANT_ID,
