@@ -577,11 +577,13 @@
           "dbt.mcpSslCertKeyPath": {
             "type": "string",
             "description": "Path to the SSL certificate key file for MCP server",
+            "displayName": "MCP Server SSL Certificate Key Path",
             "default": ""
           },
           "dbt.mcpSslCertPath": {
             "type": "string",
             "description": "Path to the SSL certificate file for MCP server",
+            "displayName": "MCP Server SSL Certificate Path",
             "default": ""
           },
           "dbt.enableNewLineagePanel": {
