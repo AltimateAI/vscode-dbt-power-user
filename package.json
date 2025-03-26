@@ -574,6 +574,18 @@
             "description": "Enable data source query tools (EXECUTE_SQL_WITH_LIMIT and GET_COLUMN_VALUES)",
             "default": false
           },
+          "dbt.mcpSslCertKeyPath": {
+            "type": "string",
+            "description": "Path to the SSL certificate key file for MCP server",
+            "displayName": "MCP Server SSL Certificate Key Path",
+            "default": ""
+          },
+          "dbt.mcpSslCertPath": {
+            "type": "string",
+            "description": "Path to the SSL certificate file for MCP server",
+            "displayName": "MCP Server SSL Certificate Path",
+            "default": ""
+          },
           "dbt.enableNewLineagePanel": {
             "type": "boolean",
             "description": "Enable the new lineage panel in dbt."

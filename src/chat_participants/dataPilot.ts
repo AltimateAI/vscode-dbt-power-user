@@ -18,7 +18,7 @@ export class DataPilotChatParticipant implements vscode.Disposable {
     private terminal: DBTTerminal,
   ) {}
 
-  public async initializeChatParticipant(port: number) {
+  public async initializeChatParticipant(url?: string): Promise<void> {
     // Create the chat participant
     const participant = vscode.chat.createChatParticipant(
       DataPilotChatParticipant.PARTICIPANT_ID,
@@ -56,15 +56,20 @@ export class DataPilotChatParticipant implements vscode.Disposable {
 
     this.disposables.push(participant);
 
-    await this.registerMCPClient(port);
+    await this.registerMCPClient(url);
   }
 
-  private async registerMCPClient(port: number) {
-    try {
-      const transport = new SSEClientTransport(
-        new URL(`http://localhost:${port}/sse`),
-        {},
+  private async registerMCPClient(url?: string) {
+    if (!url) {
+      this.terminal.error(
+        "DataPilotChatParticipant:registerMCPClient",
+        "MCP server URL not found",
+        true,
       );
+      return;
+    }
+    try {
+      const transport = new SSEClientTransport(new URL(url), {});
 
       const client = new Client(
         {

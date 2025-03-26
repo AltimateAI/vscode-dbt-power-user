@@ -23,6 +23,9 @@ import { findAvailablePort, isCursor } from "./utils";
 import path from "path";
 import { McpPanel } from "../webview_provider/mcpPanel";
 import { DataPilotChatParticipant } from "../chat_participants/dataPilot";
+import https from "https";
+import http from "http";
+import fs from "fs";
 
 @provideSingleton(DbtPowerUserMcpServer)
 export class DbtPowerUserMcpServer implements Disposable {
@@ -30,6 +33,7 @@ export class DbtPowerUserMcpServer implements Disposable {
   private mcpServer: Server | undefined;
   private mcpTransport: SSEServerTransport | undefined;
   private port: number | undefined;
+  private isHttps: boolean | undefined;
 
   constructor(
     private dbtPowerUserMcpServerTools: DbtPowerUserMcpServerTools,
@@ -119,6 +123,54 @@ export class DbtPowerUserMcpServer implements Disposable {
     );
 
     commands.executeCommand("vscode.openWith", uri, McpPanel.viewType);
+  }
+
+  private createServer(app: express.Application) {
+    // Configure HTTPS with certificates
+    const mcpSslCertKeyPath = workspace
+      .getConfiguration("dbt")
+      .get<string>("mcpSslCertKeyPath");
+    const mcpSslCertPath = workspace
+      .getConfiguration("dbt")
+      .get<string>("mcpSslCertPath");
+
+    if (mcpSslCertKeyPath || mcpSslCertPath) {
+      // Create HTTPS server with certificates
+      let certBuffer, keyBuffer;
+      try {
+        keyBuffer = mcpSslCertKeyPath
+          ? fs.readFileSync(mcpSslCertKeyPath)
+          : undefined;
+        certBuffer = mcpSslCertPath
+          ? fs.readFileSync(mcpSslCertPath)
+          : undefined;
+      } catch (readErr) {
+        this.dbtTerminal.error(
+          "DbtPowerUserMcpServer",
+          "Failed to read SSL certificates",
+          readErr,
+        );
+        throw readErr;
+      }
+      const httpsOptions = {
+        key: keyBuffer,
+        cert: certBuffer,
+      };
+      this.dbtTerminal.debug(
+        "DbtPowerUserMcpServer",
+        "Starting HTTPS server",
+        mcpSslCertKeyPath,
+        mcpSslCertPath,
+      );
+      return { https: true, server: https.createServer(httpsOptions, app) };
+    } else {
+      // Create HTTP server if no certificates are provided
+      this.dbtTerminal.debug(
+        "DbtPowerUserMcpServer",
+        "Starting HTTP server (no SSL certificates provided)",
+      );
+      return { https: false, server: http.createServer(app) };
+    }
   }
 
   public async start() {
@@ -217,13 +269,17 @@ export class DbtPowerUserMcpServer implements Disposable {
         try {
           await this.mcpTransport?.handlePostMessage(req, res);
         } catch (error) {
-          this.dbtTerminal.error("DbtPowerUserMcpServer", "Error", { error });
+          this.dbtTerminal.error("DbtPowerUserMcpServer", "Error", error);
         }
       }),
     );
 
     const port = await findAvailablePort();
-    app.listen(port, () => {
+
+    const { https: isHttps, server: httpServer } = this.createServer(app);
+
+    this.isHttps = isHttps;
+    httpServer.listen(port, () => {
       this.port = port;
       this.dbtTerminal.info(
         "DbtPowerUserMcpServer",
@@ -231,9 +287,10 @@ export class DbtPowerUserMcpServer implements Disposable {
         false,
         {
           port,
+          isHttps,
         },
       );
-      this.dbtChatParticipant.initializeChatParticipant(port);
+      this.dbtChatParticipant.initializeChatParticipant(this.getMcpServerUrl());
     });
 
     return port;
@@ -243,6 +300,15 @@ export class DbtPowerUserMcpServer implements Disposable {
     this.mcpServer?.close();
     this.mcpTransport?.close();
     this.disposables.forEach((disposable) => disposable.dispose());
+  }
+
+  public getMcpServerUrl(): string | undefined {
+    if (!this.port) {
+      return undefined;
+    }
+    return this.isHttps
+      ? `https://localhost:${this.port}/sse`
+      : `http://localhost:${this.port}/sse`;
   }
 
   public async updatePortInCursorMcpSettings(port: number) {
@@ -289,7 +355,7 @@ export class DbtPowerUserMcpServer implements Disposable {
               JSON.stringify(
                 {
                   mcpServers: {
-                    dbtPowerUser: { url: `http://localhost:${port}/sse` },
+                    dbtPowerUser: { url: this.getMcpServerUrl() },
                   },
                 },
                 null,
@@ -312,7 +378,7 @@ export class DbtPowerUserMcpServer implements Disposable {
         config.mcpServers = {};
       }
       config.mcpServers.dbtPowerUser = {
-        url: `http://localhost:${port}/sse`,
+        url: this.getMcpServerUrl(),
       };
 
       // Write the updated config back to the file

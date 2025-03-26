@@ -808,10 +808,10 @@ export class VSCodeCommands implements Disposable {
           this.dbtTerminal.error(
             "applyDeferConfig",
             "Failed to apply defer configuration",
-            error
+            error,
           );
           window.showErrorMessage(
-            `Failed to apply defer configuration: ${error}`
+            `Failed to apply defer configuration: ${error}`,
           );
         }
       }),
