@@ -18,7 +18,7 @@ import {
   mergeCurrentAndIncomingDocumentationColumns,
 } from "@modules/documentationEditor/utils";
 import DocGenSelectedColumns from "./DocGenSelectedColumns";
-import { noop } from "antd/es/_util/warning";
+import { noop } from "../../../../utils";
 
 enum SidePanelState {
   DOCUMENTATION_SELECTED = "documentationSelected",

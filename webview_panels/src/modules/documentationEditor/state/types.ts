@@ -1,5 +1,9 @@
-import { Citation, ConversationGroup, DbtDocsShareDetails } from "@lib";
+import {
+  ConversationGroup,
+  DbtDocsShareDetails,
+} from "@altimateai/ui-components";
 import { GenerationDBDataProps } from "../types";
+import { Citation } from "@altimateai/ui-components";
 
 export enum Source {
   DATABASE = "DATABASE",
