@@ -125,7 +125,7 @@ export class DbtPowerUserMcpServer implements Disposable {
     commands.executeCommand("vscode.openWith", uri, McpPanel.viewType);
   }
 
-  private createHttpServer(app: express.Application) {
+  private createServer(app: express.Application) {
     // Configure HTTPS with certificates
     const mcpSslCertKeyPath = workspace
       .getConfiguration("dbt")
@@ -276,7 +276,7 @@ export class DbtPowerUserMcpServer implements Disposable {
 
     const port = await findAvailablePort();
 
-    const { https: isHttps, server: httpServer } = this.createHttpServer(app);
+    const { https: isHttps, server: httpServer } = this.createServer(app);
 
     this.isHttps = isHttps;
     httpServer.listen(port, () => {
