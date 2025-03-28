@@ -10,6 +10,10 @@ export class TelemetryService implements vscode.Disposable {
   );
   private eventMeasurements = new Map();
 
+  constructor() {
+    this.customAttributes["ide"] = vscode.env.appName;
+  }
+
   setTelemetryCustomAttribute(key: string, value: string) {
     this.customAttributes[key] = value;
   }
