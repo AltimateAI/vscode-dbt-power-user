@@ -269,6 +269,14 @@ export class DBTProjectContainer implements Disposable {
   }
 
   executeSQL(uri: Uri, query: string, modelName: string): void {
+    if (uri.scheme === "untitled") {
+      const selectedProject = this.getFromWorkspaceState(
+        "dbtPowerUser.projectSelected",
+      );
+      if (selectedProject) {
+        uri = selectedProject.uri;
+      }
+    }
     this.findDBTProject(uri)?.executeSQL(query, modelName);
   }
 
