@@ -290,7 +290,12 @@ export class DbtPowerUserMcpServer implements Disposable {
           isHttps,
         },
       );
-      this.dbtChatParticipant.initializeChatParticipant(this.getMcpServerUrl());
+      if (!isCursor()) {
+        // This should only be called in vscode
+        this.dbtChatParticipant.initializeChatParticipant(
+          this.getMcpServerUrl(),
+        );
+      }
     });
 
     return port;
