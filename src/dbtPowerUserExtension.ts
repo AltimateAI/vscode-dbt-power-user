@@ -2,6 +2,7 @@ import {
   Disposable,
   ExtensionContext,
   commands,
+  extensions,
   window,
   workspace,
 } from "vscode";
@@ -22,11 +23,21 @@ import { DbtPowerUserActionsCenter } from "./quickpick";
 import { ValidationProvider } from "./validation_provider";
 import { CommentProviders } from "./comment_provider";
 import { NotebookProviders } from "@lib";
+import { z } from "zod";
 
 enum PromptAnswer {
   YES = "Yes",
   NO = "No",
 }
+
+type ToolRegistry = {
+  registerTool: (
+    name: string,
+    description: string,
+    inputSchema: z.ZodType<any>,
+    handler: (args: any) => Promise<any>,
+  ) => Promise<void>;
+};
 
 @provideSingleton(DBTPowerUserExtension)
 export class DBTPowerUserExtension implements Disposable {
@@ -97,6 +108,30 @@ export class DBTPowerUserExtension implements Disposable {
   }
 
   async activate(context: ExtensionContext): Promise<void> {
+    const extension = extensions.getExtension(
+      "innoverio.vscode-altimate-mcp-server",
+    )!;
+
+    if (!extension.isActive) {
+      await extension.activate();
+    }
+    await extension.exports.ready;
+
+    const api: ToolRegistry = extension.exports;
+
+    try {
+      await api.registerTool(
+        "helloWorld",
+        "Use this tool to say hello to the world",
+        z.object({}),
+        async (args) => {
+          return Promise.resolve("Hello");
+        },
+      );
+    } catch (error) {
+      console.error("Error registering tool:", error);
+    }
+
     this.dbtProjectContainer.setContext(context);
     this.dbtProjectContainer.initializeWalkthrough();
     await this.dbtProjectContainer.detectDBT();
