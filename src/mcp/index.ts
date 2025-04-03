@@ -47,7 +47,7 @@ export class DbtPowerUserMcpServer implements Disposable {
     this.disposables.push(
       emitterService.eventEmitter.event((d) => {
         if (d.command === "dbtProjectsInitialized") {
-          this.startOnboarding();
+          // this.startOnboarding();
         }
       }),
     );

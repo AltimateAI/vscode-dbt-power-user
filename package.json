@@ -41,17 +41,6 @@
   "contributes": {
     "languageModelTools": [
       {
-        "name": "helloWorld",
-        "tags": [
-          "altimate"
-        ],
-        "toolReferenceName": "helloWorld",
-        "displayName": "Hello world",
-        "modelDescription": "Use this method to say hello to the world",
-        "icon": "$(files)",
-        "inputSchema": {}
-      },
-      {
         "name": "get_projects",
         "tags": [
           "datapilot",
@@ -578,6 +567,11 @@
           "dbt.onboardedMcpServer": {
             "type": "boolean",
             "description": "Flag to identify if onboarding is done for MCP server",
+            "default": false
+          },
+          "dbt.enableMcpExtensionIntegration": {
+            "type": "boolean",
+            "description": "Enable MCP extension",
             "default": false
           },
           "dbt.enableMcpDataSourceQueryTools": {
