@@ -132,20 +132,9 @@ export class McpPanel
         );
         break;
       case "completeMcpOnboarding":
-        this.handleSyncRequestFromWebview(
-          syncRequestId,
-          async () => {
-            // Close the MCP walkthrough editor
-            if (this._panel) {
-              (this._panel as WebviewPanel).dispose();
-            }
-            return {
-              status: true,
-              step: 3,
-            };
-          },
-          command,
-        );
+        if (this._panel) {
+          (this._panel as WebviewPanel).dispose();
+        }
         break;
       case "getMcpOnboardingConfig":
         this.handleSyncRequestFromWebview(
