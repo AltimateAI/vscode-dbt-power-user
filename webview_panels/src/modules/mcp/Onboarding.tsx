@@ -112,10 +112,19 @@ const McpOnboarding = (): JSX.Element => {
 
   const handleStepComplete = async (step: number, enabled: boolean) => {
     if (step === 1) {
-      const result = await executeRequestInSync("configureMcp", {});
+      const result = await executeRequestInSync(
+        "enableMcpExtensionIntegration",
+        {},
+      );
       panelLogger.log(result);
     }
     if (step === 2) {
+      const result = await executeRequestInSync("installMcpExtension", {
+        enabled: enabled,
+      });
+      panelLogger.log(result);
+    }
+    if (step === 3) {
       const result = await executeRequestInSync("enableDataSourceQueryTools", {
         enabled: enabled,
       });
