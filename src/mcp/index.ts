@@ -27,6 +27,7 @@ import https from "https";
 import http from "http";
 import fs from "fs";
 
+const PING_INTERVAL = 15000;
 @provideSingleton(DbtPowerUserMcpServer)
 export class DbtPowerUserMcpServer implements Disposable {
   private disposables: Disposable[] = [];
@@ -235,12 +236,24 @@ export class DbtPowerUserMcpServer implements Disposable {
     app.get(
       "/sse",
       asyncHandler(async (req: express.Request, res: express.Response) => {
+        // Disable request and response timeouts
+        req.socket.setTimeout(0);
+
         this.dbtTerminal.info("DbtPowerUserMcpServer", "Received connection");
         this.mcpTransport = new SSEServerTransport("/message", res);
         await this.mcpServer?.connect(this.mcpTransport);
 
+        // Send an initial ping to establish the connection
+        res.write(": ping\n\n");
+
+        // Set up periodic pings every 15 seconds to keep connection alive
+        const pingInterval = setInterval(() => {
+          res.write(": ping\n\n");
+        }, PING_INTERVAL);
+
         if (this.mcpServer) {
           this.mcpServer.onclose = async () => {
+            clearInterval(pingInterval);
             await cleanup();
           };
           this.mcpServer.oninitialized = async () => {
@@ -252,10 +265,16 @@ export class DbtPowerUserMcpServer implements Disposable {
         }
 
         this.mcpTransport.onerror = (error) => {
+          clearInterval(pingInterval);
           this.dbtTerminal.error("DbtPowerUserMcpServer", "Error", {
             error: error.message,
           });
         };
+
+        // Handle client disconnect
+        req.on("close", () => {
+          clearInterval(pingInterval);
+        });
       }),
     );
 
