@@ -1,4 +1,4 @@
-import { ConversationSources, DbtDocs } from "@lib";
+import { ConversationSources, DbtDocs } from "@altimateai/ui-components";
 import { IncomingMessageProps } from "@modules/app/types";
 import useAppContext from "@modules/app/useAppContext";
 import { useCallback, useEffect, useState } from "react";
