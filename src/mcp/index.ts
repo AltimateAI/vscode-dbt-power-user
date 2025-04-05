@@ -8,7 +8,7 @@ import {
   commands,
   extensions,
 } from "vscode";
-import { provideSingleton } from "../utils";
+import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DbtPowerUserMcpServerTools } from "./server";
 import {
@@ -53,17 +53,127 @@ export class DbtPowerUserMcpServer implements Disposable {
     );
   }
 
+  public async installMcpExtension() {
+    try {
+      this.dbtTerminal.info(
+        "DbtPowerUserMcpServer",
+        "Installing MCP extension",
+      );
+      const extension = extensions.getExtension(
+        "innoverio.vscode-altimate-mcp-server",
+      );
+      if (!extension) {
+        await commands.executeCommand(
+          "workbench.extensions.installExtension",
+          "innoverio.vscode-altimate-mcp-server",
+        );
+        await extensions
+          .getExtension("innoverio.vscode-altimate-mcp-server")
+          ?.activate();
+      }
+      await extensions.getExtension("innoverio.vscode-altimate-mcp-server")
+        ?.exports.ready;
+      return true;
+    } catch (error) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          `Failed to install MCP extension. Error: ${(error as Error).message}`,
+        ),
+      );
+      this.dbtTerminal.error(
+        "DbtPowerUserMcpServer",
+        "Failed to install MCP extension",
+        error,
+      );
+    }
+    return false;
+  }
+
   private async startOnboarding() {
     this.dbtTerminal.info("DbtPowerUserMcpServer", "Starting onboarding");
-
-    const port = await this.start();
-    if (isCursor() && port) {
-      await this.updatePortInCursorMcpSettings(port);
-    }
 
     const onboardedMcpServer = workspace
       .getConfiguration("dbt")
       .get<boolean>("onboardedMcpServer", false);
+
+    const mcpExtensionIntegrationEnabled = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("enableMcpExtensionIntegration", false);
+
+    if (mcpExtensionIntegrationEnabled) {
+      this.dbtTerminal.debug(
+        "DbtPowerUserMcpServer",
+        "MCP extension integration is already enabled, skipping onboarding",
+      );
+      return;
+    }
+    // For existing users who have already enabled MCP server
+    if (onboardedMcpServer) {
+      this.dbtTerminal.debug(
+        "DbtPowerUserMcpServer",
+        "Onboarding already completed, informing user to migrate to new MCP setup",
+      );
+      const answer = await window.showInformationMessage(
+        "We are moving to a new MCP setup that will provide better integration and features. Would you like to enable it now?",
+        { modal: false },
+        "Enable New Setup",
+        "Learn More",
+        "Later",
+      );
+
+      if (answer === "Enable New Setup") {
+        // Install new extension
+        const extension = extensions.getExtension(
+          "innoverio.vscode-altimate-mcp-server",
+        );
+        if (!extension) {
+          this.dbtTerminal.debug(
+            "DbtPowerUserMcpServer",
+            "MCP extension not installed, prompting user to install",
+          );
+          const installAnswer = await window.showInformationMessage(
+            "This requires installing the Altimate MCP Server extension. Would you like to install it now?",
+            "Install",
+            "Cancel",
+          );
+          if (installAnswer === "Cancel") {
+            return;
+          }
+          if (installAnswer === "Install") {
+            this.installMcpExtension();
+          }
+        }
+
+        // Enable new integration
+        await workspace
+          .getConfiguration("dbt")
+          .update("enableMcpExtensionIntegration", true, true);
+
+        // Dispose existing server
+        // TODO: validate dispose is successful
+        this.dispose();
+        return;
+      } else if (answer === "Learn More") {
+        await commands.executeCommand(
+          "vscode.open",
+          // TODO: Update this to the new docs
+          Uri.parse("https://docs.myaltimate.com/mcp-migration"),
+        );
+      }
+    }
+
+    //  already onboarded users who cancelled the migration above
+    if (onboardedMcpServer) {
+      this.dbtTerminal.debug(
+        "DbtPowerUserMcpServer",
+        "Onboarding already completed, but skipped migration, starting MCP server",
+      );
+      const port = await this.start();
+      if (isCursor() && port) {
+        await this.updatePortInCursorMcpSettings(port);
+      }
+      return;
+    }
 
     let ide = "Copilot Chat";
     if (isCursor()) {
@@ -73,7 +183,8 @@ export class DbtPowerUserMcpServer implements Disposable {
     const copilotExtension = extensions.getExtension("GitHub.copilot");
     const copilotEnabled = copilotExtension && copilotExtension.isActive;
 
-    if (!onboardedMcpServer && (isCursor() || copilotEnabled)) {
+    // new users
+    if (isCursor() || copilotEnabled) {
       this.telemetry.sendTelemetryEvent(TelemetryEvents["MCP/Onboarding"], {
         name: "Onboarding",
       });

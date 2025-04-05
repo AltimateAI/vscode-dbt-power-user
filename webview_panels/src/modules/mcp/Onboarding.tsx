@@ -84,6 +84,7 @@ interface StepConfig {
   enableButton: string;
   disableButton?: string;
   image?: string;
+  command: string;
 }
 
 const McpOnboarding = (): JSX.Element => {
@@ -111,18 +112,11 @@ const McpOnboarding = (): JSX.Element => {
   };
 
   const handleStepComplete = async (step: number, enabled: boolean) => {
-    if (step === 1) {
-      const result = await executeRequestInSync("configureMcp", {});
-      panelLogger.log(result);
-    }
-    if (step === 2) {
-      const result = await executeRequestInSync("enableDataSourceQueryTools", {
+    const command = steps[step - 1].command;
+    if (command) {
+      const result = await executeRequestInSync(command, {
         enabled: enabled,
       });
-      panelLogger.log(result);
-    }
-    if (step === 4) {
-      const result = await executeRequestInSync("completeMcpOnboarding", {});
       panelLogger.log(result);
     }
 

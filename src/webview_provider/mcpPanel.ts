@@ -28,6 +28,7 @@ import {
   WebviewView,
   ConfigurationTarget,
   workspace,
+  extensions,
 } from "vscode";
 import path from "path";
 import { DbtPowerUserMcpServer } from "../mcp";
@@ -80,23 +81,32 @@ export class McpPanel
   async handleCommand(message: HandleCommandProps): Promise<void> {
     const { command, syncRequestId, ...params } = message;
     switch (command) {
-      case "configureMcp":
+      case "installMcpExtension":
         this.handleSyncRequestFromWebview(
           syncRequestId,
           async () => {
-            const port = await this.mcpServer.start();
-            if (!port) {
-              throw new Error("Failed to start MCP server");
-            }
-
-            const success =
-              await this.mcpServer.updatePortInCursorMcpSettings(port);
-            if (!success) {
-              throw new Error("Failed to update Cursor MCP settings");
-            }
+            const isInstalled = await this.mcpServer.installMcpExtension();
+            return {
+              status: isInstalled,
+            };
+          },
+          command,
+        );
+        break;
+      case "enableMcpExtensionIntegration":
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const enabled = params.enabled ?? true;
+            await workspace
+              .getConfiguration("dbt")
+              .update(
+                "enableMcpExtensionIntegration",
+                enabled,
+                ConfigurationTarget.Global,
+              );
             return {
               status: true,
-              step: 2,
             };
           },
           command,
@@ -122,20 +132,9 @@ export class McpPanel
         );
         break;
       case "completeMcpOnboarding":
-        this.handleSyncRequestFromWebview(
-          syncRequestId,
-          async () => {
-            // Close the MCP walkthrough editor
-            if (this._panel) {
-              (this._panel as WebviewPanel).dispose();
-            }
-            return {
-              status: true,
-              step: 3,
-            };
-          },
-          command,
-        );
+        if (this._panel) {
+          (this._panel as WebviewPanel).dispose();
+        }
         break;
       case "getMcpOnboardingConfig":
         this.handleSyncRequestFromWebview(
