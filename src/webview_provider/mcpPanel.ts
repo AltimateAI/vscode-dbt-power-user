@@ -22,10 +22,8 @@ import {
   CustomDocument,
   CustomDocumentBackupContext,
   CustomDocumentBackup,
-  commands,
   WebviewPanel,
   Webview,
-  WebviewView,
   ConfigurationTarget,
   workspace,
 } from "vscode";
@@ -89,14 +87,12 @@ export class McpPanel
               throw new Error("Failed to start MCP server");
             }
 
-            const success =
-              await this.mcpServer.updatePortInCursorMcpSettings(port);
+            const success = await this.mcpServer.updatePortInMcpSettings(port);
             if (!success) {
               throw new Error("Failed to update Cursor MCP settings");
             }
             return {
               status: true,
-              step: 2,
             };
           },
           command,
@@ -131,7 +127,6 @@ export class McpPanel
             }
             return {
               status: true,
-              step: 3,
             };
           },
           command,
