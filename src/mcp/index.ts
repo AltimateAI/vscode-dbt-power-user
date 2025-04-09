@@ -335,7 +335,7 @@ export class DbtPowerUserMcpServer implements Disposable {
       : `http://localhost:${this.port}/sse`;
   }
 
-  public async updatePortInMcpSettings(port: number) {
+  public async updatePortInMcpSettings(port: number): Promise<boolean> {
     try {
       this.dbtTerminal.debug(
         "DbtPowerUserMcpServer",
