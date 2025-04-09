@@ -18,7 +18,8 @@ export const MCP_ONBOARDING_STEPS = [
     description:
       "In this step, MCP server will be started and a configuration file will be created",
     enableButton: "Set it up!",
-    ide: ["cursor"],
+    action: "configureMcp",
+    ide: ["vscode", "cursor"],
   },
   {
     title: "Advanced Data Tools",
@@ -26,6 +27,7 @@ export const MCP_ONBOARDING_STEPS = [
       "Enhance your experience with advanced data exploration features. By enabling this option, you allow data lookup queries to be processed and shared with Cursor. Features include:\n• Query specific column values\n• Execute SQL\n• Previewing data structures",
     enableButton: "Enable Advanced Features",
     disableButton: "Disable Features",
+    action: "enableDataSourceQueryTools",
     ide: ["cursor", "vscode"],
   },
   {
@@ -42,6 +44,7 @@ export const MCP_ONBOARDING_STEPS = [
       "Open chat and select agent mode. Try this prompt 'Get list of projects'. If you see message like 'Called MCP tool', then you are all set!",
     image: TryChatImage,
     enableButton: "All set!",
+    action: "completeMcpOnboarding",
     ide: ["cursor"],
   },
   {
@@ -50,6 +53,7 @@ export const MCP_ONBOARDING_STEPS = [
       "Open copilot chat and try this prompt '@datapilot Get list of projects'. If you see message like 'Running tool \"get_projects\"', then you are all set!",
     image: CopilotTryChatImage,
     enableButton: "All set!",
+    action: "completeMcpOnboarding",
     ide: ["vscode"],
   },
 ];

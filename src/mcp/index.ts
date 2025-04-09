@@ -58,8 +58,8 @@ export class DbtPowerUserMcpServer implements Disposable {
     this.dbtTerminal.info("DbtPowerUserMcpServer", "Starting onboarding");
 
     const port = await this.start();
-    if (isCursor() && port) {
-      await this.updatePortInCursorMcpSettings(port);
+    if (port) {
+      await this.updatePortInMcpSettings(port);
     }
 
     const onboardedMcpServer = workspace
@@ -335,7 +335,7 @@ export class DbtPowerUserMcpServer implements Disposable {
       : `http://localhost:${this.port}/sse`;
   }
 
-  public async updatePortInCursorMcpSettings(port: number) {
+  public async updatePortInMcpSettings(port: number): Promise<boolean> {
     try {
       this.dbtTerminal.debug(
         "DbtPowerUserMcpServer",
@@ -343,8 +343,10 @@ export class DbtPowerUserMcpServer implements Disposable {
         { port },
       );
       const excludePattern = "**/{dbt_packages,site-packages}";
+      const ide = isCursor() ? "cursor" : "vscode";
+
       const mcpJsonPaths = await workspace.findFiles(
-        "**/.cursor/mcp.json",
+        `**/.${ide}/mcp.json`,
         excludePattern,
         1,
       );
@@ -366,28 +368,57 @@ export class DbtPowerUserMcpServer implements Disposable {
           return false;
         }
 
-        await workspace.fs.writeFile(
-          Uri.file(
-            path.join(
-              workspace.workspaceFolders[0].uri.fsPath,
-              ".cursor",
-              "mcp.json",
-            ),
-          ),
-          new Uint8Array(
-            Buffer.from(
-              JSON.stringify(
-                {
-                  mcpServers: {
-                    dbtPowerUser: { url: this.getMcpServerUrl() },
-                  },
-                },
-                null,
-                2,
+        if (isCursor()) {
+          await workspace.fs.writeFile(
+            Uri.file(
+              path.join(
+                workspace.workspaceFolders[0].uri.fsPath,
+                ".cursor",
+                "mcp.json",
               ),
             ),
-          ),
-        );
+            new Uint8Array(
+              Buffer.from(
+                JSON.stringify(
+                  {
+                    mcpServers: {
+                      dbtPowerUser: { url: this.getMcpServerUrl() },
+                    },
+                  },
+                  null,
+                  2,
+                ),
+              ),
+            ),
+          );
+        } else {
+          await workspace.fs.writeFile(
+            Uri.file(
+              path.join(
+                workspace.workspaceFolders[0].uri.fsPath,
+                ".vscode",
+                "mcp.json",
+              ),
+            ),
+            new Uint8Array(
+              Buffer.from(
+                JSON.stringify(
+                  {
+                    servers: {
+                      dbtPowerUser: {
+                        url: this.getMcpServerUrl(),
+                        type: "sse",
+                      },
+                    },
+                  },
+                  null,
+                  2,
+                ),
+              ),
+            ),
+          );
+        }
+
         return true;
       }
 

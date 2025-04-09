@@ -83,6 +83,7 @@ interface StepConfig {
   description: string;
   enableButton: string;
   disableButton?: string;
+  action?: string
   image?: string;
 }
 
@@ -110,19 +111,11 @@ const McpOnboarding = (): JSX.Element => {
     }
   };
 
-  const handleStepComplete = async (step: number, enabled: boolean) => {
-    if (step === 1) {
-      const result = await executeRequestInSync("configureMcp", {});
-      panelLogger.log(result);
-    }
-    if (step === 2) {
-      const result = await executeRequestInSync("enableDataSourceQueryTools", {
+  const handleStepComplete = async (step:number, action: string | undefined, enabled: boolean) => {
+    if (action) {
+      const result = await executeRequestInSync(action, {
         enabled: enabled,
       });
-      panelLogger.log(result);
-    }
-    if (step === 4) {
-      const result = await executeRequestInSync("completeMcpOnboarding", {});
       panelLogger.log(result);
     }
 
@@ -150,7 +143,7 @@ const McpOnboarding = (): JSX.Element => {
             isActive={currentStep === index + 1}
             isCompleted={completedSteps.includes(index + 1)}
             isFirstStep={index === 0}
-            onButtonClick={(enabled) => handleStepComplete(index + 1, enabled)}
+            onButtonClick={(enabled) => handleStepComplete(index + 1, step.action, enabled)}
             onBackClick={handleStepBack}
           />
         ))}
