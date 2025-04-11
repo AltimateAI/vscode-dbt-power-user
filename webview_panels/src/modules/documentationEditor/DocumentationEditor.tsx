@@ -19,7 +19,7 @@ import { addDefaultActions } from "./utils";
 import ConversationsRightPanel from "./components/conversation/ConversationsRightPanel";
 import CoachAiIfModified from "./components/docGenerator/CoachAiIfModified";
 import Citations from "./components/docGenerator/Citations";
-import { Citation } from "@lib";
+import { Citation } from "@altimateai/ui-components";
 import BulkGenerateButton from "./components/docGenerator/BulkGenerateButton";
 import { BulkDocumentationPropagationPanel } from "./components/documentationPropagation/DocumentationPropagation";
 
