@@ -4,6 +4,7 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DbtPowerUserMcpServerTools } from "./server";
 import { AltimateRequest } from "@extension";
 import { ToolRegistry } from "./types";
+import { SharedStateService } from "../services/sharedStateService";
 
 @provideSingleton(DbtPowerUserMcpServer)
 export class DbtPowerUserMcpServer implements Disposable {
@@ -14,6 +15,7 @@ export class DbtPowerUserMcpServer implements Disposable {
     private dbtPowerUserMcpServerTools: DbtPowerUserMcpServerTools,
     private dbtTerminal: DBTTerminal,
     private altimate: AltimateRequest,
+    private eventEmitter: SharedStateService,
   ) {
     this.updateMcpExtensionApi();
     workspace.onDidChangeConfiguration((event) => {
@@ -22,7 +24,13 @@ export class DbtPowerUserMcpServer implements Disposable {
       }
     });
 
-    this.registerToolsInMcpExtension();
+    this.disposables.push(
+      this.eventEmitter.eventEmitter.event((d) => {
+        if (d.command === "dbtProjectsInitialized") {
+          this.registerToolsInMcpExtension();
+        }
+      }),
+    );
   }
 
   private async updateMcpExtensionApi() {
