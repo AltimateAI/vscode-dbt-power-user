@@ -344,6 +344,7 @@ export class DbtPowerUserMcpServer implements Disposable {
       );
       const excludePattern = "**/{dbt_packages,site-packages}";
       const ide = isCursor() ? "cursor" : "vscode";
+      const configKey = isCursor() ? "mcpServers" : "servers";
 
       const mcpJsonPaths = await workspace.findFiles(
         `**/.${ide}/mcp.json`,
@@ -368,56 +369,31 @@ export class DbtPowerUserMcpServer implements Disposable {
           return false;
         }
 
-        if (isCursor()) {
-          await workspace.fs.writeFile(
-            Uri.file(
-              path.join(
-                workspace.workspaceFolders[0].uri.fsPath,
-                ".cursor",
-                "mcp.json",
-              ),
+        await workspace.fs.writeFile(
+          Uri.file(
+            path.join(
+              workspace.workspaceFolders[0].uri.fsPath,
+              `.${ide}`,
+              "mcp.json",
             ),
-            new Uint8Array(
-              Buffer.from(
-                JSON.stringify(
-                  {
-                    mcpServers: {
-                      dbtPowerUser: { url: this.getMcpServerUrl() },
+          ),
+          new Uint8Array(
+            Buffer.from(
+              JSON.stringify(
+                {
+                  [configKey]: {
+                    dbtPowerUser: {
+                      url: this.getMcpServerUrl(),
+                      type: "sse",
                     },
                   },
-                  null,
-                  2,
-                ),
+                },
+                null,
+                2,
               ),
             ),
-          );
-        } else {
-          await workspace.fs.writeFile(
-            Uri.file(
-              path.join(
-                workspace.workspaceFolders[0].uri.fsPath,
-                ".vscode",
-                "mcp.json",
-              ),
-            ),
-            new Uint8Array(
-              Buffer.from(
-                JSON.stringify(
-                  {
-                    servers: {
-                      dbtPowerUser: {
-                        url: this.getMcpServerUrl(),
-                        type: "sse",
-                      },
-                    },
-                  },
-                  null,
-                  2,
-                ),
-              ),
-            ),
-          );
-        }
+          ),
+        );
 
         return true;
       }
@@ -429,11 +405,12 @@ export class DbtPowerUserMcpServer implements Disposable {
       const config = JSON.parse(fileContent.toString());
 
       // Update the port in the config
-      if (!config.mcpServers) {
-        config.mcpServers = {};
+      if (!config[configKey]) {
+        config[configKey] = {};
       }
-      config.mcpServers.dbtPowerUser = {
+      config[configKey].dbtPowerUser = {
         url: this.getMcpServerUrl(),
+        type: "sse",
       };
 
       // Write the updated config back to the file
