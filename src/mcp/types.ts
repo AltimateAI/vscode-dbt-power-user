@@ -27,4 +27,5 @@ export type McpOnboardingStep = {
 export type ToolRegistry = {
   registerTools: (tools: McpTool[]) => Promise<void>;
   addMcpIntegrationConfig: (steps: McpOnboardingStep[]) => Promise<void>;
+  setCredentials: (credentials: { instanceName: string }) => Promise<void>;
 };

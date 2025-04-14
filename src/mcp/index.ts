@@ -53,6 +53,11 @@ export class DbtPowerUserMcpServer implements Disposable {
     await extension.exports.ready;
     this.mcpExtensionApi = extension.exports as ToolRegistry;
 
+    await this.mcpExtensionApi.setCredentials({
+      instanceName: await workspace
+        .getConfiguration("dbt")
+        .get<string>("altimateInstanceName", ""),
+    });
     await this.mcpExtensionApi.addMcpIntegrationConfig([
       {
         title: "Advanced Data Tools",
