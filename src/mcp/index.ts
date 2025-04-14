@@ -53,11 +53,19 @@ export class DbtPowerUserMcpServer implements Disposable {
     await extension.exports.ready;
     this.mcpExtensionApi = extension.exports as ToolRegistry;
 
-    await this.mcpExtensionApi.setCredentials({
-      instanceName: await workspace
-        .getConfiguration("dbt")
-        .get<string>("altimateInstanceName", ""),
-    });
+    try {
+      await this.mcpExtensionApi.setTelemetryProperties({
+        instanceName: workspace
+          .getConfiguration("dbt")
+          .get<string>("altimateInstanceName", ""),
+      });
+    } catch (error) {
+      this.dbtTerminal.error(
+        "DbtPowerUserMcpServer: setTelemetryProperties",
+        "Failed to set telemetry properties",
+        error,
+      );
+    }
     await this.mcpExtensionApi.addMcpIntegrationConfig([
       {
         title: "Advanced Data Tools",
