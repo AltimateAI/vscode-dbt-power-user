@@ -27,7 +27,7 @@ export type McpOnboardingStep = {
 export type ToolRegistry = {
   registerTools: (tools: McpTool[]) => Promise<void>;
   addMcpIntegrationConfig: (steps: McpOnboardingStep[]) => Promise<void>;
-  setTelemetryProperties: (credentials: {
-    instanceName: string;
+  setTelemetryProperties: (properties: {
+    [key: string]: string | number | boolean | undefined;
   }) => Promise<void>;
 };
