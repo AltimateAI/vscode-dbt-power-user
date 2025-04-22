@@ -414,7 +414,7 @@ class IconActionsTreeviewProvider implements TreeDataProvider<ActionTreeItem> {
           title: "Send Feedback",
           arguments: [
             Uri.parse(
-              "https://docs.google.com/forms/d/e/1FAIpQLSdw7QEvM84FX0KQT1ADhxVsdHk81cdDp_a930Ggym5_Fk1vWg/viewform",
+              "https://form.jotform.com/251105674252148",
             ),
           ],
         }),
