@@ -2148,7 +2148,7 @@ exports.DatapilotNotebookController = class {
                   "[dbt Power User Documentation](https://docs.myaltimate.com/govern/notebooks/)",
                   "  ",
                   "We value your feedback! If you have any suggestions, encounter issues, or want to share your experience, please let us know:",
-                  "[Share Feedback](https://docs.google.com/forms/d/e/1FAIpQLScwN3wRTAniQzvcO6Hn3jC0WtBoFE2NP4X_6qGQ09IZKZ3Ojw/viewform?usp=sf_link)",
+                  "[Share Feedback](https://form.jotform.com/251114766404149)",
                   "  ",
                   "Happy analyzing with your new dbt Power User Notebook!",
                   "  ",

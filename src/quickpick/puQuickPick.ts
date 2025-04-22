@@ -95,7 +95,7 @@ export class DbtPowerUserControlCenterAction {
             "vscode.open",
             [
               Uri.parse(
-                "https://docs.google.com/forms/d/e/1FAIpQLSf7X2nQ3cfqpP6-uYSTE-mFg41ZKigCh2ytPUuX1jz7FoZOnw/viewform?usp=sf_link",
+                "https://form.jotform.com/251114282479154",
               ),
             ],
           ),
