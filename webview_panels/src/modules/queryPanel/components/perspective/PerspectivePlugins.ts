@@ -19,9 +19,9 @@ function dispatchCustomEvent(
 // Checks if the given string is a valid JSON
 const isJson = (str: string) => {
   try {
-    const parsedAsssumingJson: unknown = JSON.parse(str);
+    const parsedAssumingJson: unknown = JSON.parse(str);
     return (
-      typeof parsedAsssumingJson === "object" && parsedAsssumingJson !== null
+      typeof parsedAssumingJson === "object" && parsedAssumingJson !== null
     );
   } catch (e) {
     return false;
