@@ -46,8 +46,8 @@ const ActionWidget = ({
       <FeedbackButton
         url={
           aiEnabled
-            ? "https://docs.google.com/forms/d/e/1FAIpQLScsvmEdZ56F1GAFZq_SW7ejYe0dwpHe-N69qiQBz4ekN4gPNQ/viewform"
-            : "https://docs.google.com/forms/d/10_YT2XDwpbkDXio-7TEYPQXsJfCBFqYUa7t0ImzyZvE/viewform"
+            ? "https://form.jotform.com/251106238702145"
+            : "https://form.jotform.com/251076719766165"
         }
       />
     </div>

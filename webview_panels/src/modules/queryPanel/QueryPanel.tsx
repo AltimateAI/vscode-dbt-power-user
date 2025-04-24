@@ -49,7 +49,7 @@ const QueryPanel = (): JSX.Element => {
             </>
           )}
           <HelpButton />
-          <FeedbackButton url="https://docs.google.com/forms/d/19wX5b5_xXL6J_Q_GpuWzYddIXbvLxuarv09Y3VRk_EU/viewform" />
+          <FeedbackButton url="https://form.jotform.com/251106305895153" />
         </Stack>
       </Stack>
       <div style={{ flex: 1, maxHeight: "calc(100% - 40px)" }}>
