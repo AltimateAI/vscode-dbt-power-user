@@ -7,6 +7,7 @@ import { z } from "zod";
 export type ToolInput = z.infer<typeof ToolSchema.shape.inputSchema>;
 
 export type McpTool = {
+  namespace: string;
   name: string;
   description: string;
   inputSchema: ToolInput;
