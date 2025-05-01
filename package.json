@@ -13,9 +13,9 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.54.3",
+  "version": "0.56.2",
   "engines": {
-    "vscode": "^1.81.0"
+    "vscode": "^1.95.0"
   },
   "capabilities": {
     "hoverProvider": true
@@ -101,6 +101,23 @@
             "type": "string",
             "displayName": "Altimate AI Instance Name",
             "markdownDescription": "Needed for features that require backend support. Sign up for a free Altimate AI account [here](https://app.myaltimate.com/register). If your Altimate AI instance URL is https://betatest.app.myaltimate.com/, The instance name is betatest"
+          },
+          "dbt.enableMcpDataSourceQueryTools": {
+            "type": "boolean",
+            "description": "Enable data source query tools (EXECUTE_SQL_WITH_LIMIT and GET_COLUMN_VALUES)",
+            "default": false
+          },
+          "dbt.mcpSslCertKeyPath": {
+            "type": "string",
+            "description": "Path to the SSL certificate key file for MCP server",
+            "displayName": "MCP Server SSL Certificate Key Path",
+            "default": ""
+          },
+          "dbt.mcpSslCertPath": {
+            "type": "string",
+            "description": "Path to the SSL certificate file for MCP server",
+            "displayName": "MCP Server SSL Certificate Path",
+            "default": ""
           },
           "dbt.enableNewLineagePanel": {
             "type": "boolean",
@@ -320,6 +337,17 @@
             }
           }
         }
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "dbtPowerUser.Mcp",
+        "displayName": "MCP Walkthrough",
+        "selector": [
+          {
+            "filenamePattern": "*.mcpwalkthrough"
+          }
+        ]
       }
     ],
     "viewsContainers": {
@@ -768,6 +796,11 @@
         "command": "dbtPowerUser.showNotebookGenerateModelCTE",
         "title": "Generate dbt model CTE",
         "group": "notebooks@5"
+      },
+      {
+        "command": "dbtPowerUser.applyDeferConfig",
+        "category": "dbt Power User",
+        "title": "Apply defer configuration"
       }
     ],
     "keybindings": [
@@ -1305,9 +1338,9 @@
   "scripts": {
     "postinstall": "node postInstall.js",
     "prepare": "husky",
-    "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production && node prepareBuild.js",
-    "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
-    "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
+    "vscode:prepublish": "npm run panel:webviews && webpack --mode production && node prepareBuild.js",
+    "webpack": "npm run panel:webviews && webpack --mode development",
+    "webpack-dev": "npm run panel:webviews && webpack --mode development --watch",
     "watch": "concurrently \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
@@ -1316,8 +1349,7 @@
     "build-vsix": "vsce package",
     "deploy-openvsx": "ovsx publish",
     "panel:webviews": "npm run build --prefix ./webview_panels",
-    "panel:lineage": "npm run build --prefix ./new_lineage_panel",
-    "install:panels": "npm install --prefix ./new_lineage_panel && npm install --prefix ./webview_panels",
+    "install:panels": "npm install --prefix ./webview_panels",
     "test": "jest",
     "test:unit": "jest",
     "test:coverage": "jest --coverage",
@@ -1332,7 +1364,7 @@
     "@types/istanbul-lib-coverage": "^2.0.6",
     "@types/jest": "^29.5.0",
     "@types/node": "^20.14.11",
-    "@types/vscode": "^1.81.0",
+    "@types/vscode": "^1.95.0",
     "@types/which": "^3.0.4",
     "@types/ws": "^8.5.12",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
@@ -1373,18 +1405,23 @@
   },
   "extensionDependencies": [
     "samuelcolvin.jinjahtml",
-    "ms-python.python"
+    "ms-python.python",
+    "altimateai.vscode-altimate-mcp-server"
   ],
   "dependencies": {
     "@jupyterlab/coreutils": "^6.2.4",
     "@jupyterlab/nbformat": "^4.2.4",
     "@jupyterlab/services": "^6.6.7",
+    "@modelcontextprotocol/sdk": "^1.7.0",
     "@nteract/messaging": "^7.0.20",
+    "@types/express": "^5.0.0",
+    "@vscode/chat-extension-utils": "^0.0.0-alpha.5",
     "@vscode/codicons": "^0.0.36",
     "@vscode/extension-telemetry": "0.9.6",
     "@vscode/vsce": "^2.31.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "dayjs": "^1.11.13",
+    "express": "^5.0.1",
     "inversify": "^6.0.2",
     "inversify-binding-decorators": "^4.0.0",
     "node-abort-controller": "^3.1.1",
@@ -1396,7 +1433,8 @@
     "which": "^4.0.0",
     "ws": "^8.18.0",
     "yaml": "^2.5.0",
-    "zeromq": "^6.1.0"
+    "zeromq": "^6.1.0",
+    "zod-to-json-schema": "^3.24.3"
   },
   "lint-staged": {
     "**/webview_panels/**/*.{ts,tsx}": [

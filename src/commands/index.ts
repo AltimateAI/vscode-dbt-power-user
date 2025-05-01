@@ -624,10 +624,18 @@ export class VSCodeCommands implements Disposable {
               return;
             }
 
-            const fileNamePrefix = fileName || "poweruser";
-            const uri = Uri.parse(
-              `${project.projectRoot}/${fileNamePrefix}-${getFormattedDateTime()}.sql`,
-            ).with({ scheme: "untitled" });
+            // Open a new untitled sql file by default
+            let docOpenPromise = workspace.openTextDocument({
+              language: "jinja-sql",
+            });
+            // If file name is provided, open the file in the project
+            if (fileName) {
+              const uri = Uri.parse(
+                `${project.projectRoot}/${fileName}-${getFormattedDateTime()}.sql`,
+              ).with({ scheme: "untitled" });
+              docOpenPromise = workspace.openTextDocument(uri);
+            }
+
             const annotationDecoration: TextEditorDecorationType =
               window.createTextEditorDecorationType({
                 rangeBehavior: DecorationRangeBehavior.OpenOpen,
@@ -650,7 +658,7 @@ export class VSCodeCommands implements Disposable {
               },
             ];
 
-            workspace.openTextDocument(uri).then((doc) => {
+            docOpenPromise.then((doc) => {
               // set this to sql language so we can bind codelens and other features
               languages.setTextDocumentLanguage(doc, "jinja-sql");
               window.showTextDocument(doc).then((editor) => {
@@ -797,6 +805,24 @@ export class VSCodeCommands implements Disposable {
           );
         },
       ),
+      commands.registerCommand("dbtPowerUser.applyDeferConfig", async () => {
+        const projects = this.dbtProjectContainer.getProjects();
+        try {
+          await Promise.all(
+            projects.map((project) => project.applyDeferConfig()),
+          );
+          window.showInformationMessage("Applied defer configuration");
+        } catch (error) {
+          this.dbtTerminal.error(
+            "applyDeferConfig",
+            "Failed to apply defer configuration",
+            error,
+          );
+          window.showErrorMessage(
+            `Failed to apply defer configuration: ${error}`,
+          );
+        }
+      }),
     );
   }
 

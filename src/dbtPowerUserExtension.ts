@@ -1,10 +1,4 @@
-import {
-  Disposable,
-  ExtensionContext,
-  commands,
-  window,
-  workspace,
-} from "vscode";
+import { Disposable, ExtensionContext, commands, workspace } from "vscode";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";
@@ -22,6 +16,7 @@ import { DbtPowerUserActionsCenter } from "./quickpick";
 import { ValidationProvider } from "./validation_provider";
 import { CommentProviders } from "./comment_provider";
 import { NotebookProviders } from "@lib";
+import { DbtPowerUserMcpServer } from "./mcp";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -66,6 +61,7 @@ export class DBTPowerUserExtension implements Disposable {
     private validationProvider: ValidationProvider,
     private commentProviders: CommentProviders,
     private notebookProviders: NotebookProviders,
+    private mcpServer: DbtPowerUserMcpServer,
   ) {
     this.disposables.push(
       this.dbtProjectContainer,
@@ -84,6 +80,7 @@ export class DBTPowerUserExtension implements Disposable {
       this.validationProvider,
       this.commentProviders,
       this.notebookProviders,
+      this.mcpServer,
     );
   }
 

@@ -347,11 +347,11 @@ export interface DBTProjectIntegration extends Disposable {
     modelName: string,
   ): Promise<QueryExecution>;
   // dbt commands
-  runModel(command: DBTCommand): Promise<void>;
-  buildModel(command: DBTCommand): Promise<void>;
-  buildProject(command: DBTCommand): Promise<void>;
-  runTest(command: DBTCommand): Promise<void>;
-  runModelTest(command: DBTCommand): Promise<void>;
+  runModel(command: DBTCommand): Promise<CommandProcessResult | undefined>;
+  buildModel(command: DBTCommand): Promise<CommandProcessResult | undefined>;
+  buildProject(command: DBTCommand): Promise<CommandProcessResult | undefined>;
+  runTest(command: DBTCommand): Promise<CommandProcessResult | undefined>;
+  runModelTest(command: DBTCommand): Promise<CommandProcessResult | undefined>;
   compileModel(command: DBTCommand): Promise<void>;
   generateDocs(command: DBTCommand): Promise<void>;
   executeCommandImmediately(command: DBTCommand): Promise<CommandProcessResult>;
@@ -457,7 +457,10 @@ export class DBTCommandExecutionInfrastructure {
     this.queues.set(queueName, []);
   }
 
-  async addCommandToQueue(queueName: string, command: DBTCommand) {
+  async addCommandToQueue(
+    queueName: string,
+    command: DBTCommand,
+  ): Promise<CommandProcessResult | undefined> {
     this.queues.get(queueName)!.push({
       command: async (token) => {
         await command.execute(token);
@@ -468,6 +471,7 @@ export class DBTCommandExecutionInfrastructure {
       showProgress: command.showProgress,
     });
     this.pickCommandToRun(queueName);
+    return undefined;
   }
 
   private async pickCommandToRun(queueName: string): Promise<void> {

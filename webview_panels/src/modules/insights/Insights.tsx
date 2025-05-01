@@ -56,7 +56,7 @@ const Insights = (): JSX.Element => {
           </Stack>
           <Stack className="align-items-center text-nowrap">
             <HelpButton />
-            <FeedbackButton url="https://docs.google.com/forms/d/e/1FAIpQLSfGsy10RxTeLwFSVH_MLBuzRO5ErTm3YVHLt_YtrleDM4FMLQ/viewform" />
+            <FeedbackButton url="https://form.jotform.com/251114272082143" />
           </Stack>
         </Stack>
         <Tabs tabs={tabs} />

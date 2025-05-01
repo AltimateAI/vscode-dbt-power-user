@@ -908,7 +908,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
           model.get("name") as string,
         );
         this.setOrDeleteInParsedDocument(model, "tests", modelTests);
-
+        if (!model.get("columns")) {
+          model.set("columns", new YAMLSeq<DocumentationSchemaColumn>());
+        }
         message.columns.forEach((column: any) => {
           const existingColumn = this.findEntityInParsedDoc(
             model.get("columns") as
@@ -965,7 +967,19 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             });
           }
         });
+
+        // delete columns if they are empty to avoid [] in the yaml file
+        if (
+          (
+            model.get("columns") as
+              | YAMLSeq<DocumentationSchemaColumn>
+              | undefined
+          )?.items.length === 0
+        ) {
+          model.delete("columns");
+        }
       }
+
       // Force reload from manifest after manifest refresh
       this.loadedFromManifest = false;
       writeFileSync(patchPath, stringify(parsedDocFile, { lineWidth: 0 }));

@@ -19,11 +19,13 @@ function dispatchCustomEvent(
 // Checks if the given string is a valid JSON
 const isJson = (str: string) => {
   try {
-    JSON.parse(str);
+    const parsedAssumingJson: unknown = JSON.parse(str);
+    return (
+      typeof parsedAssumingJson === "object" && parsedAssumingJson !== null
+    );
   } catch (e) {
     return false;
   }
-  return true;
 };
 
 // Appends an image to the td element
