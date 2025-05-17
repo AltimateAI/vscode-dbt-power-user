@@ -56,7 +56,8 @@ def find_single_occurrence_indices(main_string, substring):
     substring = substring.lower() if substring else ""
 
     if not substring:
-        return None, None
+        # return consistent tuple when substring is empty
+        return None, None, 0
 
     num_occurrences = main_string.count(substring)
     # Check if the substring occurs only once in the main string
