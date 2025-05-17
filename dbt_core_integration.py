@@ -548,6 +548,7 @@ class DbtProject:
                     manifest = Manifest.from_writable_manifest(writable_manifest)
                     self.dbt.merge_from_artifact(
                         other=manifest,
+                        favor_state=self.favor_state,
                     )
                 else:
                     with open(self.defer_to_prod_manifest_path) as f:
