@@ -394,6 +394,7 @@ export interface DBTProjectIntegration extends Disposable {
   getAllDiagnostic(): Diagnostic[];
   throwDiagnosticsErrorIfAvailable(): void;
   getPythonBridgeStatus(): boolean;
+  cleanupConnections(): Promise<void>;
 }
 
 @provide(DBTCommandExecutionInfrastructure)

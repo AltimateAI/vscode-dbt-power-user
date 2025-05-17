@@ -384,6 +384,12 @@ export class DBTCloudProjectIntegration
     return this.python.connected;
   }
 
+  async cleanupConnections(): Promise<void> {
+    try {
+      await this.python.ex`project.cleanup_connections()`;
+    } catch (_) {}
+  }
+
   getAllDiagnostic(): Diagnostic[] {
     return [
       ...(this.pythonBridgeDiagnostics.get(this.projectRoot) || []),

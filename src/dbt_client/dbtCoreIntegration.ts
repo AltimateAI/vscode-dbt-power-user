@@ -583,6 +583,12 @@ export class DBTCoreProjectIntegration
     return this.python.connected;
   }
 
+  async cleanupConnections(): Promise<void> {
+    try {
+      await this.python.ex`project.cleanup_connections()`;
+    } catch (_) {}
+  }
+
   getAllDiagnostic(): Diagnostic[] {
     const projectURI = Uri.joinPath(
       this.projectRoot,
