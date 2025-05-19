@@ -17,5 +17,6 @@ module.exports = {
   moduleNameMapper: {
     "^vscode$": "<rootDir>/src/test/mock/vscode.ts",
     "^@lib$": "<rootDir>/src/test/mock/lib.ts",
+    "^@extension$": "<rootDir>/src/modules.ts",
   },
 };
