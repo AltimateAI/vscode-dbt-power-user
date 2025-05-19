@@ -170,4 +170,70 @@ describe("AltimateRequest Tests", () => {
     expect(onProgress).toHaveBeenCalledTimes(1);
     expect(onProgress).toHaveBeenCalledWith(expect.stringContaining("success"));
   });
+
+  it("should return correct credential messages", () => {
+    mockPythonEnv.getResolvedConfigValue
+      .mockReturnValueOnce("")
+      .mockReturnValueOnce("");
+    expect(request.getCredentialsMessage()).toContain("API Key");
+
+    mockPythonEnv.getResolvedConfigValue
+      .mockReset()
+      .mockImplementation((key: string) =>
+        key === "altimateAiKey" ? "" : "inst",
+      );
+    expect(request.getCredentialsMessage()).toContain("API key");
+
+    mockPythonEnv.getResolvedConfigValue
+      .mockReset()
+      .mockImplementation((key: string) =>
+        key === "altimateInstanceName" ? "" : "key",
+      );
+    expect(request.getCredentialsMessage()).toContain("instance name");
+
+    mockPythonEnv.getResolvedConfigValue.mockReset().mockReturnValue("set");
+    expect(request.getCredentialsMessage()).toBeUndefined();
+  });
+
+  it("should handle preview features flow", () => {
+    const spy = jest
+      .spyOn(request as any, "showAPIKeyMessage")
+      .mockResolvedValue(undefined as any);
+    mockPythonEnv.getResolvedConfigValue
+      .mockReturnValueOnce("")
+      .mockReturnValueOnce("");
+
+    const result = request.handlePreviewFeatures();
+    expect(result).toBe(false);
+    expect(spy).toHaveBeenCalled();
+
+    spy.mockClear();
+    mockPythonEnv.getResolvedConfigValue.mockReturnValue("set");
+    expect(request.handlePreviewFeatures()).toBe(true);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("should generate query strings", () => {
+    const query = (request as any).getQueryString({ a: "b", c: 1 });
+    expect(query).toBe("?a=b&c=1");
+    const empty = (request as any).getQueryString({});
+    expect(empty).toBe("");
+  });
+
+  it("should respect local mode configuration", () => {
+    mockWorkspaceConfig.mockImplementation((section?: string) => {
+      const cfg = {
+        get: jest.fn((key: string) =>
+          key === "isLocalMode" ? true : undefined,
+        ),
+      } as any;
+      return cfg;
+    });
+    expect(() =>
+      (request as any).throwIfLocalMode("auth_health"),
+    ).not.toThrow();
+    expect(() => (request as any).throwIfLocalMode("unsupported")).toThrow(
+      /not supported/,
+    );
+  });
 });
