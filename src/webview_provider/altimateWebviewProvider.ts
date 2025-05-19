@@ -186,7 +186,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
   protected renderWebviewView(webview: Webview) {
     this._webview = webview;
-    this._panel!.webview.onDidReceiveMessage(this.handleCommand, this, []);
+    this._panel!.webview.onDidReceiveMessage(
+      this.handleCommand,
+      this,
+      this._disposables,
+    );
 
     webview.html = this.getHtml(webview, this.dbtProjectContainer.extensionUri);
   }

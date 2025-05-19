@@ -114,7 +114,11 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
       .get<boolean>("enableNewLineagePanel", false);
 
     this.init();
-    panel.webview.onDidReceiveMessage(this.handleWebviewMessage, null, []);
+    panel.webview.onDidReceiveMessage(
+      this.handleWebviewMessage,
+      null,
+      this.disposables,
+    );
     const sendLineageViewEvent = () => {
       if (this.panel!.visible) {
         // keeping the legacy event name same for analysis

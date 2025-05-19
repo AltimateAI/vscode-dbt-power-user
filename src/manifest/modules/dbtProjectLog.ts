@@ -57,6 +57,9 @@ export class DBTProjectLog implements Disposable {
       this.currentProjectName = projectName;
     }
     if (this.currentProjectName !== projectName) {
+      if (this.logFileWatcher) {
+        this.logFileWatcher.dispose();
+      }
       this.outputChannel.dispose();
       this.outputChannel = window.createOutputChannel(
         `${projectName} dbt logs`,
@@ -111,6 +114,9 @@ export class DBTProjectLog implements Disposable {
   public dispose() {
     if (this.outputChannel !== undefined) {
       this.outputChannel.dispose();
+    }
+    if (this.logFileWatcher) {
+      this.logFileWatcher.dispose();
     }
     while (this.disposables.length) {
       const x = this.disposables.pop();

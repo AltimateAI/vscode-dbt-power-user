@@ -102,7 +102,11 @@ export class DbtDocsView extends AltimateWebviewProvider {
       return;
     }
 
-    this._webview.onDidReceiveMessage(this.handleCommand, this, []);
+    this._webview.onDidReceiveMessage(
+      this.handleCommand,
+      this,
+      this._disposables,
+    );
 
     this._webview.html = this.getHtml(
       this._webview,
