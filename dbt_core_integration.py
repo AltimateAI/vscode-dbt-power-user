@@ -894,3 +894,9 @@ class DbtProject:
     
     def set_selected_target(self, target: str):
         self.args.target = target
+
+    def cleanup_connections(self):
+        try:
+            self.adapter.cleanup_connections()
+        except Exception as e:
+            raise Exception(str(e))

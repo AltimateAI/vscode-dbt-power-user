@@ -453,6 +453,7 @@ export class DBTCoreProjectIntegration
           }
           throw new ExecuteSQLError((err as Error).message, compiledQuery!);
         } finally {
+          await this.cleanupConnections();
           await queryThread.end();
         }
         return { ...result, compiled_stmt: compiledQuery, modelName };
@@ -581,6 +582,29 @@ export class DBTCoreProjectIntegration
 
   getPythonBridgeStatus(): boolean {
     return this.python.connected;
+  }
+
+  async cleanupConnections(): Promise<void> {
+    try {
+      await this.python.ex`project.cleanup_connections()`;
+    } catch (exc) {
+      if (exc instanceof PythonException) {
+        this.telemetry.sendTelemetryEvent(
+          "pythonBridgeCleanupConnectionsError",
+          {
+            error: exc.exception.message,
+            adapter: this.getAdapterType() || "unknown", // TODO: this should be moved to dbtProject
+          },
+        );
+      }
+      this.telemetry.sendTelemetryEvent(
+        "pythonBridgeCleanupConnectionsUnexpectedError",
+        {
+          error: (exc as Error).message,
+          adapter: this.getAdapterType() || "unknown", // TODO: this should be moved to dbtProject
+        },
+      );
+    }
   }
 
   getAllDiagnostic(): Diagnostic[] {

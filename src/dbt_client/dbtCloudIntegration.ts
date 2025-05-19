@@ -384,6 +384,9 @@ export class DBTCloudProjectIntegration
     return this.python.connected;
   }
 
+  // Handled by dbt cloud itself
+  async cleanupConnections(): Promise<void> {}
+
   getAllDiagnostic(): Diagnostic[] {
     return [
       ...(this.pythonBridgeDiagnostics.get(this.projectRoot) || []),
