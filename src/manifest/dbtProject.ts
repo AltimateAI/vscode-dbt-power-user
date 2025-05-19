@@ -907,8 +907,9 @@ export class DBTProject implements Disposable {
   }
 
   async getColumnsOfModel(modelName: string) {
-    const result = await this.dbtProjectIntegration.getColumnsOfModel(modelName);
-    await this.dbtProjectIntegration.cleanupConnections().catch(() => {});
+    const result =
+      await this.dbtProjectIntegration.getColumnsOfModel(modelName);
+    await this.dbtProjectIntegration.cleanupConnections();
     return result;
   }
 
@@ -917,7 +918,7 @@ export class DBTProject implements Disposable {
       sourceName,
       tableName,
     );
-    await this.dbtProjectIntegration.cleanupConnections().catch(() => {});
+    await this.dbtProjectIntegration.cleanupConnections();
     return result;
   }
 
@@ -955,7 +956,7 @@ export class DBTProject implements Disposable {
       );
       throw error;
     } finally {
-      await this.dbtProjectIntegration.cleanupConnections().catch(() => {});
+      await this.dbtProjectIntegration.cleanupConnections();
     }
   }
 
@@ -963,12 +964,16 @@ export class DBTProject implements Disposable {
     req: DBTNode[],
     cancellationToken: CancellationToken,
   ) {
-    const result = await this.dbtProjectIntegration.getBulkSchemaFromDB(
-      req,
-      cancellationToken,
-    );
-    await this.dbtProjectIntegration.cleanupConnections().catch(() => {});
-    return result;
+    try {
+      const result = await this.dbtProjectIntegration.getBulkSchemaFromDB(
+        req,
+        cancellationToken,
+      );
+      await this.dbtProjectIntegration.cleanupConnections();
+      return result;
+    } finally {
+      await this.dbtProjectIntegration.cleanupConnections();
+    }
   }
 
   async validateWhetherSqlHasColumns(sql: string) {
@@ -986,6 +991,8 @@ export class DBTProject implements Disposable {
         true,
       );
       return false;
+    } finally {
+      await this.dbtProjectIntegration.cleanupConnections();
     }
   }
 
@@ -1016,7 +1023,7 @@ export class DBTProject implements Disposable {
       );
       return [];
     } finally {
-      await this.dbtProjectIntegration.cleanupConnections().catch(() => {});
+      await this.dbtProjectIntegration.cleanupConnections();
     }
   }
 

@@ -453,6 +453,7 @@ export class DBTCoreProjectIntegration
           }
           throw new ExecuteSQLError((err as Error).message, compiledQuery!);
         } finally {
+          await this.cleanupConnections();
           await queryThread.end();
         }
         return { ...result, compiled_stmt: compiledQuery, modelName };
