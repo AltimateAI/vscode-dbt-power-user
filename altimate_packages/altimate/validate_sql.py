@@ -53,13 +53,13 @@ def _build_schemas(
 def _build_model_mapping(
     models: List[Dict],
 ):
-    map = {}
+    model_map = {}
     for model in models:
         db = model["database"]
         schema = model["schema"]
         table = model["alias"]
-        map[f"{db}.{schema}.{table}".lower()] = model["name"]
-    return map
+        model_map[f"{db}.{schema}.{table}".lower()] = model["name"]
+    return model_map
 
 
 def validate_sql_from_models(
