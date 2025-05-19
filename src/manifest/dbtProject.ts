@@ -907,11 +907,19 @@ export class DBTProject implements Disposable {
   }
 
   async getColumnsOfModel(modelName: string) {
-    return this.dbtProjectIntegration.getColumnsOfModel(modelName);
+    const result =
+      await this.dbtProjectIntegration.getColumnsOfModel(modelName);
+    await this.dbtProjectIntegration.cleanupConnections();
+    return result;
   }
 
   async getColumnsOfSource(sourceName: string, tableName: string) {
-    return this.dbtProjectIntegration.getColumnsOfSource(sourceName, tableName);
+    const result = await this.dbtProjectIntegration.getColumnsOfSource(
+      sourceName,
+      tableName,
+    );
+    await this.dbtProjectIntegration.cleanupConnections();
+    return result;
   }
 
   async getColumnValues(model: string, column: string) {
@@ -934,13 +942,11 @@ export class DBTProject implements Disposable {
         model,
       );
       const result = await queryExecution.executeQuery();
-
       this.telemetry.endTelemetryEvent(
         TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
         undefined,
         { column, model },
       );
-
       return result.table.rows.flat();
     } catch (error) {
       this.telemetry.endTelemetryEvent(
@@ -949,6 +955,8 @@ export class DBTProject implements Disposable {
         { column, model },
       );
       throw error;
+    } finally {
+      await this.dbtProjectIntegration.cleanupConnections();
     }
   }
 
@@ -956,10 +964,16 @@ export class DBTProject implements Disposable {
     req: DBTNode[],
     cancellationToken: CancellationToken,
   ) {
-    return this.dbtProjectIntegration.getBulkSchemaFromDB(
-      req,
-      cancellationToken,
-    );
+    try {
+      const result = await this.dbtProjectIntegration.getBulkSchemaFromDB(
+        req,
+        cancellationToken,
+      );
+      await this.dbtProjectIntegration.cleanupConnections();
+      return result;
+    } finally {
+      await this.dbtProjectIntegration.cleanupConnections();
+    }
   }
 
   async validateWhetherSqlHasColumns(sql: string) {
@@ -977,12 +991,15 @@ export class DBTProject implements Disposable {
         true,
       );
       return false;
+    } finally {
+      await this.dbtProjectIntegration.cleanupConnections();
     }
   }
 
   async getCatalog(): Promise<Catalog> {
     try {
-      return this.dbtProjectIntegration.getCatalog();
+      const result = await this.dbtProjectIntegration.getCatalog();
+      return result;
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         this.telemetry.sendTelemetryError("catalogPythonError", exc, {
@@ -1005,6 +1022,8 @@ export class DBTProject implements Disposable {
           " is not available. ",
       );
       return [];
+    } finally {
+      await this.dbtProjectIntegration.cleanupConnections();
     }
   }
 

@@ -177,9 +177,9 @@ export class PythonDBTCommandExecutionStrategy
         "from dbt.cli.main import dbtRunner",
       );
     return `has_dbt_runner = True
-try: 
+try:
     ${dbtCustomRunnerImport}
-except:
+except Exception:
     has_dbt_runner = False
 if has_dbt_runner:
     dbt_cli = dbtRunner()
@@ -394,6 +394,7 @@ export interface DBTProjectIntegration extends Disposable {
   getAllDiagnostic(): Diagnostic[];
   throwDiagnosticsErrorIfAvailable(): void;
   getPythonBridgeStatus(): boolean;
+  cleanupConnections(): Promise<void>;
 }
 
 @provide(DBTCommandExecutionInfrastructure)

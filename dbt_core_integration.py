@@ -1,6 +1,6 @@
 try:
     from dbt.version import __version__ as dbt_version
-except:
+except Exception:
     raise Exception("dbt not found. Please install dbt to use this extension.")
 
 
@@ -894,3 +894,9 @@ class DbtProject:
     
     def set_selected_target(self, target: str):
         self.args.target = target
+
+    def cleanup_connections(self):
+        try:
+            self.adapter.cleanup_connections()
+        except Exception as e:
+            raise Exception(str(e))
