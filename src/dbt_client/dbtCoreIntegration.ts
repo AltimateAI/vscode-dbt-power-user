@@ -587,7 +587,24 @@ export class DBTCoreProjectIntegration
   async cleanupConnections(): Promise<void> {
     try {
       await this.python.ex`project.cleanup_connections()`;
-    } catch (_) {}
+    } catch (exc) {
+      if (exc instanceof PythonException) {
+        this.telemetry.sendTelemetryEvent(
+          "pythonBridgeCleanupConnectionsError",
+          {
+            error: exc.exception.message,
+            adapter: this.getAdapterType() || "unknown", // TODO: this should be moved to dbtProject
+          },
+        );
+      }
+      this.telemetry.sendTelemetryEvent(
+        "pythonBridgeCleanupConnectionsUnexpectedError",
+        {
+          error: (exc as Error).message,
+          adapter: this.getAdapterType() || "unknown", // TODO: this should be moved to dbtProject
+        },
+      );
+    }
   }
 
   getAllDiagnostic(): Diagnostic[] {

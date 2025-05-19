@@ -898,5 +898,5 @@ class DbtProject:
     def cleanup_connections(self):
         try:
             self.adapter.cleanup_connections()
-        except Exception:
-            pass
+        except Exception as e:
+            raise Exception(str(e))
