@@ -93,11 +93,7 @@ export class DbtPowerUserControlCenterAction {
             "feed",
             "Give us Feedback!",
             "vscode.open",
-            [
-              Uri.parse(
-                "https://form.jotform.com/251114282479154",
-              ),
-            ],
+            [Uri.parse("https://form.jotform.com/251114282479154")],
           ),
         ];
 

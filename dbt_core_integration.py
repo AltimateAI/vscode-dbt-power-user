@@ -1,6 +1,6 @@
 try:
     from dbt.version import __version__ as dbt_version
-except:
+except Exception:
     raise Exception("dbt not found. Please install dbt to use this extension.")
 
 
