@@ -412,11 +412,7 @@ class IconActionsTreeviewProvider implements TreeDataProvider<ActionTreeItem> {
         new ActionTreeItem("Send Feedback", undefined, {
           command: "vscode.open",
           title: "Send Feedback",
-          arguments: [
-            Uri.parse(
-              "https://form.jotform.com/251105674252148",
-            ),
-          ],
+          arguments: [Uri.parse("https://form.jotform.com/251105674252148")],
         }),
       ];
       return Promise.resolve([scanItem]);
