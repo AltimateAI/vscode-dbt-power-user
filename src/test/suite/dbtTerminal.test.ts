@@ -27,19 +27,47 @@ describe("DBTTerminal Test Suite", () => {
       sendTelemetryError: jest.fn(),
     };
 
+    jest.spyOn(console, "log").mockImplementation(() => {});
+    jest.spyOn(console, "debug").mockImplementation(() => {});
+    jest.spyOn(console, "info").mockImplementation(() => {});
+    jest.spyOn(console, "warn").mockImplementation(() => {});
+    jest.spyOn(console, "error").mockImplementation(() => {});
+
     terminal = new DBTTerminal(mockTelemetry);
     // @ts-ignore - Manually set the output channel
     terminal.outputChannel = mockOutputChannel;
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   it("should log messages with proper formatting", () => {
     const message = "Test message";
     terminal.log(message);
     expect(mockOutputChannel.info).toHaveBeenCalledWith(message, []);
+  });
+
+  it("logLine writes message and newline", () => {
+    const spy = jest.spyOn(terminal, "log");
+    terminal.logLine("abc");
+    expect(spy).toHaveBeenCalledWith("abc");
+    expect(spy).toHaveBeenCalledWith("\r\n");
+  });
+
+  it("logNewLine logs CRLF", () => {
+    const spy = jest.spyOn(terminal, "log");
+    terminal.logNewLine();
+    expect(spy).toHaveBeenCalledWith("\r\n");
+  });
+
+  it("should write to terminal when active", () => {
+    const message = "hello";
+    // @ts-ignore - access private
+    terminal.terminal = { show: jest.fn(), dispose: jest.fn() } as any;
+    const fireSpy = jest.spyOn((terminal as any).writeEmitter, "fire");
+    terminal.log(message);
+    expect(fireSpy).toHaveBeenCalledWith(message);
   });
 
   it("should send telemetry on info messages", () => {
@@ -103,6 +131,11 @@ describe("DBTTerminal Test Suite", () => {
         message,
       },
     );
+  });
+
+  it("should handle string errors", () => {
+    terminal.error("name", "msg", "oops");
+    expect(mockOutputChannel.error).toHaveBeenCalledWith("name:msg:oops", []);
   });
 
   it("should format and log blocks with horizontal rules", () => {

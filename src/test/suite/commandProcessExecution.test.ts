@@ -119,4 +119,24 @@ describe("CommandProcessExecution Tests", () => {
     const result = await execution.complete();
     expect(result.stderr.trim()).toBe("error");
   });
+
+  it("should stream output to terminal", async () => {
+    const execution = factory.createCommandProcessExecution({
+      command: process.platform === "win32" ? "cmd" : "echo",
+      args: process.platform === "win32" ? ["/c", "echo stream"] : ["stream"],
+    });
+    when(mockTerminal.log(anything())).thenReturn();
+    const result = await execution.completeWithTerminalOutput();
+    expect(result.stdout.trim()).toBe("stream");
+    verify(mockTerminal.log(anything())).atLeast(1);
+  });
+
+  it("should format text by replacing newlines", () => {
+    const execution = new CommandProcessExecution(
+      instance(mockTerminal),
+      "",
+      [],
+    );
+    expect(execution.formatText("a\n\nb")).toBe("a\r\n\rb");
+  });
 });

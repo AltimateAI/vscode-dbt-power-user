@@ -10,7 +10,12 @@ import { TelemetryService } from "../../telemetry";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { PythonEnvironment } from "../../manifest/pythonEnvironment";
 import { window, workspace, ConfigurationTarget } from "vscode";
+import { Readable } from "stream";
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
 import { AltimateRequest } from "../../altimate";
+import { RateLimitException } from "../../exceptions/rateLimitException";
 
 type FetchFn = (
   input: string | URL | Request,
@@ -169,5 +174,146 @@ describe("AltimateRequest Tests", () => {
 
     expect(onProgress).toHaveBeenCalledTimes(1);
     expect(onProgress).toHaveBeenCalledWith(expect.stringContaining("success"));
+  });
+
+  it("getCredentialsMessage varies by config", () => {
+    mockPythonEnv.getResolvedConfigValue
+      .mockReturnValueOnce("")
+      .mockReturnValueOnce("");
+    expect(request.getCredentialsMessage()).toContain(
+      "API Key and an instance name",
+    );
+
+    mockPythonEnv.getResolvedConfigValue.mockImplementation((key: string) =>
+      key === "altimateAiKey" ? "k" : "",
+    );
+    expect(request.getCredentialsMessage()).toContain("instance name");
+
+    mockPythonEnv.getResolvedConfigValue.mockImplementation((key: string) =>
+      key === "altimateInstanceName" ? "i" : "",
+    );
+    expect(request.getCredentialsMessage()).toContain("API key");
+
+    mockPythonEnv.getResolvedConfigValue
+      .mockReturnValueOnce("key")
+      .mockReturnValueOnce("instance");
+    expect(request.getCredentialsMessage()).toBeUndefined();
+  });
+
+  it("handlePreviewFeatures shows message when missing", () => {
+    mockPythonEnv.getResolvedConfigValue
+      .mockReturnValueOnce("")
+      .mockReturnValueOnce("");
+    const spy = jest
+      .spyOn(request as any, "showAPIKeyMessage")
+      .mockResolvedValue(undefined);
+    expect(request.handlePreviewFeatures()).toBe(false);
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it("handlePreviewFeatures returns true when credentials exist", () => {
+    mockPythonEnv.getResolvedConfigValue
+      .mockReturnValueOnce("k")
+      .mockReturnValueOnce("i");
+    const spy = jest.spyOn(request as any, "showAPIKeyMessage");
+    expect(request.handlePreviewFeatures()).toBe(true);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("readStreamToBlob collects stream data", async () => {
+    const stream = Readable.from(["a", "b"]);
+    const blob: any = await (request as any).readStreamToBlob(stream as any);
+    const text = await blob.text();
+    expect(text).toBe("ab");
+  });
+
+  it("uploadToS3 uploads file", async () => {
+    mockPythonEnv.getResolvedConfigValue
+      .mockReturnValueOnce("key")
+      .mockReturnValueOnce("instance");
+    const file = path.join(os.tmpdir(), "up.txt");
+    fs.writeFileSync(file, "x");
+    const mockRes = new Response("ok", { status: 200, statusText: "OK" });
+    fetchMock.mockResolvedValue(mockRes);
+    const res = await request.uploadToS3("http://s3", {}, file);
+    expect(res.status).toBe(200);
+    fs.rmSync(file);
+  });
+
+  it("uploadToS3 throws on failure", async () => {
+    mockPythonEnv.getResolvedConfigValue
+      .mockReturnValueOnce("key")
+      .mockReturnValueOnce("instance");
+    const file = path.join(os.tmpdir(), "up.txt");
+    fs.writeFileSync(file, "x");
+    const mockRes = new Response("bad", { status: 500, statusText: "ERR" });
+    fetchMock.mockResolvedValue(mockRes);
+    await expect(request.uploadToS3("http://s3", {}, file)).rejects.toThrow(
+      "Failed to upload data",
+    );
+    fs.rmSync(file);
+  });
+
+  it("fetchAsStream throws NotFoundError", async () => {
+    mockPythonEnv.getResolvedConfigValue
+      .mockReturnValueOnce("key")
+      .mockReturnValueOnce("instance");
+    fetchMock.mockResolvedValue(
+      new Response("", { status: 404, statusText: "NotFound" }),
+    );
+    await expect(request.fetchAsStream("foo", {}, jest.fn())).rejects.toThrow(
+      "Resource Not found",
+    );
+  });
+
+  it("fetchAsStream throws RateLimitException", async () => {
+    mockPythonEnv.getResolvedConfigValue
+      .mockReturnValueOnce("key")
+      .mockReturnValueOnce("instance");
+    fetchMock.mockResolvedValue(
+      new Response("wait", {
+        status: 429,
+        statusText: "Too Many",
+        headers: { "Retry-After": "1" },
+      }),
+    );
+    await expect(request.fetchAsStream("foo", {}, jest.fn())).rejects.toThrow(
+      RateLimitException,
+    );
+  });
+
+  it("fetchAsStream throws ForbiddenError", async () => {
+    mockPythonEnv.getResolvedConfigValue
+      .mockReturnValueOnce("key")
+      .mockReturnValueOnce("instance");
+    fetchMock.mockResolvedValue(
+      new Response("", { status: 403, statusText: "Forbidden" }),
+    );
+    await expect(request.fetchAsStream("foo", {}, jest.fn())).rejects.toThrow(
+      "Invalid credentials",
+    );
+  });
+
+  it("fetchAsStream returns null on empty body", async () => {
+    mockPythonEnv.getResolvedConfigValue
+      .mockReturnValueOnce("key")
+      .mockReturnValueOnce("instance");
+    fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
+    const cb = jest.fn();
+    const res = await request.fetchAsStream("foo", {}, cb);
+    expect(res).toBeNull();
+    expect(cb).not.toHaveBeenCalled();
+  });
+
+  it("fetchAsStream throws ExecutionsExhaustedException", async () => {
+    mockPythonEnv.getResolvedConfigValue
+      .mockReturnValueOnce("key")
+      .mockReturnValueOnce("instance");
+    fetchMock.mockResolvedValue(
+      new Response('{"detail":"stop"}', { status: 402, statusText: "Limit" }),
+    );
+    await expect(request.fetchAsStream("foo", {}, jest.fn())).rejects.toThrow(
+      "stop",
+    );
   });
 });
