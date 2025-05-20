@@ -492,10 +492,11 @@ export class DBTCoreProjectIntegration
         );
         this.disposables.push(
           dbtProfileWatcher,
-          // when the project config changes we need to re-init the dbt project
-          ...setupWatcherHandler(dbtProfileWatcher, () =>
-            this.rebuildManifest(),
-          ),
+          // when the profile changes we need to refresh the project configuration
+          ...setupWatcherHandler(dbtProfileWatcher, async () => {
+            await this.refreshProjectConfig();
+            await this.rebuildManifest();
+          }),
         );
       }
       await this.createPythonDbtProject(this.python);
