@@ -24,5 +24,6 @@ module.exports = {
     //   "<rootDir>/../altimate-dbt-integration/src/index.ts",
     // Production: use npm package (commented out for development)
     "^@altimateai/dbt-integration$": "@altimateai/dbt-integration",
+    "^@extension$": "<rootDir>/src/modules.ts",
   },
 };
