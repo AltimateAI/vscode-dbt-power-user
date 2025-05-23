@@ -33,6 +33,7 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
     query: string,
     limit: number,
     modelName: string,
+    fullRefresh = false,
   ): Promise<QueryExecution> {
     this.throwBridgeErrorIfAvailable();
     const showCommand = this.dbtCoreCommand(
@@ -50,6 +51,9 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
         "json",
       ]),
     );
+    if (fullRefresh) {
+      showCommand.addArgument("--full-refresh");
+    }
     const cancellationTokenSource = new CancellationTokenSource();
     showCommand.setToken(cancellationTokenSource.token);
     return new QueryExecution(
@@ -151,7 +155,11 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
     return compiledLine[0].data.compiled;
   }
 
-  async unsafeCompileQuery(query: string): Promise<string> {
+  async unsafeCompileQuery(
+    query: string,
+    _originalModelName: string | undefined = undefined,
+    fullRefresh = false,
+  ): Promise<string> {
     this.throwBridgeErrorIfAvailable();
     const compileQueryCommand = this.dbtCoreCommand(
       new DBTCommand("Compiling sql...", [
@@ -164,6 +172,9 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
         "json",
       ]),
     );
+    if (fullRefresh) {
+      compileQueryCommand.addArgument("--full-refresh");
+    }
     const { stdout, stderr } = await compileQueryCommand.execute();
     const compiledLine = stdout
       .trim()

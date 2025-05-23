@@ -216,6 +216,11 @@
             "default": 500,
             "minimum": 1
           },
+          "dbt.previewFullRefresh": {
+            "type": "boolean",
+            "description": "When enabled, compiled SQL previews use full refresh mode so `is_incremental()` evaluates to false.",
+            "default": false
+          },
           "dbt.perspectiveTheme": {
             "type": "string",
             "description": "Theme for perspective viewer in query results panel",
