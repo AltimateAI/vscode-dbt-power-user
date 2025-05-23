@@ -413,6 +413,7 @@ export class DBTCoreProjectIntegration
     query: string,
     limit: number,
     modelName: string,
+    fullRefresh = false,
   ): Promise<QueryExecution> {
     this.throwBridgeErrorIfAvailable();
     const { limitQuery } = await this.getQuery(query, limit);
@@ -432,11 +433,13 @@ export class DBTCoreProjectIntegration
         const compiledQuery = await this.unsafeCompileQuery(
           limitQuery,
           modelName,
+          fullRefresh,
         );
         try {
           // execute query
           result = await queryThread!.lock<ExecuteSQLResult>(
-            (python) => python`to_dict(project.execute_sql(${compiledQuery}))`,
+            (python) =>
+              python`to_dict(project.execute_sql(${compiledQuery}, ${fullRefresh}))`,
           );
           const { manifestPathType } =
             this.deferToProdService.getDeferConfigByProjectRoot(
@@ -881,11 +884,12 @@ export class DBTCoreProjectIntegration
   async unsafeCompileQuery(
     query: string,
     originalModelName: string | undefined = undefined,
+    fullRefresh = false,
   ): Promise<string> {
     this.throwBridgeErrorIfAvailable();
     const output = await this.python?.lock<CompilationResult>(
       (python) =>
-        python!`to_dict(project.compile_sql(${query}, ${originalModelName}))`,
+        python!`to_dict(project.compile_sql(${query}, ${originalModelName}, ${fullRefresh}))`,
     );
     return output.compiled_sql;
   }
