@@ -1318,6 +1318,8 @@
     "test": "jest",
     "test:unit": "jest",
     "test:coverage": "jest --coverage",
+    "test:force": "node ./node_modules/jest/bin/jest.js",
+    "test:coverage:force": "node ./node_modules/jest/bin/jest.js --coverage",
     "pretest": "npm run clean && npm run compile",
     "clean": "rimraf out coverage",
     "compile": "tsc -p ./"

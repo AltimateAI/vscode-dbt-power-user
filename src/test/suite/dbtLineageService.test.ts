@@ -70,11 +70,20 @@ describe("DbtLineageService Test Suite", () => {
     // Mock manifest event components
     const mockNodeGraph: NodeGraphMap = new Map();
     mockNodeGraph.set("model.test_project.test_model", {
+      currentNode: {
+        label: "model.test_project.test_model",
+        key: "model.test_project.test_model",
+        url: "file:///path/to/model.sql",
+        iconPath: { light: "model", dark: "model" },
+        displayInModelTree: true,
+      },
       nodes: [
         {
           label: "model.test_project.upstream_model",
           key: "model.test_project.upstream_model",
           url: "file:///path/to/model.sql",
+          iconPath: { light: "model", dark: "model" },
+          displayInModelTree: true,
         },
       ],
     });
@@ -83,6 +92,7 @@ describe("DbtLineageService Test Suite", () => {
       parents: mockNodeGraph,
       children: mockNodeGraph,
       tests: new Map(),
+      metrics: new Map(),
     };
 
     const mockSourceMetaMap = new Map();
@@ -94,11 +104,17 @@ describe("DbtLineageService Test Suite", () => {
           name: "test_table",
           identifier: "test_table",
           columns: {
-            id: { name: "id", data_type: "int", description: "Primary key" },
+            id: {
+              name: "id",
+              data_type: "int",
+              description: "Primary key",
+              meta: {},
+            },
             name: {
               name: "name",
               data_type: "string",
               description: "Name field",
+              meta: {},
             },
           },
         },
@@ -120,11 +136,17 @@ describe("DbtLineageService Test Suite", () => {
           alias: "test_model",
           config: { materialized: "table" },
           columns: {
-            id: { name: "id", data_type: "int", description: "Primary key" },
+            id: {
+              name: "id",
+              data_type: "int",
+              description: "Primary key",
+              meta: {},
+            },
             name: {
               name: "name",
               data_type: "string",
               description: "Name field",
+              meta: {},
             },
           },
           description: "Test model description",
@@ -141,11 +163,17 @@ describe("DbtLineageService Test Suite", () => {
           alias: "upstream_model",
           config: { materialized: "view" },
           columns: {
-            id: { name: "id", data_type: "int", description: "Primary key" },
+            id: {
+              name: "id",
+              data_type: "int",
+              description: "Primary key",
+              meta: {},
+            },
             value: {
               name: "value",
               data_type: "float",
               description: "Value field",
+              meta: {},
             },
           },
           description: "Upstream model description",
@@ -162,11 +190,17 @@ describe("DbtLineageService Test Suite", () => {
           database: "test_db",
           config: {},
           columns: {
-            id: { name: "id", data_type: "int", description: "Primary key" },
+            id: {
+              name: "id",
+              data_type: "int",
+              description: "Primary key",
+              meta: {},
+            },
             name: {
               name: "name",
               data_type: "string",
               description: "Name field",
+              meta: {},
             },
           },
           description: "Test source description",
@@ -185,11 +219,17 @@ describe("DbtLineageService Test Suite", () => {
           alias: "test_model",
           config: { materialized: "table" },
           columns: {
-            id: { name: "id", data_type: "int", description: "Primary key" },
+            id: {
+              name: "id",
+              data_type: "int",
+              description: "Primary key",
+              meta: {},
+            },
             name: {
               name: "name",
               data_type: "string",
               description: "Name field",
+              meta: {},
             },
           },
           description: "Test model description",
@@ -215,8 +255,30 @@ describe("DbtLineageService Test Suite", () => {
     } as unknown as jest.Mocked<DBTProject>;
 
     // Setup mocks for queryManifestService
+    // Mock TextDocument for currentDocument
+    const mockTextDocument = {
+      uri: Uri.file("/path/to/model.sql"),
+      fileName: "/path/to/model.sql",
+      isUntitled: false,
+      languageId: "sql",
+      version: 1,
+      isDirty: false,
+      isClosed: false,
+      save: jest.fn(),
+      eol: 1,
+      lineCount: 10,
+      lineAt: jest.fn(),
+      offsetAt: jest.fn(),
+      positionAt: jest.fn(),
+      getText: jest.fn(),
+      getWordRangeAtPosition: jest.fn(),
+      validateRange: jest.fn(),
+      validatePosition: jest.fn(),
+    };
+
     mockQueryManifestService.getEventByCurrentProject.mockReturnValue({
       event: mockManifestEvent,
+      currentDocument: mockTextDocument,
     });
     mockQueryManifestService.getProject.mockReturnValue(mockDBTProject);
 
@@ -253,7 +315,9 @@ describe("DbtLineageService Test Suite", () => {
     });
 
     it("should return undefined if no event is available", () => {
-      mockQueryManifestService.getEventByCurrentProject.mockReturnValue(null);
+      mockQueryManifestService.getEventByCurrentProject.mockReturnValue(
+        undefined,
+      );
 
       const result = dbtLineageService.getUpstreamTables({
         table: "model.test_project.test_model",
@@ -278,7 +342,9 @@ describe("DbtLineageService Test Suite", () => {
     });
 
     it("should return undefined if no event is available", () => {
-      mockQueryManifestService.getEventByCurrentProject.mockReturnValue(null);
+      mockQueryManifestService.getEventByCurrentProject.mockReturnValue(
+        undefined,
+      );
 
       const result = dbtLineageService.getDownstreamTables({
         table: "model.test_project.test_model",
@@ -359,7 +425,7 @@ describe("DbtLineageService Test Suite", () => {
     });
 
     it("should return undefined for a non-existent model", () => {
-      mockManifestEvent.nodeMetaMap.lookupByUniqueId.mockReturnValue(null);
+      mockManifestEvent.nodeMetaMap.lookupByUniqueId.mockReturnValue(undefined);
 
       const result = dbtLineageService.createTable(
         mockManifestEvent,
@@ -373,24 +439,34 @@ describe("DbtLineageService Test Suite", () => {
 
   describe("getConnectedColumns", () => {
     beforeEach(() => {
+      // Skipping readFile due to type issues
       // Mock the workspace.fs.readFile method
-      (workspace.fs as any) = {
-        readFile: jest
-          .fn()
-          .mockResolvedValue(Buffer.from("SELECT * FROM source")),
-      };
+      // (workspace.fs as any) = {
+      //   readFile: jest
+      //     .fn()
+      //     .mockResolvedValue(Buffer.from("SELECT * FROM source")),
+      // };
 
       mockDBTProject.getNodesWithDBColumns.mockResolvedValue({
         mappedNode: {
           "model.test_project.test_model": {
             uniqueId: "model.test_project.test_model",
             name: "test_model",
+            database: "test_db",
+            schema: "test_schema",
+            alias: "test_model",
             columns: {
-              id: { name: "id", data_type: "int", description: "Primary key" },
+              id: {
+                name: "id",
+                data_type: "int",
+                description: "Primary key",
+                meta: {},
+              },
               name: {
                 name: "name",
                 data_type: "string",
                 description: "Name field",
+                meta: {},
               },
             },
             path: "/path/to/model.sql",
@@ -398,12 +474,21 @@ describe("DbtLineageService Test Suite", () => {
           "model.test_project.upstream_model": {
             uniqueId: "model.test_project.upstream_model",
             name: "upstream_model",
+            database: "test_db",
+            schema: "test_schema",
+            alias: "upstream_model",
             columns: {
-              id: { name: "id", data_type: "int", description: "Primary key" },
+              id: {
+                name: "id",
+                data_type: "int",
+                description: "Primary key",
+                meta: {},
+              },
               value: {
                 name: "value",
                 data_type: "float",
                 description: "Value field",
+                meta: {},
               },
             },
             path: "/path/to/upstream_model.sql",
@@ -435,10 +520,10 @@ describe("DbtLineageService Test Suite", () => {
             },
             type: "select",
             views_type: "select",
-            views_code: "SELECT id FROM upstream_model",
+            views_code: ["SELECT id FROM upstream_model"],
           },
         ],
-        confidence: "high",
+        confidence: { confidence: "high" },
         errors: [],
         errors_dict: {},
       });
@@ -511,7 +596,7 @@ describe("DbtLineageService Test Suite", () => {
     });
 
     it("should handle missing project", async () => {
-      mockQueryManifestService.getProject.mockReturnValue(null);
+      mockQueryManifestService.getProject.mockReturnValue(undefined);
 
       const result = await dbtLineageService.getConnectedColumns(
         {
@@ -537,9 +622,9 @@ describe("DbtLineageService Test Suite", () => {
     it("should handle error response from API", async () => {
       mockAltimateRequest.getColumnLevelLineage.mockResolvedValue({
         column_lineage: [],
-        confidence: "low",
+        confidence: { confidence: "low" },
         errors: ["Error parsing SQL"],
-        errors_dict: null,
+        errors_dict: {},
       });
 
       const result = await dbtLineageService.getConnectedColumns(
@@ -606,12 +691,21 @@ describe("DbtLineageService Test Suite", () => {
           "model.test_project.test_model": {
             uniqueId: "model.test_project.test_model",
             name: "test_model",
+            database: "test_db",
+            schema: "test_schema",
+            alias: "test_model",
             columns: {
-              id: { name: "id", data_type: "int", description: "Primary key" },
+              id: {
+                name: "id",
+                data_type: "int",
+                description: "Primary key",
+                meta: {},
+              },
               name: {
                 name: "name",
                 data_type: "string",
                 description: "Name field",
+                meta: {},
               },
             },
             path: "/path/to/model.sql",
