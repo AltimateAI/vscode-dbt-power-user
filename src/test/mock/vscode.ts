@@ -82,7 +82,7 @@ export const window = {
     hide: jest.fn(),
     dispose: jest.fn(),
   }),
-  withProgress: jest.fn().mockImplementation((options, task) => {
+  withProgress: jest.fn().mockImplementation((options, task: any) => {
     return task(null, null);
   }),
 };
