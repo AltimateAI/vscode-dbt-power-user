@@ -29,7 +29,7 @@ describe.skip("CLIDBTCommandExecutionStrategy Tests", () => {
   let mockPythonEnvironment: jest.Mocked<PythonEnvironment>;
   let mockTerminal: jest.Mocked<DBTTerminal>;
   let mockTelemetry: jest.Mocked<TelemetryService>;
-  let mockCommandProcessExecution: any;
+  let mockCommandProcessExecution: jest.Mocked<CommandProcessExecution>;
 
   beforeEach(() => {
     // Create mock dependencies
@@ -37,34 +37,36 @@ describe.skip("CLIDBTCommandExecutionStrategy Tests", () => {
       complete: jest.fn(),
       completeWithTerminalOutput: jest.fn(),
       disposables: [],
-      terminal: {},
+      terminal: {} as DBTTerminal,
       command: "",
       spawn: jest.fn(),
       kill: jest.fn(),
       dispose: jest.fn(),
       formatText: jest.fn(),
-    };
+    } as unknown as jest.Mocked<CommandProcessExecution>;
 
     // Set up returns
     mockCommandProcessExecution.complete.mockResolvedValue({
       stdout: "success",
       stderr: "",
+      fullOutput: "success",
     });
     mockCommandProcessExecution.completeWithTerminalOutput.mockResolvedValue({
       stdout: "success",
       stderr: "",
+      fullOutput: "success",
     });
 
     mockCommandProcessExecutionFactory = {
       createCommandProcessExecution: jest
         .fn()
         .mockReturnValue(mockCommandProcessExecution),
-    };
+    } as unknown as jest.Mocked<CommandProcessExecutionFactory>;
 
     mockPythonEnvironment = {
       pythonPath: "/path/to/python",
       environmentVariables: { PATH: "/some/path" },
-    };
+    } as unknown as jest.Mocked<PythonEnvironment>;
 
     mockTerminal = {
       show: jest.fn(),
@@ -75,12 +77,12 @@ describe.skip("CLIDBTCommandExecutionStrategy Tests", () => {
       error: jest.fn(),
       warn: jest.fn(),
       dispose: jest.fn(),
-    };
+    } as unknown as jest.Mocked<DBTTerminal>;
 
     mockTelemetry = {
       sendTelemetryEvent: jest.fn(),
       sendTelemetryError: jest.fn(),
-    };
+    } as unknown as jest.Mocked<TelemetryService>;
 
     // Create strategy instance
     strategy = new CLIDBTCommandExecutionStrategy(
@@ -330,12 +332,12 @@ describe("DBTCommand Test Suite", () => {
 // TODO: Fix mock types and re-enable these tests
 describe.skip("CLIDBTCommandExecutionStrategy additional tests", () => {
   let strategy: CLIDBTCommandExecutionStrategy;
-  let mockCommandProcessExecutionFactory: any;
-  let mockPythonEnvironment: any;
-  let mockTerminal: any;
-  let mockTelemetry: any;
-  let mockCommandProcessExecution: any;
-  let mockCancellationToken: any;
+  let mockCommandProcessExecutionFactory: jest.Mocked<CommandProcessExecutionFactory>;
+  let mockPythonEnvironment: jest.Mocked<PythonEnvironment>;
+  let mockTerminal: jest.Mocked<DBTTerminal>;
+  let mockTelemetry: jest.Mocked<TelemetryService>;
+  let mockCommandProcessExecution: jest.Mocked<CommandProcessExecution>;
+  let mockCancellationToken: CancellationToken;
 
   beforeEach(() => {
     // Create mock dependencies
@@ -343,13 +345,13 @@ describe.skip("CLIDBTCommandExecutionStrategy additional tests", () => {
       complete: jest.fn(),
       completeWithTerminalOutput: jest.fn(),
       disposables: [],
-      terminal: {},
+      terminal: {} as DBTTerminal,
       command: "",
       spawn: jest.fn(),
       kill: jest.fn(),
       dispose: jest.fn(),
       formatText: jest.fn(),
-    };
+    } as unknown as jest.Mocked<CommandProcessExecution>;
 
     // Set up returns
     mockCommandProcessExecution.complete.mockResolvedValue({
@@ -367,12 +369,12 @@ describe.skip("CLIDBTCommandExecutionStrategy additional tests", () => {
       createCommandProcessExecution: jest
         .fn()
         .mockReturnValue(mockCommandProcessExecution),
-    };
+    } as unknown as jest.Mocked<CommandProcessExecutionFactory>;
 
     mockPythonEnvironment = {
       pythonPath: "/path/to/python",
       environmentVariables: { PATH: "/some/path" },
-    };
+    } as unknown as jest.Mocked<PythonEnvironment>;
 
     mockTerminal = {
       show: jest.fn(),
@@ -383,17 +385,17 @@ describe.skip("CLIDBTCommandExecutionStrategy additional tests", () => {
       error: jest.fn(),
       warn: jest.fn(),
       dispose: jest.fn(),
-    };
+    } as unknown as jest.Mocked<DBTTerminal>;
 
     mockTelemetry = {
       sendTelemetryEvent: jest.fn(),
       sendTelemetryError: jest.fn(),
-    };
+    } as unknown as jest.Mocked<TelemetryService>;
 
     mockCancellationToken = {
       isCancellationRequested: false,
       onCancellationRequested: jest.fn(),
-    };
+    } as unknown as CancellationToken;
 
     // Create strategy instance
     strategy = new CLIDBTCommandExecutionStrategy(

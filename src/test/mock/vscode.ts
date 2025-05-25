@@ -18,6 +18,13 @@ export const Range = class {
   ) {}
 };
 
+export const RelativePattern = class {
+  constructor(
+    public base: string | Uri,
+    public pattern: string,
+  ) {}
+};
+
 export const Position = class {
   constructor(
     public line: number,
@@ -52,6 +59,12 @@ export const commands = {
   executeCommand: jest.fn().mockReturnValue(Promise.resolve()),
 };
 
+export const ProgressLocation = {
+  Notification: 1,
+  Window: 2,
+  SourceControl: 3,
+};
+
 export const window = {
   showInformationMessage: jest.fn().mockReturnValue(Promise.resolve()),
   showErrorMessage: jest.fn().mockReturnValue(Promise.resolve()),
@@ -68,6 +81,9 @@ export const window = {
     show: jest.fn(),
     hide: jest.fn(),
     dispose: jest.fn(),
+  }),
+  withProgress: jest.fn().mockImplementation((options, task) => {
+    return task(null, null);
   }),
 };
 
