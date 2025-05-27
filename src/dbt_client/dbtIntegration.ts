@@ -345,6 +345,7 @@ export interface DBTProjectIntegration extends Disposable {
     query: string,
     limit: number,
     modelName: string,
+    fullRefresh?: boolean,
   ): Promise<QueryExecution>;
   // dbt commands
   runModel(command: DBTCommand): Promise<CommandProcessResult | undefined>;
@@ -362,6 +363,7 @@ export interface DBTProjectIntegration extends Disposable {
   unsafeCompileQuery(
     query: string,
     originalModelName: string | undefined,
+    fullRefresh?: boolean,
   ): Promise<string>;
   validateSql(
     query: string,
