@@ -1,4 +1,11 @@
-import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
+import {
+  expect,
+  describe,
+  it,
+  beforeEach,
+  afterEach,
+  jest,
+} from "@jest/globals";
 import * as vscode from "../mock/vscode";
 
 describe("Extension Test Suite", () => {
