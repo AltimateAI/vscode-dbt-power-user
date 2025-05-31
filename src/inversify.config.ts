@@ -46,6 +46,7 @@ import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
 import { NotebookKernelClient, NotebookDependencies } from "@lib";
 import { DBTCoreCommandProjectIntegration } from "./dbt_client/dbtCoreCommandIntegration";
+import { DBTFusionCommandProjectIntegration } from "./dbt_client/dbtFusionCommandIntegration";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -197,6 +198,31 @@ container
 
 container
   .bind<
+    interfaces.Factory<DBTCoreProjectIntegration>
+  >("Factory<DBTFusionCommandProjectIntegration>")
+  .toFactory<
+    DBTFusionCommandProjectIntegration,
+    [Uri, DiagnosticCollection]
+  >((context: interfaces.Context) => {
+    return (projectRoot: Uri) => {
+      const { container } = context;
+      return new DBTFusionCommandProjectIntegration(
+        container.get(DBTCommandExecutionInfrastructure),
+        container.get(DBTCommandFactory),
+        container.get("Factory<CLIDBTCommandExecutionStrategy>"),
+        container.get(TelemetryService),
+        container.get(PythonEnvironment),
+        container.get(DBTTerminal),
+        container.get(ValidationProvider),
+        container.get(DeferToProdService),
+        projectRoot,
+        container.get(AltimateRequest),
+      );
+    };
+  });
+
+container
+  .bind<
     interfaces.Factory<DBTCloudProjectIntegration>
   >("Factory<DBTCloudProjectIntegration>")
   .toFactory<
@@ -244,6 +270,7 @@ container
         container.get("Factory<DBTCoreProjectIntegration>"),
         container.get("Factory<DBTCoreCommandProjectIntegration>"),
         container.get("Factory<DBTCloudProjectIntegration>"),
+        container.get("Factory<DBTFusionCommandProjectIntegration>"),
         container.get(AltimateRequest),
         container.get(ValidationProvider),
         path,

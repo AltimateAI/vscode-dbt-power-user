@@ -36,6 +36,7 @@ import {
 import {
   getCurrentlySelectedModelNameInYamlConfig,
   provideSingleton,
+  removeProtocol,
 } from "../utils";
 
 @provide(ModelTreeviewProvider)
@@ -263,7 +264,7 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
           currentNode.patch_path !== null
             ? path.join(
                 projectRootpath.fsPath,
-                currentNode.patch_path.split("://")[1],
+                removeProtocol(currentNode.patch_path),
               )
             : " ";
 

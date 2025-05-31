@@ -30,6 +30,7 @@ import {
   isQuotedIdentifier,
   isRelationship,
   provideSingleton,
+  removeProtocol,
 } from "../utils";
 import path = require("path");
 import { PythonException } from "python-bridge";
@@ -460,7 +461,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     }
 
     const docFile: string = readFileSync(
-      path.join(project.projectRoot.fsPath, patchPath.split("://")[1]),
+      path.join(project.projectRoot.fsPath, removeProtocol(patchPath)),
     ).toString("utf8");
     const parsedDocFile =
       parse(docFile, {
@@ -831,7 +832,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         // the location comes from the manifest, parse it
         patchPath = path.join(
           projectByFilePath.projectRoot.fsPath,
-          patchPath.split("://")[1],
+          removeProtocol(patchPath),
         );
       }
       // check if file exists, if not create an empty file
