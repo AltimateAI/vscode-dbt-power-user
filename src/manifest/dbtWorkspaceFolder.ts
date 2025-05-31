@@ -45,7 +45,7 @@ export class DBTWorkspaceFolder implements Disposable {
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
     ) => DBTProject,
     @inject("Factory<DBTProjectDetection>")
-    private dbtCoreProjectDetectionFactory: () => DBTProjectDetection,
+    private dbtProjectDetectionFactory: () => DBTProjectDetection,
     private telemetry: TelemetryService,
     private dbtTerminal: DBTTerminal,
     public workspaceFolder: WorkspaceFolder,
@@ -173,7 +173,7 @@ export class DBTWorkspaceFolder implements Disposable {
       .get<string>("dbtIntegration", "core");
 
     const filteredProjects =
-      await this.dbtCoreProjectDetectionFactory().discoverProjects(
+      await this.dbtProjectDetectionFactory().discoverProjects(
         projectDirectories,
       );
 
