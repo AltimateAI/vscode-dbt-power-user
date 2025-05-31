@@ -172,7 +172,7 @@ export class DBTCloudProjectIntegration
   private static QUEUE_ALL = "all";
   protected targetPath?: string;
   private version: number[] | undefined;
-  private projectName: string = "unknown_" + crypto.randomUUID();
+  protected projectName: string = "unknown_" + crypto.randomUUID();
   private adapterType: string = "unknown";
   protected packagesInstallPath?: string;
   protected modelPaths?: string[];

@@ -114,6 +114,19 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
     this.seedPaths = [join(this.projectRoot.fsPath, "seeds")];
     this.macroPaths = [join(this.projectRoot.fsPath, "macros")];
     this.packagesInstallPath = join(this.projectRoot.fsPath, "dbt_packages");
+    try {
+      const projectConfig = DBTProject.readAndParseProjectConfig(
+        this.projectRoot,
+      );
+      this.projectName = projectConfig.name;
+    } catch (error) {
+      this.terminal.warn(
+        "DbtCloudIntegrationProjectNameFromConfigExceptionError",
+        "project name could not be read from dbt_project.yml, ignoring",
+        true,
+        error,
+      );
+    }
   }
 
   async rebuildManifest(): Promise<void> {
