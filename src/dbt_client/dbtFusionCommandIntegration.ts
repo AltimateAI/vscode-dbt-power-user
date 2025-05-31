@@ -88,7 +88,7 @@ export class DBTFusionCommandProjectDetection implements DBTProjectDetection {
     });
     if (filteredProjectFiles.length > 20) {
       window.showWarningMessage(
-        `dbt Power User detected ${filteredProjectFiles.length} projects in your work space, this will negatively affect performance.`,
+        `dbt Power User detected ${filteredProjectFiles.length} projects in your workspace, this will negatively affect performance.`,
       );
     }
     return filteredProjectFiles;
