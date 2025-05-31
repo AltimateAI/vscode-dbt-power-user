@@ -3,9 +3,8 @@ import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { provideSingleton } from "../utils";
 import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
 import { existsSync } from "fs";
-import { DBTCoreDetection } from "./dbtCoreIntegration";
-import { DBTCloudDetection } from "./dbtCloudIntegration";
 import { DBTDetection } from "./dbtIntegration";
+import { inject } from "inversify";
 
 enum DbtInstallationPromptAnswer {
   INSTALL = "Install dbt core",
@@ -34,27 +33,11 @@ export class DBTClient implements Disposable {
     this._onDBTInstallationVerificationEvent,
   ];
   private shownError = false;
-  private dbtIntegrationMode = "core";
-  private dbtDetection: DBTDetection;
-
   constructor(
     private pythonEnvironment: PythonEnvironment,
-    private dbtCoreDetection: DBTCoreDetection,
-    private dbtCloudDetection: DBTCloudDetection,
-  ) {
-    this.dbtIntegrationMode = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
-
-    switch (this.dbtIntegrationMode) {
-      case "cloud":
-        this.dbtDetection = this.dbtCloudDetection;
-        break;
-      default:
-        this.dbtDetection = this.dbtCoreDetection;
-        break;
-    }
-  }
+    @inject("Factory<DBTDetection>")
+    private dbtDetectionFactory: () => DBTDetection,
+  ) {}
 
   dispose() {
     while (this.disposables.length) {
@@ -82,7 +65,7 @@ export class DBTClient implements Disposable {
     this.shownError = false;
     this._dbtInstalled = undefined;
     this._pythonInstalled = this.pythonPathExists();
-    this._dbtInstalled = await this.dbtDetection.detectDBT();
+    this._dbtInstalled = await this.dbtDetectionFactory().detectDBT();
     this._onDBTInstallationVerificationEvent.fire({
       inProgress: false,
       installed: this._dbtInstalled,
@@ -147,7 +130,10 @@ export class DBTClient implements Disposable {
       if (!this.shownError) {
         // We don't want to flood the user with errors
         this.shownError = true;
-        if (this.dbtIntegrationMode === "cloud") {
+        const dbtIntegrationMode = workspace
+          .getConfiguration("dbt")
+          .get<string>("dbtIntegration", "core");
+        if (dbtIntegrationMode === "cloud") {
           await this.executeInstallDbtCommand(
             "Please ensure dbt cloud cli is installed.",
             DbtInstallationPromptAnswer.INSTALL_CLOUD,
