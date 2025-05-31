@@ -46,7 +46,11 @@ import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
 import { NotebookKernelClient, NotebookDependencies } from "@lib";
 import { DBTCoreCommandProjectIntegration } from "./dbt_client/dbtCoreCommandIntegration";
-import { DBTFusionCommandProjectIntegration } from "./dbt_client/dbtFusionCommandIntegration";
+import {
+  DBTFusionCommandDetection,
+  DBTFusionCommandProjectDetection,
+  DBTFusionCommandProjectIntegration,
+} from "./dbt_client/dbtFusionCommandIntegration";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -63,6 +67,8 @@ container
       switch (dbtIntegrationMode) {
         case "cloud":
           return container.get(DBTCloudDetection);
+        case "fusion":
+          return container.get(DBTFusionCommandDetection);
         default:
           return container.get(DBTCoreDetection);
       }
@@ -81,6 +87,8 @@ container
       switch (dbtIntegrationMode) {
         case "cloud":
           return container.get(DBTCloudProjectDetection);
+        case "fusion":
+          return container.get(DBTFusionCommandProjectDetection);
         default:
           return container.get(DBTCoreProjectDetection);
       }

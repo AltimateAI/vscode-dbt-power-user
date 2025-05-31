@@ -57,27 +57,6 @@ export class DBTWorkspaceFolder implements Disposable {
     this.disposables.push(this.watcher);
   }
 
-  @postConstruct()
-  initialize() {
-    const dbtIntegrationMode = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
-
-    switch (dbtIntegrationMode) {
-      case "cloud":
-        this.dbtProjectDetection = container.get(DBTCloudProjectDetection);
-        break;
-      case "fusion":
-        this.dbtProjectDetection = container.get(
-          DBTFusionCommandProjectDetection,
-        );
-        break;
-      default:
-        this.dbtProjectDetection = container.get(DBTCoreProjectDetection);
-        break;
-    }
-  }
-
   getAllowListFolders() {
     const nonFilteredAlolowListFolders = workspace
       .getConfiguration("dbt")
