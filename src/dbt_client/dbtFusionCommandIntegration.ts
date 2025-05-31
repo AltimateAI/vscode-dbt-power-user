@@ -7,7 +7,7 @@ import {
   Uri,
   window,
 } from "vscode";
-import { provideSingleton } from "../utils";
+import { getFirstWorkspacePath, provideSingleton } from "../utils";
 import {
   QueryExecution,
   DBTCommand,
@@ -17,71 +17,61 @@ import {
   DBTDetection,
   DBTProjectDetection,
 } from "./dbtIntegration";
-import { DBTProject } from "@extension";
-import { DBTCloudProjectIntegration } from "./dbtCloudIntegration";
+import {
+  CommandProcessExecutionFactory,
+  DBTProject,
+  DBTTerminal,
+  PythonEnvironment,
+} from "@extension";
+import { DBTCloudProjectIntegration, getDBTPath } from "./dbtCloudIntegration";
 import path, { join } from "path";
 
 @provideSingleton(DBTFusionCommandDetection)
 export class DBTFusionCommandDetection implements DBTDetection {
-  //   // constructor(
-  //   //   protected commandProcessExecutionFactory: CommandProcessExecutionFactory,
-  //   //   protected pythonEnvironment: PythonEnvironment,
-  //   //   protected terminal: DBTTerminal,
-  //   // ) {}
-  //   // async detectDBT(): Promise<boolean> {
-  //   //   const dbtPath = getDBTPath(this.pythonEnvironment, this.terminal);
-  //   //   try {
-  //   //     this.terminal.debug("DBTCLIDetection", "Detecting dbt fusion cli");
-  //   //     const checkDBTInstalledProcess =
-  //   //       this.commandProcessExecutionFactory.createCommandProcessExecution({
-  //   //         command: dbtPath,
-  //   //         args: ["--version"],
-  //   //         cwd: this.getFirstWorkspacePath(),
-  //   //       });
-  //   //     const { stdout, stderr } = await checkDBTInstalledProcess.complete();
-  //   //     if (stderr) {
-  //   //       throw new Error(stderr);
-  //   //     }
-  //   //     if (stdout.includes("dbt-fusion")) {
-  //   //       this.terminal.debug(
-  //   //         "DBTCLIDetectionSuccess",
-  //   //         "dbt fusion cli detected",
-  //   //       );
-  //   //       return true;
-  //   //     } else {
-  //   //       this.terminal.debug(
-  //   //         "DBTCLIDetectionFailed",
-  //   //         "dbt cloud cli was not found. Detection command returned :  " +
-  //   //           stdout,
-  //   //       );
-  //   //     }
-  //   //   } catch (error) {
-  //   //     this.terminal.warn(
-  //   //       "DBTCLIDetectionError",
-  //   //       "Detection failed with error : " + (error as Error).message,
-  //   //     );
-  //   //   }
-  //   //   this.terminal.debug(
-  //   //     "DBTCLIDetectionFailed",
-  //   //     "dbt cloud cli was not found. Detection command returning false",
-  //   //   );
-  //   //   return false;
-  //   // }
+  constructor(
+    protected commandProcessExecutionFactory: CommandProcessExecutionFactory,
+    protected pythonEnvironment: PythonEnvironment,
+    protected terminal: DBTTerminal,
+  ) {}
 
-  //   // private getFirstWorkspacePath(): string {
-  //   //   // If we are executing python via a wrapper like Meltano,
-  //   //   // we need to execute it from a (any) project directory
-  //   //   // By default, Command execution is in an ext dir context
-  //   //   const folders = workspace.workspaceFolders;
-  //   //   if (folders) {
-  //   //     return folders[0].uri.fsPath;
-  //   //   } else {
-  //   //     // TODO: this shouldn't happen but we should make sure this is valid fallback
-  //   //     return Uri.file("./").fsPath;
-  //   //   }
-  //   // }
   async detectDBT(): Promise<boolean> {
-    return true;
+    const dbtPath = getDBTPath(this.pythonEnvironment, this.terminal);
+    try {
+      this.terminal.debug("DBTCLIDetection", "Detecting dbt fusion cli");
+      const checkDBTInstalledProcess =
+        this.commandProcessExecutionFactory.createCommandProcessExecution({
+          command: dbtPath,
+          args: ["--version"],
+          cwd: getFirstWorkspacePath(),
+        });
+      const { stdout, stderr } = await checkDBTInstalledProcess.complete();
+      if (stderr) {
+        throw new Error(stderr);
+      }
+      if (stdout.includes("dbt-fusion")) {
+        this.terminal.debug(
+          "DBTCLIDetectionSuccess",
+          "dbt fusion cli detected",
+        );
+        return true;
+      } else {
+        this.terminal.debug(
+          "DBTCLIDetectionFailed",
+          "dbt cloud cli was not found. Detection command returned :  " +
+            stdout,
+        );
+      }
+    } catch (error) {
+      this.terminal.warn(
+        "DBTCLIDetectionError",
+        "Detection failed with error : " + (error as Error).message,
+      );
+    }
+    this.terminal.debug(
+      "DBTCLIDetectionFailed",
+      "dbt cloud cli was not found. Detection command returning false",
+    );
+    return false;
   }
 }
 
