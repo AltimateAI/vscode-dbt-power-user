@@ -57,7 +57,7 @@ export class DBTFusionCommandDetection implements DBTDetection {
       } else {
         this.terminal.debug(
           "DBTCLIDetectionFailed",
-          "dbt cloud cli was not found. Detection command returned :  " +
+          "dbt fusion cli was not found. Detection command returned :  " +
             stdout,
         );
       }
@@ -69,7 +69,7 @@ export class DBTFusionCommandDetection implements DBTDetection {
     }
     this.terminal.debug(
       "DBTCLIDetectionFailed",
-      "dbt cloud cli was not found. Detection command returning false",
+      "dbt fusion cli was not found. Detection command returning false",
     );
     return false;
   }
