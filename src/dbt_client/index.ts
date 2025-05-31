@@ -33,7 +33,6 @@ export class DBTClient implements Disposable {
     this._onDBTInstallationVerificationEvent,
   ];
   private shownError = false;
-  private dbtIntegrationMode = "core";
   constructor(
     private pythonEnvironment: PythonEnvironment,
     @inject("Factory<DBTDetection>")
@@ -131,7 +130,10 @@ export class DBTClient implements Disposable {
       if (!this.shownError) {
         // We don't want to flood the user with errors
         this.shownError = true;
-        if (this.dbtIntegrationMode === "cloud") {
+        const dbtIntegrationMode = workspace
+          .getConfiguration("dbt")
+          .get<string>("dbtIntegration", "core");
+        if (dbtIntegrationMode === "cloud") {
           await this.executeInstallDbtCommand(
             "Please ensure dbt cloud cli is installed.",
             DbtInstallationPromptAnswer.INSTALL_CLOUD,
