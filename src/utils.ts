@@ -464,3 +464,7 @@ export function getCurrentlySelectedModelNameInYamlConfig(): string {
   }
   return "";
 }
+
+export function removeProtocol(input: string): string {
+  return input.replace(/^[^:]+:\/\//, "");
+}

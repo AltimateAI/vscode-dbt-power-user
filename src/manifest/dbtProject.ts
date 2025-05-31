@@ -70,6 +70,7 @@ import { TelemetryEvents } from "../telemetry/events";
 import { RunResultsEvent } from "./event/runResultsEvent";
 import { DBTCoreCommandProjectIntegration } from "../dbt_client/dbtCoreCommandIntegration";
 import { Table } from "src/services/dbtLineageService";
+import { DBTFusionCommandProjectIntegration } from "src/dbt_client/dbtFusionCommandIntegration";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -138,6 +139,9 @@ export class DBTProject implements Disposable {
     private dbtCloudIntegrationFactory: (
       path: Uri,
     ) => DBTCloudProjectIntegration,
+    private dbtFusionCommandIntegrationFactory: (
+      path: Uri,
+    ) => DBTFusionCommandProjectIntegration,
     private altimate: AltimateRequest,
     private validationProvider: ValidationProvider,
     path: Uri,
@@ -171,6 +175,11 @@ export class DBTProject implements Disposable {
     switch (dbtIntegrationMode) {
       case "cloud":
         this.dbtProjectIntegration = this.dbtCloudIntegrationFactory(
+          this.projectRoot,
+        );
+        break;
+      case "fusion":
+        this.dbtProjectIntegration = this.dbtFusionCommandIntegrationFactory(
           this.projectRoot,
         );
         break;

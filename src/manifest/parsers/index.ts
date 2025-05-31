@@ -14,6 +14,7 @@ import { TestParser } from "./testParser";
 import { TelemetryService } from "../../telemetry";
 import { ExposureParser } from "./exposureParser";
 import { MetricParser } from "./metricParser";
+import { ChildrenParentParser } from "./childrenParentParser";
 
 @provide(ManifestParser)
 export class ManifestParser {
@@ -21,6 +22,7 @@ export class ManifestParser {
   private consecutiveReadFailures = 0;
 
   constructor(
+    private childrenParentParser: ChildrenParentParser,
     private nodeParser: NodeParser,
     private macroParser: MacroParser,
     private metricParser: MetricParser,
@@ -75,16 +77,11 @@ export class ManifestParser {
       return event;
     }
 
-    const {
-      nodes,
-      sources,
-      macros,
-      semantic_models,
-      parent_map,
-      child_map,
-      docs,
-      exposures,
-    } = manifest;
+    const { nodes, sources, macros, semantic_models, docs, exposures } =
+      manifest;
+
+    const parentChildrenPromise =
+      this.childrenParentParser.createChildrenParentMetaMap(nodes);
 
     const nodeMetaMapPromise = this.nodeParser.createNodeMetaMap(
       nodes,
@@ -114,6 +111,7 @@ export class ManifestParser {
     const docMetaMapPromise = this.docParser.createDocMetaMap(docs, project);
 
     const [
+      { parentMetaMap, childMetaMap },
       nodeMetaMap,
       macroMetaMap,
       metricMetaMap,
@@ -122,6 +120,7 @@ export class ManifestParser {
       docMetaMap,
       exposureMetaMap,
     ] = await Promise.all([
+      parentChildrenPromise,
       nodeMetaMapPromise,
       macroMetaMapPromise,
       metricMetaMapPromise,
@@ -133,8 +132,8 @@ export class ManifestParser {
 
     const graphMetaMap = this.graphParser.createGraphMetaMap(
       project,
-      parent_map,
-      child_map,
+      parentMetaMap,
+      childMetaMap,
       nodeMetaMap,
       sourceMetaMap,
       testMetaMap,

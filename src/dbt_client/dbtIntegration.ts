@@ -274,7 +274,7 @@ export interface HealthcheckArgs {
   configPath?: string;
 }
 
-export interface DBTProjectDetection extends Disposable {
+export interface DBTProjectDetection {
   discoverProjects(projectConfigFiles: Uri[]): Promise<Uri[]>;
 }
 

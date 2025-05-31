@@ -172,7 +172,8 @@
             "enum": [
               "core",
               "cloud",
-              "corecommand"
+              "corecommand",
+              "fusion"
             ],
             "default": "core",
             "description": "Select dbt core or dbt cloud"
