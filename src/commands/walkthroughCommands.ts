@@ -21,6 +21,7 @@ enum PromptAnswer {
 enum DbtInstallationPromptAnswer {
   INSTALL = "Install dbt core",
   INSTALL_CLOUD = "Install dbt cloud",
+  INSTALL_FUSION = "Install dbt fusion",
 }
 
 @provideSingleton(WalkthroughCommands)
@@ -128,14 +129,47 @@ export class WalkthroughCommands {
   }
 
   async installDbt(): Promise<void> {
-    if (
-      workspace
-        .getConfiguration("dbt")
-        .get<string>("dbtIntegration", "core") === "cloud"
-    ) {
-      this.installDbtCloud();
-    } else {
-      this.installDbtCore();
+    const dbtIntegration = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+    switch (dbtIntegration) {
+      case "core":
+        return this.installDbtCore();
+      case "fusion":
+        return this.installDbtFusion();
+      case "cloud":
+        return this.installDbtCloud();
+      default:
+        throw new Error(
+          `Unsupported dbt integration: ${dbtIntegration}. Supported values are 'core', 'cloud', 'fusion'.`,
+        );
+    }
+  }
+
+  private async installDbtFusion(): Promise<void> {
+    let error = undefined;
+    await window.withProgress(
+      {
+        title: `Installing dbt fusion...`,
+        location: ProgressLocation.Notification,
+        cancellable: false,
+      },
+      async () => {
+        try {
+          
+        } catch (err) {
+          error = err;
+        }
+      },
+    );
+    if (error) {
+      const answer = await window.showErrorMessage(
+        "Could not install dbt fusion: " + (error as Error).message,
+        DbtInstallationPromptAnswer.INSTALL_FUSION,
+      );
+      if (answer === DbtInstallationPromptAnswer.INSTALL_FUSION) {
+        commands.executeCommand("dbtPowerUser.installDbt");
+      }
     }
   }
 
