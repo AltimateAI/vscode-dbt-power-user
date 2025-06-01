@@ -4,18 +4,10 @@ import {
   DBTTerminal,
   QueryManifestService,
   TelemetryService,
-} from "@extension";
+} from "../modules";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { ColumnMetaData, GraphMetaMap, NodeGraphMap } from "../domain";
-import {
-  CancellationToken,
-  CancellationTokenSource,
-  env,
-  ProgressLocation,
-  Uri,
-  window,
-  workspace,
-} from "vscode";
+import { CancellationTokenSource, env, Uri, window, workspace } from "vscode";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { ModelInfo } from "../altimate";
 import { AbortError } from "node-fetch";

@@ -1,4 +1,4 @@
-import { DBTTerminal } from "@extension";
+import { DBTTerminal } from "../../modules";
 import { provide } from "inversify-binding-decorators";
 import { DBTGraphType } from "./graphParser";
 
