@@ -38,3 +38,5 @@ ehthumbs.db
 Thumbs.db
 .aider*
 certs
+
+**/.claude/settings.local.json
