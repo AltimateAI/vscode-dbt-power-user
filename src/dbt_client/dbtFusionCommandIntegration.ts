@@ -286,7 +286,7 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
             line.hasOwnProperty("data") && line.data.hasOwnProperty("preview"),
         );
         if (previewLine.length === 0) {
-          throw new Error("TODO: find SQL error: " + stdout);
+          throw new Error("Could not find previewLine in " + stdout);
         }
         const compiledSqlLines = parsedLines.filter(
           (line) =>
