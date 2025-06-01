@@ -22,7 +22,7 @@ import {
   DBTProject,
   DBTTerminal,
   PythonEnvironment,
-} from "@extension";
+} from "../modules";
 import { DBTCloudProjectIntegration, getDBTPath } from "./dbtCloudIntegration";
 import path, { join } from "path";
 
