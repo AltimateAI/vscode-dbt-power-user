@@ -6,11 +6,6 @@ import { existsSync } from "fs";
 import { DBTDetection } from "./dbtIntegration";
 import { inject } from "inversify";
 
-enum DbtInstallationPromptAnswer {
-  INSTALL = "Install dbt core",
-  INSTALL_CLOUD = "Install dbt Cloud",
-}
-
 enum PythonInterpreterPromptAnswer {
   SELECT = "Select Python interpreter",
 }
@@ -109,18 +104,15 @@ export class DBTClient implements Disposable {
   }
 
   private async executeInstallDbtCommand(message: string, option: string) {
-    const dbtIntegration = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
     const answer = await window.showErrorMessage(
       message,
       option,
-      dbtIntegration === "cloud" ? "Switch to dbt core" : "Switch to dbt cloud",
+      "Change dbt flavour",
     );
     if (answer === option) {
       commands.executeCommand("dbtPowerUser.installDbt");
     }
-    if (answer?.includes("Switch")) {
+    if (answer?.includes("Change")) {
       commands.executeCommand("dbtPowerUser.switchDbtIntegration");
     }
   }
@@ -133,16 +125,26 @@ export class DBTClient implements Disposable {
         const dbtIntegrationMode = workspace
           .getConfiguration("dbt")
           .get<string>("dbtIntegration", "core");
-        if (dbtIntegrationMode === "cloud") {
-          await this.executeInstallDbtCommand(
-            "Please ensure dbt cloud cli is installed.",
-            DbtInstallationPromptAnswer.INSTALL_CLOUD,
-          );
-        } else {
-          await this.executeInstallDbtCommand(
-            "Please ensure dbt is installed.",
-            DbtInstallationPromptAnswer.INSTALL,
-          );
+        switch (dbtIntegrationMode) {
+          case "fusion":
+            await this.executeInstallDbtCommand(
+              "Please ensure dbt fusion cli is installed.",
+              "Install dbt fusion",
+            );
+            break;
+          case "core":
+            await this.executeInstallDbtCommand(
+              "Please ensure dbt core cli is installed.",
+              "Install dbt core",
+            );
+            break;
+          case "cloud":
+            await this.executeInstallDbtCommand(
+              "Please ensure dbt cloud cli is installed.",
+              "Install dbt cloud",
+            );
+            break;
+          default:
         }
       }
       return false;
