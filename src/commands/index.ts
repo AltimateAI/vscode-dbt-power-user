@@ -250,7 +250,7 @@ export class VSCodeCommands implements Disposable {
               canPickMany: false,
             })
           )?.replace(/dbt /, "");
-          if (!(selectedIntegrationMode === dbtIntegration)) {
+          if (selectedIntegrationMode === dbtIntegration) {
             return;
           }
           const message = `Switching to dbt ${selectedIntegrationMode} requires reloading the window, any unsaved changes will be lost.`;
