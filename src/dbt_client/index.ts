@@ -145,6 +145,10 @@ export class DBTClient implements Disposable {
             );
             break;
           default:
+            window.showErrorMessage(
+              `Unknown dbt integration mode: ${dbtIntegrationMode}. Supported modes are: core, cloud, fusion.`,
+            );
+            break;
         }
       }
       return false;
