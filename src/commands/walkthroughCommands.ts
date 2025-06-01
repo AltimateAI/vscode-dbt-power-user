@@ -156,7 +156,40 @@ export class WalkthroughCommands {
       },
       async () => {
         try {
-          
+          const platform = process.platform;
+          let command: string;
+          let args: string[];
+
+          if (platform === "darwin" || platform === "linux") {
+            command = "sh";
+            args = [
+              "-c",
+              "curl -fsSL https://public.cdn.getdbt.com/fs/install/install.sh | sh -s -- --update",
+            ];
+          } else if (platform === "win32") {
+            command = "powershell";
+            args = [
+              "-Command",
+              "irm https://public.cdn.getdbt.com/fs/install/install.ps1 | iex",
+            ];
+          } else {
+            throw new Error(
+              `Unsupported platform: ${platform}, only MacOS, Linux and Windows are supported for dbt fusion installation`,
+            );
+          }
+
+          await this.commandProcessExecutionFactory
+            .createCommandProcessExecution({
+              command,
+              args,
+              cwd: getFirstWorkspacePath(),
+              envVars: this.pythonEnvironment.environmentVariables,
+            })
+            .completeWithTerminalOutput();
+
+          // Initialize after installation
+          await this.dbtProjectContainer.detectDBT();
+          this.dbtProjectContainer.initialize();
         } catch (err) {
           error = err;
         }
