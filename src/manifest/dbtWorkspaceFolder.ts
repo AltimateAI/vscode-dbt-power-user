@@ -22,10 +22,9 @@ import {
 import { TelemetryService } from "../telemetry";
 import { YAMLError } from "yaml";
 import { ProjectRegisteredUnregisteredEvent } from "./dbtProjectContainer";
-import { DBTCoreProjectDetection } from "../dbt_client/dbtCoreIntegration";
-import { DBTCloudProjectDetection } from "../dbt_client/dbtCloudIntegration";
-import { DBTProjectDetection } from "../dbt_client/dbtIntegration";
+
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTProjectDetection } from "src/dbt_client/dbtIntegration";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
@@ -45,8 +44,8 @@ export class DBTWorkspaceFolder implements Disposable {
       projectConfig: any,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
     ) => DBTProject,
-    private dbtCoreProjectDetection: DBTCoreProjectDetection,
-    private dbtCloudProjectDetection: DBTCloudProjectDetection,
+    @inject("Factory<DBTProjectDetection>")
+    private dbtProjectDetectionFactory: () => DBTProjectDetection,
     private telemetry: TelemetryService,
     private dbtTerminal: DBTTerminal,
     public workspaceFolder: WorkspaceFolder,
@@ -173,18 +172,10 @@ export class DBTWorkspaceFolder implements Disposable {
       .getConfiguration("dbt")
       .get<string>("dbtIntegration", "core");
 
-    let dbtProjectDetection: DBTProjectDetection;
-    switch (dbtIntegrationMode) {
-      case "cloud":
-        dbtProjectDetection = this.dbtCloudProjectDetection;
-        break;
-      default:
-        dbtProjectDetection = this.dbtCoreProjectDetection;
-        break;
-    }
-
     const filteredProjects =
-      await dbtProjectDetection.discoverProjects(projectDirectories);
+      await this.dbtProjectDetectionFactory().discoverProjects(
+        projectDirectories,
+      );
 
     this.dbtTerminal.info(
       "discoverProjects",
