@@ -69,9 +69,9 @@ export function getDBTPath(
 @provideSingleton(DBTCloudDetection)
 export class DBTCloudDetection implements DBTDetection {
   constructor(
-    private commandProcessExecutionFactory: CommandProcessExecutionFactory,
-    private pythonEnvironment: PythonEnvironment,
-    private terminal: DBTTerminal,
+    protected commandProcessExecutionFactory: CommandProcessExecutionFactory,
+    protected pythonEnvironment: PythonEnvironment,
+    protected terminal: DBTTerminal,
   ) {}
 
   async detectDBT(): Promise<boolean> {
@@ -143,9 +143,7 @@ export class DBTCloudDetection implements DBTDetection {
 }
 
 @provideSingleton(DBTCloudProjectDetection)
-export class DBTCloudProjectDetection
-  implements DBTProjectDetection, Disposable
-{
+export class DBTCloudProjectDetection implements DBTProjectDetection {
   constructor(private altimate: AltimateRequest) {}
 
   async discoverProjects(projectDirectories: Uri[]): Promise<Uri[]> {
@@ -165,8 +163,6 @@ export class DBTCloudProjectDetection
     }
     return filteredProjectFiles;
   }
-
-  async dispose() {}
 }
 
 @provideSingleton(DBTCloudProjectIntegration)
@@ -174,39 +170,39 @@ export class DBTCloudProjectIntegration
   implements DBTProjectIntegration, Disposable
 {
   private static QUEUE_ALL = "all";
-  private targetPath?: string;
+  protected targetPath?: string;
   private version: number[] | undefined;
-  private projectName: string = "unknown_" + crypto.randomUUID();
+  protected projectName: string = "unknown_" + crypto.randomUUID();
   private adapterType: string = "unknown";
-  private packagesInstallPath?: string;
-  private modelPaths?: string[];
-  private seedPaths?: string[];
-  private macroPaths?: string[];
+  protected packagesInstallPath?: string;
+  protected modelPaths?: string[];
+  protected seedPaths?: string[];
+  protected macroPaths?: string[];
   private python: PythonBridge;
-  private dbtPath: string = "dbt";
+  protected dbtPath: string = "dbt";
   private disposables: Disposable[] = [];
-  private readonly rebuildManifestDiagnostics =
+  protected readonly rebuildManifestDiagnostics =
     languages.createDiagnosticCollection("dbt");
   private readonly pythonBridgeDiagnostics =
     languages.createDiagnosticCollection("dbt");
-  private rebuildManifestCancellationTokenSource:
+  protected rebuildManifestCancellationTokenSource:
     | CancellationTokenSource
     | undefined;
   private pathsInitialized = false;
 
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
-    private dbtCommandFactory: DBTCommandFactory,
-    private cliDBTCommandExecutionStrategyFactory: (
+    protected dbtCommandFactory: DBTCommandFactory,
+    protected cliDBTCommandExecutionStrategyFactory: (
       path: Uri,
       dbtPath: string,
     ) => DBTCommandExecutionStrategy,
-    private telemetry: TelemetryService,
+    protected telemetry: TelemetryService,
     private pythonEnvironment: PythonEnvironment,
-    private terminal: DBTTerminal,
+    protected terminal: DBTTerminal,
     private validationProvider: ValidationProvider,
     private deferToProdService: DeferToProdService,
-    private projectRoot: Uri,
+    protected projectRoot: Uri,
     private altimateRequest: AltimateRequest,
   ) {
     this.terminal.debug(
@@ -599,7 +595,7 @@ export class DBTCloudProjectIntegration
     return command;
   }
 
-  private dbtCloudCommand(command: DBTCommand) {
+  protected dbtCloudCommand(command: DBTCommand) {
     command.setExecutionStrategy(
       this.cliDBTCommandExecutionStrategyFactory(
         this.projectRoot,
@@ -987,7 +983,7 @@ export class DBTCloudProjectIntegration
   }
 
   // get dbt config
-  private async initializePaths() {
+  protected async initializePaths() {
     const packagePathsCommand = this.dbtCloudCommand(
       new DBTCommand("Getting paths...", [
         "environment",
@@ -1091,7 +1087,7 @@ export class DBTCloudProjectIntegration
     }
   }
 
-  private processJSONErrors(jsonErrors: string) {
+  protected processJSONErrors(jsonErrors: string) {
     if (!jsonErrors) {
       return;
     }
@@ -1216,7 +1212,7 @@ export class DBTCloudProjectIntegration
     this.throwBridgeErrorIfAvailable();
   }
 
-  private parseJSON(
+  protected parseJSON(
     contextName: string,
     json: string,
     throw_: boolean = true,

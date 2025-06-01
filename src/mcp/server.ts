@@ -4,7 +4,7 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { Uri, Disposable, workspace } from "vscode";
 import { provideSingleton } from "../utils";
-import { DBTProject, DBTTerminal, TelemetryService } from "@extension";
+import { DBTProject, DBTTerminal, TelemetryService } from "../modules";
 import { CommandProcessResult } from "../commandProcessExecution";
 import { McpTool } from "./types";
 

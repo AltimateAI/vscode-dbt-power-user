@@ -243,8 +243,17 @@ export class VSCodeCommands implements Disposable {
           const dbtIntegration = workspace
             .getConfiguration("dbt")
             .get<string>("dbtIntegration", "core");
-          const target = dbtIntegration === "cloud" ? "core" : "cloud";
-          const message = `Switching to dbt ${target} requires reloading the window, any unsaved changes will be lost.`;
+          const integrationModes = ["dbt core", "dbt cloud", "dbt fusion"];
+          const selectedIntegrationMode = (
+            await window.showQuickPick(integrationModes, {
+              title: "Select your flavour of dbt",
+              canPickMany: false,
+            })
+          )?.replace(/dbt /, "");
+          if (selectedIntegrationMode === dbtIntegration) {
+            return;
+          }
+          const message = `Switching to dbt ${selectedIntegrationMode} requires reloading the window, any unsaved changes will be lost.`;
           const answer = await window.showInformationMessage(
             message,
             "Confirm",
@@ -252,10 +261,7 @@ export class VSCodeCommands implements Disposable {
           if (answer === "Confirm") {
             await workspace
               .getConfiguration("dbt")
-              .update(
-                "dbtIntegration",
-                dbtIntegration === "cloud" ? "core" : "cloud",
-              );
+              .update("dbtIntegration", selectedIntegrationMode);
             await commands.executeCommand("workbench.action.reloadWindow");
           }
         },

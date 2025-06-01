@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "fs";
-import { inject } from "inversify";
+import { inject, postConstruct } from "inversify";
 import * as path from "path";
 import {
   Diagnostic,
@@ -36,6 +36,7 @@ export class DBTWorkspaceFolder implements Disposable {
     new EventEmitter<RebuildManifestStatusChange>();
   readonly onRebuildManifestStatusChange =
     this._onRebuildManifestStatusChange.event;
+  private dbtProjectDetection: DBTProjectDetection | undefined;
 
   constructor(
     @inject("DBTProjectFactory")
@@ -116,7 +117,8 @@ export class DBTWorkspaceFolder implements Disposable {
 
   async discoverProjects() {
     // Ignore dbt_packages and venv/site-packages/dbt project folders
-    const excludePattern = "**/{dbt_packages,site-packages}";
+    const excludePattern =
+      "**/{dbt_packages,site-packages,dbt_internal_packages}";
     const dbtProjectFiles = await this.retryWithBackoff(
       () =>
         workspace.findFiles(

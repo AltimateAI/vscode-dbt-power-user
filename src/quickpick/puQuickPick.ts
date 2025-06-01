@@ -25,13 +25,9 @@ export class DbtPowerUserControlCenterAction {
         dbtpuquickpick.title = "dbt Power User Control Panel";
         dbtpuquickpick.items = [
           new DbtPowerUserControlPanelItem(
-            dbtIntegration === "core"
-              ? "Switch to dbt cloud"
-              : "Switch to dbt core",
+            "Change dbt flavour",
             "compare-changes",
-            dbtIntegration === "core"
-              ? "Are you using dbt cloud?"
-              : "Are you using dbt core?",
+            "Switch between dbt core, cloud or fusion",
             "dbtPowerUser.switchDbtIntegration",
           ),
           new DbtPowerUserControlPanelItem(
