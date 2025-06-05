@@ -354,6 +354,7 @@ export interface DBTProjectIntegration extends Disposable {
   runModelTest(command: DBTCommand): Promise<CommandProcessResult | undefined>;
   compileModel(command: DBTCommand): Promise<void>;
   generateDocs(command: DBTCommand): Promise<void>;
+  clean(command: DBTCommand): Promise<string>;
   executeCommandImmediately(command: DBTCommand): Promise<CommandProcessResult>;
   deps(command: DBTCommand): Promise<string>;
   debug(command: DBTCommand): Promise<string>;
@@ -654,6 +655,10 @@ export class DBTCommandFactory {
       true,
       true,
     );
+  }
+
+  createCleanCommand(): DBTCommand {
+    return new DBTCommand("Cleaning dbt project...", ["clean"], true, true, true);
   }
 
   createInstallDepsCommand(): DBTCommand {

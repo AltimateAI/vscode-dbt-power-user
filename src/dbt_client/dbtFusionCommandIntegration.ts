@@ -493,4 +493,12 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
   async generateDocs(_: DBTCommand) {
     throw new Error("dbt fusion does not support docs generation");
   }
+
+  async clean(command: DBTCommand): Promise<string> {
+    const { stdout, stderr } = await this.dbtCloudCommand(command).execute();
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    return stdout;
+  }
 }
