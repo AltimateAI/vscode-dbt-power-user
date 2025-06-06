@@ -711,6 +711,12 @@
         }
       },
       {
+        "command": "dbtPowerUser.cleanCurrentProject",
+        "title": "Clean dbt Project",
+        "category": "dbt Power User",
+        "icon": "$(clear-all)"
+      },
+      {
         "command": "dbtPowerUser.printEnvVars",
         "title": "Print environment variables",
         "category": "dbt Power User",
@@ -986,6 +992,11 @@
         },
         {
           "command": "dbtPowerUser.runCurrentModel",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.cleanCurrentProject",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
           "group": "inline"
         }
