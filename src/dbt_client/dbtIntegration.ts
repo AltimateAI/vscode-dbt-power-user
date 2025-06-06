@@ -658,7 +658,13 @@ export class DBTCommandFactory {
   }
 
   createCleanCommand(): DBTCommand {
-    return new DBTCommand("Cleaning dbt project...", ["clean"], true, true, true);
+    return new DBTCommand(
+      "Cleaning dbt project...",
+      ["clean"],
+      true,
+      true,
+      true,
+    );
   }
 
   createInstallDepsCommand(): DBTCommand {

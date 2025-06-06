@@ -988,6 +988,11 @@
           "command": "dbtPowerUser.runCurrentModel",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
           "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.cleanCurrentProject",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "group": "inline"
         }
       ],
       "view/title": [
