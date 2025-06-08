@@ -4,6 +4,7 @@ import { provideSingleton } from "../utils";
 import { ModelHoverProvider } from "./modelHoverProvider";
 import { SourceHoverProvider } from "./sourceHoverProvider";
 import { MacroHoverProvider } from "./macroHoverProvider";
+import { DepthDecorationProvider } from "../decorations/depthDecorationProvider";
 
 @provideSingleton(HoverProviders)
 export class HoverProviders implements Disposable {
@@ -13,6 +14,7 @@ export class HoverProviders implements Disposable {
     private modelHoverProvider: ModelHoverProvider,
     private sourceHoverProvider: SourceHoverProvider,
     private macroHoverProvider: MacroHoverProvider,
+    private depthDecorationProvider: DepthDecorationProvider,
   ) {
     this.disposables.push(
       languages.registerHoverProvider(
@@ -32,6 +34,7 @@ export class HoverProviders implements Disposable {
         this.macroHoverProvider,
       ),
     );
+    this.disposables.push(this.depthDecorationProvider);
   }
 
   dispose() {
