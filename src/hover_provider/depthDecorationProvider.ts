@@ -17,6 +17,7 @@ import { provideSingleton } from "../utils";
 
 @provideSingleton(DepthDecorationProvider)
 export class DepthDecorationProvider implements HoverProvider, Disposable {
+  private disposables: Disposable[] = [];
   private readonly REF_PATTERN =
     /\{\{\s*ref\s*\(\s*['"]([^'"]+)['"]\s*\)\s*\}\}/g;
   private readonly decorationType: TextEditorDecorationType;
@@ -45,10 +46,32 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
         this.updateDecorations(editor);
       });
     });
+
+    this.disposables.push(
+      window.onDidChangeActiveTextEditor((editor) => {
+        if (editor) {
+          this.updateDecorations(editor);
+        }
+      }),
+      workspace.onDidChangeTextDocument((event) => {
+        if (
+          window.activeTextEditor &&
+          event.document === window.activeTextEditor.document
+        ) {
+          this.updateDecorations(window.activeTextEditor);
+        }
+      }),
+    );
   }
 
   dispose() {
     this.decorationType.dispose();
+    while (this.disposables.length) {
+      const x = this.disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
   }
 
   private updateDecorations(editor: TextEditor): void {
