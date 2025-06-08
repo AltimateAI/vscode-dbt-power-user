@@ -13,7 +13,9 @@ import {
   workspace,
 } from "vscode";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { provideSingleton } from "../utils";
 
+@provideSingleton(DepthDecorationProvider)
 export class DepthDecorationProvider implements HoverProvider, Disposable {
   private readonly REF_PATTERN =
     /\{\{\s*ref\s*\(\s*['"]([^'"]+)['"]\s*\)\s*\}\}/g;
