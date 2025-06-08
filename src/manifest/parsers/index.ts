@@ -72,6 +72,7 @@ export class ManifestParser {
             },
             docMetaMap: new Map(),
             exposureMetaMap: new Map(),
+            modelDepthMap: new Map(),
           },
         ],
       };
