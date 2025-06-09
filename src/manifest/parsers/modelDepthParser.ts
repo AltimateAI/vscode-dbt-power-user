@@ -25,6 +25,11 @@ export class ModelDepthParser {
       }
     }
 
+    this.terminal.debug(
+      "ModelDepthParser",
+      `Going to calculate depths for ${models.length} models`,
+    );
+
     // Calculate depths using topological sort approach for longest paths
     const depths = new Map<string, number>();
     const inDegree = new Map<string, number>();
@@ -35,13 +40,13 @@ export class ModelDepthParser {
       const modelParents = parents.filter((parent) =>
         parent.startsWith("model."),
       );
-      // Models that only depend on sources (no model dependencies) start at depth 1
+      // Models that have no model dependencies start at depth 1
       // Models that depend on other models start at depth 0 and will be calculated
       depths.set(model.id, modelParents.length === 0 ? 1 : 0);
       inDegree.set(model.id, modelParents.length);
     }
 
-    // Queue for nodes with no model dependencies (only depend on sources)
+    // Queue for nodes with no model dependencies
     const queue: string[] = [];
     for (const model of models) {
       if (inDegree.get(model.id) === 0) {
