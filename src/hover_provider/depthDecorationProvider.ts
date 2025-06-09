@@ -171,10 +171,16 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
     }
 
     const text = document.getText();
-    let match;
-    this.REF_PATTERN.lastIndex = 0;
+    let matches: RegExpExecArray[] = [];
+    try {
+      this.REF_PATTERN.lastIndex = 0;
+      matches = Array.from(text.matchAll(this.REF_PATTERN));
+    } catch (error) {
+      console.error("Error matching ref pattern in provideHover:", error);
+      return undefined;
+    }
 
-    while ((match = this.REF_PATTERN.exec(text)) !== null) {
+    for (const match of matches) {
       const startPos = document.positionAt(match.index);
       const endPos = document.positionAt(match.index + match[0].length);
       const range = new Range(startPos, endPos);
