@@ -135,7 +135,11 @@ export class ManifestParser {
     ]);
 
     // Calculate model depths
-    const modelDepthMap = this.modelDepthParser.createModelDepthsMap(manifest);
+    const modelDepthMap = this.modelDepthParser.createModelDepthsMap(
+      nodes,
+      parentMetaMap,
+      childMetaMap,
+    );
 
     const graphMetaMap = this.graphParser.createGraphMetaMap(
       project,
