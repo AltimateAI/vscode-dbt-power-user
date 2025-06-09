@@ -128,19 +128,18 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
 
     let color =
       config.get<string>("depthDecoration.colorLow") || "rgba(0, 200, 0, 0.7)";
-    const adjustedDepth = depth + 1;
 
-    if (adjustedDepth >= highThreshold) {
+    if (depth >= highThreshold) {
       color =
         config.get<string>("depthDecoration.colorHigh") ||
         "rgba(200, 0, 0, 0.7)";
-    } else if (adjustedDepth >= mediumThreshold) {
+    } else if (depth >= mediumThreshold) {
       color =
         config.get<string>("depthDecoration.colorMedium") ||
         "rgba(200, 200, 0, 0.7)";
     }
 
-    const depthText = `(${adjustedDepth})`;
+    const depthText = `(${depth})`;
 
     return {
       range: refRange,
@@ -193,8 +192,7 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
       const depth = depthMapForProject.get(modelName);
 
       if (depth !== undefined) {
-        const adjustedDepth = depth + 1;
-        const depthText = `(${adjustedDepth})`;
+        const depthText = `(${depth})`;
         const decorationEndCharacter = endPos.character + depthText.length;
 
         if (
@@ -204,10 +202,10 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
         ) {
           const hoverContent = new MarkdownString();
           hoverContent.appendMarkdown(
-            `The referenced model \`${modelName}\` has a DAG depth of ${adjustedDepth}.\n\n`,
+            `The referenced model \`${modelName}\` has a DAG depth of ${depth}.\n\n`,
           );
           hoverContent.appendMarkdown(
-            `The longest path of models between a source and \`${modelName}\` is ${adjustedDepth} nodes long.\n\n`,
+            `The longest path of models between a source and \`${modelName}\` is ${depth} nodes long.\n\n`,
           );
           hoverContent.isTrusted = true;
 

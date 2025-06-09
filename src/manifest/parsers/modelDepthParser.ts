@@ -1,56 +1,27 @@
 import { provide } from "inversify-binding-decorators";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
-import { createFullPathForNode } from "./utils";
+import { DBTGraphType } from "./graphParser";
 
 @provide(ModelDepthParser)
 export class ModelDepthParser {
   constructor(private terminal: DBTTerminal) {}
 
-  public createModelDepthsMap(manifest: any): Map<string, number> {
+  public createModelDepthsMap(
+    nodeMap: any[],
+    parentMetaMap: DBTGraphType,
+    childMetaMap: DBTGraphType,
+  ): Map<string, number> {
     const modelDepths = new Map<string, number>();
-
-    if (!manifest) {
-      return modelDepths;
-    }
 
     // Get all models from the manifest
     const models: { name: string; id: string }[] = [];
-    const nodes = manifest.nodes;
 
-    for (const [id, node] of Object.entries(nodes)) {
-      if ((node as any).resource_type === "model") {
+    for (const [id, node] of Object.entries(nodeMap)) {
+      if (node.resource_type === "model") {
         models.push({
-          name: (node as any).name,
+          name: node.name,
           id: id,
         });
-      }
-    }
-
-    // Build dependency graph for models only (parent-child based on the manifest's parent_map)
-    const parentGraph: Map<string, string[]> = new Map();
-    const childGraph: Map<string, string[]> = new Map();
-
-    const parent_map = manifest.parent_map || {};
-
-    for (const model of models) {
-      const parents = parent_map[model.id] || [];
-      // Only include parent models, not sources or other node types
-      const parentModels = parents.filter((parent: string) =>
-        parent.startsWith("model."),
-      );
-
-      parentGraph.set(model.id, parentModels);
-
-      // Build reverse graph for topological sort
-      for (const parent of parentModels) {
-        if (!childGraph.has(parent)) {
-          childGraph.set(parent, []);
-        }
-        childGraph.get(parent)!.push(model.id);
-      }
-
-      if (!childGraph.has(model.id)) {
-        childGraph.set(model.id, []);
       }
     }
 
@@ -60,7 +31,10 @@ export class ModelDepthParser {
 
     // Initialize depths and in-degrees
     for (const model of models) {
-      const modelParents = parentGraph.get(model.id) || [];
+      const parents = parentMetaMap[model.id] || [];
+      const modelParents = parents.filter((parent) =>
+        parent.startsWith("model."),
+      );
       // Models that only depend on sources (no model dependencies) start at depth 1
       // Models that depend on other models start at depth 0 and will be calculated
       depths.set(model.id, modelParents.length === 0 ? 1 : 0);
@@ -81,7 +55,7 @@ export class ModelDepthParser {
       const currentDepth = depths.get(currentId)!;
 
       // Update depths of children (nodes that depend on this one)
-      const children = childGraph.get(currentId) || [];
+      const children = childMetaMap[currentId] || [];
       for (const childId of children) {
         // Set depth to maximum of current depth or (parent depth + 1)
         const newDepth = Math.max(depths.get(childId)!, currentDepth + 1);
