@@ -83,7 +83,10 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
 
   private updateDecorations(editor: TextEditor): void {
     const dbtConfig = workspace.getConfiguration("dbt");
-    const disableDepthsCalculation = dbtConfig.get<boolean>("disableDepthsCalculation", false);
+    const disableDepthsCalculation = dbtConfig.get<boolean>(
+      "disableDepthsCalculation",
+      false,
+    );
     if (disableDepthsCalculation) {
       editor.setDecorations(this.decorationType, []);
       return;
@@ -134,7 +137,8 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
       dbtConfig.get<number>("depthDecoration.highDepthThreshold") || 6;
 
     let color =
-      dbtConfig.get<string>("depthDecoration.colorLow") || "rgba(0, 200, 0, 0.7)";
+      dbtConfig.get<string>("depthDecoration.colorLow") ||
+      "rgba(0, 200, 0, 0.7)";
 
     if (depth >= highThreshold) {
       color =
@@ -167,7 +171,10 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
     position: Position,
   ): Hover | undefined {
     const dbtConfig = workspace.getConfiguration("dbt");
-    const disableDepthsCalculation = dbtConfig.get<boolean>("disableDepthsCalculation", false);
+    const disableDepthsCalculation = dbtConfig.get<boolean>(
+      "disableDepthsCalculation",
+      false,
+    );
     if (disableDepthsCalculation) {
       return undefined;
     }
