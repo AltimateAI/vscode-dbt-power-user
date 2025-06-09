@@ -82,6 +82,13 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
   }
 
   private updateDecorations(editor: TextEditor): void {
+    const dbtConfig = workspace.getConfiguration("dbt");
+    const disableDepthsCalculation = dbtConfig.get<boolean>("disableDepthsCalculation", false);
+    if (disableDepthsCalculation) {
+      editor.setDecorations(this.decorationType, []);
+      return;
+    }
+
     const project = this.dbtProjectContainer.findDBTProject(
       editor.document.uri,
     );
@@ -159,6 +166,12 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
     document: TextDocument,
     position: Position,
   ): Hover | undefined {
+    const dbtConfig = workspace.getConfiguration("dbt");
+    const disableDepthsCalculation = dbtConfig.get<boolean>("disableDepthsCalculation", false);
+    if (disableDepthsCalculation) {
+      return undefined;
+    }
+
     const project = this.dbtProjectContainer.findDBTProject(document.uri);
     if (!project) {
       return;
