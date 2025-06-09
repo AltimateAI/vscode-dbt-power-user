@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "fs";
+import { readFileSync } from "fs";
 import { provide } from "inversify-binding-decorators";
 import * as path from "path";
 import { Uri } from "vscode";
@@ -16,6 +16,7 @@ import { ExposureParser } from "./exposureParser";
 import { MetricParser } from "./metricParser";
 import { ChildrenParentParser } from "./childrenParentParser";
 import { ModelDepthParser } from "./modelDepthParser";
+import { createFullPathForNode } from "./utils";
 
 @provide(ManifestParser)
 export class ManifestParser {
@@ -223,29 +224,4 @@ export class ManifestParser {
   }
 }
 
-export const createFullPathForNode: (
-  projectName: string,
-  rootPath: string,
-  packageName: string,
-  packagePath: string,
-  relativeFilePath: string,
-) => string | undefined = (
-  projectName,
-  rootPath,
-  packageName,
-  packagePath,
-  relativeFilePath,
-) => {
-  if (packageName !== projectName) {
-    const rootPathWithPackage = path.join(
-      packagePath,
-      packageName,
-      relativeFilePath,
-    );
-    if (existsSync(rootPathWithPackage)) {
-      return rootPathWithPackage;
-    }
-    return undefined;
-  }
-  return path.join(rootPath, relativeFilePath);
-};
+export { createFullPathForNode } from "./utils";
