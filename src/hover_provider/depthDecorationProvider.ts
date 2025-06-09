@@ -19,7 +19,7 @@ import { provideSingleton } from "../utils";
 export class DepthDecorationProvider implements HoverProvider, Disposable {
   private disposables: Disposable[] = [];
   private readonly REF_PATTERN =
-    /\{\{\s*ref\s*\(\s*['"]([^'"]+)['"]\s*\)\s*\}\}/g;
+    /\{\{\s*ref\s*\(\s*['"]([^'"]+)['"]\s*\)\s*\}\}/;
   private readonly decorationType: TextEditorDecorationType;
   private projectToDepthMap: Map<string, Map<string, number>> = new Map();
 
@@ -97,10 +97,10 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
 
     const text = editor.document.getText();
     const decorations: DecorationOptions[] = [];
+    const pattern = new RegExp(this.REF_PATTERN, "g");
     let match;
-    this.REF_PATTERN.lastIndex = 0;
 
-    while ((match = this.REF_PATTERN.exec(text)) !== null) {
+    while ((match = pattern.exec(text)) !== null) {
       const startPos = editor.document.positionAt(match.index);
       const endPos = editor.document.positionAt(match.index + match[0].length);
       const refRange = new Range(startPos, endPos);
@@ -174,7 +174,8 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
     const text = document.getText();
     let matches: RegExpMatchArray[] = [];
     try {
-      matches = Array.from(text.matchAll(this.REF_PATTERN));
+      const pattern = new RegExp(this.REF_PATTERN, "g");
+      matches = Array.from(text.matchAll(pattern));
     } catch (error) {
       console.error("Error matching ref pattern in provideHover:", error);
       return undefined;
