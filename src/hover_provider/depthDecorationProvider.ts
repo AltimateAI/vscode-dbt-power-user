@@ -172,9 +172,8 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
     }
 
     const text = document.getText();
-    let matches: RegExpExecArray[] = [];
+    let matches: RegExpMatchArray[] = [];
     try {
-      this.REF_PATTERN.lastIndex = 0;
       matches = Array.from(text.matchAll(this.REF_PATTERN));
     } catch (error) {
       console.error("Error matching ref pattern in provideHover:", error);
@@ -182,6 +181,9 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
     }
 
     for (const match of matches) {
+      if (match.index === undefined) {
+        continue;
+      }
       const startPos = document.positionAt(match.index);
       const endPos = document.positionAt(match.index + match[0].length);
       const range = new Range(startPos, endPos);
