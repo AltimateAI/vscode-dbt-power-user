@@ -98,6 +98,7 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
     const text = editor.document.getText();
     const decorations: DecorationOptions[] = [];
     let match;
+    this.REF_PATTERN.lastIndex = 0;
 
     while ((match = this.REF_PATTERN.exec(text)) !== null) {
       const startPos = editor.document.positionAt(match.index);
