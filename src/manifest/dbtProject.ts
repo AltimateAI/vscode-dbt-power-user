@@ -742,6 +742,12 @@ export class DBTProject implements Disposable {
     this.telemetry.sendTelemetryEvent("generateDocs");
   }
 
+  clean() {
+    const cleanCommand = this.dbtCommandFactory.createCleanCommand();
+    this.telemetry.sendTelemetryEvent("clean");
+    return this.dbtProjectIntegration.clean(cleanCommand);
+  }
+
   debug() {
     const debugCommand = this.dbtCommandFactory.createDebugCommand();
     this.telemetry.sendTelemetryEvent("debug");

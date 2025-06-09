@@ -214,6 +214,37 @@ export class VSCodeCommands implements Disposable {
 
         dbtProject.buildProject();
       }),
+      commands.registerCommand("dbtPowerUser.cleanCurrentProject", () => {
+        if (!window.activeTextEditor) {
+          return;
+        }
+        const activeFileUri = window.activeTextEditor.document.uri;
+        if (!activeFileUri) {
+          this.dbtTerminal.debug(
+            "cleanCurrentProject",
+            "skipping cleanCurrentProject without active file",
+          );
+          return;
+        }
+
+        const dbtProject =
+          this.dbtProjectContainer.findDBTProject(activeFileUri);
+        if (!dbtProject) {
+          this.dbtTerminal.debug(
+            "cleanCurrentProject",
+            `cleanCurrentProject unable to find dbtproject by active file: ${activeFileUri.path}`,
+          );
+          return;
+        }
+        this.dbtTerminal.debug(
+          "cleanCurrentProject",
+          `cleaning current project: ${dbtProject.getProjectName()} with active file: ${
+            activeFileUri.path
+          }`,
+        );
+
+        dbtProject.clean();
+      }),
       commands.registerCommand("dbtPowerUser.buildChildrenModels", () =>
         this.runModel.buildModelOnActiveWindow(RunModelType.BUILD_CHILDREN),
       ),

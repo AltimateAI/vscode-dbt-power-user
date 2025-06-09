@@ -554,6 +554,16 @@ export class DBTCloudProjectIntegration
     );
   }
 
+  async clean(command: DBTCommand): Promise<string> {
+    this.throwIfNotAuthenticated();
+    const { stdout, stderr } = await this.dbtCloudCommand(command).execute();
+    const exception = this.processJSONErrors(stderr);
+    if (exception) {
+      throw exception;
+    }
+    return stdout;
+  }
+
   async executeCommandImmediately(command: DBTCommand) {
     return await this.dbtCloudCommand(command).execute();
   }

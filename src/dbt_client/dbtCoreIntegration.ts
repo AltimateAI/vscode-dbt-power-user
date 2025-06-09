@@ -713,6 +713,14 @@ export class DBTCoreProjectIntegration
     this.addCommandToQueue(this.dbtCoreCommand(command));
   }
 
+  async clean(command: DBTCommand) {
+    const { stdout, stderr } = await this.dbtCoreCommand(command).execute();
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    return stdout;
+  }
+
   async executeCommandImmediately(command: DBTCommand) {
     return await this.dbtCoreCommand(command).execute();
   }
