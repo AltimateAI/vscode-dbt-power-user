@@ -120,22 +120,22 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
     refRange: Range,
     depth: number,
   ): DecorationOptions {
-    const config = workspace.getConfiguration("altimate");
+    const dbtConfig = workspace.getConfiguration("dbt");
     const mediumThreshold =
-      config.get<number>("depthDecoration.mediumDepthThreshold") || 3;
+      dbtConfig.get<number>("depthDecoration.mediumDepthThreshold") || 3;
     const highThreshold =
-      config.get<number>("depthDecoration.highDepthThreshold") || 6;
+      dbtConfig.get<number>("depthDecoration.highDepthThreshold") || 6;
 
     let color =
-      config.get<string>("depthDecoration.colorLow") || "rgba(0, 200, 0, 0.7)";
+      dbtConfig.get<string>("depthDecoration.colorLow") || "rgba(0, 200, 0, 0.7)";
 
     if (depth >= highThreshold) {
       color =
-        config.get<string>("depthDecoration.colorHigh") ||
+        dbtConfig.get<string>("depthDecoration.colorHigh") ||
         "rgba(200, 0, 0, 0.7)";
     } else if (depth >= mediumThreshold) {
       color =
-        config.get<string>("depthDecoration.colorMedium") ||
+        dbtConfig.get<string>("depthDecoration.colorMedium") ||
         "rgba(200, 200, 0, 0.7)";
     }
 

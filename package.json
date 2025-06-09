@@ -157,6 +157,11 @@
             "type": "boolean",
             "description": "Install dbt deps on project initialization",
             "default": true
+          },
+          "dbt.disableDepthsCalculation": {
+            "type": "boolean",
+            "description": "Disable DAG depth calculation and decoration",
+            "default": false
           }
         }
       },
