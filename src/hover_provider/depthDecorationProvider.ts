@@ -179,16 +179,19 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
       const endPos = document.positionAt(match.index + match[0].length);
       const range = new Range(startPos, endPos);
 
-      if (
-        endPos.line === position.line &&
-        position.character >= endPos.character &&
-        position.character <= endPos.character + 5
-      ) {
-        const modelName = match[1];
-        const depth = depthMapForProject.get(modelName);
+      const modelName = match[1];
+      const depth = depthMapForProject.get(modelName);
 
-        if (depth !== undefined) {
-          const adjustedDepth = depth + 1;
+      if (depth !== undefined) {
+        const adjustedDepth = depth + 1;
+        const depthText = `(${adjustedDepth})`;
+        const decorationEndCharacter = endPos.character + depthText.length;
+
+        if (
+          position.line === endPos.line &&
+          position.character >= endPos.character &&
+          position.character <= decorationEndCharacter
+        ) {
           const hoverContent = new MarkdownString();
           hoverContent.appendMarkdown(
             `The referenced model \`${modelName}\` has a DAG depth of ${adjustedDepth}.\n\n`,
