@@ -157,11 +157,6 @@
             "type": "boolean",
             "description": "Install dbt deps on project initialization",
             "default": true
-          },
-          "dbt.disableDepthsCalculation": {
-            "type": "boolean",
-            "description": "Disable DAG depth calculation and decoration",
-            "default": false
           }
         }
       },
@@ -279,6 +274,11 @@
             },
             "default": [],
             "description": "Add additional params to `sqlfmt`"
+          },
+          "dbt.disableDepthsCalculation": {
+            "type": "boolean",
+            "description": "Disable DAG depth calculation and decoration",
+            "default": false
           },
           "dbt.deferConfigPerProject": {
             "type": "object",
