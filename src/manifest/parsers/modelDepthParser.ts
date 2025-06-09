@@ -1,7 +1,6 @@
-import { existsSync } from "fs";
 import { provide } from "inversify-binding-decorators";
-import * as path from "path";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
+import { createFullPathForNode } from "./utils";
 
 @provide(ModelDepthParser)
 export class ModelDepthParser {
@@ -113,30 +112,3 @@ export class ModelDepthParser {
     return modelDepths;
   }
 }
-
-export const createFullPathForNode: (
-  projectName: string,
-  rootPath: string,
-  packageName: string,
-  packagePath: string,
-  relativeFilePath: string,
-) => string | undefined = (
-  projectName,
-  rootPath,
-  packageName,
-  packagePath,
-  relativeFilePath,
-) => {
-  if (packageName !== projectName) {
-    const rootPathWithPackage = path.join(
-      packagePath,
-      packageName,
-      relativeFilePath,
-    );
-    if (existsSync(rootPathWithPackage)) {
-      return rootPathWithPackage;
-    }
-    return undefined;
-  }
-  return path.join(rootPath, relativeFilePath);
-};
