@@ -15,7 +15,11 @@ import { RateLimitException } from "../exceptions";
 import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
-import { extendErrorWithSupportLinks, provideSingleton, removeProtocol } from "../utils";
+import {
+  extendErrorWithSupportLinks,
+  provideSingleton,
+  removeProtocol,
+} from "../utils";
 import {
   AIColumnDescription,
   DBTDocumentation,
