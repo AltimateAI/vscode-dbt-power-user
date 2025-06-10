@@ -15,7 +15,7 @@ import { RateLimitException } from "../exceptions";
 import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
+import { extendErrorWithSupportLinks, provideSingleton, removeProtocol } from "../utils";
 import {
   AIColumnDescription,
   DBTDocumentation,
@@ -97,7 +97,10 @@ export class DocGenService {
 
     try {
       // Read and parse the YAML file
-      const yamlPath = path.join(projectRoot, currentNode.patch_path);
+      const yamlPath = path.join(
+        projectRoot,
+        removeProtocol(currentNode.patch_path),
+      );
       const content = await fs.readFile(yamlPath, "utf8");
       const parsedDoc = yaml.load(content) as DocumentationSchema;
 
