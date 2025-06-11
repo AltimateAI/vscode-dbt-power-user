@@ -94,6 +94,7 @@ export class DBTPowerUserExtension implements Disposable {
   }
 
   async activate(context: ExtensionContext): Promise<void> {
+    await this.mcpServer.updateMcpExtensionApi();
     this.dbtProjectContainer.setContext(context);
     this.dbtProjectContainer.initializeWalkthrough();
     await this.dbtProjectContainer.detectDBT();
@@ -117,6 +118,5 @@ export class DBTPowerUserExtension implements Disposable {
         commands.executeCommand("workbench.action.reloadWindow");
       }
     });
-    this.mcpServer.updateMcpExtensionApi();
   }
 }
