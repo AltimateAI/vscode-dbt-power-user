@@ -470,7 +470,9 @@ export class DBTCoreProjectIntegration
     );
     const { deferToProduction, manifestPath, favorState } =
       await this.getDeferConfig();
-    await bridge.ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.profilesDir}, target_path=${targetPath}, defer_to_prod=${deferToProduction}, manifest_path=${manifestPath}, favor_state=${favorState}) if 'project' not in locals() else project`;
+    await bridge.ex`project = DbtProject(target_name=${
+      this.targetName
+    }, project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.profilesDir}, target_path=${targetPath}, defer_to_prod=${deferToProduction}, manifest_path=${manifestPath}, favor_state=${favorState}) if 'project' not in locals() else project`;
   }
 
   async initializeProject(): Promise<void> {
