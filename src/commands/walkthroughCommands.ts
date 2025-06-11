@@ -12,6 +12,7 @@ import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { gte } from "semver";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -269,6 +270,7 @@ export class WalkthroughCommands {
         "1.7",
         "1.8",
         "1.9",
+        "1.10",
       ].map((value) => ({
         label: value,
       })),
@@ -322,9 +324,13 @@ export class WalkthroughCommands {
             "--no-cache-dir",
             "--force-reinstall",
           ];
-          if (packageVersion >= "1.8") {
+          const isIndependentAdapterPackage = gte(
+            packageVersion + ".0",
+            "1.8.0",
+          );
+          if (isIndependentAdapterPackage) {
             args.push(`dbt-core==${packageVersion}`);
-            args.push(`${packageName}>=${packageVersion}`);
+            args.push(`${packageName}`);
           } else {
             args.push(`${packageName}==${packageVersion}`);
           }
