@@ -1205,6 +1205,20 @@ export class DBTProject implements Disposable {
     // if user added a semicolon at the end, let,s remove it.
     query = query.replace(/;\s*$/, "");
 
+    // Check if query already contains a LIMIT clause and extract it
+    const limitRegex = /\bLIMIT\s+(\d+)\s*$/i;
+    const limitMatch = query.match(limitRegex);
+    
+    if (limitMatch) {
+      // Override the limit with the one from the query
+      const queryLimit = parseInt(limitMatch[1], 10);
+      if (queryLimit > 0) {
+        limit = queryLimit;
+      }
+      // Remove the LIMIT clause from the query as we'll add it back later
+      query = query.replace(limitRegex, '').trim();
+    }
+
     if (limit <= 0) {
       window.showErrorMessage("Please enter a positive number for query limit");
       return;
