@@ -21,6 +21,7 @@ export interface ManifestCacheProjectAddedEvent {
   testMetaMap: TestMetaMap;
   docMetaMap: DocMetaMap;
   exposureMetaMap: ExposureMetaMap;
+  modelDepthMap: Map<string, number>;
 }
 
 export interface ManifestCacheProjectRemovedEvent {
