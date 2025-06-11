@@ -1216,7 +1216,7 @@ export class DBTProject implements Disposable {
         limit = queryLimit;
       }
       // Remove the LIMIT clause from the query as we'll add it back later
-      query = query.replace(limitRegex, '').trim();
+      query = query.replace(limitRegex, "").trim();
     }
 
     if (limit <= 0) {
