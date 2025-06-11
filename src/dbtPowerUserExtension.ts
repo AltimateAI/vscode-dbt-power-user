@@ -117,5 +117,6 @@ export class DBTPowerUserExtension implements Disposable {
         commands.executeCommand("workbench.action.reloadWindow");
       }
     });
+    this.mcpServer.updateMcpExtensionApi();
   }
 }
