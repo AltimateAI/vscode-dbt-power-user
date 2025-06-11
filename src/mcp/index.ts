@@ -118,7 +118,7 @@ export class DbtPowerUserMcpServer implements Disposable {
     } catch (error) {
       this.dbtTerminal.error(
         "DbtPowerUserMcpServer:registerToolsInMcpExtensionError",
-        "Error updating MCP extension API",
+        "Error registering tools in MCP extension",
         { message: (error as Error).message },
       );
     }
