@@ -1208,7 +1208,7 @@ export class DBTProject implements Disposable {
     // Check if query already contains a LIMIT clause and extract it
     const limitRegex = /\bLIMIT\s+(\d+)\s*$/i;
     const limitMatch = query.match(limitRegex);
-    
+
     if (limitMatch) {
       // Override the limit with the one from the query
       const queryLimit = parseInt(limitMatch[1], 10);
