@@ -2,6 +2,7 @@ import { provide } from "inversify-binding-decorators";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { DBTGraphType } from "./graphParser";
 import { AltimateRequest } from "../../altimate";
+import { workspace } from "vscode";
 
 @provide(ModelDepthParser)
 export class ModelDepthParser {
@@ -15,6 +16,18 @@ export class ModelDepthParser {
     parentMetaMap: DBTGraphType,
     childMetaMap: DBTGraphType,
   ): Map<string, number> {
+    // Check if depth calculation is disabled
+    const disableDepthsCalculation = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("disableDepthsCalculation", false);
+    if (disableDepthsCalculation) {
+      this.terminal.debug(
+        "ModelDepthParser",
+        "Skipping model depth calculation - disabled in settings",
+      );
+      return new Map<string, number>();
+    }
+
     // Check if API key is available
     if (!this.altimate.enabled()) {
       this.terminal.debug(

@@ -83,16 +83,6 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
   }
 
   private updateDecorations(editor: TextEditor): void {
-    const dbtConfig = workspace.getConfiguration("dbt");
-    const disableDepthsCalculation = dbtConfig.get<boolean>(
-      "disableDepthsCalculation",
-      false,
-    );
-    if (disableDepthsCalculation) {
-      editor.setDecorations(this.decorationType, []);
-      return;
-    }
-
     const project = this.dbtProjectContainer.findDBTProject(
       editor.document.uri,
     );
@@ -152,15 +142,6 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
     document: TextDocument,
     position: Position,
   ): Hover | undefined {
-    const dbtConfig = workspace.getConfiguration("dbt");
-    const disableDepthsCalculation = dbtConfig.get<boolean>(
-      "disableDepthsCalculation",
-      false,
-    );
-    if (disableDepthsCalculation) {
-      return undefined;
-    }
-
     const project = this.dbtProjectContainer.findDBTProject(document.uri);
     if (!project) {
       return;
@@ -188,32 +169,25 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
       }
       const startPos = document.positionAt(match.index);
       const endPos = document.positionAt(match.index + match[0].length);
-      const range = new Range(startPos, endPos);
+      const refRange = new Range(startPos, endPos);
 
-      const modelName = match[1];
-      const depth = depthMapForProject.get(modelName);
+      if (refRange.contains(position)) {
+        const modelName = match[1];
+        const depth = depthMapForProject.get(modelName);
 
-      if (depth !== undefined) {
-        const depthText = `(${depth})`;
-        const decorationEndCharacter = endPos.character + depthText.length;
-
-        if (
-          position.line === endPos.line &&
-          position.character >= endPos.character &&
-          position.character <= decorationEndCharacter
-        ) {
-          const hoverContent = new MarkdownString();
-          hoverContent.appendMarkdown(
-            `The referenced model \`${modelName}\` has a DAG depth of ${depth}.\n\n`,
+        if (depth !== undefined) {
+          const color = getDepthColor(depth);
+          const markdown = new MarkdownString(
+            `**DAG Depth:** <span style="color:${color}">${depth}</span>\n\n` +
+              `The longest path of models between a source and this model is ${depth} nodes long.`,
           );
-          hoverContent.appendMarkdown(
-            `The longest path of models between a source and \`${modelName}\` is ${depth} nodes long.\n\n`,
-          );
-          hoverContent.isTrusted = true;
-
-          return new Hover(hoverContent, range);
+          markdown.isTrusted = true;
+          markdown.supportHtml = true;
+          return new Hover(markdown, refRange);
         }
       }
     }
+
+    return undefined;
   }
 }

@@ -369,7 +369,7 @@ export class NodeTreeItem extends TreeItem {
     this.description = `(${depth})`;
     this.tooltip = new MarkdownString(
       `**DAG Depth:** <span style="color:${color}">${depth}</span>\n\n` +
-      `The longest path of models between a source and this model is ${depth} nodes long.`,
+        `The longest path of models between a source and this model is ${depth} nodes long.`,
     );
     this.tooltip.isTrusted = true;
     this.tooltip.supportHtml = true;
