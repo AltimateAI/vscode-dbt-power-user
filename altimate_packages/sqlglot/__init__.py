@@ -1,3 +1,4 @@
+# ruff: noqa: F401
 """
 .. include:: ../README.md
 
@@ -22,14 +23,18 @@ from sqlglot.expressions import (
     Expression as Expression,
     alias_ as alias,
     and_ as and_,
+    case as case,
     cast as cast,
     column as column,
     condition as condition,
+    delete as delete,
     except_ as except_,
     from_ as from_,
     func as func,
+    insert as insert,
     intersect as intersect,
     maybe_parse as maybe_parse,
+    merge as merge,
     not_ as not_,
     or_ as or_,
     select as select,
@@ -43,7 +48,7 @@ from sqlglot.expressions import (
 from sqlglot.generator import Generator as Generator
 from sqlglot.parser import Parser as Parser
 from sqlglot.schema import MappingSchema as MappingSchema, Schema as Schema
-from sqlglot.tokens import Tokenizer as Tokenizer, TokenType as TokenType
+from sqlglot.tokens import Token as Token, Tokenizer as Tokenizer, TokenType as TokenType
 
 if t.TYPE_CHECKING:
     from sqlglot._typing import E
@@ -63,8 +68,20 @@ except ImportError:
 pretty = False
 """Whether to format generated SQL by default."""
 
-schema = MappingSchema()
-"""The default schema used by SQLGlot (e.g. in the optimizer)."""
+
+def tokenize(sql: str, read: DialectType = None, dialect: DialectType = None) -> t.List[Token]:
+    """
+    Tokenizes the given SQL string.
+
+    Args:
+        sql: the SQL code string to tokenize.
+        read: the SQL dialect to apply during tokenizing (eg. "spark", "hive", "presto", "mysql").
+        dialect: the SQL dialect (alias for read).
+
+    Returns:
+        The resulting list of tokens.
+    """
+    return Dialect.get_or_raise(read or dialect).tokenize(sql)
 
 
 def parse(
@@ -82,18 +99,15 @@ def parse(
     Returns:
         The resulting syntax tree collection.
     """
-    dialect = Dialect.get_or_raise(read or dialect)()
-    return dialect.parse(sql, **opts)
+    return Dialect.get_or_raise(read or dialect).parse(sql, **opts)
 
 
 @t.overload
-def parse_one(sql: str, *, into: t.Type[E], **opts) -> E:
-    ...
+def parse_one(sql: str, *, into: t.Type[E], **opts) -> E: ...
 
 
 @t.overload
-def parse_one(sql: str, **opts) -> Expression:
-    ...
+def parse_one(sql: str, **opts) -> Expression: ...
 
 
 def parse_one(
@@ -117,7 +131,7 @@ def parse_one(
         The syntax tree for the first parsed statement.
     """
 
-    dialect = Dialect.get_or_raise(read or dialect)()
+    dialect = Dialect.get_or_raise(read or dialect)
 
     if into:
         result = dialect.parse_into(into, sql, **opts)
@@ -157,7 +171,8 @@ def transpile(
         The list of transpiled SQL statements.
     """
     write = (read if write is None else write) if identity else write
+    write = Dialect.get_or_raise(write)
     return [
-        Dialect.get_or_raise(write)().generate(expression, **opts)
+        write.generate(expression, copy=False, **opts) if expression else ""
         for expression in parse(sql, read, error_level=error_level)
     ]

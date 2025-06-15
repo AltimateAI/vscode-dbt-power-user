@@ -1,16 +1,23 @@
+from __future__ import annotations
+
 import itertools
+import typing as t
 
 from sqlglot import expressions as exp
 from sqlglot.helper import find_new_name
-from sqlglot.optimizer.scope import build_scope
+from sqlglot.optimizer.scope import Scope, build_scope
+
+if t.TYPE_CHECKING:
+    ExistingCTEsMapping = t.Dict[exp.Expression, str]
+    TakenNameMapping = t.Dict[str, t.Union[Scope, exp.Expression]]
 
 
-def eliminate_subqueries(expression):
+def eliminate_subqueries(expression: exp.Expression) -> exp.Expression:
     """
     Rewrite derived tables as CTES, deduplicating if possible.
 
     Example:
-        >>> import sqlglot as sqlglot
+        >>> import sqlglot
         >>> expression = sqlglot.parse_one("SELECT a FROM (SELECT * FROM x) AS y")
         >>> eliminate_subqueries(expression).sql()
         'WITH y AS (SELECT * FROM x) SELECT a FROM y AS y'
@@ -38,7 +45,7 @@ def eliminate_subqueries(expression):
     # Map of alias->Scope|Table
     # These are all aliases that are already used in the expression.
     # We don't want to create new CTEs that conflict with these names.
-    taken = {}
+    taken: TakenNameMapping = {}
 
     # All CTE aliases in the root scope are taken
     for scope in root.cte_scopes:
@@ -56,7 +63,7 @@ def eliminate_subqueries(expression):
 
     # Map of Expression->alias
     # Existing CTES in the root expression. We'll use this for deduplication.
-    existing_ctes = {}
+    existing_ctes: ExistingCTEsMapping = {}
 
     with_ = root.expression.args.get("with")
     recursive = False
@@ -89,53 +96,27 @@ def eliminate_subqueries(expression):
                 new_ctes.append(new_cte)
 
     if new_ctes:
-        expression.set("with", exp.With(expressions=new_ctes, recursive=recursive))
+        query = expression.expression if isinstance(expression, exp.DDL) else expression
+        query.set("with", exp.With(expressions=new_ctes, recursive=recursive))
 
     return expression
 
 
-def _eliminate(scope, existing_ctes, taken):
-    if scope.is_union:
-        return _eliminate_union(scope, existing_ctes, taken)
-
+def _eliminate(
+    scope: Scope, existing_ctes: ExistingCTEsMapping, taken: TakenNameMapping
+) -> t.Optional[exp.Expression]:
     if scope.is_derived_table:
         return _eliminate_derived_table(scope, existing_ctes, taken)
 
     if scope.is_cte:
         return _eliminate_cte(scope, existing_ctes, taken)
 
-
-def _eliminate_union(scope, existing_ctes, taken):
-    duplicate_cte_alias = existing_ctes.get(scope.expression)
-
-    alias = duplicate_cte_alias or find_new_name(taken=taken, base="cte")
-
-    taken[alias] = scope
-
-    # Try to maintain the selections
-    expressions = scope.expression.selects
-    selects = [
-        exp.alias_(exp.column(e.alias_or_name, table=alias), alias=e.alias_or_name, copy=False)
-        for e in expressions
-        if e.alias_or_name
-    ]
-    # If not all selections have an alias, just select *
-    if len(selects) != len(expressions):
-        selects = ["*"]
-
-    scope.expression.replace(
-        exp.select(*selects).from_(exp.alias_(exp.table_(alias), alias=alias, copy=False))
-    )
-
-    if not duplicate_cte_alias:
-        existing_ctes[scope.expression] = alias
-        return exp.CTE(
-            this=scope.expression,
-            alias=exp.TableAlias(this=exp.to_identifier(alias)),
-        )
+    return None
 
 
-def _eliminate_derived_table(scope, existing_ctes, taken):
+def _eliminate_derived_table(
+    scope: Scope, existing_ctes: ExistingCTEsMapping, taken: TakenNameMapping
+) -> t.Optional[exp.Expression]:
     # This makes sure that we don't:
     # - drop the "pivot" arg from a pivoted subquery
     # - eliminate a lateral correlated subquery
@@ -153,7 +134,9 @@ def _eliminate_derived_table(scope, existing_ctes, taken):
     return cte
 
 
-def _eliminate_cte(scope, existing_ctes, taken):
+def _eliminate_cte(
+    scope: Scope, existing_ctes: ExistingCTEsMapping, taken: TakenNameMapping
+) -> t.Optional[exp.Expression]:
     parent = scope.expression.parent
     name, cte = _new_cte(scope, existing_ctes, taken)
 
@@ -172,7 +155,9 @@ def _eliminate_cte(scope, existing_ctes, taken):
     return cte
 
 
-def _new_cte(scope, existing_ctes, taken):
+def _new_cte(
+    scope: Scope, existing_ctes: ExistingCTEsMapping, taken: TakenNameMapping
+) -> t.Tuple[str, t.Optional[exp.Expression]]:
     """
     Returns:
         tuple of (name, cte)

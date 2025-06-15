@@ -108,7 +108,7 @@ class Step:
 
         if isinstance(expression, exp.Select) and from_:
             step = Scan.from_expression(from_.this, ctes)
-        elif isinstance(expression, exp.Union):
+        elif isinstance(expression, exp.SetOperation):
             step = SetOperation.from_expression(expression, ctes)
         else:
             step = Scan()
@@ -118,18 +118,19 @@ class Step:
         if joins:
             join = Join.from_joins(joins, ctes)
             join.name = step.name
+            join.source_name = step.name
             join.add_dependency(step)
             step = join
 
         projections = []  # final selects in this chain of steps representing a select
         operands = {}  # intermediate computations of agg funcs eg x + 1 in SUM(x + 1)
-        aggregations = set()
+        aggregations = {}
         next_operand_name = name_sequence("_a_")
 
         def extract_agg_operands(expression):
             agg_funcs = tuple(expression.find_all(exp.AggFunc))
             if agg_funcs:
-                aggregations.add(expression)
+                aggregations[expression] = None
 
             for agg in agg_funcs:
                 for operand in agg.unnest_operands():
@@ -187,24 +188,26 @@ class Step:
                     intermediate[v.name] = k
 
             for projection in projections:
-                for node, *_ in projection.walk():
+                for node in projection.walk():
                     name = intermediate.get(node)
                     if name:
                         node.replace(exp.column(name, step.name))
 
             if aggregate.condition:
-                for node, *_ in aggregate.condition.walk():
+                for node in aggregate.condition.walk():
                     name = intermediate.get(node) or intermediate.get(node.name)
                     if name:
                         node.replace(exp.column(name, step.name))
 
             aggregate.add_dependency(step)
             step = aggregate
+        else:
+            aggregate = None
 
         order = expression.args.get("order")
 
         if order:
-            if isinstance(step, Aggregate):
+            if aggregate and isinstance(step, Aggregate):
                 for i, ordered in enumerate(order.expressions):
                     if extract_agg_operands(exp.alias_(ordered.this, f"_o_{i}", quoted=True)):
                         ordered.this.replace(exp.column(f"_o_{i}", step.name, quoted=True))
@@ -331,7 +334,7 @@ class Join(Step):
     @classmethod
     def from_joins(
         cls, joins: t.Iterable[exp.Join], ctes: t.Optional[t.Dict[str, Step]] = None
-    ) -> Step:
+    ) -> Join:
         step = Join()
 
         for join in joins:
@@ -349,10 +352,11 @@ class Join(Step):
 
     def __init__(self) -> None:
         super().__init__()
+        self.source_name: t.Optional[str] = None
         self.joins: t.Dict[str, t.Dict[str, t.List[str] | exp.Expression]] = {}
 
     def _to_s(self, indent: str) -> t.List[str]:
-        lines = []
+        lines = [f"{indent}Source: {self.source_name or self.name}"]
         for name, join in self.joins.items():
             lines.append(f"{indent}{name}: {join['side'] or 'INNER'}")
             join_key = ", ".join(str(key) for key in t.cast(list, join.get("join_key") or []))
@@ -423,18 +427,29 @@ class SetOperation(Step):
     @classmethod
     def from_expression(
         cls, expression: exp.Expression, ctes: t.Optional[t.Dict[str, Step]] = None
-    ) -> Step:
-        assert isinstance(expression, exp.Union)
+    ) -> SetOperation:
+        assert isinstance(expression, exp.SetOperation)
+
         left = Step.from_expression(expression.left, ctes)
+        # SELECT 1 UNION SELECT 2  <-- these subqueries don't have names
+        left.name = left.name or "left"
         right = Step.from_expression(expression.right, ctes)
+        right.name = right.name or "right"
         step = cls(
             op=expression.__class__,
             left=left.name,
             right=right.name,
             distinct=bool(expression.args.get("distinct")),
         )
+
         step.add_dependency(left)
         step.add_dependency(right)
+
+        limit = expression.args.get("limit")
+
+        if limit:
+            step.limit = int(limit.text("expression"))
+
         return step
 
     def _to_s(self, indent: str) -> t.List[str]:

@@ -5,30 +5,27 @@ import typing as t
 from sqlglot import exp, transforms
 from sqlglot.dialects.dialect import (
     binary_from_function,
-    create_with_partitions_sql,
-    format_time_lambda,
+    build_formatted_time,
+    is_parse_json,
     pivot_column_names,
     rename_func,
     trim_sql,
+    unit_to_str,
 )
 from sqlglot.dialects.hive import Hive
-from sqlglot.helper import seq_get
+from sqlglot.helper import seq_get, ensure_list
+from sqlglot.tokens import TokenType
+from sqlglot.transforms import (
+    preprocess,
+    remove_unique_constraints,
+    ctas_with_tmp_tables_to_create_tmp_view,
+    move_schema_columns_to_partitioned_by,
+)
 
+if t.TYPE_CHECKING:
+    from sqlglot._typing import E
 
-def _create_sql(self: Spark2.Generator, e: exp.Create) -> str:
-    kind = e.args["kind"]
-    properties = e.args.get("properties")
-
-    if (
-        kind.upper() == "TABLE"
-        and e.expression
-        and any(
-            isinstance(prop, exp.TemporaryProperty)
-            for prop in (properties.expressions if properties else [])
-        )
-    ):
-        return f"CREATE TEMPORARY VIEW {self.sql(e, 'this')} AS {self.sql(e, 'expression')}"
-    return create_with_partitions_sql(self, e)
+    from sqlglot.optimizer.annotate_types import TypeAnnotator
 
 
 def _map_sql(self: Spark2.Generator, expression: exp.Map) -> str:
@@ -36,36 +33,37 @@ def _map_sql(self: Spark2.Generator, expression: exp.Map) -> str:
     values = expression.args.get("values")
 
     if not keys or not values:
-        return "MAP()"
+        return self.func("MAP")
 
-    return f"MAP_FROM_ARRAYS({self.sql(keys)}, {self.sql(values)})"
+    return self.func("MAP_FROM_ARRAYS", keys, values)
 
 
-def _parse_as_cast(to_type: str) -> t.Callable[[t.List], exp.Expression]:
+def _build_as_cast(to_type: str) -> t.Callable[[t.List], exp.Expression]:
     return lambda args: exp.Cast(this=seq_get(args, 0), to=exp.DataType.build(to_type))
 
 
 def _str_to_date(self: Spark2.Generator, expression: exp.StrToDate) -> str:
-    this = self.sql(expression, "this")
     time_format = self.format_time(expression)
     if time_format == Hive.DATE_FORMAT:
-        return f"TO_DATE({this})"
-    return f"TO_DATE({this}, {time_format})"
+        return self.func("TO_DATE", expression.this)
+    return self.func("TO_DATE", expression.this, time_format)
 
 
 def _unix_to_time_sql(self: Spark2.Generator, expression: exp.UnixToTime) -> str:
     scale = expression.args.get("scale")
-    timestamp = self.sql(expression, "this")
-    if scale is None:
-        return f"CAST(FROM_UNIXTIME({timestamp}) AS TIMESTAMP)"
-    if scale == exp.UnixToTime.SECONDS:
-        return f"TIMESTAMP_SECONDS({timestamp})"
-    if scale == exp.UnixToTime.MILLIS:
-        return f"TIMESTAMP_MILLIS({timestamp})"
-    if scale == exp.UnixToTime.MICROS:
-        return f"TIMESTAMP_MICROS({timestamp})"
+    timestamp = expression.this
 
-    raise ValueError("Improper scale for timestamp")
+    if scale is None:
+        return self.sql(exp.cast(exp.func("from_unixtime", timestamp), exp.DataType.Type.TIMESTAMP))
+    if scale == exp.UnixToTime.SECONDS:
+        return self.func("TIMESTAMP_SECONDS", timestamp)
+    if scale == exp.UnixToTime.MILLIS:
+        return self.func("TIMESTAMP_MILLIS", timestamp)
+    if scale == exp.UnixToTime.MICROS:
+        return self.func("TIMESTAMP_MICROS", timestamp)
+
+    unix_seconds = exp.Div(this=timestamp, expression=exp.func("POW", 10, scale))
+    return self.func("TIMESTAMP_SECONDS", unix_seconds)
 
 
 def _unalias_pivot(expression: exp.Expression) -> exp.Expression:
@@ -85,7 +83,9 @@ def _unalias_pivot(expression: exp.Expression) -> exp.Expression:
             alias = pivot.args["alias"].pop()
             return exp.From(
                 this=expression.this.replace(
-                    exp.select("*").from_(expression.this.copy()).subquery(alias=alias)
+                    exp.select("*")
+                    .from_(expression.this.copy(), copy=False)
+                    .subquery(alias=alias, copy=False)
                 )
             )
 
@@ -104,51 +104,118 @@ def _unqualify_pivot_columns(expression: exp.Expression) -> exp.Expression:
         SELECT * FROM tbl PIVOT(SUM(tbl.sales) FOR quarter IN ('Q1', 'Q1'))
     """
     if isinstance(expression, exp.Pivot):
-        expression.args["field"].transform(
-            lambda node: exp.column(node.output_name, quoted=node.this.quoted)
-            if isinstance(node, exp.Column)
-            else node,
-            copy=False,
+        expression.set(
+            "fields", [transforms.unqualify_columns(field) for field in expression.fields]
         )
 
     return expression
 
 
-def _insert_sql(self: Spark2.Generator, expression: exp.Insert) -> str:
-    if expression.expression.args.get("with"):
-        expression = expression.copy()
-        expression.set("with", expression.expression.args.pop("with"))
-    return self.insert_sql(expression)
+def temporary_storage_provider(expression: exp.Expression) -> exp.Expression:
+    # spark2, spark, Databricks require a storage provider for temporary tables
+    provider = exp.FileFormatProperty(this=exp.Literal.string("parquet"))
+    expression.args["properties"].append("expressions", provider)
+    return expression
+
+
+def _annotate_by_similar_args(
+    self: TypeAnnotator, expression: E, *args: str, target_type: exp.DataType | exp.DataType.Type
+) -> E:
+    """
+    Infers the type of the expression according to the following rules:
+    - If all args are of the same type OR any arg is of target_type, the expr is inferred as such
+    - If any arg is of UNKNOWN type and none of target_type, the expr is inferred as UNKNOWN
+    """
+    self._annotate_args(expression)
+
+    expressions: t.List[exp.Expression] = []
+    for arg in args:
+        arg_expr = expression.args.get(arg)
+        expressions.extend(expr for expr in ensure_list(arg_expr) if expr)
+
+    last_datatype = None
+
+    has_unknown = False
+    for expr in expressions:
+        if expr.is_type(exp.DataType.Type.UNKNOWN):
+            has_unknown = True
+        elif expr.is_type(target_type):
+            has_unknown = False
+            last_datatype = target_type
+            break
+        else:
+            last_datatype = expr.type
+
+    self._set_type(expression, exp.DataType.Type.UNKNOWN if has_unknown else last_datatype)
+    return expression
 
 
 class Spark2(Hive):
+    ANNOTATORS = {
+        **Hive.ANNOTATORS,
+        exp.Substring: lambda self, e: self._annotate_by_args(e, "this"),
+        exp.Concat: lambda self, e: _annotate_by_similar_args(
+            self, e, "expressions", target_type=exp.DataType.Type.TEXT
+        ),
+        exp.Pad: lambda self, e: _annotate_by_similar_args(
+            self, e, "this", "fill_pattern", target_type=exp.DataType.Type.TEXT
+        ),
+    }
+
+    class Tokenizer(Hive.Tokenizer):
+        HEX_STRINGS = [("X'", "'"), ("x'", "'")]
+
+        KEYWORDS = {
+            **Hive.Tokenizer.KEYWORDS,
+            "TIMESTAMP": TokenType.TIMESTAMPTZ,
+        }
+
     class Parser(Hive.Parser):
+        TRIM_PATTERN_FIRST = True
+
         FUNCTIONS = {
             **Hive.Parser.FUNCTIONS,
             "AGGREGATE": exp.Reduce.from_arg_list,
             "APPROX_PERCENTILE": exp.ApproxQuantile.from_arg_list,
-            "BOOLEAN": _parse_as_cast("boolean"),
-            "DATE": _parse_as_cast("date"),
+            "BOOLEAN": _build_as_cast("boolean"),
+            "DATE": _build_as_cast("date"),
             "DATE_TRUNC": lambda args: exp.TimestampTrunc(
                 this=seq_get(args, 1), unit=exp.var(seq_get(args, 0))
             ),
             "DAYOFMONTH": lambda args: exp.DayOfMonth(this=exp.TsOrDsToDate(this=seq_get(args, 0))),
             "DAYOFWEEK": lambda args: exp.DayOfWeek(this=exp.TsOrDsToDate(this=seq_get(args, 0))),
             "DAYOFYEAR": lambda args: exp.DayOfYear(this=exp.TsOrDsToDate(this=seq_get(args, 0))),
-            "DOUBLE": _parse_as_cast("double"),
-            "FLOAT": _parse_as_cast("float"),
-            "IIF": exp.If.from_arg_list,
-            "INT": _parse_as_cast("int"),
+            "DOUBLE": _build_as_cast("double"),
+            "FLOAT": _build_as_cast("float"),
+            "FROM_UTC_TIMESTAMP": lambda args, dialect: exp.AtTimeZone(
+                this=exp.cast(
+                    seq_get(args, 0) or exp.Var(this=""),
+                    exp.DataType.Type.TIMESTAMP,
+                    dialect=dialect,
+                ),
+                zone=seq_get(args, 1),
+            ),
+            "INT": _build_as_cast("int"),
             "MAP_FROM_ARRAYS": exp.Map.from_arg_list,
             "RLIKE": exp.RegexpLike.from_arg_list,
             "SHIFTLEFT": binary_from_function(exp.BitwiseLeftShift),
             "SHIFTRIGHT": binary_from_function(exp.BitwiseRightShift),
-            "STRING": _parse_as_cast("string"),
-            "TIMESTAMP": _parse_as_cast("timestamp"),
-            "TO_TIMESTAMP": lambda args: _parse_as_cast("timestamp")(args)
-            if len(args) == 1
-            else format_time_lambda(exp.StrToTime, "spark")(args),
+            "STRING": _build_as_cast("string"),
+            "TIMESTAMP": _build_as_cast("timestamp"),
+            "TO_TIMESTAMP": lambda args: (
+                _build_as_cast("timestamp")(args)
+                if len(args) == 1
+                else build_formatted_time(exp.StrToTime, "spark")(args)
+            ),
             "TO_UNIX_TIMESTAMP": exp.StrToUnix.from_arg_list,
+            "TO_UTC_TIMESTAMP": lambda args, dialect: exp.FromTimeZone(
+                this=exp.cast(
+                    seq_get(args, 0) or exp.Var(this=""),
+                    exp.DataType.Type.TIMESTAMP,
+                    dialect=dialect,
+                ),
+                zone=seq_get(args, 1),
+            ),
             "TRUNC": lambda args: exp.DateTrunc(unit=seq_get(args, 1), this=seq_get(args, 0)),
             "WEEKOFYEAR": lambda args: exp.WeekOfYear(this=exp.TsOrDsToDate(this=seq_get(args, 0))),
         }
@@ -165,9 +232,6 @@ class Spark2(Hive):
             "SHUFFLE_REPLICATE_NL": lambda self: self._parse_join_hint("SHUFFLE_REPLICATE_NL"),
         }
 
-        def _parse_add_column(self) -> t.Optional[exp.Expression]:
-            return self._match_text_seq("ADD", "COLUMNS") and self._parse_schema()
-
         def _parse_drop_column(self) -> t.Optional[exp.Drop | exp.Command]:
             return self._match_text_seq("DROP", "COLUMNS") and self.expression(
                 exp.Drop, this=self._parse_schema(), kind="COLUMNS"
@@ -175,12 +239,13 @@ class Spark2(Hive):
 
         def _pivot_column_names(self, aggregations: t.List[exp.Expression]) -> t.List[str]:
             if len(aggregations) == 1:
-                return [""]
+                return []
             return pivot_column_names(aggregations, dialect="spark")
 
     class Generator(Hive.Generator):
         QUERY_HINTS = True
         NVL2_SUPPORTED = True
+        CAN_IMPLEMENT_ARRAY_ANY = True
 
         PROPERTIES_LOCATION = {
             **Hive.Generator.PROPERTIES_LOCATION,
@@ -193,19 +258,35 @@ class Spark2(Hive):
         TRANSFORMS = {
             **Hive.Generator.TRANSFORMS,
             exp.ApproxDistinct: rename_func("APPROX_COUNT_DISTINCT"),
-            exp.ArraySum: lambda self, e: f"AGGREGATE({self.sql(e, 'this')}, 0, (acc, x) -> acc + x, acc -> acc)",
-            exp.AtTimeZone: lambda self, e: f"FROM_UTC_TIMESTAMP({self.sql(e, 'this')}, {self.sql(e, 'zone')})",
+            exp.ArraySum: lambda self,
+            e: f"AGGREGATE({self.sql(e, 'this')}, 0, (acc, x) -> acc + x, acc -> acc)",
+            exp.ArrayToString: rename_func("ARRAY_JOIN"),
+            exp.AtTimeZone: lambda self, e: self.func(
+                "FROM_UTC_TIMESTAMP", e.this, e.args.get("zone")
+            ),
             exp.BitwiseLeftShift: rename_func("SHIFTLEFT"),
             exp.BitwiseRightShift: rename_func("SHIFTRIGHT"),
-            exp.Create: _create_sql,
+            exp.Create: preprocess(
+                [
+                    remove_unique_constraints,
+                    lambda e: ctas_with_tmp_tables_to_create_tmp_view(
+                        e, temporary_storage_provider
+                    ),
+                    move_schema_columns_to_partitioned_by,
+                ]
+            ),
             exp.DateFromParts: rename_func("MAKE_DATE"),
-            exp.DateTrunc: lambda self, e: self.func("TRUNC", e.this, e.args.get("unit")),
+            exp.DateTrunc: lambda self, e: self.func("TRUNC", e.this, unit_to_str(e)),
             exp.DayOfMonth: rename_func("DAYOFMONTH"),
             exp.DayOfWeek: rename_func("DAYOFWEEK"),
+            # (DAY_OF_WEEK(datetime) % 7) + 1 is equivalent to DAYOFWEEK_ISO(datetime)
+            exp.DayOfWeekIso: lambda self, e: f"(({self.func('DAYOFWEEK', e.this)} % 7) + 1)",
             exp.DayOfYear: rename_func("DAYOFYEAR"),
             exp.FileFormatProperty: lambda self, e: f"USING {e.name.upper()}",
             exp.From: transforms.preprocess([_unalias_pivot]),
-            exp.Insert: _insert_sql,
+            exp.FromTimeZone: lambda self, e: self.func(
+                "TO_UTC_TIMESTAMP", e.this, e.args.get("zone")
+            ),
             exp.LogicalAnd: rename_func("BOOL_AND"),
             exp.LogicalOr: rename_func("BOOL_OR"),
             exp.Map: _map_sql,
@@ -218,11 +299,17 @@ class Spark2(Hive):
                 e.args["replacement"],
                 e.args.get("position"),
             ),
-            exp.StrToDate: _str_to_date,
-            exp.StrToTime: lambda self, e: f"TO_TIMESTAMP({self.sql(e, 'this')}, {self.format_time(e)})",
-            exp.TimestampTrunc: lambda self, e: self.func(
-                "DATE_TRUNC", exp.Literal.string(e.text("unit")), e.this
+            exp.Select: transforms.preprocess(
+                [
+                    transforms.eliminate_qualify,
+                    transforms.eliminate_distinct_on,
+                    transforms.unnest_to_explode,
+                    transforms.any_to_exists,
+                ]
             ),
+            exp.StrToDate: _str_to_date,
+            exp.StrToTime: lambda self, e: self.func("TO_TIMESTAMP", e.this, self.format_time(e)),
+            exp.TimestampTrunc: lambda self, e: self.func("DATE_TRUNC", unit_to_str(e), e.this),
             exp.Trim: trim_sql,
             exp.UnixToTime: _unix_to_time_sql,
             exp.VariancePop: rename_func("VAR_POP"),
@@ -231,7 +318,6 @@ class Spark2(Hive):
                 [transforms.remove_within_group_for_percentiles]
             ),
         }
-        TRANSFORMS.pop(exp.ArrayJoin)
         TRANSFORMS.pop(exp.ArraySort)
         TRANSFORMS.pop(exp.ILike)
         TRANSFORMS.pop(exp.Left)
@@ -241,23 +327,23 @@ class Spark2(Hive):
         WRAP_DERIVED_VALUES = False
         CREATE_FUNCTION_RETURN_AS = False
 
+        def struct_sql(self, expression: exp.Struct) -> str:
+            from sqlglot.generator import Generator
+
+            return Generator.struct_sql(self, expression)
+
         def cast_sql(self, expression: exp.Cast, safe_prefix: t.Optional[str] = None) -> str:
-            if isinstance(expression.this, exp.Cast) and expression.this.is_type("json"):
+            arg = expression.this
+            is_json_extract = isinstance(
+                arg, (exp.JSONExtract, exp.JSONExtractScalar)
+            ) and not arg.args.get("variant_extract")
+
+            # We can't use a non-nested type (eg. STRING) as a schema
+            if expression.to.args.get("nested") and (is_parse_json(arg) or is_json_extract):
                 schema = f"'{self.sql(expression, 'to')}'"
-                return self.func("FROM_JSON", expression.this.this, schema)
-            if expression.is_type("json"):
-                return self.func("TO_JSON", expression.this)
+                return self.func("FROM_JSON", arg if is_json_extract else arg.this, schema)
+
+            if is_parse_json(expression):
+                return self.func("TO_JSON", arg)
 
             return super(Hive.Generator, self).cast_sql(expression, safe_prefix=safe_prefix)
-
-        def columndef_sql(self, expression: exp.ColumnDef, sep: str = " ") -> str:
-            return super().columndef_sql(
-                expression,
-                sep=": "
-                if isinstance(expression.parent, exp.DataType)
-                and expression.parent.is_type("struct")
-                else sep,
-            )
-
-    class Tokenizer(Hive.Tokenizer):
-        HEX_STRINGS = [("X'", "'")]

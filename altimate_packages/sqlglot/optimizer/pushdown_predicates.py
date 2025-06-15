@@ -2,14 +2,15 @@ from sqlglot import exp
 from sqlglot.optimizer.normalize import normalized
 from sqlglot.optimizer.scope import build_scope, find_in_scope
 from sqlglot.optimizer.simplify import simplify
+from sqlglot import Dialect
 
 
-def pushdown_predicates(expression):
+def pushdown_predicates(expression, dialect=None):
     """
     Rewrite sqlglot AST to pushdown predicates in FROMS and JOINS
 
     Example:
-        >>> import sqlglot as sqlglot
+        >>> import sqlglot
         >>> sql = "SELECT y.a AS a FROM (SELECT x.a AS a FROM x AS x) AS y WHERE y.a = 1"
         >>> expression = sqlglot.parse_one(sql)
         >>> pushdown_predicates(expression).sql()
@@ -20,7 +21,12 @@ def pushdown_predicates(expression):
     Returns:
         sqlglot.Expression: optimized expression
     """
+    from sqlglot.dialects.presto import Presto
+
     root = build_scope(expression)
+
+    dialect = Dialect.get_or_raise(dialect)
+    unnest_requires_cross_join = isinstance(dialect, Presto)
 
     if root:
         scope_ref_count = root.ref_count()
@@ -30,13 +36,25 @@ def pushdown_predicates(expression):
             where = select.args.get("where")
             if where:
                 selected_sources = scope.selected_sources
+                join_index = {
+                    join.alias_or_name: i for i, join in enumerate(select.args.get("joins") or [])
+                }
+
                 # a right join can only push down to itself and not the source FROM table
+                # presto, trino and athena don't support inner joins where the RHS is an UNNEST expression
+                pushdown_allowed = True
                 for k, (node, source) in selected_sources.items():
                     parent = node.find_ancestor(exp.Join, exp.From)
-                    if isinstance(parent, exp.Join) and parent.side == "RIGHT":
-                        selected_sources = {k: (node, source)}
-                        break
-                pushdown(where.this, selected_sources, scope_ref_count)
+                    if isinstance(parent, exp.Join):
+                        if parent.side == "RIGHT":
+                            selected_sources = {k: (node, source)}
+                            break
+                        if isinstance(node, exp.Unnest) and unnest_requires_cross_join:
+                            pushdown_allowed = False
+                            break
+
+                if pushdown_allowed:
+                    pushdown(where.this, selected_sources, scope_ref_count, dialect, join_index)
 
             # joins should only pushdown into itself, not to other joins
             # so we limit the selected sources to only itself
@@ -44,17 +62,20 @@ def pushdown_predicates(expression):
                 name = join.alias_or_name
                 if name in scope.selected_sources:
                     pushdown(
-                        join.args.get("on"), {name: scope.selected_sources[name]}, scope_ref_count
+                        join.args.get("on"),
+                        {name: scope.selected_sources[name]},
+                        scope_ref_count,
+                        dialect,
                     )
 
     return expression
 
 
-def pushdown(condition, sources, scope_ref_count):
+def pushdown(condition, sources, scope_ref_count, dialect, join_index=None):
     if not condition:
         return
 
-    condition = condition.replace(simplify(condition))
+    condition = condition.replace(simplify(condition, dialect=dialect))
     cnf_like = normalized(condition) or not normalized(condition, dnf=True)
 
     predicates = list(
@@ -64,21 +85,28 @@ def pushdown(condition, sources, scope_ref_count):
     )
 
     if cnf_like:
-        pushdown_cnf(predicates, sources, scope_ref_count)
+        pushdown_cnf(predicates, sources, scope_ref_count, join_index=join_index)
     else:
         pushdown_dnf(predicates, sources, scope_ref_count)
 
 
-def pushdown_cnf(predicates, scope, scope_ref_count):
+def pushdown_cnf(predicates, sources, scope_ref_count, join_index=None):
     """
     If the predicates are in CNF like form, we can simply replace each block in the parent.
     """
+    join_index = join_index or {}
     for predicate in predicates:
-        for node in nodes_for_predicate(predicate, scope, scope_ref_count).values():
+        for node in nodes_for_predicate(predicate, sources, scope_ref_count).values():
             if isinstance(node, exp.Join):
-                predicate.replace(exp.true())
-                node.on(predicate, copy=False)
-                break
+                name = node.alias_or_name
+                predicate_tables = exp.column_table_names(predicate, name)
+
+                # Don't push the predicate if it references tables that appear in later joins
+                this_index = join_index[name]
+                if all(join_index.get(table, -1) < this_index for table in predicate_tables):
+                    predicate.replace(exp.true())
+                    node.on(predicate, copy=False)
+                    break
             if isinstance(node, exp.Select):
                 predicate.replace(exp.true())
                 inner_predicate = replace_aliases(node, predicate)
@@ -88,7 +116,7 @@ def pushdown_cnf(predicates, scope, scope_ref_count):
                     node.where(inner_predicate, copy=False)
 
 
-def pushdown_dnf(predicates, scope, scope_ref_count):
+def pushdown_dnf(predicates, sources, scope_ref_count):
     """
     If the predicates are in DNF form, we can only push down conditions that are in all blocks.
     Additionally, we can't remove predicates from their original form.
@@ -109,33 +137,17 @@ def pushdown_dnf(predicates, scope, scope_ref_count):
 
     conditions = {}
 
-    # for every pushdown table, find all related conditions in all predicates
-    # combine them with ORS
-    # (a.x AND and a.y AND b.x) OR (a.z AND c.y) -> (a.x AND a.y) OR (a.z)
+    # pushdown all predicates to their respective nodes
     for table in sorted(pushdown_tables):
         for predicate in predicates:
-            nodes = nodes_for_predicate(predicate, scope, scope_ref_count)
+            nodes = nodes_for_predicate(predicate, sources, scope_ref_count)
 
             if table not in nodes:
                 continue
 
-            predicate_condition = None
-
-            for column in predicate.find_all(exp.Column):
-                if column.table == table:
-                    condition = column.find_ancestor(exp.Condition)
-                    predicate_condition = (
-                        exp.and_(predicate_condition, condition)
-                        if predicate_condition
-                        else condition
-                    )
-
-            if predicate_condition:
-                conditions[table] = (
-                    exp.or_(conditions[table], predicate_condition)
-                    if table in conditions
-                    else predicate_condition
-                )
+            conditions[table] = (
+                exp.or_(conditions[table], predicate) if table in conditions else predicate
+            )
 
         for name, node in nodes.items():
             if name not in conditions:

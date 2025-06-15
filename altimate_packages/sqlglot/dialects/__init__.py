@@ -1,9 +1,10 @@
+# ruff: noqa: F401
 """
 ## Dialects
 
 While there is a SQL standard, most SQL engines support a variation of that standard. This makes it difficult
 to write portable SQL code. SQLGlot bridges all the different variations, called "dialects", with an extensible
-SQL transpilation framework. 
+SQL transpilation framework.
 
 The base `sqlglot.dialects.dialect.Dialect` class implements a generic dialect that aims to be as universal as possible.
 
@@ -12,7 +13,7 @@ classes as needed.
 
 ### Implementing a custom Dialect
 
-Consider the following example:
+Creating a new SQL dialect may seem complicated at first, but it is actually quite simple in SQLGlot:
 
 ```python
 from sqlglot import exp
@@ -23,9 +24,10 @@ from sqlglot.tokens import Tokenizer, TokenType
 
 class Custom(Dialect):
     class Tokenizer(Tokenizer):
-        QUOTES = ["'", '"']
-        IDENTIFIERS = ["`"]
+        QUOTES = ["'", '"']  # Strings can be delimited by either single or double quotes
+        IDENTIFIERS = ["`"]  # Identifiers can be delimited by backticks
 
+        # Associates certain meaningful words with tokens that capture their intent
         KEYWORDS = {
             **Tokenizer.KEYWORDS,
             "INT64": TokenType.BIGINT,
@@ -33,8 +35,12 @@ class Custom(Dialect):
         }
 
     class Generator(Generator):
-        TRANSFORMS = {exp.Array: lambda self, e: f"[{self.expressions(e)}]"}
+        # Specifies how AST nodes, i.e. subclasses of exp.Expression, should be converted into SQL
+        TRANSFORMS = {
+            exp.Array: lambda self, e: f"[{self.expressions(e)}]",
+        }
 
+        # Specifies how AST nodes representing data types should be converted into SQL
         TYPE_MAPPING = {
             exp.DataType.Type.TINYINT: "INT64",
             exp.DataType.Type.SMALLINT: "INT64",
@@ -48,33 +54,65 @@ class Custom(Dialect):
         }
 ```
 
-This is a typical example of adding a new dialect implementation in SQLGlot: we specify its identifier and string
-delimiters, as well as what tokens it uses for its types and how they're associated with SQLGlot types. Since
-the `Expression` classes are common for each dialect supported in SQLGlot, we may also need to override the generation
-logic for some expressions; this is usually done by adding new entries to the `TRANSFORMS` mapping.
+The above example demonstrates how certain parts of the base `Dialect` class can be overridden to match a different
+specification. Even though it is a fairly realistic starting point, we strongly encourage the reader to study existing
+dialect implementations in order to understand how their various components can be modified, depending on the use-case.
 
 ----
 """
 
-from sqlglot.dialects.bigquery import BigQuery
-from sqlglot.dialects.clickhouse import ClickHouse
-from sqlglot.dialects.databricks import Databricks
-from sqlglot.dialects.dialect import Dialect, Dialects
-from sqlglot.dialects.doris import Doris
-from sqlglot.dialects.drill import Drill
-from sqlglot.dialects.duckdb import DuckDB
-from sqlglot.dialects.hive import Hive
-from sqlglot.dialects.mysql import MySQL
-from sqlglot.dialects.oracle import Oracle
-from sqlglot.dialects.postgres import Postgres
-from sqlglot.dialects.presto import Presto
-from sqlglot.dialects.redshift import Redshift
-from sqlglot.dialects.snowflake import Snowflake
-from sqlglot.dialects.spark import Spark
-from sqlglot.dialects.spark2 import Spark2
-from sqlglot.dialects.sqlite import SQLite
-from sqlglot.dialects.starrocks import StarRocks
-from sqlglot.dialects.tableau import Tableau
-from sqlglot.dialects.teradata import Teradata
-from sqlglot.dialects.trino import Trino
-from sqlglot.dialects.tsql import TSQL
+import importlib
+import threading
+
+DIALECTS = [
+    "Athena",
+    "BigQuery",
+    "ClickHouse",
+    "Databricks",
+    "Doris",
+    "Drill",
+    "Druid",
+    "DuckDB",
+    "Dune",
+    "Hive",
+    "Materialize",
+    "MySQL",
+    "Oracle",
+    "Postgres",
+    "Presto",
+    "PRQL",
+    "Redshift",
+    "RisingWave",
+    "Snowflake",
+    "Spark",
+    "Spark2",
+    "SQLite",
+    "StarRocks",
+    "Tableau",
+    "Teradata",
+    "Trino",
+    "TSQL",
+]
+
+MODULE_BY_DIALECT = {name: name.lower() for name in DIALECTS}
+DIALECT_MODULE_NAMES = MODULE_BY_DIALECT.values()
+
+MODULE_BY_ATTRIBUTE = {
+    **MODULE_BY_DIALECT,
+    "Dialect": "dialect",
+    "Dialects": "dialect",
+}
+
+__all__ = list(MODULE_BY_ATTRIBUTE)
+
+_import_lock = threading.Lock()
+
+
+def __getattr__(name):
+    module_name = MODULE_BY_ATTRIBUTE.get(name)
+    if module_name:
+        with _import_lock:
+            module = importlib.import_module(f"sqlglot.dialects.{module_name}")
+        return getattr(module, name)
+
+    raise AttributeError(f"module {__name__} has no attribute {name}")

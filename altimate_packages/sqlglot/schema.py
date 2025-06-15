@@ -3,21 +3,16 @@ from __future__ import annotations
 import abc
 import typing as t
 
-import sqlglot as sqlglot
 from sqlglot import expressions as exp
-from sqlglot._typing import T
 from sqlglot.dialects.dialect import Dialect
-from sqlglot.errors import ParseError, SchemaError
-from sqlglot.helper import dict_depth
+from sqlglot.errors import SchemaError
+from sqlglot.helper import dict_depth, first
 from sqlglot.trie import TrieResult, in_trie, new_trie
 
 if t.TYPE_CHECKING:
-    from sqlglot.dataframe.sql.types import StructType
     from sqlglot.dialects.dialect import DialectType
 
-    ColumnMapping = t.Union[t.Dict, str, StructType, t.List]
-
-TABLE_ARGS = ("this", "db", "catalog")
+    ColumnMapping = t.Union[t.Dict, str, t.List]
 
 
 class Schema(abc.ABC):
@@ -53,7 +48,7 @@ class Schema(abc.ABC):
         only_visible: bool = False,
         dialect: DialectType = None,
         normalize: t.Optional[bool] = None,
-    ) -> t.List[str]:
+    ) -> t.Sequence[str]:
         """
         Get the column names for a table.
 
@@ -64,14 +59,14 @@ class Schema(abc.ABC):
             normalize: whether to normalize identifiers according to the dialect of interest.
 
         Returns:
-            The list of column names.
+            The sequence of column names.
         """
 
     @abc.abstractmethod
     def get_column_type(
         self,
         table: exp.Table | str,
-        column: exp.Column,
+        column: exp.Column | str,
         dialect: DialectType = None,
         normalize: t.Optional[bool] = None,
     ) -> exp.DataType:
@@ -88,6 +83,28 @@ class Schema(abc.ABC):
             The resulting column type.
         """
 
+    def has_column(
+        self,
+        table: exp.Table | str,
+        column: exp.Column | str,
+        dialect: DialectType = None,
+        normalize: t.Optional[bool] = None,
+    ) -> bool:
+        """
+        Returns whether `column` appears in `table`'s schema.
+
+        Args:
+            table: the source table.
+            column: the target column.
+            dialect: the SQL dialect that will be used to parse `table` if it's a string.
+            normalize: whether to normalize identifiers according to the dialect of interest.
+
+        Returns:
+            True if the column appears in the schema, False otherwise.
+        """
+        name = column if isinstance(column, str) else column.name
+        return name in self.column_names(table, dialect=dialect, normalize=normalize)
+
     @property
     @abc.abstractmethod
     def supported_table_args(self) -> t.Tuple[str, ...]:
@@ -97,11 +114,11 @@ class Schema(abc.ABC):
 
     @property
     def empty(self) -> bool:
-        """Returns whether or not the schema is empty."""
+        """Returns whether the schema is empty."""
         return True
 
 
-class AbstractMappingSchema(t.Generic[T]):
+class AbstractMappingSchema:
     def __init__(
         self,
         mapping: t.Optional[t.Dict] = None,
@@ -127,28 +144,37 @@ class AbstractMappingSchema(t.Generic[T]):
             if not depth:  # None
                 self._supported_table_args = tuple()
             elif 1 <= depth <= 3:
-                self._supported_table_args = TABLE_ARGS[:depth]
+                self._supported_table_args = exp.TABLE_PARTS[:depth]
             else:
                 raise SchemaError(f"Invalid mapping shape. Depth: {depth}")
 
         return self._supported_table_args
 
     def table_parts(self, table: exp.Table) -> t.List[str]:
-        if isinstance(table.this, exp.ReadCSV):
-            return [table.this.name]
-        return [table.text(part) for part in TABLE_ARGS if table.text(part)]
+        return [part.name for part in reversed(table.parts)]
 
     def find(
-        self, table: exp.Table, trie: t.Optional[t.Dict] = None, raise_on_missing: bool = True
-    ) -> t.Optional[T]:
+        self, table: exp.Table, raise_on_missing: bool = True, ensure_data_types: bool = False
+    ) -> t.Optional[t.Any]:
+        """
+        Returns the schema of a given table.
+
+        Args:
+            table: the target table.
+            raise_on_missing: whether to raise in case the schema is not found.
+            ensure_data_types: whether to convert `str` types to their `DataType` equivalents.
+
+        Returns:
+            The schema of the target table.
+        """
         parts = self.table_parts(table)[0 : len(self.supported_table_args)]
-        value, trie = in_trie(self.mapping_trie if trie is None else trie, parts)
+        value, trie = in_trie(self.mapping_trie, parts)
 
         if value == TrieResult.FAILED:
             return None
 
         if value == TrieResult.PREFIX:
-            possibilities = flatten_schema(trie, depth=dict_depth(trie) - 1)
+            possibilities = flatten_schema(trie)
 
             if len(possibilities) == 1:
                 parts.extend(possibilities[0])
@@ -170,7 +196,7 @@ class AbstractMappingSchema(t.Generic[T]):
         )
 
 
-class MappingSchema(AbstractMappingSchema[t.Dict[str, str]], Schema):
+class MappingSchema(AbstractMappingSchema, Schema):
     """
     Schema based on a nested mapping.
 
@@ -197,12 +223,13 @@ class MappingSchema(AbstractMappingSchema[t.Dict[str, str]], Schema):
         normalize: bool = True,
     ) -> None:
         self.dialect = dialect
-        self.visible = visible or {}
+        self.visible = {} if visible is None else visible
         self.normalize = normalize
         self._type_mapping_cache: t.Dict[str, exp.DataType] = {}
         self._depth = 0
+        schema = {} if schema is None else schema
 
-        super().__init__(self._normalize(schema or {}))
+        super().__init__(self._normalize(schema) if self.normalize else schema)
 
     @classmethod
     def from_mapping_schema(cls, mapping_schema: MappingSchema) -> MappingSchema:
@@ -212,6 +239,20 @@ class MappingSchema(AbstractMappingSchema[t.Dict[str, str]], Schema):
             dialect=mapping_schema.dialect,
             normalize=mapping_schema.normalize,
         )
+
+    def find(
+        self, table: exp.Table, raise_on_missing: bool = True, ensure_data_types: bool = False
+    ) -> t.Optional[t.Any]:
+        schema = super().find(
+            table, raise_on_missing=raise_on_missing, ensure_data_types=ensure_data_types
+        )
+        if ensure_data_types and isinstance(schema, dict):
+            schema = {
+                col: self._to_data_type(dtype) if isinstance(dtype, str) else dtype
+                for col, dtype in schema.items()
+            }
+
+        return schema
 
     def copy(self, **kwargs) -> MappingSchema:
         return MappingSchema(
@@ -287,7 +328,7 @@ class MappingSchema(AbstractMappingSchema[t.Dict[str, str]], Schema):
     def get_column_type(
         self,
         table: exp.Table | str,
-        column: exp.Column,
+        column: exp.Column | str,
         dialect: DialectType = None,
         normalize: t.Optional[bool] = None,
     ) -> exp.DataType:
@@ -304,9 +345,25 @@ class MappingSchema(AbstractMappingSchema[t.Dict[str, str]], Schema):
             if isinstance(column_type, exp.DataType):
                 return column_type
             elif isinstance(column_type, str):
-                return self._to_data_type(column_type.upper(), dialect=dialect)
+                return self._to_data_type(column_type, dialect=dialect)
 
         return exp.DataType.build("unknown")
+
+    def has_column(
+        self,
+        table: exp.Table | str,
+        column: exp.Column | str,
+        dialect: DialectType = None,
+        normalize: t.Optional[bool] = None,
+    ) -> bool:
+        normalized_table = self._normalize_table(table, dialect=dialect, normalize=normalize)
+
+        normalized_column_name = self._normalize_name(
+            column if isinstance(column, str) else column.this, dialect=dialect, normalize=normalize
+        )
+
+        table_schema = self.find(normalized_table, raise_on_missing=False)
+        return normalized_column_name in table_schema if table_schema else False
 
     def _normalize(self, schema: t.Dict) -> t.Dict:
         """
@@ -319,23 +376,28 @@ class MappingSchema(AbstractMappingSchema[t.Dict[str, str]], Schema):
             The normalized schema mapping.
         """
         normalized_mapping: t.Dict = {}
-        flattened_schema = flatten_schema(schema, depth=dict_depth(schema) - 1)
+        flattened_schema = flatten_schema(schema)
+        error_msg = "Table {} must match the schema's nesting level: {}."
 
         for keys in flattened_schema:
             columns = nested_get(schema, *zip(keys, keys))
 
             if not isinstance(columns, dict):
+                raise SchemaError(error_msg.format(".".join(keys[:-1]), len(flattened_schema[0])))
+            if not columns:
+                raise SchemaError(f"Table {'.'.join(keys[:-1])} must have at least one column")
+            if isinstance(first(columns.values()), dict):
                 raise SchemaError(
-                    f"Table {'.'.join(keys[:-1])} must match the schema's nesting level: {len(flattened_schema[0])}."
+                    error_msg.format(
+                        ".".join(keys + flatten_schema(columns)[0]), len(flattened_schema[0])
+                    ),
                 )
 
-            normalized_keys = [
-                self._normalize_name(key, dialect=self.dialect, is_table=True) for key in keys
-            ]
+            normalized_keys = [self._normalize_name(key, is_table=True) for key in keys]
             for column_name, column_type in columns.items():
                 nested_set(
                     normalized_mapping,
-                    normalized_keys + [self._normalize_name(column_name, dialect=self.dialect)],
+                    normalized_keys + [self._normalize_name(column_name)],
                     column_type,
                 )
 
@@ -347,21 +409,17 @@ class MappingSchema(AbstractMappingSchema[t.Dict[str, str]], Schema):
         dialect: DialectType = None,
         normalize: t.Optional[bool] = None,
     ) -> exp.Table:
-        normalized_table = exp.maybe_parse(
-            table, into=exp.Table, dialect=dialect or self.dialect, copy=True
-        )
+        dialect = dialect or self.dialect
+        normalize = self.normalize if normalize is None else normalize
 
-        for arg in TABLE_ARGS:
-            value = normalized_table.args.get(arg)
-            if isinstance(value, (str, exp.Identifier)):
-                normalized_table.set(
-                    arg,
-                    exp.to_identifier(
-                        self._normalize_name(
-                            value, dialect=dialect, is_table=True, normalize=normalize
-                        )
-                    ),
-                )
+        normalized_table = exp.maybe_parse(table, into=exp.Table, dialect=dialect, copy=normalize)
+
+        if normalize:
+            for part in normalized_table.parts:
+                if isinstance(part, exp.Identifier):
+                    part.replace(
+                        normalize_name(part, dialect=dialect, is_table=True, normalize=normalize)
+                    )
 
         return normalized_table
 
@@ -377,7 +435,7 @@ class MappingSchema(AbstractMappingSchema[t.Dict[str, str]], Schema):
             dialect=dialect or self.dialect,
             is_table=is_table,
             normalize=self.normalize if normalize is None else normalize,
-        )
+        ).name
 
     def depth(self) -> int:
         if not self.empty and not self._depth:
@@ -398,9 +456,10 @@ class MappingSchema(AbstractMappingSchema[t.Dict[str, str]], Schema):
         """
         if schema_type not in self._type_mapping_cache:
             dialect = dialect or self.dialect
+            udt = Dialect.get_or_raise(dialect).SUPPORTS_USER_DEFINED_TYPES
 
             try:
-                expression = exp.DataType.build(schema_type, dialect=dialect)
+                expression = exp.DataType.build(schema_type, dialect=dialect, udt=udt)
                 self._type_mapping_cache[schema_type] = expression
             except AttributeError:
                 in_dialect = f" in dialect {dialect}" if dialect else ""
@@ -410,23 +469,20 @@ class MappingSchema(AbstractMappingSchema[t.Dict[str, str]], Schema):
 
 
 def normalize_name(
-    name: str | exp.Identifier,
+    identifier: str | exp.Identifier,
     dialect: DialectType = None,
     is_table: bool = False,
     normalize: t.Optional[bool] = True,
-) -> str:
-    try:
-        identifier = sqlglot.maybe_parse(name, dialect=dialect, into=exp.Identifier)
-    except ParseError:
-        return name if isinstance(name, str) else name.name
+) -> exp.Identifier:
+    if isinstance(identifier, str):
+        identifier = exp.parse_identifier(identifier, dialect=dialect)
 
-    name = identifier.name
     if not normalize:
-        return name
+        return identifier
 
-    # This can be useful for normalize_identifier
+    # this is used for normalize_identifier, bigquery has special rules pertaining tables
     identifier.meta["is_table"] = is_table
-    return Dialect.get_or_raise(dialect).normalize_identifier(identifier).name
+    return Dialect.get_or_raise(dialect).normalize_identifier(identifier)
 
 
 def ensure_schema(schema: Schema | t.Optional[t.Dict], **kwargs: t.Any) -> Schema:
@@ -447,9 +503,6 @@ def ensure_column_mapping(mapping: t.Optional[ColumnMapping]) -> t.Dict:
             name_type_str.split(":")[0].strip(): name_type_str.split(":")[1].strip()
             for name_type_str in col_name_type_strs
         }
-    # Check if mapping looks like a DataFrame StructType
-    elif hasattr(mapping, "simpleString"):
-        return {struct_field.name: struct_field.dataType.simpleString() for struct_field in mapping}
     elif isinstance(mapping, list):
         return {x.strip(): None for x in mapping}
 
@@ -457,16 +510,17 @@ def ensure_column_mapping(mapping: t.Optional[ColumnMapping]) -> t.Dict:
 
 
 def flatten_schema(
-    schema: t.Dict, depth: int, keys: t.Optional[t.List[str]] = None
+    schema: t.Dict, depth: t.Optional[int] = None, keys: t.Optional[t.List[str]] = None
 ) -> t.List[t.List[str]]:
     tables = []
     keys = keys or []
+    depth = dict_depth(schema) - 1 if depth is None else depth
 
     for k, v in schema.items():
-        if depth >= 2:
-            tables.extend(flatten_schema(v, depth - 1, keys + [k]))
-        elif depth == 1:
+        if depth == 1 or not isinstance(v, dict):
             tables.append(keys + [k])
+        elif depth >= 2:
+            tables.extend(flatten_schema(v, depth - 1, keys + [k]))
 
     return tables
 

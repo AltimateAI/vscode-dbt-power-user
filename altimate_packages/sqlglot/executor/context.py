@@ -44,9 +44,9 @@ class Context:
 
             for other in self.tables.values():
                 if self._table.columns != other.columns:
-                    raise Exception(f"Columns are different.")
+                    raise Exception("Columns are different.")
                 if len(self._table.rows) != len(other.rows):
-                    raise Exception(f"Rows are different.")
+                    raise Exception("Rows are different.")
 
         return self._table
 
@@ -78,7 +78,7 @@ class Context:
     def sort(self, key) -> None:
         def sort_key(row: t.Tuple) -> t.Tuple:
             self.set_row(row)
-            return self.eval_tuple(key)
+            return tuple((t is None, t) for t in self.eval_tuple(key))
 
         self.table.rows.sort(key=sort_key)
 

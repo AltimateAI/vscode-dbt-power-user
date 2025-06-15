@@ -10,7 +10,7 @@ def eliminate_joins(expression):
     This only removes joins when we know that the join condition doesn't produce duplicate rows.
 
     Example:
-        >>> import sqlglot as sqlglot
+        >>> import sqlglot
         >>> sql = "SELECT x.a FROM x LEFT JOIN (SELECT DISTINCT y.b FROM y) AS y ON x.b = y.b"
         >>> expression = sqlglot.parse_one(sql)
         >>> eliminate_joins(expression).sql()
