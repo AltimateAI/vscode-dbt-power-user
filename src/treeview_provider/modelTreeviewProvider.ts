@@ -39,6 +39,7 @@ import {
   getCurrentlySelectedModelNameInYamlConfig,
   provideSingleton,
   removeProtocol,
+  getDepthColor,
 } from "../utils";
 
 @provide(ModelTreeviewProvider)
@@ -364,31 +365,14 @@ export class NodeTreeItem extends TreeItem {
 
   setDepth(depth: number) {
     this.depth = depth;
-    const dbtConfig = workspace.getConfiguration("dbt");
-    const mediumThreshold =
-      dbtConfig.get<number>("depthDecoration.mediumDepthThreshold") || 3;
-    const highThreshold =
-      dbtConfig.get<number>("depthDecoration.highDepthThreshold") || 6;
-
-    let color = "green";
-    if (depth >= highThreshold) {
-      color = "red";
-    } else if (depth >= mediumThreshold) {
-      color = "orange";
-    }
-
-    const markdown = new MarkdownString();
-    markdown.appendMarkdown(
-      `**DAG Depth: <span style="color:${color}">${depth}</span>**\n\n`,
-    );
-    markdown.appendMarkdown(
+    const color = getDepthColor(depth);
+    this.description = `(${depth})`;
+    this.tooltip = new MarkdownString(
+      `**DAG Depth:** <span style="color:${color}">${depth}</span>\n\n` +
       `The longest path of models between a source and this model is ${depth} nodes long.`,
     );
-    markdown.isTrusted = true;
-    markdown.supportHtml = true;
-
-    this.description = `(${depth})`;
-    this.tooltip = markdown;
+    this.tooltip.isTrusted = true;
+    this.tooltip.supportHtml = true;
   }
 }
 

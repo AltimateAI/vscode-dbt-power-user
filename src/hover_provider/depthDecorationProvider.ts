@@ -14,6 +14,7 @@ import {
 } from "vscode";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { provideSingleton } from "../utils";
+import { getDepthColor } from "../utils";
 
 @provideSingleton(DepthDecorationProvider)
 export class DepthDecorationProvider implements HoverProvider, Disposable {
@@ -130,26 +131,7 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
     refRange: Range,
     depth: number,
   ): DecorationOptions {
-    const dbtConfig = workspace.getConfiguration("dbt");
-    const mediumThreshold =
-      dbtConfig.get<number>("depthDecoration.mediumDepthThreshold") || 3;
-    const highThreshold =
-      dbtConfig.get<number>("depthDecoration.highDepthThreshold") || 6;
-
-    let color =
-      dbtConfig.get<string>("depthDecoration.colorLow") ||
-      "rgba(0, 200, 0, 0.7)";
-
-    if (depth >= highThreshold) {
-      color =
-        dbtConfig.get<string>("depthDecoration.colorHigh") ||
-        "rgba(200, 0, 0, 0.7)";
-    } else if (depth >= mediumThreshold) {
-      color =
-        dbtConfig.get<string>("depthDecoration.colorMedium") ||
-        "rgba(200, 200, 0, 0.7)";
-    }
-
+    const color = getDepthColor(depth);
     const depthText = `(${depth})`;
 
     return {
