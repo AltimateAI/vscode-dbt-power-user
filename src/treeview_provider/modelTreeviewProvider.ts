@@ -7,6 +7,7 @@ import {
   Disposable,
   Event,
   EventEmitter,
+  MarkdownString,
   ProviderResult,
   TextDocument,
   ThemeIcon,
@@ -15,6 +16,7 @@ import {
   TreeItemCollapsibleState,
   Uri,
   window,
+  workspace,
 } from "vscode";
 import {
   Analysis,
@@ -169,6 +171,13 @@ abstract class ModelTreeviewProvider
           childNodes?.length !== 0
             ? TreeItemCollapsibleState.Collapsed
             : TreeItemCollapsibleState.None;
+
+        // Calculate depth from modelDepthMap
+        const depth = event.modelDepthMap.get(node.key);
+        if (depth !== undefined) {
+          treeItem.setDepth(depth);
+        }
+
         return treeItem;
       });
   }
@@ -332,6 +341,7 @@ export class NodeTreeItem extends TreeItem {
   collapsibleState = TreeItemCollapsibleState.Collapsed;
   key: string;
   url: string | undefined;
+  depth?: number;
 
   constructor(node: Node) {
     super(node.label);
@@ -350,6 +360,35 @@ export class NodeTreeItem extends TreeItem {
         arguments: [Uri.file(node.url)],
       };
     }
+  }
+
+  setDepth(depth: number) {
+    this.depth = depth;
+    const dbtConfig = workspace.getConfiguration("dbt");
+    const mediumThreshold =
+      dbtConfig.get<number>("depthDecoration.mediumDepthThreshold") || 3;
+    const highThreshold =
+      dbtConfig.get<number>("depthDecoration.highDepthThreshold") || 6;
+
+    let color = "green";
+    if (depth >= highThreshold) {
+      color = "red";
+    } else if (depth >= mediumThreshold) {
+      color = "orange";
+    }
+
+    const markdown = new MarkdownString();
+    markdown.appendMarkdown(
+      `**DAG Depth: <span style="color:${color}">${depth}</span>**\n\n`,
+    );
+    markdown.appendMarkdown(
+      `The longest path of models between a source and this model is ${depth} nodes long.`,
+    );
+    markdown.isTrusted = true;
+    markdown.supportHtml = true;
+
+    this.description = `(${depth})`;
+    this.tooltip = markdown;
   }
 }
 
