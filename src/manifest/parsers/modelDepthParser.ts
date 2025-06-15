@@ -1,16 +1,29 @@
 import { provide } from "inversify-binding-decorators";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { DBTGraphType } from "./graphParser";
+import { AltimateRequest } from "../../altimate";
 
 @provide(ModelDepthParser)
 export class ModelDepthParser {
-  constructor(private terminal: DBTTerminal) {}
+  constructor(
+    private terminal: DBTTerminal,
+    private altimate: AltimateRequest,
+  ) {}
 
   public createModelDepthsMap(
     nodeMap: any[],
     parentMetaMap: DBTGraphType,
     childMetaMap: DBTGraphType,
   ): Map<string, number> {
+    // Check if API key is available
+    if (!this.altimate.enabled()) {
+      this.terminal.debug(
+        "ModelDepthParser",
+        "Skipping model depth calculation - Altimate API key not configured",
+      );
+      return new Map<string, number>();
+    }
+
     const modelDepths = new Map<string, number>();
 
     // Get all models from the manifest
