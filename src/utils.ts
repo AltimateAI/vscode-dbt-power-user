@@ -477,11 +477,21 @@ export function getDepthColor(depth: number): string {
     .getConfiguration("dbt")
     .get<number>("highDepthThreshold", 10);
 
+  const lowDepthColor = workspace
+    .getConfiguration("dbt")
+    .get<string>("lowDepthColor", "#00ff00");
+  const mediumDepthColor = workspace
+    .getConfiguration("dbt")
+    .get<string>("mediumDepthColor", "#ffa500");
+  const highDepthColor = workspace
+    .getConfiguration("dbt")
+    .get<string>("highDepthColor", "#ff0000");
+
   if (depth >= highDepthThreshold) {
-    return "#ff0000"; // Red for high depth
+    return highDepthColor; // Configurable color for high depth
   } else if (depth >= mediumDepthThreshold) {
-    return "#ffa500"; // Orange for medium depth
+    return mediumDepthColor; // Configurable color for medium depth
   } else {
-    return "#00ff00"; // Green for low depth
+    return lowDepthColor; // Configurable color for low depth
   }
 }
