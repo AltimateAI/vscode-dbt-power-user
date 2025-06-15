@@ -142,7 +142,6 @@ class PythonExecutor:
             context = self.context({alias: table})
             yield context
             types = []
-
             for row in reader:
                 if not types:
                     for v in row:
@@ -150,11 +149,15 @@ class PythonExecutor:
                             types.append(type(ast.literal_eval(v)))
                         except (ValueError, SyntaxError):
                             types.append(str)
-                context.set_row(tuple(t(v) for t, v in zip(types, row)))
+
+                # We can't cast empty values ('') to non-string types, so we convert them to None instead
+                context.set_row(
+                    tuple(None if (t is not str and v == "") else t(v) for t, v in zip(types, row))
+                )
                 yield context.table.reader
 
     def join(self, step, context):
-        source = step.name
+        source = step.source_name
 
         source_table = context.tables[source]
         source_context = self.context({source: source_table})
@@ -343,6 +346,9 @@ class PythonExecutor:
         else:
             sink.rows = left.rows + right.rows
 
+        if not math.isinf(step.limit):
+            sink.rows = sink.rows[0 : step.limit]
+
         return self.context({step.name: sink})
 
 
@@ -364,8 +370,8 @@ def _rename(self, e):
             return self.func(e.key, *values)
 
         if isinstance(e, exp.Func) and e.is_var_len_args:
-            *head, tail = values
-            return self.func(e.key, *head, *tail)
+            args = itertools.chain.from_iterable(x if isinstance(x, list) else [x] for x in values)
+            return self.func(e.key, *args)
 
         return self.func(e.key, *values)
     except Exception as ex:
@@ -389,12 +395,26 @@ def _lambda_sql(self, e: exp.Lambda) -> str:
     names = {e.name.lower() for e in e.expressions}
 
     e = e.transform(
-        lambda n: exp.var(n.name)
-        if isinstance(n, exp.Identifier) and n.name.lower() in names
-        else n
-    )
+        lambda n: (
+            exp.var(n.name) if isinstance(n, exp.Identifier) and n.name.lower() in names else n
+        )
+    ).assert_is(exp.Lambda)
 
     return f"lambda {self.expressions(e, flat=True)}: {self.sql(e, 'this')}"
+
+
+def _div_sql(self: generator.Generator, e: exp.Div) -> str:
+    denominator = self.sql(e, "expression")
+
+    if e.args.get("safe"):
+        denominator += " or None"
+
+    sql = f"DIV({self.sql(e, 'this')}, {denominator})"
+
+    if e.args.get("typed"):
+        sql = f"int({sql})"
+
+    return sql
 
 
 class Python(Dialect):
@@ -412,14 +432,25 @@ class Python(Dialect):
             exp.Between: _rename,
             exp.Boolean: lambda self, e: "True" if e.this else "False",
             exp.Cast: lambda self, e: f"CAST({self.sql(e.this)}, exp.DataType.Type.{e.args['to']})",
-            exp.Column: lambda self, e: f"scope[{self.sql(e, 'table') or None}][{self.sql(e.this)}]",
+            exp.Column: lambda self,
+            e: f"scope[{self.sql(e, 'table') or None}][{self.sql(e.this)}]",
+            exp.Concat: lambda self, e: self.func(
+                "SAFECONCAT" if e.args.get("safe") else "CONCAT", *e.expressions
+            ),
             exp.Distinct: lambda self, e: f"set({self.sql(e, 'this')})",
-            exp.Extract: lambda self, e: f"EXTRACT('{e.name.lower()}', {self.sql(e, 'expression')})",
-            exp.In: lambda self, e: f"{self.sql(e, 'this')} in {{{self.expressions(e, flat=True)}}}",
+            exp.Div: _div_sql,
+            exp.Extract: lambda self,
+            e: f"EXTRACT('{e.name.lower()}', {self.sql(e, 'expression')})",
+            exp.In: lambda self,
+            e: f"{self.sql(e, 'this')} in {{{self.expressions(e, flat=True)}}}",
             exp.Interval: lambda self, e: f"INTERVAL({self.sql(e.this)}, '{self.sql(e.unit)}')",
-            exp.Is: lambda self, e: self.binary(e, "==")
-            if isinstance(e.this, exp.Literal)
-            else self.binary(e, "is"),
+            exp.Is: lambda self, e: (
+                self.binary(e, "==") if isinstance(e.this, exp.Literal) else self.binary(e, "is")
+            ),
+            exp.JSONExtract: lambda self, e: self.func(e.key, e.this, e.expression, *e.expressions),
+            exp.JSONPath: lambda self, e: f"[{','.join(self.sql(p) for p in e.expressions[1:])}]",
+            exp.JSONPathKey: lambda self, e: f"'{self.sql(e.this)}'",
+            exp.JSONPathSubscript: lambda self, e: f"'{e.this}'",
             exp.Lambda: _lambda_sql,
             exp.Not: lambda self, e: f"not {self.sql(e.this)}",
             exp.Null: lambda *_: "None",
