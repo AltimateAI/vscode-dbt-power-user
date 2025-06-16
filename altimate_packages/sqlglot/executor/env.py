@@ -6,7 +6,7 @@ from functools import wraps
 
 from sqlglot import exp
 from sqlglot.generator import Generator
-from sqlglot.helper import PYTHON_VERSION
+from sqlglot.helper import PYTHON_VERSION, is_int, seq_get
 
 
 class reverse_key:
@@ -75,8 +75,8 @@ def null_if_any(*required):
     return decorator
 
 
-@null_if_any("substr", "this")
-def str_position(substr, this, position=None):
+@null_if_any("this", "substr")
+def str_position(this, substr, position=None):
     position = position - 1 if position is not None else position
     return this.find(substr, position) + 1
 
@@ -106,6 +106,13 @@ def cast(this, to):
             return this
         if isinstance(this, str):
             return datetime.date.fromisoformat(this)
+    if to == exp.DataType.Type.TIME:
+        if isinstance(this, datetime.datetime):
+            return this.time()
+        if isinstance(this, datetime.time):
+            return this
+        if isinstance(this, str):
+            return datetime.time.fromisoformat(this)
     if to in (exp.DataType.Type.DATETIME, exp.DataType.Type.TIMESTAMP):
         if isinstance(this, datetime.datetime):
             return this
@@ -132,17 +139,38 @@ def ordered(this, desc, nulls_first):
 
 @null_if_any
 def interval(this, unit):
-    unit = unit.lower()
-    plural = unit + "s"
+    plural = unit + "S"
     if plural in Generator.TIME_PART_SINGULARS:
         unit = plural
-    return datetime.timedelta(**{unit: float(this)})
+    return datetime.timedelta(**{unit.lower(): float(this)})
+
+
+@null_if_any("this", "expression")
+def arraytostring(this, expression, null=None):
+    return expression.join(x for x in (x if x is not None else null for x in this) if x is not None)
+
+
+@null_if_any("this", "expression")
+def jsonextract(this, expression):
+    for path_segment in expression:
+        if isinstance(this, dict):
+            this = this.get(path_segment)
+        elif isinstance(this, list) and is_int(path_segment):
+            this = seq_get(this, int(path_segment))
+        else:
+            raise NotImplementedError(f"Unable to extract value for {this} at {path_segment}.")
+
+        if this is None:
+            break
+
+    return this
 
 
 ENV = {
     "exp": exp,
     # aggs
     "ARRAYAGG": list,
+    "ARRAYUNIQUEAGG": filter_nulls(lambda acc: list(set(acc))),
     "AVG": filter_nulls(statistics.fmean if PYTHON_VERSION >= (3, 8) else statistics.mean),  # type: ignore
     "COUNT": filter_nulls(lambda acc: sum(1 for _ in acc), False),
     "MAX": filter_nulls(max),
@@ -152,6 +180,7 @@ ENV = {
     "ABS": null_if_any(lambda this: abs(this)),
     "ADD": null_if_any(lambda e, this: e + this),
     "ARRAYANY": null_if_any(lambda arr, func: any(func(e) for e in arr)),
+    "ARRAYTOSTRING": arraytostring,
     "BETWEEN": null_if_any(lambda this, low, high: low <= this and this <= high),
     "BITWISEAND": null_if_any(lambda this, e: this & e),
     "BITWISELEFTSHIFT": null_if_any(lambda this, e: this << e),
@@ -174,6 +203,7 @@ ENV = {
     "IF": lambda predicate, true, false: true if predicate else false,
     "INTDIV": null_if_any(lambda e, this: e // this),
     "INTERVAL": interval,
+    "JSONEXTRACT": jsonextract,
     "LEFT": null_if_any(lambda this, e: this[:e]),
     "LIKE": null_if_any(
         lambda this, e: bool(re.match(e.replace("_", ".").replace("%", ".*"), this))
@@ -189,6 +219,7 @@ ENV = {
     "ORDERED": ordered,
     "POW": pow,
     "RIGHT": null_if_any(lambda this, e: this[-e:]),
+    "ROUND": null_if_any(lambda this, decimals=None, truncate=None: round(this, ndigits=decimals)),
     "STRPOSITION": str_position,
     "SUB": null_if_any(lambda e, this: e - this),
     "SUBSTRING": substring,
@@ -202,4 +233,14 @@ ENV = {
     "CURRENTTIME": datetime.datetime.now,
     "CURRENTDATE": datetime.date.today,
     "STRFTIME": null_if_any(lambda fmt, arg: datetime.datetime.fromisoformat(arg).strftime(fmt)),
+    "STRTOTIME": null_if_any(lambda arg, format: datetime.datetime.strptime(arg, format)),
+    "TRIM": null_if_any(lambda this, e=None: this.strip(e)),
+    "STRUCT": lambda *args: {
+        args[x]: args[x + 1]
+        for x in range(0, len(args), 2)
+        if (args[x + 1] is not None and args[x] is not None)
+    },
+    "UNIXTOTIME": null_if_any(
+        lambda arg: datetime.datetime.fromtimestamp(arg, datetime.timezone.utc)
+    ),
 }
