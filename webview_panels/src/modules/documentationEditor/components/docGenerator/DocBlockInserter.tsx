@@ -4,7 +4,8 @@ import useDocumentationContext from "@modules/documentationEditor/state/useDocum
 import { DocBlock } from "@modules/documentationEditor/state/types";
 import { HTMLAttributes } from "react";
 import { SearchIcon } from "@assets/icons";
-import styles from "../../styles.module.scss";
+import documentationStyles from "../../styles.module.scss";
+import styles from "./DocBlockInserter.module.scss";
 import NewFeatureIndicator from "@modules/newFeature/NewFeatureIndicator";
 
 const DocBlockIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
@@ -70,8 +71,8 @@ const DocBlockInserter = ({
         title="Insert Doc Block Reference"
       >
       {({ close }) => (
-        <Stack direction="column" style={{ minWidth: "320px", padding: "8px" }}>
-          <Stack className={styles.search} style={{ marginBottom: "12px" }}>
+        <Stack direction="column" className={styles.popoverContent}>
+          <Stack className={`${documentationStyles.search} ${styles.searchContainer}`}>
             <SearchIcon />
             <Input
               placeholder="Search doc blocks..."
@@ -80,38 +81,21 @@ const DocBlockInserter = ({
               type="search"
             />
           </Stack>
-          <div style={{ maxHeight: "240px", overflowY: "auto" }}>
+          <div className={styles.itemsList}>
             {filteredDocBlocks.length > 0 ? (
               filteredDocBlocks.map((docBlock) => (
                 <div
                   key={docBlock.name}
-                  style={{
-                    padding: "8px 12px",
-                    cursor: "pointer",
-                    borderRadius: "4px",
-                    marginBottom: "4px",
-                    border: "1px solid transparent"
-                  }}
-                  className="doc-block-item"
+                  className={styles.docBlockItem}
                   onClick={() => handleInsertDocBlock(docBlock, close)}
-                  onMouseEnter={(e) => {
-                    const target = e.currentTarget;
-                    target.style.backgroundColor = "var(--background--01)";
-                    target.style.borderColor = "var(--background--02)";
-                  }}
-                  onMouseLeave={(e) => {
-                    const target = e.currentTarget;
-                    target.style.backgroundColor = "transparent";
-                    target.style.borderColor = "transparent";
-                  }}
                 >
-                  <Stack direction="column" className="align-items-start" style={{ gap: "2px" }}>
-                    <strong style={{ fontSize: "14px" }}>{docBlock.name}</strong>
+                  <Stack direction="column" className={`align-items-start ${styles.itemContent}`}>
+                    <strong className={styles.itemName}>{docBlock.name}</strong>
                   </Stack>
                 </div>
               ))
             ) : (
-              <div className="text-muted text-center" style={{ padding: "16px" }}>
+              <div className={`text-muted text-center ${styles.emptyState}`}>
                 No doc blocks found matching &quot;{searchTerm}&quot;
               </div>
             )}
