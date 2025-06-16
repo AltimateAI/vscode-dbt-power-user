@@ -275,6 +275,11 @@
             "default": [],
             "description": "Add additional params to `sqlfmt`"
           },
+          "dbt.disableDepthsCalculation": {
+            "type": "boolean",
+            "description": "Disable DAG depth calculation and decoration",
+            "default": false
+          },
           "dbt.deferConfigPerProject": {
             "type": "object",
             "description": "Run subset of models without building their parent models",

@@ -7,6 +7,7 @@ import {
   Disposable,
   Event,
   EventEmitter,
+  MarkdownString,
   ProviderResult,
   TextDocument,
   ThemeIcon,
@@ -15,6 +16,7 @@ import {
   TreeItemCollapsibleState,
   Uri,
   window,
+  workspace,
 } from "vscode";
 import {
   Analysis,
@@ -37,6 +39,7 @@ import {
   getCurrentlySelectedModelNameInYamlConfig,
   provideSingleton,
   removeProtocol,
+  getDepthColor,
 } from "../utils";
 
 @provide(ModelTreeviewProvider)
@@ -169,6 +172,13 @@ abstract class ModelTreeviewProvider
           childNodes?.length !== 0
             ? TreeItemCollapsibleState.Collapsed
             : TreeItemCollapsibleState.None;
+
+        // Calculate depth from modelDepthMap
+        const depth = event.modelDepthMap.get(node.key);
+        if (depth !== undefined) {
+          treeItem.setDepth(depth);
+        }
+
         return treeItem;
       });
   }
@@ -332,6 +342,7 @@ export class NodeTreeItem extends TreeItem {
   collapsibleState = TreeItemCollapsibleState.Collapsed;
   key: string;
   url: string | undefined;
+  depth?: number;
 
   constructor(node: Node) {
     super(node.label);
@@ -350,6 +361,21 @@ export class NodeTreeItem extends TreeItem {
         arguments: [Uri.file(node.url)],
       };
     }
+  }
+
+  setDepth(depth: number) {
+    this.depth = depth;
+    const color = getDepthColor(depth);
+    const depthInfo = `(${depth})`;
+    this.description = this.description 
+      ? `${this.description} ${depthInfo}`
+      : depthInfo;
+    this.tooltip = new MarkdownString(
+      `**DAG Depth:** <span style="color:${color}">${depth}</span>\n\n` +
+        `The longest path of models between a source and this model is ${depth} nodes long.`,
+    );
+    this.tooltip.isTrusted = true;
+    this.tooltip.supportHtml = true;
   }
 }
 
