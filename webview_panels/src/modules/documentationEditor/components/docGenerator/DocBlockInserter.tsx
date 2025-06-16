@@ -93,12 +93,14 @@ const DocBlockInserter = ({
                   className="doc-block-item"
                   onClick={() => handleInsertDocBlock(docBlock, close)}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "var(--background--01)";
-                    e.currentTarget.style.borderColor = "var(--background--02)";
+                    const target = e.currentTarget;
+                    target.style.backgroundColor = "var(--background--01)";
+                    target.style.borderColor = "var(--background--02)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "transparent";
-                    e.currentTarget.style.borderColor = "transparent";
+                    const target = e.currentTarget;
+                    target.style.backgroundColor = "transparent";
+                    target.style.borderColor = "transparent";
                   }}
                 >
                   <Stack direction="column" className="align-items-start" style={{ gap: "2px" }}>
