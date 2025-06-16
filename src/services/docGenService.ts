@@ -133,12 +133,33 @@ export class DocGenService {
         })),
       } as DBTDocumentation;
     } catch (error) {
-      this.dbtTerminal.debug(
-        "docGenService:getDocumentation",
+      this.dbtTerminal.error(
+        "docGenService:getDocumentationYamlError",
         `Error reading YAML documentation: ${error}`,
+        error,
       );
-      return undefined;
     }
+    // falling back on original implementation
+    const docColumns = currentNode.columns;
+    return {
+      aiEnabled: this.altimateRequest.enabled(),
+      name: modelName,
+      patchPath: currentNode.patch_path,
+      description: currentNode.description,
+      generated: false,
+      resource_type: currentNode.resource_type,
+      uniqueId: currentNode.uniqueId,
+      filePath,
+      columns: Object.values(docColumns).map((column) => {
+        return {
+          name: column.name,
+          description: column.description,
+          generated: false,
+          source: Source.YAML,
+          type: column.data_type?.toLowerCase(),
+        };
+      }),
+    } as DBTDocumentation;
   }
 
   private async generateDocsForColumn(
