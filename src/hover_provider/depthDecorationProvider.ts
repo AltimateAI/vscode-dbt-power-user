@@ -63,7 +63,7 @@ export class DepthDecorationProvider implements HoverProvider, Disposable {
         }
       }),
       workspace.onDidChangeConfiguration((event) => {
-        if (event.affectsConfiguration("altimate")) {
+        if (event.affectsConfiguration("dbt")) {
           window.visibleTextEditors.forEach((editor) => {
             this.updateDecorations(editor);
           });
