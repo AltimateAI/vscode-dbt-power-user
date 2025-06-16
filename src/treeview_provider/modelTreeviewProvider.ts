@@ -366,7 +366,10 @@ export class NodeTreeItem extends TreeItem {
   setDepth(depth: number) {
     this.depth = depth;
     const color = getDepthColor(depth);
-    this.description = `(${depth})`;
+    const depthInfo = `(${depth})`;
+    this.description = this.description 
+      ? `${this.description} ${depthInfo}`
+      : depthInfo;
     this.tooltip = new MarkdownString(
       `**DAG Depth:** <span style="color:${color}">${depth}</span>\n\n` +
         `The longest path of models between a source and this model is ${depth} nodes long.`,
