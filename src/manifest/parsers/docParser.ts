@@ -22,11 +22,7 @@ export class DocParser {
         resolve(docMetaMap);
         return;
       }
-      if (typeof docs[Symbol.iterator] !== "function") {
-        resolve(docMetaMap);
-        return;
-      }
-      for (const doc of docs) {
+      for (const doc of Object.values(docs)) {
         const { package_name, name, original_file_path } = doc;
         const packageName = package_name;
         // TODO: these things can change so we should recreate them if project config changes
