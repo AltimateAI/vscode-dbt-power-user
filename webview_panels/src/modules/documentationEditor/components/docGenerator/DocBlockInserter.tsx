@@ -5,6 +5,7 @@ import { DocBlock } from "@modules/documentationEditor/state/types";
 import { HTMLAttributes } from "react";
 import { SearchIcon } from "@assets/icons";
 import styles from "../../styles.module.scss";
+import NewFeatureIndicator from "@modules/newFeature/NewFeatureIndicator";
 
 const DocBlockIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
   <i className={`codicon codicon-book`} {...props} />
@@ -55,18 +56,19 @@ const DocBlockInserter = ({
   };
 
   return (
-    <PopoverWithButton
-      button={
-        <Button 
-          color="primary" 
-          title="Insert doc block reference"
-          data-testid="doc-block-inserter"
-        >
-          <DocBlockIcon />
-        </Button>
-      }
-      title="Insert Doc Block Reference"
-    >
+    <NewFeatureIndicator featureKey="docBlockInserter">
+      <PopoverWithButton
+        button={
+          <Button 
+            color="primary" 
+            title="Insert doc block reference"
+            data-testid="doc-block-inserter"
+          >
+            <DocBlockIcon />
+          </Button>
+        }
+        title="Insert Doc Block Reference"
+      >
       {({ close }) => (
         <Stack direction="column" style={{ minWidth: "320px", padding: "8px" }}>
           <Stack className={styles.search} style={{ marginBottom: "12px" }}>
@@ -116,7 +118,8 @@ const DocBlockInserter = ({
           </div>
         </Stack>
       )}
-    </PopoverWithButton>
+      </PopoverWithButton>
+    </NewFeatureIndicator>
   );
 };
 
