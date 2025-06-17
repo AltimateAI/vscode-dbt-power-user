@@ -187,15 +187,26 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
 
     while (pos < text.length) {
       const char = text[pos];
-      const prevChar = pos > 0 ? text[pos - 1] : "";
+      const nextChar = pos < text.length - 1 ? text[pos + 1] : "";
 
-      // Handle string literals
+      // Handle string literals with SQL-style quote escaping
       if (!inString && (char === "'" || char === '"')) {
         inString = true;
         stringChar = char;
-      } else if (inString && char === stringChar && prevChar !== "\\") {
-        inString = false;
-        stringChar = "";
+      } else if (inString && char === stringChar) {
+        // Check for doubled quotes (SQL escape sequence)
+        if (nextChar === stringChar) {
+          // This is an escaped quote - skip the next character
+          pos++; // Skip the second quote
+          this.dbtTerminal.debug(
+            "CteCodeLensProvider",
+            `Found escaped quote (${stringChar}${stringChar}) at position ${pos - 1}`,
+          );
+        } else {
+          // This is the end of the string
+          inString = false;
+          stringChar = "";
+        }
       }
 
       // Only count parentheses and look for SELECT outside of strings
@@ -330,15 +341,22 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
 
     while (pos < text.length && parenCount > 0) {
       const char = text[pos];
-      const prevChar = pos > 0 ? text[pos - 1] : "";
+      const nextChar = pos < text.length - 1 ? text[pos + 1] : "";
 
-      // Handle string literals
+      // Handle string literals with SQL-style quote escaping
       if (!inString && (char === "'" || char === '"')) {
         inString = true;
         stringChar = char;
-      } else if (inString && char === stringChar && prevChar !== "\\") {
-        inString = false;
-        stringChar = "";
+      } else if (inString && char === stringChar) {
+        // Check for doubled quotes (SQL escape sequence)
+        if (nextChar === stringChar) {
+          // This is an escaped quote - skip the next character
+          pos++; // Skip the second quote
+        } else {
+          // This is the end of the string
+          inString = false;
+          stringChar = "";
+        }
       }
 
       // Only count parentheses outside of strings
