@@ -124,7 +124,7 @@ export class DocGenService {
         resource_type: currentNode.resource_type,
         uniqueId: currentNode.uniqueId,
         filePath,
-        columns: modelDef.columns.map((column) => ({
+        columns: (modelDef.columns || []).map((column) => ({
           name: column.name,
           description: column.description || "",
           generated: false,
