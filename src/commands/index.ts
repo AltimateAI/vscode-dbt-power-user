@@ -15,7 +15,6 @@ import {
   ProgressLocation,
   TextEditorDecorationType,
   DecorationRangeBehavior,
-  QuickPickItem,
   env,
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
@@ -155,6 +154,15 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand("dbtPowerUser.executeSQL", () =>
         this.runModel.executeQueryOnActiveWindow(),
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.runSelectedQuery",
+        (uri: Uri, range: Range) => this.runSelectedQuery(uri, range),
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.runCteWithDependencies",
+        (uri: Uri, cteIndex: number, ctes: any[]) =>
+          this.runCteWithDependencies(uri, cteIndex, ctes),
       ),
       commands.registerCommand("dbtPowerUser.summarizeQuery", () =>
         this.eventEmitterService.fire({
@@ -942,6 +950,98 @@ export class VSCodeCommands implements Disposable {
       this.dbtTerminal.logLine(d.message);
     }
     await project.debug();
+  }
+
+  private runSelectedQuery(uri: Uri, range: Range): void {
+    // Get the document and extract the selected text
+    const document = workspace.textDocuments.find(
+      (doc) => doc.uri.toString() === uri.toString(),
+    );
+    if (!document) {
+      window.showErrorMessage("Document not found");
+      return;
+    }
+
+    const selectedQuery = document.getText(range);
+    if (!selectedQuery.trim()) {
+      window.showErrorMessage("No query selected");
+      return;
+    }
+
+    // Create a model name based on the selection - use "cte_query" as default
+    const modelName = "cte_query";
+
+    // Execute the selected query using the existing infrastructure
+    this.dbtProjectContainer.executeSQL(uri, selectedQuery, modelName);
+  }
+
+  private runCteWithDependencies(
+    uri: Uri,
+    cteIndex: number,
+    ctes: any[],
+  ): void {
+    // Get the document
+    const document = workspace.textDocuments.find(
+      (doc) => doc.uri.toString() === uri.toString(),
+    );
+    if (!document) {
+      window.showErrorMessage("Document not found");
+      return;
+    }
+
+    const text = document.getText();
+
+    // Find the target CTE and all its dependencies
+    const targetCte = ctes[cteIndex];
+    if (!targetCte) {
+      window.showErrorMessage("CTE not found");
+      return;
+    }
+
+    // Get all CTEs from the same WITH clause that come before or at the target index
+    const sameScopeCtesUpToTarget = ctes.filter(
+      (cte: any) =>
+        cte.withClauseStart === targetCte.withClauseStart &&
+        cte.index <= targetCte.index,
+    );
+
+    // Build the complete query with dependencies
+    let query = "WITH ";
+    const cteDefinitions: string[] = [];
+
+    for (const cte of sameScopeCtesUpToTarget) {
+      // Extract the full CTE definition (name + AS + query)
+      const cteStart = cte.range.start;
+      const cteQueryEnd = cte.queryRange.end;
+
+      // Get from CTE name to end of its query
+      const cteStartPos = document.offsetAt(cteStart);
+      const cteEndPos = document.offsetAt(cteQueryEnd);
+
+      // Find the full CTE definition including "AS (" part
+      const beforeCte = text.substring(0, cteStartPos);
+      const cteNameMatch = text
+        .substring(cteStartPos)
+        .match(/^(\w+(?:\s*\([^)]*\))?)\s+as\s*\(/i);
+
+      if (cteNameMatch) {
+        const cteQuery = document.getText(cte.queryRange);
+        const fullCteDefinition = `${cteNameMatch[1]} AS (\n${cteQuery}\n)`;
+        cteDefinitions.push(fullCteDefinition);
+      }
+    }
+
+    // Join all CTE definitions with commas
+    query += cteDefinitions.join(",\n");
+
+    // Add a simple SELECT to execute the target CTE
+    query += `\nSELECT * FROM ${targetCte.name}`;
+
+    // Create a model name based on the target CTE
+    const modelName = `cte_${targetCte.name}`;
+
+    // Execute the complete query with dependencies
+    this.dbtProjectContainer.executeSQL(uri, query, modelName);
   }
 
   dispose() {
