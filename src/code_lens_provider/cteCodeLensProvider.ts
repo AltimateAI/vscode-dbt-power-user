@@ -236,8 +236,10 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
     document: TextDocument,
     ctes: CteInfo[],
   ): void {
-    // Regex to match CTE definitions: name (optional columns) AS (
-    const cteRegex = /(\w+)(?:\s*\([^)]*\))?\s+as\s*\(/gi;
+    // Enhanced regex to handle quoted identifiers, dotted names, and complex column lists
+    // Supports: identifier, "quoted identifier", schema.table, `backtick quoted`, [bracket quoted]
+    const cteRegex =
+      /((?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\])(?:\.(?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\]))*(?:\s*\([^)]*\))?)\s+as\s*\(/gi;
     let cteMatch;
     let cteIndex = 0;
 
