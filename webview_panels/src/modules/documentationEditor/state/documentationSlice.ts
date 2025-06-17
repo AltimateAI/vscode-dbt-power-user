@@ -105,6 +105,7 @@ const documentationSlice = createSlice({
       action: PayloadAction<DocumentationStateProps["project"]>,
     ) => {
       state.project = action.payload;
+      state.docBlocks = [];
     },
     setDocBlocks: (
       state,
@@ -128,6 +129,7 @@ const documentationSlice = createSlice({
       state,
       action: PayloadAction<DocumentationStateProps["incomingDocsData"]>,
     ) => {
+      state.docBlocks = [];
       // if test/docs data is not changed, then update the state
       const isCleanForm = !isStateDirty(state);
 
