@@ -49,6 +49,7 @@ import { QueryManifestService } from "../services/queryManifestService";
 import { AltimateRequest } from "../altimate";
 import { DatapilotNotebookController, OpenNotebookRequest } from "@lib";
 import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
+import { CteInfo } from "../code_lens_provider/cteCodeLensProvider";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -161,7 +162,7 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand(
         "dbtPowerUser.runCteWithDependencies",
-        (uri: Uri, cteIndex: number, ctes: any[]) =>
+        (uri: Uri, cteIndex: number, ctes: CteInfo[]) =>
           this.runCteWithDependencies(uri, cteIndex, ctes),
       ),
       commands.registerCommand("dbtPowerUser.summarizeQuery", () =>
@@ -978,7 +979,7 @@ export class VSCodeCommands implements Disposable {
   private async runCteWithDependencies(
     uri: Uri,
     cteIndex: number,
-    ctes: any[],
+    ctes: CteInfo[],
   ): Promise<void> {
     this.dbtTerminal.debug(
       "CteExecution",
@@ -1026,14 +1027,14 @@ export class VSCodeCommands implements Disposable {
 
       // Get all CTEs from the same WITH clause that come before or at the target index
       const sameScopeCtesUpToTarget = ctes.filter(
-        (cte: any) =>
+        (cte) =>
           cte.withClauseStart === targetCte.withClauseStart &&
           cte.index <= targetCte.index,
       );
 
       this.dbtTerminal.debug(
         "CteExecution",
-        `Found ${sameScopeCtesUpToTarget.length} CTEs in dependency chain: ${sameScopeCtesUpToTarget.map((c: any) => c.name).join(", ")}`,
+        `Found ${sameScopeCtesUpToTarget.length} CTEs in dependency chain: ${sameScopeCtesUpToTarget.map((c) => c.name).join(", ")}`,
       );
 
       // Build the complete query with dependencies
@@ -1140,7 +1141,7 @@ export class VSCodeCommands implements Disposable {
       hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
-    return Math.abs(hash).toString(36).substr(0, 6);
+    return Math.abs(hash).toString(36).substring(0, 6);
   }
 
   dispose() {

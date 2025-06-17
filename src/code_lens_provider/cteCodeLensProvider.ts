@@ -11,7 +11,7 @@ import { provideSingleton } from "../utils";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { AltimateRequest } from "../altimate";
 
-interface CteInfo {
+export interface CteInfo {
   name: string;
   range: Range;
   queryRange: Range;
