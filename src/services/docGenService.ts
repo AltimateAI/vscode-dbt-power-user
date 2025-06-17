@@ -1,4 +1,6 @@
 import path = require("path");
+import { promises as fs } from "fs";
+import * as yaml from "js-yaml";
 import {
   ProgressLocation,
   Uri,
@@ -13,7 +15,11 @@ import { RateLimitException } from "../exceptions";
 import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
+import {
+  extendErrorWithSupportLinks,
+  provideSingleton,
+  removeProtocol,
+} from "../utils";
 import {
   AIColumnDescription,
   DBTDocumentation,
@@ -33,7 +39,7 @@ interface DocumentationSchemaModel {
   name: string;
   description: string;
   tests: any;
-  columns: [];
+  columns: { name: string; description?: string; data_type?: string }[];
 }
 export interface DocumentationSchema {
   version: number;
@@ -76,6 +82,85 @@ export class DocGenService {
     private queryManifestService: QueryManifestService,
     private dbtTerminal: DBTTerminal,
   ) {}
+
+  private async getDocumentationFromYaml(
+    projectRoot: string,
+    filePath: string,
+    modelName: string,
+  ): Promise<DBTDocumentation | undefined> {
+    const eventResult = this.queryManifestService.getEventByCurrentProject();
+    if (!eventResult || !eventResult.event) {
+      return undefined;
+    }
+
+    const { event } = eventResult;
+    const currentNode = event.nodeMetaMap.lookupByBaseName(modelName);
+    if (!currentNode?.patch_path) {
+      return undefined;
+    }
+
+    try {
+      // Read and parse the YAML file
+      const yamlPath = path.join(
+        projectRoot,
+        removeProtocol(currentNode.patch_path),
+      );
+      const content = await fs.readFile(yamlPath, "utf8");
+      const parsedDoc = yaml.load(content) as DocumentationSchema;
+
+      // Find matching model definition
+      const modelDef = parsedDoc.models?.find((m) => m.name === modelName);
+      if (!modelDef) {
+        return undefined;
+      }
+
+      // Map to DBTDocumentation format
+      return {
+        aiEnabled: this.altimateRequest.enabled(),
+        name: modelName,
+        patchPath: currentNode.patch_path,
+        description: modelDef.description || "",
+        generated: false,
+        resource_type: currentNode.resource_type,
+        uniqueId: currentNode.uniqueId,
+        filePath,
+        columns: (modelDef.columns || []).map((column) => ({
+          name: column.name,
+          description: column.description || "",
+          generated: false,
+          source: Source.YAML,
+          type: column.data_type?.toLowerCase(),
+        })),
+      } as DBTDocumentation;
+    } catch (error) {
+      this.dbtTerminal.error(
+        "docGenService:getDocumentationYamlError",
+        `Error reading YAML documentation: ${error}`,
+        error,
+      );
+    }
+    // falling back on original implementation
+    const docColumns = currentNode.columns;
+    return {
+      aiEnabled: this.altimateRequest.enabled(),
+      name: modelName,
+      patchPath: currentNode.patch_path,
+      description: currentNode.description,
+      generated: false,
+      resource_type: currentNode.resource_type,
+      uniqueId: currentNode.uniqueId,
+      filePath,
+      columns: Object.values(docColumns).map((column) => {
+        return {
+          name: column.name,
+          description: column.description,
+          generated: false,
+          source: Source.YAML,
+          type: column.data_type?.toLowerCase(),
+        };
+      }),
+    } as DBTDocumentation;
+  }
 
   private async generateDocsForColumn(
     documentation: DBTDocumentation | undefined,
@@ -221,53 +306,33 @@ export class DocGenService {
     documentation: DBTDocumentation | undefined;
     message?: { message: string; type: string };
   }> {
-    const eventResult = this.queryManifestService.getEventByCurrentProject();
-    if (!eventResult) {
-      return {
-        documentation: undefined,
-        message: this.getMissingDocumentationMessage(filePath),
-      };
+    const messageObj = this.getMissingDocumentationMessage(filePath);
+    if (messageObj.type === "error") {
+      return { documentation: undefined, message: messageObj };
     }
-    const { event } = eventResult;
 
-    if (!event || !filePath) {
-      return {
-        documentation: undefined,
-        message: this.getMissingDocumentationMessage(filePath),
-      };
+    if (!filePath) {
+      return { documentation: undefined, message: messageObj };
     }
 
     const modelName = path.basename(filePath, ".sql");
-    const currentNode = event.nodeMetaMap.lookupByBaseName(modelName);
-    if (currentNode === undefined) {
+    const project = this.dbtProjectContainer.findDBTProject(Uri.file(filePath));
+
+    if (!project || !project.projectRoot) {
       return {
         documentation: undefined,
         message: this.getMissingDocumentationMessage(filePath),
       };
     }
 
-    const docColumns = currentNode.columns;
-    return {
-      documentation: {
-        aiEnabled: this.altimateRequest.enabled(),
-        name: modelName,
-        patchPath: currentNode.patch_path,
-        description: currentNode.description,
-        generated: false,
-        resource_type: currentNode.resource_type,
-        uniqueId: currentNode.uniqueId,
-        filePath,
-        columns: Object.values(docColumns).map((column) => {
-          return {
-            name: column.name,
-            description: column.description,
-            generated: false,
-            source: Source.YAML,
-            type: column.data_type?.toLowerCase(),
-          };
-        }),
-      } as DBTDocumentation,
-    };
+    // Get model directly from YAML
+    const documentation = await this.getDocumentationFromYaml(
+      project.projectRoot.fsPath,
+      filePath,
+      modelName,
+    );
+
+    return { documentation };
   }
 
   private chunk(a: string[], n: number) {
