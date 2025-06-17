@@ -975,113 +975,172 @@ export class VSCodeCommands implements Disposable {
     this.dbtProjectContainer.executeSQL(uri, selectedQuery, modelName);
   }
 
-  private runCteWithDependencies(
+  private async runCteWithDependencies(
     uri: Uri,
     cteIndex: number,
     ctes: any[],
-  ): void {
+  ): Promise<void> {
     this.dbtTerminal.debug(
       "CteExecution",
       `Starting CTE execution for index ${cteIndex} with ${ctes.length} total CTEs`,
     );
 
-    // Get the document
-    const document = workspace.textDocuments.find(
-      (doc) => doc.uri.toString() === uri.toString(),
-    );
-    if (!document) {
-      this.dbtTerminal.warn(
-        "CteExecution",
-        `Document not found for URI: ${uri.toString()}`,
+    try {
+      // Get the document asynchronously
+      let document = workspace.textDocuments.find(
+        (doc) => doc.uri.toString() === uri.toString(),
       );
-      window.showErrorMessage("Document not found");
-      return;
-    }
 
-    const text = document.getText();
+      if (!document) {
+        // Try to open the document if not found in workspace
+        try {
+          document = await workspace.openTextDocument(uri);
+        } catch (error) {
+          this.dbtTerminal.error(
+            "CteExecution",
+            `Failed to open document: ${uri.toString()}`,
+            error,
+          );
+          window.showErrorMessage("Document not found and could not be opened");
+          return;
+        }
+      }
 
-    // Find the target CTE and all its dependencies
-    const targetCte = ctes[cteIndex];
-    if (!targetCte) {
-      this.dbtTerminal.warn(
-        "CteExecution",
-        `CTE not found at index ${cteIndex}, available CTEs: ${ctes.length}`,
-      );
-      window.showErrorMessage("CTE not found");
-      return;
-    }
+      const text = document.getText();
 
-    this.dbtTerminal.debug(
-      "CteExecution",
-      `Target CTE: ${targetCte.name} (index: ${targetCte.index})`,
-    );
-
-    // Get all CTEs from the same WITH clause that come before or at the target index
-    const sameScopeCtesUpToTarget = ctes.filter(
-      (cte: any) =>
-        cte.withClauseStart === targetCte.withClauseStart &&
-        cte.index <= targetCte.index,
-    );
-
-    this.dbtTerminal.debug(
-      "CteExecution",
-      `Found ${sameScopeCtesUpToTarget.length} CTEs in dependency chain: ${sameScopeCtesUpToTarget.map((c: any) => c.name).join(", ")}`,
-    );
-
-    // Build the complete query with dependencies
-    let query = "WITH ";
-    const cteDefinitions: string[] = [];
-
-    for (const cte of sameScopeCtesUpToTarget) {
-      // Extract the full CTE definition (name + AS + query)
-      const cteStart = cte.range.start;
-
-      // Get from CTE name to end of its query
-      const cteStartPos = document.offsetAt(cteStart);
-
-      // Find the full CTE definition including "AS (" part
-      const cteNameMatch = text
-        .substring(cteStartPos)
-        .match(/^(\w+(?:\s*\([^)]*\))?)\s+as\s*\(/i);
-
-      if (cteNameMatch) {
-        const cteQuery = document.getText(cte.queryRange);
-        const fullCteDefinition = `${cteNameMatch[1]} AS (\n${cteQuery}\n)`;
-        cteDefinitions.push(fullCteDefinition);
-
-        this.dbtTerminal.debug(
-          "CteExecution",
-          `Added CTE to query: ${cteNameMatch[1]} (${cteQuery.length} chars)`,
-        );
-      } else {
+      // Find the target CTE and all its dependencies
+      const targetCte = ctes[cteIndex];
+      if (!targetCte) {
         this.dbtTerminal.warn(
           "CteExecution",
-          `Could not parse CTE definition for: ${cte.name}`,
+          `CTE not found at index ${cteIndex}, available CTEs: ${ctes.length}`,
         );
+        window.showErrorMessage("CTE not found");
+        return;
       }
+
+      this.dbtTerminal.debug(
+        "CteExecution",
+        `Target CTE: ${targetCte.name} (index: ${targetCte.index})`,
+      );
+
+      // Get all CTEs from the same WITH clause that come before or at the target index
+      const sameScopeCtesUpToTarget = ctes.filter(
+        (cte: any) =>
+          cte.withClauseStart === targetCte.withClauseStart &&
+          cte.index <= targetCte.index,
+      );
+
+      this.dbtTerminal.debug(
+        "CteExecution",
+        `Found ${sameScopeCtesUpToTarget.length} CTEs in dependency chain: ${sameScopeCtesUpToTarget.map((c: any) => c.name).join(", ")}`,
+      );
+
+      // Build the complete query with dependencies
+      const cteDefinitions: string[] = [];
+
+      for (const cte of sameScopeCtesUpToTarget) {
+        // Extract the full CTE definition (name + AS + query)
+        const cteStart = cte.range.start;
+
+        // Get from CTE name to end of its query
+        const cteStartPos = document.offsetAt(cteStart);
+
+        // Improved regex to handle quoted identifiers, dotted names, and complex column lists
+        // Supports: identifier, "quoted identifier", schema.table, `backtick quoted`, [bracket quoted]
+        const cteNameMatch = text
+          .substring(cteStartPos)
+          .match(
+            /^((?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\])(?:\.(?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\]))*(?:\s*\([^)]*\))?)\s+as\s*\(/i,
+          );
+
+        if (cteNameMatch) {
+          const cteQuery = document.getText(cte.queryRange);
+          const fullCteDefinition = `${cteNameMatch[1]} AS (\n${cteQuery}\n)`;
+          cteDefinitions.push(fullCteDefinition);
+
+          this.dbtTerminal.debug(
+            "CteExecution",
+            `Added CTE to query: ${cteNameMatch[1]} (${cteQuery.length} chars)`,
+          );
+        } else {
+          this.dbtTerminal.warn(
+            "CteExecution",
+            `Could not parse CTE definition for: ${cte.name}`,
+          );
+        }
+      }
+
+      // Check if we have any valid CTE definitions
+      if (cteDefinitions.length === 0) {
+        this.dbtTerminal.warn(
+          "CteExecution",
+          "No valid CTE definitions found, cannot build query",
+        );
+        window.showErrorMessage("Failed to extract CTE definitions");
+        return;
+      }
+
+      // Build the complete query
+      let query = "WITH ";
+      query += cteDefinitions.join(",\n");
+
+      // Add a simple SELECT to execute the target CTE with proper quoting
+      const quotedTargetName = this.quoteSqlIdentifier(targetCte.name);
+      query += `\nSELECT * FROM ${quotedTargetName}`;
+
+      this.dbtTerminal.debug(
+        "CteExecution",
+        `Generated query length: ${query.length} characters`,
+      );
+
+      // Create a unique model name with timestamp to prevent collisions
+      const timestamp = Date.now();
+      const hash = this.generateShortHash(targetCte.name + timestamp);
+      const modelName = `cte_${targetCte.name}_${hash}`;
+
+      this.dbtTerminal.debug(
+        "CteExecution",
+        `Executing CTE query with model name: ${modelName}`,
+      );
+
+      // Execute the complete query with dependencies
+      this.dbtProjectContainer.executeSQL(uri, query, modelName);
+    } catch (error) {
+      this.dbtTerminal.error(
+        "CteExecution",
+        "Unexpected error in runCteWithDependencies",
+        error,
+      );
+      window.showErrorMessage(
+        `Failed to execute CTE: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  private quoteSqlIdentifier(identifier: string): string {
+    // If identifier is already quoted or contains dots, return as-is
+    if (identifier.match(/^["'`\[]/) || identifier.includes(".")) {
+      return identifier;
     }
 
-    // Join all CTE definitions with commas
-    query += cteDefinitions.join(",\n");
+    // If identifier contains special characters or spaces, quote it
+    if (!identifier.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+      return `"${identifier}"`;
+    }
 
-    // Add a simple SELECT to execute the target CTE
-    query += `\nSELECT * FROM ${targetCte.name}`;
+    return identifier;
+  }
 
-    this.dbtTerminal.debug(
-      "CteExecution",
-      `Generated query length: ${query.length} characters`,
-    );
-
-    // Create a model name based on the target CTE
-    const modelName = `cte_${targetCte.name}`;
-
-    this.dbtTerminal.debug(
-      "CteExecution",
-      `Executing CTE query with model name: ${modelName}`,
-    );
-
-    // Execute the complete query with dependencies
-    this.dbtProjectContainer.executeSQL(uri, query, modelName);
+  private generateShortHash(input: string): string {
+    // Simple hash function to generate a short unique suffix
+    let hash = 0;
+    for (let i = 0; i < input.length; i++) {
+      const char = input.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(36).substr(0, 6);
   }
 
   dispose() {
