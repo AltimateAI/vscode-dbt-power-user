@@ -1345,6 +1345,7 @@
     "@types/glob": "^8.1.0",
     "@types/istanbul-lib-coverage": "^2.0.6",
     "@types/jest": "^29.5.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.14.11",
     "@types/vscode": "^1.95.0",
     "@types/which": "^3.0.4",

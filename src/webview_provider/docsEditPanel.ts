@@ -54,12 +54,7 @@ import { DbtTestService } from "../services/dbtTestService";
 import { gte } from "semver";
 import { TelemetryEvents } from "../telemetry/events";
 import { SendMessageProps } from "./altimateWebviewProvider";
-import {
-  CllEvents,
-  DbtLineageService,
-  Table,
-} from "../services/dbtLineageService";
-import { Model } from "@lib";
+import { DbtLineageService, Table } from "../services/dbtLineageService";
 
 export enum Source {
   YAML = "YAML",
@@ -181,8 +176,31 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         collaborationEnabled: workspace
           .getConfiguration("dbt")
           .get<boolean>("enableCollaboration", false),
+        docBlocks: this.getDocBlocksForCurrentProject(),
       });
     }
+  }
+
+  private getDocBlocksForCurrentProject(): Array<{
+    name: string;
+    path: string;
+  }> {
+    const project = this.getProject();
+    if (!project) {
+      return [];
+    }
+
+    const manifestEvent = this.eventMap.get(project.projectRoot.fsPath);
+    if (!manifestEvent?.docMetaMap) {
+      return [];
+    }
+
+    return Array.from(manifestEvent.docMetaMap.entries()).map(
+      ([name, metaData]) => ({
+        name,
+        path: metaData.path,
+      }),
+    );
   }
 
   private async transmitColumns(columns: MetadataColumn[]) {
