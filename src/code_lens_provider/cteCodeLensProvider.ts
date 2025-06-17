@@ -171,6 +171,52 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
     return ctes;
   }
 
+  /**
+   * Helper function to handle SQL string literal parsing with proper quote escaping
+   * Returns updated position and string state
+   */
+  private handleSqlStringLiteral(
+    text: string,
+    pos: number,
+    inString: boolean,
+    stringChar: string,
+  ): { newPos: number; inString: boolean; stringChar: string } {
+    const char = text[pos];
+    const nextChar = pos < text.length - 1 ? text[pos + 1] : "";
+
+    // Handle string literals with SQL-style quote escaping
+    if (!inString && (char === "'" || char === '"')) {
+      return {
+        newPos: pos,
+        inString: true,
+        stringChar: char,
+      };
+    } else if (inString && char === stringChar) {
+      // Check for doubled quotes (SQL escape sequence)
+      if (nextChar === stringChar) {
+        // This is an escaped quote - skip the next character
+        this.dbtTerminal.debug(
+          "CteCodeLensProvider",
+          `Found escaped quote (${stringChar}${stringChar}) at position ${pos}`,
+        );
+        return {
+          newPos: pos + 1, // Skip the second quote
+          inString: true,
+          stringChar: stringChar,
+        };
+      } else {
+        // This is the end of the string
+        return {
+          newPos: pos,
+          inString: false,
+          stringChar: "",
+        };
+      }
+    }
+
+    return { newPos: pos, inString, stringChar };
+  }
+
   private findWithClauseEnd(text: string, withStartPos: number): number {
     // Look for the main SELECT that comes after all CTEs
     // This is a simplified approach - we look for SELECT that's not inside parentheses
@@ -187,27 +233,17 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
 
     while (pos < text.length) {
       const char = text[pos];
-      const nextChar = pos < text.length - 1 ? text[pos + 1] : "";
 
-      // Handle string literals with SQL-style quote escaping
-      if (!inString && (char === "'" || char === '"')) {
-        inString = true;
-        stringChar = char;
-      } else if (inString && char === stringChar) {
-        // Check for doubled quotes (SQL escape sequence)
-        if (nextChar === stringChar) {
-          // This is an escaped quote - skip the next character
-          pos++; // Skip the second quote
-          this.dbtTerminal.debug(
-            "CteCodeLensProvider",
-            `Found escaped quote (${stringChar}${stringChar}) at position ${pos - 1}`,
-          );
-        } else {
-          // This is the end of the string
-          inString = false;
-          stringChar = "";
-        }
-      }
+      // Handle string literals using helper function
+      const stringResult = this.handleSqlStringLiteral(
+        text,
+        pos,
+        inString,
+        stringChar,
+      );
+      pos = stringResult.newPos;
+      inString = stringResult.inString;
+      stringChar = stringResult.stringChar;
 
       // Only count parentheses and look for SELECT outside of strings
       if (!inString) {
@@ -341,23 +377,17 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
 
     while (pos < text.length && parenCount > 0) {
       const char = text[pos];
-      const nextChar = pos < text.length - 1 ? text[pos + 1] : "";
 
-      // Handle string literals with SQL-style quote escaping
-      if (!inString && (char === "'" || char === '"')) {
-        inString = true;
-        stringChar = char;
-      } else if (inString && char === stringChar) {
-        // Check for doubled quotes (SQL escape sequence)
-        if (nextChar === stringChar) {
-          // This is an escaped quote - skip the next character
-          pos++; // Skip the second quote
-        } else {
-          // This is the end of the string
-          inString = false;
-          stringChar = "";
-        }
-      }
+      // Handle string literals using helper function
+      const stringResult = this.handleSqlStringLiteral(
+        text,
+        pos,
+        inString,
+        stringChar,
+      );
+      pos = stringResult.newPos;
+      inString = stringResult.inString;
+      stringChar = stringResult.stringChar;
 
       // Only count parentheses outside of strings
       if (!inString) {
