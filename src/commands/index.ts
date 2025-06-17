@@ -1035,7 +1035,6 @@ export class VSCodeCommands implements Disposable {
     for (const cte of sameScopeCtesUpToTarget) {
       // Extract the full CTE definition (name + AS + query)
       const cteStart = cte.range.start;
-      const cteQueryEnd = cte.queryRange.end;
 
       // Get from CTE name to end of its query
       const cteStartPos = document.offsetAt(cteStart);
