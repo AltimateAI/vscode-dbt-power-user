@@ -252,8 +252,18 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
         } else if (char === ")") {
           parenCount--;
         } else if (parenCount === 0) {
-          // Check for SELECT keyword at top level
+          // Check for nested WITH keyword at top level
           const remainingText = text.substring(pos);
+          const nestedWithMatch = remainingText.match(/^\s*with\b/i);
+          if (nestedWithMatch) {
+            this.dbtTerminal.warn(
+              "CteCodeLensProvider",
+              `Found nested WITH clause at position ${pos}, bailing out - nested WITH clauses are not supported`,
+            );
+            return -1; // Signal failure due to nested WITH
+          }
+
+          // Check for SELECT keyword at top level
           const selectMatch = remainingText.match(/^\s*select\b/i);
           if (selectMatch) {
             selectsChecked++;
