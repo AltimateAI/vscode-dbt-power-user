@@ -1082,8 +1082,20 @@ export class VSCodeCommands implements Disposable {
         return;
       }
 
-      // Build the complete query
-      let query = "WITH ";
+      // Build the complete query including preamble before WITH clause
+      // Extract everything before the WITH clause (dbt configs, variables, etc.)
+      const preamble = text.substring(0, targetCte.withClauseStart).trim();
+
+      let query = "";
+      if (preamble) {
+        query += preamble + "\n\n";
+        this.dbtTerminal.debug(
+          "CteExecution",
+          `Including preamble (${preamble.length} chars) before WITH clause`,
+        );
+      }
+
+      query += "WITH ";
       query += cteDefinitions.join(",\n");
 
       // Add a simple SELECT to execute the target CTE with proper quoting
