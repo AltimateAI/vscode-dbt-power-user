@@ -694,7 +694,7 @@ class DbtProject:
         """Execute dbt SQL statement against database from a"ManifestNode"""
         try:
             if node is None:
-                raise Exception("This model doesn't exist within this dbt project")
+                raise ValueError("This model doesn't exist within this dbt project")
             raw_sql: str = getattr(node, RAW_CODE)
             compiled_sql: Optional[str] = getattr(node, COMPILED_CODE, None)
             if compiled_sql:
@@ -721,7 +721,7 @@ class DbtProject:
     ) -> Optional[DbtAdapterCompilationResult]:
         try:
             if node is None:
-                raise Exception("This model doesn't exist within this dbt project")
+                raise ValueError("This model doesn't exist within this dbt project")
             with self.adapter.connection_named("master"):
                 return self._compile_node(node)
         except Exception as e:
