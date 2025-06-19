@@ -62,15 +62,16 @@ src/
 ### 1. dbt Integration Support
 
 **Multiple Integration Types**:
-- **dbt Core**: Direct Python integration
-- **dbt Cloud**: API-based integration  
-- **dbt Fusion**: Command-line integration
-- **Core Command**: CLI wrapper integration
+- **dbt Core**: Direct Python integration via Python bridge
+- **dbt Cloud**: API-based integration with dbt Cloud services
+- **dbt Fusion**: Command-line integration with dbt-fusion CLI
+- **Core Command**: CLI wrapper integration for dbt core
 
 **Key Integration Files**:
-- `src/dbt_client/dbtCoreIntegration.ts`
-- `src/dbt_client/dbtCloudIntegration.ts`
-- `dbt_core_integration.py` (Python bridge)
+- `src/dbt_client/dbtCoreIntegration.ts` - dbt Core Python integration
+- `src/dbt_client/dbtCloudIntegration.ts` - dbt Cloud API integration
+- `src/dbt_client/dbtFusionCommandIntegration.ts` - dbt Fusion CLI integration
+- `dbt_core_integration.py` - Python bridge for Core integration
 
 ### 2. Language Server Features
 
@@ -365,11 +366,19 @@ The extension is also available for [Cursor IDE](https://www.cursor.com/how-to-i
 
 ### 1. dbt Integration Setup
 Configure how the extension connects to dbt:
-- **dbt Core**: For local dbt installations (default)
+- **dbt Core**: For local dbt installations with Python bridge (default)
 - **dbt Cloud**: For dbt Cloud API integration
+- **dbt Fusion**: For dbt-fusion CLI integration
 - **dbt Core Command**: For CLI-based dbt core integration
 
 Set via `dbt.dbtIntegration` setting.
+
+#### dbt Fusion Integration
+dbt Fusion is a command-line interface that provides enhanced dbt functionality. When using fusion integration:
+- Requires dbt-fusion CLI to be installed in your environment
+- Extension automatically detects fusion installation via `dbt --version` output
+- Provides full feature support including query execution, compilation, and catalog operations
+- Uses JSON log format for structured command output parsing
 
 ### 2. Python Environment
 Ensure Python and dbt are properly installed and accessible. The extension will auto-detect your Python environment through the VS Code Python extension.
