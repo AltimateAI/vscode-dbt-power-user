@@ -26,6 +26,7 @@ jobs:
       # Build your site using MkDocs
       - name: Build site with MkDocs
         run: |
+          cd documentation
           mkdocs build --clean
 
       # Deploy to AWS
@@ -35,4 +36,4 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           domain: docs.myaltimate.com
-          publish_dir: ./site
+          publish_dir: ./documentation/site
