@@ -4,7 +4,7 @@ name: Deploy Static Website to AWS
 # This example triggers the workflow on push events to the main branch.
 on:
   push:
-    branches: [main]
+    branches: [master]
 # The jobs that will be executed by the workflow.
 jobs:
   deploy:
