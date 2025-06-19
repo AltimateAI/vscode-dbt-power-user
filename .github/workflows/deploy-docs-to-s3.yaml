@@ -5,6 +5,11 @@ name: Deploy Static Website to AWS
 on:
   push:
     branches: [master]
+
+# Limit permissions for the GITHUB_TOKEN to adhere to the principle of least privilege.
+permissions:
+  contents: read
+
 # The jobs that will be executed by the workflow.
 jobs:
   deploy:
