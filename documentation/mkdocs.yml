@@ -93,6 +93,7 @@ nav:
       - Required config:
         - dbt Core: setup/reqdConfig.md
         - dbt Cloud: setup/reqdConfigCloud.md
+        - dbt Fusion: setup/reqdConfigFusion.md
       - Optional config: setup/optConfig.md
       - All configurations: setup/configuration.md
       - SSO: setup/sso.md

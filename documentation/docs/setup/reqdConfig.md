@@ -1,4 +1,4 @@
-/// admonition | Only use the following steps for "dbt Core" environments. If you have a dbt Cloud environment, use the [required config instructions for "dbt Cloud" environments](./reqdConfigCloud.md)
+/// admonition | Only use the following steps for "dbt Core" environments. If you have a dbt Cloud environment, use the [required config instructions for "dbt Cloud" environments](./reqdConfigCloud.md). If you have a dbt Fusion environment, use the [required config instructions for "dbt Fusion" environments](./reqdConfigFusion.md).
 type: warning
 ///
 

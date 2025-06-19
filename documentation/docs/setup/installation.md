@@ -52,6 +52,6 @@ Please add the following configuration in to your devcontainer.json file:
     }
 ```
 
-/// admonition | Please do NOT forget to do [required configuration](reqdConfig.md) and [optional configuraton](optConfig.md)!!
+/// admonition | Please do NOT forget to do required configuration based on your dbt setup: [dbt Core](reqdConfig.md), [dbt Cloud](reqdConfigCloud.md), or [dbt Fusion](reqdConfigFusion.md), and [optional configuration](optConfig.md)!!
 type: warning
 ///

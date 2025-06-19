@@ -10,8 +10,8 @@ This page provides a comprehensive overview of all available configuration setti
 
 - **Type**: string
 - **Default**: "core"
-- **Options**: ["core", "cloud", "corecommand"]
-- **Description**: Choose how you want to integrate with dbt. Use "core" for local dbt installations, "cloud" for dbt Cloud integration, or "corecommand" for command-line based dbt core integration. This setting determines how the extension interacts with your dbt environment.
+- **Options**: ["core", "cloud", "fusion", "corecommand"]
+- **Description**: Choose how you want to integrate with dbt. Use "core" for local dbt installations with Python bridge, "cloud" for dbt Cloud integration, "fusion" for dbt Fusion CLI integration, or "corecommand" for command-line based dbt core integration. This setting determines how the extension interacts with your dbt environment.
 
 #### dbt.dbtPythonPathOverride
 
