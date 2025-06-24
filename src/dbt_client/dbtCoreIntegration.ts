@@ -1,11 +1,10 @@
-import { RelativePattern, Uri, window, workspace } from "vscode";
+import { Uri, window, workspace } from "vscode";
 import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
 import {
   extendErrorWithSupportLinks,
   getFirstWorkspacePath,
   getProjectRelativePath,
   provideSingleton,
-  setupWatcherHandler,
 } from "../utils";
 import {
   Catalog,
@@ -32,6 +31,7 @@ import { PythonBridge, PythonException } from "python-bridge";
 import * as path from "path";
 import { DBTProject } from "../manifest/dbtProject";
 import { existsSync, readFileSync } from "fs";
+import * as fs from "fs";
 import { parse } from "yaml";
 import { TelemetryService } from "../telemetry";
 import {
@@ -457,19 +457,26 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
         ),
       );
       if (this.profilesDir) {
-        const dbtProfileWatcher = workspace.createFileSystemWatcher(
-          new RelativePattern(
-            this.profilesDir,
-            DBTCoreProjectIntegration.DBT_PROFILES_FILE,
-          ),
+        const profilesFilePath = path.join(
+          this.profilesDir,
+          DBTCoreProjectIntegration.DBT_PROFILES_FILE,
         );
-        this.disposables.push(
-          dbtProfileWatcher,
-          // when the project config changes we need to re-init the dbt project
-          ...setupWatcherHandler(dbtProfileWatcher, () =>
-            this.rebuildManifest(),
-          ),
-        );
+        try {
+          const dbtProfileWatcher = fs.watch(profilesFilePath, (eventType) => {
+            if (eventType === "change") {
+              this.rebuildManifest();
+            }
+          });
+          this.disposables.push({
+            dispose: () => dbtProfileWatcher.close(),
+          });
+        } catch (error) {
+          // File might not exist yet, which is fine
+          this.dbtTerminal.debug(
+            "DBTCoreProjectIntegration",
+            `Could not watch profiles file at ${profilesFilePath}: ${error}`,
+          );
+        }
       }
       await this.createPythonDbtProject(this.python);
       this.pythonBridgeDiagnosticsData = [];

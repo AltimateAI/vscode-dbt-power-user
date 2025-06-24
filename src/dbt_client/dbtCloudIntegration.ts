@@ -1,6 +1,6 @@
-import { workspace, Uri, Disposable, window } from "vscode";
+import { window } from "vscode";
 import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
-import { provideSingleton } from "../utils";
+import { getFirstWorkspacePath, provideSingleton } from "../utils";
 import {
   Catalog,
   DBColumn,
@@ -71,7 +71,7 @@ export class DBTCloudDetection implements DBTDetection {
         this.commandProcessExecutionFactory.createCommandProcessExecution({
           command: dbtPath,
           args: ["--version"],
-          cwd: this.getFirstWorkspacePath(),
+          cwd: getFirstWorkspacePath(),
         });
       const { stdout, stderr } = await checkDBTInstalledProcess.complete();
       if (stderr) {
@@ -116,19 +116,6 @@ export class DBTCloudDetection implements DBTDetection {
     );
     return false;
   }
-
-  private getFirstWorkspacePath(): string {
-    // If we are executing python via a wrapper like Meltano,
-    // we need to execute it from a (any) project directory
-    // By default, Command execution is in an ext dir context
-    const folders = workspace.workspaceFolders;
-    if (folders) {
-      return folders[0].uri.fsPath;
-    } else {
-      // TODO: this shouldn't happen but we should make sure this is valid fallback
-      return Uri.file("./").fsPath;
-    }
-  }
 }
 
 @provideSingleton(DBTCloudProjectDetection)
@@ -155,9 +142,7 @@ export class DBTCloudProjectDetection implements DBTProjectDetection {
 }
 
 @provideSingleton(DBTCloudProjectIntegration)
-export class DBTCloudProjectIntegration
-  implements DBTProjectIntegration, Disposable
-{
+export class DBTCloudProjectIntegration implements DBTProjectIntegration {
   private static QUEUE_ALL = "all";
   protected targetPath?: string;
   private version: number[] | undefined;
@@ -169,7 +154,9 @@ export class DBTCloudProjectIntegration
   protected macroPaths?: string[];
   private python: PythonBridge;
   protected dbtPath: string = "dbt";
-  private disposables: Disposable[] = [];
+  private disposables: {
+    dispose: () => any;
+  }[] = [];
   protected pythonBridgeDiagnosticsData: DBTDiagnosticData[] = [];
   protected rebuildManifestDiagnosticsData: DBTDiagnosticData[] = [];
   protected rebuildManifestAbortController: AbortController | undefined;
@@ -438,10 +425,7 @@ export class DBTCloudProjectIntegration
         )
         .map((line) => line.info.msg);
       this.rebuildManifestDiagnosticsData = [];
-      const filePath = Uri.joinPath(
-        Uri.file(this.projectRoot),
-        DBTProject.DBT_PROJECT_FILE,
-      ).fsPath;
+      const filePath = path.join(this.projectRoot, DBTProject.DBT_PROJECT_FILE);
       const diagnosticDataArray: DBTDiagnosticData[] = [
         ...errors.map((error) => ({
           filePath,
@@ -474,10 +458,7 @@ export class DBTCloudProjectIntegration
         "Unable to parse dbt cloud cli response. If the problem persists please reach out to us: " +
         error;
       const diagnosticData: DBTDiagnosticData = {
-        filePath: Uri.joinPath(
-          Uri.file(this.projectRoot),
-          DBTProject.DBT_PROJECT_FILE,
-        ).fsPath,
+        filePath: path.join(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
         message: errorMessage,
         severity: "error",
         range: { startLine: 0, startColumn: 0, endLine: 999, endColumn: 999 },
@@ -811,10 +792,7 @@ export class DBTCloudProjectIntegration
     for (const node of models) {
       try {
         // compiled sql file exists
-        const fileContentBytes = await workspace.fs.readFile(
-          Uri.file(node.compiled_path),
-        );
-        const query = fileContentBytes.toString();
+        const query = readFileSync(node.compiled_path, "utf-8");
         result[node.uniqueId] = query;
         continue;
       } catch (e) {
@@ -1115,13 +1093,13 @@ export class DBTCloudProjectIntegration
     }
   }
 
-  private getYamlContent(uri: Uri): string | undefined {
+  private getYamlContent(uri: string): string | undefined {
     try {
-      return readFileSync(uri.fsPath, "utf-8");
+      return readFileSync(uri, "utf-8");
     } catch (error) {
       this.terminal.error(
         "getYamlContent",
-        "Error occured while reading file: " + uri.fsPath,
+        "Error occured while reading file: " + uri,
         error,
       );
       return undefined;
@@ -1129,14 +1107,8 @@ export class DBTCloudProjectIntegration
   }
 
   findPackageVersion(packageName: string) {
-    const packagesYmlPath = Uri.joinPath(
-      Uri.file(this.projectRoot),
-      "packages.yml",
-    );
-    const dependenciesYmlPath = Uri.joinPath(
-      Uri.file(this.projectRoot),
-      "dependencies.yml",
-    );
+    const packagesYmlPath = path.join(this.projectRoot, "packages.yml");
+    const dependenciesYmlPath = path.join(this.projectRoot, "dependencies.yml");
 
     const fileContents =
       this.getYamlContent(packagesYmlPath) ||
