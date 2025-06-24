@@ -253,11 +253,13 @@ export class DbtLineageService {
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
     );
     // using artifacts(mappedCompiledSql) from getNodesWithDBColumns as optimization
+    const abortController = new AbortController();
+    cancellationTokenSource.token.onCancellationRequested(() => abortController.abort());
     const { mappedNode, relationsWithoutColumns, mappedCompiledSql } =
       await project.getNodesWithDBColumns(
         event,
         modelsToFetch,
-        cancellationTokenSource.token,
+        abortController.signal,
       );
 
     const selected_column = {

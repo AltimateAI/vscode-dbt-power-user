@@ -436,7 +436,7 @@ export class DBTProject implements Disposable {
     );
     try {
       this.projectConfig = DBTProject.readAndParseProjectConfig(
-        this.projectRoot,
+        this.projectRoot.fsPath,
       );
       await this.dbtProjectIntegration.refreshProjectConfig();
       this.projectConfigDiagnostics.clear();
@@ -975,14 +975,11 @@ export class DBTProject implements Disposable {
     }
   }
 
-  async getBulkSchemaFromDB(
-    req: DBTNode[],
-    cancellationToken: CancellationToken,
-  ) {
+  async getBulkSchemaFromDB(req: DBTNode[], signal: AbortSignal) {
     try {
       const result = await this.dbtProjectIntegration.getBulkSchemaFromDB(
         req,
-        cancellationToken,
+        signal,
       );
       await this.dbtProjectIntegration.cleanupConnections();
       return result;
@@ -1296,9 +1293,9 @@ export class DBTProject implements Disposable {
     }
   }
 
-  static readAndParseProjectConfig(projectRoot: Uri) {
+  static readAndParseProjectConfig(projectRoot: string) {
     const dbtProjectConfigLocation = path.join(
-      projectRoot.fsPath,
+      projectRoot,
       DBTProject.DBT_PROJECT_FILE,
     );
     const dbtProjectYamlFile = readFileSync(dbtProjectConfigLocation, "utf8");
@@ -1609,7 +1606,7 @@ export class DBTProject implements Disposable {
   async getNodesWithDBColumns(
     event: ManifestCacheProjectAddedEvent,
     modelsToFetch: string[],
-    cancellationToken: CancellationToken,
+    signal: AbortSignal,
   ) {
     const mappedNode: Record<string, ModelNode> = {};
     const relationsWithoutColumns: string[] = [];
@@ -1683,7 +1680,7 @@ export class DBTProject implements Disposable {
     );
     const compiledSqlTime = Date.now() - startTime;
 
-    if (cancellationToken.isCancellationRequested) {
+    if (signal.aborted) {
       return {
         mappedNode,
         relationsWithoutColumns,
@@ -1723,7 +1720,7 @@ export class DBTProject implements Disposable {
     }
     const sqlglotSchemaTime = Date.now() - startTime;
 
-    if (cancellationToken.isCancellationRequested) {
+    if (signal.aborted) {
       return {
         mappedNode,
         relationsWithoutColumns,
@@ -1735,7 +1732,7 @@ export class DBTProject implements Disposable {
     const dbSchemaResponse =
       await this.dbtProjectIntegration.getBulkSchemaFromDB(
         dbSchemaRequest,
-        cancellationToken,
+        signal,
       );
     const dbFetchTime = Date.now() - startTime;
 

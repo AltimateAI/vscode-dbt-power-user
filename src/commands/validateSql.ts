@@ -119,6 +119,7 @@ export class ValidateSql {
     let relationsWithoutColumns: string[] = [];
     let compiledQuery: string | undefined;
     let cancellationToken: CancellationToken | undefined;
+    let abortController: AbortController | undefined;
     await window.withProgress(
       {
         location: ProgressLocation.Notification,
@@ -128,6 +129,8 @@ export class ValidateSql {
       async (_, token) => {
         try {
           cancellationToken = token;
+        abortController = new AbortController();
+        token.onCancellationRequested(() => abortController!.abort());
           const fileContentBytes = await workspace.fs.readFile(currentFilePath);
           if (cancellationToken.isCancellationRequested) {
             return;
@@ -158,7 +161,7 @@ export class ValidateSql {
           } = await project.getNodesWithDBColumns(
             event,
             modelsToFetch,
-            cancellationToken,
+            abortController!.signal,
           );
           parentModels.push(...modelsToFetch.map((n) => mappedNode[n]));
           relationsWithoutColumns = _relationsWithoutColumns;

@@ -173,10 +173,12 @@ export class SQLLineagePanel
     }
 
     if (config.get("useSchemaForQueryVisualizer", false) || shouldFetchSchema) {
+      const abortController = new AbortController();
+      token.onCancellationRequested(() => abortController.abort());
       const { mappedNode } = await project.getNodesWithDBColumns(
         event,
         modelsToFetch,
-        token,
+        abortController.signal,
       );
       model_info = modelsToFetch.map((n) => ({ model_node: mappedNode[n] }));
     }

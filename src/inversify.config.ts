@@ -138,7 +138,7 @@ container
         container.get(PythonEnvironment),
         container.get(DBTTerminal),
         container.get(TelemetryService),
-        projectRoot,
+        projectRoot.fsPath,
         dbtPath,
       );
     };
@@ -223,7 +223,7 @@ container
         container.get(DBTTerminal),
         container.get(ValidationProvider),
         container.get(DeferToProdService),
-        projectRoot,
+        projectRoot.fsPath,
         container.get(AltimateRequest),
       );
     };
@@ -248,7 +248,7 @@ container
         container.get(DBTTerminal),
         container.get(ValidationProvider),
         container.get(DeferToProdService),
-        projectRoot,
+        projectRoot.fsPath,
         container.get(AltimateRequest),
       );
     };

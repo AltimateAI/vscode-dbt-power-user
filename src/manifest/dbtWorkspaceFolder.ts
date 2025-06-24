@@ -176,7 +176,7 @@ export class DBTWorkspaceFolder implements Disposable {
 
     const filteredProjects =
       await this.dbtProjectDetectionFactory().discoverProjects(
-        projectDirectories,
+        projectDirectories.map(uri => uri.fsPath),
       );
 
     this.dbtTerminal.info(
@@ -187,8 +187,8 @@ export class DBTWorkspaceFolder implements Disposable {
     );
 
     await Promise.all(
-      filteredProjects.map(async (uri) => {
-        await this.registerDBTProject(uri);
+      filteredProjects.map(async (projectPath) => {
+        await this.registerDBTProject(Uri.file(projectPath));
       }),
     );
   }
@@ -228,7 +228,7 @@ export class DBTWorkspaceFolder implements Disposable {
 
   private async registerDBTProject(uri: Uri) {
     try {
-      const projectConfig = DBTProject.readAndParseProjectConfig(uri);
+      const projectConfig = DBTProject.readAndParseProjectConfig(uri.fsPath);
       const dbtProject = this.dbtProjectFactory(
         uri,
         projectConfig,

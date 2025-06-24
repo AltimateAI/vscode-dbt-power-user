@@ -1,5 +1,4 @@
 import {
-  CancellationToken,
   Diagnostic,
   DiagnosticCollection,
   DiagnosticSeverity,
@@ -174,9 +173,9 @@ export class DBTCoreProjectDetection
     return packageInstallPath;
   }
 
-  async discoverProjects(projectDirectories: Uri[]): Promise<Uri[]> {
+  async discoverProjects(projectDirectories: string[]): Promise<string[]> {
     let packagesInstallPaths = projectDirectories.map((projectDirectory) =>
-      path.join(projectDirectory.fsPath, "dbt_packages"),
+      path.join(projectDirectory, "dbt_packages"),
     );
     let python: PythonBridge | undefined;
     try {
@@ -186,17 +185,14 @@ export class DBTCoreProjectDetection
 
       await python.ex`from dbt_core_integration import *`;
       const packagesInstallPathsFromPython = await python.lock<string[]>(
-        (python) =>
-          python`to_dict(find_package_paths(${projectDirectories.map(
-            (projectDirectory) => projectDirectory.fsPath,
-          )}))`,
+        (python) => python`to_dict(find_package_paths(${projectDirectories}))`,
       );
       packagesInstallPaths = packagesInstallPaths.map(
         (packageInstallPath, index) => {
           const packageInstallPathFromPython =
             packagesInstallPathsFromPython[index];
           if (packageInstallPathFromPython) {
-            return Uri.file(packageInstallPathFromPython).fsPath;
+            return packageInstallPathFromPython;
           }
           return packageInstallPath;
         },
@@ -209,7 +205,7 @@ export class DBTCoreProjectDetection
       // Fallback to reading yaml files
       packagesInstallPaths = projectDirectories.map((projectDirectory, idx) =>
         this.getPackageInstallPathFallback(
-          projectDirectory,
+          Uri.file(projectDirectory),
           packagesInstallPaths[idx],
         ),
       );
@@ -219,9 +215,9 @@ export class DBTCoreProjectDetection
       }
     }
 
-    const filteredProjectFiles = projectDirectories.filter((uri) => {
+    const filteredProjectFiles = projectDirectories.filter((projectPath) => {
       return !packagesInstallPaths.some((packageInstallPath) => {
-        return uri.fsPath.startsWith(packageInstallPath!);
+        return projectPath.startsWith(packageInstallPath!);
       });
     });
     if (filteredProjectFiles.length > 20) {
@@ -983,14 +979,14 @@ export class DBTCoreProjectIntegration
 
   async getBulkSchemaFromDB(
     nodes: DBTNode[],
-    cancellationToken: CancellationToken,
+    signal: AbortSignal,
   ): Promise<Record<string, DBColumn[]>> {
     if (nodes.length === 0) {
       return {};
     }
     const result: Record<string, DBColumn[]> = {};
     for (const n of nodes) {
-      if (cancellationToken.isCancellationRequested) {
+      if (signal.aborted) {
         break;
       }
       if (n.resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {

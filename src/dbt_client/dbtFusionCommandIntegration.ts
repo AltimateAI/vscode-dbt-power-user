@@ -1,12 +1,4 @@
-import {
-  CancellationToken,
-  CancellationTokenSource,
-  Diagnostic,
-  DiagnosticSeverity,
-  Range,
-  Uri,
-  window,
-} from "vscode";
+import { Diagnostic, DiagnosticSeverity, Range, Uri, window } from "vscode";
 import { getFirstWorkspacePath, provideSingleton } from "../utils";
 import {
   QueryExecution,
@@ -77,13 +69,13 @@ export class DBTFusionCommandDetection implements DBTDetection {
 
 @provideSingleton(DBTFusionCommandProjectDetection)
 export class DBTFusionCommandProjectDetection implements DBTProjectDetection {
-  async discoverProjects(projectDirectories: Uri[]): Promise<Uri[]> {
+  async discoverProjects(projectDirectories: string[]): Promise<string[]> {
     const packagesInstallPaths = projectDirectories.map((projectDirectory) =>
-      path.join(projectDirectory.fsPath, "dbt_packages"),
+      path.join(projectDirectory, "dbt_packages"),
     );
-    const filteredProjectFiles = projectDirectories.filter((uri) => {
+    const filteredProjectFiles = projectDirectories.filter((projectPath) => {
       return !packagesInstallPaths.some((packageInstallPath) => {
-        return uri.fsPath.startsWith(packageInstallPath!);
+        return projectPath.startsWith(packageInstallPath!);
       });
     });
     if (filteredProjectFiles.length > 20) {
@@ -109,11 +101,11 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
 
   protected async initializePaths() {
     // No way to get these paths from the fusion executable
-    this.targetPath = join(this.projectRoot.fsPath, "target");
-    this.modelPaths = [join(this.projectRoot.fsPath, "models")];
-    this.seedPaths = [join(this.projectRoot.fsPath, "seeds")];
-    this.macroPaths = [join(this.projectRoot.fsPath, "macros")];
-    this.packagesInstallPath = join(this.projectRoot.fsPath, "dbt_packages");
+    this.targetPath = join(this.projectRoot, "target");
+    this.modelPaths = [join(this.projectRoot, "models")];
+    this.seedPaths = [join(this.projectRoot, "seeds")];
+    this.macroPaths = [join(this.projectRoot, "macros")];
+    this.packagesInstallPath = join(this.projectRoot, "dbt_packages");
     try {
       const projectConfig = DBTProject.readAndParseProjectConfig(
         this.projectRoot,
@@ -132,17 +124,17 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
   async rebuildManifest(): Promise<void> {
     // TODO: check whether we should allow parsing for unauthenticated users
     // this.throwIfNotAuthenticated();
-    if (this.rebuildManifestCancellationTokenSource) {
-      this.rebuildManifestCancellationTokenSource.cancel();
-      this.rebuildManifestCancellationTokenSource = undefined;
+    if (this.rebuildManifestAbortController) {
+      this.rebuildManifestAbortController.abort();
+      this.rebuildManifestAbortController = undefined;
     }
     const command = this.dbtCloudCommand(
       this.dbtCommandFactory.createParseCommand(),
     );
     command.addArgument("--log-format");
     command.addArgument("json");
-    this.rebuildManifestCancellationTokenSource = new CancellationTokenSource();
-    command.setToken(this.rebuildManifestCancellationTokenSource.token);
+    this.rebuildManifestAbortController = new AbortController();
+    command.setSignal(this.rebuildManifestAbortController.signal);
 
     try {
       const result = await command.execute();
@@ -216,7 +208,7 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
       if (diagnostics) {
         // user error
         this.rebuildManifestDiagnostics.set(
-          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+          Uri.joinPath(Uri.file(this.projectRoot), DBTProject.DBT_PROJECT_FILE),
           diagnostics,
         );
       }
@@ -230,7 +222,7 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
         },
       );
       this.rebuildManifestDiagnostics.set(
-        Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+        Uri.joinPath(Uri.file(this.projectRoot), DBTProject.DBT_PROJECT_FILE),
         [
           new Diagnostic(
             new Range(0, 0, 999, 999),
@@ -263,15 +255,15 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
         "json",
       ]),
     );
-    const cancellationTokenSource = new CancellationTokenSource();
-    showCommand.setToken(cancellationTokenSource.token);
+    const abortController = new AbortController();
+    showCommand.setSignal(abortController.signal);
     return new QueryExecution(
       async () => {
-        cancellationTokenSource.cancel();
+        abortController.abort();
       },
       async () => {
         const { stdout, stderr } = await showCommand.execute(
-          cancellationTokenSource.token,
+          abortController.signal,
         );
         const exception = this.processJSONErrors(stderr);
         if (exception) {
@@ -306,7 +298,7 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
             column_names: preview.length > 0 ? Object.keys(preview[0]) : [],
             column_types:
               preview.length > 0
-                ? Object.keys(preview[0]).map((obj: any) => "string")
+                ? Object.keys(preview[0]).map(() => "string")
                 : [],
             rows: preview.map((obj: any) => Object.values(obj)),
           },
@@ -388,7 +380,7 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
 
   async getBulkSchemaFromDB(
     nodes: DBTNode[],
-    cancellationToken: CancellationToken,
+    signal: AbortSignal,
   ): Promise<Record<string, DBColumn[]>> {
     if (nodes.length === 0) {
       return {};
@@ -421,7 +413,7 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
         "--quiet",
       ]),
     );
-    const { stdout, stderr } = await compileQueryCommand.execute();
+    const { stdout, stderr } = await compileQueryCommand.execute(signal);
     if (stderr) {
       throw new Error(stderr);
     }

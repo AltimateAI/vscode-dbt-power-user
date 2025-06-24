@@ -1,5 +1,4 @@
 import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
-import { Uri } from "vscode";
 import {
   CLIDBTCommandExecutionStrategy,
   DBTCommand,
@@ -7,7 +6,6 @@ import {
 import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
-  CommandProcessResult,
 } from "../../commandProcessExecution";
 import { PythonEnvironment } from "../../manifest/pythonEnvironment";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
@@ -71,7 +69,7 @@ describe("CLIDBTCommandExecutionStrategy Tests", () => {
       mockPythonEnvironment,
       mockTerminal,
       mockTelemetry,
-      Uri.file("/test/workspace"),
+      "/test/workspace",
       "dbt",
     );
   });

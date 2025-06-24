@@ -1,4 +1,3 @@
-import { CancellationToken, CancellationTokenSource } from "vscode";
 import { provideSingleton } from "../utils";
 import {
   DBTCoreDetection,
@@ -52,15 +51,15 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
         "json",
       ]),
     );
-    const cancellationTokenSource = new CancellationTokenSource();
-    showCommand.setToken(cancellationTokenSource.token);
+    const abortController = new AbortController();
+    showCommand.setSignal(abortController.signal);
     return new QueryExecution(
       async () => {
-        cancellationTokenSource.cancel();
+        abortController.abort();
       },
       async () => {
         const { stdout, stderr } = await showCommand.execute(
-          cancellationTokenSource.token,
+          abortController.signal,
         );
         const exception = this.processJSONErrors(stderr);
         if (exception) {
@@ -94,7 +93,7 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
             column_names: preview.length > 0 ? Object.keys(preview[0]) : [],
             column_types:
               preview.length > 0
-                ? Object.keys(preview[0]).map((obj: any) => "string")
+                ? Object.keys(preview[0]).map(() => "string")
                 : [],
             rows: preview.map((obj: any) => Object.values(obj)),
           },
@@ -403,7 +402,7 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
 
   async getBulkSchemaFromDB(
     nodes: DBTNode[],
-    cancellationToken: CancellationToken,
+    signal: AbortSignal,
   ): Promise<Record<string, DBColumn[]>> {
     if (nodes.length === 0) {
       return {};
@@ -440,8 +439,7 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
         "json",
       ]),
     );
-    const { stdout, stderr } =
-      await compileQueryCommand.execute(cancellationToken);
+    const { stdout, stderr } = await compileQueryCommand.execute(signal);
     const compiledLine = stdout
       .trim()
       .split("\n")

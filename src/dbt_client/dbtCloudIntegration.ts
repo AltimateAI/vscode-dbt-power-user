@@ -5,11 +5,9 @@ import {
   Disposable,
   Range,
   window,
-  CancellationTokenSource,
   Diagnostic,
   DiagnosticCollection,
   DiagnosticSeverity,
-  CancellationToken,
 } from "vscode";
 import { provideSingleton } from "../utils";
 import {
@@ -146,14 +144,14 @@ export class DBTCloudDetection implements DBTDetection {
 export class DBTCloudProjectDetection implements DBTProjectDetection {
   constructor(private altimate: AltimateRequest) {}
 
-  async discoverProjects(projectDirectories: Uri[]): Promise<Uri[]> {
+  async discoverProjects(projectDirectories: string[]): Promise<string[]> {
     this.altimate.handlePreviewFeatures();
     const packagesInstallPaths = projectDirectories.map((projectDirectory) =>
-      path.join(projectDirectory.fsPath, "dbt_packages"),
+      path.join(projectDirectory, "dbt_packages"),
     );
-    const filteredProjectFiles = projectDirectories.filter((uri) => {
+    const filteredProjectFiles = projectDirectories.filter((projectPath) => {
       return !packagesInstallPaths.some((packageInstallPath) => {
-        return uri.fsPath.startsWith(packageInstallPath!);
+        return projectPath.startsWith(packageInstallPath!);
       });
     });
     if (filteredProjectFiles.length > 20) {
@@ -185,16 +183,14 @@ export class DBTCloudProjectIntegration
     languages.createDiagnosticCollection("dbt");
   private readonly pythonBridgeDiagnostics =
     languages.createDiagnosticCollection("dbt");
-  protected rebuildManifestCancellationTokenSource:
-    | CancellationTokenSource
-    | undefined;
+  protected rebuildManifestAbortController: AbortController | undefined;
   private pathsInitialized = false;
 
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
     protected dbtCommandFactory: DBTCommandFactory,
     protected cliDBTCommandExecutionStrategyFactory: (
-      path: Uri,
+      path: string,
       dbtPath: string,
     ) => DBTCommandExecutionStrategy,
     protected telemetry: TelemetryService,
@@ -202,7 +198,7 @@ export class DBTCloudProjectIntegration
     protected terminal: DBTTerminal,
     private validationProvider: ValidationProvider,
     private deferToProdService: DeferToProdService,
-    protected projectRoot: Uri,
+    protected projectRoot: string,
     private altimateRequest: AltimateRequest,
   ) {
     this.terminal.debug(
@@ -210,7 +206,7 @@ export class DBTCloudProjectIntegration
       `Registering dbt cloud project at ${this.projectRoot}`,
     );
     this.python = this.executionInfrastructure.createPythonBridge(
-      this.projectRoot.fsPath,
+      this.projectRoot,
     );
     this.executionInfrastructure.createQueue(
       DBTCloudProjectIntegration.QUEUE_ALL,
@@ -219,7 +215,7 @@ export class DBTCloudProjectIntegration
     this.disposables.push(
       this.pythonEnvironment.onPythonEnvironmentChanged(() => {
         this.python = this.executionInfrastructure.createPythonBridge(
-          this.projectRoot.fsPath,
+          this.projectRoot,
         );
         this.initializeProject();
       }),
@@ -263,15 +259,15 @@ export class DBTCloudProjectIntegration
         "json",
       ]),
     );
-    const cancellationTokenSource = new CancellationTokenSource();
-    showCommand.setToken(cancellationTokenSource.token);
+    const abortController = new AbortController();
+    showCommand.setSignal(abortController.signal);
     return new QueryExecution(
       async () => {
-        cancellationTokenSource.cancel();
+        abortController.abort();
       },
       async () => {
         const { stdout, stderr } = await showCommand.execute(
-          cancellationTokenSource.token,
+          abortController.signal,
         );
         const exception = this.processJSONErrors(stderr);
         if (exception) {
@@ -303,7 +299,7 @@ export class DBTCloudProjectIntegration
             column_names: preview.length > 0 ? Object.keys(preview[0]) : [],
             column_types:
               preview.length > 0
-                ? Object.keys(preview[0]).map((obj: any) => "string")
+                ? Object.keys(preview[0]).map(() => "string")
                 : [],
             rows: preview.map((obj: any) => Object.values(obj)),
           },
@@ -332,7 +328,7 @@ export class DBTCloudProjectIntegration
     this.dbtPath = getDBTPath(this.pythonEnvironment, this.terminal);
   }
 
-  async setSelectedTarget(targetName: string): Promise<void> {
+  async setSelectedTarget(_targetName: string): Promise<void> {
     throw new Error("Method not implemented.");
   }
 
@@ -385,17 +381,18 @@ export class DBTCloudProjectIntegration
 
   getAllDiagnostic(): Diagnostic[] {
     return [
-      ...(this.pythonBridgeDiagnostics.get(this.projectRoot) || []),
-      ...(this.rebuildManifestDiagnostics.get(this.projectRoot) || []),
+      ...(this.pythonBridgeDiagnostics.get(Uri.file(this.projectRoot)) || []),
+      ...(this.rebuildManifestDiagnostics.get(Uri.file(this.projectRoot)) ||
+        []),
     ];
   }
 
   async rebuildManifest(): Promise<void> {
     // TODO: check whether we should allow parsing for unauthenticated users
     // this.throwIfNotAuthenticated();
-    if (this.rebuildManifestCancellationTokenSource) {
-      this.rebuildManifestCancellationTokenSource.cancel();
-      this.rebuildManifestCancellationTokenSource = undefined;
+    if (this.rebuildManifestAbortController) {
+      this.rebuildManifestAbortController.abort();
+      this.rebuildManifestAbortController = undefined;
     }
     const command = this.dbtCloudCommand(
       this.dbtCommandFactory.createParseCommand(),
@@ -403,8 +400,8 @@ export class DBTCloudProjectIntegration
     command.addArgument("--log-format");
     command.addArgument("json");
     command.downloadArtifacts = true;
-    this.rebuildManifestCancellationTokenSource = new CancellationTokenSource();
-    command.setToken(this.rebuildManifestCancellationTokenSource.token);
+    this.rebuildManifestAbortController = new AbortController();
+    command.setSignal(this.rebuildManifestAbortController.signal);
 
     try {
       const result = await command.execute();
@@ -478,7 +475,7 @@ export class DBTCloudProjectIntegration
       if (diagnostics) {
         // user error
         this.rebuildManifestDiagnostics.set(
-          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+          Uri.joinPath(Uri.file(this.projectRoot), DBTProject.DBT_PROJECT_FILE),
           diagnostics,
         );
       }
@@ -492,7 +489,7 @@ export class DBTCloudProjectIntegration
         },
       );
       this.rebuildManifestDiagnostics.set(
-        Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+        Uri.joinPath(Uri.file(this.projectRoot), DBTProject.DBT_PROJECT_FILE),
         [
           new Diagnostic(
             new Range(0, 0, 999, 999),
@@ -588,7 +585,7 @@ export class DBTCloudProjectIntegration
   private async getDeferParams(): Promise<string[]> {
     this.throwIfNotAuthenticated();
     const deferConfig = this.deferToProdService.getDeferConfigByProjectRoot(
-      this.projectRoot.fsPath,
+      this.projectRoot,
     );
     const { deferToProduction } = deferConfig;
     // explicitly checking false to make sure defer is disabled
@@ -825,7 +822,7 @@ export class DBTCloudProjectIntegration
         ]),
       );
       const { stderr } = await compileQueryCommand.execute(
-        new CancellationTokenSource().token,
+        new AbortController().signal,
       );
       const exception = this.processJSONErrors(stderr);
       if (exception) {
@@ -868,7 +865,7 @@ export class DBTCloudProjectIntegration
 
   async getBulkSchemaFromDB(
     nodes: DBTNode[],
-    cancellationToken: CancellationToken,
+    signal: AbortSignal,
   ): Promise<Record<string, DBColumn[]>> {
     if (nodes.length === 0) {
       return {};
@@ -906,8 +903,7 @@ export class DBTCloudProjectIntegration
         "json",
       ]),
     );
-    const { stdout, stderr } =
-      await compileQueryCommand.execute(cancellationToken);
+    const { stdout, stderr } = await compileQueryCommand.execute(signal);
     const compiledLine = stdout
       .trim()
       .split("\n")
@@ -1029,17 +1025,17 @@ export class DBTCloudProjectIntegration
         }
         throw new Error(`Could not find any entries for ${lookupString}`);
       };
-      this.targetPath = join(this.projectRoot.fsPath, "target");
+      this.targetPath = join(this.projectRoot, "target");
       this.modelPaths = lookupEntries("Model paths").map((p) =>
-        join(this.projectRoot.fsPath, p),
+        join(this.projectRoot, p),
       );
       this.seedPaths = lookupEntries("Seed paths").map((p) =>
-        join(this.projectRoot.fsPath, p),
+        join(this.projectRoot, p),
       );
       this.macroPaths = lookupEntries("Macro paths").map((p) =>
-        join(this.projectRoot.fsPath, p),
+        join(this.projectRoot, p),
       );
-      this.packagesInstallPath = join(this.projectRoot.fsPath, "dbt_packages");
+      this.packagesInstallPath = join(this.projectRoot, "dbt_packages");
       this.adapterType = lookupValue("Connection type");
     } catch (error) {
       this.terminal.warn(
@@ -1048,11 +1044,11 @@ export class DBTCloudProjectIntegration
         true,
         error,
       );
-      this.targetPath = join(this.projectRoot.fsPath, "target");
-      this.modelPaths = [join(this.projectRoot.fsPath, "models")];
-      this.seedPaths = [join(this.projectRoot.fsPath, "seeds")];
-      this.macroPaths = [join(this.projectRoot.fsPath, "macros")];
-      this.packagesInstallPath = join(this.projectRoot.fsPath, "dbt_packages");
+      this.targetPath = join(this.projectRoot, "target");
+      this.modelPaths = [join(this.projectRoot, "models")];
+      this.seedPaths = [join(this.projectRoot, "seeds")];
+      this.macroPaths = [join(this.projectRoot, "macros")];
+      this.packagesInstallPath = join(this.projectRoot, "dbt_packages");
     }
 
     try {
@@ -1157,9 +1153,12 @@ export class DBTCloudProjectIntegration
   }
 
   findPackageVersion(packageName: string) {
-    const packagesYmlPath = Uri.joinPath(this.projectRoot, "packages.yml");
+    const packagesYmlPath = Uri.joinPath(
+      Uri.file(this.projectRoot),
+      "packages.yml",
+    );
     const dependenciesYmlPath = Uri.joinPath(
-      this.projectRoot,
+      Uri.file(this.projectRoot),
       "dependencies.yml",
     );
 

@@ -1,12 +1,4 @@
-import {
-  CancellationToken,
-  Diagnostic,
-  Disposable,
-  ProgressLocation,
-  Uri,
-  window,
-  workspace,
-} from "vscode";
+import { Diagnostic, ProgressLocation, window, workspace } from "vscode";
 import {
   extendErrorWithSupportLinks,
   getFirstWorkspacePath,
@@ -32,17 +24,17 @@ import { ProjectHealthcheck } from "./dbtCoreIntegration";
 import { NodeMetaData } from "../domain";
 
 interface DBTCommandExecution {
-  command: (token?: CancellationToken) => Promise<void>;
+  command: (signal?: AbortSignal) => Promise<void>;
   statusMessage: string;
   showProgress?: boolean;
   focus?: boolean;
-  token?: CancellationToken;
+  signal?: AbortSignal;
 }
 
 export interface DBTCommandExecutionStrategy {
   execute(
     command: DBTCommand,
-    token?: CancellationToken,
+    signal?: AbortSignal,
   ): Promise<CommandProcessResult>;
 }
 
@@ -55,24 +47,34 @@ export class CLIDBTCommandExecutionStrategy
     protected pythonEnvironment: PythonEnvironment,
     protected terminal: DBTTerminal,
     protected telemetry: TelemetryService,
-    protected cwd: Uri,
+    protected cwd: string,
     protected dbtPath: string,
   ) {}
 
   async execute(
     command: DBTCommand,
-    token?: CancellationToken,
+    signal?: AbortSignal,
   ): Promise<CommandProcessResult> {
-    const commandExecution = this.executeCommand(command, token);
+    const commandExecution = this.executeCommand(command, signal);
     const executionPromise = command.logToTerminal
       ? (await commandExecution).completeWithTerminalOutput()
       : (await commandExecution).complete();
     return executionPromise;
   }
 
+  private convertAbortSignalToCancellationToken(signal: AbortSignal): any {
+    return {
+      isCancellationRequested: signal.aborted,
+      onCancellationRequested: (callback: () => void) => {
+        signal.addEventListener("abort", callback);
+        return { dispose: () => signal.removeEventListener("abort", callback) };
+      },
+    };
+  }
+
   protected async executeCommand(
     command: DBTCommand,
-    token?: CancellationToken,
+    signal?: AbortSignal,
   ): Promise<CommandProcessExecution> {
     if (command.logToTerminal && command.focus) {
       await this.terminal.show(true);
@@ -94,18 +96,18 @@ export class CLIDBTCommandExecutionStrategy
         "Could not launch command as python environment is not available",
       );
     }
-    const tokens: CancellationToken[] = [];
-    if (token !== undefined) {
-      tokens.push(token);
+    const signals: AbortSignal[] = [];
+    if (signal !== undefined) {
+      signals.push(signal);
     }
-    if (command.token !== undefined) {
-      tokens.push(command.token);
+    if (command.signal !== undefined) {
+      signals.push(command.signal);
     }
     return this.commandProcessExecutionFactory.createCommandProcessExecution({
       command: this.dbtPath,
       args,
-      tokens,
-      cwd: this.cwd.fsPath,
+      tokens: signals.map((s) => this.convertAbortSignalToCancellationToken(s)),
+      cwd: this.cwd,
       envVars: this.pythonEnvironment.environmentVariables,
     });
   }
@@ -124,16 +126,26 @@ export class PythonDBTCommandExecutionStrategy
 
   async execute(
     command: DBTCommand,
-    token?: CancellationToken,
+    signal?: AbortSignal,
   ): Promise<CommandProcessResult> {
     return (
-      await this.executeCommand(command, token)
+      await this.executeCommand(command, signal)
     ).completeWithTerminalOutput();
+  }
+
+  private convertAbortSignalToCancellationToken(signal: AbortSignal): any {
+    return {
+      isCancellationRequested: signal.aborted,
+      onCancellationRequested: (callback: () => void) => {
+        signal.addEventListener("abort", callback);
+        return { dispose: () => signal.removeEventListener("abort", callback) };
+      },
+    };
   }
 
   private async executeCommand(
     command: DBTCommand,
-    token?: CancellationToken,
+    signal?: AbortSignal,
   ): Promise<CommandProcessExecution> {
     this.terminal.log(`> Executing task: ${command.getCommandAsString()}\n\r`);
     this.telemetry.sendTelemetryEvent("dbtCommand", {
@@ -152,17 +164,17 @@ export class PythonDBTCommandExecutionStrategy
         "Could not launch command as python environment is not available",
       );
     }
-    const tokens: CancellationToken[] = [];
-    if (token !== undefined) {
-      tokens.push(token);
+    const signals: AbortSignal[] = [];
+    if (signal !== undefined) {
+      signals.push(signal);
     }
-    if (command.token !== undefined) {
-      tokens.push(command.token);
+    if (command.signal !== undefined) {
+      signals.push(command.signal);
     }
     return this.commandProcessExecutionFactory.createCommandProcessExecution({
       command: this.pythonEnvironment.pythonPath,
       args: ["-c", this.dbtCommand(args)],
-      tokens,
+      tokens: signals.map((s) => this.convertAbortSignalToCancellationToken(s)),
       cwd: getFirstWorkspacePath(),
       envVars: this.pythonEnvironment.environmentVariables,
     });
@@ -198,7 +210,7 @@ export class DBTCommand {
     public showProgress: boolean = false,
     public logToTerminal: boolean = false,
     public executionStrategy?: DBTCommandExecutionStrategy,
-    public token?: CancellationToken,
+    public signal?: AbortSignal,
     public downloadArtifacts: boolean = false,
   ) {}
 
@@ -214,15 +226,15 @@ export class DBTCommand {
     this.executionStrategy = executionStrategy;
   }
 
-  execute(token?: CancellationToken) {
+  execute(signal?: AbortSignal) {
     if (this.executionStrategy === undefined) {
       throw new Error("Execution strategy is required to run dbt commands");
     }
-    return this.executionStrategy.execute(this, token);
+    return this.executionStrategy.execute(this, signal);
   }
 
-  setToken(token: CancellationToken) {
-    this.token = token;
+  setSignal(signal: AbortSignal) {
+    this.signal = signal;
   }
 }
 
@@ -275,7 +287,7 @@ export interface HealthcheckArgs {
 }
 
 export interface DBTProjectDetection {
-  discoverProjects(projectConfigFiles: Uri[]): Promise<Uri[]>;
+  discoverProjects(projectConfigFiles: string[]): Promise<string[]>;
 }
 
 export class QueryExecution {
@@ -320,7 +332,8 @@ type CatalogItem = {
 
 export type Catalog = CatalogItem[];
 
-export interface DBTProjectIntegration extends Disposable {
+export interface DBTProjectIntegration {
+  dispose(): void;
   // initialize execution infrastructure
   initializeProject(): Promise<void>;
   // called when project configuration is changed
@@ -381,7 +394,7 @@ export interface DBTProjectIntegration extends Disposable {
   getDebounceForRebuildManifest(): number;
   getBulkSchemaFromDB(
     nodes: DBTNode[],
-    cancellationToken: CancellationToken,
+    signal: AbortSignal,
   ): Promise<Record<string, DBColumn[]>>;
   getBulkCompiledSQL(models: NodeMetaData[]): Promise<Record<string, string>>;
   validateWhetherSqlHasColumns(sql: string, dialect: string): Promise<boolean>;
@@ -464,12 +477,12 @@ export class DBTCommandExecutionInfrastructure {
     command: DBTCommand,
   ): Promise<CommandProcessResult | undefined> {
     this.queues.get(queueName)!.push({
-      command: async (token) => {
-        await command.execute(token);
+      command: async (signal) => {
+        await command.execute(signal);
       },
       statusMessage: command.statusMessage,
       focus: command.focus,
-      token: command.token,
+      signal: command.signal,
       showProgress: command.showProgress,
     });
     this.pickCommandToRun(queueName);
@@ -482,9 +495,9 @@ export class DBTCommandExecutionInfrastructure {
     if (!running && queue.length > 0) {
       this.queueStates.set(queueName, true);
       const { command, statusMessage, focus, showProgress } = queue.shift()!;
-      const commandExecution = async (token?: CancellationToken) => {
+      const commandExecution = async (signal?: AbortSignal) => {
         try {
-          await command(token);
+          await command(signal);
         } catch (error) {
           if (error instanceof NoCredentialsError) {
             this.altimate.handlePreviewFeatures();
@@ -511,7 +524,9 @@ export class DBTCommandExecutionInfrastructure {
             title: statusMessage,
           },
           async (_, token) => {
-            await commandExecution(token);
+            const abortController = new AbortController();
+            token.onCancellationRequested(() => abortController.abort());
+            await commandExecution(abortController.signal);
           },
         );
       } else {
@@ -524,8 +539,8 @@ export class DBTCommandExecutionInfrastructure {
 
   async runCommand(command: DBTCommand) {
     const commandExecution: DBTCommandExecution = {
-      command: async (token) => {
-        await command.execute(token);
+      command: async (signal) => {
+        await command.execute(signal);
       },
       statusMessage: command.statusMessage,
       focus: command.focus,
@@ -540,7 +555,9 @@ export class DBTCommandExecutionInfrastructure {
       },
       async (_, token) => {
         try {
-          return await commandExecution.command(token);
+          const abortController = new AbortController();
+          token.onCancellationRequested(() => abortController.abort());
+          return await commandExecution.command(abortController.signal);
         } catch (error) {
           window.showErrorMessage(
             extendErrorWithSupportLinks(
