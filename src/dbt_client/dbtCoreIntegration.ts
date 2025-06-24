@@ -1180,7 +1180,12 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
           (error as Error).message,
       );
     }
-    return { deferToProduction: false, manifestPath: null, favorState: false };
+    const defaults = this.getDeferConfigDefaults();
+    return {
+      deferToProduction: defaults.deferToProduction,
+      manifestPath: null,
+      favorState: defaults.favorState,
+    };
   }
 
   async applyDeferConfig(): Promise<void> {
@@ -1197,5 +1202,12 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
   async applySelectedTarget(): Promise<void> {
     await this.refreshProjectConfig();
     await this.rebuildManifest();
+  }
+
+  getDeferConfigDefaults(): {
+    deferToProduction: boolean;
+    favorState: boolean;
+  } {
+    return { deferToProduction: false, favorState: false };
   }
 }

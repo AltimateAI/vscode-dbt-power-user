@@ -284,6 +284,7 @@ container
         container.get("Factory<DBTFusionCommandProjectIntegration>"),
         container.get(AltimateRequest),
         container.get(ValidationProvider),
+        container.get(DeferToProdService),
         path,
         projectConfig,
         _onManifestChanged,

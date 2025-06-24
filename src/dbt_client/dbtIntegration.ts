@@ -385,6 +385,10 @@ export interface DBTProjectIntegration {
   ): Promise<ProjectHealthcheck>;
   applyDeferConfig(): Promise<void>;
   applySelectedTarget(): Promise<void>;
+  getDeferConfigDefaults(): {
+    deferToProduction: boolean;
+    favorState: boolean;
+  };
   getDiagnostics(): DBTDiagnosticResult;
   getPythonBridgeStatus(): boolean;
   cleanupConnections(): Promise<void>;

@@ -71,6 +71,9 @@ import { RunResultsEvent } from "./event/runResultsEvent";
 import { DBTCoreCommandProjectIntegration } from "../dbt_client/dbtCoreCommandIntegration";
 import { Table } from "src/services/dbtLineageService";
 import { DBTFusionCommandProjectIntegration } from "src/dbt_client/dbtFusionCommandIntegration";
+import { DeferToProdService } from "../services/deferToProdService";
+import { DeferConfig } from "../webview_provider/insightsPanel";
+import { getProjectRelativePath } from "../utils";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -144,6 +147,7 @@ export class DBTProject implements Disposable {
     ) => DBTFusionCommandProjectIntegration,
     private altimate: AltimateRequest,
     private validationProvider: ValidationProvider,
+    private deferToProdService: DeferToProdService,
     path: Uri,
     projectConfig: any,
     private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
@@ -1890,5 +1894,32 @@ export class DBTProject implements Disposable {
         }
       }
     }
+  }
+
+  getDeferConfig(): {
+    deferToProduction: boolean;
+    manifestPath: string | null;
+    favorState: boolean;
+  } {
+    const relativePath = getProjectRelativePath(this.projectRoot);
+    const currentConfig: Record<string, DeferConfig> =
+      this.deferToProdService.getDeferConfigByWorkspace();
+    const defaults = this.dbtProjectIntegration.getDeferConfigDefaults();
+
+    if (currentConfig[relativePath]) {
+      const config = currentConfig[relativePath];
+      return {
+        deferToProduction:
+          config.deferToProduction ?? defaults.deferToProduction,
+        manifestPath: config.manifestPathForDeferral || null,
+        favorState: config.favorState ?? defaults.favorState,
+      };
+    }
+
+    return {
+      deferToProduction: defaults.deferToProduction,
+      manifestPath: null,
+      favorState: defaults.favorState,
+    };
   }
 }

@@ -516,4 +516,11 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
       rebuildManifestDiagnostics: this.rebuildManifestDiagnosticsData,
     };
   }
+
+  getDeferConfigDefaults(): {
+    deferToProduction: boolean;
+    favorState: boolean;
+  } {
+    return { deferToProduction: true, favorState: false };
+  }
 }

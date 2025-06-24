@@ -1164,4 +1164,11 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
       }
     }
   }
+
+  getDeferConfigDefaults(): {
+    deferToProduction: boolean;
+    favorState: boolean;
+  } {
+    return { deferToProduction: true, favorState: false };
+  }
 }
