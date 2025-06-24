@@ -18,6 +18,7 @@ import {
 } from "../modules";
 import { DBTCloudProjectIntegration, getDBTPath } from "./dbtCloudIntegration";
 import path, { join } from "path";
+import { DeferConfig } from "src/manifest/dbtProject";
 
 export class DBTFusionCommandDetection implements DBTDetection {
   constructor(
@@ -514,10 +515,11 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
     };
   }
 
-  getDeferConfigDefaults(): {
-    deferToProduction: boolean;
-    favorState: boolean;
-  } {
-    return { deferToProduction: true, favorState: false };
+  getDeferConfigDefaults(): DeferConfig {
+    return {
+      deferToProduction: true,
+      favorState: false,
+      manifestPathForDeferral: null,
+    };
   }
 }

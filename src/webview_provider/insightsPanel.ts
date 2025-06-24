@@ -26,11 +26,11 @@ import {
 import { SharedStateService } from "../services/sharedStateService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DeferToProdService } from "../services/deferToProdService";
-import { ManifestPathType } from "../constants";
 import { QueryManifestService } from "../services/queryManifestService";
 import { ValidationProvider } from "../validation_provider";
 import { UsersService } from "../services/usersService";
 import { NotebookFileSystemProvider } from "@lib";
+import { DeferConfig } from "../manifest/dbtProject";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];
@@ -46,14 +46,6 @@ type ConfigOption =
   | { configType: "All" };
 
 export type AltimateConfigProps = { projectRoot: string } & ConfigOption;
-
-export interface DeferConfig {
-  deferToProduction: boolean;
-  favorState: boolean;
-  manifestPathForDeferral: string;
-  manifestPathType?: ManifestPathType;
-  dbtCoreIntegrationId?: number;
-}
 
 interface DbtProject {
   projectRoot: string;

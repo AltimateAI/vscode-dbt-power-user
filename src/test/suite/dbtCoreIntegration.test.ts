@@ -19,6 +19,7 @@ import {
   CommandProcessExecutionFactory,
   CommandProcessExecution,
 } from "../../commandProcessExecution";
+import { DeferConfig } from "src/manifest/dbtProject";
 
 // Mock workspace folders
 jest.mock("vscode", () => ({
@@ -65,6 +66,12 @@ describe("DBTCoreProjectIntegration Tests", () => {
     // Create mock event emitter for Python environment changes
     const mockPythonEnvChangeEmitter = new EventEmitter<Uri | undefined>();
 
+    const mockDeferConfig: DeferConfig = {
+      deferToProduction: false,
+      favorState: false,
+      manifestPathForDeferral: null,
+    };
+
     // Create the instance directly with constructor injection
     dbtCoreProjectIntegration = new DBTCoreProjectIntegration(
       mockExecutionInfrastructure as any,
@@ -90,6 +97,7 @@ describe("DBTCoreProjectIntegration Tests", () => {
       {} as DeferToProdService,
       mockUri,
       mockProjectConfigDiagnostics,
+      mockDeferConfig,
     );
 
     (dbtCoreProjectIntegration as any).python = mockPythonBridge;

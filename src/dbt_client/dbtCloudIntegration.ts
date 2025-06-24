@@ -19,7 +19,7 @@ import { PythonBridge } from "python-bridge";
 import { join, dirname } from "path";
 import { AltimateRequest, ValidateSqlParseErrorResponse } from "../altimate";
 import path = require("path");
-import { DBTProject } from "../manifest/dbtProject";
+import { DBTProject, DeferConfig } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./dbtTerminal";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
@@ -169,8 +169,9 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
     protected terminal: DBTTerminal,
     private validationProvider: ValidationProvider,
     private deferToProdService: DeferToProdService,
-    protected projectRoot: string,
     private altimateRequest: AltimateRequest,
+    protected projectRoot: string,
+    private deferConfig: DeferConfig,
   ) {
     this.terminal.debug(
       "DBTCloudProjectIntegration",
@@ -1160,10 +1161,11 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
     }
   }
 
-  getDeferConfigDefaults(): {
-    deferToProduction: boolean;
-    favorState: boolean;
-  } {
-    return { deferToProduction: true, favorState: false };
+  getDeferConfigDefaults(): DeferConfig {
+    return {
+      deferToProduction: true,
+      favorState: false,
+      manifestPathForDeferral: null,
+    };
   }
 }

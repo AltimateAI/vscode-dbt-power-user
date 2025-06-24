@@ -1,6 +1,6 @@
-import { Uri, window, workspace } from "vscode";
+import { window, workspace } from "vscode";
 import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
-import { extendErrorWithSupportLinks, getProjectRelativePath } from "../utils";
+import { extendErrorWithSupportLinks } from "../utils";
 import {
   Catalog,
   CompilationResult,
@@ -24,7 +24,11 @@ import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonBridge, PythonException } from "python-bridge";
 import * as path from "path";
-import { DBTProject } from "../manifest/dbtProject";
+import {
+  DBTProject,
+  DeferConfig,
+  ManifestPathType,
+} from "../manifest/dbtProject";
 import { existsSync, readFileSync } from "fs";
 import * as fs from "fs";
 import { parse } from "yaml";
@@ -35,7 +39,6 @@ import {
   ValidateSqlParseErrorResponse,
 } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ManifestPathType } from "../constants";
 import { DBTTerminal } from "./dbtTerminal";
 import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
@@ -44,7 +47,7 @@ import * as crypto from "crypto";
 
 const DEFAULT_QUERY_TEMPLATE = "select * from ({query}) as query limit {limit}";
 
-// TODO: we shouold really get these from manifest directly
+// TODO: we should really get these from manifest directly
 interface ResolveReferenceNodeResult {
   database: string;
   schema: string;
@@ -57,14 +60,6 @@ interface ResolveReferenceSourceResult {
   alias: string;
   resource_type: string;
   identifier: string;
-}
-
-interface DeferConfig {
-  deferToProduction: boolean;
-  favorState: boolean;
-  manifestPathForDeferral: string;
-  manifestPathType?: ManifestPathType;
-  dbtCoreIntegrationId?: number;
 }
 
 type InsightType = "Modelling" | "Test" | "structure";
@@ -242,6 +237,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
     private deferToProdService: DeferToProdService,
     protected projectRoot: string,
     private projectConfigDiagnostics: DBTDiagnosticData[],
+    private deferConfig: DeferConfig | undefined,
   ) {
     this.dbtTerminal.debug(
       "DBTCoreProjectIntegration",
@@ -430,9 +426,10 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
     const targetPath = this.removeTrailingSlashes(
       await bridge.lock((python) => python`target_path(${this.projectRoot})`),
     );
-    const { deferToProduction, manifestPath, favorState } =
-      await this.getDeferConfig();
-    await bridge.ex`project = DbtProject(project_dir=${this.projectRoot}, profiles_dir=${this.profilesDir}, target_path=${targetPath}, defer_to_prod=${deferToProduction}, manifest_path=${manifestPath}, favor_state=${favorState}) if 'project' not in locals() else project`;
+    const defaults = this.getDeferConfigDefaults();
+    const { deferToProduction, manifestPathForDeferral, favorState } =
+      this.deferConfig || this.getDeferConfigDefaults();
+    await bridge.ex`project = DbtProject(project_dir=${this.projectRoot}, profiles_dir=${this.profilesDir}, target_path=${targetPath}, defer_to_prod=${deferToProduction}, manifest_path=${manifestPathForDeferral}, favor_state=${favorState}) if 'project' not in locals() else project`;
   }
 
   async initializeProject(): Promise<void> {
@@ -794,26 +791,26 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
   }
 
   private async getDeferParams(): Promise<string[]> {
-    const deferConfig = this.deferToProdService.getDeferConfigByProjectRoot(
-      this.projectRoot,
-    );
     const {
       deferToProduction,
       manifestPathForDeferral,
       favorState,
       manifestPathType,
       dbtCoreIntegrationId,
-    } = deferConfig;
+    } = this.deferConfig || this.getDeferConfigDefaults();
     if (!deferToProduction) {
       this.dbtTerminal.debug("deferToProd", "defer to prod not enabled");
       return [];
     }
-    const manifestPath = await this.getDeferManifestPath(
+    if (!manifestPathForDeferral) {
+      throw new Error("manifestPath is required!");
+    }
+    const resolvedManifestPath = await this.getDeferManifestPath(
       manifestPathType,
       manifestPathForDeferral,
       dbtCoreIntegrationId,
     );
-    const args = ["--defer", "--state", manifestPath];
+    const args = ["--defer", "--state", resolvedManifestPath];
     if (favorState) {
       args.push("--favor-state");
     }
@@ -1143,46 +1140,13 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
     }
   }
 
-  private async getDeferConfig() {
-    try {
-      const root = getProjectRelativePath(Uri.file(this.projectRoot));
-      const currentConfig: Record<string, DeferConfig> =
-        this.deferToProdService.getDeferConfigByWorkspace();
-      const {
-        deferToProduction,
-        manifestPathForDeferral,
-        favorState,
-        manifestPathType,
-        dbtCoreIntegrationId,
-      } = currentConfig[root];
-      const manifestFolder = await this.getDeferManifestPath(
-        manifestPathType,
-        manifestPathForDeferral,
-        dbtCoreIntegrationId,
-      );
-      const manifestPath = path.join(manifestFolder, DBTProject.MANIFEST_FILE);
-      return { deferToProduction, manifestPath, favorState };
-    } catch (error) {
-      this.dbtTerminal.debug(
-        "dbtCoreIntegration:getDeferConfig",
-        "An error occured while getting defer config: " +
-          (error as Error).message,
-      );
-    }
-    const defaults = this.getDeferConfigDefaults();
-    return {
-      deferToProduction: defaults.deferToProduction,
-      manifestPath: null,
-      favorState: defaults.favorState,
-    };
-  }
-
-  async applyDeferConfig(): Promise<void> {
-    const { deferToProduction, manifestPath, favorState } =
-      await this.getDeferConfig();
+  async applyDeferConfig(deferConfig: DeferConfig): Promise<void> {
+    this.deferConfig = deferConfig;
+    const { deferToProduction, manifestPathForDeferral, favorState } =
+      deferConfig;
     await this.python?.lock<void>(
       (python) =>
-        python!`project.set_defer_config(${deferToProduction}, ${manifestPath}, ${favorState})`,
+        python!`project.set_defer_config(${deferToProduction}, ${manifestPathForDeferral}, ${favorState})`,
     );
     await this.refreshProjectConfig();
     await this.rebuildManifest();
@@ -1193,10 +1157,11 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
     await this.rebuildManifest();
   }
 
-  getDeferConfigDefaults(): {
-    deferToProduction: boolean;
-    favorState: boolean;
-  } {
-    return { deferToProduction: false, favorState: false };
+  getDeferConfigDefaults(): DeferConfig {
+    return {
+      deferToProduction: false,
+      favorState: false,
+      manifestPathForDeferral: null,
+    };
   }
 }

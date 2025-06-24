@@ -22,6 +22,7 @@ import { ProjectHealthcheck } from "./dbtCoreIntegration";
 import { NodeMetaData } from "../domain";
 import { DBTDiagnosticResult } from "./diagnostics";
 import { DBTConfiguration } from "./configuration";
+import { DeferConfig } from "../manifest/dbtProject";
 
 interface DBTCommandExecution {
   command: (signal?: AbortSignal) => Promise<void>;
@@ -376,12 +377,9 @@ export interface DBTProjectIntegration {
   performDatapilotHealthcheck(
     args: HealthcheckArgs,
   ): Promise<ProjectHealthcheck>;
-  applyDeferConfig(): Promise<void>;
+  applyDeferConfig(deferConfig: DeferConfig | undefined): Promise<void>;
   applySelectedTarget(): Promise<void>;
-  getDeferConfigDefaults(): {
-    deferToProduction: boolean;
-    favorState: boolean;
-  };
+  getDeferConfigDefaults(): DeferConfig;
   getDiagnostics(): DBTDiagnosticResult;
   getPythonBridgeStatus(): boolean;
   cleanupConnections(): Promise<void>;

@@ -1,6 +1,6 @@
 import { Uri, window, workspace } from "vscode";
 import { getProjectRelativePath, provideSingleton } from "../utils";
-import { DeferConfig } from "../webview_provider/insightsPanel";
+import { DeferConfig } from "../manifest/dbtProject";
 
 @provideSingleton(DeferToProdService)
 export class DeferToProdService {

@@ -3,7 +3,7 @@ import { buildProviderModule } from "inversify-binding-decorators";
 import { EventEmitter, Uri, workspace, WorkspaceFolder } from "vscode";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
 import { DBTDiagnosticData } from "./dbt_client/diagnostics";
-import { DBTProject } from "./manifest/dbtProject";
+import { DBTProject, DeferConfig } from "./manifest/dbtProject";
 import {
   DBTProjectContainer,
   ProjectRegisteredUnregisteredEvent,
@@ -322,11 +322,12 @@ container
   >("Factory<DBTCoreProjectIntegration>")
   .toFactory<
     DBTCoreProjectIntegration,
-    [string, DBTDiagnosticData[]]
+    [string, DBTDiagnosticData[], DeferConfig | undefined]
   >((context: interfaces.Context) => {
     return (
       projectRoot: string,
       projectConfigDiagnostics: DBTDiagnosticData[],
+      deferConfig: DeferConfig | undefined,
     ) => {
       const { container } = context;
       return new DBTCoreProjectIntegration(
@@ -342,6 +343,7 @@ container
         container.get(DeferToProdService),
         projectRoot,
         projectConfigDiagnostics,
+        deferConfig,
       );
     };
   });
@@ -352,11 +354,12 @@ container
   >("Factory<DBTCoreCommandProjectIntegration>")
   .toFactory<
     DBTCoreCommandProjectIntegration,
-    [string, DBTDiagnosticData[]]
+    [string, DBTDiagnosticData[], DeferConfig]
   >((context: interfaces.Context) => {
     return (
       projectRoot: string,
       projectConfigDiagnostics: DBTDiagnosticData[],
+      deferConfig: DeferConfig,
     ) => {
       const { container } = context;
       return new DBTCoreCommandProjectIntegration(
@@ -372,6 +375,7 @@ container
         container.get(DeferToProdService),
         projectRoot,
         projectConfigDiagnostics,
+        deferConfig,
       );
     };
   });
@@ -382,9 +386,9 @@ container
   >("Factory<DBTFusionCommandProjectIntegration>")
   .toFactory<
     DBTFusionCommandProjectIntegration,
-    [string]
+    [string, DeferConfig]
   >((context: interfaces.Context) => {
-    return (projectRoot: string) => {
+    return (projectRoot: string, deferConfig: DeferConfig) => {
       const { container } = context;
       return new DBTFusionCommandProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
@@ -395,8 +399,9 @@ container
         container.get(DBTTerminal),
         container.get(ValidationProvider),
         container.get(DeferToProdService),
-        projectRoot,
         container.get(AltimateRequest),
+        projectRoot,
+        deferConfig,
       );
     };
   });
@@ -407,9 +412,9 @@ container
   >("Factory<DBTCloudProjectIntegration>")
   .toFactory<
     DBTCloudProjectIntegration,
-    [Uri]
+    [Uri, DeferConfig]
   >((context: interfaces.Context) => {
-    return (projectRoot: Uri) => {
+    return (projectRoot: Uri, deferConfig: DeferConfig) => {
       const { container } = context;
       return new DBTCloudProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
@@ -420,8 +425,9 @@ container
         container.get(DBTTerminal),
         container.get(ValidationProvider),
         container.get(DeferToProdService),
-        projectRoot.fsPath,
         container.get(AltimateRequest),
+        projectRoot.fsPath,
+        deferConfig,
       );
     };
   });

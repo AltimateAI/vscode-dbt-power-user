@@ -72,7 +72,6 @@ import { DBTCoreCommandProjectIntegration } from "../dbt_client/dbtCoreCommandIn
 import { Table } from "src/services/dbtLineageService";
 import { DBTFusionCommandProjectIntegration } from "src/dbt_client/dbtFusionCommandIntegration";
 import { DeferToProdService } from "../services/deferToProdService";
-import { DeferConfig } from "../webview_provider/insightsPanel";
 import { getProjectRelativePath } from "../utils";
 
 interface FileNameTemplateMap {
@@ -80,6 +79,20 @@ interface FileNameTemplateMap {
 }
 interface JsonObj {
   [key: string]: string | number | undefined;
+}
+
+export enum ManifestPathType {
+  EMPTY = "",
+  LOCAL = "local",
+  REMOTE = "remote",
+}
+
+export interface DeferConfig {
+  deferToProduction: boolean;
+  favorState: boolean;
+  manifestPathForDeferral: string | null;
+  manifestPathType?: ManifestPathType;
+  dbtCoreIntegrationId?: number;
 }
 export class DBTProject implements Disposable {
   private _manifestCacheEvent?: ManifestCacheProjectAddedEvent;
@@ -134,16 +147,20 @@ export class DBTProject implements Disposable {
     private dbtCoreIntegrationFactory: (
       path: string,
       projectConfigDiagnostics: DBTDiagnosticData[],
+      deferConfig: DeferConfig | undefined,
     ) => DBTCoreProjectIntegration,
     private dbtCoreCommandIntegrationFactory: (
       path: string,
       projectConfigDiagnostics: DBTDiagnosticData[],
+      deferConfig: DeferConfig | undefined,
     ) => DBTCoreCommandProjectIntegration,
     private dbtCloudIntegrationFactory: (
       path: string,
+      deferConfig: DeferConfig | undefined,
     ) => DBTCloudProjectIntegration,
     private dbtFusionCommandIntegrationFactory: (
       path: string,
+      deferConfig: DeferConfig | undefined,
     ) => DBTFusionCommandProjectIntegration,
     private altimate: AltimateRequest,
     private validationProvider: ValidationProvider,
@@ -179,23 +196,27 @@ export class DBTProject implements Disposable {
       case "cloud":
         this.dbtProjectIntegration = this.dbtCloudIntegrationFactory(
           this.projectRoot.fsPath,
+          this.getDeferConfig(),
         );
         break;
       case "fusion":
         this.dbtProjectIntegration = this.dbtFusionCommandIntegrationFactory(
           this.projectRoot.fsPath,
+          this.getDeferConfig(),
         );
         break;
       case "corecommand":
         this.dbtProjectIntegration = this.dbtCoreCommandIntegrationFactory(
           this.projectRoot.fsPath,
           this.convertDiagnosticCollectionToDBTDiagnosticData(),
+          this.getDeferConfig(),
         );
         break;
       default:
         this.dbtProjectIntegration = this.dbtCoreIntegrationFactory(
           this.projectRoot.fsPath,
           this.convertDiagnosticCollectionToDBTDiagnosticData(),
+          this.getDeferConfig(),
         );
         break;
     }
@@ -1861,7 +1882,8 @@ export class DBTProject implements Disposable {
   }
 
   async applyDeferConfig(): Promise<void> {
-    await this.dbtProjectIntegration.applyDeferConfig();
+    const deferConfig = this.getDeferConfig();
+    await this.dbtProjectIntegration.applyDeferConfig(deferConfig);
   }
 
   throwDiagnosticsErrorIfAvailable() {
@@ -1896,30 +1918,17 @@ export class DBTProject implements Disposable {
     }
   }
 
-  getDeferConfig(): {
-    deferToProduction: boolean;
-    manifestPath: string | null;
-    favorState: boolean;
-  } {
+  getDeferConfig(): DeferConfig | undefined {
     const relativePath = getProjectRelativePath(this.projectRoot);
     const currentConfig: Record<string, DeferConfig> =
       this.deferToProdService.getDeferConfigByWorkspace();
-    const defaults = this.dbtProjectIntegration.getDeferConfigDefaults();
-
     if (currentConfig[relativePath]) {
       const config = currentConfig[relativePath];
       return {
-        deferToProduction:
-          config.deferToProduction ?? defaults.deferToProduction,
-        manifestPath: config.manifestPathForDeferral || null,
-        favorState: config.favorState ?? defaults.favorState,
+        deferToProduction: config.deferToProduction,
+        manifestPathForDeferral: config.manifestPathForDeferral,
+        favorState: config.favorState,
       };
     }
-
-    return {
-      deferToProduction: defaults.deferToProduction,
-      manifestPath: null,
-      favorState: defaults.favorState,
-    };
   }
 }
