@@ -679,10 +679,10 @@ export class AltimateRequest {
 
   async downloadFileLocally(
     artifactUrl: string,
-    projectRoot: Uri,
+    projectRoot: string,
     fileName = "manifest.json",
   ): Promise<string> {
-    const hashedProjectRoot = DBTProject.hashProjectRoot(projectRoot.fsPath);
+    const hashedProjectRoot = DBTProject.hashProjectRoot(projectRoot);
     const tempFolder = join(os.tmpdir(), hashedProjectRoot);
 
     try {

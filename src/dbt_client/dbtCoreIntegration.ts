@@ -778,7 +778,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
         );
         const manifestPath = await this.altimateRequest.downloadFileLocally(
           response.url,
-          Uri.file(this.projectRoot),
+          this.projectRoot,
         );
         console.log(`Set remote manifest path: ${manifestPath}`);
         return manifestPath;
