@@ -9,6 +9,7 @@ import {
   Uri,
   workspace,
   window,
+  CancellationToken,
 } from "vscode";
 import { readFileSync } from "fs";
 import { parse, parseDocument } from "yaml";
@@ -16,6 +17,20 @@ import {
   TestMetadataAcceptedValues,
   TestMetadataRelationships,
 } from "./domain";
+
+export function convertAbortSignalToCancellationToken(
+  signal: AbortSignal,
+): any {
+  return {
+    isCancellationRequested: signal.aborted,
+    onCancellationRequested: (callback: () => void) => {
+      signal.addEventListener("abort", callback);
+      return {
+        dispose: () => signal.removeEventListener("abort", callback),
+      };
+    },
+  };
+}
 
 export const isEnclosedWithinCodeBlock = (
   document: TextDocument,

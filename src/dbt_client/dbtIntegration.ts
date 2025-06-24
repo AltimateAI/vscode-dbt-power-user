@@ -1,5 +1,6 @@
 import { Diagnostic, ProgressLocation, window, workspace } from "vscode";
 import {
+  convertAbortSignalToCancellationToken,
   extendErrorWithSupportLinks,
   getFirstWorkspacePath,
   provideSingleton,
@@ -62,16 +63,6 @@ export class CLIDBTCommandExecutionStrategy
     return executionPromise;
   }
 
-  private convertAbortSignalToCancellationToken(signal: AbortSignal): any {
-    return {
-      isCancellationRequested: signal.aborted,
-      onCancellationRequested: (callback: () => void) => {
-        signal.addEventListener("abort", callback);
-        return { dispose: () => signal.removeEventListener("abort", callback) };
-      },
-    };
-  }
-
   protected async executeCommand(
     command: DBTCommand,
     signal?: AbortSignal,
@@ -106,7 +97,7 @@ export class CLIDBTCommandExecutionStrategy
     return this.commandProcessExecutionFactory.createCommandProcessExecution({
       command: this.dbtPath,
       args,
-      tokens: signals.map((s) => this.convertAbortSignalToCancellationToken(s)),
+      tokens: signals.map((s) => convertAbortSignalToCancellationToken(s)),
       cwd: this.cwd,
       envVars: this.pythonEnvironment.environmentVariables,
     });
@@ -131,16 +122,6 @@ export class PythonDBTCommandExecutionStrategy
     return (
       await this.executeCommand(command, signal)
     ).completeWithTerminalOutput();
-  }
-
-  private convertAbortSignalToCancellationToken(signal: AbortSignal): any {
-    return {
-      isCancellationRequested: signal.aborted,
-      onCancellationRequested: (callback: () => void) => {
-        signal.addEventListener("abort", callback);
-        return { dispose: () => signal.removeEventListener("abort", callback) };
-      },
-    };
   }
 
   private async executeCommand(
@@ -174,7 +155,7 @@ export class PythonDBTCommandExecutionStrategy
     return this.commandProcessExecutionFactory.createCommandProcessExecution({
       command: this.pythonEnvironment.pythonPath,
       args: ["-c", this.dbtCommand(args)],
-      tokens: signals.map((s) => this.convertAbortSignalToCancellationToken(s)),
+      tokens: signals.map((s) => convertAbortSignalToCancellationToken(s)),
       cwd: getFirstWorkspacePath(),
       envVars: this.pythonEnvironment.environmentVariables,
     });
