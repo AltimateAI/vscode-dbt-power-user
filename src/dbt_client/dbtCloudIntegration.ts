@@ -1,6 +1,6 @@
 import { window } from "vscode";
 import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
-import { getFirstWorkspacePath, provideSingleton } from "../utils";
+import { provideSingleton } from "../utils";
 import {
   Catalog,
   DBColumn,
@@ -71,7 +71,6 @@ export class DBTCloudDetection implements DBTDetection {
         this.commandProcessExecutionFactory.createCommandProcessExecution({
           command: dbtPath,
           args: ["--version"],
-          cwd: getFirstWorkspacePath(),
         });
       const { stdout, stderr } = await checkDBTInstalledProcess.complete();
       if (stderr) {
