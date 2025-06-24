@@ -1,4 +1,4 @@
-import { Diagnostic, ProgressLocation, window, workspace } from "vscode";
+import { ProgressLocation, window, workspace } from "vscode";
 import {
   convertAbortSignalToCancellationToken,
   extendErrorWithSupportLinks,
@@ -23,6 +23,7 @@ import {
 } from "../altimate";
 import { ProjectHealthcheck } from "./dbtCoreIntegration";
 import { NodeMetaData } from "../domain";
+import { DBTDiagnosticResult } from "./diagnostics";
 
 interface DBTCommandExecution {
   command: (signal?: AbortSignal) => Promise<void>;
@@ -386,8 +387,7 @@ export interface DBTProjectIntegration {
   ): Promise<ProjectHealthcheck>;
   applyDeferConfig(): Promise<void>;
   applySelectedTarget(): Promise<void>;
-  getAllDiagnostic(): Diagnostic[];
-  throwDiagnosticsErrorIfAvailable(): void;
+  getDiagnostics(): DBTDiagnosticResult;
   getPythonBridgeStatus(): boolean;
   cleanupConnections(): Promise<void>;
 }

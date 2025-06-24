@@ -9,6 +9,7 @@ import {
   DiagnosticCollection,
   DiagnosticSeverity,
 } from "vscode";
+import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
 import { provideSingleton } from "../utils";
 import {
   Catalog,
@@ -183,6 +184,8 @@ export class DBTCloudProjectIntegration
     languages.createDiagnosticCollection("dbt");
   private readonly pythonBridgeDiagnostics =
     languages.createDiagnosticCollection("dbt");
+  private pythonBridgeDiagnosticsData: DBTDiagnosticData[] = [];
+  private rebuildManifestDiagnosticsData: DBTDiagnosticData[] = [];
   protected rebuildManifestAbortController: AbortController | undefined;
   private pathsInitialized = false;
 
@@ -243,7 +246,6 @@ export class DBTCloudProjectIntegration
     modelName: string,
   ): Promise<QueryExecution> {
     this.throwIfNotAuthenticated();
-    this.throwBridgeErrorIfAvailable();
     const showCommand = this.dbtCloudCommand(
       new DBTCommand("Running sql...", [
         "show",
@@ -379,12 +381,11 @@ export class DBTCloudProjectIntegration
   // Handled by dbt cloud itself
   async cleanupConnections(): Promise<void> {}
 
-  getAllDiagnostic(): Diagnostic[] {
-    return [
-      ...(this.pythonBridgeDiagnostics.get(Uri.file(this.projectRoot)) || []),
-      ...(this.rebuildManifestDiagnostics.get(Uri.file(this.projectRoot)) ||
-        []),
-    ];
+  getDiagnostics(): DBTDiagnosticResult {
+    return {
+      pythonBridgeDiagnostics: this.pythonBridgeDiagnosticsData,
+      rebuildManifestDiagnostics: this.rebuildManifestDiagnosticsData,
+    };
   }
 
   async rebuildManifest(): Promise<void> {
@@ -453,6 +454,31 @@ export class DBTCloudProjectIntegration
         )
         .map((line) => line.info.msg);
       this.rebuildManifestDiagnostics.clear();
+      this.rebuildManifestDiagnosticsData = [];
+      const filePath = Uri.joinPath(
+        Uri.file(this.projectRoot),
+        DBTProject.DBT_PROJECT_FILE,
+      ).fsPath;
+      const diagnosticDataArray: DBTDiagnosticData[] = [
+        ...errors.map((error) => ({
+          filePath,
+          message: error,
+          severity: "error" as const,
+          range: { startLine: 0, startColumn: 0, endLine: 999, endColumn: 999 },
+          source: "dbt-cloud",
+          category: "manifest-rebuild",
+        })),
+        ...warnings.map((warning) => ({
+          filePath,
+          message: warning,
+          severity: "warning" as const,
+          range: { startLine: 0, startColumn: 0, endLine: 999, endColumn: 999 },
+          source: "dbt-cloud",
+          category: "manifest-rebuild",
+        })),
+      ];
+      this.rebuildManifestDiagnosticsData = diagnosticDataArray;
+
       const diagnostics: Array<Diagnostic> = errors
         .map(
           (error) =>
@@ -488,13 +514,27 @@ export class DBTCloudProjectIntegration
           command: command.getCommandAsString(),
         },
       );
+      const errorMessage =
+        "Unable to parse dbt cloud cli response. If the problem persists please reach out to us: " +
+        error;
+      const diagnosticData: DBTDiagnosticData = {
+        filePath: Uri.joinPath(
+          Uri.file(this.projectRoot),
+          DBTProject.DBT_PROJECT_FILE,
+        ).fsPath,
+        message: errorMessage,
+        severity: "error",
+        range: { startLine: 0, startColumn: 0, endLine: 999, endColumn: 999 },
+        source: "dbt-cloud",
+        category: "command-execution",
+      };
+      this.rebuildManifestDiagnosticsData = [diagnosticData];
       this.rebuildManifestDiagnostics.set(
         Uri.joinPath(Uri.file(this.projectRoot), DBTProject.DBT_PROJECT_FILE),
         [
           new Diagnostic(
             new Range(0, 0, 999, 999),
-            "Unable to parse dbt cloud cli response. If the problem persists please reach out to us: " +
-              error,
+            errorMessage,
             DiagnosticSeverity.Error,
           ),
         ],
@@ -635,7 +675,6 @@ export class DBTCloudProjectIntegration
   // internal commands
   async unsafeCompileNode(modelName: string): Promise<string> {
     this.throwIfNotAuthenticated();
-    this.throwBridgeErrorIfAvailable();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Compiling model...", [
         "compile",
@@ -662,7 +701,6 @@ export class DBTCloudProjectIntegration
 
   async unsafeCompileQuery(query: string): Promise<string> {
     this.throwIfNotAuthenticated();
-    this.throwBridgeErrorIfAvailable();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Compiling sql...", [
         "compile",
@@ -693,7 +731,6 @@ export class DBTCloudProjectIntegration
     models: any,
   ): Promise<ValidateSqlParseErrorResponse> {
     this.throwIfNotAuthenticated();
-    this.throwBridgeErrorIfAvailable();
     const result = await this.python?.lock<ValidateSqlParseErrorResponse>(
       (python) =>
         python!`to_dict(validate_sql(${query}, ${dialect}, ${models}))`,
@@ -703,7 +740,6 @@ export class DBTCloudProjectIntegration
 
   async validateSQLDryRun(query: string): Promise<{ bytes_processed: string }> {
     this.throwIfNotAuthenticated();
-    this.throwBridgeErrorIfAvailable();
     const validateSqlCommand = this.dbtCloudCommand(
       new DBTCommand("Estimating BigQuery cost...", [
         "compile",
@@ -733,7 +769,6 @@ export class DBTCloudProjectIntegration
     tableName: string,
   ): Promise<DBColumn[]> {
     this.throwIfNotAuthenticated();
-    this.throwBridgeErrorIfAvailable();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting columns of source...", [
         "compile",
@@ -760,7 +795,6 @@ export class DBTCloudProjectIntegration
 
   async getColumnsOfModel(modelName: string): Promise<DBColumn[]> {
     this.throwIfNotAuthenticated();
-    this.throwBridgeErrorIfAvailable();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting columns of model...", [
         "compile",
@@ -789,7 +823,6 @@ export class DBTCloudProjectIntegration
     sql: string,
     dialect: string,
   ): Promise<boolean> {
-    this.throwBridgeErrorIfAvailable();
     return this.python?.lock<boolean>(
       (python) =>
         python!`to_dict(validate_whether_sql_has_columns(${sql}, ${dialect}))`,
@@ -797,7 +830,6 @@ export class DBTCloudProjectIntegration
   }
 
   async fetchSqlglotSchema(sql: string, dialect: string): Promise<string[]> {
-    this.throwBridgeErrorIfAvailable();
     return this.python?.lock<string[]>(
       (python) => python!`to_dict(fetch_schema_from_sql(${sql}, ${dialect}))`,
     );
@@ -871,7 +903,6 @@ export class DBTCloudProjectIntegration
       return {};
     }
     this.throwIfNotAuthenticated();
-    this.throwBridgeErrorIfAvailable();
     const bulkModelQuery = `
 {% set result = {} %}
 {% for n in ${JSON.stringify(nodes)} %}
@@ -918,7 +949,6 @@ export class DBTCloudProjectIntegration
 
   async getCatalog(): Promise<Catalog> {
     this.throwIfNotAuthenticated();
-    this.throwBridgeErrorIfAvailable();
     const bulkModelQuery = `
 {% set result = [] %}
 {% for n in graph.nodes.values() %}
@@ -1131,6 +1161,8 @@ export class DBTCloudProjectIntegration
     } catch (error) {} // We don't care about errors here.
     this.rebuildManifestDiagnostics.clear();
     this.pythonBridgeDiagnostics.clear();
+    this.rebuildManifestDiagnosticsData = [];
+    this.pythonBridgeDiagnosticsData = [];
     while (this.disposables.length) {
       const x = this.disposables.pop();
       if (x) {
@@ -1181,31 +1213,12 @@ export class DBTCloudProjectIntegration
     return undefined;
   }
 
-  private throwBridgeErrorIfAvailable() {
-    const allDiagnostics: DiagnosticCollection[] = [
-      this.pythonBridgeDiagnostics,
-      this.rebuildManifestDiagnostics,
-    ];
-
-    for (const diagnosticCollection of allDiagnostics) {
-      for (const [_, diagnostics] of diagnosticCollection) {
-        const error = diagnostics.find(
-          (diagnostic) => diagnostic.severity === DiagnosticSeverity.Error,
-        );
-        if (error) {
-          throw new Error(error.message);
-        }
-      }
-    }
-  }
-
   async performDatapilotHealthcheck({
     manifestPath,
     catalogPath,
     config,
     configPath,
   }: HealthcheckArgs): Promise<ProjectHealthcheck> {
-    this.throwBridgeErrorIfAvailable();
     const result = await this.python?.lock<ProjectHealthcheck>(
       (python) =>
         python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}, ${this.altimateRequest.getAIKey()}, ${this.altimateRequest.getInstanceName()}, ${AltimateRequest.ALTIMATE_URL}))`,
@@ -1216,10 +1229,6 @@ export class DBTCloudProjectIntegration
   async applyDeferConfig(): Promise<void> {}
 
   async applySelectedTarget(): Promise<void> {}
-
-  throwDiagnosticsErrorIfAvailable(): void {
-    this.throwBridgeErrorIfAvailable();
-  }
 
   protected parseJSON(
     contextName: string,

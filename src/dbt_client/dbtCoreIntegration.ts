@@ -10,6 +10,7 @@ import {
   window,
   workspace,
 } from "vscode";
+import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
 import {
   extendErrorWithSupportLinks,
   getFirstWorkspacePath,
@@ -253,6 +254,8 @@ export class DBTCoreProjectIntegration
     languages.createDiagnosticCollection("dbt");
   private readonly pythonBridgeDiagnostics =
     languages.createDiagnosticCollection("dbt");
+  private pythonBridgeDiagnosticsData: DBTDiagnosticData[] = [];
+  private rebuildManifestDiagnosticsData: DBTDiagnosticData[] = [];
   private static QUEUE_ALL = "all";
 
   constructor(
@@ -410,7 +413,6 @@ export class DBTCoreProjectIntegration
     limit: number,
     modelName: string,
   ): Promise<QueryExecution> {
-    this.throwBridgeErrorIfAvailable();
     const { limitQuery } = await this.getQuery(query, limit);
 
     const queryThread = this.executionInfrastructure.createPythonBridge(
@@ -496,6 +498,7 @@ export class DBTCoreProjectIntegration
       }
       await this.createPythonDbtProject(this.python);
       this.pythonBridgeDiagnostics.clear();
+      this.pythonBridgeDiagnosticsData = [];
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         // python errors can be about anything, so we just associate the error with the project file
@@ -514,6 +517,16 @@ export class DBTCoreProjectIntegration
             "An error occured while initializing the dbt project, dbt found following issue: " +
             exc.exception.message;
         }
+        const diagnosticData: DBTDiagnosticData = {
+          filePath: Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE)
+            .fsPath,
+          message: errorMessage,
+          severity: "error",
+          range: { startLine: 0, startColumn: 0, endLine: 999, endColumn: 999 },
+          source: "dbt-core",
+          category: "python-bridge",
+        };
+        this.pythonBridgeDiagnosticsData = [diagnosticData];
         this.pythonBridgeDiagnostics.set(
           Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
           [new Diagnostic(new Range(0, 0, 999, 999), errorMessage)],
@@ -603,16 +616,11 @@ export class DBTCoreProjectIntegration
     }
   }
 
-  getAllDiagnostic(): Diagnostic[] {
-    const projectURI = Uri.joinPath(
-      this.projectRoot,
-      DBTProject.DBT_PROJECT_FILE,
-    );
-    return [
-      ...(this.pythonBridgeDiagnostics.get(projectURI) || []),
-      ...(this.projectConfigDiagnostics.get(projectURI) || []),
-      ...(this.rebuildManifestDiagnostics.get(projectURI) || []),
-    ];
+  getDiagnostics(): DBTDiagnosticResult {
+    return {
+      pythonBridgeDiagnostics: this.pythonBridgeDiagnosticsData,
+      rebuildManifestDiagnostics: this.rebuildManifestDiagnosticsData,
+    };
   }
 
   async rebuildManifest(): Promise<void> {
@@ -628,19 +636,27 @@ export class DBTCoreProjectIntegration
         (python) => python`to_dict(project.safe_parse_project())`,
       );
       this.rebuildManifestDiagnostics.clear();
+      this.rebuildManifestDiagnosticsData = [];
     } catch (exc) {
       if (exc instanceof PythonException) {
         // dbt errors can be about anything, so we just associate the error with the project file
         //  with a fixed range
+        const errorMessage =
+          "There is a problem in your dbt project. Compilation failed: " +
+          exc.exception.message;
+        const diagnosticData: DBTDiagnosticData = {
+          filePath: Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE)
+            .fsPath,
+          message: errorMessage,
+          severity: "error",
+          range: { startLine: 0, startColumn: 0, endLine: 999, endColumn: 999 },
+          source: "dbt-core",
+          category: "manifest-rebuild",
+        };
+        this.rebuildManifestDiagnosticsData = [diagnosticData];
         this.rebuildManifestDiagnostics.set(
           Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
-          [
-            new Diagnostic(
-              new Range(0, 0, 999, 999),
-              "There is a problem in your dbt project. Compilation failed: " +
-                exc.exception.message,
-            ),
-          ],
+          [new Diagnostic(new Range(0, 0, 999, 999), errorMessage)],
         );
         this.telemetry.sendTelemetryEvent(
           "pythonBridgeCannotParseProjectUserError",
@@ -874,7 +890,6 @@ export class DBTCoreProjectIntegration
 
   // internal commands
   async unsafeCompileNode(modelName: string): Promise<string> {
-    this.throwBridgeErrorIfAvailable();
     const output = await this.python?.lock<CompilationResult>(
       (python) =>
         python!`to_dict(project.compile_node(project.get_ref_node(${modelName})))`,
@@ -886,7 +901,6 @@ export class DBTCoreProjectIntegration
     query: string,
     originalModelName: string | undefined = undefined,
   ): Promise<string> {
-    this.throwBridgeErrorIfAvailable();
     const output = await this.python?.lock<CompilationResult>(
       (python) =>
         python!`to_dict(project.compile_sql(${query}, ${originalModelName}))`,
@@ -895,7 +909,6 @@ export class DBTCoreProjectIntegration
   }
 
   async validateSql(query: string, dialect: string, models: any) {
-    this.throwBridgeErrorIfAvailable();
     const result = await this.python?.lock<ValidateSqlParseErrorResponse>(
       (python) =>
         python!`to_dict(validate_sql(${query}, ${dialect}, ${models}))`,
@@ -904,7 +917,6 @@ export class DBTCoreProjectIntegration
   }
 
   async validateSQLDryRun(query: string) {
-    this.throwBridgeErrorIfAvailable();
     const result = await this.python?.lock<{ bytes_processed: string }>(
       (python) => python!`to_dict(project.validate_sql_dry_run(${query}))`,
     );
@@ -912,7 +924,6 @@ export class DBTCoreProjectIntegration
   }
 
   async getColumnsOfModel(modelName: string) {
-    this.throwBridgeErrorIfAvailable();
     // Get database and schema
     const node = (await this.python?.lock(
       (python) => python!`to_dict(project.get_ref_node(${modelName}))`,
@@ -930,7 +941,6 @@ export class DBTCoreProjectIntegration
   }
 
   async getColumnsOfSource(sourceName: string, tableName: string) {
-    this.throwBridgeErrorIfAvailable();
     // Get database and schema
     const node = (await this.python?.lock(
       (python) =>
@@ -952,7 +962,6 @@ export class DBTCoreProjectIntegration
     schema: string | undefined,
     objectName: string,
   ): Promise<DBColumn[]> {
-    this.throwBridgeErrorIfAvailable();
     return this.python?.lock<DBColumn[]>(
       (python) =>
         python!`to_dict(project.get_columns_in_relation(project.create_relation(${database}, ${schema}, ${objectName})))`,
@@ -1007,7 +1016,6 @@ export class DBTCoreProjectIntegration
     sql: string,
     dialect: string,
   ): Promise<boolean> {
-    this.throwBridgeErrorIfAvailable();
     return this.python?.lock<boolean>(
       (python) =>
         python!`to_dict(validate_whether_sql_has_columns(${sql}, ${dialect}))`,
@@ -1015,14 +1023,12 @@ export class DBTCoreProjectIntegration
   }
 
   async fetchSqlglotSchema(sql: string, dialect: string): Promise<string[]> {
-    this.throwBridgeErrorIfAvailable();
     return this.python?.lock<string[]>(
       (python) => python!`to_dict(fetch_schema_from_sql(${sql}, ${dialect}))`,
     );
   }
 
   async getCatalog(): Promise<Catalog> {
-    this.throwBridgeErrorIfAvailable();
     return await this.python?.lock<Catalog>(
       (python) => python!`to_dict(project.get_catalog())`,
     );
@@ -1107,25 +1113,6 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  protected throwBridgeErrorIfAvailable() {
-    const allDiagnostics: DiagnosticCollection[] = [
-      this.pythonBridgeDiagnostics,
-      this.projectConfigDiagnostics,
-      this.rebuildManifestDiagnostics,
-    ];
-
-    for (const diagnosticCollection of allDiagnostics) {
-      for (const [_, diagnostics] of diagnosticCollection) {
-        const error = diagnostics.find(
-          (diagnostic) => diagnostic.severity === DiagnosticSeverity.Error,
-        );
-        if (error) {
-          throw new Error(error.message);
-        }
-      }
-    }
-  }
-
   findPackageVersion(packageName: string) {
     if (!this.packagesInstallPath) {
       throw new Error("Missing packages install path");
@@ -1166,6 +1153,8 @@ export class DBTCoreProjectIntegration
     } catch (error) {} // We don't care about errors here.
     this.rebuildManifestDiagnostics.clear();
     this.pythonBridgeDiagnostics.clear();
+    this.rebuildManifestDiagnosticsData = [];
+    this.pythonBridgeDiagnosticsData = [];
     while (this.disposables.length) {
       const x = this.disposables.pop();
       if (x) {
@@ -1180,7 +1169,6 @@ export class DBTCoreProjectIntegration
     config,
     configPath,
   }: HealthcheckArgs): Promise<ProjectHealthcheck> {
-    this.throwBridgeErrorIfAvailable();
     const healthCheckThread = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
@@ -1240,9 +1228,5 @@ export class DBTCoreProjectIntegration
   async applySelectedTarget(): Promise<void> {
     await this.refreshProjectConfig();
     await this.rebuildManifest();
-  }
-
-  throwDiagnosticsErrorIfAvailable(): void {
-    this.throwBridgeErrorIfAvailable();
   }
 }

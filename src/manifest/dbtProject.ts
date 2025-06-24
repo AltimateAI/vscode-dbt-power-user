@@ -7,6 +7,7 @@ import {
   commands,
   Diagnostic,
   DiagnosticCollection,
+  DiagnosticSeverity,
   Disposable,
   Event,
   EventEmitter,
@@ -324,7 +325,62 @@ export class DBTProject implements Disposable {
   }
 
   getAllDiagnostic(): Diagnostic[] {
-    return this.dbtProjectIntegration.getAllDiagnostic();
+    const projectURI = Uri.joinPath(
+      this.projectRoot,
+      DBTProject.DBT_PROJECT_FILE,
+    );
+    const integrationDiagnostics = this.dbtProjectIntegration.getDiagnostics();
+
+    // Convert diagnostic data to VSCode Diagnostics
+    const convertedDiagnostics = [
+      ...integrationDiagnostics.pythonBridgeDiagnostics.map(
+        (data) =>
+          new Diagnostic(
+            new Range(
+              data.range?.startLine || 0,
+              data.range?.startColumn || 0,
+              data.range?.endLine || 999,
+              data.range?.endColumn || 999,
+            ),
+            data.message,
+            this.mapSeverityToVSCode(data.severity),
+          ),
+      ),
+      ...integrationDiagnostics.rebuildManifestDiagnostics.map(
+        (data) =>
+          new Diagnostic(
+            new Range(
+              data.range?.startLine || 0,
+              data.range?.startColumn || 0,
+              data.range?.endLine || 999,
+              data.range?.endColumn || 999,
+            ),
+            data.message,
+            this.mapSeverityToVSCode(data.severity),
+          ),
+      ),
+    ];
+
+    return [
+      ...convertedDiagnostics,
+      ...(this.projectConfigDiagnostics.get(projectURI) || []),
+      ...(this.projectHealth.get(projectURI) || []),
+    ];
+  }
+
+  private mapSeverityToVSCode(severity: string): DiagnosticSeverity {
+    switch (severity) {
+      case "error":
+        return DiagnosticSeverity.Error;
+      case "warning":
+        return DiagnosticSeverity.Warning;
+      case "info":
+        return DiagnosticSeverity.Information;
+      case "hint":
+        return DiagnosticSeverity.Hint;
+      default:
+        return DiagnosticSeverity.Error;
+    }
   }
 
   async performDatapilotHealthcheck(args: AltimateConfigProps) {
@@ -778,6 +834,7 @@ export class DBTProject implements Disposable {
 
   async compileNode(modelName: string): Promise<string | undefined> {
     this.telemetry.sendTelemetryEvent("compileNode");
+    this.throwDiagnosticsErrorIfAvailable();
     try {
       return await this.dbtProjectIntegration.unsafeCompileNode(modelName);
     } catch (exc: any) {
@@ -815,10 +872,12 @@ export class DBTProject implements Disposable {
 
   async unsafeCompileNode(modelName: string): Promise<string | undefined> {
     this.telemetry.sendTelemetryEvent("unsafeCompileNode");
+    this.throwDiagnosticsErrorIfAvailable();
     return await this.dbtProjectIntegration.unsafeCompileNode(modelName);
   }
 
   async validateSql(request: { sql: string; dialect: string; models: any[] }) {
+    this.throwDiagnosticsErrorIfAvailable();
     try {
       const { sql, dialect, models } = request;
       return this.dbtProjectIntegration.validateSql(sql, dialect, models);
@@ -1229,6 +1288,7 @@ export class DBTProject implements Disposable {
       limit: limit.toString(),
     });
 
+    this.throwDiagnosticsErrorIfAvailable();
     if (returnImmediately) {
       const execution = await this.dbtProjectIntegration.executeSQL(
         query,
@@ -1783,6 +1843,34 @@ export class DBTProject implements Disposable {
   }
 
   throwDiagnosticsErrorIfAvailable() {
-    this.dbtProjectIntegration.throwDiagnosticsErrorIfAvailable();
+    // Check integration diagnostics
+    const integrationDiagnostics = this.dbtProjectIntegration.getDiagnostics();
+    const allIntegrationDiagnostics = [
+      ...integrationDiagnostics.pythonBridgeDiagnostics,
+      ...integrationDiagnostics.rebuildManifestDiagnostics,
+    ];
+
+    for (const diagnostic of allIntegrationDiagnostics) {
+      if (diagnostic.severity === "error") {
+        throw new Error(diagnostic.message);
+      }
+    }
+
+    // Check VSCode diagnostic collections
+    const vscodeCollections: DiagnosticCollection[] = [
+      this.projectConfigDiagnostics,
+      this.projectHealth,
+    ];
+
+    for (const diagnosticCollection of vscodeCollections) {
+      for (const [_, diagnostics] of diagnosticCollection) {
+        const error = diagnostics.find(
+          (diagnostic) => diagnostic.severity === DiagnosticSeverity.Error,
+        );
+        if (error) {
+          throw new Error(error.message);
+        }
+      }
+    }
   }
 }

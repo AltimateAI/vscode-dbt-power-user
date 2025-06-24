@@ -35,7 +35,6 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
     limit: number,
     modelName: string,
   ): Promise<QueryExecution> {
-    this.throwBridgeErrorIfAvailable();
     const showCommand = this.dbtCoreCommand(
       new DBTCommand("Running sql...", [
         "show",
@@ -118,7 +117,6 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
 
   // internal commands
   async unsafeCompileNode(modelName: string): Promise<string> {
-    this.throwBridgeErrorIfAvailable();
     const compileQueryCommand = this.dbtCoreCommand(
       new DBTCommand("Compiling model...", [
         "compile",
@@ -153,7 +151,6 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
   }
 
   async unsafeCompileQuery(query: string): Promise<string> {
-    this.throwBridgeErrorIfAvailable();
     const compileQueryCommand = this.dbtCoreCommand(
       new DBTCommand("Compiling sql...", [
         "compile",
@@ -188,7 +185,6 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
   }
 
   async validateSQLDryRun(query: string): Promise<{ bytes_processed: string }> {
-    this.throwBridgeErrorIfAvailable();
     const validateSqlCommand = this.dbtCoreCommand(
       new DBTCommand("Estimating BigQuery cost...", [
         "compile",
@@ -226,7 +222,6 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
     sourceName: string,
     tableName: string,
   ): Promise<DBColumn[]> {
-    this.throwBridgeErrorIfAvailable();
     const compileQueryCommand = this.dbtCoreCommand(
       new DBTCommand("Getting columns of source...", [
         "compile",
@@ -261,7 +256,6 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
   }
 
   async getColumnsOfModel(modelName: string): Promise<DBColumn[]> {
-    this.throwBridgeErrorIfAvailable();
     const compileQueryCommand = this.dbtCoreCommand(
       new DBTCommand("Getting columns of model...", [
         "compile",
@@ -331,7 +325,6 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
   }
 
   async getCatalog(): Promise<Catalog> {
-    this.throwBridgeErrorIfAvailable();
     const bulkModelQuery = `
 {% set result = [] %}
 {% for n in graph.nodes.values() %}
@@ -407,7 +400,6 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
     if (nodes.length === 0) {
       return {};
     }
-    this.throwBridgeErrorIfAvailable();
     const bulkModelQuery = `
   {% set result = {} %}
   {% for n in ${JSON.stringify(nodes)} %}

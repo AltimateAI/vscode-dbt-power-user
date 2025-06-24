@@ -129,8 +129,8 @@ export class ValidateSql {
       async (_, token) => {
         try {
           cancellationToken = token;
-        abortController = new AbortController();
-        token.onCancellationRequested(() => abortController!.abort());
+          abortController = new AbortController();
+          token.onCancellationRequested(() => abortController!.abort());
           const fileContentBytes = await workspace.fs.readFile(currentFilePath);
           if (cancellationToken.isCancellationRequested) {
             return;

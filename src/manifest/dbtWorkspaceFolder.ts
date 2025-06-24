@@ -176,7 +176,7 @@ export class DBTWorkspaceFolder implements Disposable {
 
     const filteredProjects =
       await this.dbtProjectDetectionFactory().discoverProjects(
-        projectDirectories.map(uri => uri.fsPath),
+        projectDirectories.map((uri) => uri.fsPath),
       );
 
     this.dbtTerminal.info(

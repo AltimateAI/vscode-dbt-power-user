@@ -254,7 +254,9 @@ export class DbtLineageService {
     );
     // using artifacts(mappedCompiledSql) from getNodesWithDBColumns as optimization
     const abortController = new AbortController();
-    cancellationTokenSource.token.onCancellationRequested(() => abortController.abort());
+    cancellationTokenSource.token.onCancellationRequested(() =>
+      abortController.abort(),
+    );
     const { mappedNode, relationsWithoutColumns, mappedCompiledSql } =
       await project.getNodesWithDBColumns(
         event,
