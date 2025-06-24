@@ -1,14 +1,4 @@
-import {
-  workspace,
-  Uri,
-  languages,
-  Disposable,
-  Range,
-  window,
-  Diagnostic,
-  DiagnosticCollection,
-  DiagnosticSeverity,
-} from "vscode";
+import { workspace, Uri, Disposable, window } from "vscode";
 import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
 import { provideSingleton } from "../utils";
 import {
@@ -180,12 +170,8 @@ export class DBTCloudProjectIntegration
   private python: PythonBridge;
   protected dbtPath: string = "dbt";
   private disposables: Disposable[] = [];
-  protected readonly rebuildManifestDiagnostics =
-    languages.createDiagnosticCollection("dbt");
-  private readonly pythonBridgeDiagnostics =
-    languages.createDiagnosticCollection("dbt");
-  private pythonBridgeDiagnosticsData: DBTDiagnosticData[] = [];
-  private rebuildManifestDiagnosticsData: DBTDiagnosticData[] = [];
+  protected pythonBridgeDiagnosticsData: DBTDiagnosticData[] = [];
+  protected rebuildManifestDiagnosticsData: DBTDiagnosticData[] = [];
   protected rebuildManifestAbortController: AbortController | undefined;
   private pathsInitialized = false;
 
@@ -222,8 +208,6 @@ export class DBTCloudProjectIntegration
         );
         this.initializeProject();
       }),
-      this.rebuildManifestDiagnostics,
-      this.pythonBridgeDiagnostics,
     );
   }
 
@@ -453,7 +437,6 @@ export class DBTCloudProjectIntegration
             line.info.level === "warn",
         )
         .map((line) => line.info.msg);
-      this.rebuildManifestDiagnostics.clear();
       this.rebuildManifestDiagnosticsData = [];
       const filePath = Uri.joinPath(
         Uri.file(this.projectRoot),
@@ -478,33 +461,6 @@ export class DBTCloudProjectIntegration
         })),
       ];
       this.rebuildManifestDiagnosticsData = diagnosticDataArray;
-
-      const diagnostics: Array<Diagnostic> = errors
-        .map(
-          (error) =>
-            new Diagnostic(
-              new Range(0, 0, 999, 999),
-              error,
-              DiagnosticSeverity.Error,
-            ),
-        )
-        .concat(
-          warnings.map(
-            (warning) =>
-              new Diagnostic(
-                new Range(0, 0, 999, 999),
-                warning,
-                DiagnosticSeverity.Warning,
-              ),
-          ),
-        );
-      if (diagnostics) {
-        // user error
-        this.rebuildManifestDiagnostics.set(
-          Uri.joinPath(Uri.file(this.projectRoot), DBTProject.DBT_PROJECT_FILE),
-          diagnostics,
-        );
-      }
     } catch (error) {
       this.telemetry.sendTelemetryError(
         "dbtCloudCannotParseProjectCommandExecuteError",
@@ -529,16 +485,6 @@ export class DBTCloudProjectIntegration
         category: "command-execution",
       };
       this.rebuildManifestDiagnosticsData = [diagnosticData];
-      this.rebuildManifestDiagnostics.set(
-        Uri.joinPath(Uri.file(this.projectRoot), DBTProject.DBT_PROJECT_FILE),
-        [
-          new Diagnostic(
-            new Range(0, 0, 999, 999),
-            errorMessage,
-            DiagnosticSeverity.Error,
-          ),
-        ],
-      );
     }
   }
 
@@ -1159,8 +1105,6 @@ export class DBTCloudProjectIntegration
     try {
       await this.executionInfrastructure.closePythonBridge(this.python);
     } catch (error) {} // We don't care about errors here.
-    this.rebuildManifestDiagnostics.clear();
-    this.pythonBridgeDiagnostics.clear();
     this.rebuildManifestDiagnosticsData = [];
     this.pythonBridgeDiagnosticsData = [];
     while (this.disposables.length) {

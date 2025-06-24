@@ -1,10 +1,6 @@
 import {
-  Diagnostic,
   DiagnosticCollection,
-  DiagnosticSeverity,
   Disposable,
-  languages,
-  Range,
   RelativePattern,
   Uri,
   window,
@@ -250,10 +246,6 @@ export class DBTCoreProjectIntegration
   private macroPaths?: string[];
   protected python: PythonBridge;
   private disposables: Disposable[] = [];
-  private readonly rebuildManifestDiagnostics =
-    languages.createDiagnosticCollection("dbt");
-  private readonly pythonBridgeDiagnostics =
-    languages.createDiagnosticCollection("dbt");
   private pythonBridgeDiagnosticsData: DBTDiagnosticData[] = [];
   private rebuildManifestDiagnosticsData: DBTDiagnosticData[] = [];
   private static QUEUE_ALL = "all";
@@ -292,8 +284,6 @@ export class DBTCoreProjectIntegration
           this.projectRoot.fsPath,
         );
       }),
-      this.rebuildManifestDiagnostics,
-      this.pythonBridgeDiagnostics,
     );
 
     this.isDbtLoomInstalled().then((isInstalled) => {
@@ -497,7 +487,6 @@ export class DBTCoreProjectIntegration
         );
       }
       await this.createPythonDbtProject(this.python);
-      this.pythonBridgeDiagnostics.clear();
       this.pythonBridgeDiagnosticsData = [];
     } catch (exc: any) {
       if (exc instanceof PythonException) {
@@ -527,10 +516,6 @@ export class DBTCoreProjectIntegration
           category: "python-bridge",
         };
         this.pythonBridgeDiagnosticsData = [diagnosticData];
-        this.pythonBridgeDiagnostics.set(
-          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
-          [new Diagnostic(new Range(0, 0, 999, 999), errorMessage)],
-        );
         this.telemetry.sendTelemetryError("pythonBridgeInitPythonError", exc);
       } else {
         window.showErrorMessage(
@@ -635,7 +620,6 @@ export class DBTCoreProjectIntegration
       await this.python.lock(
         (python) => python`to_dict(project.safe_parse_project())`,
       );
-      this.rebuildManifestDiagnostics.clear();
       this.rebuildManifestDiagnosticsData = [];
     } catch (exc) {
       if (exc instanceof PythonException) {
@@ -654,10 +638,6 @@ export class DBTCoreProjectIntegration
           category: "manifest-rebuild",
         };
         this.rebuildManifestDiagnosticsData = [diagnosticData];
-        this.rebuildManifestDiagnostics.set(
-          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
-          [new Diagnostic(new Range(0, 0, 999, 999), errorMessage)],
-        );
         this.telemetry.sendTelemetryEvent(
           "pythonBridgeCannotParseProjectUserError",
           {
@@ -1151,8 +1131,6 @@ export class DBTCoreProjectIntegration
     try {
       await this.executionInfrastructure.closePythonBridge(this.python);
     } catch (error) {} // We don't care about errors here.
-    this.rebuildManifestDiagnostics.clear();
-    this.pythonBridgeDiagnostics.clear();
     this.rebuildManifestDiagnosticsData = [];
     this.pythonBridgeDiagnosticsData = [];
     while (this.disposables.length) {

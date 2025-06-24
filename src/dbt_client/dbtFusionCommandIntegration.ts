@@ -1,4 +1,4 @@
-import { Diagnostic, DiagnosticSeverity, Range, Uri, window } from "vscode";
+import { window } from "vscode";
 import { getFirstWorkspacePath, provideSingleton } from "../utils";
 import {
   QueryExecution,
@@ -9,6 +9,7 @@ import {
   DBTDetection,
   DBTProjectDetection,
 } from "./dbtIntegration";
+import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
 import {
   CommandProcessExecutionFactory,
   DBTProject,
@@ -185,33 +186,40 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
             line.info.level === "warn",
         )
         .map((line) => line.info.msg);
-      this.rebuildManifestDiagnostics.clear();
-      const diagnostics: Array<Diagnostic> = errors
-        .map(
-          (error) =>
-            new Diagnostic(
-              new Range(0, 0, 999, 999),
-              error,
-              DiagnosticSeverity.Error,
-            ),
-        )
-        .concat(
-          warnings.map(
-            (warning) =>
-              new Diagnostic(
-                new Range(0, 0, 999, 999),
-                warning,
-                DiagnosticSeverity.Warning,
-              ),
-          ),
-        );
-      if (diagnostics) {
-        // user error
-        this.rebuildManifestDiagnostics.set(
-          Uri.joinPath(Uri.file(this.projectRoot), DBTProject.DBT_PROJECT_FILE),
-          diagnostics,
-        );
-      }
+      this.rebuildManifestDiagnosticsData = [];
+      // Populate diagnostic data for integration
+      const diagnosticData: DBTDiagnosticData[] = [];
+      errors.forEach((error) => {
+        diagnosticData.push({
+          filePath: path.join(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+          message: error,
+          severity: "error",
+          range: {
+            startLine: 0,
+            startColumn: 0,
+            endLine: 999,
+            endColumn: 999,
+          },
+          source: "dbt-fusion",
+          category: "manifest-rebuild",
+        });
+      });
+      warnings.forEach((warning) => {
+        diagnosticData.push({
+          filePath: path.join(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+          message: warning,
+          severity: "warning",
+          range: {
+            startLine: 0,
+            startColumn: 0,
+            endLine: 999,
+            endColumn: 999,
+          },
+          source: "dbt-fusion",
+          category: "manifest-rebuild",
+        });
+      });
+      this.rebuildManifestDiagnosticsData = diagnosticData;
     } catch (error) {
       this.telemetry.sendTelemetryError(
         "dbtCloudCannotParseProjectCommandExecuteError",
@@ -221,17 +229,25 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
           command: command.getCommandAsString(),
         },
       );
-      this.rebuildManifestDiagnostics.set(
-        Uri.joinPath(Uri.file(this.projectRoot), DBTProject.DBT_PROJECT_FILE),
-        [
-          new Diagnostic(
-            new Range(0, 0, 999, 999),
-            "Unable to parse dbt cloud cli response. If the problem persists please reach out to us: " +
-              error,
-            DiagnosticSeverity.Error,
-          ),
-        ],
-      );
+      const errorMessage =
+        "Unable to parse dbt fusion cli response. If the problem persists please reach out to us: " +
+        error;
+      // Populate diagnostic data for integration
+      this.rebuildManifestDiagnosticsData = [
+        {
+          filePath: path.join(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+          message: errorMessage,
+          severity: "error",
+          range: {
+            startLine: 0,
+            startColumn: 0,
+            endLine: 999,
+            endColumn: 999,
+          },
+          source: "dbt-fusion",
+          category: "command-execution",
+        },
+      ];
     }
   }
 
@@ -492,5 +508,12 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
       throw new Error(stderr);
     }
     return stdout;
+  }
+
+  getDiagnostics(): DBTDiagnosticResult {
+    return {
+      pythonBridgeDiagnostics: this.pythonBridgeDiagnosticsData,
+      rebuildManifestDiagnostics: this.rebuildManifestDiagnosticsData,
+    };
   }
 }
