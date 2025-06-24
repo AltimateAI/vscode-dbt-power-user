@@ -1,4 +1,3 @@
-import { provideSingleton } from "../utils";
 import {
   DBTCoreDetection,
   DBTCoreProjectDetection,
@@ -14,14 +13,11 @@ import {
 import { getDBTPath } from "./dbtCloudIntegration";
 
 // TODO: either fix this class or remove it
-@provideSingleton(DBTCoreCommandDetection)
 export class DBTCoreCommandDetection extends DBTCoreDetection {}
 
 // TODO: either fix this class or remove it
-@provideSingleton(DBTCoreCommandProjectDetection)
 export class DBTCoreCommandProjectDetection extends DBTCoreProjectDetection {}
 
-@provideSingleton(DBTCoreProjectIntegration)
 export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration {
   private dbtPath = "dbt";
 

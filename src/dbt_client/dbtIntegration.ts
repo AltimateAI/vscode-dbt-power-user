@@ -3,11 +3,8 @@ import {
   convertAbortSignalToCancellationToken,
   extendErrorWithSupportLinks,
   getFirstWorkspacePath,
-  provideSingleton,
 } from "../utils";
 import { PythonBridge, pythonBridge } from "python-bridge";
-import { provide } from "inversify-binding-decorators";
-import { inject } from "inversify";
 import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
@@ -42,7 +39,6 @@ export interface DBTCommandExecutionStrategy {
   ): Promise<CommandProcessResult>;
 }
 
-@provideSingleton(CLIDBTCommandExecutionStrategy)
 export class CLIDBTCommandExecutionStrategy
   implements DBTCommandExecutionStrategy
 {
@@ -107,7 +103,6 @@ export class CLIDBTCommandExecutionStrategy
   }
 }
 
-@provideSingleton(PythonDBTCommandExecutionStrategy)
 export class PythonDBTCommandExecutionStrategy
   implements DBTCommandExecutionStrategy
 {
@@ -116,7 +111,7 @@ export class PythonDBTCommandExecutionStrategy
     private pythonEnvironment: PythonEnvironment,
     private terminal: DBTTerminal,
     private telemetry: TelemetryService,
-    @inject("DBTConfiguration") private configuration: DBTConfiguration,
+    private configuration: DBTConfiguration,
   ) {}
 
   async execute(
@@ -394,7 +389,6 @@ export interface DBTProjectIntegration {
   cleanupConnections(): Promise<void>;
 }
 
-@provide(DBTCommandExecutionInfrastructure)
 export class DBTCommandExecutionInfrastructure {
   private queues: Map<string, DBTCommandExecution[]> = new Map<
     string,
@@ -558,11 +552,8 @@ export class DBTCommandExecutionInfrastructure {
   }
 }
 
-@provideSingleton(DBTCommandFactory)
 export class DBTCommandFactory {
-  constructor(
-    @inject("DBTConfiguration") private configuration: DBTConfiguration,
-  ) {}
+  constructor(private configuration: DBTConfiguration) {}
 
   createVersionCommand(): DBTCommand {
     return new DBTCommand("Detecting dbt version...", ["--version"]);

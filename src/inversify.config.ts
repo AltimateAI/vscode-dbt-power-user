@@ -42,7 +42,11 @@ import { VSCodeDBTConfiguration } from "./dbt_client/vscodeConfiguration";
 import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
 import { NotebookKernelClient, NotebookDependencies } from "@lib";
-import { DBTCoreCommandProjectIntegration } from "./dbt_client/dbtCoreCommandIntegration";
+import {
+  DBTCoreCommandDetection,
+  DBTCoreCommandProjectDetection,
+  DBTCoreCommandProjectIntegration,
+} from "./dbt_client/dbtCoreCommandIntegration";
 import {
   DBTFusionCommandDetection,
   DBTFusionCommandProjectDetection,
@@ -51,6 +55,171 @@ import {
 
 export const container = new Container();
 container.load(buildProviderModule());
+
+// Bind core dbt integration classes using factory functions
+container
+  .bind(CLIDBTCommandExecutionStrategy)
+  .toDynamicValue(() => {
+    // Note: CLIDBTCommandExecutionStrategy requires projectRoot and dbtPath at construction time
+    // These will be provided by the factory functions that create instances
+    throw new Error(
+      "CLIDBTCommandExecutionStrategy should be created via Factory<CLIDBTCommandExecutionStrategy>",
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(PythonDBTCommandExecutionStrategy)
+  .toDynamicValue((context) => {
+    return new PythonDBTCommandExecutionStrategy(
+      context.container.get(CommandProcessExecutionFactory),
+      context.container.get(PythonEnvironment),
+      context.container.get(DBTTerminal),
+      context.container.get(TelemetryService),
+      context.container.get("DBTConfiguration"),
+    );
+  })
+  .inSingletonScope();
+
+container.bind(DBTCommandExecutionInfrastructure).toDynamicValue((context) => {
+  return new DBTCommandExecutionInfrastructure(
+    context.container.get(PythonEnvironment),
+    context.container.get(TelemetryService),
+    context.container.get(AltimateRequest),
+    context.container.get(DBTTerminal),
+  );
+});
+
+container
+  .bind(DBTCommandFactory)
+  .toDynamicValue((context) => {
+    return new DBTCommandFactory(context.container.get("DBTConfiguration"));
+  })
+  .inSingletonScope();
+
+// Bind dbt core integration classes using factory functions
+container
+  .bind(DBTCoreDetection)
+  .toDynamicValue((context) => {
+    return new DBTCoreDetection(
+      context.container.get(PythonEnvironment),
+      context.container.get(CommandProcessExecutionFactory),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(DBTCoreProjectDetection)
+  .toDynamicValue((context) => {
+    return new DBTCoreProjectDetection(
+      context.container.get(DBTCommandExecutionInfrastructure),
+      context.container.get(DBTTerminal),
+    );
+  })
+  .inSingletonScope();
+
+// Note: DBTCoreProjectIntegration requires projectRoot at construction time
+// It will be created via Factory<DBTCoreProjectIntegration>
+container
+  .bind(DBTCoreProjectIntegration)
+  .toDynamicValue(() => {
+    throw new Error(
+      "DBTCoreProjectIntegration should be created via Factory<DBTCoreProjectIntegration>",
+    );
+  })
+  .inSingletonScope();
+
+// Bind dbt cloud integration classes using factory functions
+container
+  .bind(DBTCloudDetection)
+  .toDynamicValue((context) => {
+    return new DBTCloudDetection(
+      context.container.get(CommandProcessExecutionFactory),
+      context.container.get(PythonEnvironment),
+      context.container.get(DBTTerminal),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(DBTCloudProjectDetection)
+  .toDynamicValue((context) => {
+    return new DBTCloudProjectDetection(context.container.get(AltimateRequest));
+  })
+  .inSingletonScope();
+
+// Note: DBTCloudProjectIntegration requires projectRoot at construction time
+// It will be created via Factory<DBTCloudProjectIntegration>
+container
+  .bind(DBTCloudProjectIntegration)
+  .toDynamicValue(() => {
+    throw new Error(
+      "DBTCloudProjectIntegration should be created via Factory<DBTCloudProjectIntegration>",
+    );
+  })
+  .inSingletonScope();
+
+// Bind dbt fusion integration classes using factory functions
+container
+  .bind(DBTFusionCommandDetection)
+  .toDynamicValue((context) => {
+    return new DBTFusionCommandDetection(
+      context.container.get(CommandProcessExecutionFactory),
+      context.container.get(PythonEnvironment),
+      context.container.get(DBTTerminal),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(DBTFusionCommandProjectDetection)
+  .toDynamicValue(() => {
+    return new DBTFusionCommandProjectDetection();
+  })
+  .inSingletonScope();
+
+// Note: DBTFusionCommandProjectIntegration requires projectRoot at construction time
+// It will be created via Factory<DBTFusionCommandProjectIntegration>
+container
+  .bind(DBTFusionCommandProjectIntegration)
+  .toDynamicValue(() => {
+    throw new Error(
+      "DBTFusionCommandProjectIntegration should be created via Factory<DBTFusionCommandProjectIntegration>",
+    );
+  })
+  .inSingletonScope();
+
+// Bind dbt core command integration classes using factory functions
+container
+  .bind(DBTCoreCommandDetection)
+  .toDynamicValue((context) => {
+    return new DBTCoreCommandDetection(
+      context.container.get(PythonEnvironment),
+      context.container.get(CommandProcessExecutionFactory),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(DBTCoreCommandProjectDetection)
+  .toDynamicValue((context) => {
+    return new DBTCoreCommandProjectDetection(
+      context.container.get(DBTCommandExecutionInfrastructure),
+      context.container.get(DBTTerminal),
+    );
+  })
+  .inSingletonScope();
+
+// Note: DBTCoreCommandProjectIntegration requires projectRoot at construction time
+// It will be created via Factory<DBTCoreCommandProjectIntegration>
+container
+  .bind(DBTCoreCommandProjectIntegration)
+  .toDynamicValue(() => {
+    throw new Error(
+      "DBTCoreCommandProjectIntegration should be created via Factory<DBTCoreCommandProjectIntegration>",
+    );
+  })
+  .inSingletonScope();
 
 // Bind DBTConfiguration
 container

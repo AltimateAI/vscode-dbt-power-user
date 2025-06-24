@@ -1,6 +1,5 @@
 import { window } from "vscode";
 import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
-import { provideSingleton } from "../utils";
 import {
   Catalog,
   DBColumn,
@@ -55,7 +54,6 @@ export function getDBTPath(
   return "dbt";
 }
 
-@provideSingleton(DBTCloudDetection)
 export class DBTCloudDetection implements DBTDetection {
   constructor(
     protected commandProcessExecutionFactory: CommandProcessExecutionFactory,
@@ -117,7 +115,6 @@ export class DBTCloudDetection implements DBTDetection {
   }
 }
 
-@provideSingleton(DBTCloudProjectDetection)
 export class DBTCloudProjectDetection implements DBTProjectDetection {
   constructor(private altimate: AltimateRequest) {}
 
@@ -140,7 +137,6 @@ export class DBTCloudProjectDetection implements DBTProjectDetection {
   }
 }
 
-@provideSingleton(DBTCloudProjectIntegration)
 export class DBTCloudProjectIntegration implements DBTProjectIntegration {
   private static QUEUE_ALL = "all";
   protected targetPath?: string;

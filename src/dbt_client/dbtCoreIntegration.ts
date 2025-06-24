@@ -4,7 +4,6 @@ import {
   extendErrorWithSupportLinks,
   getFirstWorkspacePath,
   getProjectRelativePath,
-  provideSingleton,
 } from "../utils";
 import {
   Catalog,
@@ -104,7 +103,6 @@ export interface ProjectHealthcheck {
   // package_insights: any;
 }
 
-@provideSingleton(DBTCoreDetection)
 export class DBTCoreDetection implements DBTDetection {
   constructor(
     private pythonEnvironment: PythonEnvironment,
@@ -131,7 +129,6 @@ export class DBTCoreDetection implements DBTDetection {
   }
 }
 
-@provideSingleton(DBTCoreProjectDetection)
 export class DBTCoreProjectDetection implements DBTProjectDetection {
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
@@ -215,7 +212,6 @@ export class DBTCoreProjectDetection implements DBTProjectDetection {
   async dispose() {}
 }
 
-@provideSingleton(DBTCoreProjectIntegration)
 export class DBTCoreProjectIntegration implements DBTProjectIntegration {
   static DBT_PROFILES_FILE = "profiles.yml";
 

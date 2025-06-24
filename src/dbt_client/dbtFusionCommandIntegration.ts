@@ -1,5 +1,5 @@
 import { window } from "vscode";
-import { getFirstWorkspacePath, provideSingleton } from "../utils";
+import { getFirstWorkspacePath } from "../utils";
 import {
   QueryExecution,
   DBTCommand,
@@ -19,7 +19,6 @@ import {
 import { DBTCloudProjectIntegration, getDBTPath } from "./dbtCloudIntegration";
 import path, { join } from "path";
 
-@provideSingleton(DBTFusionCommandDetection)
 export class DBTFusionCommandDetection implements DBTDetection {
   constructor(
     protected commandProcessExecutionFactory: CommandProcessExecutionFactory,
@@ -68,7 +67,6 @@ export class DBTFusionCommandDetection implements DBTDetection {
   }
 }
 
-@provideSingleton(DBTFusionCommandProjectDetection)
 export class DBTFusionCommandProjectDetection implements DBTProjectDetection {
   async discoverProjects(projectDirectories: string[]): Promise<string[]> {
     const packagesInstallPaths = projectDirectories.map((projectDirectory) =>
@@ -88,7 +86,6 @@ export class DBTFusionCommandProjectDetection implements DBTProjectDetection {
   }
 }
 
-@provideSingleton(DBTFusionCommandProjectIntegration)
 export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegration {
   protected dbtCloudCommand(command: DBTCommand) {
     command.setExecutionStrategy(
