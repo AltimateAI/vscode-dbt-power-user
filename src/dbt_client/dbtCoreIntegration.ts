@@ -1,4 +1,4 @@
-import { Disposable, RelativePattern, Uri, window, workspace } from "vscode";
+import { RelativePattern, Uri, window, workspace } from "vscode";
 import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
 import {
   extendErrorWithSupportLinks,
@@ -132,9 +132,7 @@ export class DBTCoreDetection implements DBTDetection {
 }
 
 @provideSingleton(DBTCoreProjectDetection)
-export class DBTCoreProjectDetection
-  implements DBTProjectDetection, Disposable
-{
+export class DBTCoreProjectDetection implements DBTProjectDetection {
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
     private dbtTerminal: DBTTerminal,
@@ -218,9 +216,7 @@ export class DBTCoreProjectDetection
 }
 
 @provideSingleton(DBTCoreProjectIntegration)
-export class DBTCoreProjectIntegration
-  implements DBTProjectIntegration, Disposable
-{
+export class DBTCoreProjectIntegration implements DBTProjectIntegration {
   static DBT_PROFILES_FILE = "profiles.yml";
 
   private profilesDir?: string;
@@ -234,7 +230,9 @@ export class DBTCoreProjectIntegration
   private seedPaths?: string[];
   private macroPaths?: string[];
   protected python: PythonBridge;
-  private disposables: Disposable[] = [];
+  private disposables: {
+    dispose: () => any;
+  }[] = [];
   private pythonBridgeDiagnosticsData: DBTDiagnosticData[] = [];
   private rebuildManifestDiagnosticsData: DBTDiagnosticData[] = [];
   private static QUEUE_ALL = "all";
