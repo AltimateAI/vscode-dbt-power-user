@@ -2,7 +2,6 @@ import { ProgressLocation, window } from "vscode";
 import {
   convertAbortSignalToCancellationToken,
   extendErrorWithSupportLinks,
-  getFirstWorkspacePath,
 } from "../utils";
 import { PythonBridge, pythonBridge } from "python-bridge";
 import {
@@ -155,7 +154,6 @@ export class PythonDBTCommandExecutionStrategy
       command: this.pythonEnvironment.pythonPath,
       args: ["-c", this.dbtCommand(args)],
       tokens: signals.map((s) => convertAbortSignalToCancellationToken(s)),
-      cwd: getFirstWorkspacePath(),
       envVars: this.pythonEnvironment.environmentVariables,
     });
   }
@@ -403,7 +401,7 @@ export class DBTCommandExecutionInfrastructure {
     private terminal: DBTTerminal,
   ) {}
 
-  createPythonBridge(cwd: string): PythonBridge {
+  createPythonBridge(cwd?: string): PythonBridge {
     let pythonPath = this.pythonEnvironment.pythonPath;
     const envVars = this.pythonEnvironment.environmentVariables;
 
@@ -428,7 +426,7 @@ export class DBTCommandExecutionInfrastructure {
     );
     return pythonBridge({
       python: pythonPath,
-      cwd: cwd,
+      cwd,
       env: {
         ...envVars,
         PYTHONPATH: __dirname,

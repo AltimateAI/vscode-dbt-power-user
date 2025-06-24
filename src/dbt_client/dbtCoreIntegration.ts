@@ -1,10 +1,6 @@
 import { Uri, window, workspace } from "vscode";
 import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
-import {
-  extendErrorWithSupportLinks,
-  getFirstWorkspacePath,
-  getProjectRelativePath,
-} from "../utils";
+import { extendErrorWithSupportLinks, getProjectRelativePath } from "../utils";
 import {
   Catalog,
   CompilationResult,
@@ -115,7 +111,6 @@ export class DBTCoreDetection implements DBTDetection {
         this.commandProcessExecutionFactory.createCommandProcessExecution({
           command: this.pythonEnvironment.pythonPath,
           args: ["-c", "import dbt"],
-          cwd: getFirstWorkspacePath(),
           envVars: this.pythonEnvironment.environmentVariables,
         });
       const { stderr } = await checkDBTInstalledProcess.complete();
@@ -160,9 +155,7 @@ export class DBTCoreProjectDetection implements DBTProjectDetection {
     );
     let python: PythonBridge | undefined;
     try {
-      python = this.executionInfrastructure.createPythonBridge(
-        getFirstWorkspacePath(),
-      );
+      python = this.executionInfrastructure.createPythonBridge();
 
       await python.ex`from dbt_core_integration import *`;
       const packagesInstallPathsFromPython = await python.lock<string[]>(
