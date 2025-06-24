@@ -213,9 +213,9 @@ container
   >("Factory<DBTFusionCommandProjectIntegration>")
   .toFactory<
     DBTFusionCommandProjectIntegration,
-    [Uri, DBTDiagnosticData[]]
+    [string]
   >((context: interfaces.Context) => {
-    return (projectRoot: Uri) => {
+    return (projectRoot: string) => {
       const { container } = context;
       return new DBTFusionCommandProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
@@ -226,7 +226,7 @@ container
         container.get(DBTTerminal),
         container.get(ValidationProvider),
         container.get(DeferToProdService),
-        projectRoot.fsPath,
+        projectRoot,
         container.get(AltimateRequest),
       );
     };
