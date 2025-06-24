@@ -20,14 +20,31 @@ import {
 
 export function convertAbortSignalToCancellationToken(
   signal: AbortSignal,
-): any {
+): CancellationToken {
   return {
-    isCancellationRequested: signal.aborted,
-    onCancellationRequested: (callback: () => void) => {
-      signal.addEventListener("abort", callback);
-      return {
-        dispose: () => signal.removeEventListener("abort", callback),
+    get isCancellationRequested() {
+      return signal.aborted;
+    },
+    onCancellationRequested: (
+      listener: (e: any) => any,
+      thisArgs?: any,
+      disposables?: Disposable[],
+    ) => {
+      const handler = () => {
+        if (thisArgs) {
+          listener.apply(thisArgs, [null]);
+        } else {
+          listener(null);
+        }
       };
+      signal.addEventListener("abort", handler);
+      const disposable = new Disposable(() =>
+        signal.removeEventListener("abort", handler),
+      );
+      if (disposables) {
+        disposables.push(disposable);
+      }
+      return disposable;
     },
   };
 }
