@@ -3,6 +3,7 @@ import {
   DBTCoreProjectIntegration,
   DBTCoreDetection,
 } from "../../dbt_client/dbtCoreIntegration";
+import { DBTDiagnosticData } from "../../dbt_client/diagnostics";
 import { Container } from "inversify";
 import {
   CLIDBTCommandExecutionStrategy,
@@ -13,7 +14,7 @@ import { DBTProjectContainer } from "../../manifest/dbtProjectContainer";
 import { AltimateRequest } from "../../altimate";
 import { ValidationProvider } from "../../validation_provider";
 import { DeferToProdService } from "../../services/deferToProdService";
-import { Uri, workspace, languages, EventEmitter } from "vscode";
+import { Uri, workspace, EventEmitter } from "vscode";
 import {
   CommandProcessExecutionFactory,
   CommandProcessExecution,
@@ -58,9 +59,8 @@ describe("DBTCoreProjectIntegration Tests", () => {
       createQueue: () => {},
     };
 
-    const mockUri = Uri.file("/test/project/root");
-    const mockDiagnosticCollection =
-      languages.createDiagnosticCollection("dbt-project-config");
+    const mockUri = "/test/project/root";
+    const mockProjectConfigDiagnostics: DBTDiagnosticData[] = [];
 
     // Create mock event emitter for Python environment changes
     const mockPythonEnvChangeEmitter = new EventEmitter<Uri | undefined>();
@@ -76,7 +76,7 @@ describe("DBTCoreProjectIntegration Tests", () => {
       mockTelemetry,
       {} as PythonDBTCommandExecutionStrategy,
       {} as (
-        projectRoot: Uri,
+        projectRoot: string,
         dbtPath: string,
       ) => CLIDBTCommandExecutionStrategy,
       {} as DBTProjectContainer,
@@ -89,7 +89,7 @@ describe("DBTCoreProjectIntegration Tests", () => {
       {} as ValidationProvider,
       {} as DeferToProdService,
       mockUri,
-      mockDiagnosticCollection,
+      mockProjectConfigDiagnostics,
     );
 
     (dbtCoreProjectIntegration as any).python = mockPythonBridge;

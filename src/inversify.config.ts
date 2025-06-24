@@ -1,13 +1,8 @@
 import { Container, interfaces } from "inversify";
 import { buildProviderModule } from "inversify-binding-decorators";
-import {
-  DiagnosticCollection,
-  EventEmitter,
-  Uri,
-  workspace,
-  WorkspaceFolder,
-} from "vscode";
+import { EventEmitter, Uri, workspace, WorkspaceFolder } from "vscode";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
+import { DBTDiagnosticData } from "./dbt_client/diagnostics";
 import { DBTProject } from "./manifest/dbtProject";
 import {
   DBTProjectContainer,
@@ -137,16 +132,16 @@ container
   >("Factory<CLIDBTCommandExecutionStrategy>")
   .toFactory<
     CLIDBTCommandExecutionStrategy,
-    [Uri, string]
+    [string, string]
   >((context: interfaces.Context) => {
-    return (projectRoot: Uri, dbtPath: string) => {
+    return (projectRoot: string, dbtPath: string) => {
       const { container } = context;
       return new CLIDBTCommandExecutionStrategy(
         container.get(CommandProcessExecutionFactory),
         container.get(PythonEnvironment),
         container.get(DBTTerminal),
         container.get(TelemetryService),
-        projectRoot.fsPath,
+        projectRoot,
         dbtPath,
       );
     };
@@ -158,11 +153,11 @@ container
   >("Factory<DBTCoreProjectIntegration>")
   .toFactory<
     DBTCoreProjectIntegration,
-    [Uri, DiagnosticCollection]
+    [string, DBTDiagnosticData[]]
   >((context: interfaces.Context) => {
     return (
-      projectRoot: Uri,
-      projectConfigDiagnostics: DiagnosticCollection,
+      projectRoot: string,
+      projectConfigDiagnostics: DBTDiagnosticData[],
     ) => {
       const { container } = context;
       return new DBTCoreProjectIntegration(
@@ -188,11 +183,11 @@ container
   >("Factory<DBTCoreCommandProjectIntegration>")
   .toFactory<
     DBTCoreCommandProjectIntegration,
-    [Uri, DiagnosticCollection]
+    [string, DBTDiagnosticData[]]
   >((context: interfaces.Context) => {
     return (
-      projectRoot: Uri,
-      projectConfigDiagnostics: DiagnosticCollection,
+      projectRoot: string,
+      projectConfigDiagnostics: DBTDiagnosticData[],
     ) => {
       const { container } = context;
       return new DBTCoreCommandProjectIntegration(
@@ -218,7 +213,7 @@ container
   >("Factory<DBTFusionCommandProjectIntegration>")
   .toFactory<
     DBTFusionCommandProjectIntegration,
-    [Uri, DiagnosticCollection]
+    [Uri, DBTDiagnosticData[]]
   >((context: interfaces.Context) => {
     return (projectRoot: Uri) => {
       const { container } = context;

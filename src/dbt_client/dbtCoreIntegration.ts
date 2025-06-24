@@ -1,11 +1,4 @@
-import {
-  DiagnosticCollection,
-  Disposable,
-  RelativePattern,
-  Uri,
-  window,
-  workspace,
-} from "vscode";
+import { Disposable, RelativePattern, Uri, window, workspace } from "vscode";
 import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
 import {
   extendErrorWithSupportLinks,
@@ -31,7 +24,6 @@ import {
   Node,
   ExecuteSQLError,
   HealthcheckArgs,
-  CLIDBTCommandExecutionStrategy,
   DBTCommandExecutionStrategy,
 } from "./dbtIntegration";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
@@ -149,13 +141,10 @@ export class DBTCoreProjectDetection
   ) {}
 
   private getPackageInstallPathFallback(
-    projectDirectory: Uri,
+    projectDirectory: string,
     packageInstallPath: string,
   ): string {
-    const dbtProjectFile = path.join(
-      projectDirectory.fsPath,
-      "dbt_project.yml",
-    );
+    const dbtProjectFile = path.join(projectDirectory, "dbt_project.yml");
     if (existsSync(dbtProjectFile)) {
       const dbtProjectConfig: any = parse(readFileSync(dbtProjectFile, "utf8"));
       const packagesInstallPath = dbtProjectConfig["packages-install-path"];
@@ -163,7 +152,7 @@ export class DBTCoreProjectDetection
         if (path.isAbsolute(packagesInstallPath)) {
           return packagesInstallPath;
         } else {
-          return path.join(projectDirectory.fsPath, packagesInstallPath);
+          return path.join(projectDirectory, packagesInstallPath);
         }
       }
     }
@@ -202,7 +191,7 @@ export class DBTCoreProjectDetection
       // Fallback to reading yaml files
       packagesInstallPaths = projectDirectories.map((projectDirectory, idx) =>
         this.getPackageInstallPathFallback(
-          Uri.file(projectDirectory),
+          projectDirectory,
           packagesInstallPaths[idx],
         ),
       );
@@ -256,7 +245,7 @@ export class DBTCoreProjectIntegration
     private telemetry: TelemetryService,
     private pythonDBTCommandExecutionStrategy: PythonDBTCommandExecutionStrategy,
     protected cliDBTCommandExecutionStrategyFactory: (
-      path: Uri,
+      path: string,
       dbtPath: string,
     ) => DBTCommandExecutionStrategy,
     private dbtProjectContainer: DBTProjectContainer,
@@ -264,15 +253,15 @@ export class DBTCoreProjectIntegration
     protected dbtTerminal: DBTTerminal,
     private validationProvider: ValidationProvider,
     private deferToProdService: DeferToProdService,
-    protected projectRoot: Uri,
-    private projectConfigDiagnostics: DiagnosticCollection,
+    protected projectRoot: string,
+    private projectConfigDiagnostics: DBTDiagnosticData[],
   ) {
     this.dbtTerminal.debug(
       "DBTCoreProjectIntegration",
       `Registering dbt core project at ${this.projectRoot}`,
     );
     this.python = this.executionInfrastructure.createPythonBridge(
-      this.projectRoot.fsPath,
+      this.projectRoot,
     );
     this.executionInfrastructure.createQueue(
       DBTCoreProjectIntegration.QUEUE_ALL,
@@ -281,7 +270,7 @@ export class DBTCoreProjectIntegration
     this.disposables.push(
       this.pythonEnvironment.onPythonEnvironmentChanged(() => {
         this.python = this.executionInfrastructure.createPythonBridge(
-          this.projectRoot.fsPath,
+          this.projectRoot,
         );
       }),
     );
@@ -406,7 +395,7 @@ export class DBTCoreProjectIntegration
     const { limitQuery } = await this.getQuery(query, limit);
 
     const queryThread = this.executionInfrastructure.createPythonBridge(
-      this.projectRoot.fsPath,
+      this.projectRoot,
     );
     return new QueryExecution(
       async () => {
@@ -428,7 +417,7 @@ export class DBTCoreProjectIntegration
           );
           const { manifestPathType } =
             this.deferToProdService.getDeferConfigByProjectRoot(
-              this.projectRoot.fsPath,
+              this.projectRoot,
             );
           if (manifestPathType === ManifestPathType.REMOTE) {
             this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
@@ -452,13 +441,11 @@ export class DBTCoreProjectIntegration
   private async createPythonDbtProject(bridge: PythonBridge) {
     await bridge.ex`from dbt_core_integration import *`;
     const targetPath = this.removeTrailingSlashes(
-      await bridge.lock(
-        (python) => python`target_path(${this.projectRoot.fsPath})`,
-      ),
+      await bridge.lock((python) => python`target_path(${this.projectRoot})`),
     );
     const { deferToProduction, manifestPath, favorState } =
       await this.getDeferConfig();
-    await bridge.ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.profilesDir}, target_path=${targetPath}, defer_to_prod=${deferToProduction}, manifest_path=${manifestPath}, favor_state=${favorState}) if 'project' not in locals() else project`;
+    await bridge.ex`project = DbtProject(project_dir=${this.projectRoot}, profiles_dir=${this.profilesDir}, target_path=${targetPath}, defer_to_prod=${deferToProduction}, manifest_path=${manifestPath}, favor_state=${favorState}) if 'project' not in locals() else project`;
   }
 
   async initializeProject(): Promise<void> {
@@ -468,7 +455,7 @@ export class DBTCoreProjectIntegration
       await this.python.ex`from dbt_healthcheck import *`;
       this.profilesDir = this.removeTrailingSlashes(
         await this.python.lock(
-          (python) => python`default_profiles_dir(${this.projectRoot.fsPath})`,
+          (python) => python`default_profiles_dir(${this.projectRoot})`,
         ),
       );
       if (this.profilesDir) {
@@ -507,8 +494,7 @@ export class DBTCoreProjectIntegration
             exc.exception.message;
         }
         const diagnosticData: DBTDiagnosticData = {
-          filePath: Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE)
-            .fsPath,
+          filePath: path.join(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
           message: errorMessage,
           severity: "error",
           range: { startLine: 0, startColumn: 0, endLine: 999, endColumn: 999 },
@@ -609,10 +595,14 @@ export class DBTCoreProjectIntegration
   }
 
   async rebuildManifest(): Promise<void> {
-    const errors = this.projectConfigDiagnostics.get(
-      Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+    const dbtProjectFile = path.join(
+      this.projectRoot,
+      DBTProject.DBT_PROJECT_FILE,
     );
-    if (errors !== undefined && errors.length > 0) {
+    const errors = this.projectConfigDiagnostics.filter(
+      (diagnostic) => diagnostic.filePath === dbtProjectFile,
+    );
+    if (errors.length > 0) {
       // No point in trying to rebuild the manifest if the config is not valid
       return;
     }
@@ -629,8 +619,7 @@ export class DBTCoreProjectIntegration
           "There is a problem in your dbt project. Compilation failed: " +
           exc.exception.message;
         const diagnosticData: DBTDiagnosticData = {
-          filePath: Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE)
-            .fsPath,
+          filePath: path.join(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
           message: errorMessage,
           severity: "error",
           range: { startLine: 0, startColumn: 0, endLine: 999, endColumn: 999 },
@@ -788,7 +777,7 @@ export class DBTCoreProjectIntegration
         );
         const manifestPath = await this.altimateRequest.downloadFileLocally(
           response.url,
-          this.projectRoot,
+          Uri.file(this.projectRoot),
         );
         console.log(`Set remote manifest path: ${manifestPath}`);
         return manifestPath;
@@ -812,7 +801,7 @@ export class DBTCoreProjectIntegration
 
   private async getDeferParams(): Promise<string[]> {
     const deferConfig = this.deferToProdService.getDeferConfigByProjectRoot(
-      this.projectRoot.fsPath,
+      this.projectRoot,
     );
     const {
       deferToProduction,
@@ -855,7 +844,7 @@ export class DBTCoreProjectIntegration
 
   protected dbtCoreCommand(command: DBTCommand) {
     command.addArgument("--project-dir");
-    command.addArgument(this.projectRoot.fsPath);
+    command.addArgument(this.projectRoot);
     if (this.profilesDir) {
       command.addArgument("--profiles-dir");
       command.addArgument(this.profilesDir);
@@ -1022,7 +1011,7 @@ export class DBTCoreProjectIntegration
       )
     ).map((modelPath: string) => {
       if (!path.isAbsolute(modelPath)) {
-        return path.join(this.projectRoot.fsPath, modelPath);
+        return path.join(this.projectRoot, modelPath);
       }
       return modelPath;
     });
@@ -1035,7 +1024,7 @@ export class DBTCoreProjectIntegration
       )
     ).map((seedPath: string) => {
       if (!path.isAbsolute(seedPath)) {
-        return path.join(this.projectRoot.fsPath, seedPath);
+        return path.join(this.projectRoot, seedPath);
       }
       return seedPath;
     });
@@ -1052,7 +1041,7 @@ export class DBTCoreProjectIntegration
       )
     ).map((macroPath: string) => {
       if (!path.isAbsolute(macroPath)) {
-        return path.join(this.projectRoot.fsPath, macroPath);
+        return path.join(this.projectRoot, macroPath);
       }
       return macroPath;
     });
@@ -1063,7 +1052,7 @@ export class DBTCoreProjectIntegration
       (python) => python`to_dict(project.config.target_path)`,
     );
     if (!path.isAbsolute(targetPath)) {
-      targetPath = path.join(this.projectRoot.fsPath, targetPath);
+      targetPath = path.join(this.projectRoot, targetPath);
     }
     return targetPath;
   }
@@ -1073,10 +1062,7 @@ export class DBTCoreProjectIntegration
       (python) => python`to_dict(project.config.packages_install_path)`,
     );
     if (!path.isAbsolute(packageInstallPath)) {
-      packageInstallPath = path.join(
-        this.projectRoot.fsPath,
-        packageInstallPath,
-      );
+      packageInstallPath = path.join(this.projectRoot, packageInstallPath);
     }
     return packageInstallPath;
   }
@@ -1148,7 +1134,7 @@ export class DBTCoreProjectIntegration
     configPath,
   }: HealthcheckArgs): Promise<ProjectHealthcheck> {
     const healthCheckThread = this.executionInfrastructure.createPythonBridge(
-      this.projectRoot.fsPath,
+      this.projectRoot,
     );
     try {
       await this.createPythonDbtProject(healthCheckThread);
@@ -1165,7 +1151,7 @@ export class DBTCoreProjectIntegration
 
   private async getDeferConfig() {
     try {
-      const root = getProjectRelativePath(this.projectRoot);
+      const root = getProjectRelativePath(Uri.file(this.projectRoot));
       const currentConfig: Record<string, DeferConfig> =
         this.deferToProdService.getDeferConfigByWorkspace();
       const {

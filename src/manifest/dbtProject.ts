@@ -3,7 +3,6 @@ import { existsSync, readFileSync, writeFileSync } from "fs";
 import * as path from "path";
 import { PythonException } from "python-bridge";
 import {
-  CancellationToken,
   commands,
   Diagnostic,
   DiagnosticCollection,
@@ -11,7 +10,6 @@ import {
   Disposable,
   Event,
   EventEmitter,
-  FileSystemWatcher,
   languages,
   ProgressLocation,
   Range,
@@ -23,6 +21,7 @@ import {
 } from "vscode";
 import { parse, YAMLError } from "yaml";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTDiagnosticData } from "../dbt_client/diagnostics";
 import {
   debounce,
   extendErrorWithSupportLinks,
@@ -97,7 +96,7 @@ export class DBTProject implements Disposable {
   static RESOURCE_TYPE_METRIC = "semantic_model";
 
   readonly projectRoot: Uri;
-  private projectConfig: any; // TODO: typing
+  private projectConfig: Record<string, any>;
   private dbtProjectIntegration: DBTProjectIntegration;
 
   private _onProjectConfigChanged =
@@ -130,18 +129,18 @@ export class DBTProject implements Disposable {
     private eventEmitterService: SharedStateService,
     private telemetry: TelemetryService,
     private dbtCoreIntegrationFactory: (
-      path: Uri,
-      projectConfigDiagnostics: DiagnosticCollection,
+      path: string,
+      projectConfigDiagnostics: DBTDiagnosticData[],
     ) => DBTCoreProjectIntegration,
     private dbtCoreCommandIntegrationFactory: (
-      path: Uri,
-      projectConfigDiagnostics: DiagnosticCollection,
+      path: string,
+      projectConfigDiagnostics: DBTDiagnosticData[],
     ) => DBTCoreCommandProjectIntegration,
     private dbtCloudIntegrationFactory: (
-      path: Uri,
+      path: string,
     ) => DBTCloudProjectIntegration,
     private dbtFusionCommandIntegrationFactory: (
-      path: Uri,
+      path: string,
     ) => DBTFusionCommandProjectIntegration,
     private altimate: AltimateRequest,
     private validationProvider: ValidationProvider,
@@ -151,7 +150,6 @@ export class DBTProject implements Disposable {
   ) {
     this.projectRoot = path;
     this.projectConfig = projectConfig;
-
     try {
       this.validationProvider.validateCredentialsSilently();
     } catch (error) {
@@ -176,24 +174,24 @@ export class DBTProject implements Disposable {
     switch (dbtIntegrationMode) {
       case "cloud":
         this.dbtProjectIntegration = this.dbtCloudIntegrationFactory(
-          this.projectRoot,
+          this.projectRoot.fsPath,
         );
         break;
       case "fusion":
         this.dbtProjectIntegration = this.dbtFusionCommandIntegrationFactory(
-          this.projectRoot,
+          this.projectRoot.fsPath,
         );
         break;
       case "corecommand":
         this.dbtProjectIntegration = this.dbtCoreCommandIntegrationFactory(
-          this.projectRoot,
-          this.projectConfigDiagnostics,
+          this.projectRoot.fsPath,
+          this.convertDiagnosticCollectionToDBTDiagnosticData(),
         );
         break;
       default:
         this.dbtProjectIntegration = this.dbtCoreIntegrationFactory(
-          this.projectRoot,
-          this.projectConfigDiagnostics,
+          this.projectRoot.fsPath,
+          this.convertDiagnosticCollectionToDBTDiagnosticData(),
         );
         break;
     }
@@ -207,7 +205,7 @@ export class DBTProject implements Disposable {
       ),
       this._onManifestChanged.event((event) => {
         const addedEvent = event.added?.find(
-          (e) => e.project.projectRoot.fsPath === this.projectRoot.fsPath,
+          (e) => e.project.projectRoot === this.projectRoot,
         );
         if (addedEvent) {
           this._manifestCacheEvent = addedEvent;
@@ -325,9 +323,8 @@ export class DBTProject implements Disposable {
   }
 
   getAllDiagnostic(): Diagnostic[] {
-    const projectURI = Uri.joinPath(
-      this.projectRoot,
-      DBTProject.DBT_PROJECT_FILE,
+    const projectURI = Uri.file(
+      path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE),
     );
     const integrationDiagnostics = this.dbtProjectIntegration.getDiagnostics();
 
@@ -473,6 +470,30 @@ export class DBTProject implements Disposable {
     );
   }
 
+  private convertDiagnosticCollectionToDBTDiagnosticData(): DBTDiagnosticData[] {
+    const dbtProjectFile = Uri.file(
+      path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE),
+    );
+    const diagnostics = this.projectConfigDiagnostics.get(dbtProjectFile) || [];
+
+    return diagnostics.map((diagnostic) => ({
+      filePath: dbtProjectFile.fsPath,
+      message: diagnostic.message,
+      severity:
+        diagnostic.severity === DiagnosticSeverity.Error
+          ? ("error" as const)
+          : ("warning" as const),
+      range: {
+        startLine: diagnostic.range.start.line,
+        startColumn: diagnostic.range.start.character,
+        endLine: diagnostic.range.end.line,
+        endColumn: diagnostic.range.end.character,
+      },
+      source: diagnostic.source || "dbt-project",
+      category: "project-config",
+    }));
+  }
+
   private async onPythonEnvironmentChanged() {
     this.terminal.debug(
       "DbtProject",
@@ -497,26 +518,23 @@ export class DBTProject implements Disposable {
       await this.dbtProjectIntegration.refreshProjectConfig();
       this.projectConfigDiagnostics.clear();
     } catch (error) {
+      const projectConfigFile = Uri.file(
+        path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE),
+      );
       if (error instanceof YAMLError) {
-        this.projectConfigDiagnostics.set(
-          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
-          [
-            new Diagnostic(
-              new Range(0, 0, 999, 999),
-              "dbt_project.yml is invalid : " + error.message,
-            ),
-          ],
-        );
+        this.projectConfigDiagnostics.set(projectConfigFile, [
+          new Diagnostic(
+            new Range(0, 0, 999, 999),
+            "dbt_project.yml is invalid : " + error.message,
+          ),
+        ]);
       } else if (error instanceof PythonException) {
-        this.projectConfigDiagnostics.set(
-          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
-          [
-            new Diagnostic(
-              new Range(0, 0, 999, 999),
-              "dbt configuration is invalid : " + error.exception.message,
-            ),
-          ],
-        );
+        this.projectConfigDiagnostics.set(projectConfigFile, [
+          new Diagnostic(
+            new Range(0, 0, 999, 999),
+            "dbt configuration is invalid : " + error.exception.message,
+          ),
+        ]);
       }
       this.terminal.debug(
         "DBTProject",
@@ -531,21 +549,21 @@ export class DBTProject implements Disposable {
     if (sourcePaths === undefined) {
       this.terminal.debug(
         "DBTProject",
-        "sourcePaths is not defined in project in " + this.projectRoot.fsPath,
+        "sourcePaths is not defined in project in " + this.projectRoot,
       );
     }
     const macroPaths = this.getMacroPaths();
     if (macroPaths === undefined) {
       this.terminal.debug(
         "DBTProject",
-        "macroPaths is not defined in " + this.projectRoot.fsPath,
+        "macroPaths is not defined in " + this.projectRoot,
       );
     }
     const seedPaths = this.getSeedPaths();
     if (seedPaths === undefined) {
       this.terminal.debug(
         "DBTProject",
-        "macroPaths is not defined in " + this.projectRoot.fsPath,
+        "macroPaths is not defined in " + this.projectRoot,
       );
     }
     if (sourcePaths && macroPaths && seedPaths) {
@@ -586,7 +604,7 @@ export class DBTProject implements Disposable {
   findPackageName(uri: Uri): string | undefined {
     const documentPath = uri.path;
     const pathSegments = documentPath
-      .replace(new RegExp(this.projectRoot.path + "/", "g"), "")
+      .replace(new RegExp(this.projectRoot + "/", "g"), "")
       .split("/");
     const packagesInstallPath = this.getPackageInstallPath();
     if (packagesInstallPath && uri.fsPath.startsWith(packagesInstallPath)) {
