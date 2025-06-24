@@ -1,4 +1,4 @@
-import { ProgressLocation, window, workspace } from "vscode";
+import { ProgressLocation, window } from "vscode";
 import {
   convertAbortSignalToCancellationToken,
   extendErrorWithSupportLinks,
@@ -7,6 +7,7 @@ import {
 } from "../utils";
 import { PythonBridge, pythonBridge } from "python-bridge";
 import { provide } from "inversify-binding-decorators";
+import { inject } from "inversify";
 import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
@@ -24,6 +25,7 @@ import {
 import { ProjectHealthcheck } from "./dbtCoreIntegration";
 import { NodeMetaData } from "../domain";
 import { DBTDiagnosticResult } from "./diagnostics";
+import { DBTConfiguration } from "./configuration";
 
 interface DBTCommandExecution {
   command: (signal?: AbortSignal) => Promise<void>;
@@ -114,6 +116,7 @@ export class PythonDBTCommandExecutionStrategy
     private pythonEnvironment: PythonEnvironment,
     private terminal: DBTTerminal,
     private telemetry: TelemetryService,
+    @inject("DBTConfiguration") private configuration: DBTConfiguration,
   ) {}
 
   async execute(
@@ -164,12 +167,7 @@ export class PythonDBTCommandExecutionStrategy
 
   private dbtCommand(args: string[]): string {
     args = args.map((arg) => `r"""${arg.replace(/"/g, '\\"')}"""`);
-    const dbtCustomRunnerImport = workspace
-      .getConfiguration("dbt")
-      .get<string>(
-        "dbtCustomRunnerImport",
-        "from dbt.cli.main import dbtRunner",
-      );
+    const dbtCustomRunnerImport = this.configuration.getDbtCustomRunnerImport();
     return `has_dbt_runner = True
 try:
     ${dbtCustomRunnerImport}
@@ -558,6 +556,10 @@ export class DBTCommandExecutionInfrastructure {
 
 @provideSingleton(DBTCommandFactory)
 export class DBTCommandFactory {
+  constructor(
+    @inject("DBTConfiguration") private configuration: DBTConfiguration,
+  ) {}
+
   createVersionCommand(): DBTCommand {
     return new DBTCommand("Detecting dbt version...", ["--version"]);
   }
@@ -568,9 +570,8 @@ export class DBTCommandFactory {
 
   createRunModelCommand(params: RunModelParams): DBTCommand {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
-    const buildModelCommandAdditionalParams = workspace
-      .getConfiguration("dbt")
-      .get<string[]>("runModelCommandAdditionalParams", []);
+    const buildModelCommandAdditionalParams =
+      this.configuration.getRunModelCommandAdditionalParams();
 
     return new DBTCommand(
       "Running dbt model...",
@@ -588,9 +589,8 @@ export class DBTCommandFactory {
 
   createBuildModelCommand(params: RunModelParams): DBTCommand {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
-    const buildModelCommandAdditionalParams = workspace
-      .getConfiguration("dbt")
-      .get<string[]>("buildModelCommandAdditionalParams", []);
+    const buildModelCommandAdditionalParams =
+      this.configuration.getBuildModelCommandAdditionalParams();
 
     return new DBTCommand(
       "Building dbt model...",
@@ -617,9 +617,8 @@ export class DBTCommandFactory {
   }
 
   createTestModelCommand(testName: string): DBTCommand {
-    const testModelCommandAdditionalParams = workspace
-      .getConfiguration("dbt")
-      .get<string[]>("testModelCommandAdditionalParams", []);
+    const testModelCommandAdditionalParams =
+      this.configuration.getTestModelCommandAdditionalParams();
 
     return new DBTCommand(
       "Testing dbt model...",

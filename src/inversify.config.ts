@@ -42,6 +42,8 @@ import {
 import { CommandProcessExecutionFactory } from "./commandProcessExecution";
 import { AltimateRequest } from "./altimate";
 import { ValidationProvider } from "./validation_provider";
+import { DBTConfiguration } from "./dbt_client/configuration";
+import { VSCodeDBTConfiguration } from "./dbt_client/vscodeConfiguration";
 import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
 import { NotebookKernelClient, NotebookDependencies } from "@lib";
@@ -54,6 +56,12 @@ import {
 
 export const container = new Container();
 container.load(buildProviderModule());
+
+// Bind DBTConfiguration
+container
+  .bind<DBTConfiguration>("DBTConfiguration")
+  .to(VSCodeDBTConfiguration)
+  .inSingletonScope();
 
 container
   .bind<interfaces.Factory<DBTDetection>>("Factory<DBTDetection>")
