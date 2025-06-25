@@ -91,6 +91,7 @@ import { DBTCoreCommandProjectIntegration } from "../dbt_client/dbtCoreCommandIn
 import { Table } from "src/services/dbtLineageService";
 import { DBTFusionCommandProjectIntegration } from "src/dbt_client/dbtFusionCommandIntegration";
 import { DeferToProdService } from "../services/deferToProdService";
+import { AltimateAuthService } from "../services/altimateAuthService";
 import { getProjectRelativePath } from "../utils";
 import { inject } from "inversify";
 
@@ -165,6 +166,7 @@ export class DBTProject implements Disposable {
     private altimate: AltimateRequest,
     private validationProvider: ValidationProvider,
     private deferToProdService: DeferToProdService,
+    private altimateAuthService: AltimateAuthService,
     path: Uri,
     projectConfig: any,
     private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
@@ -897,7 +899,7 @@ export class DBTProject implements Disposable {
 
   private handleNoCredentialsError(error: unknown) {
     if (error instanceof NoCredentialsError) {
-      this.altimate.handlePreviewFeatures();
+      this.altimateAuthService.handlePreviewFeatures();
       return;
     }
     window.showErrorMessage((error as Error).message);
@@ -2115,7 +2117,7 @@ export class DBTProject implements Disposable {
           await command(signal);
         } catch (error) {
           if (error instanceof NoCredentialsError) {
-            this.altimate.handlePreviewFeatures();
+            this.altimateAuthService.handlePreviewFeatures();
             return;
           }
           window.showErrorMessage(

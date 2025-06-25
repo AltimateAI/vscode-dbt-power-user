@@ -157,34 +157,6 @@ describe("AltimateRequest Tests", () => {
     expect(onProgress).toHaveBeenCalledWith(expect.stringContaining("success"));
   });
 
-  it("should return correct credential messages", () => {
-    expect(request.getCredentialsMessage()).toBeUndefined();
-  });
-
-  it("should handle preview features flow", () => {
-    const spy = jest
-      .spyOn(request as any, "showAPIKeyMessage")
-      .mockResolvedValue(undefined as any);
-
-    // First, mock no credentials
-    mockDBTConfiguration.getAltimateAiKey.mockReturnValueOnce(undefined);
-    mockDBTConfiguration.getAltimateInstanceName.mockReturnValueOnce(undefined);
-
-    const result = request.handlePreviewFeatures();
-    expect(result).toBe(false);
-    expect(spy).toHaveBeenCalled();
-
-    spy.mockClear();
-    // Reset to valid credentials for second call
-    mockDBTConfiguration.getAltimateAiKey.mockReturnValue("test-key");
-    mockDBTConfiguration.getAltimateInstanceName.mockReturnValue(
-      "test-instance",
-    );
-
-    expect(request.handlePreviewFeatures()).toBe(true);
-    expect(spy).not.toHaveBeenCalled();
-  });
-
   it("should generate query strings", () => {
     const query = (request as any).getQueryString({ a: "b", c: 1 });
     expect(query).toBe("?a=b&c=1");

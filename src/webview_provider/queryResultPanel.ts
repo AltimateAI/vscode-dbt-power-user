@@ -42,6 +42,7 @@ import { UsersService } from "../services/usersService";
 import { TelemetryEvents } from "../telemetry/events";
 import path = require("path");
 import { inject } from "inversify";
+import { AltimateAuthService } from "../services/altimateAuthService";
 
 interface JsonObj {
   [key: string]: string | number | undefined;
@@ -159,6 +160,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
+    protected altimateAuthService: AltimateAuthService,
   ) {
     super(
       dbtProjectContainer,
@@ -168,6 +170,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       dbtTerminal,
       queryManifestService,
       usersService,
+      altimateAuthService,
     );
     this._disposables.push(
       window.onDidChangeActiveTextEditor(() => {

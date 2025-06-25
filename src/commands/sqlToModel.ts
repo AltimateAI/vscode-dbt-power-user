@@ -1,6 +1,7 @@
 import { AltimateRequest } from "../altimate";
 import { DBTTerminal } from "../dbt_client/terminal";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { AltimateAuthService } from "../services/altimateAuthService";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
@@ -20,6 +21,7 @@ export class SqlToModel {
     private altimate: AltimateRequest,
     @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
+    private altimateAuthService: AltimateAuthService,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
@@ -36,7 +38,7 @@ export class SqlToModel {
   }
 
   async getModelFromSql() {
-    if (!this.altimate.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
     this.telemetry.sendTelemetryEvent("sqlToModel");

@@ -28,6 +28,7 @@ import { DBTTerminal } from "../dbt_client/terminal";
 import { DbtTestService } from "../services/dbtTestService";
 import { FileService } from "../services/fileService";
 import { UsersService } from "../services/usersService";
+import { AltimateAuthService } from "../services/altimateAuthService";
 import { inject } from "inversify";
 
 @provideSingleton(DataPilotPanel)
@@ -50,6 +51,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     private dbtTestService: DbtTestService,
     private fileService: FileService,
     protected usersService: UsersService,
+    protected altimateAuthService: AltimateAuthService,
   ) {
     super(
       dbtProjectContainer,
@@ -59,6 +61,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
       dbtTerminal,
       queryManifestService,
       usersService,
+      altimateAuthService,
     );
 
     commands.registerCommand("dbtPowerUser.resetDatapilot", () =>

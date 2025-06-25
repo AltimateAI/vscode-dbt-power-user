@@ -29,6 +29,7 @@ import { UsersService } from "../services/usersService";
 import { ConversationProvider } from "../comment_provider/conversationProvider";
 import { DbtDocsView } from "./DbtDocsView";
 import { ConversationService } from "../services/conversationService";
+import { AltimateAuthService } from "../services/altimateAuthService";
 import { inject } from "inversify";
 
 @provideSingleton(NewDocsGenPanel)
@@ -54,6 +55,7 @@ export class NewDocsGenPanel
     private dbtDocsView: DbtDocsView,
     private conversationProvider: ConversationProvider,
     private conversationService: ConversationService,
+    protected altimateAuthService: AltimateAuthService,
   ) {
     super(
       dbtProjectContainer,
@@ -63,6 +65,7 @@ export class NewDocsGenPanel
       dbtTerminal,
       queryManifestService,
       userService,
+      altimateAuthService,
     );
   }
 

@@ -12,6 +12,7 @@ import {
 import { AltimateRequest, DocsGenerateResponse } from "../altimate";
 import { DBTTerminal } from "../dbt_client/terminal";
 import { RateLimitException } from "../exceptions";
+import { AltimateAuthService } from "./altimateAuthService";
 import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
@@ -83,6 +84,7 @@ export class DocGenService {
     private queryManifestService: QueryManifestService,
     @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
+    private altimateAuthService: AltimateAuthService,
   ) {}
 
   private async getDocumentationFromYaml(
@@ -353,7 +355,7 @@ export class DocGenService {
     panel,
     isBulkGen,
   }: GenerateDocsForColumnsProps) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
     if (!project || !window.activeTextEditor) {
@@ -493,7 +495,7 @@ export class DocGenService {
     columnIndexCount,
     isBulkGen,
   }: GenerateDocsForModelProps) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
     if (!project) {

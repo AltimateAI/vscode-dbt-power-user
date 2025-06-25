@@ -29,6 +29,7 @@ import { PythonException } from "python-bridge";
 import { UsersService } from "../services/usersService";
 import { NotebookSchema } from "@lib";
 import { inject } from "inversify";
+import { AltimateAuthService } from "../services/altimateAuthService";
 
 export type UpdateConfigProps = {
   key: string;
@@ -79,6 +80,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
+    protected altimateAuthService: AltimateAuthService,
   ) {
     this._disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
@@ -362,7 +364,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           });
           break;
         case "validateCredentials":
-          const isValid = await this.altimateRequest.handlePreviewFeatures();
+          const isValid = this.altimateAuthService.handlePreviewFeatures();
           this.sendResponseToWebview({
             command: "response",
             syncRequestId,
@@ -412,7 +414,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           // If config is for preview feature, then check keys
           const shouldUpdate =
             !params.isPreviewFeature ||
-            this.altimateRequest.handlePreviewFeatures();
+            this.altimateAuthService.handlePreviewFeatures();
           if (shouldUpdate) {
             await workspace
               .getConfiguration("dbt")

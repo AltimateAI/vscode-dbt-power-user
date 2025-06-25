@@ -6,6 +6,7 @@ import { AltimateRequest } from "../modules";
 import { ToolRegistry } from "./types";
 import { SharedStateService } from "../services/sharedStateService";
 import { inject } from "inversify";
+import { AltimateAuthService } from "../services/altimateAuthService";
 
 @provideSingleton(DbtPowerUserMcpServer)
 export class DbtPowerUserMcpServer implements Disposable {
@@ -18,6 +19,7 @@ export class DbtPowerUserMcpServer implements Disposable {
     private dbtTerminal: DBTTerminal,
     private altimate: AltimateRequest,
     private eventEmitter: SharedStateService,
+    private altimateAuthService: AltimateAuthService,
   ) {
     workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration("altimate.onboardedMcpServer")) {
@@ -106,7 +108,7 @@ export class DbtPowerUserMcpServer implements Disposable {
       "DbtPowerUserMcpServer",
       "Onboarding completed, proceeding with tools registration",
     );
-    if (!this.altimate.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       this.dbtTerminal.info(
         "DbtPowerUserMcpServer: enableMcpExtensionIntegration",
         "Preview features are not enabled, skipping MCP server start",

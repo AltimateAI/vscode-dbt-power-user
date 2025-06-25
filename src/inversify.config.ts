@@ -37,6 +37,7 @@ import { CommandProcessExecutionFactory } from "./commandProcessExecution";
 import { AltimateRequest } from "./altimate";
 import { ValidationProvider } from "./validation_provider";
 import { DBTConfiguration } from "./dbt_client/configuration";
+import { AltimateAuthService } from "./services/altimateAuthService";
 import { VSCodeDBTConfiguration } from "./dbt_client/vscodeConfiguration";
 import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
@@ -291,7 +292,7 @@ container
       switch (dbtIntegrationMode) {
         case "cloud":
           // Handle preview features for cloud integration
-          container.get(AltimateRequest).handlePreviewFeatures();
+          container.get(AltimateAuthService).handlePreviewFeatures();
           return container.get(DBTCloudProjectDetection);
         case "fusion":
           return container.get(DBTFusionCommandProjectDetection);
@@ -482,6 +483,7 @@ container
         container.get(AltimateRequest),
         container.get(ValidationProvider),
         container.get(DeferToProdService),
+        container.get(AltimateAuthService),
         path,
         projectConfig,
         _onManifestChanged,

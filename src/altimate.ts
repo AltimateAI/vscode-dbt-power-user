@@ -1,5 +1,5 @@
 import type { RequestInit } from "node-fetch";
-import { window, env, Uri } from "vscode";
+import { window } from "vscode";
 import { processStreamResponse } from "./utils";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
@@ -288,10 +288,6 @@ interface AltimateConfig {
   instance: string;
 }
 
-enum PromptAnswer {
-  YES = "Get your free API Key",
-}
-
 export interface SharedDoc {
   share_id: number;
   name: string;
@@ -357,18 +353,6 @@ export class AltimateRequest {
     return !!this.getConfig();
   }
 
-  private async showAPIKeyMessage(message: string) {
-    const answer = await window.showInformationMessage(
-      message,
-      PromptAnswer.YES,
-    );
-    if (answer === PromptAnswer.YES) {
-      env.openExternal(
-        Uri.parse("https://app.myaltimate.com/register?source=extension"),
-      );
-    }
-  }
-
   private getConfig(): AltimateConfig | undefined {
     const key = this.getAIKey();
     const instance = this.getInstanceName();
@@ -376,31 +360,6 @@ export class AltimateRequest {
       return undefined;
     }
     return { key, instance };
-  }
-
-  getCredentialsMessage(): string | undefined {
-    const key = this.getAIKey();
-    const instance = this.getInstanceName();
-
-    if (!key && !instance) {
-      return `To use this feature, please add an API Key and an instance name in the settings.`;
-    }
-    if (!key) {
-      return `To use this feature, please add an API key in the settings.`;
-    }
-    if (!instance) {
-      return `To use this feature, please add an instance name in the settings.`;
-    }
-    return;
-  }
-
-  handlePreviewFeatures(): boolean {
-    const message = this.getCredentialsMessage();
-    if (!message) {
-      return true;
-    }
-    this.showAPIKeyMessage(message);
-    return false;
   }
 
   async fetchAsStream<R>(
@@ -584,11 +543,10 @@ export class AltimateRequest {
       abortController.abort();
     }, timeout);
 
-    const message = this.getCredentialsMessage();
-    if (message) {
-      throw new NoCredentialsError(message);
+    const config = this.getConfig();
+    if (!config) {
+      throw new NoCredentialsError("Missing API credentials");
     }
-    const config = this.getConfig()!;
 
     try {
       const url = `${this.getAltimateUrl()}/${endpoint}`;

@@ -5,6 +5,7 @@ import {
   ForbiddenError,
   NoCredentialsError,
 } from "../altimate";
+import { AltimateAuthService } from "../services/altimateAuthService";
 
 const validTenantRegex = new RegExp(/^[a-z_][a-z0-9_]*$/);
 
@@ -13,7 +14,10 @@ export class ValidationProvider implements Disposable {
   private disposables: Disposable[] = [];
   private _isAuthenticated = false;
 
-  constructor(private altimate: AltimateRequest) {
+  constructor(
+    private altimate: AltimateRequest,
+    private altimateAuthService: AltimateAuthService,
+  ) {
     this.disposables.push(
       workspace.onDidChangeConfiguration((e) => {
         if (!e.affectsConfiguration("dbt")) {
@@ -101,7 +105,7 @@ export class ValidationProvider implements Disposable {
 
   throwIfNotAuthenticated() {
     if (!this.isAuthenticated()) {
-      const message = this.altimate.getCredentialsMessage();
+      const message = this.altimateAuthService.getCredentialsMessage();
       throw message ? new NoCredentialsError(message) : new ForbiddenError();
     }
   }

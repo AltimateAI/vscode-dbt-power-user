@@ -8,6 +8,7 @@ import { AltimateRequest, ConversationGroup, SharedDoc } from "../altimate";
 import { rmSync } from "fs";
 import { inject } from "inversify";
 import { hashProjectRoot } from "../dbt_client/dbtIntegration";
+import { AltimateAuthService } from "./altimateAuthService";
 
 @provideSingleton(ConversationService)
 export class ConversationService {
@@ -23,6 +24,7 @@ export class ConversationService {
     @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private altimateRequest: AltimateRequest,
+    private altimateAuthService: AltimateAuthService,
   ) {}
 
   public getConversations() {
@@ -31,7 +33,7 @@ export class ConversationService {
 
   public async loadSharedDocs() {
     try {
-      if (this.altimateRequest.getCredentialsMessage()) {
+      if (this.altimateAuthService.getCredentialsMessage()) {
         this.dbtTerminal.debug(
           "ConversationService:loadSharedDocs",
           "Missing credentials. skipping loadSharedDocs",
@@ -69,7 +71,7 @@ export class ConversationService {
 
   public async getAppUrlByShareId(shareId: SharedDoc["share_id"]) {
     try {
-      if (!this.altimateRequest.handlePreviewFeatures()) {
+      if (!this.altimateAuthService.handlePreviewFeatures()) {
         return;
       }
       return this.altimateRequest.getAppUrlByShareId(shareId);
@@ -92,7 +94,7 @@ export class ConversationService {
     data: Partial<ConversationGroup> & { message: string },
   ) {
     try {
-      if (!this.altimateRequest.handlePreviewFeatures()) {
+      if (!this.altimateAuthService.handlePreviewFeatures()) {
         return;
       }
       return this.altimateRequest.createConversationGroup(shareId, data);
@@ -116,7 +118,7 @@ export class ConversationService {
     message: string,
   ) {
     try {
-      if (!this.altimateRequest.handlePreviewFeatures()) {
+      if (!this.altimateAuthService.handlePreviewFeatures()) {
         return;
       }
       const result = await this.altimateRequest.addConversationToGroup(
@@ -149,7 +151,7 @@ export class ConversationService {
     conversationGroupId: ConversationGroup["conversation_group_id"],
   ) {
     try {
-      if (!this.altimateRequest.handlePreviewFeatures()) {
+      if (!this.altimateAuthService.handlePreviewFeatures()) {
         return;
       }
       return await this.altimateRequest.resolveConversation(
@@ -171,7 +173,7 @@ export class ConversationService {
   }
 
   public async loadConversationsByShareId(shareId: SharedDoc["share_id"]) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
     const conversations =
@@ -199,7 +201,7 @@ export class ConversationService {
   }): Promise<
     { shareUrl: string; shareId: SharedDoc["share_id"] } | undefined
   > {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
     return new Promise((resolve, reject) => {

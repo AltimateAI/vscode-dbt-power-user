@@ -30,6 +30,7 @@ import {
 } from "../services/dbtLineageService";
 import { inject } from "inversify";
 import { RESOURCE_TYPE_SOURCE } from "../dbt_client/dbtIntegration";
+import { AltimateAuthService } from "../services/altimateAuthService";
 
 class DerivedCancellationTokenSource extends CancellationTokenSource {
   constructor(linkedToken: CancellationToken) {
@@ -60,6 +61,7 @@ export class NewLineagePanel
     eventEmitterService: SharedStateService,
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
+    protected altimateAuthService: AltimateAuthService,
   ) {
     super(
       dbtProjectContainer,
@@ -69,6 +71,7 @@ export class NewLineagePanel
       terminal,
       queryManifestService,
       usersService,
+      altimateAuthService,
     );
   }
 
@@ -242,7 +245,7 @@ export class NewLineagePanel
     }
 
     if (command === "previewFeature") {
-      this.altimate.handlePreviewFeatures();
+      this.altimateAuthService.handlePreviewFeatures();
       return;
     }
 

@@ -14,6 +14,7 @@ import { StreamingService } from "./streamingService";
 import { DBTTerminal } from "../dbt_client/terminal";
 import { FileService } from "./fileService";
 import { inject } from "inversify";
+import { AltimateAuthService } from "./altimateAuthService";
 
 export interface QueryTranslateIncomingRequest {
   source?: string;
@@ -38,6 +39,7 @@ export class QueryAnalysisService {
     @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private fileService: FileService,
+    private altimateAuthService: AltimateAuthService,
   ) {}
 
   public getSelectedQuery() {
@@ -66,7 +68,7 @@ export class QueryAnalysisService {
   }
 
   public async executeQueryTranslate(params: QueryTranslateIncomingRequest) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
 
@@ -119,7 +121,7 @@ export class QueryAnalysisService {
     params: QueryTranslateExplanationIncomingRequest,
     syncRequestId?: string,
   ) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
 
@@ -152,7 +154,7 @@ export class QueryAnalysisService {
     job_type: QueryAnalysisType,
     syncRequestId?: string,
   ) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
 
@@ -232,7 +234,7 @@ export class QueryAnalysisService {
     user_request: string;
     filePath?: string;
   }) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
     const dbtProject = this.queryManifestService.getProject();

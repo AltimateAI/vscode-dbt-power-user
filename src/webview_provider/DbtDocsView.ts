@@ -11,6 +11,7 @@ import {
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
 import { UsersService } from "../services/usersService";
+import { AltimateAuthService } from "../services/altimateAuthService";
 import { inject } from "inversify";
 
 @provideSingleton(DbtDocsView)
@@ -30,6 +31,7 @@ export class DbtDocsView extends AltimateWebviewProvider {
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
+    protected altimateAuthService: AltimateAuthService,
   ) {
     super(
       dbtProjectContainer,
@@ -39,6 +41,7 @@ export class DbtDocsView extends AltimateWebviewProvider {
       dbtTerminal,
       queryManifestService,
       usersService,
+      altimateAuthService,
     );
 
     const t = this;

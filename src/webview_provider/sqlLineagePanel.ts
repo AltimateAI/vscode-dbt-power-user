@@ -27,6 +27,7 @@ import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
 import { inject } from "inversify";
 import { RESOURCE_TYPE_SOURCE } from "../dbt_client/dbtIntegration";
+import { AltimateAuthService } from "../services/altimateAuthService";
 
 type SQLLineage = {
   tableEdges: [string, string][];
@@ -54,6 +55,7 @@ export class SQLLineagePanel
     protected queryManifestService: QueryManifestService,
     protected eventEmitterService: SharedStateService,
     protected usersService: UsersService,
+    protected altimateAuthService: AltimateAuthService,
   ) {
     super(
       dbtProjectContainer,
@@ -63,6 +65,7 @@ export class SQLLineagePanel
       terminal,
       queryManifestService,
       usersService,
+      altimateAuthService,
     );
     window.onDidChangeActiveColorTheme(
       async () => {

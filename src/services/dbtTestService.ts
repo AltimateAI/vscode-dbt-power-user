@@ -31,6 +31,7 @@ import { ExecuteSQLResult } from "../dbt_client/dbtIntegration";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
 import { inject } from "inversify";
+import { AltimateAuthService } from "./altimateAuthService";
 
 @provideSingleton(DbtTestService)
 export class DbtTestService {
@@ -42,6 +43,7 @@ export class DbtTestService {
     @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private telemetryService: TelemetryService,
+    private altimateAuthService: AltimateAuthService,
   ) {}
 
   // Remove duplicate tests from tests array
@@ -250,7 +252,7 @@ export class DbtTestService {
     },
     syncRequestId?: string,
   ) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
 
@@ -388,7 +390,7 @@ export class DbtTestService {
     project: DBTProject,
     panel: WebviewView | undefined,
   ) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
     return await window.withProgress(

@@ -32,6 +32,7 @@ import { UsersService } from "../services/usersService";
 import { NotebookFileSystemProvider } from "@lib";
 import { inject } from "inversify";
 import { DeferConfig } from "../dbt_client/dbtIntegration";
+import { AltimateAuthService } from "../services/altimateAuthService";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];
@@ -82,6 +83,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
     private validationProvider: ValidationProvider,
     protected usersService: UsersService,
     private notebookFileSystemProvider: NotebookFileSystemProvider,
+    protected altimateAuthService: AltimateAuthService,
   ) {
     super(
       dbtProjectContainer,
@@ -91,6 +93,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       dbtTerminal,
       queryManifestService,
       usersService,
+      altimateAuthService,
     );
 
     this._disposables.push(
@@ -276,7 +279,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
         return;
       }
 
-      if (!this.altimateRequest.handlePreviewFeatures()) {
+      if (!this.altimateAuthService.handlePreviewFeatures()) {
         this.projectIntegrations = [];
         if (syncRequestId) {
           this.sendResponseToWebview({
