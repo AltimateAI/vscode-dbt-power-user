@@ -11,6 +11,7 @@ import { CancellationTokenSource, env, Uri, window, workspace } from "vscode";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { ModelInfo } from "../altimate";
 import { AbortError } from "node-fetch";
+import { inject } from "inversify";
 
 export enum CllEvents {
   START = "start",
@@ -48,6 +49,7 @@ export class DbtLineageService {
   public constructor(
     private altimateRequest: AltimateRequest,
     protected telemetry: TelemetryService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private queryManifestService: QueryManifestService,
   ) {}

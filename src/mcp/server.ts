@@ -7,6 +7,7 @@ import { provideSingleton } from "../utils";
 import { DBTProject, DBTTerminal, TelemetryService } from "../modules";
 import { CommandProcessResult } from "../commandProcessExecution";
 import { McpTool } from "./types";
+import { inject } from "inversify";
 
 const ToolInputSchema = ToolSchema.shape.inputSchema;
 type ToolInput = z.infer<typeof ToolInputSchema>;
@@ -88,8 +89,8 @@ enum ToolName {
 export class DbtPowerUserMcpServerTools implements Disposable {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
-    private telemetry: TelemetryService,
   ) {}
 
   private tools: McpTool[] = [

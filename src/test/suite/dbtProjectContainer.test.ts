@@ -7,7 +7,7 @@ import {
   jest,
 } from "@jest/globals";
 import { DBTClient } from "../../dbt_client";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../../dbt_client/terminal";
 import { AltimateDatapilot } from "../../dbt_client/datapilot";
 import { AltimateRequest } from "../../altimate";
 import { DBTProjectContainer } from "../../manifest/dbtProjectContainer";

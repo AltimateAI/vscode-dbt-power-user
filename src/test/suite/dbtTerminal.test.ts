@@ -1,6 +1,7 @@
 import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
 import * as vscode from "vscode";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../../dbt_client/terminal";
+import { VSCodeDBTTerminal } from "../../dbt_client/vscodeTerminal";
 import { PythonException } from "python-bridge";
 
 // Set test environment
@@ -27,7 +28,7 @@ describe("DBTTerminal Test Suite", () => {
       sendTelemetryError: jest.fn(),
     };
 
-    terminal = new DBTTerminal(mockTelemetry);
+    terminal = new VSCodeDBTTerminal(mockTelemetry);
     // @ts-ignore - Manually set the output channel
     terminal.outputChannel = mockOutputChannel;
   });
@@ -257,7 +258,7 @@ describe("DBTTerminal Test Suite", () => {
       .mockReturnValue(mockTerminal as unknown as vscode.Terminal);
 
     // Create a new terminal instance
-    const newTerminal = new DBTTerminal(mockTelemetry);
+    const newTerminal = new VSCodeDBTTerminal(mockTelemetry);
     await newTerminal.show(true);
 
     // Verify terminal was created with correct parameters

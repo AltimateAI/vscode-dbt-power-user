@@ -9,7 +9,7 @@ import {
 } from "vscode";
 import { TelemetryService } from "../telemetry";
 import { generateMacroHoverMarkdown } from "./utils";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { QueryManifestService } from "../services/queryManifestService";
 import { provideSingleton } from "../utils";
 import {
@@ -19,6 +19,7 @@ import {
   NodeMetaMap,
   SourceMetaMap,
 } from "../domain";
+import { inject } from "inversify";
 
 @provideSingleton(MacroHoverProvider)
 export class MacroHoverProvider implements HoverProvider, Disposable {
@@ -26,6 +27,7 @@ export class MacroHoverProvider implements HoverProvider, Disposable {
 
   constructor(
     private telemetry: TelemetryService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private queryManifestService: QueryManifestService,
   ) {}

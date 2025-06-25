@@ -7,7 +7,7 @@ import {
   jest,
 } from "@jest/globals";
 import { TelemetryService } from "../../telemetry";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../../dbt_client/terminal";
 import { PythonEnvironment } from "../../manifest/pythonEnvironment";
 import { window, workspace, ConfigurationTarget } from "vscode";
 import { AltimateRequest } from "../../altimate";

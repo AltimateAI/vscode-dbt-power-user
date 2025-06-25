@@ -18,7 +18,7 @@ import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { LineagePanelView } from "./lineagePanel";
 import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { AltimateWebviewProvider } from "./altimateWebviewProvider";
 import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
@@ -28,6 +28,7 @@ import {
   DbtLineageService,
   Table,
 } from "../services/dbtLineageService";
+import { inject } from "inversify";
 
 class DerivedCancellationTokenSource extends CancellationTokenSource {
   constructor(linkedToken: CancellationToken) {
@@ -52,6 +53,7 @@ export class NewLineagePanel
     protected dbtProjectContainer: DBTProjectContainer,
     private altimate: AltimateRequest,
     protected telemetry: TelemetryService,
+    @inject("DBTTerminal")
     private terminal: DBTTerminal,
     private dbtLineageService: DbtLineageService,
     eventEmitterService: SharedStateService,

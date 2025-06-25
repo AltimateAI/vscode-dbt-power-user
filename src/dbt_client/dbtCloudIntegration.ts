@@ -21,7 +21,7 @@ import { AltimateRequest, ValidateSqlParseErrorResponse } from "../altimate";
 import path = require("path");
 import { DBTProject, DeferConfig } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
-import { DBTTerminal } from "./dbtTerminal";
+import { DBTTerminal } from "./terminal";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync, readFileSync } from "fs";
 import { ValidationProvider } from "../validation_provider";

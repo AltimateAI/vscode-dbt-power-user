@@ -24,13 +24,14 @@ import {
   NotFoundError,
 } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { DeferToProdService } from "../services/deferToProdService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { ValidationProvider } from "../validation_provider";
 import { UsersService } from "../services/usersService";
 import { NotebookFileSystemProvider } from "@lib";
 import { DeferConfig } from "../manifest/dbtProject";
+import { inject } from "inversify";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];
@@ -74,6 +75,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
     protected altimateRequest: AltimateRequest,
     protected telemetry: TelemetryService,
     protected emitterService: SharedStateService,
+    @inject("DBTTerminal")
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     private deferToProdService: DeferToProdService,

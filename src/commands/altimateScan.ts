@@ -14,7 +14,8 @@ import { MissingSchemaTest } from "./tests/missingSchemaTest";
 import { UnmaterializedModelTest } from "./tests/unmaterializedModelTest";
 import { ScanContext } from "./tests/scanContext";
 import { AltimateScanStep } from "./tests/step";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
+import { inject } from "inversify";
 
 @provideSingleton(AltimateScan)
 export class AltimateScan {
@@ -31,6 +32,7 @@ export class AltimateScan {
     private undocumentedModelColumnTest: UndocumentedModelColumnTest,
     private unmaterializedModelTest: UnmaterializedModelTest,
     private staleModelColumnTest: StaleModelColumnTest,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>

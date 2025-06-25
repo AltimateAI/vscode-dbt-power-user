@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "fs";
-import { inject, postConstruct } from "inversify";
+import { inject } from "inversify";
 import * as path from "path";
 import {
   Diagnostic,
@@ -23,7 +23,7 @@ import { TelemetryService } from "../telemetry";
 import { YAMLError } from "yaml";
 import { ProjectRegisteredUnregisteredEvent } from "./dbtProjectContainer";
 
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { DBTProjectDetection } from "src/dbt_client/dbtIntegration";
 
 export class DBTWorkspaceFolder implements Disposable {
@@ -36,7 +36,6 @@ export class DBTWorkspaceFolder implements Disposable {
     new EventEmitter<RebuildManifestStatusChange>();
   readonly onRebuildManifestStatusChange =
     this._onRebuildManifestStatusChange.event;
-  private dbtProjectDetection: DBTProjectDetection | undefined;
 
   constructor(
     @inject("DBTProjectFactory")
@@ -48,6 +47,7 @@ export class DBTWorkspaceFolder implements Disposable {
     @inject("Factory<DBTProjectDetection>")
     private dbtProjectDetectionFactory: () => DBTProjectDetection,
     private telemetry: TelemetryService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     public workspaceFolder: WorkspaceFolder,
     private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,

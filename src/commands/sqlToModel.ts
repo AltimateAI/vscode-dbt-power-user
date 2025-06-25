@@ -1,5 +1,5 @@
 import { AltimateRequest } from "../altimate";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
@@ -9,6 +9,7 @@ import { TelemetryService } from "../telemetry";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { Position, ProgressLocation, Range, window } from "vscode";
 import * as path from "path";
+import { inject } from "inversify";
 
 @provideSingleton(SqlToModel)
 export class SqlToModel {
@@ -17,6 +18,7 @@ export class SqlToModel {
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
     private altimate: AltimateRequest,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>

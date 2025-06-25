@@ -12,7 +12,7 @@ import { ValidationProvider } from "../../validation_provider";
 import { NoCredentialsError, AltimateRequest } from "../../altimate";
 import { ManifestCacheChangedEvent } from "../../manifest/event/manifestCacheChangedEvent";
 import { DBTCommand } from "../../dbt_client/dbtIntegration";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../../dbt_client/terminal";
 import { TelemetryService } from "../../telemetry";
 
 describe("DbtProject Test Suite", () => {

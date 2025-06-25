@@ -1,10 +1,11 @@
 import { Disposable, workspace, extensions, ConfigurationTarget } from "vscode";
 import { provideSingleton } from "../utils";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { DbtPowerUserMcpServerTools } from "./server";
 import { AltimateRequest } from "../modules";
 import { ToolRegistry } from "./types";
 import { SharedStateService } from "../services/sharedStateService";
+import { inject } from "inversify";
 
 @provideSingleton(DbtPowerUserMcpServer)
 export class DbtPowerUserMcpServer implements Disposable {
@@ -13,6 +14,7 @@ export class DbtPowerUserMcpServer implements Disposable {
 
   constructor(
     private dbtPowerUserMcpServerTools: DbtPowerUserMcpServerTools,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private altimate: AltimateRequest,
     private eventEmitter: SharedStateService,

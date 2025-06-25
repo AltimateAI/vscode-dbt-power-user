@@ -2,10 +2,10 @@ import { provide } from "inversify-binding-decorators";
 import { NodeMetaData, NodeMetaMap } from "../../domain";
 import { DBTProject } from "../dbtProject";
 import { createFullPathForNode } from ".";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../../dbt_client/terminal";
 import { getExternalProjectNamesFromDbtLoomConfig } from "../../utils";
 import * as path from "path";
-import { basename } from "path";
+import { inject } from "inversify";
 
 export class NodeMetaMapImpl implements NodeMetaMap {
   constructor(
@@ -37,7 +37,10 @@ export class NodeMetaMapImpl implements NodeMetaMap {
 
 @provide(NodeParser)
 export class NodeParser {
-  constructor(private terminal: DBTTerminal) {}
+  constructor(
+    @inject("DBTTerminal")
+    private terminal: DBTTerminal,
+  ) {}
 
   createNodeMetaMap(
     nodesMap: any[],

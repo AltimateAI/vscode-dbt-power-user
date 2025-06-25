@@ -10,7 +10,7 @@ import {
   window,
 } from "vscode";
 import { AltimateRequest, DocsGenerateResponse } from "../altimate";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { RateLimitException } from "../exceptions";
 import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -27,6 +27,7 @@ import {
 } from "../webview_provider/docsEditPanel";
 import { QueryManifestService } from "./queryManifestService";
 import { TelemetryEvents } from "../telemetry/events";
+import { inject } from "inversify";
 
 export interface DocumentationSchemaColumn {
   name: string;
@@ -80,6 +81,7 @@ export class DocGenService {
     protected dbtProjectContainer: DBTProjectContainer,
     protected telemetry: TelemetryService,
     private queryManifestService: QueryManifestService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {}
 

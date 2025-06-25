@@ -1,6 +1,6 @@
 import { ViewColumn, WebviewPanel, window } from "vscode";
 import { AltimateRequest } from "../altimate";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
@@ -11,6 +11,7 @@ import {
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
 import { UsersService } from "../services/usersService";
+import { inject } from "inversify";
 
 @provideSingleton(DbtDocsView)
 export class DbtDocsView extends AltimateWebviewProvider {
@@ -25,6 +26,7 @@ export class DbtDocsView extends AltimateWebviewProvider {
     protected altimateRequest: AltimateRequest,
     protected telemetry: TelemetryService,
     protected emitterService: SharedStateService,
+    @inject("DBTTerminal")
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,

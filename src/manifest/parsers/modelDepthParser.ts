@@ -1,12 +1,14 @@
 import { provide } from "inversify-binding-decorators";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../../dbt_client/terminal";
 import { DBTGraphType } from "./graphParser";
 import { AltimateRequest } from "../../altimate";
 import { workspace } from "vscode";
+import { inject } from "inversify";
 
 @provide(ModelDepthParser)
 export class ModelDepthParser {
   constructor(
+    @inject("DBTTerminal")
     private terminal: DBTTerminal,
     private altimate: AltimateRequest,
   ) {}

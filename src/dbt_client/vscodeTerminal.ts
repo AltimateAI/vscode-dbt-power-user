@@ -1,10 +1,12 @@
 import { Disposable, EventEmitter, Terminal, window } from "vscode";
-import { provideSingleton, stripANSI } from "../utils";
+import { injectable } from "inversify";
+import { stripANSI } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { PythonException } from "python-bridge";
+import { DBTTerminal } from "./terminal";
 
-@provideSingleton(DBTTerminal)
-export class DBTTerminal {
+@injectable()
+export class VSCodeDBTTerminal implements DBTTerminal {
   private disposables: Disposable[] = [];
   private terminal?: Terminal;
   private readonly writeEmitter = new EventEmitter<string>();

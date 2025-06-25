@@ -44,7 +44,7 @@ import {
   DocumentationSchema,
   DocumentationSchemaColumn,
 } from "../services/docGenService";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import {
   TestMetaData,
   TestMetadataAcceptedValues,
@@ -55,6 +55,7 @@ import { gte } from "semver";
 import { TelemetryEvents } from "../telemetry/events";
 import { SendMessageProps } from "./altimateWebviewProvider";
 import { DbtLineageService, Table } from "../services/dbtLineageService";
+import { inject } from "inversify";
 
 export enum Source {
   YAML = "YAML",
@@ -117,6 +118,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     private newDocsPanel: NewDocsGenPanel,
     private docGenService: DocGenService,
     private dbtTestService: DbtTestService,
+    @inject("DBTTerminal")
     private terminal: DBTTerminal,
     private dbtLineageService: DbtLineageService,
   ) {

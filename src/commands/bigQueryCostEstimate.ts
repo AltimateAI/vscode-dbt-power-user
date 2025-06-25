@@ -1,15 +1,17 @@
 import { window } from "vscode";
 import path = require("path");
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { TelemetryService } from "../telemetry";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { PythonException } from "python-bridge";
+import { inject } from "inversify";
 
 @provideSingleton(BigQueryCostEstimate)
 export class BigQueryCostEstimate {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private telemetry: TelemetryService,
   ) {}

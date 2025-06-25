@@ -1,11 +1,8 @@
-import { DBTTerminal } from "../../modules";
 import { provide } from "inversify-binding-decorators";
 import { DBTGraphType } from "./graphParser";
 
 @provide(ChildrenParentParser)
 export class ChildrenParentParser {
-  constructor(private terminal: DBTTerminal) {}
-
   createChildrenParentMetaMap(
     nodesMap: any[],
   ): Promise<{ parentMetaMap: DBTGraphType; childMetaMap: DBTGraphType }> {

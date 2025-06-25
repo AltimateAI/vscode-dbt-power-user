@@ -36,11 +36,12 @@ import {
   SendMessageProps,
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { QueryManifestService } from "../services/queryManifestService";
 import { UsersService } from "../services/usersService";
 import { TelemetryEvents } from "../telemetry/events";
 import path = require("path");
+import { inject } from "inversify";
 
 interface JsonObj {
   [key: string]: string | number | undefined;
@@ -154,6 +155,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     protected telemetry: TelemetryService,
     private altimate: AltimateRequest,
     private eventEmitterService: SharedStateService,
+    @inject("DBTTerminal")
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,

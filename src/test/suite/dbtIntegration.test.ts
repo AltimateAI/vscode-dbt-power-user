@@ -8,7 +8,7 @@ import {
   CommandProcessExecutionFactory,
 } from "../../commandProcessExecution";
 import { PythonEnvironment } from "../../manifest/pythonEnvironment";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../../dbt_client/terminal";
 import { TelemetryService } from "../../telemetry";
 
 describe("CLIDBTCommandExecutionStrategy Tests", () => {

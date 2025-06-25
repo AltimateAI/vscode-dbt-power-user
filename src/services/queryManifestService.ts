@@ -1,5 +1,5 @@
 import { TextDocument, Uri, window } from "vscode";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
@@ -9,6 +9,7 @@ import {
 import { provideSingleton } from "../utils";
 import { SharedStateService } from "./sharedStateService";
 import { ProjectQuickPick } from "../quickpick/projectQuickPick";
+import { inject } from "inversify";
 
 @provideSingleton(QueryManifestService)
 export class QueryManifestService {
@@ -16,6 +17,7 @@ export class QueryManifestService {
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     protected emitterService: SharedStateService,
     private projectQuickPick: ProjectQuickPick,

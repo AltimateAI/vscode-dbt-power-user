@@ -12,7 +12,7 @@ import {
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync } from "fs";
 import { TelemetryService } from "../telemetry";
-import { DBTTerminal } from "./dbtTerminal";
+import { DBTTerminal } from "./terminal";
 import {
   AltimateRequest,
   NoCredentialsError,
@@ -23,6 +23,7 @@ import { NodeMetaData } from "../domain";
 import { DBTDiagnosticResult } from "./diagnostics";
 import { DBTConfiguration } from "./configuration";
 import { DeferConfig } from "../manifest/dbtProject";
+import { inject } from "inversify";
 
 interface DBTCommandExecution {
   command: (signal?: AbortSignal) => Promise<void>;
@@ -396,6 +397,7 @@ export class DBTCommandExecutionInfrastructure {
     private pythonEnvironment: PythonEnvironment,
     private telemetry: TelemetryService,
     private altimate: AltimateRequest,
+    @inject("DBTTerminal")
     private terminal: DBTTerminal,
   ) {}
 

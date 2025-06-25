@@ -11,7 +11,8 @@ import { TelemetryService } from "../telemetry";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
+import { inject } from "inversify";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -31,6 +32,7 @@ export class WalkthroughCommands {
     private telemetry: TelemetryService,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
     private pythonEnvironment: PythonEnvironment,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {}
 

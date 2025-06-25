@@ -24,10 +24,11 @@ import {
   QueryTranslateIncomingRequest,
 } from "../services/queryAnalysisService";
 import { QueryManifestService } from "../services/queryManifestService";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { DbtTestService } from "../services/dbtTestService";
 import { FileService } from "../services/fileService";
 import { UsersService } from "../services/usersService";
+import { inject } from "inversify";
 
 @provideSingleton(DataPilotPanel)
 export class DataPilotPanel extends AltimateWebviewProvider {
@@ -44,6 +45,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     protected emitterService: SharedStateService,
     protected queryAnalysisService: QueryAnalysisService,
     protected queryManifestService: QueryManifestService,
+    @inject("DBTTerminal")
     protected dbtTerminal: DBTTerminal,
     private dbtTestService: DbtTestService,
     private fileService: FileService,

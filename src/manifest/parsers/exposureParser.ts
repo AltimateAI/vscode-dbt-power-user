@@ -2,11 +2,15 @@ import { provide } from "inversify-binding-decorators";
 import * as path from "path";
 import { ExposureMetaMap } from "../../domain";
 import { DBTProject } from "../dbtProject";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../../dbt_client/terminal";
+import { inject } from "inversify";
 
 @provide(ExposureParser)
 export class ExposureParser {
-  constructor(private terminal: DBTTerminal) {}
+  constructor(
+    @inject("DBTTerminal")
+    private terminal: DBTTerminal,
+  ) {}
 
   createExposureMetaMap(
     exposuresMap: any[],

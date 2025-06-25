@@ -16,7 +16,8 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
+import { inject } from "inversify";
 
 @provideSingleton(ModelDefinitionProvider)
 export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
@@ -28,6 +29,7 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {
     this.disposables.push(

@@ -4,9 +4,10 @@ import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { QueryManifestService } from "./queryManifestService";
 import { DBTProject } from "../manifest/dbtProject";
 import path = require("path");
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { AltimateRequest, ConversationGroup, SharedDoc } from "../altimate";
 import { rmSync } from "fs";
+import { inject } from "inversify";
 
 @provideSingleton(ConversationService)
 export class ConversationService {
@@ -19,6 +20,7 @@ export class ConversationService {
 
   public constructor(
     private queryManifestService: QueryManifestService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private altimateRequest: AltimateRequest,
   ) {}

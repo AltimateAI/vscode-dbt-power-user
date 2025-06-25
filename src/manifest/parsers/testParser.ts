@@ -2,11 +2,15 @@ import { provide } from "inversify-binding-decorators";
 import * as path from "path";
 import { TestMetaMap } from "../../domain";
 import { DBTProject } from "../dbtProject";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../../dbt_client/terminal";
+import { inject } from "inversify";
 
 @provide(TestParser)
 export class TestParser {
-  constructor(private terminal: DBTTerminal) {}
+  constructor(
+    @inject("DBTTerminal")
+    private terminal: DBTTerminal,
+  ) {}
 
   private getColumnNameWithoutQuotes(columnName: string): string | undefined {
     if (!columnName) {

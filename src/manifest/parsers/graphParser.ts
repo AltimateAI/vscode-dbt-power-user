@@ -17,8 +17,9 @@ import {
   TestMetaMap,
 } from "../../domain";
 import { notEmpty } from "../../utils";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../../dbt_client/terminal";
 import { DBTProject } from "../dbtProject";
+import { inject } from "inversify";
 
 export type DBTGraphType = {
   [name: string]: string[];
@@ -26,7 +27,10 @@ export type DBTGraphType = {
 
 @provide(GraphParser)
 export class GraphParser {
-  constructor(private terminal: DBTTerminal) {}
+  constructor(
+    @inject("DBTTerminal")
+    private terminal: DBTTerminal,
+  ) {}
 
   createGraphMetaMap(
     project: DBTProject,

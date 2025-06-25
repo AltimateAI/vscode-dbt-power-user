@@ -34,7 +34,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { ValidateSql } from "./validateSql";
 import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { SharedStateService } from "../services/sharedStateService";
 import {
   ConversationProvider,
@@ -50,6 +50,7 @@ import { AltimateRequest } from "../altimate";
 import { DatapilotNotebookController, OpenNotebookRequest } from "@lib";
 import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
 import { CteInfo } from "../code_lens_provider/cteCodeLensProvider";
+import { inject } from "inversify";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -63,6 +64,7 @@ export class VSCodeCommands implements Disposable {
     private altimateScan: AltimateScan,
     private walkthroughCommands: WalkthroughCommands,
     private bigQueryCostEstimate: BigQueryCostEstimate,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private eventEmitterService: SharedStateService,
     private conversationController: ConversationProvider,

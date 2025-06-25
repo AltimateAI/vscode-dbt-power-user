@@ -1,7 +1,8 @@
 import { getFirstWorkspacePath, provideSingleton } from "../utils";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
-import { DBTTerminal } from "./dbtTerminal";
+import { DBTTerminal } from "./terminal";
+import { inject } from "inversify";
 
 @provideSingleton(AltimateDatapilot)
 export class AltimateDatapilot {
@@ -9,6 +10,7 @@ export class AltimateDatapilot {
   constructor(
     private pythonEnvironment: PythonEnvironment,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {}
 

@@ -2,7 +2,7 @@ import { readFileSync } from "fs";
 import { provide } from "inversify-binding-decorators";
 import * as path from "path";
 import { Uri } from "vscode";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../../dbt_client/terminal";
 import { DBTProject } from "../dbtProject";
 import { ManifestCacheChangedEvent } from "../event/manifestCacheChangedEvent";
 import { DocParser } from "./docParser";
@@ -17,6 +17,7 @@ import { MetricParser } from "./metricParser";
 import { ChildrenParentParser } from "./childrenParentParser";
 import { ModelDepthParser } from "./modelDepthParser";
 import { createFullPathForNode } from "./utils";
+import { inject } from "inversify";
 
 @provide(ManifestParser)
 export class ManifestParser {
@@ -33,6 +34,7 @@ export class ManifestParser {
     private testParser: TestParser,
     private exposureParser: ExposureParser,
     private docParser: DocParser,
+    @inject("DBTTerminal")
     private terminal: DBTTerminal,
     private telemetry: TelemetryService,
     private modelDepthParser: ModelDepthParser,

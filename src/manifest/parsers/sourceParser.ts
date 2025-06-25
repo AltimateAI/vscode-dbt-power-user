@@ -1,13 +1,17 @@
 import { provide } from "inversify-binding-decorators";
 import * as path from "path";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../../dbt_client/terminal";
 import { SourceMetaMap } from "../../domain";
 import { DBTProject } from "../dbtProject";
 import { getExternalProjectNamesFromDbtLoomConfig } from "../../utils";
+import { inject } from "inversify";
 
 @provide(SourceParser)
 export class SourceParser {
-  constructor(private terminal: DBTTerminal) {}
+  constructor(
+    @inject("DBTTerminal")
+    private terminal: DBTTerminal,
+  ) {}
 
   createSourceMetaMap(
     sourcesMap: any[],

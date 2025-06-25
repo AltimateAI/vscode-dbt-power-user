@@ -1,9 +1,10 @@
 import { Disposable } from "vscode";
 import { AltimateRequest, TenantUser } from "../altimate";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { DBTInstallationVerificationEvent } from "../dbt_client/dbtVersionEvent";
+import { inject } from "inversify";
 
 /**
  * Service to load and store users in tenant and current user
@@ -18,6 +19,7 @@ export class UsersService implements Disposable {
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private altimateRequest: AltimateRequest,
   ) {

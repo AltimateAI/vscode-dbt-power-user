@@ -20,7 +20,8 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { ModelGraphViewPanel } from "./modelGraphViewPanel";
 import { NewLineagePanel } from "./newLineagePanel";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
+import { inject } from "inversify";
 
 export interface LineagePanelView extends WebviewViewProvider {
   init(): void;
@@ -45,6 +46,7 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     private legacyLineagePanel: ModelGraphViewPanel,
     dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {
     this.disposables.push(

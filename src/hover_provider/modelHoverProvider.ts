@@ -16,8 +16,9 @@ import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChange
 import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { generateHoverMarkdownString } from "./utils";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { DBTProject } from "../manifest/dbtProject";
+import { inject } from "inversify";
 
 @provideSingleton(ModelHoverProvider)
 export class ModelHoverProvider implements HoverProvider, Disposable {
@@ -29,6 +30,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {
     this.disposables.push(

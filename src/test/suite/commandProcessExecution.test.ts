@@ -1,6 +1,7 @@
 import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
 import { mock, instance, when, anything, verify } from "ts-mockito";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../../dbt_client/terminal";
+import { VSCodeDBTTerminal } from "../../dbt_client/vscodeTerminal";
 import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
@@ -17,7 +18,7 @@ describe("CommandProcessExecution Tests", () => {
   let testDir: string;
 
   beforeEach(() => {
-    mockTerminal = mock(DBTTerminal);
+    mockTerminal = mock(VSCodeDBTTerminal);
     when(mockTerminal.debug(anything(), anything(), anything())).thenReturn();
     factory = new CommandProcessExecutionFactory(instance(mockTerminal));
     testDir = path.join(

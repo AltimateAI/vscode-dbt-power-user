@@ -23,11 +23,12 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { AltimateRequest, UserInputError } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { QueryManifestService } from "../services/queryManifestService";
 import { PythonException } from "python-bridge";
 import { UsersService } from "../services/usersService";
 import { NotebookSchema } from "@lib";
+import { inject } from "inversify";
 
 export type UpdateConfigProps = {
   key: string;
@@ -74,6 +75,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     protected altimateRequest: AltimateRequest,
     protected telemetry: TelemetryService,
     protected emitterService: SharedStateService,
+    @inject("DBTTerminal")
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,

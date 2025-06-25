@@ -16,7 +16,7 @@ import { DocGenService } from "./docGenService";
 import { StreamingService } from "./streamingService";
 import { QueryManifestService } from "./queryManifestService";
 import path = require("path");
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import {
   MacroMetaMap,
   TestMetaData,
@@ -30,6 +30,7 @@ import { getTestSuggestions } from "@lib";
 import { ExecuteSQLResult } from "../dbt_client/dbtIntegration";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
+import { inject } from "inversify";
 
 @provideSingleton(DbtTestService)
 export class DbtTestService {
@@ -38,6 +39,7 @@ export class DbtTestService {
     private streamingService: StreamingService,
     private altimateRequest: AltimateRequest,
     private queryManifestService: QueryManifestService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private telemetryService: TelemetryService,
   ) {}

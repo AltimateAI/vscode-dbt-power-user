@@ -11,13 +11,15 @@ import { DBTProject } from "../dbtProject";
 import { ManifestCacheChangedEvent } from "../event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 import { ManifestParser } from "../parsers";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../../dbt_client/terminal";
 import { RunResultsEvent } from "../event/runResultsEvent";
+import { inject } from "inversify";
 
 @provideSingleton(TargetWatchersFactory)
 export class TargetWatchersFactory {
   constructor(
     private manifestParser: ManifestParser,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {}
 
@@ -52,6 +54,7 @@ export class TargetWatchers implements Disposable {
     _onRunResults: EventEmitter<RunResultsEvent>,
     onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
     private manifestParser: ManifestParser,
+    @inject("DBTTerminal")
     private terminal: DBTTerminal,
   ) {
     this._onManifestChanged = _onManifestChanged;

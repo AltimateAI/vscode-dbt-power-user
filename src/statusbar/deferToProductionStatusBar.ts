@@ -10,7 +10,8 @@ import {
 import { DeferToProdService } from "../services/deferToProdService";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
+import { inject } from "inversify";
 
 @provideSingleton(DeferToProductionStatusBar)
 export class DeferToProductionStatusBar implements Disposable {
@@ -23,6 +24,7 @@ export class DeferToProductionStatusBar implements Disposable {
   constructor(
     private deferToProdService: DeferToProdService,
     private dbtProjectContainer: DBTProjectContainer,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {
     this.disposables.push(

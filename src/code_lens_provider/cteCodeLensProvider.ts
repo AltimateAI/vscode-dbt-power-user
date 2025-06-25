@@ -7,8 +7,9 @@ import {
   TextDocument,
   Disposable,
 } from "vscode";
+import { inject } from "inversify";
 import { provideSingleton } from "../utils";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { AltimateRequest } from "../altimate";
 
 export interface CteInfo {
@@ -24,6 +25,7 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
   private disposables: Disposable[] = [];
 
   constructor(
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private altimate: AltimateRequest,
   ) {}

@@ -17,7 +17,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import * as crypto from "crypto";
 import { DBTProject } from "../manifest/dbtProject";
 import { NodeMetaData, SourceTable } from "../domain";
@@ -25,6 +25,7 @@ import { QueryManifestService } from "../services/queryManifestService";
 import { AltimateWebviewProvider } from "./altimateWebviewProvider";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
+import { inject } from "inversify";
 
 type SQLLineage = {
   tableEdges: [string, string][];
@@ -47,6 +48,7 @@ export class SQLLineagePanel
     protected dbtProjectContainer: DBTProjectContainer,
     protected altimate: AltimateRequest,
     protected telemetry: TelemetryService,
+    @inject("DBTTerminal")
     protected terminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     protected eventEmitterService: SharedStateService,

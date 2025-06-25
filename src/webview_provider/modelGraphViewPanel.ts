@@ -15,7 +15,8 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { LineagePanelView } from "./lineagePanel";
 import { provideSingleton } from "../utils";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
+import { inject } from "inversify";
 
 interface G6DataModel {
   nodes: {
@@ -73,6 +74,7 @@ export class ModelGraphViewPanel implements LineagePanelView {
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {}
 

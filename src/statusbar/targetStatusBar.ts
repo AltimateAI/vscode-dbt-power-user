@@ -7,8 +7,8 @@ import {
 } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { QueryManifestService } from "../modules";
+import { DBTTerminal } from "../dbt_client/terminal";
+import { inject } from "inversify";
 
 @provideSingleton(TargetStatusBar)
 export class TargetStatusBar implements Disposable {
@@ -20,8 +20,8 @@ export class TargetStatusBar implements Disposable {
 
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
-    private queryManifestService: QueryManifestService,
   ) {
     this.disposables.push(
       window.onDidChangeActiveTextEditor(

@@ -11,8 +11,9 @@ import { provideSingleton } from "../utils";
 import { QueryManifestService } from "./queryManifestService";
 import { DocGenService } from "./docGenService";
 import { StreamingService } from "./streamingService";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { FileService } from "./fileService";
+import { inject } from "inversify";
 
 export interface QueryTranslateIncomingRequest {
   source?: string;
@@ -34,6 +35,7 @@ export class QueryAnalysisService {
     private streamingService: StreamingService,
     private altimateRequest: AltimateRequest,
     private queryManifestService: QueryManifestService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private fileService: FileService,
   ) {}

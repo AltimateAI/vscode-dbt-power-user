@@ -39,7 +39,7 @@ import {
   ValidateSqlParseErrorResponse,
 } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { DBTTerminal } from "./dbtTerminal";
+import { DBTTerminal } from "./terminal";
 import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
 import { NodeMetaData } from "../domain";

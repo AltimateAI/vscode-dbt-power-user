@@ -19,7 +19,7 @@ import {
   ManifestCacheChangedEvent,
   RebuildManifestCombinedStatusChange,
 } from "./event/manifestCacheChangedEvent";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 import { AltimateDatapilot } from "../dbt_client/datapilot";
 import { AltimateRequest } from "../altimate";
@@ -72,6 +72,7 @@ export class DBTProjectContainer implements Disposable {
       pythonPath?: string,
       envVars?: EnvironmentVariables,
     ) => DBTWorkspaceFolder,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private altimateDatapilot: AltimateDatapilot,
     private altimate: AltimateRequest,

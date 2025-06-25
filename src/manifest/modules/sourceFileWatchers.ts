@@ -9,12 +9,16 @@ import {
 } from "vscode";
 import { arrayEquals, debounce, provideSingleton } from "../../utils";
 import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../../dbt_client/terminal";
+import { inject } from "inversify";
 
 // TODO: should use inversify Factory
 @provideSingleton(SourceFileWatchersFactory)
 export class SourceFileWatchersFactory {
-  constructor(private terminal: DBTTerminal) {}
+  constructor(
+    @inject("DBTTerminal")
+    private terminal: DBTTerminal,
+  ) {}
 
   createSourceFileWatchers(
     onProjectConfigChanged: Event<ProjectConfigChangedEvent>,

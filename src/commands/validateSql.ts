@@ -28,7 +28,8 @@ import {
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { PythonException } from "python-bridge";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
+import { inject } from "inversify";
 
 @provideSingleton(ValidateSql)
 export class ValidateSql {
@@ -38,6 +39,7 @@ export class ValidateSql {
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
     private altimate: AltimateRequest,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>

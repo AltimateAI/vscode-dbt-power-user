@@ -9,7 +9,7 @@ import {
   workspace,
 } from "vscode";
 import { AltimateRequest } from "../altimate";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTTerminal } from "../dbt_client/terminal";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { QueryManifestService } from "../services/queryManifestService";
@@ -29,6 +29,7 @@ import { UsersService } from "../services/usersService";
 import { ConversationProvider } from "../comment_provider/conversationProvider";
 import { DbtDocsView } from "./DbtDocsView";
 import { ConversationService } from "../services/conversationService";
+import { inject } from "inversify";
 
 @provideSingleton(NewDocsGenPanel)
 export class NewDocsGenPanel
@@ -46,6 +47,7 @@ export class NewDocsGenPanel
     private docGenService: DocGenService,
     protected emitterService: SharedStateService,
     protected queryManifestService: QueryManifestService,
+    @inject("DBTTerminal")
     protected dbtTerminal: DBTTerminal,
     private dbtTestService: DbtTestService,
     protected userService: UsersService,
