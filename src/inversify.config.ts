@@ -404,7 +404,6 @@ container
         container.get("DBTTerminal"),
         container.get(ValidationProvider),
         container.get(DeferToProdService),
-        container.get(AltimateRequest),
         projectRoot,
         deferConfig,
       );
@@ -430,7 +429,6 @@ container
         container.get("DBTTerminal"),
         container.get(ValidationProvider),
         container.get(DeferToProdService),
-        container.get(AltimateRequest),
         projectRoot.fsPath,
         deferConfig,
       );

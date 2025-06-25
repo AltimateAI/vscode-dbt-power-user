@@ -166,7 +166,6 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
     protected terminal: DBTTerminal,
     private validationProvider: ValidationProvider,
     private deferToProdService: DeferToProdService,
-    private altimateRequest: AltimateRequest,
     protected projectRoot: string,
     private deferConfig: DeferConfig,
   ) {
