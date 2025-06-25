@@ -59,6 +59,9 @@ export class DbtDocumentFormattingEditProvider
     try {
       // try to find sqlfmt on PATH if not set
       const sqlFmtPath = sqlFmtPathSetting || (await this.findSqlFmtPath());
+      if (!sqlFmtPath) {
+        throw new Error("sqlfmt not found");
+      }
       this.telemetry.sendTelemetryEvent("formatDbtModel", {
         sqlFmtPath: sqlFmtPathSetting ? "setting" : "path",
       });

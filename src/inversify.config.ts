@@ -4,16 +4,14 @@ import { EventEmitter, Uri, workspace, WorkspaceFolder } from "vscode";
 import { VSCodeDBTTerminal } from "./dbt_client/vscodeTerminal";
 import { DBTDiagnosticData } from "./dbt_client/diagnostics";
 import { DBTProject } from "./manifest/dbtProject";
-import {
-  DBTProjectContainer,
-  ProjectRegisteredUnregisteredEvent,
-} from "./manifest/dbtProjectContainer";
+import { ProjectRegisteredUnregisteredEvent } from "./manifest/dbtProjectContainer";
 import { DBTWorkspaceFolder } from "./manifest/dbtWorkspaceFolder";
 import { ManifestCacheChangedEvent } from "./manifest/event/manifestCacheChangedEvent";
 import { DBTProjectLogFactory } from "./manifest/modules/dbtProjectLog";
 import { SourceFileWatchersFactory } from "./manifest/modules/sourceFileWatchers";
 import { TargetWatchersFactory } from "./manifest/modules/targetWatchers";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
+import { VSCodePythonEnvironment } from "./manifest/vscodePythonEnvironment";
 import { TelemetryService } from "./telemetry";
 import {
   DBTCoreDetection,
@@ -75,7 +73,7 @@ container
   .toDynamicValue((context) => {
     return new PythonDBTCommandExecutionStrategy(
       context.container.get(CommandProcessExecutionFactory),
-      context.container.get(PythonEnvironment),
+      context.container.get("PythonEnvironment"),
       context.container.get("DBTTerminal"),
       context.container.get("DBTConfiguration"),
     );
@@ -84,7 +82,7 @@ container
 
 container.bind(DBTCommandExecutionInfrastructure).toDynamicValue((context) => {
   return new DBTCommandExecutionInfrastructure(
-    context.container.get(PythonEnvironment),
+    context.container.get("PythonEnvironment"),
     context.container.get("DBTTerminal"),
   );
 });
@@ -101,7 +99,7 @@ container
   .bind(DBTCoreDetection)
   .toDynamicValue((context) => {
     return new DBTCoreDetection(
-      context.container.get(PythonEnvironment),
+      context.container.get("PythonEnvironment"),
       context.container.get(CommandProcessExecutionFactory),
     );
   })
@@ -134,7 +132,7 @@ container
   .toDynamicValue((context) => {
     return new DBTCloudDetection(
       context.container.get(CommandProcessExecutionFactory),
-      context.container.get(PythonEnvironment),
+      context.container.get("PythonEnvironment"),
       context.container.get("DBTTerminal"),
     );
   })
@@ -164,7 +162,7 @@ container
   .toDynamicValue((context) => {
     return new DBTFusionCommandDetection(
       context.container.get(CommandProcessExecutionFactory),
-      context.container.get(PythonEnvironment),
+      context.container.get("PythonEnvironment"),
       context.container.get("DBTTerminal"),
       context.container.get("DBTConfiguration"),
     );
@@ -194,7 +192,7 @@ container
   .bind(DBTCoreCommandDetection)
   .toDynamicValue((context) => {
     return new DBTCoreCommandDetection(
-      context.container.get(PythonEnvironment),
+      context.container.get("PythonEnvironment"),
       context.container.get(CommandProcessExecutionFactory),
     );
   })
@@ -233,6 +231,12 @@ container
   .to(VSCodeDBTTerminal)
   .inSingletonScope();
 
+// Bind PythonEnvironment
+container
+  .bind<PythonEnvironment>("PythonEnvironment")
+  .to(VSCodePythonEnvironment)
+  .inSingletonScope();
+
 // Bind CommandProcessExecutionFactory
 container
   .bind(CommandProcessExecutionFactory)
@@ -250,7 +254,7 @@ container
     return new AltimateRequest(
       context.container.get(TelemetryService),
       context.container.get("DBTTerminal"),
-      context.container.get(PythonEnvironment),
+      context.container.get("PythonEnvironment"),
     );
   })
   .inSingletonScope();
@@ -337,7 +341,7 @@ container
       const { container } = context;
       return new CLIDBTCommandExecutionStrategy(
         container.get(CommandProcessExecutionFactory),
-        container.get(PythonEnvironment),
+        container.get("PythonEnvironment"),
         container.get("DBTTerminal"),
         projectRoot,
         dbtPath,
@@ -361,7 +365,7 @@ container
       const { container } = context;
       return new DBTCoreProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
-        container.get(PythonEnvironment),
+        container.get("PythonEnvironment"),
         container.get(PythonDBTCommandExecutionStrategy),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
         container.get(AltimateRequest),
@@ -391,7 +395,7 @@ container
       const { container } = context;
       return new DBTCoreCommandProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
-        container.get(PythonEnvironment),
+        container.get("PythonEnvironment"),
         container.get(PythonDBTCommandExecutionStrategy),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
         container.get(AltimateRequest),
@@ -419,7 +423,7 @@ container
         container.get(DBTCommandExecutionInfrastructure),
         container.get(DBTCommandFactory),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
-        container.get(PythonEnvironment),
+        container.get("PythonEnvironment"),
         container.get("DBTTerminal"),
         projectRoot,
         deferConfig,
@@ -441,7 +445,7 @@ container
         container.get(DBTCommandExecutionInfrastructure),
         container.get(DBTCommandFactory),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
-        container.get(PythonEnvironment),
+        container.get("PythonEnvironment"),
         container.get("DBTTerminal"),
         projectRoot.fsPath,
         deferConfig,
@@ -462,7 +466,7 @@ container
     ) => {
       const { container } = context;
       return new DBTProject(
-        container.get(PythonEnvironment),
+        container.get("PythonEnvironment"),
         container.get(SourceFileWatchersFactory),
         container.get(DBTProjectLogFactory),
         container.get(TargetWatchersFactory),

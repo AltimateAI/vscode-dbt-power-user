@@ -9,14 +9,11 @@ import {
 } from "../../commandProcessExecution";
 import { PythonEnvironment } from "../../manifest/pythonEnvironment";
 import { DBTTerminal } from "../../dbt_client/terminal";
-import { TelemetryService } from "../../telemetry";
-
 describe("CLIDBTCommandExecutionStrategy Tests", () => {
   let strategy: CLIDBTCommandExecutionStrategy;
   let mockCommandProcessExecutionFactory: jest.Mocked<CommandProcessExecutionFactory>;
   let mockPythonEnvironment: jest.Mocked<PythonEnvironment>;
   let mockTerminal: jest.Mocked<DBTTerminal>;
-  let mockTelemetry: jest.Mocked<TelemetryService>;
   let mockCommandProcessExecution: jest.Mocked<CommandProcessExecution>;
 
   beforeEach(() => {
@@ -58,11 +55,6 @@ describe("CLIDBTCommandExecutionStrategy Tests", () => {
       dispose: jest.fn(),
     } as unknown as jest.Mocked<DBTTerminal>;
 
-    mockTelemetry = {
-      sendTelemetryEvent: jest.fn(),
-      sendTelemetryError: jest.fn(),
-    } as unknown as jest.Mocked<TelemetryService>;
-
     // Create strategy instance
     strategy = new CLIDBTCommandExecutionStrategy(
       mockCommandProcessExecutionFactory,
@@ -96,11 +88,14 @@ describe("CLIDBTCommandExecutionStrategy Tests", () => {
     // Verify terminal was shown
     expect(mockTerminal.show).toHaveBeenCalled();
 
-    // Verify telemetry was sent
-    expect(mockTelemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+    // Verify telemetry was sent through terminal.info
+    expect(mockTerminal.info).toHaveBeenCalledWith(
       "dbtCommand",
+      "Executed dbt command: dbt run --select my_model",
+      true,
       {
         command: "dbt run --select my_model",
+        execution: "cli",
       },
     );
 
@@ -115,7 +110,7 @@ describe("CLIDBTCommandExecutionStrategy Tests", () => {
     ).toHaveBeenCalledWith({
       command: "dbt",
       args: ["run", "--select", "my_model"],
-      tokens: [],
+      signal: undefined,
       cwd: "/test/workspace",
       envVars: { PATH: "/some/path" },
     });
@@ -145,11 +140,14 @@ describe("CLIDBTCommandExecutionStrategy Tests", () => {
     // Verify terminal was not shown
     expect(mockTerminal.show).not.toHaveBeenCalled();
 
-    // Verify telemetry was still sent
-    expect(mockTelemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+    // Verify telemetry was still sent through terminal.info
+    expect(mockTerminal.info).toHaveBeenCalledWith(
       "dbtCommand",
+      "Executed dbt command: dbt run --select my_model",
+      true,
       {
         command: "dbt run --select my_model",
+        execution: "cli",
       },
     );
 
@@ -162,7 +160,7 @@ describe("CLIDBTCommandExecutionStrategy Tests", () => {
     ).toHaveBeenCalledWith({
       command: "dbt",
       args: ["run", "--select", "my_model"],
-      tokens: [],
+      signal: undefined,
       cwd: "/test/workspace",
       envVars: { PATH: "/some/path" },
     });

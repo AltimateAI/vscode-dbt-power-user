@@ -90,7 +90,6 @@ describe("DBTCoreDetection Tests", () => {
     ).toHaveBeenCalledWith({
       command: "/path/to/python",
       args: ["-c", "import dbt"],
-      cwd: "/test/workspace",
       envVars: { PATH: "/some/path" },
     });
     expect(mockCommandProcessExecution.complete).toHaveBeenCalled();

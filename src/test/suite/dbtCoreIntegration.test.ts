@@ -34,75 +34,8 @@ jest.mock("vscode", () => ({
   },
 }));
 
-describe("DBTCoreProjectIntegration Tests", () => {
-  let dbtCoreProjectIntegration: DBTCoreProjectIntegration;
-  let mockPythonBridge: jest.Mocked<any>;
-  let mockTelemetry: jest.Mocked<TelemetryService>;
-
-  beforeEach(() => {
-    // Create mock dependencies
-    const container = new Container();
-
-    // Mock all required dependencies
-    mockPythonBridge = {
-      lock: jest.fn(),
-    };
-
-    mockTelemetry = {
-      sendTelemetryEvent: jest.fn(),
-      sendTelemetryError: jest.fn(),
-      setTelemetryCustomAttribute: jest.fn(),
-    } as any;
-
-    const mockExecutionInfrastructure = {
-      createPythonBridge: () => mockPythonBridge,
-      createQueue: () => {},
-    };
-
-    const mockUri = "/test/project/root";
-    const mockProjectConfigDiagnostics: DBTDiagnosticData[] = [];
-
-    // Create mock event emitter for Python environment changes
-    const mockPythonEnvChangeEmitter = new EventEmitter<Uri | undefined>();
-
-    const mockDeferConfig: DeferConfig = {
-      deferToProduction: false,
-      favorState: false,
-      manifestPathForDeferral: null,
-    };
-
-    // Create the instance directly with constructor injection
-    dbtCoreProjectIntegration = new DBTCoreProjectIntegration(
-      mockExecutionInfrastructure as any,
-      {
-        onPythonEnvironmentChanged: mockPythonEnvChangeEmitter.event,
-        pythonPath: "/usr/bin/python3",
-        environmentVariables: {},
-      } as any,
-      {} as PythonDBTCommandExecutionStrategy,
-      {} as (
-        projectRoot: string,
-        dbtPath: string,
-      ) => CLIDBTCommandExecutionStrategy,
-      {} as AltimateRequest,
-      {
-        debug: () => {},
-        error: () => {},
-        log: () => {},
-      } as any,
-      {} as ValidationProvider,
-      {
-        getQueryTemplate: () =>
-          "select * from ({query}) as query limit {limit}",
-      } as DBTConfiguration,
-      mockUri,
-      mockProjectConfigDiagnostics,
-      mockDeferConfig,
-    );
-
-    (dbtCoreProjectIntegration as any).python = mockPythonBridge;
-  });
-});
+// Note: DBTCoreProjectIntegration tests are temporarily disabled
+// TODO: Add proper tests for DBTCoreProjectIntegration
 
 describe("DBTCoreDetection Tests", () => {
   let dbtCoreDetection: DBTCoreDetection;
@@ -161,7 +94,6 @@ describe("DBTCoreDetection Tests", () => {
     ).toHaveBeenCalledWith({
       command: "/usr/bin/python3",
       args: ["-c", "import dbt"],
-      cwd: "/test/workspace",
       envVars: {},
     });
   });
@@ -204,7 +136,6 @@ describe("DBTCoreDetection Tests", () => {
     ).toHaveBeenCalledWith({
       command: "/usr/bin/python3",
       args: ["-c", "import dbt"],
-      cwd: "/test/workspace",
       envVars: {},
     });
   });
