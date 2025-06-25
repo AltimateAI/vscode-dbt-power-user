@@ -1,8 +1,5 @@
 import type { RequestInit } from "node-fetch";
-import { window } from "vscode";
-import { processStreamResponse } from "./utils";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
-import { TelemetryService } from "./telemetry";
 import { join } from "path";
 import { createReadStream, createWriteStream, mkdirSync, ReadStream } from "fs";
 import * as os from "os";
@@ -13,6 +10,42 @@ import * as vscode from "vscode";
 import { hashProjectRoot } from "./dbt_client/dbtIntegration";
 import { inject } from "inversify";
 import { DBTConfiguration } from "./dbt_client/configuration";
+
+const processStreamResponse = async (
+  stream: NodeJS.ReadableStream | ReadableStream,
+  cb: (data: string) => void,
+): Promise<string> => {
+  if (stream instanceof ReadableStream) {
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
+    let result = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+        const chunk = decoder.decode(value, { stream: true });
+        result += chunk;
+        cb(chunk);
+      }
+      return result;
+    } finally {
+      reader.releaseLock();
+    }
+  } else {
+    return new Promise((resolve, reject) => {
+      let result = "";
+      stream.on("data", (chunk: Buffer) => {
+        const data = chunk.toString();
+        result += data;
+        cb(data);
+      });
+      stream.on("end", () => resolve(result));
+      stream.on("error", reject);
+    });
+  }
+};
 
 export class NoCredentialsError extends Error {}
 
@@ -326,7 +359,6 @@ export interface ConversationGroup {
 
 export class AltimateRequest {
   constructor(
-    private telemetry: TelemetryService,
     private dbtTerminal: DBTTerminal,
     @inject("DBTConfiguration")
     private dbtConfiguration: DBTConfiguration,
@@ -376,6 +408,8 @@ export class AltimateRequest {
     const timeoutHandler = setTimeout(() => {
       abortController.abort();
     }, timeout);
+    let textResponse;
+    let responseStatus;
     try {
       const response = await this.internalFetch(url, {
         method: "POST",
@@ -387,8 +421,9 @@ export class AltimateRequest {
           "Content-Type": "application/json",
         },
       });
+      responseStatus = response.status;
 
-      if (response.ok && response.status === 200) {
+      if (response.ok && responseStatus === 200) {
         if (!response?.body) {
           this.dbtTerminal.debug("fetchAsStream", "empty response");
           return null;
@@ -402,27 +437,25 @@ export class AltimateRequest {
       }
       if (
         // response codes when backend authorization fails
-        response.status === 401 ||
-        response.status === 403
+        responseStatus === 401 ||
+        responseStatus === 403
       ) {
-        this.telemetry.sendTelemetryEvent("invalidCredentials", { url });
         throw new ForbiddenError();
       }
-      if (response.status === 404) {
-        this.telemetry.sendTelemetryEvent("resourceNotFound", { url });
+      if (responseStatus === 404) {
         throw new NotFoundError("Resource Not found");
       }
-      if (response.status === 402) {
+      if (responseStatus === 402) {
         const jsonResponse = (await response.json()) as { detail: string };
         throw new ExecutionsExhaustedException(jsonResponse.detail);
       }
-      const textResponse = await response.text();
+      textResponse = await response.text();
       this.dbtTerminal.debug(
         "network:response",
         "error from backend",
         textResponse,
       );
-      if (response.status === 429) {
+      if (responseStatus === 429) {
         throw new RateLimitException(
           textResponse,
           response.headers.get("Retry-After")
@@ -430,11 +463,6 @@ export class AltimateRequest {
             : 1 * 60 * 1000, // default to 1 min
         );
       }
-      this.telemetry.sendTelemetryError("apiError", {
-        endpoint,
-        status: response.status,
-        textResponse,
-      });
       throw new APIError(
         `Could not process request, server responded with ${response.status}: ${textResponse}`,
       );
@@ -445,6 +473,9 @@ export class AltimateRequest {
         error,
         true,
         {
+          errorType: (error as Error).name,
+          statusCode: responseStatus,
+          textResponse: textResponse,
           endpoint,
         },
       );
@@ -490,12 +521,19 @@ export class AltimateRequest {
     );
     if (!response.ok || response.status !== 200) {
       const textResponse = await response.text();
-      this.telemetry.sendTelemetryError("uploadToS3", {
-        endpoint,
-        status: response.status,
-        textResponse,
-      });
-      throw new Error("Failed to upload data to signed url");
+      const error = new Error("Failed to upload data to signed url");
+      this.dbtTerminal.error(
+        "uploadToS3Error",
+        "Could not upload to S3",
+        error,
+        true,
+        {
+          endpoint,
+          status: response.status,
+          textResponse,
+        },
+      );
+      throw error;
     }
 
     return response;
@@ -547,7 +585,9 @@ export class AltimateRequest {
     if (!config) {
       throw new NoCredentialsError("Missing API credentials");
     }
-
+    let textResponse;
+    let responseStatus;
+    let jsonResponse: any;
     try {
       const url = `${this.getAltimateUrl()}/${endpoint}`;
       const response = await this.internalFetch(url, {
@@ -560,28 +600,28 @@ export class AltimateRequest {
           "Content-Type": "application/json",
         },
       });
+      responseStatus = response.status;
+
       this.dbtTerminal.debug("network:response", endpoint, response.status);
-      if (response.ok && response.status === 200) {
+      if (response.ok && responseStatus === 200) {
         const jsonResponse = await response.json();
         return jsonResponse as T;
       }
       if (
         // response codes when backend authorization fails
-        response.status === 401 ||
-        response.status === 403
+        responseStatus === 401 ||
+        responseStatus === 403
       ) {
-        this.telemetry.sendTelemetryEvent("invalidCredentials", { url });
         throw new ForbiddenError();
       }
-      if (response.status === 404) {
-        this.telemetry.sendTelemetryEvent("resourceNotFound", { url });
+      if (responseStatus === 404) {
         throw new NotFoundError("Resource Not found");
       }
-      if (response.status === 402) {
+      if (responseStatus === 402) {
         const jsonResponse = (await response.json()) as { detail: string };
         throw new ExecutionsExhaustedException(jsonResponse.detail);
       }
-      const textResponse = await response.text();
+      textResponse = await response.text();
       this.dbtTerminal.debug(
         "network:response",
         "error from backend",
@@ -595,23 +635,26 @@ export class AltimateRequest {
             : 1 * 60 * 1000, // default to 1 min
         );
       }
-      this.telemetry.sendTelemetryError("apiError", {
-        endpoint,
-        status: response.status,
-        textResponse,
-      });
-      let jsonResponse: any;
       try {
         jsonResponse = JSON.parse(textResponse);
       } catch {}
       throw new APIError(
         `Could not process request, server responded with ${response.status}: ${jsonResponse?.detail || textResponse}`,
       );
-    } catch (e) {
-      this.dbtTerminal.error("apiCatchAllError", "catchAllError", e, true, {
-        endpoint,
-      });
-      throw e;
+    } catch (error) {
+      this.dbtTerminal.error(
+        "apiCatchAllError",
+        "fetchAsStream catchAllError",
+        error,
+        true,
+        {
+          errorType: (error as Error).name,
+          statusCode: responseStatus,
+          textResponse: textResponse,
+          endpoint,
+        },
+      );
+      throw error;
     } finally {
       clearTimeout(timeoutHandler);
     }
@@ -625,44 +668,34 @@ export class AltimateRequest {
     const hashedProjectRoot = hashProjectRoot(projectRoot);
     const tempFolder = join(os.tmpdir(), hashedProjectRoot);
 
-    try {
-      this.dbtTerminal.debug(
-        "AltimateRequest",
-        `creating temporary folder: ${tempFolder} for file: ${fileName}`,
-      );
-      mkdirSync(tempFolder, { recursive: true });
+    this.dbtTerminal.debug(
+      "AltimateRequest",
+      `creating temporary folder: ${tempFolder} for file: ${fileName}`,
+    );
+    mkdirSync(tempFolder, { recursive: true });
 
-      const destinationPath = join(tempFolder, fileName);
+    const destinationPath = join(tempFolder, fileName);
 
-      this.dbtTerminal.debug(
-        "AltimateRequest",
-        `fetching artifactUrl: ${artifactUrl}`,
-      );
-      const response = await this.internalFetch(artifactUrl, {
-        agent: undefined,
-      });
+    this.dbtTerminal.debug(
+      "AltimateRequest",
+      `fetching artifactUrl: ${artifactUrl}`,
+    );
+    const response = await this.internalFetch(artifactUrl, {
+      agent: undefined,
+    });
 
-      if (!response.ok) {
-        throw new Error(`Failed to download file: ${response.statusText}`);
-      }
-      const fileStream = createWriteStream(destinationPath);
-      await new Promise((resolve, reject) => {
-        response.body?.pipe(fileStream);
-        response.body?.on("error", reject);
-        fileStream.on("finish", resolve);
-      });
-
-      this.dbtTerminal.debug("File downloaded successfully!", fileName);
-      return tempFolder;
-    } catch (err) {
-      this.dbtTerminal.error(
-        "downloadFileLocally",
-        `Could not save ${fileName} locally`,
-        err,
-      );
-      window.showErrorMessage(`Could not save ${fileName} locally: ${err}`);
-      throw err;
+    if (!response.ok) {
+      throw new Error(`Failed to download file: ${response.statusText}`);
     }
+    const fileStream = createWriteStream(destinationPath);
+    await new Promise((resolve, reject) => {
+      response.body?.pipe(fileStream);
+      response.body?.on("error", reject);
+      fileStream.on("finish", resolve);
+    });
+
+    this.dbtTerminal.debug("File downloaded successfully!", fileName);
+    return tempFolder;
   }
 
   private getQueryString = (

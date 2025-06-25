@@ -253,7 +253,6 @@ container
   .bind(AltimateRequest)
   .toDynamicValue((context) => {
     return new AltimateRequest(
-      context.container.get(TelemetryService),
       context.container.get("DBTTerminal"),
       context.container.get("DBTConfiguration"),
     );

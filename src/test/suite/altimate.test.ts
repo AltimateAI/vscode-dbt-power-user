@@ -17,7 +17,6 @@ type FetchFn = (
 ) => Promise<Response>;
 
 describe("AltimateRequest Tests", () => {
-  let mockTelemetry: jest.Mocked<TelemetryService>;
   let mockTerminal: jest.Mocked<DBTTerminal>;
   let mockDBTConfiguration: jest.Mocked<DBTConfiguration>;
   let request: AltimateRequest;
@@ -28,15 +27,6 @@ describe("AltimateRequest Tests", () => {
   }));
 
   beforeEach(() => {
-    mockTelemetry = {
-      sendTelemetryEvent: jest.fn(),
-      sendTelemetryError: jest.fn(),
-      setTelemetryCustomAttribute: jest.fn(),
-      startTelemetryEvent: jest.fn(),
-      endTelemetryEvent: jest.fn(),
-      dispose: jest.fn(),
-    } as unknown as jest.Mocked<TelemetryService>;
-
     mockTerminal = {
       show: jest.fn(),
       log: jest.fn(),
@@ -87,11 +77,7 @@ describe("AltimateRequest Tests", () => {
       update: jest.fn().mockReturnValue(Promise.resolve()),
     };
 
-    request = new AltimateRequest(
-      mockTelemetry,
-      mockTerminal,
-      mockDBTConfiguration,
-    );
+    request = new AltimateRequest(mockTerminal, mockDBTConfiguration);
   });
 
   afterEach(() => {
