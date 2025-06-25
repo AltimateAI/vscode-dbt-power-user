@@ -46,6 +46,7 @@ import * as crypto from "crypto";
 import {
   DBTProjectIntegration,
   DBTCommandFactory,
+  DBTCommandExecutionInfrastructure,
   RunModelParams,
   Catalog,
   DBTNode,
@@ -53,7 +54,10 @@ import {
   SourceNode,
   HealthcheckArgs,
 } from "../dbt_client/dbtIntegration";
-import { DBTCoreProjectIntegration } from "../dbt_client/dbtCoreIntegration";
+import {
+  DBTCoreProjectIntegration,
+  ProjectHealthcheck,
+} from "../dbt_client/dbtCoreIntegration";
 import { DBTCloudProjectIntegration } from "../dbt_client/dbtCloudIntegration";
 import { AltimateRequest, NoCredentialsError } from "../altimate";
 import { ValidationProvider } from "../validation_provider";
@@ -144,6 +148,7 @@ export class DBTProject implements Disposable {
     private terminal: DBTTerminal,
     private eventEmitterService: SharedStateService,
     private telemetry: TelemetryService,
+    private executionInfrastructure: DBTCommandExecutionInfrastructure,
     private dbtCoreIntegrationFactory: (
       path: string,
       projectConfigDiagnostics: DBTDiagnosticData[],
@@ -442,10 +447,21 @@ export class DBTProject implements Disposable {
       "Performing healthcheck",
       healthcheckArgs,
     );
-    const projectHealthcheck =
-      await this.dbtProjectIntegration.performDatapilotHealthcheck(
-        healthcheckArgs,
+    // Create isolated Python bridge for healthcheck
+    const healthCheckThread = this.executionInfrastructure.createPythonBridge(
+      this.projectRoot.fsPath,
+    );
+
+    let projectHealthcheck: ProjectHealthcheck;
+    try {
+      await healthCheckThread.ex`from dbt_healthcheck import *`;
+      projectHealthcheck = await healthCheckThread.lock<ProjectHealthcheck>(
+        (python) =>
+          python!`to_dict(project_healthcheck(${healthcheckArgs.manifestPath}, ${healthcheckArgs.catalogPath}, ${healthcheckArgs.configPath}, ${healthcheckArgs.config}, ${this.altimate.getAIKey()}, ${this.altimate.getInstanceName()}, ${AltimateRequest.ALTIMATE_URL}))`,
       );
+    } finally {
+      await this.executionInfrastructure.closePythonBridge(healthCheckThread);
+    }
     // temp fix: ideally datapilot should return absolute path
     for (const key in projectHealthcheck.model_insights) {
       for (const item of projectHealthcheck.model_insights[key]) {

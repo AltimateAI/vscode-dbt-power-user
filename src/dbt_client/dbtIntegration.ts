@@ -18,7 +18,6 @@ import {
   NoCredentialsError,
   ValidateSqlParseErrorResponse,
 } from "../altimate";
-import { ProjectHealthcheck } from "./dbtCoreIntegration";
 import { NodeMetaData } from "../domain";
 import { DBTDiagnosticResult } from "./diagnostics";
 import { DBTConfiguration } from "./configuration";
@@ -375,9 +374,6 @@ export interface DBTProjectIntegration {
   validateWhetherSqlHasColumns(sql: string, dialect: string): Promise<boolean>;
   fetchSqlglotSchema(sql: string, dialect: string): Promise<string[]>;
   findPackageVersion(packageName: string): string | undefined;
-  performDatapilotHealthcheck(
-    args: HealthcheckArgs,
-  ): Promise<ProjectHealthcheck>;
   applyDeferConfig(deferConfig: DeferConfig | undefined): Promise<void>;
   applySelectedTarget(): Promise<void>;
   getDeferConfigDefaults(): DeferConfig;

@@ -12,7 +12,6 @@ import {
   DBTProjectDetection,
   DBTProjectIntegration,
   QueryExecution,
-  HealthcheckArgs,
 } from "./dbtIntegration";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonBridge } from "python-bridge";
@@ -26,7 +25,6 @@ import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync, readFileSync } from "fs";
 import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
-import { ProjectHealthcheck } from "./dbtCoreIntegration";
 import semver = require("semver");
 import { NodeMetaData } from "../domain";
 import * as crypto from "crypto";
@@ -1123,19 +1121,6 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
       return packageObject?.version as string;
     }
     return undefined;
-  }
-
-  async performDatapilotHealthcheck({
-    manifestPath,
-    catalogPath,
-    config,
-    configPath,
-  }: HealthcheckArgs): Promise<ProjectHealthcheck> {
-    const result = await this.python?.lock<ProjectHealthcheck>(
-      (python) =>
-        python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}, ${this.altimateRequest.getAIKey()}, ${this.altimateRequest.getInstanceName()}, ${AltimateRequest.ALTIMATE_URL}))`,
-    );
-    return result;
   }
 
   async applyDeferConfig(): Promise<void> {}

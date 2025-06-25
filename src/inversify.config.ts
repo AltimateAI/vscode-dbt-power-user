@@ -460,6 +460,7 @@ container
         container.get("DBTTerminal"),
         container.get(SharedStateService),
         container.get(TelemetryService),
+        container.get(DBTCommandExecutionInfrastructure),
         container.get("Factory<DBTCoreProjectIntegration>"),
         container.get("Factory<DBTCoreCommandProjectIntegration>"),
         container.get("Factory<DBTCloudProjectIntegration>"),
