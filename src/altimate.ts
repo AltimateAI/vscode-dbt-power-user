@@ -12,6 +12,7 @@ import { PythonEnvironment } from "./manifest/pythonEnvironment";
 import { PreconfiguredNotebookItem, NotebookItem, NotebookSchema } from "@lib";
 import * as vscode from "vscode";
 import { hashProjectRoot } from "./dbt_client/dbtIntegration";
+import { inject } from "inversify";
 
 export class NoCredentialsError extends Error {}
 
@@ -335,6 +336,7 @@ export class AltimateRequest {
   constructor(
     private telemetry: TelemetryService,
     private dbtTerminal: DBTTerminal,
+    @inject("PythonEnvironment")
     private pythonEnvironment: PythonEnvironment,
   ) {}
 

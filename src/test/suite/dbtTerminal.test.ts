@@ -106,7 +106,6 @@ describe("DBTTerminal Test Suite", () => {
     );
   });
 
-
   it("should show and hide terminal based on status", async () => {
     const mockTerminal = {
       show: jest.fn(),

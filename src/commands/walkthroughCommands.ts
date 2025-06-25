@@ -31,6 +31,7 @@ export class WalkthroughCommands {
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
+    @inject("PythonEnvironment")
     private pythonEnvironment: PythonEnvironment,
     @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,

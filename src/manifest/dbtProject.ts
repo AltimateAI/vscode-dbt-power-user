@@ -92,6 +92,7 @@ import { Table } from "src/services/dbtLineageService";
 import { DBTFusionCommandProjectIntegration } from "src/dbt_client/dbtFusionCommandIntegration";
 import { DeferToProdService } from "../services/deferToProdService";
 import { getProjectRelativePath } from "../utils";
+import { inject } from "inversify";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -133,6 +134,7 @@ export class DBTProject implements Disposable {
   private queueStates: Map<string, boolean> = new Map<string, boolean>();
 
   constructor(
+    @inject("PythonEnvironment")
     private PythonEnvironment: PythonEnvironment,
     private sourceFileWatchersFactory: SourceFileWatchersFactory,
     private dbtProjectLogFactory: DBTProjectLogFactory,

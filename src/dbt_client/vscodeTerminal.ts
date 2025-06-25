@@ -23,7 +23,6 @@ export class VSCodeDBTTerminal implements DBTTerminal {
     }
   }
 
-
   log(message: string, ...args: any[]) {
     this.outputChannel.info(stripANSI(message), args);
     console.log(stripANSI(message), args);

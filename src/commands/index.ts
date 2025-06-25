@@ -70,6 +70,7 @@ export class VSCodeCommands implements Disposable {
     private diagnosticsOutputChannel: DiagnosticsOutputChannel,
     private eventEmitterService: SharedStateService,
     private conversationController: ConversationProvider,
+    @inject("PythonEnvironment")
     private pythonEnvironment: PythonEnvironment,
     private dbtClient: DBTClient,
     private sqlLineagePanel: SQLLineagePanel,

@@ -19,7 +19,7 @@ export class VSCodePythonEnvironment implements PythonEnvironment {
   private environmentVariableSource: Record<string, EnvFrom> = {};
   public allPythonPaths: { path: string; pathType: string }[] = [];
   public isPython3: boolean = true;
-  
+
   constructor(
     @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,

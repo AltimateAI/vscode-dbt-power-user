@@ -9,6 +9,7 @@ import { inject } from "inversify";
 export class AltimateDatapilot {
   private packageName = "altimate-datapilot-cli";
   constructor(
+    @inject("PythonEnvironment")
     private pythonEnvironment: PythonEnvironment,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
     @inject("DBTTerminal")

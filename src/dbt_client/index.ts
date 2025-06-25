@@ -29,6 +29,7 @@ export class DBTClient implements Disposable {
   ];
   private shownError = false;
   constructor(
+    @inject("PythonEnvironment")
     private pythonEnvironment: PythonEnvironment,
     @inject("Factory<DBTDetection>")
     private dbtDetectionFactory: () => DBTDetection,
