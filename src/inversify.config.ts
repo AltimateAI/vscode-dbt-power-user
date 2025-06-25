@@ -3,7 +3,7 @@ import { buildProviderModule } from "inversify-binding-decorators";
 import { EventEmitter, Uri, workspace, WorkspaceFolder } from "vscode";
 import { VSCodeDBTTerminal } from "./dbt_client/vscodeTerminal";
 import { DBTDiagnosticData } from "./dbt_client/diagnostics";
-import { DBTProject, DeferConfig } from "./manifest/dbtProject";
+import { DBTProject } from "./manifest/dbtProject";
 import {
   DBTProjectContainer,
   ProjectRegisteredUnregisteredEvent,
@@ -27,6 +27,7 @@ import {
   DBTCommandFactory,
   DBTDetection,
   DBTProjectDetection,
+  DeferConfig,
   PythonDBTCommandExecutionStrategy,
 } from "./dbt_client/dbtIntegration";
 import {
@@ -76,7 +77,6 @@ container
       context.container.get(CommandProcessExecutionFactory),
       context.container.get(PythonEnvironment),
       context.container.get("DBTTerminal"),
-      context.container.get(TelemetryService),
       context.container.get("DBTConfiguration"),
     );
   })
@@ -326,7 +326,6 @@ container
         container.get(CommandProcessExecutionFactory),
         container.get(PythonEnvironment),
         container.get("DBTTerminal"),
-        container.get(TelemetryService),
         projectRoot,
         dbtPath,
       );

@@ -30,8 +30,8 @@ import { QueryManifestService } from "../services/queryManifestService";
 import { ValidationProvider } from "../validation_provider";
 import { UsersService } from "../services/usersService";
 import { NotebookFileSystemProvider } from "@lib";
-import { DeferConfig } from "../manifest/dbtProject";
 import { inject } from "inversify";
+import { DeferConfig } from "../dbt_client/dbtIntegration";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];

@@ -20,12 +20,13 @@ import {
   DBTCommandExecutionStrategy,
   DBT_PROJECT_FILE,
   RESOURCE_TYPE_SOURCE,
+  DeferConfig,
+  ManifestPathType,
 } from "./dbtIntegration";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonBridge, PythonException } from "python-bridge";
 import * as path from "path";
-import { DeferConfig, ManifestPathType } from "../manifest/dbtProject";
 import { existsSync, readFileSync } from "fs";
 import * as fs from "fs";
 import { parse } from "yaml";

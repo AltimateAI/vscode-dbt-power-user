@@ -27,6 +27,7 @@ import { DBTTerminal } from "../dbt_client/terminal";
 import {
   DBT_PROJECT_FILE,
   DBTProjectDetection,
+  readAndParseProjectConfig,
 } from "../dbt_client/dbtIntegration";
 
 export class DBTWorkspaceFolder implements Disposable {
@@ -228,7 +229,7 @@ export class DBTWorkspaceFolder implements Disposable {
 
   private async registerDBTProject(uri: Uri) {
     try {
-      const projectConfig = DBTProject.readAndParseProjectConfig(uri.fsPath);
+      const projectConfig = readAndParseProjectConfig(uri.fsPath);
       const dbtProject = this.dbtProjectFactory(
         uri,
         projectConfig,

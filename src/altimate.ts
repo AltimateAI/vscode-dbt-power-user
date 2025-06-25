@@ -1,5 +1,5 @@
 import type { RequestInit } from "node-fetch";
-import { CommentThread, env, Uri, window, workspace } from "vscode";
+import { env, Uri, window, workspace } from "vscode";
 import { provideSingleton, processStreamResponse } from "./utils";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
@@ -7,12 +7,12 @@ import { join } from "path";
 import { createReadStream, createWriteStream, mkdirSync, ReadStream } from "fs";
 import * as os from "os";
 import { RateLimitException, ExecutionsExhaustedException } from "./exceptions";
-import { DBTProject } from "./manifest/dbtProject";
 import { DBTTerminal } from "./dbt_client/terminal";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
 import { PreconfiguredNotebookItem, NotebookItem, NotebookSchema } from "@lib";
 import * as vscode from "vscode";
 import { inject } from "inversify";
+import { hashProjectRoot } from "./dbt_client/dbtIntegration";
 
 export class NoCredentialsError extends Error {}
 
@@ -670,7 +670,7 @@ export class AltimateRequest {
     projectRoot: string,
     fileName = "manifest.json",
   ): Promise<string> {
-    const hashedProjectRoot = DBTProject.hashProjectRoot(projectRoot);
+    const hashedProjectRoot = hashProjectRoot(projectRoot);
     const tempFolder = join(os.tmpdir(), hashedProjectRoot);
 
     try {

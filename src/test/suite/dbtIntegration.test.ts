@@ -68,7 +68,6 @@ describe("CLIDBTCommandExecutionStrategy Tests", () => {
       mockCommandProcessExecutionFactory,
       mockPythonEnvironment,
       mockTerminal,
-      mockTelemetry,
       "/test/workspace",
       "dbt",
     );

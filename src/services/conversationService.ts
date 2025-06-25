@@ -1,13 +1,13 @@
 import * as os from "os";
-import { CommentThread, ProgressLocation, Uri, window } from "vscode";
+import { ProgressLocation, Uri, window } from "vscode";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { QueryManifestService } from "./queryManifestService";
-import { DBTProject } from "../manifest/dbtProject";
 import path = require("path");
 import { DBTTerminal } from "../dbt_client/terminal";
 import { AltimateRequest, ConversationGroup, SharedDoc } from "../altimate";
 import { rmSync } from "fs";
 import { inject } from "inversify";
+import { hashProjectRoot } from "../dbt_client/dbtIntegration";
 
 @provideSingleton(ConversationService)
 export class ConversationService {
@@ -218,9 +218,7 @@ export class ConversationService {
           progress.report({ message: "Generating dbt docs..." });
 
           // generate docs in tmp directory
-          const hashedProjectRoot = DBTProject.hashProjectRoot(
-            project.projectRoot.fsPath,
-          );
+          const hashedProjectRoot = hashProjectRoot(project.projectRoot.fsPath);
           const tmpDirPath = path.join(os.tmpdir(), hashedProjectRoot);
 
           try {

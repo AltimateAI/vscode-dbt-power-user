@@ -17,7 +17,7 @@ import { TelemetryService } from "../telemetry";
 import { DeferToProdService } from "../services/deferToProdService";
 import { AltimateRequest } from "../altimate";
 import path = require("path");
-import { ManifestPathType } from "../manifest/dbtProject";
+import { ManifestPathType } from "../dbt_client/dbtIntegration";
 
 @provideSingleton(SqlPreviewContentProvider)
 export class SqlPreviewContentProvider

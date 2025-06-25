@@ -5,13 +5,14 @@ import {
   CommandProcessResult,
 } from "../commandProcessExecution";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { existsSync } from "fs";
-import { TelemetryService } from "../telemetry";
+import { existsSync, readFileSync } from "fs";
 import { DBTTerminal } from "./terminal";
 import { NodeMetaData } from "../domain";
 import { DBTDiagnosticResult } from "./diagnostics";
 import { DBTConfiguration } from "./configuration";
-import { DeferConfig } from "../manifest/dbtProject";
+import path from "path";
+import { parse } from "yaml";
+import * as crypto from "crypto";
 
 export const DBT_PROJECT_FILE = "dbt_project.yml";
 export const MANIFEST_FILE = "manifest.json";
@@ -25,6 +26,42 @@ export const RESOURCE_TYPE_SEED = "seed";
 export const RESOURCE_TYPE_SNAPSHOT = "snapshot";
 export const RESOURCE_TYPE_TEST = "test";
 export const RESOURCE_TYPE_METRIC = "semantic_model";
+
+export function readAndParseProjectConfig(projectRoot: string) {
+  const dbtProjectConfigLocation = path.join(projectRoot, DBT_PROJECT_FILE);
+  const dbtProjectYamlFile = readFileSync(dbtProjectConfigLocation, "utf8");
+  return parse(dbtProjectYamlFile, {
+    strict: false,
+    uniqueKeys: false,
+    maxAliasCount: -1,
+  });
+}
+
+export function hashProjectRoot(projectRoot: string) {
+  return crypto.createHash("md5").update(projectRoot).digest("hex");
+}
+
+export interface DBTCommandExecution {
+  command: (signal?: AbortSignal) => Promise<void>;
+  statusMessage: string;
+  showProgress?: boolean;
+  focus?: boolean;
+  signal?: AbortSignal;
+}
+
+export enum ManifestPathType {
+  EMPTY = "",
+  LOCAL = "local",
+  REMOTE = "remote",
+}
+
+export interface DeferConfig {
+  deferToProduction: boolean;
+  favorState: boolean;
+  manifestPathForDeferral: string | null;
+  manifestPathType?: ManifestPathType;
+  dbtCoreIntegrationId?: number;
+}
 
 export interface DBTCommandExecutionStrategy {
   execute(
@@ -40,7 +77,6 @@ export class CLIDBTCommandExecutionStrategy
     protected commandProcessExecutionFactory: CommandProcessExecutionFactory,
     protected pythonEnvironment: PythonEnvironment,
     protected terminal: DBTTerminal,
-    protected telemetry: TelemetryService,
     protected cwd: string,
     protected dbtPath: string,
   ) {}
@@ -63,9 +99,15 @@ export class CLIDBTCommandExecutionStrategy
     if (command.logToTerminal && command.focus) {
       await this.terminal.show(true);
     }
-    this.telemetry.sendTelemetryEvent("dbtCommand", {
-      command: command.getCommandAsString(),
-    });
+    this.terminal.info(
+      "dbtCommand",
+      "Executed dbt command: " + command.getCommandAsString(),
+      true,
+      {
+        command: command.getCommandAsString(),
+        execution: "cli",
+      },
+    );
     if (command.logToTerminal) {
       this.terminal.log(
         `> Executing task: ${command.getCommandAsString()}\n\r`,
@@ -148,6 +190,7 @@ export class PythonDBTCommandExecutionStrategy
       true,
       {
         command: command.getCommandAsString(),
+        execution: "python",
       },
     );
     if (command.focus) {

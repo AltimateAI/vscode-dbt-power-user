@@ -17,7 +17,10 @@ import { MetricParser } from "./metricParser";
 import { ChildrenParentParser } from "./childrenParentParser";
 import { ModelDepthParser } from "./modelDepthParser";
 import { inject } from "inversify";
-import { MANIFEST_FILE } from "../../dbt_client/dbtIntegration";
+import {
+  hashProjectRoot,
+  MANIFEST_FILE,
+} from "../../dbt_client/dbtIntegration";
 
 @provide(ManifestParser)
 export class ManifestParser {
@@ -175,7 +178,7 @@ export class ManifestParser {
       this.telemetry.sendTelemetryEvent(
         "parseManifest",
         {
-          project: DBTProject.hashProjectRoot(projectRoot.fsPath),
+          project: hashProjectRoot(projectRoot.fsPath),
         },
         parseManifestProps,
       );

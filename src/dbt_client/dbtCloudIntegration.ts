@@ -13,12 +13,13 @@ import {
   DBTProjectIntegration,
   QueryExecution,
   DBT_PROJECT_FILE,
+  DeferConfig,
+  readAndParseProjectConfig,
 } from "./dbtIntegration";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonBridge } from "python-bridge";
 import { join, dirname } from "path";
 import path = require("path");
-import { DBTProject, DeferConfig } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./terminal";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
@@ -920,9 +921,7 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
     }
 
     try {
-      const projectConfig = DBTProject.readAndParseProjectConfig(
-        this.projectRoot,
-      );
+      const projectConfig = readAndParseProjectConfig(this.projectRoot);
       this.projectName = projectConfig.name;
     } catch (error) {
       this.terminal.warn(

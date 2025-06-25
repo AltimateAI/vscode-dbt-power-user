@@ -9,6 +9,8 @@ import {
   DBTDetection,
   DBTProjectDetection,
   DBT_PROJECT_FILE,
+  DeferConfig,
+  readAndParseProjectConfig,
 } from "./dbtIntegration";
 import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
 import {
@@ -19,7 +21,6 @@ import {
 } from "../modules";
 import { DBTCloudProjectIntegration, getDBTPath } from "./dbtCloudIntegration";
 import path, { join } from "path";
-import { DeferConfig } from "src/manifest/dbtProject";
 
 export class DBTFusionCommandDetection implements DBTDetection {
   constructor(
@@ -107,9 +108,7 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
     this.macroPaths = [join(this.projectRoot, "macros")];
     this.packagesInstallPath = join(this.projectRoot, "dbt_packages");
     try {
-      const projectConfig = DBTProject.readAndParseProjectConfig(
-        this.projectRoot,
-      );
+      const projectConfig = readAndParseProjectConfig(this.projectRoot);
       this.projectName = projectConfig.name;
     } catch (error) {
       this.terminal.warn(

@@ -42,7 +42,6 @@ import {
 import { TargetWatchersFactory } from "./modules/targetWatchers";
 import { PythonEnvironment } from "./pythonEnvironment";
 import { TelemetryService } from "../telemetry";
-import * as crypto from "crypto";
 import {
   DBTProjectIntegration,
   DBTCommandFactory,
@@ -65,6 +64,9 @@ import {
   RESOURCE_TYPE_METRIC,
   MANIFEST_FILE,
   CATALOG_FILE,
+  DBTCommandExecution,
+  DeferConfig,
+  readAndParseProjectConfig,
 } from "../dbt_client/dbtIntegration";
 import { CommandProcessResult } from "../commandProcessExecution";
 import {
@@ -91,34 +93,14 @@ import { DBTFusionCommandProjectIntegration } from "src/dbt_client/dbtFusionComm
 import { DeferToProdService } from "../services/deferToProdService";
 import { getProjectRelativePath } from "../utils";
 
-interface DBTCommandExecution {
-  command: (signal?: AbortSignal) => Promise<void>;
-  statusMessage: string;
-  showProgress?: boolean;
-  focus?: boolean;
-  signal?: AbortSignal;
-}
-
 interface FileNameTemplateMap {
   [key: string]: string;
 }
+
 interface JsonObj {
   [key: string]: string | number | undefined;
 }
 
-export enum ManifestPathType {
-  EMPTY = "",
-  LOCAL = "local",
-  REMOTE = "remote",
-}
-
-export interface DeferConfig {
-  deferToProduction: boolean;
-  favorState: boolean;
-  manifestPathForDeferral: string | null;
-  manifestPathType?: ManifestPathType;
-  dbtCoreIntegrationId?: number;
-}
 export class DBTProject implements Disposable {
   private _manifestCacheEvent?: ManifestCacheProjectAddedEvent;
   readonly projectRoot: Uri;
@@ -567,9 +549,7 @@ export class DBTProject implements Disposable {
       } configuration`,
     );
     try {
-      this.projectConfig = DBTProject.readAndParseProjectConfig(
-        this.projectRoot.fsPath,
-      );
+      this.projectConfig = readAndParseProjectConfig(this.projectRoot.fsPath);
       await this.dbtProjectIntegration.refreshProjectConfig();
       this.projectConfigDiagnostics.clear();
     } catch (error) {
@@ -1538,20 +1518,6 @@ export class DBTProject implements Disposable {
         x.dispose();
       }
     }
-  }
-
-  static readAndParseProjectConfig(projectRoot: string) {
-    const dbtProjectConfigLocation = path.join(projectRoot, DBT_PROJECT_FILE);
-    const dbtProjectYamlFile = readFileSync(dbtProjectConfigLocation, "utf8");
-    return parse(dbtProjectYamlFile, {
-      strict: false,
-      uniqueKeys: false,
-      maxAliasCount: -1,
-    });
-  }
-
-  static hashProjectRoot(projectRoot: string) {
-    return crypto.createHash("md5").update(projectRoot).digest("hex");
   }
 
   private async findModelInTargetfolder(modelPath: Uri, type: string) {

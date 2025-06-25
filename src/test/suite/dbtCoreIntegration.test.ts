@@ -7,19 +7,17 @@ import { DBTDiagnosticData } from "../../dbt_client/diagnostics";
 import { Container } from "inversify";
 import {
   CLIDBTCommandExecutionStrategy,
+  DeferConfig,
   PythonDBTCommandExecutionStrategy,
 } from "../../dbt_client/dbtIntegration";
 import { TelemetryService } from "../../telemetry";
-import { DBTProjectContainer } from "../../manifest/dbtProjectContainer";
 import { AltimateRequest } from "../../altimate";
 import { ValidationProvider } from "../../validation_provider";
-import { DeferToProdService } from "../../services/deferToProdService";
 import { Uri, workspace, EventEmitter } from "vscode";
 import {
   CommandProcessExecutionFactory,
   CommandProcessExecution,
 } from "../../commandProcessExecution";
-import { DeferConfig } from "src/manifest/dbtProject";
 
 // Mock workspace folders
 jest.mock("vscode", () => ({
@@ -86,7 +84,6 @@ describe("DBTCoreProjectIntegration Tests", () => {
         projectRoot: string,
         dbtPath: string,
       ) => CLIDBTCommandExecutionStrategy,
-      {} as DBTProjectContainer,
       {} as AltimateRequest,
       {
         debug: () => {},
@@ -94,7 +91,6 @@ describe("DBTCoreProjectIntegration Tests", () => {
         log: () => {},
       } as any,
       {} as ValidationProvider,
-      {} as DeferToProdService,
       mockUri,
       mockProjectConfigDiagnostics,
       mockDeferConfig,
