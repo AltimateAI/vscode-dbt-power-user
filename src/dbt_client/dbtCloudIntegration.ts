@@ -20,7 +20,6 @@ import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonBridge } from "python-bridge";
 import { join, dirname } from "path";
 import path = require("path");
-import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./terminal";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync, readFileSync } from "fs";
@@ -157,7 +156,6 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
       path: string,
       dbtPath: string,
     ) => DBTCommandExecutionStrategy,
-    protected telemetry: TelemetryService,
     private pythonEnvironment: PythonEnvironment,
     protected terminal: DBTTerminal,
     protected projectRoot: string,
@@ -348,10 +346,6 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
       const result = await command.execute();
       const stderr = result.stderr;
       // sending stderr everytime to verify in logs whether is coming as empty or not.
-      this.telemetry.sendTelemetryEvent("dbtCloudParseProjectUserError", {
-        error: stderr,
-        adapter: this.getAdapterType() || "unknown",
-      });
       this.terminal.info(
         "dbtCloudParseProject",
         "dbt cloud cli response",
@@ -415,9 +409,11 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
       ];
       this.rebuildManifestDiagnosticsData = diagnosticDataArray;
     } catch (error) {
-      this.telemetry.sendTelemetryError(
+      this.terminal.error(
         "dbtCloudCannotParseProjectCommandExecuteError",
+        "Could not parse project command execution error",
         error,
+        true,
         {
           adapter: this.getAdapterType() || "unknown",
           command: command.getCommandAsString(),

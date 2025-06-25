@@ -78,7 +78,6 @@ describe("DBTCoreProjectIntegration Tests", () => {
         pythonPath: "/usr/bin/python3",
         environmentVariables: {},
       } as any,
-      mockTelemetry,
       {} as PythonDBTCommandExecutionStrategy,
       {} as (
         projectRoot: string,

@@ -361,7 +361,6 @@ container
       return new DBTCoreProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
         container.get(PythonEnvironment),
-        container.get(TelemetryService),
         container.get(PythonDBTCommandExecutionStrategy),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
         container.get(AltimateRequest),
@@ -391,7 +390,6 @@ container
       return new DBTCoreCommandProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
         container.get(PythonEnvironment),
-        container.get(TelemetryService),
         container.get(PythonDBTCommandExecutionStrategy),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
         container.get(AltimateRequest),
@@ -418,7 +416,6 @@ container
         container.get(DBTCommandExecutionInfrastructure),
         container.get(DBTCommandFactory),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
-        container.get(TelemetryService),
         container.get(PythonEnvironment),
         container.get("DBTTerminal"),
         projectRoot,
@@ -441,7 +438,6 @@ container
         container.get(DBTCommandExecutionInfrastructure),
         container.get(DBTCommandFactory),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
-        container.get(TelemetryService),
         container.get(PythonEnvironment),
         container.get("DBTTerminal"),
         projectRoot.fsPath,

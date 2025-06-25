@@ -211,6 +211,12 @@ export class DBTProject implements Disposable {
         );
         break;
       default:
+        this.isDbtLoomInstalled().then((isInstalled) => {
+          this.telemetry.setTelemetryCustomAttribute(
+            "dbtLoomInstalled",
+            `${isInstalled}`,
+          );
+        });
         this.dbtProjectIntegration = this.dbtCoreIntegrationFactory(
           this.projectRoot.fsPath,
           this.convertDiagnosticCollectionToDBTDiagnosticData(),
@@ -250,6 +256,20 @@ export class DBTProject implements Disposable {
         this.projectRoot
       }`,
     );
+  }
+
+  private async isDbtLoomInstalled(): Promise<boolean> {
+    const dbtLoomThread = this.executionInfrastructure.createPythonBridge(
+      this.projectRoot.fsPath,
+    );
+    try {
+      await dbtLoomThread.ex`from dbt_loom import *`;
+      return true;
+    } catch (error) {
+      return false;
+    } finally {
+      await this.executionInfrastructure.closePythonBridge(dbtLoomThread);
+    }
   }
 
   private async invalidateCacheUsingLastRun(file: Uri) {

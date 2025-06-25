@@ -30,7 +30,6 @@ import * as path from "path";
 import { existsSync, readFileSync } from "fs";
 import * as fs from "fs";
 import { parse } from "yaml";
-import { TelemetryService } from "../telemetry";
 import { AltimateRequest, NotFoundError } from "../altimate";
 import { DBTTerminal } from "./terminal";
 import { ValidationProvider } from "../validation_provider";
@@ -215,7 +214,6 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
     protected pythonEnvironment: PythonEnvironment,
-    private telemetry: TelemetryService,
     private pythonDBTCommandExecutionStrategy: PythonDBTCommandExecutionStrategy,
     protected cliDBTCommandExecutionStrategyFactory: (
       path: string,
@@ -243,22 +241,6 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
         );
       }),
     );
-
-    this.isDbtLoomInstalled().then((isInstalled) => {
-      this.telemetry.setTelemetryCustomAttribute(
-        "dbtLoomInstalled",
-        `${isInstalled}`,
-      );
-    });
-  }
-
-  private async isDbtLoomInstalled(): Promise<boolean> {
-    try {
-      await this.python.ex`from dbt_loom import *`;
-      return true;
-    } catch (error) {
-      return false;
-    }
   }
 
   // remove the trailing slashes if they exists,
@@ -298,10 +280,11 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
         };
       }
     } catch (err) {
-      console.error("Error while getting get_show_sql macro", err);
-      this.telemetry.sendTelemetryError(
+      this.dbtTerminal.error(
         "executeMacroGetLimitSubquerySQLError",
+        "Could not get Limit Subquery SQL",
         err,
+        true,
         { adapter: this.adapterType || "unknown" },
       );
     }
@@ -476,7 +459,6 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
           category: "python-bridge",
         };
         this.pythonBridgeDiagnosticsData = [diagnosticData];
-        this.telemetry.sendTelemetryError("pythonBridgeInitPythonError", exc);
       } else {
         window.showErrorMessage(
           extendErrorWithSupportLinks(
@@ -487,8 +469,13 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
               ".",
           ),
         );
-        this.telemetry.sendTelemetryError("pythonBridgeInitError", exc);
       }
+      this.dbtTerminal.error(
+        "pythonBridgeInitPythonError",
+        "Could not initialize Python bridge",
+        exc,
+        true,
+      );
     }
   }
 
@@ -542,19 +529,16 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
     try {
       await this.python.ex`project.cleanup_connections()`;
     } catch (exc) {
-      if (exc instanceof PythonException) {
-        this.telemetry.sendTelemetryEvent(
-          "pythonBridgeCleanupConnectionsError",
-          {
-            error: exc.exception.message,
-            adapter: this.getAdapterType() || "unknown", // TODO: this should be moved to dbtProject
-          },
-        );
-      }
-      this.telemetry.sendTelemetryEvent(
-        "pythonBridgeCleanupConnectionsUnexpectedError",
+      this.dbtTerminal.error(
+        "pythonBridgeInitPythonError",
+        "Could not initialize Python bridge",
+        exc,
+        true,
         {
-          error: (exc as Error).message,
+          error:
+            exc instanceof PythonException
+              ? (exc as PythonException).exception.message
+              : (exc as Error).message,
           adapter: this.getAdapterType() || "unknown", // TODO: this should be moved to dbtProject
         },
       );
@@ -598,28 +582,28 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
           category: "manifest-rebuild",
         };
         this.rebuildManifestDiagnosticsData = [diagnosticData];
-        this.telemetry.sendTelemetryEvent(
-          "pythonBridgeCannotParseProjectUserError",
-          {
-            error: exc.exception.message,
-            adapter: this.getAdapterType() || "unknown", // TODO: this should be moved to dbtProject
-          },
-        );
         return;
       }
-      // if we get here, it is not a dbt error but an extension error.
-      this.telemetry.sendTelemetryError(
-        "pythonBridgeCannotParseProjectUnknownError",
+      this.dbtTerminal.error(
+        "pythonBridgeInitPythonError",
+        "Could not initialize Python bridge",
         exc,
+        true,
         {
-          adapter: this.adapterType || "unknown", // TODO: this should be moved to dbtProject
+          error:
+            exc instanceof PythonException
+              ? (exc as PythonException).exception.message
+              : (exc as Error).message,
+          adapter: this.getAdapterType() || "unknown", // TODO: this should be moved to dbtProject
         },
       );
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "An error occured while rebuilding the dbt manifest: " + exc + ".",
-        ),
-      );
+      if (!(exc instanceof PythonException)) {
+        window.showErrorMessage(
+          extendErrorWithSupportLinks(
+            "An error occured while rebuilding the dbt manifest: " + exc + ".",
+          ),
+        );
+      }
     }
   }
 

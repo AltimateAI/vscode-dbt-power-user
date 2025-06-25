@@ -15,7 +15,6 @@ import {
 import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
 import {
   CommandProcessExecutionFactory,
-  DBTProject,
   DBTTerminal,
   PythonEnvironment,
 } from "../modules";
@@ -139,10 +138,18 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
       const result = await command.execute();
       const stderr = result.stderr;
       // sending stderr everytime to verify in logs whether is coming as empty or not.
-      this.telemetry.sendTelemetryEvent("dbtCloudParseProjectUserError", {
-        error: stderr,
-        adapter: this.getAdapterType() || "unknown",
-      });
+      if (stderr) {
+        this.terminal.error(
+          "dbtCloudParseProjectUserError",
+          "Could not parse project user error",
+          new Error(stderr),
+          true,
+          {
+            error: stderr,
+            adapter: this.getAdapterType() || "unknown",
+          },
+        );
+      }
       this.terminal.info(
         "dbtFusionParseProject",
         "dbt fusion response",
@@ -219,9 +226,11 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
       });
       this.rebuildManifestDiagnosticsData = diagnosticData;
     } catch (error) {
-      this.telemetry.sendTelemetryError(
+      this.terminal.error(
         "dbtCloudCannotParseProjectCommandExecuteError",
+        "Could not parse project command execution error",
         error,
+        true,
         {
           adapter: this.getAdapterType() || "unknown",
           command: command.getCommandAsString(),
