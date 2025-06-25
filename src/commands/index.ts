@@ -35,6 +35,7 @@ import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { ValidateSql } from "./validateSql";
 import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
 import { DBTTerminal } from "../dbt_client/terminal";
+import { DiagnosticsOutputChannel } from "../services/diagnosticsOutputChannel";
 import { SharedStateService } from "../services/sharedStateService";
 import {
   ConversationProvider,
@@ -66,6 +67,7 @@ export class VSCodeCommands implements Disposable {
     private bigQueryCostEstimate: BigQueryCostEstimate,
     @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
+    private diagnosticsOutputChannel: DiagnosticsOutputChannel,
     private eventEmitterService: SharedStateService,
     private conversationController: ConversationProvider,
     private pythonEnvironment: PythonEnvironment,
@@ -454,13 +456,12 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand("dbtPowerUser.diagnostics", async () => {
         try {
-          await this.dbtTerminal.show(true);
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          this.dbtTerminal.logLine("Diagnostics started...");
-          this.dbtTerminal.logNewLine();
+          this.diagnosticsOutputChannel.show();
+          this.diagnosticsOutputChannel.logLine("Diagnostics started...");
+          this.diagnosticsOutputChannel.logNewLine();
 
           // Printing env vars
-          this.dbtTerminal.logBlockWithHeader(
+          this.diagnosticsOutputChannel.logBlockWithHeader(
             [
               "Printing environment variables...",
               "* Please remove any sensitive information before sending it to us",
@@ -469,17 +470,17 @@ export class VSCodeCommands implements Disposable {
               ([key, value]) => `${key}=${value}`,
             ),
           );
-          this.dbtTerminal.logNewLine();
+          this.diagnosticsOutputChannel.logNewLine();
 
-          // Printing env vars
-          this.dbtTerminal.logBlockWithHeader(
+          // Printing python paths
+          this.diagnosticsOutputChannel.logBlockWithHeader(
             [
               "Printing all python paths...",
               "* Please remove any sensitive information before sending it to us",
             ],
             this.pythonEnvironment.allPythonPaths.map(({ path }) => path),
           );
-          this.dbtTerminal.logNewLine();
+          this.diagnosticsOutputChannel.logNewLine();
 
           // Printing extension settings
           const dbtSettings = workspace.getConfiguration().inspect("dbt");
@@ -491,7 +492,7 @@ export class VSCodeCommands implements Disposable {
             ...Object.keys(defaultValue),
             ...Object.keys(workspaceValue),
           ];
-          this.dbtTerminal.logBlockWithHeader(
+          this.diagnosticsOutputChannel.logBlockWithHeader(
             [
               "Printing extension settings...",
               "* Please remove any sensitive information before sending it to us",
@@ -514,7 +515,7 @@ export class VSCodeCommands implements Disposable {
               return `${key}=${valueText}\t\t${overridenText}`;
             }),
           );
-          this.dbtTerminal.logNewLine();
+          this.diagnosticsOutputChannel.logNewLine();
 
           // Printing extension and setup info
           const dbtIntegrationMode = workspace
@@ -524,7 +525,7 @@ export class VSCodeCommands implements Disposable {
             .getConfiguration("dbt")
             .get<string[]>("allowListFolders", []);
           const apiConnectivity = await this.altimate.checkApiConnectivity();
-          this.dbtTerminal.logBlock([
+          this.diagnosticsOutputChannel.logBlock([
             `Python Path=${this.pythonEnvironment.pythonPath}`,
             `VSCode version=${version}`,
             `Extension version=${
@@ -539,81 +540,93 @@ export class VSCodeCommands implements Disposable {
               : "",
             `AllowList Folders=${allowListFolders}`,
           ]);
-          this.dbtTerminal.logNewLine();
+          this.diagnosticsOutputChannel.logNewLine();
 
           if (!this.dbtClient.pythonInstalled) {
-            this.dbtTerminal.logLine("Python is not installed");
-            this.dbtTerminal.logLine(
+            this.diagnosticsOutputChannel.logLine("Python is not installed");
+            this.diagnosticsOutputChannel.logLine(
               "Can't proceed further without fixing python installation",
             );
             return;
           }
-          this.dbtTerminal.logLine("Python is installed");
+          this.diagnosticsOutputChannel.logLine("Python is installed");
           if (!this.dbtClient.dbtInstalled) {
-            this.dbtTerminal.logLine("DBT is not installed");
-            this.dbtTerminal.logLine(
+            this.diagnosticsOutputChannel.logLine("DBT is not installed");
+            this.diagnosticsOutputChannel.logLine(
               "Can't proceed further without fixing dbt installation",
             );
             return;
           }
-          this.dbtTerminal.logLine("DBT is installed");
+          this.diagnosticsOutputChannel.logLine("DBT is installed");
           const dbtWorkspaces = this.dbtProjectContainer.dbtWorkspaceFolders;
-          this.dbtTerminal.logLine(
+          this.diagnosticsOutputChannel.logLine(
             `Number of workspaces=${dbtWorkspaces.length}`,
           );
           for (const w of dbtWorkspaces) {
-            this.dbtTerminal.logHorizontalRule();
-            this.dbtTerminal.logLine(
+            this.diagnosticsOutputChannel.logHorizontalRule();
+            this.diagnosticsOutputChannel.logLine(
               `Workspace Path=${w.workspaceFolder.uri.fsPath}`,
             );
-            this.dbtTerminal.logLine(`Adapters=${w.getAdapters()}`);
-            this.dbtTerminal.logLine(
+            this.diagnosticsOutputChannel.logLine(
+              `Adapters=${w.getAdapters()}`,
+            );
+            this.diagnosticsOutputChannel.logLine(
               `AllowList Folders=${w.getAllowListFolders()}`,
             );
             w.projectDiscoveryDiagnostics.forEach((uri, diagnostics) => {
-              this.dbtTerminal.logLine(`Problems for ${uri.fsPath}`);
+              this.diagnosticsOutputChannel.logLine(
+                `Problems for ${uri.fsPath}`,
+              );
               diagnostics.forEach((d) => {
-                this.dbtTerminal.logLine(
+                this.diagnosticsOutputChannel.logLine(
                   `source=${d.source}\tmessage=${d.message}`,
                 );
               });
             });
-            this.dbtTerminal.logHorizontalRule();
+            this.diagnosticsOutputChannel.logHorizontalRule();
           }
 
           const projects = this.dbtProjectContainer.getProjects();
-          this.dbtTerminal.logLine(`Number of projects=${projects.length}`);
+          this.diagnosticsOutputChannel.logLine(
+            `Number of projects=${projects.length}`,
+          );
           if (projects.length === 0) {
-            this.dbtTerminal.logLine("No project detected");
-            this.dbtTerminal.logLine("Can't proceed further without project");
+            this.diagnosticsOutputChannel.logLine("No project detected");
+            this.diagnosticsOutputChannel.logLine(
+              "Can't proceed further without project",
+            );
             return;
           }
-          this.dbtTerminal.logNewLine();
+          this.diagnosticsOutputChannel.logNewLine();
 
           for (const project of projects) {
             try {
-              this.dbtTerminal.logHorizontalRule();
-              this.dbtTerminal.logLine(
+              this.diagnosticsOutputChannel.logHorizontalRule();
+              this.diagnosticsOutputChannel.logLine(
                 `Printing information for ${project.getProjectName()}`,
               );
-              this.dbtTerminal.logHorizontalRule();
+              this.diagnosticsOutputChannel.logHorizontalRule();
               await this.printProjectInfo(project);
             } catch (e) {
-              this.dbtTerminal.logNewLine();
-              this.dbtTerminal.logLine(
+              this.diagnosticsOutputChannel.logNewLine();
+              this.diagnosticsOutputChannel.logLine(
                 "Failed to print all the info for the project...",
               );
-              this.dbtTerminal.logLine(`Error=${e}`);
+              this.diagnosticsOutputChannel.logLine(`Error=${e}`);
             } finally {
-              this.dbtTerminal.logHorizontalRule();
+              this.diagnosticsOutputChannel.logHorizontalRule();
             }
           }
-          this.dbtTerminal.logNewLine();
-          this.dbtTerminal.logLine("Diagnostics completed successfully...");
+          this.diagnosticsOutputChannel.logNewLine();
+          this.diagnosticsOutputChannel.logLine(
+            "Diagnostics completed successfully...",
+          );
         } catch (e) {
-          this.dbtTerminal.logNewLine();
-          this.dbtTerminal.logLine("Diagnostics ended with error...");
-          this.dbtTerminal.logLine(`Error=${e}`);
+          this.diagnosticsOutputChannel.logNewLine();
+          this.diagnosticsOutputChannel.logLine(
+            "Diagnostics ended with error...",
+          );
+          this.diagnosticsOutputChannel.logLine(`Error=${e}`);
         }
       }),
       commands.registerCommand(
@@ -875,23 +888,29 @@ export class VSCodeCommands implements Disposable {
   }
 
   private async printProjectInfo(project: DBTProject) {
-    this.dbtTerminal.logLine(`Project Name=${project.getProjectName()}`);
-    this.dbtTerminal.logLine(`Adapter Type=${project.getAdapterType()}`);
+    this.diagnosticsOutputChannel.logLine(
+      `Project Name=${project.getProjectName()}`,
+    );
+    this.diagnosticsOutputChannel.logLine(
+      `Adapter Type=${project.getAdapterType()}`,
+    );
 
     const dbtVersion = project.getDBTVersion();
     if (!dbtVersion) {
-      this.dbtTerminal.logLine("DBT is not initialized properly");
+      this.diagnosticsOutputChannel.logLine("DBT is not initialized properly");
     } else {
-      this.dbtTerminal.logLine(`DBT version=${dbtVersion.join(".")}`);
+      this.diagnosticsOutputChannel.logLine(
+        `DBT version=${dbtVersion.join(".")}`,
+      );
     }
 
     if (!project.getPythonBridgeStatus()) {
-      this.dbtTerminal.logLine("Python bridge is not connected");
+      this.diagnosticsOutputChannel.logLine("Python bridge is not connected");
     } else {
-      this.dbtTerminal.logLine("Python bridge is connected");
+      this.diagnosticsOutputChannel.logLine("Python bridge is connected");
     }
 
-    this.dbtTerminal.logNewLine();
+    this.diagnosticsOutputChannel.logNewLine();
 
     const paths = [
       {
@@ -921,7 +940,7 @@ export class VSCodeCommands implements Disposable {
 
     for (const p of paths) {
       if (!p.path) {
-        this.dbtTerminal.logLine(`${p.pathType} path not found`);
+        this.diagnosticsOutputChannel.logLine(`${p.pathType} path not found`);
         continue;
       }
       let line = `${p.pathType} path=${p.path}\t\t`;
@@ -930,29 +949,29 @@ export class VSCodeCommands implements Disposable {
       } else {
         line += "File exists at location";
       }
-      this.dbtTerminal.logLine(line);
+      this.diagnosticsOutputChannel.logLine(line);
     }
 
     const dbtProjectFilePath = project.getDBTProjectFilePath();
     if (existsSync(dbtProjectFilePath)) {
-      this.dbtTerminal.logNewLine();
-      this.dbtTerminal.logNewLine();
-      this.dbtTerminal.logLine("dbt_project.yml");
-      this.dbtTerminal.logHorizontalRule();
+      this.diagnosticsOutputChannel.logNewLine();
+      this.diagnosticsOutputChannel.logNewLine();
+      this.diagnosticsOutputChannel.logLine("dbt_project.yml");
+      this.diagnosticsOutputChannel.logHorizontalRule();
       const fileContent = readFileSync(dbtProjectFilePath, "utf8");
-      this.dbtTerminal.logLine(fileContent.replace(/\n/g, "\r\n"));
-      this.dbtTerminal.logHorizontalRule();
+      this.diagnosticsOutputChannel.logLine(fileContent.replace(/\n/g, "\r\n"));
+      this.diagnosticsOutputChannel.logHorizontalRule();
     }
 
-    this.dbtTerminal.logNewLine();
+    this.diagnosticsOutputChannel.logNewLine();
     const diagnostics = project.getAllDiagnostic();
-    this.dbtTerminal.logLine(
+    this.diagnosticsOutputChannel.logLine(
       `Number of diagnostics issues=${diagnostics.length}`,
     );
     for (const d of diagnostics) {
-      this.dbtTerminal.logLine(d.message);
+      this.diagnosticsOutputChannel.logLine(d.message);
     }
-    await project.debug();
+    await project.debug(false);
   }
 
   private runSelectedQuery(uri: Uri, range: Range): void {

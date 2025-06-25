@@ -106,62 +106,6 @@ describe("DBTTerminal Test Suite", () => {
     );
   });
 
-  it("should format and log blocks with horizontal rules", () => {
-    const block = ["Line 1", "Line 2", "Line 3"];
-    terminal.logBlock(block);
-
-    // Verify horizontal rules and content
-    expect(mockOutputChannel.info).toHaveBeenCalledWith(
-      "--------------------------------------------------------------------------",
-      [],
-    );
-    expect(mockOutputChannel.info).toHaveBeenCalledWith("Line 1", []);
-    expect(mockOutputChannel.info).toHaveBeenCalledWith("Line 2", []);
-    expect(mockOutputChannel.info).toHaveBeenCalledWith("Line 3", []);
-    expect(mockOutputChannel.info).toHaveBeenCalledWith(
-      "--------------------------------------------------------------------------",
-      [],
-    );
-  });
-
-  it("should format and log blocks with headers", () => {
-    const header = ["Header 1", "Header 2"];
-    const block = ["Content 1", "Content 2"];
-    terminal.logBlockWithHeader(header, block);
-
-    const calls = mockOutputChannel.info.mock.calls;
-    let callIndex = 0;
-
-    // First horizontal rule
-    expect(calls[callIndex++][0]).toBe(
-      "--------------------------------------------------------------------------",
-    );
-    expect(calls[callIndex++][0]).toBe("\r\n");
-
-    // Header lines with newlines
-    expect(calls[callIndex++][0]).toBe("Header 1");
-    expect(calls[callIndex++][0]).toBe("\r\n");
-    expect(calls[callIndex++][0]).toBe("Header 2");
-    expect(calls[callIndex++][0]).toBe("\r\n");
-
-    // Second horizontal rule
-    expect(calls[callIndex++][0]).toBe(
-      "--------------------------------------------------------------------------",
-    );
-    expect(calls[callIndex++][0]).toBe("\r\n");
-
-    // Content lines with newlines
-    expect(calls[callIndex++][0]).toBe("Content 1");
-    expect(calls[callIndex++][0]).toBe("\r\n");
-    expect(calls[callIndex++][0]).toBe("Content 2");
-    expect(calls[callIndex++][0]).toBe("\r\n");
-
-    // Final horizontal rule
-    expect(calls[callIndex++][0]).toBe(
-      "--------------------------------------------------------------------------",
-    );
-    expect(calls[callIndex++][0]).toBe("\r\n");
-  });
 
   it("should show and hide terminal based on status", async () => {
     const mockTerminal = {

@@ -1,5 +1,4 @@
 import { PythonException } from "python-bridge";
-import { VSCodeDBTTerminal } from "./vscodeTerminal";
 
 export interface DBTTerminal {
   // Terminal display methods
@@ -28,13 +27,6 @@ export interface DBTTerminal {
     sendTelemetry?: boolean,
     ...args: any[]
   ): void;
-
-  // Formatted logging methods
-  logNewLine(): void;
-  logLine(line: string): void;
-  logHorizontalRule(): void;
-  logBlock(block: string[]): void;
-  logBlockWithHeader(header: string[], block: string[]): void;
 
   // Lifecycle methods
   dispose(): void;

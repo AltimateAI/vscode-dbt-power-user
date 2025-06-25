@@ -630,8 +630,8 @@ export class DBTCommandFactory {
     );
   }
 
-  createDebugCommand(): DBTCommand {
-    return new DBTCommand("Debugging...", ["debug"], true, true, true);
+  createDebugCommand(focus: boolean = true): DBTCommand {
+    return new DBTCommand("Debugging...", ["debug"], focus, true, true);
   }
 }
 
