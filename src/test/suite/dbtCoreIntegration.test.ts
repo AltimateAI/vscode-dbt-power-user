@@ -13,6 +13,7 @@ import {
 import { TelemetryService } from "../../telemetry";
 import { AltimateRequest } from "../../altimate";
 import { ValidationProvider } from "../../validation_provider";
+import { DBTConfiguration } from "../../dbt_client/configuration";
 import { Uri, workspace, EventEmitter } from "vscode";
 import {
   CommandProcessExecutionFactory,
@@ -90,6 +91,10 @@ describe("DBTCoreProjectIntegration Tests", () => {
         log: () => {},
       } as any,
       {} as ValidationProvider,
+      {
+        getQueryTemplate: () =>
+          "select * from ({query}) as query limit {limit}",
+      } as DBTConfiguration,
       mockUri,
       mockProjectConfigDiagnostics,
       mockDeferConfig,

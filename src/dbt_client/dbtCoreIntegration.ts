@@ -1,4 +1,4 @@
-import { window, workspace } from "vscode";
+import { window } from "vscode";
 import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
 import { extendErrorWithSupportLinks } from "../utils";
 import {
@@ -33,6 +33,7 @@ import { parse } from "yaml";
 import { AltimateRequest, NotFoundError } from "../altimate";
 import { DBTTerminal } from "./terminal";
 import { ValidationProvider } from "../validation_provider";
+import { DBTConfiguration } from "./configuration";
 import { NodeMetaData } from "../domain";
 import * as crypto from "crypto";
 
@@ -222,6 +223,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
     private altimateRequest: AltimateRequest,
     protected dbtTerminal: DBTTerminal,
     private validationProvider: ValidationProvider,
+    private dbtConfiguration: DBTConfiguration,
     protected projectRoot: string,
     private projectConfigDiagnostics: DBTDiagnosticData[],
     private deferConfig: DeferConfig | undefined,
@@ -289,9 +291,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
       );
     }
 
-    const queryTemplate = workspace
-      .getConfiguration("dbt")
-      .get<string>("queryTemplate");
+    const queryTemplate = this.dbtConfiguration.getQueryTemplate();
 
     if (queryTemplate && queryTemplate !== DEFAULT_QUERY_TEMPLATE) {
       console.log("Using user provided query template", queryTemplate);
