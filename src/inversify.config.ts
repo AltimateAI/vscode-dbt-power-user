@@ -232,6 +232,16 @@ container
   .to(VSCodeDBTTerminal)
   .inSingletonScope();
 
+// Bind CommandProcessExecutionFactory
+container
+  .bind(CommandProcessExecutionFactory)
+  .toDynamicValue((context) => {
+    return new CommandProcessExecutionFactory(
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
 container
   .bind<interfaces.Factory<DBTDetection>>("Factory<DBTDetection>")
   .toFactory<DBTDetection, []>((context: interfaces.Context) => {

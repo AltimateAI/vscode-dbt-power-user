@@ -1,16 +1,10 @@
 import { spawn } from "child_process";
-import { provide } from "inversify-binding-decorators";
 import { CancellationToken, Disposable } from "vscode";
 import { DBTTerminal } from "./dbt_client/terminal";
 import { EnvironmentVariables } from "./domain";
-import { inject } from "inversify";
 
-@provide(CommandProcessExecutionFactory)
 export class CommandProcessExecutionFactory {
-  constructor(
-    @inject("DBTTerminal")
-    private terminal: DBTTerminal,
-  ) {}
+  constructor(private terminal: DBTTerminal) {}
 
   createCommandProcessExecution({
     command,
@@ -49,7 +43,6 @@ export class CommandProcessExecution {
   private disposables: Disposable[] = [];
 
   constructor(
-    @inject("DBTTerminal")
     private terminal: DBTTerminal,
     private command: string,
     private args?: string[],
