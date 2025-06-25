@@ -25,6 +25,7 @@ export const RESOURCE_TYPE_SEED = "seed";
 export const RESOURCE_TYPE_SNAPSHOT = "snapshot";
 export const RESOURCE_TYPE_TEST = "test";
 export const RESOURCE_TYPE_METRIC = "semantic_model";
+
 export interface DBTCommandExecutionStrategy {
   execute(
     command: DBTCommand,
@@ -124,7 +125,6 @@ export class PythonDBTCommandExecutionStrategy
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
     private pythonEnvironment: PythonEnvironment,
     private terminal: DBTTerminal,
-    private telemetry: TelemetryService,
     private configuration: DBTConfiguration,
   ) {}
 
@@ -142,9 +142,14 @@ export class PythonDBTCommandExecutionStrategy
     signal?: AbortSignal,
   ): Promise<CommandProcessExecution> {
     this.terminal.log(`> Executing task: ${command.getCommandAsString()}\n\r`);
-    this.telemetry.sendTelemetryEvent("dbtCommand", {
-      command: command.getCommandAsString(),
-    });
+    this.terminal.info(
+      "dbtCommand",
+      "Executed dbt command: " + command.getCommandAsString(),
+      true,
+      {
+        command: command.getCommandAsString(),
+      },
+    );
     if (command.focus) {
       await this.terminal.show(true);
     }
