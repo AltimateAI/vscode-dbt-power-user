@@ -218,7 +218,6 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
   }[] = [];
   private pythonBridgeDiagnosticsData: DBTDiagnosticData[] = [];
   private rebuildManifestDiagnosticsData: DBTDiagnosticData[] = [];
-  private static QUEUE_ALL = "all";
 
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
@@ -244,9 +243,6 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
     );
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot,
-    );
-    this.executionInfrastructure.createQueue(
-      DBTCoreProjectIntegration.QUEUE_ALL,
     );
 
     this.disposables.push(
@@ -643,43 +639,31 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
   }
 
   async runModel(command: DBTCommand) {
-    return this.addCommandToQueue(
-      await this.addDeferParams(this.dbtCoreCommand(command)),
-    );
+    return await this.addDeferParams(this.dbtCoreCommand(command));
   }
 
   async buildModel(command: DBTCommand) {
-    return this.addCommandToQueue(
-      await this.addDeferParams(this.dbtCoreCommand(command)),
-    );
+    return await this.addDeferParams(this.dbtCoreCommand(command));
   }
 
   async buildProject(command: DBTCommand) {
-    return this.addCommandToQueue(
-      await this.addDeferParams(this.dbtCoreCommand(command)),
-    );
+    return await this.addDeferParams(this.dbtCoreCommand(command));
   }
 
   async runTest(command: DBTCommand) {
-    return this.addCommandToQueue(
-      await this.addDeferParams(this.dbtCoreCommand(command)),
-    );
+    return await this.addDeferParams(this.dbtCoreCommand(command));
   }
 
   async runModelTest(command: DBTCommand) {
-    return this.addCommandToQueue(
-      await this.addDeferParams(this.dbtCoreCommand(command)),
-    );
+    return await this.addDeferParams(this.dbtCoreCommand(command));
   }
 
-  async compileModel(command: DBTCommand) {
-    this.addCommandToQueue(
-      await this.addDeferParams(this.dbtCoreCommand(command)),
-    );
+  async compileModel(command: DBTCommand): Promise<DBTCommand | undefined> {
+    return await this.addDeferParams(this.dbtCoreCommand(command));
   }
 
-  async generateDocs(command: DBTCommand) {
-    this.addCommandToQueue(this.dbtCoreCommand(command));
+  async generateDocs(command: DBTCommand): Promise<DBTCommand | undefined> {
+    return this.dbtCoreCommand(command);
   }
 
   async clean(command: DBTCommand) {
@@ -708,18 +692,6 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
       throw new Error(stderr);
     }
     return stdout;
-  }
-
-  private addCommandToQueue(command: DBTCommand) {
-    const isInstalled =
-      this.dbtProjectContainer.showErrorIfDbtOrPythonNotInstalled();
-    if (!isInstalled) {
-      return;
-    }
-    return this.executionInfrastructure.addCommandToQueue(
-      DBTCoreProjectIntegration.QUEUE_ALL,
-      command,
-    );
   }
 
   private async getDeferManifestPath(

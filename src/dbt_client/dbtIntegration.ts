@@ -1,8 +1,4 @@
-import { ProgressLocation, window } from "vscode";
-import {
-  convertAbortSignalToCancellationToken,
-  extendErrorWithSupportLinks,
-} from "../utils";
+import { convertAbortSignalToCancellationToken } from "../utils";
 import { PythonBridge, pythonBridge } from "python-bridge";
 import {
   CommandProcessExecution,
@@ -13,24 +9,12 @@ import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync } from "fs";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./terminal";
-import {
-  AltimateRequest,
-  NoCredentialsError,
-  ValidateSqlParseErrorResponse,
-} from "../altimate";
+import { ValidateSqlParseErrorResponse } from "../altimate";
 import { NodeMetaData } from "../domain";
 import { DBTDiagnosticResult } from "./diagnostics";
 import { DBTConfiguration } from "./configuration";
 import { DeferConfig } from "../manifest/dbtProject";
 import { inject } from "inversify";
-
-interface DBTCommandExecution {
-  command: (signal?: AbortSignal) => Promise<void>;
-  statusMessage: string;
-  showProgress?: boolean;
-  focus?: boolean;
-  signal?: AbortSignal;
-}
 
 export interface DBTCommandExecutionStrategy {
   execute(
@@ -334,13 +318,13 @@ export interface DBTProjectIntegration {
     modelName: string,
   ): Promise<QueryExecution>;
   // dbt commands
-  runModel(command: DBTCommand): Promise<CommandProcessResult | undefined>;
-  buildModel(command: DBTCommand): Promise<CommandProcessResult | undefined>;
-  buildProject(command: DBTCommand): Promise<CommandProcessResult | undefined>;
-  runTest(command: DBTCommand): Promise<CommandProcessResult | undefined>;
-  runModelTest(command: DBTCommand): Promise<CommandProcessResult | undefined>;
-  compileModel(command: DBTCommand): Promise<void>;
-  generateDocs(command: DBTCommand): Promise<void>;
+  runModel(command: DBTCommand): Promise<DBTCommand | undefined>;
+  buildModel(command: DBTCommand): Promise<DBTCommand | undefined>;
+  buildProject(command: DBTCommand): Promise<DBTCommand | undefined>;
+  runTest(command: DBTCommand): Promise<DBTCommand | undefined>;
+  runModelTest(command: DBTCommand): Promise<DBTCommand | undefined>;
+  compileModel(command: DBTCommand): Promise<DBTCommand | undefined>;
+  generateDocs(command: DBTCommand): Promise<DBTCommand | undefined>;
   clean(command: DBTCommand): Promise<string>;
   executeCommandImmediately(command: DBTCommand): Promise<CommandProcessResult>;
   deps(command: DBTCommand): Promise<string>;
@@ -383,16 +367,8 @@ export interface DBTProjectIntegration {
 }
 
 export class DBTCommandExecutionInfrastructure {
-  private queues: Map<string, DBTCommandExecution[]> = new Map<
-    string,
-    DBTCommandExecution[]
-  >();
-  private queueStates: Map<string, boolean> = new Map<string, boolean>();
-
   constructor(
     private pythonEnvironment: PythonEnvironment,
-    private telemetry: TelemetryService,
-    private altimate: AltimateRequest,
     @inject("DBTTerminal")
     private terminal: DBTTerminal,
   ) {}
@@ -437,112 +413,6 @@ export class DBTCommandExecutionInfrastructure {
       await bridge.disconnect();
       await bridge.end();
     } catch (_) {}
-  }
-
-  createQueue(queueName: string) {
-    this.queues.set(queueName, []);
-  }
-
-  async addCommandToQueue(
-    queueName: string,
-    command: DBTCommand,
-  ): Promise<CommandProcessResult | undefined> {
-    this.queues.get(queueName)!.push({
-      command: async (signal) => {
-        await command.execute(signal);
-      },
-      statusMessage: command.statusMessage,
-      focus: command.focus,
-      signal: command.signal,
-      showProgress: command.showProgress,
-    });
-    this.pickCommandToRun(queueName);
-    return undefined;
-  }
-
-  private async pickCommandToRun(queueName: string): Promise<void> {
-    const queue = this.queues.get(queueName)!;
-    const running = this.queueStates.get(queueName);
-    if (!running && queue.length > 0) {
-      this.queueStates.set(queueName, true);
-      const { command, statusMessage, focus, showProgress } = queue.shift()!;
-      const commandExecution = async (signal?: AbortSignal) => {
-        try {
-          await command(signal);
-        } catch (error) {
-          if (error instanceof NoCredentialsError) {
-            this.altimate.handlePreviewFeatures();
-            return;
-          }
-          window.showErrorMessage(
-            extendErrorWithSupportLinks(
-              `Could not run command '${statusMessage}': ` + error + ".",
-            ),
-          );
-          this.telemetry.sendTelemetryError("queueRunCommandError", error, {
-            command: statusMessage,
-          });
-        }
-      };
-
-      if (showProgress) {
-        await window.withProgress(
-          {
-            location: focus
-              ? ProgressLocation.Notification
-              : ProgressLocation.Window,
-            cancellable: true,
-            title: statusMessage,
-          },
-          async (_, token) => {
-            const abortController = new AbortController();
-            token.onCancellationRequested(() => abortController.abort());
-            await commandExecution(abortController.signal);
-          },
-        );
-      } else {
-        await commandExecution();
-      }
-      this.queueStates.set(queueName, false);
-      this.pickCommandToRun(queueName);
-    }
-  }
-
-  async runCommand(command: DBTCommand) {
-    const commandExecution: DBTCommandExecution = {
-      command: async (signal) => {
-        await command.execute(signal);
-      },
-      statusMessage: command.statusMessage,
-      focus: command.focus,
-    };
-    await window.withProgress(
-      {
-        location: commandExecution.focus
-          ? ProgressLocation.Notification
-          : ProgressLocation.Window,
-        cancellable: true,
-        title: commandExecution.statusMessage,
-      },
-      async (_, token) => {
-        try {
-          const abortController = new AbortController();
-          token.onCancellationRequested(() => abortController.abort());
-          return await commandExecution.command(abortController.signal);
-        } catch (error) {
-          window.showErrorMessage(
-            extendErrorWithSupportLinks(
-              `Could not run command '${commandExecution.statusMessage}': ` +
-                (error as Error).message +
-                ".",
-            ),
-          );
-          this.telemetry.sendTelemetryError("runCommandError", error, {
-            command: commandExecution.statusMessage,
-          });
-        }
-      },
-    );
   }
 }
 

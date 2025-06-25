@@ -136,7 +136,6 @@ export class DBTCloudProjectDetection implements DBTProjectDetection {
 }
 
 export class DBTCloudProjectIntegration implements DBTProjectIntegration {
-  private static QUEUE_ALL = "all";
   protected targetPath?: string;
   private version: number[] | undefined;
   protected projectName: string = "unknown_" + crypto.randomUUID();
@@ -177,9 +176,6 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
     );
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot,
-    );
-    this.executionInfrastructure.createQueue(
-      DBTCloudProjectIntegration.QUEUE_ALL,
     );
 
     this.disposables.push(
@@ -464,52 +460,31 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
   }
 
   async runModel(command: DBTCommand) {
-    return this.addCommandToQueue(
-      DBTCloudProjectIntegration.QUEUE_ALL,
-      await this.addDeferParams(this.dbtCloudCommand(command)),
-    );
+    return await this.addDeferParams(this.dbtCloudCommand(command));
   }
 
   async buildModel(command: DBTCommand) {
-    return this.addCommandToQueue(
-      DBTCloudProjectIntegration.QUEUE_ALL,
-      await this.addDeferParams(this.dbtCloudCommand(command)),
-    );
+    return await this.addDeferParams(this.dbtCloudCommand(command));
   }
 
   async buildProject(command: DBTCommand) {
-    return this.addCommandToQueue(
-      DBTCloudProjectIntegration.QUEUE_ALL,
-      await this.addDeferParams(this.dbtCloudCommand(command)),
-    );
+    return await this.addDeferParams(this.dbtCloudCommand(command));
   }
 
   async runTest(command: DBTCommand) {
-    return this.addCommandToQueue(
-      DBTCloudProjectIntegration.QUEUE_ALL,
-      await this.addDeferParams(this.dbtCloudCommand(command)),
-    );
+    return await this.addDeferParams(this.dbtCloudCommand(command));
   }
 
   async runModelTest(command: DBTCommand) {
-    return this.addCommandToQueue(
-      DBTCloudProjectIntegration.QUEUE_ALL,
-      await this.addDeferParams(this.dbtCloudCommand(command)),
-    );
+    return await this.addDeferParams(this.dbtCloudCommand(command));
   }
 
-  async compileModel(command: DBTCommand) {
-    this.addCommandToQueue(
-      DBTCloudProjectIntegration.QUEUE_ALL,
-      await this.addDeferParams(this.dbtCloudCommand(command)),
-    );
+  async compileModel(command: DBTCommand): Promise<DBTCommand | undefined> {
+    return await this.addDeferParams(this.dbtCloudCommand(command));
   }
 
-  async generateDocs(command: DBTCommand) {
-    this.addCommandToQueue(
-      DBTCloudProjectIntegration.QUEUE_ALL,
-      this.dbtCloudCommand(command),
-    );
+  async generateDocs(command: DBTCommand): Promise<DBTCommand | undefined> {
+    return this.dbtCloudCommand(command);
   }
 
   async clean(command: DBTCommand): Promise<string> {
@@ -582,15 +557,6 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
       }
     }
     return command;
-  }
-
-  private addCommandToQueue(queueName: string, command: DBTCommand) {
-    try {
-      this.throwIfNotAuthenticated();
-      return this.executionInfrastructure.addCommandToQueue(queueName, command);
-    } catch (e) {
-      window.showErrorMessage((e as Error).message);
-    }
   }
 
   // internal commands

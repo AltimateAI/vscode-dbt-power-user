@@ -496,7 +496,7 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
     return stdout;
   }
 
-  async generateDocs(_: DBTCommand) {
+  async generateDocs(_: DBTCommand): Promise<DBTCommand | undefined> {
     throw new Error("dbt fusion does not support docs generation");
   }
 

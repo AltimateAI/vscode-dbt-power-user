@@ -53,7 +53,9 @@ import {
   DBColumn,
   SourceNode,
   HealthcheckArgs,
+  DBTCommand,
 } from "../dbt_client/dbtIntegration";
+import { CommandProcessResult } from "../commandProcessExecution";
 import {
   DBTCoreProjectIntegration,
   ProjectHealthcheck,
@@ -77,6 +79,14 @@ import { Table } from "src/services/dbtLineageService";
 import { DBTFusionCommandProjectIntegration } from "src/dbt_client/dbtFusionCommandIntegration";
 import { DeferToProdService } from "../services/deferToProdService";
 import { getProjectRelativePath } from "../utils";
+
+interface DBTCommandExecution {
+  command: (signal?: AbortSignal) => Promise<void>;
+  statusMessage: string;
+  showProgress?: boolean;
+  focus?: boolean;
+  signal?: AbortSignal;
+}
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -138,6 +148,11 @@ export class DBTProject implements Disposable {
 
   private dbSchemaCache: Record<string, ModelNode> = {};
   private depsInitialized = false;
+  private queues: Map<string, DBTCommandExecution[]> = new Map<
+    string,
+    DBTCommandExecution[]
+  >();
+  private queueStates: Map<string, boolean> = new Map<string, boolean>();
 
   constructor(
     private PythonEnvironment: PythonEnvironment,
@@ -472,6 +487,9 @@ export class DBTProject implements Disposable {
   }
 
   async initialize() {
+    // Create command queue for this project
+    this.createQueue("all");
+
     // ensure we watch all files and reflect changes
     // This is purely vscode watchers, no need for the project to be fully initialized
     const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
@@ -698,13 +716,21 @@ export class DBTProject implements Disposable {
   }
 
   async runModel(runModelParams: RunModelParams) {
+    if (!this.validateIntegrationPrerequisites()) {
+      return undefined;
+    }
+
     const runModelCommand =
       this.dbtCommandFactory.createRunModelCommand(runModelParams);
 
     try {
-      const result = await this.dbtProjectIntegration.runModel(runModelCommand);
+      const command =
+        await this.dbtProjectIntegration.runModel(runModelCommand);
       this.telemetry.sendTelemetryEvent("runModel");
-      return result;
+      if (command) {
+        return await this.addCommandToQueue("all", command);
+      }
+      return undefined;
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
@@ -722,14 +748,21 @@ export class DBTProject implements Disposable {
   }
 
   async buildModel(runModelParams: RunModelParams) {
+    if (!this.validateIntegrationPrerequisites()) {
+      return undefined;
+    }
+
     const buildModelCommand =
       this.dbtCommandFactory.createBuildModelCommand(runModelParams);
 
     try {
-      const result =
+      const command =
         await this.dbtProjectIntegration.buildModel(buildModelCommand);
       this.telemetry.sendTelemetryEvent("buildModel");
-      return result;
+      if (command) {
+        return await this.addCommandToQueue("all", command);
+      }
+      return undefined;
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
@@ -747,14 +780,21 @@ export class DBTProject implements Disposable {
   }
 
   async buildProject() {
+    if (!this.validateIntegrationPrerequisites()) {
+      return undefined;
+    }
+
     const buildProjectCommand =
       this.dbtCommandFactory.createBuildProjectCommand();
 
     try {
-      const result =
+      const command =
         await this.dbtProjectIntegration.buildProject(buildProjectCommand);
       this.telemetry.sendTelemetryEvent("buildProject");
-      return result;
+      if (command) {
+        return await this.addCommandToQueue("all", command);
+      }
+      return undefined;
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
@@ -772,13 +812,21 @@ export class DBTProject implements Disposable {
   }
 
   async runTest(testName: string) {
+    if (!this.validateIntegrationPrerequisites()) {
+      return undefined;
+    }
+
     const testModelCommand =
       this.dbtCommandFactory.createTestModelCommand(testName);
 
     try {
-      const result = await this.dbtProjectIntegration.runTest(testModelCommand);
+      const command =
+        await this.dbtProjectIntegration.runTest(testModelCommand);
       this.telemetry.sendTelemetryEvent("runTest");
-      return result;
+      if (command) {
+        return await this.addCommandToQueue("all", command);
+      }
+      return undefined;
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
@@ -796,14 +844,21 @@ export class DBTProject implements Disposable {
   }
 
   async runModelTest(modelName: string) {
+    if (!this.validateIntegrationPrerequisites()) {
+      return undefined;
+    }
+
     const testModelCommand =
       this.dbtCommandFactory.createTestModelCommand(modelName);
 
     try {
-      const result =
+      const command =
         await this.dbtProjectIntegration.runModelTest(testModelCommand);
       this.telemetry.sendTelemetryEvent("runModelTest");
-      return result;
+      if (command) {
+        return await this.addCommandToQueue("all", command);
+      }
+      return undefined;
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
@@ -828,11 +883,57 @@ export class DBTProject implements Disposable {
     window.showErrorMessage((error as Error).message);
   }
 
-  compileModel(runModelParams: RunModelParams) {
+  private validateIntegrationPrerequisites(): boolean {
+    // Validate different prerequisites based on integration type
+    const dbtIntegrationMode = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+
+    switch (dbtIntegrationMode) {
+      case "cloud":
+      case "fusion":
+        // For cloud/fusion integrations, validate authentication
+        try {
+          this.validationProvider.validateCredentialsSilently();
+          return true;
+        } catch (e) {
+          window.showErrorMessage((e as Error).message);
+          return false;
+        }
+      case "core":
+      case "corecommand":
+      default:
+        // For core integrations, check if we have a proper dbt installation
+        // We'll validate through the integration's diagnostic system
+        const diagnostics = this.dbtProjectIntegration.getDiagnostics();
+        const hasErrors = [
+          ...diagnostics.pythonBridgeDiagnostics,
+          ...diagnostics.rebuildManifestDiagnostics,
+        ].some((diagnostic) => diagnostic.severity === "error");
+
+        if (hasErrors) {
+          window.showErrorMessage(
+            "dbt installation or Python environment is not properly configured",
+          );
+          return false;
+        }
+        return true;
+    }
+  }
+
+  async compileModel(runModelParams: RunModelParams) {
+    if (!this.validateIntegrationPrerequisites()) {
+      return;
+    }
+
     const compileModelCommand =
       this.dbtCommandFactory.createCompileModelCommand(runModelParams);
-    this.dbtProjectIntegration.compileModel(compileModelCommand);
+    const command =
+      await this.dbtProjectIntegration.compileModel(compileModelCommand);
     this.telemetry.sendTelemetryEvent("compileModel");
+    if (command) {
+      await this.addCommandToQueue("all", command);
+    }
   }
 
   async generateDocsImmediately(args?: string[]) {
@@ -850,11 +951,19 @@ export class DBTProject implements Disposable {
     }
   }
 
-  generateDocs() {
+  async generateDocs() {
+    if (!this.validateIntegrationPrerequisites()) {
+      return;
+    }
+
     const docsGenerateCommand =
       this.dbtCommandFactory.createDocsGenerateCommand();
-    this.dbtProjectIntegration.generateDocs(docsGenerateCommand);
+    const command =
+      await this.dbtProjectIntegration.generateDocs(docsGenerateCommand);
     this.telemetry.sendTelemetryEvent("generateDocs");
+    if (command) {
+      await this.addCommandToQueue("all", command);
+    }
   }
 
   clean() {
@@ -1946,5 +2055,111 @@ export class DBTProject implements Disposable {
         favorState: config.favorState,
       };
     }
+  }
+
+  createQueue(queueName: string) {
+    this.queues.set(queueName, []);
+  }
+
+  async addCommandToQueue(
+    queueName: string,
+    command: DBTCommand,
+  ): Promise<CommandProcessResult | undefined> {
+    this.queues.get(queueName)!.push({
+      command: async (signal) => {
+        await command.execute(signal);
+      },
+      statusMessage: command.statusMessage,
+      focus: command.focus,
+      signal: command.signal,
+      showProgress: command.showProgress,
+    });
+    this.pickCommandToRun(queueName);
+    return undefined;
+  }
+
+  private async pickCommandToRun(queueName: string): Promise<void> {
+    const queue = this.queues.get(queueName)!;
+    const running = this.queueStates.get(queueName);
+    if (!running && queue.length > 0) {
+      this.queueStates.set(queueName, true);
+      const { command, statusMessage, focus, showProgress } = queue.shift()!;
+      const commandExecution = async (signal?: AbortSignal) => {
+        try {
+          await command(signal);
+        } catch (error) {
+          if (error instanceof NoCredentialsError) {
+            this.altimate.handlePreviewFeatures();
+            return;
+          }
+          window.showErrorMessage(
+            extendErrorWithSupportLinks(
+              `Could not run command '${statusMessage}': ` + error + ".",
+            ),
+          );
+          this.telemetry.sendTelemetryError("queueRunCommandError", error, {
+            command: statusMessage,
+          });
+        }
+      };
+
+      if (showProgress) {
+        await window.withProgress(
+          {
+            location: focus
+              ? ProgressLocation.Notification
+              : ProgressLocation.Window,
+            cancellable: true,
+            title: statusMessage,
+          },
+          async (_, token) => {
+            const abortController = new AbortController();
+            token.onCancellationRequested(() => abortController.abort());
+            await commandExecution(abortController.signal);
+          },
+        );
+      } else {
+        await commandExecution();
+      }
+      this.queueStates.set(queueName, false);
+      this.pickCommandToRun(queueName);
+    }
+  }
+
+  async runCommand(command: DBTCommand) {
+    const commandExecution: DBTCommandExecution = {
+      command: async (signal) => {
+        await command.execute(signal);
+      },
+      statusMessage: command.statusMessage,
+      focus: command.focus,
+    };
+    await window.withProgress(
+      {
+        location: commandExecution.focus
+          ? ProgressLocation.Notification
+          : ProgressLocation.Window,
+        cancellable: true,
+        title: commandExecution.statusMessage,
+      },
+      async (_, token) => {
+        try {
+          const abortController = new AbortController();
+          token.onCancellationRequested(() => abortController.abort());
+          return await commandExecution.command(abortController.signal);
+        } catch (error) {
+          window.showErrorMessage(
+            extendErrorWithSupportLinks(
+              `Could not run command '${commandExecution.statusMessage}': ` +
+                (error as Error).message +
+                ".",
+            ),
+          );
+          this.telemetry.sendTelemetryError("runCommandError", error, {
+            command: commandExecution.statusMessage,
+          });
+        }
+      },
+    );
   }
 }

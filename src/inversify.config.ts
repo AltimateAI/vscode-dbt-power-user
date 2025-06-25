@@ -85,8 +85,6 @@ container
 container.bind(DBTCommandExecutionInfrastructure).toDynamicValue((context) => {
   return new DBTCommandExecutionInfrastructure(
     context.container.get(PythonEnvironment),
-    context.container.get(TelemetryService),
-    context.container.get(AltimateRequest),
     context.container.get("DBTTerminal"),
   );
 });
