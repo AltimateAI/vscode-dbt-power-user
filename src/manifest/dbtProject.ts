@@ -55,6 +55,16 @@ import {
   HealthcheckArgs,
   DBTCommand,
   validateSQLUsingSqlGlot,
+  DBT_PROJECT_FILE,
+  RESOURCE_TYPE_ANALYSIS,
+  RESOURCE_TYPE_MODEL,
+  RESOURCE_TYPE_SEED,
+  RESOURCE_TYPE_SNAPSHOT,
+  RESOURCE_TYPE_SOURCE,
+  RESOURCE_TYPE_EXPOSURE,
+  RESOURCE_TYPE_METRIC,
+  MANIFEST_FILE,
+  CATALOG_FILE,
 } from "../dbt_client/dbtIntegration";
 import { CommandProcessResult } from "../commandProcessExecution";
 import {
@@ -111,21 +121,6 @@ export interface DeferConfig {
 }
 export class DBTProject implements Disposable {
   private _manifestCacheEvent?: ManifestCacheProjectAddedEvent;
-
-  static DBT_PROJECT_FILE = "dbt_project.yml";
-  static MANIFEST_FILE = "manifest.json";
-  static CATALOG_FILE = "catalog.json";
-
-  static RESOURCE_TYPE_MODEL = "model";
-  static RESOURCE_TYPE_MACRO = "macro";
-  static RESOURCE_TYPE_ANALYSIS = "analysis";
-  static RESOURCE_TYPE_SOURCE = "source";
-  static RESOURCE_TYPE_EXPOSURE = "exposure";
-  static RESOURCE_TYPE_SEED = "seed";
-  static RESOURCE_TYPE_SNAPSHOT = "snapshot";
-  static RESOURCE_TYPE_TEST = "test";
-  static RESOURCE_TYPE_METRIC = "semantic_model";
-
   readonly projectRoot: Uri;
   private projectConfig: Record<string, any>;
   private dbtProjectIntegration: DBTProjectIntegration;
@@ -325,7 +320,7 @@ export class DBTProject implements Disposable {
   }
 
   getDBTProjectFilePath() {
-    return path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE);
+    return path.join(this.projectRoot.fsPath, DBT_PROJECT_FILE);
   }
 
   getTargetPath() {
@@ -353,7 +348,7 @@ export class DBTProject implements Disposable {
     if (!targetPath) {
       return;
     }
-    return path.join(targetPath, DBTProject.MANIFEST_FILE);
+    return path.join(targetPath, MANIFEST_FILE);
   }
 
   getCatalogPath() {
@@ -361,7 +356,7 @@ export class DBTProject implements Disposable {
     if (!targetPath) {
       return;
     }
-    return path.join(targetPath, DBTProject.CATALOG_FILE);
+    return path.join(targetPath, CATALOG_FILE);
   }
 
   getPythonBridgeStatus() {
@@ -370,7 +365,7 @@ export class DBTProject implements Disposable {
 
   getAllDiagnostic(): Diagnostic[] {
     const projectURI = Uri.file(
-      path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE),
+      path.join(this.projectRoot.fsPath, DBT_PROJECT_FILE),
     );
     const integrationDiagnostics = this.dbtProjectIntegration.getDiagnostics();
 
@@ -494,7 +489,7 @@ export class DBTProject implements Disposable {
     // ensure we watch all files and reflect changes
     // This is purely vscode watchers, no need for the project to be fully initialized
     const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
-      new RelativePattern(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+      new RelativePattern(this.projectRoot, DBT_PROJECT_FILE),
     );
     setupWatcherHandler(dbtProjectConfigWatcher, async () => {
       await this.refreshProjectConfig();
@@ -532,7 +527,7 @@ export class DBTProject implements Disposable {
 
   private convertDiagnosticCollectionToDBTDiagnosticData(): DBTDiagnosticData[] {
     const dbtProjectFile = Uri.file(
-      path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE),
+      path.join(this.projectRoot.fsPath, DBT_PROJECT_FILE),
     );
     const diagnostics = this.projectConfigDiagnostics.get(dbtProjectFile) || [];
 
@@ -579,7 +574,7 @@ export class DBTProject implements Disposable {
       this.projectConfigDiagnostics.clear();
     } catch (error) {
       const projectConfigFile = Uri.file(
-        path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE),
+        path.join(this.projectRoot.fsPath, DBT_PROJECT_FILE),
       );
       if (error instanceof YAMLError) {
         this.projectConfigDiagnostics.set(projectConfigFile, [
@@ -1546,10 +1541,7 @@ export class DBTProject implements Disposable {
   }
 
   static readAndParseProjectConfig(projectRoot: string) {
-    const dbtProjectConfigLocation = path.join(
-      projectRoot,
-      DBTProject.DBT_PROJECT_FILE,
-    );
+    const dbtProjectConfigLocation = path.join(projectRoot, DBT_PROJECT_FILE);
     const dbtProjectYamlFile = readFileSync(dbtProjectConfigLocation, "utf8");
     return parse(dbtProjectYamlFile, {
       strict: false,
@@ -1586,17 +1578,17 @@ export class DBTProject implements Disposable {
 
   static isResourceNode(resource_type: string): boolean {
     return (
-      resource_type === DBTProject.RESOURCE_TYPE_MODEL ||
-      resource_type === DBTProject.RESOURCE_TYPE_SEED ||
-      resource_type === DBTProject.RESOURCE_TYPE_ANALYSIS ||
-      resource_type === DBTProject.RESOURCE_TYPE_SNAPSHOT
+      resource_type === RESOURCE_TYPE_MODEL ||
+      resource_type === RESOURCE_TYPE_SEED ||
+      resource_type === RESOURCE_TYPE_ANALYSIS ||
+      resource_type === RESOURCE_TYPE_SNAPSHOT
     );
   }
   static isResourceHasDbColumns(resource_type: string): boolean {
     return (
-      resource_type === DBTProject.RESOURCE_TYPE_MODEL ||
-      resource_type === DBTProject.RESOURCE_TYPE_SEED ||
-      resource_type === DBTProject.RESOURCE_TYPE_SNAPSHOT
+      resource_type === RESOURCE_TYPE_MODEL ||
+      resource_type === RESOURCE_TYPE_SEED ||
+      resource_type === RESOURCE_TYPE_SNAPSHOT
     );
   }
 
@@ -1624,7 +1616,7 @@ export class DBTProject implements Disposable {
       for (const n of parent.nodes) {
         const splits = n.key.split(".");
         const resource_type = splits[0];
-        if (resource_type !== DBTProject.RESOURCE_TYPE_MODEL) {
+        if (resource_type !== RESOURCE_TYPE_MODEL) {
           parentSet.add(n.key);
           continue;
         }
@@ -1697,7 +1689,7 @@ export class DBTProject implements Disposable {
       graphMetaMap["parents"],
       key,
     );
-    if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
+    if (nodeType === RESOURCE_TYPE_SOURCE) {
       const { sourceMetaMap } = event;
       const schema = splits[2];
       const table = splits[3];
@@ -1726,7 +1718,7 @@ export class DBTProject implements Disposable {
         packageName: _node.package_name,
       };
     }
-    if (nodeType === DBTProject.RESOURCE_TYPE_METRIC) {
+    if (nodeType === RESOURCE_TYPE_METRIC) {
       return {
         table: key,
         label: splits[2],
@@ -1743,7 +1735,7 @@ export class DBTProject implements Disposable {
     const { nodeMetaMap } = event;
 
     const table = splits[2];
-    if (nodeType === DBTProject.RESOURCE_TYPE_EXPOSURE) {
+    if (nodeType === RESOURCE_TYPE_EXPOSURE) {
       return {
         table: key,
         label: table,
@@ -1876,7 +1868,7 @@ export class DBTProject implements Disposable {
       }
       const splits = key.split(".");
       const resource_type = splits[0];
-      if (resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {
+      if (resource_type === RESOURCE_TYPE_SOURCE) {
         const source = sourceMetaMap.get(splits[2]);
         const tableName = splits[3];
         if (!source) {
@@ -1919,11 +1911,11 @@ export class DBTProject implements Disposable {
     }
 
     const dbSchemaRequest = bulkSchemaRequest.filter(
-      (r) => r.resource_type !== DBTProject.RESOURCE_TYPE_MODEL,
+      (r) => r.resource_type !== RESOURCE_TYPE_MODEL,
     );
 
     const sqlglotSchemaRequest = bulkSchemaRequest.filter(
-      (r) => r.resource_type === DBTProject.RESOURCE_TYPE_MODEL,
+      (r) => r.resource_type === RESOURCE_TYPE_MODEL,
     );
     let startTime = Date.now();
     const sqlglotSchemaResponse = await this.getBulkCompiledSql(

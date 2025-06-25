@@ -26,6 +26,7 @@ import { AltimateWebviewProvider } from "./altimateWebviewProvider";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
 import { inject } from "inversify";
+import { RESOURCE_TYPE_SOURCE } from "../dbt_client/dbtIntegration";
 
 type SQLLineage = {
   tableEdges: [string, string][];
@@ -374,7 +375,7 @@ export class SQLLineagePanel
     }
     const splits = table.split(".");
     const nodeType = splits[0];
-    if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
+    if (nodeType === RESOURCE_TYPE_SOURCE) {
       const { sourceMetaMap } = event;
       const sourceName = splits[2];
       const tableName = splits[3];

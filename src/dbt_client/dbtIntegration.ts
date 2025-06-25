@@ -13,6 +13,18 @@ import { DBTDiagnosticResult } from "./diagnostics";
 import { DBTConfiguration } from "./configuration";
 import { DeferConfig } from "../manifest/dbtProject";
 
+export const DBT_PROJECT_FILE = "dbt_project.yml";
+export const MANIFEST_FILE = "manifest.json";
+export const CATALOG_FILE = "catalog.json";
+export const RESOURCE_TYPE_MODEL = "model";
+export const RESOURCE_TYPE_MACRO = "macro";
+export const RESOURCE_TYPE_ANALYSIS = "analysis";
+export const RESOURCE_TYPE_SOURCE = "source";
+export const RESOURCE_TYPE_EXPOSURE = "exposure";
+export const RESOURCE_TYPE_SEED = "seed";
+export const RESOURCE_TYPE_SNAPSHOT = "snapshot";
+export const RESOURCE_TYPE_TEST = "test";
+export const RESOURCE_TYPE_METRIC = "semantic_model";
 export interface DBTCommandExecutionStrategy {
   execute(
     command: DBTCommand,

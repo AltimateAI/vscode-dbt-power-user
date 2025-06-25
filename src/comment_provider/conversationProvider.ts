@@ -24,10 +24,13 @@ import { ConversationService } from "../services/conversationService";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
 import { QueryManifestService } from "../services/queryManifestService";
-import { DBTProject } from "../manifest/dbtProject";
 import { SharedDoc, ConversationGroup, Conversation } from "../altimate";
 import { TelemetryService } from "../telemetry";
 import { inject } from "inversify";
+import {
+  RESOURCE_TYPE_MACRO,
+  RESOURCE_TYPE_TEST,
+} from "../dbt_client/dbtIntegration";
 
 // Extends vscode commentthread and add extra fields for reference
 export interface ConversationCommentThread extends CommentThread {
@@ -449,7 +452,7 @@ export class ConversationProvider implements Disposable {
     // For macro
     if (macroNode) {
       return {
-        resource_type: DBTProject.RESOURCE_TYPE_MACRO,
+        resource_type: RESOURCE_TYPE_MACRO,
         uniqueId: macroNode.uniqueId,
       };
     }
@@ -458,7 +461,7 @@ export class ConversationProvider implements Disposable {
     // For tests
     if (testNode) {
       return {
-        resource_type: DBTProject.RESOURCE_TYPE_TEST,
+        resource_type: RESOURCE_TYPE_TEST,
         uniqueId: testNode.uniqueId,
       };
     }

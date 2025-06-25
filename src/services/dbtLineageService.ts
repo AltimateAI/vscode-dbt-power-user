@@ -12,6 +12,14 @@ import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheC
 import { ModelInfo } from "../altimate";
 import { AbortError } from "node-fetch";
 import { inject } from "inversify";
+import {
+  RESOURCE_TYPE_ANALYSIS,
+  RESOURCE_TYPE_EXPOSURE,
+  RESOURCE_TYPE_METRIC,
+  RESOURCE_TYPE_MODEL,
+  RESOURCE_TYPE_SNAPSHOT,
+  RESOURCE_TYPE_SOURCE,
+} from "../dbt_client/dbtIntegration";
 
 export enum CllEvents {
   START = "start",
@@ -20,9 +28,9 @@ export enum CllEvents {
 }
 
 const CAN_COMPILE_SQL_NODE = [
-  DBTProject.RESOURCE_TYPE_MODEL,
-  DBTProject.RESOURCE_TYPE_SNAPSHOT,
-  DBTProject.RESOURCE_TYPE_ANALYSIS,
+  RESOURCE_TYPE_MODEL,
+  RESOURCE_TYPE_SNAPSHOT,
+  RESOURCE_TYPE_ANALYSIS,
 ];
 const canCompileSQL = (nodeType: string) =>
   CAN_COMPILE_SQL_NODE.includes(nodeType);
@@ -111,7 +119,7 @@ export class DbtLineageService {
       graphMetaMap["parents"],
       key,
     );
-    if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
+    if (nodeType === RESOURCE_TYPE_SOURCE) {
       const { sourceMetaMap } = event;
       const schema = splits[2];
       const table = splits[3];
@@ -140,7 +148,7 @@ export class DbtLineageService {
         packageName: _node.package_name,
       };
     }
-    if (nodeType === DBTProject.RESOURCE_TYPE_METRIC) {
+    if (nodeType === RESOURCE_TYPE_METRIC) {
       return {
         table: key,
         label: splits[2],
@@ -157,7 +165,7 @@ export class DbtLineageService {
     const { nodeMetaMap } = event;
 
     const table = splits[2];
-    if (nodeType === DBTProject.RESOURCE_TYPE_EXPOSURE) {
+    if (nodeType === RESOURCE_TYPE_EXPOSURE) {
       return {
         table: key,
         label: table,

@@ -12,6 +12,7 @@ import {
   DBTProjectDetection,
   DBTProjectIntegration,
   QueryExecution,
+  DBT_PROJECT_FILE,
 } from "./dbtIntegration";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonBridge } from "python-bridge";
@@ -392,7 +393,7 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
         )
         .map((line) => line.info.msg);
       this.rebuildManifestDiagnosticsData = [];
-      const filePath = path.join(this.projectRoot, DBTProject.DBT_PROJECT_FILE);
+      const filePath = path.join(this.projectRoot, DBT_PROJECT_FILE);
       const diagnosticDataArray: DBTDiagnosticData[] = [
         ...errors.map((error) => ({
           filePath,
@@ -425,7 +426,7 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
         "Unable to parse dbt cloud cli response. If the problem persists please reach out to us: " +
         error;
       const diagnosticData: DBTDiagnosticData = {
-        filePath: path.join(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+        filePath: path.join(this.projectRoot, DBT_PROJECT_FILE),
         message: errorMessage,
         severity: "error",
         range: { startLine: 0, startColumn: 0, endLine: 999, endColumn: 999 },

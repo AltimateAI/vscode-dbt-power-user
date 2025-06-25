@@ -4,6 +4,7 @@ import { TestMetaMap } from "../../domain";
 import { DBTProject } from "../dbtProject";
 import { DBTTerminal } from "../../dbt_client/terminal";
 import { inject } from "inversify";
+import { RESOURCE_TYPE_TEST } from "../../dbt_client/dbtIntegration";
 
 @provide(TestParser)
 export class TestParser {
@@ -40,7 +41,7 @@ export class TestParser {
       }
       const rootPath = project.projectRoot.fsPath;
       Object.values(testsMap)
-        .filter((test) => test.resource_type === DBTProject.RESOURCE_TYPE_TEST)
+        .filter((test) => test.resource_type === RESOURCE_TYPE_TEST)
         .forEach(
           ({
             name,

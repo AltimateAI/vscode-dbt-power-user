@@ -16,8 +16,8 @@ import { ExposureParser } from "./exposureParser";
 import { MetricParser } from "./metricParser";
 import { ChildrenParentParser } from "./childrenParentParser";
 import { ModelDepthParser } from "./modelDepthParser";
-import { createFullPathForNode } from "./utils";
 import { inject } from "inversify";
+import { MANIFEST_FILE } from "../../dbt_client/dbtIntegration";
 
 @provide(ManifestParser)
 export class ManifestParser {
@@ -206,7 +206,7 @@ export class ManifestParser {
     if (!path.isAbsolute(targetPath)) {
       pathParts.unshift(projectRoot.fsPath);
     }
-    const manifestLocation = path.join(...pathParts, DBTProject.MANIFEST_FILE);
+    const manifestLocation = path.join(...pathParts, MANIFEST_FILE);
     this.terminal.debug(
       "ManifestParser",
       `Reading manifest at ${manifestLocation} for project at ${projectRoot}`,

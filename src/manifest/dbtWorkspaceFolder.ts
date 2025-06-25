@@ -24,7 +24,10 @@ import { YAMLError } from "yaml";
 import { ProjectRegisteredUnregisteredEvent } from "./dbtProjectContainer";
 
 import { DBTTerminal } from "../dbt_client/terminal";
-import { DBTProjectDetection } from "src/dbt_client/dbtIntegration";
+import {
+  DBT_PROJECT_FILE,
+  DBTProjectDetection,
+} from "../dbt_client/dbtIntegration";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
@@ -122,10 +125,7 @@ export class DBTWorkspaceFolder implements Disposable {
     const dbtProjectFiles = await this.retryWithBackoff(
       () =>
         workspace.findFiles(
-          new RelativePattern(
-            this.workspaceFolder,
-            `**/${DBTProject.DBT_PROJECT_FILE}`,
-          ),
+          new RelativePattern(this.workspaceFolder, `**/${DBT_PROJECT_FILE}`),
           new RelativePattern(this.workspaceFolder, excludePattern),
         ),
       5,
@@ -259,7 +259,7 @@ export class DBTWorkspaceFolder implements Disposable {
       );
       if (error instanceof YAMLError) {
         this.projectDiscoveryDiagnostics.set(
-          Uri.joinPath(uri, DBTProject.DBT_PROJECT_FILE),
+          Uri.joinPath(uri, DBT_PROJECT_FILE),
           [new Diagnostic(new Range(0, 0, 999, 999), error.message)],
         );
       }
@@ -288,10 +288,7 @@ export class DBTWorkspaceFolder implements Disposable {
 
   private createConfigWatcher(): FileSystemWatcher {
     const watcher = workspace.createFileSystemWatcher(
-      new RelativePattern(
-        this.workspaceFolder,
-        `**/${DBTProject.DBT_PROJECT_FILE}`,
-      ),
+      new RelativePattern(this.workspaceFolder, `**/${DBT_PROJECT_FILE}`),
     );
 
     const dirName = (uri: Uri) => Uri.file(path.dirname(uri.fsPath));

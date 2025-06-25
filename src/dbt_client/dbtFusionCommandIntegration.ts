@@ -8,6 +8,7 @@ import {
   DBTNode,
   DBTDetection,
   DBTProjectDetection,
+  DBT_PROJECT_FILE,
 } from "./dbtIntegration";
 import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
 import {
@@ -189,7 +190,7 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
       const diagnosticData: DBTDiagnosticData[] = [];
       errors.forEach((error) => {
         diagnosticData.push({
-          filePath: path.join(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+          filePath: path.join(this.projectRoot, DBT_PROJECT_FILE),
           message: error,
           severity: "error",
           range: {
@@ -204,7 +205,7 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
       });
       warnings.forEach((warning) => {
         diagnosticData.push({
-          filePath: path.join(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+          filePath: path.join(this.projectRoot, DBT_PROJECT_FILE),
           message: warning,
           severity: "warning",
           range: {
@@ -233,7 +234,7 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
       // Populate diagnostic data for integration
       this.rebuildManifestDiagnosticsData = [
         {
-          filePath: path.join(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+          filePath: path.join(this.projectRoot, DBT_PROJECT_FILE),
           message: errorMessage,
           severity: "error",
           range: {

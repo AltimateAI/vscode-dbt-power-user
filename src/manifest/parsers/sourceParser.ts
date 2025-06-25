@@ -5,6 +5,7 @@ import { SourceMetaMap } from "../../domain";
 import { DBTProject } from "../dbtProject";
 import { getExternalProjectNamesFromDbtLoomConfig } from "../../utils";
 import { inject } from "inversify";
+import { RESOURCE_TYPE_SOURCE } from "../../dbt_client/dbtIntegration";
 
 @provide(SourceParser)
 export class SourceParser {
@@ -41,9 +42,7 @@ export class SourceParser {
         project.projectRoot.fsPath,
       );
       Object.values(sourcesMap)
-        .filter(
-          (source) => source.resource_type === DBTProject.RESOURCE_TYPE_SOURCE,
-        )
+        .filter((source) => source.resource_type === RESOURCE_TYPE_SOURCE)
         .reduce(
           (
             previousValue: SourceMetaMap,

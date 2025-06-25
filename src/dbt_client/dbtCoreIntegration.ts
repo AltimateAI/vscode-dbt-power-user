@@ -18,6 +18,8 @@ import {
   Node,
   ExecuteSQLError,
   DBTCommandExecutionStrategy,
+  DBT_PROJECT_FILE,
+  RESOURCE_TYPE_SOURCE,
 } from "./dbtIntegration";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
@@ -477,7 +479,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
             exc.exception.message;
         }
         const diagnosticData: DBTDiagnosticData = {
-          filePath: path.join(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+          filePath: path.join(this.projectRoot, DBT_PROJECT_FILE),
           message: errorMessage,
           severity: "error",
           range: { startLine: 0, startColumn: 0, endLine: 999, endColumn: 999 },
@@ -578,10 +580,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
   }
 
   async rebuildManifest(): Promise<void> {
-    const dbtProjectFile = path.join(
-      this.projectRoot,
-      DBTProject.DBT_PROJECT_FILE,
-    );
+    const dbtProjectFile = path.join(this.projectRoot, DBT_PROJECT_FILE);
     const errors = this.projectConfigDiagnostics.filter(
       (diagnostic) => diagnostic.filePath === dbtProjectFile,
     );
@@ -602,7 +601,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
           "There is a problem in your dbt project. Compilation failed: " +
           exc.exception.message;
         const diagnosticData: DBTDiagnosticData = {
-          filePath: path.join(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+          filePath: path.join(this.projectRoot, DBT_PROJECT_FILE),
           message: errorMessage,
           severity: "error",
           range: { startLine: 0, startColumn: 0, endLine: 999, endColumn: 999 },
@@ -918,7 +917,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
       if (signal.aborted) {
         break;
       }
-      if (n.resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {
+      if (n.resource_type === RESOURCE_TYPE_SOURCE) {
         const source = n as SourceNode;
         result[n.unique_id] = await this.getColumnsOfSource(
           source.name,

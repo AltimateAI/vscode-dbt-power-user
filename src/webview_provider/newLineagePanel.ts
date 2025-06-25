@@ -29,6 +29,7 @@ import {
   Table,
 } from "../services/dbtLineageService";
 import { inject } from "inversify";
+import { RESOURCE_TYPE_SOURCE } from "../dbt_client/dbtIntegration";
 
 class DerivedCancellationTokenSource extends CancellationTokenSource {
   constructor(linkedToken: CancellationToken) {
@@ -399,7 +400,7 @@ export class NewLineagePanel
     }
     const splits = table.split(".");
     const nodeType = splits[0];
-    if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
+    if (nodeType === RESOURCE_TYPE_SOURCE) {
       const { sourceMetaMap } = event.event;
       const sourceName = splits[2];
       const tableName = splits[3];

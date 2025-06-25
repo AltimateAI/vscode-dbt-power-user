@@ -4,6 +4,7 @@ import { ExposureMetaMap } from "../../domain";
 import { DBTProject } from "../dbtProject";
 import { DBTTerminal } from "../../dbt_client/terminal";
 import { inject } from "inversify";
+import { RESOURCE_TYPE_EXPOSURE } from "../../dbt_client/dbtIntegration";
 
 @provide(ExposureParser)
 export class ExposureParser {
@@ -28,10 +29,7 @@ export class ExposureParser {
         resolve(exposureMetaMap);
       }
       Object.values(exposuresMap)
-        .filter(
-          (exposure) =>
-            exposure.resource_type === DBTProject.RESOURCE_TYPE_EXPOSURE,
-        )
+        .filter((exposure) => exposure.resource_type === RESOURCE_TYPE_EXPOSURE)
         .forEach((exposure) => {
           const fullPath = path.join(
             project.projectRoot.fsPath,

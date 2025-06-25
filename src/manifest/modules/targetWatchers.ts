@@ -7,13 +7,13 @@ import {
   workspace,
 } from "vscode";
 import { provideSingleton, setupWatcherHandler } from "../../utils";
-import { DBTProject } from "../dbtProject";
 import { ManifestCacheChangedEvent } from "../event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 import { ManifestParser } from "../parsers";
 import { DBTTerminal } from "../../dbt_client/terminal";
 import { RunResultsEvent } from "../event/runResultsEvent";
 import { inject } from "inversify";
+import { MANIFEST_FILE } from "../../dbt_client/dbtIntegration";
 
 @provideSingleton(TargetWatchersFactory)
 export class TargetWatchersFactory {
@@ -179,7 +179,7 @@ export class TargetWatchers implements Disposable {
       targetPath,
     );
     const manifestWatcher = workspace.createFileSystemWatcher(
-      new RelativePattern(targetPath, DBTProject.MANIFEST_FILE),
+      new RelativePattern(targetPath, MANIFEST_FILE),
     );
     return manifestWatcher;
   }
