@@ -698,7 +698,16 @@ export class DBTProject implements Disposable {
       }
       this.depsInitialized = true;
     }
-    await this.dbtProjectIntegration.rebuildManifest();
+    try {
+      await this.dbtProjectIntegration.rebuildManifest();
+    } catch (error) {
+      // This is a real issue, not just a dbt parsing error
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "An error occured while rebuilding the dbt manifest: " + error + ".",
+        ),
+      );
+    }
     this._onRebuildManifestStatusChange.fire({
       project: this,
       inProgress: false,
