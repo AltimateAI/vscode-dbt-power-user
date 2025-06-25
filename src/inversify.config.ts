@@ -414,7 +414,6 @@ container
         container.get(TelemetryService),
         container.get(PythonEnvironment),
         container.get("DBTTerminal"),
-        container.get(DeferToProdService),
         projectRoot,
         deferConfig,
       );
@@ -438,7 +437,6 @@ container
         container.get(TelemetryService),
         container.get(PythonEnvironment),
         container.get("DBTTerminal"),
-        container.get(DeferToProdService),
         projectRoot.fsPath,
         deferConfig,
       );

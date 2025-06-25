@@ -2,12 +2,7 @@ import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
 import { mock, instance, when, anything, verify } from "ts-mockito";
 import { DBTTerminal } from "../../dbt_client/terminal";
 import { VSCodeDBTTerminal } from "../../dbt_client/vscodeTerminal";
-import {
-  CommandProcessExecution,
-  CommandProcessExecutionFactory,
-} from "../../commandProcessExecution";
-import { EventEmitter } from "events";
-import { CancellationToken } from "vscode";
+import { CommandProcessExecutionFactory } from "../../commandProcessExecution";
 import * as path from "path";
 import * as os from "os";
 import * as fs from "fs";
@@ -66,30 +61,6 @@ describe("CommandProcessExecution Tests", () => {
 
     const result = await execution.complete();
     expect(result.stdout.trim()).toBe("test_value");
-  });
-
-  it.skip("should handle command cancellation", async () => {
-    // Create a mock cancellation token
-    const emitter = new EventEmitter();
-    const mockToken = {
-      isCancellationRequested: false,
-      onCancellationRequested: (callback: () => void) => {
-        emitter.on("cancel", callback);
-        return { dispose: () => emitter.removeListener("cancel", callback) };
-      },
-    } as CancellationToken;
-
-    const execution = factory.createCommandProcessExecution({
-      command: process.platform === "win32" ? "timeout" : "sleep",
-      args: process.platform === "win32" ? ["/t", "2"] : ["2"],
-      tokens: [mockToken],
-    });
-
-    const promise = execution.complete();
-    // Trigger cancellation
-    emitter.emit("cancel");
-
-    await expect(promise).rejects.toThrow();
   });
 
   it("should handle command with working directory", async () => {

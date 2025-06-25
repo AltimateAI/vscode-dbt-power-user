@@ -22,7 +22,6 @@ import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./terminal";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync, readFileSync } from "fs";
-import { DeferToProdService } from "../services/deferToProdService";
 import semver = require("semver");
 import { NodeMetaData } from "../domain";
 import * as crypto from "crypto";
@@ -159,9 +158,8 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
     protected telemetry: TelemetryService,
     private pythonEnvironment: PythonEnvironment,
     protected terminal: DBTTerminal,
-    private deferToProdService: DeferToProdService,
     protected projectRoot: string,
-    private deferConfig: DeferConfig,
+    private deferConfig: DeferConfig | undefined,
   ) {
     this.terminal.debug(
       "DBTCloudProjectIntegration",
@@ -497,10 +495,8 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
   }
 
   private async getDeferParams(): Promise<string[]> {
-    const deferConfig = this.deferToProdService.getDeferConfigByProjectRoot(
-      this.projectRoot,
-    );
-    const { deferToProduction } = deferConfig;
+    const { deferToProduction } =
+      this.deferConfig || this.getDeferConfigDefaults();
     // explicitly checking false to make sure defer is disabled
     if (!deferToProduction) {
       this.terminal.debug("Defer to Prod", "defer to prod not enabled");
@@ -1042,7 +1038,9 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
     return undefined;
   }
 
-  async applyDeferConfig(): Promise<void> {}
+  async applyDeferConfig(deferConfig: DeferConfig): Promise<void> {
+    this.deferConfig = deferConfig;
+  }
 
   async applySelectedTarget(): Promise<void> {}
 
