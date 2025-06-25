@@ -25,11 +25,7 @@ import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonBridge, PythonException } from "python-bridge";
 import * as path from "path";
-import {
-  DBTProject,
-  DeferConfig,
-  ManifestPathType,
-} from "../manifest/dbtProject";
+import { DeferConfig, ManifestPathType } from "../manifest/dbtProject";
 import { existsSync, readFileSync } from "fs";
 import * as fs from "fs";
 import { parse } from "yaml";
@@ -38,7 +34,6 @@ import { AltimateRequest, NotFoundError } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { DBTTerminal } from "./terminal";
 import { ValidationProvider } from "../validation_provider";
-import { DeferToProdService } from "../services/deferToProdService";
 import { NodeMetaData } from "../domain";
 import * as crypto from "crypto";
 
@@ -226,11 +221,9 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
       path: string,
       dbtPath: string,
     ) => DBTCommandExecutionStrategy,
-    private dbtProjectContainer: DBTProjectContainer,
     private altimateRequest: AltimateRequest,
     protected dbtTerminal: DBTTerminal,
     private validationProvider: ValidationProvider,
-    private deferToProdService: DeferToProdService,
     protected projectRoot: string,
     private projectConfigDiagnostics: DBTDiagnosticData[],
     private deferConfig: DeferConfig | undefined,
@@ -391,11 +384,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
           result = await queryThread!.lock<ExecuteSQLResult>(
             (python) => python`to_dict(project.execute_sql(${compiledQuery}))`,
           );
-          const { manifestPathType } =
-            this.deferToProdService.getDeferConfigByProjectRoot(
-              this.projectRoot,
-            );
-          if (manifestPathType === ManifestPathType.REMOTE) {
+          if (this.deferConfig?.manifestPathType === ManifestPathType.REMOTE) {
             this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
           }
         } catch (err) {
