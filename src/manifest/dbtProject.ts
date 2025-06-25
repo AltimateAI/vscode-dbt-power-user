@@ -472,7 +472,7 @@ export class DBTProject implements Disposable {
       await healthCheckThread.ex`from dbt_utils import *`;
       projectHealthcheck = await healthCheckThread.lock<ProjectHealthcheck>(
         (python) =>
-          python!`to_dict(project_healthcheck(${healthcheckArgs.manifestPath}, ${healthcheckArgs.catalogPath}, ${healthcheckArgs.configPath}, ${healthcheckArgs.config}, ${this.altimate.getAIKey()}, ${this.altimate.getInstanceName()}, ${AltimateRequest.ALTIMATE_URL}))`,
+          python!`to_dict(project_healthcheck(${healthcheckArgs.manifestPath}, ${healthcheckArgs.catalogPath}, ${healthcheckArgs.configPath}, ${healthcheckArgs.config}, ${this.altimate.getAIKey()}, ${this.altimate.getInstanceName()}, ${this.altimate.getAltimateUrl()}))`,
       );
     } finally {
       await this.executionInfrastructure.closePythonBridge(healthCheckThread);

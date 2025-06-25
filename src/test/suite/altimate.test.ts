@@ -9,6 +9,7 @@ import {
 import { TelemetryService } from "../../telemetry";
 import { DBTTerminal } from "../../dbt_client/terminal";
 import { PythonEnvironment } from "../../manifest/pythonEnvironment";
+import { DBTConfiguration } from "../../dbt_client/configuration";
 import { window, workspace, ConfigurationTarget } from "vscode";
 import { AltimateRequest } from "../../altimate";
 
@@ -21,6 +22,7 @@ describe("AltimateRequest Tests", () => {
   let mockTelemetry: jest.Mocked<TelemetryService>;
   let mockTerminal: jest.Mocked<DBTTerminal>;
   let mockPythonEnv: jest.Mocked<PythonEnvironment>;
+  let mockDBTConfiguration: jest.Mocked<DBTConfiguration>;
   let mockWorkspaceConfig: ReturnType<typeof jest.spyOn>;
   let mockWindowMessage: ReturnType<typeof jest.spyOn>;
   let request: AltimateRequest;
@@ -65,6 +67,25 @@ describe("AltimateRequest Tests", () => {
       getResolvedConfigValue: jest.fn(),
     } as unknown as jest.Mocked<PythonEnvironment>;
 
+    mockDBTConfiguration = {
+      getDbtCustomRunnerImport: jest
+        .fn()
+        .mockReturnValue("from dbt.cli.main import dbtRunner"),
+      getDbtIntegration: jest.fn().mockReturnValue("core"),
+      getRunModelCommandAdditionalParams: jest.fn().mockReturnValue([]),
+      getBuildModelCommandAdditionalParams: jest.fn().mockReturnValue([]),
+      getTestModelCommandAdditionalParams: jest.fn().mockReturnValue([]),
+      getQueryTemplate: jest
+        .fn()
+        .mockReturnValue("select * from ({query}) as query limit {limit}"),
+      getQueryLimit: jest.fn().mockReturnValue(500),
+      getEnableNotebooks: jest.fn().mockReturnValue(false),
+      getDisableQueryHistory: jest.fn().mockReturnValue(false),
+      getWorkingDirectory: jest.fn().mockReturnValue("/test/workspace"),
+      getAltimateUrl: jest.fn().mockReturnValue("https://api.myaltimate.com"),
+      getIsLocalMode: jest.fn().mockReturnValue(false),
+    } as unknown as jest.Mocked<DBTConfiguration>;
+
     const mockConfig = {
       get: jest
         .fn()
@@ -92,7 +113,12 @@ describe("AltimateRequest Tests", () => {
       .spyOn(window, "showInformationMessage")
       .mockResolvedValue("Yes" as any);
 
-    request = new AltimateRequest(mockTelemetry, mockTerminal, mockPythonEnv);
+    request = new AltimateRequest(
+      mockTelemetry,
+      mockTerminal,
+      mockPythonEnv,
+      mockDBTConfiguration,
+    );
   });
 
   afterEach(() => {
@@ -221,14 +247,9 @@ describe("AltimateRequest Tests", () => {
   });
 
   it("should respect local mode configuration", () => {
-    mockWorkspaceConfig.mockImplementation((section?: string) => {
-      const cfg = {
-        get: jest.fn((key: string) =>
-          key === "isLocalMode" ? true : undefined,
-        ),
-      } as any;
-      return cfg;
-    });
+    // Update the mock to return true for local mode
+    mockDBTConfiguration.getIsLocalMode.mockReturnValue(true);
+
     expect(() =>
       (request as any).throwIfLocalMode("auth_health"),
     ).not.toThrow();

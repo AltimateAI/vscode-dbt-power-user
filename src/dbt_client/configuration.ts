@@ -18,6 +18,10 @@ export interface DBTConfiguration {
 
   // Workspace settings
   getWorkingDirectory(): string;
+
+  // Altimate settings
+  getAltimateUrl(): string;
+  getIsLocalMode(): boolean;
 }
 
 export const DEFAULT_CONFIGURATION_VALUES = {
@@ -30,4 +34,6 @@ export const DEFAULT_CONFIGURATION_VALUES = {
   queryLimit: 500,
   enableNotebooks: false,
   disableQueryHistory: false,
+  altimateUrl: "https://api.myaltimate.com",
+  isLocalMode: false,
 } as const;

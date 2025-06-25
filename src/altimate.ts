@@ -1,5 +1,5 @@
 import type { RequestInit } from "node-fetch";
-import { env, Uri, window, workspace } from "vscode";
+import { env, Uri, window } from "vscode";
 import { processStreamResponse } from "./utils";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
@@ -13,6 +13,7 @@ import { PreconfiguredNotebookItem, NotebookItem, NotebookSchema } from "@lib";
 import * as vscode from "vscode";
 import { hashProjectRoot } from "./dbt_client/dbtIntegration";
 import { inject } from "inversify";
+import { DBTConfiguration } from "./dbt_client/configuration";
 
 export class NoCredentialsError extends Error {}
 
@@ -329,16 +330,18 @@ export interface ConversationGroup {
 }
 
 export class AltimateRequest {
-  public static ALTIMATE_URL = workspace
-    .getConfiguration("dbt")
-    .get<string>("altimateUrl", "https://api.myaltimate.com");
-
   constructor(
     private telemetry: TelemetryService,
     private dbtTerminal: DBTTerminal,
     @inject("PythonEnvironment")
     private pythonEnvironment: PythonEnvironment,
+    @inject("DBTConfiguration")
+    private dbtConfiguration: DBTConfiguration,
   ) {}
+
+  public getAltimateUrl(): string {
+    return this.dbtConfiguration.getAltimateUrl();
+  }
 
   private async internalFetch<T>(url: string, init?: RequestInit) {
     const nodeFetch = (await import("node-fetch")).default;
@@ -412,7 +415,7 @@ export class AltimateRequest {
     timeout: number = 120000,
   ) {
     this.throwIfLocalMode(endpoint);
-    const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
+    const url = `${this.getAltimateUrl()}/${endpoint}`;
     this.dbtTerminal.debug("fetchAsStream:request", url, request);
     const config = this.getConfig()!;
     const abortController = new AbortController();
@@ -546,9 +549,7 @@ export class AltimateRequest {
   }
 
   private throwIfLocalMode(endpoint: string) {
-    const isLocalMode = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("isLocalMode", false);
+    const isLocalMode = this.dbtConfiguration.getIsLocalMode();
     if (!isLocalMode) {
       return;
     }
@@ -596,7 +597,7 @@ export class AltimateRequest {
     const config = this.getConfig()!;
 
     try {
-      const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
+      const url = `${this.getAltimateUrl()}/${endpoint}`;
       const response = await this.internalFetch(url, {
         method: "GET",
         ...fetchArgs,
@@ -765,7 +766,7 @@ export class AltimateRequest {
   }
 
   async validateCredentials(instance: string, key: string) {
-    const url = `${AltimateRequest.ALTIMATE_URL}/dbt/v3/validate-credentials`;
+    const url = `${this.getAltimateUrl()}/dbt/v3/validate-credentials`;
     const response = await fetch(url, {
       method: "GET",
       headers: {
@@ -778,7 +779,7 @@ export class AltimateRequest {
   }
 
   async checkApiConnectivity() {
-    const url = `${AltimateRequest.ALTIMATE_URL}/health`;
+    const url = `${this.getAltimateUrl()}/health`;
     try {
       const response = await this.internalFetch(url, { method: "GET" });
       const { status } = (await response.json()) as { status: string };

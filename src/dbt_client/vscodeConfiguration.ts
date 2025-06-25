@@ -83,4 +83,16 @@ export class VSCodeDBTConfiguration implements DBTConfiguration {
   getWorkingDirectory(): string {
     return getFirstWorkspacePath();
   }
+
+  getAltimateUrl(): string {
+    return workspace
+      .getConfiguration("dbt")
+      .get<string>("altimateUrl", DEFAULT_CONFIGURATION_VALUES.altimateUrl);
+  }
+
+  getIsLocalMode(): boolean {
+    return workspace
+      .getConfiguration("dbt")
+      .get<boolean>("isLocalMode", DEFAULT_CONFIGURATION_VALUES.isLocalMode);
+  }
 }
