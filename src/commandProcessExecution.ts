@@ -1,5 +1,4 @@
 import { spawn } from "child_process";
-import { CancellationToken, Disposable } from "vscode";
 import { DBTTerminal } from "./dbt_client/terminal";
 import { EnvironmentVariables } from "./domain";
 
@@ -11,14 +10,14 @@ export class CommandProcessExecutionFactory {
     args,
     stdin,
     cwd,
-    tokens,
+    signal,
     envVars,
   }: {
     command: string;
     args?: string[];
     stdin?: string;
     cwd?: string;
-    tokens?: CancellationToken[];
+    signal?: AbortSignal;
     envVars?: EnvironmentVariables;
   }) {
     return new CommandProcessExecution(
@@ -27,7 +26,7 @@ export class CommandProcessExecutionFactory {
       args,
       stdin,
       cwd,
-      tokens,
+      signal,
       envVars,
     );
   }
@@ -40,15 +39,13 @@ export interface CommandProcessResult {
 }
 
 export class CommandProcessExecution {
-  private disposables: Disposable[] = [];
-
   constructor(
     private terminal: DBTTerminal,
     private command: string,
     private args?: string[],
     private stdin?: string,
     private cwd?: string,
-    private tokens?: CancellationToken[],
+    private signal?: AbortSignal,
     private envVars?: EnvironmentVariables,
   ) {}
 
@@ -57,25 +54,20 @@ export class CommandProcessExecution {
       cwd: this.cwd,
       env: this.envVars,
     });
-    if (this.tokens !== undefined) {
-      this.tokens.forEach((token) =>
-        this.disposables.push(
-          token.onCancellationRequested(() => {
-            proc.kill("SIGTERM");
-          }),
-        ),
-      );
-    }
-    return proc;
-  }
 
-  private dispose() {
-    while (this.disposables.length) {
-      const x = this.disposables.pop();
-      if (x) {
-        x.dispose();
+    if (this.signal) {
+      const abortHandler = () => {
+        proc.kill("SIGTERM");
+      };
+
+      if (this.signal.aborted) {
+        abortHandler();
+      } else {
+        this.signal.addEventListener("abort", abortHandler);
       }
     }
+
+    return proc;
   }
 
   async complete(): Promise<CommandProcessResult> {
@@ -151,7 +143,6 @@ export class CommandProcessExecution {
       commandProcess.once("close", () => {
         resolve({ stdout: stdoutBuffer, stderr: stderrBuffer, fullOutput });
         this.terminal.log("");
-        this.dispose();
       });
       commandProcess.once("error", (error) => {
         reject(new Error(`Error occurred during process execution: ${error}`));

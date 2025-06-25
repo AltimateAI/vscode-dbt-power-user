@@ -1,4 +1,3 @@
-import { convertAbortSignalToCancellationToken } from "../utils";
 import { PythonBridge, pythonBridge } from "python-bridge";
 import {
   CommandProcessExecution,
@@ -68,6 +67,8 @@ export class CLIDBTCommandExecutionStrategy
         "Could not launch command as python environment is not available",
       );
     }
+    // Combine signals if multiple are provided
+    let combinedSignal: AbortSignal | undefined;
     const signals: AbortSignal[] = [];
     if (signal !== undefined) {
       signals.push(signal);
@@ -75,10 +76,29 @@ export class CLIDBTCommandExecutionStrategy
     if (command.signal !== undefined) {
       signals.push(command.signal);
     }
+
+    if (signals.length > 0) {
+      if (signals.length === 1) {
+        combinedSignal = signals[0];
+      } else {
+        // Create a combined signal if multiple signals are provided
+        const controller = new AbortController();
+        combinedSignal = controller.signal;
+
+        signals.forEach((s) => {
+          if (s.aborted) {
+            controller.abort();
+          } else {
+            s.addEventListener("abort", () => controller.abort());
+          }
+        });
+      }
+    }
+
     return this.commandProcessExecutionFactory.createCommandProcessExecution({
       command: this.dbtPath,
       args,
-      tokens: signals.map((s) => convertAbortSignalToCancellationToken(s)),
+      signal: combinedSignal,
       cwd: this.cwd,
       envVars: this.pythonEnvironment.environmentVariables,
     });
@@ -126,6 +146,8 @@ export class PythonDBTCommandExecutionStrategy
         "Could not launch command as python environment is not available",
       );
     }
+    // Combine signals if multiple are provided
+    let combinedSignal: AbortSignal | undefined;
     const signals: AbortSignal[] = [];
     if (signal !== undefined) {
       signals.push(signal);
@@ -133,10 +155,29 @@ export class PythonDBTCommandExecutionStrategy
     if (command.signal !== undefined) {
       signals.push(command.signal);
     }
+
+    if (signals.length > 0) {
+      if (signals.length === 1) {
+        combinedSignal = signals[0];
+      } else {
+        // Create a combined signal if multiple signals are provided
+        const controller = new AbortController();
+        combinedSignal = controller.signal;
+
+        signals.forEach((s) => {
+          if (s.aborted) {
+            controller.abort();
+          } else {
+            s.addEventListener("abort", () => controller.abort());
+          }
+        });
+      }
+    }
+
     return this.commandProcessExecutionFactory.createCommandProcessExecution({
       command: this.pythonEnvironment.pythonPath,
       args: ["-c", this.dbtCommand(args)],
-      tokens: signals.map((s) => convertAbortSignalToCancellationToken(s)),
+      signal: combinedSignal,
       envVars: this.pythonEnvironment.environmentVariables,
     });
   }
