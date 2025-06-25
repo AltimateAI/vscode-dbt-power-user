@@ -1,20 +1,6 @@
 import { expect } from "@jest/globals";
-import {
-  DBTCoreProjectIntegration,
-  DBTCoreDetection,
-} from "../../dbt_client/dbtCoreIntegration";
-import { DBTDiagnosticData } from "../../dbt_client/diagnostics";
-import { Container } from "inversify";
-import {
-  CLIDBTCommandExecutionStrategy,
-  DeferConfig,
-  PythonDBTCommandExecutionStrategy,
-} from "../../dbt_client/dbtIntegration";
-import { TelemetryService } from "../../telemetry";
-import { AltimateRequest } from "../../altimate";
-import { ValidationProvider } from "../../validation_provider";
-import { DBTConfiguration } from "../../dbt_client/configuration";
-import { Uri, workspace, EventEmitter } from "vscode";
+import { DBTCoreDetection } from "../../dbt_client/dbtCoreIntegration";
+import { workspace } from "vscode";
 import {
   CommandProcessExecutionFactory,
   CommandProcessExecution,

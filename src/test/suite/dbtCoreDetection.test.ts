@@ -12,7 +12,6 @@ describe("DBTCoreDetection Tests", () => {
   let mockCommandProcessExecutionFactory: jest.Mocked<CommandProcessExecutionFactory>;
   let mockPythonEnvironment: jest.Mocked<PythonEnvironment>;
   let mockCommandProcessExecution: jest.Mocked<CommandProcessExecution>;
-  let workspaceFoldersSpy: jest.SpyInstance;
 
   beforeEach(() => {
     // Mock workspace folders

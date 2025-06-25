@@ -23,7 +23,6 @@ describe("DBTProjectContainer Tests", () => {
   let mockDbtTerminal: jest.Mocked<DBTTerminal>;
   let mockAltimateDatapilot: jest.Mocked<AltimateDatapilot>;
   let mockAltimateRequest: jest.Mocked<AltimateRequest>;
-  let mockWorkspaceFolder: WorkspaceFolder;
   let mockDbtWorkspaceFolder: jest.Mocked<DBTWorkspaceFolder>;
 
   const createMockDbtWorkspaceFolder = (
@@ -68,12 +67,6 @@ describe("DBTProjectContainer Tests", () => {
       isAuthenticated: jest.fn(),
       validateCredentials: jest.fn(),
     } as unknown as jest.Mocked<AltimateRequest>;
-
-    mockWorkspaceFolder = {
-      uri: Uri.file("/test/workspace"),
-      name: "test",
-      index: 0,
-    };
 
     mockDbtWorkspaceFolder = {
       dispose: jest.fn(),
