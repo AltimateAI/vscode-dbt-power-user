@@ -22,6 +22,8 @@ export interface DBTConfiguration {
   // Altimate settings
   getAltimateUrl(): string;
   getIsLocalMode(): boolean;
+  getAltimateInstanceName(): string | undefined;
+  getAltimateAiKey(): string | undefined;
 }
 
 export const DEFAULT_CONFIGURATION_VALUES = {

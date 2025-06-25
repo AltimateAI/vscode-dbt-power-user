@@ -254,7 +254,6 @@ container
     return new AltimateRequest(
       context.container.get(TelemetryService),
       context.container.get("DBTTerminal"),
-      context.container.get("PythonEnvironment"),
       context.container.get("DBTConfiguration"),
     );
   })

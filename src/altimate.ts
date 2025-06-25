@@ -1,5 +1,5 @@
 import type { RequestInit } from "node-fetch";
-import { env, Uri, window } from "vscode";
+import { window, env, Uri } from "vscode";
 import { processStreamResponse } from "./utils";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
@@ -8,7 +8,6 @@ import { createReadStream, createWriteStream, mkdirSync, ReadStream } from "fs";
 import * as os from "os";
 import { RateLimitException, ExecutionsExhaustedException } from "./exceptions";
 import { DBTTerminal } from "./dbt_client/terminal";
-import { PythonEnvironment } from "./manifest/pythonEnvironment";
 import { PreconfiguredNotebookItem, NotebookItem, NotebookSchema } from "@lib";
 import * as vscode from "vscode";
 import { hashProjectRoot } from "./dbt_client/dbtIntegration";
@@ -333,8 +332,6 @@ export class AltimateRequest {
   constructor(
     private telemetry: TelemetryService,
     private dbtTerminal: DBTTerminal,
-    @inject("PythonEnvironment")
-    private pythonEnvironment: PythonEnvironment,
     @inject("DBTConfiguration")
     private dbtConfiguration: DBTConfiguration,
   ) {}
@@ -343,19 +340,17 @@ export class AltimateRequest {
     return this.dbtConfiguration.getAltimateUrl();
   }
 
-  private async internalFetch<T>(url: string, init?: RequestInit) {
+  private async internalFetch(url: string, init?: RequestInit) {
     const nodeFetch = (await import("node-fetch")).default;
     return nodeFetch(url, init);
   }
 
   getInstanceName() {
-    return this.pythonEnvironment.getResolvedConfigValue(
-      "altimateInstanceName",
-    );
+    return this.dbtConfiguration.getAltimateInstanceName();
   }
 
   getAIKey() {
-    return this.pythonEnvironment.getResolvedConfigValue("altimateAiKey");
+    return this.dbtConfiguration.getAltimateAiKey();
   }
 
   public enabled(): boolean {
@@ -498,7 +493,6 @@ export class AltimateRequest {
     } finally {
       clearTimeout(timeoutHandler);
     }
-    return null;
   }
 
   private async readStreamToBlob(stream: ReadStream) {
@@ -911,8 +905,6 @@ export class AltimateRequest {
     data: {
       name: string;
       description?: string;
-      uri?: Uri;
-      model?: string;
     },
     projectName: string,
   ) {
