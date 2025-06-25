@@ -497,7 +497,20 @@ export class DBTProject implements Disposable {
       await this.refreshProjectConfig();
       this.rebuildManifest();
     });
-    await this.dbtProjectIntegration.initializeProject();
+    try {
+      await this.dbtProjectIntegration.initializeProject();
+    } catch (error) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "An unexpected error occured while initializing the dbt project at " +
+            this.projectRoot +
+            ": " +
+            error +
+            ".",
+        ),
+      );
+    }
+
     await this.refreshProjectConfig();
     this.rebuildManifest();
     this.dbtProjectLog = this.dbtProjectLogFactory.createDBTProjectLog(

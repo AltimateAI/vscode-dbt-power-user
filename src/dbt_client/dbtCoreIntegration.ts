@@ -1,5 +1,4 @@
 import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
-import { extendErrorWithSupportLinks } from "../utils";
 import {
   Catalog,
   CompilationResult,
@@ -453,16 +452,6 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
           category: "python-bridge",
         };
         this.pythonBridgeDiagnosticsData = [diagnosticData];
-      } else {
-        window.showErrorMessage(
-          extendErrorWithSupportLinks(
-            "An unexpected error occured while initializing the dbt project at " +
-              this.projectRoot +
-              ": " +
-              exc +
-              ".",
-          ),
-        );
       }
       this.dbtTerminal.error(
         "pythonBridgeInitPythonError",
@@ -470,6 +459,9 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
         exc,
         true,
       );
+      if (!(exc instanceof PythonException)) {
+        throw exc;
+      }
     }
   }
 
