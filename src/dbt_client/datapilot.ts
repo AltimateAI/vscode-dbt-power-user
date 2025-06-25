@@ -1,7 +1,8 @@
-import { getFirstWorkspacePath, provideSingleton } from "../utils";
+import { provideSingleton } from "../utils";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { DBTTerminal } from "./terminal";
+import { DBTConfiguration } from "./configuration";
 import { inject } from "inversify";
 
 @provideSingleton(AltimateDatapilot)
@@ -12,6 +13,8 @@ export class AltimateDatapilot {
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
     @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
+    @inject("DBTConfiguration")
+    private dbtConfiguration: DBTConfiguration,
   ) {}
 
   async checkIfAltimateDatapilotInstalled(): Promise<string> {
@@ -19,7 +22,7 @@ export class AltimateDatapilot {
       this.commandProcessExecutionFactory.createCommandProcessExecution({
         command: this.pythonEnvironment.pythonPath,
         args: ["-c", "import datapilot;print(datapilot.__version__)"],
-        cwd: getFirstWorkspacePath(),
+        cwd: this.dbtConfiguration.getWorkingDirectory(),
         envVars: this.pythonEnvironment.environmentVariables,
       });
     const { stdout, stderr } = await process.complete();
@@ -44,7 +47,7 @@ export class AltimateDatapilot {
           "install",
           `${this.packageName}==${datapilotVersion}`,
         ],
-        cwd: getFirstWorkspacePath(),
+        cwd: this.dbtConfiguration.getWorkingDirectory(),
         envVars: this.pythonEnvironment.environmentVariables,
       })
       .completeWithTerminalOutput();

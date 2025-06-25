@@ -15,6 +15,9 @@ export interface DBTConfiguration {
   // Feature toggles
   getEnableNotebooks(): boolean;
   getDisableQueryHistory(): boolean;
+
+  // Workspace settings
+  getWorkingDirectory(): string;
 }
 
 export const DEFAULT_CONFIGURATION_VALUES = {

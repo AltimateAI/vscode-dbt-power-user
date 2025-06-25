@@ -1,4 +1,3 @@
-import { getFirstWorkspacePath } from "../utils";
 import {
   QueryExecution,
   DBTCommand,
@@ -18,6 +17,7 @@ import {
   PythonEnvironment,
 } from "../modules";
 import { DBTCloudProjectIntegration, getDBTPath } from "./dbtCloudIntegration";
+import { DBTConfiguration } from "./configuration";
 import path, { join } from "path";
 
 export class DBTFusionCommandDetection implements DBTDetection {
@@ -25,6 +25,7 @@ export class DBTFusionCommandDetection implements DBTDetection {
     protected commandProcessExecutionFactory: CommandProcessExecutionFactory,
     protected pythonEnvironment: PythonEnvironment,
     protected terminal: DBTTerminal,
+    protected dbtConfiguration: DBTConfiguration,
   ) {}
 
   async detectDBT(): Promise<boolean> {
@@ -35,7 +36,7 @@ export class DBTFusionCommandDetection implements DBTDetection {
         this.commandProcessExecutionFactory.createCommandProcessExecution({
           command: dbtPath,
           args: ["--version"],
-          cwd: getFirstWorkspacePath(),
+          cwd: this.dbtConfiguration.getWorkingDirectory(),
         });
       const { stdout, stderr } = await checkDBTInstalledProcess.complete();
       if (stderr) {

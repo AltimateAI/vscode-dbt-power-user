@@ -166,6 +166,7 @@ container
       context.container.get(CommandProcessExecutionFactory),
       context.container.get(PythonEnvironment),
       context.container.get("DBTTerminal"),
+      context.container.get("DBTConfiguration"),
     );
   })
   .inSingletonScope();

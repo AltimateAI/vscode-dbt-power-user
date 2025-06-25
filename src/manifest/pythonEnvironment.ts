@@ -1,8 +1,6 @@
 import { Disposable, Event, extensions, Uri, workspace } from "vscode";
 import { EnvironmentVariables } from "../domain";
 import { provideSingleton } from "../utils";
-import { TelemetryService } from "../telemetry";
-import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { DBTTerminal } from "../dbt_client/terminal";
 import { inject } from "inversify";
 

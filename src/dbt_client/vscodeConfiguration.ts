@@ -4,6 +4,7 @@ import {
   DBTConfiguration,
   DEFAULT_CONFIGURATION_VALUES,
 } from "./configuration";
+import { getFirstWorkspacePath } from "../utils";
 
 @injectable()
 export class VSCodeDBTConfiguration implements DBTConfiguration {
@@ -77,5 +78,9 @@ export class VSCodeDBTConfiguration implements DBTConfiguration {
         "disableQueryHistory",
         DEFAULT_CONFIGURATION_VALUES.disableQueryHistory,
       );
+  }
+
+  getWorkingDirectory(): string {
+    return getFirstWorkspacePath();
   }
 }
