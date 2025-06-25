@@ -142,8 +142,8 @@ container
 
 container
   .bind(DBTCloudProjectDetection)
-  .toDynamicValue((context) => {
-    return new DBTCloudProjectDetection(context.container.get(AltimateRequest));
+  .toDynamicValue(() => {
+    return new DBTCloudProjectDetection();
   })
   .inSingletonScope();
 
@@ -263,6 +263,8 @@ container
 
       switch (dbtIntegrationMode) {
         case "cloud":
+          // Handle preview features for cloud integration
+          container.get(AltimateRequest).handlePreviewFeatures();
           return container.get(DBTCloudProjectDetection);
         case "fusion":
           return container.get(DBTFusionCommandProjectDetection);
@@ -402,7 +404,6 @@ container
         container.get(TelemetryService),
         container.get(PythonEnvironment),
         container.get("DBTTerminal"),
-        container.get(ValidationProvider),
         container.get(DeferToProdService),
         projectRoot,
         deferConfig,
@@ -427,7 +428,6 @@ container
         container.get(TelemetryService),
         container.get(PythonEnvironment),
         container.get("DBTTerminal"),
-        container.get(ValidationProvider),
         container.get(DeferToProdService),
         projectRoot.fsPath,
         deferConfig,

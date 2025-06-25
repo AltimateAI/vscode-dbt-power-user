@@ -66,12 +66,8 @@ const config = {
           to: "dbt_core_integration.py",
         },
         {
-          from: path.resolve(__dirname, "dbt_cloud_integration.py"),
-          to: "dbt_cloud_integration.py",
-        },
-        {
-          from: path.resolve(__dirname, "dbt_healthcheck.py"),
-          to: "dbt_healthcheck.py",
+          from: path.resolve(__dirname, "dbt_utils.py"),
+          to: "dbt_utils.py",
         },
         {
           from: path.resolve(

@@ -54,6 +54,7 @@ import {
   SourceNode,
   HealthcheckArgs,
   DBTCommand,
+  validateSQLUsingSqlGlot,
 } from "../dbt_client/dbtIntegration";
 import { CommandProcessResult } from "../commandProcessExecution";
 import {
@@ -469,7 +470,7 @@ export class DBTProject implements Disposable {
 
     let projectHealthcheck: ProjectHealthcheck;
     try {
-      await healthCheckThread.ex`from dbt_healthcheck import *`;
+      await healthCheckThread.ex`from dbt_utils import *`;
       projectHealthcheck = await healthCheckThread.lock<ProjectHealthcheck>(
         (python) =>
           python!`to_dict(project_healthcheck(${healthcheckArgs.manifestPath}, ${healthcheckArgs.catalogPath}, ${healthcheckArgs.configPath}, ${healthcheckArgs.config}, ${this.altimate.getAIKey()}, ${this.altimate.getInstanceName()}, ${AltimateRequest.ALTIMATE_URL}))`,
@@ -921,6 +922,19 @@ export class DBTProject implements Disposable {
     }
   }
 
+  private requiresAuthentication(): boolean {
+    const dbtIntegrationMode = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+    return dbtIntegrationMode === "cloud";
+  }
+
+  throwIfNotAuthenticated() {
+    if (this.requiresAuthentication()) {
+      this.validationProvider.throwIfNotAuthenticated();
+    }
+  }
+
   async compileModel(runModelParams: RunModelParams) {
     if (!this.validateIntegrationPrerequisites()) {
       return;
@@ -967,6 +981,7 @@ export class DBTProject implements Disposable {
   }
 
   clean() {
+    this.throwIfNotAuthenticated();
     const cleanCommand = this.dbtCommandFactory.createCleanCommand();
     this.telemetry.sendTelemetryEvent("clean");
     return this.dbtProjectIntegration.clean(cleanCommand);
@@ -1041,25 +1056,27 @@ export class DBTProject implements Disposable {
   async unsafeCompileNode(modelName: string): Promise<string | undefined> {
     this.telemetry.sendTelemetryEvent("unsafeCompileNode");
     this.throwDiagnosticsErrorIfAvailable();
+    this.throwIfNotAuthenticated();
     return await this.dbtProjectIntegration.unsafeCompileNode(modelName);
   }
 
   async validateSql(request: { sql: string; dialect: string; models: any[] }) {
     this.throwDiagnosticsErrorIfAvailable();
+    this.throwIfNotAuthenticated();
+    const sqlValidationThread = this.executionInfrastructure.createPythonBridge(
+      this.projectRoot.fsPath,
+    );
+    const { sql, dialect, models } = request;
     try {
-      const { sql, dialect, models } = request;
-      return this.dbtProjectIntegration.validateSql(sql, dialect, models);
-    } catch (exc) {
-      window.showErrorMessage(
-        extendErrorWithSupportLinks("Could not validate sql." + exc),
-      );
-      this.telemetry.sendTelemetryError("validateSQLError", {
-        error: exc,
-      });
+      await sqlValidationThread.ex`from dbt_utils import *`;
+      return validateSQLUsingSqlGlot(sqlValidationThread, sql, dialect, models);
+    } finally {
+      await this.executionInfrastructure.closePythonBridge(sqlValidationThread);
     }
   }
 
   async validateSQLDryRun(query: string) {
+    this.throwIfNotAuthenticated();
     try {
       return this.dbtProjectIntegration.validateSQLDryRun(query);
     } catch (exc) {
@@ -1142,6 +1159,7 @@ export class DBTProject implements Disposable {
     query: string,
     originalModelName: string | undefined = undefined,
   ) {
+    this.throwIfNotAuthenticated();
     return this.dbtProjectIntegration.unsafeCompileQuery(
       query,
       originalModelName,
@@ -1149,6 +1167,7 @@ export class DBTProject implements Disposable {
   }
 
   async getColumnsOfModel(modelName: string) {
+    this.throwIfNotAuthenticated();
     const result =
       await this.dbtProjectIntegration.getColumnsOfModel(modelName);
     await this.dbtProjectIntegration.cleanupConnections();
@@ -1156,6 +1175,7 @@ export class DBTProject implements Disposable {
   }
 
   async getColumnsOfSource(sourceName: string, tableName: string) {
+    this.throwIfNotAuthenticated();
     const result = await this.dbtProjectIntegration.getColumnsOfSource(
       sourceName,
       tableName,
@@ -1171,6 +1191,7 @@ export class DBTProject implements Disposable {
     );
 
     try {
+      this.throwIfNotAuthenticated();
       this.terminal.debug(
         "getColumnValues",
         "finding distinct values for column",
@@ -1203,6 +1224,7 @@ export class DBTProject implements Disposable {
   }
 
   async getBulkSchemaFromDB(req: DBTNode[], signal: AbortSignal) {
+    this.throwIfNotAuthenticated();
     try {
       const result = await this.dbtProjectIntegration.getBulkSchemaFromDB(
         req,
@@ -1236,6 +1258,7 @@ export class DBTProject implements Disposable {
   }
 
   async getCatalog(): Promise<Catalog> {
+    this.throwIfNotAuthenticated();
     try {
       const result = await this.dbtProjectIntegration.getCatalog();
       return result;
@@ -1457,6 +1480,7 @@ export class DBTProject implements Disposable {
     });
 
     this.throwDiagnosticsErrorIfAvailable();
+    this.throwIfNotAuthenticated();
     if (returnImmediately) {
       const execution = await this.dbtProjectIntegration.executeSQL(
         query,

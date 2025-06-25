@@ -32,11 +32,7 @@ import { existsSync, readFileSync } from "fs";
 import * as fs from "fs";
 import { parse } from "yaml";
 import { TelemetryService } from "../telemetry";
-import {
-  AltimateRequest,
-  NotFoundError,
-  ValidateSqlParseErrorResponse,
-} from "../altimate";
+import { AltimateRequest, NotFoundError } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { DBTTerminal } from "./terminal";
 import { ValidationProvider } from "../validation_provider";
@@ -418,6 +414,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
 
   private async createPythonDbtProject(bridge: PythonBridge) {
     await bridge.ex`from dbt_core_integration import *`;
+    await bridge.ex`from dbt_utils import *`;
     const targetPath = this.removeTrailingSlashes(
       await bridge.lock((python) => python`target_path(${this.projectRoot})`),
     );
@@ -431,7 +428,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
     try {
       await this.python
         .ex`from dbt_core_integration import default_profiles_dir`;
-      await this.python.ex`from dbt_healthcheck import *`;
+      await this.python.ex`from dbt_utils import *`;
       this.profilesDir = this.removeTrailingSlashes(
         await this.python.lock(
           (python) => python`default_profiles_dir(${this.projectRoot})`,
@@ -837,14 +834,6 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
         python!`to_dict(project.compile_sql(${query}, ${originalModelName}))`,
     );
     return output.compiled_sql;
-  }
-
-  async validateSql(query: string, dialect: string, models: any) {
-    const result = await this.python?.lock<ValidateSqlParseErrorResponse>(
-      (python) =>
-        python!`to_dict(validate_sql(${query}, ${dialect}, ${models}))`,
-    );
-    return result;
   }
 
   async validateSQLDryRun(query: string) {

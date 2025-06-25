@@ -16,14 +16,12 @@ import {
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonBridge } from "python-bridge";
 import { join, dirname } from "path";
-import { AltimateRequest, ValidateSqlParseErrorResponse } from "../altimate";
 import path = require("path");
 import { DBTProject, DeferConfig } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./terminal";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync, readFileSync } from "fs";
-import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
 import semver = require("semver");
 import { NodeMetaData } from "../domain";
@@ -114,10 +112,7 @@ export class DBTCloudDetection implements DBTDetection {
 }
 
 export class DBTCloudProjectDetection implements DBTProjectDetection {
-  constructor(private altimate: AltimateRequest) {}
-
   async discoverProjects(projectDirectories: string[]): Promise<string[]> {
-    this.altimate.handlePreviewFeatures();
     const packagesInstallPaths = projectDirectories.map((projectDirectory) =>
       path.join(projectDirectory, "dbt_packages"),
     );
@@ -164,7 +159,6 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
     protected telemetry: TelemetryService,
     private pythonEnvironment: PythonEnvironment,
     protected terminal: DBTTerminal,
-    private validationProvider: ValidationProvider,
     private deferToProdService: DeferToProdService,
     protected projectRoot: string,
     private deferConfig: DeferConfig,
@@ -205,7 +199,6 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
     limit: number,
     modelName: string,
   ): Promise<QueryExecution> {
-    this.throwIfNotAuthenticated();
     const showCommand = this.dbtCloudCommand(
       new DBTCommand("Running sql...", [
         "show",
@@ -274,19 +267,6 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
   }
 
   async initializeProject(): Promise<void> {
-    try {
-      await this.python.ex`from dbt_cloud_integration import *`;
-      await this.python.ex`from dbt_healthcheck import *`;
-    } catch (error) {
-      this.terminal.error(
-        "dbtCloudIntegration",
-        "Could not initalize Python environemnt",
-        error,
-      );
-      window.showErrorMessage(
-        "Error occurred while initializing Python environment: " + error,
-      );
-    }
     this.dbtPath = getDBTPath(this.pythonEnvironment, this.terminal);
   }
 
@@ -487,7 +467,6 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
   }
 
   async clean(command: DBTCommand): Promise<string> {
-    this.throwIfNotAuthenticated();
     const { stdout, stderr } = await this.dbtCloudCommand(command).execute();
     const exception = this.processJSONErrors(stderr);
     if (exception) {
@@ -518,7 +497,6 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
   }
 
   private async getDeferParams(): Promise<string[]> {
-    this.throwIfNotAuthenticated();
     const deferConfig = this.deferToProdService.getDeferConfigByProjectRoot(
       this.projectRoot,
     );
@@ -560,7 +538,6 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
 
   // internal commands
   async unsafeCompileNode(modelName: string): Promise<string> {
-    this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Compiling model...", [
         "compile",
@@ -586,7 +563,6 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
   }
 
   async unsafeCompileQuery(query: string): Promise<string> {
-    this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Compiling sql...", [
         "compile",
@@ -611,21 +587,7 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
     return compiledLine[0].data.compiled;
   }
 
-  async validateSql(
-    query: string,
-    dialect: string,
-    models: any,
-  ): Promise<ValidateSqlParseErrorResponse> {
-    this.throwIfNotAuthenticated();
-    const result = await this.python?.lock<ValidateSqlParseErrorResponse>(
-      (python) =>
-        python!`to_dict(validate_sql(${query}, ${dialect}, ${models}))`,
-    );
-    return result;
-  }
-
   async validateSQLDryRun(query: string): Promise<{ bytes_processed: string }> {
-    this.throwIfNotAuthenticated();
     const validateSqlCommand = this.dbtCloudCommand(
       new DBTCommand("Estimating BigQuery cost...", [
         "compile",
@@ -654,7 +616,6 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
     sourceName: string,
     tableName: string,
   ): Promise<DBColumn[]> {
-    this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting columns of source...", [
         "compile",
@@ -680,7 +641,6 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
   }
 
   async getColumnsOfModel(modelName: string): Promise<DBColumn[]> {
-    this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting columns of model...", [
         "compile",
@@ -785,7 +745,6 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
     if (nodes.length === 0) {
       return {};
     }
-    this.throwIfNotAuthenticated();
     const bulkModelQuery = `
 {% set result = {} %}
 {% for n in ${JSON.stringify(nodes)} %}
@@ -831,7 +790,6 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
   }
 
   async getCatalog(): Promise<Catalog> {
-    this.throwIfNotAuthenticated();
     const bulkModelQuery = `
 {% set result = [] %}
 {% for n in graph.nodes.values() %}
@@ -1032,10 +990,6 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
       // ideally we never come here, this is a bug in our code
       return new Error("Could not process " + jsonErrors + ": " + error);
     }
-  }
-
-  private throwIfNotAuthenticated() {
-    this.validationProvider.throwIfNotAuthenticated();
   }
 
   async dispose() {

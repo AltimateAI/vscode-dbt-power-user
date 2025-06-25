@@ -9,7 +9,6 @@ import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync } from "fs";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./terminal";
-import { ValidateSqlParseErrorResponse } from "../altimate";
 import { NodeMetaData } from "../domain";
 import { DBTDiagnosticResult } from "./diagnostics";
 import { DBTConfiguration } from "./configuration";
@@ -335,11 +334,6 @@ export interface DBTProjectIntegration {
     query: string,
     originalModelName: string | undefined,
   ): Promise<string>;
-  validateSql(
-    query: string,
-    dialect: string,
-    models: any, // TODO: type this
-  ): Promise<ValidateSqlParseErrorResponse>;
   validateSQLDryRun(query: string): Promise<{
     bytes_processed: string; // TODO: create type
   }>;
@@ -540,4 +534,38 @@ export class DBTCommandFactory {
   createDebugCommand(): DBTCommand {
     return new DBTCommand("Debugging...", ["debug"], true, true, true);
   }
+}
+
+type ValidateSqlParseErrorType =
+  | "sql_parse_error"
+  | "sql_invalid_error"
+  | "sql_unknown_error";
+
+interface ValidateSqlParseErrorResponse {
+  error_type?: ValidateSqlParseErrorType;
+  errors: {
+    description: string;
+    start_position?: [number, number];
+    end_position?: [number, number];
+  }[];
+}
+
+/**
+ * Generic validateSQLUsingSqlGlot function that can be used by all dbt integrations
+ * @param python - Python bridge instance
+ * @param query - SQL query to validate
+ * @param dialect - Database dialect
+ * @param models - Model metadata for validation
+ * @returns Promise<ValidateSqlParseErrorResponse> - validation result
+ */
+export async function validateSQLUsingSqlGlot(
+  python: PythonBridge | undefined,
+  query: string,
+  dialect: string,
+  models: any,
+): Promise<ValidateSqlParseErrorResponse> {
+  const result = await python?.lock<ValidateSqlParseErrorResponse>(
+    (python) => python!`to_dict(validate_sql(${query}, ${dialect}, ${models}))`,
+  );
+  return result!;
 }

@@ -3,16 +3,10 @@ try:
 except Exception:
     raise Exception("dbt not found. Please install dbt to use this extension.")
 
-
-from decimal import Decimal
 import os
 import threading
 import uuid
-import sys
-import contextlib
 from collections import UserDict
-from collections.abc import Iterable
-from datetime import date, datetime, time
 from copy import copy
 from functools import lru_cache, partial
 from hashlib import md5
@@ -91,81 +85,6 @@ DBT_DEBUG = "DBT_DEBUG"
 DBT_DEFER = "DBT_DEFER"
 DBT_STATE = "DBT_STATE"
 DBT_FAVOR_STATE = "DBT_FAVOR_STATE"
-
-@contextlib.contextmanager
-def add_path(path):
-    sys.path.append(path)
-    try:
-        yield
-    finally:
-        sys.path.remove(path)
-
-
-def validate_sql(
-    sql: str,
-    dialect: str,
-    models: List[Dict],
-):
-    try:
-        ALTIMATE_PACKAGE_PATH = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "altimate_packages"
-        )
-        with add_path(ALTIMATE_PACKAGE_PATH):
-            from altimate.validate_sql import validate_sql_from_models
-
-            return validate_sql_from_models(sql, dialect, models)
-    except Exception as e:
-        raise Exception(str(e))
-
-def fetch_schema_from_sql(sql: str, dialect: str):
-    try:
-        ALTIMATE_PACKAGE_PATH = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "altimate_packages"
-        )
-        with add_path(ALTIMATE_PACKAGE_PATH):
-            from altimate.fetch_schema import fetch_schema
-
-            return fetch_schema(sql, dialect)
-    except Exception as e:
-        raise Exception(str(e))
-    
-def validate_whether_sql_has_columns(sql: str, dialect: str):
-    try:
-        ALTIMATE_PACKAGE_PATH = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "altimate_packages"
-        )
-        with add_path(ALTIMATE_PACKAGE_PATH):
-            from altimate.fetch_schema import validate_whether_sql_has_columns
-
-            return validate_whether_sql_has_columns(sql, dialect)
-    except Exception as e:
-        raise Exception(str(e))
-
-
-def to_dict(obj):
-    if isinstance(obj, agate.Table):
-        return {
-            "rows": [to_dict(row) for row in obj.rows],
-            "column_names": obj.column_names,
-            "column_types": list(map(lambda x: x.__class__.__name__, obj.column_types)),
-        }
-    if isinstance(obj, str):
-        return obj
-    if isinstance(obj, Decimal):
-        return float(obj)
-    if isinstance(obj, (datetime, date, time)):
-        return obj.isoformat()
-    elif isinstance(obj, dict):
-        return dict((key, to_dict(val)) for key, val in obj.items())
-    elif isinstance(obj, Iterable):
-        return [to_dict(val) for val in obj]
-    elif hasattr(obj, "__dict__"):
-        return to_dict(vars(obj))
-    elif hasattr(obj, "__slots__"):
-        return to_dict(
-            dict((name, getattr(obj, name)) for name in getattr(obj, "__slots__"))
-        )
-    return obj
 
 
 def has_jinja(query: str) -> bool:

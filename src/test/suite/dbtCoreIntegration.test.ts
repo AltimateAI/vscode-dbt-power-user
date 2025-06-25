@@ -102,61 +102,6 @@ describe("DBTCoreProjectIntegration Tests", () => {
 
     (dbtCoreProjectIntegration as any).python = mockPythonBridge;
   });
-
-  it.skip("validateSql should return validation result for valid SQL", async () => {
-    // Arrange
-    const query = "SELECT * FROM my_table";
-    const dialect = "postgres";
-    const models = {};
-    const expectedResult = {
-      valid: true,
-      errors: [],
-    };
-
-    mockPythonBridge.lock.mockResolvedValue(expectedResult);
-
-    // Act
-    const result = await dbtCoreProjectIntegration.validateSql(
-      query,
-      dialect,
-      models,
-    );
-
-    // Assert
-    expect(result).toEqual(expectedResult);
-    expect(mockPythonBridge.lock).toHaveBeenCalledTimes(1);
-    const lockCall = mockPythonBridge.lock.mock.calls[0][0];
-    expect(lockCall.toString()).toContain("validate_sql");
-  });
-
-  it.skip("validateSql should handle invalid SQL", async () => {
-    const query = "SELECT * FREM my_table"; // Intentional typo
-    const dialect = "postgres";
-    const models = {};
-    const expectedResult = {
-      valid: false,
-      errors: [
-        {
-          message: 'syntax error at or near "FREM"',
-          line: 1,
-          column: 8,
-        },
-      ],
-    };
-
-    mockPythonBridge.lock.mockResolvedValue(expectedResult);
-
-    // Act
-    const result = await dbtCoreProjectIntegration.validateSql(
-      query,
-      dialect,
-      models,
-    );
-
-    // Assert
-    expect(result).toEqual(expectedResult);
-    expect(mockPythonBridge.lock).toHaveBeenCalledTimes(1);
-  });
 });
 
 describe("DBTCoreDetection Tests", () => {

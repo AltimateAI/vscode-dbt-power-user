@@ -258,20 +258,6 @@ interface DownloadArtifactResponse {
   dbt_core_integration_file_id: number;
 }
 
-export type ValidateSqlParseErrorType =
-  | "sql_parse_error"
-  | "sql_invalid_error"
-  | "sql_unknown_error";
-
-export interface ValidateSqlParseErrorResponse {
-  error_type?: ValidateSqlParseErrorType;
-  errors: {
-    description: string;
-    start_position?: [number, number];
-    end_position?: [number, number];
-  }[];
-}
-
 export interface TenantUser {
   id: number;
   uuid: string;
