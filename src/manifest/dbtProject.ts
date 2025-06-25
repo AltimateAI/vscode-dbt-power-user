@@ -19,7 +19,7 @@ import {
   window,
   workspace,
 } from "vscode";
-import { parse, YAMLError } from "yaml";
+import { YAMLError } from "yaml";
 import { DBTTerminal } from "../dbt_client/terminal";
 import { DBTDiagnosticData } from "../dbt_client/diagnostics";
 import {
