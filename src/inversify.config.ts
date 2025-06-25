@@ -242,6 +242,18 @@ container
   })
   .inSingletonScope();
 
+// Bind AltimateRequest
+container
+  .bind(AltimateRequest)
+  .toDynamicValue((context) => {
+    return new AltimateRequest(
+      context.container.get(TelemetryService),
+      context.container.get("DBTTerminal"),
+      context.container.get(PythonEnvironment),
+    );
+  })
+  .inSingletonScope();
+
 container
   .bind<interfaces.Factory<DBTDetection>>("Factory<DBTDetection>")
   .toFactory<DBTDetection, []>((context: interfaces.Context) => {

@@ -32,7 +32,6 @@ import * as fs from "fs";
 import { parse } from "yaml";
 import { TelemetryService } from "../telemetry";
 import { AltimateRequest, NotFoundError } from "../altimate";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { DBTTerminal } from "./terminal";
 import { ValidationProvider } from "../validation_provider";
 import { NodeMetaData } from "../domain";

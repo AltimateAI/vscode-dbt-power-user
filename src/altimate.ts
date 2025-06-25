@@ -1,6 +1,6 @@
 import type { RequestInit } from "node-fetch";
 import { env, Uri, window, workspace } from "vscode";
-import { provideSingleton, processStreamResponse } from "./utils";
+import { processStreamResponse } from "./utils";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
 import { join } from "path";
@@ -11,7 +11,6 @@ import { DBTTerminal } from "./dbt_client/terminal";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
 import { PreconfiguredNotebookItem, NotebookItem, NotebookSchema } from "@lib";
 import * as vscode from "vscode";
-import { inject } from "inversify";
 import { hashProjectRoot } from "./dbt_client/dbtIntegration";
 
 export class NoCredentialsError extends Error {}
@@ -328,7 +327,6 @@ export interface ConversationGroup {
   conversations: Conversation[];
 }
 
-@provideSingleton(AltimateRequest)
 export class AltimateRequest {
   public static ALTIMATE_URL = workspace
     .getConfiguration("dbt")
@@ -336,7 +334,6 @@ export class AltimateRequest {
 
   constructor(
     private telemetry: TelemetryService,
-    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private pythonEnvironment: PythonEnvironment,
   ) {}
