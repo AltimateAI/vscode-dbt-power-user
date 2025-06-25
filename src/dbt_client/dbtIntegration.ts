@@ -13,7 +13,6 @@ import { NodeMetaData } from "../domain";
 import { DBTDiagnosticResult } from "./diagnostics";
 import { DBTConfiguration } from "./configuration";
 import { DeferConfig } from "../manifest/dbtProject";
-import { inject } from "inversify";
 
 export interface DBTCommandExecutionStrategy {
   execute(
@@ -363,7 +362,6 @@ export interface DBTProjectIntegration {
 export class DBTCommandExecutionInfrastructure {
   constructor(
     private pythonEnvironment: PythonEnvironment,
-    @inject("DBTTerminal")
     private terminal: DBTTerminal,
   ) {}
 
