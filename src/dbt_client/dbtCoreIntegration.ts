@@ -1,4 +1,3 @@
-import { window } from "vscode";
 import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
 import { extendErrorWithSupportLinks } from "../utils";
 import {
@@ -181,11 +180,6 @@ export class DBTCoreProjectDetection implements DBTProjectDetection {
         return projectPath.startsWith(packageInstallPath!);
       });
     });
-    if (filteredProjectFiles.length > 20) {
-      window.showWarningMessage(
-        `dbt Power User detected ${filteredProjectFiles.length} projects in your work space, this will negatively affect performance.`,
-      );
-    }
     return filteredProjectFiles;
   }
 
