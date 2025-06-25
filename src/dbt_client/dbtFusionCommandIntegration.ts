@@ -1,4 +1,3 @@
-import { window } from "vscode";
 import { getFirstWorkspacePath } from "../utils";
 import {
   QueryExecution,
@@ -79,11 +78,6 @@ export class DBTFusionCommandProjectDetection implements DBTProjectDetection {
         return projectPath.startsWith(packageInstallPath!);
       });
     });
-    if (filteredProjectFiles.length > 20) {
-      window.showWarningMessage(
-        `dbt Power User detected ${filteredProjectFiles.length} projects in your workspace, this will negatively affect performance.`,
-      );
-    }
     return filteredProjectFiles;
   }
 }

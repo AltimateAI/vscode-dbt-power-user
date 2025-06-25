@@ -180,6 +180,12 @@ export class DBTWorkspaceFolder implements Disposable {
         projectDirectories.map((uri) => uri.fsPath),
       );
 
+    if (filteredProjects.length > 20) {
+      window.showWarningMessage(
+        `dbt Power User detected ${filteredProjects.length} projects in your workspace, this will negatively affect performance.`,
+      );
+    }
+
     this.dbtTerminal.info(
       "discoverProjects",
       "foundProjectsAfterProjectIntegrationFilter",

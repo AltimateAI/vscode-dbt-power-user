@@ -1,4 +1,3 @@
-import { window } from "vscode";
 import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
 import {
   Catalog,
@@ -27,6 +26,7 @@ import semver = require("semver");
 import { NodeMetaData } from "../domain";
 import * as crypto from "crypto";
 import { parse } from "yaml";
+import { window } from "vscode";
 
 export function getDBTPath(
   pythonEnvironment: PythonEnvironment,
@@ -121,11 +121,6 @@ export class DBTCloudProjectDetection implements DBTProjectDetection {
         return projectPath.startsWith(packageInstallPath!);
       });
     });
-    if (filteredProjectFiles.length > 20) {
-      window.showWarningMessage(
-        `dbt Power User detected ${filteredProjectFiles.length} projects in your work space, this will negatively affect performance.`,
-      );
-    }
     return filteredProjectFiles;
   }
 }
