@@ -10,8 +10,20 @@ from decimal import Decimal
 from collections.abc import Iterable
 from datetime import date, datetime, time
 
+try:
+    import agate
+    HAS_AGATE = True
+except ImportError:
+    HAS_AGATE = False
+
 
 def to_dict(obj):
+    if HAS_AGATE and isinstance(obj, agate.Table):
+        return {
+            "rows": [to_dict(row) for row in obj.rows],
+            "column_names": obj.column_names,
+            "column_types": list(map(lambda x: x.__class__.__name__, obj.column_types)),
+        }
     if isinstance(obj, str):
         return obj
     if isinstance(obj, Decimal):
