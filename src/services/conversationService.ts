@@ -234,7 +234,7 @@ export class ConversationService {
             );
 
             // generate docs in tmp directory
-            await project.generateDocsImmediately(args);
+            await project.unsafeGenerateDocsImmediately(args);
 
             this.dbtTerminal.debug(
               "docGenService:shareDbtDocs",

@@ -451,7 +451,7 @@ export class DBTProject implements Disposable {
         docsGenerateCommand.focus = false;
         docsGenerateCommand.logToTerminal = false;
         docsGenerateCommand.showProgress = false;
-        await this.generateDocsImmediately();
+        await this.unsafeGenerateDocsImmediately();
         healthcheckArgs.catalogPath = this.getCatalogPath();
         if (!healthcheckArgs.catalogPath) {
           throw new Error(
@@ -489,7 +489,7 @@ export class DBTProject implements Disposable {
     return projectHealthcheck;
   }
 
-  async initialize() {
+  async initialize(): Promise<void> {
     // Create command queue for this project
     this.createQueue("all");
 
@@ -579,7 +579,7 @@ export class DBTProject implements Disposable {
     await this.initialize();
   }
 
-  async refreshProjectConfig() {
+  async refreshProjectConfig(): Promise<void> {
     this.terminal.debug(
       "DBTProject",
       `Going to refresh the project "${this.getProjectName()}" at ${
@@ -972,7 +972,18 @@ export class DBTProject implements Disposable {
     }
   }
 
-  async generateDocsImmediately(args?: string[]) {
+  async unsafeCompileModelImmediately(runModelParams: RunModelParams) {
+    const compileModelCommand =
+      this.dbtCommandFactory.createCompileModelCommand(runModelParams);
+    compileModelCommand.showProgress = false;
+    compileModelCommand.logToTerminal = false;
+    this.telemetry.sendTelemetryEvent("compileModel");
+    return this.dbtProjectIntegration.executeCommandImmediately(
+      compileModelCommand,
+    );
+  }
+
+  async unsafeGenerateDocsImmediately(args?: string[]) {
     const docsGenerateCommand =
       this.dbtCommandFactory.createDocsGenerateCommand();
     args?.forEach((arg) => docsGenerateCommand.addArgument(arg));
