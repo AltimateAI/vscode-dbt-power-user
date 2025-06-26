@@ -28,6 +28,8 @@ import {
 import { DBTConfiguration } from "../dbt_client/configuration";
 import { DBTFacade } from "./dbtFacade";
 import { DBTDiagnosticData } from "../dbt_client/diagnostics";
+import { PythonException } from "python-bridge";
+import { YAMLError } from "yaml";
 import { DocParser } from "./parsers/docParser";
 import { GraphParser } from "./parsers/graphParser";
 import { MacroParser } from "./parsers/macroParser";
@@ -40,6 +42,9 @@ import { ChildrenParentParser } from "./parsers/childrenParentParser";
 import { ModelDepthParser } from "./parsers/modelDepthParser";
 import { DBTTerminal } from "../dbt_client/terminal";
 import path from "path";
+import { FSWatcher, watch } from "fs";
+import { EventEmitter } from "events";
+import { debounce } from "../utils";
 
 export interface ParsedManifest {
   nodeMetaMap: NodeMetaMap;
@@ -58,9 +63,15 @@ export interface ParsedManifest {
  * that delegates to the appropriate dbt integration (core, cloud, fusion, corecommand)
  * based on configuration. This class has no VSCode dependencies.
  */
-export class DBTIntegrationAdapter implements DBTFacade {
+export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
   private currentIntegration: DBTProjectIntegration;
   private consecutiveReadFailures = 0;
+  private sourceFileWatchers: FSWatcher[] = [];
+  private currentSourcePaths?: string[];
+  private isWatchingSourceFiles = false;
+  private projectConfigWatcher?: FSWatcher;
+  private depsInitialized = false;
+  private projectConfigDiagnostics: DBTDiagnosticData[] = [];
 
   constructor(
     private dbtConfiguration: DBTConfiguration,
@@ -72,10 +83,12 @@ export class DBTIntegrationAdapter implements DBTFacade {
     ) => DBTProjectIntegration,
     private dbtCloudIntegrationFactory: (
       projectRoot: string,
+      diagnostics: DBTDiagnosticData[],
       deferConfig: DeferConfig | undefined,
     ) => DBTProjectIntegration,
     private dbtFusionIntegrationFactory: (
       projectRoot: string,
+      diagnostics: DBTDiagnosticData[],
       deferConfig: DeferConfig | undefined,
     ) => DBTProjectIntegration,
     private dbtCoreCommandIntegrationFactory: (
@@ -84,7 +97,6 @@ export class DBTIntegrationAdapter implements DBTFacade {
       deferConfig: DeferConfig | undefined,
     ) => DBTProjectIntegration,
     private projectRoot: string,
-    private projectConfigDiagnostics: DBTDiagnosticData[],
     private deferConfig: DeferConfig | undefined,
     private childrenParentParser: ChildrenParentParser,
     private nodeParser: NodeParser,
@@ -98,6 +110,7 @@ export class DBTIntegrationAdapter implements DBTFacade {
     private terminal: DBTTerminal,
     private modelDepthParser: ModelDepthParser,
   ) {
+    super();
     this.currentIntegration = this.createIntegration();
   }
 
@@ -108,11 +121,13 @@ export class DBTIntegrationAdapter implements DBTFacade {
       case "cloud":
         return this.dbtCloudIntegrationFactory(
           this.projectRoot,
+          this.projectConfigDiagnostics,
           this.deferConfig,
         );
       case "fusion":
         return this.dbtFusionIntegrationFactory(
           this.projectRoot,
+          this.projectConfigDiagnostics,
           this.deferConfig,
         );
       case "corecommand":
@@ -192,6 +207,23 @@ export class DBTIntegrationAdapter implements DBTFacade {
     return this.currentIntegration.getPythonBridgeStatus();
   }
 
+  getDiagnostics() {
+    return {
+      projectConfigDiagnostics: this.projectConfigDiagnostics,
+      ...this.currentIntegration.getDiagnostics(),
+    };
+  }
+
+  private addProjectConfigDiagnostic(diagnostic: DBTDiagnosticData): void {
+    // Add to project config diagnostics array
+    this.projectConfigDiagnostics.push(diagnostic);
+  }
+
+  private clearProjectConfigDiagnostics(): void {
+    // Clear project config diagnostics
+    this.projectConfigDiagnostics.length = 0;
+  }
+
   getAdapterType(): string {
     return this.currentIntegration.getAdapterType() || "unknown";
   }
@@ -202,16 +234,157 @@ export class DBTIntegrationAdapter implements DBTFacade {
 
   // Project Operations
   async initialize(): Promise<void> {
-    return this.currentIntegration.initializeProject();
+    await this.currentIntegration.initializeProject();
+    await this.refreshProjectConfig();
+    await this.rebuildManifest();
+
+    // Start project config watcher and file watchers automatically after initialization
+    this.startProjectConfigWatcher();
+    this.startSourceFilesWatcher();
   }
 
   async refreshProjectConfig(): Promise<void> {
-    return this.currentIntegration.refreshProjectConfig();
+    this.terminal.debug(
+      "DBTIntegrationAdapter",
+      `Going to refresh the project "${this.getProjectName()}" at ${
+        this.projectRoot
+      } configuration`,
+    );
+
+    try {
+      await this.currentIntegration.refreshProjectConfig();
+      // Clear any existing project config diagnostics
+      this.clearProjectConfigDiagnostics();
+    } catch (error) {
+      const projectConfigFile = this.getDBTProjectFilePath();
+
+      if (error instanceof YAMLError) {
+        this.addProjectConfigDiagnostic({
+          filePath: projectConfigFile,
+          message: "dbt_project.yml is invalid : " + error.message,
+          severity: "error",
+          range: {
+            startLine: 0,
+            startColumn: 0,
+            endLine: 999,
+            endColumn: 999,
+          },
+          source: "dbt-project",
+          category: "project-config",
+        });
+      } else if (error instanceof PythonException) {
+        this.addProjectConfigDiagnostic({
+          filePath: projectConfigFile,
+          message: "dbt configuration is invalid : " + error.exception.message,
+          severity: "error",
+          range: {
+            startLine: 0,
+            startColumn: 0,
+            endLine: 999,
+            endColumn: 999,
+          },
+          source: "dbt-project",
+          category: "project-config",
+        });
+      }
+
+      this.terminal.debug(
+        "DBTIntegrationAdapter",
+        `An error occurred while trying to refresh the project "${this.getProjectName()}" at ${
+          this.projectRoot
+        } configuration`,
+        error,
+      );
+      return;
+    }
+
+    // Update file watchers when project config changes
+    this.updateSourceFilesWatchers();
+
+    const sourcePaths = this.getModelPaths();
+    const macroPaths = this.getMacroPaths();
+    const seedPaths = this.getSeedPaths();
+
+    if (sourcePaths && macroPaths && seedPaths) {
+      this.terminal.debug(
+        "DBTIntegrationAdapter",
+        `Project config refreshed successfully for "${this.getProjectName()}" at ${
+          this.projectRoot
+        }`,
+        "targetPaths",
+        this.getTargetPath(),
+        "modelPaths",
+        this.getModelPaths(),
+        "seedPaths",
+        this.getSeedPaths(),
+        "macroPaths",
+        this.getMacroPaths(),
+        "packagesInstallPath",
+        this.getPackageInstallPath(),
+        "version",
+        this.getDBTVersion(),
+        "adapterType",
+        this.getAdapterType(),
+      );
+    } else {
+      this.terminal.warn(
+        "DBTIntegrationAdapter",
+        "Could not complete project config refresh because project is not initialized properly. dbt path settings cannot be determined",
+      );
+    }
   }
 
-  // Manifest Operations
   async rebuildManifest(): Promise<void> {
-    return this.currentIntegration.rebuildManifest();
+    this.terminal.debug(
+      "DBTIntegrationAdapter",
+      `Going to rebuild the manifest for project at ${this.projectRoot}`,
+    );
+
+    // Emit start status
+    this.emit("rebuildManifestStatusChange", {
+      inProgress: true,
+    });
+
+    // Install dependencies if configured and not already initialized
+    const installDepsOnProjectInitialization =
+      this.dbtConfiguration.getInstallDepsOnProjectInitialization();
+    if (!this.depsInitialized && installDepsOnProjectInitialization) {
+      try {
+        this.terminal.debug(
+          "DBTIntegrationAdapter",
+          "Installing dbt dependencies before first manifest rebuild",
+        );
+        await this.installDeps(true);
+        this.depsInitialized = true;
+      } catch (error: any) {
+        // this is best effort
+        this.terminal.warn(
+          "DBTIntegrationAdapter",
+          "An error occurred while installing dependencies",
+          error,
+        );
+      }
+    }
+
+    try {
+      await this.currentIntegration.rebuildManifest();
+      this.terminal.debug(
+        "DBTIntegrationAdapter",
+        `Finished rebuilding the manifest for project at ${this.projectRoot}`,
+      );
+    } catch (error) {
+      this.terminal.error(
+        "DBTIntegrationAdapter",
+        "Error rebuilding manifest",
+        error,
+      );
+      throw error;
+    } finally {
+      // Emit end status regardless of success/failure
+      this.emit("rebuildManifestStatusChange", {
+        inProgress: false,
+      });
+    }
   }
 
   async parseManifest(): Promise<ParsedManifest | undefined> {
@@ -335,6 +508,238 @@ export class DBTIntegrationAdapter implements DBTFacade {
         this.terminal.error(
           "DBTIntegrationAdapter",
           `Could not read/parse manifest file at ${manifestLocation} after ${this.consecutiveReadFailures} attempts`,
+          error,
+        );
+      }
+    }
+  }
+
+  // Node.js File Watcher Operations
+  private startSourceFilesWatcher(): void {
+    if (this.isWatchingSourceFiles) {
+      return;
+    }
+
+    this.terminal.debug(
+      "DBTIntegrationAdapter",
+      `Starting Node.js file watchers for project at ${this.projectRoot}`,
+    );
+
+    this.isWatchingSourceFiles = true;
+    this.setupSourceFileWatchers();
+  }
+
+  private stopFileWatching(): void {
+    if (!this.isWatchingSourceFiles) {
+      return;
+    }
+
+    this.terminal.debug(
+      "DBTIntegrationAdapter",
+      `Stopping Node.js file watchers for project at ${this.projectRoot}`,
+    );
+
+    this.disposeSourceFileWatchers();
+    this.isWatchingSourceFiles = false;
+  }
+
+  private updateSourceFilesWatchers(): void {
+    if (!this.isWatchingSourceFiles) {
+      return;
+    }
+
+    const sourcePaths = this.getModelPaths();
+    const macroPaths = this.getMacroPaths();
+    const seedPaths = this.getSeedPaths();
+
+    if (!sourcePaths || !macroPaths || !seedPaths) {
+      this.terminal.debug(
+        "DBTIntegrationAdapter",
+        "Cannot update file watchers - source paths not available",
+      );
+      return;
+    }
+
+    const allPaths = [...sourcePaths, ...macroPaths, ...seedPaths];
+
+    // Check if paths have changed
+    if (
+      this.currentSourcePaths &&
+      this.arrayEquals(this.currentSourcePaths, allPaths)
+    ) {
+      return;
+    }
+
+    this.terminal.debug(
+      "DBTIntegrationAdapter",
+      "Updating Node.js file watchers with new paths",
+      allPaths,
+    );
+
+    // Recreate watchers with new paths
+    this.disposeSourceFileWatchers();
+    this.currentSourcePaths = allPaths;
+    this.setupSourceFileWatchers();
+  }
+
+  private setupSourceFileWatchers(): void {
+    if (!this.currentSourcePaths) {
+      // Initialize currentSourcePaths if not already set
+      const sourcePaths = this.getModelPaths();
+      const macroPaths = this.getMacroPaths();
+      const seedPaths = this.getSeedPaths();
+
+      if (!sourcePaths || !macroPaths || !seedPaths) {
+        this.terminal.debug(
+          "DBTIntegrationAdapter",
+          "Cannot setup file watchers - source paths not available",
+        );
+        return;
+      }
+
+      this.currentSourcePaths = [...sourcePaths, ...macroPaths, ...seedPaths];
+    }
+
+    const debouncedFileChangeHandler = debounce(async () => {
+      this.terminal.debug(
+        "DBTIntegrationAdapter",
+        `SourceFileChanged event fired for "${this.getProjectName()}" at ${this.projectRoot}`,
+      );
+      this.emit("sourceFileChanged");
+      await this.rebuildManifest();
+    }, this.getDebounceForRebuildManifest());
+
+    for (const sourcePath of this.currentSourcePaths) {
+      try {
+        // Watch directory recursively for dbt file types
+        const watcher = watch(
+          sourcePath,
+          { recursive: true },
+          (eventType, filename) => {
+            if (filename && this.isDbtFile(filename)) {
+              this.terminal.debug(
+                "DBTIntegrationAdapter",
+                `File ${eventType}: ${filename} in ${sourcePath}`,
+              );
+              debouncedFileChangeHandler();
+            }
+          },
+        );
+
+        this.sourceFileWatchers.push(watcher);
+
+        this.terminal.debug(
+          "DBTIntegrationAdapter",
+          `Started Node.js file watcher for ${sourcePath}`,
+        );
+      } catch (error) {
+        this.terminal.error(
+          "DBTIntegrationAdapter",
+          `Failed to create file watcher for ${sourcePath}`,
+          error,
+        );
+      }
+    }
+  }
+
+  private disposeSourceFileWatchers(): void {
+    for (const watcher of this.sourceFileWatchers) {
+      try {
+        watcher.close();
+      } catch (error) {
+        this.terminal.error(
+          "DBTIntegrationAdapter",
+          "Error closing file watcher",
+          error,
+        );
+      }
+    }
+    this.sourceFileWatchers = [];
+  }
+
+  private isDbtFile(filename: string): boolean {
+    const ext = path.extname(filename).toLowerCase();
+    return [".sql", ".yml", ".yaml", ".csv"].includes(ext);
+  }
+
+  private arrayEquals<T>(a: T[], b: T[]): boolean {
+    return a.length === b.length && a.every((val, i) => val === b[i]);
+  }
+
+  getDebounceForRebuildManifest(): number {
+    // Use the same debounce timing as the integration
+    return this.currentIntegration.getDebounceForRebuildManifest?.() || 500;
+  }
+
+  // Project Config Watcher Operations
+  private startProjectConfigWatcher(): void {
+    if (this.projectConfigWatcher) {
+      return;
+    }
+
+    const dbtProjectFilePath = this.getDBTProjectFilePath();
+
+    this.terminal.debug(
+      "DBTIntegrationAdapter",
+      `Starting Node.js project config watcher for ${dbtProjectFilePath}`,
+    );
+
+    try {
+      const debouncedConfigChangeHandler = debounce(async () => {
+        this.terminal.debug(
+          "DBTIntegrationAdapter",
+          "dbt_project.yml changed, refreshing project config",
+        );
+
+        try {
+          await this.refreshProjectConfig();
+          this.emit("projectConfigChanged");
+          await this.rebuildManifest();
+        } catch (error) {
+          this.terminal.error(
+            "DBTIntegrationAdapter",
+            "Error refreshing project config after file change",
+            error,
+          );
+        }
+      }, 500);
+
+      this.projectConfigWatcher = watch(dbtProjectFilePath, (eventType) => {
+        if (eventType === "change") {
+          this.terminal.debug(
+            "DBTIntegrationAdapter",
+            `dbt_project.yml ${eventType} detected`,
+          );
+          debouncedConfigChangeHandler();
+        }
+      });
+
+      this.terminal.debug(
+        "DBTIntegrationAdapter",
+        `Started Node.js project config watcher for ${dbtProjectFilePath}`,
+      );
+    } catch (error) {
+      this.terminal.error(
+        "DBTIntegrationAdapter",
+        `Failed to create project config watcher for ${dbtProjectFilePath}`,
+        error,
+      );
+    }
+  }
+
+  private stopProjectConfigWatcher(): void {
+    if (this.projectConfigWatcher) {
+      try {
+        this.projectConfigWatcher.close();
+        this.projectConfigWatcher = undefined;
+        this.terminal.debug(
+          "DBTIntegrationAdapter",
+          "Stopped Node.js project config watcher",
+        );
+      } catch (error) {
+        this.terminal.error(
+          "DBTIntegrationAdapter",
+          "Error closing project config watcher",
           error,
         );
       }
@@ -614,7 +1019,10 @@ export class DBTIntegrationAdapter implements DBTFacade {
 
   // Disposal
   async dispose(): Promise<void> {
+    this.stopFileWatching();
+    this.stopProjectConfigWatcher();
     this.currentIntegration.dispose();
+    this.removeAllListeners();
   }
 
   // Escape hatch for calling methods on the ProjectIntegration

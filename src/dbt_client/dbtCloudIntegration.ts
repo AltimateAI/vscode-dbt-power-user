@@ -154,6 +154,7 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
     private pythonEnvironment: PythonEnvironment,
     protected terminal: DBTTerminal,
     protected projectRoot: string,
+    private projectConfigDiagnostics: DBTDiagnosticData[],
     private deferConfig: DeferConfig | undefined,
   ) {
     this.terminal.debug(

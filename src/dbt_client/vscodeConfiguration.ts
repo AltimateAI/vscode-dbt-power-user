@@ -80,6 +80,15 @@ export class VSCodeDBTConfiguration implements DBTConfiguration {
       );
   }
 
+  getInstallDepsOnProjectInitialization(): boolean {
+    return workspace
+      .getConfiguration("dbt")
+      .get<boolean>(
+        "installDepsOnProjectInitialization",
+        DEFAULT_CONFIGURATION_VALUES.installDepsOnProjectInitialization,
+      );
+  }
+
   getWorkingDirectory(): string {
     return getFirstWorkspacePath();
   }

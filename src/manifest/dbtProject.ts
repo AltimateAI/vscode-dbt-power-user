@@ -19,15 +19,8 @@ import {
   window,
   workspace,
 } from "vscode";
-import { YAMLError } from "yaml";
 import { DBTTerminal } from "../dbt_client/terminal";
-import { DBTDiagnosticData } from "../dbt_client/diagnostics";
-import {
-  debounce,
-  extendErrorWithSupportLinks,
-  getColumnNameByCase,
-  setupWatcherHandler,
-} from "../utils";
+import { extendErrorWithSupportLinks, getColumnNameByCase } from "../utils";
 import {
   ManifestCacheChangedEvent,
   RebuildManifestStatusChange,
@@ -35,7 +28,6 @@ import {
 } from "./event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 import { DBTProjectLog, DBTProjectLogFactory } from "./modules/dbtProjectLog";
-import { SourceFileWatchers } from "./modules/sourceFileWatchers";
 import { TargetWatchers } from "./modules/targetWatchers";
 import { PythonEnvironment } from "./pythonEnvironment";
 import { TelemetryService } from "../telemetry";
@@ -63,7 +55,6 @@ import {
   CATALOG_FILE,
   DBTCommandExecution,
   DeferConfig,
-  readAndParseProjectConfig,
 } from "../dbt_client/dbtIntegration";
 import { ProjectHealthcheck } from "../dbt_client/dbtCoreIntegration";
 import { AltimateRequest } from "../altimate";
@@ -99,7 +90,6 @@ interface JsonObj {
 export class DBTProject implements Disposable, DBTFacade {
   private _manifestCacheEvent?: ManifestCacheProjectAddedEvent;
   readonly projectRoot: Uri;
-  private projectConfig: Record<string, any>;
   private dbtProjectIntegration: DBTIntegrationAdapter;
 
   private _onProjectConfigChanged =
@@ -107,12 +97,13 @@ export class DBTProject implements Disposable, DBTFacade {
   public onProjectConfigChanged = this._onProjectConfigChanged.event;
   private _onRunResults = new EventEmitter<RunResultsEvent>();
   public onRunResults = this._onRunResults.event;
-  private sourceFileWatchers: SourceFileWatchers;
-  public onSourceFileChanged: Event<void>;
+  private _onSourceFileChanged = new EventEmitter<void>();
+  public onSourceFileChanged = this._onSourceFileChanged.event;
   private dbtProjectLog?: DBTProjectLog;
-  private disposables: Disposable[] = [this._onProjectConfigChanged];
-  private readonly projectConfigDiagnostics =
-    languages.createDiagnosticCollection("dbt");
+  private disposables: Disposable[] = [
+    this._onProjectConfigChanged,
+    this._onSourceFileChanged,
+  ];
   public readonly projectHealth = languages.createDiagnosticCollection("dbt");
   private _onRebuildManifestStatusChange =
     new EventEmitter<RebuildManifestStatusChange>();
@@ -120,7 +111,6 @@ export class DBTProject implements Disposable, DBTFacade {
     this._onRebuildManifestStatusChange.event;
 
   private dbSchemaCache: Record<string, ModelNode> = {};
-  private depsInitialized = false;
   private queues: Map<string, DBTCommandExecution[]> = new Map<
     string,
     DBTCommandExecution[]
@@ -130,9 +120,6 @@ export class DBTProject implements Disposable, DBTFacade {
   constructor(
     @inject("PythonEnvironment")
     private PythonEnvironment: PythonEnvironment,
-    private sourceFileWatchersFactory: (
-      onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
-    ) => SourceFileWatchers,
     private dbtProjectLogFactory: DBTProjectLogFactory,
     private targetWatchersFactory: (
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
@@ -146,7 +133,6 @@ export class DBTProject implements Disposable, DBTFacade {
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
     private dbtIntegrationAdapterFactory: (
       projectRoot: string,
-      projectConfigDiagnostics: DBTDiagnosticData[],
       deferConfig: DeferConfig | undefined,
     ) => DBTIntegrationAdapter,
     private altimate: AltimateRequest,
@@ -154,11 +140,10 @@ export class DBTProject implements Disposable, DBTFacade {
     private deferToProdService: DeferToProdService,
     private altimateAuthService: AltimateAuthService,
     path: Uri,
-    projectConfig: any,
+    _projectConfig: any,
     private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
   ) {
     this.projectRoot = path;
-    this.projectConfig = projectConfig;
     try {
       this.validationProvider.validateCredentialsSilently();
     } catch (error) {
@@ -169,11 +154,6 @@ export class DBTProject implements Disposable, DBTFacade {
         false,
       );
     }
-
-    this.sourceFileWatchers = this.sourceFileWatchersFactory(
-      this.onProjectConfigChanged,
-    );
-    this.onSourceFileChanged = this.sourceFileWatchers.onSourceFileChanged;
 
     // Check if dbt loom is installed for telemetry (only for core integration)
     const dbtIntegrationMode = workspace
@@ -192,8 +172,40 @@ export class DBTProject implements Disposable, DBTFacade {
     // Create the integration adapter which will handle the integration selection internally
     this.dbtProjectIntegration = this.dbtIntegrationAdapterFactory(
       this.projectRoot.fsPath,
-      this.convertDiagnosticCollectionToDBTDiagnosticData(),
       this.getDeferConfig(),
+    );
+
+    // Set up Node.js watcher events to emit VSCode events directly
+    this.dbtProjectIntegration.on("sourceFileChanged", () => {
+      this.terminal.debug(
+        "DBTProject",
+        "Received sourceFileChanged event from Node.js file watchers",
+      );
+      this._onSourceFileChanged.fire();
+    });
+
+    this.dbtProjectIntegration.on("projectConfigChanged", () => {
+      this.terminal.debug(
+        "DBTProject",
+        "Received projectConfigChanged event from Node.js project config watcher",
+      );
+      const event = new ProjectConfigChangedEvent(this);
+      this._onProjectConfigChanged.fire(event);
+    });
+
+    this.dbtProjectIntegration.on(
+      "rebuildManifestStatusChange",
+      (status: { inProgress: boolean }) => {
+        this.terminal.debug(
+          "DBTProject",
+          `Received rebuildManifestStatusChange event: inProgress=${status.inProgress}`,
+        );
+        const event: RebuildManifestStatusChange = {
+          project: this,
+          inProgress: status.inProgress,
+        };
+        this._onRebuildManifestStatusChange.fire(event);
+      },
     );
 
     this.disposables.push(
@@ -214,8 +226,6 @@ export class DBTProject implements Disposable, DBTFacade {
       this.PythonEnvironment.onPythonEnvironmentChanged(() =>
         this.onPythonEnvironmentChanged(),
       ),
-      this.sourceFileWatchers,
-      this.projectConfigDiagnostics,
       this.onRunResults((event) => {
         this.invalidateCacheUsingLastRun(event.file);
       }),
@@ -372,11 +382,23 @@ export class DBTProject implements Disposable, DBTFacade {
             this.mapSeverityToVSCode(data.severity),
           ),
       ),
+      ...(integrationDiagnostics.projectConfigDiagnostics || []).map(
+        (data) =>
+          new Diagnostic(
+            new Range(
+              data.range?.startLine || 0,
+              data.range?.startColumn || 0,
+              data.range?.endLine || 999,
+              data.range?.endColumn || 999,
+            ),
+            data.message,
+            this.mapSeverityToVSCode(data.severity),
+          ),
+      ),
     ];
 
     return [
       ...convertedDiagnostics,
-      ...(this.projectConfigDiagnostics.get(projectURI) || []),
       ...(this.projectHealth.get(projectURI) || []),
     ];
   }
@@ -461,15 +483,6 @@ export class DBTProject implements Disposable, DBTFacade {
     // Create command queue for this project
     this.createQueue("all");
 
-    // ensure we watch all files and reflect changes
-    // This is purely vscode watchers, no need for the project to be fully initialized
-    const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
-      new RelativePattern(this.projectRoot, DBT_PROJECT_FILE),
-    );
-    setupWatcherHandler(dbtProjectConfigWatcher, async () => {
-      await this.refreshProjectConfig();
-      this.rebuildManifest();
-    });
     try {
       await this.dbtProjectIntegration.initialize();
     } catch (error) {
@@ -484,28 +497,12 @@ export class DBTProject implements Disposable, DBTFacade {
       );
     }
 
-    await this.refreshProjectConfig();
-    this.rebuildManifest();
     this.dbtProjectLog = this.dbtProjectLogFactory.createDBTProjectLog(
       this.onProjectConfigChanged,
     );
 
     // ensure all watchers are cleaned up
-    this.disposables.push(
-      this.dbtProjectLog,
-      dbtProjectConfigWatcher,
-      this.onSourceFileChanged(
-        debounce(async () => {
-          this.terminal.debug(
-            "DBTProject",
-            `SourceFileChanged event fired for "${this.getProjectName()}" at ${
-              this.projectRoot
-            }`,
-          );
-          await this.rebuildManifest();
-        }, this.getCurrentProjectIntegration().getDebounceForRebuildManifest()),
-      ),
-    );
+    this.disposables.push(this.dbtProjectLog);
 
     this.terminal.debug(
       "DbtProject",
@@ -513,28 +510,8 @@ export class DBTProject implements Disposable, DBTFacade {
     );
   }
 
-  private convertDiagnosticCollectionToDBTDiagnosticData(): DBTDiagnosticData[] {
-    const dbtProjectFile = Uri.file(
-      path.join(this.projectRoot.fsPath, DBT_PROJECT_FILE),
-    );
-    const diagnostics = this.projectConfigDiagnostics.get(dbtProjectFile) || [];
-
-    return diagnostics.map((diagnostic) => ({
-      filePath: dbtProjectFile.fsPath,
-      message: diagnostic.message,
-      severity:
-        diagnostic.severity === DiagnosticSeverity.Error
-          ? ("error" as const)
-          : ("warning" as const),
-      range: {
-        startLine: diagnostic.range.start.line,
-        startColumn: diagnostic.range.start.character,
-        endLine: diagnostic.range.end.line,
-        endColumn: diagnostic.range.end.character,
-      },
-      source: diagnostic.source || "dbt-project",
-      category: "project-config",
-    }));
+  async rebuildManifest(): Promise<void> {
+    this.dbtProjectIntegration.rebuildManifest();
   }
 
   private async onPythonEnvironmentChanged() {
@@ -548,94 +525,7 @@ export class DBTProject implements Disposable, DBTFacade {
   }
 
   async refreshProjectConfig(): Promise<void> {
-    this.terminal.debug(
-      "DBTProject",
-      `Going to refresh the project "${this.getProjectName()}" at ${
-        this.projectRoot
-      } configuration`,
-    );
-    try {
-      this.projectConfig = readAndParseProjectConfig(this.projectRoot.fsPath);
-      await this.dbtProjectIntegration.refreshProjectConfig();
-      this.projectConfigDiagnostics.clear();
-    } catch (error) {
-      const projectConfigFile = Uri.file(
-        path.join(this.projectRoot.fsPath, DBT_PROJECT_FILE),
-      );
-      if (error instanceof YAMLError) {
-        this.projectConfigDiagnostics.set(projectConfigFile, [
-          new Diagnostic(
-            new Range(0, 0, 999, 999),
-            "dbt_project.yml is invalid : " + error.message,
-          ),
-        ]);
-      } else if (error instanceof PythonException) {
-        this.projectConfigDiagnostics.set(projectConfigFile, [
-          new Diagnostic(
-            new Range(0, 0, 999, 999),
-            "dbt configuration is invalid : " + error.exception.message,
-          ),
-        ]);
-      }
-      this.terminal.debug(
-        "DBTProject",
-        `An error occurred while trying to refresh the project "${this.getProjectName()}" at ${
-          this.projectRoot
-        } configuration`,
-        error,
-      );
-      this.telemetry.sendTelemetryError("projectConfigRefreshError", error);
-    }
-    const sourcePaths = this.getModelPaths();
-    if (sourcePaths === undefined) {
-      this.terminal.debug(
-        "DBTProject",
-        "sourcePaths is not defined in project in " + this.projectRoot,
-      );
-    }
-    const macroPaths = this.getMacroPaths();
-    if (macroPaths === undefined) {
-      this.terminal.debug(
-        "DBTProject",
-        "macroPaths is not defined in " + this.projectRoot,
-      );
-    }
-    const seedPaths = this.getSeedPaths();
-    if (seedPaths === undefined) {
-      this.terminal.debug(
-        "DBTProject",
-        "macroPaths is not defined in " + this.projectRoot,
-      );
-    }
-    if (sourcePaths && macroPaths && seedPaths) {
-      const event = new ProjectConfigChangedEvent(this);
-      this._onProjectConfigChanged.fire(event);
-      this.terminal.debug(
-        "DBTProject",
-        `firing ProjectConfigChanged event for the project "${this.getProjectName()}" at ${
-          this.projectRoot
-        } configuration`,
-        "targetPaths",
-        this.getTargetPath(),
-        "modelPaths",
-        this.getModelPaths(),
-        "seedPaths",
-        this.getSeedPaths(),
-        "macroPaths",
-        this.getMacroPaths(),
-        "packagesInstallPath",
-        this.getPackageInstallPath(),
-        "version",
-        this.getDBTVersion(),
-        "adapterType",
-        this.getAdapterType(),
-      );
-    } else {
-      this.terminal.warn(
-        "DBTProject",
-        "Could not send out ProjectConfigChangedEvent because project is not initialized properly. dbt path settings cannot be determined",
-      );
-    }
+    this.dbtProjectIntegration.refreshProjectConfig();
   }
 
   async parseManifest(): Promise<ParsedManifest | undefined> {
@@ -665,51 +555,6 @@ export class DBTProject implements Disposable, DBTFacade {
     );
   }
 
-  async rebuildManifest() {
-    this.terminal.debug(
-      "DBTProject",
-      `Going to rebuild the manifest for "${this.getProjectName()}" at ${
-        this.projectRoot
-      }`,
-    );
-    this._onRebuildManifestStatusChange.fire({
-      project: this,
-      inProgress: true,
-    });
-    const installDepsOnProjectInitialization = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("installDepsOnProjectInitialization", true);
-    if (!this.depsInitialized && installDepsOnProjectInitialization) {
-      try {
-        await this.installDeps(true);
-      } catch (error: any) {
-        // this is best effort
-        console.warn("An error occured while installing dependencies", error);
-      }
-      this.depsInitialized = true;
-    }
-    try {
-      await this.getCurrentProjectIntegration().rebuildManifest();
-    } catch (error) {
-      // This is a real issue, not just a dbt parsing error
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "An error occured while rebuilding the dbt manifest: " + error + ".",
-        ),
-      );
-    }
-    this._onRebuildManifestStatusChange.fire({
-      project: this,
-      inProgress: false,
-    });
-    this.terminal.debug(
-      "DBTProject",
-      `Finished rebuilding the manifest for "${this.getProjectName()}" at ${
-        this.projectRoot
-      }`,
-    );
-  }
-
   async runModel(runModelParams: RunModelParams) {
     if (!this.validateIntegrationPrerequisites()) {
       return undefined;
@@ -723,9 +568,8 @@ export class DBTProject implements Disposable, DBTFacade {
         await this.getCurrentProjectIntegration().runModel(runModelCommand);
       this.telemetry.sendTelemetryEvent("runModel");
       if (command) {
-        return await this.addCommandToQueue("all", command);
+        this.addCommandToQueue("all", command);
       }
-      return undefined;
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
@@ -755,9 +599,8 @@ export class DBTProject implements Disposable, DBTFacade {
         await this.getCurrentProjectIntegration().buildModel(buildModelCommand);
       this.telemetry.sendTelemetryEvent("buildModel");
       if (command) {
-        return await this.addCommandToQueue("all", command);
+        this.addCommandToQueue("all", command);
       }
-      return undefined;
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
@@ -776,7 +619,7 @@ export class DBTProject implements Disposable, DBTFacade {
 
   async buildProject() {
     if (!this.validateIntegrationPrerequisites()) {
-      return undefined;
+      return;
     }
 
     const buildProjectCommand =
@@ -789,9 +632,8 @@ export class DBTProject implements Disposable, DBTFacade {
         );
       this.telemetry.sendTelemetryEvent("buildProject");
       if (command) {
-        return await this.addCommandToQueue("all", command);
+        this.addCommandToQueue("all", command);
       }
-      return undefined;
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
@@ -821,9 +663,8 @@ export class DBTProject implements Disposable, DBTFacade {
         await this.getCurrentProjectIntegration().runTest(testModelCommand);
       this.telemetry.sendTelemetryEvent("runTest");
       if (command) {
-        return await this.addCommandToQueue("all", command);
+        this.addCommandToQueue("all", command);
       }
-      return undefined;
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
@@ -855,9 +696,8 @@ export class DBTProject implements Disposable, DBTFacade {
         );
       this.telemetry.sendTelemetryEvent("runModelTest");
       if (command) {
-        return await this.addCommandToQueue("all", command);
+        this.addCommandToQueue("all", command);
       }
-      return undefined;
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
@@ -947,7 +787,7 @@ export class DBTProject implements Disposable, DBTFacade {
       );
     this.telemetry.sendTelemetryEvent("compileModel");
     if (command) {
-      await this.addCommandToQueue("all", command);
+      this.addCommandToQueue("all", command);
     }
   }
 
@@ -990,7 +830,7 @@ export class DBTProject implements Disposable, DBTFacade {
       );
     this.telemetry.sendTelemetryEvent("generateDocs");
     if (command) {
-      await this.addCommandToQueue("all", command);
+      this.addCommandToQueue("all", command);
     }
   }
 
@@ -2060,10 +1900,7 @@ export class DBTProject implements Disposable, DBTFacade {
     }
 
     // Check VSCode diagnostic collections
-    const vscodeCollections: DiagnosticCollection[] = [
-      this.projectConfigDiagnostics,
-      this.projectHealth,
-    ];
+    const vscodeCollections: DiagnosticCollection[] = [this.projectHealth];
 
     for (const diagnosticCollection of vscodeCollections) {
       for (const [_, diagnostics] of diagnosticCollection) {

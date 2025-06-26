@@ -11,7 +11,6 @@ import { RunResultsEvent } from "./manifest/event/runResultsEvent";
 import { ProjectConfigChangedEvent } from "./manifest/event/projectConfigChangedEvent";
 import { DBTProjectLogFactory } from "./manifest/modules/dbtProjectLog";
 import { ManifestParser } from "./manifest/parsers";
-import { SourceFileWatchers } from "./manifest/modules/sourceFileWatchers";
 import { TargetWatchers } from "./manifest/modules/targetWatchers";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
 import { VSCodePythonEnvironment } from "./manifest/vscodePythonEnvironment";
@@ -456,9 +455,13 @@ container
   >("Factory<DBTFusionCommandProjectIntegration>")
   .toFactory<
     DBTFusionCommandProjectIntegration,
-    [string, DeferConfig]
+    [string, DBTDiagnosticData[], DeferConfig]
   >((context: interfaces.Context) => {
-    return (projectRoot: string, deferConfig: DeferConfig) => {
+    return (
+      projectRoot: string,
+      projectConfigDiagnostics: DBTDiagnosticData[],
+      deferConfig: DeferConfig,
+    ) => {
       const { container } = context;
       return new DBTFusionCommandProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
@@ -467,6 +470,7 @@ container
         container.get("PythonEnvironment"),
         container.get("DBTTerminal"),
         projectRoot,
+        projectConfigDiagnostics,
         deferConfig,
       );
     };
@@ -478,9 +482,13 @@ container
   >("Factory<DBTCloudProjectIntegration>")
   .toFactory<
     DBTCloudProjectIntegration,
-    [string, DeferConfig]
+    [string, DBTDiagnosticData[], DeferConfig]
   >((context: interfaces.Context) => {
-    return (projectRoot: string, deferConfig: DeferConfig) => {
+    return (
+      projectRoot: string,
+      projectConfigDiagnostics: DBTDiagnosticData[],
+      deferConfig: DeferConfig,
+    ) => {
       const { container } = context;
       return new DBTCloudProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
@@ -489,6 +497,7 @@ container
         container.get("PythonEnvironment"),
         container.get("DBTTerminal"),
         projectRoot,
+        projectConfigDiagnostics,
         deferConfig,
       );
     };
@@ -500,13 +509,9 @@ container
   >("Factory<DBTIntegrationAdapter>")
   .toFactory<
     DBTIntegrationAdapter,
-    [string, DBTDiagnosticData[], DeferConfig | undefined]
+    [string, DeferConfig | undefined]
   >((context: interfaces.Context) => {
-    return (
-      projectRoot: string,
-      projectConfigDiagnostics: DBTDiagnosticData[],
-      deferConfig: DeferConfig | undefined,
-    ) => {
+    return (projectRoot: string, deferConfig: DeferConfig | undefined) => {
       const { container } = context;
       return new DBTIntegrationAdapter(
         container.get("DBTConfiguration"),
@@ -516,7 +521,6 @@ container
         container.get("Factory<DBTFusionCommandProjectIntegration>"),
         container.get("Factory<DBTCoreCommandProjectIntegration>"),
         projectRoot,
-        projectConfigDiagnostics,
         deferConfig,
         container.get(ChildrenParentParser),
         container.get(NodeParser),
@@ -547,7 +551,6 @@ container
       const { container } = context;
       return new DBTProject(
         container.get("PythonEnvironment"),
-        container.get("Factory<SourceFileWatchers>"),
         container.get(DBTProjectLogFactory),
         container.get("Factory<TargetWatchers>"),
         container.get(DBTCommandFactory),
@@ -602,21 +605,6 @@ container
         _onRunResults,
         onProjectConfigChanged,
         container.get(ManifestParser),
-        container.get("DBTTerminal"),
-      );
-    };
-  });
-
-container
-  .bind<interfaces.Factory<SourceFileWatchers>>("Factory<SourceFileWatchers>")
-  .toFactory<
-    SourceFileWatchers,
-    [Event<ProjectConfigChangedEvent>]
-  >((context: interfaces.Context) => {
-    return (onProjectConfigChanged: Event<ProjectConfigChangedEvent>) => {
-      const { container } = context;
-      return new SourceFileWatchers(
-        onProjectConfigChanged,
         container.get("DBTTerminal"),
       );
     };

@@ -15,6 +15,7 @@ export interface DBTConfiguration {
   // Feature toggles
   getEnableNotebooks(): boolean;
   getDisableQueryHistory(): boolean;
+  getInstallDepsOnProjectInitialization(): boolean;
 
   // Workspace settings
   getWorkingDirectory(): string;
@@ -36,6 +37,7 @@ export const DEFAULT_CONFIGURATION_VALUES = {
   queryLimit: 500,
   enableNotebooks: false,
   disableQueryHistory: false,
+  installDepsOnProjectInitialization: true,
   altimateUrl: "https://api.myaltimate.com",
   isLocalMode: false,
 } as const;
