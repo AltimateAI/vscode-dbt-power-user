@@ -272,7 +272,12 @@ export class AltimateHttpClient {
     let jsonResponse: any;
     try {
       jsonResponse = JSON.parse(textResponse);
-    } catch {}
+    } catch (error) {
+      this.dbtTerminal.debug(
+        "AltimateHttpClient",
+        `Failed to parse error response as JSON: ${error instanceof Error ? error.message : String(error)}. Raw response: ${textResponse.substring(0, 200)}${textResponse.length > 200 ? "..." : ""}`,
+      );
+    }
 
     throw new APIError(
       `Could not process request, server responded with ${response.status}: ${jsonResponse?.detail || textResponse}`,
