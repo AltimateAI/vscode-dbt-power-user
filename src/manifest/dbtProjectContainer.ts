@@ -11,7 +11,11 @@ import {
   WorkspaceFolder,
 } from "vscode";
 import { DBTClient } from "../dbt_client";
-import { EnvironmentVariables, RunModelType } from "../domain";
+import {
+  DataPilotHealtCheckParams,
+  EnvironmentVariables,
+  RunModelType,
+} from "../domain";
 import { provideSingleton } from "../utils";
 import { DBTProject } from "./dbtProject";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
@@ -20,7 +24,6 @@ import {
   RebuildManifestCombinedStatusChange,
 } from "./event/manifestCacheChangedEvent";
 import { DBTTerminal } from "../dbt_client/terminal";
-import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 import { AltimateDatapilot } from "../dbt_client/datapilot";
 import { AltimateRequest } from "../altimate";
 
@@ -452,7 +455,7 @@ export class DBTProjectContainer implements Disposable {
     );
   }
 
-  executeAltimateDatapilotHealthcheck(args: AltimateConfigProps) {
+  executeAltimateDatapilotHealthcheck(args: DataPilotHealtCheckParams) {
     const project = this.getProjects().find(
       (p) => p.projectRoot.fsPath.toString() === args.projectRoot,
     );

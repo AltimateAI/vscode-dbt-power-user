@@ -5,9 +5,8 @@ import {
   DBColumn,
   Catalog,
 } from "../dbt_client/dbtIntegration";
-import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 import { ProjectHealthcheck } from "../dbt_client/dbtCoreIntegration";
-import { Table } from "src/domain";
+import { DataPilotHealtCheckParams, Table } from "../domain";
 
 /**
  * Framework-agnostic facade interface for dbt project operations.
@@ -41,7 +40,7 @@ export interface DBTFacade {
   initialize(): Promise<void>;
   refreshProjectConfig(): Promise<void>;
   performDatapilotHealthcheck(
-    args: AltimateConfigProps,
+    args: DataPilotHealtCheckParams,
   ): Promise<ProjectHealthcheck>;
 
   // Utility Methods
@@ -50,25 +49,21 @@ export interface DBTFacade {
   findPackageVersion(packageName: string): string | undefined;
 
   // Model Execution
-  runModel(
-    runModelParams: RunModelParams,
-  ): Promise<CommandProcessResult | undefined>;
+  runModel(runModelParams: RunModelParams): void;
   unsafeRunModelImmediately(
     runModelParams: RunModelParams,
   ): Promise<CommandProcessResult>;
-  buildModel(
-    runModelParams: RunModelParams,
-  ): Promise<CommandProcessResult | undefined>;
+  buildModel(runModelParams: RunModelParams): void;
   unsafeBuildModelImmediately(
     runModelParams: RunModelParams,
   ): Promise<CommandProcessResult>;
-  buildProject(): Promise<CommandProcessResult | undefined>;
+  buildProject(): void;
   unsafeBuildProjectImmediately(): Promise<CommandProcessResult>;
 
   // Testing
-  runTest(testName: string): Promise<CommandProcessResult | undefined>;
+  runTest(testName: string): void;
   unsafeRunTestImmediately(testName: string): Promise<CommandProcessResult>;
-  runModelTest(modelName: string): Promise<CommandProcessResult | undefined>;
+  runModelTest(modelName: string): void;
   unsafeRunModelTestImmediately(
     modelName: string,
   ): Promise<CommandProcessResult>;

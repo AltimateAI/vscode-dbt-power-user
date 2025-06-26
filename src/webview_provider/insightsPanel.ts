@@ -31,21 +31,12 @@ import { NotebookFileSystemProvider } from "@lib";
 import { inject } from "inversify";
 import { DeferConfig } from "../dbt_client/dbtIntegration";
 import { AltimateAuthService } from "../services/altimateAuthService";
+import { DataPilotHealtCheckParams } from "../domain";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];
   projectRoot: string;
 };
-type ConfigOption =
-  | { configPath: string; configType: "Manual" }
-  | {
-      config: unknown;
-      config_schema: { files_required: string }[];
-      configType: "Saas";
-    }
-  | { configType: "All" };
-
-export type AltimateConfigProps = { projectRoot: string } & ConfigOption;
 
 interface DbtProject {
   projectRoot: string;
@@ -485,7 +476,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
 
   private async altimateScan(
     syncRequestId: string | undefined,
-    args: AltimateConfigProps,
+    args: DataPilotHealtCheckParams,
   ) {
     try {
       this.validationProvider.throwIfNotAuthenticated();
@@ -673,7 +664,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
         });
         break;
       case "altimateScan":
-        this.altimateScan(syncRequestId, params as AltimateConfigProps);
+        this.altimateScan(syncRequestId, params as DataPilotHealtCheckParams);
         break;
       case "clearAltimateScanResults":
         commands.executeCommand("dbtPowerUser.clearAltimateScanResults", {});

@@ -68,7 +68,6 @@ import {
   DeferConfig,
   readAndParseProjectConfig,
 } from "../dbt_client/dbtIntegration";
-import { CommandProcessResult } from "../commandProcessExecution";
 import {
   DBTCoreProjectIntegration,
   ProjectHealthcheck,
@@ -80,12 +79,12 @@ import { ValidationProvider } from "../validation_provider";
 import { ModelNode } from "../altimate";
 import {
   ColumnMetaData,
+  DataPilotHealtCheckParams,
   GraphMetaMap,
   NodeGraphMap,
   NodeMetaData,
   Table,
 } from "../domain";
-import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryEvents } from "../telemetry/events";
 import { RunResultsEvent } from "./event/runResultsEvent";
@@ -428,7 +427,7 @@ export class DBTProject implements Disposable {
     }
   }
 
-  async performDatapilotHealthcheck(args: AltimateConfigProps) {
+  async performDatapilotHealthcheck(args: DataPilotHealtCheckParams) {
     const manifestPath = this.getManifestPath();
     if (!manifestPath) {
       throw new Error(

@@ -9,6 +9,17 @@ export type DocMetaMap = Map<string, DocMetaData>;
 export type NodeMetaType = NodeMetaData;
 export type SourceMetaType = SourceTable;
 
+type ConfigOption =
+  | { configPath: string; configType: "Manual" }
+  | {
+      config: unknown;
+      config_schema: { files_required: string }[];
+      configType: "Saas";
+    }
+  | { configType: "All" };
+
+export type DataPilotHealtCheckParams = { projectRoot: string } & ConfigOption;
+
 export interface NodeMetaMap {
   lookupByBaseName(modelBaseName: string): NodeMetaData | undefined;
   lookupByUniqueId(uniqueId: string): NodeMetaData | undefined;
