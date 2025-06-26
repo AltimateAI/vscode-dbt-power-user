@@ -12,6 +12,8 @@ import {
   DBTCommandFactory,
   DBTCommand,
   RUN_RESULTS_FILE,
+  RESOURCE_TYPE_MODEL,
+  RESOURCE_TYPE_SOURCE,
 } from "../dbt_client/dbtIntegration";
 import { ProjectHealthcheck } from "../dbt_client/dbtCoreIntegration";
 import {
@@ -89,6 +91,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
   private targetWatchers: FSWatcher[] = [];
   private currentTargetPath?: string;
   private isWatchingTargetFiles = false;
+  private lastParsedManifest?: ParsedManifest;
 
   constructor(
     private dbtConfiguration: DBTConfiguration,
@@ -497,7 +500,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
       metricMetaMap,
     );
 
-    return {
+    const parsedManifest = {
       nodeMetaMap,
       macroMetaMap,
       metricMetaMap,
@@ -508,6 +511,11 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
       exposureMetaMap,
       modelDepthMap,
     };
+
+    // Store reference to last parsed manifest
+    this.lastParsedManifest = parsedManifest;
+
+    return parsedManifest;
   }
 
   private readAndParseManifestFile(targetPath: string): any {
@@ -1022,25 +1030,164 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
     return this.currentIntegration.getCatalog();
   }
 
-  // Lineage and Relationships - these methods require access to manifest
-  // Since the adapter doesn't have direct manifest access, we'd need to implement
-  // these by parsing the manifest file or delegating to a manifest service
-  getNonEphemeralParents(_keys: string[]): string[] {
-    // This would require manifest parsing logic
-    // For now, return empty array
-    return [];
+  // Lineage and Relationships
+  getNonEphemeralParents(keys: string[]): string[] {
+    if (!this.lastParsedManifest) {
+      throw Error(
+        "No manifest has been generated. Maybe dbt project has not been parsed yet?",
+      );
+    }
+    const { nodeMetaMap, graphMetaMap } = this.lastParsedManifest;
+    const { parents } = graphMetaMap;
+    const parentSet = new Set<string>();
+    const queue = keys;
+    const visited: Record<string, boolean> = {};
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      if (visited[curr]) {
+        continue;
+      }
+      visited[curr] = true;
+      const parent = parents.get(curr);
+      if (!parent) {
+        continue;
+      }
+      for (const n of parent.nodes) {
+        const splits = n.key.split(".");
+        const resource_type = splits[0];
+        if (resource_type !== RESOURCE_TYPE_MODEL) {
+          parentSet.add(n.key);
+          continue;
+        }
+        if (
+          nodeMetaMap.lookupByUniqueId(n.key)?.config.materialized ===
+          "ephemeral"
+        ) {
+          queue.push(n.key);
+        } else {
+          parentSet.add(n.key);
+        }
+      }
+    }
+    return Array.from(parentSet);
   }
 
-  getChildrenModels({ table: _table }: { table: string }): Table[] {
-    // This would require manifest parsing logic
-    // For now, return empty array
-    return [];
+  getChildrenModels({ table }: { table: string }): Table[] {
+    return this.getConnectedTables("children", table);
   }
 
-  getParentModels({ table: _table }: { table: string }): Table[] {
-    // This would require manifest parsing logic
-    // For now, return empty array
-    return [];
+  getParentModels({ table }: { table: string }): Table[] {
+    return this.getConnectedTables("parents", table);
+  }
+
+  private getConnectedTables(key: keyof GraphMetaMap, table: string): Table[] {
+    if (!this.lastParsedManifest) {
+      throw Error(
+        "No manifest has been generated. Maybe dbt project has not been parsed yet?",
+      );
+    }
+    const { graphMetaMap, nodeMetaMap } = this.lastParsedManifest;
+    const node = nodeMetaMap.lookupByBaseName(table);
+    if (!node) {
+      throw Error("nodeMetaMap has no entries for " + table);
+    }
+    const dependencyNodes = graphMetaMap[key];
+    const dependencyNode = dependencyNodes.get(node.uniqueId);
+    if (!dependencyNode) {
+      throw Error("graphMetaMap[" + key + "] has no entries for " + table);
+    }
+    const tables: Map<string, Table> = new Map();
+    dependencyNode.nodes.forEach(({ url, key }) => {
+      const _node = this.createTable(url, key);
+      if (!_node) {
+        return;
+      }
+      if (!tables.has(_node.table)) {
+        tables.set(_node.table, _node);
+      }
+    });
+    return Array.from(tables.values()).sort((a, b) =>
+      a.table.localeCompare(b.table),
+    );
+  }
+
+  private createTable(
+    tableUrl: string | undefined,
+    key: string,
+  ): Table | undefined {
+    if (!this.lastParsedManifest) {
+      throw new Error("The dbt manifest is not available");
+    }
+    const splits = key.split(".");
+    const nodeType = splits[0];
+    const { graphMetaMap, testMetaMap } = this.lastParsedManifest;
+    const upstreamCount = this.getConnectedNodeCount(
+      graphMetaMap["children"],
+      key,
+    );
+    const downstreamCount = this.getConnectedNodeCount(
+      graphMetaMap["parents"],
+      key,
+    );
+    if (nodeType === RESOURCE_TYPE_SOURCE) {
+      const { sourceMetaMap } = this.lastParsedManifest;
+      const schema = splits[2];
+      const table = splits[3];
+      const _node = sourceMetaMap.get(schema);
+      if (!_node) {
+        return;
+      }
+      const _table = _node.tables.find((t) => t.name === table);
+      if (!_table) {
+        return;
+      }
+      return {
+        table: key,
+        label: table,
+        url: tableUrl,
+        upstreamCount,
+        downstreamCount,
+        nodeType,
+        isExternalProject: _node.is_external_project,
+        tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
+          const testKey = n.label.split(".")[0];
+          return { ...testMetaMap.get(testKey), key: testKey };
+        }),
+        columns: _table.columns,
+        description: _table?.description,
+      };
+    } else {
+      const { nodeMetaMap } = this.lastParsedManifest;
+      const node = nodeMetaMap.lookupByUniqueId(key);
+      if (!node) {
+        return;
+      }
+      return {
+        table: key,
+        label: node.name,
+        url: tableUrl,
+        upstreamCount,
+        downstreamCount,
+        nodeType,
+        isExternalProject: node.package_name !== this.getProjectName(),
+        tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
+          const testKey = n.label.split(".")[0];
+          return { ...testMetaMap.get(testKey), key: testKey };
+        }),
+        columns: node.columns,
+        description: node?.description,
+      };
+    }
+  }
+
+  private getConnectedNodeCount(
+    connectionGraph: Map<
+      string,
+      { nodes: { key: string; label: string; url?: string }[] }
+    >,
+    key: string,
+  ): number {
+    return connectionGraph.get(key)?.nodes.length || 0;
   }
 
   // Target File Watcher Operations

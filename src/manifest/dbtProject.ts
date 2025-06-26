@@ -48,8 +48,6 @@ import {
   RESOURCE_TYPE_SEED,
   RESOURCE_TYPE_SNAPSHOT,
   RESOURCE_TYPE_SOURCE,
-  RESOURCE_TYPE_EXPOSURE,
-  RESOURCE_TYPE_METRIC,
   MANIFEST_FILE,
   CATALOG_FILE,
   DBTCommandExecution,
@@ -63,8 +61,6 @@ import { ModelNode } from "../altimate";
 import {
   ColumnMetaData,
   DataPilotHealtCheckParams,
-  GraphMetaMap,
-  NodeGraphMap,
   NodeMetaData,
   Table,
 } from "../domain";
@@ -1473,194 +1469,15 @@ export class DBTProject implements Disposable, DBTFacade {
   }
 
   getNonEphemeralParents(keys: string[]): string[] {
-    if (!this._manifestCacheEvent) {
-      throw Error(
-        "No manifest has been generated. Maybe dbt project has not been parsed yet?",
-      );
-    }
-    const { nodeMetaMap, graphMetaMap } = this._manifestCacheEvent;
-    const { parents } = graphMetaMap;
-    const parentSet = new Set<string>();
-    const queue = keys;
-    const visited: Record<string, boolean> = {};
-    while (queue.length > 0) {
-      const curr = queue.shift()!;
-      if (visited[curr]) {
-        continue;
-      }
-      visited[curr] = true;
-      const parent = parents.get(curr);
-      if (!parent) {
-        continue;
-      }
-      for (const n of parent.nodes) {
-        const splits = n.key.split(".");
-        const resource_type = splits[0];
-        if (resource_type !== RESOURCE_TYPE_MODEL) {
-          parentSet.add(n.key);
-          continue;
-        }
-        if (
-          nodeMetaMap.lookupByUniqueId(n.key)?.config.materialized ===
-          "ephemeral"
-        ) {
-          queue.push(n.key);
-        } else {
-          parentSet.add(n.key);
-        }
-      }
-    }
-    return Array.from(parentSet);
+    return this.dbtProjectIntegration.getNonEphemeralParents(keys);
   }
 
   getChildrenModels({ table }: { table: string }): Table[] {
-    return this.getConnectedTables("children", table);
+    return this.dbtProjectIntegration.getChildrenModels({ table });
   }
 
   getParentModels({ table }: { table: string }): Table[] {
-    return this.getConnectedTables("parents", table);
-  }
-
-  private getConnectedTables(key: keyof GraphMetaMap, table: string): Table[] {
-    const event = this._manifestCacheEvent;
-    if (!event) {
-      throw Error(
-        "No manifest has been generated. Maybe dbt project has not been parsed yet?",
-      );
-    }
-    const { graphMetaMap, nodeMetaMap } = event;
-    const node = nodeMetaMap.lookupByBaseName(table);
-    if (!node) {
-      throw Error("nodeMetaMap has no entries for " + table);
-    }
-    const dependencyNodes = graphMetaMap[key];
-    const dependencyNode = dependencyNodes.get(node.uniqueId);
-    if (!dependencyNode) {
-      throw Error("graphMetaMap[" + key + "] has no entries for " + table);
-    }
-    const tables: Map<string, Table> = new Map();
-    dependencyNode.nodes.forEach(({ url, key }) => {
-      const _node = this.createTable(url, key);
-      if (!_node) {
-        return;
-      }
-      if (!tables.has(_node.table)) {
-        tables.set(_node.table, _node);
-      }
-    });
-    return Array.from(tables.values()).sort((a, b) =>
-      a.table.localeCompare(b.table),
-    );
-  }
-
-  private createTable(
-    tableUrl: string | undefined,
-    key: string,
-  ): Table | undefined {
-    if (!this._manifestCacheEvent) {
-      throw new Error("The dbt manifest is not available");
-    }
-    const splits = key.split(".");
-    const nodeType = splits[0];
-    const { graphMetaMap, testMetaMap } = this._manifestCacheEvent;
-    const upstreamCount = this.getConnectedNodeCount(
-      graphMetaMap["children"],
-      key,
-    );
-    const downstreamCount = this.getConnectedNodeCount(
-      graphMetaMap["parents"],
-      key,
-    );
-    if (nodeType === RESOURCE_TYPE_SOURCE) {
-      const { sourceMetaMap } = this._manifestCacheEvent;
-      const schema = splits[2];
-      const table = splits[3];
-      const _node = sourceMetaMap.get(schema);
-      if (!_node) {
-        return;
-      }
-      const _table = _node.tables.find((t) => t.name === table);
-      if (!_table) {
-        return;
-      }
-      return {
-        table: key,
-        label: table,
-        url: tableUrl,
-        upstreamCount,
-        downstreamCount,
-        nodeType,
-        isExternalProject: _node.is_external_project,
-        tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
-          const testKey = n.label.split(".")[0];
-          return { ...testMetaMap.get(testKey), key: testKey };
-        }),
-        columns: _table.columns,
-        description: _table?.description,
-        packageName: _node.package_name,
-      };
-    }
-    if (nodeType === RESOURCE_TYPE_METRIC) {
-      return {
-        table: key,
-        label: splits[2],
-        url: tableUrl,
-        upstreamCount,
-        downstreamCount,
-        nodeType,
-        materialization: undefined,
-        tests: [],
-        columns: {},
-        isExternalProject: false,
-      };
-    }
-    const { nodeMetaMap } = this._manifestCacheEvent;
-
-    const table = splits[2];
-    if (nodeType === RESOURCE_TYPE_EXPOSURE) {
-      return {
-        table: key,
-        label: table,
-        url: tableUrl,
-        upstreamCount,
-        downstreamCount,
-        nodeType,
-        materialization: undefined,
-        tests: [],
-        columns: {},
-        isExternalProject: false,
-      };
-    }
-
-    const node = nodeMetaMap.lookupByUniqueId(key);
-    if (!node) {
-      return;
-    }
-
-    const materialization = node.config.materialized;
-    return {
-      table: key,
-      label: node.alias,
-      url: tableUrl,
-      upstreamCount,
-      downstreamCount,
-      isExternalProject: node.is_external_project,
-      nodeType,
-      materialization,
-      description: node.description,
-      columns: node.columns,
-      patchPath: node.patch_path,
-      tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
-        const testKey = n.label.split(".")[0];
-        return { ...testMetaMap.get(testKey), key: testKey };
-      }),
-      packageName: node.package_name,
-      meta: node.meta,
-    };
-  }
-
-  private getConnectedNodeCount(g: NodeGraphMap, key: string) {
-    return g.get(key)?.nodes.length || 0;
+    return this.dbtProjectIntegration.getParentModels({ table });
   }
 
   mergeColumnsFromDB(
