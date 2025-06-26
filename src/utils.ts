@@ -465,6 +465,37 @@ export function removeProtocol(input: string): string {
   return input.replace(/^[^:]+:\/\//, "");
 }
 
+export function combineAbortSignals(
+  ...signals: (AbortSignal | undefined)[]
+): AbortSignal | undefined {
+  // Filter out undefined signals
+  const validSignals = signals.filter(
+    (signal): signal is AbortSignal => signal !== undefined,
+  );
+
+  if (validSignals.length === 0) {
+    return undefined;
+  }
+
+  if (validSignals.length === 1) {
+    return validSignals[0];
+  }
+
+  // Create a combined signal if multiple signals are provided
+  const controller = new AbortController();
+  const combinedSignal = controller.signal;
+
+  validSignals.forEach((signal) => {
+    if (signal.aborted) {
+      controller.abort();
+    } else {
+      signal.addEventListener("abort", () => controller.abort());
+    }
+  });
+
+  return combinedSignal;
+}
+
 export function getDepthColor(depth: number): string {
   const mediumDepthThreshold = workspace
     .getConfiguration("dbt")

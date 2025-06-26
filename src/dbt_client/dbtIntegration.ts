@@ -13,6 +13,7 @@ import { DBTConfiguration } from "./configuration";
 import path from "path";
 import { parse } from "yaml";
 import * as crypto from "crypto";
+import { combineAbortSignals } from "../utils";
 
 export const DBT_PROJECT_FILE = "dbt_project.yml";
 export const MANIFEST_FILE = "manifest.json";
@@ -124,32 +125,7 @@ export class CLIDBTCommandExecutionStrategy
       );
     }
     // Combine signals if multiple are provided
-    let combinedSignal: AbortSignal | undefined;
-    const signals: AbortSignal[] = [];
-    if (signal !== undefined) {
-      signals.push(signal);
-    }
-    if (command.signal !== undefined) {
-      signals.push(command.signal);
-    }
-
-    if (signals.length > 0) {
-      if (signals.length === 1) {
-        combinedSignal = signals[0];
-      } else {
-        // Create a combined signal if multiple signals are provided
-        const controller = new AbortController();
-        combinedSignal = controller.signal;
-
-        signals.forEach((s) => {
-          if (s.aborted) {
-            controller.abort();
-          } else {
-            s.addEventListener("abort", () => controller.abort());
-          }
-        });
-      }
-    }
+    const combinedSignal = combineAbortSignals(signal, command.signal);
 
     return this.commandProcessExecutionFactory.createCommandProcessExecution({
       command: this.dbtPath,
@@ -208,32 +184,7 @@ export class PythonDBTCommandExecutionStrategy
       );
     }
     // Combine signals if multiple are provided
-    let combinedSignal: AbortSignal | undefined;
-    const signals: AbortSignal[] = [];
-    if (signal !== undefined) {
-      signals.push(signal);
-    }
-    if (command.signal !== undefined) {
-      signals.push(command.signal);
-    }
-
-    if (signals.length > 0) {
-      if (signals.length === 1) {
-        combinedSignal = signals[0];
-      } else {
-        // Create a combined signal if multiple signals are provided
-        const controller = new AbortController();
-        combinedSignal = controller.signal;
-
-        signals.forEach((s) => {
-          if (s.aborted) {
-            controller.abort();
-          } else {
-            s.addEventListener("abort", () => controller.abort());
-          }
-        });
-      }
-    }
+    const combinedSignal = combineAbortSignals(signal, command.signal);
 
     return this.commandProcessExecutionFactory.createCommandProcessExecution({
       command: this.pythonEnvironment.pythonPath,
