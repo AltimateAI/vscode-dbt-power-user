@@ -29,7 +29,31 @@ export const RESOURCE_TYPE_SNAPSHOT = "snapshot";
 export const RESOURCE_TYPE_TEST = "test";
 export const RESOURCE_TYPE_METRIC = "semantic_model";
 
-export function readAndParseProjectConfig(projectRoot: string) {
+export interface DBTProjectConfig {
+  name: string;
+  version?: string;
+  profile?: string;
+  model_paths?: string[];
+  analysis_paths?: string[];
+  test_paths?: string[];
+  seed_paths?: string[];
+  macro_paths?: string[];
+  snapshot_paths?: string[];
+  target_path?: string;
+  clean_targets?: string[];
+  log_path?: string;
+  packages_install_path?: string;
+  models?: Record<string, any>;
+  seeds?: Record<string, any>;
+  snapshots?: Record<string, any>;
+  sources?: Record<string, any>;
+  tests?: Record<string, any>;
+  vars?: Record<string, any>;
+}
+
+export function readAndParseProjectConfig(
+  projectRoot: string,
+): DBTProjectConfig {
   const dbtProjectConfigLocation = path.join(projectRoot, DBT_PROJECT_FILE);
   const dbtProjectYamlFile = readFileSync(dbtProjectConfigLocation, "utf8");
   return parse(dbtProjectYamlFile, {
