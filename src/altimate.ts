@@ -1,51 +1,15 @@
 import type { RequestInit } from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { join } from "path";
-import { createReadStream, createWriteStream, mkdirSync, ReadStream } from "fs";
+import { createWriteStream, mkdirSync } from "fs";
 import * as os from "os";
-import { RateLimitException, ExecutionsExhaustedException } from "./exceptions";
 import { DBTTerminal } from "./dbt_client/terminal";
 import { PreconfiguredNotebookItem, NotebookItem, NotebookSchema } from "@lib";
 import * as vscode from "vscode";
 import { hashProjectRoot } from "./dbt_client/dbtIntegration";
 import { inject } from "inversify";
 import { DBTConfiguration } from "./dbt_client/configuration";
-
-const processStreamResponse = async (
-  stream: NodeJS.ReadableStream | ReadableStream,
-  cb: (data: string) => void,
-): Promise<string> => {
-  if (stream instanceof ReadableStream) {
-    const reader = stream.getReader();
-    const decoder = new TextDecoder();
-    let result = "";
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          break;
-        }
-        const chunk = decoder.decode(value, { stream: true });
-        result += chunk;
-        cb(chunk);
-      }
-      return result;
-    } finally {
-      reader.releaseLock();
-    }
-  } else {
-    return new Promise((resolve, reject) => {
-      let result = "";
-      stream.on("data", (chunk: Buffer) => {
-        const data = chunk.toString();
-        result += data;
-        cb(data);
-      });
-      stream.on("end", () => resolve(result));
-      stream.on("error", reject);
-    });
-  }
-};
+import { AltimateHttpClient } from "./services/altimateHttpClient";
 
 export class NoCredentialsError extends Error {}
 
@@ -316,11 +280,6 @@ interface BulkDocsPropRequest {
   session_id: string;
 }
 
-interface AltimateConfig {
-  key: string;
-  instance: string;
-}
-
 export interface SharedDoc {
   share_id: number;
   name: string;
@@ -362,15 +321,15 @@ export class AltimateRequest {
     private dbtTerminal: DBTTerminal,
     @inject("DBTConfiguration")
     private dbtConfiguration: DBTConfiguration,
+    private altimateHttpClient: AltimateHttpClient,
   ) {}
 
   public getAltimateUrl(): string {
-    return this.dbtConfiguration.getAltimateUrl();
+    return this.altimateHttpClient.getAltimateUrl();
   }
 
   private async internalFetch(url: string, init?: RequestInit) {
-    const nodeFetch = (await import("node-fetch")).default;
-    return nodeFetch(url, init);
+    return this.altimateHttpClient.internalFetch(url, init);
   }
 
   getInstanceName() {
@@ -382,16 +341,7 @@ export class AltimateRequest {
   }
 
   public enabled(): boolean {
-    return !!this.getConfig();
-  }
-
-  private getConfig(): AltimateConfig | undefined {
-    const key = this.getAIKey();
-    const instance = this.getInstanceName();
-    if (!key || !instance) {
-      return undefined;
-    }
-    return { key, instance };
+    return !!this.altimateHttpClient.getConfig();
   }
 
   async fetchAsStream<R>(
@@ -400,101 +350,12 @@ export class AltimateRequest {
     onProgress: (response: string) => void,
     timeout: number = 120000,
   ) {
-    this.throwIfLocalMode(endpoint);
-    const url = `${this.getAltimateUrl()}/${endpoint}`;
-    this.dbtTerminal.debug("fetchAsStream:request", url, request);
-    const config = this.getConfig()!;
-    const abortController = new AbortController();
-    const timeoutHandler = setTimeout(() => {
-      abortController.abort();
-    }, timeout);
-    let textResponse;
-    let responseStatus;
-    try {
-      const response = await this.internalFetch(url, {
-        method: "POST",
-        body: JSON.stringify(request),
-        signal: abortController.signal,
-        headers: {
-          "x-tenant": config.instance,
-          Authorization: "Bearer " + config.key,
-          "Content-Type": "application/json",
-        },
-      });
-      responseStatus = response.status;
-
-      if (response.ok && responseStatus === 200) {
-        if (!response?.body) {
-          this.dbtTerminal.debug("fetchAsStream", "empty response");
-          return null;
-        }
-        const responseText = await processStreamResponse(
-          response.body,
-          onProgress,
-        );
-
-        return responseText;
-      }
-      if (
-        // response codes when backend authorization fails
-        responseStatus === 401 ||
-        responseStatus === 403
-      ) {
-        throw new ForbiddenError();
-      }
-      if (responseStatus === 404) {
-        throw new NotFoundError("Resource Not found");
-      }
-      if (responseStatus === 402) {
-        const jsonResponse = (await response.json()) as { detail: string };
-        throw new ExecutionsExhaustedException(jsonResponse.detail);
-      }
-      textResponse = await response.text();
-      this.dbtTerminal.debug(
-        "network:response",
-        "error from backend",
-        textResponse,
-      );
-      if (responseStatus === 429) {
-        throw new RateLimitException(
-          textResponse,
-          response.headers.get("Retry-After")
-            ? parseInt(response.headers.get("Retry-After") || "")
-            : 1 * 60 * 1000, // default to 1 min
-        );
-      }
-      throw new APIError(
-        `Could not process request, server responded with ${response.status}: ${textResponse}`,
-      );
-    } catch (error) {
-      this.dbtTerminal.error(
-        "apiCatchAllError",
-        "fetchAsStream catchAllError",
-        error,
-        true,
-        {
-          errorType: (error as Error).name,
-          statusCode: responseStatus,
-          textResponse: textResponse,
-          endpoint,
-        },
-      );
-      throw error;
-    } finally {
-      clearTimeout(timeoutHandler);
-    }
-  }
-
-  private async readStreamToBlob(stream: ReadStream) {
-    return new Promise((resolve, reject) => {
-      const chunks: any[] = [];
-      stream.on("data", (chunk) => chunks.push(chunk));
-      stream.on("end", () => {
-        const blob = new Blob(chunks);
-        resolve(blob);
-      });
-      stream.on("error", reject);
-    });
+    return this.altimateHttpClient.fetchAsStream(
+      endpoint,
+      request,
+      onProgress,
+      timeout,
+    );
   }
 
   async uploadToS3(
@@ -502,70 +363,38 @@ export class AltimateRequest {
     fetchArgs: Record<string, unknown>,
     filePath: string,
   ) {
-    this.dbtTerminal.debug("uploadToS3:", endpoint, fetchArgs, filePath);
-    this.throwIfLocalMode(endpoint);
-
-    const blob = (await this.readStreamToBlob(
-      createReadStream(filePath),
-    )) as Blob;
-    const response = await this.internalFetch(endpoint, {
-      ...fetchArgs,
-      method: "PUT",
-      body: blob,
-    });
-
-    this.dbtTerminal.debug(
-      "uploadToS3:response:",
-      `${response.status}`,
-      response.statusText,
-    );
-    if (!response.ok || response.status !== 200) {
-      const textResponse = await response.text();
-      const error = new Error("Failed to upload data to signed url");
-      this.dbtTerminal.error(
-        "uploadToS3Error",
-        "Could not upload to S3",
-        error,
-        true,
-        {
-          endpoint,
-          status: response.status,
-          textResponse,
-        },
-      );
-      throw error;
-    }
-
-    return response;
+    return this.altimateHttpClient.uploadToS3(endpoint, fetchArgs, filePath);
   }
 
   private throwIfLocalMode(endpoint: string) {
-    const isLocalMode = this.dbtConfiguration.getIsLocalMode();
-    if (!isLocalMode) {
-      return;
+    try {
+      this.altimateHttpClient.throwIfLocalMode(endpoint);
+    } catch (error) {
+      // Apply additional local mode exceptions specific to AltimateRequest
+      endpoint = endpoint.split("?")[0];
+      if (
+        [
+          /^dbtconfig\/datapilot_version\/.*$/,
+          /^dbtconfig\/.*\/download$/,
+        ].some((regex) => regex.test(endpoint))
+      ) {
+        return;
+      }
+      if (
+        [
+          "auth_health",
+          "dbtconfig",
+          "dbt/v1/fetch_artifact_url",
+          "dbtconfig/extension/start_scan",
+          "dbt/v1/project_integrations",
+          "dbt/v1/defer_to_prod_event",
+          "dbt/v3/validate-credentials",
+        ].includes(endpoint)
+      ) {
+        return;
+      }
+      throw error;
     }
-    endpoint = endpoint.split("?")[0];
-    if (
-      [/^dbtconfig\/datapilot_version\/.*$/, /^dbtconfig\/.*\/download$/].some(
-        (regex) => regex.test(endpoint),
-      )
-    ) {
-      return;
-    }
-    if (
-      [
-        "auth_health",
-        "dbtconfig",
-        "dbt/v1/fetch_artifact_url",
-        "dbtconfig/extension/start_scan",
-        "dbt/v1/project_integrations",
-        "dbt/v1/defer_to_prod_event",
-        "dbt/v3/validate-credentials",
-      ].includes(endpoint)
-    ) {
-      return;
-    }
-    throw new Error("This feature is not supported in local mode.");
   }
 
   async fetch<T>(
@@ -575,89 +404,11 @@ export class AltimateRequest {
   ): Promise<T> {
     this.dbtTerminal.debug("network:request", endpoint, fetchArgs);
     this.throwIfLocalMode(endpoint);
-
-    const abortController = new AbortController();
-    const timeoutHandler = setTimeout(() => {
-      abortController.abort();
-    }, timeout);
-
-    const config = this.getConfig();
-    if (!config) {
-      throw new NoCredentialsError("Missing API credentials");
-    }
-    let textResponse;
-    let responseStatus;
-    let jsonResponse: any;
-    try {
-      const url = `${this.getAltimateUrl()}/${endpoint}`;
-      const response = await this.internalFetch(url, {
-        method: "GET",
-        ...fetchArgs,
-        signal: abortController.signal,
-        headers: {
-          "x-tenant": config.instance,
-          Authorization: "Bearer " + config.key,
-          "Content-Type": "application/json",
-        },
-      });
-      responseStatus = response.status;
-
-      this.dbtTerminal.debug("network:response", endpoint, response.status);
-      if (response.ok && responseStatus === 200) {
-        const jsonResponse = await response.json();
-        return jsonResponse as T;
-      }
-      if (
-        // response codes when backend authorization fails
-        responseStatus === 401 ||
-        responseStatus === 403
-      ) {
-        throw new ForbiddenError();
-      }
-      if (responseStatus === 404) {
-        throw new NotFoundError("Resource Not found");
-      }
-      if (responseStatus === 402) {
-        const jsonResponse = (await response.json()) as { detail: string };
-        throw new ExecutionsExhaustedException(jsonResponse.detail);
-      }
-      textResponse = await response.text();
-      this.dbtTerminal.debug(
-        "network:response",
-        "error from backend",
-        textResponse,
-      );
-      if (response.status === 429) {
-        throw new RateLimitException(
-          textResponse,
-          response.headers.get("Retry-After")
-            ? parseInt(response.headers.get("Retry-After") || "")
-            : 1 * 60 * 1000, // default to 1 min
-        );
-      }
-      try {
-        jsonResponse = JSON.parse(textResponse);
-      } catch {}
-      throw new APIError(
-        `Could not process request, server responded with ${response.status}: ${jsonResponse?.detail || textResponse}`,
-      );
-    } catch (error) {
-      this.dbtTerminal.error(
-        "apiCatchAllError",
-        "fetchAsStream catchAllError",
-        error,
-        true,
-        {
-          errorType: (error as Error).name,
-          statusCode: responseStatus,
-          textResponse: textResponse,
-          endpoint,
-        },
-      );
-      throw error;
-    } finally {
-      clearTimeout(timeoutHandler);
-    }
+    return this.altimateHttpClient.fetch<T>(
+      endpoint,
+      fetchArgs as RequestInit,
+      timeout,
+    );
   }
 
   async downloadFileLocally(

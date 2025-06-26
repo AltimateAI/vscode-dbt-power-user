@@ -38,6 +38,7 @@ import { AltimateRequest } from "./altimate";
 import { ValidationProvider } from "./validation_provider";
 import { DBTConfiguration } from "./dbt_client/configuration";
 import { AltimateAuthService } from "./services/altimateAuthService";
+import { AltimateHttpClient } from "./services/altimateHttpClient";
 import { VSCodeDBTConfiguration } from "./dbt_client/vscodeConfiguration";
 import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
@@ -248,6 +249,17 @@ container
   })
   .inSingletonScope();
 
+// Bind AltimateHttpClient
+container
+  .bind(AltimateHttpClient)
+  .toDynamicValue((context) => {
+    return new AltimateHttpClient(
+      context.container.get("DBTTerminal"),
+      context.container.get("DBTConfiguration"),
+    );
+  })
+  .inSingletonScope();
+
 // Bind AltimateRequest
 container
   .bind(AltimateRequest)
@@ -255,6 +267,7 @@ container
     return new AltimateRequest(
       context.container.get("DBTTerminal"),
       context.container.get("DBTConfiguration"),
+      context.container.get(AltimateHttpClient),
     );
   })
   .inSingletonScope();

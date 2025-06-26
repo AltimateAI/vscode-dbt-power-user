@@ -103,8 +103,6 @@ export class VSCodeDBTConfiguration implements DBTConfiguration {
   }
 
   getAltimateAiKey(): string | undefined {
-    return workspace
-      .getConfiguration("dbt")
-      .get<string>("altimateAiKey");
+    return workspace.getConfiguration("dbt").get<string>("altimateAiKey");
   }
 }

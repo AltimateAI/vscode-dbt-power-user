@@ -77,7 +77,23 @@ describe("AltimateRequest Tests", () => {
       update: jest.fn().mockReturnValue(Promise.resolve()),
     };
 
-    request = new AltimateRequest(mockTerminal, mockDBTConfiguration);
+    const mockAltimateHttpClient = {
+      fetch: jest.fn(),
+      fetchAsStream: jest.fn(),
+      uploadToS3: jest.fn(),
+      getConfig: jest
+        .fn()
+        .mockReturnValue({ key: "test-key", instance: "test-instance" }),
+      getAltimateUrl: jest.fn().mockReturnValue("https://api.altimate.ai"),
+      throwIfLocalMode: jest.fn(),
+      internalFetch: fetchMock,
+    };
+
+    request = new AltimateRequest(
+      mockTerminal,
+      mockDBTConfiguration,
+      mockAltimateHttpClient as any,
+    );
   });
 
   afterEach(() => {
@@ -85,62 +101,44 @@ describe("AltimateRequest Tests", () => {
   });
 
   it("should handle authentication check", async () => {
-    const mockResponse = new Response(JSON.stringify({ status: "ok" }), {
-      status: 200,
-      statusText: "OK",
-      headers: { "Content-Type": "application/json" },
-    });
-    fetchMock.mockResolvedValue(mockResponse);
+    // Mock the fetch method on AltimateHttpClient to resolve successfully
+    const mockAltimateHttpClient = (request as any).altimateHttpClient;
+    mockAltimateHttpClient.fetch.mockResolvedValue(undefined);
 
     const result = await request.isAuthenticated();
     expect(result).toBe(true);
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("/auth_health"),
-      expect.objectContaining({
+    expect(mockAltimateHttpClient.fetch).toHaveBeenCalledWith(
+      "auth_health",
+      {
         method: "POST",
-        headers: expect.objectContaining({
-          "Content-Type": "application/json",
-        }),
-      }),
+      },
+      120000,
     );
   });
 
   it("should handle stream responses", async () => {
-    const stream = new ReadableStream({
-      start(controller) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode('{"status": "success"}');
-        controller.enqueue(data);
-        controller.close();
-      },
-    });
-
-    const mockResponse = new Response(stream, {
-      status: 200,
-      statusText: "OK",
-      headers: { "Content-Type": "application/json" },
-    });
-    fetchMock.mockResolvedValue(mockResponse);
-
+    const mockAltimateHttpClient = (request as any).altimateHttpClient;
     const onProgress = jest.fn();
-    await request.fetchAsStream("/test-endpoint", { test: true }, onProgress);
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("/test-endpoint"),
-      expect.objectContaining({
-        method: "POST",
-        headers: expect.objectContaining({
-          "Content-Type": "application/json",
-          "x-tenant": "test-instance",
-          Authorization: "Bearer test-key",
-        }),
-        body: JSON.stringify({ test: true }),
-      }),
+    mockAltimateHttpClient.fetchAsStream.mockResolvedValue(
+      '{"status": "success"}',
     );
 
-    expect(onProgress).toHaveBeenCalledTimes(1);
-    expect(onProgress).toHaveBeenCalledWith(expect.stringContaining("success"));
+    const result = await request.fetchAsStream(
+      "/test-endpoint",
+      { test: true },
+      onProgress,
+    );
+
+    expect(mockAltimateHttpClient.fetchAsStream).toHaveBeenCalledWith(
+      "/test-endpoint",
+      { test: true },
+      onProgress,
+      120000,
+    );
+
+    expect(result).toBe('{"status": "success"}');
   });
 
   it("should generate query strings", () => {
@@ -151,14 +149,24 @@ describe("AltimateRequest Tests", () => {
   });
 
   it("should respect local mode configuration", () => {
-    // Update the mock to return true for local mode
-    mockDBTConfiguration.getIsLocalMode.mockReturnValue(true);
+    const mockAltimateHttpClient = (request as any).altimateHttpClient;
+
+    // Mock AltimateHttpClient to throw for unsupported endpoints
+    mockAltimateHttpClient.throwIfLocalMode.mockImplementation(
+      (endpoint: string) => {
+        if (endpoint === "unsupported") {
+          throw new Error(
+            "Cannot use unsupported in local mode. Please switch to cloud mode in settings.",
+          );
+        }
+      },
+    );
 
     expect(() =>
       (request as any).throwIfLocalMode("auth_health"),
     ).not.toThrow();
     expect(() => (request as any).throwIfLocalMode("unsupported")).toThrow(
-      /not supported/,
+      /local mode/,
     );
   });
 });
