@@ -497,6 +497,7 @@ container
       const { container } = context;
       return new DBTIntegrationAdapter(
         container.get("DBTConfiguration"),
+        container.get(DBTCommandFactory),
         container.get("Factory<DBTCoreProjectIntegration>"),
         container.get("Factory<DBTCloudProjectIntegration>"),
         container.get("Factory<DBTFusionCommandProjectIntegration>"),

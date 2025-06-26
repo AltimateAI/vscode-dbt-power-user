@@ -9,6 +9,8 @@ import {
   DBT_PROJECT_FILE,
   MANIFEST_FILE,
   CATALOG_FILE,
+  DBTCommandFactory,
+  DBTCommand,
 } from "../dbt_client/dbtIntegration";
 import { ProjectHealthcheck } from "../dbt_client/dbtCoreIntegration";
 import { DataPilotHealtCheckParams, Table } from "../domain";
@@ -27,6 +29,7 @@ export class DBTIntegrationAdapter implements DBTFacade {
 
   constructor(
     private dbtConfiguration: DBTConfiguration,
+    private dbtCommandFactory: DBTCommandFactory,
     private dbtCoreIntegrationFactory: (
       projectRoot: string,
       diagnostics: DBTDiagnosticData[],
@@ -172,72 +175,50 @@ export class DBTIntegrationAdapter implements DBTFacade {
   async unsafeRunModelImmediately(
     runModelParams: RunModelParams,
   ): Promise<CommandProcessResult> {
-    // Create a dbt run command and execute it immediately
-    const command = {
-      statusMessage: "Running dbt model...",
-      args: [
-        "run",
-        "--select",
-        `${runModelParams.plusOperatorLeft}${runModelParams.modelName}${runModelParams.plusOperatorRight}`,
-        ...this.dbtConfiguration.getRunModelCommandAdditionalParams(),
-      ],
-      focus: false,
-      showProgress: false,
-      logToTerminal: false,
-    };
+    const command =
+      this.dbtCommandFactory.createRunModelCommand(runModelParams);
+    // Override the defaults to match the immediate execution requirements
+    command.focus = false;
+    command.showProgress = false;
+    command.logToTerminal = false;
 
-    return this.currentIntegration.executeCommandImmediately(command as any);
+    return this.currentIntegration.executeCommandImmediately(command);
   }
 
   async unsafeBuildModelImmediately(
     runModelParams: RunModelParams,
   ): Promise<CommandProcessResult> {
-    const command = {
-      statusMessage: "Building dbt model...",
-      args: [
-        "build",
-        "--select",
-        `${runModelParams.plusOperatorLeft}${runModelParams.modelName}${runModelParams.plusOperatorRight}`,
-        ...this.dbtConfiguration.getBuildModelCommandAdditionalParams(),
-      ],
-      focus: false,
-      showProgress: false,
-      logToTerminal: false,
-    };
+    const command =
+      this.dbtCommandFactory.createBuildModelCommand(runModelParams);
+    // Override the defaults to match the immediate execution requirements
+    command.focus = false;
+    command.showProgress = false;
+    command.logToTerminal = false;
 
-    return this.currentIntegration.executeCommandImmediately(command as any);
+    return this.currentIntegration.executeCommandImmediately(command);
   }
 
   async unsafeBuildProjectImmediately(): Promise<CommandProcessResult> {
-    const command = {
-      statusMessage: "Building dbt project...",
-      args: ["build"],
-      focus: false,
-      showProgress: false,
-      logToTerminal: false,
-    };
+    const command = this.dbtCommandFactory.createBuildProjectCommand();
+    // Override the defaults to match the immediate execution requirements
+    command.focus = false;
+    command.showProgress = false;
+    command.logToTerminal = false;
 
-    return this.currentIntegration.executeCommandImmediately(command as any);
+    return this.currentIntegration.executeCommandImmediately(command);
   }
 
   // Testing
   async unsafeRunTestImmediately(
     testName: string,
   ): Promise<CommandProcessResult> {
-    const command = {
-      statusMessage: "Testing dbt model...",
-      args: [
-        "test",
-        "--select",
-        testName,
-        ...this.dbtConfiguration.getTestModelCommandAdditionalParams(),
-      ],
-      focus: false,
-      showProgress: false,
-      logToTerminal: false,
-    };
+    const command = this.dbtCommandFactory.createTestModelCommand(testName);
+    // Override the defaults to match the immediate execution requirements
+    command.focus = false;
+    command.showProgress = false;
+    command.logToTerminal = false;
 
-    return this.currentIntegration.executeCommandImmediately(command as any);
+    return this.currentIntegration.executeCommandImmediately(command);
   }
 
   async unsafeRunModelTestImmediately(
@@ -250,19 +231,14 @@ export class DBTIntegrationAdapter implements DBTFacade {
   async unsafeCompileModelImmediately(
     runModelParams: RunModelParams,
   ): Promise<CommandProcessResult> {
-    const command = {
-      statusMessage: "Compiling dbt models...",
-      args: [
-        "compile",
-        "--select",
-        `${runModelParams.plusOperatorLeft}${runModelParams.modelName}${runModelParams.plusOperatorRight}`,
-      ],
-      focus: false,
-      showProgress: false,
-      logToTerminal: false,
-    };
+    const command =
+      this.dbtCommandFactory.createCompileModelCommand(runModelParams);
+    // Override the defaults to match the immediate execution requirements
+    command.focus = false;
+    command.showProgress = false;
+    command.logToTerminal = false;
 
-    return this.currentIntegration.executeCommandImmediately(command as any);
+    return this.currentIntegration.executeCommandImmediately(command);
   }
 
   async unsafeCompileNode(modelName: string): Promise<string | undefined> {
@@ -278,65 +254,56 @@ export class DBTIntegrationAdapter implements DBTFacade {
 
   // Documentation
   async unsafeGenerateDocsImmediately(args?: string[]): Promise<void> {
-    const command = {
-      statusMessage: "Generating dbt Docs...",
-      args: args || ["docs", "generate"],
-      focus: false,
-      showProgress: false,
-      logToTerminal: false,
-    };
+    const command = args
+      ? new DBTCommand("Generating dbt Docs...", args, false, false, false)
+      : this.dbtCommandFactory.createDocsGenerateCommand();
+    // Override the defaults to match the immediate execution requirements
+    command.focus = false;
+    command.showProgress = false;
+    command.logToTerminal = false;
 
-    await this.currentIntegration.executeCommandImmediately(command as any);
+    await this.currentIntegration.executeCommandImmediately(command);
   }
 
   // Package Management
   async installDbtPackages(packages: string[]): Promise<any> {
-    const command = {
-      statusMessage: "Installing packages...",
-      args: ["deps", "--add-package", ...packages],
-      focus: false,
-      showProgress: false,
-      logToTerminal: false,
-    };
+    const command = this.dbtCommandFactory.createAddPackagesCommand(packages);
+    // Override the defaults to match the immediate execution requirements
+    command.focus = false;
+    command.showProgress = false;
+    command.logToTerminal = false;
 
-    return this.currentIntegration.executeCommandImmediately(command as any);
+    return this.currentIntegration.executeCommandImmediately(command);
   }
 
   async installDeps(_silent?: boolean): Promise<any> {
-    const command = {
-      statusMessage: "Installing packages...",
-      args: ["deps"],
-      focus: false,
-      showProgress: false,
-      logToTerminal: false,
-    };
+    const command = this.dbtCommandFactory.createInstallDepsCommand();
+    // Override the defaults to match the immediate execution requirements
+    command.focus = false;
+    command.showProgress = false;
+    command.logToTerminal = false;
 
-    return this.currentIntegration.executeCommandImmediately(command as any);
+    return this.currentIntegration.executeCommandImmediately(command);
   }
 
   // Utility Commands
   clean(): any {
-    const command = {
-      statusMessage: "Cleaning dbt project...",
-      args: ["clean"],
-      focus: false,
-      showProgress: false,
-      logToTerminal: false,
-    };
+    const command = this.dbtCommandFactory.createCleanCommand();
+    // Override the defaults to match the immediate execution requirements
+    command.focus = false;
+    command.showProgress = false;
+    command.logToTerminal = false;
 
-    return this.currentIntegration.executeCommandImmediately(command as any);
+    return this.currentIntegration.executeCommandImmediately(command);
   }
 
   debug(focus?: boolean): any {
-    const command = {
-      statusMessage: "Debugging...",
-      args: ["debug"],
-      focus: focus || false,
-      showProgress: false,
-      logToTerminal: false,
-    };
+    const command = this.dbtCommandFactory.createDebugCommand(focus || false);
+    // Override the defaults to match the immediate execution requirements
+    command.showProgress = false;
+    command.logToTerminal = false;
 
-    return this.currentIntegration.executeCommandImmediately(command as any);
+    return this.currentIntegration.executeCommandImmediately(command);
   }
 
   // SQL Operations
