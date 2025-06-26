@@ -28,6 +28,21 @@ export class ManifestParser {
     const nodes = parsedManifest?.nodeMetaMap.nodes();
 
     if (!parsedManifest || !nodes) {
+      const projectName = project.getProjectName();
+      const projectRoot = project.projectRoot;
+
+      if (!parsedManifest) {
+        this.terminal.warn(
+          "ManifestParser",
+          `Failed to parse manifest for project "${projectName}" at ${projectRoot}: parsedManifest is undefined`,
+        );
+      } else if (!nodes) {
+        this.terminal.warn(
+          "ManifestParser",
+          `Failed to parse manifest for project "${projectName}" at ${projectRoot}: nodes collection is undefined`,
+        );
+      }
+
       return;
     }
 
