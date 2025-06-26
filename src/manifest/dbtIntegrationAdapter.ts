@@ -649,7 +649,15 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
         `SourceFileChanged event fired for "${this.getProjectName()}" at ${this.projectRoot}`,
       );
       this.emit("sourceFileChanged");
-      await this.rebuildManifest();
+      try {
+        await this.rebuildManifest();
+      } catch (error) {
+        this.terminal.error(
+          "DBTIntegrationAdapterError",
+          `Failed to rebuild manifest after file change: ${error instanceof Error ? error.message : String(error)}`,
+          error,
+        );
+      }
     }, this.getDebounceForRebuildManifest());
 
     for (const sourcePath of this.currentSourcePaths) {
