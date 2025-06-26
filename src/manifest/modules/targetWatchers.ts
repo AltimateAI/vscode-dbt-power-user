@@ -6,37 +6,13 @@ import {
   RelativePattern,
   workspace,
 } from "vscode";
-import { provideSingleton, setupWatcherHandler } from "../../utils";
+import { setupWatcherHandler } from "../../utils";
 import { ManifestCacheChangedEvent } from "../event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 import { ManifestParser } from "../parsers";
 import { DBTTerminal } from "../../dbt_client/terminal";
 import { RunResultsEvent } from "../event/runResultsEvent";
-import { inject } from "inversify";
 import { MANIFEST_FILE } from "../../dbt_client/dbtIntegration";
-
-@provideSingleton(TargetWatchersFactory)
-export class TargetWatchersFactory {
-  constructor(
-    private manifestParser: ManifestParser,
-    @inject("DBTTerminal")
-    private dbtTerminal: DBTTerminal,
-  ) {}
-
-  createTargetWatchers(
-    _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
-    _onRunResults: EventEmitter<RunResultsEvent>,
-    onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
-  ) {
-    return new TargetWatchers(
-      _onManifestChanged,
-      _onRunResults,
-      onProjectConfigChanged,
-      this.manifestParser,
-      this.dbtTerminal,
-    );
-  }
-}
 
 export class TargetWatchers implements Disposable {
   private manifestWatcher?: FileSystemWatcher;
@@ -54,7 +30,6 @@ export class TargetWatchers implements Disposable {
     _onRunResults: EventEmitter<RunResultsEvent>,
     onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
     private manifestParser: ManifestParser,
-    @inject("DBTTerminal")
     private terminal: DBTTerminal,
   ) {
     this._onManifestChanged = _onManifestChanged;

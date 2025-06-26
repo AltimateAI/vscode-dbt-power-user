@@ -1,15 +1,18 @@
 import { Container, interfaces } from "inversify";
 import { buildProviderModule } from "inversify-binding-decorators";
-import { EventEmitter, Uri, workspace, WorkspaceFolder } from "vscode";
+import { Event, EventEmitter, Uri, workspace, WorkspaceFolder } from "vscode";
 import { VSCodeDBTTerminal } from "./dbt_client/vscodeTerminal";
 import { DBTDiagnosticData } from "./dbt_client/diagnostics";
 import { DBTProject } from "./manifest/dbtProject";
 import { ProjectRegisteredUnregisteredEvent } from "./manifest/dbtProjectContainer";
 import { DBTWorkspaceFolder } from "./manifest/dbtWorkspaceFolder";
 import { ManifestCacheChangedEvent } from "./manifest/event/manifestCacheChangedEvent";
+import { RunResultsEvent } from "./manifest/event/runResultsEvent";
+import { ProjectConfigChangedEvent } from "./manifest/event/projectConfigChangedEvent";
 import { DBTProjectLogFactory } from "./manifest/modules/dbtProjectLog";
+import { ManifestParser } from "./manifest/parsers";
 import { SourceFileWatchersFactory } from "./manifest/modules/sourceFileWatchers";
-import { TargetWatchersFactory } from "./manifest/modules/targetWatchers";
+import { TargetWatchers } from "./manifest/modules/targetWatchers";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
 import { VSCodePythonEnvironment } from "./manifest/vscodePythonEnvironment";
 import { TelemetryService } from "./telemetry";
@@ -546,7 +549,7 @@ container
         container.get("PythonEnvironment"),
         container.get(SourceFileWatchersFactory),
         container.get(DBTProjectLogFactory),
-        container.get(TargetWatchersFactory),
+        container.get("Factory<TargetWatchers>"),
         container.get(DBTCommandFactory),
         container.get("DBTTerminal"),
         container.get(SharedStateService),
@@ -573,6 +576,32 @@ container
         path,
         container.get(DBTCommandExecutionInfrastructure),
         container.get(NotebookDependencies),
+        container.get("DBTTerminal"),
+      );
+    };
+  });
+
+container
+  .bind<interfaces.Factory<TargetWatchers>>("Factory<TargetWatchers>")
+  .toFactory<
+    TargetWatchers,
+    [
+      EventEmitter<ManifestCacheChangedEvent>,
+      EventEmitter<RunResultsEvent>,
+      Event<ProjectConfigChangedEvent>,
+    ]
+  >((context: interfaces.Context) => {
+    return (
+      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+      _onRunResults: EventEmitter<RunResultsEvent>,
+      onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
+    ) => {
+      const { container } = context;
+      return new TargetWatchers(
+        _onManifestChanged,
+        _onRunResults,
+        onProjectConfigChanged,
+        container.get(ManifestParser),
         container.get("DBTTerminal"),
       );
     };

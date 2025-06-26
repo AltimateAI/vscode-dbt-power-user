@@ -39,7 +39,7 @@ import {
   SourceFileWatchers,
   SourceFileWatchersFactory,
 } from "./modules/sourceFileWatchers";
-import { TargetWatchersFactory } from "./modules/targetWatchers";
+import { TargetWatchers } from "./modules/targetWatchers";
 import { PythonEnvironment } from "./pythonEnvironment";
 import { TelemetryService } from "../telemetry";
 import {
@@ -135,7 +135,11 @@ export class DBTProject implements Disposable, DBTFacade {
     private PythonEnvironment: PythonEnvironment,
     private sourceFileWatchersFactory: SourceFileWatchersFactory,
     private dbtProjectLogFactory: DBTProjectLogFactory,
-    private targetWatchersFactory: TargetWatchersFactory,
+    private targetWatchersFactory: (
+      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+      _onRunResults: EventEmitter<RunResultsEvent>,
+      onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
+    ) => TargetWatchers,
     private dbtCommandFactory: DBTCommandFactory,
     private terminal: DBTTerminal,
     private eventEmitterService: SharedStateService,
@@ -196,7 +200,7 @@ export class DBTProject implements Disposable, DBTFacade {
 
     this.disposables.push(
       this.dbtProjectIntegration,
-      this.targetWatchersFactory.createTargetWatchers(
+      this.targetWatchersFactory(
         _onManifestChanged,
         this._onRunResults,
         this.onProjectConfigChanged,
