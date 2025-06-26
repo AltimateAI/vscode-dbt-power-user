@@ -1,13 +1,13 @@
 import { expect, describe, it, beforeEach } from "@jest/globals";
 import { TestParser } from "../../manifest/parsers/testParser";
-import { DBTProject } from "../../manifest/dbtProject";
+import { DBTIntegrationAdapter } from "../../manifest/dbtIntegrationAdapter";
 import { DBTTerminal } from "../../dbt_client/terminal";
 import * as path from "path";
 import { EventEmitter } from "vscode";
 
 describe("TestParser Test Suite", () => {
   let testParser: TestParser;
-  let mockProject: DBTProject;
+  let mockAdapter: DBTIntegrationAdapter;
   let mockTerminal: DBTTerminal;
 
   beforeEach(() => {
@@ -44,14 +44,14 @@ describe("TestParser Test Suite", () => {
     } as unknown as DBTTerminal; // Use unknown to force the type cast
 
     testParser = new TestParser(mockTerminal);
-    mockProject = {
-      projectRoot: { fsPath: "/mock/project/path" },
+    mockAdapter = {
+      getProjectRoot: () => "/mock/project/path",
       getProjectName: () => "mock_project",
-    } as DBTProject;
+    } as unknown as DBTIntegrationAdapter;
   });
 
   it("should handle null/undefined testsMap", async () => {
-    const result = await testParser.createTestMetaMap([], mockProject);
+    const result = await testParser.createTestMetaMap([], mockAdapter);
     expect(result.size).toBe(0);
   });
 
@@ -82,7 +82,7 @@ describe("TestParser Test Suite", () => {
 
     const result = await testParser.createTestMetaMap(
       mockTestsMap,
-      mockProject,
+      mockAdapter,
     );
     expect(result.size).toBe(1);
     const testMeta = result.get("test_1");
@@ -90,7 +90,7 @@ describe("TestParser Test Suite", () => {
     expect(testMeta?.uniqueId).toBe("test.test_1");
     expect(testMeta?.raw_sql).toBe("SELECT * FROM table");
     expect(testMeta?.path).toBe(
-      path.join(mockProject.projectRoot.fsPath, "tests/test_1.sql"),
+      path.join(mockAdapter.getProjectRoot(), "tests/test_1.sql"),
     );
   });
 
@@ -121,7 +121,7 @@ describe("TestParser Test Suite", () => {
 
     const result = await testParser.createTestMetaMap(
       mockTestsMap,
-      mockProject,
+      mockAdapter,
     );
     const testMeta = result.get("not_null_column_test");
     expect(testMeta).toBeTruthy();
@@ -161,7 +161,7 @@ describe("TestParser Test Suite", () => {
 
     const result = await testParser.createTestMetaMap(
       mockTestsMap,
-      mockProject,
+      mockAdapter,
     );
     const testMeta = result.get("custom_test");
     expect(testMeta).toBeTruthy();
@@ -204,7 +204,7 @@ describe("TestParser Test Suite", () => {
 
     const result = await testParser.createTestMetaMap(
       mockTestsMap,
-      mockProject,
+      mockAdapter,
     );
     const testMeta = result.get("dependent_test");
     expect(testMeta).toBeTruthy();

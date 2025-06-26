@@ -20,6 +20,7 @@ import { DataPilotHealtCheckParams, Table } from "../domain";
 export interface DBTFacade {
   // Project Information
   getProjectName(): string;
+  getProjectRoot(): string;
   getSelectedTarget(): string | undefined;
   getTargetNames(): Promise<string[]>;
   setSelectedTarget(targetName: string): Promise<void>;
@@ -40,6 +41,8 @@ export interface DBTFacade {
   // Project Operations
   initialize(): Promise<void>;
   refreshProjectConfig(): Promise<void>;
+  rebuildManifest(): Promise<void>;
+  parseManifest(): Promise<any>;
   performDatapilotHealthcheck(
     args: DataPilotHealtCheckParams,
   ): Promise<ProjectHealthcheck>;

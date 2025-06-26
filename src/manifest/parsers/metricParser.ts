@@ -1,8 +1,8 @@
 import { provide } from "inversify-binding-decorators";
 import { DBTTerminal } from "../../dbt_client/terminal";
-import { DBTProject } from "../dbtProject";
 import { MetricMetaMap } from "../../domain";
 import { inject } from "inversify";
+import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
 
 @provide(MetricParser)
 export class MetricParser {
@@ -13,14 +13,14 @@ export class MetricParser {
 
   createMetricMetaMap(
     metrics: any[],
-    project: DBTProject,
+    project: DBTIntegrationAdapter,
   ): Promise<MetricMetaMap> {
     return new Promise(async (resolve) => {
+      const projectRoot = project.getProjectRoot();
+      const projectName = project.getProjectName();
       this.terminal.debug(
         "MetricParser",
-        `Parsing metrics for "${project.getProjectName()}" at ${
-          project.projectRoot
-        }`,
+        `Parsing metrics for "${projectName}" at ${projectRoot}`,
       );
       const metricMetaMap: MetricMetaMap = new Map();
       if (metrics === null || metrics === undefined) {
@@ -32,9 +32,7 @@ export class MetricParser {
       }
       this.terminal.debug(
         "MetricParser",
-        `Returning metrics for "${project.getProjectName()}" at ${
-          project.projectRoot
-        }`,
+        `Returning metrics for "${projectName}" at ${projectRoot}`,
         metricMetaMap,
       );
       resolve(metricMetaMap);

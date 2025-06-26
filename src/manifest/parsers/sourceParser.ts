@@ -2,10 +2,10 @@ import { provide } from "inversify-binding-decorators";
 import * as path from "path";
 import { DBTTerminal } from "../../dbt_client/terminal";
 import { SourceMetaMap } from "../../domain";
-import { DBTProject } from "../dbtProject";
 import { getExternalProjectNamesFromDbtLoomConfig } from "../../utils";
 import { inject } from "inversify";
 import { RESOURCE_TYPE_SOURCE } from "../../dbt_client/dbtIntegration";
+import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
 
 @provide(SourceParser)
 export class SourceParser {
@@ -16,31 +16,26 @@ export class SourceParser {
 
   createSourceMetaMap(
     sourcesMap: any[],
-    project: DBTProject,
+    project: DBTIntegrationAdapter,
   ): Promise<SourceMetaMap> {
     return new Promise((resolve) => {
+      const projectRoot = project.getProjectRoot();
+      const projectName = project.getProjectName();
       this.terminal.debug(
         "SourceParser",
-        `Parsing sources for "${project.getProjectName()}" at ${
-          project.projectRoot
-        }`,
+        `Parsing sources for "${projectName}" at ${projectRoot}`,
       );
       const sourceMetaMap: SourceMetaMap = new Map();
       if (sourcesMap === null || sourcesMap === undefined) {
         resolve(sourceMetaMap);
       }
-      const rootPath = project.projectRoot.fsPath;
       // TODO: these things can change so we should recreate them if project config changes
-      const projectName = project.getProjectName();
       const packagePath = project.getPackageInstallPath();
       if (packagePath === undefined) {
-        throw new Error(
-          "packagePath is not defined in " + project.projectRoot.fsPath,
-        );
+        throw new Error("packagePath is not defined in " + projectRoot);
       }
-      const externalProjectNames = getExternalProjectNamesFromDbtLoomConfig(
-        project.projectRoot.fsPath,
-      );
+      const externalProjectNames =
+        getExternalProjectNamesFromDbtLoomConfig(projectRoot);
       Object.values(sourcesMap)
         .filter((source) => source.resource_type === RESOURCE_TYPE_SOURCE)
         .reduce(
@@ -76,7 +71,7 @@ export class SourceParser {
               };
               previousValue.set(source_name, source);
             }
-            const fullPath = path.join(rootPath, original_file_path);
+            const fullPath = path.join(projectRoot, original_file_path);
             source.tables.push({
               name,
               identifier,
@@ -90,9 +85,7 @@ export class SourceParser {
         );
       this.terminal.debug(
         "SourceParser",
-        `Returning sources for "${project.getProjectName()}" at ${
-          project.projectRoot
-        }`,
+        `Returning sources for "${project.getProjectName()}" at ${projectRoot}`,
         sourceMetaMap,
       );
       resolve(sourceMetaMap);

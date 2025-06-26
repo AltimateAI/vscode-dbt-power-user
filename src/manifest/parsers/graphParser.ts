@@ -20,6 +20,7 @@ import { notEmpty } from "../../utils";
 import { DBTTerminal } from "../../dbt_client/terminal";
 import { DBTProject } from "../dbtProject";
 import { inject } from "inversify";
+import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
 
 export type DBTGraphType = {
   [name: string]: string[];
@@ -33,7 +34,7 @@ export class GraphParser {
   ) {}
 
   createGraphMetaMap(
-    project: DBTProject,
+    project: DBTIntegrationAdapter,
     parentMap: DBTGraphType,
     childrenMap: DBTGraphType,
     nodeMetaMap: NodeMetaMap,
@@ -41,11 +42,11 @@ export class GraphParser {
     testMetaMap: TestMetaMap,
     metricMetaMap: MetricMetaMap,
   ): GraphMetaMap {
+    const projectRoot = project.getProjectRoot();
+    const projectName = project.getProjectName();
     this.terminal.debug(
       "GraphParser",
-      `Parsing graph for "${project.getProjectName()}" at ${
-        project.projectRoot
-      }`,
+      `Parsing graph for "${projectName}" at ${projectRoot}`,
     );
     const parents: NodeGraphMap = Object.entries(parentMap).reduce(
       (map, [nodeName, nodes]) => {
@@ -130,9 +131,7 @@ export class GraphParser {
     };
     this.terminal.debug(
       "GraphParser",
-      `Returning graph for "${project.getProjectName()}" at ${
-        project.projectRoot
-      }`,
+      `Returning graph for "${projectName}" at ${projectRoot}`,
       graph,
     );
     return graph;

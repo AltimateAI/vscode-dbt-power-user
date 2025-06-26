@@ -93,7 +93,7 @@ import { AltimateAuthService } from "../services/altimateAuthService";
 import { getProjectRelativePath } from "../utils";
 import { inject } from "inversify";
 import { DBTFacade } from "./dbtFacade";
-import { DBTIntegrationAdapter } from "./dbtIntegrationAdapter";
+import { DBTIntegrationAdapter, ParsedManifest } from "./dbtIntegrationAdapter";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -268,8 +268,12 @@ export class DBTProject implements Disposable, DBTFacade {
     }
   }
 
-  public getProjectName() {
+  getProjectName() {
     return this.dbtProjectIntegration.getProjectName();
+  }
+
+  getProjectRoot() {
+    return this.projectRoot.fsPath;
   }
 
   getSelectedTarget() {
@@ -639,6 +643,10 @@ export class DBTProject implements Disposable, DBTFacade {
     }
   }
 
+  async parseManifest(): Promise<ParsedManifest | undefined> {
+    return await this.dbtProjectIntegration.parseManifest();
+  }
+
   getAdapterType() {
     return this.dbtProjectIntegration.getAdapterType() || "unknown";
   }
@@ -662,7 +670,7 @@ export class DBTProject implements Disposable, DBTFacade {
     );
   }
 
-  private async rebuildManifest() {
+  async rebuildManifest() {
     this.terminal.debug(
       "DBTProject",
       `Going to rebuild the manifest for "${this.getProjectName()}" at ${

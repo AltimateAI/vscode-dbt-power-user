@@ -56,6 +56,16 @@ import {
 } from "./dbt_client/dbtFusionCommandIntegration";
 import { DBTTerminal } from "./dbt_client/terminal";
 import { DBTIntegrationAdapter } from "./manifest/dbtIntegrationAdapter";
+import { ChildrenParentParser } from "./manifest/parsers/childrenParentParser";
+import { DocParser } from "./manifest/parsers/docParser";
+import { ExposureParser } from "./manifest/parsers/exposureParser";
+import { GraphParser } from "./manifest/parsers/graphParser";
+import { MacroParser } from "./manifest/parsers/macroParser";
+import { MetricParser } from "./manifest/parsers/metricParser";
+import { ModelDepthParser } from "./manifest/parsers/modelDepthParser";
+import { NodeParser } from "./manifest/parsers/nodeParser";
+import { SourceParser } from "./manifest/parsers/sourceParser";
+import { TestParser } from "./manifest/parsers/testParser";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -505,6 +515,17 @@ container
         projectRoot,
         projectConfigDiagnostics,
         deferConfig,
+        container.get(ChildrenParentParser),
+        container.get(NodeParser),
+        container.get(MacroParser),
+        container.get(MetricParser),
+        container.get(GraphParser),
+        container.get(SourceParser),
+        container.get(TestParser),
+        container.get(ExposureParser),
+        container.get(DocParser),
+        container.get("DBTTerminal"),
+        container.get(ModelDepthParser),
       );
     };
   });

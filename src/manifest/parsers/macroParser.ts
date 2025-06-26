@@ -2,9 +2,9 @@ import { readFileSync } from "fs";
 import { provide } from "inversify-binding-decorators";
 import { DBTTerminal } from "../../dbt_client/terminal";
 import { MacroMetaMap } from "../../domain";
-import { DBTProject } from "../dbtProject";
 import { createFullPathForNode } from ".";
 import { inject } from "inversify";
+import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
 
 @provide(MacroParser)
 export class MacroParser {
@@ -15,27 +15,22 @@ export class MacroParser {
 
   createMacroMetaMap(
     macros: any[],
-    project: DBTProject,
+    project: DBTIntegrationAdapter,
   ): Promise<MacroMetaMap> {
     return new Promise(async (resolve) => {
+      const projectRoot = project.getProjectRoot();
+      const projectName = project.getProjectName();
       this.terminal.debug(
         "MacroParser",
-        `Parsing macros for "${project.getProjectName()}" at ${
-          project.projectRoot
-        }`,
+        `Parsing macros for "${projectName}" at ${projectRoot}`,
       );
       const macroMetaMap: MacroMetaMap = new Map();
       if (macros === null || macros === undefined) {
         resolve(macroMetaMap);
       }
-      const rootPath = project.projectRoot.fsPath;
-      // TODO: these things can change so we should recreate them if project config changes
-      const projectName = project.getProjectName();
       const packagePath = project.getPackageInstallPath();
       if (packagePath === undefined) {
-        throw new Error(
-          "packagePath is not defined in " + project.projectRoot.fsPath,
-        );
+        throw new Error("packagePath is not defined in " + projectRoot);
       }
       for (const key in macros) {
         const macro = macros[key];
@@ -45,7 +40,7 @@ export class MacroParser {
           packageName === projectName ? name : `${packageName}.${name}`;
         const fullPath = createFullPathForNode(
           projectName,
-          rootPath,
+          projectRoot,
           packageName,
           packagePath,
           original_file_path,
@@ -88,9 +83,7 @@ export class MacroParser {
       }
       this.terminal.debug(
         "MacroParser",
-        `Returning macros for "${project.getProjectName()}" at ${
-          project.projectRoot
-        }`,
+        `Returning macros for "${projectName}" at ${projectRoot}`,
         macroMetaMap,
       );
       resolve(macroMetaMap);

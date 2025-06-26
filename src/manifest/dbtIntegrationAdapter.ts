@@ -13,11 +13,45 @@ import {
   DBTCommand,
 } from "../dbt_client/dbtIntegration";
 import { ProjectHealthcheck } from "../dbt_client/dbtCoreIntegration";
-import { DataPilotHealtCheckParams, Table } from "../domain";
+import {
+  DataPilotHealtCheckParams,
+  DocMetaMap,
+  ExposureMetaMap,
+  GraphMetaMap,
+  MacroMetaMap,
+  MetricMetaMap,
+  NodeMetaMap,
+  SourceMetaMap,
+  Table,
+  TestMetaMap,
+} from "../domain";
 import { DBTConfiguration } from "../dbt_client/configuration";
 import { DBTFacade } from "./dbtFacade";
 import { DBTDiagnosticData } from "../dbt_client/diagnostics";
+import { DocParser } from "./parsers/docParser";
+import { GraphParser } from "./parsers/graphParser";
+import { MacroParser } from "./parsers/macroParser";
+import { NodeParser } from "./parsers/nodeParser";
+import { SourceParser } from "./parsers/sourceParser";
+import { TestParser } from "./parsers/testParser";
+import { ExposureParser } from "./parsers/exposureParser";
+import { MetricParser } from "./parsers/metricParser";
+import { ChildrenParentParser } from "./parsers/childrenParentParser";
+import { ModelDepthParser } from "./parsers/modelDepthParser";
+import { DBTTerminal } from "../dbt_client/terminal";
 import path from "path";
+
+export interface ParsedManifest {
+  nodeMetaMap: NodeMetaMap;
+  macroMetaMap: MacroMetaMap;
+  metricMetaMap: MetricMetaMap;
+  sourceMetaMap: SourceMetaMap;
+  graphMetaMap: GraphMetaMap;
+  testMetaMap: TestMetaMap;
+  docMetaMap: DocMetaMap;
+  exposureMetaMap: ExposureMetaMap;
+  modelDepthMap: Map<string, number>;
+}
 
 /**
  * DBTIntegrationAdapter provides a framework-agnostic implementation of DBTFacade
@@ -26,6 +60,7 @@ import path from "path";
  */
 export class DBTIntegrationAdapter implements DBTFacade {
   private currentIntegration: DBTProjectIntegration;
+  private consecutiveReadFailures = 0;
 
   constructor(
     private dbtConfiguration: DBTConfiguration,
@@ -51,6 +86,17 @@ export class DBTIntegrationAdapter implements DBTFacade {
     private projectRoot: string,
     private projectConfigDiagnostics: DBTDiagnosticData[],
     private deferConfig: DeferConfig | undefined,
+    private childrenParentParser: ChildrenParentParser,
+    private nodeParser: NodeParser,
+    private macroParser: MacroParser,
+    private metricParser: MetricParser,
+    private graphParser: GraphParser,
+    private sourceParser: SourceParser,
+    private testParser: TestParser,
+    private exposureParser: ExposureParser,
+    private docParser: DocParser,
+    private terminal: DBTTerminal,
+    private modelDepthParser: ModelDepthParser,
   ) {
     this.currentIntegration = this.createIntegration();
   }
@@ -87,6 +133,10 @@ export class DBTIntegrationAdapter implements DBTFacade {
   // Project Information
   getProjectName(): string {
     return this.currentIntegration.getProjectName();
+  }
+
+  getProjectRoot(): string {
+    return this.projectRoot;
   }
 
   getSelectedTarget(): string | undefined {
@@ -156,6 +206,138 @@ export class DBTIntegrationAdapter implements DBTFacade {
 
   async refreshProjectConfig(): Promise<void> {
     return this.currentIntegration.refreshProjectConfig();
+  }
+
+  // Manifest Operations
+  async rebuildManifest(): Promise<void> {
+    return this.currentIntegration.rebuildManifest();
+  }
+
+  async parseManifest(): Promise<ParsedManifest | undefined> {
+    this.terminal.debug(
+      "DBTIntegrationAdapter",
+      `Going to parse manifest for project at ${this.projectRoot}`,
+    );
+
+    const targetPath = this.getTargetPath();
+    if (!targetPath) {
+      this.terminal.debug(
+        "DBTIntegrationAdapter",
+        "targetPath should be defined at this stage for project " +
+          this.projectRoot,
+      );
+      return;
+    }
+
+    const manifest = this.readAndParseManifestFile(targetPath);
+    if (manifest === undefined) {
+      return;
+    }
+
+    const { nodes, sources, macros, semantic_models, docs, exposures } =
+      manifest;
+
+    // Run all parsers in parallel
+    const parentChildrenPromise =
+      this.childrenParentParser.createChildrenParentMetaMap(nodes);
+    const nodeMetaMapPromise = this.nodeParser.createNodeMetaMap(nodes, this);
+    const macroMetaMapPromise = this.macroParser.createMacroMetaMap(
+      macros,
+      this,
+    );
+    const metricMetaMapPromise = this.metricParser.createMetricMetaMap(
+      semantic_models,
+      this,
+    );
+    const sourceMetaMapPromise = this.sourceParser.createSourceMetaMap(
+      sources,
+      this,
+    );
+    const testMetaMapPromise = this.testParser.createTestMetaMap(nodes, this);
+    const exposuresMetaMapPromise = this.exposureParser.createExposureMetaMap(
+      exposures,
+      this,
+    );
+    const docMetaMapPromise = this.docParser.createDocMetaMap(docs, this);
+
+    const [
+      { parentMetaMap, childMetaMap },
+      nodeMetaMap,
+      macroMetaMap,
+      metricMetaMap,
+      sourceMetaMap,
+      testMetaMap,
+      docMetaMap,
+      exposureMetaMap,
+    ] = await Promise.all([
+      parentChildrenPromise,
+      nodeMetaMapPromise,
+      macroMetaMapPromise,
+      metricMetaMapPromise,
+      sourceMetaMapPromise,
+      testMetaMapPromise,
+      docMetaMapPromise,
+      exposuresMetaMapPromise,
+    ]);
+
+    // Calculate model depths
+    const modelDepthMap = this.modelDepthParser.createModelDepthsMap(
+      nodes,
+      parentMetaMap,
+      childMetaMap,
+    );
+
+    const graphMetaMap = this.graphParser.createGraphMetaMap(
+      this,
+      parentMetaMap,
+      childMetaMap,
+      nodeMetaMap,
+      sourceMetaMap,
+      testMetaMap,
+      metricMetaMap,
+    );
+
+    return {
+      nodeMetaMap,
+      macroMetaMap,
+      metricMetaMap,
+      sourceMetaMap,
+      graphMetaMap,
+      testMetaMap,
+      docMetaMap,
+      exposureMetaMap,
+      modelDepthMap,
+    };
+  }
+
+  private readAndParseManifestFile(targetPath: string): any {
+    const pathParts = [targetPath];
+    if (!path.isAbsolute(targetPath)) {
+      pathParts.unshift(this.projectRoot);
+    }
+    const manifestLocation = path.join(...pathParts, MANIFEST_FILE);
+
+    this.terminal.debug(
+      "DBTIntegrationAdapter",
+      `Reading manifest at ${manifestLocation} for project at ${this.projectRoot}`,
+    );
+
+    try {
+      const { readFileSync } = require("fs");
+      const manifestFile = readFileSync(manifestLocation, "utf8");
+      const parsedManifest = JSON.parse(manifestFile);
+      this.consecutiveReadFailures = 0; // Reset counter on success
+      return parsedManifest;
+    } catch (error) {
+      this.consecutiveReadFailures++;
+      if (this.consecutiveReadFailures > 3) {
+        this.terminal.error(
+          "DBTIntegrationAdapter",
+          `Could not read/parse manifest file at ${manifestLocation} after ${this.consecutiveReadFailures} attempts`,
+          error,
+        );
+      }
+    }
   }
 
   async performDatapilotHealthcheck(

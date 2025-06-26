@@ -6,6 +6,7 @@ import { DBTTerminal } from "../../dbt_client/terminal";
 import { getExternalProjectNamesFromDbtLoomConfig } from "../../utils";
 import * as path from "path";
 import { inject } from "inversify";
+import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
 
 export class NodeMetaMapImpl implements NodeMetaMap {
   constructor(
@@ -44,14 +45,14 @@ export class NodeParser {
 
   createNodeMetaMap(
     nodesMap: any[],
-    project: DBTProject,
+    project: DBTIntegrationAdapter,
   ): Promise<NodeMetaMap> {
     return new Promise(async (resolve) => {
+      const projectRoot = project.getProjectRoot();
+      const projectName = project.getProjectName();
       this.terminal.debug(
         "NodeParser",
-        `Parsing nodes for "${project.getProjectName()}" at ${
-          project.projectRoot
-        }`,
+        `Parsing nodes for "${projectName}" at ${projectRoot}`,
       );
       const latestVersionLookupMap: Map<string, string> = new Map();
       const modelMetadataLookupMap: Map<string, NodeMetaData> = new Map();
@@ -62,18 +63,12 @@ export class NodeParser {
       const nodesMaps = Object.values(nodesMap).filter((model) =>
         DBTProject.isResourceNode(model.resource_type),
       );
-      const rootPath = project.projectRoot.fsPath;
-      // TODO: these things can change so we should recreate them if project config changes
-      const projectName = project.getProjectName();
       const packagePath = project.getPackageInstallPath();
       if (packagePath === undefined) {
-        throw new Error(
-          "packagePath is not defined " + project.projectRoot.fsPath,
-        );
+        throw new Error("packagePath is not defined " + projectRoot);
       }
-      const externalProjectNames = getExternalProjectNamesFromDbtLoomConfig(
-        project.projectRoot.fsPath,
-      );
+      const externalProjectNames =
+        getExternalProjectNamesFromDbtLoomConfig(projectRoot);
       for (const nodesMap of nodesMaps) {
         const {
           name,
@@ -95,7 +90,7 @@ export class NodeParser {
         } = nodesMap;
         const fullPath = createFullPathForNode(
           projectName,
-          rootPath,
+          projectRoot,
           package_name,
           packagePath,
           original_file_path,
@@ -139,9 +134,7 @@ export class NodeParser {
       }
       this.terminal.debug(
         "NodeParser",
-        `Returning nodes for "${project.getProjectName()}" at ${
-          project.projectRoot
-        }`,
+        `Returning nodes for "${projectName}" at ${projectRoot}`,
         modelNameLookupMap,
         modelMetadataLookupMap,
       );

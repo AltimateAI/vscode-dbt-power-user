@@ -5,6 +5,7 @@ import { DBTProject } from "../dbtProject";
 import { DBTTerminal } from "../../dbt_client/terminal";
 import { inject } from "inversify";
 import { RESOURCE_TYPE_TEST } from "../../dbt_client/dbtIntegration";
+import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
 
 @provide(TestParser)
 export class TestParser {
@@ -26,20 +27,19 @@ export class TestParser {
   }
   createTestMetaMap(
     testsMap: any[],
-    project: DBTProject,
+    project: DBTIntegrationAdapter,
   ): Promise<TestMetaMap> {
     return new Promise((resolve) => {
+      const projectRoot = project.getProjectRoot();
+      const projectName = project.getProjectName();
       this.terminal.debug(
         "TestParser",
-        `Parsing tests for "${project.getProjectName()}" at ${
-          project.projectRoot
-        }`,
+        `Parsing tests for "${projectName}" at ${projectRoot}`,
       );
       const testMetaMap: TestMetaMap = new Map();
       if (testsMap === null || testsMap === undefined) {
         resolve(testMetaMap);
       }
-      const rootPath = project.projectRoot.fsPath;
       Object.values(testsMap)
         .filter((test) => test.resource_type === RESOURCE_TYPE_TEST)
         .forEach(
@@ -56,7 +56,7 @@ export class TestParser {
             depends_on,
             unique_id,
           }) => {
-            const fullPath = path.join(rootPath, original_file_path);
+            const fullPath = path.join(projectRoot, original_file_path);
             testMetaMap.set(name, {
               path: fullPath,
               raw_sql,
@@ -76,9 +76,7 @@ export class TestParser {
         );
       this.terminal.debug(
         "TestParser",
-        `Returning tests for "${project.getProjectName()}" at ${
-          project.projectRoot
-        }`,
+        `Returning tests for "${projectName}" at ${projectRoot}`,
         testMetaMap,
       );
       resolve(testMetaMap);
