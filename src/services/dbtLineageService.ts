@@ -269,7 +269,6 @@ export class DbtLineageService {
     );
     const { mappedNode, relationsWithoutColumns, mappedCompiledSql } =
       await project.getNodesWithDBColumns(
-        event,
         modelsToFetch,
         abortController.signal,
       );
@@ -294,7 +293,6 @@ export class DbtLineageService {
       return true;
     });
     const bulkCompiledSql = await project.getBulkCompiledSql(
-      event,
       modelsToCompile.filter((m) => !mappedCompiledSql[m]),
     );
     for (const key of modelsToFetch) {

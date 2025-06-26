@@ -182,7 +182,6 @@ export class SQLLineagePanel
       const abortController = new AbortController();
       token.onCancellationRequested(() => abortController.abort());
       const { mappedNode } = await project.getNodesWithDBColumns(
-        event,
         modelsToFetch,
         abortController.signal,
       );

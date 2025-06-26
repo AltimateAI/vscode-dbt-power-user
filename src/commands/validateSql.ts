@@ -161,7 +161,6 @@ export class ValidateSql {
             mappedNode,
             relationsWithoutColumns: _relationsWithoutColumns,
           } = await project.getNodesWithDBColumns(
-            event,
             modelsToFetch,
             abortController!.signal,
           );

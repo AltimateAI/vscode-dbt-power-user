@@ -1673,7 +1673,7 @@ export class DBTProject implements Disposable {
     }
     const tables: Map<string, Table> = new Map();
     dependencyNode.nodes.forEach(({ url, key }) => {
-      const _node = this.createTable(event, url, key);
+      const _node = this.createTable(url, key);
       if (!_node) {
         return;
       }
@@ -1687,13 +1687,15 @@ export class DBTProject implements Disposable {
   }
 
   private createTable(
-    event: ManifestCacheProjectAddedEvent,
     tableUrl: string | undefined,
     key: string,
   ): Table | undefined {
+    if (!this._manifestCacheEvent) {
+      throw new Error("The dbt manifest is not available");
+    }
     const splits = key.split(".");
     const nodeType = splits[0];
-    const { graphMetaMap, testMetaMap } = event;
+    const { graphMetaMap, testMetaMap } = this._manifestCacheEvent;
     const upstreamCount = this.getConnectedNodeCount(
       graphMetaMap["children"],
       key,
@@ -1703,7 +1705,7 @@ export class DBTProject implements Disposable {
       key,
     );
     if (nodeType === RESOURCE_TYPE_SOURCE) {
-      const { sourceMetaMap } = event;
+      const { sourceMetaMap } = this._manifestCacheEvent;
       const schema = splits[2];
       const table = splits[3];
       const _node = sourceMetaMap.get(schema);
@@ -1745,7 +1747,7 @@ export class DBTProject implements Disposable {
         isExternalProject: false,
       };
     }
-    const { nodeMetaMap } = event;
+    const { nodeMetaMap } = this._manifestCacheEvent;
 
     const table = splits[2];
     if (nodeType === RESOURCE_TYPE_EXPOSURE) {
@@ -1845,14 +1847,14 @@ export class DBTProject implements Disposable {
     return version;
   }
 
-  async getBulkCompiledSql(
-    event: ManifestCacheProjectAddedEvent,
-    models: string[],
-  ) {
+  async getBulkCompiledSql(models: string[]) {
     if (models.length === 0) {
       return {};
     }
-    const { nodeMetaMap } = event;
+    if (!this._manifestCacheEvent) {
+      throw new Error("The dbt manifest is not available");
+    }
+    const { nodeMetaMap } = this._manifestCacheEvent;
     return this.dbtProjectIntegration.getBulkCompiledSQL(
       models
         .map((m) => nodeMetaMap.lookupByUniqueId(m))
@@ -1860,17 +1862,16 @@ export class DBTProject implements Disposable {
     );
   }
 
-  async getNodesWithDBColumns(
-    event: ManifestCacheProjectAddedEvent,
-    modelsToFetch: string[],
-    signal: AbortSignal,
-  ) {
+  async getNodesWithDBColumns(modelsToFetch: string[], signal: AbortSignal) {
     const mappedNode: Record<string, ModelNode> = {};
     const relationsWithoutColumns: string[] = [];
     if (modelsToFetch.length === 0) {
       return { mappedNode, relationsWithoutColumns, mappedCompiledSql: {} };
     }
-    const { nodeMetaMap, sourceMetaMap } = event;
+    if (!this._manifestCacheEvent) {
+      throw new Error("The dbt manifest is not available");
+    }
+    const { nodeMetaMap, sourceMetaMap } = this._manifestCacheEvent;
     const bulkSchemaRequest: DBTNode[] = [];
 
     for (const key of modelsToFetch) {
@@ -1932,7 +1933,6 @@ export class DBTProject implements Disposable {
     );
     let startTime = Date.now();
     const sqlglotSchemaResponse = await this.getBulkCompiledSql(
-      event,
       sqlglotSchemaRequest.map((r) => r.unique_id),
     );
     const compiledSqlTime = Date.now() - startTime;
@@ -2072,7 +2072,7 @@ export class DBTProject implements Disposable {
     }
   }
 
-  getDeferConfig(): DeferConfig | undefined {
+  private getDeferConfig(): DeferConfig | undefined {
     const relativePath = getProjectRelativePath(this.projectRoot);
     const currentConfig: Record<string, DeferConfig> =
       this.deferToProdService.getDeferConfigByWorkspace();
@@ -2086,11 +2086,11 @@ export class DBTProject implements Disposable {
     }
   }
 
-  createQueue(queueName: string) {
+  private createQueue(queueName: string) {
     this.queues.set(queueName, []);
   }
 
-  async addCommandToQueue(
+  private async addCommandToQueue(
     queueName: string,
     command: DBTCommand,
   ): Promise<CommandProcessResult | undefined> {
@@ -2153,42 +2153,5 @@ export class DBTProject implements Disposable {
       this.queueStates.set(queueName, false);
       this.pickCommandToRun(queueName);
     }
-  }
-
-  async runCommand(command: DBTCommand) {
-    const commandExecution: DBTCommandExecution = {
-      command: async (signal) => {
-        await command.execute(signal);
-      },
-      statusMessage: command.statusMessage,
-      focus: command.focus,
-    };
-    await window.withProgress(
-      {
-        location: commandExecution.focus
-          ? ProgressLocation.Notification
-          : ProgressLocation.Window,
-        cancellable: true,
-        title: commandExecution.statusMessage,
-      },
-      async (_, token) => {
-        try {
-          const abortController = new AbortController();
-          token.onCancellationRequested(() => abortController.abort());
-          return await commandExecution.command(abortController.signal);
-        } catch (error) {
-          window.showErrorMessage(
-            extendErrorWithSupportLinks(
-              `Could not run command '${commandExecution.statusMessage}': ` +
-                (error as Error).message +
-                ".",
-            ),
-          );
-          this.telemetry.sendTelemetryError("runCommandError", error, {
-            command: commandExecution.statusMessage,
-          });
-        }
-      },
-    );
   }
 }
