@@ -11,7 +11,7 @@ import { RunResultsEvent } from "./manifest/event/runResultsEvent";
 import { ProjectConfigChangedEvent } from "./manifest/event/projectConfigChangedEvent";
 import { DBTProjectLogFactory } from "./manifest/modules/dbtProjectLog";
 import { ManifestParser } from "./manifest/parsers";
-import { SourceFileWatchersFactory } from "./manifest/modules/sourceFileWatchers";
+import { SourceFileWatchers } from "./manifest/modules/sourceFileWatchers";
 import { TargetWatchers } from "./manifest/modules/targetWatchers";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
 import { VSCodePythonEnvironment } from "./manifest/vscodePythonEnvironment";
@@ -547,7 +547,7 @@ container
       const { container } = context;
       return new DBTProject(
         container.get("PythonEnvironment"),
-        container.get(SourceFileWatchersFactory),
+        container.get("Factory<SourceFileWatchers>"),
         container.get(DBTProjectLogFactory),
         container.get("Factory<TargetWatchers>"),
         container.get(DBTCommandFactory),
@@ -602,6 +602,21 @@ container
         _onRunResults,
         onProjectConfigChanged,
         container.get(ManifestParser),
+        container.get("DBTTerminal"),
+      );
+    };
+  });
+
+container
+  .bind<interfaces.Factory<SourceFileWatchers>>("Factory<SourceFileWatchers>")
+  .toFactory<
+    SourceFileWatchers,
+    [Event<ProjectConfigChangedEvent>]
+  >((context: interfaces.Context) => {
+    return (onProjectConfigChanged: Event<ProjectConfigChangedEvent>) => {
+      const { container } = context;
+      return new SourceFileWatchers(
+        onProjectConfigChanged,
         container.get("DBTTerminal"),
       );
     };

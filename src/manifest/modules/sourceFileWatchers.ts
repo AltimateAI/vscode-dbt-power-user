@@ -4,28 +4,11 @@ import {
   EventEmitter,
   FileSystemWatcher,
   RelativePattern,
-  Uri,
   workspace,
 } from "vscode";
-import { arrayEquals, debounce, provideSingleton } from "../../utils";
+import { arrayEquals, debounce } from "../../utils";
 import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 import { DBTTerminal } from "../../dbt_client/terminal";
-import { inject } from "inversify";
-
-// TODO: should use inversify Factory
-@provideSingleton(SourceFileWatchersFactory)
-export class SourceFileWatchersFactory {
-  constructor(
-    @inject("DBTTerminal")
-    private terminal: DBTTerminal,
-  ) {}
-
-  createSourceFileWatchers(
-    onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
-  ) {
-    return new SourceFileWatchers(onProjectConfigChanged, this.terminal);
-  }
-}
 
 export class SourceFileWatchers implements Disposable {
   private _onSourceFileChanged = new EventEmitter<void>();

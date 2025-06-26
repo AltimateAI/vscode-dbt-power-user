@@ -35,10 +35,7 @@ import {
 } from "./event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 import { DBTProjectLog, DBTProjectLogFactory } from "./modules/dbtProjectLog";
-import {
-  SourceFileWatchers,
-  SourceFileWatchersFactory,
-} from "./modules/sourceFileWatchers";
+import { SourceFileWatchers } from "./modules/sourceFileWatchers";
 import { TargetWatchers } from "./modules/targetWatchers";
 import { PythonEnvironment } from "./pythonEnvironment";
 import { TelemetryService } from "../telemetry";
@@ -133,7 +130,9 @@ export class DBTProject implements Disposable, DBTFacade {
   constructor(
     @inject("PythonEnvironment")
     private PythonEnvironment: PythonEnvironment,
-    private sourceFileWatchersFactory: SourceFileWatchersFactory,
+    private sourceFileWatchersFactory: (
+      onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
+    ) => SourceFileWatchers,
     private dbtProjectLogFactory: DBTProjectLogFactory,
     private targetWatchersFactory: (
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
@@ -171,10 +170,9 @@ export class DBTProject implements Disposable, DBTFacade {
       );
     }
 
-    this.sourceFileWatchers =
-      this.sourceFileWatchersFactory.createSourceFileWatchers(
-        this.onProjectConfigChanged,
-      );
+    this.sourceFileWatchers = this.sourceFileWatchersFactory(
+      this.onProjectConfigChanged,
+    );
     this.onSourceFileChanged = this.sourceFileWatchers.onSourceFileChanged;
 
     // Check if dbt loom is installed for telemetry (only for core integration)
