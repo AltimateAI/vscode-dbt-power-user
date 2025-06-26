@@ -88,13 +88,12 @@ import {
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryEvents } from "../telemetry/events";
 import { RunResultsEvent } from "./event/runResultsEvent";
-import { DBTCoreCommandProjectIntegration } from "../dbt_client/dbtCoreCommandIntegration";
-import { DBTFusionCommandProjectIntegration } from "src/dbt_client/dbtFusionCommandIntegration";
 import { DeferToProdService } from "../services/deferToProdService";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { getProjectRelativePath } from "../utils";
 import { inject } from "inversify";
 import { DBTFacade } from "./dbtFacade";
+import { DBTIntegrationAdapter } from "./dbtIntegrationAdapter";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -108,7 +107,7 @@ export class DBTProject implements Disposable, DBTFacade {
   private _manifestCacheEvent?: ManifestCacheProjectAddedEvent;
   readonly projectRoot: Uri;
   private projectConfig: Record<string, any>;
-  private dbtProjectIntegration: DBTProjectIntegration;
+  private dbtProjectIntegration: DBTIntegrationAdapter;
 
   private _onProjectConfigChanged =
     new EventEmitter<ProjectConfigChangedEvent>();
@@ -146,24 +145,11 @@ export class DBTProject implements Disposable, DBTFacade {
     private eventEmitterService: SharedStateService,
     private telemetry: TelemetryService,
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
-    private dbtCoreIntegrationFactory: (
-      path: string,
+    private dbtIntegrationAdapterFactory: (
+      projectRoot: string,
       projectConfigDiagnostics: DBTDiagnosticData[],
       deferConfig: DeferConfig | undefined,
-    ) => DBTCoreProjectIntegration,
-    private dbtCoreCommandIntegrationFactory: (
-      path: string,
-      projectConfigDiagnostics: DBTDiagnosticData[],
-      deferConfig: DeferConfig | undefined,
-    ) => DBTCoreCommandProjectIntegration,
-    private dbtCloudIntegrationFactory: (
-      path: string,
-      deferConfig: DeferConfig | undefined,
-    ) => DBTCloudProjectIntegration,
-    private dbtFusionCommandIntegrationFactory: (
-      path: string,
-      deferConfig: DeferConfig | undefined,
-    ) => DBTFusionCommandProjectIntegration,
+    ) => DBTIntegrationAdapter,
     private altimate: AltimateRequest,
     private validationProvider: ValidationProvider,
     private deferToProdService: DeferToProdService,
@@ -191,44 +177,26 @@ export class DBTProject implements Disposable, DBTFacade {
       );
     this.onSourceFileChanged = this.sourceFileWatchers.onSourceFileChanged;
 
+    // Check if dbt loom is installed for telemetry (only for core integration)
     const dbtIntegrationMode = workspace
       .getConfiguration("dbt")
       .get<string>("dbtIntegration", "core");
 
-    switch (dbtIntegrationMode) {
-      case "cloud":
-        this.dbtProjectIntegration = this.dbtCloudIntegrationFactory(
-          this.projectRoot.fsPath,
-          this.getDeferConfig(),
+    if (dbtIntegrationMode === "core") {
+      this.isDbtLoomInstalled().then((isInstalled) => {
+        this.telemetry.setTelemetryCustomAttribute(
+          "dbtLoomInstalled",
+          `${isInstalled}`,
         );
-        break;
-      case "fusion":
-        this.dbtProjectIntegration = this.dbtFusionCommandIntegrationFactory(
-          this.projectRoot.fsPath,
-          this.getDeferConfig(),
-        );
-        break;
-      case "corecommand":
-        this.dbtProjectIntegration = this.dbtCoreCommandIntegrationFactory(
-          this.projectRoot.fsPath,
-          this.convertDiagnosticCollectionToDBTDiagnosticData(),
-          this.getDeferConfig(),
-        );
-        break;
-      default:
-        this.isDbtLoomInstalled().then((isInstalled) => {
-          this.telemetry.setTelemetryCustomAttribute(
-            "dbtLoomInstalled",
-            `${isInstalled}`,
-          );
-        });
-        this.dbtProjectIntegration = this.dbtCoreIntegrationFactory(
-          this.projectRoot.fsPath,
-          this.convertDiagnosticCollectionToDBTDiagnosticData(),
-          this.getDeferConfig(),
-        );
-        break;
+      });
     }
+
+    // Create the integration adapter which will handle the integration selection internally
+    this.dbtProjectIntegration = this.dbtIntegrationAdapterFactory(
+      this.projectRoot.fsPath,
+      this.convertDiagnosticCollectionToDBTDiagnosticData(),
+      this.getDeferConfig(),
+    );
 
     this.disposables.push(
       this.dbtProjectIntegration,
@@ -320,8 +288,8 @@ export class DBTProject implements Disposable, DBTFacade {
         cancellable: false,
       },
       async () => {
-        await this.dbtProjectIntegration.setSelectedTarget(targetName);
-        await this.dbtProjectIntegration.applySelectedTarget();
+        await this.getCurrentProjectIntegration().setSelectedTarget(targetName);
+        await this.getCurrentProjectIntegration().applySelectedTarget();
       },
     );
   }
@@ -374,7 +342,8 @@ export class DBTProject implements Disposable, DBTFacade {
     const projectURI = Uri.file(
       path.join(this.projectRoot.fsPath, DBT_PROJECT_FILE),
     );
-    const integrationDiagnostics = this.dbtProjectIntegration.getDiagnostics();
+    const integrationDiagnostics =
+      this.getCurrentProjectIntegration().getDiagnostics();
 
     // Convert diagnostic data to VSCode Diagnostics
     const convertedDiagnostics = [
@@ -503,7 +472,7 @@ export class DBTProject implements Disposable, DBTFacade {
       this.rebuildManifest();
     });
     try {
-      await this.dbtProjectIntegration.initializeProject();
+      await this.dbtProjectIntegration.initialize();
     } catch (error) {
       window.showErrorMessage(
         extendErrorWithSupportLinks(
@@ -535,7 +504,7 @@ export class DBTProject implements Disposable, DBTFacade {
             }`,
           );
           await this.rebuildManifest();
-        }, this.dbtProjectIntegration.getDebounceForRebuildManifest()),
+        }, this.getCurrentProjectIntegration().getDebounceForRebuildManifest()),
       ),
     );
 
@@ -717,7 +686,7 @@ export class DBTProject implements Disposable, DBTFacade {
       this.depsInitialized = true;
     }
     try {
-      await this.dbtProjectIntegration.rebuildManifest();
+      await this.getCurrentProjectIntegration().rebuildManifest();
     } catch (error) {
       // This is a real issue, not just a dbt parsing error
       window.showErrorMessage(
@@ -748,7 +717,7 @@ export class DBTProject implements Disposable, DBTFacade {
 
     try {
       const command =
-        await this.dbtProjectIntegration.runModel(runModelCommand);
+        await this.getCurrentProjectIntegration().runModel(runModelCommand);
       this.telemetry.sendTelemetryEvent("runModel");
       if (command) {
         return await this.addCommandToQueue("all", command);
@@ -765,7 +734,7 @@ export class DBTProject implements Disposable, DBTFacade {
     runModelCommand.showProgress = false;
     runModelCommand.logToTerminal = false;
     this.telemetry.sendTelemetryEvent("runModel");
-    return this.dbtProjectIntegration.executeCommandImmediately(
+    return this.getCurrentProjectIntegration().executeCommandImmediately(
       runModelCommand,
     );
   }
@@ -780,7 +749,7 @@ export class DBTProject implements Disposable, DBTFacade {
 
     try {
       const command =
-        await this.dbtProjectIntegration.buildModel(buildModelCommand);
+        await this.getCurrentProjectIntegration().buildModel(buildModelCommand);
       this.telemetry.sendTelemetryEvent("buildModel");
       if (command) {
         return await this.addCommandToQueue("all", command);
@@ -797,7 +766,7 @@ export class DBTProject implements Disposable, DBTFacade {
     buildModelCommand.showProgress = false;
     buildModelCommand.logToTerminal = false;
     this.telemetry.sendTelemetryEvent("buildModel");
-    return this.dbtProjectIntegration.executeCommandImmediately(
+    return this.getCurrentProjectIntegration().executeCommandImmediately(
       buildModelCommand,
     );
   }
@@ -812,7 +781,9 @@ export class DBTProject implements Disposable, DBTFacade {
 
     try {
       const command =
-        await this.dbtProjectIntegration.buildProject(buildProjectCommand);
+        await this.getCurrentProjectIntegration().buildProject(
+          buildProjectCommand,
+        );
       this.telemetry.sendTelemetryEvent("buildProject");
       if (command) {
         return await this.addCommandToQueue("all", command);
@@ -829,7 +800,7 @@ export class DBTProject implements Disposable, DBTFacade {
     buildProjectCommand.showProgress = false;
     buildProjectCommand.logToTerminal = false;
     this.telemetry.sendTelemetryEvent("buildProject");
-    return this.dbtProjectIntegration.executeCommandImmediately(
+    return this.getCurrentProjectIntegration().executeCommandImmediately(
       buildProjectCommand,
     );
   }
@@ -844,7 +815,7 @@ export class DBTProject implements Disposable, DBTFacade {
 
     try {
       const command =
-        await this.dbtProjectIntegration.runTest(testModelCommand);
+        await this.getCurrentProjectIntegration().runTest(testModelCommand);
       this.telemetry.sendTelemetryEvent("runTest");
       if (command) {
         return await this.addCommandToQueue("all", command);
@@ -861,7 +832,7 @@ export class DBTProject implements Disposable, DBTFacade {
     testModelCommand.showProgress = false;
     testModelCommand.logToTerminal = false;
     this.telemetry.sendTelemetryEvent("runTest");
-    return this.dbtProjectIntegration.executeCommandImmediately(
+    return this.getCurrentProjectIntegration().executeCommandImmediately(
       testModelCommand,
     );
   }
@@ -876,7 +847,9 @@ export class DBTProject implements Disposable, DBTFacade {
 
     try {
       const command =
-        await this.dbtProjectIntegration.runModelTest(testModelCommand);
+        await this.getCurrentProjectIntegration().runModelTest(
+          testModelCommand,
+        );
       this.telemetry.sendTelemetryEvent("runModelTest");
       if (command) {
         return await this.addCommandToQueue("all", command);
@@ -893,7 +866,7 @@ export class DBTProject implements Disposable, DBTFacade {
     testModelCommand.showProgress = false;
     testModelCommand.logToTerminal = false;
     this.telemetry.sendTelemetryEvent("runModelTest");
-    return this.dbtProjectIntegration.executeCommandImmediately(
+    return this.getCurrentProjectIntegration().executeCommandImmediately(
       testModelCommand,
     );
   }
@@ -928,7 +901,8 @@ export class DBTProject implements Disposable, DBTFacade {
       default:
         // For core integrations, check if we have a proper dbt installation
         // We'll validate through the integration's diagnostic system
-        const diagnostics = this.dbtProjectIntegration.getDiagnostics();
+        const diagnostics =
+          this.getCurrentProjectIntegration().getDiagnostics();
         const hasErrors = [
           ...diagnostics.pythonBridgeDiagnostics,
           ...diagnostics.rebuildManifestDiagnostics,
@@ -965,7 +939,9 @@ export class DBTProject implements Disposable, DBTFacade {
     const compileModelCommand =
       this.dbtCommandFactory.createCompileModelCommand(runModelParams);
     const command =
-      await this.dbtProjectIntegration.compileModel(compileModelCommand);
+      await this.getCurrentProjectIntegration().compileModel(
+        compileModelCommand,
+      );
     this.telemetry.sendTelemetryEvent("compileModel");
     if (command) {
       await this.addCommandToQueue("all", command);
@@ -978,7 +954,7 @@ export class DBTProject implements Disposable, DBTFacade {
     compileModelCommand.showProgress = false;
     compileModelCommand.logToTerminal = false;
     this.telemetry.sendTelemetryEvent("compileModel");
-    return this.dbtProjectIntegration.executeCommandImmediately(
+    return this.getCurrentProjectIntegration().executeCommandImmediately(
       compileModelCommand,
     );
   }
@@ -990,7 +966,7 @@ export class DBTProject implements Disposable, DBTFacade {
     docsGenerateCommand.focus = false;
     docsGenerateCommand.logToTerminal = false;
     const result =
-      await this.dbtProjectIntegration.executeCommandImmediately(
+      await this.getCurrentProjectIntegration().executeCommandImmediately(
         docsGenerateCommand,
       );
     if (result?.stderr) {
@@ -1006,7 +982,9 @@ export class DBTProject implements Disposable, DBTFacade {
     const docsGenerateCommand =
       this.dbtCommandFactory.createDocsGenerateCommand();
     const command =
-      await this.dbtProjectIntegration.generateDocs(docsGenerateCommand);
+      await this.getCurrentProjectIntegration().generateDocs(
+        docsGenerateCommand,
+      );
     this.telemetry.sendTelemetryEvent("generateDocs");
     if (command) {
       await this.addCommandToQueue("all", command);
@@ -1017,13 +995,13 @@ export class DBTProject implements Disposable, DBTFacade {
     this.throwIfNotAuthenticated();
     const cleanCommand = this.dbtCommandFactory.createCleanCommand();
     this.telemetry.sendTelemetryEvent("clean");
-    return this.dbtProjectIntegration.clean(cleanCommand);
+    return this.getCurrentProjectIntegration().clean(cleanCommand);
   }
 
   debug(focus: boolean = true) {
     const debugCommand = this.dbtCommandFactory.createDebugCommand(focus);
     this.telemetry.sendTelemetryEvent("debug");
-    return this.dbtProjectIntegration.debug(debugCommand);
+    return this.getCurrentProjectIntegration().debug(debugCommand);
   }
 
   async installDbtPackages(packages: string[]) {
@@ -1031,9 +1009,9 @@ export class DBTProject implements Disposable, DBTFacade {
     const installPackagesCommand =
       this.dbtCommandFactory.createAddPackagesCommand(packages);
     // Add packages first
-    await this.dbtProjectIntegration.deps(installPackagesCommand);
+    await this.getCurrentProjectIntegration().deps(installPackagesCommand);
     // Then install
-    return await this.dbtProjectIntegration.deps(
+    return await this.getCurrentProjectIntegration().deps(
       this.dbtCommandFactory.createInstallDepsCommand(),
     );
   }
@@ -1045,14 +1023,16 @@ export class DBTProject implements Disposable, DBTFacade {
     if (silent) {
       installDepsCommand.focus = false;
     }
-    return this.dbtProjectIntegration.deps(installDepsCommand);
+    return this.getCurrentProjectIntegration().deps(installDepsCommand);
   }
 
   async compileNode(modelName: string): Promise<string | undefined> {
     this.telemetry.sendTelemetryEvent("compileNode");
     this.throwDiagnosticsErrorIfAvailable();
     try {
-      return await this.dbtProjectIntegration.unsafeCompileNode(modelName);
+      return await this.getCurrentProjectIntegration().unsafeCompileNode(
+        modelName,
+      );
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
@@ -1090,7 +1070,9 @@ export class DBTProject implements Disposable, DBTFacade {
     this.telemetry.sendTelemetryEvent("unsafeCompileNode");
     this.throwDiagnosticsErrorIfAvailable();
     this.throwIfNotAuthenticated();
-    return await this.dbtProjectIntegration.unsafeCompileNode(modelName);
+    return await this.getCurrentProjectIntegration().unsafeCompileNode(
+      modelName,
+    );
   }
 
   async validateSql(request: { sql: string; dialect: string; models: any[] }) {
@@ -1111,7 +1093,7 @@ export class DBTProject implements Disposable, DBTFacade {
   async validateSQLDryRun(query: string) {
     this.throwIfNotAuthenticated();
     try {
-      return this.dbtProjectIntegration.validateSQLDryRun(query);
+      return this.getCurrentProjectIntegration().validateSQLDryRun(query);
     } catch (exc) {
       const exception = exc as { exception: { message: string } };
       window.showErrorMessage(
@@ -1126,7 +1108,7 @@ export class DBTProject implements Disposable, DBTFacade {
   getDBTVersion(): number[] | undefined {
     // TODO: do this when config or python env changes and cache value
     try {
-      return this.dbtProjectIntegration.getVersion();
+      return this.getCurrentProjectIntegration().getVersion();
     } catch (exc) {
       window.showErrorMessage(
         extendErrorWithSupportLinks("Could not get dbt version." + exc),
@@ -1141,7 +1123,7 @@ export class DBTProject implements Disposable, DBTFacade {
   ): Promise<string | undefined> {
     this.telemetry.sendTelemetryEvent("compileQuery");
     try {
-      return await this.dbtProjectIntegration.unsafeCompileQuery(
+      return await this.getCurrentProjectIntegration().unsafeCompileQuery(
         query,
         originalModelName,
       );
@@ -1193,7 +1175,7 @@ export class DBTProject implements Disposable, DBTFacade {
     originalModelName: string | undefined = undefined,
   ) {
     this.throwIfNotAuthenticated();
-    return this.dbtProjectIntegration.unsafeCompileQuery(
+    return this.getCurrentProjectIntegration().unsafeCompileQuery(
       query,
       originalModelName,
     );
@@ -1202,18 +1184,18 @@ export class DBTProject implements Disposable, DBTFacade {
   async getColumnsOfModel(modelName: string) {
     this.throwIfNotAuthenticated();
     const result =
-      await this.dbtProjectIntegration.getColumnsOfModel(modelName);
-    await this.dbtProjectIntegration.cleanupConnections();
+      await this.getCurrentProjectIntegration().getColumnsOfModel(modelName);
+    await this.getCurrentProjectIntegration().cleanupConnections();
     return result;
   }
 
   async getColumnsOfSource(sourceName: string, tableName: string) {
     this.throwIfNotAuthenticated();
-    const result = await this.dbtProjectIntegration.getColumnsOfSource(
+    const result = await this.getCurrentProjectIntegration().getColumnsOfSource(
       sourceName,
       tableName,
     );
-    await this.dbtProjectIntegration.cleanupConnections();
+    await this.getCurrentProjectIntegration().cleanupConnections();
     return result;
   }
 
@@ -1232,11 +1214,12 @@ export class DBTProject implements Disposable, DBTFacade {
         { model, column },
       );
       const query = `select ${column} from {{ ref('${model}')}} group by ${column}`;
-      const queryExecution = await this.dbtProjectIntegration.executeSQL(
-        query,
-        100, // setting this 100 as executeSql needs a limit and distinct values will be usually less in number
-        model,
-      );
+      const queryExecution =
+        await this.getCurrentProjectIntegration().executeSQL(
+          query,
+          100, // setting this 100 as executeSql needs a limit and distinct values will be usually less in number
+          model,
+        );
       const result = await queryExecution.executeQuery();
       this.telemetry.endTelemetryEvent(
         TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
@@ -1252,28 +1235,29 @@ export class DBTProject implements Disposable, DBTFacade {
       );
       throw error;
     } finally {
-      await this.dbtProjectIntegration.cleanupConnections();
+      await this.getCurrentProjectIntegration().cleanupConnections();
     }
   }
 
   async getBulkSchemaFromDB(req: DBTNode[], signal: AbortSignal) {
     this.throwIfNotAuthenticated();
     try {
-      const result = await this.dbtProjectIntegration.getBulkSchemaFromDB(
-        req,
-        signal,
-      );
-      await this.dbtProjectIntegration.cleanupConnections();
+      const result =
+        await this.getCurrentProjectIntegration().getBulkSchemaFromDB(
+          req,
+          signal,
+        );
+      await this.getCurrentProjectIntegration().cleanupConnections();
       return result;
     } finally {
-      await this.dbtProjectIntegration.cleanupConnections();
+      await this.getCurrentProjectIntegration().cleanupConnections();
     }
   }
 
   async validateWhetherSqlHasColumns(sql: string) {
     const dialect = this.getAdapterType();
     try {
-      return await this.dbtProjectIntegration.validateWhetherSqlHasColumns(
+      return await this.getCurrentProjectIntegration().validateWhetherSqlHasColumns(
         sql,
         dialect,
       );
@@ -1286,14 +1270,14 @@ export class DBTProject implements Disposable, DBTFacade {
       );
       return false;
     } finally {
-      await this.dbtProjectIntegration.cleanupConnections();
+      await this.getCurrentProjectIntegration().cleanupConnections();
     }
   }
 
   async getCatalog(): Promise<Catalog> {
     this.throwIfNotAuthenticated();
     try {
-      const result = await this.dbtProjectIntegration.getCatalog();
+      const result = await this.getCurrentProjectIntegration().getCatalog();
       return result;
     } catch (exc: any) {
       if (exc instanceof PythonException) {
@@ -1318,7 +1302,7 @@ export class DBTProject implements Disposable, DBTFacade {
       );
       return [];
     } finally {
-      await this.dbtProjectIntegration.cleanupConnections();
+      await this.getCurrentProjectIntegration().cleanupConnections();
     }
   }
 
@@ -1515,7 +1499,7 @@ export class DBTProject implements Disposable, DBTFacade {
     this.throwDiagnosticsErrorIfAvailable();
     this.throwIfNotAuthenticated();
     if (returnImmediately) {
-      const execution = await this.dbtProjectIntegration.executeSQL(
+      const execution = await this.getCurrentProjectIntegration().executeSQL(
         query,
         limit,
         modelName,
@@ -1545,7 +1529,11 @@ export class DBTProject implements Disposable, DBTFacade {
       command: "executeQuery",
       payload: {
         query,
-        fn: this.dbtProjectIntegration.executeSQL(query, limit, modelName),
+        fn: this.getCurrentProjectIntegration().executeSQL(
+          query,
+          limit,
+          modelName,
+        ),
         projectName: this.getProjectName(),
       },
     });
@@ -1850,7 +1838,8 @@ export class DBTProject implements Disposable, DBTFacade {
   }
 
   public findPackageVersion(packageName: string) {
-    const version = this.dbtProjectIntegration.findPackageVersion(packageName);
+    const version =
+      this.getCurrentProjectIntegration().findPackageVersion(packageName);
     this.terminal.debug(
       "dbtProject:findPackageVersion",
       `found ${packageName} version: ${version}`,
@@ -1866,7 +1855,7 @@ export class DBTProject implements Disposable, DBTFacade {
       throw new Error("The dbt manifest is not available");
     }
     const { nodeMetaMap } = this._manifestCacheEvent;
-    return this.dbtProjectIntegration.getBulkCompiledSQL(
+    return this.getCurrentProjectIntegration().getBulkCompiledSQL(
       models
         .map((m) => nodeMetaMap.lookupByUniqueId(m))
         .filter(Boolean) as NodeMetaData[],
@@ -1968,10 +1957,11 @@ export class DBTProject implements Disposable, DBTFacade {
       }
 
       try {
-        const columns = await this.dbtProjectIntegration.fetchSqlglotSchema(
-          sqlglotSchemaResponse[r.unique_id],
-          dialect,
-        );
+        const columns =
+          await this.getCurrentProjectIntegration().fetchSqlglotSchema(
+            sqlglotSchemaResponse[r.unique_id],
+            dialect,
+          );
         sqlglotSchemas[r.unique_id] = columns.map((c) => ({
           column: c,
           dtype: "string",
@@ -1998,7 +1988,7 @@ export class DBTProject implements Disposable, DBTFacade {
 
     startTime = Date.now();
     const dbSchemaResponse =
-      await this.dbtProjectIntegration.getBulkSchemaFromDB(
+      await this.getCurrentProjectIntegration().getBulkSchemaFromDB(
         dbSchemaRequest,
         signal,
       );
@@ -2048,12 +2038,13 @@ export class DBTProject implements Disposable, DBTFacade {
 
   async applyDeferConfig(): Promise<void> {
     const deferConfig = this.getDeferConfig();
-    await this.dbtProjectIntegration.applyDeferConfig(deferConfig);
+    await this.getCurrentProjectIntegration().applyDeferConfig(deferConfig);
   }
 
   throwDiagnosticsErrorIfAvailable() {
     // Check integration diagnostics
-    const integrationDiagnostics = this.dbtProjectIntegration.getDiagnostics();
+    const integrationDiagnostics =
+      this.getCurrentProjectIntegration().getDiagnostics();
     const allIntegrationDiagnostics = [
       ...integrationDiagnostics.pythonBridgeDiagnostics,
       ...integrationDiagnostics.rebuildManifestDiagnostics,
@@ -2160,5 +2151,9 @@ export class DBTProject implements Disposable, DBTFacade {
       this.queueStates.set(queueName, false);
       this.pickCommandToRun(queueName);
     }
+  }
+
+  private getCurrentProjectIntegration(): DBTProjectIntegration {
+    return this.dbtProjectIntegration.getCurrentProjectIntegration();
   }
 }

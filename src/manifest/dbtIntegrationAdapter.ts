@@ -466,4 +466,10 @@ export class DBTIntegrationAdapter implements DBTFacade {
   async dispose(): Promise<void> {
     this.currentIntegration.dispose();
   }
+
+  // Escape hatch for calling methods on the ProjectIntegration
+  // TODO: remove this at some point
+  getCurrentProjectIntegration(): DBTProjectIntegration {
+    return this.currentIntegration;
+  }
 }

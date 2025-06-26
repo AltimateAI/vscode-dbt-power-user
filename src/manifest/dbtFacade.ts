@@ -4,6 +4,7 @@ import {
   DBTNode,
   DBColumn,
   Catalog,
+  DBTProjectIntegration,
 } from "../dbt_client/dbtIntegration";
 import { ProjectHealthcheck } from "../dbt_client/dbtCoreIntegration";
 import { DataPilotHealtCheckParams, Table } from "../domain";
