@@ -56,6 +56,23 @@ export interface ColumnMetaData {
   meta: any;
 }
 
+export type Table = {
+  label: string;
+  table: string;
+  url: string | undefined;
+  downstreamCount: number;
+  upstreamCount: number;
+  nodeType: string;
+  materialization?: string;
+  description?: string;
+  tests: any[];
+  meta?: Map<string, any>;
+  isExternalProject: boolean;
+  columns: { [columnName: string]: ColumnMetaData };
+  patchPath?: string;
+  packageName?: string;
+};
+
 interface Config {
   materialized: string;
 }

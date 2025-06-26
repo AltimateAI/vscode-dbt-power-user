@@ -83,13 +83,13 @@ import {
   GraphMetaMap,
   NodeGraphMap,
   NodeMetaData,
+  Table,
 } from "../domain";
 import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryEvents } from "../telemetry/events";
 import { RunResultsEvent } from "./event/runResultsEvent";
 import { DBTCoreCommandProjectIntegration } from "../dbt_client/dbtCoreCommandIntegration";
-import { Table } from "src/services/dbtLineageService";
 import { DBTFusionCommandProjectIntegration } from "src/dbt_client/dbtFusionCommandIntegration";
 import { DeferToProdService } from "../services/deferToProdService";
 import { AltimateAuthService } from "../services/altimateAuthService";
@@ -2101,10 +2101,7 @@ export class DBTProject implements Disposable {
     this.queues.set(queueName, []);
   }
 
-  private async addCommandToQueue(
-    queueName: string,
-    command: DBTCommand,
-  ): Promise<CommandProcessResult | undefined> {
+  private addCommandToQueue(queueName: string, command: DBTCommand): void {
     this.queues.get(queueName)!.push({
       command: async (signal) => {
         await command.execute(signal);
@@ -2115,7 +2112,6 @@ export class DBTProject implements Disposable {
       showProgress: command.showProgress,
     });
     this.pickCommandToRun(queueName);
-    return undefined;
   }
 
   private async pickCommandToRun(queueName: string): Promise<void> {

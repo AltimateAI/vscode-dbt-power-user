@@ -1,12 +1,11 @@
 import {
   AltimateRequest,
-  DBTProject,
   DBTTerminal,
   QueryManifestService,
   TelemetryService,
 } from "../modules";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { ColumnMetaData, GraphMetaMap, NodeGraphMap } from "../domain";
+import { GraphMetaMap, NodeGraphMap, Table } from "../domain";
 import { CancellationTokenSource, env, Uri, window, workspace } from "vscode";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { ModelInfo } from "../altimate";
@@ -34,23 +33,6 @@ const CAN_COMPILE_SQL_NODE = [
 ];
 const canCompileSQL = (nodeType: string) =>
   CAN_COMPILE_SQL_NODE.includes(nodeType);
-
-export type Table = {
-  label: string;
-  table: string;
-  url: string | undefined;
-  downstreamCount: number;
-  upstreamCount: number;
-  nodeType: string;
-  materialization?: string;
-  description?: string;
-  tests: any[];
-  meta?: Map<string, any>;
-  isExternalProject: boolean;
-  columns: { [columnName: string]: ColumnMetaData };
-  patchPath?: string;
-  packageName?: string;
-};
 
 @provideSingleton(DbtLineageService)
 export class DbtLineageService {

@@ -46,6 +46,7 @@ import {
 } from "../services/docGenService";
 import { DBTTerminal } from "../dbt_client/terminal";
 import {
+  Table,
   TestMetaData,
   TestMetadataAcceptedValues,
   TestMetadataRelationships,
@@ -54,7 +55,7 @@ import { DbtTestService } from "../services/dbtTestService";
 import { gte } from "semver";
 import { TelemetryEvents } from "../telemetry/events";
 import { SendMessageProps } from "./altimateWebviewProvider";
-import { DbtLineageService, Table } from "../services/dbtLineageService";
+import { DbtLineageService } from "../services/dbtLineageService";
 import { inject } from "inversify";
 
 export enum Source {
