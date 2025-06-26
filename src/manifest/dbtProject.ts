@@ -289,10 +289,7 @@ export class DBTProject implements Disposable, DBTFacade {
         title: "Changing target...",
         cancellable: false,
       },
-      async () => {
-        await this.getCurrentProjectIntegration().setSelectedTarget(targetName);
-        await this.getCurrentProjectIntegration().applySelectedTarget();
-      },
+      () => this.dbtProjectIntegration.setSelectedTarget(targetName),
     );
   }
 

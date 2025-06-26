@@ -148,7 +148,8 @@ export class DBTIntegrationAdapter implements DBTFacade {
   }
 
   async setSelectedTarget(targetName: string): Promise<void> {
-    return this.currentIntegration.setSelectedTarget(targetName);
+    await this.currentIntegration.setSelectedTarget(targetName);
+    await this.currentIntegration.applySelectedTarget();
   }
 
   getDBTProjectFilePath(): string {
