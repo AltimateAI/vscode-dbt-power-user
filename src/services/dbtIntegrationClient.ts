@@ -76,11 +76,27 @@ export class DbtIntegrationClient {
     if (!response.ok) {
       throw new Error(`Failed to download file: ${response.statusText}`);
     }
+
+    if (!response.body) {
+      throw new Error(`Failed to download file: response body is null`);
+    }
+
     const fileStream = createWriteStream(destinationPath);
     await new Promise((resolve, reject) => {
-      response.body?.pipe(fileStream);
-      response.body?.on("error", reject);
+      // Listen for errors on both streams
+      response.body!.on("error", (error) => {
+        fileStream.destroy();
+        reject(new Error(`Response stream error: ${error.message}`));
+      });
+
+      fileStream.on("error", (error) => {
+        reject(new Error(`File stream error: ${error.message}`));
+      });
+
       fileStream.on("finish", resolve);
+
+      // Start piping after all event listeners are set up
+      response.body!.pipe(fileStream);
     });
 
     this.dbtTerminal.debug("File downloaded successfully!", fileName);
