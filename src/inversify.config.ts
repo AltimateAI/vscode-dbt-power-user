@@ -55,6 +55,7 @@ import {
   DBTFusionCommandProjectIntegration,
 } from "./dbt_client/dbtFusionCommandIntegration";
 import { DBTTerminal } from "./dbt_client/terminal";
+import { DBTIntegrationAdapter } from "./manifest/dbtIntegrationAdapter";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -464,9 +465,9 @@ container
   >("Factory<DBTCloudProjectIntegration>")
   .toFactory<
     DBTCloudProjectIntegration,
-    [Uri, DeferConfig]
+    [string, DeferConfig]
   >((context: interfaces.Context) => {
-    return (projectRoot: Uri, deferConfig: DeferConfig) => {
+    return (projectRoot: string, deferConfig: DeferConfig) => {
       const { container } = context;
       return new DBTCloudProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
@@ -474,7 +475,34 @@ container
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
         container.get("PythonEnvironment"),
         container.get("DBTTerminal"),
-        projectRoot.fsPath,
+        projectRoot,
+        deferConfig,
+      );
+    };
+  });
+
+container
+  .bind<
+    interfaces.Factory<DBTIntegrationAdapter>
+  >("Factory<DBTIntegrationAdapter>")
+  .toFactory<
+    DBTIntegrationAdapter,
+    [string, DBTDiagnosticData[], DeferConfig | undefined]
+  >((context: interfaces.Context) => {
+    return (
+      projectRoot: string,
+      projectConfigDiagnostics: DBTDiagnosticData[],
+      deferConfig: DeferConfig | undefined,
+    ) => {
+      const { container } = context;
+      return new DBTIntegrationAdapter(
+        container.get("DBTConfiguration"),
+        container.get("Factory<DBTCoreProjectIntegration>"),
+        container.get("Factory<DBTCloudProjectIntegration>"),
+        container.get("Factory<DBTFusionCommandProjectIntegration>"),
+        container.get("Factory<DBTCoreCommandProjectIntegration>"),
+        projectRoot,
+        projectConfigDiagnostics,
         deferConfig,
       );
     };

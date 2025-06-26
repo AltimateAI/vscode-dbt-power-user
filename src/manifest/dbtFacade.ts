@@ -121,9 +121,8 @@ export interface DBTFacade {
     query: string,
     modelName: string,
     limit: number,
-    returnImmediately?: boolean,
-    returnRawResults?: boolean,
   ): Promise<any>;
+
   executeSQL(
     query: string,
     modelName: string,
