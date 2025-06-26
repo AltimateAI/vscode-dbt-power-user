@@ -96,7 +96,13 @@ export class DocGenService {
     const { event } = eventResult;
     const currentNode = event.nodeMetaMap.lookupByBaseName(modelName);
     if (!currentNode?.patch_path) {
-      return undefined;
+      return {
+        aiEnabled: this.altimateRequest.enabled(),
+        name: modelName,
+        description: "",
+        generated: false,
+        columns: [],
+      } as DBTDocumentation;
     }
 
     try {
@@ -111,7 +117,13 @@ export class DocGenService {
       // Find matching model definition
       const modelDef = parsedDoc.models?.find((m) => m.name === modelName);
       if (!modelDef) {
-        return undefined;
+        return {
+          aiEnabled: this.altimateRequest.enabled(),
+          name: modelName,
+          description: "",
+          generated: false,
+          columns: [],
+        } as DBTDocumentation;
       }
 
       // Map to DBTDocumentation format
