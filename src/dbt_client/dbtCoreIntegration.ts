@@ -30,6 +30,7 @@ import * as fs from "fs";
 import { parse } from "yaml";
 import { AltimateRequest } from "../altimate";
 import { NotFoundError } from "../services/altimateHttpClient";
+import { DbtIntegrationClient } from "../services/dbtIntegrationClient";
 import { DBTTerminal } from "./terminal";
 import { ValidationProvider } from "../validation_provider";
 import { DBTConfiguration } from "./configuration";
@@ -218,6 +219,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
     protected dbtTerminal: DBTTerminal,
     private validationProvider: ValidationProvider,
     private dbtConfiguration: DBTConfiguration,
+    private dbtIntegrationClient: DbtIntegrationClient,
     protected projectRoot: string,
     private projectConfigDiagnostics: DBTDiagnosticData[],
     private deferConfig: DeferConfig | undefined,
@@ -362,7 +364,9 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
             (python) => python`to_dict(project.execute_sql(${compiledQuery}))`,
           );
           if (this.deferConfig?.manifestPathType === ManifestPathType.REMOTE) {
-            this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
+            this.dbtIntegrationClient.sendDeferToProdEvent(
+              ManifestPathType.REMOTE,
+            );
           }
         } catch (err) {
           const message = `Error while executing sql: ${compiledQuery}`;
@@ -685,14 +689,15 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
         `fetching artifact url for dbtCoreIntegrationId: ${dbtCoreIntegrationId}`,
       );
       try {
-        const response = await this.altimateRequest.fetchArtifactUrl(
+        const response = await this.dbtIntegrationClient.fetchArtifactUrl(
           "manifest",
           dbtCoreIntegrationId!,
         );
-        const manifestPath = await this.altimateRequest.downloadFileLocally(
-          response.url,
-          this.projectRoot,
-        );
+        const manifestPath =
+          await this.dbtIntegrationClient.downloadFileLocally(
+            response.url,
+            this.projectRoot,
+          );
         console.log(`Set remote manifest path: ${manifestPath}`);
         return manifestPath;
       } catch (error) {
@@ -745,7 +750,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
     );
 
     if (manifestPathType === ManifestPathType.REMOTE) {
-      this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
+      this.dbtIntegrationClient.sendDeferToProdEvent(ManifestPathType.REMOTE);
     }
     return args;
   }

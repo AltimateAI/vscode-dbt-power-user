@@ -20,6 +20,7 @@ import {
 } from "./altimateWebviewProvider";
 import { AltimateRequest, DBTCoreIntegration } from "../altimate";
 import { NotFoundError } from "../services/altimateHttpClient";
+import { DbtIntegrationClient } from "../services/dbtIntegrationClient";
 import { SharedStateService } from "../services/sharedStateService";
 import { DBTTerminal } from "../dbt_client/terminal";
 import { DeferToProdService } from "../services/deferToProdService";
@@ -71,6 +72,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
     protected altimateRequest: AltimateRequest,
+    private dbtIntegrationClient: DbtIntegrationClient,
     protected telemetry: TelemetryService,
     protected emitterService: SharedStateService,
     @inject("DBTTerminal")
@@ -338,7 +340,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
   ) {
     try {
       this.dbtTerminal.debug("InsightsPanel", "Fetching manifest signed url");
-      const response = await this.altimateRequest.fetchArtifactUrl(
+      const response = await this.dbtIntegrationClient.fetchArtifactUrl(
         "manifest",
         dbtCoreIntegrationId,
       );

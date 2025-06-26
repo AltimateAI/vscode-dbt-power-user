@@ -39,6 +39,7 @@ import { ValidationProvider } from "./validation_provider";
 import { DBTConfiguration } from "./dbt_client/configuration";
 import { AltimateAuthService } from "./services/altimateAuthService";
 import { AltimateHttpClient } from "./services/altimateHttpClient";
+import { DbtIntegrationClient } from "./services/dbtIntegrationClient";
 import { VSCodeDBTConfiguration } from "./dbt_client/vscodeConfiguration";
 import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
@@ -260,6 +261,17 @@ container
   })
   .inSingletonScope();
 
+// Bind DbtIntegrationClient
+container
+  .bind(DbtIntegrationClient)
+  .toDynamicValue((context) => {
+    return new DbtIntegrationClient(
+      context.container.get(AltimateHttpClient),
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
 // Bind AltimateRequest
 container
   .bind(AltimateRequest)
@@ -385,6 +397,7 @@ container
         container.get("DBTTerminal"),
         container.get(ValidationProvider),
         container.get("DBTConfiguration"),
+        container.get(DbtIntegrationClient),
         projectRoot,
         projectConfigDiagnostics,
         deferConfig,
@@ -415,6 +428,7 @@ container
         container.get("DBTTerminal"),
         container.get(ValidationProvider),
         container.get("DBTConfiguration"),
+        container.get(DbtIntegrationClient),
         projectRoot,
         projectConfigDiagnostics,
         deferConfig,

@@ -15,7 +15,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { debounce, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { DeferToProdService } from "../services/deferToProdService";
-import { AltimateRequest } from "../altimate";
+import { DbtIntegrationClient } from "../services/dbtIntegrationClient";
 import path = require("path");
 import { ManifestPathType } from "../dbt_client/dbtIntegration";
 
@@ -33,7 +33,7 @@ export class SqlPreviewContentProvider
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private deferToProdService: DeferToProdService,
-    private altimateRequest: AltimateRequest,
+    private dbtIntegrationClient: DbtIntegrationClient,
     private telemetry: TelemetryService,
   ) {
     this.subscriptions = workspace.onDidCloseTextDocument((compilationDoc) => {
@@ -105,7 +105,7 @@ export class SqlPreviewContentProvider
         dbtIntegrationMode.startsWith("core") &&
         manifestPathType === ManifestPathType.REMOTE
       ) {
-        this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
+        this.dbtIntegrationClient.sendDeferToProdEvent(ManifestPathType.REMOTE);
       }
       return result;
     } catch (error: any) {

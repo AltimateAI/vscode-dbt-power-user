@@ -1,12 +1,8 @@
 import type { RequestInit } from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
-import { join } from "path";
-import { createWriteStream, mkdirSync } from "fs";
-import * as os from "os";
 import { DBTTerminal } from "./dbt_client/terminal";
 import { PreconfiguredNotebookItem, NotebookItem, NotebookSchema } from "@lib";
 import * as vscode from "vscode";
-import { hashProjectRoot } from "./dbt_client/dbtIntegration";
 import { inject } from "inversify";
 import { DBTConfiguration } from "./dbt_client/configuration";
 import { AltimateHttpClient } from "./services/altimateHttpClient";
@@ -238,11 +234,6 @@ export interface DBTCoreIntegration {
   last_file_upload_time: string;
 }
 
-interface DownloadArtifactResponse {
-  url: string;
-  dbt_core_integration_file_id: number;
-}
-
 export interface TenantUser {
   id: number;
   uuid: string;
@@ -399,44 +390,6 @@ export class AltimateRequest {
     );
   }
 
-  async downloadFileLocally(
-    artifactUrl: string,
-    projectRoot: string,
-    fileName = "manifest.json",
-  ): Promise<string> {
-    const hashedProjectRoot = hashProjectRoot(projectRoot);
-    const tempFolder = join(os.tmpdir(), hashedProjectRoot);
-
-    this.dbtTerminal.debug(
-      "AltimateRequest",
-      `creating temporary folder: ${tempFolder} for file: ${fileName}`,
-    );
-    mkdirSync(tempFolder, { recursive: true });
-
-    const destinationPath = join(tempFolder, fileName);
-
-    this.dbtTerminal.debug(
-      "AltimateRequest",
-      `fetching artifactUrl: ${artifactUrl}`,
-    );
-    const response = await this.internalFetch(artifactUrl, {
-      agent: undefined,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to download file: ${response.statusText}`);
-    }
-    const fileStream = createWriteStream(destinationPath);
-    await new Promise((resolve, reject) => {
-      response.body?.pipe(fileStream);
-      response.body?.on("error", reject);
-      fileStream.on("finish", resolve);
-    });
-
-    this.dbtTerminal.debug("File downloaded successfully!", fileName);
-    return tempFolder;
-  }
-
   private getQueryString = (
     params: Record<string, string | number>,
   ): string => {
@@ -523,22 +476,6 @@ export class AltimateRequest {
 
   async fetchProjectIntegrations() {
     return this.fetch<DBTCoreIntegration[]>("dbt/v1/project_integrations");
-  }
-
-  async sendDeferToProdEvent(defer_type: string) {
-    return this.fetch("dbt/v1/defer_to_prod_event", {
-      method: "POST",
-      body: JSON.stringify({ defer_type }),
-    });
-  }
-
-  async fetchArtifactUrl(artifact_type: string, dbtCoreIntegrationId: number) {
-    return this.fetch<DownloadArtifactResponse>(
-      `dbt/v1/fetch_artifact_url${this.getQueryString({
-        artifact_type: artifact_type,
-        dbt_core_integration_id: dbtCoreIntegrationId,
-      })}`,
-    );
   }
 
   async getHealthcheckConfigs() {
