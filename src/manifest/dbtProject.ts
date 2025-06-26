@@ -74,7 +74,8 @@ import {
   ProjectHealthcheck,
 } from "../dbt_client/dbtCoreIntegration";
 import { DBTCloudProjectIntegration } from "../dbt_client/dbtCloudIntegration";
-import { AltimateRequest, NoCredentialsError } from "../altimate";
+import { AltimateRequest } from "../altimate";
+import { NoCredentialsError } from "../services/altimateHttpClient";
 import { ValidationProvider } from "../validation_provider";
 import { ModelNode } from "../altimate";
 import {

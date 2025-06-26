@@ -6,14 +6,11 @@ import {
   afterEach,
   jest,
 } from "@jest/globals";
-import { DBTProject } from "../../manifest/dbtProject";
-import { DBTProjectLog } from "../../manifest/modules/dbtProjectLog";
 import { ValidationProvider } from "../../validation_provider";
-import { NoCredentialsError, AltimateRequest } from "../../altimate";
-import { ManifestCacheChangedEvent } from "../../manifest/event/manifestCacheChangedEvent";
-import { DBTCommand } from "../../dbt_client/dbtIntegration";
+import { NoCredentialsError } from "../../services/altimateHttpClient";
 import { DBTTerminal } from "../../dbt_client/terminal";
 import { TelemetryService } from "../../telemetry";
+import { AltimateRequest } from "../../altimate";
 
 describe("DbtProject Test Suite", () => {
   let mockTerminal: jest.Mocked<DBTTerminal>;

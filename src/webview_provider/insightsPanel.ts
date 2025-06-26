@@ -18,11 +18,8 @@ import {
   HandleCommandProps,
   UpdateConfigProps,
 } from "./altimateWebviewProvider";
-import {
-  AltimateRequest,
-  DBTCoreIntegration,
-  NotFoundError,
-} from "../altimate";
+import { AltimateRequest, DBTCoreIntegration } from "../altimate";
+import { NotFoundError } from "../services/altimateHttpClient";
 import { SharedStateService } from "../services/sharedStateService";
 import { DBTTerminal } from "../dbt_client/terminal";
 import { DeferToProdService } from "../services/deferToProdService";

@@ -1,11 +1,11 @@
 import { Disposable, commands, window, workspace } from "vscode";
 import { provideSingleton } from "../utils";
 import {
-  AltimateRequest,
   ForbiddenError,
   NoCredentialsError,
-} from "../altimate";
+} from "../services/altimateHttpClient";
 import { AltimateAuthService } from "../services/altimateAuthService";
+import { AltimateRequest } from "../altimate";
 
 const validTenantRegex = new RegExp(/^[a-z_][a-z0-9_]*$/);
 

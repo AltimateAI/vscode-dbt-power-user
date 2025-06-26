@@ -2,14 +2,20 @@ import { DBTConfiguration } from "../dbt_client/configuration";
 import { DBTTerminal } from "../dbt_client/terminal";
 import type { RequestInit, Response as NodeFetchResponse } from "node-fetch";
 import { createReadStream, ReadStream } from "fs";
-import {
-  NoCredentialsError,
-  ForbiddenError,
-  NotFoundError,
-  APIError,
-} from "../altimate";
 import { RateLimitException } from "../exceptions/rateLimitException";
 import { ExecutionsExhaustedException } from "../exceptions/executionsExhaustedException";
+
+export class NoCredentialsError extends Error {}
+
+export class NotFoundError extends Error {}
+
+export class ForbiddenError extends Error {
+  constructor() {
+    super("Invalid credentials. Please check instance name and API Key.");
+  }
+}
+
+export class APIError extends Error {}
 
 const processStreamResponse = async (
   stream: NodeJS.ReadableStream | ReadableStream,
