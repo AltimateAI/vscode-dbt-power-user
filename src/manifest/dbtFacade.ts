@@ -19,8 +19,8 @@ import { DataPilotHealtCheckParams, Table } from "../domain";
 export interface DBTFacade {
   // Project Information
   getProjectName(): string;
-  getSelectedTarget(): string;
-  getTargetNames(): string[];
+  getSelectedTarget(): string | undefined;
+  getTargetNames(): Promise<string[]>;
   setSelectedTarget(targetName: string): Promise<void>;
   getDBTProjectFilePath(): string;
   getTargetPath(): string | undefined;
@@ -44,48 +44,57 @@ export interface DBTFacade {
   ): Promise<ProjectHealthcheck>;
 
   // Utility Methods
-  findPackageName(uri: string): string | undefined;
-  contains(uri: string): boolean;
-  findPackageVersion(packageName: string): string | undefined;
+  // TODO: Evaluate if these methods need to be migrated
+  // findPackageName(uri: string): string | undefined;
+  // contains(uri: string): boolean;
+  // findPackageVersion(packageName: string): string | undefined;
 
   // Model Execution
-  runModel(runModelParams: RunModelParams): void;
+  // TODO: Evaluate if these methods need to be migrated
+  // runModel(runModelParams: RunModelParams): void;
   unsafeRunModelImmediately(
     runModelParams: RunModelParams,
   ): Promise<CommandProcessResult>;
-  buildModel(runModelParams: RunModelParams): void;
+  // TODO: Evaluate if these methods need to be migrated
+  // buildModel(runModelParams: RunModelParams): void;
   unsafeBuildModelImmediately(
     runModelParams: RunModelParams,
   ): Promise<CommandProcessResult>;
-  buildProject(): void;
+  // TODO: Evaluate if these methods need to be migrated
+  // buildProject(): void;
   unsafeBuildProjectImmediately(): Promise<CommandProcessResult>;
 
   // Testing
-  runTest(testName: string): void;
+  // TODO: Evaluate if these methods need to be migrated
+  // runTest(testName: string): void;
   unsafeRunTestImmediately(testName: string): Promise<CommandProcessResult>;
-  runModelTest(modelName: string): void;
+  // TODO: Evaluate if these methods need to be migrated
+  // runModelTest(modelName: string): void;
   unsafeRunModelTestImmediately(
     modelName: string,
   ): Promise<CommandProcessResult>;
 
   // Compilation
-  compileModel(runModelParams: RunModelParams): Promise<void>;
+  // TODO: Evaluate if these methods need to be migrated
+  // compileModel(runModelParams: RunModelParams): Promise<void>;
   unsafeCompileModelImmediately(
     runModelParams: RunModelParams,
   ): Promise<CommandProcessResult>;
-  compileNode(modelName: string): Promise<string | undefined>;
+  // TODO: Evaluate if these methods need to be migrated
+  // compileNode(modelName: string): Promise<string | undefined>;
   unsafeCompileNode(modelName: string): Promise<string | undefined>;
-  compileQuery(
-    query: string,
-    originalModelName?: string,
-  ): Promise<string | undefined>;
+  // compileQuery(
+  //   query: string,
+  //   originalModelName?: string,
+  // ): Promise<string | undefined>;
   unsafeCompileQuery(
     query: string,
     originalModelName?: string,
   ): Promise<string | undefined>;
 
   // Documentation
-  generateDocs(): Promise<void>;
+  // TODO: Evaluate if these methods need to be migrated
+  // generateDocs(): Promise<void>;
   unsafeGenerateDocsImmediately(args?: string[]): Promise<void>;
 
   // Package Management
@@ -136,7 +145,7 @@ export interface DBTFacade {
   getCatalog(): Promise<Catalog>;
 
   // File Generation
-  // TODO; Evaluate if these methods need to be migrated
+  // TODO: Evaluate if these methods need to be migrated
   // generateSchemaYML(modelPath: string, modelName: string): Promise<void>;
   // generateModel(
   //   sourceName: string,
@@ -149,7 +158,7 @@ export interface DBTFacade {
   // ): string;
 
   // File Navigation
-  // TODO; Evaluate if these methods need to be migrated
+  // TODO: Evaluate if these methods need to be migrated
   // showCompiledSql(modelPath: string): void;
   // showRunSQL(modelPath: string): void;
 
@@ -172,8 +181,9 @@ export interface DBTFacade {
   // }>;
 
   // Configuration
-  applyDeferConfig(): Promise<void>;
-  throwDiagnosticsErrorIfAvailable(): void;
+  // TODO: Evaluate if these methods need to be migrated
+  // applyDeferConfig(): Promise<void>;
+  // throwDiagnosticsErrorIfAvailable(): void;
 
   // Utility
   // TODO: migrate this method later

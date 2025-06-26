@@ -94,6 +94,7 @@ import { DeferToProdService } from "../services/deferToProdService";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { getProjectRelativePath } from "../utils";
 import { inject } from "inversify";
+import { DBTFacade } from "./dbtFacade";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -103,7 +104,7 @@ interface JsonObj {
   [key: string]: string | number | undefined;
 }
 
-export class DBTProject implements Disposable {
+export class DBTProject implements Disposable, DBTFacade {
   private _manifestCacheEvent?: ManifestCacheProjectAddedEvent;
   readonly projectRoot: Uri;
   private projectConfig: Record<string, any>;
