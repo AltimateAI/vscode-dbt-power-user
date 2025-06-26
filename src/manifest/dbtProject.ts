@@ -68,11 +68,7 @@ import {
   DeferConfig,
   readAndParseProjectConfig,
 } from "../dbt_client/dbtIntegration";
-import {
-  DBTCoreProjectIntegration,
-  ProjectHealthcheck,
-} from "../dbt_client/dbtCoreIntegration";
-import { DBTCloudProjectIntegration } from "../dbt_client/dbtCloudIntegration";
+import { ProjectHealthcheck } from "../dbt_client/dbtCoreIntegration";
 import { AltimateRequest } from "../altimate";
 import { NoCredentialsError } from "../services/altimateHttpClient";
 import { ValidationProvider } from "../validation_provider";
