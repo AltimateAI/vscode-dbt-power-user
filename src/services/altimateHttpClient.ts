@@ -92,7 +92,10 @@ export class AltimateHttpClient {
     );
   }
 
-  public async internalFetch(url: string, init?: RequestInit) {
+  public async internalFetch(
+    url: string,
+    init?: RequestInit,
+  ): Promise<NodeFetchResponse> {
     const nodeFetch = (await import("node-fetch")).default;
     return nodeFetch(url, init);
   }
