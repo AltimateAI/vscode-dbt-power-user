@@ -9,9 +9,8 @@ import { DBTWorkspaceFolder } from "./manifest/dbtWorkspaceFolder";
 import { ManifestCacheChangedEvent } from "./manifest/event/manifestCacheChangedEvent";
 import { RunResultsEvent } from "./manifest/event/runResultsEvent";
 import { ProjectConfigChangedEvent } from "./manifest/event/projectConfigChangedEvent";
-import { DBTProjectLogFactory } from "./manifest/modules/dbtProjectLog";
+import { DBTProjectLog } from "./manifest/dbtProjectLog";
 import { ManifestParser } from "./manifest/parsers";
-import { TargetWatchers } from "./manifest/modules/targetWatchers";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
 import { VSCodePythonEnvironment } from "./manifest/vscodePythonEnvironment";
 import { TelemetryService } from "./telemetry";
@@ -551,8 +550,7 @@ container
       const { container } = context;
       return new DBTProject(
         container.get("PythonEnvironment"),
-        container.get(DBTProjectLogFactory),
-        container.get("Factory<TargetWatchers>"),
+        container.get("Factory<DBTProjectLog>"),
         container.get(DBTCommandFactory),
         container.get("DBTTerminal"),
         container.get(SharedStateService),
@@ -585,27 +583,9 @@ container
   });
 
 container
-  .bind<interfaces.Factory<TargetWatchers>>("Factory<TargetWatchers>")
-  .toFactory<
-    TargetWatchers,
-    [
-      EventEmitter<ManifestCacheChangedEvent>,
-      EventEmitter<RunResultsEvent>,
-      Event<ProjectConfigChangedEvent>,
-    ]
-  >((context: interfaces.Context) => {
-    return (
-      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
-      _onRunResults: EventEmitter<RunResultsEvent>,
-      onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
-    ) => {
-      const { container } = context;
-      return new TargetWatchers(
-        _onManifestChanged,
-        _onRunResults,
-        onProjectConfigChanged,
-        container.get(ManifestParser),
-        container.get("DBTTerminal"),
-      );
+  .bind<interfaces.Factory<DBTProjectLog>>("Factory<DBTProjectLog>")
+  .toFactory<DBTProjectLog, [Event<ProjectConfigChangedEvent>]>(() => {
+    return (onProjectConfigChanged: Event<ProjectConfigChangedEvent>) => {
+      return new DBTProjectLog(onProjectConfigChanged);
     };
   });

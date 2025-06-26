@@ -11,6 +11,7 @@ import {
   CATALOG_FILE,
   DBTCommandFactory,
   DBTCommand,
+  RUN_RESULTS_FILE,
 } from "../dbt_client/dbtIntegration";
 import { ProjectHealthcheck } from "../dbt_client/dbtCoreIntegration";
 import {
@@ -45,6 +46,7 @@ import path from "path";
 import { FSWatcher, watch } from "fs";
 import { EventEmitter } from "events";
 import { debounce } from "../utils";
+import { readFileSync } from "fs";
 
 export interface ParsedManifest {
   nodeMetaMap: NodeMetaMap;
@@ -56,6 +58,18 @@ export interface ParsedManifest {
   docMetaMap: DocMetaMap;
   exposureMetaMap: ExposureMetaMap;
   modelDepthMap: Map<string, number>;
+}
+
+export interface RunResultsData {
+  results: Array<{
+    unique_id: string;
+  }>;
+}
+
+export interface RunResultsEventData {
+  results: Array<{
+    unique_id: string;
+  }>;
 }
 
 /**
@@ -72,6 +86,9 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
   private projectConfigWatcher?: FSWatcher;
   private depsInitialized = false;
   private projectConfigDiagnostics: DBTDiagnosticData[] = [];
+  private targetWatchers: FSWatcher[] = [];
+  private currentTargetPath?: string;
+  private isWatchingTargetFiles = false;
 
   constructor(
     private dbtConfiguration: DBTConfiguration,
@@ -236,11 +253,13 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
   async initialize(): Promise<void> {
     await this.currentIntegration.initializeProject();
     await this.refreshProjectConfig();
+    this.emit("projectConfigChanged");
     await this.rebuildManifest();
 
     // Start project config watcher and file watchers automatically after initialization
     this.startProjectConfigWatcher();
     this.startSourceFilesWatcher();
+    this.startTargetWatchers();
   }
 
   async refreshProjectConfig(): Promise<void> {
@@ -300,6 +319,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
 
     // Update file watchers when project config changes
     this.updateSourceFilesWatchers();
+    this.updateTargetWatchers();
 
     const sourcePaths = this.getModelPaths();
     const macroPaths = this.getMacroPaths();
@@ -372,6 +392,12 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
         "DBTIntegrationAdapter",
         `Finished rebuilding the manifest for project at ${this.projectRoot}`,
       );
+
+      // Parse and emit manifestCreated event after successful rebuild
+      const parsedManifest = await this.parseManifest();
+      if (parsedManifest) {
+        this.emit("manifestCreated", parsedManifest);
+      }
     } catch (error) {
       this.terminal.error(
         "DBTIntegrationAdapter",
@@ -1017,10 +1043,199 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
     return [];
   }
 
+  // Target File Watcher Operations
+  private startTargetWatchers(): void {
+    if (this.isWatchingTargetFiles) {
+      return;
+    }
+
+    const targetPath = this.getTargetPath();
+    if (!targetPath) {
+      this.terminal.debug(
+        "DBTIntegrationAdapter",
+        "Cannot start target watchers - target path not available",
+      );
+      return;
+    }
+
+    this.terminal.debug(
+      "DBTIntegrationAdapter",
+      `Starting Node.js target watchers for project at ${this.projectRoot}`,
+    );
+
+    this.isWatchingTargetFiles = true;
+    this.currentTargetPath = targetPath;
+    this.setupTargetWatchers();
+  }
+
+  private stopTargetWatchers(): void {
+    if (!this.isWatchingTargetFiles) {
+      return;
+    }
+
+    this.terminal.debug(
+      "DBTIntegrationAdapter",
+      `Stopping Node.js target watchers for project at ${this.projectRoot}`,
+    );
+
+    this.disposeTargetWatchers();
+    this.isWatchingTargetFiles = false;
+    this.currentTargetPath = undefined;
+  }
+
+  private updateTargetWatchers(): void {
+    if (!this.isWatchingTargetFiles) {
+      return;
+    }
+
+    const targetPath = this.getTargetPath();
+    if (!targetPath) {
+      this.terminal.debug(
+        "DBTIntegrationAdapter",
+        "Cannot update target watchers - target path not available",
+      );
+      this.stopTargetWatchers();
+      return;
+    }
+
+    // Check if target path has changed
+    if (this.currentTargetPath === targetPath) {
+      return;
+    }
+
+    this.terminal.debug(
+      "DBTIntegrationAdapter",
+      "Updating Node.js target watchers with new target path",
+      targetPath,
+    );
+
+    // Recreate watchers with new target path
+    this.disposeTargetWatchers();
+    this.currentTargetPath = targetPath;
+    this.setupTargetWatchers();
+  }
+
+  private setupTargetWatchers(): void {
+    if (!this.currentTargetPath) {
+      return;
+    }
+
+    try {
+      // Create single target folder watcher for both manifest and run results
+      const targetFolderWatcher = this.createTargetFolderWatcher(
+        this.currentTargetPath,
+      );
+      if (targetFolderWatcher) {
+        this.targetWatchers.push(targetFolderWatcher);
+      }
+    } catch (error) {
+      this.terminal.error(
+        "DBTIntegrationAdapter",
+        "Error setting up target watchers",
+        error,
+      );
+    }
+  }
+
+  private createTargetFolderWatcher(targetPath: string): FSWatcher | null {
+    try {
+      const handleFileChange = debounce(async () => {
+        // Check for manifest changes
+        try {
+          const parsedManifest = await this.parseManifest();
+          if (parsedManifest) {
+            this.emit("manifestCreated", parsedManifest);
+          }
+        } catch (error) {
+          // Manifest might not exist or be invalid, which is normal
+        }
+
+        // Check for run results changes
+        const runResultsPath = path.join(targetPath, RUN_RESULTS_FILE);
+        try {
+          const runResultsData = this.parseRunResultsFile(runResultsPath);
+          if (runResultsData) {
+            this.emit("runResultsCreated", runResultsData);
+          }
+        } catch (error) {
+          // Run results might not exist, which is normal
+        }
+      }, 300);
+
+      const watcher = watch(
+        targetPath,
+        { recursive: false },
+        (eventType, filename) => {
+          if (
+            filename &&
+            (filename === MANIFEST_FILE || filename === RUN_RESULTS_FILE)
+          ) {
+            this.terminal.debug(
+              "DBTIntegrationAdapter",
+              `Target folder ${eventType} detected: ${filename} in ${targetPath}`,
+            );
+            handleFileChange();
+          }
+        },
+      );
+
+      this.terminal.debug(
+        "DBTIntegrationAdapter",
+        `Started Node.js target folder watcher for ${targetPath}`,
+      );
+      return watcher;
+    } catch (error) {
+      this.terminal.error(
+        "DBTIntegrationAdapter",
+        `Failed to create target folder watcher for ${targetPath}`,
+        error,
+      );
+      return null;
+    }
+  }
+
+  private parseRunResultsFile(filePath: string): RunResultsEventData | null {
+    try {
+      const fileContent = readFileSync(filePath, "utf8").toString();
+      if (!fileContent) {
+        return null;
+      }
+
+      const runResults: RunResultsData = JSON.parse(fileContent);
+
+      return {
+        results: runResults.results,
+      };
+    } catch (error) {
+      this.terminal.error(
+        "DBTIntegrationAdapter",
+        `Unable to parse run_results.json: ${error}`,
+        error,
+      );
+      return null;
+    }
+  }
+
+  private disposeTargetWatchers(): void {
+    for (const watcher of this.targetWatchers) {
+      try {
+        watcher.close();
+      } catch (error) {
+        this.terminal.error(
+          "DBTIntegrationAdapter",
+          "Error closing target watcher",
+          error,
+        );
+      }
+    }
+    this.targetWatchers = [];
+  }
+
   // Disposal
   async dispose(): Promise<void> {
     this.stopFileWatching();
     this.stopProjectConfigWatcher();
+    this.stopTargetWatchers();
     this.currentIntegration.dispose();
     this.removeAllListeners();
   }

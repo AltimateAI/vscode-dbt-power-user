@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, writeFileSync } from "fs";
 
 import * as path from "path";
 import { PythonException } from "python-bridge";
@@ -27,8 +27,7 @@ import {
   ManifestCacheProjectAddedEvent,
 } from "./event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
-import { DBTProjectLog, DBTProjectLogFactory } from "./modules/dbtProjectLog";
-import { TargetWatchers } from "./modules/targetWatchers";
+import { DBTProjectLog } from "./dbtProjectLog";
 import { PythonEnvironment } from "./pythonEnvironment";
 import { TelemetryService } from "../telemetry";
 import {
@@ -77,7 +76,11 @@ import { AltimateAuthService } from "../services/altimateAuthService";
 import { getProjectRelativePath } from "../utils";
 import { inject } from "inversify";
 import { DBTFacade } from "./dbtFacade";
-import { DBTIntegrationAdapter, ParsedManifest } from "./dbtIntegrationAdapter";
+import {
+  DBTIntegrationAdapter,
+  ParsedManifest,
+  RunResultsEventData,
+} from "./dbtIntegrationAdapter";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -120,12 +123,10 @@ export class DBTProject implements Disposable, DBTFacade {
   constructor(
     @inject("PythonEnvironment")
     private PythonEnvironment: PythonEnvironment,
-    private dbtProjectLogFactory: DBTProjectLogFactory,
-    private targetWatchersFactory: (
-      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
-      _onRunResults: EventEmitter<RunResultsEvent>,
+    @inject("Factory<DBTProjectLog>")
+    private dbtProjectLogFactory: (
       onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
-    ) => TargetWatchers,
+    ) => DBTProjectLog,
     private dbtCommandFactory: DBTCommandFactory,
     private terminal: DBTTerminal,
     private eventEmitterService: SharedStateService,
@@ -154,6 +155,8 @@ export class DBTProject implements Disposable, DBTFacade {
         false,
       );
     }
+
+    this.dbtProjectLog = this.dbtProjectLogFactory(this.onProjectConfigChanged);
 
     // Check if dbt loom is installed for telemetry (only for core integration)
     const dbtIntegrationMode = workspace
@@ -208,13 +211,52 @@ export class DBTProject implements Disposable, DBTFacade {
       },
     );
 
+    // Handle manifestCreated events from dbtIntegrationAdapter
+    this.dbtProjectIntegration.on(
+      "manifestCreated",
+      (parsedManifest: ParsedManifest) => {
+        this.terminal.debug(
+          "DBTProject",
+          "Received manifestCreated event from dbtIntegrationAdapter",
+        );
+        const manifestCacheEvent: ManifestCacheProjectAddedEvent = {
+          project: this,
+          nodeMetaMap: parsedManifest.nodeMetaMap,
+          macroMetaMap: parsedManifest.macroMetaMap,
+          metricMetaMap: parsedManifest.metricMetaMap,
+          sourceMetaMap: parsedManifest.sourceMetaMap,
+          graphMetaMap: parsedManifest.graphMetaMap,
+          testMetaMap: parsedManifest.testMetaMap,
+          docMetaMap: parsedManifest.docMetaMap,
+          exposureMetaMap: parsedManifest.exposureMetaMap,
+          modelDepthMap: parsedManifest.modelDepthMap,
+        };
+        this._manifestCacheEvent = manifestCacheEvent;
+        this._onManifestChanged.fire({ added: [manifestCacheEvent] });
+      },
+    );
+
+    // Handle runResultsCreated events from dbtIntegrationAdapter
+    this.dbtProjectIntegration.on(
+      "runResultsCreated",
+      (runResultsData: RunResultsEventData) => {
+        this.terminal.debug(
+          "DBTProject",
+          "Received runResultsCreated event from dbtIntegrationAdapter",
+        );
+        // Extract unique_ids for cache invalidation
+        const uniqueIds = runResultsData.results.map(
+          (result) => result.unique_id,
+        );
+
+        // Fire the VSCode event with parsed unique_ids
+        const runResultsEvent = new RunResultsEvent(this, uniqueIds);
+        this._onRunResults.fire(runResultsEvent);
+      },
+    );
+
     this.disposables.push(
       this.dbtProjectIntegration,
-      this.targetWatchersFactory(
-        _onManifestChanged,
-        this._onRunResults,
-        this.onProjectConfigChanged,
-      ),
       this._onManifestChanged.event((event) => {
         const addedEvent = event.added?.find(
           (e) => e.project.projectRoot === this.projectRoot,
@@ -227,7 +269,7 @@ export class DBTProject implements Disposable, DBTFacade {
         this.onPythonEnvironmentChanged(),
       ),
       this.onRunResults((event) => {
-        this.invalidateCacheUsingLastRun(event.file);
+        this.invalidateCacheUsingUniqueIds(event.uniqueIds || []);
       }),
     );
 
@@ -253,26 +295,11 @@ export class DBTProject implements Disposable, DBTFacade {
     }
   }
 
-  private async invalidateCacheUsingLastRun(file: Uri) {
-    const fileContent = readFileSync(file.fsPath, "utf8").toString();
-    if (!fileContent) {
-      return;
-    }
-
-    try {
-      const runResults = JSON.parse(fileContent);
-      for (const n of runResults["results"]) {
-        if (n["unique_id"] in this.dbSchemaCache) {
-          delete this.dbSchemaCache[n["unique_id"]];
-        }
+  private invalidateCacheUsingUniqueIds(uniqueIds: string[]) {
+    for (const uniqueId of uniqueIds) {
+      if (uniqueId in this.dbSchemaCache) {
+        delete this.dbSchemaCache[uniqueId];
       }
-    } catch (e) {
-      this.terminal.error(
-        "invalidateCacheUsingLastRun",
-        `Unable to parse run_results.json ${e}`,
-        e,
-        true,
-      );
     }
   }
 
@@ -497,12 +524,10 @@ export class DBTProject implements Disposable, DBTFacade {
       );
     }
 
-    this.dbtProjectLog = this.dbtProjectLogFactory.createDBTProjectLog(
-      this.onProjectConfigChanged,
-    );
-
     // ensure all watchers are cleaned up
-    this.disposables.push(this.dbtProjectLog);
+    if (this.dbtProjectLog) {
+      this.disposables.push(this.dbtProjectLog);
+    }
 
     this.terminal.debug(
       "DbtProject",

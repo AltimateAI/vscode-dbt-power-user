@@ -9,17 +9,8 @@ import {
   window,
   workspace,
 } from "vscode";
-import { provideSingleton, setupWatcherHandler, stripANSI } from "../../utils";
-import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
-
-@provideSingleton(DBTProjectLogFactory)
-export class DBTProjectLogFactory {
-  createDBTProjectLog(
-    onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
-  ) {
-    return new DBTProjectLog(onProjectConfigChanged);
-  }
-}
+import { setupWatcherHandler, stripANSI } from "../utils";
+import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 
 export class DBTProjectLog implements Disposable {
   private outputChannel?: OutputChannel;

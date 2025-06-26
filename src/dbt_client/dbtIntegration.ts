@@ -16,6 +16,7 @@ import * as crypto from "crypto";
 
 export const DBT_PROJECT_FILE = "dbt_project.yml";
 export const MANIFEST_FILE = "manifest.json";
+export const RUN_RESULTS_FILE = "run_results.json";
 export const CATALOG_FILE = "catalog.json";
 export const RESOURCE_TYPE_MODEL = "model";
 export const RESOURCE_TYPE_MACRO = "macro";
