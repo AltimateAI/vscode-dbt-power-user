@@ -694,9 +694,7 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
           "json",
         ]),
       );
-      const { stderr } = await compileQueryCommand.execute(
-        new AbortController().signal,
-      );
+      const { stderr } = await compileQueryCommand.execute();
       const exception = this.processJSONErrors(stderr);
       if (exception) {
         throw exception;
