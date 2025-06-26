@@ -639,8 +639,24 @@ export async function validateSQLUsingSqlGlot(
   dialect: string,
   models: any,
 ): Promise<ValidateSqlParseErrorResponse> {
-  const result = await python?.lock<ValidateSqlParseErrorResponse>(
-    (python) => python!`to_dict(validate_sql(${query}, ${dialect}, ${models}))`,
-  );
-  return result!;
+  if (!python) {
+    throw new Error("Python bridge is not available for SQL validation");
+  }
+
+  try {
+    const result = await python.lock<ValidateSqlParseErrorResponse>(
+      (python) =>
+        python!`to_dict(validate_sql(${query}, ${dialect}, ${models}))`,
+    );
+
+    if (!result) {
+      throw new Error("SQL validation returned no result");
+    }
+
+    return result;
+  } catch (error) {
+    throw new Error(
+      `SQL validation failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 }
