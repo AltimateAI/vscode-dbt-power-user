@@ -392,12 +392,13 @@ container
   >("Factory<DBTCoreProjectIntegration>")
   .toFactory<
     DBTCoreProjectIntegration,
-    [string, DBTDiagnosticData[], DeferConfig | undefined]
+    [string, DBTDiagnosticData[], DeferConfig | undefined, () => void]
   >((context: interfaces.Context) => {
     return (
       projectRoot: string,
       projectConfigDiagnostics: DBTDiagnosticData[],
       deferConfig: DeferConfig | undefined,
+      onDiagnosticsChanged: () => void,
     ) => {
       const { container } = context;
       return new DBTCoreProjectIntegration(
@@ -413,6 +414,7 @@ container
         projectRoot,
         projectConfigDiagnostics,
         deferConfig,
+        onDiagnosticsChanged,
       );
     };
   });
@@ -423,12 +425,13 @@ container
   >("Factory<DBTCoreCommandProjectIntegration>")
   .toFactory<
     DBTCoreCommandProjectIntegration,
-    [string, DBTDiagnosticData[], DeferConfig]
+    [string, DBTDiagnosticData[], DeferConfig | undefined, () => void]
   >((context: interfaces.Context) => {
     return (
       projectRoot: string,
       projectConfigDiagnostics: DBTDiagnosticData[],
-      deferConfig: DeferConfig,
+      deferConfig: DeferConfig | undefined,
+      onDiagnosticsChanged: () => void,
     ) => {
       const { container } = context;
       return new DBTCoreCommandProjectIntegration(
@@ -444,6 +447,7 @@ container
         projectRoot,
         projectConfigDiagnostics,
         deferConfig,
+        onDiagnosticsChanged,
       );
     };
   });
@@ -454,12 +458,13 @@ container
   >("Factory<DBTFusionCommandProjectIntegration>")
   .toFactory<
     DBTFusionCommandProjectIntegration,
-    [string, DBTDiagnosticData[], DeferConfig]
+    [string, DBTDiagnosticData[], DeferConfig | undefined, () => void]
   >((context: interfaces.Context) => {
     return (
       projectRoot: string,
       projectConfigDiagnostics: DBTDiagnosticData[],
-      deferConfig: DeferConfig,
+      deferConfig: DeferConfig | undefined,
+      onDiagnosticsChanged: () => void,
     ) => {
       const { container } = context;
       return new DBTFusionCommandProjectIntegration(
@@ -471,6 +476,7 @@ container
         projectRoot,
         projectConfigDiagnostics,
         deferConfig,
+        onDiagnosticsChanged,
       );
     };
   });
@@ -481,12 +487,13 @@ container
   >("Factory<DBTCloudProjectIntegration>")
   .toFactory<
     DBTCloudProjectIntegration,
-    [string, DBTDiagnosticData[], DeferConfig]
+    [string, DBTDiagnosticData[], DeferConfig | undefined, () => void]
   >((context: interfaces.Context) => {
     return (
       projectRoot: string,
       projectConfigDiagnostics: DBTDiagnosticData[],
-      deferConfig: DeferConfig,
+      deferConfig: DeferConfig | undefined,
+      onDiagnosticsChanged: () => void,
     ) => {
       const { container } = context;
       return new DBTCloudProjectIntegration(
@@ -498,6 +505,7 @@ container
         projectRoot,
         projectConfigDiagnostics,
         deferConfig,
+        onDiagnosticsChanged,
       );
     };
   });

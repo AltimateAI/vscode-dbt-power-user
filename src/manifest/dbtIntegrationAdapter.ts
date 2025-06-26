@@ -100,21 +100,25 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
       projectRoot: string,
       diagnostics: DBTDiagnosticData[],
       deferConfig: DeferConfig | undefined,
+      onDiagnosticsChanged: () => void,
     ) => DBTProjectIntegration,
     private dbtCloudIntegrationFactory: (
       projectRoot: string,
       diagnostics: DBTDiagnosticData[],
       deferConfig: DeferConfig | undefined,
+      onDiagnosticsChanged: () => void,
     ) => DBTProjectIntegration,
     private dbtFusionIntegrationFactory: (
       projectRoot: string,
       diagnostics: DBTDiagnosticData[],
       deferConfig: DeferConfig | undefined,
+      onDiagnosticsChanged: () => void,
     ) => DBTProjectIntegration,
     private dbtCoreCommandIntegrationFactory: (
       projectRoot: string,
       diagnostics: DBTDiagnosticData[],
       deferConfig: DeferConfig | undefined,
+      onDiagnosticsChanged: () => void,
     ) => DBTProjectIntegration,
     private projectRoot: string,
     private deferConfig: DeferConfig | undefined,
@@ -137,30 +141,36 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
   private createIntegration(): DBTProjectIntegration {
     const integrationMode = this.dbtConfiguration.getDbtIntegration();
 
+    const onDiagnosticsChanged = () => this.emit("diagnosticsChanged");
+
     switch (integrationMode) {
       case "cloud":
         return this.dbtCloudIntegrationFactory(
           this.projectRoot,
           this.projectConfigDiagnostics,
           this.deferConfig,
+          onDiagnosticsChanged,
         );
       case "fusion":
         return this.dbtFusionIntegrationFactory(
           this.projectRoot,
           this.projectConfigDiagnostics,
           this.deferConfig,
+          onDiagnosticsChanged,
         );
       case "corecommand":
         return this.dbtCoreCommandIntegrationFactory(
           this.projectRoot,
           this.projectConfigDiagnostics,
           this.deferConfig,
+          onDiagnosticsChanged,
         );
       default: // "core"
         return this.dbtCoreIntegrationFactory(
           this.projectRoot,
           this.projectConfigDiagnostics,
           this.deferConfig,
+          onDiagnosticsChanged,
         );
     }
   }
@@ -228,20 +238,19 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
   }
 
   getDiagnostics() {
-    return {
-      projectConfigDiagnostics: this.projectConfigDiagnostics,
-      ...this.currentIntegration.getDiagnostics(),
-    };
+    this.currentIntegration.getDiagnostics();
   }
 
   private addProjectConfigDiagnostic(diagnostic: DBTDiagnosticData): void {
     // Add to project config diagnostics array
     this.projectConfigDiagnostics.push(diagnostic);
+    this.emit("diagnosticsChanged");
   }
 
   private clearProjectConfigDiagnostics(): void {
     // Clear project config diagnostics
     this.projectConfigDiagnostics.length = 0;
+    this.emit("diagnosticsChanged");
   }
 
   getAdapterType(): string {

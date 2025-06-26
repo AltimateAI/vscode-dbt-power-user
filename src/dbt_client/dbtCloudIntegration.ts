@@ -156,6 +156,7 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
     protected projectRoot: string,
     private projectConfigDiagnostics: DBTDiagnosticData[],
     private deferConfig: DeferConfig | undefined,
+    private onDiagnosticsChanged: () => void,
   ) {
     this.terminal.debug(
       "DBTCloudProjectIntegration",
@@ -319,6 +320,7 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
     return {
       pythonBridgeDiagnostics: this.pythonBridgeDiagnosticsData,
       rebuildManifestDiagnostics: this.rebuildManifestDiagnosticsData,
+      projectConfigDiagnostics: this.projectConfigDiagnostics,
     };
   }
 
@@ -384,6 +386,7 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
         )
         .map((line) => line.info.msg);
       this.rebuildManifestDiagnosticsData = [];
+      this.onDiagnosticsChanged();
       const filePath = path.join(this.projectRoot, DBT_PROJECT_FILE);
       const diagnosticDataArray: DBTDiagnosticData[] = [
         ...errors.map((error) => ({
@@ -404,6 +407,7 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
         })),
       ];
       this.rebuildManifestDiagnosticsData = diagnosticDataArray;
+      this.onDiagnosticsChanged();
     } catch (error) {
       this.terminal.error(
         "dbtCloudCannotParseProjectCommandExecuteError",
@@ -427,6 +431,7 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
         category: "command-execution",
       };
       this.rebuildManifestDiagnosticsData = [diagnosticData];
+      this.onDiagnosticsChanged();
     }
   }
 
@@ -986,6 +991,7 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
     } catch (error) {} // We don't care about errors here.
     this.rebuildManifestDiagnosticsData = [];
     this.pythonBridgeDiagnosticsData = [];
+    this.onDiagnosticsChanged();
     while (this.disposables.length) {
       const x = this.disposables.pop();
       if (x) {

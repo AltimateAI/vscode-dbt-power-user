@@ -77,6 +77,7 @@ import {
   ParsedManifest,
   RunResultsEventData,
 } from "./dbtIntegrationAdapter";
+import { DBTDiagnosticData } from "../dbt_client/diagnostics";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -99,11 +100,21 @@ export class DBTProject implements Disposable, DBTFacade {
   private _onSourceFileChanged = new EventEmitter<void>();
   public onSourceFileChanged = this._onSourceFileChanged.event;
   private dbtProjectLog?: DBTProjectLog;
+  public readonly projectHealth = languages.createDiagnosticCollection("dbt");
+  public readonly pythonBridgeDiagnostics =
+    languages.createDiagnosticCollection("dbt-python-bridge");
+  public readonly rebuildManifestDiagnostics =
+    languages.createDiagnosticCollection("dbt-rebuild-manifest");
+  public readonly projectConfigDiagnostics =
+    languages.createDiagnosticCollection("dbt-project-config");
   private disposables: Disposable[] = [
     this._onProjectConfigChanged,
     this._onSourceFileChanged,
+    this.projectHealth,
+    this.pythonBridgeDiagnostics,
+    this.rebuildManifestDiagnostics,
+    this.projectConfigDiagnostics,
   ];
-  public readonly projectHealth = languages.createDiagnosticCollection("dbt");
   private _onRebuildManifestStatusChange =
     new EventEmitter<RebuildManifestStatusChange>();
   readonly onRebuildManifestStatusChange =
@@ -250,6 +261,15 @@ export class DBTProject implements Disposable, DBTFacade {
         this._onRunResults.fire(runResultsEvent);
       },
     );
+
+    // Handle diagnosticsChanged events from dbtIntegrationAdapter
+    this.dbtProjectIntegration.on("diagnosticsChanged", () => {
+      this.terminal.debug(
+        "DBTProject",
+        "Received diagnosticsChanged event from dbtIntegrationAdapter",
+      );
+      this.updateDiagnosticsInProblemsPanel();
+    });
 
     this.disposables.push(
       this.dbtProjectIntegration,
@@ -439,6 +459,49 @@ export class DBTProject implements Disposable, DBTFacade {
       default:
         return DiagnosticSeverity.Error;
     }
+  }
+
+  private convertDiagnosticDataToVSCode(data: DBTDiagnosticData): Diagnostic {
+    return new Diagnostic(
+      new Range(
+        data.range?.startLine || 0,
+        data.range?.startColumn || 0,
+        data.range?.endLine || 999,
+        data.range?.endColumn || 999,
+      ),
+      data.message,
+      this.mapSeverityToVSCode(data.severity),
+    );
+  }
+
+  updateDiagnosticsInProblemsPanel(): void {
+    const projectURI = Uri.file(
+      path.join(this.projectRoot.fsPath, DBT_PROJECT_FILE),
+    );
+    const integrationDiagnostics =
+      this.getCurrentProjectIntegration().getDiagnostics();
+
+    // Update each diagnostic collection separately
+    this.pythonBridgeDiagnostics.set(
+      projectURI,
+      integrationDiagnostics.pythonBridgeDiagnostics.map((data) =>
+        this.convertDiagnosticDataToVSCode(data),
+      ),
+    );
+
+    this.rebuildManifestDiagnostics.set(
+      projectURI,
+      integrationDiagnostics.rebuildManifestDiagnostics.map((data) =>
+        this.convertDiagnosticDataToVSCode(data),
+      ),
+    );
+
+    this.projectConfigDiagnostics.set(
+      projectURI,
+      integrationDiagnostics.projectConfigDiagnostics.map((data) =>
+        this.convertDiagnosticDataToVSCode(data),
+      ),
+    );
   }
 
   async performDatapilotHealthcheck(args: DataPilotHealtCheckParams) {
@@ -1742,7 +1805,12 @@ export class DBTProject implements Disposable, DBTFacade {
     }
 
     // Check VSCode diagnostic collections
-    const vscodeCollections: DiagnosticCollection[] = [this.projectHealth];
+    const vscodeCollections: DiagnosticCollection[] = [
+      this.projectHealth,
+      this.pythonBridgeDiagnostics,
+      this.rebuildManifestDiagnostics,
+      this.projectConfigDiagnostics,
+    ];
 
     for (const diagnosticCollection of vscodeCollections) {
       for (const [_, diagnostics] of diagnosticCollection) {

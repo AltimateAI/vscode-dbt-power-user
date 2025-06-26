@@ -223,6 +223,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
     protected projectRoot: string,
     private projectConfigDiagnostics: DBTDiagnosticData[],
     private deferConfig: DeferConfig | undefined,
+    private onDiagnosticsChanged: () => void,
   ) {
     this.dbtTerminal.debug(
       "DBTCoreProjectIntegration",
@@ -430,6 +431,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
       }
       await this.createPythonDbtProject(this.python);
       this.pythonBridgeDiagnosticsData = [];
+      this.onDiagnosticsChanged();
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         // python errors can be about anything, so we just associate the error with the project file
@@ -457,6 +459,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
           category: "python-bridge",
         };
         this.pythonBridgeDiagnosticsData = [diagnosticData];
+        this.onDiagnosticsChanged();
       }
       this.dbtTerminal.error(
         "pythonBridgeInitPythonError",
@@ -540,6 +543,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
     return {
       pythonBridgeDiagnostics: this.pythonBridgeDiagnosticsData,
       rebuildManifestDiagnostics: this.rebuildManifestDiagnosticsData,
+      projectConfigDiagnostics: this.projectConfigDiagnostics,
     };
   }
 
@@ -557,6 +561,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
         (python) => python`to_dict(project.safe_parse_project())`,
       );
       this.rebuildManifestDiagnosticsData = [];
+      this.onDiagnosticsChanged();
     } catch (exc) {
       if (exc instanceof PythonException) {
         // dbt errors can be about anything, so we just associate the error with the project file
@@ -573,6 +578,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
           category: "manifest-rebuild",
         };
         this.rebuildManifestDiagnosticsData = [diagnosticData];
+        this.onDiagnosticsChanged();
         return;
       }
       this.dbtTerminal.error(
@@ -1030,6 +1036,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
     } catch (error) {} // We don't care about errors here.
     this.rebuildManifestDiagnosticsData = [];
     this.pythonBridgeDiagnosticsData = [];
+    this.onDiagnosticsChanged();
     while (this.disposables.length) {
       const x = this.disposables.pop();
       if (x) {

@@ -15,6 +15,5 @@ export interface DBTDiagnosticData {
 export interface DBTDiagnosticResult {
   pythonBridgeDiagnostics: DBTDiagnosticData[];
   rebuildManifestDiagnostics: DBTDiagnosticData[];
-  // This is only available on dbtIntegrationAdapter
-  projectConfigDiagnostics?: DBTDiagnosticData[];
+  projectConfigDiagnostics: DBTDiagnosticData[];
 }

@@ -512,13 +512,6 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
     return stdout;
   }
 
-  getDiagnostics(): DBTDiagnosticResult {
-    return {
-      pythonBridgeDiagnostics: this.pythonBridgeDiagnosticsData,
-      rebuildManifestDiagnostics: this.rebuildManifestDiagnosticsData,
-    };
-  }
-
   getDeferConfigDefaults(): DeferConfig {
     return {
       deferToProduction: true,
