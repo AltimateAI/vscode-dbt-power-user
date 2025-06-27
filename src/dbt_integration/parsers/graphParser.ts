@@ -1,4 +1,3 @@
-import { provide } from "inversify-binding-decorators";
 import {
   Analysis,
   Exposure,
@@ -17,7 +16,6 @@ import {
   TestMetaMap,
 } from "../domain";
 import { DBTTerminal } from "../terminal";
-import { inject } from "inversify";
 import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
 
 const notEmpty = <T>(value: T | null | undefined): value is T => {
@@ -28,12 +26,8 @@ export type DBTGraphType = {
   [name: string]: string[];
 };
 
-@provide(GraphParser)
 export class GraphParser {
-  constructor(
-    @inject("DBTTerminal")
-    private terminal: DBTTerminal,
-  ) {}
+  constructor(private terminal: DBTTerminal) {}
 
   createGraphMetaMap(
     project: DBTIntegrationAdapter,

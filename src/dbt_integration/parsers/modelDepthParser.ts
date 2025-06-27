@@ -1,16 +1,13 @@
-import { provide } from "inversify-binding-decorators";
 import { DBTTerminal } from "../../dbt_integration/terminal";
 import { DBTGraphType } from "./graphParser";
 import { AltimateRequest } from "../../altimate";
 import { workspace } from "vscode";
-import { inject } from "inversify";
+import { DbtIntegrationClient } from "../dbtIntegrationClient";
 
-@provide(ModelDepthParser)
 export class ModelDepthParser {
   constructor(
-    @inject("DBTTerminal")
     private terminal: DBTTerminal,
-    private altimate: AltimateRequest,
+    private dbtIntegrationClient: DbtIntegrationClient,
   ) {}
 
   public createModelDepthsMap(
@@ -30,8 +27,9 @@ export class ModelDepthParser {
       return new Map<string, number>();
     }
 
-    // Check if API key is available
-    if (!this.altimate.enabled()) {
+    try {
+      this.dbtIntegrationClient.throwIfNotAuthenticated();
+    } catch (_error) {
       this.terminal.debug(
         "ModelDepthParser",
         "Skipping model depth calculation - Altimate API key not configured",

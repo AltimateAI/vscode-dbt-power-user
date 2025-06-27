@@ -1,15 +1,9 @@
-import { provide } from "inversify-binding-decorators";
 import { DBTTerminal } from "../terminal";
 import { MetricMetaMap } from "../domain";
-import { inject } from "inversify";
 import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
 
-@provide(MetricParser)
 export class MetricParser {
-  constructor(
-    @inject("DBTTerminal")
-    private terminal: DBTTerminal,
-  ) {}
+  constructor(private terminal: DBTTerminal) {}
 
   createMetricMetaMap(
     metrics: any[],

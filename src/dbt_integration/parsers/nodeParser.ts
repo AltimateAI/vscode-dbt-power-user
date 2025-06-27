@@ -1,10 +1,8 @@
-import { provide } from "inversify-binding-decorators";
 import { NodeMetaData, NodeMetaMap } from "../domain";
 import { createFullPathForNode } from "./utils";
 import { DBTTerminal } from "../../dbt_integration/terminal";
 import { getExternalProjectNamesFromDbtLoomConfig } from "../../utils";
 import * as path from "path";
-import { inject } from "inversify";
 import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
 import { isResourceNode } from "../dbtIntegration";
 
@@ -36,12 +34,8 @@ export class NodeMetaMapImpl implements NodeMetaMap {
   }
 }
 
-@provide(NodeParser)
 export class NodeParser {
-  constructor(
-    @inject("DBTTerminal")
-    private terminal: DBTTerminal,
-  ) {}
+  constructor(private terminal: DBTTerminal) {}
 
   createNodeMetaMap(
     nodesMap: any[],

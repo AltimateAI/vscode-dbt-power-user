@@ -1,7 +1,7 @@
-import { Disposable, Event, Uri } from "vscode";
+import { Event, Uri } from "vscode";
 import { EnvironmentVariables } from "./domain";
 
-export interface PythonEnvironment extends Disposable {
+export interface PythonEnvironment {
   readonly allPythonPaths: { path: string; pathType: string }[];
   readonly isPython3: boolean;
   readonly pythonPath: string;
@@ -11,4 +11,6 @@ export interface PythonEnvironment extends Disposable {
   initialize(): Promise<void>;
   printEnvVars(): Promise<void>;
   getResolvedConfigValue(key: string): string;
+
+  dispose(): Promise<void>;
 }

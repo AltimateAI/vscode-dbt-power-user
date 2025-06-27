@@ -69,6 +69,60 @@ import { TestParser } from "./dbt_integration/parsers/testParser";
 export const container = new Container();
 container.load(buildProviderModule());
 
+// Bind parser classes
+container
+  .bind(ChildrenParentParser)
+  .toDynamicValue(() => new ChildrenParentParser());
+container
+  .bind(NodeParser)
+  .toDynamicValue(
+    (context) => new NodeParser(context.container.get("DBTTerminal")),
+  );
+container
+  .bind(MacroParser)
+  .toDynamicValue(
+    (context) => new MacroParser(context.container.get("DBTTerminal")),
+  );
+container
+  .bind(MetricParser)
+  .toDynamicValue(
+    (context) => new MetricParser(context.container.get("DBTTerminal")),
+  );
+container
+  .bind(GraphParser)
+  .toDynamicValue(
+    (context) => new GraphParser(context.container.get("DBTTerminal")),
+  );
+container
+  .bind(SourceParser)
+  .toDynamicValue(
+    (context) => new SourceParser(context.container.get("DBTTerminal")),
+  );
+container
+  .bind(TestParser)
+  .toDynamicValue(
+    (context) => new TestParser(context.container.get("DBTTerminal")),
+  );
+container
+  .bind(ExposureParser)
+  .toDynamicValue(
+    (context) => new ExposureParser(context.container.get("DBTTerminal")),
+  );
+container
+  .bind(DocParser)
+  .toDynamicValue(
+    (context) => new DocParser(context.container.get("DBTTerminal")),
+  );
+container
+  .bind(ModelDepthParser)
+  .toDynamicValue(
+    (context) =>
+      new ModelDepthParser(
+        context.container.get("DBTTerminal"),
+        context.container.get(DbtIntegrationClient),
+      ),
+  );
+
 // Bind core dbt integration classes using factory functions
 container
   .bind(CLIDBTCommandExecutionStrategy)

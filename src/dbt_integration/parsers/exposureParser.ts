@@ -1,17 +1,11 @@
-import { provide } from "inversify-binding-decorators";
 import * as path from "path";
 import { ExposureMetaMap } from "../domain";
 import { DBTTerminal } from "../terminal";
-import { inject } from "inversify";
 import { RESOURCE_TYPE_EXPOSURE } from "../dbtIntegration";
 import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
 
-@provide(ExposureParser)
 export class ExposureParser {
-  constructor(
-    @inject("DBTTerminal")
-    private terminal: DBTTerminal,
-  ) {}
+  constructor(private terminal: DBTTerminal) {}
 
   createExposureMetaMap(
     exposuresMap: any[],

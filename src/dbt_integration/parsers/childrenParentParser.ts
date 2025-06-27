@@ -1,7 +1,5 @@
-import { provide } from "inversify-binding-decorators";
 import { DBTGraphType } from "./graphParser";
 
-@provide(ChildrenParentParser)
 export class ChildrenParentParser {
   createChildrenParentMetaMap(
     nodesMap: any[],

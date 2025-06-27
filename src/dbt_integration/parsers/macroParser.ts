@@ -1,17 +1,11 @@
 import { readFileSync } from "fs";
-import { provide } from "inversify-binding-decorators";
 import { DBTTerminal } from "../terminal";
 import { MacroMetaMap } from "../domain";
-import { inject } from "inversify";
 import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
 import { createFullPathForNode } from "./utils";
 
-@provide(MacroParser)
 export class MacroParser {
-  constructor(
-    @inject("DBTTerminal")
-    private terminal: DBTTerminal,
-  ) {}
+  constructor(private terminal: DBTTerminal) {}
 
   createMacroMetaMap(
     macros: any[],

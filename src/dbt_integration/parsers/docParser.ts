@@ -1,17 +1,11 @@
 import { readFileSync } from "fs";
-import { provide } from "inversify-binding-decorators";
 import { DBTTerminal } from "../terminal";
 import { DocMetaMap } from "../domain";
-import { inject } from "inversify";
 import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
 import { createFullPathForNode } from "./utils";
 
-@provide(DocParser)
 export class DocParser {
-  constructor(
-    @inject("DBTTerminal")
-    private terminal: DBTTerminal,
-  ) {}
+  constructor(private terminal: DBTTerminal) {}
 
   createDocMetaMap(
     docs: any,
