@@ -1,5 +1,3 @@
-import * as path from "path";
-
 export type MacroMetaMap = Map<string, MacroMetaData>;
 export type MetricMetaMap = Map<string, MetricMetaData>;
 export type SourceMetaMap = Map<string, SourceMetaData>;
@@ -8,6 +6,30 @@ export type ExposureMetaMap = Map<string, ExposureMetaData>;
 export type DocMetaMap = Map<string, DocMetaData>;
 export type NodeMetaType = NodeMetaData;
 export type SourceMetaType = SourceTable;
+
+export interface ParsedManifest {
+  nodeMetaMap: NodeMetaMap;
+  macroMetaMap: MacroMetaMap;
+  metricMetaMap: MetricMetaMap;
+  sourceMetaMap: SourceMetaMap;
+  graphMetaMap: GraphMetaMap;
+  testMetaMap: TestMetaMap;
+  docMetaMap: DocMetaMap;
+  exposureMetaMap: ExposureMetaMap;
+  modelDepthMap: Map<string, number>;
+}
+
+export interface RunResultsData {
+  results: Array<{
+    unique_id: string;
+  }>;
+}
+
+export interface RunResultsEventData {
+  results: Array<{
+    unique_id: string;
+  }>;
+}
 
 type ConfigOption =
   | { configPath: string; configType: "Manual" }

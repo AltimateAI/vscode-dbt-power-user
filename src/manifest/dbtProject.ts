@@ -43,10 +43,7 @@ import {
   DBTCommand,
   validateSQLUsingSqlGlot,
   DBT_PROJECT_FILE,
-  RESOURCE_TYPE_ANALYSIS,
   RESOURCE_TYPE_MODEL,
-  RESOURCE_TYPE_SEED,
-  RESOURCE_TYPE_SNAPSHOT,
   RESOURCE_TYPE_SOURCE,
   MANIFEST_FILE,
   CATALOG_FILE,
@@ -64,6 +61,8 @@ import {
   ColumnMetaData,
   DataPilotHealtCheckParams,
   NodeMetaData,
+  ParsedManifest,
+  RunResultsEventData,
   Table,
 } from "../dbt_integration/domain";
 import { SharedStateService } from "../services/sharedStateService";
@@ -74,11 +73,7 @@ import { AltimateAuthService } from "../services/altimateAuthService";
 import { getProjectRelativePath } from "../utils";
 import { inject } from "inversify";
 import { DBTFacade } from "../dbt_integration/dbtFacade";
-import {
-  DBTProjectIntegrationAdapter,
-  ParsedManifest,
-  RunResultsEventData,
-} from "../dbt_integration/dbtIntegrationAdapter";
+import { DBTProjectIntegrationAdapter } from "../dbt_integration/dbtIntegrationAdapter";
 import { DBTDiagnosticData } from "../dbt_integration/diagnostics";
 
 interface FileNameTemplateMap {

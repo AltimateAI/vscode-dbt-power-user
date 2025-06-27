@@ -18,15 +18,11 @@ import {
 import { ProjectHealthcheck } from "./dbtCoreIntegration";
 import {
   DataPilotHealtCheckParams,
-  DocMetaMap,
-  ExposureMetaMap,
   GraphMetaMap,
-  MacroMetaMap,
-  MetricMetaMap,
-  NodeMetaMap,
-  SourceMetaMap,
+  ParsedManifest,
+  RunResultsData,
+  RunResultsEventData,
   Table,
-  TestMetaMap,
 } from "./domain";
 import { DBTConfiguration } from "./configuration";
 import { DBTFacade } from "./dbtFacade";
@@ -56,30 +52,6 @@ export const debounce = (fn: (args: unknown) => void, wait: number) => {
     timeout = setTimeout(fn, wait);
   };
 };
-
-export interface ParsedManifest {
-  nodeMetaMap: NodeMetaMap;
-  macroMetaMap: MacroMetaMap;
-  metricMetaMap: MetricMetaMap;
-  sourceMetaMap: SourceMetaMap;
-  graphMetaMap: GraphMetaMap;
-  testMetaMap: TestMetaMap;
-  docMetaMap: DocMetaMap;
-  exposureMetaMap: ExposureMetaMap;
-  modelDepthMap: Map<string, number>;
-}
-
-export interface RunResultsData {
-  results: Array<{
-    unique_id: string;
-  }>;
-}
-
-export interface RunResultsEventData {
-  results: Array<{
-    unique_id: string;
-  }>;
-}
 
 /**
  * DBTProjectIntegrationAdapter provides a framework-agnostic implementation of DBTFacade
