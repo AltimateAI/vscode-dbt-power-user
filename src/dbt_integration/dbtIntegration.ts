@@ -13,7 +13,37 @@ import { DBTConfiguration } from "./configuration";
 import path from "path";
 import { parse } from "yaml";
 import * as crypto from "crypto";
-import { combineAbortSignals } from "../utils";
+
+function combineAbortSignals(
+  ...signals: (AbortSignal | undefined)[]
+): AbortSignal | undefined {
+  // Filter out undefined signals
+  const validSignals = signals.filter(
+    (signal): signal is AbortSignal => signal !== undefined,
+  );
+
+  if (validSignals.length === 0) {
+    return undefined;
+  }
+
+  if (validSignals.length === 1) {
+    return validSignals[0];
+  }
+
+  // Create a combined signal if multiple signals are provided
+  const controller = new AbortController();
+  const combinedSignal = controller.signal;
+
+  validSignals.forEach((signal) => {
+    if (signal.aborted) {
+      controller.abort();
+    } else {
+      signal.addEventListener("abort", () => controller.abort());
+    }
+  });
+
+  return combinedSignal;
+}
 
 export const DBT_PROJECT_FILE = "dbt_project.yml";
 export const MANIFEST_FILE = "manifest.json";
