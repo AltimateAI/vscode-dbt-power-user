@@ -7,7 +7,7 @@ import {
   provideSingleton,
   removeProtocol,
 } from "../../utils";
-import { createFullPathForNode } from "../../manifest/parsers";
+import { createFullPathForNode } from "../../manifest/manifestParser";
 
 @provideSingleton(StaleModelColumnTest)
 export class StaleModelColumnTest implements AltimateScanStep {

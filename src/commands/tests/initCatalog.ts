@@ -1,4 +1,4 @@
-import { Catalog } from "../../dbt_client/dbtIntegration";
+import { Catalog } from "../../dbt_integration/dbtIntegration";
 import { provideSingleton } from "../../utils";
 import { ScanContext } from "./scanContext";
 import { AltimateScanStep } from "./step";

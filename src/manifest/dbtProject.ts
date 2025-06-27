@@ -19,7 +19,7 @@ import {
   window,
   workspace,
 } from "vscode";
-import { DBTTerminal } from "../dbt_client/terminal";
+import { DBTTerminal } from "../dbt_integration/terminal";
 import { extendErrorWithSupportLinks, getColumnNameByCase } from "../utils";
 import {
   ManifestCacheChangedEvent,
@@ -28,7 +28,7 @@ import {
 } from "./event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 import { DBTProjectLog } from "./dbtProjectLog";
-import { PythonEnvironment } from "./pythonEnvironment";
+import { PythonEnvironment } from "../dbt_integration/pythonEnvironment";
 import { TelemetryService } from "../telemetry";
 import {
   DBTProjectIntegration,
@@ -52,10 +52,12 @@ import {
   CATALOG_FILE,
   DBTCommandExecution,
   DeferConfig,
-} from "../dbt_client/dbtIntegration";
-import { ProjectHealthcheck } from "../dbt_client/dbtCoreIntegration";
+  isResourceNode,
+  isResourceHasDbColumns,
+} from "../dbt_integration/dbtIntegration";
+import { ProjectHealthcheck } from "../dbt_integration/dbtCoreIntegration";
 import { AltimateRequest } from "../altimate";
-import { NoCredentialsError } from "../services/altimateHttpClient";
+import { NoCredentialsError } from "../dbt_integration/altimateHttpClient";
 import { ValidationProvider } from "../validation_provider";
 import { ModelNode } from "../altimate";
 import {
@@ -63,7 +65,7 @@ import {
   DataPilotHealtCheckParams,
   NodeMetaData,
   Table,
-} from "../domain";
+} from "../dbt_integration/domain";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryEvents } from "../telemetry/events";
 import { RunResultsEvent } from "./event/runResultsEvent";
@@ -71,13 +73,13 @@ import { DeferToProdService } from "../services/deferToProdService";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { getProjectRelativePath } from "../utils";
 import { inject } from "inversify";
-import { DBTFacade } from "./dbtFacade";
+import { DBTFacade } from "../dbt_integration/dbtFacade";
 import {
   DBTIntegrationAdapter,
   ParsedManifest,
   RunResultsEventData,
-} from "./dbtIntegrationAdapter";
-import { DBTDiagnosticData } from "../dbt_client/diagnostics";
+} from "../dbt_integration/dbtIntegrationAdapter";
+import { DBTDiagnosticData } from "../dbt_integration/diagnostics";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -1515,20 +1517,12 @@ export class DBTProject implements Disposable, DBTFacade {
     }
   }
 
-  static isResourceNode(resource_type: string): boolean {
-    return (
-      resource_type === RESOURCE_TYPE_MODEL ||
-      resource_type === RESOURCE_TYPE_SEED ||
-      resource_type === RESOURCE_TYPE_ANALYSIS ||
-      resource_type === RESOURCE_TYPE_SNAPSHOT
-    );
+  static isResourceNode(resourceType: string): boolean {
+    return isResourceNode(resourceType);
   }
-  static isResourceHasDbColumns(resource_type: string): boolean {
-    return (
-      resource_type === RESOURCE_TYPE_MODEL ||
-      resource_type === RESOURCE_TYPE_SEED ||
-      resource_type === RESOURCE_TYPE_SNAPSHOT
-    );
+
+  static isResourceHasDbColumns(resourceType: string): boolean {
+    return isResourceHasDbColumns(resourceType);
   }
 
   getNonEphemeralParents(keys: string[]): string[] {

@@ -1,10 +1,10 @@
 import { provide } from "inversify-binding-decorators";
-import { DBTTerminal } from "../../dbt_client/terminal";
-import { DBTProject } from "../dbtProject";
-import { ManifestCacheChangedEvent } from "../event/manifestCacheChangedEvent";
-import { TelemetryService } from "../../telemetry";
+import { DBTTerminal } from "../dbt_integration/terminal";
+import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
+import { TelemetryService } from "../telemetry";
 import { inject } from "inversify";
-import { hashProjectRoot } from "../../dbt_client/dbtIntegration";
+import { hashProjectRoot } from "../dbt_integration/dbtIntegration";
+import { DBTProject } from "./dbtProject";
 
 @provide(ManifestParser)
 export class ManifestParser {
@@ -87,4 +87,4 @@ export class ManifestParser {
   }
 }
 
-export { createFullPathForNode } from "./utils";
+export { createFullPathForNode } from "../dbt_integration/parsers/utils";

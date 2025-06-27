@@ -9,52 +9,13 @@ import {
   Uri,
   workspace,
   window,
-  CancellationToken,
 } from "vscode";
 import { readFileSync } from "fs";
 import { parse, parseDocument } from "yaml";
 import {
   TestMetadataAcceptedValues,
   TestMetadataRelationships,
-} from "./domain";
-
-export function convertAbortSignalToCancellationToken(
-  signal: AbortSignal,
-): CancellationToken {
-  return {
-    get isCancellationRequested() {
-      return signal.aborted;
-    },
-    onCancellationRequested: (
-      listener: (e: any) => any,
-      thisArgs?: any,
-      disposables?: Disposable[],
-    ) => {
-      const handler = () => {
-        if (thisArgs) {
-          listener.apply(thisArgs, [null]);
-        } else {
-          listener(null);
-        }
-      };
-
-      // If the signal is already aborted, invoke the listener immediately
-      if (signal.aborted) {
-        // Use setTimeout to make it asynchronous, mimicking VS Code's behavior
-        setTimeout(handler, 0);
-      }
-
-      signal.addEventListener("abort", handler);
-      const disposable = new Disposable(() =>
-        signal.removeEventListener("abort", handler),
-      );
-      if (disposables) {
-        disposables.push(disposable);
-      }
-      return disposable;
-    },
-  };
-}
+} from "./dbt_integration/domain";
 
 export const isEnclosedWithinCodeBlock = (
   document: TextDocument,
@@ -111,10 +72,6 @@ export const isEnclosedWithinCodeBlock = (
     isWithinCodeBlock(start, "desc", "{", "}") &&
     isWithinCodeBlock(end, "asc", "}", "{")
   );
-};
-
-export const notEmpty = <T>(value: T | null | undefined): value is T => {
-  return value !== null && value !== undefined;
 };
 
 export const arrayEquals = <T>(a: Array<T>, b: Array<T>): boolean => {

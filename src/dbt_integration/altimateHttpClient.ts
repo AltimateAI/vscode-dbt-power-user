@@ -1,9 +1,7 @@
-import { DBTConfiguration } from "../dbt_client/configuration";
-import { DBTTerminal } from "../dbt_client/terminal";
+import { DBTConfiguration } from "./configuration";
+import { DBTTerminal } from "./terminal";
 import type { RequestInit, Response as NodeFetchResponse } from "node-fetch";
 import { createReadStream, ReadStream } from "fs";
-import { RateLimitException } from "../exceptions/rateLimitException";
-import { ExecutionsExhaustedException } from "../exceptions/executionsExhaustedException";
 
 export class NoCredentialsError extends Error {}
 
@@ -12,6 +10,24 @@ export class NotFoundError extends Error {}
 export class ForbiddenError extends Error {
   constructor() {
     super("Invalid credentials. Please check instance name and API Key.");
+  }
+}
+
+export class RateLimitException extends Error {
+  public retryAfter: number;
+  constructor(msg: string, retryAfter: number) {
+    super(msg);
+
+    this.retryAfter = retryAfter;
+    Object.setPrototypeOf(this, RateLimitException.prototype);
+  }
+}
+
+export class ExecutionsExhaustedException extends Error {
+  constructor(msg: string) {
+    super(msg);
+
+    Object.setPrototypeOf(this, ExecutionsExhaustedException.prototype);
   }
 }
 
@@ -90,6 +106,14 @@ export class AltimateHttpClient {
     throw new Error(
       `Cannot use ${endpoint} in local mode. Please switch to cloud mode in settings.`,
     );
+  }
+
+  public throwIfNotAuthenticated() {
+    if (!this.getConfig()) {
+      throw new Error(
+        "To use this feature, please add an API Key and an instance name in the settings.",
+      );
+    }
   }
 
   public async internalFetch(

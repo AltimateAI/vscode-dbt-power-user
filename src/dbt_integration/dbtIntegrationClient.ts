@@ -2,8 +2,8 @@ import { AltimateHttpClient } from "./altimateHttpClient";
 import { join } from "path";
 import { createWriteStream, mkdirSync } from "fs";
 import * as os from "os";
-import { hashProjectRoot } from "../dbt_client/dbtIntegration";
-import { DBTTerminal } from "../dbt_client/terminal";
+import { hashProjectRoot } from "./dbtIntegration";
+import { DBTTerminal } from "./terminal";
 
 interface DownloadArtifactResponse {
   url: string;
@@ -19,6 +19,10 @@ export class DbtIntegrationClient {
     private altimateHttpClient: AltimateHttpClient,
     private dbtTerminal: DBTTerminal,
   ) {}
+
+  throwIfNotAuthenticated() {
+    return this.altimateHttpClient.throwIfNotAuthenticated();
+  }
 
   /**
    * Send defer-to-production event for analytics tracking

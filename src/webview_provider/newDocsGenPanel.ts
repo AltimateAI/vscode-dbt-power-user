@@ -9,7 +9,7 @@ import {
   workspace,
 } from "vscode";
 import { AltimateRequest } from "../altimate";
-import { DBTTerminal } from "../dbt_client/terminal";
+import { DBTTerminal } from "../dbt_integration/terminal";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { QueryManifestService } from "../services/queryManifestService";
@@ -23,7 +23,7 @@ import {
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
 import { DocsGenPanelView } from "./docsEditPanel";
-import { TestMetaData } from "../domain";
+import { TestMetaData } from "../dbt_integration/domain";
 import { DbtTestService } from "../services/dbtTestService";
 import { UsersService } from "../services/usersService";
 import { ConversationProvider } from "../comment_provider/conversationProvider";

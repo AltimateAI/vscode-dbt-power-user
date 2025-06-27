@@ -1,6 +1,6 @@
 import { Uri, window, workspace } from "vscode";
 import { getProjectRelativePath, provideSingleton } from "../utils";
-import { DeferConfig } from "../dbt_client/dbtIntegration";
+import { DeferConfig } from "../dbt_integration/dbtIntegration";
 
 @provideSingleton(DeferToProdService)
 export class DeferToProdService {

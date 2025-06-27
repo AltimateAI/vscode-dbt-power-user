@@ -1,7 +1,7 @@
 import path = require("path");
 import { Uri, window } from "vscode";
 import { GenerateModelFromSourceParams } from "../code_lens_provider/sourceModelCreationCodeLensProvider";
-import { RunModelType } from "../domain";
+import { RunModelType } from "../dbt_integration/domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { NodeTreeItem } from "../treeview_provider/modelTreeviewProvider";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";

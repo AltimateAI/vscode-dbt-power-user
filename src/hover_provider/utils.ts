@@ -4,7 +4,7 @@ import {
   NodeMetaData,
   NodeMetaType,
   SourceMetaType,
-} from "../domain";
+} from "../dbt_integration/domain";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 
 export function generateHoverMarkdownString(

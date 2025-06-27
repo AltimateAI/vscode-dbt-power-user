@@ -1,5 +1,5 @@
 import { Disposable, Event, Uri } from "vscode";
-import { EnvironmentVariables } from "../domain";
+import { EnvironmentVariables } from "./domain";
 
 export interface PythonEnvironment extends Disposable {
   readonly allPythonPaths: { path: string; pathType: string }[];

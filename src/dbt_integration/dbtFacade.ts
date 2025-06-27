@@ -1,12 +1,7 @@
-import { CommandProcessResult } from "../commandProcessExecution";
-import {
-  RunModelParams,
-  DBTNode,
-  DBColumn,
-  Catalog,
-} from "../dbt_client/dbtIntegration";
-import { ProjectHealthcheck } from "../dbt_client/dbtCoreIntegration";
-import { DataPilotHealtCheckParams, Table } from "../domain";
+import { CommandProcessResult } from "./commandProcessExecution";
+import { RunModelParams, DBTNode, DBColumn, Catalog } from "./dbtIntegration";
+import { ProjectHealthcheck } from "./dbtCoreIntegration";
+import { DataPilotHealtCheckParams, Table } from "./domain";
 
 /**
  * Framework-agnostic facade interface for dbt project operations.

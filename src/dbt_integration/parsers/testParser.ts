@@ -1,10 +1,9 @@
 import { provide } from "inversify-binding-decorators";
 import * as path from "path";
-import { TestMetaMap } from "../../domain";
-import { DBTProject } from "../dbtProject";
-import { DBTTerminal } from "../../dbt_client/terminal";
+import { TestMetaMap } from "../domain";
+import { DBTTerminal } from "../terminal";
 import { inject } from "inversify";
-import { RESOURCE_TYPE_TEST } from "../../dbt_client/dbtIntegration";
+import { RESOURCE_TYPE_TEST } from "../dbtIntegration";
 import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
 
 @provide(TestParser)

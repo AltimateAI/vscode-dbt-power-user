@@ -1,12 +1,12 @@
 import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
-import { DBTCloudDetection } from "../../dbt_client/dbtCloudIntegration";
+import { DBTCloudDetection } from "../../dbt_integration/dbtCloudIntegration";
 import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
-} from "../../commandProcessExecution";
-import { PythonEnvironment } from "../../manifest/pythonEnvironment";
+} from "../../dbt_integration/commandProcessExecution";
+import { PythonEnvironment } from "../../dbt_integration/pythonEnvironment";
 import { VSCodePythonEnvironment } from "../../manifest/vscodePythonEnvironment";
-import { DBTTerminal } from "../../dbt_client/terminal";
+import { DBTTerminal } from "../../dbt_integration/terminal";
 import { VSCodeDBTTerminal } from "../../dbt_client/vscodeTerminal";
 import { mock, instance, when, anything } from "ts-mockito";
 import { workspace } from "vscode";

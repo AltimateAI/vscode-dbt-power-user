@@ -10,14 +10,14 @@ import {
   workspace,
 } from "vscode";
 import which from "which";
-import { CommandProcessExecutionFactory } from "../commandProcessExecution";
+import { CommandProcessExecutionFactory } from "../dbt_integration/commandProcessExecution";
 import {
   extendErrorWithSupportLinks,
   getFirstWorkspacePath,
   provideSingleton,
 } from "../utils";
 import { TelemetryService } from "../telemetry";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
+import { PythonEnvironment } from "../dbt_integration/pythonEnvironment";
 import path from "path";
 import fs from "fs";
 import { inject } from "inversify";

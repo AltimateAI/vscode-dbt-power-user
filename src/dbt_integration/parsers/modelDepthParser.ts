@@ -1,5 +1,5 @@
 import { provide } from "inversify-binding-decorators";
-import { DBTTerminal } from "../../dbt_client/terminal";
+import { DBTTerminal } from "../../dbt_integration/terminal";
 import { DBTGraphType } from "./graphParser";
 import { AltimateRequest } from "../../altimate";
 import { workspace } from "vscode";

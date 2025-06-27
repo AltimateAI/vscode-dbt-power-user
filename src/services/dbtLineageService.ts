@@ -5,7 +5,7 @@ import {
   TelemetryService,
 } from "../modules";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { GraphMetaMap, NodeGraphMap, Table } from "../domain";
+import { GraphMetaMap, NodeGraphMap, Table } from "../dbt_integration/domain";
 import { CancellationTokenSource, env, Uri, window, workspace } from "vscode";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { ModelInfo } from "../altimate";
@@ -18,7 +18,7 @@ import {
   RESOURCE_TYPE_MODEL,
   RESOURCE_TYPE_SNAPSHOT,
   RESOURCE_TYPE_SOURCE,
-} from "../dbt_client/dbtIntegration";
+} from "../dbt_integration/dbtIntegration";
 
 export enum CllEvents {
   START = "start",

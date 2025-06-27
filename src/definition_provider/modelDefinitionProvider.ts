@@ -11,12 +11,12 @@ import {
   TextDocument,
   Uri,
 } from "vscode";
-import { NodeMetaMap } from "../domain";
+import { NodeMetaMap } from "../dbt_integration/domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
-import { DBTTerminal } from "../dbt_client/terminal";
+import { DBTTerminal } from "../dbt_integration/terminal";
 import { inject } from "inversify";
 
 @provideSingleton(ModelDefinitionProvider)

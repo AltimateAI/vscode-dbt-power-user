@@ -29,7 +29,7 @@ import {
   Snapshot,
   Source,
   Test,
-} from "../domain";
+} from "../dbt_integration/domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,

@@ -15,12 +15,14 @@ import {
   SourceMetaMap,
   Test,
   TestMetaMap,
-} from "../../domain";
-import { notEmpty } from "../../utils";
-import { DBTTerminal } from "../../dbt_client/terminal";
-import { DBTProject } from "../dbtProject";
+} from "../domain";
+import { DBTTerminal } from "../terminal";
 import { inject } from "inversify";
 import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
+
+const notEmpty = <T>(value: T | null | undefined): value is T => {
+  return value !== null && value !== undefined;
+};
 
 export type DBTGraphType = {
   [name: string]: string[];

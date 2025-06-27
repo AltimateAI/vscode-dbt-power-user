@@ -1,9 +1,9 @@
 import { provide } from "inversify-binding-decorators";
 import * as path from "path";
-import { ExposureMetaMap } from "../../domain";
-import { DBTTerminal } from "../../dbt_client/terminal";
+import { ExposureMetaMap } from "../domain";
+import { DBTTerminal } from "../terminal";
 import { inject } from "inversify";
-import { RESOURCE_TYPE_EXPOSURE } from "../../dbt_client/dbtIntegration";
+import { RESOURCE_TYPE_EXPOSURE } from "../dbtIntegration";
 import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
 
 @provide(ExposureParser)

@@ -1,5 +1,5 @@
 import { spawn } from "child_process";
-import { DBTTerminal } from "./dbt_client/terminal";
+import { DBTTerminal } from "./terminal";
 import { EnvironmentVariables } from "./domain";
 
 export class CommandProcessExecutionFactory {

@@ -1,9 +1,9 @@
 import { Disposable, Event, extensions, Uri, workspace } from "vscode";
-import { EnvironmentVariables } from "../domain";
+import { EnvironmentVariables } from "../dbt_integration/domain";
 import { provideSingleton } from "../utils";
-import { DBTTerminal } from "../dbt_client/terminal";
+import { DBTTerminal } from "../dbt_integration/terminal";
 import { inject, injectable } from "inversify";
-import { PythonEnvironment } from "./pythonEnvironment";
+import { PythonEnvironment } from "../dbt_integration/pythonEnvironment";
 
 type EnvFrom = "process" | "integrated" | "dotenv";
 interface PythonExecutionDetails {

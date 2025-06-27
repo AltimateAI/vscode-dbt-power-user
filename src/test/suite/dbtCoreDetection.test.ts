@@ -1,10 +1,10 @@
 import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
-import { DBTCoreDetection } from "../../dbt_client/dbtCoreIntegration";
+import { DBTCoreDetection } from "../../dbt_integration/dbtCoreIntegration";
 import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
-} from "../../commandProcessExecution";
-import { PythonEnvironment } from "../../manifest/pythonEnvironment";
+} from "../../dbt_integration/commandProcessExecution";
+import { PythonEnvironment } from "../../dbt_integration/pythonEnvironment";
 import { workspace, Uri } from "vscode";
 
 describe("DBTCoreDetection Tests", () => {

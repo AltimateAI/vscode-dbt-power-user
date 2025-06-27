@@ -3,7 +3,7 @@ import { provideSingleton } from "../utils";
 import {
   ForbiddenError,
   NoCredentialsError,
-} from "../services/altimateHttpClient";
+} from "../dbt_integration/altimateHttpClient";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { AltimateRequest } from "../altimate";
 

@@ -1,7 +1,7 @@
 import { window, env, Uri } from "vscode";
 import { inject } from "inversify";
 import { provideSingleton } from "../utils";
-import { DBTConfiguration } from "../dbt_client/configuration";
+import { DBTConfiguration } from "../dbt_integration/configuration";
 
 enum PromptAnswer {
   YES = "Get your free API Key",

@@ -2,23 +2,21 @@ import { Container, interfaces } from "inversify";
 import { buildProviderModule } from "inversify-binding-decorators";
 import { Event, EventEmitter, Uri, workspace, WorkspaceFolder } from "vscode";
 import { VSCodeDBTTerminal } from "./dbt_client/vscodeTerminal";
-import { DBTDiagnosticData } from "./dbt_client/diagnostics";
+import { DBTDiagnosticData } from "./dbt_integration/diagnostics";
 import { DBTProject } from "./manifest/dbtProject";
 import { ProjectRegisteredUnregisteredEvent } from "./manifest/dbtProjectContainer";
 import { DBTWorkspaceFolder } from "./manifest/dbtWorkspaceFolder";
 import { ManifestCacheChangedEvent } from "./manifest/event/manifestCacheChangedEvent";
-import { RunResultsEvent } from "./manifest/event/runResultsEvent";
 import { ProjectConfigChangedEvent } from "./manifest/event/projectConfigChangedEvent";
 import { DBTProjectLog } from "./manifest/dbtProjectLog";
-import { ManifestParser } from "./manifest/parsers";
-import { PythonEnvironment } from "./manifest/pythonEnvironment";
+import { PythonEnvironment } from "./dbt_integration/pythonEnvironment";
 import { VSCodePythonEnvironment } from "./manifest/vscodePythonEnvironment";
 import { TelemetryService } from "./telemetry";
 import {
   DBTCoreDetection,
   DBTCoreProjectDetection,
   DBTCoreProjectIntegration,
-} from "./dbt_client/dbtCoreIntegration";
+} from "./dbt_integration/dbtCoreIntegration";
 import {
   CLIDBTCommandExecutionStrategy,
   DBTCommandExecutionInfrastructure,
@@ -28,19 +26,19 @@ import {
   DBTProjectDetection,
   DeferConfig,
   PythonDBTCommandExecutionStrategy,
-} from "./dbt_client/dbtIntegration";
+} from "./dbt_integration/dbtIntegration";
 import {
   DBTCloudDetection,
   DBTCloudProjectDetection,
   DBTCloudProjectIntegration,
-} from "./dbt_client/dbtCloudIntegration";
-import { CommandProcessExecutionFactory } from "./commandProcessExecution";
+} from "./dbt_integration/dbtCloudIntegration";
+import { CommandProcessExecutionFactory } from "./dbt_integration/commandProcessExecution";
 import { AltimateRequest } from "./altimate";
 import { ValidationProvider } from "./validation_provider";
-import { DBTConfiguration } from "./dbt_client/configuration";
+import { DBTConfiguration } from "./dbt_integration/configuration";
 import { AltimateAuthService } from "./services/altimateAuthService";
-import { AltimateHttpClient } from "./services/altimateHttpClient";
-import { DbtIntegrationClient } from "./services/dbtIntegrationClient";
+import { AltimateHttpClient } from "./dbt_integration/altimateHttpClient";
+import { DbtIntegrationClient } from "./dbt_integration/dbtIntegrationClient";
 import { VSCodeDBTConfiguration } from "./dbt_client/vscodeConfiguration";
 import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
@@ -49,24 +47,24 @@ import {
   DBTCoreCommandDetection,
   DBTCoreCommandProjectDetection,
   DBTCoreCommandProjectIntegration,
-} from "./dbt_client/dbtCoreCommandIntegration";
+} from "./dbt_integration/dbtCoreCommandIntegration";
 import {
   DBTFusionCommandDetection,
   DBTFusionCommandProjectDetection,
   DBTFusionCommandProjectIntegration,
-} from "./dbt_client/dbtFusionCommandIntegration";
-import { DBTTerminal } from "./dbt_client/terminal";
-import { DBTIntegrationAdapter } from "./manifest/dbtIntegrationAdapter";
-import { ChildrenParentParser } from "./manifest/parsers/childrenParentParser";
-import { DocParser } from "./manifest/parsers/docParser";
-import { ExposureParser } from "./manifest/parsers/exposureParser";
-import { GraphParser } from "./manifest/parsers/graphParser";
-import { MacroParser } from "./manifest/parsers/macroParser";
-import { MetricParser } from "./manifest/parsers/metricParser";
-import { ModelDepthParser } from "./manifest/parsers/modelDepthParser";
-import { NodeParser } from "./manifest/parsers/nodeParser";
-import { SourceParser } from "./manifest/parsers/sourceParser";
-import { TestParser } from "./manifest/parsers/testParser";
+} from "./dbt_integration/dbtFusionCommandIntegration";
+import { DBTTerminal } from "./dbt_integration/terminal";
+import { DBTIntegrationAdapter } from "./dbt_integration/dbtIntegrationAdapter";
+import { ChildrenParentParser } from "./dbt_integration/parsers/childrenParentParser";
+import { DocParser } from "./dbt_integration/parsers/docParser";
+import { ExposureParser } from "./dbt_integration/parsers/exposureParser";
+import { GraphParser } from "./dbt_integration/parsers/graphParser";
+import { MacroParser } from "./dbt_integration/parsers/macroParser";
+import { MetricParser } from "./dbt_integration/parsers/metricParser";
+import { ModelDepthParser } from "./dbt_integration/parsers/modelDepthParser";
+import { NodeParser } from "./dbt_integration/parsers/nodeParser";
+import { SourceParser } from "./dbt_integration/parsers/sourceParser";
+import { TestParser } from "./dbt_integration/parsers/testParser";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -406,9 +404,7 @@ container
         container.get("PythonEnvironment"),
         container.get(PythonDBTCommandExecutionStrategy),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
-        container.get(AltimateRequest),
         container.get("DBTTerminal"),
-        container.get(ValidationProvider),
         container.get("DBTConfiguration"),
         container.get(DbtIntegrationClient),
         projectRoot,
@@ -439,9 +435,7 @@ container
         container.get("PythonEnvironment"),
         container.get(PythonDBTCommandExecutionStrategy),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
-        container.get(AltimateRequest),
         container.get("DBTTerminal"),
-        container.get(ValidationProvider),
         container.get("DBTConfiguration"),
         container.get(DbtIntegrationClient),
         projectRoot,

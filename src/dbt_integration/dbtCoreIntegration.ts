@@ -21,21 +21,19 @@ import {
   DeferConfig,
   ManifestPathType,
 } from "./dbtIntegration";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { CommandProcessExecutionFactory } from "../commandProcessExecution";
+import { PythonEnvironment } from "./pythonEnvironment";
+import { CommandProcessExecutionFactory } from "./commandProcessExecution";
 import { PythonBridge, PythonException } from "python-bridge";
 import * as path from "path";
 import { existsSync, readFileSync } from "fs";
 import * as fs from "fs";
 import { parse } from "yaml";
-import { AltimateRequest } from "../altimate";
-import { NotFoundError } from "../services/altimateHttpClient";
-import { DbtIntegrationClient } from "../services/dbtIntegrationClient";
+import { NotFoundError } from "./altimateHttpClient";
 import { DBTTerminal } from "./terminal";
-import { ValidationProvider } from "../validation_provider";
 import { DBTConfiguration } from "./configuration";
-import { NodeMetaData } from "../domain";
+import { NodeMetaData } from "./domain";
 import * as crypto from "crypto";
+import { DbtIntegrationClient } from "./dbtIntegrationClient";
 
 const DEFAULT_QUERY_TEMPLATE = "select * from ({query}) as query limit {limit}";
 
@@ -215,9 +213,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
       path: string,
       dbtPath: string,
     ) => DBTCommandExecutionStrategy,
-    private altimateRequest: AltimateRequest,
     protected dbtTerminal: DBTTerminal,
-    private validationProvider: ValidationProvider,
     private dbtConfiguration: DBTConfiguration,
     private dbtIntegrationClient: DbtIntegrationClient,
     protected projectRoot: string,
@@ -683,7 +679,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
     }
     if (manifestPathType === ManifestPathType.REMOTE) {
       try {
-        this.validationProvider.throwIfNotAuthenticated();
+        this.dbtIntegrationClient.throwIfNotAuthenticated();
       } catch (err) {
         throw new Error(
           "Defer to production is currently enabled with 'DataPilot dbt integration' mode. It requires a valid Altimate AI API key and instance name in the settings. In order to run dbt commands, please either switch to Local Path mode or disable the feature or add an API key / instance name.",

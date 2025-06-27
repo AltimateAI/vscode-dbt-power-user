@@ -1,11 +1,15 @@
 import type { RequestInit } from "node-fetch";
-import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
-import { DBTTerminal } from "./dbt_client/terminal";
+import {
+  ColumnMetaData,
+  NodeMetaData,
+  SourceMetaData,
+} from "./dbt_integration/domain";
+import { DBTTerminal } from "./dbt_integration/terminal";
 import { PreconfiguredNotebookItem, NotebookItem, NotebookSchema } from "@lib";
 import * as vscode from "vscode";
 import { inject } from "inversify";
-import { DBTConfiguration } from "./dbt_client/configuration";
-import { AltimateHttpClient } from "./services/altimateHttpClient";
+import { DBTConfiguration } from "./dbt_integration/configuration";
+import { AltimateHttpClient } from "./dbt_integration/altimateHttpClient";
 
 export class UserInputError extends Error {}
 

@@ -1,6 +1,6 @@
 import { provide } from "inversify-binding-decorators";
-import { DBTTerminal } from "../../dbt_client/terminal";
-import { MetricMetaMap } from "../../domain";
+import { DBTTerminal } from "../terminal";
+import { MetricMetaMap } from "../domain";
 import { inject } from "inversify";
 import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
 

@@ -1,12 +1,12 @@
 import { provide } from "inversify-binding-decorators";
-import { NodeMetaData, NodeMetaMap } from "../../domain";
-import { DBTProject } from "../dbtProject";
-import { createFullPathForNode } from ".";
-import { DBTTerminal } from "../../dbt_client/terminal";
+import { NodeMetaData, NodeMetaMap } from "../domain";
+import { createFullPathForNode } from "./utils";
+import { DBTTerminal } from "../../dbt_integration/terminal";
 import { getExternalProjectNamesFromDbtLoomConfig } from "../../utils";
 import * as path from "path";
 import { inject } from "inversify";
 import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
+import { isResourceNode } from "../dbtIntegration";
 
 export class NodeMetaMapImpl implements NodeMetaMap {
   constructor(
@@ -61,7 +61,7 @@ export class NodeParser {
         resolve(new NodeMetaMapImpl(new Map(), new Map()));
       }
       const nodesMaps = Object.values(nodesMap).filter((model) =>
-        DBTProject.isResourceNode(model.resource_type),
+        isResourceNode(model.resource_type),
       );
       const packagePath = project.getPackageInstallPath();
       if (packagePath === undefined) {

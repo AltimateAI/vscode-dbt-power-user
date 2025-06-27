@@ -7,8 +7,8 @@ import {
   jest,
 } from "@jest/globals";
 import { TelemetryService } from "../../telemetry";
-import { DBTTerminal } from "../../dbt_client/terminal";
-import { DBTConfiguration } from "../../dbt_client/configuration";
+import { DBTTerminal } from "../../dbt_integration/terminal";
+import { DBTConfiguration } from "../../dbt_integration/configuration";
 import { AltimateRequest } from "../../altimate";
 
 type FetchFn = (

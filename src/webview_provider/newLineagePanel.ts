@@ -11,21 +11,26 @@ import {
   workspace,
 } from "vscode";
 import { AltimateRequest } from "../altimate";
-import { ExposureMetaData, NodeMetaData, SourceTable, Table } from "../domain";
+import {
+  ExposureMetaData,
+  NodeMetaData,
+  SourceTable,
+  Table,
+} from "../dbt_integration/domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { LineagePanelView } from "./lineagePanel";
 import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
-import { DBTTerminal } from "../dbt_client/terminal";
+import { DBTTerminal } from "../dbt_integration/terminal";
 import { AltimateWebviewProvider } from "./altimateWebviewProvider";
 import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
 import { CllEvents, DbtLineageService } from "../services/dbtLineageService";
 import { inject } from "inversify";
-import { RESOURCE_TYPE_SOURCE } from "../dbt_client/dbtIntegration";
+import { RESOURCE_TYPE_SOURCE } from "../dbt_integration/dbtIntegration";
 import { AltimateAuthService } from "../services/altimateAuthService";
 
 class DerivedCancellationTokenSource extends CancellationTokenSource {

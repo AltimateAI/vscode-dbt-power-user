@@ -15,15 +15,15 @@ import {
   DeferConfig,
   readAndParseProjectConfig,
 } from "./dbtIntegration";
-import { CommandProcessExecutionFactory } from "../commandProcessExecution";
+import { CommandProcessExecutionFactory } from "./commandProcessExecution";
 import { PythonBridge } from "python-bridge";
 import { join, dirname } from "path";
 import path = require("path");
 import { DBTTerminal } from "./terminal";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
+import { PythonEnvironment } from "./pythonEnvironment";
 import { existsSync, readFileSync } from "fs";
 import semver = require("semver");
-import { NodeMetaData } from "../domain";
+import { NodeMetaData } from "./domain";
 import * as crypto from "crypto";
 import { parse } from "yaml";
 import { window } from "vscode";

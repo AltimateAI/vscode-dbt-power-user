@@ -1,6 +1,10 @@
 import { basename } from "path";
 import { AltimateRequest, ModelNode } from "../altimate";
-import { ColumnMetaData, NodeMetaData, SourceTable } from "../domain";
+import {
+  ColumnMetaData,
+  NodeMetaData,
+  SourceTable,
+} from "../dbt_integration/domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
@@ -28,7 +32,7 @@ import {
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { PythonException } from "python-bridge";
-import { DBTTerminal } from "../dbt_client/terminal";
+import { DBTTerminal } from "../dbt_integration/terminal";
 import { inject } from "inversify";
 
 @provideSingleton(ValidateSql)

@@ -1,5 +1,5 @@
 import { AltimateRequest } from "../altimate";
-import { DBTTerminal } from "../dbt_client/terminal";
+import { DBTTerminal } from "../dbt_integration/terminal";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import {

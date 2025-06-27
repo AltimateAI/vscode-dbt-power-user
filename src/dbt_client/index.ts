@@ -1,9 +1,9 @@
 import { commands, Disposable, EventEmitter, window, workspace } from "vscode";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
+import { PythonEnvironment } from "../dbt_integration/pythonEnvironment";
 import { provideSingleton } from "../utils";
 import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
 import { existsSync } from "fs";
-import { DBTDetection } from "./dbtIntegration";
+import { DBTDetection } from "../dbt_integration/dbtIntegration";
 import { inject } from "inversify";
 
 enum PythonInterpreterPromptAnswer {

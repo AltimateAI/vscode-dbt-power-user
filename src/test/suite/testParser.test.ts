@@ -1,7 +1,7 @@
 import { expect, describe, it, beforeEach } from "@jest/globals";
-import { TestParser } from "../../manifest/parsers/testParser";
-import { DBTIntegrationAdapter } from "../../manifest/dbtIntegrationAdapter";
-import { DBTTerminal } from "../../dbt_client/terminal";
+import { TestParser } from "../../dbt_integration/parsers/testParser";
+import { DBTIntegrationAdapter } from "../../dbt_integration/dbtIntegrationAdapter";
+import { DBTTerminal } from "../../dbt_integration/terminal";
 import * as path from "path";
 import { EventEmitter } from "vscode";
 

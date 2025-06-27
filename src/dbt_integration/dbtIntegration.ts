@@ -3,11 +3,11 @@ import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
   CommandProcessResult,
-} from "../commandProcessExecution";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
+} from "./commandProcessExecution";
+import { PythonEnvironment } from "./pythonEnvironment";
 import { existsSync, readFileSync } from "fs";
 import { DBTTerminal } from "./terminal";
-import { NodeMetaData } from "../domain";
+import { NodeMetaData } from "./domain";
 import { DBTDiagnosticResult } from "./diagnostics";
 import { DBTConfiguration } from "./configuration";
 import path from "path";
@@ -28,6 +28,23 @@ export const RESOURCE_TYPE_SEED = "seed";
 export const RESOURCE_TYPE_SNAPSHOT = "snapshot";
 export const RESOURCE_TYPE_TEST = "test";
 export const RESOURCE_TYPE_METRIC = "semantic_model";
+
+export function isResourceNode(resourceType: string): boolean {
+  return (
+    resourceType === RESOURCE_TYPE_MODEL ||
+    resourceType === RESOURCE_TYPE_SEED ||
+    resourceType === RESOURCE_TYPE_ANALYSIS ||
+    resourceType === RESOURCE_TYPE_SNAPSHOT
+  );
+}
+
+export function isResourceHasDbColumns(resourceType: string): boolean {
+  return (
+    resourceType === RESOURCE_TYPE_MODEL ||
+    resourceType === RESOURCE_TYPE_SEED ||
+    resourceType === RESOURCE_TYPE_SNAPSHOT
+  );
+}
 
 export interface DBTProjectConfig {
   name: string;

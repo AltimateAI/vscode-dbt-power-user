@@ -10,8 +10,7 @@ import {
   window,
 } from "vscode";
 import { AltimateRequest, DocsGenerateResponse } from "../altimate";
-import { DBTTerminal } from "../dbt_client/terminal";
-import { RateLimitException } from "../exceptions";
+import { DBTTerminal } from "../dbt_integration/terminal";
 import { AltimateAuthService } from "./altimateAuthService";
 import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -29,6 +28,7 @@ import {
 import { QueryManifestService } from "./queryManifestService";
 import { TelemetryEvents } from "../telemetry/events";
 import { inject } from "inversify";
+import { RateLimitException } from "../dbt_integration/altimateHttpClient";
 
 export interface DocumentationSchemaColumn {
   name: string;

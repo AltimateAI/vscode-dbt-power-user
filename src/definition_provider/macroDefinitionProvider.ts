@@ -9,7 +9,7 @@ import {
   TextDocument,
   Uri,
 } from "vscode";
-import { MacroMetaMap } from "../domain";
+import { MacroMetaMap } from "../dbt_integration/domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";

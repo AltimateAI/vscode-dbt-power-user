@@ -1,4 +1,4 @@
-import { CommandProcessResult } from "../commandProcessExecution";
+import { CommandProcessResult } from "./commandProcessExecution";
 import {
   RunModelParams,
   DBTNode,
@@ -14,8 +14,8 @@ import {
   RUN_RESULTS_FILE,
   RESOURCE_TYPE_MODEL,
   RESOURCE_TYPE_SOURCE,
-} from "../dbt_client/dbtIntegration";
-import { ProjectHealthcheck } from "../dbt_client/dbtCoreIntegration";
+} from "./dbtIntegration";
+import { ProjectHealthcheck } from "./dbtCoreIntegration";
 import {
   DataPilotHealtCheckParams,
   DocMetaMap,
@@ -27,10 +27,10 @@ import {
   SourceMetaMap,
   Table,
   TestMetaMap,
-} from "../domain";
-import { DBTConfiguration } from "../dbt_client/configuration";
+} from "./domain";
+import { DBTConfiguration } from "./configuration";
 import { DBTFacade } from "./dbtFacade";
-import { DBTDiagnosticData } from "../dbt_client/diagnostics";
+import { DBTDiagnosticData } from "./diagnostics";
 import { PythonException } from "python-bridge";
 import { YAMLError } from "yaml";
 import { DocParser } from "./parsers/docParser";
@@ -43,12 +43,19 @@ import { ExposureParser } from "./parsers/exposureParser";
 import { MetricParser } from "./parsers/metricParser";
 import { ChildrenParentParser } from "./parsers/childrenParentParser";
 import { ModelDepthParser } from "./parsers/modelDepthParser";
-import { DBTTerminal } from "../dbt_client/terminal";
+import { DBTTerminal } from "./terminal";
 import path from "path";
 import { FSWatcher, watch } from "fs";
 import { EventEmitter } from "events";
-import { debounce } from "../utils";
 import { readFileSync } from "fs";
+
+export const debounce = (fn: (args: unknown) => void, wait: number) => {
+  let timeout: NodeJS.Timeout;
+  return () => {
+    clearTimeout(timeout);
+    timeout = setTimeout(fn, wait);
+  };
+};
 
 export interface ParsedManifest {
   nodeMetaMap: NodeMetaMap;

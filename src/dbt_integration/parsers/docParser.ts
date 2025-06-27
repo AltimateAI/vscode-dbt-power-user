@@ -1,10 +1,10 @@
 import { readFileSync } from "fs";
 import { provide } from "inversify-binding-decorators";
-import { DBTTerminal } from "../../dbt_client/terminal";
-import { DocMetaMap } from "../../domain";
-import { createFullPathForNode } from ".";
+import { DBTTerminal } from "../terminal";
+import { DocMetaMap } from "../domain";
 import { inject } from "inversify";
 import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
+import { createFullPathForNode } from "./utils";
 
 @provide(DocParser)
 export class DocParser {

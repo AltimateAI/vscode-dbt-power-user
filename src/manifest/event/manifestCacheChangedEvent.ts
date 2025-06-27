@@ -8,7 +8,7 @@ import {
   NodeMetaMap,
   SourceMetaMap,
   TestMetaMap,
-} from "../../domain";
+} from "../../dbt_integration/domain";
 import { DBTProject } from "../dbtProject";
 
 export interface ManifestCacheProjectAddedEvent {

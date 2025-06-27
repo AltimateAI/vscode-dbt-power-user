@@ -10,15 +10,13 @@ import {
   DeferConfig,
   readAndParseProjectConfig,
 } from "./dbtIntegration";
-import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
-import {
-  CommandProcessExecutionFactory,
-  DBTTerminal,
-  PythonEnvironment,
-} from "../modules";
+import { DBTDiagnosticData } from "./diagnostics";
 import { DBTCloudProjectIntegration, getDBTPath } from "./dbtCloudIntegration";
 import { DBTConfiguration } from "./configuration";
 import path, { join } from "path";
+import { CommandProcessExecutionFactory } from "./commandProcessExecution";
+import { PythonEnvironment } from "./pythonEnvironment";
+import { DBTTerminal } from "./terminal";
 
 export class DBTFusionCommandDetection implements DBTDetection {
   constructor(
