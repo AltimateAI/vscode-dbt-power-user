@@ -60,7 +60,7 @@ import {
   DBTFusionCommandProjectIntegration,
 } from "./dbt_integration/dbtFusionCommandIntegration";
 import { DBTTerminal } from "./dbt_integration/terminal";
-import { DBTIntegrationAdapter } from "./dbt_integration/dbtIntegrationAdapter";
+import { DBTProjectIntegrationAdapter } from "./dbt_integration/dbtProjectIntegrationAdapter";
 import { ChildrenParentParser } from "./dbt_integration/parsers/childrenParentParser";
 import { DocParser } from "./dbt_integration/parsers/docParser";
 import { ExposureParser } from "./dbt_integration/parsers/exposureParser";
@@ -573,15 +573,15 @@ container
 
 container
   .bind<
-    interfaces.Factory<DBTIntegrationAdapter>
-  >("Factory<DBTIntegrationAdapter>")
+    interfaces.Factory<DBTProjectIntegrationAdapter>
+  >("Factory<DBTProjectIntegrationAdapter>")
   .toFactory<
-    DBTIntegrationAdapter,
+    DBTProjectIntegrationAdapter,
     [string, DeferConfig | undefined]
   >((context: interfaces.Context) => {
     return (projectRoot: string, deferConfig: DeferConfig | undefined) => {
       const { container } = context;
-      return new DBTIntegrationAdapter(
+      return new DBTProjectIntegrationAdapter(
         container.get("DBTConfiguration"),
         container.get(DBTCommandFactory),
         container.get("Factory<DBTCoreProjectIntegration>"),
@@ -625,7 +625,7 @@ container
         container.get(SharedStateService),
         container.get(TelemetryService),
         container.get(DBTCommandExecutionInfrastructure),
-        container.get("Factory<DBTIntegrationAdapter>"),
+        container.get("Factory<DBTProjectIntegrationAdapter>"),
         container.get(AltimateRequest),
         container.get(ValidationProvider),
         container.get(DeferToProdService),

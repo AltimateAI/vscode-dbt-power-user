@@ -1,13 +1,13 @@
 import { DBTTerminal } from "../terminal";
 import { MetricMetaMap } from "../domain";
-import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
+import { DBTProjectIntegrationAdapter } from "../dbtProjectIntegrationAdapter";
 
 export class MetricParser {
   constructor(private terminal: DBTTerminal) {}
 
   createMetricMetaMap(
     metrics: any[],
-    project: DBTIntegrationAdapter,
+    project: DBTProjectIntegrationAdapter,
   ): Promise<MetricMetaMap> {
     return new Promise(async (resolve) => {
       const projectRoot = project.getProjectRoot();

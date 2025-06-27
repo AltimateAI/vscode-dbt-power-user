@@ -3,7 +3,7 @@ import { createFullPathForNode } from "./utils";
 import { DBTTerminal } from "../terminal";
 import { getExternalProjectNamesFromDbtLoomConfig } from "./utils";
 import * as path from "path";
-import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
+import { DBTProjectIntegrationAdapter } from "../dbtProjectIntegrationAdapter";
 import { isResourceNode } from "../dbtIntegration";
 
 export class NodeMetaMapImpl implements NodeMetaMap {
@@ -39,7 +39,7 @@ export class NodeParser {
 
   createNodeMetaMap(
     nodesMap: any[],
-    project: DBTIntegrationAdapter,
+    project: DBTProjectIntegrationAdapter,
   ): Promise<NodeMetaMap> {
     return new Promise(async (resolve) => {
       const projectRoot = project.getProjectRoot();

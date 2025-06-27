@@ -82,11 +82,14 @@ export interface RunResultsEventData {
 }
 
 /**
- * DBTIntegrationAdapter provides a framework-agnostic implementation of DBTFacade
+ * DBTProjectIntegrationAdapter provides a framework-agnostic implementation of DBTFacade
  * that delegates to the appropriate dbt integration (core, cloud, fusion, corecommand)
  * based on configuration. This class has no VSCode dependencies.
  */
-export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
+export class DBTProjectIntegrationAdapter
+  extends EventEmitter
+  implements DBTFacade
+{
   private currentIntegration: DBTProjectIntegration;
   private consecutiveReadFailures = 0;
   private sourceFileWatchers: FSWatcher[] = [];
@@ -283,7 +286,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
 
   async refreshProjectConfig(): Promise<void> {
     this.terminal.debug(
-      "DBTIntegrationAdapter",
+      "DBTProjectIntegrationAdapter",
       `Going to refresh the project "${this.getProjectName()}" at ${
         this.projectRoot
       } configuration`,
@@ -327,7 +330,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
       }
 
       this.terminal.debug(
-        "DBTIntegrationAdapter",
+        "DBTProjectIntegrationAdapter",
         `An error occurred while trying to refresh the project "${this.getProjectName()}" at ${
           this.projectRoot
         } configuration`,
@@ -346,7 +349,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
 
     if (sourcePaths && macroPaths && seedPaths) {
       this.terminal.debug(
-        "DBTIntegrationAdapter",
+        "DBTProjectIntegrationAdapter",
         `Project config refreshed successfully for "${this.getProjectName()}" at ${
           this.projectRoot
         }`,
@@ -367,7 +370,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
       );
     } else {
       this.terminal.warn(
-        "DBTIntegrationAdapter",
+        "DBTProjectIntegrationAdapter",
         "Could not complete project config refresh because project is not initialized properly. dbt path settings cannot be determined",
       );
     }
@@ -375,7 +378,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
 
   async rebuildManifest(): Promise<void> {
     this.terminal.debug(
-      "DBTIntegrationAdapter",
+      "DBTProjectIntegrationAdapter",
       `Going to rebuild the manifest for project at ${this.projectRoot}`,
     );
 
@@ -390,7 +393,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
     if (!this.depsInitialized && installDepsOnProjectInitialization) {
       try {
         this.terminal.debug(
-          "DBTIntegrationAdapter",
+          "DBTProjectIntegrationAdapter",
           "Installing dbt dependencies before first manifest rebuild",
         );
         await this.installDeps(true);
@@ -398,7 +401,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
       } catch (error: any) {
         // this is best effort
         this.terminal.warn(
-          "DBTIntegrationAdapter",
+          "DBTProjectIntegrationAdapter",
           "An error occurred while installing dependencies",
           error,
         );
@@ -408,7 +411,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
     try {
       await this.currentIntegration.rebuildManifest();
       this.terminal.debug(
-        "DBTIntegrationAdapter",
+        "DBTProjectIntegrationAdapter",
         `Finished rebuilding the manifest for project at ${this.projectRoot}`,
       );
 
@@ -419,7 +422,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
       }
     } catch (error) {
       this.terminal.error(
-        "DBTIntegrationAdapter",
+        "DBTProjectIntegrationAdapter",
         "Error rebuilding manifest",
         error,
       );
@@ -434,14 +437,14 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
 
   async parseManifest(): Promise<ParsedManifest | undefined> {
     this.terminal.debug(
-      "DBTIntegrationAdapter",
+      "DBTProjectIntegrationAdapter",
       `Going to parse manifest for project at ${this.projectRoot}`,
     );
 
     const targetPath = this.getTargetPath();
     if (!targetPath) {
       this.terminal.debug(
-        "DBTIntegrationAdapter",
+        "DBTProjectIntegrationAdapter",
         "targetPath should be defined at this stage for project " +
           this.projectRoot,
       );
@@ -542,7 +545,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
     const manifestLocation = path.join(...pathParts, MANIFEST_FILE);
 
     this.terminal.debug(
-      "DBTIntegrationAdapter",
+      "DBTProjectIntegrationAdapter",
       `Reading manifest at ${manifestLocation} for project at ${this.projectRoot}`,
     );
 
@@ -556,7 +559,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
       this.consecutiveReadFailures++;
       if (this.consecutiveReadFailures > 3) {
         this.terminal.error(
-          "DBTIntegrationAdapter",
+          "DBTProjectIntegrationAdapter",
           `Could not read/parse manifest file at ${manifestLocation} after ${this.consecutiveReadFailures} attempts`,
           error,
         );
@@ -571,7 +574,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
     }
 
     this.terminal.debug(
-      "DBTIntegrationAdapter",
+      "DBTProjectIntegrationAdapter",
       `Starting Node.js file watchers for project at ${this.projectRoot}`,
     );
 
@@ -585,7 +588,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
     }
 
     this.terminal.debug(
-      "DBTIntegrationAdapter",
+      "DBTProjectIntegrationAdapter",
       `Stopping Node.js file watchers for project at ${this.projectRoot}`,
     );
 
@@ -604,7 +607,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
 
     if (!sourcePaths || !macroPaths || !seedPaths) {
       this.terminal.debug(
-        "DBTIntegrationAdapter",
+        "DBTProjectIntegrationAdapter",
         "Cannot update file watchers - source paths not available",
       );
       return;
@@ -621,7 +624,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
     }
 
     this.terminal.debug(
-      "DBTIntegrationAdapter",
+      "DBTProjectIntegrationAdapter",
       "Updating Node.js file watchers with new paths",
       allPaths,
     );
@@ -641,7 +644,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
 
       if (!sourcePaths || !macroPaths || !seedPaths) {
         this.terminal.debug(
-          "DBTIntegrationAdapter",
+          "DBTProjectIntegrationAdapter",
           "Cannot setup file watchers - source paths not available",
         );
         return;
@@ -652,7 +655,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
 
     const debouncedFileChangeHandler = debounce(async () => {
       this.terminal.debug(
-        "DBTIntegrationAdapter",
+        "DBTProjectIntegrationAdapter",
         `SourceFileChanged event fired for "${this.getProjectName()}" at ${this.projectRoot}`,
       );
       this.emit("sourceFileChanged");
@@ -660,7 +663,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
         await this.rebuildManifest();
       } catch (error) {
         this.terminal.error(
-          "DBTIntegrationAdapterError",
+          "DBTProjectIntegrationAdapterError",
           `Failed to rebuild manifest after file change: ${error instanceof Error ? error.message : String(error)}`,
           error,
         );
@@ -676,7 +679,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
           (eventType, filename) => {
             if (filename && this.isDbtFile(filename)) {
               this.terminal.debug(
-                "DBTIntegrationAdapter",
+                "DBTProjectIntegrationAdapter",
                 `File ${eventType}: ${filename} in ${sourcePath}`,
               );
               debouncedFileChangeHandler();
@@ -687,12 +690,12 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
         this.sourceFileWatchers.push(watcher);
 
         this.terminal.debug(
-          "DBTIntegrationAdapter",
+          "DBTProjectIntegrationAdapter",
           `Started Node.js file watcher for ${sourcePath}`,
         );
       } catch (error) {
         this.terminal.error(
-          "DBTIntegrationAdapter",
+          "DBTProjectIntegrationAdapter",
           `Failed to create file watcher for ${sourcePath}`,
           error,
         );
@@ -706,7 +709,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
         watcher.close();
       } catch (error) {
         this.terminal.error(
-          "DBTIntegrationAdapter",
+          "DBTProjectIntegrationAdapter",
           "Error closing file watcher",
           error,
         );
@@ -738,14 +741,14 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
     const dbtProjectFilePath = this.getDBTProjectFilePath();
 
     this.terminal.debug(
-      "DBTIntegrationAdapter",
+      "DBTProjectIntegrationAdapter",
       `Starting Node.js project config watcher for ${dbtProjectFilePath}`,
     );
 
     try {
       const debouncedConfigChangeHandler = debounce(async () => {
         this.terminal.debug(
-          "DBTIntegrationAdapter",
+          "DBTProjectIntegrationAdapter",
           "dbt_project.yml changed, refreshing project config",
         );
 
@@ -755,7 +758,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
           await this.rebuildManifest();
         } catch (error) {
           this.terminal.error(
-            "DBTIntegrationAdapter",
+            "DBTProjectIntegrationAdapter",
             "Error refreshing project config after file change",
             error,
           );
@@ -765,7 +768,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
       this.projectConfigWatcher = watch(dbtProjectFilePath, (eventType) => {
         if (eventType === "change") {
           this.terminal.debug(
-            "DBTIntegrationAdapter",
+            "DBTProjectIntegrationAdapter",
             `dbt_project.yml ${eventType} detected`,
           );
           debouncedConfigChangeHandler();
@@ -773,12 +776,12 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
       });
 
       this.terminal.debug(
-        "DBTIntegrationAdapter",
+        "DBTProjectIntegrationAdapter",
         `Started Node.js project config watcher for ${dbtProjectFilePath}`,
       );
     } catch (error) {
       this.terminal.error(
-        "DBTIntegrationAdapter",
+        "DBTProjectIntegrationAdapter",
         `Failed to create project config watcher for ${dbtProjectFilePath}`,
         error,
       );
@@ -791,12 +794,12 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
         this.projectConfigWatcher.close();
         this.projectConfigWatcher = undefined;
         this.terminal.debug(
-          "DBTIntegrationAdapter",
+          "DBTProjectIntegrationAdapter",
           "Stopped Node.js project config watcher",
         );
       } catch (error) {
         this.terminal.error(
-          "DBTIntegrationAdapter",
+          "DBTProjectIntegrationAdapter",
           "Error closing project config watcher",
           error,
         );
@@ -1223,14 +1226,14 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
     const targetPath = this.getTargetPath();
     if (!targetPath) {
       this.terminal.debug(
-        "DBTIntegrationAdapter",
+        "DBTProjectIntegrationAdapter",
         "Cannot start target watchers - target path not available",
       );
       return;
     }
 
     this.terminal.debug(
-      "DBTIntegrationAdapter",
+      "DBTProjectIntegrationAdapter",
       `Starting Node.js target watchers for project at ${this.projectRoot}`,
     );
 
@@ -1245,7 +1248,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
     }
 
     this.terminal.debug(
-      "DBTIntegrationAdapter",
+      "DBTProjectIntegrationAdapter",
       `Stopping Node.js target watchers for project at ${this.projectRoot}`,
     );
 
@@ -1262,7 +1265,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
     const targetPath = this.getTargetPath();
     if (!targetPath) {
       this.terminal.debug(
-        "DBTIntegrationAdapter",
+        "DBTProjectIntegrationAdapter",
         "Cannot update target watchers - target path not available",
       );
       this.stopTargetWatchers();
@@ -1275,7 +1278,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
     }
 
     this.terminal.debug(
-      "DBTIntegrationAdapter",
+      "DBTProjectIntegrationAdapter",
       "Updating Node.js target watchers with new target path",
       targetPath,
     );
@@ -1301,7 +1304,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
       }
     } catch (error) {
       this.terminal.error(
-        "DBTIntegrationAdapter",
+        "DBTProjectIntegrationAdapter",
         "Error setting up target watchers",
         error,
       );
@@ -1342,7 +1345,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
             (filename === MANIFEST_FILE || filename === RUN_RESULTS_FILE)
           ) {
             this.terminal.debug(
-              "DBTIntegrationAdapter",
+              "DBTProjectIntegrationAdapter",
               `Target folder ${eventType} detected: ${filename} in ${targetPath}`,
             );
             handleFileChange();
@@ -1351,13 +1354,13 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
       );
 
       this.terminal.debug(
-        "DBTIntegrationAdapter",
+        "DBTProjectIntegrationAdapter",
         `Started Node.js target folder watcher for ${targetPath}`,
       );
       return watcher;
     } catch (error) {
       this.terminal.error(
-        "DBTIntegrationAdapter",
+        "DBTProjectIntegrationAdapter",
         `Failed to create target folder watcher for ${targetPath}`,
         error,
       );
@@ -1379,7 +1382,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
       };
     } catch (error) {
       this.terminal.error(
-        "DBTIntegrationAdapter",
+        "DBTProjectIntegrationAdapter",
         `Unable to parse run_results.json: ${error}`,
         error,
       );
@@ -1393,7 +1396,7 @@ export class DBTIntegrationAdapter extends EventEmitter implements DBTFacade {
         watcher.close();
       } catch (error) {
         this.terminal.error(
-          "DBTIntegrationAdapter",
+          "DBTProjectIntegrationAdapter",
           "Error closing target watcher",
           error,
         );

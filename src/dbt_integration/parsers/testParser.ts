@@ -2,7 +2,7 @@ import * as path from "path";
 import { TestMetaMap } from "../domain";
 import { DBTTerminal } from "../terminal";
 import { RESOURCE_TYPE_TEST } from "../dbtIntegration";
-import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
+import { DBTProjectIntegrationAdapter } from "../dbtProjectIntegrationAdapter";
 
 export class TestParser {
   constructor(private terminal: DBTTerminal) {}
@@ -20,7 +20,7 @@ export class TestParser {
   }
   createTestMetaMap(
     testsMap: any[],
-    project: DBTIntegrationAdapter,
+    project: DBTProjectIntegrationAdapter,
   ): Promise<TestMetaMap> {
     return new Promise((resolve) => {
       const projectRoot = project.getProjectRoot();

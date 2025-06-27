@@ -8,7 +8,7 @@ import {
   TestMetaMap,
 } from "../domain";
 import { DBTTerminal } from "../terminal";
-import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
+import { DBTProjectIntegrationAdapter } from "../dbtProjectIntegrationAdapter";
 import { RESOURCE_TYPE_METRIC, RESOURCE_TYPE_TEST } from "../dbtIntegration";
 
 const notEmpty = <T>(value: T | null | undefined): value is T => {
@@ -23,7 +23,7 @@ export class GraphParser {
   constructor(private terminal: DBTTerminal) {}
 
   createGraphMetaMap(
-    project: DBTIntegrationAdapter,
+    project: DBTProjectIntegrationAdapter,
     parentMap: DBTGraphType,
     childrenMap: DBTGraphType,
     nodeMetaMap: NodeMetaMap,

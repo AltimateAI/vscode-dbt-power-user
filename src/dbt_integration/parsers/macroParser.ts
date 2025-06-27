@@ -1,7 +1,7 @@
 import { readFileSync } from "fs";
 import { DBTTerminal } from "../terminal";
 import { MacroMetaMap } from "../domain";
-import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
+import { DBTProjectIntegrationAdapter } from "../dbtProjectIntegrationAdapter";
 import { createFullPathForNode } from "./utils";
 
 export class MacroParser {
@@ -9,7 +9,7 @@ export class MacroParser {
 
   createMacroMetaMap(
     macros: any[],
-    project: DBTIntegrationAdapter,
+    project: DBTProjectIntegrationAdapter,
   ): Promise<MacroMetaMap> {
     return new Promise(async (resolve) => {
       const projectRoot = project.getProjectRoot();

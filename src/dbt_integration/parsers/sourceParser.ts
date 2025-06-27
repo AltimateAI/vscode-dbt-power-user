@@ -3,14 +3,14 @@ import { DBTTerminal } from "../terminal";
 import { SourceMetaMap } from "../domain";
 import { getExternalProjectNamesFromDbtLoomConfig } from "./utils";
 import { RESOURCE_TYPE_SOURCE } from "../dbtIntegration";
-import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
+import { DBTProjectIntegrationAdapter } from "../dbtProjectIntegrationAdapter";
 
 export class SourceParser {
   constructor(private terminal: DBTTerminal) {}
 
   createSourceMetaMap(
     sourcesMap: any[],
-    project: DBTIntegrationAdapter,
+    project: DBTProjectIntegrationAdapter,
   ): Promise<SourceMetaMap> {
     return new Promise((resolve) => {
       const projectRoot = project.getProjectRoot();

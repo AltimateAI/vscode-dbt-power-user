@@ -75,10 +75,10 @@ import { getProjectRelativePath } from "../utils";
 import { inject } from "inversify";
 import { DBTFacade } from "../dbt_integration/dbtFacade";
 import {
-  DBTIntegrationAdapter,
+  DBTProjectIntegrationAdapter,
   ParsedManifest,
   RunResultsEventData,
-} from "../dbt_integration/dbtIntegrationAdapter";
+} from "../dbt_integration/dbtProjectIntegrationAdapter";
 import { DBTDiagnosticData } from "../dbt_integration/diagnostics";
 
 interface FileNameTemplateMap {
@@ -92,7 +92,7 @@ interface JsonObj {
 export class DBTProject implements Disposable, DBTFacade {
   private _manifestCacheEvent?: ManifestCacheProjectAddedEvent;
   readonly projectRoot: Uri;
-  private dbtProjectIntegration: DBTIntegrationAdapter;
+  private dbtProjectIntegration: DBTProjectIntegrationAdapter;
 
   private _onProjectConfigChanged =
     new EventEmitter<ProjectConfigChangedEvent>();
@@ -144,7 +144,7 @@ export class DBTProject implements Disposable, DBTFacade {
     private dbtIntegrationAdapterFactory: (
       projectRoot: string,
       deferConfig: DeferConfig | undefined,
-    ) => DBTIntegrationAdapter,
+    ) => DBTProjectIntegrationAdapter,
     private altimate: AltimateRequest,
     private validationProvider: ValidationProvider,
     private deferToProdService: DeferToProdService,

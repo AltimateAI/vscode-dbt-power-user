@@ -1,13 +1,13 @@
 import { expect, describe, it, beforeEach } from "@jest/globals";
 import { TestParser } from "../../dbt_integration/parsers/testParser";
-import { DBTIntegrationAdapter } from "../../dbt_integration/dbtIntegrationAdapter";
+import { DBTProjectIntegrationAdapter } from "../../dbt_integration/dbtProjectIntegrationAdapter";
 import { DBTTerminal } from "../../dbt_integration/terminal";
 import * as path from "path";
 import { EventEmitter } from "vscode";
 
 describe("TestParser Test Suite", () => {
   let testParser: TestParser;
-  let mockAdapter: DBTIntegrationAdapter;
+  let mockAdapter: DBTProjectIntegrationAdapter;
   let mockTerminal: DBTTerminal;
 
   beforeEach(() => {
@@ -47,7 +47,7 @@ describe("TestParser Test Suite", () => {
     mockAdapter = {
       getProjectRoot: () => "/mock/project/path",
       getProjectName: () => "mock_project",
-    } as unknown as DBTIntegrationAdapter;
+    } as unknown as DBTProjectIntegrationAdapter;
   });
 
   it("should handle null/undefined testsMap", async () => {

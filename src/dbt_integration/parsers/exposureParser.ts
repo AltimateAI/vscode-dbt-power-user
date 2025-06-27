@@ -2,14 +2,14 @@ import * as path from "path";
 import { ExposureMetaMap } from "../domain";
 import { DBTTerminal } from "../terminal";
 import { RESOURCE_TYPE_EXPOSURE } from "../dbtIntegration";
-import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
+import { DBTProjectIntegrationAdapter } from "../dbtProjectIntegrationAdapter";
 
 export class ExposureParser {
   constructor(private terminal: DBTTerminal) {}
 
   createExposureMetaMap(
     exposuresMap: any[],
-    project: DBTIntegrationAdapter,
+    project: DBTProjectIntegrationAdapter,
   ): Promise<ExposureMetaMap> {
     return new Promise((resolve) => {
       const projectRoot = project.getProjectRoot();

@@ -1,7 +1,7 @@
 import { readFileSync } from "fs";
 import { DBTTerminal } from "../terminal";
 import { DocMetaMap } from "../domain";
-import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
+import { DBTProjectIntegrationAdapter } from "../dbtProjectIntegrationAdapter";
 import { createFullPathForNode } from "./utils";
 
 export class DocParser {
@@ -9,7 +9,7 @@ export class DocParser {
 
   createDocMetaMap(
     docs: any,
-    project: DBTIntegrationAdapter,
+    project: DBTProjectIntegrationAdapter,
   ): Promise<DocMetaMap> {
     return new Promise(async (resolve) => {
       const projectRoot = project.getProjectRoot();
