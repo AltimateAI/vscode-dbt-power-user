@@ -3,7 +3,7 @@ import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { provideSingleton } from "../utils";
 import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
 import { existsSync } from "fs";
-import { DBTDetection } from "../dbt_integration/dbtIntegration";
+import { DBTDetection } from "../dbt_integration/";
 import { inject } from "inversify";
 
 enum PythonInterpreterPromptAnswer {

@@ -2,7 +2,7 @@ import { Container, interfaces } from "inversify";
 import { buildProviderModule } from "inversify-binding-decorators";
 import { Event, EventEmitter, Uri, workspace, WorkspaceFolder } from "vscode";
 import { VSCodeDBTTerminal } from "./dbt_client/vscodeTerminal";
-import { DBTDiagnosticData } from "./dbt_integration/diagnostics";
+import { DBTDiagnosticData } from "./dbt_integration";
 import { DBTProject } from "./manifest/dbtProject";
 import { ProjectRegisteredUnregisteredEvent } from "./manifest/dbtProjectContainer";
 import { DBTWorkspaceFolder } from "./manifest/dbtWorkspaceFolder";
@@ -12,7 +12,7 @@ import { DBTProjectLog } from "./manifest/dbtProjectLog";
 import {
   RuntimePythonEnvironment,
   PythonEnvironmentProvider,
-} from "./dbt_integration/pythonEnvironment";
+} from "./dbt_integration";
 import {
   VSCodeRuntimePythonEnvironmentProvider,
   StaticRuntimePythonEnvironment,
@@ -22,7 +22,7 @@ import {
   DBTCoreDetection,
   DBTCoreProjectDetection,
   DBTCoreProjectIntegration,
-} from "./dbt_integration/dbtCoreIntegration";
+} from "./dbt_integration";
 import {
   CLIDBTCommandExecutionStrategy,
   DBTCommandExecutionInfrastructure,
@@ -31,19 +31,19 @@ import {
   DBTDetection,
   DBTProjectDetection,
   PythonDBTCommandExecutionStrategy,
-} from "./dbt_integration/dbtIntegration";
+} from "./dbt_integration";
 import {
   DBTCloudDetection,
   DBTCloudProjectDetection,
   DBTCloudProjectIntegration,
-} from "./dbt_integration/dbtCloudIntegration";
-import { CommandProcessExecutionFactory } from "./dbt_integration/commandProcessExecution";
+} from "./dbt_integration";
+import { CommandProcessExecutionFactory } from "./dbt_integration";
 import { AltimateRequest } from "./altimate";
 import { ValidationProvider } from "./validation_provider";
-import { DBTConfiguration } from "./dbt_integration/configuration";
+import { DBTConfiguration } from "./dbt_integration";
 import { AltimateAuthService } from "./services/altimateAuthService";
-import { AltimateHttpClient } from "./dbt_integration/altimateHttpClient";
-import { DbtIntegrationClient } from "./dbt_integration/dbtIntegrationClient";
+import { AltimateHttpClient } from "./dbt_integration";
+import { DbtIntegrationClient } from "./dbt_integration";
 import { VSCodeDBTConfiguration } from "./dbt_client/vscodeConfiguration";
 import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
@@ -52,25 +52,25 @@ import {
   DBTCoreCommandDetection,
   DBTCoreCommandProjectDetection,
   DBTCoreCommandProjectIntegration,
-} from "./dbt_integration/dbtCoreCommandIntegration";
+} from "./dbt_integration";
 import {
   DBTFusionCommandDetection,
   DBTFusionCommandProjectDetection,
   DBTFusionCommandProjectIntegration,
-} from "./dbt_integration/dbtFusionCommandIntegration";
-import { DBTTerminal } from "./dbt_integration/terminal";
-import { DBTProjectIntegrationAdapter } from "./dbt_integration/dbtIntegrationAdapter";
-import { ChildrenParentParser } from "./dbt_integration/parsers/childrenParentParser";
-import { DocParser } from "./dbt_integration/parsers/docParser";
-import { ExposureParser } from "./dbt_integration/parsers/exposureParser";
-import { GraphParser } from "./dbt_integration/parsers/graphParser";
-import { MacroParser } from "./dbt_integration/parsers/macroParser";
-import { MetricParser } from "./dbt_integration/parsers/metricParser";
-import { ModelDepthParser } from "./dbt_integration/parsers/modelDepthParser";
-import { NodeParser } from "./dbt_integration/parsers/nodeParser";
-import { SourceParser } from "./dbt_integration/parsers/sourceParser";
-import { TestParser } from "./dbt_integration/parsers/testParser";
-import { DeferConfig } from "./dbt_integration/domain";
+} from "./dbt_integration";
+import { DBTTerminal } from "./dbt_integration";
+import { DBTProjectIntegrationAdapter } from "./dbt_integration";
+import { ChildrenParentParser } from "./dbt_integration";
+import { DocParser } from "./dbt_integration";
+import { ExposureParser } from "./dbt_integration";
+import { GraphParser } from "./dbt_integration";
+import { MacroParser } from "./dbt_integration";
+import { MetricParser } from "./dbt_integration";
+import { ModelDepthParser } from "./dbt_integration";
+import { NodeParser } from "./dbt_integration";
+import { SourceParser } from "./dbt_integration";
+import { TestParser } from "./dbt_integration";
+import { DeferConfig } from "./dbt_integration";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
 
 export const container = new Container();

@@ -18,7 +18,7 @@ import {
   workspace,
 } from "vscode";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { DBTTerminal } from "../dbt_integration/terminal";
+import { DBTTerminal } from "../dbt_integration/";
 import path = require("path");
 import { ConversationService } from "../services/conversationService";
 import { SharedStateService } from "../services/sharedStateService";
@@ -27,10 +27,7 @@ import { QueryManifestService } from "../services/queryManifestService";
 import { SharedDoc, ConversationGroup, Conversation } from "../altimate";
 import { TelemetryService } from "../telemetry";
 import { inject } from "inversify";
-import {
-  RESOURCE_TYPE_MACRO,
-  RESOURCE_TYPE_TEST,
-} from "../dbt_integration/domain";
+import { RESOURCE_TYPE_MACRO, RESOURCE_TYPE_TEST } from "../dbt_integration/";
 
 // Extends vscode commentthread and add extra fields for reference
 export interface ConversationCommentThread extends CommentThread {

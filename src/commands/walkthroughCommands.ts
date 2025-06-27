@@ -9,9 +9,9 @@ import { getFirstWorkspacePath, provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
-import { CommandProcessExecutionFactory } from "../dbt_integration/commandProcessExecution";
+import { CommandProcessExecutionFactory } from "../dbt_integration/";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { DBTTerminal } from "../dbt_integration/terminal";
+import { DBTTerminal } from "../dbt_integration/";
 import { inject } from "inversify";
 
 enum PromptAnswer {

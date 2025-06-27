@@ -10,7 +10,7 @@ import {
   workspace,
 } from "vscode";
 import which from "which";
-import { CommandProcessExecutionFactory } from "../dbt_integration/commandProcessExecution";
+import { CommandProcessExecutionFactory } from "../dbt_integration/";
 import {
   extendErrorWithSupportLinks,
   getFirstWorkspacePath,

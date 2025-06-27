@@ -1,7 +1,7 @@
 import { window } from "vscode";
 import path = require("path");
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { DBTTerminal } from "../dbt_integration/terminal";
+import { DBTTerminal } from "../dbt_integration/";
 import { TelemetryService } from "../telemetry";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { PythonException } from "python-bridge";

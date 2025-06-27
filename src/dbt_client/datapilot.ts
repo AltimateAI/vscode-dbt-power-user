@@ -1,8 +1,8 @@
 import { provideSingleton } from "../utils";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { CommandProcessExecutionFactory } from "../dbt_integration/commandProcessExecution";
-import { DBTTerminal } from "../dbt_integration/terminal";
-import { DBTConfiguration } from "../dbt_integration/configuration";
+import { CommandProcessExecutionFactory } from "../dbt_integration/";
+import { DBTTerminal } from "../dbt_integration/";
+import { DBTConfiguration } from "../dbt_integration/";
 import { inject } from "inversify";
 
 @provideSingleton(AltimateDatapilot)

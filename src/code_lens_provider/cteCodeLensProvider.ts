@@ -9,7 +9,7 @@ import {
 } from "vscode";
 import { inject } from "inversify";
 import { provideSingleton } from "../utils";
-import { DBTTerminal } from "../dbt_integration/terminal";
+import { DBTTerminal } from "../dbt_integration/";
 import { AltimateRequest } from "../altimate";
 
 export interface CteInfo {

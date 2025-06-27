@@ -22,7 +22,7 @@ import {
   NodeData,
   NodeMetaData,
   NodeMetaMap,
-} from "../dbt_integration/domain";
+} from "../dbt_integration/";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,

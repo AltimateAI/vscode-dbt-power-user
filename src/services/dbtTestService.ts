@@ -16,18 +16,18 @@ import { DocGenService } from "./docGenService";
 import { StreamingService } from "./streamingService";
 import { QueryManifestService } from "./queryManifestService";
 import path = require("path");
-import { DBTTerminal } from "../dbt_integration/terminal";
+import { DBTTerminal } from "../dbt_integration/";
 import {
   MacroMetaMap,
   TestMetaData,
   TestMetadataAcceptedValues,
   TestMetadataRelationships,
-} from "../dbt_integration/domain";
+} from "../dbt_integration/";
 import { parse, stringify } from "yaml";
 import { readFileSync } from "fs";
 import { DBTProject } from "../manifest/dbtProject";
 import { getTestSuggestions } from "@lib";
-import { ExecuteSQLResult } from "../dbt_integration/dbtIntegration";
+import { ExecuteSQLResult } from "../dbt_integration/";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
 import { inject } from "inversify";

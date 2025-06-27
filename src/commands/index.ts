@@ -18,7 +18,7 @@ import {
   env,
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
-import { RunModelType } from "../dbt_integration/domain";
+import { RunModelType } from "../dbt_integration/";
 import {
   deepEqual,
   extendErrorWithSupportLinks,
@@ -34,7 +34,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { ValidateSql } from "./validateSql";
 import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
-import { DBTTerminal } from "../dbt_integration/terminal";
+import { DBTTerminal } from "../dbt_integration/";
 import { DiagnosticsOutputChannel } from "../services/diagnosticsOutputChannel";
 import { SharedStateService } from "../services/sharedStateService";
 import {

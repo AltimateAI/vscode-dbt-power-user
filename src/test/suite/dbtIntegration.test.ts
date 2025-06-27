@@ -2,13 +2,13 @@ import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
 import {
   CLIDBTCommandExecutionStrategy,
   DBTCommand,
-} from "../../dbt_integration/dbtIntegration";
+} from "../../dbt_integration/";
 import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
-} from "../../dbt_integration/commandProcessExecution";
+} from "../../dbt_integration/";
 import { PythonEnvironment } from "../../manifest/pythonEnvironment";
-import { DBTTerminal } from "../../dbt_integration/terminal";
+import { DBTTerminal } from "../../dbt_integration/";
 describe("CLIDBTCommandExecutionStrategy Tests", () => {
   let strategy: CLIDBTCommandExecutionStrategy;
   let mockCommandProcessExecutionFactory: jest.Mocked<CommandProcessExecutionFactory>;

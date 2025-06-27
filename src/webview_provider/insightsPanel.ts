@@ -19,10 +19,10 @@ import {
   UpdateConfigProps,
 } from "./altimateWebviewProvider";
 import { AltimateRequest, DBTCoreIntegration } from "../altimate";
-import { NotFoundError } from "../dbt_integration/altimateHttpClient";
-import { DbtIntegrationClient } from "../dbt_integration/dbtIntegrationClient";
+import { NotFoundError } from "../dbt_integration/";
+import { DbtIntegrationClient } from "../dbt_integration/";
 import { SharedStateService } from "../services/sharedStateService";
-import { DBTTerminal } from "../dbt_integration/terminal";
+import { DBTTerminal } from "../dbt_integration/";
 import { DeferToProdService } from "../services/deferToProdService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { ValidationProvider } from "../validation_provider";
@@ -30,10 +30,7 @@ import { UsersService } from "../services/usersService";
 import { NotebookFileSystemProvider } from "@lib";
 import { inject } from "inversify";
 import { AltimateAuthService } from "../services/altimateAuthService";
-import {
-  DataPilotHealtCheckParams,
-  DeferConfig,
-} from "../dbt_integration/domain";
+import { DataPilotHealtCheckParams, DeferConfig } from "../dbt_integration/";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];

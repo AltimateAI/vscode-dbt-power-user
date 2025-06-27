@@ -10,7 +10,7 @@ import {
 import { DeferToProdService } from "../services/deferToProdService";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { DBTTerminal } from "../dbt_integration/terminal";
+import { DBTTerminal } from "../dbt_integration/";
 import { inject } from "inversify";
 
 @provideSingleton(DeferToProductionStatusBar)

@@ -2,7 +2,7 @@ import { Diagnostic, DiagnosticSeverity, Range } from "vscode";
 import { ScanContext } from "./scanContext";
 import { AltimateScanStep } from "./step";
 import { provideSingleton } from "../../utils";
-import { RESOURCE_TYPE_MODEL } from "../../dbt_integration/domain";
+import { RESOURCE_TYPE_MODEL } from "../../dbt_integration/";
 
 @provideSingleton(MissingSchemaTest)
 export class MissingSchemaTest implements AltimateScanStep {

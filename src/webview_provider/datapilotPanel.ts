@@ -24,7 +24,7 @@ import {
   QueryTranslateIncomingRequest,
 } from "../services/queryAnalysisService";
 import { QueryManifestService } from "../services/queryManifestService";
-import { DBTTerminal } from "../dbt_integration/terminal";
+import { DBTTerminal } from "../dbt_integration/";
 import { DbtTestService } from "../services/dbtTestService";
 import { FileService } from "../services/fileService";
 import { UsersService } from "../services/usersService";

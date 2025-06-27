@@ -15,7 +15,7 @@ import { parse, parseDocument } from "yaml";
 import {
   TestMetadataAcceptedValues,
   TestMetadataRelationships,
-} from "./dbt_integration/domain";
+} from "./dbt_integration";
 
 export const isEnclosedWithinCodeBlock = (
   document: TextDocument,

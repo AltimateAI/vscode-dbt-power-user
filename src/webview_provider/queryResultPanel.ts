@@ -29,14 +29,14 @@ import {
   ExecuteSQLError,
   ExecuteSQLResult,
   QueryExecution,
-} from "../dbt_integration/dbtIntegration";
+} from "../dbt_integration/";
 import { SharedStateService } from "../services/sharedStateService";
 import {
   AltimateWebviewProvider,
   SendMessageProps,
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
-import { DBTTerminal } from "../dbt_integration/terminal";
+import { DBTTerminal } from "../dbt_integration/";
 import { QueryManifestService } from "../services/queryManifestService";
 import { UsersService } from "../services/usersService";
 import { TelemetryEvents } from "../telemetry/events";

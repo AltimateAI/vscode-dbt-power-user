@@ -3,7 +3,7 @@ import { PythonEnvironment } from "./pythonEnvironment";
 import {
   PythonEnvironmentProvider,
   RuntimePythonEnvironment,
-} from "../dbt_integration/pythonEnvironment";
+} from "../dbt_integration/";
 
 @injectable()
 export class VSCodeRuntimePythonEnvironmentProvider

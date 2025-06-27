@@ -1,7 +1,7 @@
 import { Disposable, Event, extensions, Uri, workspace } from "vscode";
-import { EnvironmentVariables } from "../dbt_integration/domain";
+import { EnvironmentVariables } from "../dbt_integration/";
 import { provideSingleton } from "../utils";
-import { DBTTerminal } from "../dbt_integration/terminal";
+import { DBTTerminal } from "../dbt_integration/";
 import { inject } from "inversify";
 
 type EnvFrom = "process" | "integrated" | "dotenv";

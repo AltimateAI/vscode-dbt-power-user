@@ -9,7 +9,7 @@ import {
   Hover,
   MarkdownString,
 } from "vscode";
-import { SourceMetaMap } from "../dbt_integration/domain";
+import { SourceMetaMap } from "../dbt_integration/";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";

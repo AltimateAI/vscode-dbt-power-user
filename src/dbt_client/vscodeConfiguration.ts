@@ -3,7 +3,7 @@ import { injectable } from "inversify";
 import {
   DBTConfiguration,
   DEFAULT_CONFIGURATION_VALUES,
-} from "../dbt_integration/configuration";
+} from "../dbt_integration/";
 import { getFirstWorkspacePath } from "../utils";
 
 @injectable()

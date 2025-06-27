@@ -1,8 +1,8 @@
 import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
 import { mock, instance, when, anything, verify } from "ts-mockito";
-import { DBTTerminal } from "../../dbt_integration/terminal";
+import { DBTTerminal } from "../../dbt_integration/";
 import { VSCodeDBTTerminal } from "../../dbt_client/vscodeTerminal";
-import { CommandProcessExecutionFactory } from "../../dbt_integration/commandProcessExecution";
+import { CommandProcessExecutionFactory } from "../../dbt_integration/";
 import * as path from "path";
 import * as os from "os";
 import * as fs from "fs";
