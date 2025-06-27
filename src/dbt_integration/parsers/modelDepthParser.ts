@@ -1,4 +1,4 @@
-import { DBTTerminal } from "../../dbt_integration/terminal";
+import { DBTTerminal } from "../terminal";
 import { DBTGraphType } from "./graphParser";
 import { DbtIntegrationClient } from "../dbtIntegrationClient";
 import { DBTConfiguration } from "../configuration";

@@ -1,7 +1,7 @@
 import { NodeMetaData, NodeMetaMap } from "../domain";
 import { createFullPathForNode } from "./utils";
-import { DBTTerminal } from "../../dbt_integration/terminal";
-import { getExternalProjectNamesFromDbtLoomConfig } from "../../utils";
+import { DBTTerminal } from "../terminal";
+import { getExternalProjectNamesFromDbtLoomConfig } from "./utils";
 import * as path from "path";
 import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
 import { isResourceNode } from "../dbtIntegration";
