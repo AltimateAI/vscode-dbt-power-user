@@ -233,3 +233,93 @@ export enum RunModelType {
 export interface EnvironmentVariables {
   [key: string]: string | undefined;
 }
+
+export const DBT_PROJECT_FILE = "dbt_project.yml";
+export const MANIFEST_FILE = "manifest.json";
+export const RUN_RESULTS_FILE = "run_results.json";
+export const CATALOG_FILE = "catalog.json";
+export const RESOURCE_TYPE_MODEL = "model";
+export const RESOURCE_TYPE_MACRO = "macro";
+export const RESOURCE_TYPE_ANALYSIS = "analysis";
+export const RESOURCE_TYPE_SOURCE = "source";
+export const RESOURCE_TYPE_EXPOSURE = "exposure";
+export const RESOURCE_TYPE_SEED = "seed";
+export const RESOURCE_TYPE_SNAPSHOT = "snapshot";
+export const RESOURCE_TYPE_TEST = "test";
+export const RESOURCE_TYPE_METRIC = "semantic_model";
+
+export function isResourceNode(resourceType: string): boolean {
+  return (
+    resourceType === RESOURCE_TYPE_MODEL ||
+    resourceType === RESOURCE_TYPE_SEED ||
+    resourceType === RESOURCE_TYPE_ANALYSIS ||
+    resourceType === RESOURCE_TYPE_SNAPSHOT
+  );
+}
+
+export function isResourceHasDbColumns(resourceType: string): boolean {
+  return (
+    resourceType === RESOURCE_TYPE_MODEL ||
+    resourceType === RESOURCE_TYPE_SEED ||
+    resourceType === RESOURCE_TYPE_SNAPSHOT
+  );
+}
+export interface DBTCommandExecution {
+  command: (signal?: AbortSignal) => Promise<void>;
+  statusMessage: string;
+  showProgress?: boolean;
+  focus?: boolean;
+  signal?: AbortSignal;
+}
+
+export enum ManifestPathType {
+  EMPTY = "",
+  LOCAL = "local",
+  REMOTE = "remote",
+}
+
+export interface DeferConfig {
+  deferToProduction: boolean;
+  favorState: boolean;
+  manifestPathForDeferral: string | null;
+  manifestPathType?: ManifestPathType;
+  dbtCoreIntegrationId?: number;
+}
+export interface RunModelParams {
+  plusOperatorLeft: string;
+  modelName: string;
+  plusOperatorRight: string;
+}
+
+export type DBColumn = { column: string; dtype: string };
+
+export type Node = {
+  unique_id: string;
+  name: string;
+  resource_type: string;
+};
+
+export type SourceNode = {
+  unique_id: string;
+  name: string;
+  resource_type: "source";
+  table: string;
+};
+
+export type DBTNode = Node | SourceNode;
+
+type CatalogItem = {
+  table_database: string;
+  table_schema: string;
+  table_name: string;
+  column_name: string;
+  column_type: string;
+};
+
+export type Catalog = CatalogItem[];
+export interface HealthcheckArgs {
+  manifestPath: string;
+  catalogPath?: string;
+  config?: any;
+  configPath?: string;
+}

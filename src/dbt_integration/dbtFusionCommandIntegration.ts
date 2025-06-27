@@ -1,13 +1,8 @@
 import {
   QueryExecution,
   DBTCommand,
-  DBColumn,
-  Catalog,
-  DBTNode,
   DBTDetection,
   DBTProjectDetection,
-  DBT_PROJECT_FILE,
-  DeferConfig,
   readAndParseProjectConfig,
 } from "./dbtIntegration";
 import { DBTDiagnosticData } from "./diagnostics";
@@ -17,6 +12,13 @@ import path, { join } from "path";
 import { CommandProcessExecutionFactory } from "./commandProcessExecution";
 import { RuntimePythonEnvironment } from "./pythonEnvironment";
 import { DBTTerminal } from "./terminal";
+import {
+  DBT_PROJECT_FILE,
+  DBColumn,
+  DBTNode,
+  Catalog,
+  DeferConfig,
+} from "./domain";
 
 export class DBTFusionCommandDetection implements DBTDetection {
   constructor(

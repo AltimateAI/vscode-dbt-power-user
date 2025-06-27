@@ -34,23 +34,8 @@ import {
   DBTProjectIntegration,
   DBTCommandFactory,
   DBTCommandExecutionInfrastructure,
-  RunModelParams,
-  Catalog,
-  DBTNode,
-  DBColumn,
-  SourceNode,
-  HealthcheckArgs,
   DBTCommand,
   validateSQLUsingSqlGlot,
-  DBT_PROJECT_FILE,
-  RESOURCE_TYPE_MODEL,
-  RESOURCE_TYPE_SOURCE,
-  MANIFEST_FILE,
-  CATALOG_FILE,
-  DBTCommandExecution,
-  DeferConfig,
-  isResourceNode,
-  isResourceHasDbColumns,
 } from "../dbt_integration/dbtIntegration";
 import { ProjectHealthcheck } from "../dbt_integration/dbtCoreIntegration";
 import { AltimateRequest } from "../altimate";
@@ -58,11 +43,26 @@ import { NoCredentialsError } from "../dbt_integration/altimateHttpClient";
 import { ValidationProvider } from "../validation_provider";
 import { ModelNode } from "../altimate";
 import {
+  Catalog,
+  CATALOG_FILE,
   ColumnMetaData,
   DataPilotHealtCheckParams,
+  DBColumn,
+  DBT_PROJECT_FILE,
+  DBTCommandExecution,
+  DBTNode,
+  DeferConfig,
+  HealthcheckArgs,
+  isResourceHasDbColumns,
+  isResourceNode,
+  MANIFEST_FILE,
   NodeMetaData,
   ParsedManifest,
+  RESOURCE_TYPE_MODEL,
+  RESOURCE_TYPE_SOURCE,
+  RunModelParams,
   RunResultsEventData,
+  SourceNode,
   Table,
 } from "../dbt_integration/domain";
 import { SharedStateService } from "../services/sharedStateService";

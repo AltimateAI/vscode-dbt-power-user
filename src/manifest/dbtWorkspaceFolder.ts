@@ -25,10 +25,10 @@ import { ProjectRegisteredUnregisteredEvent } from "./dbtProjectContainer";
 
 import { DBTTerminal } from "../dbt_integration/terminal";
 import {
-  DBT_PROJECT_FILE,
   DBTProjectDetection,
   readAndParseProjectConfig,
 } from "../dbt_integration/dbtIntegration";
+import { DBT_PROJECT_FILE } from "../dbt_integration/domain";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;

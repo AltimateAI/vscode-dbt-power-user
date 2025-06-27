@@ -1,9 +1,6 @@
 import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
 import {
-  Catalog,
   CompilationResult,
-  DBColumn,
-  DBTNode,
   DBTCommand,
   DBTCommandExecutionInfrastructure,
   DBTDetection,
@@ -12,14 +9,8 @@ import {
   ExecuteSQLResult,
   PythonDBTCommandExecutionStrategy,
   QueryExecution,
-  SourceNode,
-  Node,
   ExecuteSQLError,
   DBTCommandExecutionStrategy,
-  DBT_PROJECT_FILE,
-  RESOURCE_TYPE_SOURCE,
-  DeferConfig,
-  ManifestPathType,
 } from "./dbtIntegration";
 import { RuntimePythonEnvironment } from "./pythonEnvironment";
 import { CommandProcessExecutionFactory } from "./commandProcessExecution";
@@ -31,7 +22,18 @@ import { parse } from "yaml";
 import { NotFoundError } from "./altimateHttpClient";
 import { DBTTerminal } from "./terminal";
 import { DBTConfiguration } from "./configuration";
-import { NodeMetaData } from "./domain";
+import {
+  Catalog,
+  DBColumn,
+  DBT_PROJECT_FILE,
+  DBTNode,
+  DeferConfig,
+  ManifestPathType,
+  Node,
+  NodeMetaData,
+  RESOURCE_TYPE_SOURCE,
+  SourceNode,
+} from "./domain";
 import * as crypto from "crypto";
 import { DbtIntegrationClient } from "./dbtIntegrationClient";
 

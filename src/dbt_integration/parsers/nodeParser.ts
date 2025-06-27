@@ -4,7 +4,7 @@ import { DBTTerminal } from "../terminal";
 import { getExternalProjectNamesFromDbtLoomConfig } from "./utils";
 import * as path from "path";
 import { DBTProjectIntegrationAdapter } from "../dbtIntegrationAdapter";
-import { isResourceNode } from "../dbtIntegration";
+import { isResourceNode } from "../domain";
 
 export class NodeMetaMapImpl implements NodeMetaMap {
   constructor(

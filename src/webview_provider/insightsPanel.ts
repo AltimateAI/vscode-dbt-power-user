@@ -29,9 +29,11 @@ import { ValidationProvider } from "../validation_provider";
 import { UsersService } from "../services/usersService";
 import { NotebookFileSystemProvider } from "@lib";
 import { inject } from "inversify";
-import { DeferConfig } from "../dbt_integration/dbtIntegration";
 import { AltimateAuthService } from "../services/altimateAuthService";
-import { DataPilotHealtCheckParams } from "../dbt_integration/domain";
+import {
+  DataPilotHealtCheckParams,
+  DeferConfig,
+} from "../dbt_integration/domain";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];

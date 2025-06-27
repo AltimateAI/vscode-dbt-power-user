@@ -1,7 +1,7 @@
 import * as path from "path";
 import { ExposureMetaMap } from "../domain";
 import { DBTTerminal } from "../terminal";
-import { RESOURCE_TYPE_EXPOSURE } from "../dbtIntegration";
+import { RESOURCE_TYPE_EXPOSURE } from "../domain";
 import { DBTProjectIntegrationAdapter } from "../dbtIntegrationAdapter";
 
 export class ExposureParser {

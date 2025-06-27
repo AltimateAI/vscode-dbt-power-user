@@ -1,8 +1,5 @@
 import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
 import {
-  Catalog,
-  DBColumn,
-  DBTNode,
   DBTCommand,
   DBTCommandExecutionInfrastructure,
   DBTCommandExecutionStrategy,
@@ -11,8 +8,6 @@ import {
   DBTProjectDetection,
   DBTProjectIntegration,
   QueryExecution,
-  DBT_PROJECT_FILE,
-  DeferConfig,
   readAndParseProjectConfig,
 } from "./dbtIntegration";
 import { CommandProcessExecutionFactory } from "./commandProcessExecution";
@@ -23,7 +18,14 @@ import { DBTTerminal } from "./terminal";
 import { RuntimePythonEnvironment } from "./pythonEnvironment";
 import { existsSync, readFileSync } from "fs";
 import semver = require("semver");
-import { NodeMetaData } from "./domain";
+import {
+  Catalog,
+  DBColumn,
+  DBT_PROJECT_FILE,
+  DBTNode,
+  DeferConfig,
+  NodeMetaData,
+} from "./domain";
 import * as crypto from "crypto";
 import { parse } from "yaml";
 

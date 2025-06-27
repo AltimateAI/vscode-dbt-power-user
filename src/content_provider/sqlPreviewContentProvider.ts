@@ -17,7 +17,7 @@ import { TelemetryService } from "../telemetry";
 import { DeferToProdService } from "../services/deferToProdService";
 import { DbtIntegrationClient } from "../dbt_integration/dbtIntegrationClient";
 import path = require("path");
-import { ManifestPathType } from "../dbt_integration/dbtIntegration";
+import { ManifestPathType } from "../dbt_integration/domain";
 
 @provideSingleton(SqlPreviewContentProvider)
 export class SqlPreviewContentProvider

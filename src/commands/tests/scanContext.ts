@@ -1,4 +1,4 @@
-import { Catalog } from "../../dbt_integration/dbtIntegration";
+import { Catalog } from "../../dbt_integration/domain";
 import { DBTProject } from "../../manifest/dbtProject";
 import { ManifestCacheProjectAddedEvent } from "../../manifest/event/manifestCacheChangedEvent";
 import { Diagnostic } from "vscode";

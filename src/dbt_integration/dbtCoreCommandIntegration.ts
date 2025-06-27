@@ -3,14 +3,9 @@ import {
   DBTCoreProjectDetection,
   DBTCoreProjectIntegration,
 } from "./dbtCoreIntegration";
-import {
-  QueryExecution,
-  DBTCommand,
-  DBColumn,
-  Catalog,
-  DBTNode,
-} from "./dbtIntegration";
+import { QueryExecution, DBTCommand } from "./dbtIntegration";
 import { getDBTPath } from "./dbtCloudIntegration";
+import { Catalog, DBColumn, DBTNode } from "./domain";
 
 // TODO: either fix this class or remove it
 export class DBTCoreCommandDetection extends DBTCoreDetection {}

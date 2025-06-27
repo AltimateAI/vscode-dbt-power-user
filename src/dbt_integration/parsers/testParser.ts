@@ -1,7 +1,7 @@
 import * as path from "path";
 import { TestMetaMap } from "../domain";
 import { DBTTerminal } from "../terminal";
-import { RESOURCE_TYPE_TEST } from "../dbtIntegration";
+import { RESOURCE_TYPE_TEST } from "../domain";
 import { DBTProjectIntegrationAdapter } from "../dbtIntegrationAdapter";
 
 export class TestParser {

@@ -18,7 +18,7 @@ import {
   RESOURCE_TYPE_MODEL,
   RESOURCE_TYPE_SNAPSHOT,
   RESOURCE_TYPE_SOURCE,
-} from "../dbt_integration/dbtIntegration";
+} from "../dbt_integration/domain";
 
 export enum CllEvents {
   START = "start",

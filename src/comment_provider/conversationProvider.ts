@@ -30,7 +30,7 @@ import { inject } from "inversify";
 import {
   RESOURCE_TYPE_MACRO,
   RESOURCE_TYPE_TEST,
-} from "../dbt_integration/dbtIntegration";
+} from "../dbt_integration/domain";
 
 // Extends vscode commentthread and add extra fields for reference
 export interface ConversationCommentThread extends CommentThread {

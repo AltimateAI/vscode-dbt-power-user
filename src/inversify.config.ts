@@ -30,7 +30,6 @@ import {
   DBTCommandFactory,
   DBTDetection,
   DBTProjectDetection,
-  DeferConfig,
   PythonDBTCommandExecutionStrategy,
 } from "./dbt_integration/dbtIntegration";
 import {
@@ -71,6 +70,7 @@ import { ModelDepthParser } from "./dbt_integration/parsers/modelDepthParser";
 import { NodeParser } from "./dbt_integration/parsers/nodeParser";
 import { SourceParser } from "./dbt_integration/parsers/sourceParser";
 import { TestParser } from "./dbt_integration/parsers/testParser";
+import { DeferConfig } from "./dbt_integration/domain";
 
 export const container = new Container();
 container.load(buildProviderModule());

@@ -26,7 +26,7 @@ import { AltimateWebviewProvider } from "./altimateWebviewProvider";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
 import { inject } from "inversify";
-import { RESOURCE_TYPE_SOURCE } from "../dbt_integration/dbtIntegration";
+import { RESOURCE_TYPE_SOURCE } from "../dbt_integration/domain";
 import { AltimateAuthService } from "../services/altimateAuthService";
 
 type SQLLineage = {
