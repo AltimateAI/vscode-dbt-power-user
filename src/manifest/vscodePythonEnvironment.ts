@@ -25,7 +25,7 @@ export class VSCodePythonEnvironment implements PythonEnvironment {
     private dbtTerminal: DBTTerminal,
   ) {}
 
-  dispose() {
+  async dispose(): Promise<void> {
     while (this.disposables.length) {
       const x = this.disposables.pop();
       if (x) {
