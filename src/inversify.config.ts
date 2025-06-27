@@ -13,7 +13,6 @@ import {
   RuntimePythonEnvironment,
   PythonEnvironmentProvider,
 } from "./dbt_integration/pythonEnvironment";
-import { PythonEnvironment } from "./manifest/pythonEnvironment";
 import {
   VSCodeRuntimePythonEnvironmentProvider,
   StaticRuntimePythonEnvironment,
