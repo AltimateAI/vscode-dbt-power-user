@@ -1,7 +1,9 @@
+import { createReadStream, ReadStream } from "fs";
+
+import type { RequestInit, Response as NodeFetchResponse } from "node-fetch";
+
 import { DBTConfiguration } from "./configuration";
 import { DBTTerminal } from "./terminal";
-import type { RequestInit, Response as NodeFetchResponse } from "node-fetch";
-import { createReadStream, ReadStream } from "fs";
 
 export class NoCredentialsError extends Error {}
 

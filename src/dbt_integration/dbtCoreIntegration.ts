@@ -1,4 +1,14 @@
-import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
+import * as crypto from "crypto";
+import { existsSync, readFileSync } from "fs";
+import * as fs from "fs";
+import * as path from "path";
+
+import { PythonBridge, PythonException } from "python-bridge";
+import { parse } from "yaml";
+
+import { NotFoundError } from "./altimateHttpClient";
+import { CommandProcessExecutionFactory } from "./commandProcessExecution";
+import { DBTConfiguration } from "./configuration";
 import {
   CompilationResult,
   DBTCommand,
@@ -12,16 +22,8 @@ import {
   ExecuteSQLError,
   DBTCommandExecutionStrategy,
 } from "./dbtIntegration";
-import { RuntimePythonEnvironment } from "./pythonEnvironment";
-import { CommandProcessExecutionFactory } from "./commandProcessExecution";
-import { PythonBridge, PythonException } from "python-bridge";
-import * as path from "path";
-import { existsSync, readFileSync } from "fs";
-import * as fs from "fs";
-import { parse } from "yaml";
-import { NotFoundError } from "./altimateHttpClient";
-import { DBTTerminal } from "./terminal";
-import { DBTConfiguration } from "./configuration";
+import { DbtIntegrationClient } from "./dbtIntegrationClient";
+import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
 import {
   Catalog,
   DBColumn,
@@ -34,8 +36,8 @@ import {
   RESOURCE_TYPE_SOURCE,
   SourceNode,
 } from "./domain";
-import * as crypto from "crypto";
-import { DbtIntegrationClient } from "./dbtIntegrationClient";
+import { RuntimePythonEnvironment } from "./pythonEnvironment";
+import { DBTTerminal } from "./terminal";
 
 const DEFAULT_QUERY_TEMPLATE = "select * from ({query}) as query limit {limit}";
 

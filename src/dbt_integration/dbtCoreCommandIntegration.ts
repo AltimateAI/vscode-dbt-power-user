@@ -1,10 +1,10 @@
+import { getDBTPath } from "./dbtCloudIntegration";
 import {
   DBTCoreDetection,
   DBTCoreProjectDetection,
   DBTCoreProjectIntegration,
 } from "./dbtCoreIntegration";
 import { QueryExecution, DBTCommand } from "./dbtIntegration";
-import { getDBTPath } from "./dbtCloudIntegration";
 import { Catalog, DBColumn, DBTNode } from "./domain";
 
 // TODO: either fix this class or remove it

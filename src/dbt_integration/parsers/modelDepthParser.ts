@@ -1,7 +1,8 @@
-import { DBTTerminal } from "../terminal";
-import { DBTGraphType } from "./graphParser";
-import { DbtIntegrationClient } from "../dbtIntegrationClient";
 import { DBTConfiguration } from "../configuration";
+import { DbtIntegrationClient } from "../dbtIntegrationClient";
+import { DBTTerminal } from "../terminal";
+
+import { DBTGraphType } from "./graphParser";
 
 export class ModelDepthParser {
   constructor(

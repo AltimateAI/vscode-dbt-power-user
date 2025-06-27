@@ -1,9 +1,10 @@
 import * as path from "path";
-import { DBTTerminal } from "../terminal";
-import { SourceMetaMap } from "../domain";
-import { getExternalProjectNamesFromDbtLoomConfig } from "./utils";
-import { RESOURCE_TYPE_SOURCE } from "../domain";
+
 import { DBTProjectIntegrationAdapter } from "../dbtIntegrationAdapter";
+import { SourceMetaMap, RESOURCE_TYPE_SOURCE } from "../domain";
+import { DBTTerminal } from "../terminal";
+
+import { getExternalProjectNamesFromDbtLoomConfig } from "./utils";
 
 export class SourceParser {
   constructor(private terminal: DBTTerminal) {}

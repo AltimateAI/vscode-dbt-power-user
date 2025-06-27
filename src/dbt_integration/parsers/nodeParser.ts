@@ -1,10 +1,13 @@
-import { NodeMetaData, NodeMetaMap } from "../domain";
-import { createFullPathForNode } from "./utils";
-import { DBTTerminal } from "../terminal";
-import { getExternalProjectNamesFromDbtLoomConfig } from "./utils";
 import * as path from "path";
+
 import { DBTProjectIntegrationAdapter } from "../dbtIntegrationAdapter";
-import { isResourceNode } from "../domain";
+import { NodeMetaData, NodeMetaMap, isResourceNode } from "../domain";
+import { DBTTerminal } from "../terminal";
+
+import {
+  createFullPathForNode,
+  getExternalProjectNamesFromDbtLoomConfig,
+} from "./utils";
 
 export class NodeMetaMapImpl implements NodeMetaMap {
   constructor(

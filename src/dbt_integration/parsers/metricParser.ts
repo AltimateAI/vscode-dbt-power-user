@@ -1,6 +1,6 @@
-import { DBTTerminal } from "../terminal";
-import { MetricMetaMap } from "../domain";
 import { DBTProjectIntegrationAdapter } from "../dbtIntegrationAdapter";
+import { MetricMetaMap } from "../domain";
+import { DBTTerminal } from "../terminal";
 
 export class MetricParser {
   constructor(private terminal: DBTTerminal) {}

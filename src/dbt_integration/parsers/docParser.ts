@@ -1,7 +1,9 @@
 import { readFileSync } from "fs";
-import { DBTTerminal } from "../terminal";
-import { DocMetaMap } from "../domain";
+
 import { DBTProjectIntegrationAdapter } from "../dbtIntegrationAdapter";
+import { DocMetaMap } from "../domain";
+import { DBTTerminal } from "../terminal";
+
 import { createFullPathForNode } from "./utils";
 
 export class DocParser {

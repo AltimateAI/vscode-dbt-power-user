@@ -1,10 +1,20 @@
+import { EventEmitter } from "events";
+import { FSWatcher, watch, readFileSync } from "fs";
+import path from "path";
+
+import { PythonException } from "python-bridge";
+import { YAMLError } from "yaml";
+
 import { CommandProcessResult } from "./commandProcessExecution";
+import { DBTConfiguration } from "./configuration";
+import { ProjectHealthcheck } from "./dbtCoreIntegration";
+import { DBTFacade } from "./dbtFacade";
 import {
   DBTProjectIntegration,
   DBTCommandFactory,
   DBTCommand,
 } from "./dbtIntegration";
-import { ProjectHealthcheck } from "./dbtCoreIntegration";
+import { DBTDiagnosticData } from "./diagnostics";
 import {
   Catalog,
   CATALOG_FILE,
@@ -24,26 +34,17 @@ import {
   RunResultsEventData,
   Table,
 } from "./domain";
-import { DBTConfiguration } from "./configuration";
-import { DBTFacade } from "./dbtFacade";
-import { DBTDiagnosticData } from "./diagnostics";
-import { PythonException } from "python-bridge";
-import { YAMLError } from "yaml";
+import { ChildrenParentParser } from "./parsers/childrenParentParser";
 import { DocParser } from "./parsers/docParser";
+import { ExposureParser } from "./parsers/exposureParser";
 import { GraphParser } from "./parsers/graphParser";
 import { MacroParser } from "./parsers/macroParser";
+import { MetricParser } from "./parsers/metricParser";
+import { ModelDepthParser } from "./parsers/modelDepthParser";
 import { NodeParser } from "./parsers/nodeParser";
 import { SourceParser } from "./parsers/sourceParser";
 import { TestParser } from "./parsers/testParser";
-import { ExposureParser } from "./parsers/exposureParser";
-import { MetricParser } from "./parsers/metricParser";
-import { ChildrenParentParser } from "./parsers/childrenParentParser";
-import { ModelDepthParser } from "./parsers/modelDepthParser";
 import { DBTTerminal } from "./terminal";
-import path from "path";
-import { FSWatcher, watch } from "fs";
-import { EventEmitter } from "events";
-import { readFileSync } from "fs";
 
 export const debounce = (fn: (args: unknown) => void, wait: number) => {
   let timeout: NodeJS.Timeout;

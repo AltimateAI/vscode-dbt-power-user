@@ -1,7 +1,8 @@
-import { AltimateHttpClient } from "./altimateHttpClient";
-import { join } from "path";
 import { createWriteStream, mkdirSync } from "fs";
 import * as os from "os";
+import { join } from "path";
+
+import { AltimateHttpClient } from "./altimateHttpClient";
 import { hashProjectRoot } from "./dbtIntegration";
 import { DBTTerminal } from "./terminal";
 

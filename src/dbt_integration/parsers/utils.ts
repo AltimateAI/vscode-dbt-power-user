@@ -1,5 +1,6 @@
-import * as path from "path";
 import { existsSync, readFileSync } from "fs";
+import * as path from "path";
+
 import { parse } from "yaml";
 
 export const getExternalProjectNamesFromDbtLoomConfig = (

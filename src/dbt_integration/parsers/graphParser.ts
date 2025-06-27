@@ -1,3 +1,4 @@
+import { DBTProjectIntegrationAdapter } from "../dbtIntegrationAdapter";
 import {
   GraphMetaMap,
   MetricMetaMap,
@@ -6,10 +7,10 @@ import {
   NodeMetaMap,
   SourceMetaMap,
   TestMetaMap,
+  RESOURCE_TYPE_METRIC,
+  RESOURCE_TYPE_TEST,
 } from "../domain";
 import { DBTTerminal } from "../terminal";
-import { DBTProjectIntegrationAdapter } from "../dbtIntegrationAdapter";
-import { RESOURCE_TYPE_METRIC, RESOURCE_TYPE_TEST } from "../domain";
 
 const notEmpty = <T>(value: T | null | undefined): value is T => {
   return value !== null && value !== undefined;

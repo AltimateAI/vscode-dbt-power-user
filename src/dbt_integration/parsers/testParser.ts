@@ -1,8 +1,8 @@
 import * as path from "path";
-import { TestMetaMap } from "../domain";
-import { DBTTerminal } from "../terminal";
-import { RESOURCE_TYPE_TEST } from "../domain";
+
 import { DBTProjectIntegrationAdapter } from "../dbtIntegrationAdapter";
+import { TestMetaMap, RESOURCE_TYPE_TEST } from "../domain";
+import { DBTTerminal } from "../terminal";
 
 export class TestParser {
   constructor(private terminal: DBTTerminal) {}

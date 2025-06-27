@@ -1,6 +1,7 @@
 import { spawn } from "child_process";
-import { DBTTerminal } from "./terminal";
+
 import { EnvironmentVariables } from "./domain";
+import { DBTTerminal } from "./terminal";
 
 export class CommandProcessExecutionFactory {
   constructor(private terminal: DBTTerminal) {}

@@ -1,12 +1,17 @@
+import * as crypto from "crypto";
+import { existsSync, readFileSync } from "fs";
+import path from "path";
+
 import { PythonBridge, pythonBridge } from "python-bridge";
+import { parse } from "yaml";
+
 import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
   CommandProcessResult,
 } from "./commandProcessExecution";
-import { RuntimePythonEnvironment } from "./pythonEnvironment";
-import { existsSync, readFileSync } from "fs";
-import { DBTTerminal } from "./terminal";
+import { DBTConfiguration } from "./configuration";
+import { DBTDiagnosticResult } from "./diagnostics";
 import {
   Catalog,
   DBColumn,
@@ -16,11 +21,8 @@ import {
   NodeMetaData,
   RunModelParams,
 } from "./domain";
-import { DBTDiagnosticResult } from "./diagnostics";
-import { DBTConfiguration } from "./configuration";
-import path from "path";
-import { parse } from "yaml";
-import * as crypto from "crypto";
+import { RuntimePythonEnvironment } from "./pythonEnvironment";
+import { DBTTerminal } from "./terminal";
 
 function combineAbortSignals(
   ...signals: (AbortSignal | undefined)[]

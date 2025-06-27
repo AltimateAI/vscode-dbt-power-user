@@ -1,4 +1,13 @@
-import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
+import * as crypto from "crypto";
+import { existsSync, readFileSync } from "fs";
+import { join, dirname } from "path";
+import path = require("path");
+
+import { PythonBridge } from "python-bridge";
+import semver = require("semver");
+import { parse } from "yaml";
+
+import { CommandProcessExecutionFactory } from "./commandProcessExecution";
 import {
   DBTCommand,
   DBTCommandExecutionInfrastructure,
@@ -10,14 +19,7 @@ import {
   QueryExecution,
   readAndParseProjectConfig,
 } from "./dbtIntegration";
-import { CommandProcessExecutionFactory } from "./commandProcessExecution";
-import { PythonBridge } from "python-bridge";
-import { join, dirname } from "path";
-import path = require("path");
-import { DBTTerminal } from "./terminal";
-import { RuntimePythonEnvironment } from "./pythonEnvironment";
-import { existsSync, readFileSync } from "fs";
-import semver = require("semver");
+import { DBTDiagnosticData, DBTDiagnosticResult } from "./diagnostics";
 import {
   Catalog,
   DBColumn,
@@ -26,8 +28,8 @@ import {
   DeferConfig,
   NodeMetaData,
 } from "./domain";
-import * as crypto from "crypto";
-import { parse } from "yaml";
+import { RuntimePythonEnvironment } from "./pythonEnvironment";
+import { DBTTerminal } from "./terminal";
 
 export function getDBTPath(
   pythonEnvironment: RuntimePythonEnvironment,
