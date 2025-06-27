@@ -89,6 +89,15 @@ export class VSCodeDBTConfiguration implements DBTConfiguration {
       );
   }
 
+  getDisableDepthsCalculation(): boolean {
+    return workspace
+      .getConfiguration("dbt")
+      .get<boolean>(
+        "disableDepthsCalculation",
+        DEFAULT_CONFIGURATION_VALUES.disableDepthsCalculation,
+      );
+  }
+
   getWorkingDirectory(): string {
     return getFirstWorkspacePath();
   }

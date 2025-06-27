@@ -1,13 +1,13 @@
 import { DBTTerminal } from "../../dbt_integration/terminal";
 import { DBTGraphType } from "./graphParser";
-import { AltimateRequest } from "../../altimate";
-import { workspace } from "vscode";
 import { DbtIntegrationClient } from "../dbtIntegrationClient";
+import { DBTConfiguration } from "../configuration";
 
 export class ModelDepthParser {
   constructor(
     private terminal: DBTTerminal,
     private dbtIntegrationClient: DbtIntegrationClient,
+    private configuration: DBTConfiguration,
   ) {}
 
   public createModelDepthsMap(
@@ -16,9 +16,8 @@ export class ModelDepthParser {
     childMetaMap: DBTGraphType,
   ): Map<string, number> {
     // Check if depth calculation is disabled
-    const disableDepthsCalculation = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("disableDepthsCalculation", false);
+    const disableDepthsCalculation =
+      this.configuration.getDisableDepthsCalculation();
     if (disableDepthsCalculation) {
       this.terminal.debug(
         "ModelDepthParser",

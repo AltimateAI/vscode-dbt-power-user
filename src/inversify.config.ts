@@ -120,6 +120,7 @@ container
       new ModelDepthParser(
         context.container.get("DBTTerminal"),
         context.container.get(DbtIntegrationClient),
+        context.container.get("DBTConfiguration"),
       ),
   );
 
