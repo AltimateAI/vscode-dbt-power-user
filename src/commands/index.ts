@@ -41,7 +41,7 @@ import {
   ConversationProvider,
   ConversationCommentThread,
 } from "../comment_provider/conversationProvider";
-import { PythonEnvironment } from "../dbt_integration/pythonEnvironment";
+import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { DBTClient } from "../dbt_client";
 import { existsSync, readFileSync } from "fs";
 import { DBTProject } from "../manifest/dbtProject";
@@ -70,7 +70,7 @@ export class VSCodeCommands implements Disposable {
     private diagnosticsOutputChannel: DiagnosticsOutputChannel,
     private eventEmitterService: SharedStateService,
     private conversationController: ConversationProvider,
-    @inject("PythonEnvironment")
+    @inject(PythonEnvironment)
     private pythonEnvironment: PythonEnvironment,
     private dbtClient: DBTClient,
     private sqlLineagePanel: SQLLineagePanel,

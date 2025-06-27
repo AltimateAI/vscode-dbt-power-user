@@ -28,7 +28,7 @@ import {
 } from "./event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 import { DBTProjectLog } from "./dbtProjectLog";
-import { PythonEnvironment } from "../dbt_integration/pythonEnvironment";
+import { PythonEnvironment } from "./pythonEnvironment";
 import { TelemetryService } from "../telemetry";
 import {
   DBTProjectIntegration,
@@ -130,7 +130,7 @@ export class DBTProject implements Disposable, DBTFacade {
   private queueStates: Map<string, boolean> = new Map<string, boolean>();
 
   constructor(
-    @inject("PythonEnvironment")
+    @inject(PythonEnvironment)
     private PythonEnvironment: PythonEnvironment,
     @inject("Factory<DBTProjectLog>")
     private dbtProjectLogFactory: (

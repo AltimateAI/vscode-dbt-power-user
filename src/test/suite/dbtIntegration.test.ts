@@ -7,7 +7,7 @@ import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
 } from "../../dbt_integration/commandProcessExecution";
-import { PythonEnvironment } from "../../dbt_integration/pythonEnvironment";
+import { PythonEnvironment } from "../../manifest/pythonEnvironment";
 import { DBTTerminal } from "../../dbt_integration/terminal";
 describe("CLIDBTCommandExecutionStrategy Tests", () => {
   let strategy: CLIDBTCommandExecutionStrategy;

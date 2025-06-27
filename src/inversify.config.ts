@@ -9,8 +9,15 @@ import { DBTWorkspaceFolder } from "./manifest/dbtWorkspaceFolder";
 import { ManifestCacheChangedEvent } from "./manifest/event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "./manifest/event/projectConfigChangedEvent";
 import { DBTProjectLog } from "./manifest/dbtProjectLog";
-import { PythonEnvironment } from "./dbt_integration/pythonEnvironment";
-import { VSCodePythonEnvironment } from "./manifest/vscodePythonEnvironment";
+import {
+  RuntimePythonEnvironment,
+  PythonEnvironmentProvider,
+} from "./dbt_integration/pythonEnvironment";
+import { PythonEnvironment } from "./manifest/pythonEnvironment";
+import {
+  VSCodeRuntimePythonEnvironmentProvider,
+  StaticRuntimePythonEnvironment,
+} from "./manifest/runtimePythonEnvironmentProvider";
 import { TelemetryService } from "./telemetry";
 import {
   DBTCoreDetection,
@@ -141,7 +148,7 @@ container
   .toDynamicValue((context) => {
     return new PythonDBTCommandExecutionStrategy(
       context.container.get(CommandProcessExecutionFactory),
-      context.container.get("PythonEnvironment"),
+      context.container.get("RuntimePythonEnvironment"),
       context.container.get("DBTTerminal"),
       context.container.get("DBTConfiguration"),
     );
@@ -150,7 +157,7 @@ container
 
 container.bind(DBTCommandExecutionInfrastructure).toDynamicValue((context) => {
   return new DBTCommandExecutionInfrastructure(
-    context.container.get("PythonEnvironment"),
+    context.container.get("RuntimePythonEnvironment"),
     context.container.get("DBTTerminal"),
   );
 });
@@ -167,7 +174,7 @@ container
   .bind(DBTCoreDetection)
   .toDynamicValue((context) => {
     return new DBTCoreDetection(
-      context.container.get("PythonEnvironment"),
+      context.container.get("RuntimePythonEnvironment"),
       context.container.get(CommandProcessExecutionFactory),
     );
   })
@@ -200,7 +207,7 @@ container
   .toDynamicValue((context) => {
     return new DBTCloudDetection(
       context.container.get(CommandProcessExecutionFactory),
-      context.container.get("PythonEnvironment"),
+      context.container.get("RuntimePythonEnvironment"),
       context.container.get("DBTTerminal"),
     );
   })
@@ -230,7 +237,7 @@ container
   .toDynamicValue((context) => {
     return new DBTFusionCommandDetection(
       context.container.get(CommandProcessExecutionFactory),
-      context.container.get("PythonEnvironment"),
+      context.container.get("RuntimePythonEnvironment"),
       context.container.get("DBTTerminal"),
       context.container.get("DBTConfiguration"),
     );
@@ -260,7 +267,7 @@ container
   .bind(DBTCoreCommandDetection)
   .toDynamicValue((context) => {
     return new DBTCoreCommandDetection(
-      context.container.get("PythonEnvironment"),
+      context.container.get("RuntimePythonEnvironment"),
       context.container.get(CommandProcessExecutionFactory),
     );
   })
@@ -299,10 +306,16 @@ container
   .to(VSCodeDBTTerminal)
   .inSingletonScope();
 
-// Bind PythonEnvironment
+// Bind RuntimePythonEnvironment (VSCode-free version for dbt_integration)
 container
-  .bind<PythonEnvironment>("PythonEnvironment")
-  .to(VSCodePythonEnvironment)
+  .bind<RuntimePythonEnvironment>("RuntimePythonEnvironment")
+  .to(StaticRuntimePythonEnvironment)
+  .inSingletonScope();
+
+// Bind PythonEnvironmentProvider
+container
+  .bind<PythonEnvironmentProvider>("PythonEnvironmentProvider")
+  .to(VSCodeRuntimePythonEnvironmentProvider)
   .inSingletonScope();
 
 // Bind CommandProcessExecutionFactory
@@ -431,7 +444,7 @@ container
       const { container } = context;
       return new CLIDBTCommandExecutionStrategy(
         container.get(CommandProcessExecutionFactory),
-        container.get("PythonEnvironment"),
+        container.get("RuntimePythonEnvironment"),
         container.get("DBTTerminal"),
         projectRoot,
         dbtPath,
@@ -456,7 +469,7 @@ container
       const { container } = context;
       return new DBTCoreProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
-        container.get("PythonEnvironment"),
+        container.get("RuntimePythonEnvironment"),
         container.get(PythonDBTCommandExecutionStrategy),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
         container.get("DBTTerminal"),
@@ -487,7 +500,7 @@ container
       const { container } = context;
       return new DBTCoreCommandProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
-        container.get("PythonEnvironment"),
+        container.get("RuntimePythonEnvironment"),
         container.get(PythonDBTCommandExecutionStrategy),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
         container.get("DBTTerminal"),
@@ -520,7 +533,7 @@ container
         container.get(DBTCommandExecutionInfrastructure),
         container.get(DBTCommandFactory),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
-        container.get("PythonEnvironment"),
+        container.get("RuntimePythonEnvironment"),
         container.get("DBTTerminal"),
         projectRoot,
         projectConfigDiagnostics,
@@ -549,7 +562,7 @@ container
         container.get(DBTCommandExecutionInfrastructure),
         container.get(DBTCommandFactory),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
-        container.get("PythonEnvironment"),
+        container.get("RuntimePythonEnvironment"),
         container.get("DBTTerminal"),
         projectRoot,
         projectConfigDiagnostics,

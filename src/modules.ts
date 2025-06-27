@@ -6,7 +6,7 @@ export { extendErrorWithSupportLinks, getFirstWorkspacePath } from "./utils";
 export { AltimateRequest } from "./altimate";
 export { provideSingleton } from "./utils";
 export { inject } from "inversify";
-export { PythonEnvironment } from "./dbt_integration/pythonEnvironment";
+export { PythonEnvironment } from "./manifest/pythonEnvironment";
 export { CommandProcessExecutionFactory } from "./dbt_integration/commandProcessExecution";
 export { DBTProjectContainer } from "./manifest/dbtProjectContainer";
 export { QueryManifestService } from "./services/queryManifestService";

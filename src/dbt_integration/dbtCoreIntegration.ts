@@ -21,7 +21,7 @@ import {
   DeferConfig,
   ManifestPathType,
 } from "./dbtIntegration";
-import { PythonEnvironment } from "./pythonEnvironment";
+import { RuntimePythonEnvironment } from "./pythonEnvironment";
 import { CommandProcessExecutionFactory } from "./commandProcessExecution";
 import { PythonBridge, PythonException } from "python-bridge";
 import * as path from "path";
@@ -86,7 +86,7 @@ export interface ProjectHealthcheck {
 
 export class DBTCoreDetection implements DBTDetection {
   constructor(
-    private pythonEnvironment: PythonEnvironment,
+    private pythonEnvironment: RuntimePythonEnvironment,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
   ) {}
 
@@ -207,7 +207,7 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
 
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
-    protected pythonEnvironment: PythonEnvironment,
+    protected pythonEnvironment: RuntimePythonEnvironment,
     private pythonDBTCommandExecutionStrategy: PythonDBTCommandExecutionStrategy,
     protected cliDBTCommandExecutionStrategyFactory: (
       path: string,
@@ -229,13 +229,14 @@ export class DBTCoreProjectIntegration implements DBTProjectIntegration {
       this.projectRoot,
     );
 
-    this.disposables.push(
-      this.pythonEnvironment.onPythonEnvironmentChanged(() => {
-        this.python = this.executionInfrastructure.createPythonBridge(
-          this.projectRoot,
-        );
-      }),
-    );
+    // TODO: Re-implement python environment change handling through PythonEnvironmentProvider
+    // this.disposables.push(
+    //   this.pythonEnvironment.onPythonEnvironmentChanged(() => {
+    //     this.python = this.executionInfrastructure.createPythonBridge(
+    //       this.projectRoot,
+    //     );
+    //   }),
+    // );
   }
 
   // remove the trailing slashes if they exists,

@@ -20,7 +20,7 @@ import { PythonBridge } from "python-bridge";
 import { join, dirname } from "path";
 import path = require("path");
 import { DBTTerminal } from "./terminal";
-import { PythonEnvironment } from "./pythonEnvironment";
+import { RuntimePythonEnvironment } from "./pythonEnvironment";
 import { existsSync, readFileSync } from "fs";
 import semver = require("semver");
 import { NodeMetaData } from "./domain";
@@ -28,7 +28,7 @@ import * as crypto from "crypto";
 import { parse } from "yaml";
 
 export function getDBTPath(
-  pythonEnvironment: PythonEnvironment,
+  pythonEnvironment: RuntimePythonEnvironment,
   terminal: DBTTerminal,
 ): string {
   if (pythonEnvironment.pythonPath) {
@@ -52,7 +52,7 @@ export function getDBTPath(
 export class DBTCloudDetection implements DBTDetection {
   constructor(
     protected commandProcessExecutionFactory: CommandProcessExecutionFactory,
-    protected pythonEnvironment: PythonEnvironment,
+    protected pythonEnvironment: RuntimePythonEnvironment,
     protected terminal: DBTTerminal,
   ) {}
 
@@ -133,7 +133,7 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
       path: string,
       dbtPath: string,
     ) => DBTCommandExecutionStrategy,
-    private pythonEnvironment: PythonEnvironment,
+    private pythonEnvironment: RuntimePythonEnvironment,
     protected terminal: DBTTerminal,
     protected projectRoot: string,
     private projectConfigDiagnostics: DBTDiagnosticData[],
@@ -148,14 +148,15 @@ export class DBTCloudProjectIntegration implements DBTProjectIntegration {
       this.projectRoot,
     );
 
-    this.disposables.push(
-      this.pythonEnvironment.onPythonEnvironmentChanged(() => {
-        this.python = this.executionInfrastructure.createPythonBridge(
-          this.projectRoot,
-        );
-        this.initializeProject();
-      }),
-    );
+    // TODO: Re-implement python environment change handling through PythonEnvironmentProvider
+    // this.disposables.push(
+    //   this.pythonEnvironment.onPythonEnvironmentChanged(() => {
+    //     this.python = this.executionInfrastructure.createPythonBridge(
+    //       this.projectRoot,
+    //     );
+    //     this.initializeProject();
+    //   }),
+    // );
   }
 
   async refreshProjectConfig(): Promise<void> {

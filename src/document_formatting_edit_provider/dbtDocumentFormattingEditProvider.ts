@@ -17,7 +17,7 @@ import {
   provideSingleton,
 } from "../utils";
 import { TelemetryService } from "../telemetry";
-import { PythonEnvironment } from "../dbt_integration/pythonEnvironment";
+import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import path from "path";
 import fs from "fs";
 import { inject } from "inversify";
@@ -29,7 +29,7 @@ export class DbtDocumentFormattingEditProvider
   constructor(
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
     private telemetry: TelemetryService,
-    @inject("PythonEnvironment")
+    @inject(PythonEnvironment)
     private pythonEnvironment: PythonEnvironment,
   ) {}
 

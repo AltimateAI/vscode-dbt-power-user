@@ -4,8 +4,7 @@ import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
 } from "../../dbt_integration/commandProcessExecution";
-import { PythonEnvironment } from "../../dbt_integration/pythonEnvironment";
-import { VSCodePythonEnvironment } from "../../manifest/vscodePythonEnvironment";
+import { PythonEnvironment } from "../../manifest/pythonEnvironment";
 import { DBTTerminal } from "../../dbt_integration/terminal";
 import { VSCodeDBTTerminal } from "../../dbt_client/vscodeTerminal";
 import { mock, instance, when, anything } from "ts-mockito";
@@ -20,7 +19,7 @@ describe("DBTCloudDetection Tests", () => {
 
   beforeEach(() => {
     mockCommandProcessExecutionFactory = mock(CommandProcessExecutionFactory);
-    mockPythonEnvironment = mock(VSCodePythonEnvironment);
+    mockPythonEnvironment = mock(PythonEnvironment);
     mockTerminal = mock(VSCodeDBTTerminal);
     mockCommandProcessExecution = mock<CommandProcessExecution>();
 

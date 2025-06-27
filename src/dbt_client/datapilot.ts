@@ -1,5 +1,5 @@
 import { provideSingleton } from "../utils";
-import { PythonEnvironment } from "../dbt_integration/pythonEnvironment";
+import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../dbt_integration/commandProcessExecution";
 import { DBTTerminal } from "../dbt_integration/terminal";
 import { DBTConfiguration } from "../dbt_integration/configuration";
@@ -9,7 +9,7 @@ import { inject } from "inversify";
 export class AltimateDatapilot {
   private packageName = "altimate-datapilot-cli";
   constructor(
-    @inject("PythonEnvironment")
+    @inject(PythonEnvironment)
     private pythonEnvironment: PythonEnvironment,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
     @inject("DBTTerminal")

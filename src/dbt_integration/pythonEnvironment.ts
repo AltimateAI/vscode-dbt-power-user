@@ -1,16 +1,13 @@
-import { Event, Uri } from "vscode";
 import { EnvironmentVariables } from "./domain";
 
-export interface PythonEnvironment {
-  readonly allPythonPaths: { path: string; pathType: string }[];
-  readonly isPython3: boolean;
+export interface RuntimePythonEnvironment {
   readonly pythonPath: string;
   readonly environmentVariables: EnvironmentVariables;
-  readonly onPythonEnvironmentChanged: Event<Uri | undefined>;
+}
 
-  initialize(): Promise<void>;
-  printEnvVars(): Promise<void>;
-  getResolvedConfigValue(key: string): string;
-
-  dispose(): Promise<void>;
+export interface PythonEnvironmentProvider {
+  getCurrentEnvironment(): RuntimePythonEnvironment;
+  onEnvironmentChanged(
+    callback: (environment: RuntimePythonEnvironment) => void,
+  ): void;
 }

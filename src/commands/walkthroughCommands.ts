@@ -10,7 +10,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { CommandProcessExecutionFactory } from "../dbt_integration/commandProcessExecution";
-import { PythonEnvironment } from "../dbt_integration/pythonEnvironment";
+import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { DBTTerminal } from "../dbt_integration/terminal";
 import { inject } from "inversify";
 
@@ -31,7 +31,7 @@ export class WalkthroughCommands {
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
-    @inject("PythonEnvironment")
+    @inject(PythonEnvironment)
     private pythonEnvironment: PythonEnvironment,
     @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,

@@ -4,7 +4,7 @@ import {
   CommandProcessExecutionFactory,
   CommandProcessResult,
 } from "./commandProcessExecution";
-import { PythonEnvironment } from "./pythonEnvironment";
+import { RuntimePythonEnvironment } from "./pythonEnvironment";
 import { existsSync, readFileSync } from "fs";
 import { DBTTerminal } from "./terminal";
 import { NodeMetaData } from "./domain";
@@ -148,7 +148,7 @@ export class CLIDBTCommandExecutionStrategy
 {
   constructor(
     protected commandProcessExecutionFactory: CommandProcessExecutionFactory,
-    protected pythonEnvironment: PythonEnvironment,
+    protected pythonEnvironment: RuntimePythonEnvironment,
     protected terminal: DBTTerminal,
     protected cwd: string,
     protected dbtPath: string,
@@ -213,7 +213,7 @@ export class PythonDBTCommandExecutionStrategy
 {
   constructor(
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
-    private pythonEnvironment: PythonEnvironment,
+    private pythonEnvironment: RuntimePythonEnvironment,
     private terminal: DBTTerminal,
     private configuration: DBTConfiguration,
   ) {}
@@ -485,7 +485,7 @@ export interface DBTProjectIntegration {
 
 export class DBTCommandExecutionInfrastructure {
   constructor(
-    private pythonEnvironment: PythonEnvironment,
+    private pythonEnvironment: RuntimePythonEnvironment,
     private terminal: DBTTerminal,
   ) {}
 

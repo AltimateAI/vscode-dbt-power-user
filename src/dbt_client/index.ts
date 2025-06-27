@@ -1,5 +1,5 @@
 import { commands, Disposable, EventEmitter, window, workspace } from "vscode";
-import { PythonEnvironment } from "../dbt_integration/pythonEnvironment";
+import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { provideSingleton } from "../utils";
 import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
 import { existsSync } from "fs";
@@ -29,7 +29,7 @@ export class DBTClient implements Disposable {
   ];
   private shownError = false;
   constructor(
-    @inject("PythonEnvironment")
+    @inject(PythonEnvironment)
     private pythonEnvironment: PythonEnvironment,
     @inject("Factory<DBTDetection>")
     private dbtDetectionFactory: () => DBTDetection,

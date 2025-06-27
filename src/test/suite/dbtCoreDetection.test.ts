@@ -4,7 +4,7 @@ import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
 } from "../../dbt_integration/commandProcessExecution";
-import { PythonEnvironment } from "../../dbt_integration/pythonEnvironment";
+import { PythonEnvironment } from "../../manifest/pythonEnvironment";
 import { workspace, Uri } from "vscode";
 
 describe("DBTCoreDetection Tests", () => {

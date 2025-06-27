@@ -15,13 +15,13 @@ import { DBTCloudProjectIntegration, getDBTPath } from "./dbtCloudIntegration";
 import { DBTConfiguration } from "./configuration";
 import path, { join } from "path";
 import { CommandProcessExecutionFactory } from "./commandProcessExecution";
-import { PythonEnvironment } from "./pythonEnvironment";
+import { RuntimePythonEnvironment } from "./pythonEnvironment";
 import { DBTTerminal } from "./terminal";
 
 export class DBTFusionCommandDetection implements DBTDetection {
   constructor(
     protected commandProcessExecutionFactory: CommandProcessExecutionFactory,
-    protected pythonEnvironment: PythonEnvironment,
+    protected pythonEnvironment: RuntimePythonEnvironment,
     protected terminal: DBTTerminal,
     protected dbtConfiguration: DBTConfiguration,
   ) {}
