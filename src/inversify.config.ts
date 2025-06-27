@@ -71,6 +71,7 @@ import { NodeParser } from "./dbt_integration/parsers/nodeParser";
 import { SourceParser } from "./dbt_integration/parsers/sourceParser";
 import { TestParser } from "./dbt_integration/parsers/testParser";
 import { DeferConfig } from "./dbt_integration/domain";
+import { PythonEnvironment } from "./manifest/pythonEnvironment";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -618,7 +619,7 @@ container
     ) => {
       const { container } = context;
       return new DBTProject(
-        container.get("PythonEnvironment"),
+        container.get(PythonEnvironment),
         container.get("Factory<DBTProjectLog>"),
         container.get(DBTCommandFactory),
         container.get("DBTTerminal"),
