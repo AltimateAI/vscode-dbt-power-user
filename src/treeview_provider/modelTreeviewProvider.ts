@@ -16,19 +16,12 @@ import {
   TreeItemCollapsibleState,
   Uri,
   window,
-  workspace,
 } from "vscode";
 import {
-  Analysis,
-  Exposure,
   GraphMetaMap,
-  Node,
+  NodeData,
   NodeMetaData,
   NodeMetaMap,
-  Seed,
-  Snapshot,
-  Source,
-  Test,
 } from "../dbt_integration/domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
@@ -41,6 +34,66 @@ import {
   removeProtocol,
   getDepthColor,
 } from "../utils";
+
+interface IconPath {
+  light: string;
+  dark: string;
+}
+
+abstract class Node {
+  label: string;
+  key: string;
+  url: string | undefined;
+  iconPath: IconPath = {
+    light: path.join(
+      path.resolve(__dirname),
+      "../media/images/model_light.svg",
+    ),
+    dark: path.join(path.resolve(__dirname), "../media/images/model_dark.svg"),
+  };
+  displayInModelTree: boolean = true;
+
+  constructor(label: string, key: string, url?: string) {
+    this.label = label;
+    this.key = key;
+    this.url = url;
+  }
+}
+
+class Model extends Node {}
+
+class Seed extends Node {}
+class Test extends Node {
+  // displayInModelTree = false;
+  iconPath = {
+    light: path.join(
+      path.resolve(__dirname),
+      "../media/images/source_light.svg",
+    ),
+    dark: path.join(path.resolve(__dirname), "../media/images/source_dark.svg"),
+  };
+}
+class Analysis extends Node {
+  displayInModelTree = true;
+}
+class Exposure extends Node {
+  displayInModelTree = true;
+}
+class Metric extends Node {
+  displayInModelTree = false;
+}
+
+class Snapshot extends Node {}
+
+class Source extends Node {
+  iconPath = {
+    light: path.join(
+      path.resolve(__dirname),
+      "../media/images/source_light.svg",
+    ),
+    dark: path.join(path.resolve(__dirname), "../media/images/source_dark.svg"),
+  };
+}
 
 @provide(ModelTreeviewProvider)
 abstract class ModelTreeviewProvider
@@ -129,6 +182,33 @@ abstract class ModelTreeviewProvider
     return Promise.resolve(this.getTreeItems(model.uniqueId, event));
   }
 
+  private nodeDataToNode(nodeData: NodeData): Node | undefined {
+    const resourceType = nodeData.resourceType;
+    switch (resourceType) {
+      case "snapshot":
+        return new Snapshot(nodeData.label, nodeData.key, nodeData.url);
+      case "exposure":
+        return new Exposure(nodeData.label, nodeData.key, nodeData.url);
+      case "analysis":
+        return new Analysis(nodeData.label, nodeData.key, nodeData.url);
+      case "test":
+        return new Test(nodeData.label, nodeData.key, nodeData.url);
+      case "source":
+        return new Source(nodeData.label, nodeData.key, nodeData.url);
+      case "seed":
+        return new Seed(nodeData.label, nodeData.key, nodeData.url);
+      case "semantic_model":
+        return new Metric(nodeData.label, nodeData.key, nodeData.url);
+      case "model":
+        return new Model(nodeData.label, nodeData.key, nodeData.url);
+      default:
+        console.log(
+          `Resource Type '${resourceType}' not implemented in ModelTreeviewProvider.nodeDataToNode`,
+        );
+        return undefined;
+    }
+  }
+
   private getNodeTreeItem(node: Node): NodeTreeItem {
     if (node instanceof Snapshot) {
       return new SnapshotTreeItem(node);
@@ -161,11 +241,15 @@ abstract class ModelTreeviewProvider
       return [];
     }
     return parentModels.nodes
-      .filter((node) => node.displayInModelTree)
+      .flatMap((nodeData) => {
+        const node = this.nodeDataToNode(nodeData);
+        return node && node.displayInModelTree ? [node] : [];
+      })
       .map((node) => {
         const childNodes = graphMetaMap[this.treeType]
           .get(node.key)
-          ?.nodes.filter((node) => node.displayInModelTree);
+          ?.nodes.map((nodeData) => this.nodeDataToNode(nodeData))
+          .filter((node) => node && node.displayInModelTree);
 
         const treeItem = this.getNodeTreeItem(node);
         treeItem.collapsibleState =

@@ -170,9 +170,16 @@ export interface ExposureMetaData {
   meta?: Record<string, unknown>;
 }
 
+export interface NodeData {
+  label: string;
+  key: string;
+  url?: string;
+  resourceType: string;
+}
+
 interface NodeGraphMetaData {
-  currentNode: Node;
-  nodes: Node[];
+  currentNode: NodeData;
+  nodes: NodeData[];
 }
 
 interface ModelGraphMetaData {
@@ -189,64 +196,6 @@ export interface GraphMetaMap {
   children: NodeGraphMap;
   tests: NodeGraphMap;
   metrics: NodeGraphMap;
-}
-
-interface IconPath {
-  light: string;
-  dark: string;
-}
-
-export abstract class Node {
-  label: string;
-  key: string;
-  url: string | undefined;
-  iconPath: IconPath = {
-    light: path.join(
-      path.resolve(__dirname),
-      "../media/images/model_light.svg",
-    ),
-    dark: path.join(path.resolve(__dirname), "../media/images/model_dark.svg"),
-  };
-  displayInModelTree: boolean = true;
-
-  constructor(label: string, key: string, url?: string) {
-    this.label = label;
-    this.key = key;
-    this.url = url;
-  }
-}
-
-export class Model extends Node {}
-
-export class Seed extends Node {}
-export class Test extends Node {
-  // displayInModelTree = false;
-  iconPath = {
-    light: path.join(
-      path.resolve(__dirname),
-      "../media/images/source_light.svg",
-    ),
-    dark: path.join(path.resolve(__dirname), "../media/images/source_dark.svg"),
-  };
-}
-export class Analysis extends Node {
-  displayInModelTree = true;
-}
-export class Exposure extends Node {
-  displayInModelTree = true;
-}
-export class Metric extends Node {
-  displayInModelTree = false;
-}
-export class Snapshot extends Node {}
-export class Source extends Node {
-  iconPath = {
-    light: path.join(
-      path.resolve(__dirname),
-      "../media/images/source_light.svg",
-    ),
-    dark: path.join(path.resolve(__dirname), "../media/images/source_dark.svg"),
-  };
 }
 
 export enum RunModelType {

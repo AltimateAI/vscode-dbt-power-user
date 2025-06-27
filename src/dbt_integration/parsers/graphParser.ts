@@ -1,22 +1,15 @@
 import {
-  Analysis,
-  Exposure,
   GraphMetaMap,
-  Metric,
   MetricMetaMap,
-  Model,
-  Node,
+  NodeData,
   NodeGraphMap,
   NodeMetaMap,
-  Seed,
-  Snapshot,
-  Source,
   SourceMetaMap,
-  Test,
   TestMetaMap,
 } from "../domain";
 import { DBTTerminal } from "../terminal";
 import { DBTIntegrationAdapter } from "../dbtIntegrationAdapter";
+import { RESOURCE_TYPE_METRIC, RESOURCE_TYPE_TEST } from "../dbtIntegration";
 
 const notEmpty = <T>(value: T | null | undefined): value is T => {
   return value !== null && value !== undefined;
@@ -73,7 +66,7 @@ export class GraphParser {
               metricMetaMap,
             ),
           )
-          .filter((n) => !(n instanceof Test))
+          .filter((n) => n?.resourceType !== RESOURCE_TYPE_TEST)
           .filter(notEmpty);
         map.set(nodeName, { nodes: currentNodes });
         return map;
@@ -92,7 +85,7 @@ export class GraphParser {
               metricMetaMap,
             ),
           )
-          .filter((n) => n instanceof Test)
+          .filter((n) => n?.resourceType === RESOURCE_TYPE_TEST)
           .filter(notEmpty);
         map.set(nodeName, { nodes: currentNodes });
         return map;
@@ -111,7 +104,7 @@ export class GraphParser {
               metricMetaMap,
             ),
           )
-          .filter((n) => n instanceof Metric)
+          .filter((n) => n?.resourceType === RESOURCE_TYPE_METRIC)
           .filter(notEmpty);
         map.set(nodeName, { nodes: currentNodes });
         return map;
@@ -138,7 +131,7 @@ export class GraphParser {
     nodeMetaMap: NodeMetaMap,
     testMetaMap: TestMetaMap,
     metricMetaMap: MetricMetaMap,
-  ): (parentNodeName: string) => Node | undefined {
+  ): (parentNodeName: string) => NodeData | undefined {
     return (parentNodeName) => {
       // Support dots in model names
       const [nodeType, nodePackage, ...restNodeName] =
@@ -150,11 +143,12 @@ export class GraphParser {
           const url = sourceMetaMap
             .get(sourceName)
             ?.tables.find((table) => table.name === tableName)?.path!;
-          return new Source(
-            `${tableName} (${sourceName})`,
-            parentNodeName,
-            url,
-          );
+          return {
+            label: `${tableName} (${sourceName})`,
+            key: parentNodeName,
+            url: url,
+            resourceType: "source",
+          };
         }
         case "model": {
           // can this ever be not there?
@@ -163,7 +157,12 @@ export class GraphParser {
             return;
           }
           const url = model?.path!;
-          return new Model(model.alias, parentNodeName, url);
+          return {
+            label: model.alias,
+            key: parentNodeName,
+            url: url,
+            resourceType: "model",
+          };
         }
         case "seed": {
           // can this ever be not there?
@@ -172,28 +171,57 @@ export class GraphParser {
             return;
           }
           const url = model?.path!;
-          return new Seed(model.alias, parentNodeName, url);
+          return {
+            label: model.alias,
+            key: parentNodeName,
+            url: url,
+            resourceType: "seed",
+          };
         }
         case "test": {
           // nodeName => more interesting label possibilities?
           // console.log(`${nodeName} => (parent: ${parentNodeName})`);
           const url = testMetaMap.get(nodeName.split(".")[0])?.path;
-          return new Test(nodeName, parentNodeName, url ?? "");
+          return {
+            label: nodeName,
+            key: parentNodeName,
+            url: url,
+            resourceType: "test",
+          };
         }
         case "analysis": {
           const url = nodeMetaMap.lookupByBaseName(nodeName)?.path!;
-          return new Analysis(nodeName, parentNodeName, url);
+          return {
+            label: nodeName,
+            key: parentNodeName,
+            url: url,
+            resourceType: "analysis",
+          };
         }
         case "snapshot": {
           const url = nodeMetaMap.lookupByBaseName(nodeName)?.path!;
-          return new Snapshot(nodeName, parentNodeName, url);
+          return {
+            label: nodeName,
+            key: parentNodeName,
+            url: url,
+            resourceType: "snapshot",
+          };
         }
         case "exposure": {
           const url = nodeMetaMap.lookupByBaseName(nodeName)?.path!;
-          return new Exposure(nodeName, parentNodeName, url);
+          return {
+            label: nodeName,
+            key: parentNodeName,
+            url: url,
+            resourceType: "exposure",
+          };
         }
         case "semantic_model": {
-          return new Metric(nodeName, parentNodeName);
+          return {
+            label: nodeName,
+            key: parentNodeName,
+            resourceType: "semantic_model",
+          };
         }
         default:
           console.log(`Node Type '${nodeType}' not implemented!`);
