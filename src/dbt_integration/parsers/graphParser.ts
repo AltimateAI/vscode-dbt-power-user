@@ -8,7 +8,7 @@ import {
   TestMetaMap,
 } from "../domain";
 import { DBTTerminal } from "../terminal";
-import { DBTProjectIntegrationAdapter } from "../dbtProjectIntegrationAdapter";
+import { DBTProjectIntegrationAdapter } from "../dbtIntegrationAdapter";
 import { RESOURCE_TYPE_METRIC, RESOURCE_TYPE_TEST } from "../dbtIntegration";
 
 const notEmpty = <T>(value: T | null | undefined): value is T => {

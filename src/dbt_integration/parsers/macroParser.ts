@@ -1,7 +1,7 @@
 import { readFileSync } from "fs";
 import { DBTTerminal } from "../terminal";
 import { MacroMetaMap } from "../domain";
-import { DBTProjectIntegrationAdapter } from "../dbtProjectIntegrationAdapter";
+import { DBTProjectIntegrationAdapter } from "../dbtIntegrationAdapter";
 import { createFullPathForNode } from "./utils";
 
 export class MacroParser {

@@ -3,7 +3,7 @@ import { DBTTerminal } from "../terminal";
 import { SourceMetaMap } from "../domain";
 import { getExternalProjectNamesFromDbtLoomConfig } from "./utils";
 import { RESOURCE_TYPE_SOURCE } from "../dbtIntegration";
-import { DBTProjectIntegrationAdapter } from "../dbtProjectIntegrationAdapter";
+import { DBTProjectIntegrationAdapter } from "../dbtIntegrationAdapter";
 
 export class SourceParser {
   constructor(private terminal: DBTTerminal) {}

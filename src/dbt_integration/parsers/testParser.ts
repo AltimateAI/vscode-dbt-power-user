@@ -2,7 +2,7 @@ import * as path from "path";
 import { TestMetaMap } from "../domain";
 import { DBTTerminal } from "../terminal";
 import { RESOURCE_TYPE_TEST } from "../dbtIntegration";
-import { DBTProjectIntegrationAdapter } from "../dbtProjectIntegrationAdapter";
+import { DBTProjectIntegrationAdapter } from "../dbtIntegrationAdapter";
 
 export class TestParser {
   constructor(private terminal: DBTTerminal) {}

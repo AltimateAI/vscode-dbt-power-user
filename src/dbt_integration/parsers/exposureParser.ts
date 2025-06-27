@@ -2,7 +2,7 @@ import * as path from "path";
 import { ExposureMetaMap } from "../domain";
 import { DBTTerminal } from "../terminal";
 import { RESOURCE_TYPE_EXPOSURE } from "../dbtIntegration";
-import { DBTProjectIntegrationAdapter } from "../dbtProjectIntegrationAdapter";
+import { DBTProjectIntegrationAdapter } from "../dbtIntegrationAdapter";
 
 export class ExposureParser {
   constructor(private terminal: DBTTerminal) {}

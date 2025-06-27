@@ -78,7 +78,7 @@ import {
   DBTProjectIntegrationAdapter,
   ParsedManifest,
   RunResultsEventData,
-} from "../dbt_integration/dbtProjectIntegrationAdapter";
+} from "../dbt_integration/dbtIntegrationAdapter";
 import { DBTDiagnosticData } from "../dbt_integration/diagnostics";
 
 interface FileNameTemplateMap {

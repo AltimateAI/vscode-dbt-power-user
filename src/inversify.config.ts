@@ -60,7 +60,7 @@ import {
   DBTFusionCommandProjectIntegration,
 } from "./dbt_integration/dbtFusionCommandIntegration";
 import { DBTTerminal } from "./dbt_integration/terminal";
-import { DBTProjectIntegrationAdapter } from "./dbt_integration/dbtProjectIntegrationAdapter";
+import { DBTProjectIntegrationAdapter } from "./dbt_integration/dbtIntegrationAdapter";
 import { ChildrenParentParser } from "./dbt_integration/parsers/childrenParentParser";
 import { DocParser } from "./dbt_integration/parsers/docParser";
 import { ExposureParser } from "./dbt_integration/parsers/exposureParser";

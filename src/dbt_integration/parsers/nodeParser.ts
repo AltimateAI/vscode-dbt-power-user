@@ -3,7 +3,7 @@ import { createFullPathForNode } from "./utils";
 import { DBTTerminal } from "../terminal";
 import { getExternalProjectNamesFromDbtLoomConfig } from "./utils";
 import * as path from "path";
-import { DBTProjectIntegrationAdapter } from "../dbtProjectIntegrationAdapter";
+import { DBTProjectIntegrationAdapter } from "../dbtIntegrationAdapter";
 import { isResourceNode } from "../dbtIntegration";
 
 export class NodeMetaMapImpl implements NodeMetaMap {
