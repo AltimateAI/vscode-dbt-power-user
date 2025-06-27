@@ -26,7 +26,6 @@ import semver = require("semver");
 import { NodeMetaData } from "./domain";
 import * as crypto from "crypto";
 import { parse } from "yaml";
-import { window } from "vscode";
 
 export function getDBTPath(
   pythonEnvironment: PythonEnvironment,
@@ -71,23 +70,6 @@ export class DBTCloudDetection implements DBTDetection {
         throw new Error(stderr);
       }
       if (stdout.includes("dbt Cloud CLI")) {
-        const regex = /dbt Cloud CLI - (\d*\.\d*\.\d*)/gm;
-        const matches = regex.exec(stdout);
-        if (matches?.length === 2) {
-          const minVersion = "0.37.6";
-          const currentVersion = matches[1];
-          if (semver.lt(currentVersion, minVersion)) {
-            window.showErrorMessage(
-              `This version of dbt Cloud is not supported. Please update to a dbt Cloud CLI version higher than ${minVersion}`,
-            );
-            this.terminal.debug(
-              "DBTCLIDetectionFailed",
-              "dbt cloud cli was found but version is not supported. Detection command returned :  " +
-                stdout,
-            );
-            return true;
-          }
-        }
         this.terminal.debug("DBTCLIDetectionSuccess", "dbt cloud cli detected");
         return true;
       } else {
