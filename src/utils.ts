@@ -37,6 +37,13 @@ export function convertAbortSignalToCancellationToken(
           listener(null);
         }
       };
+
+      // If the signal is already aborted, invoke the listener immediately
+      if (signal.aborted) {
+        // Use setTimeout to make it asynchronous, mimicking VS Code's behavior
+        setTimeout(handler, 0);
+      }
+
       signal.addEventListener("abort", handler);
       const disposable = new Disposable(() =>
         signal.removeEventListener("abort", handler),
