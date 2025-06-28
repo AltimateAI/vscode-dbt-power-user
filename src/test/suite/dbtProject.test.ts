@@ -7,8 +7,8 @@ import {
   jest,
 } from "@jest/globals";
 import { ValidationProvider } from "../../validation_provider";
-import { NoCredentialsError } from "../../dbt_integration/";
-import { DBTTerminal } from "../../dbt_integration/";
+import { NoCredentialsError } from "@altimateai/dbt-integration";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import { TelemetryService } from "../../telemetry";
 import { AltimateRequest } from "../../altimate";
 

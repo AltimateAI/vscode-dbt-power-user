@@ -1,10 +1,10 @@
 import { expect } from "@jest/globals";
-import { DBTCoreDetection } from "../../dbt_integration/";
+import { DBTCoreDetection } from "@altimateai/dbt-integration";
 import { workspace } from "vscode";
 import {
   CommandProcessExecutionFactory,
   CommandProcessExecution,
-} from "../../dbt_integration/";
+} from "@altimateai/dbt-integration";
 
 // Mock workspace folders
 jest.mock("vscode", () => ({

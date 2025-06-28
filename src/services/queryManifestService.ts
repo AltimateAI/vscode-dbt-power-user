@@ -1,5 +1,5 @@
 import { TextDocument, Uri, window } from "vscode";
-import { DBTTerminal } from "../dbt_integration/";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {

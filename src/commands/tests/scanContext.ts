@@ -1,4 +1,4 @@
-import { Catalog } from "../../dbt_integration/";
+import { Catalog } from "@altimateai/dbt-integration";
 import { DBTProject } from "../../manifest/dbtProject";
 import { ManifestCacheProjectAddedEvent } from "../../manifest/event/manifestCacheChangedEvent";
 import { Diagnostic } from "vscode";

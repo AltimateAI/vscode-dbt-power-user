@@ -3,7 +3,7 @@ import { PythonEnvironment } from "./pythonEnvironment";
 import {
   PythonEnvironmentProvider,
   RuntimePythonEnvironment,
-} from "../dbt_integration/";
+} from "@altimateai/dbt-integration";
 
 @injectable()
 export class VSCodeRuntimePythonEnvironmentProvider

@@ -16,18 +16,18 @@ import { DocGenService } from "./docGenService";
 import { StreamingService } from "./streamingService";
 import { QueryManifestService } from "./queryManifestService";
 import path = require("path");
-import { DBTTerminal } from "../dbt_integration/";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import {
   MacroMetaMap,
   TestMetaData,
   TestMetadataAcceptedValues,
   TestMetadataRelationships,
-} from "../dbt_integration/";
+} from "@altimateai/dbt-integration";
 import { parse, stringify } from "yaml";
 import { readFileSync } from "fs";
 import { DBTProject } from "../manifest/dbtProject";
 import { getTestSuggestions } from "@lib";
-import { ExecuteSQLResult } from "../dbt_integration/";
+import { ExecuteSQLResult } from "@altimateai/dbt-integration";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
 import { inject } from "inversify";

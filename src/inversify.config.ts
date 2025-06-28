@@ -2,7 +2,7 @@ import { Container, interfaces } from "inversify";
 import { buildProviderModule } from "inversify-binding-decorators";
 import { Event, EventEmitter, Uri, workspace, WorkspaceFolder } from "vscode";
 import { VSCodeDBTTerminal } from "./dbt_client/vscodeTerminal";
-import { DBTDiagnosticData } from "./dbt_integration";
+import { DBTDiagnosticData } from "@altimateai/dbt-integration";
 import { DBTProject } from "./manifest/dbtProject";
 import { ProjectRegisteredUnregisteredEvent } from "./manifest/dbtProjectContainer";
 import { DBTWorkspaceFolder } from "./manifest/dbtWorkspaceFolder";
@@ -12,7 +12,7 @@ import { DBTProjectLog } from "./manifest/dbtProjectLog";
 import {
   RuntimePythonEnvironment,
   PythonEnvironmentProvider,
-} from "./dbt_integration";
+} from "@altimateai/dbt-integration";
 import {
   VSCodeRuntimePythonEnvironmentProvider,
   StaticRuntimePythonEnvironment,
@@ -22,7 +22,7 @@ import {
   DBTCoreDetection,
   DBTCoreProjectDetection,
   DBTCoreProjectIntegration,
-} from "./dbt_integration";
+} from "@altimateai/dbt-integration";
 import {
   CLIDBTCommandExecutionStrategy,
   DBTCommandExecutionInfrastructure,
@@ -31,19 +31,19 @@ import {
   DBTDetection,
   DBTProjectDetection,
   PythonDBTCommandExecutionStrategy,
-} from "./dbt_integration";
+} from "@altimateai/dbt-integration";
 import {
   DBTCloudDetection,
   DBTCloudProjectDetection,
   DBTCloudProjectIntegration,
-} from "./dbt_integration";
-import { CommandProcessExecutionFactory } from "./dbt_integration";
+} from "@altimateai/dbt-integration";
+import { CommandProcessExecutionFactory } from "@altimateai/dbt-integration";
 import { AltimateRequest } from "./altimate";
 import { ValidationProvider } from "./validation_provider";
-import { DBTConfiguration } from "./dbt_integration";
+import { DBTConfiguration } from "@altimateai/dbt-integration";
 import { AltimateAuthService } from "./services/altimateAuthService";
-import { AltimateHttpClient } from "./dbt_integration";
-import { DbtIntegrationClient } from "./dbt_integration";
+import { AltimateHttpClient } from "@altimateai/dbt-integration";
+import { DbtIntegrationClient } from "@altimateai/dbt-integration";
 import { VSCodeDBTConfiguration } from "./dbt_client/vscodeConfiguration";
 import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
@@ -52,25 +52,25 @@ import {
   DBTCoreCommandDetection,
   DBTCoreCommandProjectDetection,
   DBTCoreCommandProjectIntegration,
-} from "./dbt_integration";
+} from "@altimateai/dbt-integration";
 import {
   DBTFusionCommandDetection,
   DBTFusionCommandProjectDetection,
   DBTFusionCommandProjectIntegration,
-} from "./dbt_integration";
-import { DBTTerminal } from "./dbt_integration";
-import { DBTProjectIntegrationAdapter } from "./dbt_integration";
-import { ChildrenParentParser } from "./dbt_integration";
-import { DocParser } from "./dbt_integration";
-import { ExposureParser } from "./dbt_integration";
-import { GraphParser } from "./dbt_integration";
-import { MacroParser } from "./dbt_integration";
-import { MetricParser } from "./dbt_integration";
-import { ModelDepthParser } from "./dbt_integration";
-import { NodeParser } from "./dbt_integration";
-import { SourceParser } from "./dbt_integration";
-import { TestParser } from "./dbt_integration";
-import { DeferConfig } from "./dbt_integration";
+} from "@altimateai/dbt-integration";
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { DBTProjectIntegrationAdapter } from "@altimateai/dbt-integration";
+import { ChildrenParentParser } from "@altimateai/dbt-integration";
+import { DocParser } from "@altimateai/dbt-integration";
+import { ExposureParser } from "@altimateai/dbt-integration";
+import { GraphParser } from "@altimateai/dbt-integration";
+import { MacroParser } from "@altimateai/dbt-integration";
+import { MetricParser } from "@altimateai/dbt-integration";
+import { ModelDepthParser } from "@altimateai/dbt-integration";
+import { NodeParser } from "@altimateai/dbt-integration";
+import { SourceParser } from "@altimateai/dbt-integration";
+import { TestParser } from "@altimateai/dbt-integration";
+import { DeferConfig } from "@altimateai/dbt-integration";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
 
 export const container = new Container();

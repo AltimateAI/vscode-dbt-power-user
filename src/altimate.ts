@@ -3,13 +3,13 @@ import {
   ColumnMetaData,
   NodeMetaData,
   SourceMetaData,
-} from "./dbt_integration/";
-import { DBTTerminal } from "./dbt_integration/";
+} from "@altimateai/dbt-integration";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import { PreconfiguredNotebookItem, NotebookItem, NotebookSchema } from "@lib";
 import * as vscode from "vscode";
 import { inject } from "inversify";
-import { DBTConfiguration } from "./dbt_integration/";
-import { AltimateHttpClient } from "./dbt_integration/";
+import { DBTConfiguration } from "@altimateai/dbt-integration";
+import { AltimateHttpClient } from "@altimateai/dbt-integration";
 
 export class UserInputError extends Error {}
 

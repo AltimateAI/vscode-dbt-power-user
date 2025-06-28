@@ -4,7 +4,7 @@ import {
   NodeMetaData,
   NodeMetaType,
   SourceMetaType,
-} from "../dbt_integration/";
+} from "@altimateai/dbt-integration";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 
 export function generateHoverMarkdownString(

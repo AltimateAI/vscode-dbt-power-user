@@ -9,7 +9,7 @@ import {
   TextDocument,
   Uri,
 } from "vscode";
-import { DocMetaMap } from "../dbt_integration/";
+import { DocMetaMap } from "@altimateai/dbt-integration";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";

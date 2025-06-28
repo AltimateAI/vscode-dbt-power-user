@@ -39,6 +39,10 @@ const config = {
     alias: {
       "@extension": path.resolve(__dirname, "./src/modules.ts"),
       "@lib": path.resolve(__dirname, "./src/lib/index"),
+      "@altimateai/dbt-integration": path.resolve(
+        __dirname,
+        "../altimate-dbt-integration/src/index.ts",
+      ),
     },
   },
   module: {

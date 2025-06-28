@@ -15,7 +15,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
-import { RESOURCE_TYPE_ANALYSIS } from "../dbt_integration/";
+import { RESOURCE_TYPE_ANALYSIS } from "@altimateai/dbt-integration";
 
 @provideSingleton(ModelAutocompletionProvider) // TODO autocomplete doesn't work when mistype, delete and retype
 export class ModelAutocompletionProvider

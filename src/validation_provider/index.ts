@@ -1,6 +1,9 @@
 import { Disposable, commands, window, workspace } from "vscode";
 import { provideSingleton } from "../utils";
-import { ForbiddenError, NoCredentialsError } from "../dbt_integration/";
+import {
+  ForbiddenError,
+  NoCredentialsError,
+} from "@altimateai/dbt-integration";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { AltimateRequest } from "../altimate";
 

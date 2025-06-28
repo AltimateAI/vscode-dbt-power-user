@@ -11,7 +11,7 @@ import { provideSingleton } from "../utils";
 import { QueryManifestService } from "./queryManifestService";
 import { DocGenService } from "./docGenService";
 import { StreamingService } from "./streamingService";
-import { DBTTerminal } from "../dbt_integration/";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import { FileService } from "./fileService";
 import { inject } from "inversify";
 import { AltimateAuthService } from "./altimateAuthService";

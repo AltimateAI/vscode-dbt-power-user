@@ -19,7 +19,7 @@ import {
   window,
   workspace,
 } from "vscode";
-import { DBTTerminal } from "../dbt_integration";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import { extendErrorWithSupportLinks, getColumnNameByCase } from "../utils";
 import {
   ManifestCacheChangedEvent,
@@ -36,10 +36,10 @@ import {
   DBTCommandExecutionInfrastructure,
   DBTCommand,
   validateSQLUsingSqlGlot,
-} from "../dbt_integration";
-import { ProjectHealthcheck } from "../dbt_integration";
+} from "@altimateai/dbt-integration";
+import { ProjectHealthcheck } from "@altimateai/dbt-integration";
 import { AltimateRequest } from "../altimate";
-import { NoCredentialsError } from "../dbt_integration";
+import { NoCredentialsError } from "@altimateai/dbt-integration";
 import { ValidationProvider } from "../validation_provider";
 import { ModelNode } from "../altimate";
 import {
@@ -64,7 +64,7 @@ import {
   RunResultsEventData,
   SourceNode,
   Table,
-} from "../dbt_integration";
+} from "@altimateai/dbt-integration";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryEvents } from "../telemetry/events";
 import { RunResultsEvent } from "./event/runResultsEvent";
@@ -72,9 +72,9 @@ import { DeferToProdService } from "../services/deferToProdService";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { getProjectRelativePath } from "../utils";
 import { inject } from "inversify";
-import { DBTFacade } from "../dbt_integration";
-import { DBTProjectIntegrationAdapter } from "../dbt_integration";
-import { DBTDiagnosticData } from "../dbt_integration";
+import { DBTFacade } from "@altimateai/dbt-integration";
+import { DBTProjectIntegrationAdapter } from "@altimateai/dbt-integration";
+import { DBTDiagnosticData } from "@altimateai/dbt-integration";
 
 interface FileNameTemplateMap {
   [key: string]: string;

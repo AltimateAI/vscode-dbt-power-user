@@ -23,7 +23,7 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { AltimateRequest, UserInputError } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
-import { DBTTerminal } from "../dbt_integration/";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import { QueryManifestService } from "../services/queryManifestService";
 import { PythonException } from "python-bridge";
 import { UsersService } from "../services/usersService";

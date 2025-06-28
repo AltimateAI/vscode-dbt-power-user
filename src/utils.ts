@@ -15,7 +15,7 @@ import { parse, parseDocument } from "yaml";
 import {
   TestMetadataAcceptedValues,
   TestMetadataRelationships,
-} from "./dbt_integration";
+} from "@altimateai/dbt-integration";
 
 export const isEnclosedWithinCodeBlock = (
   document: TextDocument,

@@ -17,16 +17,16 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
-import { DBTTerminal } from "../dbt_integration/";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import * as crypto from "crypto";
 import { DBTProject } from "../manifest/dbtProject";
-import { NodeMetaData, SourceTable } from "../dbt_integration/";
+import { NodeMetaData, SourceTable } from "@altimateai/dbt-integration";
 import { QueryManifestService } from "../services/queryManifestService";
 import { AltimateWebviewProvider } from "./altimateWebviewProvider";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
 import { inject } from "inversify";
-import { RESOURCE_TYPE_SOURCE } from "../dbt_integration/";
+import { RESOURCE_TYPE_SOURCE } from "@altimateai/dbt-integration";
 import { AltimateAuthService } from "../services/altimateAuthService";
 
 type SQLLineage = {

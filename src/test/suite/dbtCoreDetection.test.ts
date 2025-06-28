@@ -1,9 +1,9 @@
 import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
-import { DBTCoreDetection } from "../../dbt_integration/";
+import { DBTCoreDetection } from "@altimateai/dbt-integration";
 import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
-} from "../../dbt_integration/";
+} from "@altimateai/dbt-integration";
 import { PythonEnvironment } from "../../manifest/pythonEnvironment";
 import { workspace, Uri } from "vscode";
 

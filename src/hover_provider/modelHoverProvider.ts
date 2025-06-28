@@ -10,13 +10,13 @@ import {
   Hover,
   MarkdownString,
 } from "vscode";
-import { NodeMetaMap } from "../dbt_integration/";
+import { NodeMetaMap } from "@altimateai/dbt-integration";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { generateHoverMarkdownString } from "./utils";
-import { DBTTerminal } from "../dbt_integration/";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import { DBTProject } from "../manifest/dbtProject";
 import { inject } from "inversify";
 

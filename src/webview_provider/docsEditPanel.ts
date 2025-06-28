@@ -44,13 +44,13 @@ import {
   DocumentationSchema,
   DocumentationSchemaColumn,
 } from "../services/docGenService";
-import { DBTTerminal } from "../dbt_integration/";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import {
   Table,
   TestMetaData,
   TestMetadataAcceptedValues,
   TestMetadataRelationships,
-} from "../dbt_integration/";
+} from "@altimateai/dbt-integration";
 import { DbtTestService } from "../services/dbtTestService";
 import { gte } from "semver";
 import { TelemetryEvents } from "../telemetry/events";

@@ -23,12 +23,12 @@ import { TelemetryService } from "../telemetry";
 import { YAMLError } from "yaml";
 import { ProjectRegisteredUnregisteredEvent } from "./dbtProjectContainer";
 
-import { DBTTerminal } from "../dbt_integration/";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import {
   DBTProjectDetection,
   readAndParseProjectConfig,
-} from "../dbt_integration/";
-import { DBT_PROJECT_FILE } from "../dbt_integration/";
+} from "@altimateai/dbt-integration";
+import { DBT_PROJECT_FILE } from "@altimateai/dbt-integration";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;

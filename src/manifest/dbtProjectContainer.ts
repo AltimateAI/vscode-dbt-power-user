@@ -15,7 +15,7 @@ import {
   DataPilotHealtCheckParams,
   EnvironmentVariables,
   RunModelType,
-} from "../dbt_integration/";
+} from "@altimateai/dbt-integration";
 import { provideSingleton } from "../utils";
 import { DBTProject } from "./dbtProject";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
@@ -23,7 +23,7 @@ import {
   ManifestCacheChangedEvent,
   RebuildManifestCombinedStatusChange,
 } from "./event/manifestCacheChangedEvent";
-import { DBTTerminal } from "../dbt_integration/";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import { AltimateDatapilot } from "../dbt_client/datapilot";
 import { AltimateRequest } from "../altimate";
 

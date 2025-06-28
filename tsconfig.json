@@ -5,7 +5,8 @@
     "outDir": "out",
     "lib": ["ES2020"],
     "sourceMap": true,
-    "rootDir": "src",
+    // "rootDir": "src",
+    "rootDirs": ["src", "../altimate-dbt-integration/src"],
     "strict": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
@@ -17,7 +18,10 @@
     "baseUrl": ".",
     "paths": {
       "@extension": ["./src/modules.ts"],
-      "@lib": ["./src/lib/index"]
+      "@lib": ["./src/lib/index"],
+      "@altimateai/dbt-integration": [
+        "../altimate-dbt-integration/src/index.ts"
+      ]
     },
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true

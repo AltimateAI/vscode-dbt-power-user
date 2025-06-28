@@ -11,7 +11,7 @@ import {
   TextDocument,
   Uri,
 } from "vscode";
-import { SourceMetaMap } from "../dbt_integration/";
+import { SourceMetaMap } from "@altimateai/dbt-integration";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";

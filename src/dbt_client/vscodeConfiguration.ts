@@ -3,7 +3,7 @@ import { injectable } from "inversify";
 import {
   DBTConfiguration,
   DEFAULT_CONFIGURATION_VALUES,
-} from "../dbt_integration/";
+} from "@altimateai/dbt-integration";
 import { getFirstWorkspacePath } from "../utils";
 
 @injectable()

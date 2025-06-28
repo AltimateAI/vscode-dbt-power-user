@@ -5,7 +5,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { Uri, Disposable, workspace } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProject, DBTTerminal, TelemetryService } from "../modules";
-import { CommandProcessResult } from "../dbt_integration/";
+import { CommandProcessResult } from "@altimateai/dbt-integration";
 import { McpTool } from "./types";
 import { inject } from "inversify";
 

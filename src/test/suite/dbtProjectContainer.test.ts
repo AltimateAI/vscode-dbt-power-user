@@ -7,7 +7,7 @@ import {
   jest,
 } from "@jest/globals";
 import { DBTClient } from "../../dbt_client";
-import { DBTTerminal } from "../../dbt_integration/";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import { AltimateDatapilot } from "../../dbt_client/datapilot";
 import { AltimateRequest } from "../../altimate";
 import { DBTProjectContainer } from "../../manifest/dbtProjectContainer";
@@ -15,7 +15,7 @@ import { DBTWorkspaceFolder } from "../../manifest/dbtWorkspaceFolder";
 import { EventEmitter, Uri, WorkspaceFolder } from "vscode";
 import { ManifestCacheChangedEvent } from "../../manifest/event/manifestCacheChangedEvent";
 import { ProjectRegisteredUnregisteredEvent } from "../../manifest/dbtProjectContainer";
-import { EnvironmentVariables } from "../../dbt_integration/";
+import { EnvironmentVariables } from "@altimateai/dbt-integration";
 
 describe("DBTProjectContainer Tests", () => {
   let container: DBTProjectContainer;

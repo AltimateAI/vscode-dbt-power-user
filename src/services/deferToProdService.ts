@@ -1,6 +1,6 @@
 import { Uri, window, workspace } from "vscode";
 import { getProjectRelativePath, provideSingleton } from "../utils";
-import { DeferConfig } from "../dbt_integration/";
+import { DeferConfig } from "@altimateai/dbt-integration";
 
 @provideSingleton(DeferToProdService)
 export class DeferToProdService {

@@ -1,6 +1,6 @@
 import { Disposable, workspace, extensions, ConfigurationTarget } from "vscode";
 import { provideSingleton } from "../utils";
-import { DBTTerminal } from "../dbt_integration/";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import { DbtPowerUserMcpServerTools } from "./server";
 import { AltimateRequest } from "../modules";
 import { ToolRegistry } from "./types";

@@ -3,11 +3,11 @@ import { ProgressLocation, Uri, window } from "vscode";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { QueryManifestService } from "./queryManifestService";
 import path = require("path");
-import { DBTTerminal } from "../dbt_integration/";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import { AltimateRequest, ConversationGroup, SharedDoc } from "../altimate";
 import { rmSync } from "fs";
 import { inject } from "inversify";
-import { hashProjectRoot } from "../dbt_integration/";
+import { hashProjectRoot } from "@altimateai/dbt-integration";
 import { AltimateAuthService } from "./altimateAuthService";
 
 @provideSingleton(ConversationService)

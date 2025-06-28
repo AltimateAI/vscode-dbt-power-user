@@ -15,9 +15,9 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { debounce, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { DeferToProdService } from "../services/deferToProdService";
-import { DbtIntegrationClient } from "../dbt_integration/";
+import { DbtIntegrationClient } from "@altimateai/dbt-integration";
 import path = require("path");
-import { ManifestPathType } from "../dbt_integration/";
+import { ManifestPathType } from "@altimateai/dbt-integration";
 
 @provideSingleton(SqlPreviewContentProvider)
 export class SqlPreviewContentProvider

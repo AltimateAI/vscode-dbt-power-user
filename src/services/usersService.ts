@@ -1,6 +1,6 @@
 import { Disposable } from "vscode";
 import { AltimateRequest, TenantUser } from "../altimate";
-import { DBTTerminal } from "../dbt_integration";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import { provideSingleton } from "../utils";
 import { AltimateAuthService } from "./altimateAuthService";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";

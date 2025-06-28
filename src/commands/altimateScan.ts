@@ -14,7 +14,7 @@ import { MissingSchemaTest } from "./tests/missingSchemaTest";
 import { UnmaterializedModelTest } from "./tests/unmaterializedModelTest";
 import { ScanContext } from "./tests/scanContext";
 import { AltimateScanStep } from "./tests/step";
-import { DBTTerminal } from "../dbt_integration/";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
 
 @provideSingleton(AltimateScan)

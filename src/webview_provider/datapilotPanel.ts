@@ -24,7 +24,7 @@ import {
   QueryTranslateIncomingRequest,
 } from "../services/queryAnalysisService";
 import { QueryManifestService } from "../services/queryManifestService";
-import { DBTTerminal } from "../dbt_integration/";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import { DbtTestService } from "../services/dbtTestService";
 import { FileService } from "../services/fileService";
 import { UsersService } from "../services/usersService";

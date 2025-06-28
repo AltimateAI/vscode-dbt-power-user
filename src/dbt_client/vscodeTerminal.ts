@@ -3,7 +3,7 @@ import { injectable } from "inversify";
 import { stripANSI } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { PythonException } from "python-bridge";
-import { DBTTerminal } from "../dbt_integration/";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 
 @injectable()
 export class VSCodeDBTTerminal implements DBTTerminal {

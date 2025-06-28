@@ -22,7 +22,7 @@ import {
   NodeData,
   NodeMetaData,
   NodeMetaMap,
-} from "../dbt_integration/";
+} from "@altimateai/dbt-integration";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,

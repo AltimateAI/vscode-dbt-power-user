@@ -8,7 +8,7 @@ import {
   NodeMetaMap,
   SourceMetaMap,
   TestMetaMap,
-} from "../../dbt_integration/";
+} from "@altimateai/dbt-integration";
 import { DBTProject } from "../dbtProject";
 
 export interface ManifestCacheProjectAddedEvent {

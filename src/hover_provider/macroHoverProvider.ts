@@ -9,7 +9,7 @@ import {
 } from "vscode";
 import { TelemetryService } from "../telemetry";
 import { generateMacroHoverMarkdown } from "./utils";
-import { DBTTerminal } from "../dbt_integration/";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import { QueryManifestService } from "../services/queryManifestService";
 import { provideSingleton } from "../utils";
 import {
@@ -18,7 +18,7 @@ import {
   NodeMetaData,
   NodeMetaMap,
   SourceMetaMap,
-} from "../dbt_integration/";
+} from "@altimateai/dbt-integration";
 import { inject } from "inversify";
 
 @provideSingleton(MacroHoverProvider)
