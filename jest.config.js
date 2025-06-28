@@ -17,5 +17,10 @@ module.exports = {
   moduleNameMapper: {
     "^vscode$": "<rootDir>/src/test/mock/vscode.ts",
     "^@lib$": "<rootDir>/src/test/mock/lib.ts",
+    // Development: use local TypeScript source (same as webpack and tsconfig)
+    "^@altimateai/dbt-integration$":
+      "<rootDir>/../altimate-dbt-integration/src/index.ts",
+    // Production: use npm package (commented out for development)
+    // "^@altimateai/dbt-integration$": "@altimateai/dbt-integration",
   },
 };
