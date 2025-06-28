@@ -66,24 +66,61 @@ const config = {
           to: "altimate_notebook_kernel.py",
         },
         {
-          from: path.resolve(__dirname, "dbt_core_integration.py"),
+          from: path.resolve(
+            __dirname,
+            "../altimate-dbt-integration/dbt_core_integration.py",
+          ),
           to: "dbt_core_integration.py",
         },
         {
-          from: path.resolve(__dirname, "dbt_utils.py"),
+          from: path.resolve(
+            __dirname,
+            "../altimate-dbt-integration/dbt_utils.py",
+          ),
           to: "dbt_utils.py",
         },
         {
           from: path.resolve(
             __dirname,
-            "node_modules/python-bridge/node_python_bridge.py",
+            "../altimate-dbt-integration/node_modules/python-bridge/node_python_bridge.py",
           ),
           to: "node_python_bridge.py",
         },
         {
-          from: path.resolve(__dirname, "altimate_packages/"),
+          from: path.resolve(
+            __dirname,
+            "../altimate-dbt-integration/altimate_packages/",
+          ),
           to: "altimate_packages/",
         },
+        // {
+        //   from: path.resolve(
+        //     __dirname,
+        //     "node_modules/@altimateai/dbt-integration/dbt_core_integration.py",
+        //   ),
+        //   to: "dbt_core_integration.py",
+        // },
+        // {
+        //   from: path.resolve(
+        //     __dirname,
+        //     "node_modules/@altimateai/dbt-integration/dbt_utils.py",
+        //   ),
+        //   to: "dbt_utils.py",
+        // },
+        // {
+        //   from: path.resolve(
+        //     __dirname,
+        //     "node_modules/@altimateai/node_python_bridge.py",
+        //   ),
+        //   to: "node_python_bridge.py",
+        // },
+        // {
+        //   from: path.resolve(
+        //     __dirname,
+        //     "node_modules/@altimateai/dbt-integration/altimate_packages/",
+        //   ),
+        //   to: "altimate_packages/",
+        // },
       ],
     }),
     new WebpackShellPluginNext({
