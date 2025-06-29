@@ -546,6 +546,7 @@ container
       return new DBTCoreProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
         container.get("RuntimePythonEnvironment"),
+        container.get("PythonEnvironmentProvider"),
         container.get(PythonDBTCommandExecutionStrategy),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
         container.get("DBTTerminal"),
@@ -577,6 +578,7 @@ container
       return new DBTCoreCommandProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
         container.get("RuntimePythonEnvironment"),
+        container.get("PythonEnvironmentProvider"),
         container.get(PythonDBTCommandExecutionStrategy),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
         container.get("DBTTerminal"),
@@ -610,6 +612,7 @@ container
         container.get(DBTCommandFactory),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
         container.get("RuntimePythonEnvironment"),
+        container.get("PythonEnvironmentProvider"),
         container.get("DBTTerminal"),
         projectRoot,
         projectConfigDiagnostics,
@@ -639,6 +642,7 @@ container
         container.get(DBTCommandFactory),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
         container.get("RuntimePythonEnvironment"),
+        container.get("PythonEnvironmentProvider"),
         container.get("DBTTerminal"),
         projectRoot,
         projectConfigDiagnostics,

@@ -15,9 +15,14 @@ export class VSCodeRuntimePythonEnvironmentProvider
     @inject(PythonEnvironment)
     private vscodeEnvironment: PythonEnvironment,
   ) {
-    // TODO: Re-implement python environment change handling
-    // Need to access the VSCode extension's python environment changes
-    // This would require the VSCode layer to notify this provider
+    // Set up python environment change handling
+    // Initialize environment and listen for changes
+    this.vscodeEnvironment.initialize().then(() => {
+      this.vscodeEnvironment.onPythonEnvironmentChanged(() => {
+        const currentEnvironment = this.getCurrentEnvironment();
+        this.callbacks.forEach((callback) => callback(currentEnvironment));
+      });
+    });
   }
 
   getCurrentEnvironment(): RuntimePythonEnvironment {
@@ -29,8 +34,16 @@ export class VSCodeRuntimePythonEnvironmentProvider
 
   onEnvironmentChanged(
     callback: (environment: RuntimePythonEnvironment) => void,
-  ): void {
+  ): () => void {
     this.callbacks.push(callback);
+
+    // Return cleanup function
+    return () => {
+      const index = this.callbacks.indexOf(callback);
+      if (index > -1) {
+        this.callbacks.splice(index, 1);
+      }
+    };
   }
 }
 
