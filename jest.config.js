@@ -17,6 +17,7 @@ module.exports = {
   moduleNameMapper: {
     "^vscode$": "<rootDir>/src/test/mock/vscode.ts",
     "^@lib$": "<rootDir>/src/test/mock/lib.ts",
+    "^node-fetch$": "<rootDir>/src/test/mock/node-fetch.ts",
     // Development: use local TypeScript source (same as webpack and tsconfig)
     "^@altimateai/dbt-integration$":
       "<rootDir>/../altimate-dbt-integration/src/index.ts",
