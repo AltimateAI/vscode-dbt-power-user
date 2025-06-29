@@ -1,14 +1,14 @@
-import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
-import { DBTCloudDetection } from "@altimateai/dbt-integration";
 import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
+  DBTCloudDetection,
+  DBTTerminal,
 } from "@altimateai/dbt-integration";
-import { PythonEnvironment } from "../../manifest/pythonEnvironment";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { VSCodeDBTTerminal } from "../../dbt_client/vscodeTerminal";
-import { mock, instance, when, anything } from "ts-mockito";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { anything, instance, mock, when } from "ts-mockito";
 import { workspace } from "vscode";
+import { VSCodeDBTTerminal } from "../../dbt_client/vscodeTerminal";
+import { PythonEnvironment } from "../../manifest/pythonEnvironment";
 
 describe("DBTCloudDetection Tests", () => {
   let mockCommandProcessExecutionFactory: CommandProcessExecutionFactory;

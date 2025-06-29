@@ -13,10 +13,10 @@ import {
 } from "vscode";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
+import { isEnclosedWithinCodeBlock } from "../utils";
 
-@provideSingleton(SourceAutocompletionProvider) // TODO autocomplete doesn't work when mistype, delete and retype
+// TODO autocomplete doesn't work when mistype, delete and retype
 export class SourceAutocompletionProvider
   implements CompletionItemProvider, Disposable
 {

@@ -1,14 +1,15 @@
+export {
+  CommandProcessExecutionFactory,
+  DBTCommandExecutionInfrastructure,
+  DBTTerminal,
+  ExecuteSQLResult,
+} from "@altimateai/dbt-integration";
+export { inject } from "inversify";
+export { AltimateRequest } from "./altimate";
+export { DBTProject } from "./manifest/dbtProject";
+export { DBTProjectContainer } from "./manifest/dbtProjectContainer";
+export { PythonEnvironment } from "./manifest/pythonEnvironment";
+export { QueryManifestService } from "./services/queryManifestService";
 export { TelemetryService } from "./telemetry";
 export { TelemetryEvents } from "./telemetry/events";
-export { DBTTerminal } from "@altimateai/dbt-integration";
-export { DBTCommandExecutionInfrastructure } from "@altimateai/dbt-integration";
 export { extendErrorWithSupportLinks, getFirstWorkspacePath } from "./utils";
-export { AltimateRequest } from "./altimate";
-export { provideSingleton } from "./utils";
-export { inject } from "inversify";
-export { PythonEnvironment } from "./manifest/pythonEnvironment";
-export { CommandProcessExecutionFactory } from "@altimateai/dbt-integration";
-export { DBTProjectContainer } from "./manifest/dbtProjectContainer";
-export { QueryManifestService } from "./services/queryManifestService";
-export { DBTProject } from "./manifest/dbtProject";
-export { ExecuteSQLResult } from "@altimateai/dbt-integration";

@@ -1,25 +1,26 @@
+import {
+  DbtIntegrationClient,
+  ManifestPathType,
+} from "@altimateai/dbt-integration";
 import { readFileSync } from "fs";
 import {
   Disposable,
   Event,
   EventEmitter,
   FileSystemWatcher,
+  ProgressLocation,
   RelativePattern,
   TextDocumentContentProvider,
   Uri,
-  workspace,
   window,
-  ProgressLocation,
+  workspace,
 } from "vscode";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { debounce, provideSingleton } from "../utils";
-import { TelemetryService } from "../telemetry";
 import { DeferToProdService } from "../services/deferToProdService";
-import { DbtIntegrationClient } from "@altimateai/dbt-integration";
+import { TelemetryService } from "../telemetry";
+import { debounce } from "../utils";
 import path = require("path");
-import { ManifestPathType } from "@altimateai/dbt-integration";
 
-@provideSingleton(SqlPreviewContentProvider)
 export class SqlPreviewContentProvider
   implements TextDocumentContentProvider, Disposable
 {

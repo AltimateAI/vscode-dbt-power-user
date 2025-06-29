@@ -1,9 +1,20 @@
+import {
+  DBTTerminal,
+  Table,
+  TestMetaData,
+  TestMetadataAcceptedValues,
+  TestMetadataRelationships,
+} from "@altimateai/dbt-integration";
 import { existsSync, readFileSync, writeFileSync } from "fs";
+import { inject } from "inversify";
+import { PythonException } from "python-bridge";
+import { gte } from "semver";
 import {
   CancellationToken,
   CancellationTokenSource,
   ColorThemeKind,
   Disposable,
+  env,
   ProgressLocation,
   TextEditor,
   Uri,
@@ -14,13 +25,24 @@ import {
   WebviewViewResolveContext,
   window,
   workspace,
-  env,
 } from "vscode";
+import { parse, parseDocument, stringify, YAMLMap, YAMLSeq } from "yaml";
+import { AltimateRequest, UserInputError } from "../altimate";
+import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
+import { DbtLineageService } from "../services/dbtLineageService";
+import { DbtTestService } from "../services/dbtTestService";
+import {
+  DocGenService,
+  DocumentationSchema,
+  DocumentationSchemaColumn,
+} from "../services/docGenService";
+import { TelemetryService } from "../telemetry";
+import { TelemetryEvents } from "../telemetry/events";
 import {
   extendErrorWithSupportLinks,
   getColumnNameByCase,
@@ -29,34 +51,11 @@ import {
   isColumnNameEqual,
   isQuotedIdentifier,
   isRelationship,
-  provideSingleton,
   removeProtocol,
 } from "../utils";
-import path = require("path");
-import { PythonException } from "python-bridge";
-import { TelemetryService } from "../telemetry";
-import { AltimateRequest, UserInputError } from "../altimate";
-import { stringify, parse, parseDocument, YAMLSeq, YAMLMap } from "yaml";
-import { NewDocsGenPanel } from "./newDocsGenPanel";
-import { DBTProject } from "../manifest/dbtProject";
-import {
-  DocGenService,
-  DocumentationSchema,
-  DocumentationSchemaColumn,
-} from "../services/docGenService";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import {
-  Table,
-  TestMetaData,
-  TestMetadataAcceptedValues,
-  TestMetadataRelationships,
-} from "@altimateai/dbt-integration";
-import { DbtTestService } from "../services/dbtTestService";
-import { gte } from "semver";
-import { TelemetryEvents } from "../telemetry/events";
 import { SendMessageProps } from "./altimateWebviewProvider";
-import { DbtLineageService } from "../services/dbtLineageService";
-import { inject } from "inversify";
+import { NewDocsGenPanel } from "./newDocsGenPanel";
+import path = require("path");
 
 export enum Source {
   YAML = "YAML",
@@ -98,7 +97,6 @@ export interface DocsGenPanelView extends WebviewViewProvider {
   ): void;
 }
 
-@provideSingleton(DocsEditViewPanel)
 export class DocsEditViewPanel implements WebviewViewProvider {
   public static readonly viewType = "dbtPowerUser.DocsEdit";
   private panel: WebviewView | undefined;

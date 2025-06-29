@@ -1,3 +1,9 @@
+import {
+  DataPilotHealtCheckParams,
+  DBTTerminal,
+  EnvironmentVariables,
+  RunModelType,
+} from "@altimateai/dbt-integration";
 import { inject } from "inversify";
 import { basename } from "path";
 import {
@@ -10,22 +16,15 @@ import {
   workspace,
   WorkspaceFolder,
 } from "vscode";
+import { AltimateRequest } from "../altimate";
 import { DBTClient } from "../dbt_client";
-import {
-  DataPilotHealtCheckParams,
-  EnvironmentVariables,
-  RunModelType,
-} from "@altimateai/dbt-integration";
-import { provideSingleton } from "../utils";
+import { AltimateDatapilot } from "../dbt_client/datapilot";
 import { DBTProject } from "./dbtProject";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
 import {
   ManifestCacheChangedEvent,
   RebuildManifestCombinedStatusChange,
 } from "./event/manifestCacheChangedEvent";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { AltimateDatapilot } from "../dbt_client/datapilot";
-import { AltimateRequest } from "../altimate";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -40,7 +39,6 @@ export interface ProjectRegisteredUnregisteredEvent {
 
 export interface DBTProjectsInitializationEvent {}
 
-@provideSingleton(DBTProjectContainer)
 export class DBTProjectContainer implements Disposable {
   public onDBTInstallationVerification =
     this.dbtClient.onDBTInstallationVerification;

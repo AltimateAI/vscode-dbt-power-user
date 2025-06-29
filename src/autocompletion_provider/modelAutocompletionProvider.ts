@@ -1,3 +1,4 @@
+import { RESOURCE_TYPE_ANALYSIS } from "@altimateai/dbt-integration";
 import {
   CancellationToken,
   CompletionContext,
@@ -13,11 +14,10 @@ import {
 } from "vscode";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
-import { RESOURCE_TYPE_ANALYSIS } from "@altimateai/dbt-integration";
+import { isEnclosedWithinCodeBlock } from "../utils";
 
-@provideSingleton(ModelAutocompletionProvider) // TODO autocomplete doesn't work when mistype, delete and retype
+// TODO autocomplete doesn't work when mistype, delete and retype
 export class ModelAutocompletionProvider
   implements CompletionItemProvider, Disposable
 {

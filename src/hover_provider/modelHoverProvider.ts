@@ -1,26 +1,23 @@
+import { DBTTerminal, NodeMetaMap } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import {
   CancellationToken,
-  HoverProvider,
   Disposable,
+  Hover,
+  HoverProvider,
+  MarkdownString,
   Position,
   ProviderResult,
   Range,
   TextDocument,
   Uri,
-  Hover,
-  MarkdownString,
 } from "vscode";
-import { NodeMetaMap } from "@altimateai/dbt-integration";
+import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { generateHoverMarkdownString } from "./utils";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { DBTProject } from "../manifest/dbtProject";
-import { inject } from "inversify";
 
-@provideSingleton(ModelHoverProvider)
 export class ModelHoverProvider implements HoverProvider, Disposable {
   private modelToLocationMap: Map<string, NodeMetaMap> = new Map();
   private static readonly IS_REF = /(ref)\([^)]*\)/;

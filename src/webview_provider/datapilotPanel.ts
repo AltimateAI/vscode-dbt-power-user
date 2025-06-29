@@ -1,37 +1,27 @@
-import {
-  commands,
-  env,
-  Range,
-  TextDocument,
-  Uri,
-  window,
-  workspace,
-} from "vscode";
-import { provideSingleton } from "../utils";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { TelemetryService } from "../telemetry";
-import {
-  AltimateWebviewProvider,
-  SharedStateEventEmitterProps,
-  HandleCommandProps,
-} from "./altimateWebviewProvider";
-import { DocGenService } from "../services/docGenService";
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
+import { commands, Range, window } from "vscode";
 import { AltimateRequest, QueryAnalysisType } from "../altimate";
-import { SharedStateService } from "../services/sharedStateService";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { AltimateAuthService } from "../services/altimateAuthService";
+import { DbtTestService } from "../services/dbtTestService";
+import { DocGenService } from "../services/docGenService";
+import { FileService } from "../services/fileService";
 import {
   QueryAnalysisService,
   QueryTranslateExplanationIncomingRequest,
   QueryTranslateIncomingRequest,
 } from "../services/queryAnalysisService";
 import { QueryManifestService } from "../services/queryManifestService";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { DbtTestService } from "../services/dbtTestService";
-import { FileService } from "../services/fileService";
+import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
-import { AltimateAuthService } from "../services/altimateAuthService";
-import { inject } from "inversify";
+import { TelemetryService } from "../telemetry";
+import {
+  AltimateWebviewProvider,
+  HandleCommandProps,
+  SharedStateEventEmitterProps,
+} from "./altimateWebviewProvider";
 
-@provideSingleton(DataPilotPanel)
 export class DataPilotPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.datapilot-webview";
   protected viewPath = "/datapilot";

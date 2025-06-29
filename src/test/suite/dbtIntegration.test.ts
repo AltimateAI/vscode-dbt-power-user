@@ -1,14 +1,12 @@
-import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
 import {
   CLIDBTCommandExecutionStrategy,
-  DBTCommand,
-} from "@altimateai/dbt-integration";
-import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
+  DBTCommand,
+  DBTTerminal,
 } from "@altimateai/dbt-integration";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { PythonEnvironment } from "../../manifest/pythonEnvironment";
-import { DBTTerminal } from "@altimateai/dbt-integration";
 describe("CLIDBTCommandExecutionStrategy Tests", () => {
   let strategy: CLIDBTCommandExecutionStrategy;
   let mockCommandProcessExecutionFactory: jest.Mocked<CommandProcessExecutionFactory>;

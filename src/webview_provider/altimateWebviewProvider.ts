@@ -1,3 +1,7 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { NotebookSchema } from "@lib";
+import { inject } from "inversify";
+import { PythonException } from "python-bridge";
 import {
   CancellationToken,
   commands,
@@ -13,23 +17,19 @@ import {
   window,
   workspace,
 } from "vscode";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { TelemetryService } from "../telemetry";
-import path = require("path");
-import {
-  ManifestCacheProjectAddedEvent,
-  ManifestCacheChangedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
 import { AltimateRequest, UserInputError } from "../altimate";
-import { SharedStateService } from "../services/sharedStateService";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { QueryManifestService } from "../services/queryManifestService";
-import { PythonException } from "python-bridge";
-import { UsersService } from "../services/usersService";
-import { NotebookSchema } from "@lib";
-import { inject } from "inversify";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import {
+  ManifestCacheChangedEvent,
+  ManifestCacheProjectAddedEvent,
+} from "../manifest/event/manifestCacheChangedEvent";
 import { AltimateAuthService } from "../services/altimateAuthService";
+import { QueryManifestService } from "../services/queryManifestService";
+import { SharedStateService } from "../services/sharedStateService";
+import { UsersService } from "../services/usersService";
+import { TelemetryService } from "../telemetry";
+import { extendErrorWithSupportLinks } from "../utils";
+import path = require("path");
 
 export type UpdateConfigProps = {
   key: string;
@@ -58,7 +58,6 @@ export interface SendMessageProps extends Record<string, unknown> {
  * This class is responsible for rendering the webview
  * Each panel needs to have its own provider which extends this class with correct viewPath and description
  */
-@provideSingleton(AltimateWebviewProvider)
 export class AltimateWebviewProvider implements WebviewViewProvider {
   public viewType = "dbtPowerUser.Default";
   protected viewPath = "/"; // webview route path from AppRoutes.tsx

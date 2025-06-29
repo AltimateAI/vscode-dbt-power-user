@@ -1,19 +1,16 @@
-import {
-  StatusBarItem,
-  StatusBarAlignment,
-  window,
-  Disposable,
-  TextEditor,
-  workspace,
-  Uri,
-} from "vscode";
-import { DeferToProdService } from "../services/deferToProdService";
-import { provideSingleton } from "../utils";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { DBTTerminal } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
+import {
+  Disposable,
+  StatusBarAlignment,
+  StatusBarItem,
+  TextEditor,
+  window,
+  workspace,
+} from "vscode";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DeferToProdService } from "../services/deferToProdService";
 
-@provideSingleton(DeferToProductionStatusBar)
 export class DeferToProductionStatusBar implements Disposable {
   readonly statusBar: StatusBarItem = window.createStatusBarItem(
     StatusBarAlignment.Left,

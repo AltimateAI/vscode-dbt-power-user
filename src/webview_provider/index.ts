@@ -1,12 +1,10 @@
 import { Disposable, window } from "vscode";
-import { provideSingleton } from "../utils";
-import { QueryResultPanel } from "./queryResultPanel";
-import { DocsEditViewPanel } from "./docsEditPanel";
-import { LineagePanel } from "./lineagePanel";
 import { DataPilotPanel } from "./datapilotPanel";
+import { DocsEditViewPanel } from "./docsEditPanel";
 import { InsightsPanel } from "./insightsPanel";
+import { LineagePanel } from "./lineagePanel";
+import { QueryResultPanel } from "./queryResultPanel";
 
-@provideSingleton(WebviewViewProviders)
 export class WebviewViewProviders implements Disposable {
   private disposables: Disposable[] = [];
 

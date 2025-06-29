@@ -1,8 +1,6 @@
-import { Disposable, Event, extensions, Uri, workspace } from "vscode";
-import { EnvironmentVariables } from "@altimateai/dbt-integration";
-import { provideSingleton } from "../utils";
-import { DBTTerminal } from "@altimateai/dbt-integration";
+import { DBTTerminal, EnvironmentVariables } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
+import { Disposable, Event, extensions, Uri, workspace } from "vscode";
 
 type EnvFrom = "process" | "integrated" | "dotenv";
 interface PythonExecutionDetails {
@@ -11,7 +9,6 @@ interface PythonExecutionDetails {
   getEnvVars: () => EnvironmentVariables;
 }
 
-@provideSingleton(PythonEnvironment)
 export class PythonEnvironment {
   private executionDetails?: PythonExecutionDetails;
   private disposables: Disposable[] = [];

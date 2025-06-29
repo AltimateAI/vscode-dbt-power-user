@@ -4,6 +4,7 @@ import {
   commands,
   env,
   ProgressLocation,
+  Range,
   Uri,
   ViewColumn,
   Webview,
@@ -12,37 +13,35 @@ import {
   WebviewViewResolveContext,
   window,
   workspace,
-  Range,
 } from "vscode";
 
-import { PythonException } from "python-bridge";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
-  extendErrorWithSupportLinks,
-  getFormattedDateTime,
-  getStringSizeInMb,
-  provideSingleton,
-} from "../utils";
-import { TelemetryService } from "../telemetry";
-import { AltimateRequest } from "../altimate";
-import {
+  DBTTerminal,
   ExecuteSQLError,
   ExecuteSQLResult,
   QueryExecution,
 } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
+import { PythonException } from "python-bridge";
+import { AltimateRequest } from "../altimate";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { AltimateAuthService } from "../services/altimateAuthService";
+import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
+import { UsersService } from "../services/usersService";
+import { TelemetryService } from "../telemetry";
+import { TelemetryEvents } from "../telemetry/events";
+import {
+  extendErrorWithSupportLinks,
+  getFormattedDateTime,
+  getStringSizeInMb,
+} from "../utils";
 import {
   AltimateWebviewProvider,
   SendMessageProps,
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { QueryManifestService } from "../services/queryManifestService";
-import { UsersService } from "../services/usersService";
-import { TelemetryEvents } from "../telemetry/events";
 import path = require("path");
-import { inject } from "inversify";
-import { AltimateAuthService } from "../services/altimateAuthService";
 
 interface JsonObj {
   [key: string]: string | number | undefined;
@@ -137,7 +136,6 @@ interface QueryHistory {
   modelName: string;
 }
 
-@provideSingleton(QueryResultPanel)
 export class QueryResultPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.PreviewResults";
   protected viewPath = "/query-panel";

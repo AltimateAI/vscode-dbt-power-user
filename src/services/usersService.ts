@@ -1,16 +1,14 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import { Disposable } from "vscode";
 import { AltimateRequest, TenantUser } from "../altimate";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { provideSingleton } from "../utils";
-import { AltimateAuthService } from "./altimateAuthService";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { DBTInstallationVerificationEvent } from "../dbt_client/dbtVersionEvent";
-import { inject } from "inversify";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { AltimateAuthService } from "./altimateAuthService";
 
 /**
  * Service to load and store users in tenant and current user
  */
-@provideSingleton(UsersService)
 export class UsersService implements Disposable {
   // Local cache of users in tenant
   private tenantUsers: Record<string, TenantUser> = {};

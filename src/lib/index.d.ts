@@ -1,31 +1,31 @@
-import * as vscode from "vscode";
 import {
-  NotebookSerializer,
-  Disposable,
-  CancellationToken,
-  NotebookData,
-  NotebookCellKind,
-  NotebookCellOutput,
-  Event,
-  NotebookCell,
-  Uri,
-  FileSystemProvider,
-  FileChangeEvent,
-  FileStat,
-  FileType,
-} from "vscode";
-import {
-  DBTTerminal,
-  TelemetryService,
-  CommandProcessExecutionFactory,
-  PythonEnvironment,
-  DBTProject,
-  DBTCommandExecutionInfrastructure,
-  QueryManifestService,
   AltimateRequest,
-  ExecuteSQLResult,
+  CommandProcessExecutionFactory,
+  DBTCommandExecutionInfrastructure,
+  DBTProject,
+  DBTTerminal,
+  PythonEnvironment,
+  QueryExecutionResult,
+  QueryManifestService,
+  TelemetryService,
 } from "@extension";
 import { KernelConnection } from "@jupyterlab/services";
+import * as vscode from "vscode";
+import {
+  CancellationToken,
+  Disposable,
+  Event,
+  FileChangeEvent,
+  FileStat,
+  FileSystemProvider,
+  FileType,
+  NotebookCell,
+  NotebookCellKind,
+  NotebookCellOutput,
+  NotebookData,
+  NotebookSerializer,
+  Uri,
+} from "vscode";
 
 declare class DatapilotNotebookSerializer
   implements NotebookSerializer, Disposable
@@ -390,7 +390,7 @@ interface Model {
 interface DbtConfig {
   [key: string]: Model[];
 }
-type QueryFn = (query: string) => Promise<ExecuteSQLResult | undefined>;
+type QueryFn = (query: string) => Promise<QueryExecutionResult | undefined>;
 
 interface ColumnConfig {
   tests?: string[];

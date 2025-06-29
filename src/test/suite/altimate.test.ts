@@ -1,14 +1,12 @@
+import { DBTConfiguration, DBTTerminal } from "@altimateai/dbt-integration";
 import {
-  expect,
-  describe,
-  it,
-  beforeEach,
   afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
   jest,
 } from "@jest/globals";
-import { TelemetryService } from "../../telemetry";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { DBTConfiguration } from "@altimateai/dbt-integration";
 import { AltimateRequest } from "../../altimate";
 
 type FetchFn = (

@@ -1,9 +1,9 @@
-import { Disposable, EventEmitter, Terminal, window } from "vscode";
-import { injectable } from "inversify";
-import { stripANSI } from "../utils";
-import { TelemetryService } from "../telemetry";
-import { PythonException } from "python-bridge";
 import { DBTTerminal } from "@altimateai/dbt-integration";
+import { injectable } from "inversify";
+import { PythonException } from "python-bridge";
+import { Disposable, EventEmitter, Terminal, window } from "vscode";
+import { TelemetryService } from "../telemetry";
+import { stripANSI } from "../utils";
 
 @injectable()
 export class VSCodeDBTTerminal implements DBTTerminal {

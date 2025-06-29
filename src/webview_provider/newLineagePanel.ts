@@ -1,3 +1,12 @@
+import {
+  DBTTerminal,
+  ExposureMetaData,
+  NodeMetaData,
+  RESOURCE_TYPE_SOURCE,
+  SourceTable,
+  Table,
+} from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import * as path from "path";
 import {
   CancellationToken,
@@ -11,27 +20,18 @@ import {
   workspace,
 } from "vscode";
 import { AltimateRequest } from "../altimate";
-import {
-  ExposureMetaData,
-  NodeMetaData,
-  SourceTable,
-  Table,
-} from "@altimateai/dbt-integration";
+import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { LineagePanelView } from "./lineagePanel";
-import { DBTProject } from "../manifest/dbtProject";
-import { TelemetryService } from "../telemetry";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { AltimateWebviewProvider } from "./altimateWebviewProvider";
+import { AltimateAuthService } from "../services/altimateAuthService";
+import { CllEvents, DbtLineageService } from "../services/dbtLineageService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
-import { CllEvents, DbtLineageService } from "../services/dbtLineageService";
-import { inject } from "inversify";
-import { RESOURCE_TYPE_SOURCE } from "@altimateai/dbt-integration";
-import { AltimateAuthService } from "../services/altimateAuthService";
+import { TelemetryService } from "../telemetry";
+import { extendErrorWithSupportLinks } from "../utils";
+import { AltimateWebviewProvider } from "./altimateWebviewProvider";
+import { LineagePanelView } from "./lineagePanel";
 
 class DerivedCancellationTokenSource extends CancellationTokenSource {
   constructor(linkedToken: CancellationToken) {
@@ -42,7 +42,6 @@ class DerivedCancellationTokenSource extends CancellationTokenSource {
   }
 }
 
-@provideSingleton(NewLineagePanel)
 export class NewLineagePanel
   extends AltimateWebviewProvider
   implements LineagePanelView

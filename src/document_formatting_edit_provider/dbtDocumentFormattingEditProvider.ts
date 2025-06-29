@@ -1,4 +1,8 @@
+import { CommandProcessExecutionFactory } from "@altimateai/dbt-integration";
+import fs from "fs";
+import { inject } from "inversify";
 import parseDiff from "parse-diff";
+import path from "path";
 import {
   CancellationToken,
   DocumentFormattingEditProvider,
@@ -10,19 +14,10 @@ import {
   workspace,
 } from "vscode";
 import which from "which";
-import { CommandProcessExecutionFactory } from "@altimateai/dbt-integration";
-import {
-  extendErrorWithSupportLinks,
-  getFirstWorkspacePath,
-  provideSingleton,
-} from "../utils";
-import { TelemetryService } from "../telemetry";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import path from "path";
-import fs from "fs";
-import { inject } from "inversify";
+import { TelemetryService } from "../telemetry";
+import { extendErrorWithSupportLinks, getFirstWorkspacePath } from "../utils";
 
-@provideSingleton(DbtDocumentFormattingEditProvider)
 export class DbtDocumentFormattingEditProvider
   implements DocumentFormattingEditProvider
 {

@@ -1,3 +1,4 @@
+import { SourceMetaMap } from "@altimateai/dbt-integration";
 import { readFileSync } from "fs";
 import {
   CancellationToken,
@@ -11,13 +12,11 @@ import {
   TextDocument,
   Uri,
 } from "vscode";
-import { SourceMetaMap } from "@altimateai/dbt-integration";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
+import { isEnclosedWithinCodeBlock } from "../utils";
 
-@provideSingleton(SourceDefinitionProvider)
 export class SourceDefinitionProvider
   implements DefinitionProvider, Disposable
 {

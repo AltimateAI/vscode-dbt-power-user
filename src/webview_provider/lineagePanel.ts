@@ -1,8 +1,9 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import {
   CancellationToken,
   commands,
   Disposable,
-  env,
   TextEditor,
   Uri,
   WebviewView,
@@ -11,17 +12,14 @@ import {
   window,
   workspace,
 } from "vscode";
-import { provideSingleton } from "../utils";
-import { TelemetryService } from "../telemetry";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
+import { TelemetryService } from "../telemetry";
 import { ModelGraphViewPanel } from "./modelGraphViewPanel";
 import { NewLineagePanel } from "./newLineagePanel";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { inject } from "inversify";
 
 export interface LineagePanelView extends WebviewViewProvider {
   init(): void;
@@ -31,7 +29,6 @@ export interface LineagePanelView extends WebviewViewProvider {
   handleCommand(message: { command: string; args: any }): Promise<void> | void;
 }
 
-@provideSingleton(LineagePanel)
 export class LineagePanel implements WebviewViewProvider, Disposable {
   public static readonly viewType = "dbtPowerUser.Lineage";
 

@@ -1,14 +1,12 @@
-import { Disposable, workspace, extensions, ConfigurationTarget } from "vscode";
-import { provideSingleton } from "../utils";
 import { DBTTerminal } from "@altimateai/dbt-integration";
-import { DbtPowerUserMcpServerTools } from "./server";
-import { AltimateRequest } from "../modules";
-import { ToolRegistry } from "./types";
-import { SharedStateService } from "../services/sharedStateService";
 import { inject } from "inversify";
+import { ConfigurationTarget, Disposable, extensions, workspace } from "vscode";
+import { AltimateRequest } from "../modules";
 import { AltimateAuthService } from "../services/altimateAuthService";
+import { SharedStateService } from "../services/sharedStateService";
+import { DbtPowerUserMcpServerTools } from "./server";
+import { ToolRegistry } from "./types";
 
-@provideSingleton(DbtPowerUserMcpServer)
 export class DbtPowerUserMcpServer implements Disposable {
   private disposables: Disposable[] = [];
   private mcpExtensionApi: ToolRegistry | undefined;

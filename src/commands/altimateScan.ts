@@ -1,4 +1,6 @@
-import { ProgressLocation, Uri, commands, window } from "vscode";
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
+import { commands, ProgressLocation, Uri, window } from "vscode";
 import { AltimateRequest } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
@@ -6,18 +8,14 @@ import {
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
-import { provideSingleton } from "../utils";
 import { InitCatalog } from "./tests/initCatalog";
-import { UndocumentedModelColumnTest } from "./tests/undocumentedModelColumnTest";
-import { StaleModelColumnTest } from "./tests/staleModelColumnTest";
 import { MissingSchemaTest } from "./tests/missingSchemaTest";
-import { UnmaterializedModelTest } from "./tests/unmaterializedModelTest";
 import { ScanContext } from "./tests/scanContext";
+import { StaleModelColumnTest } from "./tests/staleModelColumnTest";
 import { AltimateScanStep } from "./tests/step";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { inject } from "inversify";
+import { UndocumentedModelColumnTest } from "./tests/undocumentedModelColumnTest";
+import { UnmaterializedModelTest } from "./tests/unmaterializedModelTest";
 
-@provideSingleton(AltimateScan)
 export class AltimateScan {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private offlineAltimateScanSteps: AltimateScanStep[];

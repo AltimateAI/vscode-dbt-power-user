@@ -3,6 +3,12 @@ import { provide } from "inversify-binding-decorators";
 import * as path from "path";
 
 import {
+  GraphMetaMap,
+  NodeData,
+  NodeMetaData,
+  NodeMetaMap,
+} from "@altimateai/dbt-integration";
+import {
   Command,
   Disposable,
   Event,
@@ -17,12 +23,6 @@ import {
   Uri,
   window,
 } from "vscode";
-import {
-  GraphMetaMap,
-  NodeData,
-  NodeMetaData,
-  NodeMetaMap,
-} from "@altimateai/dbt-integration";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
@@ -30,9 +30,8 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import {
   getCurrentlySelectedModelNameInYamlConfig,
-  provideSingleton,
-  removeProtocol,
   getDepthColor,
+  removeProtocol,
 } from "../utils";
 
 interface IconPath {
@@ -600,35 +599,30 @@ class TestTreeItem extends NodeTreeItem {
   contextValue = "test";
 }
 
-@provideSingleton(ModelTestTreeview)
 export class ModelTestTreeview extends ModelTreeviewProvider {
   constructor(dbtProjectContainer: DBTProjectContainer) {
     super(dbtProjectContainer, "tests");
   }
 }
 
-@provideSingleton(ParentModelTreeview)
 export class ParentModelTreeview extends ModelTreeviewProvider {
   constructor(dbtProjectContainer: DBTProjectContainer) {
     super(dbtProjectContainer, "parents");
   }
 }
 
-@provideSingleton(ChildrenModelTreeview)
 export class ChildrenModelTreeview extends ModelTreeviewProvider {
   constructor(dbtProjectContainer: DBTProjectContainer) {
     super(dbtProjectContainer, "children");
   }
 }
 
-@provideSingleton(DocumentationTreeview)
 export class DocumentationTreeview extends DocumentationTreeviewProvider {
   constructor(dbtProjectContainer: DBTProjectContainer) {
     super(dbtProjectContainer);
   }
 }
 
-@provideSingleton(IconActionsTreeview)
 export class IconActionsTreeview extends IconActionsTreeviewProvider {}
 
 // Find appropriate a model from file content (if YAML) or from a file name (otherwise)

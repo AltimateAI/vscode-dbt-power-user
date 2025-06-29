@@ -1,59 +1,56 @@
+import { DBTTerminal, RunModelType } from "@altimateai/dbt-integration";
+import { DatapilotNotebookController, OpenNotebookRequest } from "@lib";
+import { existsSync, readFileSync } from "fs";
+import { inject } from "inversify";
 import {
   commands,
   CommentReply,
   CommentThread,
+  DecorationRangeBehavior,
   Disposable,
+  env,
+  extensions,
   languages,
+  ProgressLocation,
+  Range,
   TextEditor,
+  TextEditorDecorationType,
+  Uri,
+  version,
   ViewColumn,
   window,
   workspace,
-  version,
-  extensions,
-  Uri,
-  Range,
-  ProgressLocation,
-  TextEditorDecorationType,
-  DecorationRangeBehavior,
-  env,
 } from "vscode";
+import { AltimateRequest } from "../altimate";
+import { CteInfo } from "../code_lens_provider/cteCodeLensProvider";
+import {
+  ConversationCommentThread,
+  ConversationProvider,
+} from "../comment_provider/conversationProvider";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
-import { RunModelType } from "@altimateai/dbt-integration";
+import { DBTClient } from "../dbt_client";
+import { DBTProject } from "../manifest/dbtProject";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { PythonEnvironment } from "../manifest/pythonEnvironment";
+import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
+import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
+import { DiagnosticsOutputChannel } from "../services/diagnosticsOutputChannel";
+import { QueryManifestService } from "../services/queryManifestService";
+import { SharedStateService } from "../services/sharedStateService";
 import {
   deepEqual,
   extendErrorWithSupportLinks,
   getFirstWorkspacePath,
   getFormattedDateTime,
-  provideSingleton,
 } from "../utils";
+import { SQLLineagePanel } from "../webview_provider/sqlLineagePanel";
+import { AltimateScan } from "./altimateScan";
+import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
 import { RunModel } from "./runModel";
 import { SqlToModel } from "./sqlToModel";
-import { AltimateScan } from "./altimateScan";
-import { WalkthroughCommands } from "./walkthroughCommands";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { ValidateSql } from "./validateSql";
-import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { DiagnosticsOutputChannel } from "../services/diagnosticsOutputChannel";
-import { SharedStateService } from "../services/sharedStateService";
-import {
-  ConversationProvider,
-  ConversationCommentThread,
-} from "../comment_provider/conversationProvider";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { DBTClient } from "../dbt_client";
-import { existsSync, readFileSync } from "fs";
-import { DBTProject } from "../manifest/dbtProject";
-import { SQLLineagePanel } from "../webview_provider/sqlLineagePanel";
-import { QueryManifestService } from "../services/queryManifestService";
-import { AltimateRequest } from "../altimate";
-import { DatapilotNotebookController, OpenNotebookRequest } from "@lib";
-import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
-import { CteInfo } from "../code_lens_provider/cteCodeLensProvider";
-import { inject } from "inversify";
+import { WalkthroughCommands } from "./walkthroughCommands";
 
-@provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
   private disposables: Disposable[] = [];
 

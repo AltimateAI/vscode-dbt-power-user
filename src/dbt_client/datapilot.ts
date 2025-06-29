@@ -1,11 +1,11 @@
-import { provideSingleton } from "../utils";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { CommandProcessExecutionFactory } from "@altimateai/dbt-integration";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { DBTConfiguration } from "@altimateai/dbt-integration";
+import {
+  CommandProcessExecutionFactory,
+  DBTConfiguration,
+  DBTTerminal,
+} from "@altimateai/dbt-integration";
 import { inject } from "inversify";
+import { PythonEnvironment } from "../manifest/pythonEnvironment";
 
-@provideSingleton(AltimateDatapilot)
 export class AltimateDatapilot {
   private packageName = "altimate-datapilot-cli";
   constructor(

@@ -1,9 +1,9 @@
-import { injectable, inject } from "inversify";
-import { PythonEnvironment } from "./pythonEnvironment";
 import {
   PythonEnvironmentProvider,
   RuntimePythonEnvironment,
 } from "@altimateai/dbt-integration";
+import { inject, injectable } from "inversify";
+import { PythonEnvironment } from "./pythonEnvironment";
 
 @injectable()
 export class VSCodeRuntimePythonEnvironmentProvider

@@ -1,18 +1,20 @@
 import {
-  window,
-  QuickPickItem,
-  ProgressLocation,
+  CommandProcessExecutionFactory,
+  DBTTerminal,
+} from "@altimateai/dbt-integration";
+import { inject } from "inversify";
+import {
   commands,
+  ProgressLocation,
+  QuickPickItem,
+  window,
   workspace,
 } from "vscode";
-import { getFirstWorkspacePath, provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { TelemetryService } from "../telemetry";
-import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
-import { CommandProcessExecutionFactory } from "@altimateai/dbt-integration";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { inject } from "inversify";
+import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
+import { TelemetryService } from "../telemetry";
+import { getFirstWorkspacePath } from "../utils";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -25,7 +27,6 @@ enum DbtInstallationPromptAnswer {
   INSTALL_FUSION = "Install dbt fusion",
 }
 
-@provideSingleton(WalkthroughCommands)
 export class WalkthroughCommands {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,

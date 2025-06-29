@@ -1,7 +1,6 @@
 import { OutputChannel, window } from "vscode";
-import { provideSingleton, stripANSI } from "../utils";
+import { stripANSI } from "../utils";
 
-@provideSingleton(DiagnosticsOutputChannel)
 export class DiagnosticsOutputChannel {
   private outputChannel: OutputChannel;
 

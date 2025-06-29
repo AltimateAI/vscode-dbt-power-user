@@ -1,24 +1,26 @@
 import {
-  AltimateRequest,
-  DBTTerminal,
-  QueryManifestService,
-  TelemetryService,
-} from "../modules";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { GraphMetaMap, NodeGraphMap, Table } from "@altimateai/dbt-integration";
-import { CancellationTokenSource, env, Uri, window, workspace } from "vscode";
-import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { ModelInfo } from "../altimate";
-import { AbortError } from "node-fetch";
-import { inject } from "inversify";
-import {
+  GraphMetaMap,
+  NodeGraphMap,
   RESOURCE_TYPE_ANALYSIS,
   RESOURCE_TYPE_EXPOSURE,
   RESOURCE_TYPE_METRIC,
   RESOURCE_TYPE_MODEL,
   RESOURCE_TYPE_SNAPSHOT,
   RESOURCE_TYPE_SOURCE,
+  Table,
 } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
+import { AbortError } from "node-fetch";
+import { CancellationTokenSource, env, Uri, window, workspace } from "vscode";
+import { ModelInfo } from "../altimate";
+import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import {
+  AltimateRequest,
+  DBTTerminal,
+  QueryManifestService,
+  TelemetryService,
+} from "../modules";
+import { extendErrorWithSupportLinks } from "../utils";
 
 export enum CllEvents {
   START = "start",
@@ -34,7 +36,6 @@ const CAN_COMPILE_SQL_NODE = [
 const canCompileSQL = (nodeType: string) =>
   CAN_COMPILE_SQL_NODE.includes(nodeType);
 
-@provideSingleton(DbtLineageService)
 export class DbtLineageService {
   public constructor(
     private altimateRequest: AltimateRequest,

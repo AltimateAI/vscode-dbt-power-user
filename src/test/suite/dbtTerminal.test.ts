@@ -1,8 +1,8 @@
-import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
-import * as vscode from "vscode";
 import { DBTTerminal } from "@altimateai/dbt-integration";
-import { VSCodeDBTTerminal } from "../../dbt_client/vscodeTerminal";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { PythonException } from "python-bridge";
+import * as vscode from "vscode";
+import { VSCodeDBTTerminal } from "../../dbt_client/vscodeTerminal";
 
 // Set test environment
 process.env.NODE_ENV = "test";

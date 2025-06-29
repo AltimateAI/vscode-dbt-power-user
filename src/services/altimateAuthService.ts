@@ -1,13 +1,11 @@
-import { window, env, Uri } from "vscode";
-import { inject } from "inversify";
-import { provideSingleton } from "../utils";
 import { DBTConfiguration } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
+import { env, Uri, window } from "vscode";
 
 enum PromptAnswer {
   YES = "Get your free API Key",
 }
 
-@provideSingleton(AltimateAuthService)
 export class AltimateAuthService {
   constructor(
     @inject("DBTConfiguration")

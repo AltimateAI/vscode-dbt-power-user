@@ -1,27 +1,24 @@
 import {
-  CancellationToken,
-  HoverProvider,
-  Hover,
-  Position,
-  ProviderResult,
-  TextDocument,
-  Disposable,
-} from "vscode";
-import { TelemetryService } from "../telemetry";
-import { generateMacroHoverMarkdown } from "./utils";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { QueryManifestService } from "../services/queryManifestService";
-import { provideSingleton } from "../utils";
-import {
+  DBTTerminal,
   MacroMetaData,
   MacroMetaMap,
   NodeMetaData,
   NodeMetaMap,
-  SourceMetaMap,
 } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
+import {
+  CancellationToken,
+  Disposable,
+  Hover,
+  HoverProvider,
+  Position,
+  ProviderResult,
+  TextDocument,
+} from "vscode";
+import { QueryManifestService } from "../services/queryManifestService";
+import { TelemetryService } from "../telemetry";
+import { generateMacroHoverMarkdown } from "./utils";
 
-@provideSingleton(MacroHoverProvider)
 export class MacroHoverProvider implements HoverProvider, Disposable {
   private disposables: Disposable[] = [];
 

@@ -1,15 +1,15 @@
-import type { RequestInit } from "node-fetch";
 import {
+  AltimateHttpClient,
   ColumnMetaData,
+  DBTConfiguration,
+  DBTTerminal,
   NodeMetaData,
   SourceMetaData,
 } from "@altimateai/dbt-integration";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { PreconfiguredNotebookItem, NotebookItem, NotebookSchema } from "@lib";
-import * as vscode from "vscode";
+import { NotebookItem, NotebookSchema, PreconfiguredNotebookItem } from "@lib";
 import { inject } from "inversify";
-import { DBTConfiguration } from "@altimateai/dbt-integration";
-import { AltimateHttpClient } from "@altimateai/dbt-integration";
+import type { RequestInit } from "node-fetch";
+import * as vscode from "vscode";
 
 export class UserInputError extends Error {}
 

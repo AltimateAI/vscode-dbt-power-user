@@ -1,3 +1,5 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import { Range, window } from "vscode";
 import {
   AltimateRequest,
@@ -7,14 +9,11 @@ import {
   QueryTranslateRequest,
   UserInputError,
 } from "../altimate";
-import { provideSingleton } from "../utils";
-import { QueryManifestService } from "./queryManifestService";
-import { DocGenService } from "./docGenService";
-import { StreamingService } from "./streamingService";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { FileService } from "./fileService";
-import { inject } from "inversify";
 import { AltimateAuthService } from "./altimateAuthService";
+import { DocGenService } from "./docGenService";
+import { FileService } from "./fileService";
+import { QueryManifestService } from "./queryManifestService";
+import { StreamingService } from "./streamingService";
 
 export interface QueryTranslateIncomingRequest {
   source?: string;
@@ -29,7 +28,6 @@ export interface QueryTranslateExplanationIncomingRequest {
   translatedSql: string;
 }
 
-@provideSingleton(QueryAnalysisService)
 export class QueryAnalysisService {
   public constructor(
     private docGenService: DocGenService,

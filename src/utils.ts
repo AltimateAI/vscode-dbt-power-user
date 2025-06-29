@@ -1,4 +1,7 @@
-import { fluentProvide } from "inversify-binding-decorators";
+import {
+  TestMetadataAcceptedValues,
+  TestMetadataRelationships,
+} from "@altimateai/dbt-integration";
 import * as path from "path";
 import {
   Disposable,
@@ -7,15 +10,10 @@ import {
   Range,
   TextDocument,
   Uri,
-  workspace,
   window,
+  workspace,
 } from "vscode";
-import { readFileSync } from "fs";
-import { parse, parseDocument } from "yaml";
-import {
-  TestMetadataAcceptedValues,
-  TestMetadataRelationships,
-} from "@altimateai/dbt-integration";
+import { parseDocument } from "yaml";
 
 export const isEnclosedWithinCodeBlock = (
   document: TextDocument,
@@ -94,10 +92,6 @@ export const setupWatcherHandler: (
   watcher.onDidCreate(() => handler()),
   watcher.onDidDelete(() => handler()),
 ];
-
-export const provideSingleton = (identifier: any) => {
-  return fluentProvide(identifier).inSingletonScope().done();
-};
 
 export function extendErrorWithSupportLinks(error: string): string {
   return (

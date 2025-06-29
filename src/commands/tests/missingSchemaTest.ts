@@ -1,10 +1,8 @@
+import { RESOURCE_TYPE_MODEL } from "@altimateai/dbt-integration";
 import { Diagnostic, DiagnosticSeverity, Range } from "vscode";
 import { ScanContext } from "./scanContext";
 import { AltimateScanStep } from "./step";
-import { provideSingleton } from "../../utils";
-import { RESOURCE_TYPE_MODEL } from "@altimateai/dbt-integration";
 
-@provideSingleton(MissingSchemaTest)
 export class MissingSchemaTest implements AltimateScanStep {
   public async run(scanContext: ScanContext) {
     const {

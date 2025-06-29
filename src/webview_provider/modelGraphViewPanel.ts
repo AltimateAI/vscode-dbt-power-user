@@ -1,4 +1,6 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import { readFileSync } from "fs";
+import { inject } from "inversify";
 import * as path from "path";
 import {
   CancellationToken,
@@ -14,9 +16,6 @@ import {
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { LineagePanelView } from "./lineagePanel";
-import { provideSingleton } from "../utils";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { inject } from "inversify";
 
 interface G6DataModel {
   nodes: {
@@ -64,7 +63,6 @@ const nodeConfigurations: Record<string, any> = {
   },
 };
 
-@provideSingleton(ModelGraphViewPanel)
 export class ModelGraphViewPanel implements LineagePanelView {
   public static readonly viewType = "dbtPowerUser.ModelViewGraph";
   private _panel: WebviewView | undefined = undefined;

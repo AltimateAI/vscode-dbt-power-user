@@ -1,9 +1,8 @@
 import { Diagnostic, DiagnosticSeverity, Range } from "vscode";
+import { getColumnNameByCase } from "../../utils";
 import { ScanContext } from "./scanContext";
 import { AltimateScanStep } from "./step";
-import { getColumnNameByCase, provideSingleton } from "../../utils";
 
-@provideSingleton(UndocumentedModelColumnTest)
 export class UndocumentedModelColumnTest implements AltimateScanStep {
   public async run(scanContext: ScanContext) {
     const {

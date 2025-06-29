@@ -1,41 +1,32 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import { basename } from "path";
-import { AltimateRequest, ModelNode } from "../altimate";
+import { PythonException } from "python-bridge";
 import {
-  ColumnMetaData,
-  NodeMetaData,
-  SourceTable,
-} from "@altimateai/dbt-integration";
+  CancellationToken,
+  commands,
+  Diagnostic,
+  DiagnosticCollection,
+  DiagnosticSeverity,
+  languages,
+  Position,
+  ProgressLocation,
+  Range,
+  Uri,
+  ViewColumn,
+  window,
+  workspace,
+} from "vscode";
+import { AltimateRequest, ModelNode } from "../altimate";
+import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import {
-  CancellationToken,
-  DiagnosticCollection,
-  ProgressLocation,
-  Uri,
-  ViewColumn,
-  window,
-} from "vscode";
-import { DBTProject } from "../manifest/dbtProject";
-import {
-  commands,
-  Diagnostic,
-  DiagnosticSeverity,
-  languages,
-  Position,
-  Range,
-  workspace,
-} from "vscode";
-import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
-import { PythonException } from "python-bridge";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { inject } from "inversify";
+import { extendErrorWithSupportLinks } from "../utils";
 
-@provideSingleton(ValidateSql)
 export class ValidateSql {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private diagnosticsCollection: DiagnosticCollection;

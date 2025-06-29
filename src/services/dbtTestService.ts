@@ -1,39 +1,36 @@
-import { env, ProgressLocation, WebviewView, window } from "vscode";
 import {
-  AltimateRequest,
-  CreateDbtTestRequest,
-  UserInputError,
-} from "../altimate";
-import {
-  extendErrorWithSupportLinks,
-  getColumnNameByCase,
-  getColumnTestConfigFromYml,
-  isColumnNameEqual,
-  provideSingleton,
-  removeProtocol,
-} from "../utils";
-import { DocGenService } from "./docGenService";
-import { StreamingService } from "./streamingService";
-import { QueryManifestService } from "./queryManifestService";
-import path = require("path");
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import {
+  DBTTerminal,
+  ExecuteSQLResult,
   MacroMetaMap,
   TestMetaData,
   TestMetadataAcceptedValues,
   TestMetadataRelationships,
 } from "@altimateai/dbt-integration";
-import { parse, stringify } from "yaml";
-import { readFileSync } from "fs";
-import { DBTProject } from "../manifest/dbtProject";
 import { getTestSuggestions } from "@lib";
-import { ExecuteSQLResult } from "@altimateai/dbt-integration";
+import { readFileSync } from "fs";
+import { inject } from "inversify";
+import { env, ProgressLocation, WebviewView, window } from "vscode";
+import { parse, stringify } from "yaml";
+import {
+  AltimateRequest,
+  CreateDbtTestRequest,
+  UserInputError,
+} from "../altimate";
+import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
-import { inject } from "inversify";
+import {
+  extendErrorWithSupportLinks,
+  getColumnTestConfigFromYml,
+  isColumnNameEqual,
+  removeProtocol,
+} from "../utils";
 import { AltimateAuthService } from "./altimateAuthService";
+import { DocGenService } from "./docGenService";
+import { QueryManifestService } from "./queryManifestService";
+import { StreamingService } from "./streamingService";
+import path = require("path");
 
-@provideSingleton(DbtTestService)
 export class DbtTestService {
   public constructor(
     private docGenService: DocGenService,

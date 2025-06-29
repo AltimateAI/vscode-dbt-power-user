@@ -1,7 +1,9 @@
-import { expect, describe, it, beforeEach } from "@jest/globals";
-import { TestParser } from "@altimateai/dbt-integration";
-import { DBTProjectIntegrationAdapter } from "@altimateai/dbt-integration";
-import { DBTTerminal } from "@altimateai/dbt-integration";
+import {
+  DBTProjectIntegrationAdapter,
+  DBTTerminal,
+  TestParser,
+} from "@altimateai/dbt-integration";
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import * as path from "path";
 import { EventEmitter } from "vscode";
 

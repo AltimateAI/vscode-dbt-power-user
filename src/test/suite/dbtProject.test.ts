@@ -1,16 +1,15 @@
+import { DBTTerminal, NoCredentialsError } from "@altimateai/dbt-integration";
 import {
-  expect,
-  describe,
-  it,
-  beforeEach,
   afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
   jest,
 } from "@jest/globals";
-import { ValidationProvider } from "../../validation_provider";
-import { NoCredentialsError } from "@altimateai/dbt-integration";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { TelemetryService } from "../../telemetry";
 import { AltimateRequest } from "../../altimate";
+import { TelemetryService } from "../../telemetry";
+import { ValidationProvider } from "../../validation_provider";
 
 describe("DbtProject Test Suite", () => {
   let mockTerminal: jest.Mocked<DBTTerminal>;

@@ -1,15 +1,13 @@
-import { Disposable, commands, window, workspace } from "vscode";
-import { provideSingleton } from "../utils";
 import {
   ForbiddenError,
   NoCredentialsError,
 } from "@altimateai/dbt-integration";
-import { AltimateAuthService } from "../services/altimateAuthService";
+import { commands, Disposable, window, workspace } from "vscode";
 import { AltimateRequest } from "../altimate";
+import { AltimateAuthService } from "../services/altimateAuthService";
 
 const validTenantRegex = new RegExp(/^[a-z_][a-z0-9_]*$/);
 
-@provideSingleton(ValidationProvider)
 export class ValidationProvider implements Disposable {
   private disposables: Disposable[] = [];
   private _isAuthenticated = false;

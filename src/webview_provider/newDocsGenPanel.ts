@@ -1,38 +1,34 @@
+import { DBTTerminal, TestMetaData } from "@altimateai/dbt-integration";
 import { readFileSync } from "fs";
+import { inject } from "inversify";
 import {
   CancellationToken,
   Range,
-  TextEditor,
   WebviewView,
   WebviewViewResolveContext,
   window,
   workspace,
 } from "vscode";
 import { AltimateRequest } from "../altimate";
-import { DBTTerminal } from "@altimateai/dbt-integration";
+import { ConversationProvider } from "../comment_provider/conversationProvider";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { QueryManifestService } from "../services/queryManifestService";
+import { AltimateAuthService } from "../services/altimateAuthService";
+import { ConversationService } from "../services/conversationService";
+import { DbtTestService } from "../services/dbtTestService";
 import { DocGenService } from "../services/docGenService";
+import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
+import { UsersService } from "../services/usersService";
 import { TelemetryService } from "../telemetry";
-import { provideSingleton } from "../utils";
 import {
   AltimateWebviewProvider,
   HandleCommandProps,
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
-import { DocsGenPanelView } from "./docsEditPanel";
-import { TestMetaData } from "@altimateai/dbt-integration";
-import { DbtTestService } from "../services/dbtTestService";
-import { UsersService } from "../services/usersService";
-import { ConversationProvider } from "../comment_provider/conversationProvider";
 import { DbtDocsView } from "./DbtDocsView";
-import { ConversationService } from "../services/conversationService";
-import { AltimateAuthService } from "../services/altimateAuthService";
-import { inject } from "inversify";
+import { DocsGenPanelView } from "./docsEditPanel";
 
-@provideSingleton(NewDocsGenPanel)
 export class NewDocsGenPanel
   extends AltimateWebviewProvider
   implements DocsGenPanelView

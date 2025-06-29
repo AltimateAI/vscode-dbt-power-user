@@ -1,9 +1,7 @@
 import { Catalog } from "@altimateai/dbt-integration";
-import { provideSingleton } from "../../utils";
 import { ScanContext } from "./scanContext";
 import { AltimateScanStep } from "./step";
 
-@provideSingleton(InitCatalog)
 export class InitCatalog implements AltimateScanStep {
   public async run(scanContext: ScanContext) {
     const project = scanContext.project;

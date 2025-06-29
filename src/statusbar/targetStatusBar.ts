@@ -1,16 +1,14 @@
-import {
-  StatusBarItem,
-  StatusBarAlignment,
-  window,
-  Disposable,
-  TextEditor,
-} from "vscode";
-import { provideSingleton } from "../utils";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { DBTTerminal } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
+import {
+  Disposable,
+  StatusBarAlignment,
+  StatusBarItem,
+  TextEditor,
+  window,
+} from "vscode";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 
-@provideSingleton(TargetStatusBar)
 export class TargetStatusBar implements Disposable {
   readonly statusBar: StatusBarItem = window.createStatusBarItem(
     StatusBarAlignment.Left,

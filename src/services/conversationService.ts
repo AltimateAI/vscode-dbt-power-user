@@ -1,16 +1,14 @@
-import * as os from "os";
-import { ProgressLocation, Uri, window } from "vscode";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { QueryManifestService } from "./queryManifestService";
-import path = require("path");
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { AltimateRequest, ConversationGroup, SharedDoc } from "../altimate";
+import { DBTTerminal, hashProjectRoot } from "@altimateai/dbt-integration";
 import { rmSync } from "fs";
 import { inject } from "inversify";
-import { hashProjectRoot } from "@altimateai/dbt-integration";
+import * as os from "os";
+import { ProgressLocation, Uri, window } from "vscode";
+import { AltimateRequest, ConversationGroup, SharedDoc } from "../altimate";
+import { extendErrorWithSupportLinks } from "../utils";
 import { AltimateAuthService } from "./altimateAuthService";
+import { QueryManifestService } from "./queryManifestService";
+import path = require("path");
 
-@provideSingleton(ConversationService)
 export class ConversationService {
   // Local cache to store shared docs
   private sharedDocs: SharedDoc[] = [];

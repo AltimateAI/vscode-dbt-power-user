@@ -1,33 +1,36 @@
+import {
+  DBTTerminal,
+  NodeMetaData,
+  RESOURCE_TYPE_SOURCE,
+  SourceTable,
+} from "@altimateai/dbt-integration";
+import * as crypto from "crypto";
+import { inject } from "inversify";
 import * as path from "path";
 import {
   CancellationToken,
   ColorThemeKind,
-  Uri,
-  window,
-  Disposable,
-  WebviewPanel,
-  env,
-  workspace,
   commands,
+  Disposable,
+  env,
   ProgressLocation,
   TextEditor,
+  Uri,
+  WebviewPanel,
+  window,
+  workspace,
 } from "vscode";
-import { AltimateRequest, SqlLineageDetails, ModelNode } from "../altimate";
+import { AltimateRequest, ModelNode, SqlLineageDetails } from "../altimate";
+import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { TelemetryService } from "../telemetry";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import * as crypto from "crypto";
-import { DBTProject } from "../manifest/dbtProject";
-import { NodeMetaData, SourceTable } from "@altimateai/dbt-integration";
+import { AltimateAuthService } from "../services/altimateAuthService";
 import { QueryManifestService } from "../services/queryManifestService";
-import { AltimateWebviewProvider } from "./altimateWebviewProvider";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
-import { inject } from "inversify";
-import { RESOURCE_TYPE_SOURCE } from "@altimateai/dbt-integration";
-import { AltimateAuthService } from "../services/altimateAuthService";
+import { TelemetryService } from "../telemetry";
+import { extendErrorWithSupportLinks } from "../utils";
+import { AltimateWebviewProvider } from "./altimateWebviewProvider";
 
 type SQLLineage = {
   tableEdges: [string, string][];
@@ -36,7 +39,6 @@ type SQLLineage = {
   errorMessage?: undefined;
 };
 
-@provideSingleton(SQLLineagePanel)
 export class SQLLineagePanel
   extends AltimateWebviewProvider
   implements Disposable

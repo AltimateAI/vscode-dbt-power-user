@@ -1,13 +1,12 @@
+import { CommandProcessResult } from "@altimateai/dbt-integration";
 import { ToolSchema } from "@modelcontextprotocol/sdk/types.js";
+import { inject } from "inversify";
+import { Disposable, Uri, workspace } from "vscode";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { Uri, Disposable, workspace } from "vscode";
-import { provideSingleton } from "../utils";
-import { DBTProject, DBTTerminal, TelemetryService } from "../modules";
-import { CommandProcessResult } from "@altimateai/dbt-integration";
+import { DBTProject, DBTTerminal } from "../modules";
 import { McpTool } from "./types";
-import { inject } from "inversify";
 
 const ToolInputSchema = ToolSchema.shape.inputSchema;
 type ToolInput = z.infer<typeof ToolInputSchema>;
@@ -85,7 +84,6 @@ enum ToolName {
   INSTALL_DEPS = "install_deps",
 }
 
-@provideSingleton(DbtPowerUserMcpServerTools)
 export class DbtPowerUserMcpServerTools implements Disposable {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,

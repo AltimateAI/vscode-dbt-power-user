@@ -1,4 +1,13 @@
 import {
+  DataPilotHealtCheckParams,
+  DbtIntegrationClient,
+  DBTTerminal,
+  DeferConfig,
+  NotFoundError,
+} from "@altimateai/dbt-integration";
+import { NotebookFileSystemProvider } from "@lib";
+import { inject } from "inversify";
+import {
   commands,
   ConfigurationTarget,
   env,
@@ -10,30 +19,21 @@ import {
   window,
   workspace,
 } from "vscode";
-import { getProjectRelativePath, provideSingleton } from "../utils";
+import { AltimateRequest, DBTCoreIntegration } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { AltimateAuthService } from "../services/altimateAuthService";
+import { DeferToProdService } from "../services/deferToProdService";
+import { QueryManifestService } from "../services/queryManifestService";
+import { SharedStateService } from "../services/sharedStateService";
+import { UsersService } from "../services/usersService";
 import { TelemetryService } from "../telemetry";
+import { getProjectRelativePath } from "../utils";
+import { ValidationProvider } from "../validation_provider";
 import {
   AltimateWebviewProvider,
   HandleCommandProps,
   UpdateConfigProps,
 } from "./altimateWebviewProvider";
-import { AltimateRequest, DBTCoreIntegration } from "../altimate";
-import { NotFoundError } from "@altimateai/dbt-integration";
-import { DbtIntegrationClient } from "@altimateai/dbt-integration";
-import { SharedStateService } from "../services/sharedStateService";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { DeferToProdService } from "../services/deferToProdService";
-import { QueryManifestService } from "../services/queryManifestService";
-import { ValidationProvider } from "../validation_provider";
-import { UsersService } from "../services/usersService";
-import { NotebookFileSystemProvider } from "@lib";
-import { inject } from "inversify";
-import { AltimateAuthService } from "../services/altimateAuthService";
-import {
-  DataPilotHealtCheckParams,
-  DeferConfig,
-} from "@altimateai/dbt-integration";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];
@@ -54,7 +54,6 @@ enum PromptAnswer {
   YES = "Install altimate datapilot cli",
 }
 
-@provideSingleton(InsightsPanel)
 export class InsightsPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.Insights";
   protected viewPath = "/insights";

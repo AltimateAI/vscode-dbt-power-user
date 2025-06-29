@@ -1,21 +1,22 @@
+import { DBTTerminal, EnvironmentVariables } from "@altimateai/dbt-integration";
 import {
-  expect,
-  describe,
-  it,
-  beforeEach,
   afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
   jest,
 } from "@jest/globals";
-import { DBTClient } from "../../dbt_client";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { AltimateDatapilot } from "../../dbt_client/datapilot";
+import { EventEmitter, WorkspaceFolder } from "vscode";
 import { AltimateRequest } from "../../altimate";
-import { DBTProjectContainer } from "../../manifest/dbtProjectContainer";
+import { DBTClient } from "../../dbt_client";
+import { AltimateDatapilot } from "../../dbt_client/datapilot";
+import {
+  DBTProjectContainer,
+  ProjectRegisteredUnregisteredEvent,
+} from "../../manifest/dbtProjectContainer";
 import { DBTWorkspaceFolder } from "../../manifest/dbtWorkspaceFolder";
-import { EventEmitter, Uri, WorkspaceFolder } from "vscode";
 import { ManifestCacheChangedEvent } from "../../manifest/event/manifestCacheChangedEvent";
-import { ProjectRegisteredUnregisteredEvent } from "../../manifest/dbtProjectContainer";
-import { EnvironmentVariables } from "@altimateai/dbt-integration";
 
 describe("DBTProjectContainer Tests", () => {
   let container: DBTProjectContainer;

@@ -1,9 +1,9 @@
-import { workspace } from "vscode";
-import { injectable } from "inversify";
 import {
   DBTConfiguration,
   DEFAULT_CONFIGURATION_VALUES,
 } from "@altimateai/dbt-integration";
+import { injectable } from "inversify";
+import { workspace } from "vscode";
 import { getFirstWorkspacePath } from "../utils";
 
 @injectable()

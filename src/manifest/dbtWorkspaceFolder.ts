@@ -7,28 +7,28 @@ import {
   EventEmitter,
   FileSystemWatcher,
   languages,
+  Range,
   RelativePattern,
   Uri,
-  Range,
   window,
   workspace,
   WorkspaceFolder,
 } from "vscode";
+import { YAMLError } from "yaml";
+import { TelemetryService } from "../telemetry";
 import { DBTProject } from "./dbtProject";
+import { ProjectRegisteredUnregisteredEvent } from "./dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   RebuildManifestStatusChange,
 } from "./event/manifestCacheChangedEvent";
-import { TelemetryService } from "../telemetry";
-import { YAMLError } from "yaml";
-import { ProjectRegisteredUnregisteredEvent } from "./dbtProjectContainer";
 
-import { DBTTerminal } from "@altimateai/dbt-integration";
 import {
   DBTProjectDetection,
+  DBTTerminal,
+  DBT_PROJECT_FILE,
   readAndParseProjectConfig,
 } from "@altimateai/dbt-integration";
-import { DBT_PROJECT_FILE } from "@altimateai/dbt-integration";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;

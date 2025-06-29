@@ -1,34 +1,29 @@
 import path = require("path");
+import { DBTTerminal, RateLimitException } from "@altimateai/dbt-integration";
 import { promises as fs } from "fs";
+import { inject } from "inversify";
 import * as yaml from "js-yaml";
 import {
+  env,
   ProgressLocation,
   Uri,
   WebviewPanel,
   WebviewView,
-  env,
   window,
 } from "vscode";
 import { AltimateRequest, DocsGenerateResponse } from "../altimate";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { AltimateAuthService } from "./altimateAuthService";
 import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
-import {
-  extendErrorWithSupportLinks,
-  provideSingleton,
-  removeProtocol,
-} from "../utils";
+import { TelemetryEvents } from "../telemetry/events";
+import { extendErrorWithSupportLinks, removeProtocol } from "../utils";
 import {
   AIColumnDescription,
   DBTDocumentation,
   Source,
 } from "../webview_provider/docsEditPanel";
+import { AltimateAuthService } from "./altimateAuthService";
 import { QueryManifestService } from "./queryManifestService";
-import { TelemetryEvents } from "../telemetry/events";
-import { inject } from "inversify";
-import { RateLimitException } from "@altimateai/dbt-integration";
 
 export interface DocumentationSchemaColumn {
   name: string;
@@ -75,7 +70,6 @@ interface FeedbackRequestProps {
 
 const COLUMNS_PER_CHUNK = 3;
 
-@provideSingleton(DocGenService)
 export class DocGenService {
   public constructor(
     private altimateRequest: AltimateRequest,

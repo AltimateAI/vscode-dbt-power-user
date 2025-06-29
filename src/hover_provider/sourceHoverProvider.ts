@@ -1,22 +1,21 @@
+import { SourceMetaMap } from "@altimateai/dbt-integration";
 import {
   CancellationToken,
-  HoverProvider,
   Disposable,
+  Hover,
+  HoverProvider,
+  MarkdownString,
   Position,
   ProviderResult,
   TextDocument,
   Uri,
-  Hover,
-  MarkdownString,
 } from "vscode";
-import { SourceMetaMap } from "@altimateai/dbt-integration";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
+import { isEnclosedWithinCodeBlock } from "../utils";
 import { generateHoverMarkdownString } from "./utils";
 
-@provideSingleton(SourceHoverProvider)
 export class SourceHoverProvider implements HoverProvider, Disposable {
   private sourceMetaMap: Map<string, SourceMetaMap> = new Map();
   private static readonly IS_SOURCE = /(source)\([^)]*\)/;

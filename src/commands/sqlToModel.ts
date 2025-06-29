@@ -1,18 +1,17 @@
-import { AltimateRequest } from "../altimate";
 import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
+import * as path from "path";
+import { Position, ProgressLocation, Range, window } from "vscode";
+import { AltimateRequest } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { AltimateAuthService } from "../services/altimateAuthService";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
+import { AltimateAuthService } from "../services/altimateAuthService";
 import { TelemetryService } from "../telemetry";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { Position, ProgressLocation, Range, window } from "vscode";
-import * as path from "path";
-import { inject } from "inversify";
+import { extendErrorWithSupportLinks } from "../utils";
 
-@provideSingleton(SqlToModel)
 export class SqlToModel {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   constructor(

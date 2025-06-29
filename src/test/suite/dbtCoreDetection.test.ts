@@ -1,11 +1,11 @@
-import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
-import { DBTCoreDetection } from "@altimateai/dbt-integration";
 import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
+  DBTCoreDetection,
 } from "@altimateai/dbt-integration";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { Uri, workspace } from "vscode";
 import { PythonEnvironment } from "../../manifest/pythonEnvironment";
-import { workspace, Uri } from "vscode";
 
 describe("DBTCoreDetection Tests", () => {
   let detection: DBTCoreDetection;

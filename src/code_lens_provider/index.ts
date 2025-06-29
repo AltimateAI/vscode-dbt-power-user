@@ -1,13 +1,11 @@
 import { Disposable, languages } from "vscode";
 import { DBTPowerUserExtension } from "../dbtPowerUserExtension";
-import { provideSingleton } from "../utils";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { CteCodeLensProvider } from "./cteCodeLensProvider";
+import { DocumentationCodeLensProvider } from "./documentationCodeLensProvider";
 import { SourceModelCreationCodeLensProvider } from "./sourceModelCreationCodeLensProvider";
 import { VirtualSqlCodeLensProvider } from "./virtualSqlCodeLensProvider";
-import { DocumentationCodeLensProvider } from "./documentationCodeLensProvider";
-import { CteCodeLensProvider } from "./cteCodeLensProvider";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 
-@provideSingleton(CodeLensProviders)
 export class CodeLensProviders implements Disposable {
   private disposables: Disposable[] = [];
   constructor(

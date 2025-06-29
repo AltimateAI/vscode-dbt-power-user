@@ -1,10 +1,9 @@
-import { provide } from "inversify-binding-decorators";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
-import { TelemetryService } from "../telemetry";
+import { DBTTerminal, hashProjectRoot } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
-import { hashProjectRoot } from "@altimateai/dbt-integration";
+import { provide } from "inversify-binding-decorators";
+import { TelemetryService } from "../telemetry";
 import { DBTProject } from "./dbtProject";
+import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 
 @provide(ManifestParser)
 export class ManifestParser {

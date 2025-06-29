@@ -1,80 +1,161 @@
-import { Container, interfaces } from "inversify";
-import { buildProviderModule } from "inversify-binding-decorators";
-import { Event, EventEmitter, Uri, workspace, WorkspaceFolder } from "vscode";
-import { VSCodeDBTTerminal } from "./dbt_client/vscodeTerminal";
-import { DBTDiagnosticData } from "@altimateai/dbt-integration";
-import { DBTProject } from "./manifest/dbtProject";
-import { ProjectRegisteredUnregisteredEvent } from "./manifest/dbtProjectContainer";
-import { DBTWorkspaceFolder } from "./manifest/dbtWorkspaceFolder";
-import { ManifestCacheChangedEvent } from "./manifest/event/manifestCacheChangedEvent";
-import { ProjectConfigChangedEvent } from "./manifest/event/projectConfigChangedEvent";
-import { DBTProjectLog } from "./manifest/dbtProjectLog";
 import {
-  RuntimePythonEnvironment,
-  PythonEnvironmentProvider,
-} from "@altimateai/dbt-integration";
-import {
-  VSCodeRuntimePythonEnvironmentProvider,
-  StaticRuntimePythonEnvironment,
-} from "./manifest/runtimePythonEnvironmentProvider";
-import { TelemetryService } from "./telemetry";
-import {
-  DBTCoreDetection,
-  DBTCoreProjectDetection,
-  DBTCoreProjectIntegration,
-} from "@altimateai/dbt-integration";
-import {
+  AltimateHttpClient,
+  ChildrenParentParser,
   CLIDBTCommandExecutionStrategy,
-  DBTCommandExecutionInfrastructure,
-  DBTCommandExecutionStrategy,
-  DBTCommandFactory,
-  DBTDetection,
-  DBTProjectDetection,
-  PythonDBTCommandExecutionStrategy,
-} from "@altimateai/dbt-integration";
-import {
+  CommandProcessExecutionFactory,
   DBTCloudDetection,
   DBTCloudProjectDetection,
   DBTCloudProjectIntegration,
-} from "@altimateai/dbt-integration";
-import { CommandProcessExecutionFactory } from "@altimateai/dbt-integration";
-import { AltimateRequest } from "./altimate";
-import { ValidationProvider } from "./validation_provider";
-import { DBTConfiguration } from "@altimateai/dbt-integration";
-import { AltimateAuthService } from "./services/altimateAuthService";
-import { AltimateHttpClient } from "@altimateai/dbt-integration";
-import { DbtIntegrationClient } from "@altimateai/dbt-integration";
-import { VSCodeDBTConfiguration } from "./dbt_client/vscodeConfiguration";
-import { DeferToProdService } from "./services/deferToProdService";
-import { SharedStateService } from "./services/sharedStateService";
-import { NotebookKernelClient, NotebookDependencies } from "@lib";
-import {
+  DBTCommandExecutionInfrastructure,
+  DBTCommandExecutionStrategy,
+  DBTCommandFactory,
+  DBTConfiguration,
   DBTCoreCommandDetection,
   DBTCoreCommandProjectDetection,
   DBTCoreCommandProjectIntegration,
-} from "@altimateai/dbt-integration";
-import {
+  DBTCoreDetection,
+  DBTCoreProjectDetection,
+  DBTCoreProjectIntegration,
+  DBTDetection,
+  DBTDiagnosticData,
   DBTFusionCommandDetection,
   DBTFusionCommandProjectDetection,
   DBTFusionCommandProjectIntegration,
+  DbtIntegrationClient,
+  DBTProjectDetection,
+  DBTProjectIntegrationAdapter,
+  DBTTerminal,
+  DeferConfig,
+  DocParser,
+  ExposureParser,
+  GraphParser,
+  MacroParser,
+  MetricParser,
+  ModelDepthParser,
+  NodeParser,
+  PythonDBTCommandExecutionStrategy,
+  PythonEnvironmentProvider,
+  RuntimePythonEnvironment,
+  SourceParser,
+  TestParser,
 } from "@altimateai/dbt-integration";
-import { DBTTerminal } from "@altimateai/dbt-integration";
-import { DBTProjectIntegrationAdapter } from "@altimateai/dbt-integration";
-import { ChildrenParentParser } from "@altimateai/dbt-integration";
-import { DocParser } from "@altimateai/dbt-integration";
-import { ExposureParser } from "@altimateai/dbt-integration";
-import { GraphParser } from "@altimateai/dbt-integration";
-import { MacroParser } from "@altimateai/dbt-integration";
-import { MetricParser } from "@altimateai/dbt-integration";
-import { ModelDepthParser } from "@altimateai/dbt-integration";
-import { NodeParser } from "@altimateai/dbt-integration";
-import { SourceParser } from "@altimateai/dbt-integration";
-import { TestParser } from "@altimateai/dbt-integration";
-import { DeferConfig } from "@altimateai/dbt-integration";
+import {
+  NotebookDependencies,
+  NotebookFileSystemProvider,
+  NotebookKernelClient,
+  NotebookService,
+} from "@lib";
+import { Container, interfaces } from "inversify";
+import { Event, EventEmitter, Uri, workspace, WorkspaceFolder } from "vscode";
+import { AltimateRequest } from "./altimate";
+import { VSCodeDBTConfiguration } from "./dbt_client/vscodeConfiguration";
+import { VSCodeDBTTerminal } from "./dbt_client/vscodeTerminal";
+import { DBTProject } from "./manifest/dbtProject";
+import { ProjectRegisteredUnregisteredEvent } from "./manifest/dbtProjectContainer";
+import { DBTProjectLog } from "./manifest/dbtProjectLog";
+import { DBTWorkspaceFolder } from "./manifest/dbtWorkspaceFolder";
+import { ManifestCacheChangedEvent } from "./manifest/event/manifestCacheChangedEvent";
+import { ProjectConfigChangedEvent } from "./manifest/event/projectConfigChangedEvent";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
+import {
+  StaticRuntimePythonEnvironment,
+  VSCodeRuntimePythonEnvironmentProvider,
+} from "./manifest/runtimePythonEnvironmentProvider";
+import { AltimateAuthService } from "./services/altimateAuthService";
+import { ConversationService } from "./services/conversationService";
+import { DbtLineageService } from "./services/dbtLineageService";
+import { DbtTestService } from "./services/dbtTestService";
+import { DeferToProdService } from "./services/deferToProdService";
+import { DiagnosticsOutputChannel } from "./services/diagnosticsOutputChannel";
+import { DocGenService } from "./services/docGenService";
+import { FileService } from "./services/fileService";
+import { QueryAnalysisService } from "./services/queryAnalysisService";
+import { QueryManifestService } from "./services/queryManifestService";
+import { SharedStateService } from "./services/sharedStateService";
+import { StreamingService } from "./services/streamingService";
+import { UsersService } from "./services/usersService";
+import { TelemetryService } from "./telemetry";
+import { ValidationProvider } from "./validation_provider";
+
+// Core extension components
+import { DBTClient } from "./dbt_client";
+import { AltimateDatapilot } from "./dbt_client/datapilot";
+import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
+import { DbtPowerUserMcpServer } from "./mcp";
+import { DbtPowerUserMcpServerTools } from "./mcp/server";
+
+// Import providers
+import { AutocompletionProviders } from "./autocompletion_provider";
+import { DocAutocompletionProvider } from "./autocompletion_provider/docAutocompletionProvider";
+import { MacroAutocompletionProvider } from "./autocompletion_provider/macroAutocompletionProvider";
+import { ModelAutocompletionProvider } from "./autocompletion_provider/modelAutocompletionProvider";
+import { SourceAutocompletionProvider } from "./autocompletion_provider/sourceAutocompletionProvider";
+import { UserCompletionProvider } from "./autocompletion_provider/usercompletion_provider";
+import { CodeLensProviders } from "./code_lens_provider";
+import { CteCodeLensProvider } from "./code_lens_provider/cteCodeLensProvider";
+import { DocumentationCodeLensProvider } from "./code_lens_provider/documentationCodeLensProvider";
+import { SourceModelCreationCodeLensProvider } from "./code_lens_provider/sourceModelCreationCodeLensProvider";
+import { VirtualSqlCodeLensProvider } from "./code_lens_provider/virtualSqlCodeLensProvider";
+import { DefinitionProviders } from "./definition_provider";
+import { DocDefinitionProvider } from "./definition_provider/docDefinitionProvider";
+import { MacroDefinitionProvider } from "./definition_provider/macroDefinitionProvider";
+import { ModelDefinitionProvider } from "./definition_provider/modelDefinitionProvider";
+import { SourceDefinitionProvider } from "./definition_provider/sourceDefinitionProvider";
+import { HoverProviders } from "./hover_provider";
+import { DepthDecorationProvider } from "./hover_provider/depthDecorationProvider";
+import { MacroHoverProvider } from "./hover_provider/macroHoverProvider";
+import { ModelHoverProvider } from "./hover_provider/modelHoverProvider";
+import { SourceHoverProvider } from "./hover_provider/sourceHoverProvider";
+import { ProjectQuickPick } from "./quickpick/projectQuickPick";
+
+// Import missing providers and components
+import { NotebookProviders } from "@lib";
+import { VSCodeCommands } from "./commands";
+import { AltimateScan } from "./commands/altimateScan";
+import { BigQueryCostEstimate } from "./commands/bigQueryCostEstimate";
+import { RunModel } from "./commands/runModel";
+import { SqlToModel } from "./commands/sqlToModel";
+import { MissingSchemaTest } from "./commands/tests/missingSchemaTest";
+import { StaleModelColumnTest } from "./commands/tests/staleModelColumnTest";
+import { UndocumentedModelColumnTest } from "./commands/tests/undocumentedModelColumnTest";
+import { UnmaterializedModelTest } from "./commands/tests/unmaterializedModelTest";
+import { ValidateSql } from "./commands/validateSql";
+import { WalkthroughCommands } from "./commands/walkthroughCommands";
+import { CommentProviders } from "./comment_provider";
+import { ConversationProvider } from "./comment_provider/conversationProvider";
+import { ContentProviders } from "./content_provider";
+import { SqlPreviewContentProvider } from "./content_provider/sqlPreviewContentProvider";
+import { DBTPowerUserExtension } from "./dbtPowerUserExtension";
+import { DocumentFormattingEditProviders } from "./document_formatting_edit_provider";
+import { DbtDocumentFormattingEditProvider } from "./document_formatting_edit_provider/dbtDocumentFormattingEditProvider";
+import { DbtPowerUserActionsCenter } from "./quickpick";
+import { DbtPowerUserControlCenterAction } from "./quickpick/puQuickPick";
+import { DbtSQLAction } from "./quickpick/sqlQuickPick";
+import { StatusBars } from "./statusbar";
+import { DeferToProductionStatusBar } from "./statusbar/deferToProductionStatusBar";
+import { TargetStatusBar } from "./statusbar/targetStatusBar";
+import { VersionStatusBar } from "./statusbar/versionStatusBar";
+import { TreeviewProviders } from "./treeview_provider";
+import {
+  ChildrenModelTreeview,
+  DocumentationTreeview,
+  IconActionsTreeview,
+  ModelTestTreeview,
+  ParentModelTreeview,
+} from "./treeview_provider/modelTreeviewProvider";
+import { WebviewViewProviders } from "./webview_provider";
+import { DataPilotPanel } from "./webview_provider/datapilotPanel";
+import { DbtDocsView } from "./webview_provider/DbtDocsView";
+import { DocsEditViewPanel } from "./webview_provider/docsEditPanel";
+import { InsightsPanel } from "./webview_provider/insightsPanel";
+import { LineagePanel } from "./webview_provider/lineagePanel";
+import { ModelGraphViewPanel } from "./webview_provider/modelGraphViewPanel";
+import { NewDocsGenPanel } from "./webview_provider/newDocsGenPanel";
+import { NewLineagePanel } from "./webview_provider/newLineagePanel";
+import { QueryResultPanel } from "./webview_provider/queryResultPanel";
+import { SQLLineagePanel } from "./webview_provider/sqlLineagePanel";
 
 export const container = new Container();
-container.load(buildProviderModule());
 
 // Bind parser classes
 container
@@ -659,3 +740,1064 @@ container
       return new DBTProjectLog(onProjectConfigChanged);
     };
   });
+
+// Bind services
+container
+  .bind(AltimateAuthService)
+  .toDynamicValue((context) => {
+    return new AltimateAuthService(context.container.get("DBTConfiguration"));
+  })
+  .inSingletonScope();
+
+container
+  .bind(ConversationService)
+  .toDynamicValue((context) => {
+    return new ConversationService(
+      context.container.get(QueryManifestService),
+      context.container.get("DBTTerminal"),
+      context.container.get(AltimateRequest),
+      context.container.get(AltimateAuthService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(DbtLineageService)
+  .toDynamicValue((context) => {
+    return new DbtLineageService(
+      context.container.get(AltimateRequest),
+      context.container.get(TelemetryService),
+      context.container.get("DBTTerminal"),
+      context.container.get(QueryManifestService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(DbtTestService)
+  .toDynamicValue((context) => {
+    return new DbtTestService(
+      context.container.get(DocGenService),
+      context.container.get(StreamingService),
+      context.container.get(AltimateRequest),
+      context.container.get(QueryManifestService),
+      context.container.get("DBTTerminal"),
+      context.container.get(TelemetryService),
+      context.container.get(AltimateAuthService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(DeferToProdService)
+  .toDynamicValue(() => {
+    return new DeferToProdService();
+  })
+  .inSingletonScope();
+
+container
+  .bind(DiagnosticsOutputChannel)
+  .toDynamicValue(() => {
+    return new DiagnosticsOutputChannel();
+  })
+  .inSingletonScope();
+
+container
+  .bind(DocGenService)
+  .toDynamicValue((context) => {
+    return new DocGenService(
+      context.container.get(AltimateRequest),
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+      context.container.get(QueryManifestService),
+      context.container.get("DBTTerminal"),
+      context.container.get(AltimateAuthService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(FileService)
+  .toDynamicValue(() => {
+    return new FileService();
+  })
+  .inSingletonScope();
+
+container
+  .bind(QueryAnalysisService)
+  .toDynamicValue((context) => {
+    return new QueryAnalysisService(
+      context.container.get(DocGenService),
+      context.container.get(StreamingService),
+      context.container.get(AltimateRequest),
+      context.container.get(QueryManifestService),
+      context.container.get("DBTTerminal"),
+      context.container.get(FileService),
+      context.container.get(AltimateAuthService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(QueryManifestService)
+  .toDynamicValue((context) => {
+    return new QueryManifestService(
+      context.container.get(DBTProjectContainer),
+      context.container.get("DBTTerminal"),
+      context.container.get(SharedStateService),
+      context.container.get(ProjectQuickPick),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(SharedStateService)
+  .toDynamicValue(() => {
+    return new SharedStateService();
+  })
+  .inSingletonScope();
+
+container
+  .bind(ProjectQuickPick)
+  .toDynamicValue(() => {
+    return new ProjectQuickPick();
+  })
+  .inSingletonScope();
+
+container
+  .bind(StreamingService)
+  .toDynamicValue((context) => {
+    return new StreamingService(
+      context.container.get(AltimateRequest),
+      context.container.get(SharedStateService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(UsersService)
+  .toDynamicValue((context) => {
+    return new UsersService(
+      context.container.get(DBTProjectContainer),
+      context.container.get("DBTTerminal"),
+      context.container.get(AltimateRequest),
+      context.container.get(AltimateAuthService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(TelemetryService)
+  .toDynamicValue(() => {
+    return new TelemetryService();
+  })
+  .inSingletonScope();
+
+container
+  .bind(ValidationProvider)
+  .toDynamicValue((context) => {
+    return new ValidationProvider(
+      context.container.get(AltimateRequest),
+      context.container.get(AltimateAuthService),
+    );
+  })
+  .inSingletonScope();
+
+// Bind manifest components
+container
+  .bind(PythonEnvironment)
+  .toDynamicValue((context) => {
+    return new PythonEnvironment(context.container.get("DBTTerminal"));
+  })
+  .inSingletonScope();
+
+container
+  .bind(DBTProjectContainer)
+  .toDynamicValue((context) => {
+    return new DBTProjectContainer(
+      context.container.get(DBTClient),
+      context.container.get("Factory<DBTWorkspaceFolder>"),
+      context.container.get("DBTTerminal"),
+      context.container.get(AltimateDatapilot),
+      context.container.get(AltimateRequest),
+    );
+  })
+  .inSingletonScope();
+
+// Bind MCP server tools
+container
+  .bind(DbtPowerUserMcpServerTools)
+  .toDynamicValue((context) => {
+    return new DbtPowerUserMcpServerTools(
+      context.container.get(DBTProjectContainer),
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
+// Bind MCP server
+container
+  .bind(DbtPowerUserMcpServer)
+  .toDynamicValue((context) => {
+    return new DbtPowerUserMcpServer(
+      context.container.get(DbtPowerUserMcpServerTools),
+      context.container.get("DBTTerminal"),
+      context.container.get(AltimateRequest),
+      context.container.get(SharedStateService),
+      context.container.get(AltimateAuthService),
+    );
+  })
+  .inSingletonScope();
+
+// Bind dbt client
+container
+  .bind(DBTClient)
+  .toDynamicValue((context) => {
+    return new DBTClient(
+      context.container.get(PythonEnvironment),
+      context.container.get("Factory<DBTDetection>"),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(AltimateDatapilot)
+  .toDynamicValue((context) => {
+    return new AltimateDatapilot(
+      context.container.get(PythonEnvironment),
+      context.container.get(CommandProcessExecutionFactory),
+      context.container.get("DBTTerminal"),
+      context.container.get("DBTConfiguration"),
+    );
+  })
+  .inSingletonScope();
+
+// Bind autocompletion providers
+container
+  .bind(AutocompletionProviders)
+  .toDynamicValue((context) => {
+    return new AutocompletionProviders(
+      context.container.get(MacroAutocompletionProvider),
+      context.container.get(ModelAutocompletionProvider),
+      context.container.get(SourceAutocompletionProvider),
+      context.container.get(DocAutocompletionProvider),
+      context.container.get(UserCompletionProvider),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(DocAutocompletionProvider)
+  .toDynamicValue((context) => {
+    return new DocAutocompletionProvider(
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(MacroAutocompletionProvider)
+  .toDynamicValue((context) => {
+    return new MacroAutocompletionProvider(
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(ModelAutocompletionProvider)
+  .toDynamicValue((context) => {
+    return new ModelAutocompletionProvider(
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(SourceAutocompletionProvider)
+  .toDynamicValue((context) => {
+    return new SourceAutocompletionProvider(
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(UserCompletionProvider)
+  .toDynamicValue((context) => {
+    return new UserCompletionProvider(context.container.get(UsersService));
+  })
+  .inSingletonScope();
+
+// Bind code lens providers
+container
+  .bind(CodeLensProviders)
+  .toDynamicValue((context) => {
+    return new CodeLensProviders(
+      context.container.get(DBTProjectContainer),
+      context.container.get(SourceModelCreationCodeLensProvider),
+      context.container.get(VirtualSqlCodeLensProvider),
+      context.container.get(DocumentationCodeLensProvider),
+      context.container.get(CteCodeLensProvider),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(CteCodeLensProvider)
+  .toDynamicValue((context) => {
+    return new CteCodeLensProvider(
+      context.container.get("DBTTerminal"),
+      context.container.get(AltimateRequest),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(DocumentationCodeLensProvider)
+  .toDynamicValue(() => {
+    return new DocumentationCodeLensProvider();
+  })
+  .inSingletonScope();
+
+container
+  .bind(SourceModelCreationCodeLensProvider)
+  .toDynamicValue(() => {
+    return new SourceModelCreationCodeLensProvider();
+  })
+  .inSingletonScope();
+
+container
+  .bind(VirtualSqlCodeLensProvider)
+  .toDynamicValue((context) => {
+    return new VirtualSqlCodeLensProvider(
+      context.container.get(DBTProjectContainer),
+      context.container.get(QueryManifestService),
+      context.container.get(NotebookService),
+    );
+  })
+  .inSingletonScope();
+
+// Bind definition providers
+container
+  .bind(DefinitionProviders)
+  .toDynamicValue((context) => {
+    return new DefinitionProviders(
+      context.container.get(ModelDefinitionProvider),
+      context.container.get(MacroDefinitionProvider),
+      context.container.get(SourceDefinitionProvider),
+      context.container.get(DocDefinitionProvider),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(DocDefinitionProvider)
+  .toDynamicValue((context) => {
+    return new DocDefinitionProvider(
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(MacroDefinitionProvider)
+  .toDynamicValue((context) => {
+    return new MacroDefinitionProvider(
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(ModelDefinitionProvider)
+  .toDynamicValue((context) => {
+    return new ModelDefinitionProvider(
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(SourceDefinitionProvider)
+  .toDynamicValue((context) => {
+    return new SourceDefinitionProvider(
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+    );
+  })
+  .inSingletonScope();
+
+// Bind hover providers
+container
+  .bind(HoverProviders)
+  .toDynamicValue((context) => {
+    return new HoverProviders(
+      context.container.get(ModelHoverProvider),
+      context.container.get(SourceHoverProvider),
+      context.container.get(MacroHoverProvider),
+      context.container.get(DepthDecorationProvider),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(DepthDecorationProvider)
+  .toDynamicValue((context) => {
+    return new DepthDecorationProvider(
+      context.container.get(DBTProjectContainer),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(MacroHoverProvider)
+  .toDynamicValue((context) => {
+    return new MacroHoverProvider(
+      context.container.get(TelemetryService),
+      context.container.get("DBTTerminal"),
+      context.container.get(QueryManifestService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(ModelHoverProvider)
+  .toDynamicValue((context) => {
+    return new ModelHoverProvider(
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(SourceHoverProvider)
+  .toDynamicValue((context) => {
+    return new SourceHoverProvider(
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+    );
+  })
+  .inSingletonScope();
+
+// Bind notebook-related services
+container
+  .bind(NotebookDependencies)
+  .toDynamicValue((context) => {
+    return new NotebookDependencies(
+      context.container.get("DBTTerminal"),
+      context.container.get(TelemetryService),
+      context.container.get(CommandProcessExecutionFactory),
+      context.container.get(PythonEnvironment),
+    );
+  })
+  .inSingletonScope();
+
+// ClientMapper binding commented out as it's not exported from @lib
+// container
+//   .bind(ClientMapper)
+//   .toDynamicValue((context) => {
+//     return new ClientMapper(
+//       context.container.get(DBTCommandExecutionInfrastructure),
+//       context.container.get(NotebookDependencies),
+//       context.container.get("DBTTerminal")
+//     );
+//   })
+//   .inSingletonScope();
+
+// Bind DatapilotNotebookController properly - commented out ClientMapper dependency
+// container
+//   .bind("DatapilotNotebookController")
+//   .toDynamicValue((context) => {
+//     return new DatapilotNotebookController(
+//       context.container.get("ClientMapper"),
+//       context.container.get(QueryManifestService),
+//       context.container.get(TelemetryService),
+//       context.container.get("DBTTerminal"),
+//       context.container.get(NotebookDependencies),
+//       context.container.get(AltimateRequest),
+//     );
+//   })
+//   .inSingletonScope();
+
+// Bind NotebookService properly - commented out due to DatapilotNotebookController dependency
+// container
+//   .bind(NotebookService)
+//   .toDynamicValue((context) => {
+//     return new NotebookService(container.get(DatapilotNotebookController));
+//   })
+//   .inSingletonScope();
+
+// NotebookProviders implementation - commented out as it requires DatapilotNotebookController
+// container
+//   .bind(NotebookProviders)
+//   .toDynamicValue((context) => {
+//     return new NotebookProviders(
+//       context.container.get(DatapilotNotebookSerializer),
+//       context.container.get(DatapilotNotebookController),
+//       context.container.get(NotebookFileSystemProvider),
+//       context.container.get("DBTTerminal")
+//     );
+//   })
+//   .inSingletonScope();
+
+// Add placeholder for NotebookProviders since DBTPowerUserExtension depends on it
+container
+  .bind(NotebookProviders)
+  .toDynamicValue(() => {
+    // Return a minimal implementation that won't be used
+    return {} as any;
+  })
+  .inSingletonScope();
+
+// Add placeholder for NotebookService since VirtualSqlCodeLensProvider depends on it
+container
+  .bind(NotebookService)
+  .toDynamicValue(() => {
+    // Return a minimal implementation that won't be used
+    return {} as any;
+  })
+  .inSingletonScope();
+
+// Bind test components
+container
+  .bind(MissingSchemaTest)
+  .toDynamicValue(() => {
+    return new MissingSchemaTest();
+  })
+  .inSingletonScope();
+
+container
+  .bind(UndocumentedModelColumnTest)
+  .toDynamicValue(() => {
+    return new UndocumentedModelColumnTest();
+  })
+  .inSingletonScope();
+
+container
+  .bind(UnmaterializedModelTest)
+  .toDynamicValue(() => {
+    return new UnmaterializedModelTest();
+  })
+  .inSingletonScope();
+
+container
+  .bind(StaleModelColumnTest)
+  .toDynamicValue(() => {
+    return new StaleModelColumnTest();
+  })
+  .inSingletonScope();
+
+// Bind additional webview components
+container
+  .bind(DbtDocsView)
+  .toDynamicValue((context) => {
+    return new DbtDocsView(
+      context.container.get(DBTProjectContainer),
+      context.container.get(AltimateRequest),
+      context.container.get(TelemetryService),
+      context.container.get(SharedStateService),
+      context.container.get("DBTTerminal"),
+      context.container.get(QueryManifestService),
+      context.container.get(UsersService),
+      context.container.get(AltimateAuthService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(SqlPreviewContentProvider)
+  .toDynamicValue((context) => {
+    return new SqlPreviewContentProvider(
+      context.container.get(DBTProjectContainer),
+      context.container.get(DeferToProdService),
+      context.container.get(DbtIntegrationClient),
+      context.container.get(TelemetryService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(DbtDocumentFormattingEditProvider)
+  .toDynamicValue((context) => {
+    return new DbtDocumentFormattingEditProvider(
+      context.container.get(CommandProcessExecutionFactory),
+      context.container.get(TelemetryService),
+      context.container.get(PythonEnvironment),
+    );
+  })
+  .inSingletonScope();
+
+// Bind status bar components
+container
+  .bind(VersionStatusBar)
+  .toDynamicValue((context) => {
+    return new VersionStatusBar(context.container.get(DBTProjectContainer));
+  })
+  .inSingletonScope();
+
+container
+  .bind(DeferToProductionStatusBar)
+  .toDynamicValue((context) => {
+    return new DeferToProductionStatusBar(
+      context.container.get(DeferToProdService),
+      context.container.get(DBTProjectContainer),
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(TargetStatusBar)
+  .toDynamicValue((context) => {
+    return new TargetStatusBar(
+      context.container.get(DBTProjectContainer),
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
+// Bind quick pick components
+container
+  .bind(DbtPowerUserControlCenterAction)
+  .toDynamicValue(() => {
+    return new DbtPowerUserControlCenterAction();
+  })
+  .inSingletonScope();
+
+container
+  .bind(DbtSQLAction)
+  .toDynamicValue((context) => {
+    return new DbtSQLAction(context.container.get(DBTProjectContainer));
+  })
+  .inSingletonScope();
+
+// Bind individual command components that are required by VSCodeCommands
+container
+  .bind(RunModel)
+  .toDynamicValue((context) => {
+    return new RunModel(context.container.get(DBTProjectContainer));
+  })
+  .inSingletonScope();
+
+container
+  .bind(SqlToModel)
+  .toDynamicValue((context) => {
+    return new SqlToModel(
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+      context.container.get(AltimateRequest),
+      context.container.get("DBTTerminal"),
+      context.container.get(AltimateAuthService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(ValidateSql)
+  .toDynamicValue((context) => {
+    return new ValidateSql(
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+      context.container.get(AltimateRequest),
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(AltimateScan)
+  .toDynamicValue((context) => {
+    return new AltimateScan(
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+      context.container.get(AltimateRequest),
+      context.container.get(MissingSchemaTest),
+      context.container.get(UndocumentedModelColumnTest),
+      context.container.get(UnmaterializedModelTest),
+      context.container.get(StaleModelColumnTest),
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(WalkthroughCommands)
+  .toDynamicValue((context) => {
+    return new WalkthroughCommands(
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+      context.container.get(CommandProcessExecutionFactory),
+      context.container.get(PythonEnvironment),
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(BigQueryCostEstimate)
+  .toDynamicValue((context) => {
+    return new BigQueryCostEstimate(
+      context.container.get(DBTProjectContainer),
+      context.container.get("DBTTerminal"),
+      context.container.get(TelemetryService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(ConversationProvider)
+  .toDynamicValue((context) => {
+    return new ConversationProvider(
+      context.container.get(ConversationService),
+      context.container.get(UsersService),
+      context.container.get("DBTTerminal"),
+      context.container.get(SharedStateService),
+      context.container.get(QueryManifestService),
+      context.container.get(TelemetryService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(SQLLineagePanel)
+  .toDynamicValue((context) => {
+    return new SQLLineagePanel(
+      context.container.get(DBTProjectContainer),
+      context.container.get(AltimateRequest),
+      context.container.get(TelemetryService),
+      context.container.get("DBTTerminal"),
+      context.container.get(QueryManifestService),
+      context.container.get(SharedStateService),
+      context.container.get(UsersService),
+      context.container.get(AltimateAuthService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(VSCodeCommands)
+  .toDynamicValue((context) => {
+    return new VSCodeCommands(
+      context.container.get(DBTProjectContainer),
+      context.container.get(RunModel),
+      context.container.get(SqlToModel),
+      context.container.get(ValidateSql),
+      context.container.get(AltimateScan),
+      context.container.get(WalkthroughCommands),
+      context.container.get(BigQueryCostEstimate),
+      context.container.get("DBTTerminal"),
+      context.container.get(DiagnosticsOutputChannel),
+      context.container.get(SharedStateService),
+      context.container.get(ConversationProvider),
+      context.container.get(PythonEnvironment),
+      context.container.get(DBTClient),
+      context.container.get(SQLLineagePanel),
+      context.container.get(QueryManifestService),
+      context.container.get(AltimateRequest),
+      // Adding null placeholder for DatapilotNotebookController since it's not available
+      null as any,
+    );
+  })
+  .inSingletonScope();
+
+// Bind webview panel components
+container
+  .bind(QueryResultPanel)
+  .toDynamicValue((context) => {
+    return new QueryResultPanel(
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+      context.container.get(AltimateRequest),
+      context.container.get(SharedStateService),
+      context.container.get("DBTTerminal"),
+      context.container.get(QueryManifestService),
+      context.container.get(UsersService),
+      context.container.get(AltimateAuthService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(DocsEditViewPanel)
+  .toDynamicValue((context) => {
+    return new DocsEditViewPanel(
+      context.container.get(DBTProjectContainer),
+      context.container.get(AltimateRequest),
+      context.container.get(TelemetryService),
+      context.container.get(NewDocsGenPanel),
+      context.container.get(DocGenService),
+      context.container.get(DbtTestService),
+      context.container.get("DBTTerminal"),
+      context.container.get(DbtLineageService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(LineagePanel)
+  .toDynamicValue((context) => {
+    return new LineagePanel(
+      context.container.get(NewLineagePanel),
+      context.container.get(ModelGraphViewPanel),
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(DataPilotPanel)
+  .toDynamicValue((context) => {
+    return new DataPilotPanel(
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+      context.container.get(AltimateRequest),
+      context.container.get(DocGenService),
+      context.container.get(SharedStateService),
+      context.container.get(QueryAnalysisService),
+      context.container.get(QueryManifestService),
+      context.container.get("DBTTerminal"),
+      context.container.get(DbtTestService),
+      context.container.get(FileService),
+      context.container.get(UsersService),
+      context.container.get(AltimateAuthService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(InsightsPanel)
+  .toDynamicValue((context) => {
+    return new InsightsPanel(
+      context.container.get(DBTProjectContainer),
+      context.container.get(AltimateRequest),
+      context.container.get(DbtIntegrationClient),
+      context.container.get(TelemetryService),
+      context.container.get(SharedStateService),
+      context.container.get("DBTTerminal"),
+      context.container.get(QueryManifestService),
+      context.container.get(DeferToProdService),
+      context.container.get(ValidationProvider),
+      context.container.get(UsersService),
+      context.container.get(NotebookFileSystemProvider),
+      context.container.get(AltimateAuthService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(NotebookFileSystemProvider)
+  .toDynamicValue((context) => {
+    return new NotebookFileSystemProvider(
+      context.container.get("DBTTerminal"),
+      context.container.get(AltimateRequest),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(NewDocsGenPanel)
+  .toDynamicValue((context) => {
+    return new NewDocsGenPanel(
+      context.container.get(DBTProjectContainer),
+      context.container.get(AltimateRequest),
+      context.container.get(TelemetryService),
+      context.container.get(DocGenService),
+      context.container.get(SharedStateService),
+      context.container.get(QueryManifestService),
+      context.container.get("DBTTerminal"),
+      context.container.get(DbtTestService),
+      context.container.get(UsersService),
+      context.container.get(DbtDocsView),
+      context.container.get(ConversationProvider),
+      context.container.get(ConversationService),
+      context.container.get(AltimateAuthService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(NewLineagePanel)
+  .toDynamicValue((context) => {
+    return new NewLineagePanel(
+      context.container.get(DBTProjectContainer),
+      context.container.get(AltimateRequest),
+      context.container.get(TelemetryService),
+      context.container.get("DBTTerminal"),
+      context.container.get(DbtLineageService),
+      context.container.get(SharedStateService),
+      context.container.get(QueryManifestService),
+      context.container.get(UsersService),
+      context.container.get(AltimateAuthService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(ModelGraphViewPanel)
+  .toDynamicValue((context) => {
+    return new ModelGraphViewPanel(
+      context.container.get(DBTProjectContainer),
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
+// Bind WebviewViewProviders
+container
+  .bind(WebviewViewProviders)
+  .toDynamicValue((context) => {
+    return new WebviewViewProviders(
+      context.container.get(QueryResultPanel),
+      context.container.get(DocsEditViewPanel),
+      context.container.get(LineagePanel),
+      context.container.get(DataPilotPanel),
+      context.container.get(InsightsPanel),
+    );
+  })
+  .inSingletonScope();
+
+// Bind treeview components
+container
+  .bind(ChildrenModelTreeview)
+  .toDynamicValue((context) => {
+    return new ChildrenModelTreeview(
+      context.container.get(DBTProjectContainer),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(ParentModelTreeview)
+  .toDynamicValue((context) => {
+    return new ParentModelTreeview(context.container.get(DBTProjectContainer));
+  })
+  .inSingletonScope();
+
+container
+  .bind(ModelTestTreeview)
+  .toDynamicValue((context) => {
+    return new ModelTestTreeview(context.container.get(DBTProjectContainer));
+  })
+  .inSingletonScope();
+
+container
+  .bind(DocumentationTreeview)
+  .toDynamicValue((context) => {
+    return new DocumentationTreeview(
+      context.container.get(DBTProjectContainer),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(IconActionsTreeview)
+  .toDynamicValue(() => {
+    return new IconActionsTreeview();
+  })
+  .inSingletonScope();
+
+// Bind TreeviewProviders
+container
+  .bind(TreeviewProviders)
+  .toDynamicValue((context) => {
+    return new TreeviewProviders(
+      context.container.get(ChildrenModelTreeview),
+      context.container.get(ParentModelTreeview),
+      context.container.get(ModelTestTreeview),
+      context.container.get(DocumentationTreeview),
+      context.container.get(IconActionsTreeview),
+    );
+  })
+  .inSingletonScope();
+
+// Bind ContentProviders
+container
+  .bind(ContentProviders)
+  .toDynamicValue((context) => {
+    return new ContentProviders(
+      context.container.get(SqlPreviewContentProvider),
+    );
+  })
+  .inSingletonScope();
+
+// Bind DocumentFormattingEditProviders
+container
+  .bind(DocumentFormattingEditProviders)
+  .toDynamicValue((context) => {
+    return new DocumentFormattingEditProviders(
+      context.container.get(DbtDocumentFormattingEditProvider),
+    );
+  })
+  .inSingletonScope();
+
+// Bind StatusBars
+container
+  .bind(StatusBars)
+  .toDynamicValue((context) => {
+    return new StatusBars(
+      context.container.get(VersionStatusBar),
+      context.container.get(DeferToProductionStatusBar),
+      context.container.get(TargetStatusBar),
+    );
+  })
+  .inSingletonScope();
+
+// Bind DbtPowerUserActionsCenter
+container
+  .bind(DbtPowerUserActionsCenter)
+  .toDynamicValue((context) => {
+    return new DbtPowerUserActionsCenter(
+      context.container.get(DbtPowerUserControlCenterAction),
+      context.container.get(ProjectQuickPick),
+      context.container.get(DBTProjectContainer),
+      context.container.get(DbtSQLAction),
+    );
+  })
+  .inSingletonScope();
+
+// Bind CommentProviders
+container
+  .bind(CommentProviders)
+  .toDynamicValue((context) => {
+    return new CommentProviders(context.container.get(ConversationProvider));
+  })
+  .inSingletonScope();
+
+// Finally, bind the main DBTPowerUserExtension
+container
+  .bind(DBTPowerUserExtension)
+  .toDynamicValue((context) => {
+    return new DBTPowerUserExtension(
+      context.container.get(DBTProjectContainer),
+      context.container.get(WebviewViewProviders),
+      context.container.get(AutocompletionProviders),
+      context.container.get(DefinitionProviders),
+      context.container.get(VSCodeCommands),
+      context.container.get(TreeviewProviders),
+      context.container.get(ContentProviders),
+      context.container.get(CodeLensProviders),
+      context.container.get(DocumentFormattingEditProviders),
+      context.container.get(StatusBars),
+      context.container.get(DbtPowerUserActionsCenter),
+      context.container.get(TelemetryService),
+      context.container.get(HoverProviders),
+      context.container.get(ValidationProvider),
+      context.container.get(CommentProviders),
+      context.container.get(NotebookProviders),
+      context.container.get(DbtPowerUserMcpServer),
+    );
+  })
+  .inSingletonScope();

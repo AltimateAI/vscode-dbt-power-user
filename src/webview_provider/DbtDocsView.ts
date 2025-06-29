@@ -1,20 +1,18 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import { ViewColumn, WebviewPanel, window } from "vscode";
 import { AltimateRequest } from "../altimate";
-import { DBTTerminal } from "@altimateai/dbt-integration";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { AltimateAuthService } from "../services/altimateAuthService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
+import { UsersService } from "../services/usersService";
 import { TelemetryService } from "../telemetry";
-import { provideSingleton } from "../utils";
 import {
   AltimateWebviewProvider,
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
-import { UsersService } from "../services/usersService";
-import { AltimateAuthService } from "../services/altimateAuthService";
-import { inject } from "inversify";
 
-@provideSingleton(DbtDocsView)
 export class DbtDocsView extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.DbtDocs";
   protected viewPath = "/dbt-docs";
