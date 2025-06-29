@@ -39,12 +39,8 @@ import {
   SourceParser,
   TestParser,
 } from "@altimateai/dbt-integration";
-import {
-  NotebookDependencies,
-  NotebookFileSystemProvider,
-  NotebookKernelClient,
-  NotebookService,
-} from "@lib";
+import * as LibNamespace from "@lib";
+import { NotebookKernelClient } from "@lib";
 import { Container, interfaces } from "inversify";
 import { Event, EventEmitter, Uri, workspace, WorkspaceFolder } from "vscode";
 import { AltimateRequest } from "./altimate";
@@ -109,7 +105,6 @@ import { SourceHoverProvider } from "./hover_provider/sourceHoverProvider";
 import { ProjectQuickPick } from "./quickpick/projectQuickPick";
 
 // Import missing providers and components
-import { NotebookProviders } from "@lib";
 import { VSCodeCommands } from "./commands";
 import { AltimateScan } from "./commands/altimateScan";
 import { BigQueryCostEstimate } from "./commands/bigQueryCostEstimate";
@@ -720,20 +715,6 @@ container
   });
 
 container
-  .bind<interfaces.Factory<NotebookKernelClient>>("Factory<NotebookClient>")
-  .toFactory<NotebookKernelClient, [string]>((context: interfaces.Context) => {
-    return (path: string) => {
-      const { container } = context;
-      return new NotebookKernelClient(
-        path,
-        container.get(DBTCommandExecutionInfrastructure),
-        container.get(NotebookDependencies),
-        container.get("DBTTerminal"),
-      );
-    };
-  });
-
-container
   .bind<interfaces.Factory<DBTProjectLog>>("Factory<DBTProjectLog>")
   .toFactory<DBTProjectLog, [Event<ProjectConfigChangedEvent>]>(() => {
     return (onProjectConfigChanged: Event<ProjectConfigChangedEvent>) => {
@@ -1077,7 +1058,7 @@ container
     return new VirtualSqlCodeLensProvider(
       context.container.get(DBTProjectContainer),
       context.container.get(QueryManifestService),
-      context.container.get(NotebookService),
+      context.container.get("NotebookService"),
     );
   })
   .inSingletonScope();
@@ -1191,10 +1172,34 @@ container
   .inSingletonScope();
 
 // Bind notebook-related services
+
 container
-  .bind(NotebookDependencies)
+  .bind<any>("NotebookFileSystemProvider")
   .toDynamicValue((context) => {
-    return new NotebookDependencies(
+    return new LibNamespace.NotebookFileSystemProvider(
+      context.container.get("DBTTerminal"),
+      context.container.get(AltimateRequest),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind<interfaces.Factory<NotebookKernelClient>>("Factory<NotebookClient>")
+  .toFactory<NotebookKernelClient, [string]>((context: interfaces.Context) => {
+    return (path: string) => {
+      const { container } = context;
+      return new LibNamespace.NotebookKernelClient(
+        path,
+        container.get(DBTCommandExecutionInfrastructure),
+        container.get("NotebookDependencies"),
+        container.get("DBTTerminal"),
+      );
+    };
+  });
+container
+  .bind<any>("NotebookDependencies")
+  .toDynamicValue((context) => {
+    return new LibNamespace.NotebookDependencies(
       context.container.get("DBTTerminal"),
       context.container.get(TelemetryService),
       context.container.get(CommandProcessExecutionFactory),
@@ -1203,69 +1208,56 @@ container
   })
   .inSingletonScope();
 
-// ClientMapper binding commented out as it's not exported from @lib
-// container
-//   .bind(ClientMapper)
-//   .toDynamicValue((context) => {
-//     return new ClientMapper(
-//       context.container.get(DBTCommandExecutionInfrastructure),
-//       context.container.get(NotebookDependencies),
-//       context.container.get("DBTTerminal")
-//     );
-//   })
-//   .inSingletonScope();
-
-// Bind DatapilotNotebookController properly - commented out ClientMapper dependency
-// container
-//   .bind("DatapilotNotebookController")
-//   .toDynamicValue((context) => {
-//     return new DatapilotNotebookController(
-//       context.container.get("ClientMapper"),
-//       context.container.get(QueryManifestService),
-//       context.container.get(TelemetryService),
-//       context.container.get("DBTTerminal"),
-//       context.container.get(NotebookDependencies),
-//       context.container.get(AltimateRequest),
-//     );
-//   })
-//   .inSingletonScope();
-
-// Bind NotebookService properly - commented out due to DatapilotNotebookController dependency
-// container
-//   .bind(NotebookService)
-//   .toDynamicValue((context) => {
-//     return new NotebookService(container.get(DatapilotNotebookController));
-//   })
-//   .inSingletonScope();
-
-// NotebookProviders implementation - commented out as it requires DatapilotNotebookController
-// container
-//   .bind(NotebookProviders)
-//   .toDynamicValue((context) => {
-//     return new NotebookProviders(
-//       context.container.get(DatapilotNotebookSerializer),
-//       context.container.get(DatapilotNotebookController),
-//       context.container.get(NotebookFileSystemProvider),
-//       context.container.get("DBTTerminal")
-//     );
-//   })
-//   .inSingletonScope();
-
-// Add placeholder for NotebookProviders since DBTPowerUserExtension depends on it
 container
-  .bind(NotebookProviders)
-  .toDynamicValue(() => {
-    // Return a minimal implementation that won't be used
-    return {} as any;
+  .bind<any>("ClientMapper")
+  .toDynamicValue((context) => {
+    return new LibNamespace.ClientMapper(
+      context.container.get(DBTCommandExecutionInfrastructure),
+      context.container.get("NotebookDependencies"),
+      context.container.get("DBTTerminal"),
+    );
   })
   .inSingletonScope();
 
-// Add placeholder for NotebookService since VirtualSqlCodeLensProvider depends on it
 container
-  .bind(NotebookService)
+  .bind<any>("DatapilotNotebookSerializer")
   .toDynamicValue(() => {
-    // Return a minimal implementation that won't be used
-    return {} as any;
+    return new LibNamespace.DatapilotNotebookSerializer();
+  })
+  .inSingletonScope();
+
+container
+  .bind<any>("DatapilotNotebookController")
+  .toDynamicValue((context) => {
+    return new LibNamespace.DatapilotNotebookController(
+      context.container.get("ClientMapper"),
+      context.container.get(QueryManifestService),
+      context.container.get(TelemetryService),
+      context.container.get("DBTTerminal"),
+      context.container.get("NotebookDependencies"),
+      context.container.get(AltimateRequest),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind<any>("NotebookService")
+  .toDynamicValue((context) => {
+    return new LibNamespace.NotebookService(
+      context.container.get("DatapilotNotebookController"),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind<any>("NotebookProviders")
+  .toDynamicValue((context) => {
+    return new LibNamespace.NotebookProviders(
+      context.container.get("DatapilotNotebookSerializer"),
+      context.container.get("DatapilotNotebookController"),
+      context.container.get("NotebookFileSystemProvider"),
+      context.container.get("DBTTerminal"),
+    );
   })
   .inSingletonScope();
 
@@ -1505,8 +1497,7 @@ container
       context.container.get(SQLLineagePanel),
       context.container.get(QueryManifestService),
       context.container.get(AltimateRequest),
-      // Adding null placeholder for DatapilotNotebookController since it's not available
-      null as any,
+      context.container.get("DatapilotNotebookController"),
     );
   })
   .inSingletonScope();
@@ -1591,18 +1582,8 @@ container
       context.container.get(DeferToProdService),
       context.container.get(ValidationProvider),
       context.container.get(UsersService),
-      context.container.get(NotebookFileSystemProvider),
+      context.container.get("NotebookFileSystemProvider"),
       context.container.get(AltimateAuthService),
-    );
-  })
-  .inSingletonScope();
-
-container
-  .bind(NotebookFileSystemProvider)
-  .toDynamicValue((context) => {
-    return new NotebookFileSystemProvider(
-      context.container.get("DBTTerminal"),
-      context.container.get(AltimateRequest),
     );
   })
   .inSingletonScope();
@@ -1796,7 +1777,7 @@ container
       context.container.get(HoverProviders),
       context.container.get(ValidationProvider),
       context.container.get(CommentProviders),
-      context.container.get(NotebookProviders),
+      context.container.get("NotebookProviders"),
       context.container.get(DbtPowerUserMcpServer),
     );
   })

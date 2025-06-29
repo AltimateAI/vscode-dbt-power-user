@@ -2,9 +2,9 @@
 Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 const u = require("vscode"),
   p = require("@extension"),
-  le = require("python-bridge"),
+  ie = require("python-bridge"),
   pe = require("fs"),
-  oe = require("@jupyterlab/services");
+  ne = require("@jupyterlab/services");
 function L(o, e, t, n) {
   var r = arguments.length,
     s =
@@ -64,7 +64,7 @@ function fe() {
     t = o.toLocaleTimeString("en-GB", { hour12: !1 }).replace(/:/g, "-");
   return `${e}-${t}`;
 }
-class ye {
+class le {
   dispose() {
     throw new Error("Method not implemented.");
   }
@@ -102,8 +102,8 @@ var I;
     (o.stderr = "application/vnd.code.notebook.stderr"),
     (o.stdout = "application/vnd.code.notebook.stdout");
 })(I || (I = {}));
-const we = ["text/plain", "text/markdown", I.stderr, I.stdout],
-  re = [
+const ye = ["text/plain", "text/markdown", I.stderr, I.stdout],
+  oe = [
     "application/vnd.*",
     "application/vdom.*",
     "application/geo+json",
@@ -119,14 +119,14 @@ const we = ["text/plain", "text/markdown", I.stderr, I.stdout],
     "application/json",
     "text/plain",
   ],
-  M = new Map();
-M.set("display_data", Y);
-M.set("error", Ie);
-M.set("execute_result", Y);
-M.set("stream", Se);
-M.set("update_display_data", Y);
+  P = new Map();
+P.set("display_data", Y);
+P.set("error", Se);
+P.set("execute_result", Y);
+P.set("stream", Ce);
+P.set("update_display_data", Y);
 function J(o) {
-  const e = M.get(o.output_type);
+  const e = P.get(o.output_type);
   let t;
   return (
     e
@@ -138,7 +138,7 @@ function J(o) {
     t
   );
 }
-function ne(o) {
+function te(o) {
   const e = { outputType: o.output_type };
   switch ((o.transient && (e.transient = o.transient), o.output_type)) {
     case "display_data":
@@ -152,30 +152,30 @@ function ne(o) {
   return e;
 }
 function Y(o) {
-  const e = ne(o);
+  const e = te(o);
   ("image/svg+xml" in o.data || "image/png" in o.data) &&
     (e.__displayOpenPlotIcon = !0);
   const t = [];
-  if (o.data) for (const n in o.data) t.push(Te(n, o.data[n]));
-  return new u.NotebookCellOutput(ke(t), e);
+  if (o.data) for (const n in o.data) t.push(ke(n, o.data[n]));
+  return new u.NotebookCellOutput(we(t), e);
 }
-function ke(o) {
+function we(o) {
   return o.sort((e, t) => {
     const n = (a, i) => (
       a.endsWith(".*") && (a = a.substr(0, a.indexOf(".*"))), i.startsWith(a)
     );
-    let r = re.findIndex((a) => n(a, e.mime)),
-      s = re.findIndex((a) => n(a, t.mime));
+    let r = oe.findIndex((a) => n(a, e.mime)),
+      s = oe.findIndex((a) => n(a, t.mime));
     return (
-      se(e) && (r = -1),
-      se(t) && (s = -1),
+      re(e) && (r = -1),
+      re(t) && (s = -1),
       (r = r === -1 ? 100 : r),
       (s = s === -1 ? 100 : s),
       r - s
     );
   });
 }
-function se(o) {
+function re(o) {
   if (o.mime.startsWith("application/vnd."))
     try {
       return new TextDecoder().decode(o.data).length === 0;
@@ -184,11 +184,11 @@ function se(o) {
     }
   return !1;
 }
-function Te(o, e) {
+function ke(o, e) {
   if (!e) return u.NotebookCellOutputItem.text("", o);
   try {
     if (
-      (o.startsWith("text/") || we.includes(o)) &&
+      (o.startsWith("text/") || ye.includes(o)) &&
       (Array.isArray(e) || typeof e == "string")
     ) {
       const t = Array.isArray(e) ? G(e) : e;
@@ -197,7 +197,7 @@ function Te(o, e) {
       return o.startsWith("image/") &&
         typeof e == "string" &&
         o !== "image/svg+xml"
-        ? new u.NotebookCellOutputItem(_e(e), o)
+        ? new u.NotebookCellOutputItem(Te(e), o)
         : typeof e == "object" && e !== null && !Array.isArray(e)
           ? u.NotebookCellOutputItem.text(JSON.stringify(e), o)
           : ((e = Array.isArray(e) ? G(e) : e),
@@ -212,7 +212,7 @@ function Te(o, e) {
     );
   }
 }
-function _e(o) {
+function Te(o) {
   return typeof Buffer < "u" && typeof Buffer.from == "function"
     ? Buffer.from(o, "base64")
     : Uint8Array.from(atob(o), (e) => e.charCodeAt(0));
@@ -233,13 +233,13 @@ function G(o) {
   }
   return o.toString();
 }
-function Ee(o) {
+function _e(o) {
   let e = o;
   do (o = e), (e = o.replace(/[^\n]\x08/gm, ""));
   while (e.length < o.length);
   return o;
 }
-function ve(o) {
+function Ee(o) {
   for (
     o = o.replace(
       /\r+\n/gm,
@@ -256,14 +256,14 @@ function ve(o) {
   }
   return o;
 }
-function Ne(o) {
-  return ve(Ee(o));
+function ve(o) {
+  return Ee(_e(o));
 }
 function K(o) {
   if (o.parent_header && "msg_id" in o.parent_header)
     return o.parent_header.msg_id;
 }
-function Oe(o) {
+function Ne(o) {
   if (Object.prototype.hasOwnProperty.call(o, "text/html")) {
     const e = o["text/html"];
     typeof e == "string" &&
@@ -275,7 +275,7 @@ function Oe(o) {
   }
   return o;
 }
-const Ce = "e976ee50-99ed-4aba-9b6b-9dcd5634d07d:IPyWidgets:";
+const Oe = "e976ee50-99ed-4aba-9b6b-9dcd5634d07d:IPyWidgets:";
 function Q(o) {
   let e = typeof o == "string" ? o : "";
   return (
@@ -284,18 +284,18 @@ function Q(o) {
       "code" in o.content &&
       typeof o.content.code == "string" &&
       (e = o.content.code),
-    !e.includes(Ce)
+    !e.includes(Oe)
   );
 }
-function Se(o) {
+function Ce(o) {
   const e = G(o.text),
     t =
       o.name === "stderr"
         ? u.NotebookCellOutputItem.stderr
         : u.NotebookCellOutputItem.stdout;
-  return new u.NotebookCellOutput([t(e)], ne(o));
+  return new u.NotebookCellOutput([t(e)], te(o));
 }
-function Ie(o) {
+function Se(o) {
   return (
     (o = o || { output_type: "error", ename: "", evalue: "", traceback: [] }),
     new u.NotebookCellOutput(
@@ -307,7 +307,7 @@ function Ie(o) {
 `),
         }),
       ],
-      { ...ne(o), originalError: o },
+      { ...te(o), originalError: o },
     )
   );
 }
@@ -330,7 +330,7 @@ var ee;
     (o.REMOTE_URI_EXTENSION_ID_PARAM = "extensionId");
 })(ee || (ee = {}));
 const z = "application/vnd.jupyter.widget-view+json";
-class Pe {
+class Ie {
   get value() {
     return this._value;
   }
@@ -404,28 +404,28 @@ class Pe {
   }
 }
 function Me(o = null) {
-  return new Pe(o);
+  return new Ie(o);
 }
 var j = {};
 Object.defineProperty(j, "__esModule", { value: !0 });
 j.serialize = H = j.deserialize = void 0;
-function De(o) {
+function Pe(o) {
   let e;
-  return typeof o == "string" ? (e = JSON.parse(o)) : (e = Ae(o)), e;
+  return typeof o == "string" ? (e = JSON.parse(o)) : (e = xe(o)), e;
 }
-var H = (j.deserialize = De);
-function xe(o) {
+var H = (j.deserialize = Pe);
+function De(o) {
   var e;
   let t;
   return (
     !((e = o.buffers) === null || e === void 0) && e.length
-      ? (t = je(o))
+      ? (t = Ae(o))
       : (t = JSON.stringify(o)),
     t
   );
 }
-j.serialize = xe;
-function Ae(o) {
+j.serialize = De;
+function xe(o) {
   const e = new DataView(o),
     t = e.getUint32(0),
     n = [];
@@ -441,7 +441,7 @@ function Ae(o) {
   }
   return s;
 }
-function je(o) {
+function Ae(o) {
   const e = [],
     t = [],
     n = new TextEncoder();
@@ -464,7 +464,7 @@ function je(o) {
   for (let c = 0; c < t.length; c++) i.set(new Uint8Array(t[c]), e[c]);
   return i.buffer;
 }
-function Re(o) {
+function je(o) {
   if (!o || !Array.isArray(o) || o.length === 0) return;
   const e = [];
   for (let t = 0; t < o.length; t += 1) {
@@ -477,22 +477,22 @@ function Re(o) {
   }
   return e;
 }
-const Le = require("path");
+const Re = require("path");
 function V() {}
-Le.join(__dirname, ".");
-function $e() {
+Re.join(__dirname, ".");
+function Le() {
   console.log("Trying to load zmq");
   const o = require("zeromq");
   return (o.context.blocky = !1), console.info("ZMQ loaded."), o;
 }
-function qe(o, e) {
+function $e(o, e) {
   const t = o.transport === "tcp" ? ":" : "-",
     n = o[`${e}_port`];
   if (!n) throw new Error(`Port not found for channel "${e}"`);
   return `${o.transport}://${o.ip}${t}${n}`;
 }
-const Fe = ["username", "version", "session", "msg_id", "msg_type"],
-  ae = {
+const qe = ["username", "version", "session", "msg_id", "msg_type"],
+  se = {
     stream: { name: "string", text: "string" },
     display_data: { data: "object", metadata: "object" },
     execute_input: { code: "string", execution_count: "number" },
@@ -514,11 +514,11 @@ const Fe = ["username", "version", "session", "msg_id", "msg_type"],
     comm_close: { comm_id: "string" },
     shutdown_reply: { restart: "boolean" },
   };
-function We(o) {
+function Fe(o) {
   if (o.channel !== "iopub") return;
   const e = o.header.msg_type;
-  if (e in ae) {
-    const t = ae[e];
+  if (e in se) {
+    const t = se[e];
     if (t === void 0) return;
     const n = Object.keys(t),
       r = o.content;
@@ -544,18 +544,18 @@ function We(o) {
     }
   }
 }
-function Be(o, e) {
+function We(o, e) {
   const t = o.header;
-  Fe.forEach((n) => {
+  qe.forEach((n) => {
     typeof t[n] != "string" && (t[n] = "");
   }),
     typeof o.channel != "string" && (o.channel = e),
     o.content || (o.content = {}),
     o.metadata || (o.metadata = {}),
-    o.channel === "iopub" && We(o);
+    o.channel === "iopub" && Fe(o);
 }
-console.log(Be);
-class Ue {
+console.log(We);
+class Be {
   constructor(e, t) {
     Object.defineProperty(this, "connection", {
       enumerable: !0,
@@ -688,7 +688,7 @@ class Ue {
   generateChannel(e, t, n) {
     const r = n();
     return (
-      r.connect(qe(e, t)),
+      r.connect($e(e, t)),
       this.processSocketMessages(t, r).catch((s) =>
         console.error(`Failed to read messages from channel ${t}`, s),
       ),
@@ -702,7 +702,7 @@ class Ue {
     }
   }
   generateChannels(e) {
-    const t = $e(),
+    const t = Le(),
       n = x();
     return {
       iopub: this.generateChannel(
@@ -762,7 +762,7 @@ class Ue {
   }
 }
 let X;
-class Ke {
+class Ue {
   get postMessage() {
     return this._postMessageEmitter.event;
   }
@@ -802,7 +802,7 @@ class Ke {
       i = require("@jupyterlab/services/lib/kernel/serialize");
     let l;
     const c =
-        ((s = class extends Ue {
+        ((s = class extends Be {
           constructor() {
             super(e.connection, i.serialize), (l = this);
           }
@@ -894,7 +894,7 @@ class Ke {
         : (e instanceof ArrayBuffer || ArrayBuffer.isView(e)) &&
           this.raisePostMessage("IPyWidgets_binary_msg", {
             id: t,
-            data: Re([e]),
+            data: je([e]),
           }),
       (typeof e != "string" ||
         e.includes(z) ||
@@ -906,7 +906,7 @@ class Ke {
     ) {
       const a = H(e);
       if (!Q(a)) return;
-      if (oe.KernelMessage.isCommOpenMsg(a)) {
+      if (ne.KernelMessage.isCommOpenMsg(a)) {
         const i = a.content,
           l = (s = i.data) == null ? void 0 : s.state;
         l &&
@@ -916,7 +916,7 @@ class Ke {
           l._model_module === "@jupyter-widgets/output" &&
           l._model_name === "OutputModel" &&
           this.outputWidgetIds.add(i.comm_id);
-      } else if (oe.KernelMessage.isCommCloseMsg(a)) {
+      } else if (ne.KernelMessage.isCommCloseMsg(a)) {
         const i = a.content;
         this.outputWidgetIds.has(i.comm_id) &&
           this.outputWidgetIds.delete(i.comm_id);
@@ -928,8 +928,8 @@ class Ke {
     t && (this.waitingMessageIds.delete(e.id), t.resultPromise.resolve());
   }
 }
-const Ve = require("path");
-class P {
+const Ke = require("path");
+class M {
   get postMessage() {
     return this._postMessageEmitter.event;
   }
@@ -1042,7 +1042,7 @@ class P {
         e,
       ),
       (this.python = this.executionInfrastructure.createPythonBridge(
-        Ve.dirname(e),
+        Ke.dirname(e),
       )),
       this.initializeNotebookKernel(e),
       console.log(
@@ -1111,7 +1111,7 @@ class P {
         n = JSON.parse(pe.readFileSync(t, { encoding: "utf-8" })),
         r = await this.python.lock((i) => i`notebook_kernel.get_session_id()`),
         s = { connection: n, pid: r },
-        a = new Ke(s, x(), x(), {
+        a = new Ue(s, x(), x(), {
           name: n.kernel_name,
           id: x(),
           language: "python",
@@ -1129,7 +1129,7 @@ class P {
         this.getDependenciesVersion();
     } catch (t) {
       let n = t.message;
-      t instanceof le.PythonException && (n = t.exception.message),
+      t instanceof ie.PythonException && (n = t.exception.message),
         this.dbtTerminal.error(
           p.TelemetryEvents["Notebook/KernelInitializationError"],
           n,
@@ -1361,8 +1361,8 @@ class P {
     if (e.data && typeof e.data == "object" && z in e.data) {
       const a = e.data[z];
       if (a && "model_id" in a) {
-        const i = P.modelIdsOwnedByCells.get(n) || new Set();
-        i.add(a.model_id), P.modelIdsOwnedByCells.set(n, i);
+        const i = M.modelIdsOwnedByCells.get(n) || new Set();
+        i.add(a.model_id), M.modelIdsOwnedByCells.set(n, i);
       }
     }
     const r = J(e);
@@ -1437,14 +1437,14 @@ class P {
         this.lastUsedStreamOutput.output,
       ];
     {
-      const s = Ne(G(e.content.text));
+      const s = ve(G(e.content.text));
       return [J({ output_type: "stream", name: e.content.name, text: s })];
     }
   }
   handleDisplayData(e, t) {
     const n = {
       output_type: "display_data",
-      data: Oe(e.content.data),
+      data: Ne(e.content.data),
       metadata: e.content.metadata,
       transient: e.content.transient,
     };
@@ -1477,7 +1477,7 @@ class P {
     return this.addToCellData(r, e, t);
   }
 }
-Object.defineProperty(P, "modelIdsOwnedByCells", {
+Object.defineProperty(M, "modelIdsOwnedByCells", {
   enumerable: !0,
   configurable: !0,
   writable: !0,
@@ -1834,7 +1834,7 @@ exports.NotebookDependencies = L(
   ],
   exports.NotebookDependencies,
 );
-let te = class {
+exports.ClientMapper = class {
   constructor(e, t, n) {
     Object.defineProperty(this, "executionInfrastructure", {
       enumerable: !0,
@@ -1868,7 +1868,7 @@ let te = class {
         "initializing notebook client",
         e.fsPath,
       );
-      const t = new P(
+      const t = new M(
         e.fsPath,
         this.executionInfrastructure,
         this.notebookDependencies,
@@ -1889,7 +1889,7 @@ let te = class {
     return this.clientMap.get(e.fsPath);
   }
 };
-te = L(
+exports.ClientMapper = L(
   [
     $(2, p.inject("DBTTerminal")),
     q("design:paramtypes", [
@@ -1898,14 +1898,14 @@ te = L(
       p.DBTTerminal,
     ]),
   ],
-  te,
+  exports.ClientMapper,
 );
-const ze = ["python", "sql", "jinja-sql"],
-  Ge = "jinja-sql",
+const Ve = ["python", "sql", "jinja-sql"],
+  ze = "jinja-sql",
   ue = ".notebook",
   ce = "datapilot",
   A = "datapilot-notebook",
-  He = require("path");
+  Ge = require("path");
 exports.DatapilotNotebookController = class {
   constructor(e, t, n, r, s, a) {
     Object.defineProperty(this, "clientMapper", {
@@ -2003,7 +2003,7 @@ exports.DatapilotNotebookController = class {
         A,
         this.label,
       )),
-      (this.controller.supportedLanguages = ze),
+      (this.controller.supportedLanguages = Ve),
       (this.controller.supportsExecutionOrder = !0),
       (this.controller.executeHandler = this._executeAll.bind(this)),
       this.disposables.push(
@@ -2082,7 +2082,7 @@ exports.DatapilotNotebookController = class {
                   "select * from {{ ref('your_model_name') }}",
                   "{# Replace 'your_model_name' with the name of your dbt model. #}",
                 ],
-                languageId: Ge,
+                languageId: ze,
                 metadata: { cellId: "jinja_sql_0" },
               },
               {
@@ -2194,7 +2194,7 @@ exports.DatapilotNotebookController = class {
         (a = u.window.activeTextEditor) != null &&
         a.document.uri.fsPath.endsWith(".sql"))
     ) {
-      const i = He.basename(
+      const i = Ge.basename(
           u.window.activeTextEditor.document.uri.fsPath,
           ".sql",
         ),
@@ -2238,7 +2238,7 @@ exports.DatapilotNotebookController = class {
           await u.window.showNotebookDocument(b);
         } catch (l) {
           const c =
-            l instanceof le.PythonException ? l.exception.message : l.message;
+            l instanceof ie.PythonException ? l.exception.message : l.message;
           this.dbtTerminal.error(
             `${p.TelemetryEvents["Notebook/LaunchError"]}`,
             c,
@@ -2509,7 +2509,7 @@ exports.DatapilotNotebookController = L(
   [
     $(3, p.inject("DBTTerminal")),
     q("design:paramtypes", [
-      te,
+      exports.ClientMapper,
       p.QueryManifestService,
       p.TelemetryService,
       p.DBTTerminal,
@@ -2519,7 +2519,7 @@ exports.DatapilotNotebookController = L(
   ],
   exports.DatapilotNotebookController,
 );
-class Ye {
+class He {
   constructor() {
     Object.defineProperty(this, "_disposables", {
       enumerable: !0,
@@ -2544,7 +2544,7 @@ class Ye {
     );
   }
 }
-const ie = require("path");
+const ae = require("path");
 exports.NotebookFileSystemProvider = class {
   constructor(e, t) {
     Object.defineProperty(this, "dbtTerminal", {
@@ -2616,7 +2616,7 @@ exports.NotebookFileSystemProvider = class {
     await this.customSave(e, t);
   }
   delete(e, t) {
-    const n = e.with({ path: ie.posix.dirname(e.path) });
+    const n = e.with({ path: ae.posix.dirname(e.path) });
     this._emitter.fire([
       { type: u.FileChangeType.Changed, uri: n },
       { uri: e, type: u.FileChangeType.Deleted },
@@ -2629,7 +2629,7 @@ exports.NotebookFileSystemProvider = class {
     ]);
   }
   getFileNameFromUri(e) {
-    return ie.basename(e.fsPath, ue);
+    return ae.basename(e.fsPath, ue);
   }
   async customSave(e, t) {
     var n;
@@ -2701,7 +2701,7 @@ exports.NotebookFileSystemProvider = L(
   ],
   exports.NotebookFileSystemProvider,
 );
-class Je {
+class Ye {
   constructor(e) {
     Object.defineProperty(this, "notebookKernel", {
       enumerable: !0,
@@ -2761,7 +2761,7 @@ class Je {
     }
   }
 }
-const Qe = {
+const Je = {
   notebooks: [
     {
       name: "Profile your query",
@@ -2851,7 +2851,7 @@ exports.NotebookProviders = class {
     u.workspace.getConfiguration("dbt").get("enableNotebooks", !1) &&
       (this.dbtTerminal.log("Notebooks enabled, binding actions"),
       this.disposables.push(
-        u.notebooks.registerNotebookCellStatusBarItemProvider(A, new Ye()),
+        u.notebooks.registerNotebookCellStatusBarItemProvider(A, new He()),
         u.workspace.registerNotebookSerializer(A, this.notebookProvider, {}),
         this.notebookController,
       ),
@@ -2874,7 +2874,7 @@ exports.NotebookProviders = L(
   [
     $(3, p.inject("DBTTerminal")),
     q("design:paramtypes", [
-      ye,
+      le,
       exports.DatapilotNotebookController,
       exports.NotebookFileSystemProvider,
       p.DBTTerminal,
@@ -2889,8 +2889,8 @@ const F = (o) => (o === "bigquery" ? "RAND" : "RANDOM"),
   },
   W = (o, e, t) =>
     o.filter((n) => !e.includes(n.column) && !t.includes(n.dtype)),
-  Xe = (o) => ["timestamp", "date"].includes(o.dtype.toLowerCase()),
-  Ze = (o) =>
+  Qe = (o) => ["timestamp", "date"].includes(o.dtype.toLowerCase()),
+  Xe = (o) =>
     [
       "char",
       "character",
@@ -2912,7 +2912,7 @@ const F = (o) => (o === "bigquery" ? "RAND" : "RANDOM"),
       "longtext",
       "enum",
     ].includes(o.dtype.toLowerCase()),
-  et = (o) => {
+  Ze = (o) => {
     const e = [
         "int",
         "integer",
@@ -3026,7 +3026,7 @@ class U {
       (this.queryFn = t);
   }
 }
-class tt extends U {
+class et extends U {
   async generateRangeTests({
     tableRelation: e,
     excludeTypes: t,
@@ -3039,7 +3039,7 @@ class tt extends U {
     dbtConfig: c,
     columnsInRelation: m,
   }) {
-    const b = W(m, n, t).filter((f) => et(f));
+    const b = W(m, n, t).filter((f) => Ze(f));
     if (b.length === 0) return c;
     let d = "";
     s !== null &&
@@ -3086,7 +3086,7 @@ UNION ALL
     return B(c, E);
   }
 }
-class nt extends U {
+class tt extends U {
   getColumnCombinations(e, t) {
     const n = [];
     for (let r = 0; r < t; r++) n.push(...this.combinations(e, r + 1));
@@ -3170,7 +3170,7 @@ UNION ALL
     return B(c, N);
   }
 }
-class ot extends U {
+class nt extends U {
   async getAcceptedValuesTestSuggestions({
     tableRelation: e,
     excludeTypes: t,
@@ -3249,7 +3249,7 @@ UNION ALL
     return B(l, _);
   }
 }
-class rt extends U {
+class ot extends U {
   async generateStringLengthTests({
     tableRelation: e,
     excludeTypes: t,
@@ -3262,7 +3262,7 @@ class rt extends U {
     dbtConfig: c,
     columnsInRelation: m,
   }) {
-    const b = W(m, n, t).filter((f) => Ze(f));
+    const b = W(m, n, t).filter((f) => Xe(f));
     if (b.length === 0) return c;
     const d = s
         ? a
@@ -3321,7 +3321,7 @@ UNION ALL
     return B(c, E);
   }
 }
-class st extends U {
+class rt extends U {
   async generateRecencyTests({
     tableRelation: e,
     excludeTypes: t,
@@ -3333,7 +3333,7 @@ class st extends U {
     dbtConfig: l,
     columnsInRelation: c,
   }) {
-    const h = W(c, n, t).filter(Xe);
+    const h = W(c, n, t).filter(Qe);
     if (h.length === 0) return l;
     const b = s
         ? a
@@ -3383,7 +3383,7 @@ UNION ALL
     return B(l, O);
   }
 }
-const at = async ({
+const st = async ({
   tableRelation: o,
   sample: e = !1,
   limit: t = 1e4,
@@ -3430,7 +3430,7 @@ const at = async ({
   let w = d;
   return (
     i.includes("uniqueness") &&
-      (w = await new nt(v, O).generateUniquenessTests({
+      (w = await new tt(v, O).generateUniquenessTests({
         tableRelation: o,
         excludeTypes: s,
         excludeCols: a,
@@ -3443,7 +3443,7 @@ const at = async ({
         compositeKeyLength: l,
       })),
     i.includes("accepted_values") &&
-      (w = await new ot(v, O).getAcceptedValuesTestSuggestions({
+      (w = await new nt(v, O).getAcceptedValuesTestSuggestions({
         tableRelation: o,
         excludeTypes: s,
         excludeCols: a,
@@ -3456,7 +3456,7 @@ const at = async ({
         maxCardinality: c,
       })),
     i.includes("range") &&
-      (w = await new tt(v, O).generateRangeTests({
+      (w = await new et(v, O).generateRangeTests({
         tableRelation: o,
         excludeTypes: s,
         excludeCols: a,
@@ -3469,7 +3469,7 @@ const at = async ({
         stddevs: m,
       })),
     i.includes("string_length") &&
-      (w = await new rt(v, O).generateStringLengthTests({
+      (w = await new ot(v, O).generateStringLengthTests({
         tableRelation: o,
         excludeTypes: s,
         excludeCols: a,
@@ -3482,7 +3482,7 @@ const at = async ({
         stddevs: h,
       })),
     i.includes("recency") &&
-      (w = await new st(v, O).generateRecencyTests({
+      (w = await new rt(v, O).generateRecencyTests({
         tableRelation: o,
         excludeTypes: s,
         excludeCols: a,
@@ -3496,7 +3496,8 @@ const at = async ({
     w
   );
 };
-exports.CustomNotebooks = Qe;
-exports.NotebookKernelClient = P;
-exports.NotebookService = Je;
-exports.getTestSuggestions = at;
+exports.CustomNotebooks = Je;
+exports.DatapilotNotebookSerializer = le;
+exports.NotebookKernelClient = M;
+exports.NotebookService = Ye;
+exports.getTestSuggestions = st;

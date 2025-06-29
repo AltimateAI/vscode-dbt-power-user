@@ -445,8 +445,10 @@ declare const getTestSuggestions: ({
 }: Props) => Promise<DbtConfig | undefined>;
 
 export {
+  ClientMapper,
   CustomNotebooks,
   DatapilotNotebookController,
+  DatapilotNotebookSerializer,
   type DbtConfig,
   type IPyWidgetMessage,
   type Model,
