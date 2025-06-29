@@ -68,14 +68,14 @@ const config = {
         {
           from: path.resolve(
             __dirname,
-            "../altimate-dbt-integration/dbt_core_integration.py",
+            "../altimate-dbt-integration/src/altimate_python_packages/dbt_core_integration.py",
           ),
           to: "dbt_core_integration.py",
         },
         {
           from: path.resolve(
             __dirname,
-            "../altimate-dbt-integration/dbt_utils.py",
+            "../altimate-dbt-integration/src/altimate_python_packages/dbt_utils.py",
           ),
           to: "dbt_utils.py",
         },
@@ -89,7 +89,7 @@ const config = {
         {
           from: path.resolve(
             __dirname,
-            "../altimate-dbt-integration/altimate_packages/",
+            "../altimate-dbt-integration/src/altimate_python_packages/altimate_packages/",
           ),
           to: "altimate_packages/",
         },
