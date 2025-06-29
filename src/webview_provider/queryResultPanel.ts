@@ -361,9 +361,13 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         isHistoryTab ? "QueryHistoryExecuteSql" : "QueryBookmarkExecuteSql",
       );
       if (message.limit) {
-        await project.executeSQLWithLimit(message.query, "", message.limit);
+        await project.executeSQLWithLimitOnQueryPanel(
+          message.query,
+          "",
+          message.limit,
+        );
       } else {
-        await project.executeSQL(message.query, "");
+        await project.executeSQLOnQueryPanel(message.query, "");
       }
       return;
     } catch (error) {
@@ -575,12 +579,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       query = activeEditor.document.getText(selectionRange);
     }
     this.telemetry.sendTelemetryEvent("QueryActiveWindowExecuteSql");
-    await project.executeSQLWithLimit(
+    await project.executeSQLWithLimitOnQueryPanel(
       query,
       modelName,
       message.limit,
-      false,
-      false,
     );
   }
 

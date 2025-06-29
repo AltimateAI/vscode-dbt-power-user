@@ -72,8 +72,8 @@ export class WalkthroughCommands {
           return;
         }
         const runModelOutput = await project.debug();
-        if (runModelOutput.includes("ERROR")) {
-          throw new Error(runModelOutput);
+        if (runModelOutput.fullOutput.includes("ERROR")) {
+          throw new Error(runModelOutput.fullOutput);
         }
       } catch (err) {
         this.dbtTerminal.error(

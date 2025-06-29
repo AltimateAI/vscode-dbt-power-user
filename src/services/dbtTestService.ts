@@ -1,7 +1,7 @@
 import {
   DBTTerminal,
-  ExecuteSQLResult,
   MacroMetaMap,
+  QueryExecutionResult,
   TestMetaData,
   TestMetadataAcceptedValues,
   TestMetadataRelationships,
@@ -419,8 +419,7 @@ export class DbtTestService {
                 query,
                 modelName,
                 true,
-                true,
-              )) as ExecuteSQLResult;
+              )) as QueryExecutionResult;
               return result;
             },
           });

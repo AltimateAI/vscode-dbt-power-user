@@ -299,7 +299,6 @@ This must be called first to get the projectRoot parameter needed for all other 
                 validatedArgs.query,
                 validatedArgs.modelName,
                 true, // returnImmediately
-                false, // returnRawResults
               );
               return {
                 content: createTextContent(JSON.stringify(result)),
@@ -481,7 +480,7 @@ This must be called first to get the projectRoot parameter needed for all other 
         }
         const result = await project.installDbtPackages(validatedArgs.packages);
         return {
-          content: createTextContent(result),
+          content: createTextContent(result.fullOutput),
         };
       },
     },
@@ -503,7 +502,7 @@ This must be called first to get the projectRoot parameter needed for all other 
         }
         const result = await project.installDeps();
         return {
-          content: createTextContent(result),
+          content: createTextContent(result.fullOutput),
         };
       },
     },

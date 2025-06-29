@@ -26,6 +26,7 @@ import {
   NodeMetaData,
   ParsedManifest,
   ProjectHealthcheck,
+  QueryExecutionResult,
   RESOURCE_TYPE_MODEL,
   RESOURCE_TYPE_SOURCE,
   RunModelParams,
@@ -657,14 +658,8 @@ export class DBTProject implements Disposable, DBTFacade {
   }
 
   async unsafeRunModelImmediately(runModelParams: RunModelParams) {
-    const runModelCommand =
-      this.dbtCommandFactory.createRunModelCommand(runModelParams);
-    runModelCommand.showProgress = false;
-    runModelCommand.logToTerminal = false;
     this.telemetry.sendTelemetryEvent("runModel");
-    return this.getCurrentProjectIntegration().executeCommandImmediately(
-      runModelCommand,
-    );
+    return this.dbtProjectIntegration.unsafeRunModelImmediately(runModelParams);
   }
 
   async buildModel(runModelParams: RunModelParams) {
@@ -688,13 +683,9 @@ export class DBTProject implements Disposable, DBTFacade {
   }
 
   async unsafeBuildModelImmediately(runModelParams: RunModelParams) {
-    const buildModelCommand =
-      this.dbtCommandFactory.createBuildModelCommand(runModelParams);
-    buildModelCommand.showProgress = false;
-    buildModelCommand.logToTerminal = false;
     this.telemetry.sendTelemetryEvent("buildModel");
-    return this.getCurrentProjectIntegration().executeCommandImmediately(
-      buildModelCommand,
+    return this.dbtProjectIntegration.unsafeBuildModelImmediately(
+      runModelParams,
     );
   }
 
@@ -721,14 +712,8 @@ export class DBTProject implements Disposable, DBTFacade {
   }
 
   async unsafeBuildProjectImmediately() {
-    const buildProjectCommand =
-      this.dbtCommandFactory.createBuildProjectCommand();
-    buildProjectCommand.showProgress = false;
-    buildProjectCommand.logToTerminal = false;
     this.telemetry.sendTelemetryEvent("buildProject");
-    return this.getCurrentProjectIntegration().executeCommandImmediately(
-      buildProjectCommand,
-    );
+    return this.dbtProjectIntegration.unsafeBuildProjectImmediately();
   }
 
   async runTest(testName: string) {
@@ -752,14 +737,8 @@ export class DBTProject implements Disposable, DBTFacade {
   }
 
   async unsafeRunTestImmediately(testName: string) {
-    const testModelCommand =
-      this.dbtCommandFactory.createTestModelCommand(testName);
-    testModelCommand.showProgress = false;
-    testModelCommand.logToTerminal = false;
     this.telemetry.sendTelemetryEvent("runTest");
-    return this.getCurrentProjectIntegration().executeCommandImmediately(
-      testModelCommand,
-    );
+    return this.dbtProjectIntegration.unsafeRunTestImmediately(testName);
   }
 
   async runModelTest(modelName: string) {
@@ -785,14 +764,8 @@ export class DBTProject implements Disposable, DBTFacade {
   }
 
   async unsafeRunModelTestImmediately(modelName: string) {
-    const testModelCommand =
-      this.dbtCommandFactory.createTestModelCommand(modelName);
-    testModelCommand.showProgress = false;
-    testModelCommand.logToTerminal = false;
     this.telemetry.sendTelemetryEvent("runModelTest");
-    return this.getCurrentProjectIntegration().executeCommandImmediately(
-      testModelCommand,
-    );
+    return this.dbtProjectIntegration.unsafeRunModelTestImmediately(modelName);
   }
 
   private handleNoCredentialsError(error: unknown) {
@@ -873,29 +846,14 @@ export class DBTProject implements Disposable, DBTFacade {
   }
 
   async unsafeCompileModelImmediately(runModelParams: RunModelParams) {
-    const compileModelCommand =
-      this.dbtCommandFactory.createCompileModelCommand(runModelParams);
-    compileModelCommand.showProgress = false;
-    compileModelCommand.logToTerminal = false;
     this.telemetry.sendTelemetryEvent("compileModel");
-    return this.getCurrentProjectIntegration().executeCommandImmediately(
-      compileModelCommand,
+    return this.dbtProjectIntegration.unsafeCompileModelImmediately(
+      runModelParams,
     );
   }
 
   async unsafeGenerateDocsImmediately(args?: string[]) {
-    const docsGenerateCommand =
-      this.dbtCommandFactory.createDocsGenerateCommand();
-    args?.forEach((arg) => docsGenerateCommand.addArgument(arg));
-    docsGenerateCommand.focus = false;
-    docsGenerateCommand.logToTerminal = false;
-    const result =
-      await this.getCurrentProjectIntegration().executeCommandImmediately(
-        docsGenerateCommand,
-      );
-    if (result?.stderr) {
-      throw new Error(result.stderr);
-    }
+    return this.dbtProjectIntegration.unsafeGenerateDocsImmediately(args);
   }
 
   async generateDocs() {
@@ -917,46 +875,30 @@ export class DBTProject implements Disposable, DBTFacade {
 
   clean() {
     this.throwIfNotAuthenticated();
-    const cleanCommand = this.dbtCommandFactory.createCleanCommand();
     this.telemetry.sendTelemetryEvent("clean");
-    return this.getCurrentProjectIntegration().clean(cleanCommand);
+    return this.dbtProjectIntegration.clean();
   }
 
   debug(focus: boolean = true) {
-    const debugCommand = this.dbtCommandFactory.createDebugCommand(focus);
     this.telemetry.sendTelemetryEvent("debug");
-    return this.getCurrentProjectIntegration().debug(debugCommand);
+    return this.dbtProjectIntegration.debug(focus);
   }
 
   async installDbtPackages(packages: string[]) {
     this.telemetry.sendTelemetryEvent("installDbtPackages");
-    const installPackagesCommand =
-      this.dbtCommandFactory.createAddPackagesCommand(packages);
-    // Add packages first
-    await this.getCurrentProjectIntegration().deps(installPackagesCommand);
-    // Then install
-    return await this.getCurrentProjectIntegration().deps(
-      this.dbtCommandFactory.createInstallDepsCommand(),
-    );
+    return this.dbtProjectIntegration.installDbtPackages(packages);
   }
 
   async installDeps(silent = false) {
     this.telemetry.sendTelemetryEvent("installDeps");
-    const installDepsCommand =
-      this.dbtCommandFactory.createInstallDepsCommand();
-    if (silent) {
-      installDepsCommand.focus = false;
-    }
-    return this.getCurrentProjectIntegration().deps(installDepsCommand);
+    return this.dbtProjectIntegration.installDeps(silent);
   }
 
   async compileNode(modelName: string): Promise<string | undefined> {
     this.telemetry.sendTelemetryEvent("compileNode");
     this.throwDiagnosticsErrorIfAvailable();
     try {
-      return await this.getCurrentProjectIntegration().unsafeCompileNode(
-        modelName,
-      );
+      return await this.dbtProjectIntegration.unsafeCompileNode(modelName);
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
@@ -994,9 +936,7 @@ export class DBTProject implements Disposable, DBTFacade {
     this.telemetry.sendTelemetryEvent("unsafeCompileNode");
     this.throwDiagnosticsErrorIfAvailable();
     this.throwIfNotAuthenticated();
-    return await this.getCurrentProjectIntegration().unsafeCompileNode(
-      modelName,
-    );
+    return this.dbtProjectIntegration.unsafeCompileNode(modelName);
   }
 
   async validateSql(request: { sql: string; dialect: string; models: any[] }) {
@@ -1007,7 +947,6 @@ export class DBTProject implements Disposable, DBTFacade {
     );
     const { sql, dialect, models } = request;
     try {
-      await sqlValidationThread.ex`from dbt_utils import *`;
       return validateSQLUsingSqlGlot(sqlValidationThread, sql, dialect, models);
     } finally {
       await this.executionInfrastructure.closePythonBridge(sqlValidationThread);
@@ -1017,7 +956,7 @@ export class DBTProject implements Disposable, DBTFacade {
   async validateSQLDryRun(query: string) {
     this.throwIfNotAuthenticated();
     try {
-      return this.getCurrentProjectIntegration().validateSQLDryRun(query);
+      return this.dbtProjectIntegration.validateSQLDryRun(query);
     } catch (exc) {
       const exception = exc as { exception: { message: string } };
       window.showErrorMessage(
@@ -1047,7 +986,7 @@ export class DBTProject implements Disposable, DBTFacade {
   ): Promise<string | undefined> {
     this.telemetry.sendTelemetryEvent("compileQuery");
     try {
-      return await this.getCurrentProjectIntegration().unsafeCompileQuery(
+      return await this.dbtProjectIntegration.unsafeCompileQuery(
         query,
         originalModelName,
       );
@@ -1099,7 +1038,7 @@ export class DBTProject implements Disposable, DBTFacade {
     originalModelName: string | undefined = undefined,
   ) {
     this.throwIfNotAuthenticated();
-    return this.getCurrentProjectIntegration().unsafeCompileQuery(
+    return this.dbtProjectIntegration.unsafeCompileQuery(
       query,
       originalModelName,
     );
@@ -1108,14 +1047,14 @@ export class DBTProject implements Disposable, DBTFacade {
   async getColumnsOfModel(modelName: string) {
     this.throwIfNotAuthenticated();
     const result =
-      await this.getCurrentProjectIntegration().getColumnsOfModel(modelName);
+      await this.dbtProjectIntegration.getColumnsOfModel(modelName);
     await this.getCurrentProjectIntegration().cleanupConnections();
     return result;
   }
 
   async getColumnsOfSource(sourceName: string, tableName: string) {
     this.throwIfNotAuthenticated();
-    const result = await this.getCurrentProjectIntegration().getColumnsOfSource(
+    const result = await this.dbtProjectIntegration.getColumnsOfSource(
       sourceName,
       tableName,
     );
@@ -1138,19 +1077,18 @@ export class DBTProject implements Disposable, DBTFacade {
         { model, column },
       );
       const query = `select ${column} from {{ ref('${model}')}} group by ${column}`;
-      const queryExecution =
-        await this.getCurrentProjectIntegration().executeSQL(
-          query,
-          100, // setting this 100 as executeSql needs a limit and distinct values will be usually less in number
-          model,
-        );
-      const result = await queryExecution.executeQuery();
+      const result = (await this.dbtProjectIntegration.executeSQLWithLimit(
+        query,
+        model,
+        100, // setting this 100 as executeSql needs a limit and distinct values will be usually less in number
+        true,
+      )) as QueryExecutionResult;
       this.telemetry.endTelemetryEvent(
         TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
         undefined,
         { column, model },
       );
-      return result.table.rows.flat();
+      return result.data.flat();
     } catch (error) {
       this.telemetry.endTelemetryEvent(
         TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
@@ -1383,12 +1321,45 @@ export class DBTProject implements Disposable, DBTFacade {
     );
   }
 
+  async executeSQLOnQueryPanel(query: string, modelName: string) {
+    const limit = workspace
+      .getConfiguration("dbt")
+      .get<number>("queryLimit", 500);
+    return this.executeSQLWithLimitOnQueryPanel(query, modelName, limit);
+  }
+
+  async executeSQLWithLimitOnQueryPanel(
+    query: string,
+    modelName: string,
+    limit: number,
+  ) {
+    if (limit <= 0) {
+      window.showErrorMessage("Please enter a positive number for query limit");
+      return;
+    }
+    this.terminal.info("executeSQL", "Executed query: " + query, true, {
+      adapter: this.getAdapterType(),
+      limit: limit.toString(),
+    });
+    this.eventEmitterService.fire({
+      command: "executeQuery",
+      payload: {
+        query,
+        fn: this.dbtProjectIntegration.executeSQLWithLimit(
+          query,
+          modelName,
+          limit,
+        ),
+        projectName: this.getProjectName(),
+      },
+    });
+  }
+
   async executeSQLWithLimit(
     query: string,
     modelName: string,
     limit: number,
     returnImmediately?: boolean,
-    returnRawResults?: boolean,
   ) {
     // if user added a semicolon at the end, let,s remove it.
     query = query.replace(/;\s*$/, "");
@@ -1407,77 +1378,33 @@ export class DBTProject implements Disposable, DBTFacade {
       query = query.replace(limitRegex, "").trim();
     }
 
-    if (limit <= 0) {
-      window.showErrorMessage("Please enter a positive number for query limit");
-      return;
-    }
-    this.telemetry.sendTelemetryEvent("executeSQL", {
-      adapter: this.getAdapterType(),
-      limit: limit.toString(),
-    });
-    this.terminal.debug("executeSQL", query, {
+    this.terminal.info("executeSQL", "Executed query: " + query, true, {
       adapter: this.getAdapterType(),
       limit: limit.toString(),
     });
 
     this.throwDiagnosticsErrorIfAvailable();
     this.throwIfNotAuthenticated();
-    if (returnImmediately) {
-      const execution = await this.getCurrentProjectIntegration().executeSQL(
-        query,
-        limit,
-        modelName,
-      );
-      const result = await execution.executeQuery();
-      if (returnRawResults) {
-        return result;
-      }
-      const rows: JsonObj[] = [];
-      // Convert compressed array format to dict[]
-      for (let i = 0; i < result.table.rows.length; i++) {
-        result.table.rows[i].forEach((value: any, j: any) => {
-          rows[i] = { ...rows[i], [result.table.column_names[j]]: value };
-        });
-      }
-      const data = {
-        columnNames: result.table.column_names,
-        columnTypes: result.table.column_types,
-        data: rows,
-        raw_sql: query,
-        compiled_sql: result.compiled_sql,
-      };
-
-      return data;
-    }
-    this.eventEmitterService.fire({
-      command: "executeQuery",
-      payload: {
-        query,
-        fn: this.getCurrentProjectIntegration().executeSQL(
-          query,
-          limit,
-          modelName,
-        ),
-        projectName: this.getProjectName(),
-      },
-    });
-  }
-
-  executeSQL(
-    query: string,
-    modelName: string,
-    returnImmediately?: boolean,
-    returnRawResults?: boolean,
-  ) {
-    const limit = workspace
-      .getConfiguration("dbt")
-      .get<number>("queryLimit", 500);
-    return this.executeSQLWithLimit(
+    return this.dbtProjectIntegration.executeSQLWithLimit(
       query,
       modelName,
       limit,
       returnImmediately,
-      returnRawResults,
+    );
+  }
+
+  executeSQL(query: string, modelName: string, returnImmediately?: boolean) {
+    const limit = workspace
+      .getConfiguration("dbt")
+      .get<number>("queryLimit", 500);
+    this.terminal.info("executeSQL", "Executed query: " + query, true, {
+      adapter: this.getAdapterType(),
+      limit: limit.toString(),
+    });
+    return this.dbtProjectIntegration.executeSQL(
+      query,
+      modelName,
+      returnImmediately,
     );
   }
 
