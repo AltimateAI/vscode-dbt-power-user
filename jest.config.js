@@ -19,9 +19,9 @@ module.exports = {
     "^@lib$": "<rootDir>/src/test/mock/lib.ts",
     "^node-fetch$": "<rootDir>/src/test/mock/node-fetch.ts",
     // Development: use local TypeScript source (same as webpack and tsconfig)
-    "^@altimateai/dbt-integration$":
-      "<rootDir>/../altimate-dbt-integration/src/index.ts",
+    // "^@altimateai/dbt-integration$":
+    //   "<rootDir>/../altimate-dbt-integration/src/index.ts",
     // Production: use npm package (commented out for development)
-    // "^@altimateai/dbt-integration$": "@altimateai/dbt-integration",
+    "^@altimateai/dbt-integration$": "@altimateai/dbt-integration",
   },
 };
