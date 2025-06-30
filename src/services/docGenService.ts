@@ -1,32 +1,29 @@
 import path = require("path");
+import { DBTTerminal, RateLimitException } from "@altimateai/dbt-integration";
 import { promises as fs } from "fs";
+import { inject } from "inversify";
 import * as yaml from "js-yaml";
 import {
+  env,
   ProgressLocation,
   Uri,
   WebviewPanel,
   WebviewView,
-  env,
   window,
 } from "vscode";
 import { AltimateRequest, DocsGenerateResponse } from "../altimate";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { RateLimitException } from "../exceptions";
 import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
-import {
-  extendErrorWithSupportLinks,
-  provideSingleton,
-  removeProtocol,
-} from "../utils";
+import { TelemetryEvents } from "../telemetry/events";
+import { extendErrorWithSupportLinks, removeProtocol } from "../utils";
 import {
   AIColumnDescription,
   DBTDocumentation,
   Source,
 } from "../webview_provider/docsEditPanel";
+import { AltimateAuthService } from "./altimateAuthService";
 import { QueryManifestService } from "./queryManifestService";
-import { TelemetryEvents } from "../telemetry/events";
 
 export interface DocumentationSchemaColumn {
   name: string;
@@ -73,14 +70,15 @@ interface FeedbackRequestProps {
 
 const COLUMNS_PER_CHUNK = 3;
 
-@provideSingleton(DocGenService)
 export class DocGenService {
   public constructor(
     private altimateRequest: AltimateRequest,
     protected dbtProjectContainer: DBTProjectContainer,
     protected telemetry: TelemetryService,
     private queryManifestService: QueryManifestService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
+    private altimateAuthService: AltimateAuthService,
   ) {}
 
   private async getDocumentationFromYaml(
@@ -363,7 +361,7 @@ export class DocGenService {
     panel,
     isBulkGen,
   }: GenerateDocsForColumnsProps) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
     if (!project || !window.activeTextEditor) {
@@ -503,7 +501,7 @@ export class DocGenService {
     columnIndexCount,
     isBulkGen,
   }: GenerateDocsForModelProps) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
     if (!project) {

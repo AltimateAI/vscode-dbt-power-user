@@ -1,3 +1,9 @@
+import {
+  DataPilotHealtCheckParams,
+  DBTTerminal,
+  EnvironmentVariables,
+  RunModelType,
+} from "@altimateai/dbt-integration";
 import { inject } from "inversify";
 import { basename } from "path";
 import {
@@ -10,19 +16,15 @@ import {
   workspace,
   WorkspaceFolder,
 } from "vscode";
+import { AltimateRequest } from "../altimate";
 import { DBTClient } from "../dbt_client";
-import { EnvironmentVariables, RunModelType } from "../domain";
-import { provideSingleton } from "../utils";
+import { AltimateDatapilot } from "../dbt_client/datapilot";
 import { DBTProject } from "./dbtProject";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
 import {
   ManifestCacheChangedEvent,
   RebuildManifestCombinedStatusChange,
 } from "./event/manifestCacheChangedEvent";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { AltimateConfigProps } from "../webview_provider/insightsPanel";
-import { AltimateDatapilot } from "../dbt_client/datapilot";
-import { AltimateRequest } from "../altimate";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -37,7 +39,6 @@ export interface ProjectRegisteredUnregisteredEvent {
 
 export interface DBTProjectsInitializationEvent {}
 
-@provideSingleton(DBTProjectContainer)
 export class DBTProjectContainer implements Disposable {
   public onDBTInstallationVerification =
     this.dbtClient.onDBTInstallationVerification;
@@ -72,6 +73,7 @@ export class DBTProjectContainer implements Disposable {
       pythonPath?: string,
       envVars?: EnvironmentVariables,
     ) => DBTWorkspaceFolder,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private altimateDatapilot: AltimateDatapilot,
     private altimate: AltimateRequest,
@@ -277,7 +279,7 @@ export class DBTProjectContainer implements Disposable {
         uri = selectedProject.uri;
       }
     }
-    this.findDBTProject(uri)?.executeSQL(query, modelName);
+    this.findDBTProject(uri)?.executeSQLOnQueryPanel(query, modelName);
   }
 
   runModel(modelPath: Uri, type?: RunModelType) {
@@ -451,7 +453,7 @@ export class DBTProjectContainer implements Disposable {
     );
   }
 
-  executeAltimateDatapilotHealthcheck(args: AltimateConfigProps) {
+  executeAltimateDatapilotHealthcheck(args: DataPilotHealtCheckParams) {
     const project = this.getProjects().find(
       (p) => p.projectRoot.fsPath.toString() === args.projectRoot,
     );

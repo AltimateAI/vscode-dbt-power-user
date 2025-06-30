@@ -1,18 +1,16 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import {
-  StatusBarItem,
-  StatusBarAlignment,
-  window,
   Disposable,
+  StatusBarAlignment,
+  StatusBarItem,
   TextEditor,
+  window,
   workspace,
-  Uri,
 } from "vscode";
-import { DeferToProdService } from "../services/deferToProdService";
-import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DeferToProdService } from "../services/deferToProdService";
 
-@provideSingleton(DeferToProductionStatusBar)
 export class DeferToProductionStatusBar implements Disposable {
   readonly statusBar: StatusBarItem = window.createStatusBarItem(
     StatusBarAlignment.Left,
@@ -23,6 +21,7 @@ export class DeferToProductionStatusBar implements Disposable {
   constructor(
     private deferToProdService: DeferToProdService,
     private dbtProjectContainer: DBTProjectContainer,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {
     this.disposables.push(

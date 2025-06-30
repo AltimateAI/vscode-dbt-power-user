@@ -1,9 +1,6 @@
+import { DBTTerminal, EnvironmentVariables } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import { Disposable, Event, extensions, Uri, workspace } from "vscode";
-import { EnvironmentVariables } from "../domain";
-import { provideSingleton } from "../utils";
-import { TelemetryService } from "../telemetry";
-import { CommandProcessExecutionFactory } from "../commandProcessExecution";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 type EnvFrom = "process" | "integrated" | "dotenv";
 interface PythonExecutionDetails {
@@ -12,20 +9,19 @@ interface PythonExecutionDetails {
   getEnvVars: () => EnvironmentVariables;
 }
 
-@provideSingleton(PythonEnvironment)
-export class PythonEnvironment implements Disposable {
+export class PythonEnvironment {
   private executionDetails?: PythonExecutionDetails;
   private disposables: Disposable[] = [];
   private environmentVariableSource: Record<string, EnvFrom> = {};
   public allPythonPaths: { path: string; pathType: string }[] = [];
   public isPython3: boolean = true;
+
   constructor(
-    private telemetry: TelemetryService,
-    private commandProcessExecutionFactory: CommandProcessExecutionFactory,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {}
 
-  dispose() {
+  async dispose(): Promise<void> {
     while (this.disposables.length) {
       const x = this.disposables.pop();
       if (x) {

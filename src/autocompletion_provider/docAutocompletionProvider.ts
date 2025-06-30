@@ -13,10 +13,9 @@ import {
 } from "vscode";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
+import { isEnclosedWithinCodeBlock } from "../utils";
 
-@provideSingleton(DocAutocompletionProvider)
 export class DocAutocompletionProvider
   implements CompletionItemProvider, Disposable
 {

@@ -1,8 +1,7 @@
+import { DeferConfig } from "@altimateai/dbt-integration";
 import { Uri, window, workspace } from "vscode";
-import { getProjectRelativePath, provideSingleton } from "../utils";
-import { DeferConfig } from "../webview_provider/insightsPanel";
+import { getProjectRelativePath } from "../utils";
 
-@provideSingleton(DeferToProdService)
 export class DeferToProdService {
   public getDeferConfigByWorkspace() {
     const currentDocument = window.activeTextEditor?.document;

@@ -1,4 +1,3 @@
-import { Uri } from "vscode";
 import {
   DocMetaMap,
   ExposureMetaMap,
@@ -8,7 +7,8 @@ import {
   NodeMetaMap,
   SourceMetaMap,
   TestMetaMap,
-} from "../../domain";
+} from "@altimateai/dbt-integration";
+import { Uri } from "vscode";
 import { DBTProject } from "../dbtProject";
 
 export interface ManifestCacheProjectAddedEvent {

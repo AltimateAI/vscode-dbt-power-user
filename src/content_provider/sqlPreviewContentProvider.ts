@@ -1,25 +1,26 @@
+import {
+  DbtIntegrationClient,
+  ManifestPathType,
+} from "@altimateai/dbt-integration";
 import { readFileSync } from "fs";
 import {
   Disposable,
   Event,
   EventEmitter,
   FileSystemWatcher,
+  ProgressLocation,
   RelativePattern,
   TextDocumentContentProvider,
   Uri,
-  workspace,
   window,
-  ProgressLocation,
+  workspace,
 } from "vscode";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { debounce, provideSingleton } from "../utils";
-import { TelemetryService } from "../telemetry";
 import { DeferToProdService } from "../services/deferToProdService";
-import { AltimateRequest } from "../altimate";
-import { ManifestPathType } from "../constants";
+import { TelemetryService } from "../telemetry";
+import { debounce } from "../utils";
 import path = require("path");
 
-@provideSingleton(SqlPreviewContentProvider)
 export class SqlPreviewContentProvider
   implements TextDocumentContentProvider, Disposable
 {
@@ -33,7 +34,7 @@ export class SqlPreviewContentProvider
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private deferToProdService: DeferToProdService,
-    private altimateRequest: AltimateRequest,
+    private dbtIntegrationClient: DbtIntegrationClient,
     private telemetry: TelemetryService,
   ) {
     this.subscriptions = workspace.onDidCloseTextDocument((compilationDoc) => {
@@ -105,7 +106,7 @@ export class SqlPreviewContentProvider
         dbtIntegrationMode.startsWith("core") &&
         manifestPathType === ManifestPathType.REMOTE
       ) {
-        this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
+        this.dbtIntegrationClient.sendDeferToProdEvent(ManifestPathType.REMOTE);
       }
       return result;
     } catch (error: any) {

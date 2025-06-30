@@ -1,45 +1,46 @@
+import {
+  DBTTerminal,
+  MacroMetaMap,
+  QueryExecutionResult,
+  TestMetaData,
+  TestMetadataAcceptedValues,
+  TestMetadataRelationships,
+} from "@altimateai/dbt-integration";
+import { getTestSuggestions } from "@lib";
+import { readFileSync } from "fs";
+import { inject } from "inversify";
 import { env, ProgressLocation, WebviewView, window } from "vscode";
+import { parse, stringify } from "yaml";
 import {
   AltimateRequest,
   CreateDbtTestRequest,
   UserInputError,
 } from "../altimate";
-import {
-  extendErrorWithSupportLinks,
-  getColumnNameByCase,
-  getColumnTestConfigFromYml,
-  isColumnNameEqual,
-  provideSingleton,
-  removeProtocol,
-} from "../utils";
-import { DocGenService } from "./docGenService";
-import { StreamingService } from "./streamingService";
-import { QueryManifestService } from "./queryManifestService";
-import path = require("path");
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import {
-  MacroMetaMap,
-  TestMetaData,
-  TestMetadataAcceptedValues,
-  TestMetadataRelationships,
-} from "../domain";
-import { parse, stringify } from "yaml";
-import { readFileSync } from "fs";
 import { DBTProject } from "../manifest/dbtProject";
-import { getTestSuggestions } from "@lib";
-import { ExecuteSQLResult } from "../dbt_client/dbtIntegration";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
+import {
+  extendErrorWithSupportLinks,
+  getColumnTestConfigFromYml,
+  isColumnNameEqual,
+  removeProtocol,
+} from "../utils";
+import { AltimateAuthService } from "./altimateAuthService";
+import { DocGenService } from "./docGenService";
+import { QueryManifestService } from "./queryManifestService";
+import { StreamingService } from "./streamingService";
+import path = require("path");
 
-@provideSingleton(DbtTestService)
 export class DbtTestService {
   public constructor(
     private docGenService: DocGenService,
     private streamingService: StreamingService,
     private altimateRequest: AltimateRequest,
     private queryManifestService: QueryManifestService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private telemetryService: TelemetryService,
+    private altimateAuthService: AltimateAuthService,
   ) {}
 
   // Remove duplicate tests from tests array
@@ -248,7 +249,7 @@ export class DbtTestService {
     },
     syncRequestId?: string,
   ) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
 
@@ -386,7 +387,7 @@ export class DbtTestService {
     project: DBTProject,
     panel: WebviewView | undefined,
   ) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
     return await window.withProgress(
@@ -418,8 +419,7 @@ export class DbtTestService {
                 query,
                 modelName,
                 true,
-                true,
-              )) as ExecuteSQLResult;
+              )) as QueryExecutionResult;
               return result;
             },
           });

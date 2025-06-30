@@ -13,10 +13,8 @@ import {
   workspace,
 } from "vscode";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { provideSingleton } from "../utils";
 import { getDepthColor } from "../utils";
 
-@provideSingleton(DepthDecorationProvider)
 export class DepthDecorationProvider implements HoverProvider, Disposable {
   private disposables: Disposable[] = [];
   private readonly REF_PATTERN =

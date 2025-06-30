@@ -6,10 +6,8 @@ import {
   Disposable,
   ProviderResult,
 } from "vscode";
-import { provideSingleton } from "../utils";
 import { UsersService } from "../services/usersService";
 
-@provideSingleton(UserCompletionProvider)
 export class UserCompletionProvider
   implements CompletionItemProvider, Disposable
 {

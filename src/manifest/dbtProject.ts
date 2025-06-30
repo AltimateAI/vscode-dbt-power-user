@@ -1,16 +1,51 @@
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, writeFileSync } from "fs";
 
+import {
+  Catalog,
+  CATALOG_FILE,
+  ColumnMetaData,
+  DataPilotHealtCheckParams,
+  DBColumn,
+  DBTCommand,
+  DBTCommandExecution,
+  DBTCommandExecutionInfrastructure,
+  DBTCommandFactory,
+  DBTDiagnosticData,
+  DBTFacade,
+  DBTNode,
+  DBTProjectIntegration,
+  DBTProjectIntegrationAdapter,
+  DBTTerminal,
+  DBT_PROJECT_FILE,
+  DeferConfig,
+  HealthcheckArgs,
+  isResourceHasDbColumns,
+  isResourceNode,
+  MANIFEST_FILE,
+  NoCredentialsError,
+  NodeMetaData,
+  ParsedManifest,
+  ProjectHealthcheck,
+  QueryExecutionResult,
+  RESOURCE_TYPE_MODEL,
+  RESOURCE_TYPE_SOURCE,
+  RunModelParams,
+  RunResultsEventData,
+  SourceNode,
+  Table,
+  validateSQLUsingSqlGlot,
+} from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import * as path from "path";
 import { PythonException } from "python-bridge";
 import {
-  CancellationToken,
   commands,
   Diagnostic,
   DiagnosticCollection,
+  DiagnosticSeverity,
   Disposable,
   Event,
   EventEmitter,
-  FileSystemWatcher,
   languages,
   ProgressLocation,
   Range,
@@ -20,137 +55,101 @@ import {
   window,
   workspace,
 } from "vscode";
-import { parse, YAMLError } from "yaml";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { AltimateRequest, ModelNode } from "../altimate";
+import { AltimateAuthService } from "../services/altimateAuthService";
+import { DeferToProdService } from "../services/deferToProdService";
+import { SharedStateService } from "../services/sharedStateService";
+import { TelemetryService } from "../telemetry";
+import { TelemetryEvents } from "../telemetry/events";
 import {
-  debounce,
   extendErrorWithSupportLinks,
   getColumnNameByCase,
-  setupWatcherHandler,
+  getProjectRelativePath,
 } from "../utils";
+import { ValidationProvider } from "../validation_provider";
+import { DBTProjectLog } from "./dbtProjectLog";
 import {
   ManifestCacheChangedEvent,
-  RebuildManifestStatusChange,
   ManifestCacheProjectAddedEvent,
+  RebuildManifestStatusChange,
 } from "./event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
-import { DBTProjectLog, DBTProjectLogFactory } from "./modules/dbtProjectLog";
-import {
-  SourceFileWatchers,
-  SourceFileWatchersFactory,
-} from "./modules/sourceFileWatchers";
-import { TargetWatchersFactory } from "./modules/targetWatchers";
-import { PythonEnvironment } from "./pythonEnvironment";
-import { TelemetryService } from "../telemetry";
-import * as crypto from "crypto";
-import {
-  DBTProjectIntegration,
-  DBTCommandFactory,
-  RunModelParams,
-  Catalog,
-  DBTNode,
-  DBColumn,
-  SourceNode,
-  HealthcheckArgs,
-} from "../dbt_client/dbtIntegration";
-import { DBTCoreProjectIntegration } from "../dbt_client/dbtCoreIntegration";
-import { DBTCloudProjectIntegration } from "../dbt_client/dbtCloudIntegration";
-import { AltimateRequest, NoCredentialsError } from "../altimate";
-import { ValidationProvider } from "../validation_provider";
-import { ModelNode } from "../altimate";
-import {
-  ColumnMetaData,
-  GraphMetaMap,
-  NodeGraphMap,
-  NodeMetaData,
-} from "../domain";
-import { AltimateConfigProps } from "../webview_provider/insightsPanel";
-import { SharedStateService } from "../services/sharedStateService";
-import { TelemetryEvents } from "../telemetry/events";
 import { RunResultsEvent } from "./event/runResultsEvent";
-import { DBTCoreCommandProjectIntegration } from "../dbt_client/dbtCoreCommandIntegration";
-import { Table } from "src/services/dbtLineageService";
-import { DBTFusionCommandProjectIntegration } from "src/dbt_client/dbtFusionCommandIntegration";
+import { PythonEnvironment } from "./pythonEnvironment";
 
 interface FileNameTemplateMap {
   [key: string]: string;
 }
+
 interface JsonObj {
   [key: string]: string | number | undefined;
 }
-export class DBTProject implements Disposable {
+
+export class DBTProject implements Disposable, DBTFacade {
   private _manifestCacheEvent?: ManifestCacheProjectAddedEvent;
-
-  static DBT_PROJECT_FILE = "dbt_project.yml";
-  static MANIFEST_FILE = "manifest.json";
-  static CATALOG_FILE = "catalog.json";
-
-  static RESOURCE_TYPE_MODEL = "model";
-  static RESOURCE_TYPE_MACRO = "macro";
-  static RESOURCE_TYPE_ANALYSIS = "analysis";
-  static RESOURCE_TYPE_SOURCE = "source";
-  static RESOURCE_TYPE_EXPOSURE = "exposure";
-  static RESOURCE_TYPE_SEED = "seed";
-  static RESOURCE_TYPE_SNAPSHOT = "snapshot";
-  static RESOURCE_TYPE_TEST = "test";
-  static RESOURCE_TYPE_METRIC = "semantic_model";
-
   readonly projectRoot: Uri;
-  private projectConfig: any; // TODO: typing
-  private dbtProjectIntegration: DBTProjectIntegration;
+  private dbtProjectIntegration: DBTProjectIntegrationAdapter;
 
   private _onProjectConfigChanged =
     new EventEmitter<ProjectConfigChangedEvent>();
   public onProjectConfigChanged = this._onProjectConfigChanged.event;
   private _onRunResults = new EventEmitter<RunResultsEvent>();
   public onRunResults = this._onRunResults.event;
-  private sourceFileWatchers: SourceFileWatchers;
-  public onSourceFileChanged: Event<void>;
+  private _onSourceFileChanged = new EventEmitter<void>();
+  public onSourceFileChanged = this._onSourceFileChanged.event;
   private dbtProjectLog?: DBTProjectLog;
-  private disposables: Disposable[] = [this._onProjectConfigChanged];
-  private readonly projectConfigDiagnostics =
-    languages.createDiagnosticCollection("dbt");
   public readonly projectHealth = languages.createDiagnosticCollection("dbt");
+  public readonly pythonBridgeDiagnostics =
+    languages.createDiagnosticCollection("dbt-python-bridge");
+  public readonly rebuildManifestDiagnostics =
+    languages.createDiagnosticCollection("dbt-rebuild-manifest");
+  public readonly projectConfigDiagnostics =
+    languages.createDiagnosticCollection("dbt-project-config");
+  private disposables: Disposable[] = [
+    this._onProjectConfigChanged,
+    this._onSourceFileChanged,
+    this.projectHealth,
+    this.pythonBridgeDiagnostics,
+    this.rebuildManifestDiagnostics,
+    this.projectConfigDiagnostics,
+  ];
   private _onRebuildManifestStatusChange =
     new EventEmitter<RebuildManifestStatusChange>();
   readonly onRebuildManifestStatusChange =
     this._onRebuildManifestStatusChange.event;
 
   private dbSchemaCache: Record<string, ModelNode> = {};
-  private depsInitialized = false;
+  private queues: Map<string, DBTCommandExecution[]> = new Map<
+    string,
+    DBTCommandExecution[]
+  >();
+  private queueStates: Map<string, boolean> = new Map<string, boolean>();
 
   constructor(
+    @inject(PythonEnvironment)
     private PythonEnvironment: PythonEnvironment,
-    private sourceFileWatchersFactory: SourceFileWatchersFactory,
-    private dbtProjectLogFactory: DBTProjectLogFactory,
-    private targetWatchersFactory: TargetWatchersFactory,
+    @inject("Factory<DBTProjectLog>")
+    private dbtProjectLogFactory: (
+      onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
+    ) => DBTProjectLog,
     private dbtCommandFactory: DBTCommandFactory,
     private terminal: DBTTerminal,
     private eventEmitterService: SharedStateService,
     private telemetry: TelemetryService,
-    private dbtCoreIntegrationFactory: (
-      path: Uri,
-      projectConfigDiagnostics: DiagnosticCollection,
-    ) => DBTCoreProjectIntegration,
-    private dbtCoreCommandIntegrationFactory: (
-      path: Uri,
-      projectConfigDiagnostics: DiagnosticCollection,
-    ) => DBTCoreCommandProjectIntegration,
-    private dbtCloudIntegrationFactory: (
-      path: Uri,
-    ) => DBTCloudProjectIntegration,
-    private dbtFusionCommandIntegrationFactory: (
-      path: Uri,
-    ) => DBTFusionCommandProjectIntegration,
+    private executionInfrastructure: DBTCommandExecutionInfrastructure,
+    private dbtIntegrationAdapterFactory: (
+      projectRoot: string,
+      deferConfig: DeferConfig | undefined,
+    ) => DBTProjectIntegrationAdapter,
     private altimate: AltimateRequest,
     private validationProvider: ValidationProvider,
+    private deferToProdService: DeferToProdService,
+    private altimateAuthService: AltimateAuthService,
     path: Uri,
-    projectConfig: any,
+    _projectConfig: any,
     private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
   ) {
     this.projectRoot = path;
-    this.projectConfig = projectConfig;
-
     try {
       this.validationProvider.validateCredentialsSilently();
     } catch (error) {
@@ -162,51 +161,119 @@ export class DBTProject implements Disposable {
       );
     }
 
-    this.sourceFileWatchers =
-      this.sourceFileWatchersFactory.createSourceFileWatchers(
-        this.onProjectConfigChanged,
-      );
-    this.onSourceFileChanged = this.sourceFileWatchers.onSourceFileChanged;
+    this.dbtProjectLog = this.dbtProjectLogFactory(this.onProjectConfigChanged);
 
+    // Check if dbt loom is installed for telemetry (only for core integration)
     const dbtIntegrationMode = workspace
       .getConfiguration("dbt")
       .get<string>("dbtIntegration", "core");
 
-    switch (dbtIntegrationMode) {
-      case "cloud":
-        this.dbtProjectIntegration = this.dbtCloudIntegrationFactory(
-          this.projectRoot,
+    if (dbtIntegrationMode === "core") {
+      this.isDbtLoomInstalled().then((isInstalled) => {
+        this.telemetry.setTelemetryCustomAttribute(
+          "dbtLoomInstalled",
+          `${isInstalled}`,
         );
-        break;
-      case "fusion":
-        this.dbtProjectIntegration = this.dbtFusionCommandIntegrationFactory(
-          this.projectRoot,
-        );
-        break;
-      case "corecommand":
-        this.dbtProjectIntegration = this.dbtCoreCommandIntegrationFactory(
-          this.projectRoot,
-          this.projectConfigDiagnostics,
-        );
-        break;
-      default:
-        this.dbtProjectIntegration = this.dbtCoreIntegrationFactory(
-          this.projectRoot,
-          this.projectConfigDiagnostics,
-        );
-        break;
+      });
     }
+
+    // Create the integration adapter which will handle the integration selection internally
+    this.dbtProjectIntegration = this.dbtIntegrationAdapterFactory(
+      this.projectRoot.fsPath,
+      this.getDeferConfig(),
+    );
+
+    // Set up Node.js watcher events to emit VSCode events directly
+    this.dbtProjectIntegration.on("sourceFileChanged", () => {
+      this.terminal.debug(
+        "DBTProject",
+        "Received sourceFileChanged event from Node.js file watchers",
+      );
+      this._onSourceFileChanged.fire();
+    });
+
+    this.dbtProjectIntegration.on("projectConfigChanged", () => {
+      this.terminal.debug(
+        "DBTProject",
+        "Received projectConfigChanged event from Node.js project config watcher",
+      );
+      const event = new ProjectConfigChangedEvent(this);
+      this._onProjectConfigChanged.fire(event);
+    });
+
+    this.dbtProjectIntegration.on(
+      "rebuildManifestStatusChange",
+      (status: { inProgress: boolean }) => {
+        this.terminal.debug(
+          "DBTProject",
+          `Received rebuildManifestStatusChange event: inProgress=${status.inProgress}`,
+        );
+        const event: RebuildManifestStatusChange = {
+          project: this,
+          inProgress: status.inProgress,
+        };
+        this._onRebuildManifestStatusChange.fire(event);
+      },
+    );
+
+    // Handle manifestCreated events from dbtIntegrationAdapter
+    this.dbtProjectIntegration.on(
+      "manifestCreated",
+      (parsedManifest: ParsedManifest) => {
+        this.terminal.debug(
+          "DBTProject",
+          "Received manifestCreated event from dbtIntegrationAdapter",
+        );
+        const manifestCacheEvent: ManifestCacheProjectAddedEvent = {
+          project: this,
+          nodeMetaMap: parsedManifest.nodeMetaMap,
+          macroMetaMap: parsedManifest.macroMetaMap,
+          metricMetaMap: parsedManifest.metricMetaMap,
+          sourceMetaMap: parsedManifest.sourceMetaMap,
+          graphMetaMap: parsedManifest.graphMetaMap,
+          testMetaMap: parsedManifest.testMetaMap,
+          docMetaMap: parsedManifest.docMetaMap,
+          exposureMetaMap: parsedManifest.exposureMetaMap,
+          modelDepthMap: parsedManifest.modelDepthMap,
+        };
+        this._manifestCacheEvent = manifestCacheEvent;
+        this._onManifestChanged.fire({ added: [manifestCacheEvent] });
+      },
+    );
+
+    // Handle runResultsCreated events from dbtIntegrationAdapter
+    this.dbtProjectIntegration.on(
+      "runResultsCreated",
+      (runResultsData: RunResultsEventData) => {
+        this.terminal.debug(
+          "DBTProject",
+          "Received runResultsCreated event from dbtIntegrationAdapter",
+        );
+        // Extract unique_ids for cache invalidation
+        const uniqueIds = runResultsData.results.map(
+          (result) => result.unique_id,
+        );
+
+        // Fire the VSCode event with parsed unique_ids
+        const runResultsEvent = new RunResultsEvent(this, uniqueIds);
+        this._onRunResults.fire(runResultsEvent);
+      },
+    );
+
+    // Handle diagnosticsChanged events from dbtIntegrationAdapter
+    this.dbtProjectIntegration.on("diagnosticsChanged", () => {
+      this.terminal.debug(
+        "DBTProject",
+        "Received diagnosticsChanged event from dbtIntegrationAdapter",
+      );
+      this.updateDiagnosticsInProblemsPanel();
+    });
 
     this.disposables.push(
       this.dbtProjectIntegration,
-      this.targetWatchersFactory.createTargetWatchers(
-        _onManifestChanged,
-        this._onRunResults,
-        this.onProjectConfigChanged,
-      ),
       this._onManifestChanged.event((event) => {
         const addedEvent = event.added?.find(
-          (e) => e.project.projectRoot.fsPath === this.projectRoot.fsPath,
+          (e) => e.project.projectRoot === this.projectRoot,
         );
         if (addedEvent) {
           this._manifestCacheEvent = addedEvent;
@@ -215,10 +282,8 @@ export class DBTProject implements Disposable {
       this.PythonEnvironment.onPythonEnvironmentChanged(() =>
         this.onPythonEnvironmentChanged(),
       ),
-      this.sourceFileWatchers,
-      this.projectConfigDiagnostics,
       this.onRunResults((event) => {
-        this.invalidateCacheUsingLastRun(event.file);
+        this.invalidateCacheUsingUniqueIds(event.uniqueIds || []);
       }),
     );
 
@@ -230,31 +295,34 @@ export class DBTProject implements Disposable {
     );
   }
 
-  private async invalidateCacheUsingLastRun(file: Uri) {
-    const fileContent = readFileSync(file.fsPath, "utf8").toString();
-    if (!fileContent) {
-      return;
-    }
-
+  private async isDbtLoomInstalled(): Promise<boolean> {
+    const dbtLoomThread = this.executionInfrastructure.createPythonBridge(
+      this.projectRoot.fsPath,
+    );
     try {
-      const runResults = JSON.parse(fileContent);
-      for (const n of runResults["results"]) {
-        if (n["unique_id"] in this.dbSchemaCache) {
-          delete this.dbSchemaCache[n["unique_id"]];
-        }
-      }
-    } catch (e) {
-      this.terminal.error(
-        "invalidateCacheUsingLastRun",
-        `Unable to parse run_results.json ${e}`,
-        e,
-        true,
-      );
+      await dbtLoomThread.ex`from dbt_loom import *`;
+      return true;
+    } catch (error) {
+      return false;
+    } finally {
+      await this.executionInfrastructure.closePythonBridge(dbtLoomThread);
     }
   }
 
-  public getProjectName() {
+  private invalidateCacheUsingUniqueIds(uniqueIds: string[]) {
+    for (const uniqueId of uniqueIds) {
+      if (uniqueId in this.dbSchemaCache) {
+        delete this.dbSchemaCache[uniqueId];
+      }
+    }
+  }
+
+  getProjectName() {
     return this.dbtProjectIntegration.getProjectName();
+  }
+
+  getProjectRoot() {
+    return this.projectRoot.fsPath;
   }
 
   getSelectedTarget() {
@@ -272,15 +340,12 @@ export class DBTProject implements Disposable {
         title: "Changing target...",
         cancellable: false,
       },
-      async () => {
-        await this.dbtProjectIntegration.setSelectedTarget(targetName);
-        await this.dbtProjectIntegration.applySelectedTarget();
-      },
+      () => this.dbtProjectIntegration.setSelectedTarget(targetName),
     );
   }
 
   getDBTProjectFilePath() {
-    return path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE);
+    return path.join(this.projectRoot.fsPath, DBT_PROJECT_FILE);
   }
 
   getTargetPath() {
@@ -308,7 +373,7 @@ export class DBTProject implements Disposable {
     if (!targetPath) {
       return;
     }
-    return path.join(targetPath, DBTProject.MANIFEST_FILE);
+    return path.join(targetPath, MANIFEST_FILE);
   }
 
   getCatalogPath() {
@@ -316,7 +381,7 @@ export class DBTProject implements Disposable {
     if (!targetPath) {
       return;
     }
-    return path.join(targetPath, DBTProject.CATALOG_FILE);
+    return path.join(targetPath, CATALOG_FILE);
   }
 
   getPythonBridgeStatus() {
@@ -324,10 +389,120 @@ export class DBTProject implements Disposable {
   }
 
   getAllDiagnostic(): Diagnostic[] {
-    return this.dbtProjectIntegration.getAllDiagnostic();
+    const projectURI = Uri.file(
+      path.join(this.projectRoot.fsPath, DBT_PROJECT_FILE),
+    );
+    const integrationDiagnostics =
+      this.getCurrentProjectIntegration().getDiagnostics();
+
+    // Convert diagnostic data to VSCode Diagnostics
+    const convertedDiagnostics = [
+      ...integrationDiagnostics.pythonBridgeDiagnostics.map(
+        (data) =>
+          new Diagnostic(
+            new Range(
+              data.range?.startLine || 0,
+              data.range?.startColumn || 0,
+              data.range?.endLine || 999,
+              data.range?.endColumn || 999,
+            ),
+            data.message,
+            this.mapSeverityToVSCode(data.severity),
+          ),
+      ),
+      ...integrationDiagnostics.rebuildManifestDiagnostics.map(
+        (data) =>
+          new Diagnostic(
+            new Range(
+              data.range?.startLine || 0,
+              data.range?.startColumn || 0,
+              data.range?.endLine || 999,
+              data.range?.endColumn || 999,
+            ),
+            data.message,
+            this.mapSeverityToVSCode(data.severity),
+          ),
+      ),
+      ...(integrationDiagnostics.projectConfigDiagnostics || []).map(
+        (data) =>
+          new Diagnostic(
+            new Range(
+              data.range?.startLine || 0,
+              data.range?.startColumn || 0,
+              data.range?.endLine || 999,
+              data.range?.endColumn || 999,
+            ),
+            data.message,
+            this.mapSeverityToVSCode(data.severity),
+          ),
+      ),
+    ];
+
+    return [
+      ...convertedDiagnostics,
+      ...(this.projectHealth.get(projectURI) || []),
+    ];
   }
 
-  async performDatapilotHealthcheck(args: AltimateConfigProps) {
+  private mapSeverityToVSCode(severity: string): DiagnosticSeverity {
+    switch (severity) {
+      case "error":
+        return DiagnosticSeverity.Error;
+      case "warning":
+        return DiagnosticSeverity.Warning;
+      case "info":
+        return DiagnosticSeverity.Information;
+      case "hint":
+        return DiagnosticSeverity.Hint;
+      default:
+        return DiagnosticSeverity.Error;
+    }
+  }
+
+  private convertDiagnosticDataToVSCode(data: DBTDiagnosticData): Diagnostic {
+    return new Diagnostic(
+      new Range(
+        data.range?.startLine || 0,
+        data.range?.startColumn || 0,
+        data.range?.endLine || 999,
+        data.range?.endColumn || 999,
+      ),
+      data.message,
+      this.mapSeverityToVSCode(data.severity),
+    );
+  }
+
+  updateDiagnosticsInProblemsPanel(): void {
+    const projectURI = Uri.file(
+      path.join(this.projectRoot.fsPath, DBT_PROJECT_FILE),
+    );
+    const integrationDiagnostics =
+      this.getCurrentProjectIntegration().getDiagnostics();
+
+    // Update each diagnostic collection separately
+    this.pythonBridgeDiagnostics.set(
+      projectURI,
+      integrationDiagnostics.pythonBridgeDiagnostics.map((data) =>
+        this.convertDiagnosticDataToVSCode(data),
+      ),
+    );
+
+    this.rebuildManifestDiagnostics.set(
+      projectURI,
+      integrationDiagnostics.rebuildManifestDiagnostics.map((data) =>
+        this.convertDiagnosticDataToVSCode(data),
+      ),
+    );
+
+    this.projectConfigDiagnostics.set(
+      projectURI,
+      integrationDiagnostics.projectConfigDiagnostics.map((data) =>
+        this.convertDiagnosticDataToVSCode(data),
+      ),
+    );
+  }
+
+  async performDatapilotHealthcheck(args: DataPilotHealtCheckParams) {
     const manifestPath = this.getManifestPath();
     if (!manifestPath) {
       throw new Error(
@@ -350,7 +525,7 @@ export class DBTProject implements Disposable {
         docsGenerateCommand.focus = false;
         docsGenerateCommand.logToTerminal = false;
         docsGenerateCommand.showProgress = false;
-        await this.generateDocsImmediately();
+        await this.unsafeGenerateDocsImmediately();
         healthcheckArgs.catalogPath = this.getCatalogPath();
         if (!healthcheckArgs.catalogPath) {
           throw new Error(
@@ -364,10 +539,21 @@ export class DBTProject implements Disposable {
       "Performing healthcheck",
       healthcheckArgs,
     );
-    const projectHealthcheck =
-      await this.dbtProjectIntegration.performDatapilotHealthcheck(
-        healthcheckArgs,
+    // Create isolated Python bridge for healthcheck
+    const healthCheckThread = this.executionInfrastructure.createPythonBridge(
+      this.projectRoot.fsPath,
+    );
+
+    let projectHealthcheck: ProjectHealthcheck;
+    try {
+      await healthCheckThread.ex`from dbt_utils import *`;
+      projectHealthcheck = await healthCheckThread.lock<ProjectHealthcheck>(
+        (python) =>
+          python!`to_dict(project_healthcheck(${healthcheckArgs.manifestPath}, ${healthcheckArgs.catalogPath}, ${healthcheckArgs.configPath}, ${healthcheckArgs.config}, ${this.altimate.getAIKey()}, ${this.altimate.getInstanceName()}, ${this.altimate.getAltimateUrl()}))`,
       );
+    } finally {
+      await this.executionInfrastructure.closePythonBridge(healthCheckThread);
+    }
     // temp fix: ideally datapilot should return absolute path
     for (const key in projectHealthcheck.model_insights) {
       for (const item of projectHealthcheck.model_insights[key]) {
@@ -377,44 +563,37 @@ export class DBTProject implements Disposable {
     return projectHealthcheck;
   }
 
-  async initialize() {
-    // ensure we watch all files and reflect changes
-    // This is purely vscode watchers, no need for the project to be fully initialized
-    const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
-      new RelativePattern(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
-    );
-    setupWatcherHandler(dbtProjectConfigWatcher, async () => {
-      await this.refreshProjectConfig();
-      this.rebuildManifest();
-    });
-    await this.dbtProjectIntegration.initializeProject();
-    await this.refreshProjectConfig();
-    this.rebuildManifest();
-    this.dbtProjectLog = this.dbtProjectLogFactory.createDBTProjectLog(
-      this.onProjectConfigChanged,
-    );
+  async initialize(): Promise<void> {
+    // Create command queue for this project
+    this.createQueue("all");
+
+    try {
+      await this.dbtProjectIntegration.initialize();
+    } catch (error) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "An unexpected error occured while initializing the dbt project at " +
+            this.projectRoot +
+            ": " +
+            error +
+            ".",
+        ),
+      );
+    }
 
     // ensure all watchers are cleaned up
-    this.disposables.push(
-      this.dbtProjectLog,
-      dbtProjectConfigWatcher,
-      this.onSourceFileChanged(
-        debounce(async () => {
-          this.terminal.debug(
-            "DBTProject",
-            `SourceFileChanged event fired for "${this.getProjectName()}" at ${
-              this.projectRoot
-            }`,
-          );
-          await this.rebuildManifest();
-        }, this.dbtProjectIntegration.getDebounceForRebuildManifest()),
-      ),
-    );
+    if (this.dbtProjectLog) {
+      this.disposables.push(this.dbtProjectLog);
+    }
 
     this.terminal.debug(
       "DbtProject",
       `Initialized dbt project ${this.getProjectName()} at ${this.projectRoot}`,
     );
+  }
+
+  async rebuildManifest(): Promise<void> {
+    this.dbtProjectIntegration.rebuildManifest();
   }
 
   private async onPythonEnvironmentChanged() {
@@ -427,100 +606,12 @@ export class DBTProject implements Disposable {
     await this.initialize();
   }
 
-  async refreshProjectConfig() {
-    this.terminal.debug(
-      "DBTProject",
-      `Going to refresh the project "${this.getProjectName()}" at ${
-        this.projectRoot
-      } configuration`,
-    );
-    try {
-      this.projectConfig = DBTProject.readAndParseProjectConfig(
-        this.projectRoot,
-      );
-      await this.dbtProjectIntegration.refreshProjectConfig();
-      this.projectConfigDiagnostics.clear();
-    } catch (error) {
-      if (error instanceof YAMLError) {
-        this.projectConfigDiagnostics.set(
-          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
-          [
-            new Diagnostic(
-              new Range(0, 0, 999, 999),
-              "dbt_project.yml is invalid : " + error.message,
-            ),
-          ],
-        );
-      } else if (error instanceof PythonException) {
-        this.projectConfigDiagnostics.set(
-          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
-          [
-            new Diagnostic(
-              new Range(0, 0, 999, 999),
-              "dbt configuration is invalid : " + error.exception.message,
-            ),
-          ],
-        );
-      }
-      this.terminal.debug(
-        "DBTProject",
-        `An error occurred while trying to refresh the project "${this.getProjectName()}" at ${
-          this.projectRoot
-        } configuration`,
-        error,
-      );
-      this.telemetry.sendTelemetryError("projectConfigRefreshError", error);
-    }
-    const sourcePaths = this.getModelPaths();
-    if (sourcePaths === undefined) {
-      this.terminal.debug(
-        "DBTProject",
-        "sourcePaths is not defined in project in " + this.projectRoot.fsPath,
-      );
-    }
-    const macroPaths = this.getMacroPaths();
-    if (macroPaths === undefined) {
-      this.terminal.debug(
-        "DBTProject",
-        "macroPaths is not defined in " + this.projectRoot.fsPath,
-      );
-    }
-    const seedPaths = this.getSeedPaths();
-    if (seedPaths === undefined) {
-      this.terminal.debug(
-        "DBTProject",
-        "macroPaths is not defined in " + this.projectRoot.fsPath,
-      );
-    }
-    if (sourcePaths && macroPaths && seedPaths) {
-      const event = new ProjectConfigChangedEvent(this);
-      this._onProjectConfigChanged.fire(event);
-      this.terminal.debug(
-        "DBTProject",
-        `firing ProjectConfigChanged event for the project "${this.getProjectName()}" at ${
-          this.projectRoot
-        } configuration`,
-        "targetPaths",
-        this.getTargetPath(),
-        "modelPaths",
-        this.getModelPaths(),
-        "seedPaths",
-        this.getSeedPaths(),
-        "macroPaths",
-        this.getMacroPaths(),
-        "packagesInstallPath",
-        this.getPackageInstallPath(),
-        "version",
-        this.getDBTVersion(),
-        "adapterType",
-        this.getAdapterType(),
-      );
-    } else {
-      this.terminal.warn(
-        "DBTProject",
-        "Could not send out ProjectConfigChangedEvent because project is not initialized properly. dbt path settings cannot be determined",
-      );
-    }
+  async refreshProjectConfig(): Promise<void> {
+    this.dbtProjectIntegration.refreshProjectConfig();
+  }
+
+  async parseManifest(): Promise<ParsedManifest | undefined> {
+    return await this.dbtProjectIntegration.parseManifest();
   }
 
   getAdapterType() {
@@ -530,7 +621,7 @@ export class DBTProject implements Disposable {
   findPackageName(uri: Uri): string | undefined {
     const documentPath = uri.path;
     const pathSegments = documentPath
-      .replace(new RegExp(this.projectRoot.path + "/", "g"), "")
+      .replace(new RegExp(this.projectRoot + "/", "g"), "")
       .split("/");
     const packagesInstallPath = this.getPackageInstallPath();
     if (packagesInstallPath && uri.fsPath.startsWith(packagesInstallPath)) {
@@ -546,238 +637,266 @@ export class DBTProject implements Disposable {
     );
   }
 
-  private async rebuildManifest() {
-    this.terminal.debug(
-      "DBTProject",
-      `Going to rebuild the manifest for "${this.getProjectName()}" at ${
-        this.projectRoot
-      }`,
-    );
-    this._onRebuildManifestStatusChange.fire({
-      project: this,
-      inProgress: true,
-    });
-    const installDepsOnProjectInitialization = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("installDepsOnProjectInitialization", true);
-    if (!this.depsInitialized && installDepsOnProjectInitialization) {
-      try {
-        await this.installDeps(true);
-      } catch (error: any) {
-        // this is best effort
-        console.warn("An error occured while installing dependencies", error);
-      }
-      this.depsInitialized = true;
-    }
-    await this.dbtProjectIntegration.rebuildManifest();
-    this._onRebuildManifestStatusChange.fire({
-      project: this,
-      inProgress: false,
-    });
-    this.terminal.debug(
-      "DBTProject",
-      `Finished rebuilding the manifest for "${this.getProjectName()}" at ${
-        this.projectRoot
-      }`,
-    );
-  }
-
   async runModel(runModelParams: RunModelParams) {
+    if (!this.validateIntegrationPrerequisites()) {
+      return undefined;
+    }
+
     const runModelCommand =
       this.dbtCommandFactory.createRunModelCommand(runModelParams);
 
     try {
-      const result = await this.dbtProjectIntegration.runModel(runModelCommand);
+      const command =
+        await this.getCurrentProjectIntegration().runModel(runModelCommand);
       this.telemetry.sendTelemetryEvent("runModel");
-      return result;
+      if (command) {
+        this.addCommandToQueue("all", command);
+      }
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
   }
 
   async unsafeRunModelImmediately(runModelParams: RunModelParams) {
-    const runModelCommand =
-      this.dbtCommandFactory.createRunModelCommand(runModelParams);
-    runModelCommand.showProgress = false;
-    runModelCommand.logToTerminal = false;
     this.telemetry.sendTelemetryEvent("runModel");
-    return this.dbtProjectIntegration.executeCommandImmediately(
-      runModelCommand,
-    );
+    return this.dbtProjectIntegration.unsafeRunModelImmediately(runModelParams);
   }
 
   async buildModel(runModelParams: RunModelParams) {
+    if (!this.validateIntegrationPrerequisites()) {
+      return undefined;
+    }
+
     const buildModelCommand =
       this.dbtCommandFactory.createBuildModelCommand(runModelParams);
 
     try {
-      const result =
-        await this.dbtProjectIntegration.buildModel(buildModelCommand);
+      const command =
+        await this.getCurrentProjectIntegration().buildModel(buildModelCommand);
       this.telemetry.sendTelemetryEvent("buildModel");
-      return result;
+      if (command) {
+        this.addCommandToQueue("all", command);
+      }
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
   }
 
   async unsafeBuildModelImmediately(runModelParams: RunModelParams) {
-    const buildModelCommand =
-      this.dbtCommandFactory.createBuildModelCommand(runModelParams);
-    buildModelCommand.showProgress = false;
-    buildModelCommand.logToTerminal = false;
     this.telemetry.sendTelemetryEvent("buildModel");
-    return this.dbtProjectIntegration.executeCommandImmediately(
-      buildModelCommand,
+    return this.dbtProjectIntegration.unsafeBuildModelImmediately(
+      runModelParams,
     );
   }
 
   async buildProject() {
+    if (!this.validateIntegrationPrerequisites()) {
+      return;
+    }
+
     const buildProjectCommand =
       this.dbtCommandFactory.createBuildProjectCommand();
 
     try {
-      const result =
-        await this.dbtProjectIntegration.buildProject(buildProjectCommand);
+      const command =
+        await this.getCurrentProjectIntegration().buildProject(
+          buildProjectCommand,
+        );
       this.telemetry.sendTelemetryEvent("buildProject");
-      return result;
+      if (command) {
+        this.addCommandToQueue("all", command);
+      }
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
   }
 
   async unsafeBuildProjectImmediately() {
-    const buildProjectCommand =
-      this.dbtCommandFactory.createBuildProjectCommand();
-    buildProjectCommand.showProgress = false;
-    buildProjectCommand.logToTerminal = false;
     this.telemetry.sendTelemetryEvent("buildProject");
-    return this.dbtProjectIntegration.executeCommandImmediately(
-      buildProjectCommand,
-    );
+    return this.dbtProjectIntegration.unsafeBuildProjectImmediately();
   }
 
   async runTest(testName: string) {
+    if (!this.validateIntegrationPrerequisites()) {
+      return undefined;
+    }
+
     const testModelCommand =
       this.dbtCommandFactory.createTestModelCommand(testName);
 
     try {
-      const result = await this.dbtProjectIntegration.runTest(testModelCommand);
+      const command =
+        await this.getCurrentProjectIntegration().runTest(testModelCommand);
       this.telemetry.sendTelemetryEvent("runTest");
-      return result;
+      if (command) {
+        this.addCommandToQueue("all", command);
+      }
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
   }
 
   async unsafeRunTestImmediately(testName: string) {
-    const testModelCommand =
-      this.dbtCommandFactory.createTestModelCommand(testName);
-    testModelCommand.showProgress = false;
-    testModelCommand.logToTerminal = false;
     this.telemetry.sendTelemetryEvent("runTest");
-    return this.dbtProjectIntegration.executeCommandImmediately(
-      testModelCommand,
-    );
+    return this.dbtProjectIntegration.unsafeRunTestImmediately(testName);
   }
 
   async runModelTest(modelName: string) {
+    if (!this.validateIntegrationPrerequisites()) {
+      return undefined;
+    }
+
     const testModelCommand =
       this.dbtCommandFactory.createTestModelCommand(modelName);
 
     try {
-      const result =
-        await this.dbtProjectIntegration.runModelTest(testModelCommand);
+      const command =
+        await this.getCurrentProjectIntegration().runModelTest(
+          testModelCommand,
+        );
       this.telemetry.sendTelemetryEvent("runModelTest");
-      return result;
+      if (command) {
+        this.addCommandToQueue("all", command);
+      }
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
   }
 
   async unsafeRunModelTestImmediately(modelName: string) {
-    const testModelCommand =
-      this.dbtCommandFactory.createTestModelCommand(modelName);
-    testModelCommand.showProgress = false;
-    testModelCommand.logToTerminal = false;
     this.telemetry.sendTelemetryEvent("runModelTest");
-    return this.dbtProjectIntegration.executeCommandImmediately(
-      testModelCommand,
-    );
+    return this.dbtProjectIntegration.unsafeRunModelTestImmediately(modelName);
   }
 
   private handleNoCredentialsError(error: unknown) {
     if (error instanceof NoCredentialsError) {
-      this.altimate.handlePreviewFeatures();
+      this.altimateAuthService.handlePreviewFeatures();
       return;
     }
     window.showErrorMessage((error as Error).message);
   }
 
-  compileModel(runModelParams: RunModelParams) {
-    const compileModelCommand =
-      this.dbtCommandFactory.createCompileModelCommand(runModelParams);
-    this.dbtProjectIntegration.compileModel(compileModelCommand);
-    this.telemetry.sendTelemetryEvent("compileModel");
-  }
+  private validateIntegrationPrerequisites(): boolean {
+    // Validate different prerequisites based on integration type
+    const dbtIntegrationMode = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
 
-  async generateDocsImmediately(args?: string[]) {
-    const docsGenerateCommand =
-      this.dbtCommandFactory.createDocsGenerateCommand();
-    args?.forEach((arg) => docsGenerateCommand.addArgument(arg));
-    docsGenerateCommand.focus = false;
-    docsGenerateCommand.logToTerminal = false;
-    const result =
-      await this.dbtProjectIntegration.executeCommandImmediately(
-        docsGenerateCommand,
-      );
-    if (result?.stderr) {
-      throw new Error(result.stderr);
+    switch (dbtIntegrationMode) {
+      case "cloud":
+      case "fusion":
+        // For cloud/fusion integrations, validate authentication
+        try {
+          this.validationProvider.validateCredentialsSilently();
+          return true;
+        } catch (e) {
+          window.showErrorMessage((e as Error).message);
+          return false;
+        }
+      case "core":
+      case "corecommand":
+      default:
+        // For core integrations, check if we have a proper dbt installation
+        // We'll validate through the integration's diagnostic system
+        const diagnostics =
+          this.getCurrentProjectIntegration().getDiagnostics();
+        const hasErrors = [
+          ...diagnostics.pythonBridgeDiagnostics,
+          ...diagnostics.rebuildManifestDiagnostics,
+        ].some((diagnostic) => diagnostic.severity === "error");
+
+        if (hasErrors) {
+          window.showErrorMessage(
+            "dbt installation or Python environment is not properly configured",
+          );
+          return false;
+        }
+        return true;
     }
   }
 
-  generateDocs() {
+  private requiresAuthentication(): boolean {
+    const dbtIntegrationMode = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+    return dbtIntegrationMode === "cloud";
+  }
+
+  throwIfNotAuthenticated() {
+    if (this.requiresAuthentication()) {
+      this.validationProvider.throwIfNotAuthenticated();
+    }
+  }
+
+  async compileModel(runModelParams: RunModelParams) {
+    if (!this.validateIntegrationPrerequisites()) {
+      return;
+    }
+
+    const compileModelCommand =
+      this.dbtCommandFactory.createCompileModelCommand(runModelParams);
+    const command =
+      await this.getCurrentProjectIntegration().compileModel(
+        compileModelCommand,
+      );
+    this.telemetry.sendTelemetryEvent("compileModel");
+    if (command) {
+      this.addCommandToQueue("all", command);
+    }
+  }
+
+  async unsafeCompileModelImmediately(runModelParams: RunModelParams) {
+    this.telemetry.sendTelemetryEvent("compileModel");
+    return this.dbtProjectIntegration.unsafeCompileModelImmediately(
+      runModelParams,
+    );
+  }
+
+  async unsafeGenerateDocsImmediately(args?: string[]) {
+    return this.dbtProjectIntegration.unsafeGenerateDocsImmediately(args);
+  }
+
+  async generateDocs() {
+    if (!this.validateIntegrationPrerequisites()) {
+      return;
+    }
+
     const docsGenerateCommand =
       this.dbtCommandFactory.createDocsGenerateCommand();
-    this.dbtProjectIntegration.generateDocs(docsGenerateCommand);
+    const command =
+      await this.getCurrentProjectIntegration().generateDocs(
+        docsGenerateCommand,
+      );
     this.telemetry.sendTelemetryEvent("generateDocs");
+    if (command) {
+      this.addCommandToQueue("all", command);
+    }
   }
 
   clean() {
-    const cleanCommand = this.dbtCommandFactory.createCleanCommand();
+    this.throwIfNotAuthenticated();
     this.telemetry.sendTelemetryEvent("clean");
-    return this.dbtProjectIntegration.clean(cleanCommand);
+    return this.dbtProjectIntegration.clean();
   }
 
-  debug() {
-    const debugCommand = this.dbtCommandFactory.createDebugCommand();
+  debug(focus: boolean = true) {
     this.telemetry.sendTelemetryEvent("debug");
-    return this.dbtProjectIntegration.debug(debugCommand);
+    return this.dbtProjectIntegration.debug(focus);
   }
 
   async installDbtPackages(packages: string[]) {
     this.telemetry.sendTelemetryEvent("installDbtPackages");
-    const installPackagesCommand =
-      this.dbtCommandFactory.createAddPackagesCommand(packages);
-    // Add packages first
-    await this.dbtProjectIntegration.deps(installPackagesCommand);
-    // Then install
-    return await this.dbtProjectIntegration.deps(
-      this.dbtCommandFactory.createInstallDepsCommand(),
-    );
+    return this.dbtProjectIntegration.installDbtPackages(packages);
   }
 
   async installDeps(silent = false) {
     this.telemetry.sendTelemetryEvent("installDeps");
-    const installDepsCommand =
-      this.dbtCommandFactory.createInstallDepsCommand();
-    if (silent) {
-      installDepsCommand.focus = false;
-    }
-    return this.dbtProjectIntegration.deps(installDepsCommand);
+    return this.dbtProjectIntegration.installDeps(silent);
   }
 
   async compileNode(modelName: string): Promise<string | undefined> {
     this.telemetry.sendTelemetryEvent("compileNode");
+    this.throwDiagnosticsErrorIfAvailable();
     try {
       return await this.dbtProjectIntegration.unsafeCompileNode(modelName);
     } catch (exc: any) {
@@ -815,24 +934,27 @@ export class DBTProject implements Disposable {
 
   async unsafeCompileNode(modelName: string): Promise<string | undefined> {
     this.telemetry.sendTelemetryEvent("unsafeCompileNode");
-    return await this.dbtProjectIntegration.unsafeCompileNode(modelName);
+    this.throwDiagnosticsErrorIfAvailable();
+    this.throwIfNotAuthenticated();
+    return this.dbtProjectIntegration.unsafeCompileNode(modelName);
   }
 
   async validateSql(request: { sql: string; dialect: string; models: any[] }) {
+    this.throwDiagnosticsErrorIfAvailable();
+    this.throwIfNotAuthenticated();
+    const sqlValidationThread = this.executionInfrastructure.createPythonBridge(
+      this.projectRoot.fsPath,
+    );
+    const { sql, dialect, models } = request;
     try {
-      const { sql, dialect, models } = request;
-      return this.dbtProjectIntegration.validateSql(sql, dialect, models);
-    } catch (exc) {
-      window.showErrorMessage(
-        extendErrorWithSupportLinks("Could not validate sql." + exc),
-      );
-      this.telemetry.sendTelemetryError("validateSQLError", {
-        error: exc,
-      });
+      return validateSQLUsingSqlGlot(sqlValidationThread, sql, dialect, models);
+    } finally {
+      await this.executionInfrastructure.closePythonBridge(sqlValidationThread);
     }
   }
 
   async validateSQLDryRun(query: string) {
+    this.throwIfNotAuthenticated();
     try {
       return this.dbtProjectIntegration.validateSQLDryRun(query);
     } catch (exc) {
@@ -849,7 +971,7 @@ export class DBTProject implements Disposable {
   getDBTVersion(): number[] | undefined {
     // TODO: do this when config or python env changes and cache value
     try {
-      return this.dbtProjectIntegration.getVersion();
+      return this.getCurrentProjectIntegration().getVersion();
     } catch (exc) {
       window.showErrorMessage(
         extendErrorWithSupportLinks("Could not get dbt version." + exc),
@@ -915,6 +1037,7 @@ export class DBTProject implements Disposable {
     query: string,
     originalModelName: string | undefined = undefined,
   ) {
+    this.throwIfNotAuthenticated();
     return this.dbtProjectIntegration.unsafeCompileQuery(
       query,
       originalModelName,
@@ -922,18 +1045,20 @@ export class DBTProject implements Disposable {
   }
 
   async getColumnsOfModel(modelName: string) {
+    this.throwIfNotAuthenticated();
     const result =
       await this.dbtProjectIntegration.getColumnsOfModel(modelName);
-    await this.dbtProjectIntegration.cleanupConnections();
+    await this.getCurrentProjectIntegration().cleanupConnections();
     return result;
   }
 
   async getColumnsOfSource(sourceName: string, tableName: string) {
+    this.throwIfNotAuthenticated();
     const result = await this.dbtProjectIntegration.getColumnsOfSource(
       sourceName,
       tableName,
     );
-    await this.dbtProjectIntegration.cleanupConnections();
+    await this.getCurrentProjectIntegration().cleanupConnections();
     return result;
   }
 
@@ -944,6 +1069,7 @@ export class DBTProject implements Disposable {
     );
 
     try {
+      this.throwIfNotAuthenticated();
       this.terminal.debug(
         "getColumnValues",
         "finding distinct values for column",
@@ -951,18 +1077,18 @@ export class DBTProject implements Disposable {
         { model, column },
       );
       const query = `select ${column} from {{ ref('${model}')}} group by ${column}`;
-      const queryExecution = await this.dbtProjectIntegration.executeSQL(
+      const result = (await this.dbtProjectIntegration.executeSQLWithLimit(
         query,
-        100, // setting this 100 as executeSql needs a limit and distinct values will be usually less in number
         model,
-      );
-      const result = await queryExecution.executeQuery();
+        100, // setting this 100 as executeSql needs a limit and distinct values will be usually less in number
+        true,
+      )) as QueryExecutionResult;
       this.telemetry.endTelemetryEvent(
         TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
         undefined,
         { column, model },
       );
-      return result.table.rows.flat();
+      return result.data.flat();
     } catch (error) {
       this.telemetry.endTelemetryEvent(
         TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
@@ -971,30 +1097,29 @@ export class DBTProject implements Disposable {
       );
       throw error;
     } finally {
-      await this.dbtProjectIntegration.cleanupConnections();
+      await this.getCurrentProjectIntegration().cleanupConnections();
     }
   }
 
-  async getBulkSchemaFromDB(
-    req: DBTNode[],
-    cancellationToken: CancellationToken,
-  ) {
+  async getBulkSchemaFromDB(req: DBTNode[], signal: AbortSignal) {
+    this.throwIfNotAuthenticated();
     try {
-      const result = await this.dbtProjectIntegration.getBulkSchemaFromDB(
-        req,
-        cancellationToken,
-      );
-      await this.dbtProjectIntegration.cleanupConnections();
+      const result =
+        await this.getCurrentProjectIntegration().getBulkSchemaFromDB(
+          req,
+          signal,
+        );
+      await this.getCurrentProjectIntegration().cleanupConnections();
       return result;
     } finally {
-      await this.dbtProjectIntegration.cleanupConnections();
+      await this.getCurrentProjectIntegration().cleanupConnections();
     }
   }
 
   async validateWhetherSqlHasColumns(sql: string) {
     const dialect = this.getAdapterType();
     try {
-      return await this.dbtProjectIntegration.validateWhetherSqlHasColumns(
+      return await this.getCurrentProjectIntegration().validateWhetherSqlHasColumns(
         sql,
         dialect,
       );
@@ -1007,13 +1132,14 @@ export class DBTProject implements Disposable {
       );
       return false;
     } finally {
-      await this.dbtProjectIntegration.cleanupConnections();
+      await this.getCurrentProjectIntegration().cleanupConnections();
     }
   }
 
   async getCatalog(): Promise<Catalog> {
+    this.throwIfNotAuthenticated();
     try {
-      const result = await this.dbtProjectIntegration.getCatalog();
+      const result = await this.getCurrentProjectIntegration().getCatalog();
       return result;
     } catch (exc: any) {
       if (exc instanceof PythonException) {
@@ -1038,7 +1164,7 @@ export class DBTProject implements Disposable {
       );
       return [];
     } finally {
-      await this.dbtProjectIntegration.cleanupConnections();
+      await this.getCurrentProjectIntegration().cleanupConnections();
     }
   }
 
@@ -1195,12 +1321,45 @@ export class DBTProject implements Disposable {
     );
   }
 
+  async executeSQLOnQueryPanel(query: string, modelName: string) {
+    const limit = workspace
+      .getConfiguration("dbt")
+      .get<number>("queryLimit", 500);
+    return this.executeSQLWithLimitOnQueryPanel(query, modelName, limit);
+  }
+
+  async executeSQLWithLimitOnQueryPanel(
+    query: string,
+    modelName: string,
+    limit: number,
+  ) {
+    if (limit <= 0) {
+      window.showErrorMessage("Please enter a positive number for query limit");
+      return;
+    }
+    this.terminal.info("executeSQL", "Executed query: " + query, true, {
+      adapter: this.getAdapterType(),
+      limit: limit.toString(),
+    });
+    this.eventEmitterService.fire({
+      command: "executeQuery",
+      payload: {
+        query,
+        fn: this.dbtProjectIntegration.executeSQLWithLimit(
+          query,
+          modelName,
+          limit,
+        ),
+        projectName: this.getProjectName(),
+      },
+    });
+  }
+
   async executeSQLWithLimit(
     query: string,
     modelName: string,
     limit: number,
     returnImmediately?: boolean,
-    returnRawResults?: boolean,
   ) {
     // if user added a semicolon at the end, let,s remove it.
     query = query.replace(/;\s*$/, "");
@@ -1219,71 +1378,33 @@ export class DBTProject implements Disposable {
       query = query.replace(limitRegex, "").trim();
     }
 
-    if (limit <= 0) {
-      window.showErrorMessage("Please enter a positive number for query limit");
-      return;
-    }
-    this.telemetry.sendTelemetryEvent("executeSQL", {
-      adapter: this.getAdapterType(),
-      limit: limit.toString(),
-    });
-    this.terminal.debug("executeSQL", query, {
+    this.terminal.info("executeSQL", "Executed query: " + query, true, {
       adapter: this.getAdapterType(),
       limit: limit.toString(),
     });
 
-    if (returnImmediately) {
-      const execution = await this.dbtProjectIntegration.executeSQL(
-        query,
-        limit,
-        modelName,
-      );
-      const result = await execution.executeQuery();
-      if (returnRawResults) {
-        return result;
-      }
-      const rows: JsonObj[] = [];
-      // Convert compressed array format to dict[]
-      for (let i = 0; i < result.table.rows.length; i++) {
-        result.table.rows[i].forEach((value: any, j: any) => {
-          rows[i] = { ...rows[i], [result.table.column_names[j]]: value };
-        });
-      }
-      const data = {
-        columnNames: result.table.column_names,
-        columnTypes: result.table.column_types,
-        data: rows,
-        raw_sql: query,
-        compiled_sql: result.compiled_sql,
-      };
-
-      return data;
-    }
-    this.eventEmitterService.fire({
-      command: "executeQuery",
-      payload: {
-        query,
-        fn: this.dbtProjectIntegration.executeSQL(query, limit, modelName),
-        projectName: this.getProjectName(),
-      },
-    });
-  }
-
-  executeSQL(
-    query: string,
-    modelName: string,
-    returnImmediately?: boolean,
-    returnRawResults?: boolean,
-  ) {
-    const limit = workspace
-      .getConfiguration("dbt")
-      .get<number>("queryLimit", 500);
-    return this.executeSQLWithLimit(
+    this.throwDiagnosticsErrorIfAvailable();
+    this.throwIfNotAuthenticated();
+    return this.dbtProjectIntegration.executeSQLWithLimit(
       query,
       modelName,
       limit,
       returnImmediately,
-      returnRawResults,
+    );
+  }
+
+  executeSQL(query: string, modelName: string, returnImmediately?: boolean) {
+    const limit = workspace
+      .getConfiguration("dbt")
+      .get<number>("queryLimit", 500);
+    this.terminal.info("executeSQL", "Executed query: " + query, true, {
+      adapter: this.getAdapterType(),
+      limit: limit.toString(),
+    });
+    return this.dbtProjectIntegration.executeSQL(
+      query,
+      modelName,
+      returnImmediately,
     );
   }
 
@@ -1294,23 +1415,6 @@ export class DBTProject implements Disposable {
         x.dispose();
       }
     }
-  }
-
-  static readAndParseProjectConfig(projectRoot: Uri) {
-    const dbtProjectConfigLocation = path.join(
-      projectRoot.fsPath,
-      DBTProject.DBT_PROJECT_FILE,
-    );
-    const dbtProjectYamlFile = readFileSync(dbtProjectConfigLocation, "utf8");
-    return parse(dbtProjectYamlFile, {
-      strict: false,
-      uniqueKeys: false,
-      maxAliasCount: -1,
-    });
-  }
-
-  static hashProjectRoot(projectRoot: string) {
-    return crypto.createHash("md5").update(projectRoot).digest("hex");
   }
 
   private async findModelInTargetfolder(modelPath: Uri, type: string) {
@@ -1335,209 +1439,24 @@ export class DBTProject implements Disposable {
     }
   }
 
-  static isResourceNode(resource_type: string): boolean {
-    return (
-      resource_type === DBTProject.RESOURCE_TYPE_MODEL ||
-      resource_type === DBTProject.RESOURCE_TYPE_SEED ||
-      resource_type === DBTProject.RESOURCE_TYPE_ANALYSIS ||
-      resource_type === DBTProject.RESOURCE_TYPE_SNAPSHOT
-    );
+  static isResourceNode(resourceType: string): boolean {
+    return isResourceNode(resourceType);
   }
-  static isResourceHasDbColumns(resource_type: string): boolean {
-    return (
-      resource_type === DBTProject.RESOURCE_TYPE_MODEL ||
-      resource_type === DBTProject.RESOURCE_TYPE_SEED ||
-      resource_type === DBTProject.RESOURCE_TYPE_SNAPSHOT
-    );
+
+  static isResourceHasDbColumns(resourceType: string): boolean {
+    return isResourceHasDbColumns(resourceType);
   }
 
   getNonEphemeralParents(keys: string[]): string[] {
-    if (!this._manifestCacheEvent) {
-      throw Error(
-        "No manifest has been generated. Maybe dbt project has not been parsed yet?",
-      );
-    }
-    const { nodeMetaMap, graphMetaMap } = this._manifestCacheEvent;
-    const { parents } = graphMetaMap;
-    const parentSet = new Set<string>();
-    const queue = keys;
-    const visited: Record<string, boolean> = {};
-    while (queue.length > 0) {
-      const curr = queue.shift()!;
-      if (visited[curr]) {
-        continue;
-      }
-      visited[curr] = true;
-      const parent = parents.get(curr);
-      if (!parent) {
-        continue;
-      }
-      for (const n of parent.nodes) {
-        const splits = n.key.split(".");
-        const resource_type = splits[0];
-        if (resource_type !== DBTProject.RESOURCE_TYPE_MODEL) {
-          parentSet.add(n.key);
-          continue;
-        }
-        if (
-          nodeMetaMap.lookupByUniqueId(n.key)?.config.materialized ===
-          "ephemeral"
-        ) {
-          queue.push(n.key);
-        } else {
-          parentSet.add(n.key);
-        }
-      }
-    }
-    return Array.from(parentSet);
+    return this.dbtProjectIntegration.getNonEphemeralParents(keys);
   }
 
   getChildrenModels({ table }: { table: string }): Table[] {
-    return this.getConnectedTables("children", table);
+    return this.dbtProjectIntegration.getChildrenModels({ table });
   }
 
   getParentModels({ table }: { table: string }): Table[] {
-    return this.getConnectedTables("parents", table);
-  }
-
-  private getConnectedTables(key: keyof GraphMetaMap, table: string): Table[] {
-    const event = this._manifestCacheEvent;
-    if (!event) {
-      throw Error(
-        "No manifest has been generated. Maybe dbt project has not been parsed yet?",
-      );
-    }
-    const { graphMetaMap, nodeMetaMap } = event;
-    const node = nodeMetaMap.lookupByBaseName(table);
-    if (!node) {
-      throw Error("nodeMetaMap has no entries for " + table);
-    }
-    const dependencyNodes = graphMetaMap[key];
-    const dependencyNode = dependencyNodes.get(node.uniqueId);
-    if (!dependencyNode) {
-      throw Error("graphMetaMap[" + key + "] has no entries for " + table);
-    }
-    const tables: Map<string, Table> = new Map();
-    dependencyNode.nodes.forEach(({ url, key }) => {
-      const _node = this.createTable(event, url, key);
-      if (!_node) {
-        return;
-      }
-      if (!tables.has(_node.table)) {
-        tables.set(_node.table, _node);
-      }
-    });
-    return Array.from(tables.values()).sort((a, b) =>
-      a.table.localeCompare(b.table),
-    );
-  }
-
-  private createTable(
-    event: ManifestCacheProjectAddedEvent,
-    tableUrl: string | undefined,
-    key: string,
-  ): Table | undefined {
-    const splits = key.split(".");
-    const nodeType = splits[0];
-    const { graphMetaMap, testMetaMap } = event;
-    const upstreamCount = this.getConnectedNodeCount(
-      graphMetaMap["children"],
-      key,
-    );
-    const downstreamCount = this.getConnectedNodeCount(
-      graphMetaMap["parents"],
-      key,
-    );
-    if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
-      const { sourceMetaMap } = event;
-      const schema = splits[2];
-      const table = splits[3];
-      const _node = sourceMetaMap.get(schema);
-      if (!_node) {
-        return;
-      }
-      const _table = _node.tables.find((t) => t.name === table);
-      if (!_table) {
-        return;
-      }
-      return {
-        table: key,
-        label: table,
-        url: tableUrl,
-        upstreamCount,
-        downstreamCount,
-        nodeType,
-        isExternalProject: _node.is_external_project,
-        tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
-          const testKey = n.label.split(".")[0];
-          return { ...testMetaMap.get(testKey), key: testKey };
-        }),
-        columns: _table.columns,
-        description: _table?.description,
-        packageName: _node.package_name,
-      };
-    }
-    if (nodeType === DBTProject.RESOURCE_TYPE_METRIC) {
-      return {
-        table: key,
-        label: splits[2],
-        url: tableUrl,
-        upstreamCount,
-        downstreamCount,
-        nodeType,
-        materialization: undefined,
-        tests: [],
-        columns: {},
-        isExternalProject: false,
-      };
-    }
-    const { nodeMetaMap } = event;
-
-    const table = splits[2];
-    if (nodeType === DBTProject.RESOURCE_TYPE_EXPOSURE) {
-      return {
-        table: key,
-        label: table,
-        url: tableUrl,
-        upstreamCount,
-        downstreamCount,
-        nodeType,
-        materialization: undefined,
-        tests: [],
-        columns: {},
-        isExternalProject: false,
-      };
-    }
-
-    const node = nodeMetaMap.lookupByUniqueId(key);
-    if (!node) {
-      return;
-    }
-
-    const materialization = node.config.materialized;
-    return {
-      table: key,
-      label: node.alias,
-      url: tableUrl,
-      upstreamCount,
-      downstreamCount,
-      isExternalProject: node.is_external_project,
-      nodeType,
-      materialization,
-      description: node.description,
-      columns: node.columns,
-      patchPath: node.patch_path,
-      tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
-        const testKey = n.label.split(".")[0];
-        return { ...testMetaMap.get(testKey), key: testKey };
-      }),
-      packageName: node.package_name,
-      meta: node.meta,
-    };
-  }
-
-  private getConnectedNodeCount(g: NodeGraphMap, key: string) {
-    return g.get(key)?.nodes.length || 0;
+    return this.dbtProjectIntegration.getParentModels({ table });
   }
 
   mergeColumnsFromDB(
@@ -1583,7 +1502,8 @@ export class DBTProject implements Disposable {
   }
 
   public findPackageVersion(packageName: string) {
-    const version = this.dbtProjectIntegration.findPackageVersion(packageName);
+    const version =
+      this.getCurrentProjectIntegration().findPackageVersion(packageName);
     this.terminal.debug(
       "dbtProject:findPackageVersion",
       `found ${packageName} version: ${version}`,
@@ -1591,32 +1511,31 @@ export class DBTProject implements Disposable {
     return version;
   }
 
-  async getBulkCompiledSql(
-    event: ManifestCacheProjectAddedEvent,
-    models: string[],
-  ) {
+  async getBulkCompiledSql(models: string[]) {
     if (models.length === 0) {
       return {};
     }
-    const { nodeMetaMap } = event;
-    return this.dbtProjectIntegration.getBulkCompiledSQL(
+    if (!this._manifestCacheEvent) {
+      throw new Error("The dbt manifest is not available");
+    }
+    const { nodeMetaMap } = this._manifestCacheEvent;
+    return this.getCurrentProjectIntegration().getBulkCompiledSQL(
       models
         .map((m) => nodeMetaMap.lookupByUniqueId(m))
         .filter(Boolean) as NodeMetaData[],
     );
   }
 
-  async getNodesWithDBColumns(
-    event: ManifestCacheProjectAddedEvent,
-    modelsToFetch: string[],
-    cancellationToken: CancellationToken,
-  ) {
+  async getNodesWithDBColumns(modelsToFetch: string[], signal: AbortSignal) {
     const mappedNode: Record<string, ModelNode> = {};
     const relationsWithoutColumns: string[] = [];
     if (modelsToFetch.length === 0) {
       return { mappedNode, relationsWithoutColumns, mappedCompiledSql: {} };
     }
-    const { nodeMetaMap, sourceMetaMap } = event;
+    if (!this._manifestCacheEvent) {
+      throw new Error("The dbt manifest is not available");
+    }
+    const { nodeMetaMap, sourceMetaMap } = this._manifestCacheEvent;
     const bulkSchemaRequest: DBTNode[] = [];
 
     for (const key of modelsToFetch) {
@@ -1627,7 +1546,7 @@ export class DBTProject implements Disposable {
       }
       const splits = key.split(".");
       const resource_type = splits[0];
-      if (resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {
+      if (resource_type === RESOURCE_TYPE_SOURCE) {
         const source = sourceMetaMap.get(splits[2]);
         const tableName = splits[3];
         if (!source) {
@@ -1670,20 +1589,19 @@ export class DBTProject implements Disposable {
     }
 
     const dbSchemaRequest = bulkSchemaRequest.filter(
-      (r) => r.resource_type !== DBTProject.RESOURCE_TYPE_MODEL,
+      (r) => r.resource_type !== RESOURCE_TYPE_MODEL,
     );
 
     const sqlglotSchemaRequest = bulkSchemaRequest.filter(
-      (r) => r.resource_type === DBTProject.RESOURCE_TYPE_MODEL,
+      (r) => r.resource_type === RESOURCE_TYPE_MODEL,
     );
     let startTime = Date.now();
     const sqlglotSchemaResponse = await this.getBulkCompiledSql(
-      event,
       sqlglotSchemaRequest.map((r) => r.unique_id),
     );
     const compiledSqlTime = Date.now() - startTime;
 
-    if (cancellationToken.isCancellationRequested) {
+    if (signal.aborted) {
       return {
         mappedNode,
         relationsWithoutColumns,
@@ -1703,10 +1621,11 @@ export class DBTProject implements Disposable {
       }
 
       try {
-        const columns = await this.dbtProjectIntegration.fetchSqlglotSchema(
-          sqlglotSchemaResponse[r.unique_id],
-          dialect,
-        );
+        const columns =
+          await this.getCurrentProjectIntegration().fetchSqlglotSchema(
+            sqlglotSchemaResponse[r.unique_id],
+            dialect,
+          );
         sqlglotSchemas[r.unique_id] = columns.map((c) => ({
           column: c,
           dtype: "string",
@@ -1723,7 +1642,7 @@ export class DBTProject implements Disposable {
     }
     const sqlglotSchemaTime = Date.now() - startTime;
 
-    if (cancellationToken.isCancellationRequested) {
+    if (signal.aborted) {
       return {
         mappedNode,
         relationsWithoutColumns,
@@ -1733,9 +1652,9 @@ export class DBTProject implements Disposable {
 
     startTime = Date.now();
     const dbSchemaResponse =
-      await this.dbtProjectIntegration.getBulkSchemaFromDB(
+      await this.getCurrentProjectIntegration().getBulkSchemaFromDB(
         dbSchemaRequest,
-        cancellationToken,
+        signal,
       );
     const dbFetchTime = Date.now() - startTime;
 
@@ -1782,10 +1701,125 @@ export class DBTProject implements Disposable {
   }
 
   async applyDeferConfig(): Promise<void> {
-    await this.dbtProjectIntegration.applyDeferConfig();
+    const deferConfig = this.getDeferConfig();
+    await this.getCurrentProjectIntegration().applyDeferConfig(deferConfig);
   }
 
   throwDiagnosticsErrorIfAvailable() {
-    this.dbtProjectIntegration.throwDiagnosticsErrorIfAvailable();
+    // Check integration diagnostics
+    const integrationDiagnostics =
+      this.getCurrentProjectIntegration().getDiagnostics();
+    const allIntegrationDiagnostics = [
+      ...integrationDiagnostics.pythonBridgeDiagnostics,
+      ...integrationDiagnostics.rebuildManifestDiagnostics,
+    ];
+
+    for (const diagnostic of allIntegrationDiagnostics) {
+      if (diagnostic.severity === "error") {
+        throw new Error(diagnostic.message);
+      }
+    }
+
+    // Check VSCode diagnostic collections
+    const vscodeCollections: DiagnosticCollection[] = [
+      this.projectHealth,
+      this.pythonBridgeDiagnostics,
+      this.rebuildManifestDiagnostics,
+      this.projectConfigDiagnostics,
+    ];
+
+    for (const diagnosticCollection of vscodeCollections) {
+      for (const [_, diagnostics] of diagnosticCollection) {
+        const error = diagnostics.find(
+          (diagnostic) => diagnostic.severity === DiagnosticSeverity.Error,
+        );
+        if (error) {
+          throw new Error(error.message);
+        }
+      }
+    }
+  }
+
+  private getDeferConfig(): DeferConfig | undefined {
+    const relativePath = getProjectRelativePath(this.projectRoot);
+    const currentConfig: Record<string, DeferConfig> =
+      this.deferToProdService.getDeferConfigByWorkspace();
+    if (currentConfig[relativePath]) {
+      const config = currentConfig[relativePath];
+      return {
+        deferToProduction: config.deferToProduction,
+        manifestPathForDeferral: config.manifestPathForDeferral,
+        favorState: config.favorState,
+      };
+    }
+  }
+
+  private createQueue(queueName: string) {
+    this.queues.set(queueName, []);
+  }
+
+  private addCommandToQueue(queueName: string, command: DBTCommand): void {
+    this.queues.get(queueName)!.push({
+      command: async (signal) => {
+        await command.execute(signal);
+      },
+      statusMessage: command.statusMessage,
+      focus: command.focus,
+      signal: command.signal,
+      showProgress: command.showProgress,
+    });
+    this.pickCommandToRun(queueName);
+  }
+
+  private async pickCommandToRun(queueName: string): Promise<void> {
+    const queue = this.queues.get(queueName)!;
+    const running = this.queueStates.get(queueName);
+    if (!running && queue.length > 0) {
+      this.queueStates.set(queueName, true);
+      const { command, statusMessage, focus, showProgress } = queue.shift()!;
+      const commandExecution = async (signal?: AbortSignal) => {
+        try {
+          await command(signal);
+        } catch (error) {
+          if (error instanceof NoCredentialsError) {
+            this.altimateAuthService.handlePreviewFeatures();
+            return;
+          }
+          window.showErrorMessage(
+            extendErrorWithSupportLinks(
+              `Could not run command '${statusMessage}': ` + error + ".",
+            ),
+          );
+          this.telemetry.sendTelemetryError("queueRunCommandError", error, {
+            command: statusMessage,
+          });
+        }
+      };
+
+      if (showProgress) {
+        await window.withProgress(
+          {
+            location: focus
+              ? ProgressLocation.Notification
+              : ProgressLocation.Window,
+            cancellable: true,
+            title: statusMessage,
+          },
+          async (_, token) => {
+            const abortController = new AbortController();
+            token.onCancellationRequested(() => abortController.abort());
+            await commandExecution(abortController.signal);
+          },
+        );
+      } else {
+        await commandExecution();
+      }
+      this.queueStates.set(queueName, false);
+      this.pickCommandToRun(queueName);
+    }
+  }
+
+  private getCurrentProjectIntegration(): DBTProjectIntegration {
+    return this.dbtProjectIntegration.getCurrentProjectIntegration();
   }
 }

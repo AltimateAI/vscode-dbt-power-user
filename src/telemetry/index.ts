@@ -1,8 +1,6 @@
 import TelemetryReporter from "@vscode/extension-telemetry";
 import * as vscode from "vscode";
-import { provideSingleton } from "../utils";
 
-@provideSingleton(TelemetryService)
 export class TelemetryService implements vscode.Disposable {
   private customAttributes: { [key: string]: string } = {};
   private telemetryReporter: TelemetryReporter = new TelemetryReporter(

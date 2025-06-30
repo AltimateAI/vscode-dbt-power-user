@@ -1,7 +1,7 @@
-import * as path from "path";
 import * as fs from "fs";
-import { createInstrumenter } from "istanbul-lib-instrument";
 import { createCoverageMap } from "istanbul-lib-coverage";
+import { createInstrumenter } from "istanbul-lib-instrument";
+import * as path from "path";
 
 const coverageMap = createCoverageMap({});
 const instrumenter = createInstrumenter({

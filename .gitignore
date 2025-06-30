@@ -10,6 +10,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.claude
 
 # Build and dependencies
 src/lib/notebooks/

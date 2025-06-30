@@ -1,15 +1,12 @@
+import { DBTConfiguration, DBTTerminal } from "@altimateai/dbt-integration";
 import {
-  expect,
-  describe,
-  it,
-  beforeEach,
   afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
   jest,
 } from "@jest/globals";
-import { TelemetryService } from "../../telemetry";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
-import { PythonEnvironment } from "../../manifest/pythonEnvironment";
-import { window, workspace, ConfigurationTarget } from "vscode";
 import { AltimateRequest } from "../../altimate";
 
 type FetchFn = (
@@ -18,11 +15,8 @@ type FetchFn = (
 ) => Promise<Response>;
 
 describe("AltimateRequest Tests", () => {
-  let mockTelemetry: jest.Mocked<TelemetryService>;
   let mockTerminal: jest.Mocked<DBTTerminal>;
-  let mockPythonEnv: jest.Mocked<PythonEnvironment>;
-  let mockWorkspaceConfig: ReturnType<typeof jest.spyOn>;
-  let mockWindowMessage: ReturnType<typeof jest.spyOn>;
+  let mockDBTConfiguration: jest.Mocked<DBTConfiguration>;
   let request: AltimateRequest;
   const fetchMock = jest.fn() as jest.MockedFunction<FetchFn>;
   jest.mock("node-fetch", () => ({
@@ -31,15 +25,6 @@ describe("AltimateRequest Tests", () => {
   }));
 
   beforeEach(() => {
-    mockTelemetry = {
-      sendTelemetryEvent: jest.fn(),
-      sendTelemetryError: jest.fn(),
-      setTelemetryCustomAttribute: jest.fn(),
-      startTelemetryEvent: jest.fn(),
-      endTelemetryEvent: jest.fn(),
-      dispose: jest.fn(),
-    } as unknown as jest.Mocked<TelemetryService>;
-
     mockTerminal = {
       show: jest.fn(),
       log: jest.fn(),
@@ -55,15 +40,26 @@ describe("AltimateRequest Tests", () => {
       warn: jest.fn(),
     } as unknown as jest.Mocked<DBTTerminal>;
 
-    mockPythonEnv = {
-      pythonPath: "/path/to/python",
-      environmentVariables: { PATH: "/some/path" },
-      allPythonPaths: [],
-      isPython3: true,
-      dispose: jest.fn(),
-      printEnvVars: jest.fn(),
-      getResolvedConfigValue: jest.fn(),
-    } as unknown as jest.Mocked<PythonEnvironment>;
+    mockDBTConfiguration = {
+      getDbtCustomRunnerImport: jest
+        .fn()
+        .mockReturnValue("from dbt.cli.main import dbtRunner"),
+      getDbtIntegration: jest.fn().mockReturnValue("core"),
+      getRunModelCommandAdditionalParams: jest.fn().mockReturnValue([]),
+      getBuildModelCommandAdditionalParams: jest.fn().mockReturnValue([]),
+      getTestModelCommandAdditionalParams: jest.fn().mockReturnValue([]),
+      getQueryTemplate: jest
+        .fn()
+        .mockReturnValue("select * from ({query}) as query limit {limit}"),
+      getQueryLimit: jest.fn().mockReturnValue(500),
+      getEnableNotebooks: jest.fn().mockReturnValue(false),
+      getDisableQueryHistory: jest.fn().mockReturnValue(false),
+      getWorkingDirectory: jest.fn().mockReturnValue("/test/workspace"),
+      getAltimateUrl: jest.fn().mockReturnValue("https://api.myaltimate.com"),
+      getIsLocalMode: jest.fn().mockReturnValue(false),
+      getAltimateInstanceName: jest.fn().mockReturnValue("test-instance"),
+      getAltimateAiKey: jest.fn().mockReturnValue("test-key"),
+    } as unknown as jest.Mocked<DBTConfiguration>;
 
     const mockConfig = {
       get: jest
@@ -79,20 +75,23 @@ describe("AltimateRequest Tests", () => {
       update: jest.fn().mockReturnValue(Promise.resolve()),
     };
 
-    mockWorkspaceConfig = jest
-      .spyOn(workspace, "getConfiguration")
-      .mockImplementation((section?: string) => {
-        if (section === "dbt") {
-          return mockConfig as any;
-        }
-        return mockConfig as any;
-      });
+    const mockAltimateHttpClient = {
+      fetch: jest.fn(),
+      fetchAsStream: jest.fn(),
+      uploadToS3: jest.fn(),
+      getConfig: jest
+        .fn()
+        .mockReturnValue({ key: "test-key", instance: "test-instance" }),
+      getAltimateUrl: jest.fn().mockReturnValue("https://api.altimate.ai"),
+      throwIfLocalMode: jest.fn(),
+      internalFetch: fetchMock,
+    };
 
-    mockWindowMessage = jest
-      .spyOn(window, "showInformationMessage")
-      .mockResolvedValue("Yes" as any);
-
-    request = new AltimateRequest(mockTelemetry, mockTerminal, mockPythonEnv);
+    request = new AltimateRequest(
+      mockTerminal,
+      mockDBTConfiguration,
+      mockAltimateHttpClient as any,
+    );
   });
 
   afterEach(() => {
@@ -100,117 +99,44 @@ describe("AltimateRequest Tests", () => {
   });
 
   it("should handle authentication check", async () => {
-    mockPythonEnv.getResolvedConfigValue.mockImplementation((key: string) => {
-      if (key === "altimateAiKey") {
-        return "test-key";
-      }
-      if (key === "altimateInstanceName") {
-        return "test-instance";
-      }
-      return "";
-    });
-    const mockResponse = new Response(JSON.stringify({ status: "ok" }), {
-      status: 200,
-      statusText: "OK",
-      headers: { "Content-Type": "application/json" },
-    });
-    fetchMock.mockResolvedValue(mockResponse);
+    // Mock the fetch method on AltimateHttpClient to resolve successfully
+    const mockAltimateHttpClient = (request as any).altimateHttpClient;
+    mockAltimateHttpClient.fetch.mockResolvedValue(undefined);
 
     const result = await request.isAuthenticated();
     expect(result).toBe(true);
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("/auth_health"),
-      expect.objectContaining({
+    expect(mockAltimateHttpClient.fetch).toHaveBeenCalledWith(
+      "auth_health",
+      {
         method: "POST",
-        headers: expect.objectContaining({
-          "Content-Type": "application/json",
-        }),
-      }),
+      },
+      120000,
     );
   });
 
   it("should handle stream responses", async () => {
-    mockPythonEnv.getResolvedConfigValue
-      .mockReturnValueOnce("test-key") // altimateAiKey
-      .mockReturnValueOnce("test-instance"); // altimateInstanceName
-
-    const stream = new ReadableStream({
-      start(controller) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode('{"status": "success"}');
-        controller.enqueue(data);
-        controller.close();
-      },
-    });
-
-    const mockResponse = new Response(stream, {
-      status: 200,
-      statusText: "OK",
-      headers: { "Content-Type": "application/json" },
-    });
-    fetchMock.mockResolvedValue(mockResponse);
-
+    const mockAltimateHttpClient = (request as any).altimateHttpClient;
     const onProgress = jest.fn();
-    await request.fetchAsStream("/test-endpoint", { test: true }, onProgress);
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("/test-endpoint"),
-      expect.objectContaining({
-        method: "POST",
-        headers: expect.objectContaining({
-          "Content-Type": "application/json",
-          "x-tenant": "test-instance",
-          Authorization: "Bearer test-key",
-        }),
-        body: JSON.stringify({ test: true }),
-      }),
+    mockAltimateHttpClient.fetchAsStream.mockResolvedValue(
+      '{"status": "success"}',
     );
 
-    expect(onProgress).toHaveBeenCalledTimes(1);
-    expect(onProgress).toHaveBeenCalledWith(expect.stringContaining("success"));
-  });
+    const result = await request.fetchAsStream(
+      "/test-endpoint",
+      { test: true },
+      onProgress,
+    );
 
-  it("should return correct credential messages", () => {
-    mockPythonEnv.getResolvedConfigValue
-      .mockReturnValueOnce("")
-      .mockReturnValueOnce("");
-    expect(request.getCredentialsMessage()).toContain("API Key");
+    expect(mockAltimateHttpClient.fetchAsStream).toHaveBeenCalledWith(
+      "/test-endpoint",
+      { test: true },
+      onProgress,
+      120000,
+    );
 
-    mockPythonEnv.getResolvedConfigValue
-      .mockReset()
-      .mockImplementation((key: string) =>
-        key === "altimateAiKey" ? "" : "inst",
-      );
-    expect(request.getCredentialsMessage()).toContain("API key");
-
-    mockPythonEnv.getResolvedConfigValue
-      .mockReset()
-      .mockImplementation((key: string) =>
-        key === "altimateInstanceName" ? "" : "key",
-      );
-    expect(request.getCredentialsMessage()).toContain("instance name");
-
-    mockPythonEnv.getResolvedConfigValue.mockReset().mockReturnValue("set");
-    expect(request.getCredentialsMessage()).toBeUndefined();
-  });
-
-  it("should handle preview features flow", () => {
-    const spy = jest
-      .spyOn(request as any, "showAPIKeyMessage")
-      .mockResolvedValue(undefined as any);
-    mockPythonEnv.getResolvedConfigValue
-      .mockReturnValueOnce("")
-      .mockReturnValueOnce("");
-
-    const result = request.handlePreviewFeatures();
-    expect(result).toBe(false);
-    expect(spy).toHaveBeenCalled();
-
-    spy.mockClear();
-    mockPythonEnv.getResolvedConfigValue.mockReturnValue("set");
-    expect(request.handlePreviewFeatures()).toBe(true);
-    expect(spy).not.toHaveBeenCalled();
+    expect(result).toBe('{"status": "success"}');
   });
 
   it("should generate query strings", () => {
@@ -221,19 +147,24 @@ describe("AltimateRequest Tests", () => {
   });
 
   it("should respect local mode configuration", () => {
-    mockWorkspaceConfig.mockImplementation((section?: string) => {
-      const cfg = {
-        get: jest.fn((key: string) =>
-          key === "isLocalMode" ? true : undefined,
-        ),
-      } as any;
-      return cfg;
-    });
+    const mockAltimateHttpClient = (request as any).altimateHttpClient;
+
+    // Mock AltimateHttpClient to throw for unsupported endpoints
+    mockAltimateHttpClient.throwIfLocalMode.mockImplementation(
+      (endpoint: string) => {
+        if (endpoint === "unsupported") {
+          throw new Error(
+            "Cannot use unsupported in local mode. Please switch to cloud mode in settings.",
+          );
+        }
+      },
+    );
+
     expect(() =>
       (request as any).throwIfLocalMode("auth_health"),
     ).not.toThrow();
     expect(() => (request as any).throwIfLocalMode("unsupported")).toThrow(
-      /not supported/,
+      /local mode/,
     );
   });
 });

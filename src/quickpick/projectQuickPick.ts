@@ -1,6 +1,5 @@
-import { QuickPickItem, Uri, commands, window } from "vscode";
+import { QuickPickItem, Uri, window } from "vscode";
 import { DBTProject } from "../manifest/dbtProject";
-import { provideSingleton } from "../utils";
 
 export interface ProjectQuickPickItem extends QuickPickItem {
   label: string;
@@ -8,7 +7,6 @@ export interface ProjectQuickPickItem extends QuickPickItem {
   uri: Uri;
 }
 
-@provideSingleton(ProjectQuickPick)
 export class ProjectQuickPick {
   async projectPicker(
     projects: DBTProject[],

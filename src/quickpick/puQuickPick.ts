@@ -1,16 +1,14 @@
 import {
+  commands,
   Disposable,
   QuickPickItem,
   QuickPickItemKind,
   ThemeIcon,
   Uri,
-  commands,
   window,
   workspace,
 } from "vscode";
-import { provideSingleton } from "../utils";
 
-@provideSingleton(DbtPowerUserControlCenterAction)
 export class DbtPowerUserControlCenterAction {
   async openPuQuickPick() {
     const disposables: Disposable[] = [];

@@ -1,10 +1,8 @@
+import { RESOURCE_TYPE_MODEL } from "@altimateai/dbt-integration";
 import { Diagnostic, DiagnosticSeverity, Range } from "vscode";
 import { ScanContext } from "./scanContext";
 import { AltimateScanStep } from "./step";
-import { provideSingleton } from "../../utils";
-import { DBTProject } from "../../manifest/dbtProject";
 
-@provideSingleton(MissingSchemaTest)
 export class MissingSchemaTest implements AltimateScanStep {
   public async run(scanContext: ScanContext) {
     const {
@@ -21,7 +19,7 @@ export class MissingSchemaTest implements AltimateScanStep {
       // blacklisting node types.. should we instead whitelist just models and sources?
       if (
         // TODO - need to filter out only models here but the resource type isnt available
-        !value.uniqueId.startsWith(DBTProject.RESOURCE_TYPE_MODEL) ||
+        !value.uniqueId.startsWith(RESOURCE_TYPE_MODEL) ||
         value.config.materialized === "seed" ||
         value.config.materialized === "ephemeral"
       ) {

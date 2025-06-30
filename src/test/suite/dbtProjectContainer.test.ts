@@ -1,21 +1,22 @@
+import { DBTTerminal, EnvironmentVariables } from "@altimateai/dbt-integration";
 import {
-  expect,
-  describe,
-  it,
-  beforeEach,
   afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
   jest,
 } from "@jest/globals";
-import { DBTClient } from "../../dbt_client";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
-import { AltimateDatapilot } from "../../dbt_client/datapilot";
+import { EventEmitter, WorkspaceFolder } from "vscode";
 import { AltimateRequest } from "../../altimate";
-import { DBTProjectContainer } from "../../manifest/dbtProjectContainer";
+import { DBTClient } from "../../dbt_client";
+import { AltimateDatapilot } from "../../dbt_client/datapilot";
+import {
+  DBTProjectContainer,
+  ProjectRegisteredUnregisteredEvent,
+} from "../../manifest/dbtProjectContainer";
 import { DBTWorkspaceFolder } from "../../manifest/dbtWorkspaceFolder";
-import { EventEmitter, Uri, WorkspaceFolder } from "vscode";
 import { ManifestCacheChangedEvent } from "../../manifest/event/manifestCacheChangedEvent";
-import { ProjectRegisteredUnregisteredEvent } from "../../manifest/dbtProjectContainer";
-import { EnvironmentVariables } from "../../domain";
 
 describe("DBTProjectContainer Tests", () => {
   let container: DBTProjectContainer;
@@ -23,7 +24,6 @@ describe("DBTProjectContainer Tests", () => {
   let mockDbtTerminal: jest.Mocked<DBTTerminal>;
   let mockAltimateDatapilot: jest.Mocked<AltimateDatapilot>;
   let mockAltimateRequest: jest.Mocked<AltimateRequest>;
-  let mockWorkspaceFolder: WorkspaceFolder;
   let mockDbtWorkspaceFolder: jest.Mocked<DBTWorkspaceFolder>;
 
   const createMockDbtWorkspaceFolder = (
@@ -68,12 +68,6 @@ describe("DBTProjectContainer Tests", () => {
       isAuthenticated: jest.fn(),
       validateCredentials: jest.fn(),
     } as unknown as jest.Mocked<AltimateRequest>;
-
-    mockWorkspaceFolder = {
-      uri: Uri.file("/test/workspace"),
-      name: "test",
-      index: 0,
-    };
 
     mockDbtWorkspaceFolder = {
       dispose: jest.fn(),

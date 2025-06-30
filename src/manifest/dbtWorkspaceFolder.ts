@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "fs";
-import { inject, postConstruct } from "inversify";
+import { inject } from "inversify";
 import * as path from "path";
 import {
   Diagnostic,
@@ -7,24 +7,28 @@ import {
   EventEmitter,
   FileSystemWatcher,
   languages,
+  Range,
   RelativePattern,
   Uri,
-  Range,
   window,
   workspace,
   WorkspaceFolder,
 } from "vscode";
+import { YAMLError } from "yaml";
+import { TelemetryService } from "../telemetry";
 import { DBTProject } from "./dbtProject";
+import { ProjectRegisteredUnregisteredEvent } from "./dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   RebuildManifestStatusChange,
 } from "./event/manifestCacheChangedEvent";
-import { TelemetryService } from "../telemetry";
-import { YAMLError } from "yaml";
-import { ProjectRegisteredUnregisteredEvent } from "./dbtProjectContainer";
 
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { DBTProjectDetection } from "src/dbt_client/dbtIntegration";
+import {
+  DBTProjectDetection,
+  DBTTerminal,
+  DBT_PROJECT_FILE,
+  readAndParseProjectConfig,
+} from "@altimateai/dbt-integration";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
@@ -36,7 +40,6 @@ export class DBTWorkspaceFolder implements Disposable {
     new EventEmitter<RebuildManifestStatusChange>();
   readonly onRebuildManifestStatusChange =
     this._onRebuildManifestStatusChange.event;
-  private dbtProjectDetection: DBTProjectDetection | undefined;
 
   constructor(
     @inject("DBTProjectFactory")
@@ -48,6 +51,7 @@ export class DBTWorkspaceFolder implements Disposable {
     @inject("Factory<DBTProjectDetection>")
     private dbtProjectDetectionFactory: () => DBTProjectDetection,
     private telemetry: TelemetryService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     public workspaceFolder: WorkspaceFolder,
     private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
@@ -122,10 +126,7 @@ export class DBTWorkspaceFolder implements Disposable {
     const dbtProjectFiles = await this.retryWithBackoff(
       () =>
         workspace.findFiles(
-          new RelativePattern(
-            this.workspaceFolder,
-            `**/${DBTProject.DBT_PROJECT_FILE}`,
-          ),
+          new RelativePattern(this.workspaceFolder, `**/${DBT_PROJECT_FILE}`),
           new RelativePattern(this.workspaceFolder, excludePattern),
         ),
       5,
@@ -176,8 +177,14 @@ export class DBTWorkspaceFolder implements Disposable {
 
     const filteredProjects =
       await this.dbtProjectDetectionFactory().discoverProjects(
-        projectDirectories,
+        projectDirectories.map((uri) => uri.fsPath),
       );
+
+    if (filteredProjects.length > 20) {
+      window.showWarningMessage(
+        `dbt Power User detected ${filteredProjects.length} projects in your workspace, this will negatively affect performance.`,
+      );
+    }
 
     this.dbtTerminal.info(
       "discoverProjects",
@@ -187,8 +194,8 @@ export class DBTWorkspaceFolder implements Disposable {
     );
 
     await Promise.all(
-      filteredProjects.map(async (uri) => {
-        await this.registerDBTProject(uri);
+      filteredProjects.map(async (projectPath) => {
+        await this.registerDBTProject(Uri.file(projectPath));
       }),
     );
   }
@@ -228,7 +235,7 @@ export class DBTWorkspaceFolder implements Disposable {
 
   private async registerDBTProject(uri: Uri) {
     try {
-      const projectConfig = DBTProject.readAndParseProjectConfig(uri);
+      const projectConfig = readAndParseProjectConfig(uri.fsPath);
       const dbtProject = this.dbtProjectFactory(
         uri,
         projectConfig,
@@ -259,7 +266,7 @@ export class DBTWorkspaceFolder implements Disposable {
       );
       if (error instanceof YAMLError) {
         this.projectDiscoveryDiagnostics.set(
-          Uri.joinPath(uri, DBTProject.DBT_PROJECT_FILE),
+          Uri.joinPath(uri, DBT_PROJECT_FILE),
           [new Diagnostic(new Range(0, 0, 999, 999), error.message)],
         );
       }
@@ -288,10 +295,7 @@ export class DBTWorkspaceFolder implements Disposable {
 
   private createConfigWatcher(): FileSystemWatcher {
     const watcher = workspace.createFileSystemWatcher(
-      new RelativePattern(
-        this.workspaceFolder,
-        `**/${DBTProject.DBT_PROJECT_FILE}`,
-      ),
+      new RelativePattern(this.workspaceFolder, `**/${DBT_PROJECT_FILE}`),
     );
 
     const dirName = (uri: Uri) => Uri.file(path.dirname(uri.fsPath));
