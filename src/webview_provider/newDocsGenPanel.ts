@@ -190,7 +190,7 @@ export class NewDocsGenPanel
 
         break;
 
-      case "getCurrentModelDocumentation":
+      case "getCurrentModelDocumentation": {
         if (!this._panel) {
           return;
         }
@@ -208,6 +208,7 @@ export class NewDocsGenPanel
             .get<boolean>("enableCollaboration", false),
         });
         break;
+      }
 
       case "getColumnsOfSources":
         this.handleSyncRequestFromWebview(
