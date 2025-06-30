@@ -64,7 +64,10 @@ const config = {
       patterns: [
         {
           from: path.resolve(__dirname, "altimate_notebook_kernel.py"),
-          to: "altimate_notebook_kernel.py",
+          to: path.resolve(
+            __dirname,
+            "dist/altimate_python_packages/altimate_notebook_kernel.py",
+          ),
         },
         // Development: use local Python files (same as webpack and tsconfig)
         // {
@@ -101,28 +104,37 @@ const config = {
             __dirname,
             "node_modules/@altimateai/dbt-integration/dist/node_python_bridge.py",
           ),
-          to: "node_python_bridge.py",
+          to: path.resolve(__dirname, "dist/node_python_bridge.py"),
         },
         {
           from: path.resolve(
             __dirname,
             "node_modules/@altimateai/dbt-integration/dist/altimate_python_packages/dbt_core_integration.py",
           ),
-          to: "dbt_core_integration.py",
+          to: path.resolve(
+            __dirname,
+            "dist/altimate_python_packages/dbt_core_integration.py",
+          ),
         },
         {
           from: path.resolve(
             __dirname,
             "node_modules/@altimateai/dbt-integration/dist/altimate_python_packages/dbt_utils.py",
           ),
-          to: "dbt_utils.py",
+          to: path.resolve(
+            __dirname,
+            "dist/altimate_python_packages/dbt_utils.py",
+          ),
         },
         {
           from: path.resolve(
             __dirname,
             "node_modules/@altimateai/dbt-integration/dist/altimate_python_packages/altimate_packages/",
           ),
-          to: "altimate_packages/",
+          to: path.resolve(
+            __dirname,
+            "dist/altimate_python_packages/altimate_packages/",
+          ),
         },
       ],
     }),

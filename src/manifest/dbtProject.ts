@@ -15,6 +15,7 @@ import {
   DBTNode,
   DBTProjectIntegration,
   DBTProjectIntegrationAdapter,
+  DBTProjectIntegrationAdapterEvents,
   DBTTerminal,
   DBT_PROJECT_FILE,
   DeferConfig,
@@ -185,25 +186,31 @@ export class DBTProject implements Disposable, DBTFacade {
     );
 
     // Set up Node.js watcher events to emit VSCode events directly
-    this.dbtProjectIntegration.on("sourceFileChanged", () => {
-      this.terminal.debug(
-        "DBTProject",
-        "Received sourceFileChanged event from Node.js file watchers",
-      );
-      this._onSourceFileChanged.fire();
-    });
-
-    this.dbtProjectIntegration.on("projectConfigChanged", () => {
-      this.terminal.debug(
-        "DBTProject",
-        "Received projectConfigChanged event from Node.js project config watcher",
-      );
-      const event = new ProjectConfigChangedEvent(this);
-      this._onProjectConfigChanged.fire(event);
-    });
+    this.dbtProjectIntegration.on(
+      DBTProjectIntegrationAdapterEvents.SOURCE_FILE_CHANGED,
+      () => {
+        this.terminal.debug(
+          "DBTProject",
+          "Received sourceFileChanged event from Node.js file watchers",
+        );
+        this._onSourceFileChanged.fire();
+      },
+    );
 
     this.dbtProjectIntegration.on(
-      "rebuildManifestStatusChange",
+      DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED,
+      () => {
+        this.terminal.debug(
+          "DBTProject",
+          "Received projectConfigChanged event from Node.js project config watcher",
+        );
+        const event = new ProjectConfigChangedEvent(this);
+        this._onProjectConfigChanged.fire(event);
+      },
+    );
+
+    this.dbtProjectIntegration.on(
+      DBTProjectIntegrationAdapterEvents.REBUILD_MANIFEST_STATUS_CHANGE,
       (status: { inProgress: boolean }) => {
         this.terminal.debug(
           "DBTProject",
@@ -219,11 +226,11 @@ export class DBTProject implements Disposable, DBTFacade {
 
     // Handle manifestCreated events from dbtIntegrationAdapter
     this.dbtProjectIntegration.on(
-      "manifestCreated",
+      DBTProjectIntegrationAdapterEvents.MANIFEST_PARSED,
       (parsedManifest: ParsedManifest) => {
         this.terminal.debug(
           "DBTProject",
-          "Received manifestCreated event from dbtIntegrationAdapter",
+          "Received manifestParsed event from dbtIntegrationAdapter",
         );
         const manifestCacheEvent: ManifestCacheProjectAddedEvent = {
           project: this,
@@ -244,11 +251,11 @@ export class DBTProject implements Disposable, DBTFacade {
 
     // Handle runResultsCreated events from dbtIntegrationAdapter
     this.dbtProjectIntegration.on(
-      "runResultsCreated",
+      DBTProjectIntegrationAdapterEvents.RUN_RESULTS_PARSED,
       (runResultsData: RunResultsEventData) => {
         this.terminal.debug(
           "DBTProject",
-          "Received runResultsCreated event from dbtIntegrationAdapter",
+          "Received runResultsParsed event from dbtIntegrationAdapter",
         );
         // Extract unique_ids for cache invalidation
         const uniqueIds = runResultsData.results.map(
@@ -262,13 +269,16 @@ export class DBTProject implements Disposable, DBTFacade {
     );
 
     // Handle diagnosticsChanged events from dbtIntegrationAdapter
-    this.dbtProjectIntegration.on("diagnosticsChanged", () => {
-      this.terminal.debug(
-        "DBTProject",
-        "Received diagnosticsChanged event from dbtIntegrationAdapter",
-      );
-      this.updateDiagnosticsInProblemsPanel();
-    });
+    this.dbtProjectIntegration.on(
+      DBTProjectIntegrationAdapterEvents.DIAGNOSTICS_CHANGED,
+      () => {
+        this.terminal.debug(
+          "DBTProject",
+          "Received diagnosticsChanged event from dbtIntegrationAdapter",
+        );
+        this.updateDiagnosticsInProblemsPanel();
+      },
+    );
 
     this.disposables.push(
       this.dbtProjectIntegration,
@@ -948,7 +958,12 @@ export class DBTProject implements Disposable, DBTFacade {
     );
     const { sql, dialect, models } = request;
     try {
-      return validateSQLUsingSqlGlot(sqlValidationThread, sql, dialect, models);
+      return await validateSQLUsingSqlGlot(
+        sqlValidationThread,
+        sql,
+        dialect,
+        models,
+      );
     } finally {
       await this.executionInfrastructure.closePythonBridge(sqlValidationThread);
     }
