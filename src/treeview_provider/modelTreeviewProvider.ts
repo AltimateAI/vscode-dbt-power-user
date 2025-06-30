@@ -367,7 +367,7 @@ export class NodeTreeItem extends TreeItem {
     this.depth = depth;
     const color = getDepthColor(depth);
     const depthInfo = `(${depth})`;
-    this.description = this.description 
+    this.description = this.description
       ? `${this.description} ${depthInfo}`
       : depthInfo;
     this.tooltip = new MarkdownString(

@@ -196,7 +196,7 @@ export class NewDocsGenPanel
         }
 
         const { documentation, message: missingDocumentationMessage } =
-          await this.docGenService.getDocumentationForCurrentActiveFile();
+          await this.docGenService.getUncompiledDocumentationForCurrentActiveFile();
         this.sendResponseToWebview({
           command: "renderDocumentation",
           docs: documentation,

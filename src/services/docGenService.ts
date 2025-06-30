@@ -2,19 +2,21 @@ import path = require("path");
 import { promises as fs } from "fs";
 import * as yaml from "js-yaml";
 import {
+  env,
   ProgressLocation,
   Uri,
   WebviewPanel,
   WebviewView,
-  env,
   window,
 } from "vscode";
 import { AltimateRequest, DocsGenerateResponse } from "../altimate";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { NodeMetaData } from "../domain";
 import { RateLimitException } from "../exceptions";
 import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
+import { TelemetryEvents } from "../telemetry/events";
 import {
   extendErrorWithSupportLinks,
   provideSingleton,
@@ -26,7 +28,11 @@ import {
   Source,
 } from "../webview_provider/docsEditPanel";
 import { QueryManifestService } from "./queryManifestService";
-import { TelemetryEvents } from "../telemetry/events";
+
+interface DBTDocumentationMessage {
+  documentation: DBTDocumentation | undefined;
+  message?: { message: string; type: string };
+}
 
 export interface DocumentationSchemaColumn {
   name: string;
@@ -88,13 +94,7 @@ export class DocGenService {
     filePath: string,
     modelName: string,
   ): Promise<DBTDocumentation | undefined> {
-    const eventResult = this.queryManifestService.getEventByCurrentProject();
-    if (!eventResult || !eventResult.event) {
-      return undefined;
-    }
-
-    const { event } = eventResult;
-    const currentNode = event.nodeMetaMap.lookupByBaseName(modelName);
+    const currentNode = this.getCurrentNode(modelName);
     if (!currentNode?.patch_path) {
       return {
         aiEnabled: this.altimateRequest.enabled(),
@@ -152,6 +152,18 @@ export class DocGenService {
       );
     }
     // falling back on original implementation
+    return this.getCompiledDocumentationFromNode(
+      currentNode,
+      modelName,
+      filePath,
+    );
+  }
+
+  private getCompiledDocumentationFromNode(
+    currentNode: NodeMetaData,
+    modelName: string,
+    filePath: string,
+  ) {
     const docColumns = currentNode.columns;
     return {
       aiEnabled: this.altimateRequest.enabled(),
@@ -172,6 +184,16 @@ export class DocGenService {
         };
       }),
     } as DBTDocumentation;
+  }
+
+  private getCurrentNode(modelName: string): NodeMetaData | undefined {
+    const eventResult = this.queryManifestService.getEventByCurrentProject();
+    if (!eventResult || !eventResult.event) {
+      return undefined;
+    }
+
+    const { event } = eventResult;
+    return event.nodeMetaMap.lookupByBaseName(modelName);
   }
 
   private async generateDocsForColumn(
@@ -293,8 +315,16 @@ export class DocGenService {
     }
   }
 
-  public async getDocumentationForCurrentActiveFile() {
-    return this.getDocumentation(window.activeTextEditor?.document?.uri.fsPath);
+  public async getCompiledDocumentationForCurrentActiveFile() {
+    return this.getCompiledDocumentation(
+      window.activeTextEditor?.document?.uri.fsPath,
+    );
+  }
+
+  public async getUncompiledDocumentationForCurrentActiveFile() {
+    return this.getUncompiledDocumentation(
+      window.activeTextEditor?.document?.uri.fsPath,
+    );
   }
 
   private getMissingDocumentationMessage(filePath?: string) {
@@ -314,10 +344,45 @@ export class DocGenService {
     return { message, type: "warning" };
   }
 
-  public async getDocumentation(filePath?: string): Promise<{
-    documentation: DBTDocumentation | undefined;
-    message?: { message: string; type: string };
-  }> {
+  public async getCompiledDocumentation(
+    filePath?: string,
+  ): Promise<DBTDocumentationMessage> {
+    const messageObj = this.getMissingDocumentationMessage(filePath);
+    if (messageObj.type === "error") {
+      return { documentation: undefined, message: messageObj };
+    }
+
+    if (!filePath) {
+      return { documentation: undefined, message: messageObj };
+    }
+
+    const modelName = path.basename(filePath, ".sql");
+    const project = this.dbtProjectContainer.findDBTProject(Uri.file(filePath));
+
+    if (!project || !project.projectRoot) {
+      return {
+        documentation: undefined,
+        message: this.getMissingDocumentationMessage(filePath),
+      };
+    }
+    const currentNode = this.getCurrentNode(modelName);
+    if (!currentNode?.patch_path) {
+      return {
+        documentation: undefined,
+        message: this.getMissingDocumentationMessage(filePath),
+      };
+    }
+    const documentation = this.getCompiledDocumentationFromNode(
+      currentNode,
+      modelName,
+      filePath,
+    );
+    return { documentation };
+  }
+
+  public async getUncompiledDocumentation(
+    filePath?: string,
+  ): Promise<DBTDocumentationMessage> {
     const messageObj = this.getMissingDocumentationMessage(filePath);
     if (messageObj.type === "error") {
       return { documentation: undefined, message: messageObj };
@@ -616,7 +681,7 @@ export class DocGenService {
           if (!project) {
             throw new Error("Unable to find project");
           }
-          const { documentation } = await this.getDocumentation();
+          const { documentation } = await this.getUncompiledDocumentation();
           const compiledSql = await project.unsafeCompileQuery(queryText);
           const request = message.data;
           request["feedback_text"] = message.comment;
