@@ -369,7 +369,7 @@ export class DocGenService {
       };
     }
     const currentNode = this.getCurrentNode(modelName);
-    if (!currentNode?.patch_path) {
+    if (!currentNode) {
       return {
         documentation: undefined,
         message: this.getMissingDocumentationMessage(filePath),
