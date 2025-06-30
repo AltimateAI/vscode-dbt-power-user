@@ -1,5 +1,10 @@
 import path = require("path");
-import { DBTTerminal, RateLimitException } from "@altimateai/dbt-integration";
+import {
+  DBTTerminal,
+  NodeMetaData,
+  RateLimitException,
+  RESOURCE_TYPE_MODEL,
+} from "@altimateai/dbt-integration";
 import { promises as fs } from "fs";
 import { inject } from "inversify";
 import * as yaml from "js-yaml";
@@ -12,16 +17,11 @@ import {
   window,
 } from "vscode";
 import { AltimateRequest, DocsGenerateResponse } from "../altimate";
-import { NodeMetaData } from "../domain";
 import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
-import {
-  extendErrorWithSupportLinks,
-  provideSingleton,
-  removeProtocol,
-} from "../utils";
+import { extendErrorWithSupportLinks, removeProtocol } from "../utils";
 import {
   AIColumnDescription,
   DBTDocumentation,
@@ -364,7 +364,7 @@ export class DocGenService {
     }
 
     // Resource type validation - ensure it's a model
-    if (currentNode.resource_type !== DBTProject.RESOURCE_TYPE_MODEL) {
+    if (currentNode.resource_type !== RESOURCE_TYPE_MODEL) {
       return {
         documentation: undefined,
         message: this.getDocumentationValidationMessage(
