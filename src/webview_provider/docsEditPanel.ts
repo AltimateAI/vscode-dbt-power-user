@@ -78,7 +78,9 @@ export interface DBTDocumentation {
   columns: DBTDocumentationColumn[];
   generated: boolean;
   aiEnabled: boolean;
+  filePath: string;
   patchPath?: string;
+  uniqueId?: string;
 }
 
 export interface AIColumnDescription {

@@ -101,8 +101,9 @@ export class DocGenService {
         name: modelName,
         description: "",
         generated: false,
+        filePath,
         columns: [],
-      } as DBTDocumentation;
+      };
     }
 
     try {
@@ -121,9 +122,10 @@ export class DocGenService {
           aiEnabled: this.altimateRequest.enabled(),
           name: modelName,
           description: "",
+          filePath,
           generated: false,
           columns: [],
-        } as DBTDocumentation;
+        };
       }
 
       // Map to DBTDocumentation format
@@ -133,7 +135,6 @@ export class DocGenService {
         patchPath: currentNode.patch_path,
         description: modelDef.description || "",
         generated: false,
-        resource_type: currentNode.resource_type,
         uniqueId: currentNode.uniqueId,
         filePath,
         columns: (modelDef.columns || []).map((column) => ({
@@ -143,7 +144,7 @@ export class DocGenService {
           source: Source.YAML,
           type: column.data_type?.toLowerCase(),
         })),
-      } as DBTDocumentation;
+      };
     } catch (error) {
       this.dbtTerminal.error(
         "docGenService:getDocumentationYamlError",
@@ -160,10 +161,13 @@ export class DocGenService {
   }
 
   private getCompiledDocumentationFromNode(
-    currentNode: NodeMetaData,
+    currentNode: NodeMetaData | undefined,
     modelName: string,
     filePath: string,
-  ) {
+  ): DBTDocumentation | undefined {
+    if (!currentNode) {
+      return;
+    }
     const docColumns = currentNode.columns;
     return {
       aiEnabled: this.altimateRequest.enabled(),
@@ -171,7 +175,6 @@ export class DocGenService {
       patchPath: currentNode.patch_path,
       description: currentNode.description,
       generated: false,
-      resource_type: currentNode.resource_type,
       uniqueId: currentNode.uniqueId,
       filePath,
       columns: Object.values(docColumns).map((column) => {
@@ -183,7 +186,7 @@ export class DocGenService {
           type: column.data_type?.toLowerCase(),
         };
       }),
-    } as DBTDocumentation;
+    };
   }
 
   private getCurrentNode(modelName: string): NodeMetaData | undefined {

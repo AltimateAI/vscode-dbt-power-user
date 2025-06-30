@@ -25,7 +25,6 @@ export interface DBTDocumentation {
   generated: boolean;
   aiEnabled: boolean;
   patchPath?: string;
-  resource_type: string;
   uniqueId: string;
   citations?: Citation[];
 }
