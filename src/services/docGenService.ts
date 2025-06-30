@@ -105,6 +105,7 @@ export class DocGenService {
       description: currentNode.description,
       generated: false,
       uniqueId: currentNode.uniqueId,
+      resource_type: currentNode.resource_type,
       filePath,
       columns: Object.values(docColumns).map((column) => {
         return {
@@ -382,12 +383,14 @@ export class DocGenService {
       return { documentation };
     } else {
       // Uncompiled documentation path
-      if (!currentNode?.patch_path) {
+      if (!currentNode.patch_path) {
         return {
           documentation: {
             aiEnabled: this.altimateRequest.enabled(),
             name: modelName,
             description: "",
+            uniqueId: currentNode.uniqueId,
+            resource_type: currentNode.resource_type,
             generated: false,
             filePath,
             columns: [],
@@ -412,6 +415,8 @@ export class DocGenService {
               aiEnabled: this.altimateRequest.enabled(),
               name: modelName,
               description: "",
+              uniqueId: currentNode.uniqueId,
+              resource_type: currentNode.resource_type,
               filePath,
               generated: false,
               columns: [],
@@ -428,6 +433,7 @@ export class DocGenService {
             description: modelDef.description || "",
             generated: false,
             uniqueId: currentNode.uniqueId,
+            resource_type: currentNode.resource_type,
             filePath,
             columns: (modelDef.columns || []).map((column) => ({
               name: column.name,

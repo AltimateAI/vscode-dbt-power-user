@@ -81,6 +81,7 @@ export interface DBTDocumentation {
   filePath: string;
   patchPath?: string;
   uniqueId?: string;
+  resource_type?: string;
 }
 
 export interface AIColumnDescription {
