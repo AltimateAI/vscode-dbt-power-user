@@ -79,7 +79,10 @@ export interface DBTDocumentation {
   columns: DBTDocumentationColumn[];
   generated: boolean;
   aiEnabled: boolean;
+  filePath: string;
   patchPath?: string;
+  uniqueId?: string;
+  resource_type?: string;
 }
 
 export interface AIColumnDescription {
@@ -165,7 +168,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
   private async transmitData() {
     const { documentation, message } =
-      await this.docGenService.getDocumentationForCurrentActiveFile();
+      await this.docGenService.getUncompiledDocumentationForCurrentActiveFile();
     this.documentation = documentation;
     if (this._panel) {
       await this._panel.webview.postMessage({
@@ -1004,7 +1007,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       this.loadedFromManifest = false;
       writeFileSync(patchPath, stringify(parsedDocFile, { lineWidth: 0 }));
       this.documentation = (
-        await this.docGenService.getDocumentationForCurrentActiveFile()
+        await this.docGenService.getUncompiledDocumentationForCurrentActiveFile()
       ).documentation;
       const tests = await this.dbtTestService.getTestsForCurrentModel();
       if (syncRequestId) {

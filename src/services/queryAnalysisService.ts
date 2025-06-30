@@ -191,7 +191,7 @@ export class QueryAnalysisService {
     }
 
     const adapter = dbtProject.getAdapterType() || "unknown";
-    const { documentation } = await this.docGenService.getDocumentation(
+    const { documentation } = await this.docGenService.getCompiledDocumentation(
       params.filePath,
     );
     if (!documentation) {
@@ -248,7 +248,7 @@ export class QueryAnalysisService {
 
     const adapter = dbtProject.getAdapterType() || "unknown";
     const { documentation } =
-      await this.docGenService.getDocumentation(filePath);
+      await this.docGenService.getCompiledDocumentation(filePath);
 
     if (!documentation) {
       const error = new Error(

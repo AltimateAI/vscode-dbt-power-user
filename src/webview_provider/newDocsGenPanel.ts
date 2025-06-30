@@ -191,13 +191,13 @@ export class NewDocsGenPanel
 
         break;
 
-      case "getCurrentModelDocumentation":
+      case "getCurrentModelDocumentation": {
         if (!this._panel) {
           return;
         }
 
         const { documentation, message: missingDocumentationMessage } =
-          await this.docGenService.getDocumentationForCurrentActiveFile();
+          await this.docGenService.getUncompiledDocumentationForCurrentActiveFile();
         this.sendResponseToWebview({
           command: "renderDocumentation",
           docs: documentation,
@@ -209,6 +209,7 @@ export class NewDocsGenPanel
             .get<boolean>("enableCollaboration", false),
         });
         break;
+      }
 
       case "getColumnsOfSources":
         this.handleSyncRequestFromWebview(
