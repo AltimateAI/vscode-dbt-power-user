@@ -295,10 +295,9 @@ This must be called first to get the projectRoot parameter needed for all other 
                   `Project not found for root: ${validatedArgs.projectRoot}`,
                 );
               }
-              const result = await project.executeSQL(
+              const result = await project.immediatelyExecuteSQL(
                 validatedArgs.query,
                 validatedArgs.modelName,
-                true, // returnImmediately
               );
               return {
                 content: createTextContent(JSON.stringify(result)),

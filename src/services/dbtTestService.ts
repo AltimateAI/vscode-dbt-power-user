@@ -1,7 +1,6 @@
 import {
   DBTTerminal,
   MacroMetaMap,
-  QueryExecutionResult,
   TestMetaData,
   TestMetadataAcceptedValues,
   TestMetadataRelationships,
@@ -414,14 +413,8 @@ export class DbtTestService {
             columnsInRelation,
             tableRelation: modelName,
             dbtConfig: {},
-            queryFn: async (query: string) => {
-              const result = (await project.executeSQL(
-                query,
-                modelName,
-                true,
-              )) as QueryExecutionResult;
-              return result;
-            },
+            queryFn: async (query: string) =>
+              project.immediatelyExecuteSQL(query, modelName),
           });
 
           this.telemetryService.endTelemetryEvent(

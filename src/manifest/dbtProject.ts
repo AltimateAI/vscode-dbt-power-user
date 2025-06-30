@@ -26,6 +26,7 @@ import {
   NodeMetaData,
   ParsedManifest,
   ProjectHealthcheck,
+  QueryExecution,
   QueryExecutionResult,
   RESOURCE_TYPE_MODEL,
   RESOURCE_TYPE_SOURCE,
@@ -1076,19 +1077,13 @@ export class DBTProject implements Disposable, DBTFacade {
         true,
         { model, column },
       );
-      const query = `select ${column} from {{ ref('${model}')}} group by ${column}`;
-      const result = (await this.dbtProjectIntegration.executeSQLWithLimit(
-        query,
-        model,
-        100, // setting this 100 as executeSql needs a limit and distinct values will be usually less in number
-        true,
-      )) as QueryExecutionResult;
+      const result = this.dbtProjectIntegration.getColumnValues(model, column);
       this.telemetry.endTelemetryEvent(
         TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
         undefined,
         { column, model },
       );
-      return result.data.flat();
+      return (result as any).flat();
     } catch (error) {
       this.telemetry.endTelemetryEvent(
         TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
@@ -1355,45 +1350,44 @@ export class DBTProject implements Disposable, DBTFacade {
     });
   }
 
-  async executeSQLWithLimit(
+  async immediatelyExecuteSQLWithLimit(
     query: string,
     modelName: string,
     limit: number,
-    returnImmediately?: boolean,
-  ) {
-    // if user added a semicolon at the end, let,s remove it.
-    query = query.replace(/;\s*$/, "");
-
-    // Check if query already contains a LIMIT clause and extract it
-    const limitRegex = /\bLIMIT\s+(\d+)\s*$/i;
-    const limitMatch = query.match(limitRegex);
-
-    if (limitMatch) {
-      // Override the limit with the one from the query
-      const queryLimit = parseInt(limitMatch[1], 10);
-      if (queryLimit > 0) {
-        limit = queryLimit;
-      }
-      // Remove the LIMIT clause from the query as we'll add it back later
-      query = query.replace(limitRegex, "").trim();
-    }
-
+  ): Promise<QueryExecutionResult> {
+    this.throwDiagnosticsErrorIfAvailable();
+    this.throwIfNotAuthenticated();
     this.terminal.info("executeSQL", "Executed query: " + query, true, {
       adapter: this.getAdapterType(),
       limit: limit.toString(),
     });
+    return this.dbtProjectIntegration.immediatelyExecuteSQLWithLimit(
+      query,
+      modelName,
+      limit,
+    );
+  }
 
+  async executeSQLWithLimit(query: string, modelName: string, limit: number) {
     this.throwDiagnosticsErrorIfAvailable();
     this.throwIfNotAuthenticated();
+    this.terminal.info("executeSQL", "Executed query: " + query, true, {
+      adapter: this.getAdapterType(),
+      limit: limit.toString(),
+    });
     return this.dbtProjectIntegration.executeSQLWithLimit(
       query,
       modelName,
       limit,
-      returnImmediately,
     );
   }
 
-  executeSQL(query: string, modelName: string, returnImmediately?: boolean) {
+  async immediatelyExecuteSQL(
+    query: string,
+    modelName: string,
+  ): Promise<QueryExecutionResult> {
+    this.throwDiagnosticsErrorIfAvailable();
+    this.throwIfNotAuthenticated();
     const limit = workspace
       .getConfiguration("dbt")
       .get<number>("queryLimit", 500);
@@ -1401,11 +1395,18 @@ export class DBTProject implements Disposable, DBTFacade {
       adapter: this.getAdapterType(),
       limit: limit.toString(),
     });
-    return this.dbtProjectIntegration.executeSQL(
-      query,
-      modelName,
-      returnImmediately,
-    );
+    return this.dbtProjectIntegration.immediatelyExecuteSQL(query, modelName);
+  }
+
+  executeSQL(query: string, modelName: string): Promise<QueryExecution> {
+    const limit = workspace
+      .getConfiguration("dbt")
+      .get<number>("queryLimit", 500);
+    this.terminal.info("executeSQL", "Executed query: " + query, true, {
+      adapter: this.getAdapterType(),
+      limit: limit.toString(),
+    });
+    return this.dbtProjectIntegration.executeSQL(query, modelName);
   }
 
   async dispose() {
