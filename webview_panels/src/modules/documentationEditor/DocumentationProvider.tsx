@@ -154,12 +154,6 @@ const DocumentationProvider = (): JSX.Element => {
         );
         break;
       case "renderDocumentation": {
-        if (
-          event.data.docs?.uniqueId ===
-          stateRef.current.currentDocsData?.uniqueId
-        ) {
-          break;
-        }
         const {
           currentDocsData,
           showBulkDocsPropRightPanel,
