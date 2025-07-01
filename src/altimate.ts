@@ -1,5 +1,5 @@
 import type { RequestInit } from "node-fetch";
-import { CommentThread, env, Uri, window, workspace } from "vscode";
+import { CommentThread, env, Range, Uri, window, workspace } from "vscode";
 import { provideSingleton, processStreamResponse } from "./utils";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
@@ -336,8 +336,8 @@ export interface ConversationGroup {
     resource_type?: string;
     range:
       | {
-          end: vscode.Range["end"];
-          start: vscode.Range["start"];
+          end: Range["end"];
+          start: Range["start"];
         }
       | undefined;
   };
