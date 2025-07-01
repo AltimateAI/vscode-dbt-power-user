@@ -13,7 +13,7 @@ import { inject } from "inversify";
 import { AbortError } from "node-fetch";
 import { CancellationTokenSource, env, Uri, window, workspace } from "vscode";
 import { ModelInfo } from "../altimate";
-import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { ManifestCacheProjectAddedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
 import {
   AltimateRequest,
   DBTTerminal,

@@ -7,7 +7,7 @@ import {
   TextEditor,
   window,
 } from "vscode";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 
 export class TargetStatusBar implements Disposable {
   readonly statusBar: StatusBarItem = window.createStatusBarItem(

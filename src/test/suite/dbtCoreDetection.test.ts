@@ -5,7 +5,7 @@ import {
 } from "@altimateai/dbt-integration";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { Uri, workspace } from "vscode";
-import { PythonEnvironment } from "../../manifest/pythonEnvironment";
+import { PythonEnvironment } from "../../dbt_client/pythonEnvironment";
 
 describe("DBTCoreDetection Tests", () => {
   let detection: DBTCoreDetection;

@@ -2,11 +2,11 @@ import { DBTTerminal } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
 import { commands, ProgressLocation, Uri, window } from "vscode";
 import { AltimateRequest } from "../altimate";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
+} from "../dbt_client/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
 import { InitCatalog } from "./tests/initCatalog";
 import { MissingSchemaTest } from "./tests/missingSchemaTest";

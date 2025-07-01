@@ -15,7 +15,7 @@ import {
   window,
   workspace,
 } from "vscode";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { DeferToProdService } from "../services/deferToProdService";
 import { TelemetryService } from "../telemetry";
 import { debounce } from "../utils";

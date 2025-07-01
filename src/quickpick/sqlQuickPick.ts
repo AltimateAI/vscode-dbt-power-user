@@ -7,7 +7,7 @@ import {
   Uri,
   window,
 } from "vscode";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 
 export class DbtSQLAction {
   constructor(private dbtProjectContainer: DBTProjectContainer) {}

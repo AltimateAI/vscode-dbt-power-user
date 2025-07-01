@@ -2,7 +2,7 @@ import path = require("path");
 import { RunModelType } from "@altimateai/dbt-integration";
 import { Uri, window } from "vscode";
 import { GenerateModelFromSourceParams } from "../code_lens_provider/sourceModelCreationCodeLensProvider";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { NodeTreeItem } from "../treeview_provider/modelTreeviewProvider";
 import { extendErrorWithSupportLinks } from "../utils";
 

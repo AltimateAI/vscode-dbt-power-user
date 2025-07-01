@@ -1,5 +1,5 @@
 import { commands, Disposable, window } from "vscode";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { ProjectQuickPick } from "./projectQuickPick";
 import { DbtPowerUserControlCenterAction } from "./puQuickPick";
 import { DbtSQLAction } from "./sqlQuickPick";

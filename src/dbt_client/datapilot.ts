@@ -4,7 +4,7 @@ import {
   DBTTerminal,
 } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
+import { PythonEnvironment } from "./pythonEnvironment";
 
 export class AltimateDatapilot {
   private packageName = "altimate-datapilot-cli";

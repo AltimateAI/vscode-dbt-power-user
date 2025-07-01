@@ -1,6 +1,6 @@
 import { Disposable, languages } from "vscode";
 import { DBTPowerUserExtension } from "../dbtPowerUserExtension";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { CteCodeLensProvider } from "./cteCodeLensProvider";
 import { DocumentationCodeLensProvider } from "./documentationCodeLensProvider";
 import { SourceModelCreationCodeLensProvider } from "./sourceModelCreationCodeLensProvider";

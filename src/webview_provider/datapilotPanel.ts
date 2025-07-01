@@ -2,7 +2,7 @@ import { DBTTerminal } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
 import { commands, Range, window } from "vscode";
 import { AltimateRequest, QueryAnalysisType } from "../altimate";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { DbtTestService } from "../services/dbtTestService";
 import { DocGenService } from "../services/docGenService";

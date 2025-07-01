@@ -10,8 +10,8 @@ import {
   TextDocument,
   Uri,
 } from "vscode";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { ManifestCacheChangedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
 
 export class DocDefinitionProvider implements DefinitionProvider, Disposable {

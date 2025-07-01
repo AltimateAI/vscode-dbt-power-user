@@ -14,9 +14,9 @@ import { AltimateDatapilot } from "../../dbt_client/datapilot";
 import {
   DBTProjectContainer,
   ProjectRegisteredUnregisteredEvent,
-} from "../../manifest/dbtProjectContainer";
-import { DBTWorkspaceFolder } from "../../manifest/dbtWorkspaceFolder";
-import { ManifestCacheChangedEvent } from "../../manifest/event/manifestCacheChangedEvent";
+} from "../../dbt_client/dbtProjectContainer";
+import { DBTWorkspaceFolder } from "../../dbt_client/dbtWorkspaceFolder";
+import { ManifestCacheChangedEvent } from "../../dbt_client/event/manifestCacheChangedEvent";
 
 describe("DBTProjectContainer Tests", () => {
   let container: DBTProjectContainer;

@@ -13,8 +13,8 @@ import {
   WebviewViewResolveContext,
   window,
 } from "vscode";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { ManifestCacheProjectAddedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
 import { LineagePanelView } from "./lineagePanel";
 
 interface G6DataModel {

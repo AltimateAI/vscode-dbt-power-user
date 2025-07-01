@@ -11,8 +11,8 @@ import {
 } from "vscode";
 import { AltimateRequest } from "../altimate";
 import { ConversationProvider } from "../comment_provider/conversationProvider";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { ManifestCacheChangedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { ConversationService } from "../services/conversationService";
 import { DbtTestService } from "../services/dbtTestService";

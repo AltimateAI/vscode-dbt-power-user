@@ -7,8 +7,8 @@ import {
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { anything, instance, mock, when } from "ts-mockito";
 import { workspace } from "vscode";
+import { PythonEnvironment } from "../../dbt_client/pythonEnvironment";
 import { VSCodeDBTTerminal } from "../../dbt_client/vscodeTerminal";
-import { PythonEnvironment } from "../../manifest/pythonEnvironment";
 
 describe("DBTCloudDetection Tests", () => {
   let mockCommandProcessExecutionFactory: CommandProcessExecutionFactory;

@@ -44,19 +44,19 @@ import { NotebookKernelClient } from "@lib";
 import { Container, interfaces } from "inversify";
 import { Event, EventEmitter, Uri, workspace, WorkspaceFolder } from "vscode";
 import { AltimateRequest } from "./altimate";
-import { VSCodeDBTConfiguration } from "./dbt_client/vscodeConfiguration";
-import { VSCodeDBTTerminal } from "./dbt_client/vscodeTerminal";
-import { DBTProject } from "./manifest/dbtProject";
-import { ProjectRegisteredUnregisteredEvent } from "./manifest/dbtProjectContainer";
-import { DBTProjectLog } from "./manifest/dbtProjectLog";
-import { DBTWorkspaceFolder } from "./manifest/dbtWorkspaceFolder";
-import { ManifestCacheChangedEvent } from "./manifest/event/manifestCacheChangedEvent";
-import { ProjectConfigChangedEvent } from "./manifest/event/projectConfigChangedEvent";
-import { PythonEnvironment } from "./manifest/pythonEnvironment";
+import { DBTProject } from "./dbt_client/dbtProject";
+import { ProjectRegisteredUnregisteredEvent } from "./dbt_client/dbtProjectContainer";
+import { DBTProjectLog } from "./dbt_client/dbtProjectLog";
+import { DBTWorkspaceFolder } from "./dbt_client/dbtWorkspaceFolder";
+import { ManifestCacheChangedEvent } from "./dbt_client/event/manifestCacheChangedEvent";
+import { ProjectConfigChangedEvent } from "./dbt_client/event/projectConfigChangedEvent";
+import { PythonEnvironment } from "./dbt_client/pythonEnvironment";
 import {
   StaticRuntimePythonEnvironment,
   VSCodeRuntimePythonEnvironmentProvider,
-} from "./manifest/runtimePythonEnvironmentProvider";
+} from "./dbt_client/runtimePythonEnvironmentProvider";
+import { VSCodeDBTConfiguration } from "./dbt_client/vscodeConfiguration";
+import { VSCodeDBTTerminal } from "./dbt_client/vscodeTerminal";
 import { AltimateAuthService } from "./services/altimateAuthService";
 import { ConversationService } from "./services/conversationService";
 import { DbtLineageService } from "./services/dbtLineageService";
@@ -76,7 +76,7 @@ import { ValidationProvider } from "./validation_provider";
 // Core extension components
 import { DBTClient } from "./dbt_client";
 import { AltimateDatapilot } from "./dbt_client/datapilot";
-import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "./dbt_client/dbtProjectContainer";
 import { DbtPowerUserMcpServer } from "./mcp";
 import { DbtPowerUserMcpServerTools } from "./mcp/server";
 

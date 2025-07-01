@@ -10,8 +10,8 @@ import {
   window,
   workspace,
 } from "vscode";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { TelemetryService } from "../telemetry";
 import { getFirstWorkspacePath } from "../utils";

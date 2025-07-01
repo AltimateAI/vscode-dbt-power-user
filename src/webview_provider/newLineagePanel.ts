@@ -20,9 +20,9 @@ import {
   workspace,
 } from "vscode";
 import { AltimateRequest } from "../altimate";
-import { DBTProject } from "../manifest/dbtProject";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { DBTProject } from "../dbt_client/dbtProject";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { ManifestCacheProjectAddedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { CllEvents, DbtLineageService } from "../services/dbtLineageService";
 import { QueryManifestService } from "../services/queryManifestService";

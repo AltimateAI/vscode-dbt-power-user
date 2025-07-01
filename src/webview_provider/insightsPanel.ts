@@ -20,7 +20,7 @@ import {
   workspace,
 } from "vscode";
 import { AltimateRequest, DBTCoreIntegration } from "../altimate";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { DeferToProdService } from "../services/deferToProdService";
 import { QueryManifestService } from "../services/queryManifestService";

@@ -3,11 +3,11 @@ import { inject } from "inversify";
 import * as path from "path";
 import { Position, ProgressLocation, Range, window } from "vscode";
 import { AltimateRequest } from "../altimate";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
+} from "../dbt_client/event/manifestCacheChangedEvent";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { TelemetryService } from "../telemetry";
 import { extendErrorWithSupportLinks } from "../utils";

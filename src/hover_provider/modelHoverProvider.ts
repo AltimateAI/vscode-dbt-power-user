@@ -12,9 +12,9 @@ import {
   TextDocument,
   Uri,
 } from "vscode";
-import { DBTProject } from "../manifest/dbtProject";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { DBTProject } from "../dbt_client/dbtProject";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { ManifestCacheChangedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
 import { generateHoverMarkdownString } from "./utils";
 

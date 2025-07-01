@@ -1,5 +1,5 @@
 import { QuickPickItem, Uri, window } from "vscode";
-import { DBTProject } from "../manifest/dbtProject";
+import { DBTProject } from "../dbt_client/dbtProject";
 
 export interface ProjectQuickPickItem extends QuickPickItem {
   label: string;

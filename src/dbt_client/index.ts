@@ -2,8 +2,8 @@ import { DBTDetection } from "@altimateai/dbt-integration";
 import { existsSync } from "fs";
 import { inject } from "inversify";
 import { commands, Disposable, EventEmitter, window, workspace } from "vscode";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
+import { PythonEnvironment } from "./pythonEnvironment";
 
 enum PythonInterpreterPromptAnswer {
   SELECT = "Select Python interpreter",

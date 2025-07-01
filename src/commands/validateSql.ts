@@ -19,11 +19,11 @@ import {
 } from "vscode";
 import { AltimateRequest, ModelNode } from "../altimate";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
+} from "../dbt_client/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
 import { extendErrorWithSupportLinks } from "../utils";
 

@@ -2,7 +2,7 @@ import { DBTTerminal } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
 import { ViewColumn, WebviewPanel, window } from "vscode";
 import { AltimateRequest } from "../altimate";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";

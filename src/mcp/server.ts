@@ -4,7 +4,7 @@ import { inject } from "inversify";
 import { Disposable, Uri, workspace } from "vscode";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { DBTProject, DBTTerminal } from "../modules";
 import { McpTool } from "./types";
 

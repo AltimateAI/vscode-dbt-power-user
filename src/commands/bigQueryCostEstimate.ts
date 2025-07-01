@@ -2,7 +2,7 @@ import { DBTTerminal } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
 import { PythonException } from "python-bridge";
 import { window } from "vscode";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
 import { extendErrorWithSupportLinks } from "../utils";
 import path = require("path");

@@ -2,8 +2,8 @@ import { DBTTerminal } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
 import { Disposable } from "vscode";
 import { AltimateRequest, TenantUser } from "../altimate";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { DBTInstallationVerificationEvent } from "../dbt_client/dbtVersionEvent";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { AltimateAuthService } from "./altimateAuthService";
 
 /**

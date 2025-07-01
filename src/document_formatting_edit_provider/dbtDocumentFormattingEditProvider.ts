@@ -14,7 +14,7 @@ import {
   workspace,
 } from "vscode";
 import which from "which";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
+import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
 import { TelemetryService } from "../telemetry";
 import { extendErrorWithSupportLinks, getFirstWorkspacePath } from "../utils";
 

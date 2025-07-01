@@ -17,8 +17,8 @@ import {
   window,
 } from "vscode";
 import { AltimateRequest, DocsGenerateResponse } from "../altimate";
-import { DBTProject } from "../manifest/dbtProject";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProject } from "../dbt_client/dbtProject";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
 import { extendErrorWithSupportLinks, removeProtocol } from "../utils";

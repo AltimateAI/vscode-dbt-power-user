@@ -23,11 +23,11 @@ import {
   Uri,
   window,
 } from "vscode";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
+} from "../dbt_client/event/manifestCacheChangedEvent";
 import {
   getCurrentlySelectedModelNameInYamlConfig,
   getDepthColor,

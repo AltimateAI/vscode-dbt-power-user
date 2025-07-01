@@ -15,7 +15,7 @@ import {
   CreateDbtTestRequest,
   UserInputError,
 } from "../altimate";
-import { DBTProject } from "../manifest/dbtProject";
+import { DBTProject } from "../dbt_client/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
 import {

@@ -6,7 +6,8 @@ import {
   DBTTerminal,
 } from "@altimateai/dbt-integration";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
-import { PythonEnvironment } from "../../manifest/pythonEnvironment";
+import { PythonEnvironment } from "../../dbt_client/pythonEnvironment";
+
 describe("CLIDBTCommandExecutionStrategy Tests", () => {
   let strategy: CLIDBTCommandExecutionStrategy;
   let mockCommandProcessExecutionFactory: jest.Mocked<CommandProcessExecutionFactory>;

@@ -12,7 +12,7 @@ import {
   window,
   workspace,
 } from "vscode";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { getDepthColor } from "../utils";
 
 export class DepthDecorationProvider implements HoverProvider, Disposable {

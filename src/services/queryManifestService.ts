@@ -1,12 +1,12 @@
 import { DBTTerminal } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
 import { TextDocument, Uri, window } from "vscode";
-import { DBTProject } from "../manifest/dbtProject";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProject } from "../dbt_client/dbtProject";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
+} from "../dbt_client/event/manifestCacheChangedEvent";
 import { ProjectQuickPick } from "../quickpick/projectQuickPick";
 import { SharedStateService } from "./sharedStateService";
 

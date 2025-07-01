@@ -28,12 +28,12 @@ import {
 } from "vscode";
 import { parse, parseDocument, stringify, YAMLMap, YAMLSeq } from "yaml";
 import { AltimateRequest, UserInputError } from "../altimate";
-import { DBTProject } from "../manifest/dbtProject";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProject } from "../dbt_client/dbtProject";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
+} from "../dbt_client/event/manifestCacheChangedEvent";
 import { DbtLineageService } from "../services/dbtLineageService";
 import { DbtTestService } from "../services/dbtTestService";
 import {

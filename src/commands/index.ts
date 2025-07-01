@@ -29,9 +29,9 @@ import {
 } from "../comment_provider/conversationProvider";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { DBTClient } from "../dbt_client";
-import { DBTProject } from "../manifest/dbtProject";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
+import { DBTProject } from "../dbt_client/dbtProject";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
 import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { DiagnosticsOutputChannel } from "../services/diagnosticsOutputChannel";

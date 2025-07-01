@@ -8,7 +8,7 @@ import {
   window,
   workspace,
 } from "vscode";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { DeferToProdService } from "../services/deferToProdService";
 
 export class DeferToProductionStatusBar implements Disposable {
