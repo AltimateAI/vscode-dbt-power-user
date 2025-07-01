@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.55.6",
+  "version": "0.58.3",
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -39,732 +39,6 @@
   ],
   "main": "./dist/extension",
   "contributes": {
-    "languageModelTools": [
-      {
-        "name": "get_projects",
-        "tags": [
-          "datapilot",
-          "dbt",
-          "projects"
-        ],
-        "toolReferenceName": "getProjects",
-        "displayName": "Get Projects",
-        "modelDescription": "Returns a list of all available dbt project root paths. This must be called first to get the projectRoot parameter needed for all other tools.",
-        "icon": "$(files)",
-        "inputSchema": {}
-      },
-      {
-        "name": "get_project_name",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "getProjectName",
-        "displayName": "Get Project Name",
-        "modelDescription": "Get project name",
-        "icon": "$(file-submodule)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot"
-          ]
-        }
-      },
-      {
-        "name": "get_selected_target",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "getSelectedTarget",
-        "displayName": "Get Selected Target",
-        "modelDescription": "Get selected target",
-        "icon": "$(target)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot"
-          ]
-        }
-      },
-      {
-        "name": "get_target_names",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "getTargetNames",
-        "displayName": "Get Target Names",
-        "modelDescription": "Get target names",
-        "icon": "$(list-unordered)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot"
-          ]
-        }
-      },
-      {
-        "name": "get_target_path",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "getTargetPath",
-        "displayName": "Get Target Path",
-        "modelDescription": "Get target path",
-        "icon": "$(file-directory)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot"
-          ]
-        }
-      },
-      {
-        "name": "get_package_install_path",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "getPackageInstallPath",
-        "displayName": "Get Package Install Path",
-        "modelDescription": "Get package install path",
-        "icon": "$(package)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot"
-          ]
-        }
-      },
-      {
-        "name": "get_model_paths",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "getModelPaths",
-        "displayName": "Get Model Paths",
-        "modelDescription": "Get model paths",
-        "icon": "$(file-code)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot"
-          ]
-        }
-      },
-      {
-        "name": "get_seed_paths",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "getSeedPaths",
-        "displayName": "Get Seed Paths",
-        "modelDescription": "Get seed paths",
-        "icon": "$(database)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot"
-          ]
-        }
-      },
-      {
-        "name": "get_macro_paths",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "getMacroPaths",
-        "displayName": "Get Macro Paths",
-        "modelDescription": "Get macro paths",
-        "icon": "$(symbol-function)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot"
-          ]
-        }
-      },
-      {
-        "name": "get_manifest_path",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "getManifestPath",
-        "displayName": "Get Manifest Path",
-        "modelDescription": "Get manifest path",
-        "icon": "$(file-binary)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot"
-          ]
-        }
-      },
-      {
-        "name": "get_catalog_path",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "getCatalogPath",
-        "displayName": "Get Catalog Path",
-        "modelDescription": "Get catalog path",
-        "icon": "$(book)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot"
-          ]
-        }
-      },
-      {
-        "name": "get_dbt_version",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "getDbtVersion",
-        "displayName": "Get dbt Version",
-        "modelDescription": "Get dbt version",
-        "icon": "$(versions)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot"
-          ]
-        }
-      },
-      {
-        "name": "get_adapter_type",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "getAdapterType",
-        "displayName": "Get Adapter Type",
-        "modelDescription": "Get adapter type",
-        "icon": "$(plug)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot"
-          ]
-        }
-      },
-      {
-        "name": "get_columns_of_model",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "getColumnsOfModel",
-        "displayName": "Get Columns Of Model",
-        "modelDescription": "Returns the column names and data types for a specified dbt model. Use this to understand a model's schema before querying it.",
-        "icon": "$(table)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            },
-            "modelName": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot",
-            "modelName"
-          ]
-        }
-      },
-      {
-        "name": "get_columns_of_source",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "getColumnsOfSource",
-        "displayName": "Get Columns Of Source",
-        "modelDescription": "Returns the column names and data types for a specified dbt source. Use this to understand a source's schema before querying it.",
-        "icon": "$(database)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            },
-            "sourceName": {
-              "type": "string"
-            },
-            "tableName": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot",
-            "sourceName",
-            "tableName"
-          ]
-        }
-      },
-      {
-        "name": "get_column_values",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "getColumnValues",
-        "displayName": "Get Column Values",
-        "modelDescription": "Returns the distinct values for a specified column in a model or source. Use this to understand the data distribution and possible values in a column.",
-        "icon": "$(list-flat)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            },
-            "model": {
-              "type": "string"
-            },
-            "column": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot",
-            "model",
-            "column"
-          ]
-        }
-      },
-      {
-        "name": "compile_model",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "compileModel",
-        "displayName": "Compile Model",
-        "modelDescription": "Converts a dbt model's Jinja SQL into raw SQL. Use this to inspect the generated SQL before executing it. Note: This does not validate if the SQL will run successfully.",
-        "icon": "$(file-code)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            },
-            "modelName": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot",
-            "modelName"
-          ]
-        }
-      },
-      {
-        "name": "compile_query",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "compileQuery",
-        "displayName": "Compile Query",
-        "modelDescription": "Compile query, this will only convert the Jinja SQL to SQL, not determine if the SQL actually works. If the compilation succeeds, use the execute SQL and validate the data.",
-        "icon": "$(file-code)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            },
-            "query": {
-              "type": "string"
-            },
-            "originalModelName": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot",
-            "query"
-          ]
-        }
-      },
-      {
-        "name": "execute_sql",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "executeSql",
-        "displayName": "Execute SQL",
-        "modelDescription": "Executes SQL queries against the database, returning processed results immediately. Use this to test queries and retrieve data from the database.",
-        "icon": "$(terminal)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            },
-            "query": {
-              "type": "string"
-            },
-            "modelName": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot",
-            "query",
-            "modelName"
-          ]
-        }
-      },
-      {
-        "name": "run_model",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "runModel",
-        "displayName": "Run Model",
-        "modelDescription": "Executes a dbt model in the database. Use + for plusOperatorLeft to include parent models, and + for plusOperatorRight to include child models in the run.",
-        "icon": "$(run)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            },
-            "plusOperatorLeft": {
-              "type": "string",
-              "enum": [
-                "",
-                "+"
-              ]
-            },
-            "modelName": {
-              "type": "string"
-            },
-            "plusOperatorRight": {
-              "type": "string",
-              "enum": [
-                "",
-                "+"
-              ]
-            }
-          },
-          "required": [
-            "projectRoot",
-            "plusOperatorLeft",
-            "modelName",
-            "plusOperatorRight"
-          ]
-        }
-      },
-      {
-        "name": "build_model",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "buildModel",
-        "displayName": "Build Model",
-        "modelDescription": "Builds a dbt model in the database. Use + for plusOperatorLeft to include parent models, and + for plusOperatorRight to include child models in the build.",
-        "icon": "$(tools)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            },
-            "plusOperatorLeft": {
-              "type": "string",
-              "enum": [
-                "",
-                "+"
-              ]
-            },
-            "modelName": {
-              "type": "string"
-            },
-            "plusOperatorRight": {
-              "type": "string",
-              "enum": [
-                "",
-                "+"
-              ]
-            }
-          },
-          "required": [
-            "projectRoot",
-            "plusOperatorLeft",
-            "modelName",
-            "plusOperatorRight"
-          ]
-        }
-      },
-      {
-        "name": "build_project",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "buildProject",
-        "displayName": "Build Project",
-        "modelDescription": "Builds the dbt project, this will run seeds, models and all related tests",
-        "icon": "$(repo)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot"
-          ]
-        }
-      },
-      {
-        "name": "run_test",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "runTest",
-        "displayName": "Run Test",
-        "modelDescription": "Run an indivdual test based on the test name in the dbt manifest.",
-        "icon": "$(testing)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            },
-            "testName": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot",
-            "testName"
-          ]
-        }
-      },
-      {
-        "name": "run_model_test",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "runModelTest",
-        "displayName": "Run Model Test",
-        "modelDescription": "Run model tests, use this tool to run the existing tests defined for the dbt model",
-        "icon": "$(testing)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            },
-            "modelName": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot",
-            "modelName"
-          ]
-        }
-      },
-      {
-        "name": "add_dbt_packages",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "addDbtPackages",
-        "displayName": "Add dbt Packages",
-        "modelDescription": "Add dbt package(s) to the project, the dbt package string should be in the form of packageName@version",
-        "icon": "$(package)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            },
-            "packages": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          },
-          "required": [
-            "projectRoot",
-            "packages"
-          ]
-        }
-      },
-      {
-        "name": "install_deps",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "installDeps",
-        "displayName": "Install Deps",
-        "modelDescription": "Install dbt package dependencies based on the dbt projects's packages.yml file",
-        "icon": "$(package)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot"
-          ]
-        }
-      },
-      {
-        "name": "get_children_models",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "getChildrenModels",
-        "displayName": "Get Children Models",
-        "modelDescription": "Returns the list of models that depend on the specified model (its children). Use this to understand a model's downstream impact and lineage.",
-        "icon": "$(arrow-down)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            },
-            "table": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot",
-            "table"
-          ]
-        }
-      },
-      {
-        "name": "get_parent_models",
-        "tags": [
-          "datapilot",
-          "dbt"
-        ],
-        "toolReferenceName": "getParentModels",
-        "displayName": "Get Parent Models",
-        "modelDescription": "Returns the list of models that the specified model depends on (its parents). Use this to understand a model's upstream dependencies and lineage.",
-        "icon": "$(arrow-up)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "projectRoot": {
-              "type": "string"
-            },
-            "table": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "projectRoot",
-            "table"
-          ]
-        }
-      }
-    ],
-    "chatParticipants": [
-      {
-        "id": "vscode-dbt-power-user.datapilot",
-        "name": "datapilot",
-        "fullName": "Data Pilot",
-        "description": "Your AI assistant for data operations",
-        "isSticky": true,
-        "commands": [
-          {
-            "name": "list",
-            "description": "List all available tools"
-          }
-        ]
-      }
-    ],
     "notebookRenderer": [
       {
         "id": "datapilot-notebook-perspective-renderer",
@@ -828,15 +102,22 @@
             "displayName": "Altimate AI Instance Name",
             "markdownDescription": "Needed for features that require backend support. Sign up for a free Altimate AI account [here](https://app.myaltimate.com/register). If your Altimate AI instance URL is https://betatest.app.myaltimate.com/, The instance name is betatest"
           },
-          "dbt.onboardedMcpServer": {
-            "type": "boolean",
-            "description": "Flag to identify if onboarding is done for MCP server",
-            "default": false
-          },
           "dbt.enableMcpDataSourceQueryTools": {
             "type": "boolean",
             "description": "Enable data source query tools (EXECUTE_SQL_WITH_LIMIT and GET_COLUMN_VALUES)",
             "default": false
+          },
+          "dbt.mcpSslCertKeyPath": {
+            "type": "string",
+            "description": "Path to the SSL certificate key file for MCP server",
+            "displayName": "MCP Server SSL Certificate Key Path",
+            "default": ""
+          },
+          "dbt.mcpSslCertPath": {
+            "type": "string",
+            "description": "Path to the SSL certificate file for MCP server",
+            "displayName": "MCP Server SSL Certificate Path",
+            "default": ""
           },
           "dbt.enableNewLineagePanel": {
             "type": "boolean",
@@ -891,7 +172,8 @@
             "enum": [
               "core",
               "cloud",
-              "corecommand"
+              "corecommand",
+              "fusion"
             ],
             "default": "core",
             "description": "Select dbt core or dbt cloud"
@@ -992,6 +274,11 @@
             },
             "default": [],
             "description": "Add additional params to `sqlfmt`"
+          },
+          "dbt.disableDepthsCalculation": {
+            "type": "boolean",
+            "description": "Disable DAG depth calculation and decoration",
+            "default": false
           },
           "dbt.deferConfigPerProject": {
             "type": "object",
@@ -1429,6 +716,12 @@
         }
       },
       {
+        "command": "dbtPowerUser.cleanCurrentProject",
+        "title": "Clean dbt Project",
+        "category": "dbt Power User",
+        "icon": "$(clear-all)"
+      },
+      {
         "command": "dbtPowerUser.printEnvVars",
         "title": "Print environment variables",
         "category": "dbt Power User",
@@ -1704,6 +997,11 @@
         },
         {
           "command": "dbtPowerUser.runCurrentModel",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.cleanCurrentProject",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
           "group": "inline"
         }
@@ -2047,6 +1345,7 @@
     "@types/glob": "^8.1.0",
     "@types/istanbul-lib-coverage": "^2.0.6",
     "@types/jest": "^29.5.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.14.11",
     "@types/vscode": "^1.95.0",
     "@types/which": "^3.0.4",
@@ -2090,7 +1389,8 @@
   },
   "extensionDependencies": [
     "samuelcolvin.jinjahtml",
-    "ms-python.python"
+    "ms-python.python",
+    "altimateai.vscode-altimate-mcp-server"
   ],
   "dependencies": {
     "@altimateai/extension-components": "0.0.10-beta.3",
@@ -2112,7 +1412,6 @@
     "node-abort-controller": "^3.1.1",
     "node-fetch": "^3.3.2",
     "parse-diff": "^0.11.1",
-    "portfinder": "^1.0.34",
     "python-bridge": "github:mdesmet/node-python-bridge#feat/detached",
     "reflect-metadata": "^0.2.2",
     "semver": "^7.6.3",

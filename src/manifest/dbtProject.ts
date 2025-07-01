@@ -70,6 +70,7 @@ import { TelemetryEvents } from "../telemetry/events";
 import { RunResultsEvent } from "./event/runResultsEvent";
 import { DBTCoreCommandProjectIntegration } from "../dbt_client/dbtCoreCommandIntegration";
 import { Table } from "src/services/dbtLineageService";
+import { DBTFusionCommandProjectIntegration } from "src/dbt_client/dbtFusionCommandIntegration";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -138,6 +139,9 @@ export class DBTProject implements Disposable {
     private dbtCloudIntegrationFactory: (
       path: Uri,
     ) => DBTCloudProjectIntegration,
+    private dbtFusionCommandIntegrationFactory: (
+      path: Uri,
+    ) => DBTFusionCommandProjectIntegration,
     private altimate: AltimateRequest,
     private validationProvider: ValidationProvider,
     path: Uri,
@@ -171,6 +175,11 @@ export class DBTProject implements Disposable {
     switch (dbtIntegrationMode) {
       case "cloud":
         this.dbtProjectIntegration = this.dbtCloudIntegrationFactory(
+          this.projectRoot,
+        );
+        break;
+      case "fusion":
+        this.dbtProjectIntegration = this.dbtFusionCommandIntegrationFactory(
           this.projectRoot,
         );
         break;
@@ -733,6 +742,12 @@ export class DBTProject implements Disposable {
     this.telemetry.sendTelemetryEvent("generateDocs");
   }
 
+  clean() {
+    const cleanCommand = this.dbtCommandFactory.createCleanCommand();
+    this.telemetry.sendTelemetryEvent("clean");
+    return this.dbtProjectIntegration.clean(cleanCommand);
+  }
+
   debug() {
     const debugCommand = this.dbtCommandFactory.createDebugCommand();
     this.telemetry.sendTelemetryEvent("debug");
@@ -907,11 +922,19 @@ export class DBTProject implements Disposable {
   }
 
   async getColumnsOfModel(modelName: string) {
-    return this.dbtProjectIntegration.getColumnsOfModel(modelName);
+    const result =
+      await this.dbtProjectIntegration.getColumnsOfModel(modelName);
+    await this.dbtProjectIntegration.cleanupConnections();
+    return result;
   }
 
   async getColumnsOfSource(sourceName: string, tableName: string) {
-    return this.dbtProjectIntegration.getColumnsOfSource(sourceName, tableName);
+    const result = await this.dbtProjectIntegration.getColumnsOfSource(
+      sourceName,
+      tableName,
+    );
+    await this.dbtProjectIntegration.cleanupConnections();
+    return result;
   }
 
   async getColumnValues(model: string, column: string) {
@@ -934,13 +957,11 @@ export class DBTProject implements Disposable {
         model,
       );
       const result = await queryExecution.executeQuery();
-
       this.telemetry.endTelemetryEvent(
         TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
         undefined,
         { column, model },
       );
-
       return result.table.rows.flat();
     } catch (error) {
       this.telemetry.endTelemetryEvent(
@@ -949,6 +970,8 @@ export class DBTProject implements Disposable {
         { column, model },
       );
       throw error;
+    } finally {
+      await this.dbtProjectIntegration.cleanupConnections();
     }
   }
 
@@ -956,10 +979,16 @@ export class DBTProject implements Disposable {
     req: DBTNode[],
     cancellationToken: CancellationToken,
   ) {
-    return this.dbtProjectIntegration.getBulkSchemaFromDB(
-      req,
-      cancellationToken,
-    );
+    try {
+      const result = await this.dbtProjectIntegration.getBulkSchemaFromDB(
+        req,
+        cancellationToken,
+      );
+      await this.dbtProjectIntegration.cleanupConnections();
+      return result;
+    } finally {
+      await this.dbtProjectIntegration.cleanupConnections();
+    }
   }
 
   async validateWhetherSqlHasColumns(sql: string) {
@@ -977,12 +1006,15 @@ export class DBTProject implements Disposable {
         true,
       );
       return false;
+    } finally {
+      await this.dbtProjectIntegration.cleanupConnections();
     }
   }
 
   async getCatalog(): Promise<Catalog> {
     try {
-      return this.dbtProjectIntegration.getCatalog();
+      const result = await this.dbtProjectIntegration.getCatalog();
+      return result;
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         this.telemetry.sendTelemetryError("catalogPythonError", exc, {
@@ -1005,6 +1037,8 @@ export class DBTProject implements Disposable {
           " is not available. ",
       );
       return [];
+    } finally {
+      await this.dbtProjectIntegration.cleanupConnections();
     }
   }
 
@@ -1170,6 +1204,20 @@ export class DBTProject implements Disposable {
   ) {
     // if user added a semicolon at the end, let,s remove it.
     query = query.replace(/;\s*$/, "");
+
+    // Check if query already contains a LIMIT clause and extract it
+    const limitRegex = /\bLIMIT\s+(\d+)\s*$/i;
+    const limitMatch = query.match(limitRegex);
+
+    if (limitMatch) {
+      // Override the limit with the one from the query
+      const queryLimit = parseInt(limitMatch[1], 10);
+      if (queryLimit > 0) {
+        limit = queryLimit;
+      }
+      // Remove the LIMIT clause from the query as we'll add it back later
+      query = query.replace(limitRegex, "").trim();
+    }
 
     if (limit <= 0) {
       window.showErrorMessage("Please enter a positive number for query limit");

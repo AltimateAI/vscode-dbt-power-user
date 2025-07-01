@@ -48,7 +48,7 @@ const CommonActionButtons = (): JSX.Element => {
             </Button>
             <FeedbackButton
               onClose={close}
-              url="https://docs.google.com/forms/d/e/1FAIpQLSeqFBZX_P4chScTTw8w-reRn2fr7NmeGdy8jISJOPdKEWfLaw/viewform"
+              url="https://form.jotform.com/251106030591141"
               buttonProps={{
                 outline: true,
                 className: "w-100 text-start",

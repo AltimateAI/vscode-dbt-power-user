@@ -30,12 +30,14 @@ import documentationSlice, {
   updateSelectedConversationGroup,
   updateSingleDocsPropRightPanel,
   updateUserInstructions,
+  setDocBlocks,
 } from "./state/documentationSlice";
 import {
   DBTDocumentation,
   DBTModelTest,
   DocsGenerateUserInstructions,
   MetadataColumn,
+  DocBlock,
 } from "./state/types";
 import { ContextProps } from "./types";
 import { getGenerationsInModel, isStateDirty } from "./utils";
@@ -60,6 +62,7 @@ type IncomingMessageEvent = MessageEvent<
     project?: string;
     columns?: DBTDocumentation["columns"];
     model?: string;
+    docBlocks?: DocBlock[];
     name?: string;
     description?: string;
     collaborationEnabled?: boolean;
@@ -135,6 +138,7 @@ const DocumentationProvider = (): JSX.Element => {
     dispatch(
       setMissingDocumentationMessage(event.data.missingDocumentationMessage),
     );
+    dispatch(setDocBlocks(event.data.docBlocks ?? []));
   };
 
   const onMessage = useCallback((event: IncomingMessageEvent) => {
@@ -153,12 +157,6 @@ const DocumentationProvider = (): JSX.Element => {
         );
         break;
       case "renderDocumentation": {
-        if (
-          event.data.docs?.uniqueId ===
-          stateRef.current.currentDocsData?.uniqueId
-        ) {
-          break;
-        }
         const {
           currentDocsData,
           showBulkDocsPropRightPanel,

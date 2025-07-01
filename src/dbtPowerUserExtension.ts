@@ -1,10 +1,4 @@
-import {
-  Disposable,
-  ExtensionContext,
-  commands,
-  window,
-  workspace,
-} from "vscode";
+import { Disposable, ExtensionContext, commands, workspace } from "vscode";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";
@@ -22,6 +16,7 @@ import { DbtPowerUserActionsCenter } from "./quickpick";
 import { ValidationProvider } from "./validation_provider";
 import { CommentProviders } from "./comment_provider";
 import { NotebookProviders } from "@altimateai/extension-components";
+import { DbtPowerUserMcpServer } from "./mcp";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -66,6 +61,7 @@ export class DBTPowerUserExtension implements Disposable {
     private validationProvider: ValidationProvider,
     private commentProviders: CommentProviders,
     private notebookProviders: NotebookProviders,
+    private mcpServer: DbtPowerUserMcpServer,
   ) {
     this.disposables.push(
       this.dbtProjectContainer,
@@ -84,6 +80,7 @@ export class DBTPowerUserExtension implements Disposable {
       this.validationProvider,
       this.commentProviders,
       this.notebookProviders,
+      this.mcpServer,
     );
   }
 
@@ -97,6 +94,7 @@ export class DBTPowerUserExtension implements Disposable {
   }
 
   async activate(context: ExtensionContext): Promise<void> {
+    await this.mcpServer.updateMcpExtensionApi();
     this.dbtProjectContainer.setContext(context);
     this.dbtProjectContainer.initializeWalkthrough();
     await this.dbtProjectContainer.detectDBT();
@@ -115,7 +113,7 @@ export class DBTPowerUserExtension implements Disposable {
         .get<string>("dbtIntegration", "core");
       if (
         dbtIntegration !== newDbtIntegration &&
-        ["core", "cloud", "corecommand"].includes(newDbtIntegration)
+        ["core", "cloud", "corecommand", "fusion"].includes(newDbtIntegration)
       ) {
         commands.executeCommand("workbench.action.reloadWindow");
       }

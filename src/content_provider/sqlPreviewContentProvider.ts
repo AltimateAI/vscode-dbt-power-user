@@ -28,7 +28,7 @@ export class SqlPreviewContentProvider
   private _onDidChange = new EventEmitter<Uri>();
   private compilationDocs = new Map<string, Uri>();
   private subscriptions: Disposable;
-  private watchers: FileSystemWatcher[] = [];
+  private watchers: Map<string, FileSystemWatcher> = new Map();
 
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -36,20 +36,24 @@ export class SqlPreviewContentProvider
     private altimateRequest: AltimateRequest,
     private telemetry: TelemetryService,
   ) {
-    this.subscriptions = workspace.onDidCloseTextDocument((compilationDoc) =>
-      this.compilationDocs.delete(compilationDoc.uri.toString()),
-    );
+    this.subscriptions = workspace.onDidCloseTextDocument((compilationDoc) => {
+      const uriString = compilationDoc.uri.toString();
+      this.compilationDocs.delete(uriString);
+      const watcher = this.watchers.get(uriString);
+      if (watcher) {
+        watcher.dispose();
+        this.watchers.delete(uriString);
+      }
+    });
   }
 
   dispose(): void {
     this._onDidChange.dispose();
     this.subscriptions.dispose();
-    while (this.watchers.length) {
-      const x = this.watchers.pop();
-      if (x) {
-        x.dispose();
-      }
+    for (const watcher of this.watchers.values()) {
+      watcher.dispose();
     }
+    this.watchers.clear();
   }
 
   get onDidChange(): Event<Uri> {
@@ -57,12 +61,13 @@ export class SqlPreviewContentProvider
   }
 
   provideTextDocumentContent(uri: Uri): string | Thenable<string> {
-    if (this.compilationDocs.get(uri.toString()) === undefined) {
-      this.compilationDocs.set(uri.toString(), uri);
+    const uriString = uri.toString();
+    if (this.compilationDocs.get(uriString) === undefined) {
+      this.compilationDocs.set(uriString, uri);
       const watcher = workspace.createFileSystemWatcher(
         new RelativePattern(uri, "*"),
       );
-      this.watchers.push(watcher);
+      this.watchers.set(uriString, watcher);
       watcher.onDidChange(debounce(() => this._onDidChange.fire(uri), 500));
       // TODO: onDelete? onCreate?
     }

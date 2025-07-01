@@ -7,7 +7,12 @@ const RunAdhocQueryButton = (): JSX.Element => {
     executeRequestInAsync("runAdhocQuery", {});
   };
   return (
-    <Button outline onClick={handleClick} icon={<AddIcon />}>
+    <Button
+      aria-label="open-adhoc-query"
+      outline
+      onClick={handleClick}
+      icon={<AddIcon />}
+    >
       New query
     </Button>
   );

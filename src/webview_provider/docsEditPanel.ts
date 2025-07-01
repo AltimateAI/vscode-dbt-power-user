@@ -30,6 +30,7 @@ import {
   isQuotedIdentifier,
   isRelationship,
   provideSingleton,
+  removeProtocol,
 } from "../utils";
 import path = require("path");
 import { PythonException } from "python-bridge";
@@ -82,7 +83,10 @@ export interface DBTDocumentation {
   columns: DBTDocumentationColumn[];
   generated: boolean;
   aiEnabled: boolean;
+  filePath: string;
   patchPath?: string;
+  uniqueId?: string;
+  resource_type?: string;
 }
 
 export interface AIColumnDescription {
@@ -168,7 +172,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
   private async transmitData() {
     const { documentation, message } =
-      await this.docGenService.getDocumentationForCurrentActiveFile();
+      await this.docGenService.getUncompiledDocumentationForCurrentActiveFile();
     this.documentation = documentation;
     if (this._panel) {
       await this._panel.webview.postMessage({
@@ -180,8 +184,31 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         collaborationEnabled: workspace
           .getConfiguration("dbt")
           .get<boolean>("enableCollaboration", false),
+        docBlocks: this.getDocBlocksForCurrentProject(),
       });
     }
+  }
+
+  private getDocBlocksForCurrentProject(): Array<{
+    name: string;
+    path: string;
+  }> {
+    const project = this.getProject();
+    if (!project) {
+      return [];
+    }
+
+    const manifestEvent = this.eventMap.get(project.projectRoot.fsPath);
+    if (!manifestEvent?.docMetaMap) {
+      return [];
+    }
+
+    return Array.from(manifestEvent.docMetaMap.entries()).map(
+      ([name, metaData]) => ({
+        name,
+        path: metaData.path,
+      }),
+    );
   }
 
   private async transmitColumns(columns: MetadataColumn[]) {
@@ -460,7 +487,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     }
 
     const docFile: string = readFileSync(
-      path.join(project.projectRoot.fsPath, patchPath.split("://")[1]),
+      path.join(project.projectRoot.fsPath, removeProtocol(patchPath)),
     ).toString("utf8");
     const parsedDocFile =
       parse(docFile, {
@@ -831,7 +858,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         // the location comes from the manifest, parse it
         patchPath = path.join(
           projectByFilePath.projectRoot.fsPath,
-          patchPath.split("://")[1],
+          removeProtocol(patchPath),
         );
       }
       // check if file exists, if not create an empty file
@@ -908,7 +935,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
           model.get("name") as string,
         );
         this.setOrDeleteInParsedDocument(model, "tests", modelTests);
-
+        if (!model.get("columns")) {
+          model.set("columns", new YAMLSeq<DocumentationSchemaColumn>());
+        }
         message.columns.forEach((column: any) => {
           const existingColumn = this.findEntityInParsedDoc(
             model.get("columns") as
@@ -965,12 +994,24 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             });
           }
         });
+
+        // delete columns if they are empty to avoid [] in the yaml file
+        if (
+          (
+            model.get("columns") as
+              | YAMLSeq<DocumentationSchemaColumn>
+              | undefined
+          )?.items.length === 0
+        ) {
+          model.delete("columns");
+        }
       }
+
       // Force reload from manifest after manifest refresh
       this.loadedFromManifest = false;
       writeFileSync(patchPath, stringify(parsedDocFile, { lineWidth: 0 }));
       this.documentation = (
-        await this.docGenService.getDocumentationForCurrentActiveFile()
+        await this.docGenService.getUncompiledDocumentationForCurrentActiveFile()
       ).documentation;
       const tests = await this.dbtTestService.getTestsForCurrentModel();
       if (syncRequestId) {

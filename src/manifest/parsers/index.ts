@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "fs";
+import { readFileSync } from "fs";
 import { provide } from "inversify-binding-decorators";
 import * as path from "path";
 import { Uri } from "vscode";
@@ -14,6 +14,9 @@ import { TestParser } from "./testParser";
 import { TelemetryService } from "../../telemetry";
 import { ExposureParser } from "./exposureParser";
 import { MetricParser } from "./metricParser";
+import { ChildrenParentParser } from "./childrenParentParser";
+import { ModelDepthParser } from "./modelDepthParser";
+import { createFullPathForNode } from "./utils";
 
 @provide(ManifestParser)
 export class ManifestParser {
@@ -21,6 +24,7 @@ export class ManifestParser {
   private consecutiveReadFailures = 0;
 
   constructor(
+    private childrenParentParser: ChildrenParentParser,
     private nodeParser: NodeParser,
     private macroParser: MacroParser,
     private metricParser: MetricParser,
@@ -31,6 +35,7 @@ export class ManifestParser {
     private docParser: DocParser,
     private terminal: DBTTerminal,
     private telemetry: TelemetryService,
+    private modelDepthParser: ModelDepthParser,
   ) {}
 
   public async parseManifest(project: DBTProject) {
@@ -69,22 +74,18 @@ export class ManifestParser {
             },
             docMetaMap: new Map(),
             exposureMetaMap: new Map(),
+            modelDepthMap: new Map(),
           },
         ],
       };
       return event;
     }
 
-    const {
-      nodes,
-      sources,
-      macros,
-      semantic_models,
-      parent_map,
-      child_map,
-      docs,
-      exposures,
-    } = manifest;
+    const { nodes, sources, macros, semantic_models, docs, exposures } =
+      manifest;
+
+    const parentChildrenPromise =
+      this.childrenParentParser.createChildrenParentMetaMap(nodes);
 
     const nodeMetaMapPromise = this.nodeParser.createNodeMetaMap(
       nodes,
@@ -114,6 +115,7 @@ export class ManifestParser {
     const docMetaMapPromise = this.docParser.createDocMetaMap(docs, project);
 
     const [
+      { parentMetaMap, childMetaMap },
       nodeMetaMap,
       macroMetaMap,
       metricMetaMap,
@@ -122,6 +124,7 @@ export class ManifestParser {
       docMetaMap,
       exposureMetaMap,
     ] = await Promise.all([
+      parentChildrenPromise,
       nodeMetaMapPromise,
       macroMetaMapPromise,
       metricMetaMapPromise,
@@ -131,10 +134,17 @@ export class ManifestParser {
       exposuresMetaMapPromise,
     ]);
 
+    // Calculate model depths
+    const modelDepthMap = this.modelDepthParser.createModelDepthsMap(
+      nodes,
+      parentMetaMap,
+      childMetaMap,
+    );
+
     const graphMetaMap = this.graphParser.createGraphMetaMap(
       project,
-      parent_map,
-      child_map,
+      parentMetaMap,
+      childMetaMap,
       nodeMetaMap,
       sourceMetaMap,
       testMetaMap,
@@ -182,6 +192,7 @@ export class ManifestParser {
           testMetaMap: testMetaMap,
           docMetaMap: docMetaMap,
           exposureMetaMap: exposureMetaMap,
+          modelDepthMap,
         },
       ],
     };
@@ -217,29 +228,4 @@ export class ManifestParser {
   }
 }
 
-export const createFullPathForNode: (
-  projectName: string,
-  rootPath: string,
-  packageName: string,
-  packagePath: string,
-  relativeFilePath: string,
-) => string | undefined = (
-  projectName,
-  rootPath,
-  packageName,
-  packagePath,
-  relativeFilePath,
-) => {
-  if (packageName !== projectName) {
-    const rootPathWithPackage = path.join(
-      packagePath,
-      packageName,
-      relativeFilePath,
-    );
-    if (existsSync(rootPathWithPackage)) {
-      return rootPathWithPackage;
-    }
-    return undefined;
-  }
-  return path.join(rootPath, relativeFilePath);
-};
+export { createFullPathForNode } from "./utils";

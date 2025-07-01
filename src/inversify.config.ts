@@ -4,6 +4,7 @@ import {
   DiagnosticCollection,
   EventEmitter,
   Uri,
+  workspace,
   WorkspaceFolder,
 } from "vscode";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
@@ -20,6 +21,7 @@ import { TargetWatchersFactory } from "./manifest/modules/targetWatchers";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
 import { TelemetryService } from "./telemetry";
 import {
+  DBTCoreDetection,
   DBTCoreProjectDetection,
   DBTCoreProjectIntegration,
 } from "./dbt_client/dbtCoreIntegration";
@@ -28,9 +30,12 @@ import {
   DBTCommandExecutionInfrastructure,
   DBTCommandExecutionStrategy,
   DBTCommandFactory,
+  DBTDetection,
+  DBTProjectDetection,
   PythonDBTCommandExecutionStrategy,
 } from "./dbt_client/dbtIntegration";
 import {
+  DBTCloudDetection,
   DBTCloudProjectDetection,
   DBTCloudProjectIntegration,
 } from "./dbt_client/dbtCloudIntegration";
@@ -44,9 +49,54 @@ import {
   NotebookDependencies,
 } from "@altimateai/extension-components";
 import { DBTCoreCommandProjectIntegration } from "./dbt_client/dbtCoreCommandIntegration";
+import {
+  DBTFusionCommandDetection,
+  DBTFusionCommandProjectDetection,
+  DBTFusionCommandProjectIntegration,
+} from "./dbt_client/dbtFusionCommandIntegration";
 
 export const container = new Container();
 container.load(buildProviderModule());
+
+container
+  .bind<interfaces.Factory<DBTDetection>>("Factory<DBTDetection>")
+  .toFactory<DBTDetection, []>((context: interfaces.Context) => {
+    return () => {
+      const { container } = context;
+      const dbtIntegrationMode = workspace
+        .getConfiguration("dbt")
+        .get<string>("dbtIntegration", "core");
+
+      switch (dbtIntegrationMode) {
+        case "cloud":
+          return container.get(DBTCloudDetection);
+        case "fusion":
+          return container.get(DBTFusionCommandDetection);
+        default:
+          return container.get(DBTCoreDetection);
+      }
+    };
+  });
+
+container
+  .bind<interfaces.Factory<DBTProjectDetection>>("Factory<DBTProjectDetection>")
+  .toFactory<DBTProjectDetection, []>((context: interfaces.Context) => {
+    return () => {
+      const { container } = context;
+      const dbtIntegrationMode = workspace
+        .getConfiguration("dbt")
+        .get<string>("dbtIntegration", "core");
+
+      switch (dbtIntegrationMode) {
+        case "cloud":
+          return container.get(DBTCloudProjectDetection);
+        case "fusion":
+          return container.get(DBTFusionCommandProjectDetection);
+        default:
+          return container.get(DBTCoreProjectDetection);
+      }
+    };
+  });
 
 container
   .bind<interfaces.Factory<DBTWorkspaceFolder>>("Factory<DBTWorkspaceFolder>")
@@ -66,8 +116,7 @@ container
       const { container } = context;
       return new DBTWorkspaceFolder(
         container.get("Factory<DBTProject>"),
-        container.get(DBTCoreProjectDetection),
-        container.get(DBTCloudProjectDetection),
+        container.get("Factory<DBTProjectDetection>"),
         container.get(TelemetryService),
         container.get(DBTTerminal),
         workspaceFolder,
@@ -160,6 +209,31 @@ container
 
 container
   .bind<
+    interfaces.Factory<DBTCoreProjectIntegration>
+  >("Factory<DBTFusionCommandProjectIntegration>")
+  .toFactory<
+    DBTFusionCommandProjectIntegration,
+    [Uri, DiagnosticCollection]
+  >((context: interfaces.Context) => {
+    return (projectRoot: Uri) => {
+      const { container } = context;
+      return new DBTFusionCommandProjectIntegration(
+        container.get(DBTCommandExecutionInfrastructure),
+        container.get(DBTCommandFactory),
+        container.get("Factory<CLIDBTCommandExecutionStrategy>"),
+        container.get(TelemetryService),
+        container.get(PythonEnvironment),
+        container.get(DBTTerminal),
+        container.get(ValidationProvider),
+        container.get(DeferToProdService),
+        projectRoot,
+        container.get(AltimateRequest),
+      );
+    };
+  });
+
+container
+  .bind<
     interfaces.Factory<DBTCloudProjectIntegration>
   >("Factory<DBTCloudProjectIntegration>")
   .toFactory<
@@ -207,6 +281,7 @@ container
         container.get("Factory<DBTCoreProjectIntegration>"),
         container.get("Factory<DBTCoreCommandProjectIntegration>"),
         container.get("Factory<DBTCloudProjectIntegration>"),
+        container.get("Factory<DBTFusionCommandProjectIntegration>"),
         container.get(AltimateRequest),
         container.get(ValidationProvider),
         path,

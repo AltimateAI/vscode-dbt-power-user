@@ -10,6 +10,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.claude
 
 # Build and dependencies
 src/lib/notebooks/
@@ -37,3 +38,4 @@ test-workspace/
 ehthumbs.db
 Thumbs.db
 .aider*
+certs

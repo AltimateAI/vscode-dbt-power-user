@@ -20,7 +20,7 @@ import { notEmpty } from "../../utils";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { DBTProject } from "../dbtProject";
 
-type DBTGraphType = {
+export type DBTGraphType = {
   [name: string]: string[];
 };
 

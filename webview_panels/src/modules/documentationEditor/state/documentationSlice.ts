@@ -33,6 +33,7 @@ export const initialState = {
   searchQuery: "",
   showSingleDocsPropRightPanel: false,
   showBulkDocsPropRightPanel: false,
+  docBlocks: [],
 } as DocumentationStateProps;
 
 const documentationSlice = createSlice({
@@ -104,6 +105,13 @@ const documentationSlice = createSlice({
       action: PayloadAction<DocumentationStateProps["project"]>,
     ) => {
       state.project = action.payload;
+      state.docBlocks = [];
+    },
+    setDocBlocks: (
+      state,
+      action: PayloadAction<DocumentationStateProps["docBlocks"]>,
+    ) => {
+      state.docBlocks = action.payload;
     },
     updateCurrentDocsTests: (
       state,
@@ -121,6 +129,7 @@ const documentationSlice = createSlice({
       state,
       action: PayloadAction<DocumentationStateProps["incomingDocsData"]>,
     ) => {
+      state.docBlocks = [];
       // if test/docs data is not changed, then update the state
       const isCleanForm = !isStateDirty(state);
 
@@ -269,6 +278,7 @@ export const {
   updateColumnsInCurrentDocsData,
   updateColumnsAfterSync,
   setProject,
+  setDocBlocks,
   addToGenerationsHistory,
   resetGenerationsHistory,
   setGenerationsHistory,

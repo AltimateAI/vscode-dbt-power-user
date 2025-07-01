@@ -464,3 +464,34 @@ export function getCurrentlySelectedModelNameInYamlConfig(): string {
   }
   return "";
 }
+
+export function removeProtocol(input: string): string {
+  return input.replace(/^[^:]+:\/\//, "");
+}
+
+export function getDepthColor(depth: number): string {
+  const mediumDepthThreshold = workspace
+    .getConfiguration("dbt")
+    .get<number>("mediumDepthThreshold", 5);
+  const highDepthThreshold = workspace
+    .getConfiguration("dbt")
+    .get<number>("highDepthThreshold", 10);
+
+  const lowDepthColor = workspace
+    .getConfiguration("dbt")
+    .get<string>("lowDepthColor", "#00ff00");
+  const mediumDepthColor = workspace
+    .getConfiguration("dbt")
+    .get<string>("mediumDepthColor", "#ffa500");
+  const highDepthColor = workspace
+    .getConfiguration("dbt")
+    .get<string>("highDepthColor", "#ff0000");
+
+  if (depth >= highDepthThreshold) {
+    return highDepthColor; // Configurable color for high depth
+  } else if (depth >= mediumDepthThreshold) {
+    return mediumDepthColor; // Configurable color for medium depth
+  } else {
+    return lowDepthColor; // Configurable color for low depth
+  }
+}
