@@ -54,7 +54,12 @@ import { DbtTestService } from "../services/dbtTestService";
 import { gte } from "semver";
 import { TelemetryEvents } from "../telemetry/events";
 import { SendMessageProps } from "./altimateWebviewProvider";
-import { DbtLineageService, Table } from "../services/dbtLineageService";
+import {
+  CllEvents,
+  DbtLineageService,
+  Table,
+} from "../services/dbtLineageService";
+import { Model } from "@altimateai/extension-components";
 
 export enum Source {
   YAML = "YAML",

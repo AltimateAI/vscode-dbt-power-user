@@ -1,5 +1,5 @@
 import type { RequestInit } from "node-fetch";
-import { CommentThread, env, Uri, window, workspace } from "vscode";
+import { CommentThread, env, Range, Uri, window, workspace } from "vscode";
 import { provideSingleton, processStreamResponse } from "./utils";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
@@ -10,8 +10,11 @@ import { RateLimitException, ExecutionsExhaustedException } from "./exceptions";
 import { DBTProject } from "./manifest/dbtProject";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
-import { PreconfiguredNotebookItem, NotebookItem, NotebookSchema } from "@lib";
-import * as vscode from "vscode";
+import {
+  PreconfiguredNotebookItem,
+  NotebookItem,
+  NotebookSchema,
+} from "@altimateai/extension-components";
 
 export class NoCredentialsError extends Error {}
 
@@ -333,8 +336,8 @@ export interface ConversationGroup {
     resource_type?: string;
     range:
       | {
-          end: vscode.Range["end"];
-          start: vscode.Range["start"];
+          end: Range["end"];
+          start: Range["start"];
         }
       | undefined;
   };

@@ -16,8 +16,7 @@
     "types": ["node", "jest", "vscode"],
     "baseUrl": ".",
     "paths": {
-      "@extension": ["./src/modules.ts"],
-      "@lib": ["./src/lib/index"]
+      "@extension": ["./src/modules.ts"]
     },
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true

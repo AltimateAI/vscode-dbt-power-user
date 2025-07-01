@@ -38,11 +38,26 @@ const config = {
     extensions: [".ts", ".js"],
     alias: {
       "@extension": path.resolve(__dirname, "./src/modules.ts"),
-      "@lib": path.resolve(__dirname, "./src/lib/index"),
     },
   },
   module: {
     rules: [
+      // Added for processing @altimateai/extension-components to use @extension imports
+      {
+        test: /\.js$/,
+        include: [
+          path.resolve(
+            __dirname,
+            "node_modules/@altimateai/extension-components",
+          ),
+        ],
+        type: "javascript/auto",
+        use: [
+          {
+            loader: "babel-loader",
+          },
+        ],
+      },
       {
         test: /\.ts$/,
         exclude: /(node_modules|src\/test)/,
@@ -137,74 +152,6 @@ const config = {
           },
         },
       }),
-    ],
-  },
-};
-
-const rendererConfig = {
-  devtool: "source-map",
-  target: ["web", "es5"],
-  externals: {
-    vscode: "commonjs vscode",
-    zeromq: "zeromq",
-  },
-  entry: "./webview_panels/src/notebook/index.tsx",
-  output: {
-    path: path.resolve(__dirname, "dist"),
-    filename: "renderer.js",
-    libraryTarget: "module",
-  },
-  resolve: {
-    extensions: [".ts", ".tsx", ".css"],
-    alias: {
-      "@uicore": path.resolve(__dirname, "./webview_panels/src/uiCore"),
-      "@assets": path.resolve(__dirname, "./webview_panels/src/assets"),
-      "@modules": path.resolve(__dirname, "./webview_panels/src/modules"),
-      "@testUtils": path.resolve(__dirname, "./webview_panels/src/testUtils"),
-      "@vscodeApi": path.resolve(
-        __dirname,
-        "./webview_panels/src/modules/vscode",
-      ),
-      "@lib": path.resolve(__dirname, "./webview_panels/src/lib"),
-    },
-  },
-  experiments: {
-    outputModule: true,
-  },
-  module: {
-    rules: [
-      {
-        test: /\.tsx?$/,
-        exclude: /node_modules/,
-        use: [
-          {
-            loader: "ts-loader",
-            options: {
-              configFile: path.resolve(
-                __dirname,
-                "./webview_panels/tsconfig.json",
-              ),
-              projectReferences: true,
-              compilerOptions: {
-                module: "esnext",
-                noEmit: false,
-                outDir: "../../out/src/renderer",
-              },
-            },
-          },
-          // {
-          //   loader: "esbuild-loader",
-          //   options: {
-          //     loader: "tsx", // Remove this if you're not using JSX
-          //     target: "es2015", // Syntax to compile to (see options below for possible values)
-          //   },
-          // },
-        ],
-      },
-      {
-        test: /\.css$/i,
-        use: ["raw-loader"],
-      },
     ],
   },
 };

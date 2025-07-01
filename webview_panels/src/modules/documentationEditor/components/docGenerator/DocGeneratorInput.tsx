@@ -175,14 +175,12 @@ const DocGeneratorInput = ({
     const start = input.selectionStart;
     const end = input.selectionEnd;
     const currentValue = description;
-    
-    const newValue = 
-      currentValue.substring(0, start) + 
-      docRef + 
-      currentValue.substring(end);
-    
+
+    const newValue =
+      currentValue.substring(0, start) + docRef + currentValue.substring(end);
+
     setDescription(newValue);
-    
+
     // Update Redux state
     if (type === EntityType.COLUMN) {
       dispatch(
@@ -250,9 +248,9 @@ const DocGeneratorInput = ({
         ) : null}
         <div className="spacer" />
         <Stack className={classes.actionButtons}>
-          <DocBlockInserter 
-            inputRef={inputRef} 
-            onInsert={handleInsertDocBlock} 
+          <DocBlockInserter
+            inputRef={inputRef}
+            onInsert={handleInsertDocBlock}
           />
           <DocumentationPropagationButton type={type} name={entity.name} />
           <AddCoversationButton

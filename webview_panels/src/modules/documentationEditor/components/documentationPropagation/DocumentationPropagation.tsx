@@ -13,7 +13,7 @@ import {
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
-import { ColumnLineage } from "@lib";
+import { ColumnLineage } from "@altimateai/ui-components/lineage";
 import styles from "./styles.module.scss";
 import {
   updateBulkDocsPropRightPanel,

@@ -14,8 +14,8 @@ import appSlice, {
 import { executeRequestInAsync, executeRequestInSync } from "./requestExecutor";
 import { ContextProps } from "./types";
 import useListeners from "./useListeners";
-import { ApiHelper } from "@lib";
 import { panelLogger } from "@modules/logger";
+import { ApiHelper } from "@altimateai/ui-components";
 
 export const AppContext = createContext<ContextProps>({
   state: initialState,

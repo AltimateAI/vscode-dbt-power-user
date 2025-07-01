@@ -15,7 +15,7 @@ import { HoverProviders } from "./hover_provider";
 import { DbtPowerUserActionsCenter } from "./quickpick";
 import { ValidationProvider } from "./validation_provider";
 import { CommentProviders } from "./comment_provider";
-import { NotebookProviders } from "@lib";
+import { NotebookProviders } from "@altimateai/extension-components";
 import { DbtPowerUserMcpServer } from "./mcp";
 
 enum PromptAnswer {

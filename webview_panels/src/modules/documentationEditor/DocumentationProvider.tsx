@@ -42,7 +42,10 @@ import {
 import { ContextProps } from "./types";
 import { getGenerationsInModel, isStateDirty } from "./utils";
 import DocumentationEditor from "./DocumentationEditor";
-import { ConversationGroup, DbtDocsShareDetails } from "@lib";
+import {
+  ConversationGroup,
+  DbtDocsShareDetails,
+} from "@altimateai/ui-components";
 import { TelemetryEvents } from "@telemetryEvents";
 import { sendTelemetryEvent } from "./components/telemetry";
 import useAppContext from "@modules/app/useAppContext";

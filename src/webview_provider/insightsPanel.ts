@@ -30,7 +30,7 @@ import { ManifestPathType } from "../constants";
 import { QueryManifestService } from "../services/queryManifestService";
 import { ValidationProvider } from "../validation_provider";
 import { UsersService } from "../services/usersService";
-import { NotebookFileSystemProvider } from "@lib";
+import { NotebookFileSystemProvider } from "@altimateai/extension-components";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];

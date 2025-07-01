@@ -7,7 +7,7 @@ import {
   ConversationGroupProvider,
   ConversationSources,
   DbtDocsShareDetails,
-} from "@lib";
+} from "@altimateai/ui-components";
 import { panelLogger } from "@modules/logger";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import {
@@ -56,10 +56,7 @@ const ConversationsRightPanel = (): JSX.Element => {
       },
       {},
     );
-  }, [
-    allConversations,
-    currentDocsData?.uniqueId,
-  ]);
+  }, [allConversations, currentDocsData?.uniqueId]);
 
   const drawerRef = useRef<DrawerRef | null>(null);
 

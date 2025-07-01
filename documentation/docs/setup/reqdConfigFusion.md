@@ -11,6 +11,7 @@ type: tip
 dbt Fusion is a command-line interface that provides enhanced dbt functionality with improved performance and additional features. Unlike standard dbt Core, dbt Fusion is a standalone executable that doesn't require a Python environment, making it easier to install and manage.
 
 ### Key Benefits of dbt Fusion Integration:
+
 - **Standalone Installation**: No Python environment required
 - **Enhanced Performance**: Optimized execution compared to standard dbt
 - **Cross-Platform Support**: Available for macOS, Linux, and Windows
@@ -70,11 +71,13 @@ type: info
 #### Manual Installation
 
 **macOS and Linux:**
+
 ```bash
 curl -fsSL https://public.cdn.getdbt.com/fs/install/install.sh | sh -s -- --update
 ```
 
 **Windows (PowerShell):**
+
 ```powershell
 irm https://public.cdn.getdbt.com/fs/install/install.ps1 | iex
 ```
@@ -82,6 +85,7 @@ irm https://public.cdn.getdbt.com/fs/install/install.ps1 | iex
 #### Verify Installation
 
 After installation, verify that dbt Fusion is properly installed by running:
+
 ```bash
 dbt --version
 ```
@@ -93,36 +97,42 @@ You should see output that includes "dbt-fusion" in the version information.
 Set the integration type to fusion in your VSCode settings:
 
 #### Method 1: Via VSCode Settings UI
+
 1. Open VSCode Settings (`Ctrl+,` / `Cmd+,`)
 2. Search for "dbt integration"
 3. Set "Dbt: Dbt Integration" to "fusion"
 
 #### Method 2: Via settings.json
+
 Add the following to your VSCode settings.json:
+
 ```json
 {
-    "dbt.dbtIntegration": "fusion"
+  "dbt.dbtIntegration": "fusion"
 }
 ```
 
-### Step 3: Associate *.sql files with jinja-sql
+### Step 3: Associate \*.sql files with jinja-sql
 
 #### Method 1: Configure in Preferences > Settings
+
 ![File Associations](images/associations.png)
 
 #### Method 2: Update settings.json directly
+
 ```json
 {
-    "files.associations": {
-        "*.sql": "jinja-sql",
-        "*.yml": "jinja-yaml"
-    }
+  "files.associations": {
+    "*.sql": "jinja-sql",
+    "*.yml": "jinja-yaml"
+  }
 }
 ```
 
 ### Step 4: Verify Configuration
 
 After configuration, check that:
+
 1. The bottom status bar shows "dbt fusion" with a checkmark
 2. You can execute dbt commands through the extension
 3. IntelliSense and syntax highlighting work in your dbt files
@@ -155,6 +165,7 @@ Go to VSCode extension settings, and add API key and instance name there.
 dbt Fusion integration supports most extension features with some exceptions:
 
 ### ✅ Supported Features
+
 - **Query Execution**: Execute models and preview results
 - **SQL Compilation**: View compiled SQL code
 - **Auto-completion**: IntelliSense for models, macros, and sources
@@ -165,6 +176,7 @@ dbt Fusion integration supports most extension features with some exceptions:
 - **Query Explanation**: AI-powered SQL explanation
 
 ### ❌ Limited Features
+
 - **Documentation Generation**: Not supported in dbt Fusion CLI
 - **Some Advanced Features**: May have limitations compared to dbt Core integration
 

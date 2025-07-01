@@ -191,6 +191,7 @@ class PerspectiveDatagridJSONViewerPlugin extends (customElements.get(
 
 customElements.define(
   "perspective-datagrid-json-viewer-plugin",
+  // @ts-expect-error valid
   PerspectiveDatagridJSONViewerPlugin,
 );
 

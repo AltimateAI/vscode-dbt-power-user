@@ -44,7 +44,10 @@ import { AltimateRequest } from "./altimate";
 import { ValidationProvider } from "./validation_provider";
 import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
-import { NotebookKernelClient, NotebookDependencies } from "@lib";
+import {
+  NotebookKernelClient,
+  NotebookDependencies,
+} from "@altimateai/extension-components";
 import { DBTCoreCommandProjectIntegration } from "./dbt_client/dbtCoreCommandIntegration";
 import {
   DBTFusionCommandDetection,

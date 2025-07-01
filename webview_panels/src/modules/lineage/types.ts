@@ -1,4 +1,4 @@
-import { CollectColumn, Details } from "@lib";
+import { CollectColumn, Details } from "@altimateai/ui-components/lineage";
 
 export interface MissingLineageMessage {
   message: string;
