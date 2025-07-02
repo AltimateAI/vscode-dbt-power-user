@@ -1,14 +1,14 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import { Disposable } from "vscode";
 import { AltimateRequest, TenantUser } from "../altimate";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { provideSingleton } from "../utils";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { DBTInstallationVerificationEvent } from "../dbt_client/dbtVersionEvent";
+import { AltimateAuthService } from "./altimateAuthService";
 
 /**
  * Service to load and store users in tenant and current user
  */
-@provideSingleton(UsersService)
 export class UsersService implements Disposable {
   // Local cache of users in tenant
   private tenantUsers: Record<string, TenantUser> = {};
@@ -18,8 +18,10 @@ export class UsersService implements Disposable {
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private altimateRequest: AltimateRequest,
+    private altimateAuthService: AltimateAuthService,
   ) {
     this.disposables.push(
       this.dbtProjectContainer.onDBTInstallationVerification((e) =>
@@ -56,7 +58,7 @@ export class UsersService implements Disposable {
   }
 
   private async loadUsersInTenant() {
-    if (this.altimateRequest.getCredentialsMessage()) {
+    if (this.altimateAuthService.getCredentialsMessage()) {
       this.dbtTerminal.debug(
         "UsersService:loadUsersInTenant",
         "Missing credentials. skipping loadUsersInTenant",
@@ -73,7 +75,7 @@ export class UsersService implements Disposable {
   }
 
   private async loadCurrentUser() {
-    if (this.altimateRequest.getCredentialsMessage()) {
+    if (this.altimateAuthService.getCredentialsMessage()) {
       this.dbtTerminal.debug(
         "UsersService:loadCurrentUser",
         "Missing credentials. skipping loadCurrentUser",

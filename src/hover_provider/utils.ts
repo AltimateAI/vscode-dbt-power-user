@@ -1,11 +1,11 @@
-import { MarkdownString, Uri } from "vscode";
 import {
   MacroMetaData,
   NodeMetaData,
   NodeMetaType,
   SourceMetaType,
-} from "../domain";
-import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
+} from "@altimateai/dbt-integration";
+import { MarkdownString, Uri } from "vscode";
+import { ManifestCacheProjectAddedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
 
 export function generateHoverMarkdownString(
   node: NodeMetaType | SourceMetaType,

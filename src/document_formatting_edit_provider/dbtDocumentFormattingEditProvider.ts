@@ -1,4 +1,8 @@
+import { CommandProcessExecutionFactory } from "@altimateai/dbt-integration";
+import fs from "fs";
+import { inject } from "inversify";
 import parseDiff from "parse-diff";
+import path from "path";
 import {
   CancellationToken,
   DocumentFormattingEditProvider,
@@ -10,24 +14,17 @@ import {
   workspace,
 } from "vscode";
 import which from "which";
-import { CommandProcessExecutionFactory } from "../commandProcessExecution";
-import {
-  extendErrorWithSupportLinks,
-  getFirstWorkspacePath,
-  provideSingleton,
-} from "../utils";
+import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
 import { TelemetryService } from "../telemetry";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import path from "path";
-import fs from "fs";
+import { extendErrorWithSupportLinks, getFirstWorkspacePath } from "../utils";
 
-@provideSingleton(DbtDocumentFormattingEditProvider)
 export class DbtDocumentFormattingEditProvider
   implements DocumentFormattingEditProvider
 {
   constructor(
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
     private telemetry: TelemetryService,
+    @inject(PythonEnvironment)
     private pythonEnvironment: PythonEnvironment,
   ) {}
 
@@ -59,6 +56,9 @@ export class DbtDocumentFormattingEditProvider
     try {
       // try to find sqlfmt on PATH if not set
       const sqlFmtPath = sqlFmtPathSetting || (await this.findSqlFmtPath());
+      if (!sqlFmtPath) {
+        throw new Error("sqlfmt not found");
+      }
       this.telemetry.sendTelemetryEvent("formatDbtModel", {
         sqlFmtPath: sqlFmtPathSetting ? "setting" : "path",
       });

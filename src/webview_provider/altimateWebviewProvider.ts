@@ -1,3 +1,7 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { NotebookSchema } from "@lib";
+import { inject } from "inversify";
+import { PythonException } from "python-bridge";
 import {
   CancellationToken,
   commands,
@@ -13,21 +17,19 @@ import {
   window,
   workspace,
 } from "vscode";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { TelemetryService } from "../telemetry";
-import path = require("path");
-import {
-  ManifestCacheProjectAddedEvent,
-  ManifestCacheChangedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
 import { AltimateRequest, UserInputError } from "../altimate";
-import { SharedStateService } from "../services/sharedStateService";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import {
+  ManifestCacheChangedEvent,
+  ManifestCacheProjectAddedEvent,
+} from "../dbt_client/event/manifestCacheChangedEvent";
+import { AltimateAuthService } from "../services/altimateAuthService";
 import { QueryManifestService } from "../services/queryManifestService";
-import { PythonException } from "python-bridge";
+import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
-import { NotebookSchema } from "@lib";
+import { TelemetryService } from "../telemetry";
+import { extendErrorWithSupportLinks } from "../utils";
+import path = require("path");
 
 export type UpdateConfigProps = {
   key: string;
@@ -56,7 +58,6 @@ export interface SendMessageProps extends Record<string, unknown> {
  * This class is responsible for rendering the webview
  * Each panel needs to have its own provider which extends this class with correct viewPath and description
  */
-@provideSingleton(AltimateWebviewProvider)
 export class AltimateWebviewProvider implements WebviewViewProvider {
   public viewType = "dbtPowerUser.Default";
   protected viewPath = "/"; // webview route path from AppRoutes.tsx
@@ -74,9 +75,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     protected altimateRequest: AltimateRequest,
     protected telemetry: TelemetryService,
     protected emitterService: SharedStateService,
+    @inject("DBTTerminal")
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
+    protected altimateAuthService: AltimateAuthService,
   ) {
     this._disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
@@ -360,7 +363,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           });
           break;
         case "validateCredentials":
-          const isValid = await this.altimateRequest.handlePreviewFeatures();
+          const isValid = this.altimateAuthService.handlePreviewFeatures();
           this.sendResponseToWebview({
             command: "response",
             syncRequestId,
@@ -410,7 +413,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           // If config is for preview feature, then check keys
           const shouldUpdate =
             !params.isPreviewFeature ||
-            this.altimateRequest.handlePreviewFeatures();
+            this.altimateAuthService.handlePreviewFeatures();
           if (shouldUpdate) {
             await workspace
               .getConfiguration("dbt")

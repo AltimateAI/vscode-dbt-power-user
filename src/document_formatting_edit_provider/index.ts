@@ -1,9 +1,7 @@
 import { Disposable, languages } from "vscode";
 import { DBTPowerUserExtension } from "../dbtPowerUserExtension";
-import { provideSingleton } from "../utils";
 import { DbtDocumentFormattingEditProvider } from "./dbtDocumentFormattingEditProvider";
 
-@provideSingleton(DocumentFormattingEditProviders)
 export class DocumentFormattingEditProviders implements Disposable {
   private disposables: Disposable[] = [];
 

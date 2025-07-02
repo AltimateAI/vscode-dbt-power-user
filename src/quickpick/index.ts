@@ -1,11 +1,9 @@
-import { Disposable, commands, window } from "vscode";
-import { provideSingleton } from "../utils";
-import { DbtPowerUserControlCenterAction } from "./puQuickPick";
+import { commands, Disposable, window } from "vscode";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { ProjectQuickPick } from "./projectQuickPick";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DbtPowerUserControlCenterAction } from "./puQuickPick";
 import { DbtSQLAction } from "./sqlQuickPick";
 
-@provideSingleton(DbtPowerUserActionsCenter)
 export class DbtPowerUserActionsCenter implements Disposable {
   private disposables: Disposable[] = [];
 

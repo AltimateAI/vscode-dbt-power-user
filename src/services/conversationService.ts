@@ -1,14 +1,14 @@
-import * as os from "os";
-import { CommentThread, ProgressLocation, Uri, window } from "vscode";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { QueryManifestService } from "./queryManifestService";
-import { DBTProject } from "../manifest/dbtProject";
-import path = require("path");
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { AltimateRequest, ConversationGroup, SharedDoc } from "../altimate";
+import { DBTTerminal, hashProjectRoot } from "@altimateai/dbt-integration";
 import { rmSync } from "fs";
+import { inject } from "inversify";
+import * as os from "os";
+import { ProgressLocation, Uri, window } from "vscode";
+import { AltimateRequest, ConversationGroup, SharedDoc } from "../altimate";
+import { extendErrorWithSupportLinks } from "../utils";
+import { AltimateAuthService } from "./altimateAuthService";
+import { QueryManifestService } from "./queryManifestService";
+import path = require("path");
 
-@provideSingleton(ConversationService)
 export class ConversationService {
   // Local cache to store shared docs
   private sharedDocs: SharedDoc[] = [];
@@ -19,8 +19,10 @@ export class ConversationService {
 
   public constructor(
     private queryManifestService: QueryManifestService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private altimateRequest: AltimateRequest,
+    private altimateAuthService: AltimateAuthService,
   ) {}
 
   public getConversations() {
@@ -29,7 +31,7 @@ export class ConversationService {
 
   public async loadSharedDocs() {
     try {
-      if (this.altimateRequest.getCredentialsMessage()) {
+      if (this.altimateAuthService.getCredentialsMessage()) {
         this.dbtTerminal.debug(
           "ConversationService:loadSharedDocs",
           "Missing credentials. skipping loadSharedDocs",
@@ -67,7 +69,7 @@ export class ConversationService {
 
   public async getAppUrlByShareId(shareId: SharedDoc["share_id"]) {
     try {
-      if (!this.altimateRequest.handlePreviewFeatures()) {
+      if (!this.altimateAuthService.handlePreviewFeatures()) {
         return;
       }
       return this.altimateRequest.getAppUrlByShareId(shareId);
@@ -90,7 +92,7 @@ export class ConversationService {
     data: Partial<ConversationGroup> & { message: string },
   ) {
     try {
-      if (!this.altimateRequest.handlePreviewFeatures()) {
+      if (!this.altimateAuthService.handlePreviewFeatures()) {
         return;
       }
       return this.altimateRequest.createConversationGroup(shareId, data);
@@ -114,7 +116,7 @@ export class ConversationService {
     message: string,
   ) {
     try {
-      if (!this.altimateRequest.handlePreviewFeatures()) {
+      if (!this.altimateAuthService.handlePreviewFeatures()) {
         return;
       }
       const result = await this.altimateRequest.addConversationToGroup(
@@ -147,7 +149,7 @@ export class ConversationService {
     conversationGroupId: ConversationGroup["conversation_group_id"],
   ) {
     try {
-      if (!this.altimateRequest.handlePreviewFeatures()) {
+      if (!this.altimateAuthService.handlePreviewFeatures()) {
         return;
       }
       return await this.altimateRequest.resolveConversation(
@@ -169,7 +171,7 @@ export class ConversationService {
   }
 
   public async loadConversationsByShareId(shareId: SharedDoc["share_id"]) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
     const conversations =
@@ -197,7 +199,7 @@ export class ConversationService {
   }): Promise<
     { shareUrl: string; shareId: SharedDoc["share_id"] } | undefined
   > {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
     return new Promise((resolve, reject) => {
@@ -216,9 +218,7 @@ export class ConversationService {
           progress.report({ message: "Generating dbt docs..." });
 
           // generate docs in tmp directory
-          const hashedProjectRoot = DBTProject.hashProjectRoot(
-            project.projectRoot.fsPath,
-          );
+          const hashedProjectRoot = hashProjectRoot(project.projectRoot.fsPath);
           const tmpDirPath = path.join(os.tmpdir(), hashedProjectRoot);
 
           try {
@@ -232,7 +232,7 @@ export class ConversationService {
             );
 
             // generate docs in tmp directory
-            await project.generateDocsImmediately(args);
+            await project.unsafeGenerateDocsImmediately(args);
 
             this.dbtTerminal.debug(
               "docGenService:shareDbtDocs",
