@@ -778,26 +778,90 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 location: ProgressLocation.Notification,
                 cancellable: false,
               },
-              () => this.saveDocumentation(message, syncRequestId),
+              async () => {
+                await this.saveDocumentation(message, syncRequestId);
+                await this.reloadDocumentationFromManifest();
+                const tests =
+                  await this.dbtTestService.getTestsForCurrentModel();
+                if (syncRequestId) {
+                  this._panel!.webview.postMessage({
+                    command: "response",
+                    args: {
+                      syncRequestId,
+                      body: {
+                        saved: true,
+                        tests,
+                        documentation: this.documentation,
+                      },
+                      status: true,
+                    },
+                  });
+                }
+              },
             );
             break;
           case "saveDocumentationBulk": {
             this.telemetry.sendTelemetryEvent(
               TelemetryEvents["DocumentationEditor/SaveBulk"],
             );
-            const successfulSaves: string[] = [];
-            for (const item of message.models) {
-              const model = await this.saveDocumentation(item, syncRequestId);
-              if (model) {
-                successfulSaves.push(model);
+
+            // Transform raw data into models array
+            const {
+              allColumns,
+              selectedColumns,
+              tableMetadata,
+              testsMetadata,
+              currentDocsData,
+              startColumns,
+            } = message;
+
+            const defaultPackageName = tableMetadata.filter(
+              (t: any) => t.packageName,
+            )[0]?.packageName;
+            const defaultPatchPath = defaultPackageName
+              ? defaultPackageName + "://models/schema.yml"
+              : "";
+
+            const models = [];
+
+            for (const item of allColumns) {
+              const key = item.model + "/" + item.column;
+              if (!selectedColumns[key]) {
+                continue;
               }
+              const splits = item.model.split(".");
+              const modelName = splits[splits.length - 1];
+              const node = tableMetadata.find(
+                (t: any) => t.table === item.model,
+              );
+              const columnDescription =
+                currentDocsData?.columns.find((c: any) => c.name === item.root)
+                  ?.description ?? "";
+              models.push({
+                name: modelName,
+                description: node?.description,
+                columns: [
+                  { name: item.column, description: columnDescription },
+                ],
+                dialogType: "Existing file",
+                // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+                patchPath: node?.patchPath || defaultPatchPath,
+                filePath: node?.url,
+                updatedTests: testsMetadata[item.model],
+              });
+            }
+
+            const successfulSaves: string[] = [];
+            for (const item of models) {
+              await this.saveDocumentation(item, syncRequestId);
+              successfulSaves.push(item.name);
             }
             if (successfulSaves.length > 0) {
               window.showInformationMessage(
                 `Successfully propagated to: ${Array.from(new Set(successfulSaves)).join(", ")}`,
               );
               this.altimateRequest.bulkDocsPropCredit({
-                num_columns: message.numColumns,
+                num_columns: startColumns.length,
                 session_id: env.sessionId,
               });
             }
@@ -808,6 +872,14 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       null,
       this._disposables,
     );
+  }
+
+  private async reloadDocumentationFromManifest() {
+    // Force reload from manifest after manifest refresh
+    this.loadedFromManifest = false;
+    this.documentation = (
+      await this.docGenService.getUncompiledDocumentationForCurrentActiveFile()
+    ).documentation;
   }
 
   private async saveDocumentation(message: any, syncRequestId: string) {
@@ -1002,28 +1074,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         }
       }
 
-      // Force reload from manifest after manifest refresh
-      this.loadedFromManifest = false;
       writeFileSync(patchPath, stringify(parsedDocFile, { lineWidth: 0 }));
-      this.documentation = (
-        await this.docGenService.getUncompiledDocumentationForCurrentActiveFile()
-      ).documentation;
-      const tests = await this.dbtTestService.getTestsForCurrentModel();
-      if (syncRequestId) {
-        this._panel!.webview.postMessage({
-          command: "response",
-          args: {
-            syncRequestId,
-            body: {
-              saved: true,
-              tests,
-              documentation: this.documentation,
-            },
-            status: true,
-          },
-        });
-      }
-      return this.documentation?.name;
     } catch (error) {
       this.transmitError();
       this.telemetry.sendTelemetryError(
