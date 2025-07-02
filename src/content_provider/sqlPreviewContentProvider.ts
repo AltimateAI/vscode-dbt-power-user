@@ -1,7 +1,3 @@
-import {
-  DbtIntegrationClient,
-  ManifestPathType,
-} from "@altimateai/dbt-integration";
 import { readFileSync } from "fs";
 import {
   Disposable,
@@ -16,7 +12,6 @@ import {
   workspace,
 } from "vscode";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
-import { DeferToProdService } from "../services/deferToProdService";
 import { TelemetryService } from "../telemetry";
 import { debounce } from "../utils";
 import path = require("path");
@@ -33,8 +28,6 @@ export class SqlPreviewContentProvider
 
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
-    private deferToProdService: DeferToProdService,
-    private dbtIntegrationClient: DbtIntegrationClient,
     private telemetry: TelemetryService,
   ) {
     this.subscriptions = workspace.onDidCloseTextDocument((compilationDoc) => {
@@ -94,21 +87,7 @@ export class SqlPreviewContentProvider
       }
       this.telemetry.sendTelemetryEvent("requestCompilation");
       await project.refreshProjectConfig();
-      const result = await project.unsafeCompileQuery(query, modelName);
-      const { manifestPathType } =
-        this.deferToProdService.getDeferConfigByProjectRoot(
-          project.projectRoot.fsPath,
-        );
-      const dbtIntegrationMode = workspace
-        .getConfiguration("dbt")
-        .get<string>("dbtIntegration", "core");
-      if (
-        dbtIntegrationMode.startsWith("core") &&
-        manifestPathType === ManifestPathType.REMOTE
-      ) {
-        this.dbtIntegrationClient.sendDeferToProdEvent(ManifestPathType.REMOTE);
-      }
-      return result;
+      return await project.unsafeCompileQuery(query, modelName);
     } catch (error: any) {
       const errorMessage = (error as Error).message;
       window.showErrorMessage(`Error while compiling: ${errorMessage}`);

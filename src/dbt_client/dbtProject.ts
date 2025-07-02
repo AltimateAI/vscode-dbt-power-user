@@ -59,7 +59,6 @@ import {
 } from "vscode";
 import { AltimateRequest, ModelNode } from "../altimate";
 import { AltimateAuthService } from "../services/altimateAuthService";
-import { DeferToProdService } from "../services/deferToProdService";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
@@ -145,7 +144,6 @@ export class DBTProject implements Disposable, DBTFacade {
     ) => DBTProjectIntegrationAdapter,
     private altimate: AltimateRequest,
     private validationProvider: ValidationProvider,
-    private deferToProdService: DeferToProdService,
     private altimateAuthService: AltimateAuthService,
     path: Uri,
     _projectConfig: any,
@@ -182,7 +180,7 @@ export class DBTProject implements Disposable, DBTFacade {
     // Create the integration adapter which will handle the integration selection internally
     this.dbtProjectIntegration = this.dbtIntegrationAdapterFactory(
       this.projectRoot.fsPath,
-      this.getDeferConfig(),
+      this.retrieveDeferConfigFromSettings(),
     );
 
     // Set up Node.js watcher events to emit VSCode events directly
@@ -1717,8 +1715,8 @@ export class DBTProject implements Disposable, DBTFacade {
   }
 
   async applyDeferConfig(): Promise<void> {
-    const deferConfig = this.getDeferConfig();
-    await this.getCurrentProjectIntegration().applyDeferConfig(deferConfig);
+    const deferConfig = this.retrieveDeferConfigFromSettings();
+    await this.dbtProjectIntegration.applyDeferConfig(deferConfig);
   }
 
   throwDiagnosticsErrorIfAvailable() {
@@ -1756,18 +1754,28 @@ export class DBTProject implements Disposable, DBTFacade {
     }
   }
 
-  private getDeferConfig(): DeferConfig | undefined {
+  private retrieveDeferConfigFromSettings(): DeferConfig | undefined {
     const relativePath = getProjectRelativePath(this.projectRoot);
-    const currentConfig: Record<string, DeferConfig> =
-      this.deferToProdService.getDeferConfigByWorkspace();
+    const currentConfig: Record<string, DeferConfig> = workspace
+      .getConfiguration("dbt")
+      .get("deferConfigPerProject", {});
     if (currentConfig[relativePath]) {
       const config = currentConfig[relativePath];
-      return {
-        deferToProduction: config.deferToProduction,
-        manifestPathForDeferral: config.manifestPathForDeferral,
-        favorState: config.favorState,
-      };
+      return new DeferConfig(
+        config.deferToProduction,
+        config.favorState,
+        config.manifestPathForDeferral,
+        config.manifestPathType,
+        config.dbtCoreIntegrationId,
+      );
     }
+  }
+
+  getDeferConfig(): DeferConfig {
+    if (!this.dbtProjectIntegration) {
+      throw new Error("DBT Project Integration is not initialized.");
+    }
+    return this.dbtProjectIntegration.getDeferConfig();
   }
 
   private createQueue(queueName: string) {

@@ -38,8 +38,8 @@ export const ManifestSelection = ({
     if (!(response as { updated: boolean }).updated) {
       setDeferState((prevState) => ({
         ...prevState,
-        manifestPathForDeferral: "",
-        manifestPathType: ManifestPathType.EMPTY,
+        manifestPathForDeferral,
+        manifestPathType,
       }));
     }
   };

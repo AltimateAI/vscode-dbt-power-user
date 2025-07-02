@@ -61,7 +61,6 @@ import { AltimateAuthService } from "./services/altimateAuthService";
 import { ConversationService } from "./services/conversationService";
 import { DbtLineageService } from "./services/dbtLineageService";
 import { DbtTestService } from "./services/dbtTestService";
-import { DeferToProdService } from "./services/deferToProdService";
 import { DiagnosticsOutputChannel } from "./services/diagnosticsOutputChannel";
 import { DocGenService } from "./services/docGenService";
 import { FileService } from "./services/fileService";
@@ -534,12 +533,12 @@ container
   >("Factory<DBTCoreProjectIntegration>")
   .toFactory<
     DBTCoreProjectIntegration,
-    [string, DBTDiagnosticData[], DeferConfig | undefined, () => void]
+    [string, DBTDiagnosticData[], DeferConfig, () => void]
   >((context: interfaces.Context) => {
     return (
       projectRoot: string,
       projectConfigDiagnostics: DBTDiagnosticData[],
-      deferConfig: DeferConfig | undefined,
+      deferConfig: DeferConfig,
       onDiagnosticsChanged: () => void,
     ) => {
       const { container } = context;
@@ -566,12 +565,12 @@ container
   >("Factory<DBTCoreCommandProjectIntegration>")
   .toFactory<
     DBTCoreCommandProjectIntegration,
-    [string, DBTDiagnosticData[], DeferConfig | undefined, () => void]
+    [string, DBTDiagnosticData[], DeferConfig, () => void]
   >((context: interfaces.Context) => {
     return (
       projectRoot: string,
       projectConfigDiagnostics: DBTDiagnosticData[],
-      deferConfig: DeferConfig | undefined,
+      deferConfig: DeferConfig,
       onDiagnosticsChanged: () => void,
     ) => {
       const { container } = context;
@@ -598,12 +597,12 @@ container
   >("Factory<DBTFusionCommandProjectIntegration>")
   .toFactory<
     DBTFusionCommandProjectIntegration,
-    [string, DBTDiagnosticData[], DeferConfig | undefined, () => void]
+    [string, DBTDiagnosticData[], DeferConfig, () => void]
   >((context: interfaces.Context) => {
     return (
       projectRoot: string,
       projectConfigDiagnostics: DBTDiagnosticData[],
-      deferConfig: DeferConfig | undefined,
+      deferConfig: DeferConfig,
       onDiagnosticsChanged: () => void,
     ) => {
       const { container } = context;
@@ -628,12 +627,12 @@ container
   >("Factory<DBTCloudProjectIntegration>")
   .toFactory<
     DBTCloudProjectIntegration,
-    [string, DBTDiagnosticData[], DeferConfig | undefined, () => void]
+    [string, DBTDiagnosticData[], DeferConfig, () => void]
   >((context: interfaces.Context) => {
     return (
       projectRoot: string,
       projectConfigDiagnostics: DBTDiagnosticData[],
-      deferConfig: DeferConfig | undefined,
+      deferConfig: DeferConfig,
       onDiagnosticsChanged: () => void,
     ) => {
       const { container } = context;
@@ -709,7 +708,6 @@ container
         container.get("Factory<DBTProjectIntegrationAdapter>"),
         container.get(AltimateRequest),
         container.get(ValidationProvider),
-        container.get(DeferToProdService),
         container.get(AltimateAuthService),
         path,
         projectConfig,
@@ -770,13 +768,6 @@ container
       context.container.get(TelemetryService),
       context.container.get(AltimateAuthService),
     );
-  })
-  .inSingletonScope();
-
-container
-  .bind(DeferToProdService)
-  .toDynamicValue(() => {
-    return new DeferToProdService();
   })
   .inSingletonScope();
 
@@ -1316,8 +1307,6 @@ container
   .toDynamicValue((context) => {
     return new SqlPreviewContentProvider(
       context.container.get(DBTProjectContainer),
-      context.container.get(DeferToProdService),
-      context.container.get(DbtIntegrationClient),
       context.container.get(TelemetryService),
     );
   })
@@ -1346,7 +1335,6 @@ container
   .bind(DeferToProductionStatusBar)
   .toDynamicValue((context) => {
     return new DeferToProductionStatusBar(
-      context.container.get(DeferToProdService),
       context.container.get(DBTProjectContainer),
       context.container.get("DBTTerminal"),
     );
@@ -1583,7 +1571,6 @@ container
       context.container.get(SharedStateService),
       context.container.get("DBTTerminal"),
       context.container.get(QueryManifestService),
-      context.container.get(DeferToProdService),
       context.container.get(ValidationProvider),
       context.container.get(UsersService),
       context.container.get("NotebookFileSystemProvider"),
