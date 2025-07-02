@@ -297,38 +297,13 @@ const useDocumentationPropagation = ({
   };
 
   const propagateDocumentation = async () => {
-    const defaultPackageName = tableMetadata.filter((t) => t.packageName)[0]
-      ?.packageName;
-    const defaultPatchPath = defaultPackageName
-      ? defaultPackageName + "://models/schema.yml"
-      : "";
-
-    const req = [];
-
-    for (const item of allColumns) {
-      const key = item.model + "/" + item.column;
-      if (!selectedColumns[key]) continue;
-      const splits = item.model.split(".");
-      const modelName = splits[splits.length - 1];
-      const node = tableMetadata.find((t) => t.table === item.model);
-      const columnDescription =
-        currentDocsData?.columns.find((c) => c.name === item.root)
-          ?.description ?? "";
-      req.push({
-        name: modelName,
-        description: node?.description,
-        columns: [{ name: item.column, description: columnDescription }],
-        dialogType: "Existing file",
-        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-        patchPath: node?.patchPath || defaultPatchPath,
-        filePath: node?.url,
-        updatedTests: testsMetadata[item.model],
-      });
-    }
-
     await executeRequestInSync("saveDocumentationBulk", {
-      models: req,
-      numColumns: startColumns.length,
+      allColumns,
+      selectedColumns,
+      tableMetadata,
+      testsMetadata,
+      currentDocsData,
+      startColumns,
     });
   };
 
@@ -509,6 +484,7 @@ export const DocumentationPropagationButton = ({
           model: currentDocsData.uniqueId,
           column: name,
           description: currColumnDescription,
+          root: name,
         },
       ]
     : [];
