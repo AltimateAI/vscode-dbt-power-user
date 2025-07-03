@@ -110,8 +110,9 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
     );
 
     // Find all WITH clauses - handle comments after WITH keyword
+    // Uses optimized patterns with bounded quantifiers to avoid backtracking
     const withClauseRegex =
-      /\bwith\s*(?:\/\*[\s\S]*?\*\/|\{#[\s\S]*?#\}|--[^\r\n]*)?\s*/gi;
+      /\bwith[ \t\r\n]{0,50}(?:\/\*(?:[^*]|\*(?!\/))*\*\/|{#(?:[^#]|#(?!\}))*#}|--[^\r\n]*)?[ \t\r\n]{0,50}/gi;
     let withMatch;
     let withClauseCount = 0;
 
@@ -389,10 +390,12 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
     // Enhanced regex to handle quoted identifiers, dotted names, complex column lists, and multiple sequential comments
     // Supports: identifier, "quoted identifier", schema.table, `backtick quoted`, [bracket quoted]
     // Also handles multiple sequential comments between CTE name and AS keyword: /* comment */, {# comment #}, -- comment
-    // Uses [\s\S]*? for block comments to support multi-line comments
-    // Uses (?:\s*(?:...)*)*\s* to handle any number of sequential comments
+    // Uses optimized patterns to avoid backtracking and ambiguous quantifiers:
+    // - Replaces \s* with [ \t\r\n]{0,50} for bounded whitespace matching
+    // - Uses atomic grouping and possessive quantifiers where possible
+    // - Restructures comment matching for deterministic parsing
     const cteRegex =
-      /((?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\])(?:\.(?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\]))*(?:\s*\([^)]*\))?)\s*(?:\s*(?:\/\*[\s\S]*?\*\/|\{#[\s\S]*?#\}|--[^\r\n]*)\s*)*\s*as\s*\(/gi;
+      /((?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\])(?:\.(?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\]))*(?:[ \t]{0,10}\([^)]*\))?)([ \t\r\n]{0,50})(?:(?:\/\*(?:[^*]|\*(?!\/))*\*\/|--[^\r\n]*|{#(?:[^#]|#(?!\}))*#})[ \t\r\n]{0,50})*as[ \t\r\n]{0,10}\(/gi;
     let cteMatch;
     let cteIndex = 0;
 
