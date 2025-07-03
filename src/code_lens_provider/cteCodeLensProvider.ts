@@ -28,12 +28,12 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
 
   /** Maximum characters in quoted identifiers ("name", `name`, [name])
    * Rationale: Most databases limit identifier length to 128-255 chars.
-   * 200 chars covers most real-world cases while preventing excessive backtracking. */
+   * 500 chars covers most real-world cases while preventing excessive backtracking. */
   private static readonly MAX_QUOTED_IDENTIFIER_LENGTH = 500;
 
   /** Maximum characters in CTE column list (id, name, description, etc.)
    * Rationale: Column lists with types and constraints can be lengthy.
-   * 500 chars accommodates complex column definitions in most practical scenarios. */
+   * 1000 chars accommodates complex column definitions in most practical scenarios. */
   private static readonly MAX_COLUMN_LIST_LENGTH = 1000;
 
   constructor(
