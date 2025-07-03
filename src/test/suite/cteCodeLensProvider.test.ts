@@ -547,8 +547,8 @@ select * from renamed`;
     });
   });
 
-  describe("User's Original Failing Cases", () => {
-    it("should handle the user's original multi-line comment case", () => {
+  describe("Complex Comment Scenarios", () => {
+    it("should handle CTE with mixed block and Jinja comments", () => {
       const sql = `with
 source /* test */ as(
     {#-
@@ -577,7 +577,7 @@ select * from renamed`;
         ctes[0],
         "source",
         0,
-        "CTE with block comment and Jinja comment in body",
+        "CTE with block comment after name and Jinja comment in body",
       );
       assertCTE(
         ctes[1],
@@ -587,7 +587,7 @@ select * from renamed`;
       );
     });
 
-    it("should handle the user's second failing case with multi-line comment", () => {
+    it("should handle CTE with multi-line block comment before AS keyword", () => {
       const sql = `with source 
 /* this is 
 a multi-line comment
@@ -615,7 +615,7 @@ select * from renamed`;
         ctes[0],
         "source",
         0,
-        "CTE with multi-line block comment before AS keyword",
+        "CTE with multi-line block comment spanning multiple lines before AS",
       );
       assertCTE(
         ctes[1],
