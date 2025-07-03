@@ -523,6 +523,28 @@ select * from source`;
       // This test verifies graceful handling of malformed comments
       expect(ctes.length).toBeGreaterThanOrEqual(0);
     });
+
+    it("should handle sequential line and block comments between name and AS", () => {
+      const sql = `with source -- test
+/* this is
+a multi-line comment
+that should be ignored */
+as (
+    select * from {{ ref('raw_orders') }}
+)
+select * from renamed`;
+
+      const document = createMockDocument(sql);
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        "source",
+        0,
+        "CTE with sequential line and block comments between name and AS",
+      );
+    });
   });
 
   describe("User's Original Failing Cases", () => {

@@ -386,12 +386,13 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
     document: TextDocument,
     ctes: CteInfo[],
   ): void {
-    // Enhanced regex to handle quoted identifiers, dotted names, complex column lists, and comments
+    // Enhanced regex to handle quoted identifiers, dotted names, complex column lists, and multiple sequential comments
     // Supports: identifier, "quoted identifier", schema.table, `backtick quoted`, [bracket quoted]
-    // Also handles comments between CTE name and AS keyword: /* comment */, {# comment #}, -- comment
+    // Also handles multiple sequential comments between CTE name and AS keyword: /* comment */, {# comment #}, -- comment
     // Uses [\s\S]*? for block comments to support multi-line comments
+    // Uses (?:\s*(?:...)*)*\s* to handle any number of sequential comments
     const cteRegex =
-      /((?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\])(?:\.(?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\]))*(?:\s*\([^)]*\))?)\s*(?:\/\*[\s\S]*?\*\/|\{#[\s\S]*?#\}|--[^\r\n]*)?\s*as\s*\(/gi;
+      /((?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\])(?:\.(?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\]))*(?:\s*\([^)]*\))?)\s*(?:\s*(?:\/\*[\s\S]*?\*\/|\{#[\s\S]*?#\}|--[^\r\n]*)\s*)*\s*as\s*\(/gi;
     let cteMatch;
     let cteIndex = 0;
 
