@@ -23,6 +23,34 @@ export interface CteInfo {
 export class CteCodeLensProvider implements CodeLensProvider, Disposable {
   private disposables: Disposable[] = [];
 
+  // Regex bounds constants to prevent catastrophic backtracking
+  // These limits are based on realistic SQL formatting expectations and database constraints
+
+  /** Maximum characters in a line comment (-- comment text)
+   * Rationale: Line comments are typically short documentation/notes.
+   * 200 chars accommodates descriptive comments while preventing runaway matching. */
+  private static readonly MAX_LINE_COMMENT_LENGTH = 200;
+
+  /** Maximum characters in quoted identifiers ("name", `name`, [name])
+   * Rationale: Most databases limit identifier length to 128-255 chars.
+   * 200 chars covers most real-world cases while preventing excessive backtracking. */
+  private static readonly MAX_QUOTED_IDENTIFIER_LENGTH = 200;
+
+  /** Maximum characters in CTE column list (id, name, description, etc.)
+   * Rationale: Column lists with types and constraints can be lengthy.
+   * 500 chars accommodates complex column definitions in most practical scenarios. */
+  private static readonly MAX_COLUMN_LIST_LENGTH = 500;
+
+  /** Maximum consecutive whitespace characters (spaces, tabs, newlines)
+   * Rationale: Even heavily formatted SQL rarely has more than 50 consecutive whitespace chars.
+   * This prevents runaway matching on malformed or machine-generated SQL. */
+  private static readonly MAX_WHITESPACE_LENGTH = 50;
+
+  /** Maximum whitespace around specific tokens (parentheses, 'as' keyword)
+   * Rationale: Tight formatting around keywords and punctuation.
+   * 10 chars accommodates reasonable indentation without excessive matching. */
+  private static readonly MAX_SMALL_WHITESPACE_LENGTH = 10;
+
   constructor(
     private dbtTerminal: DBTTerminal,
     private altimate: AltimateRequest,
@@ -111,8 +139,10 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
 
     // Find all WITH clauses - handle comments after WITH keyword
     // Uses optimized patterns with bounded quantifiers to prevent catastrophic backtracking
-    const withClauseRegex =
-      /\bwith[ \t\r\n]{0,50}(?:\/\*(?:[^*]|\*(?!\/))*\*\/|{#(?:[^#]|#(?!\}))*#}|--[^\r\n]{0,200})?[ \t\r\n]{0,50}/gi;
+    const withClauseRegex = new RegExp(
+      `\\bwith[ \\t\\r\\n]{0,${CteCodeLensProvider.MAX_WHITESPACE_LENGTH}}(?:\\/\\*(?:[^*]|\\*(?!\\/))*\\*\\/|\\{#(?:[^#]|#(?!\\}))*#\\}|--[^\\r\\n]{0,${CteCodeLensProvider.MAX_LINE_COMMENT_LENGTH}})?[ \\t\\r\\n]{0,${CteCodeLensProvider.MAX_WHITESPACE_LENGTH}}`,
+      "gi",
+    );
     let withMatch;
     let withClauseCount = 0;
 
@@ -390,13 +420,21 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
     // Enhanced regex to handle quoted identifiers, dotted names, complex column lists, and multiple sequential comments
     // Supports: identifier, "quoted identifier", schema.table, `backtick quoted`, [bracket quoted]
     // Also handles multiple sequential comments between CTE name and AS keyword: /* comment */, {# comment #}, -- comment
-    // Uses optimized patterns to prevent catastrophic backtracking:
-    // - Replaces [^\r\n]* with bounded [^\r\n]{0,200} to prevent runaway matching on line comments
-    // - Bounds quoted identifiers to {1,200} chars to prevent excessive backtracking
-    // - Bounds column lists to {0,500} chars for realistic SQL constraints
-    // - All whitespace patterns bounded to prevent exponential complexity
-    const cteRegex =
-      /((?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]{1,200}"|`[^`]{1,200}`|\[[^\]]{1,200}\])(?:\.(?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]{1,200}"|`[^`]{1,200}`|\[[^\]]{1,200}\]))*(?:[ \t]{0,10}\([^)]{0,500}\))?)([ \t\r\n]{0,50})(?:(?:\/\*(?:[^*]|\*(?!\/))*\*\/|--[^\r\n]{0,200}|{#(?:[^#]|#(?!\}))*#})[ \t\r\n]{0,50})*as[ \t\r\n]{0,10}\(/gi;
+    // Uses optimized patterns to prevent catastrophic backtracking with configurable bounds
+    const cteRegex = new RegExp(
+      `((?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]{1,${CteCodeLensProvider.MAX_QUOTED_IDENTIFIER_LENGTH}}"|` +
+        `\`[^\`]{1,${CteCodeLensProvider.MAX_QUOTED_IDENTIFIER_LENGTH}}\`|` +
+        `\\[[^\\]]{1,${CteCodeLensProvider.MAX_QUOTED_IDENTIFIER_LENGTH}}\\])` +
+        `(?:\\.(?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]{1,${CteCodeLensProvider.MAX_QUOTED_IDENTIFIER_LENGTH}}"|` +
+        `\`[^\`]{1,${CteCodeLensProvider.MAX_QUOTED_IDENTIFIER_LENGTH}}\`|` +
+        `\\[[^\\]]{1,${CteCodeLensProvider.MAX_QUOTED_IDENTIFIER_LENGTH}}\\]))*` +
+        `(?:[ \\t]{0,${CteCodeLensProvider.MAX_SMALL_WHITESPACE_LENGTH}}\\([^)]{0,${CteCodeLensProvider.MAX_COLUMN_LIST_LENGTH}}\\))?` +
+        `)([ \\t\\r\\n]{0,${CteCodeLensProvider.MAX_WHITESPACE_LENGTH}})` +
+        `(?:(?:\\/\\*(?:[^*]|\\*(?!\\/))*\\*\\/|--[^\\r\\n]{0,${CteCodeLensProvider.MAX_LINE_COMMENT_LENGTH}}|` +
+        `\\{#(?:[^#]|#(?!\\}))*#\\})[ \\t\\r\\n]{0,${CteCodeLensProvider.MAX_WHITESPACE_LENGTH}})*` +
+        `as[ \\t\\r\\n]{0,${CteCodeLensProvider.MAX_SMALL_WHITESPACE_LENGTH}}\\(`,
+      "gi",
+    );
     let cteMatch;
     let cteIndex = 0;
 
