@@ -110,9 +110,9 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
     );
 
     // Find all WITH clauses - handle comments after WITH keyword
-    // Uses optimized patterns with bounded quantifiers to avoid backtracking
+    // Uses optimized patterns with bounded quantifiers to prevent catastrophic backtracking
     const withClauseRegex =
-      /\bwith[ \t\r\n]{0,50}(?:\/\*(?:[^*]|\*(?!\/))*\*\/|{#(?:[^#]|#(?!\}))*#}|--[^\r\n]*)?[ \t\r\n]{0,50}/gi;
+      /\bwith[ \t\r\n]{0,50}(?:\/\*(?:[^*]|\*(?!\/))*\*\/|{#(?:[^#]|#(?!\}))*#}|--[^\r\n]{0,200})?[ \t\r\n]{0,50}/gi;
     let withMatch;
     let withClauseCount = 0;
 
@@ -390,12 +390,13 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
     // Enhanced regex to handle quoted identifiers, dotted names, complex column lists, and multiple sequential comments
     // Supports: identifier, "quoted identifier", schema.table, `backtick quoted`, [bracket quoted]
     // Also handles multiple sequential comments between CTE name and AS keyword: /* comment */, {# comment #}, -- comment
-    // Uses optimized patterns to avoid backtracking and ambiguous quantifiers:
-    // - Replaces \s* with [ \t\r\n]{0,50} for bounded whitespace matching
-    // - Uses atomic grouping and possessive quantifiers where possible
-    // - Restructures comment matching for deterministic parsing
+    // Uses optimized patterns to prevent catastrophic backtracking:
+    // - Replaces [^\r\n]* with bounded [^\r\n]{0,200} to prevent runaway matching on line comments
+    // - Bounds quoted identifiers to {1,200} chars to prevent excessive backtracking
+    // - Bounds column lists to {0,500} chars for realistic SQL constraints
+    // - All whitespace patterns bounded to prevent exponential complexity
     const cteRegex =
-      /((?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\])(?:\.(?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\]))*(?:[ \t]{0,10}\([^)]*\))?)([ \t\r\n]{0,50})(?:(?:\/\*(?:[^*]|\*(?!\/))*\*\/|--[^\r\n]*|{#(?:[^#]|#(?!\}))*#})[ \t\r\n]{0,50})*as[ \t\r\n]{0,10}\(/gi;
+      /((?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]{1,200}"|`[^`]{1,200}`|\[[^\]]{1,200}\])(?:\.(?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]{1,200}"|`[^`]{1,200}`|\[[^\]]{1,200}\]))*(?:[ \t]{0,10}\([^)]{0,500}\))?)([ \t\r\n]{0,50})(?:(?:\/\*(?:[^*]|\*(?!\/))*\*\/|--[^\r\n]{0,200}|{#(?:[^#]|#(?!\}))*#})[ \t\r\n]{0,50})*as[ \t\r\n]{0,10}\(/gi;
     let cteMatch;
     let cteIndex = 0;
 
