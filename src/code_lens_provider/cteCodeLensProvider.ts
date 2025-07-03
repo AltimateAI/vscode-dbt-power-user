@@ -217,6 +217,90 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
     return { newPos: pos, inString, stringChar };
   }
 
+  /**
+   * Helper function to handle SQL and Jinja comment parsing
+   * Returns updated position if currently at start of a comment, otherwise returns original position
+   */
+  private handleSqlComment(text: string, pos: number): number {
+    const char = text[pos];
+    const nextChar = pos < text.length - 1 ? text[pos + 1] : "";
+
+    // Handle line comments (-- comment)
+    if (char === "-" && nextChar === "-") {
+      this.dbtTerminal.debug(
+        "CteCodeLensProvider",
+        `Found line comment starting at position ${pos}`,
+      );
+      // Skip to end of line
+      let endPos = pos + 2;
+      while (
+        endPos < text.length &&
+        text[endPos] !== "\n" &&
+        text[endPos] !== "\r"
+      ) {
+        endPos++;
+      }
+      this.dbtTerminal.debug(
+        "CteCodeLensProvider",
+        `Line comment ends at position ${endPos}`,
+      );
+      // Return position at the newline (or end of text)
+      return endPos;
+    }
+
+    // Handle block comments (/* comment */)
+    if (char === "/" && nextChar === "*") {
+      this.dbtTerminal.debug(
+        "CteCodeLensProvider",
+        `Found block comment starting at position ${pos}`,
+      );
+      // Skip to end of block comment
+      let endPos = pos + 2;
+      while (endPos < text.length - 1) {
+        if (text[endPos] === "*" && text[endPos + 1] === "/") {
+          this.dbtTerminal.debug(
+            "CteCodeLensProvider",
+            `Block comment ends at position ${endPos + 1}`,
+          );
+          return endPos + 1; // Return position after the closing */
+        }
+        endPos++;
+      }
+      this.dbtTerminal.warn(
+        "CteCodeLensProvider",
+        `Unterminated block comment starting at position ${pos}`,
+      );
+      return text.length - 1; // Return end of text if comment is not closed
+    }
+
+    // Handle Jinja comments ({# comment #})
+    if (char === "{" && nextChar === "#") {
+      this.dbtTerminal.debug(
+        "CteCodeLensProvider",
+        `Found Jinja comment starting at position ${pos}`,
+      );
+      // Skip to end of Jinja comment
+      let endPos = pos + 2;
+      while (endPos < text.length - 1) {
+        if (text[endPos] === "#" && text[endPos + 1] === "}") {
+          this.dbtTerminal.debug(
+            "CteCodeLensProvider",
+            `Jinja comment ends at position ${endPos + 1}`,
+          );
+          return endPos + 1; // Return position after the closing #}
+        }
+        endPos++;
+      }
+      this.dbtTerminal.warn(
+        "CteCodeLensProvider",
+        `Unterminated Jinja comment starting at position ${pos}`,
+      );
+      return text.length - 1; // Return end of text if comment is not closed
+    }
+
+    return pos; // Not a comment, return original position
+  }
+
   private findWithClauseEnd(text: string, withStartPos: number): number {
     // Look for the main SELECT that comes after all CTEs
     // This is a simplified approach - we look for SELECT that's not inside parentheses
@@ -233,6 +317,14 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
 
     while (pos < text.length) {
       const char = text[pos];
+
+      // Handle comments first - skip over them entirely
+      const commentEndPos = this.handleSqlComment(text, pos);
+      if (commentEndPos !== pos) {
+        pos = commentEndPos;
+        // Don't increment pos here - commentEndPos already points to the position after the comment
+        continue;
+      }
 
       // Handle string literals using helper function
       const stringResult = this.handleSqlStringLiteral(
@@ -293,10 +385,12 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
     document: TextDocument,
     ctes: CteInfo[],
   ): void {
-    // Enhanced regex to handle quoted identifiers, dotted names, and complex column lists
+    // Enhanced regex to handle quoted identifiers, dotted names, complex column lists, and comments
     // Supports: identifier, "quoted identifier", schema.table, `backtick quoted`, [bracket quoted]
+    // Also handles comments between CTE name and AS keyword: /* comment */, {# comment #}, -- comment
+    // Uses [\s\S]*? for block comments to support multi-line comments
     const cteRegex =
-      /((?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\])(?:\.(?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\]))*(?:\s*\([^)]*\))?)\s+as\s*\(/gi;
+      /((?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\])(?:\.(?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\]))*(?:\s*\([^)]*\))?)\s*(?:\/\*[\s\S]*?\*\/|\{#[\s\S]*?#\}|--[^\r\n]*)?\s*as\s*\(/gi;
     let cteMatch;
     let cteIndex = 0;
 
@@ -387,6 +481,14 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
 
     while (pos < text.length && parenCount > 0) {
       const char = text[pos];
+
+      // Handle comments first - skip over them entirely
+      const commentEndPos = this.handleSqlComment(text, pos);
+      if (commentEndPos !== pos) {
+        pos = commentEndPos;
+        // Don't increment pos here - commentEndPos already points to the position after the comment
+        continue;
+      }
 
       // Handle string literals using helper function
       const stringResult = this.handleSqlStringLiteral(
