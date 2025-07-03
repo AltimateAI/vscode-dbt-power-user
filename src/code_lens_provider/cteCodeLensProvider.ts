@@ -483,7 +483,9 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
     let pos = identifierEndIndex;
 
     // Skip any column list
-    while (pos < content.length && /\s/.test(content[pos])) pos++;
+    while (pos < content.length && /\s/.test(content[pos])) {
+      pos++;
+    }
     if (pos < content.length && content[pos] === "(") {
       const columnListEnd = this.findMatchingClosingParen(content, pos);
       if (columnListEnd !== -1) {
@@ -498,7 +500,9 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
         pos++;
       }
 
-      if (pos >= content.length) break;
+      if (pos >= content.length) {
+        break;
+      }
 
       // Check for comments using existing handleSqlComment method
       const commentEndPos = this.handleSqlComment(content, pos);
