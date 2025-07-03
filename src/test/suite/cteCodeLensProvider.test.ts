@@ -118,7 +118,7 @@ describe("CteCodeLensProvider", () => {
       const ctes = detectCtes(document);
 
       expect(ctes).toHaveLength(1);
-      assertCTE(ctes[0], "my_cte", 0, "single CTE");
+      assertCTE(ctes[0], "my_cte", 0, "CTE with simple select and ID column");
     });
 
     it("should detect multiple CTEs correctly with proper indexing", () => {
@@ -132,9 +132,9 @@ describe("CteCodeLensProvider", () => {
       const ctes = detectCtes(document);
 
       expect(ctes).toHaveLength(3);
-      assertCTE(ctes[0], "first_cte", 0, "first CTE");
-      assertCTE(ctes[1], "second_cte", 1, "second CTE");
-      assertCTE(ctes[2], "third_cte", 2, "third CTE");
+      assertCTE(ctes[0], "first_cte", 0, "CTE with simple select");
+      assertCTE(ctes[1], "second_cte", 1, "CTE with different ID value");
+      assertCTE(ctes[2], "third_cte", 2, "CTE with third ID value");
     });
 
     it("should handle CTEs with column lists", () => {
@@ -145,7 +145,12 @@ describe("CteCodeLensProvider", () => {
       const ctes = detectCtes(document);
 
       expect(ctes).toHaveLength(1);
-      assertCTE(ctes[0], "my_cte (id, name)", 0, "CTE with column list");
+      assertCTE(
+        ctes[0],
+        "my_cte (id, name)",
+        0,
+        "CTE with explicit column list specification",
+      );
     });
 
     it("should handle quoted CTE names", () => {
@@ -155,7 +160,12 @@ describe("CteCodeLensProvider", () => {
       const ctes = detectCtes(document);
 
       expect(ctes).toHaveLength(1);
-      assertCTE(ctes[0], '"my cte"', 0, "quoted CTE name");
+      assertCTE(
+        ctes[0],
+        '"my cte"',
+        0,
+        "CTE with double-quoted name containing space",
+      );
     });
   });
 
@@ -184,13 +194,13 @@ describe("CteCodeLensProvider", () => {
         ctes[0],
         "cte_without_lens",
         0,
-        "CTE with line comment containing unmatched quote",
+        "CTE with line comment containing unmatched single quote",
       );
       assertCTE(
         ctes[1],
         "cte_with_lens",
         1,
-        "CTE with line comment containing matched quote",
+        "CTE with line comment containing matched single quotes",
       );
     });
 
@@ -212,7 +222,7 @@ describe("CteCodeLensProvider", () => {
         ctes[0],
         "cte_with_block_comment",
         0,
-        "CTE with block comment containing unmatched quote",
+        "CTE with block comment containing unmatched single quote",
       );
     });
 
@@ -234,7 +244,7 @@ describe("CteCodeLensProvider", () => {
         ctes[0],
         "cte_with_jinja_comment",
         0,
-        "CTE with Jinja comment containing unmatched quote",
+        "CTE with Jinja comment containing unmatched single quote",
       );
     });
   });
@@ -252,7 +262,7 @@ describe("CteCodeLensProvider", () => {
         ctes[0],
         "source",
         0,
-        "CTE with block comment between name and AS",
+        "CTE with single-line block comment between name and AS keyword",
       );
       // Skip content extraction test for now due to Range/Position mocking complexity
       // The important part is that CTE detection works correctly
@@ -276,7 +286,7 @@ select * from source`;
         ctes[0],
         "source",
         0,
-        "CTE with multi-line block comment between name and AS",
+        "CTE with multi-line block comment between name and AS keyword",
       );
       // Skip content extraction test for now due to Range/Position mocking complexity
       // The important part is that CTE detection works correctly
@@ -294,7 +304,7 @@ select * from source`;
         ctes[0],
         "target",
         0,
-        "CTE with Jinja comment between name and AS",
+        "CTE with Jinja comment between name and AS keyword",
       );
     });
 
@@ -313,7 +323,7 @@ select * from source`;
         ctes[0],
         "multiline_cte",
         0,
-        "CTE with line comment between name and AS",
+        "CTE with line comment on separate line before AS keyword",
       );
     });
 
@@ -330,7 +340,7 @@ select * from source`;
         ctes[0],
         "complex_comment",
         0,
-        "CTE with complex comment containing quotes",
+        "CTE with block comment containing both single and double quotes",
       );
     });
   });
@@ -365,13 +375,13 @@ select * from renamed`;
         ctes[0],
         "source",
         0,
-        "User's original failing case - source CTE",
+        "CTE with block comment and Jinja comment in body",
       );
       assertCTE(
         ctes[1],
         "renamed",
         1,
-        "User's original failing case - renamed CTE",
+        "CTE that references another CTE with column aliasing",
       );
     });
 
@@ -403,13 +413,177 @@ select * from renamed`;
         ctes[0],
         "source",
         0,
-        "User's second failing case - source CTE",
+        "CTE with multi-line block comment before AS keyword",
       );
       assertCTE(
         ctes[1],
         "renamed",
         1,
-        "User's second failing case - renamed CTE",
+        "CTE that selects from another CTE with column renaming",
+      );
+    });
+  });
+
+  describe("CTE Cross-References", () => {
+    it("should handle simple sequential CTE references", () => {
+      const sql = `with
+        base_data as (
+          select 1 as id, 'test' as name
+        ),
+        filtered_data as (
+          select * from base_data where id > 0
+        ),
+        final_data as (
+          select id, upper(name) as name from filtered_data
+        )
+      select * from final_data`;
+
+      const document = createMockDocument(sql);
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(3);
+      assertCTE(ctes[0], "base_data", 0, "CTE with hardcoded test data");
+      assertCTE(
+        ctes[1],
+        "filtered_data",
+        1,
+        "CTE filtering data from base_data CTE",
+      );
+      assertCTE(
+        ctes[2],
+        "final_data",
+        2,
+        "CTE transforming data from filtered_data CTE",
+      );
+    });
+
+    it("should handle CTE references with joins", () => {
+      const sql = `with
+        orders as (
+          select 1 as order_id, 100 as customer_id
+        ),
+        customers as (
+          select 100 as id, 'John' as name
+        ),
+        order_details as (
+          select o.order_id, c.name
+          from orders o
+          join customers c on o.customer_id = c.id
+        )
+      select * from order_details`;
+
+      const document = createMockDocument(sql);
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(3);
+      assertCTE(ctes[0], "orders", 0, "CTE with order and customer ID data");
+      assertCTE(ctes[1], "customers", 1, "CTE with customer ID and name data");
+      assertCTE(
+        ctes[2],
+        "order_details",
+        2,
+        "CTE joining orders and customers CTEs",
+      );
+    });
+
+    it("should handle CTE references with comments and quotes", () => {
+      const sql = `with
+        source_data as (
+          select id, name -- 'source' data extraction
+          from raw_table
+        ),
+        cleaned_data as (
+          /* Reference to 'source_data' CTE */
+          select * from source_data
+          where name is not null
+        )
+      select * from cleaned_data`;
+
+      const document = createMockDocument(sql);
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(2);
+      assertCTE(
+        ctes[0],
+        "source_data",
+        0,
+        "CTE with line comment containing single quotes",
+      );
+      assertCTE(
+        ctes[1],
+        "cleaned_data",
+        1,
+        "CTE referencing source_data with block comment containing quotes",
+      );
+    });
+
+    it("should handle multiple CTE references in one query", () => {
+      const sql = `with
+        cte_a as (
+          select 1 as id, 'A' as source
+        ),
+        cte_b as (
+          select 2 as id, 'B' as source
+        ),
+        cte_combined as (
+          select * from cte_a
+          union all
+          select * from cte_b
+        )
+      select * from cte_combined`;
+
+      const document = createMockDocument(sql);
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(3);
+      assertCTE(ctes[0], "cte_a", 0, "CTE with ID 1 and source A");
+      assertCTE(ctes[1], "cte_b", 1, "CTE with ID 2 and source B");
+      assertCTE(
+        ctes[2],
+        "cte_combined",
+        2,
+        "CTE combining cte_a and cte_b with UNION ALL",
+      );
+    });
+
+    it("should handle nested CTE references with subqueries", () => {
+      const sql = `with
+        base as (
+          select id, amount from transactions
+        ),
+        aggregated as (
+          select id, sum(amount) as total
+          from base
+          group by id
+        ),
+        ranked as (
+          select *,
+                 (select count(*) from aggregated a2 where a2.total > aggregated.total) as rank
+          from aggregated
+        )
+      select * from ranked`;
+
+      const document = createMockDocument(sql);
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(3);
+      assertCTE(
+        ctes[0],
+        "base",
+        0,
+        "CTE selecting ID and amount from transactions table",
+      );
+      assertCTE(
+        ctes[1],
+        "aggregated",
+        1,
+        "CTE grouping base CTE data by ID with sum",
+      );
+      assertCTE(
+        ctes[2],
+        "ranked",
+        2,
+        "CTE adding rank using correlated subquery on aggregated CTE",
       );
     });
   });
@@ -447,7 +621,12 @@ select * from renamed`;
       const ctes = detectCtes(document);
 
       expect(ctes).toHaveLength(1);
-      assertCTE(ctes[0], "my_cte", 0, "CTE with nested subquery");
+      assertCTE(
+        ctes[0],
+        "my_cte",
+        0,
+        "CTE with correlated subquery counting from other table",
+      );
 
       // Skip content extraction test - focus on CTE detection correctness
     });
@@ -516,7 +695,12 @@ select * from renamed`;
       const ctes = detectCtes(document);
 
       expect(ctes).toHaveLength(1);
-      assertCTE(ctes[0], "orders_summary", 0, "Complex CTE");
+      assertCTE(
+        ctes[0],
+        "orders_summary",
+        0,
+        "CTE with aggregated customer order data",
+      );
 
       // Verify range structure is correct
       expect(ctes[0].queryRange).toBeDefined();
@@ -538,7 +722,12 @@ select * from renamed`;
       const ctes = detectCtes(document);
 
       expect(ctes).toHaveLength(1);
-      assertCTE(ctes[0], "my_cte", 0, "CTE with internal comments");
+      assertCTE(
+        ctes[0],
+        "my_cte",
+        0,
+        "CTE with line, block, and Jinja comments containing quotes",
+      );
 
       // Verify that CTE was detected despite comments with quotes
       expect(ctes[0].name).toBe("my_cte");
