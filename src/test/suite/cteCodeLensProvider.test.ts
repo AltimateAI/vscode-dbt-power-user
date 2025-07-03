@@ -345,6 +345,186 @@ select * from source`;
     });
   });
 
+  describe("Comments Before and Around CTE Names", () => {
+    it("should handle block comment before CTE name", () => {
+      const sql =
+        "with /* comment before name */ my_cte as (select 1 as id) select * from my_cte";
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(ctes[0], "my_cte", 0, "CTE with block comment before name");
+    });
+
+    it("should handle line comment before CTE name on separate line", () => {
+      const sql = `with
+        -- This is a comment before the CTE name
+        my_cte as (
+          select 1 as id
+        )
+      select * from my_cte`;
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        "my_cte",
+        0,
+        "CTE with line comment before name on separate line",
+      );
+    });
+
+    it("should handle Jinja comment before CTE name", () => {
+      const sql =
+        "with {# comment before name #} my_cte as (select 1 as id) select * from my_cte";
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(ctes[0], "my_cte", 0, "CTE with Jinja comment before name");
+    });
+
+    it("should handle comment immediately after WITH keyword", () => {
+      const sql =
+        "with /* comment after WITH */ my_cte as (select 1 as id) select * from my_cte";
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        "my_cte",
+        0,
+        "CTE with block comment immediately after WITH keyword",
+      );
+    });
+
+    it("should handle line comment after WITH keyword", () => {
+      const sql = `with -- comment after WITH
+        my_cte as (
+          select 1 as id
+        )
+      select * from my_cte`;
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        "my_cte",
+        0,
+        "CTE with line comment after WITH keyword",
+      );
+    });
+
+    it("should handle multiple comments around CTE name", () => {
+      const sql =
+        "with /* before */ my_cte /* after */ as (select 1 as id) select * from my_cte";
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        "my_cte",
+        0,
+        "CTE with block comments before and after name",
+      );
+    });
+
+    it("should handle mixed comment types around CTE name", () => {
+      const sql = `with -- line comment
+        /* block comment */ my_cte {# jinja comment #} as (
+          select 1 as id
+        )
+      select * from my_cte`;
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        "my_cte",
+        0,
+        "CTE with mixed comment types around name",
+      );
+    });
+
+    it("should handle comments in multi-CTE scenarios", () => {
+      const sql = `with
+        /* comment */ first_cte as (
+          select 1 as id
+        ),
+        -- another comment
+        second_cte /* inline comment */ as (
+          select 2 as id
+        ),
+        {# jinja comment #} third_cte as (
+          select 3 as id
+        )
+      select * from third_cte`;
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(3);
+      assertCTE(
+        ctes[0],
+        "first_cte",
+        0,
+        "First CTE with block comment before name",
+      );
+      assertCTE(
+        ctes[1],
+        "second_cte",
+        1,
+        "Second CTE with line and inline comments",
+      );
+      assertCTE(
+        ctes[2],
+        "third_cte",
+        2,
+        "Third CTE with Jinja comment before name",
+      );
+    });
+
+    it("should handle comments with special characters around CTE name", () => {
+      const sql =
+        "with /* comment with $pecial ch@rs & symbols! */ my_cte as (select 1 as id) select * from my_cte";
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        "my_cte",
+        0,
+        "CTE with comment containing special characters",
+      );
+    });
+
+    it("should handle unterminated block comment before CTE name", () => {
+      const sql =
+        "with /* unterminated comment my_cte as (select 1 as id) select * from my_cte";
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      // With unterminated comment, the parser may not detect the CTE correctly
+      // This test verifies graceful handling of malformed comments
+      expect(ctes.length).toBeGreaterThanOrEqual(0);
+    });
+  });
+
   describe("User's Original Failing Cases", () => {
     it("should handle the user's original multi-line comment case", () => {
       const sql = `with

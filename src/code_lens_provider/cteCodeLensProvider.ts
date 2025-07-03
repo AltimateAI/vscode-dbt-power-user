@@ -109,8 +109,9 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
       `Document length: ${text.length} characters`,
     );
 
-    // Find all WITH clauses
-    const withClauseRegex = /\bwith\s+/gi;
+    // Find all WITH clauses - handle comments after WITH keyword
+    const withClauseRegex =
+      /\bwith\s*(?:\/\*[\s\S]*?\*\/|\{#[\s\S]*?#\}|--[^\r\n]*)?\s*/gi;
     let withMatch;
     let withClauseCount = 0;
 
