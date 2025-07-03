@@ -626,6 +626,408 @@ select * from renamed`;
     });
   });
 
+  describe("Very Lengthy Comments with Quoted Names", () => {
+    it("should handle extremely long block comment before quoted CTE name", () => {
+      // Create a 1500+ character comment to test real-world lengthy comment scenarios
+      const longComment =
+        "/* " +
+        "This is an extremely long comment that might appear in real-world SQL files. ".repeat(
+          25,
+        ) +
+        "It contains multiple sentences and potentially problematic content like 'quoted strings', " +
+        "special characters !@#$%^&*()_+-=[]{}|;:,.<>?, and even problematic keywords " +
+        "that might confuse the parser. This comment also contains backslashes \\ and forward slashes // " +
+        "and other regex-problematic characters like .*+?^${}()|[] that could cause catastrophic backtracking " +
+        "in poorly designed regular expressions. The comment goes on and on longer. ".repeat(
+          10,
+        ) +
+        " */";
+
+      const sql = `with ${longComment} "quoted_cte_name" as (select 1 as id) select * from "quoted_cte_name"`;
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        '"quoted_cte_name"',
+        0,
+        "CTE with extremely long block comment (1500+ chars) before quoted name",
+      );
+    });
+
+    it("should handle extremely long line comment before quoted CTE name", () => {
+      // Create a 1000+ character line comment
+      const longLineComment =
+        "-- " +
+        "This is an extremely long line comment that might appear in real-world SQL files. ".repeat(
+          12,
+        ) +
+        "It contains 'quoted strings' and special characters that could cause issues. ";
+
+      const sql = `with\n${longLineComment}\n"quoted_cte_name" as (select 1 as id) select * from "quoted_cte_name"`;
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        '"quoted_cte_name"',
+        0,
+        "CTE with extremely long line comment (1000+ chars) before quoted name",
+      );
+    });
+
+    it("should handle extremely long Jinja comment before quoted CTE name", () => {
+      // Create a 1200+ character Jinja comment
+      const longJinjaComment =
+        "{# " +
+        "This is an extremely long Jinja comment that might appear in real-world dbt files. ".repeat(
+          15,
+        ) +
+        "It contains 'quoted strings', template variables like {{ var('my_var') }}, and complex logic. " +
+        "The comment includes special characters and database keywords that could confuse parsers. " +
+        " #}";
+
+      const sql = `with ${longJinjaComment} "quoted_cte_name" as (select 1 as id) select * from "quoted_cte_name"`;
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        '"quoted_cte_name"',
+        0,
+        "CTE with extremely long Jinja comment (1200+ chars) before quoted name",
+      );
+    });
+
+    it("should handle extremely long block comment after quoted CTE name", () => {
+      // Create a 2000+ character comment after the name
+      const longComment =
+        "/* " +
+        "This is an extremely long comment that appears after the table name but before AS. ".repeat(
+          30,
+        ) +
+        "It contains multiple paragraphs, 'quoted strings', and complex descriptions that might " +
+        "explain the business logic behind the transformation. The comment includes database keywords, special " +
+        "characters, and other potentially problematic content for regex parsing. ".repeat(
+          5,
+        ) +
+        " */";
+
+      const sql = `with "quoted_cte_name" ${longComment} as (select 1 as id) select * from "quoted_cte_name"`;
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        '"quoted_cte_name"',
+        0,
+        "CTE with extremely long block comment (2000+ chars) after quoted name",
+      );
+    });
+
+    it("should handle multiple very long comments around quoted CTE name", () => {
+      // Create multiple long comments around the CTE name
+      const longCommentBefore =
+        "/* " +
+        "Long comment before the CTE name. ".repeat(20) +
+        "Contains 'quotes' and special characters. " +
+        " */";
+
+      const longCommentAfter =
+        "/* " +
+        "Long comment after the CTE name but before AS. ".repeat(20) +
+        "Also contains 'quotes' and special characters. " +
+        " */";
+
+      const sql = `with ${longCommentBefore} "quoted_cte_name" ${longCommentAfter} as (select 1 as id) select * from "quoted_cte_name"`;
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        '"quoted_cte_name"',
+        0,
+        "CTE with multiple very long comments around quoted name",
+      );
+    });
+
+    it("should handle extremely long mixed comment types around quoted CTE name", () => {
+      // Test with line comment, block comment, and Jinja comment (avoid SQL keywords in comments)
+      const longLineComment =
+        "-- " +
+        "Very long line comment containing 'quotes' and special characters. ".repeat(
+          10,
+        );
+
+      const longBlockComment =
+        "/* " +
+        "Very long block comment containing 'quotes' and special characters. ".repeat(
+          15,
+        ) +
+        " */";
+
+      const longJinjaComment =
+        "{# " +
+        "Very long Jinja comment containing 'quotes' and template logic. ".repeat(
+          10,
+        ) +
+        " #}";
+
+      const sql = `${longLineComment}\n${longBlockComment}\nwith "quoted_cte_name" ${longJinjaComment} as (select 1 as id) select * from "quoted_cte_name"`;
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        '"quoted_cte_name"',
+        0,
+        "CTE with extremely long mixed comment types around quoted name",
+      );
+    });
+
+    it("should handle lengthy comments with quoted names in multi-CTE scenario", () => {
+      // Test performance with multiple CTEs each having lengthy comments
+      const longComment1 =
+        "/* " +
+        "First data source containing very long description. ".repeat(25) +
+        "Contains 'quotes' and special characters for testing. " +
+        " */";
+
+      const longComment2 =
+        "/* " +
+        "Second data source containing very long description. ".repeat(25) +
+        "Also contains 'quotes' and special characters for testing. " +
+        " */";
+
+      const sql = `with
+        ${longComment1} "first_quoted_cte" as (
+          select 1 as id, 'first' as name
+        ),
+        ${longComment2} "second_quoted_cte" as (
+          select 2 as id, 'second' as name
+        )
+      select * from "first_quoted_cte" union all select * from "second_quoted_cte"`;
+
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(2);
+      assertCTE(
+        ctes[0],
+        '"first_quoted_cte"',
+        0,
+        "First CTE with very long comment before quoted name",
+      );
+      assertCTE(
+        ctes[1],
+        '"second_quoted_cte"',
+        1,
+        "Second CTE with very long comment before quoted name",
+      );
+    });
+
+    it("should handle extremely long comments with regex-problematic content", () => {
+      // Create a comment with content that could cause regex issues
+      const problemComment =
+        "/* " +
+        "This comment contains regex-problematic content: .*+?^${}()|[] ".repeat(
+          20,
+        ) +
+        "It also has nested quotes like 'text with \"nested quotes\" inside' and " +
+        "backslashes \\ and forward slashes // that could break poorly designed regex. " +
+        "The comment includes SQL injection attempts like '; DROP TABLE users; -- " +
+        "and other malicious content that should be handled safely. ".repeat(
+          10,
+        ) +
+        " */";
+
+      const sql = `with ${problemComment} "secure_cte_name" as (select 1 as id) select * from "secure_cte_name"`;
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        '"secure_cte_name"',
+        0,
+        "CTE with extremely long comment containing regex-problematic content",
+      );
+    });
+  });
+
+  describe("MAX_QUOTED_IDENTIFIER_LENGTH Edge Cases", () => {
+    it("should handle comments with quoted strings longer than MAX_QUOTED_IDENTIFIER_LENGTH", () => {
+      // Create a quoted string in comment that's longer than 500 chars
+      const veryLongQuotedString = '"' + 'a'.repeat(600) + '"';
+      const commentWithLongQuotedString = `/* This comment contains a very long quoted string: ${veryLongQuotedString} that exceeds the MAX_QUOTED_IDENTIFIER_LENGTH limit */`;
+      
+      const sql = `with ${commentWithLongQuotedString} "real_cte" as (select 1 as id) select * from "real_cte"`;
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        '"real_cte"',
+        0,
+        "CTE with comment containing quoted string longer than MAX_QUOTED_IDENTIFIER_LENGTH",
+      );
+    });
+
+    it("should handle quoted CTE name approaching MAX_QUOTED_IDENTIFIER_LENGTH limit", () => {
+      // Create a quoted CTE name that's close to but under the 500 char limit
+      const longCTEName = '"' + 'very_long_cte_name_' + 'x'.repeat(450) + '"';
+      
+      const sql = `with ${longCTEName} as (select 1 as id) select * from ${longCTEName}`;
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        longCTEName,
+        0,
+        "CTE with quoted name approaching MAX_QUOTED_IDENTIFIER_LENGTH limit",
+      );
+    });
+
+    it("should handle quoted CTE name exactly at MAX_QUOTED_IDENTIFIER_LENGTH limit", () => {
+      // Create a quoted CTE name that's exactly at the 500 char limit (498 chars inside quotes + 2 quotes = 500)
+      const exactLimitCTEName = '"' + 'x'.repeat(498) + '"';
+      
+      const sql = `with ${exactLimitCTEName} as (select 1 as id) select * from ${exactLimitCTEName}`;
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        exactLimitCTEName,
+        0,
+        "CTE with quoted name exactly at MAX_QUOTED_IDENTIFIER_LENGTH limit",
+      );
+    });
+
+    it("should handle comment with multiple long quoted strings and real CTE", () => {
+      // Test multiple long quoted strings in comments
+      const longQuotedString1 = '"' + 'fake_identifier_1_' + 'a'.repeat(600) + '"';
+      const longQuotedString2 = '"' + 'fake_identifier_2_' + 'b'.repeat(700) + '"';
+      const commentWithMultipleLongQuotes = `/* Comment with ${longQuotedString1} and also ${longQuotedString2} */`;
+      
+      const sql = `with ${commentWithMultipleLongQuotes} "actual_cte" as (select 1 as id) select * from "actual_cte"`;
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        '"actual_cte"',
+        0,
+        "CTE with comment containing multiple quoted strings longer than MAX_QUOTED_IDENTIFIER_LENGTH",
+      );
+    });
+
+    it("should handle extremely long comment with quoted content and real long CTE name", () => {
+      // Combine very long comment with quoted content AND a long CTE name
+      const longQuotedInComment = '"' + 'fake_cte_name_in_comment_' + 'z'.repeat(800) + '"';
+      const longComment = `/* ${'Very long comment text. '.repeat(50)} Contains fake quoted identifier: ${longQuotedInComment} ${'More comment text. '.repeat(30)} */`;
+      const longRealCTEName = '"' + 'real_cte_name_' + 'r'.repeat(400) + '"';
+      
+      const sql = `with ${longComment} ${longRealCTEName} as (select 1 as id) select * from ${longRealCTEName}`;
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        longRealCTEName,
+        0,
+        "CTE with extremely long comment containing long quoted string and long real CTE name",
+      );
+    });
+
+    it("should handle line comment with long quoted string before quoted CTE", () => {
+      // Test line comment with long quoted content
+      const longQuotedInLineComment = '"' + 'fake_line_comment_identifier_' + 'l'.repeat(600) + '"';
+      const lineComment = `-- Line comment with long quoted string: ${longQuotedInLineComment}`;
+      
+      const sql = `with\n${lineComment}\n"real_cte" as (select 1 as id) select * from "real_cte"`;
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        '"real_cte"',
+        0,
+        "CTE with line comment containing quoted string longer than MAX_QUOTED_IDENTIFIER_LENGTH",
+      );
+    });
+
+    it("should handle Jinja comment with long quoted string before quoted CTE", () => {
+      // Test Jinja comment with long quoted content
+      const longQuotedInJinjaComment = '"' + 'fake_jinja_identifier_' + 'j'.repeat(650) + '"';
+      const jinjaComment = `{# Jinja comment with long quoted string: ${longQuotedInJinjaComment} #}`;
+      
+      const sql = `with ${jinjaComment} "real_cte" as (select 1 as id) select * from "real_cte"`;
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        '"real_cte"',
+        0,
+        "CTE with Jinja comment containing quoted string longer than MAX_QUOTED_IDENTIFIER_LENGTH",
+      );
+    });
+
+    it("should handle mixed comment types with various length quoted strings", () => {
+      // Test combination of different comment types with various length quoted strings
+      const shortQuoted = '"short"';
+      const mediumQuoted = '"' + 'medium_' + 'm'.repeat(200) + '"';
+      const longQuoted = '"' + 'very_long_' + 'v'.repeat(800) + '"';
+      
+      const lineComment = `-- Line comment with ${shortQuoted}`;
+      const blockComment = `/* Block comment with ${mediumQuoted} and ${longQuoted} */`;
+      const jinjaComment = `{# Jinja comment with ${longQuoted} #}`;
+      
+      const sql = `${lineComment}\n${blockComment}\nwith ${jinjaComment} "mixed_test_cte" as (select 1 as id) select * from "mixed_test_cte"`;
+      const document = createMockDocument(sql);
+
+      const ctes = detectCtes(document);
+
+      expect(ctes).toHaveLength(1);
+      assertCTE(
+        ctes[0],
+        '"mixed_test_cte"',
+        0,
+        "CTE with mixed comment types containing various length quoted strings",
+      );
+    });
+  });
+
   describe("CTE Cross-References", () => {
     it("should handle simple sequential CTE references", () => {
       const sql = `with

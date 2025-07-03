@@ -36,14 +36,6 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
    * 500 chars accommodates complex column definitions in most practical scenarios. */
   private static readonly MAX_COLUMN_LIST_LENGTH = 1000;
 
-  /** Structured line comment pattern that avoids backtracking
-   * Matches any non-newline characters but with a reasonable bound to prevent runaway matching */
-  private static readonly LINE_COMMENT_CONTENT_PATTERN = "[^\\r\\n]{0,300}";
-
-  /** Optimized whitespace pattern - simple and efficient
-   * Avoids complex nested quantifiers that can cause performance issues */
-  private static readonly STRUCTURED_WHITESPACE_PATTERN = "[ \\t\\r\\n]{0,20}";
-
   constructor(
     private dbtTerminal: DBTTerminal,
     private altimate: AltimateRequest,
@@ -130,22 +122,42 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
       `Document length: ${text.length} characters`,
     );
 
-    // Find all WITH clauses - handle comments after WITH keyword
-    // Uses structured patterns to prevent catastrophic backtracking with explicit comment parsing
-    const withClauseRegex = new RegExp(
-      `\\bwith${CteCodeLensProvider.STRUCTURED_WHITESPACE_PATTERN}(?:\\/\\*(?:[^*]|\\*(?!\\/))*\\*\\/|\\{#(?:[^#]|#(?!\\}))*#\\}|--${CteCodeLensProvider.LINE_COMMENT_CONTENT_PATTERN})?${CteCodeLensProvider.STRUCTURED_WHITESPACE_PATTERN}`,
-      "gi",
-    );
-    let withMatch;
+    // Find all WITH clauses by manually parsing to avoid comment confusion
+    // This ensures we don't match 'with' inside comments while allowing unlimited comment length
+    const withPositions = this.findWithKeywords(text);
     let withClauseCount = 0;
 
-    while ((withMatch = withClauseRegex.exec(text)) !== null) {
+    for (const withPos of withPositions) {
       withClauseCount++;
-      const withStartPos = withMatch.index + withMatch[0].length;
+      // Start parsing after the WITH keyword, skipping any comments and whitespace manually
+      let withStartPos = withPos + 4; // 'with'.length = 4
+
+      // Skip whitespace and comments after WITH keyword using the existing comment parsing logic
+      while (withStartPos < text.length) {
+        // Skip whitespace
+        while (withStartPos < text.length && /\s/.test(text[withStartPos])) {
+          withStartPos++;
+        }
+
+        if (withStartPos >= text.length) {
+          break;
+        }
+
+        // Check for comments using existing handleSqlComment method
+        const commentEndPos = this.handleSqlComment(text, withStartPos);
+        if (commentEndPos !== withStartPos) {
+          // Found a comment, skip over it
+          withStartPos = commentEndPos + 1;
+          continue;
+        }
+
+        // No more whitespace or comments, we found the start of CTEs
+        break;
+      }
 
       this.dbtTerminal.debug(
         "CteCodeLensProvider",
-        `Found WITH clause #${withClauseCount} at position ${withMatch.index}`,
+        `Found WITH clause #${withClauseCount} at position ${withPos}`,
       );
 
       // Find the end of this WITH clause (before the main SELECT)
@@ -176,7 +188,7 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
       this.extractCtesFromWithClause(
         withClauseContent,
         withStartPos,
-        withMatch.index,
+        withPos,
         document,
         ctes,
       );
@@ -194,6 +206,56 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
     );
 
     return ctes;
+  }
+
+  /**
+   * Find all WITH keywords in the text while properly skipping comments and strings
+   * This prevents matching 'with' inside comments or strings
+   */
+  private findWithKeywords(text: string): number[] {
+    const withPositions: number[] = [];
+    let pos = 0;
+    let inString = false;
+    let stringChar = "";
+
+    while (pos < text.length) {
+      // Handle comments first - skip over them entirely
+      const commentEndPos = this.handleSqlComment(text, pos);
+      if (commentEndPos !== pos) {
+        pos = commentEndPos + 1;
+        continue;
+      }
+
+      // Handle string literals using helper function
+      const stringResult = this.handleSqlStringLiteral(
+        text,
+        pos,
+        inString,
+        stringChar,
+      );
+      pos = stringResult.newPos;
+      inString = stringResult.inString;
+      stringChar = stringResult.stringChar;
+
+      // Only look for WITH keyword outside of strings and comments
+      if (!inString) {
+        const remainingText = text.substring(pos);
+        const withMatch = remainingText.match(/^with\b/i);
+        if (withMatch) {
+          // Found a WITH keyword - verify it's not part of a larger identifier
+          const charBefore = pos > 0 ? text[pos - 1] : " ";
+          if (!/[a-zA-Z0-9_]/.test(charBefore)) {
+            withPositions.push(pos);
+          }
+          pos += withMatch[0].length;
+          continue;
+        }
+      }
+
+      pos++;
+    }
+
+    return withPositions;
   }
 
   /**
