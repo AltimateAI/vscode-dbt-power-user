@@ -270,7 +270,7 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
         "CteCodeLensProvider",
         `Unterminated block comment starting at position ${pos}`,
       );
-      return text.length - 1; // Return end of text if comment is not closed
+      return text.length; // Return end of text if comment is not closed
     }
 
     // Handle Jinja comments ({# comment #})
@@ -295,7 +295,7 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
         "CteCodeLensProvider",
         `Unterminated Jinja comment starting at position ${pos}`,
       );
-      return text.length - 1; // Return end of text if comment is not closed
+      return text.length; // Return end of text if comment is not closed
     }
 
     return pos; // Not a comment, return original position
