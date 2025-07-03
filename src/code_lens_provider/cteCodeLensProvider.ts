@@ -23,6 +23,19 @@ export interface CteInfo {
 export class CteCodeLensProvider implements CodeLensProvider, Disposable {
   private disposables: Disposable[] = [];
 
+  // Regex bounds constants to prevent catastrophic backtracking
+  // These limits are based on realistic SQL formatting expectations and database constraints
+
+  /** Maximum characters in quoted identifiers ("name", `name`, [name])
+   * Rationale: Most databases limit identifier length to 128-255 chars.
+   * 500 chars covers most real-world cases while preventing excessive backtracking. */
+  private static readonly MAX_QUOTED_IDENTIFIER_LENGTH = 500;
+
+  /** Maximum characters in CTE column list (id, name, description, etc.)
+   * Rationale: Column lists with types and constraints can be lengthy.
+   * 1000 chars accommodates complex column definitions in most practical scenarios. */
+  private static readonly MAX_COLUMN_LIST_LENGTH = 1000;
+
   constructor(
     private dbtTerminal: DBTTerminal,
     private altimate: AltimateRequest,
@@ -109,18 +122,42 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
       `Document length: ${text.length} characters`,
     );
 
-    // Find all WITH clauses
-    const withClauseRegex = /\bwith\s+/gi;
-    let withMatch;
+    // Find all WITH clauses by manually parsing to avoid comment confusion
+    // This ensures we don't match 'with' inside comments while allowing unlimited comment length
+    const withPositions = this.findWithKeywords(text);
     let withClauseCount = 0;
 
-    while ((withMatch = withClauseRegex.exec(text)) !== null) {
+    for (const withPos of withPositions) {
       withClauseCount++;
-      const withStartPos = withMatch.index + withMatch[0].length;
+      // Start parsing after the WITH keyword, skipping any comments and whitespace manually
+      let withStartPos = withPos + 4; // 'with'.length = 4
+
+      // Skip whitespace and comments after WITH keyword using the existing comment parsing logic
+      while (withStartPos < text.length) {
+        // Skip whitespace
+        while (withStartPos < text.length && /\s/.test(text[withStartPos])) {
+          withStartPos++;
+        }
+
+        if (withStartPos >= text.length) {
+          break;
+        }
+
+        // Check for comments using existing handleSqlComment method
+        const commentEndPos = this.handleSqlComment(text, withStartPos);
+        if (commentEndPos !== withStartPos) {
+          // Found a comment, skip over it
+          withStartPos = commentEndPos + 1;
+          continue;
+        }
+
+        // No more whitespace or comments, we found the start of CTEs
+        break;
+      }
 
       this.dbtTerminal.debug(
         "CteCodeLensProvider",
-        `Found WITH clause #${withClauseCount} at position ${withMatch.index}`,
+        `Found WITH clause #${withClauseCount} at position ${withPos}`,
       );
 
       // Find the end of this WITH clause (before the main SELECT)
@@ -151,7 +188,7 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
       this.extractCtesFromWithClause(
         withClauseContent,
         withStartPos,
-        withMatch.index,
+        withPos,
         document,
         ctes,
       );
@@ -169,6 +206,56 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
     );
 
     return ctes;
+  }
+
+  /**
+   * Find all WITH keywords in the text while properly skipping comments and strings
+   * This prevents matching 'with' inside comments or strings
+   */
+  private findWithKeywords(text: string): number[] {
+    const withPositions: number[] = [];
+    let pos = 0;
+    let inString = false;
+    let stringChar = "";
+
+    while (pos < text.length) {
+      // Handle comments first - skip over them entirely
+      const commentEndPos = this.handleSqlComment(text, pos);
+      if (commentEndPos !== pos) {
+        pos = commentEndPos + 1;
+        continue;
+      }
+
+      // Handle string literals using helper function
+      const stringResult = this.handleSqlStringLiteral(
+        text,
+        pos,
+        inString,
+        stringChar,
+      );
+      pos = stringResult.newPos;
+      inString = stringResult.inString;
+      stringChar = stringResult.stringChar;
+
+      // Only look for WITH keyword outside of strings and comments
+      if (!inString) {
+        const remainingText = text.substring(pos);
+        const withMatch = remainingText.match(/^with\b/i);
+        if (withMatch) {
+          // Found a WITH keyword - verify it's not part of a larger identifier
+          const charBefore = pos > 0 ? text[pos - 1] : " ";
+          if (!/[a-zA-Z0-9_]/.test(charBefore)) {
+            withPositions.push(pos);
+          }
+          pos += withMatch[0].length;
+          continue;
+        }
+      }
+
+      pos++;
+    }
+
+    return withPositions;
   }
 
   /**
@@ -217,6 +304,296 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
     return { newPos: pos, inString, stringChar };
   }
 
+  /**
+   * Helper function to handle SQL and Jinja comment parsing
+   * Returns updated position if currently at start of a comment, otherwise returns original position
+   */
+  private handleSqlComment(text: string, pos: number): number {
+    const char = text[pos];
+    const nextChar = pos < text.length - 1 ? text[pos + 1] : "";
+
+    // Handle line comments (-- comment)
+    if (char === "-" && nextChar === "-") {
+      this.dbtTerminal.debug(
+        "CteCodeLensProvider",
+        `Found line comment starting at position ${pos}`,
+      );
+      // Skip to end of line
+      let endPos = pos + 2;
+      while (
+        endPos < text.length &&
+        text[endPos] !== "\n" &&
+        text[endPos] !== "\r"
+      ) {
+        endPos++;
+      }
+      this.dbtTerminal.debug(
+        "CteCodeLensProvider",
+        `Line comment ends at position ${endPos}`,
+      );
+      // Return position at the newline (or end of text)
+      return endPos;
+    }
+
+    // Handle block comments (/* comment */)
+    if (char === "/" && nextChar === "*") {
+      this.dbtTerminal.debug(
+        "CteCodeLensProvider",
+        `Found block comment starting at position ${pos}`,
+      );
+      // Skip to end of block comment
+      let endPos = pos + 2;
+      while (endPos < text.length - 1) {
+        if (text[endPos] === "*" && text[endPos + 1] === "/") {
+          this.dbtTerminal.debug(
+            "CteCodeLensProvider",
+            `Block comment ends at position ${endPos + 1}`,
+          );
+          return endPos + 1; // Return position after the closing */
+        }
+        endPos++;
+      }
+      this.dbtTerminal.warn(
+        "CteCodeLensProvider",
+        `Unterminated block comment starting at position ${pos}`,
+      );
+      return text.length; // Return end of text if comment is not closed
+    }
+
+    // Handle Jinja comments ({# comment #})
+    if (char === "{" && nextChar === "#") {
+      this.dbtTerminal.debug(
+        "CteCodeLensProvider",
+        `Found Jinja comment starting at position ${pos}`,
+      );
+      // Skip to end of Jinja comment
+      let endPos = pos + 2;
+      while (endPos < text.length - 1) {
+        if (text[endPos] === "#" && text[endPos + 1] === "}") {
+          this.dbtTerminal.debug(
+            "CteCodeLensProvider",
+            `Jinja comment ends at position ${endPos + 1}`,
+          );
+          return endPos + 1; // Return position after the closing #}
+        }
+        endPos++;
+      }
+      this.dbtTerminal.warn(
+        "CteCodeLensProvider",
+        `Unterminated Jinja comment starting at position ${pos}`,
+      );
+      return text.length; // Return end of text if comment is not closed
+    }
+
+    return pos; // Not a comment, return original position
+  }
+
+  /**
+   * Check if a given position is inside a comment (line, block, or Jinja)
+   * This helps filter out false positive identifier matches within comments
+   */
+  private isPositionInsideComment(content: string, position: number): boolean {
+    // Scan backwards from the position to see if we're inside a comment
+    let pos = 0;
+    let inBlockComment = false;
+    let inJinjaComment = false;
+
+    while (pos < position && pos < content.length) {
+      const char = content[pos];
+      const nextChar = pos < content.length - 1 ? content[pos + 1] : "";
+
+      // Check for start of block comment
+      if (
+        !inBlockComment &&
+        !inJinjaComment &&
+        char === "/" &&
+        nextChar === "*"
+      ) {
+        inBlockComment = true;
+        pos += 2;
+        continue;
+      }
+
+      // Check for end of block comment
+      if (inBlockComment && char === "*" && nextChar === "/") {
+        inBlockComment = false;
+        pos += 2;
+        continue;
+      }
+
+      // Check for start of Jinja comment
+      if (
+        !inBlockComment &&
+        !inJinjaComment &&
+        char === "{" &&
+        nextChar === "#"
+      ) {
+        inJinjaComment = true;
+        pos += 2;
+        continue;
+      }
+
+      // Check for end of Jinja comment
+      if (inJinjaComment && char === "#" && nextChar === "}") {
+        inJinjaComment = false;
+        pos += 2;
+        continue;
+      }
+
+      // Check for line comment (only if not in other comments)
+      if (
+        !inBlockComment &&
+        !inJinjaComment &&
+        char === "-" &&
+        nextChar === "-"
+      ) {
+        // Line comment - check if our position is on this line
+        const lineStart = pos;
+        let lineEnd = pos + 2;
+        while (
+          lineEnd < content.length &&
+          content[lineEnd] !== "\n" &&
+          content[lineEnd] !== "\r"
+        ) {
+          lineEnd++;
+        }
+
+        // If position is within this line comment, return true
+        if (position >= lineStart && position < lineEnd) {
+          return true;
+        }
+
+        // Skip to end of line
+        pos = lineEnd;
+        continue;
+      }
+
+      pos++;
+    }
+
+    // If we're still in a block or Jinja comment when we reach the position, it's inside a comment
+    return inBlockComment || inJinjaComment;
+  }
+
+  /**
+   * Phase 1: Simple regex to find CTE identifiers without complex comment parsing
+   * This avoids catastrophic backtracking by focusing only on identifier patterns
+   */
+  private findCteIdentifiersOnly(
+    withClauseContent: string,
+  ): Array<{ index: number; identifierName: string; fullMatch: string }> {
+    // Simplified regex that matches only the identifier part
+    // This regex finds potential CTE identifiers followed by anything that looks like it could lead to AS
+    const simpleIdentifierRegex = new RegExp(
+      `((?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]{1,${CteCodeLensProvider.MAX_QUOTED_IDENTIFIER_LENGTH}}"|` +
+        `\`[^\`]{1,${CteCodeLensProvider.MAX_QUOTED_IDENTIFIER_LENGTH}}\`|` +
+        `\\[[^\\]]{1,${CteCodeLensProvider.MAX_QUOTED_IDENTIFIER_LENGTH}}\\])` +
+        `(?:\\.(?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]{1,${CteCodeLensProvider.MAX_QUOTED_IDENTIFIER_LENGTH}}"|` +
+        `\`[^\`]{1,${CteCodeLensProvider.MAX_QUOTED_IDENTIFIER_LENGTH}}\`|` +
+        `\\[[^\\]]{1,${CteCodeLensProvider.MAX_QUOTED_IDENTIFIER_LENGTH}}\\]))*` +
+        `(?:\\s*\\([^)]{0,${CteCodeLensProvider.MAX_COLUMN_LIST_LENGTH}}\\))?)`,
+      "gi",
+    );
+
+    const potentialMatches: Array<{
+      index: number;
+      identifierName: string;
+      fullMatch: string;
+    }> = [];
+    let match;
+
+    while ((match = simpleIdentifierRegex.exec(withClauseContent)) !== null) {
+      const identifierName = match[1];
+      const matchIndex = match.index;
+
+      // First check: Skip if this identifier is inside a comment
+      if (this.isPositionInsideComment(withClauseContent, matchIndex)) {
+        continue;
+      }
+
+      // Phase 2: Manually validate this match by checking for comments between identifier and AS
+      const validationResult = this.validateCteMatchWithComments(
+        withClauseContent,
+        matchIndex,
+        match[0],
+        identifierName,
+      );
+      if (validationResult.isValid) {
+        potentialMatches.push({
+          index: matchIndex,
+          identifierName: identifierName,
+          fullMatch: validationResult.fullMatch || match[0],
+        });
+      }
+    }
+
+    return potentialMatches;
+  }
+
+  /**
+   * Phase 2: Manually parse comments between identifier and AS keyword
+   * Uses existing handleSqlComment method to safely skip over comments
+   */
+  private validateCteMatchWithComments(
+    content: string,
+    startIndex: number,
+    fullMatch: string,
+    identifierName: string,
+  ): { isValid: boolean; fullMatch?: string } {
+    // Find the end of the identifier (including column list if present)
+    const identifierEndIndex = startIndex + identifierName.length;
+    let pos = identifierEndIndex;
+
+    // Skip any column list
+    while (pos < content.length && /\s/.test(content[pos])) {
+      pos++;
+    }
+    if (pos < content.length && content[pos] === "(") {
+      const columnListEnd = this.findMatchingClosingParen(content, pos);
+      if (columnListEnd !== -1) {
+        pos = columnListEnd + 1;
+      }
+    }
+
+    // Now manually parse comments and whitespace until we find 'as'
+    while (pos < content.length) {
+      // Skip whitespace
+      while (pos < content.length && /\s/.test(content[pos])) {
+        pos++;
+      }
+
+      if (pos >= content.length) {
+        break;
+      }
+
+      // Check for comments using existing handleSqlComment method
+      const commentEndPos = this.handleSqlComment(content, pos);
+      if (commentEndPos !== pos) {
+        // Found a comment, skip over it
+        pos = commentEndPos + 1;
+        continue;
+      }
+
+      // Check if we've reached the 'as' keyword
+      const remainingText = content.substring(pos);
+      const asMatch = remainingText.match(/^as\s*\(/i);
+      if (asMatch) {
+        // Calculate the full match including comments and AS
+        const fullMatchEnd = pos + asMatch[0].length;
+        const actualFullMatch = content.substring(startIndex, fullMatchEnd);
+        return {
+          isValid: true,
+          fullMatch: actualFullMatch,
+        };
+      }
+
+      // If we hit something that's not whitespace, comment, or 'as', this is not a valid CTE
+      break;
+    }
+
+    return { isValid: false };
+  }
+
   private findWithClauseEnd(text: string, withStartPos: number): number {
     // Look for the main SELECT that comes after all CTEs
     // This is a simplified approach - we look for SELECT that's not inside parentheses
@@ -233,6 +610,14 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
 
     while (pos < text.length) {
       const char = text[pos];
+
+      // Handle comments first - skip over them entirely
+      const commentEndPos = this.handleSqlComment(text, pos);
+      if (commentEndPos !== pos) {
+        pos = commentEndPos;
+        // Don't increment pos here - commentEndPos already points to the position after the comment
+        continue;
+      }
 
       // Handle string literals using helper function
       const stringResult = this.handleSqlStringLiteral(
@@ -293,22 +678,21 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
     document: TextDocument,
     ctes: CteInfo[],
   ): void {
-    // Enhanced regex to handle quoted identifiers, dotted names, and complex column lists
-    // Supports: identifier, "quoted identifier", schema.table, `backtick quoted`, [bracket quoted]
-    const cteRegex =
-      /((?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\])(?:\.(?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\]))*(?:\s*\([^)]*\))?)\s+as\s*\(/gi;
-    let cteMatch;
-    let cteIndex = 0;
-
     this.dbtTerminal.debug(
       "CteCodeLensProvider",
       `Extracting CTEs from WITH clause content starting at ${withStartPos}`,
     );
 
-    while ((cteMatch = cteRegex.exec(withClauseContent)) !== null) {
-      const cteName = cteMatch[1];
+    // Two-phase approach: Use simplified regex for identifier matching, then parse comments manually
+    // This eliminates catastrophic backtracking by avoiding complex nested quantifiers in regex
+    const cteMatches = this.findCteIdentifiersOnly(withClauseContent);
+    let cteIndex = 0;
+
+    for (const cteMatch of cteMatches) {
+      const cteName = cteMatch.identifierName;
       const cteStartPos = withStartPos + cteMatch.index;
-      const cteNameEndPos = withStartPos + cteMatch.index + cteMatch[1].length;
+      const cteNameEndPos =
+        withStartPos + cteMatch.index + cteMatch.identifierName.length;
 
       this.dbtTerminal.debug(
         "CteCodeLensProvider",
@@ -317,12 +701,12 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
 
       // Find the opening parenthesis position
       const openParenPos =
-        withStartPos + cteMatch.index + cteMatch[0].length - 1;
+        withStartPos + cteMatch.index + cteMatch.fullMatch.length - 1;
 
       // Find the matching closing parenthesis
       const cteQueryEnd = this.findMatchingClosingParen(
         withClauseContent,
-        cteMatch.index + cteMatch[0].length - 1,
+        cteMatch.index + cteMatch.fullMatch.length - 1,
       );
       if (cteQueryEnd === -1) {
         this.dbtTerminal.warn(
@@ -387,6 +771,14 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
 
     while (pos < text.length && parenCount > 0) {
       const char = text[pos];
+
+      // Handle comments first - skip over them entirely
+      const commentEndPos = this.handleSqlComment(text, pos);
+      if (commentEndPos !== pos) {
+        pos = commentEndPos;
+        // Don't increment pos here - commentEndPos already points to the position after the comment
+        continue;
+      }
 
       // Handle string literals using helper function
       const stringResult = this.handleSqlStringLiteral(
