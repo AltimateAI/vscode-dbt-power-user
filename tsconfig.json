@@ -6,6 +6,7 @@
     "lib": ["ES2020"],
     "sourceMap": true,
     "rootDir": "src",
+    // "rootDirs": ["src", "../altimate-dbt-integration/src"],
     "strict": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
@@ -16,6 +17,7 @@
     "types": ["node", "jest", "vscode"],
     "baseUrl": ".",
     "paths": {
+      // "@altimateai/dbt-integration": ["../altimate-dbt-integration/src/index.ts"],
       "@extension": ["./src/modules.ts"],
       "@lib": ["./src/lib/index"]
     },

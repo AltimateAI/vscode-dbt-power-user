@@ -1,36 +1,32 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import { basename } from "path";
-import { AltimateRequest, ModelNode } from "../altimate";
-import { ColumnMetaData, NodeMetaData, SourceTable } from "../domain";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import {
-  ManifestCacheChangedEvent,
-  ManifestCacheProjectAddedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
-import { TelemetryService } from "../telemetry";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
+import { PythonException } from "python-bridge";
 import {
   CancellationToken,
-  DiagnosticCollection,
-  ProgressLocation,
-  Uri,
-  ViewColumn,
-  window,
-} from "vscode";
-import { DBTProject } from "../manifest/dbtProject";
-import {
   commands,
   Diagnostic,
+  DiagnosticCollection,
   DiagnosticSeverity,
   languages,
   Position,
+  ProgressLocation,
   Range,
+  Uri,
+  ViewColumn,
+  window,
   workspace,
 } from "vscode";
+import { AltimateRequest, ModelNode } from "../altimate";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
-import { PythonException } from "python-bridge";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import {
+  ManifestCacheChangedEvent,
+  ManifestCacheProjectAddedEvent,
+} from "../dbt_client/event/manifestCacheChangedEvent";
+import { TelemetryService } from "../telemetry";
+import { extendErrorWithSupportLinks } from "../utils";
 
-@provideSingleton(ValidateSql)
 export class ValidateSql {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private diagnosticsCollection: DiagnosticCollection;
@@ -38,6 +34,7 @@ export class ValidateSql {
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
     private altimate: AltimateRequest,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
@@ -119,6 +116,7 @@ export class ValidateSql {
     let relationsWithoutColumns: string[] = [];
     let compiledQuery: string | undefined;
     let cancellationToken: CancellationToken | undefined;
+    let abortController: AbortController | undefined;
     await window.withProgress(
       {
         location: ProgressLocation.Notification,
@@ -128,6 +126,8 @@ export class ValidateSql {
       async (_, token) => {
         try {
           cancellationToken = token;
+          abortController = new AbortController();
+          token.onCancellationRequested(() => abortController!.abort());
           const fileContentBytes = await workspace.fs.readFile(currentFilePath);
           if (cancellationToken.isCancellationRequested) {
             return;
@@ -156,9 +156,8 @@ export class ValidateSql {
             mappedNode,
             relationsWithoutColumns: _relationsWithoutColumns,
           } = await project.getNodesWithDBColumns(
-            event,
             modelsToFetch,
-            cancellationToken,
+            abortController!.signal,
           );
           parentModels.push(...modelsToFetch.map((n) => mappedNode[n]));
           relationsWithoutColumns = _relationsWithoutColumns;

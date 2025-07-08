@@ -4,6 +4,7 @@ import {
   commands,
   env,
   ProgressLocation,
+  Range,
   Uri,
   ViewColumn,
   Webview,
@@ -12,34 +13,34 @@ import {
   WebviewViewResolveContext,
   window,
   workspace,
-  Range,
 } from "vscode";
 
+import {
+  DBTTerminal,
+  ExecuteSQLError,
+  ExecuteSQLResult,
+  QueryExecution,
+} from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import { PythonException } from "python-bridge";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { AltimateRequest } from "../altimate";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { AltimateAuthService } from "../services/altimateAuthService";
+import { QueryManifestService } from "../services/queryManifestService";
+import { SharedStateService } from "../services/sharedStateService";
+import { UsersService } from "../services/usersService";
+import { TelemetryService } from "../telemetry";
+import { TelemetryEvents } from "../telemetry/events";
 import {
   extendErrorWithSupportLinks,
   getFormattedDateTime,
   getStringSizeInMb,
-  provideSingleton,
 } from "../utils";
-import { TelemetryService } from "../telemetry";
-import { AltimateRequest } from "../altimate";
-import {
-  ExecuteSQLError,
-  ExecuteSQLResult,
-  QueryExecution,
-} from "../dbt_client/dbtIntegration";
-import { SharedStateService } from "../services/sharedStateService";
 import {
   AltimateWebviewProvider,
   SendMessageProps,
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { QueryManifestService } from "../services/queryManifestService";
-import { UsersService } from "../services/usersService";
-import { TelemetryEvents } from "../telemetry/events";
 import path = require("path");
 
 interface JsonObj {
@@ -135,7 +136,6 @@ interface QueryHistory {
   modelName: string;
 }
 
-@provideSingleton(QueryResultPanel)
 export class QueryResultPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.PreviewResults";
   protected viewPath = "/query-panel";
@@ -154,9 +154,11 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     protected telemetry: TelemetryService,
     private altimate: AltimateRequest,
     private eventEmitterService: SharedStateService,
+    @inject("DBTTerminal")
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
+    protected altimateAuthService: AltimateAuthService,
   ) {
     super(
       dbtProjectContainer,
@@ -166,6 +168,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       dbtTerminal,
       queryManifestService,
       usersService,
+      altimateAuthService,
     );
     this._disposables.push(
       window.onDidChangeActiveTextEditor(() => {
@@ -358,9 +361,13 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         isHistoryTab ? "QueryHistoryExecuteSql" : "QueryBookmarkExecuteSql",
       );
       if (message.limit) {
-        await project.executeSQLWithLimit(message.query, "", message.limit);
+        await project.executeSQLWithLimitOnQueryPanel(
+          message.query,
+          "",
+          message.limit,
+        );
       } else {
-        await project.executeSQL(message.query, "");
+        await project.executeSQLOnQueryPanel(message.query, "");
       }
       return;
     } catch (error) {
@@ -572,12 +579,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       query = activeEditor.document.getText(selectionRange);
     }
     this.telemetry.sendTelemetryEvent("QueryActiveWindowExecuteSql");
-    await project.executeSQLWithLimit(
+    await project.executeSQLWithLimitOnQueryPanel(
       query,
       modelName,
       message.limit,
-      false,
-      false,
     );
   }
 

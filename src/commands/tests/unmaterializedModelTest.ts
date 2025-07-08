@@ -1,9 +1,7 @@
 import { Diagnostic, DiagnosticSeverity, Range } from "vscode";
 import { ScanContext } from "./scanContext";
 import { AltimateScanStep } from "./step";
-import { provideSingleton } from "../../utils";
 
-@provideSingleton(UnmaterializedModelTest)
 export class UnmaterializedModelTest implements AltimateScanStep {
   public async run(scanContext: ScanContext) {
     const {

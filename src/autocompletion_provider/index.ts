@@ -1,13 +1,11 @@
-import { Disposable, DocumentFilter, languages } from "vscode";
+import { Disposable, languages } from "vscode";
 import { DBTPowerUserExtension } from "../dbtPowerUserExtension";
-import { provideSingleton } from "../utils";
 import { DocAutocompletionProvider } from "./docAutocompletionProvider";
 import { MacroAutocompletionProvider } from "./macroAutocompletionProvider";
 import { ModelAutocompletionProvider } from "./modelAutocompletionProvider";
 import { SourceAutocompletionProvider } from "./sourceAutocompletionProvider";
 import { UserCompletionProvider } from "./usercompletion_provider";
 
-@provideSingleton(AutocompletionProviders)
 export class AutocompletionProviders implements Disposable {
   private disposables: Disposable[] = [];
 

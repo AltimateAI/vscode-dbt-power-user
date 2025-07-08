@@ -1,16 +1,14 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import {
-  StatusBarItem,
-  StatusBarAlignment,
-  window,
   Disposable,
+  StatusBarAlignment,
+  StatusBarItem,
   TextEditor,
+  window,
 } from "vscode";
-import { provideSingleton } from "../utils";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { QueryManifestService } from "../modules";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 
-@provideSingleton(TargetStatusBar)
 export class TargetStatusBar implements Disposable {
   readonly statusBar: StatusBarItem = window.createStatusBarItem(
     StatusBarAlignment.Left,
@@ -20,8 +18,8 @@ export class TargetStatusBar implements Disposable {
 
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
-    private queryManifestService: QueryManifestService,
   ) {
     this.disposables.push(
       window.onDidChangeActiveTextEditor(

@@ -1,11 +1,11 @@
+import { CommandProcessResult } from "@altimateai/dbt-integration";
 import { ToolSchema } from "@modelcontextprotocol/sdk/types.js";
+import { inject } from "inversify";
+import { Disposable, Uri, workspace } from "vscode";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { Uri, Disposable, workspace } from "vscode";
-import { provideSingleton } from "../utils";
-import { DBTProject, DBTTerminal, TelemetryService } from "../modules";
-import { CommandProcessResult } from "../commandProcessExecution";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { DBTProject, DBTTerminal } from "../modules";
 import { McpTool } from "./types";
 
 const ToolInputSchema = ToolSchema.shape.inputSchema;
@@ -84,12 +84,11 @@ enum ToolName {
   INSTALL_DEPS = "install_deps",
 }
 
-@provideSingleton(DbtPowerUserMcpServerTools)
 export class DbtPowerUserMcpServerTools implements Disposable {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
-    private telemetry: TelemetryService,
   ) {}
 
   private tools: McpTool[] = [
@@ -296,11 +295,9 @@ This must be called first to get the projectRoot parameter needed for all other 
                   `Project not found for root: ${validatedArgs.projectRoot}`,
                 );
               }
-              const result = await project.executeSQL(
+              const result = await project.immediatelyExecuteSQL(
                 validatedArgs.query,
                 validatedArgs.modelName,
-                true, // returnImmediately
-                false, // returnRawResults
               );
               return {
                 content: createTextContent(JSON.stringify(result)),
@@ -482,7 +479,7 @@ This must be called first to get the projectRoot parameter needed for all other 
         }
         const result = await project.installDbtPackages(validatedArgs.packages);
         return {
-          content: createTextContent(result),
+          content: createTextContent(result.fullOutput),
         };
       },
     },
@@ -504,7 +501,7 @@ This must be called first to get the projectRoot parameter needed for all other 
         }
         const result = await project.installDeps();
         return {
-          content: createTextContent(result),
+          content: createTextContent(result.fullOutput),
         };
       },
     },

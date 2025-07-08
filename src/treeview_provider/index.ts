@@ -1,14 +1,12 @@
 import { Disposable, window } from "vscode";
-import { provideSingleton } from "../utils";
 import {
   ChildrenModelTreeview,
   DocumentationTreeview,
+  IconActionsTreeview,
   ModelTestTreeview,
   ParentModelTreeview,
-  IconActionsTreeview,
 } from "./modelTreeviewProvider";
 
-@provideSingleton(TreeviewProviders)
 export class TreeviewProviders implements Disposable {
   private disposables: Disposable[] = [];
 

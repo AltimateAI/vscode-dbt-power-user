@@ -1,3 +1,5 @@
+import { DBTTerminal, NodeMetaMap } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import {
   CancellationToken,
   Definition,
@@ -11,14 +13,10 @@ import {
   TextDocument,
   Uri,
 } from "vscode";
-import { NodeMetaMap } from "../domain";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { provideSingleton } from "../utils";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { ManifestCacheChangedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
-@provideSingleton(ModelDefinitionProvider)
 export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
   private modelToLocationMap: Map<string, NodeMetaMap> = new Map();
   private static readonly IS_REF = /(ref)\([^)]*\)/;
@@ -28,6 +26,7 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {
     this.disposables.push(

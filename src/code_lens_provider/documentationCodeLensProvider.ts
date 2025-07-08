@@ -7,14 +7,11 @@ import {
   ProviderResult,
   Range,
   TextDocument,
-  window,
   workspace,
 } from "vscode";
-import { provideSingleton } from "../utils";
 import { CST, LineCounter, Parser } from "yaml";
 import path = require("path");
 
-@provideSingleton(DocumentationCodeLensProvider)
 export class DocumentationCodeLensProvider implements CodeLensProvider {
   private _onDidChangeCodeLenses: EventEmitter<void> = new EventEmitter<void>();
   public readonly onDidChangeCodeLenses: Event<void> =

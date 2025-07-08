@@ -1,12 +1,10 @@
 import { Disposable, languages } from "vscode";
 import { DBTPowerUserExtension } from "../dbtPowerUserExtension";
-import { provideSingleton } from "../utils";
+import { DepthDecorationProvider } from "./depthDecorationProvider";
+import { MacroHoverProvider } from "./macroHoverProvider";
 import { ModelHoverProvider } from "./modelHoverProvider";
 import { SourceHoverProvider } from "./sourceHoverProvider";
-import { MacroHoverProvider } from "./macroHoverProvider";
-import { DepthDecorationProvider } from "./depthDecorationProvider";
 
-@provideSingleton(HoverProviders)
 export class HoverProviders implements Disposable {
   private disposables: Disposable[] = [];
 

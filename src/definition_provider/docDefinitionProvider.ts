@@ -1,3 +1,4 @@
+import { DocMetaMap } from "@altimateai/dbt-integration";
 import {
   Definition,
   DefinitionLink,
@@ -9,13 +10,10 @@ import {
   TextDocument,
   Uri,
 } from "vscode";
-import { DocMetaMap } from "../domain";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { provideSingleton } from "../utils";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { ManifestCacheChangedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
 
-@provideSingleton(DocDefinitionProvider)
 export class DocDefinitionProvider implements DefinitionProvider, Disposable {
   private docToLocationMap: Map<string, DocMetaMap> = new Map();
   private static readonly IS_DOC = /(doc)\([^)]*\)/;

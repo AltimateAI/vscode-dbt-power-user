@@ -1,8 +1,6 @@
 import { AltimateRequest } from "../altimate";
-import { provideSingleton } from "../utils";
 import { SharedStateService } from "./sharedStateService";
 
-@provideSingleton(StreamingService)
 export class StreamingService {
   public constructor(
     private altimateRequest: AltimateRequest,
