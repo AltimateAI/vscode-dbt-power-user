@@ -7,7 +7,7 @@ export class ChildrenParentParser {
   constructor(private terminal: DBTTerminal) {}
 
   createChildrenParentMetaMap(
-    nodesMap: any[],
+    nodesMap: Record<string, any>,
   ): Promise<{ parentMetaMap: DBTGraphType; childMetaMap: DBTGraphType }> {
     const parentMetaMap: DBTGraphType = {};
     const childMetaMap: DBTGraphType = {};
