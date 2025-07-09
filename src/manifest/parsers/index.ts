@@ -85,7 +85,10 @@ export class ManifestParser {
       manifest;
 
     const parentChildrenPromise =
-      this.childrenParentParser.createChildrenParentMetaMap(nodes);
+      this.childrenParentParser.createChildrenParentMetaMap({
+        ...nodes,
+        ...exposures,
+      });
 
     const nodeMetaMapPromise = this.nodeParser.createNodeMetaMap(
       nodes,
