@@ -524,7 +524,7 @@
       },
       {
         "command": "dbtPowerUser.sqlToModel",
-        "title": "Convert to dbt Model (Preview feature)",
+        "title": "Convert to dbt Model",
         "shortTitle": "Convert to dbt Model",
         "category": "dbt Power User",
         "icon": {
