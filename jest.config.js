@@ -8,6 +8,7 @@ module.exports = {
   },
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
   setupFilesAfterEnv: ["<rootDir>/src/test/setup.ts"],
+  reporters: ["default", ["summary", { summaryThreshold: 1 }]],
   collectCoverageFrom: [
     "src/**/*.{ts,tsx}",
     "!src/test/**",
