@@ -40,7 +40,8 @@ import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonBridge, PythonException } from "python-bridge";
 import * as path from "path";
 import { DBTProject } from "../manifest/dbtProject";
-import { existsSync, readFileSync } from "fs";
+import { readFile } from "fs/promises";
+import { existsSync } from "fs";
 import { parse } from "yaml";
 import { TelemetryService } from "../telemetry";
 import {
@@ -147,16 +148,17 @@ export class DBTCoreProjectDetection
     private dbtTerminal: DBTTerminal,
   ) {}
 
-  private getPackageInstallPathFallback(
+  private async getPackageInstallPathFallback(
     projectDirectory: Uri,
     packageInstallPath: string,
-  ): string {
+  ): Promise<string> {
     const dbtProjectFile = path.join(
       projectDirectory.fsPath,
       "dbt_project.yml",
     );
     if (existsSync(dbtProjectFile)) {
-      const dbtProjectConfig: any = parse(readFileSync(dbtProjectFile, "utf8"));
+      const fileContent = await readFile(dbtProjectFile, "utf8");
+      const dbtProjectConfig: any = parse(fileContent);
       const packagesInstallPath = dbtProjectConfig["packages-install-path"];
       if (packagesInstallPath) {
         if (path.isAbsolute(packagesInstallPath)) {
@@ -202,10 +204,12 @@ export class DBTCoreProjectDetection
         "An error occured while finding package paths: " + error,
       );
       // Fallback to reading yaml files
-      packagesInstallPaths = projectDirectories.map((projectDirectory, idx) =>
-        this.getPackageInstallPathFallback(
-          projectDirectory,
-          packagesInstallPaths[idx],
+      packagesInstallPaths = await Promise.all(
+        projectDirectories.map((projectDirectory, idx) =>
+          this.getPackageInstallPathFallback(
+            projectDirectory,
+            packagesInstallPaths[idx],
+          ),
         ),
       );
     } finally {

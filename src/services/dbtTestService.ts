@@ -12,7 +12,7 @@ import path = require("path");
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { MacroMetaMap, TestMetaData } from "../domain";
 import { parse, stringify } from "yaml";
-import { readFileSync } from "fs";
+import { readFile } from "fs/promises";
 
 @provideSingleton(DbtTestService)
 export class DbtTestService {
@@ -82,7 +82,7 @@ export class DbtTestService {
   /**
    * Find the extra config for test from schema.yml, if available
    */
-  public getConfigByTest(
+  public async getConfigByTest(
     test: TestMetaData,
     modelName: string,
     columnNameFromTestMetadata?: string,
@@ -120,8 +120,9 @@ export class DbtTestService {
       "finding test from yaml",
       patchPath,
     );
+    const fileContent = await readFile(patchPath, { encoding: "utf-8" });
     const parsedDocFile = parse(
-      readFileSync(patchPath, { encoding: "utf-8" }),
+      fileContent,
       {
         strict: false,
         uniqueKeys: false,

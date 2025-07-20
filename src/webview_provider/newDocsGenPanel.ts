@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { readFile } from "fs/promises";
 import {
   CancellationToken,
   Range,
@@ -95,7 +95,7 @@ export class NewDocsGenPanel
     super.resolveWebviewView(panel, context, token);
   }
 
-  private getDbtTestCode(test: TestMetaData, modelName: string) {
+  private async getDbtTestCode(test: TestMetaData, modelName: string) {
     const { path: testPath, column_name } = test;
     this.dbtTerminal.debug(
       "getDbtTestCode",
@@ -107,9 +107,9 @@ export class NewDocsGenPanel
 
     return {
       sql: testPath?.endsWith(".sql")
-        ? readFileSync(testPath, { encoding: "utf-8" })
+        ? await readFile(testPath, { encoding: "utf-8" })
         : undefined,
-      config: this.dbtTestService.getConfigByTest(test, modelName, column_name),
+      config: await this.dbtTestService.getConfigByTest(test, modelName, column_name),
     };
   }
 
@@ -166,7 +166,7 @@ export class NewDocsGenPanel
         this.handleSyncRequestFromWebview(
           syncRequestId,
           async () => {
-            return this.getDbtTestCode(
+            return await this.getDbtTestCode(
               args.test as TestMetaData,
               args.model as string,
             );

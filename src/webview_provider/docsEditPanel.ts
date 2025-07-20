@@ -1,4 +1,5 @@
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { existsSync } from "fs";
+import { readFile, writeFile } from "fs/promises";
 import {
   CancellationToken,
   ColorThemeKind,
@@ -219,13 +220,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   ) {
     this._panel = panel;
     this.setupWebviewOptions(context);
-    this.renderWebviewView(context);
+    await this.renderWebviewView(context);
     this.updateGraphStyle();
   }
 
-  private renderWebviewView(context: WebviewViewResolveContext) {
+  private async renderWebviewView(context: WebviewViewResolveContext) {
     const webview = this._panel!.webview!;
-    webview.html = getHtml(webview, this.dbtProjectContainer.extensionUri);
+    webview.html = await getHtml(webview, this.dbtProjectContainer.extensionUri);
   }
 
   private setupWebviewOptions(context: WebviewViewResolveContext) {
@@ -425,7 +426,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     });
   };
 
-  private convertColumnNamesByCaseConfig(
+  private async convertColumnNamesByCaseConfig(
     columns: { name: string }[],
     modelName: string,
     project: DBTProject,
@@ -440,9 +441,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       return columns;
     }
 
-    const docFile: string = readFileSync(
+    const docFile: string = await readFile(
       path.join(project.projectRoot.fsPath, patchPath.split("://")[1]),
-    ).toString("utf8");
+      "utf8"
+    );
     const parsedDocFile =
       parse(docFile, {
         strict: false,
@@ -507,7 +509,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 try {
                   const columnsInRelation =
                     await project.getColumnsOfModel(modelName);
-                  const columns = this.convertColumnNamesByCaseConfig(
+                  const columns = await this.convertColumnNamesByCaseConfig(
                     columnsInRelation.map((column) => {
                       return {
                         name: column.column,
@@ -650,11 +652,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   }
                   // check if file exists, if not create an empty file
                   if (!existsSync(patchPath)) {
-                    writeFileSync(patchPath, "");
+                    await writeFile(patchPath, "");
                   }
 
-                  const docFile: string =
-                    readFileSync(patchPath).toString("utf8");
+                  const docFile: string = await readFile(patchPath, "utf8");
                   const parsedDocFile =
                     parse(docFile, {
                       strict: false,
@@ -754,7 +755,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   }
                   // Force reload from manifest after manifest refresh
                   this.loadedFromManifest = false;
-                  writeFileSync(patchPath, stringify(parsedDocFile));
+                  await writeFile(patchPath, stringify(parsedDocFile));
                   this.documentation = (
                     await this.docGenService.getDocumentationForCurrentActiveFile()
                   ).documentation;
@@ -834,7 +835,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   }
 }
 
-function getHtml(webview: Webview, extensionUri: Uri) {
+async function getHtml(webview: Webview, extensionUri: Uri) {
   const indexPath = getUri(webview, extensionUri, [
     "docs_edit_panel",
     "index.html",
@@ -846,8 +847,8 @@ function getHtml(webview: Webview, extensionUri: Uri) {
   ].includes(window.activeColorTheme.kind)
     ? "light"
     : "dark";
-  return readFileSync(indexPath.fsPath)
-    .toString()
+  const htmlContent = await readFile(indexPath.fsPath, "utf8");
+  return htmlContent
     .replace(/__ROOT__/g, resourceDir.toString())
     .replace(/__THEME__/g, theme)
     .replace(/__NONCE__/g, getNonce())

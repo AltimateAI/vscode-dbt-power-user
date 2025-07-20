@@ -418,12 +418,15 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   /** A wrapper for {@link transmitData} which converts server
    * results interface ({@link ExecuteSQLResult}) to what the webview expects */
   private async transmitDataWrapper(result: ExecuteSQLResult, query: string) {
-    const rows: JsonObj[] = [];
-    // Convert compressed array format to dict[]
+    const rows: JsonObj[] = new Array(result.table.rows.length);
+    // Convert compressed array format to dict[] - optimized version
     for (let i = 0; i < result.table.rows.length; i++) {
-      result.table.rows[i].forEach((value: any, j: any) => {
-        rows[i] = { ...rows[i], [result.table.column_names[j]]: value };
-      });
+      const row: JsonObj = {};
+      const currentRow = result.table.rows[i];
+      for (let j = 0; j < currentRow.length; j++) {
+        row[result.table.column_names[j]] = currentRow[j];
+      }
+      rows[i] = row;
     }
     await this.transmitData(
       result.table.column_names,
