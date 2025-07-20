@@ -109,10 +109,11 @@
             "type": "string",
             "enum": [
               "core",
-              "cloud"
+              "cloud",
+              "fusion"
             ],
             "default": "core",
-            "description": "Select dbt core or dbt cloud"
+            "description": "Select dbt core, dbt cloud, or dbt fusion"
           },
           "dbt.dbtPythonPathOverride": {
             "type": "string",

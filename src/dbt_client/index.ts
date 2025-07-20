@@ -48,6 +48,8 @@ export class DBTClient implements Disposable {
 
     switch (this.dbtIntegrationMode) {
       case "cloud":
+      case "fusion":
+        // Fusion uses the same detection as cloud for now
         this.dbtDetection = this.dbtCloudDetection;
         break;
       default:

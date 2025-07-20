@@ -128,14 +128,19 @@ export class WalkthroughCommands {
   }
 
   async installDbt(): Promise<void> {
-    if (
-      workspace
-        .getConfiguration("dbt")
-        .get<string>("dbtIntegration", "core") === "cloud"
-    ) {
-      this.installDbtCloud();
-    } else {
-      this.installDbtCore();
+    const dbtIntegration = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+    
+    switch (dbtIntegration) {
+      case "cloud":
+      case "fusion":
+        // Fusion uses cloud CLI installation for now
+        this.installDbtCloud();
+        break;
+      default:
+        this.installDbtCore();
+        break;
     }
   }
 

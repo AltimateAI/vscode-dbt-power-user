@@ -137,6 +137,8 @@ export class DBTProject implements Disposable {
 
     switch (dbtIntegrationMode) {
       case "cloud":
+      case "fusion":
+        // Fusion uses the same integration as cloud for now
         this.dbtProjectIntegration = this.dbtCloudIntegrationFactory(
           this.projectRoot,
         );
