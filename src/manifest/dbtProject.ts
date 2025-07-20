@@ -10,7 +10,9 @@ import {
   Disposable,
   Event,
   EventEmitter,
+  FileSystemWatcher,
   languages,
+  ProgressLocation,
   Range,
   RelativePattern,
   Uri,
@@ -56,15 +58,29 @@ import { DBTCloudProjectIntegration } from "../dbt_client/dbtCloudIntegration";
 import { AltimateRequest, NoCredentialsError } from "../altimate";
 import { ValidationProvider } from "../validation_provider";
 import { ModelNode } from "../altimate";
-import { ColumnMetaData } from "../domain";
+import {
+  ColumnMetaData,
+  GraphMetaMap,
+  NodeGraphMap,
+  NodeMetaData,
+} from "../domain";
 import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 import { SharedStateService } from "../services/sharedStateService";
+import { TelemetryEvents } from "../telemetry/events";
+import { RunResultsEvent } from "./event/runResultsEvent";
+import { DBTCoreCommandProjectIntegration } from "../dbt_client/dbtCoreCommandIntegration";
+import { Table } from "src/services/dbtLineageService";
+import { DBTFusionCommandProjectIntegration } from "src/dbt_client/dbtFusionCommandIntegration";
 
 interface FileNameTemplateMap {
   [key: string]: string;
 }
-
+interface JsonObj {
+  [key: string]: string | number | undefined;
+}
 export class DBTProject implements Disposable {
+  private _manifestCacheEvent?: ManifestCacheProjectAddedEvent;
+
   static DBT_PROJECT_FILE = "dbt_project.yml";
   static MANIFEST_FILE = "manifest.json";
   static CATALOG_FILE = "catalog.json";
@@ -86,6 +102,8 @@ export class DBTProject implements Disposable {
   private _onProjectConfigChanged =
     new EventEmitter<ProjectConfigChangedEvent>();
   public onProjectConfigChanged = this._onProjectConfigChanged.event;
+  private _onRunResults = new EventEmitter<RunResultsEvent>();
+  public onRunResults = this._onRunResults.event;
   private sourceFileWatchers: SourceFileWatchers;
   public onSourceFileChanged: Event<void>;
   private dbtProjectLog?: DBTProjectLog;
@@ -97,6 +115,9 @@ export class DBTProject implements Disposable {
     new EventEmitter<RebuildManifestStatusChange>();
   readonly onRebuildManifestStatusChange =
     this._onRebuildManifestStatusChange.event;
+
+  private dbSchemaCache: Record<string, ModelNode> = {};
+  private depsInitialized = false;
 
   constructor(
     private PythonEnvironment: PythonEnvironment,
@@ -111,19 +132,35 @@ export class DBTProject implements Disposable {
       path: Uri,
       projectConfigDiagnostics: DiagnosticCollection,
     ) => DBTCoreProjectIntegration,
+    private dbtCoreCommandIntegrationFactory: (
+      path: Uri,
+      projectConfigDiagnostics: DiagnosticCollection,
+    ) => DBTCoreCommandProjectIntegration,
     private dbtCloudIntegrationFactory: (
       path: Uri,
     ) => DBTCloudProjectIntegration,
+    private dbtFusionCommandIntegrationFactory: (
+      path: Uri,
+    ) => DBTFusionCommandProjectIntegration,
     private altimate: AltimateRequest,
     private validationProvider: ValidationProvider,
     path: Uri,
     projectConfig: any,
-    _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+    private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
   ) {
     this.projectRoot = path;
     this.projectConfig = projectConfig;
 
-    this.validationProvider.validateCredentialsSilently();
+    try {
+      this.validationProvider.validateCredentialsSilently();
+    } catch (error) {
+      this.terminal.error(
+        "validateCredentialsSilently",
+        "Credential validation failed",
+        error,
+        false,
+      );
+    }
 
     this.sourceFileWatchers =
       this.sourceFileWatchersFactory.createSourceFileWatchers(
@@ -141,6 +178,17 @@ export class DBTProject implements Disposable {
           this.projectRoot,
         );
         break;
+      case "fusion":
+        this.dbtProjectIntegration = this.dbtFusionCommandIntegrationFactory(
+          this.projectRoot,
+        );
+        break;
+      case "corecommand":
+        this.dbtProjectIntegration = this.dbtCoreCommandIntegrationFactory(
+          this.projectRoot,
+          this.projectConfigDiagnostics,
+        );
+        break;
       default:
         this.dbtProjectIntegration = this.dbtCoreIntegrationFactory(
           this.projectRoot,
@@ -153,13 +201,25 @@ export class DBTProject implements Disposable {
       this.dbtProjectIntegration,
       this.targetWatchersFactory.createTargetWatchers(
         _onManifestChanged,
+        this._onRunResults,
         this.onProjectConfigChanged,
       ),
+      this._onManifestChanged.event((event) => {
+        const addedEvent = event.added?.find(
+          (e) => e.project.projectRoot.fsPath === this.projectRoot.fsPath,
+        );
+        if (addedEvent) {
+          this._manifestCacheEvent = addedEvent;
+        }
+      }),
       this.PythonEnvironment.onPythonEnvironmentChanged(() =>
         this.onPythonEnvironmentChanged(),
       ),
       this.sourceFileWatchers,
       this.projectConfigDiagnostics,
+      this.onRunResults((event) => {
+        this.invalidateCacheUsingLastRun(event.file);
+      }),
     );
 
     this.terminal.debug(
@@ -170,8 +230,53 @@ export class DBTProject implements Disposable {
     );
   }
 
+  private async invalidateCacheUsingLastRun(file: Uri) {
+    const fileContent = readFileSync(file.fsPath, "utf8").toString();
+    if (!fileContent) {
+      return;
+    }
+
+    try {
+      const runResults = JSON.parse(fileContent);
+      for (const n of runResults["results"]) {
+        if (n["unique_id"] in this.dbSchemaCache) {
+          delete this.dbSchemaCache[n["unique_id"]];
+        }
+      }
+    } catch (e) {
+      this.terminal.error(
+        "invalidateCacheUsingLastRun",
+        `Unable to parse run_results.json ${e}`,
+        e,
+        true,
+      );
+    }
+  }
+
   public getProjectName() {
-    return this.projectConfig.name;
+    return this.dbtProjectIntegration.getProjectName();
+  }
+
+  getSelectedTarget() {
+    return this.dbtProjectIntegration.getSelectedTarget();
+  }
+
+  getTargetNames() {
+    return this.dbtProjectIntegration.getTargetNames();
+  }
+
+  async setSelectedTarget(targetName: string) {
+    await window.withProgress(
+      {
+        location: ProgressLocation.Notification,
+        title: "Changing target...",
+        cancellable: false,
+      },
+      async () => {
+        await this.dbtProjectIntegration.setSelectedTarget(targetName);
+        await this.dbtProjectIntegration.applySelectedTarget();
+      },
+    );
   }
 
   getDBTProjectFilePath() {
@@ -245,9 +350,7 @@ export class DBTProject implements Disposable {
         docsGenerateCommand.focus = false;
         docsGenerateCommand.logToTerminal = false;
         docsGenerateCommand.showProgress = false;
-        await this.dbtProjectIntegration.executeCommandImmediately(
-          docsGenerateCommand,
-        );
+        await this.generateDocsImmediately();
         healthcheckArgs.catalogPath = this.getCatalogPath();
         if (!healthcheckArgs.catalogPath) {
           throw new Error(
@@ -368,28 +471,56 @@ export class DBTProject implements Disposable {
       );
       this.telemetry.sendTelemetryError("projectConfigRefreshError", error);
     }
-    const event = new ProjectConfigChangedEvent(this);
-    this._onProjectConfigChanged.fire(event);
-    this.terminal.debug(
-      "DBTProject",
-      `firing ProjectConfigChanged event for the project "${this.getProjectName()}" at ${
-        this.projectRoot
-      } configuration`,
-      "targetPaths",
-      this.getTargetPath(),
-      "modelPaths",
-      this.getModelPaths(),
-      "seedPaths",
-      this.getSeedPaths(),
-      "macroPaths",
-      this.getMacroPaths(),
-      "packagesInstallPath",
-      this.getPackageInstallPath(),
-      "version",
-      this.getDBTVersion(),
-      "adapterType",
-      this.getAdapterType(),
-    );
+    const sourcePaths = this.getModelPaths();
+    if (sourcePaths === undefined) {
+      this.terminal.debug(
+        "DBTProject",
+        "sourcePaths is not defined in project in " + this.projectRoot.fsPath,
+      );
+    }
+    const macroPaths = this.getMacroPaths();
+    if (macroPaths === undefined) {
+      this.terminal.debug(
+        "DBTProject",
+        "macroPaths is not defined in " + this.projectRoot.fsPath,
+      );
+    }
+    const seedPaths = this.getSeedPaths();
+    if (seedPaths === undefined) {
+      this.terminal.debug(
+        "DBTProject",
+        "macroPaths is not defined in " + this.projectRoot.fsPath,
+      );
+    }
+    if (sourcePaths && macroPaths && seedPaths) {
+      const event = new ProjectConfigChangedEvent(this);
+      this._onProjectConfigChanged.fire(event);
+      this.terminal.debug(
+        "DBTProject",
+        `firing ProjectConfigChanged event for the project "${this.getProjectName()}" at ${
+          this.projectRoot
+        } configuration`,
+        "targetPaths",
+        this.getTargetPath(),
+        "modelPaths",
+        this.getModelPaths(),
+        "seedPaths",
+        this.getSeedPaths(),
+        "macroPaths",
+        this.getMacroPaths(),
+        "packagesInstallPath",
+        this.getPackageInstallPath(),
+        "version",
+        this.getDBTVersion(),
+        "adapterType",
+        this.getAdapterType(),
+      );
+    } else {
+      this.terminal.warn(
+        "DBTProject",
+        "Could not send out ProjectConfigChangedEvent because project is not initialized properly. dbt path settings cannot be determined",
+      );
+    }
   }
 
   getAdapterType() {
@@ -426,6 +557,18 @@ export class DBTProject implements Disposable {
       project: this,
       inProgress: true,
     });
+    const installDepsOnProjectInitialization = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("installDepsOnProjectInitialization", true);
+    if (!this.depsInitialized && installDepsOnProjectInitialization) {
+      try {
+        await this.installDeps(true);
+      } catch (error: any) {
+        // this is best effort
+        console.warn("An error occured while installing dependencies", error);
+      }
+      this.depsInitialized = true;
+    }
     await this.dbtProjectIntegration.rebuildManifest();
     this._onRebuildManifestStatusChange.fire({
       project: this,
@@ -440,58 +583,126 @@ export class DBTProject implements Disposable {
   }
 
   async runModel(runModelParams: RunModelParams) {
+    const runModelCommand =
+      this.dbtCommandFactory.createRunModelCommand(runModelParams);
+
     try {
-      const runModelCommand =
-        this.dbtCommandFactory.createRunModelCommand(runModelParams);
-      await this.dbtProjectIntegration.runModel(runModelCommand);
+      const result = await this.dbtProjectIntegration.runModel(runModelCommand);
       this.telemetry.sendTelemetryEvent("runModel");
+      return result;
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
+  }
+
+  async unsafeRunModelImmediately(runModelParams: RunModelParams) {
+    const runModelCommand =
+      this.dbtCommandFactory.createRunModelCommand(runModelParams);
+    runModelCommand.showProgress = false;
+    runModelCommand.logToTerminal = false;
+    this.telemetry.sendTelemetryEvent("runModel");
+    return this.dbtProjectIntegration.executeCommandImmediately(
+      runModelCommand,
+    );
   }
 
   async buildModel(runModelParams: RunModelParams) {
+    const buildModelCommand =
+      this.dbtCommandFactory.createBuildModelCommand(runModelParams);
+
     try {
-      const buildModelCommand =
-        this.dbtCommandFactory.createBuildModelCommand(runModelParams);
-      await this.dbtProjectIntegration.buildModel(buildModelCommand);
+      const result =
+        await this.dbtProjectIntegration.buildModel(buildModelCommand);
       this.telemetry.sendTelemetryEvent("buildModel");
+      return result;
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
+  }
+
+  async unsafeBuildModelImmediately(runModelParams: RunModelParams) {
+    const buildModelCommand =
+      this.dbtCommandFactory.createBuildModelCommand(runModelParams);
+    buildModelCommand.showProgress = false;
+    buildModelCommand.logToTerminal = false;
+    this.telemetry.sendTelemetryEvent("buildModel");
+    return this.dbtProjectIntegration.executeCommandImmediately(
+      buildModelCommand,
+    );
   }
 
   async buildProject() {
+    const buildProjectCommand =
+      this.dbtCommandFactory.createBuildProjectCommand();
+
     try {
-      const buildProjectCommand =
-        this.dbtCommandFactory.createBuildProjectCommand();
-      await this.dbtProjectIntegration.buildProject(buildProjectCommand);
+      const result =
+        await this.dbtProjectIntegration.buildProject(buildProjectCommand);
       this.telemetry.sendTelemetryEvent("buildProject");
+      return result;
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
+  }
+
+  async unsafeBuildProjectImmediately() {
+    const buildProjectCommand =
+      this.dbtCommandFactory.createBuildProjectCommand();
+    buildProjectCommand.showProgress = false;
+    buildProjectCommand.logToTerminal = false;
+    this.telemetry.sendTelemetryEvent("buildProject");
+    return this.dbtProjectIntegration.executeCommandImmediately(
+      buildProjectCommand,
+    );
   }
 
   async runTest(testName: string) {
+    const testModelCommand =
+      this.dbtCommandFactory.createTestModelCommand(testName);
+
     try {
-      const testModelCommand =
-        this.dbtCommandFactory.createTestModelCommand(testName);
-      await this.dbtProjectIntegration.runTest(testModelCommand);
+      const result = await this.dbtProjectIntegration.runTest(testModelCommand);
       this.telemetry.sendTelemetryEvent("runTest");
+      return result;
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
   }
 
+  async unsafeRunTestImmediately(testName: string) {
+    const testModelCommand =
+      this.dbtCommandFactory.createTestModelCommand(testName);
+    testModelCommand.showProgress = false;
+    testModelCommand.logToTerminal = false;
+    this.telemetry.sendTelemetryEvent("runTest");
+    return this.dbtProjectIntegration.executeCommandImmediately(
+      testModelCommand,
+    );
+  }
+
   async runModelTest(modelName: string) {
+    const testModelCommand =
+      this.dbtCommandFactory.createTestModelCommand(modelName);
+
     try {
-      const testModelCommand =
-        this.dbtCommandFactory.createTestModelCommand(modelName);
-      this.dbtProjectIntegration.runModelTest(testModelCommand);
-      await this.telemetry.sendTelemetryEvent("runModelTest");
+      const result =
+        await this.dbtProjectIntegration.runModelTest(testModelCommand);
+      this.telemetry.sendTelemetryEvent("runModelTest");
+      return result;
     } catch (error) {
       this.handleNoCredentialsError(error);
     }
+  }
+
+  async unsafeRunModelTestImmediately(modelName: string) {
+    const testModelCommand =
+      this.dbtCommandFactory.createTestModelCommand(modelName);
+    testModelCommand.showProgress = false;
+    testModelCommand.logToTerminal = false;
+    this.telemetry.sendTelemetryEvent("runModelTest");
+    return this.dbtProjectIntegration.executeCommandImmediately(
+      testModelCommand,
+    );
   }
 
   private handleNoCredentialsError(error: unknown) {
@@ -515,10 +726,13 @@ export class DBTProject implements Disposable {
     args?.forEach((arg) => docsGenerateCommand.addArgument(arg));
     docsGenerateCommand.focus = false;
     docsGenerateCommand.logToTerminal = false;
-    await this.dbtProjectIntegration.executeCommandImmediately(
-      docsGenerateCommand,
-    );
-    this.telemetry.sendTelemetryEvent("generateDocsImmediately");
+    const result =
+      await this.dbtProjectIntegration.executeCommandImmediately(
+        docsGenerateCommand,
+      );
+    if (result?.stderr) {
+      throw new Error(result.stderr);
+    }
   }
 
   generateDocs() {
@@ -528,16 +742,37 @@ export class DBTProject implements Disposable {
     this.telemetry.sendTelemetryEvent("generateDocs");
   }
 
+  clean() {
+    const cleanCommand = this.dbtCommandFactory.createCleanCommand();
+    this.telemetry.sendTelemetryEvent("clean");
+    return this.dbtProjectIntegration.clean(cleanCommand);
+  }
+
   debug() {
     const debugCommand = this.dbtCommandFactory.createDebugCommand();
     this.telemetry.sendTelemetryEvent("debug");
     return this.dbtProjectIntegration.debug(debugCommand);
   }
 
-  installDeps() {
+  async installDbtPackages(packages: string[]) {
+    this.telemetry.sendTelemetryEvent("installDbtPackages");
+    const installPackagesCommand =
+      this.dbtCommandFactory.createAddPackagesCommand(packages);
+    // Add packages first
+    await this.dbtProjectIntegration.deps(installPackagesCommand);
+    // Then install
+    return await this.dbtProjectIntegration.deps(
+      this.dbtCommandFactory.createInstallDepsCommand(),
+    );
+  }
+
+  async installDeps(silent = false) {
     this.telemetry.sendTelemetryEvent("installDeps");
     const installDepsCommand =
       this.dbtCommandFactory.createInstallDepsCommand();
+    if (silent) {
+      installDepsCommand.focus = false;
+    }
     return this.dbtProjectIntegration.deps(installDepsCommand);
   }
 
@@ -687,38 +922,99 @@ export class DBTProject implements Disposable {
   }
 
   async getColumnsOfModel(modelName: string) {
-    return this.dbtProjectIntegration.getColumnsOfModel(modelName);
+    const result =
+      await this.dbtProjectIntegration.getColumnsOfModel(modelName);
+    await this.dbtProjectIntegration.cleanupConnections();
+    return result;
   }
 
   async getColumnsOfSource(sourceName: string, tableName: string) {
-    return this.dbtProjectIntegration.getColumnsOfSource(sourceName, tableName);
+    const result = await this.dbtProjectIntegration.getColumnsOfSource(
+      sourceName,
+      tableName,
+    );
+    await this.dbtProjectIntegration.cleanupConnections();
+    return result;
   }
 
   async getColumnValues(model: string, column: string) {
-    this.terminal.debug(
-      "getColumnValues",
-      "finding distinct values for column",
-      true,
-      { model, column },
+    this.telemetry.startTelemetryEvent(
+      TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
+      { column, model },
     );
-    const query = `select ${column} from {{ ref('${model}')}} group by ${column}`;
-    const queryExecution = await this.dbtProjectIntegration.executeSQL(
-      query,
-      100, // setting this 100 as executeSql needs a limit and distinct values will be usually less in number
-      model,
-    );
-    const result = await queryExecution.executeQuery();
 
-    return result.table.rows.flat();
+    try {
+      this.terminal.debug(
+        "getColumnValues",
+        "finding distinct values for column",
+        true,
+        { model, column },
+      );
+      const query = `select ${column} from {{ ref('${model}')}} group by ${column}`;
+      const queryExecution = await this.dbtProjectIntegration.executeSQL(
+        query,
+        100, // setting this 100 as executeSql needs a limit and distinct values will be usually less in number
+        model,
+      );
+      const result = await queryExecution.executeQuery();
+      this.telemetry.endTelemetryEvent(
+        TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
+        undefined,
+        { column, model },
+      );
+      return result.table.rows.flat();
+    } catch (error) {
+      this.telemetry.endTelemetryEvent(
+        TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
+        error,
+        { column, model },
+      );
+      throw error;
+    } finally {
+      await this.dbtProjectIntegration.cleanupConnections();
+    }
   }
 
-  async getBulkSchema(req: DBTNode[], cancellationToken: CancellationToken) {
-    return this.dbtProjectIntegration.getBulkSchema(req, cancellationToken);
+  async getBulkSchemaFromDB(
+    req: DBTNode[],
+    cancellationToken: CancellationToken,
+  ) {
+    try {
+      const result = await this.dbtProjectIntegration.getBulkSchemaFromDB(
+        req,
+        cancellationToken,
+      );
+      await this.dbtProjectIntegration.cleanupConnections();
+      return result;
+    } finally {
+      await this.dbtProjectIntegration.cleanupConnections();
+    }
+  }
+
+  async validateWhetherSqlHasColumns(sql: string) {
+    const dialect = this.getAdapterType();
+    try {
+      return await this.dbtProjectIntegration.validateWhetherSqlHasColumns(
+        sql,
+        dialect,
+      );
+    } catch (e) {
+      this.terminal.error(
+        "validateWhetherSqlHasColumnsError",
+        "Error while validating whether sql has columns",
+        e,
+        true,
+      );
+      return false;
+    } finally {
+      await this.dbtProjectIntegration.cleanupConnections();
+    }
   }
 
   async getCatalog(): Promise<Catalog> {
     try {
-      return this.dbtProjectIntegration.getCatalog();
+      const result = await this.dbtProjectIntegration.getCatalog();
+      return result;
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         this.telemetry.sendTelemetryError("catalogPythonError", exc, {
@@ -741,6 +1037,8 @@ export class DBTProject implements Disposable {
           " is not available. ",
       );
       return [];
+    } finally {
+      await this.dbtProjectIntegration.cleanupConnections();
     }
   }
 
@@ -797,99 +1095,129 @@ export class DBTProject implements Disposable {
     tableName: string,
     sourcePath: string,
   ) {
-    try {
-      const prefix = workspace
-        .getConfiguration("dbt")
-        .get<string>("prefixGenerateModel", "base");
+    await window.withProgress(
+      {
+        location: ProgressLocation.Notification,
+        title: "Generating model...",
+        cancellable: false,
+      },
+      async () => {
+        try {
+          const prefix = workspace
+            .getConfiguration("dbt")
+            .get<string>("prefixGenerateModel", "base");
 
-      // Map setting to fileName
-      const fileNameTemplateMap: FileNameTemplateMap = {
-        "{prefix}_{sourceName}_{tableName}": `${prefix}_${sourceName}_${tableName}`,
-        "{prefix}_{sourceName}__{tableName}": `${prefix}_${sourceName}__${tableName}`,
-        "{prefix}_{tableName}": `${prefix}_${tableName}`,
-        "{tableName}": `${tableName}`,
-      };
+          // Map setting to fileName
+          const fileNameTemplateMap: FileNameTemplateMap = {
+            "{prefix}_{sourceName}_{tableName}": `${prefix}_${sourceName}_${tableName}`,
+            "{prefix}_{sourceName}__{tableName}": `${prefix}_${sourceName}__${tableName}`,
+            "{prefix}_{tableName}": `${prefix}_${tableName}`,
+            "{tableName}": `${tableName}`,
+          };
 
-      // Default filename template
-      let fileName = `${prefix}_${sourceName}_${tableName}`;
+          // Default filename template
+          let fileName = `${prefix}_${sourceName}_${tableName}`;
 
-      const fileNameTemplate = workspace
-        .getConfiguration("dbt")
-        .get<string>(
-          "fileNameTemplateGenerateModel",
-          "{prefix}_{sourceName}_{tableName}",
-        );
+          const fileNameTemplate = workspace
+            .getConfiguration("dbt")
+            .get<string>(
+              "fileNameTemplateGenerateModel",
+              "{prefix}_{sourceName}_{tableName}",
+            );
 
-      this.telemetry.sendTelemetryEvent("generateModel", {
-        prefix: prefix,
-        filenametemplate: fileNameTemplate,
-        adapter: this.getAdapterType(),
-      });
+          this.telemetry.sendTelemetryEvent("generateModel", {
+            prefix: prefix,
+            filenametemplate: fileNameTemplate,
+            adapter: this.getAdapterType(),
+          });
 
-      // Parse setting to fileName
-      if (fileNameTemplate in fileNameTemplateMap) {
-        fileName = fileNameTemplateMap[fileNameTemplate];
-      }
-      // Create filePath based on source.yml location
-      const location = path.join(sourcePath, fileName + ".sql");
-      if (!existsSync(location)) {
-        const columnsInRelation = await this.getColumnsOfSource(
-          sourceName,
-          tableName,
-        );
-        this.terminal.debug(
-          "dbtProject:generateModel",
-          `Generating columns for source ${sourceName} and table ${tableName}`,
-          columnsInRelation,
-        );
+          // Parse setting to fileName
+          if (fileNameTemplate in fileNameTemplateMap) {
+            fileName = fileNameTemplateMap[fileNameTemplate];
+          }
+          // Create filePath based on source.yml location
+          const location = path.join(sourcePath, fileName + ".sql");
+          if (!existsSync(location)) {
+            const columnsInRelation = await this.getColumnsOfSource(
+              sourceName,
+              tableName,
+            );
+            this.terminal.debug(
+              "dbtProject:generateModel",
+              `Generating columns for source ${sourceName} and table ${tableName}`,
+              columnsInRelation,
+            );
 
-        const fileContents = `with source as (
-      select * from {{ source('${sourceName}', '${tableName}') }}
-),
-renamed as (
-    select
-        ${columnsInRelation
-          .map((column) => `{{ adapter.quote("${column.column}") }}`)
-          .join(",\n        ")}
+            const fileContents = `with source as (
+        select * from {{ source('${sourceName}', '${tableName}') }}
+  ),
+  renamed as (
+      select
+          ${columnsInRelation
+            .map((column) => `{{ adapter.quote("${column.column}") }}`)
+            .join(",\n        ")}
 
-    from source
-)
-select * from renamed
-  `;
-        writeFileSync(location, fileContents);
-        const doc = await workspace.openTextDocument(Uri.file(location));
-        window.showTextDocument(doc);
-      } else {
-        window.showErrorMessage(
-          `A model called ${fileName} already exists in ${sourcePath}. If you want to generate the model, please rename the other model or delete it if you want to generate the model again.`,
-        );
-      }
-    } catch (exc: any) {
-      if (exc instanceof PythonException) {
-        this.telemetry.sendTelemetryError("generateModelPythonError", exc, {
-          adapter: this.getAdapterType(),
-        });
-        window.showErrorMessage(
-          "An error occured while trying to generate the model " +
-            exc.exception.message,
-        );
-      }
-      // Unknown error
-      this.telemetry.sendTelemetryError("generateModelUnknownError", exc, {
-        adapter: this.getAdapterType(),
-      });
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "An error occured while trying to generate the model:" + exc + ".",
-        ),
-      );
-    }
+      from source
+  )
+  select * from renamed
+    `;
+            writeFileSync(location, fileContents);
+            const doc = await workspace.openTextDocument(Uri.file(location));
+            window.showTextDocument(doc);
+          } else {
+            window.showErrorMessage(
+              `A model called ${fileName} already exists in ${sourcePath}. If you want to generate the model, please rename the other model or delete it if you want to generate the model again.`,
+            );
+          }
+        } catch (exc: any) {
+          if (exc instanceof PythonException) {
+            this.telemetry.sendTelemetryError("generateModelPythonError", exc, {
+              adapter: this.getAdapterType(),
+            });
+            window.showErrorMessage(
+              "An error occured while trying to generate the model " +
+                exc.exception.message,
+            );
+          }
+          // Unknown error
+          this.telemetry.sendTelemetryError("generateModelUnknownError", exc, {
+            adapter: this.getAdapterType(),
+          });
+          window.showErrorMessage(
+            extendErrorWithSupportLinks(
+              "An error occured while trying to generate the model:" +
+                exc +
+                ".",
+            ),
+          );
+        }
+      },
+    );
   }
 
-  async executeSQL(query: string, modelName: string) {
-    const limit = workspace
-      .getConfiguration("dbt")
-      .get<number>("queryLimit", 500);
+  async executeSQLWithLimit(
+    query: string,
+    modelName: string,
+    limit: number,
+    returnImmediately?: boolean,
+    returnRawResults?: boolean,
+  ) {
+    // if user added a semicolon at the end, let,s remove it.
+    query = query.replace(/;\s*$/, "");
+
+    // Check if query already contains a LIMIT clause and extract it
+    const limitRegex = /\bLIMIT\s+(\d+)\s*$/i;
+    const limitMatch = query.match(limitRegex);
+
+    if (limitMatch) {
+      // Override the limit with the one from the query
+      const queryLimit = parseInt(limitMatch[1], 10);
+      if (queryLimit > 0) {
+        limit = queryLimit;
+      }
+      // Remove the LIMIT clause from the query as we'll add it back later
+      query = query.replace(limitRegex, "").trim();
+    }
 
     if (limit <= 0) {
       window.showErrorMessage("Please enter a positive number for query limit");
@@ -904,13 +1232,59 @@ select * from renamed
       limit: limit.toString(),
     });
 
+    if (returnImmediately) {
+      const execution = await this.dbtProjectIntegration.executeSQL(
+        query,
+        limit,
+        modelName,
+      );
+      const result = await execution.executeQuery();
+      if (returnRawResults) {
+        return result;
+      }
+      const rows: JsonObj[] = [];
+      // Convert compressed array format to dict[]
+      for (let i = 0; i < result.table.rows.length; i++) {
+        result.table.rows[i].forEach((value: any, j: any) => {
+          rows[i] = { ...rows[i], [result.table.column_names[j]]: value };
+        });
+      }
+      const data = {
+        columnNames: result.table.column_names,
+        columnTypes: result.table.column_types,
+        data: rows,
+        raw_sql: query,
+        compiled_sql: result.compiled_sql,
+      };
+
+      return data;
+    }
     this.eventEmitterService.fire({
       command: "executeQuery",
       payload: {
         query,
         fn: this.dbtProjectIntegration.executeSQL(query, limit, modelName),
+        projectName: this.getProjectName(),
       },
     });
+  }
+
+  executeSQL(
+    query: string,
+    modelName: string,
+    returnImmediately?: boolean,
+    returnRawResults?: boolean,
+  ) {
+    const limit = workspace
+      .getConfiguration("dbt")
+      .get<number>("queryLimit", 500);
+    return this.executeSQLWithLimit(
+      query,
+      modelName,
+      limit,
+      returnImmediately,
+      returnRawResults,
+    );
   }
 
   async dispose() {
@@ -977,11 +1351,13 @@ select * from renamed
     );
   }
 
-  static getNonEphemeralParents(
-    event: ManifestCacheProjectAddedEvent,
-    keys: string[],
-  ): string[] {
-    const { nodeMetaMap, graphMetaMap } = event;
+  getNonEphemeralParents(keys: string[]): string[] {
+    if (!this._manifestCacheEvent) {
+      throw Error(
+        "No manifest has been generated. Maybe dbt project has not been parsed yet?",
+      );
+    }
+    const { nodeMetaMap, graphMetaMap } = this._manifestCacheEvent;
     const { parents } = graphMetaMap;
     const parentSet = new Set<string>();
     const queue = keys;
@@ -1003,7 +1379,10 @@ select * from renamed
           parentSet.add(n.key);
           continue;
         }
-        if (nodeMetaMap.get(splits[2])?.config.materialized === "ephemeral") {
+        if (
+          nodeMetaMap.lookupByUniqueId(n.key)?.config.materialized ===
+          "ephemeral"
+        ) {
           queue.push(n.key);
         } else {
           parentSet.add(n.key);
@@ -1011,6 +1390,154 @@ select * from renamed
       }
     }
     return Array.from(parentSet);
+  }
+
+  getChildrenModels({ table }: { table: string }): Table[] {
+    return this.getConnectedTables("children", table);
+  }
+
+  getParentModels({ table }: { table: string }): Table[] {
+    return this.getConnectedTables("parents", table);
+  }
+
+  private getConnectedTables(key: keyof GraphMetaMap, table: string): Table[] {
+    const event = this._manifestCacheEvent;
+    if (!event) {
+      throw Error(
+        "No manifest has been generated. Maybe dbt project has not been parsed yet?",
+      );
+    }
+    const { graphMetaMap, nodeMetaMap } = event;
+    const node = nodeMetaMap.lookupByBaseName(table);
+    if (!node) {
+      throw Error("nodeMetaMap has no entries for " + table);
+    }
+    const dependencyNodes = graphMetaMap[key];
+    const dependencyNode = dependencyNodes.get(node.uniqueId);
+    if (!dependencyNode) {
+      throw Error("graphMetaMap[" + key + "] has no entries for " + table);
+    }
+    const tables: Map<string, Table> = new Map();
+    dependencyNode.nodes.forEach(({ url, key }) => {
+      const _node = this.createTable(event, url, key);
+      if (!_node) {
+        return;
+      }
+      if (!tables.has(_node.table)) {
+        tables.set(_node.table, _node);
+      }
+    });
+    return Array.from(tables.values()).sort((a, b) =>
+      a.table.localeCompare(b.table),
+    );
+  }
+
+  private createTable(
+    event: ManifestCacheProjectAddedEvent,
+    tableUrl: string | undefined,
+    key: string,
+  ): Table | undefined {
+    const splits = key.split(".");
+    const nodeType = splits[0];
+    const { graphMetaMap, testMetaMap } = event;
+    const upstreamCount = this.getConnectedNodeCount(
+      graphMetaMap["children"],
+      key,
+    );
+    const downstreamCount = this.getConnectedNodeCount(
+      graphMetaMap["parents"],
+      key,
+    );
+    if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
+      const { sourceMetaMap } = event;
+      const schema = splits[2];
+      const table = splits[3];
+      const _node = sourceMetaMap.get(schema);
+      if (!_node) {
+        return;
+      }
+      const _table = _node.tables.find((t) => t.name === table);
+      if (!_table) {
+        return;
+      }
+      return {
+        table: key,
+        label: table,
+        url: tableUrl,
+        upstreamCount,
+        downstreamCount,
+        nodeType,
+        isExternalProject: _node.is_external_project,
+        tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
+          const testKey = n.label.split(".")[0];
+          return { ...testMetaMap.get(testKey), key: testKey };
+        }),
+        columns: _table.columns,
+        description: _table?.description,
+        packageName: _node.package_name,
+      };
+    }
+    if (nodeType === DBTProject.RESOURCE_TYPE_METRIC) {
+      return {
+        table: key,
+        label: splits[2],
+        url: tableUrl,
+        upstreamCount,
+        downstreamCount,
+        nodeType,
+        materialization: undefined,
+        tests: [],
+        columns: {},
+        isExternalProject: false,
+      };
+    }
+    const { nodeMetaMap } = event;
+
+    const table = splits[2];
+    if (nodeType === DBTProject.RESOURCE_TYPE_EXPOSURE) {
+      return {
+        table: key,
+        label: table,
+        url: tableUrl,
+        upstreamCount,
+        downstreamCount,
+        nodeType,
+        materialization: undefined,
+        tests: [],
+        columns: {},
+        isExternalProject: false,
+      };
+    }
+
+    const node = nodeMetaMap.lookupByUniqueId(key);
+    if (!node) {
+      return;
+    }
+
+    const materialization = node.config.materialized;
+    return {
+      table: key,
+      label: node.alias,
+      url: tableUrl,
+      upstreamCount,
+      downstreamCount,
+      isExternalProject: node.is_external_project,
+      nodeType,
+      materialization,
+      description: node.description,
+      columns: node.columns,
+      patchPath: node.patch_path,
+      tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
+        const testKey = n.label.split(".")[0];
+        return { ...testMetaMap.get(testKey), key: testKey };
+      }),
+      packageName: node.package_name,
+      meta: node.meta,
+    };
+  }
+
+  private getConnectedNodeCount(g: NodeGraphMap, key: string) {
+    return g.get(key)?.nodes.length || 0;
   }
 
   mergeColumnsFromDB(
@@ -1045,6 +1572,7 @@ select * from renamed
         name: columnNameFromDB,
         data_type: c.dtype?.toLowerCase(),
         description: "",
+        meta: {},
       };
     }
     if (Object.keys(node.columns).length > columnsFromDB.length) {
@@ -1063,17 +1591,40 @@ select * from renamed
     return version;
   }
 
+  async getBulkCompiledSql(
+    event: ManifestCacheProjectAddedEvent,
+    models: string[],
+  ) {
+    if (models.length === 0) {
+      return {};
+    }
+    const { nodeMetaMap } = event;
+    return this.dbtProjectIntegration.getBulkCompiledSQL(
+      models
+        .map((m) => nodeMetaMap.lookupByUniqueId(m))
+        .filter(Boolean) as NodeMetaData[],
+    );
+  }
+
   async getNodesWithDBColumns(
     event: ManifestCacheProjectAddedEvent,
     modelsToFetch: string[],
     cancellationToken: CancellationToken,
   ) {
-    const { nodeMetaMap, sourceMetaMap } = event;
     const mappedNode: Record<string, ModelNode> = {};
-    const bulkSchemaRequest: DBTNode[] = [];
     const relationsWithoutColumns: string[] = [];
+    if (modelsToFetch.length === 0) {
+      return { mappedNode, relationsWithoutColumns, mappedCompiledSql: {} };
+    }
+    const { nodeMetaMap, sourceMetaMap } = event;
+    const bulkSchemaRequest: DBTNode[] = [];
 
     for (const key of modelsToFetch) {
+      if (this.dbSchemaCache[key]) {
+        this.telemetry.sendTelemetryEvent("dbSchemaCacheHit", { model: key });
+        mappedNode[key] = this.dbSchemaCache[key];
+        continue;
+      }
       const splits = key.split(".");
       const resource_type = splits[0];
       if (resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {
@@ -1099,10 +1650,11 @@ select * from renamed
           alias: table.identifier,
           uniqueId: key,
           columns: table.columns,
+          path: table.path,
         };
         mappedNode[key] = node;
       } else if (DBTProject.isResourceNode(resource_type)) {
-        const node = nodeMetaMap.get(splits[2]);
+        const node = nodeMetaMap.lookupByUniqueId(key);
         if (!node) {
           continue;
         }
@@ -1116,11 +1668,83 @@ select * from renamed
         mappedNode[key] = node;
       }
     }
-    const bulkSchemaResponse = await this.getBulkSchema(
-      bulkSchemaRequest,
-      cancellationToken,
+
+    const dbSchemaRequest = bulkSchemaRequest.filter(
+      (r) => r.resource_type !== DBTProject.RESOURCE_TYPE_MODEL,
     );
+
+    const sqlglotSchemaRequest = bulkSchemaRequest.filter(
+      (r) => r.resource_type === DBTProject.RESOURCE_TYPE_MODEL,
+    );
+    let startTime = Date.now();
+    const sqlglotSchemaResponse = await this.getBulkCompiledSql(
+      event,
+      sqlglotSchemaRequest.map((r) => r.unique_id),
+    );
+    const compiledSqlTime = Date.now() - startTime;
+
+    if (cancellationToken.isCancellationRequested) {
+      return {
+        mappedNode,
+        relationsWithoutColumns,
+        mappedCompiledSql: sqlglotSchemaResponse,
+      };
+    }
+
+    const sqlglotSchemas: Record<string, DBColumn[]> = {};
+    const dialect = this.getAdapterType();
+
+    startTime = Date.now();
+    // can't parallelize because underlying python lock
+    for (const r of sqlglotSchemaRequest) {
+      if (!sqlglotSchemaResponse[r.unique_id]) {
+        dbSchemaRequest.push(r);
+        continue;
+      }
+
+      try {
+        const columns = await this.dbtProjectIntegration.fetchSqlglotSchema(
+          sqlglotSchemaResponse[r.unique_id],
+          dialect,
+        );
+        sqlglotSchemas[r.unique_id] = columns.map((c) => ({
+          column: c,
+          dtype: "string",
+        }));
+      } catch (e) {
+        this.terminal.warn(
+          "sqlglotSchemaFetchingFailed",
+          `Error while sqlglot schema fetching for ${r.unique_id}`,
+          true,
+          e,
+        );
+        dbSchemaRequest.push(r);
+      }
+    }
+    const sqlglotSchemaTime = Date.now() - startTime;
+
+    if (cancellationToken.isCancellationRequested) {
+      return {
+        mappedNode,
+        relationsWithoutColumns,
+        mappedCompiledSql: sqlglotSchemaResponse,
+      };
+    }
+
+    startTime = Date.now();
+    const dbSchemaResponse =
+      await this.dbtProjectIntegration.getBulkSchemaFromDB(
+        dbSchemaRequest,
+        cancellationToken,
+      );
+    const dbFetchTime = Date.now() - startTime;
+
+    const bulkSchemaResponse = { ...dbSchemaResponse, ...sqlglotSchemas };
+
     for (const key of modelsToFetch) {
+      if (!bulkSchemaRequest.find((r) => r.unique_id === key)) {
+        continue;
+      }
       const node = mappedNode[key];
       if (!node) {
         continue;
@@ -1131,10 +1755,30 @@ select * from renamed
       );
       if (!dbColumnAdded) {
         relationsWithoutColumns.push(key);
+      } else {
+        // only adding to cache when successfully fetched columns from db
+        this.dbSchemaCache[key] = mappedNode[key];
       }
     }
 
-    return { mappedNode, relationsWithoutColumns };
+    console.log("getNodesWithDBColumnsTimings", {
+      compiledSqlTime,
+      sqlglotSchemaTime,
+      dbFetchTime,
+      modelInfosLength: modelsToFetch.length,
+    });
+    this.telemetry.sendTelemetryEvent("getNodesWithDBColumnsTimings", {
+      compiledSqlTime: compiledSqlTime.toString(),
+      sqlglotSchemaTime: sqlglotSchemaTime.toString(),
+      dbFetchTime: dbFetchTime.toString(),
+      modelInfosLength: modelsToFetch.length.toString(),
+    });
+
+    return {
+      mappedNode,
+      relationsWithoutColumns,
+      mappedCompiledSql: sqlglotSchemaResponse,
+    };
   }
 
   async applyDeferConfig(): Promise<void> {

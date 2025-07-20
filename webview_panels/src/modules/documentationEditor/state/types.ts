@@ -1,4 +1,4 @@
-import { ConversationGroup, DbtDocsShareDetails } from "@lib";
+import { Citation, ConversationGroup, DbtDocsShareDetails } from "@lib";
 import { GenerationDBDataProps } from "../types";
 
 export enum Source {
@@ -6,11 +6,6 @@ export enum Source {
   YAML = "YAML",
 }
 
-export enum Pages {
-  DOCUMENTATION,
-  TESTS,
-  TAGS,
-}
 export interface MetadataColumn {
   name: string;
   type?: string;
@@ -20,6 +15,7 @@ export interface DBTDocumentationColumn extends MetadataColumn {
   description?: string;
   generated: boolean;
   source: Source;
+  citations?: Citation[];
 }
 
 export interface DBTDocumentation {
@@ -29,8 +25,9 @@ export interface DBTDocumentation {
   generated: boolean;
   aiEnabled: boolean;
   patchPath?: string;
-  resource_type: string;
   uniqueId: string;
+  resource_type?: string;
+  citations?: Citation[];
 }
 
 export interface TestMetadataKwArgs {
@@ -64,34 +61,39 @@ export interface TestMetadataRelationshipsKwArgs extends TestMetadataKwArgs {
   to?: string;
 }
 
+export interface DocBlock {
+  name: string;
+  path: string;
+}
+
 export interface DocumentationStateProps {
+  docUpdatedForModel?: string;
+  docUpdatedForColumns: string[];
   incomingDocsData?: { docs?: DBTDocumentation; tests?: DBTModelTest[] };
   currentDocsData?: DBTDocumentation;
   currentDocsTests?: DBTModelTest[];
   project?: string;
   generationHistory: GenerationDBDataProps[];
   userInstructions: DocsGenerateUserInstructions;
-  isDocGeneratedForAnyColumn: boolean;
-  isTestUpdatedForAnyColumn: boolean;
   insertedEntityName?: string;
-  selectedPages: Pages[];
   conversations: Record<DbtDocsShareDetails["share_id"], ConversationGroup[]>;
   showConversationsRightPanel: boolean;
+  showSingleDocsPropRightPanel: boolean;
+  showBulkDocsPropRightPanel: boolean;
   selectedConversationGroup?: {
     shareId: DbtDocsShareDetails["share_id"];
     conversationGroupId: ConversationGroup["conversation_group_id"];
   };
   collaborationEnabled: boolean;
   missingDocumentationMessage?: { message: string; type: "warning" | "error" };
+  searchQuery: string;
+  docBlocks: DocBlock[];
 }
 
 export interface DBTModelTest {
-  alias: string;
   column_name?: string;
-  database: string;
   key: string;
   path?: string;
-  schema: string;
   test_metadata?: {
     kwargs: TestMetadataAcceptedValuesKwArgs | TestMetadataRelationshipsKwArgs;
     name: string;

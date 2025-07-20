@@ -1,12 +1,13 @@
 import { ErrorBoundary } from "react-error-boundary";
 import { ReactNode, useRef, useState } from "react";
-import { Tooltip as ReactStrapTooltip } from "reactstrap";
+import { Tooltip as ReactStrapTooltip, TooltipProps } from "reactstrap";
 
 interface Props {
   children: ReactNode;
   title?: string;
   id?: string;
   className?: string;
+  placement?: TooltipProps["placement"];
 }
 const Tooltip = (props: Props): JSX.Element => {
   const [tooltipOpen, setTooltipOpen] = useState(false);
@@ -26,6 +27,7 @@ const Tooltip = (props: Props): JSX.Element => {
           target={idRef.current}
           toggle={toggle}
           className={props.className}
+          placement={props.placement ?? "auto"}
         >
           {props.title}
         </ReactStrapTooltip>

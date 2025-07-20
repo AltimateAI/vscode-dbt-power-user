@@ -27,6 +27,7 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { QueryManifestService } from "../services/queryManifestService";
 import { PythonException } from "python-bridge";
 import { UsersService } from "../services/usersService";
+import { NotebookSchema } from "@lib";
 
 export type UpdateConfigProps = {
   key: string;
@@ -91,6 +92,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     );
   }
 
+  public isWebviewView(
+    panel: WebviewPanel | WebviewView,
+  ): panel is WebviewView {
+    return (<WebviewView>panel).show !== undefined;
+  }
+
   protected sendResponseToWebview({
     command,
     data,
@@ -98,7 +105,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     syncRequestId,
     ...rest
   }: SendMessageProps) {
-    this._webview?.postMessage({
+    this._panel?.webview?.postMessage({
       command,
       args: {
         syncRequestId,
@@ -128,6 +135,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
       this.sendResponseToWebview({
         command: "response",
         syncRequestId,
+        status: true,
         data: response,
       });
     } catch (error) {
@@ -147,6 +155,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         command: "response",
         syncRequestId,
         error: message,
+        status: false,
       });
     }
   }
@@ -216,6 +225,60 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     try {
       switch (command) {
+        case "configEnabled":
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            () => {
+              return workspace
+                .getConfiguration(params.section as string)
+                .get(params.config as string);
+            },
+            command,
+            true,
+          );
+          break;
+        case "deleteNotebook":
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            () => {
+              return this.altimateRequest.deleteNotebook(
+                params.notebookId as number,
+              );
+            },
+            command,
+            true,
+          );
+          break;
+        case "updateNotebook":
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            async () => {
+              const { notebookId, name, data } = params as {
+                notebookId: number;
+                name: string;
+                data?: NotebookSchema;
+              };
+              return await this.altimateRequest.updateNotebook(notebookId, {
+                name,
+                data,
+              });
+            },
+            command,
+            true,
+          );
+          break;
+        case "openNewNotebook":
+          commands.executeCommand(
+            "dbtPowerUser.createDatapilotNotebook",
+            params,
+          );
+          break;
+        case "setToWorkspaceState":
+          this.dbtProjectContainer.setToWorkspaceState(
+            params.key as string,
+            params.value,
+          );
+          break;
         case "openProblemsTab":
           commands.executeCommand("workbench.action.problems.focus");
 
@@ -256,7 +319,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               );
             },
             command,
-            true,
+            params.endpoint === "auth/tenant-info" ? false : true,
           );
           break;
         case "getProjectAdapterType":
@@ -326,6 +389,15 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             params.value,
           );
           break;
+        case "getFromContext":
+          this.sendResponseToWebview({
+            command: "response",
+            data: this.dbtProjectContainer.getFromGlobalState(
+              params.key as string,
+            ),
+            syncRequestId,
+          });
+          break;
         case "updateConfig":
           if (!this.isUpdateConfigProps(params)) {
             return;
@@ -371,6 +443,13 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             });
           }
           break;
+        case "showErrorMessage":
+          const args = params as {
+            infoMessage: string;
+            items: any[];
+          };
+          window.showErrorMessage(args.infoMessage, ...(args.items || []));
+          break;
         case "showWarningMessage":
           this.handleWarningMessage(
             params as Parameters<typeof this.handleWarningMessage>["0"],
@@ -398,6 +477,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           );
 
           break;
+        case "queryResultTab:render":
+          this.emitterService.fire({
+            command: "queryResultTab:render",
+            payload: params,
+          });
+          break;
         default:
           break;
       }
@@ -408,6 +493,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         err,
       );
     }
+  }
+
+  protected async checkIfWebviewReady() {
+    return new Promise<void>((resolve) => {
+      const interval = setInterval(() => {
+        if (this.isWebviewReady) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 500);
+    });
   }
 
   resolveWebviewView(
@@ -473,6 +569,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         ),
       ),
     );
+    const LineageGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "lineage.gif",
+        ),
+      ),
+    );
     const codiconsUri = webview.asWebviewUri(
       Uri.joinPath(
         extensionUri,
@@ -502,12 +609,14 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             <link rel="stylesheet" type="text/css" href="${codiconsUri}">
           </head>
       
-          <body>
+          <body class="${this.viewPath.replace(/\//g, "")}">
             <div id="root"></div>
             <div id="sidebar"></div>
+            <div id="modal"></div>
             <script nonce="${nonce}" >
               window.viewPath = "${this.viewPath}";
               var spinnerUrl = "${SpinnerUrl}"
+              var lineageGif = "${LineageGif}"
             </script>
             
             <script nonce="${nonce}" type="module" src="${indexJs}"></script>

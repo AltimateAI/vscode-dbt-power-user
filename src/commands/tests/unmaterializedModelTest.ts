@@ -18,7 +18,7 @@ export class UnmaterializedModelTest implements AltimateScanStep {
       return;
     }
     const { nodeMetaMap } = projectEventMap;
-    for (const [key, value] of nodeMetaMap) {
+    for (const value of nodeMetaMap.nodes()) {
       if (value.config.materialized === "ephemeral") {
         // ephemeral models by nature wont be materialized.
         // seeds should be materialized so that other features

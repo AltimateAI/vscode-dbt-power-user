@@ -2,6 +2,8 @@ import {
   commands,
   ConfigurationTarget,
   env,
+  FileChangeEvent,
+  FileChangeType,
   ProgressLocation,
   TextEditor,
   Uri,
@@ -28,6 +30,7 @@ import { ManifestPathType } from "../constants";
 import { QueryManifestService } from "../services/queryManifestService";
 import { ValidationProvider } from "../validation_provider";
 import { UsersService } from "../services/usersService";
+import { NotebookFileSystemProvider } from "@lib";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];
@@ -84,6 +87,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
     private deferToProdService: DeferToProdService,
     private validationProvider: ValidationProvider,
     protected usersService: UsersService,
+    private notebookFileSystemProvider: NotebookFileSystemProvider,
   ) {
     super(
       dbtProjectContainer,
@@ -124,6 +128,22 @@ export class InsightsPanel extends AltimateWebviewProvider {
                 projectPath: currentProject?.projectRoot.fsPath,
                 dbtIntegrationMode,
               },
+            });
+          }
+        },
+      ),
+    );
+
+    this._disposables.push(
+      this.notebookFileSystemProvider.onDidChangeFile(
+        (e: FileChangeEvent[]) => {
+          const createdEvent = e.find(
+            (event) => event.type === FileChangeType.Created,
+          );
+          if (createdEvent) {
+            this.sendResponseToWebview({
+              command: "refetchNotebooks",
+              data: {},
             });
           }
         },
@@ -541,27 +561,45 @@ export class InsightsPanel extends AltimateWebviewProvider {
       args: JSON.stringify(args),
     });
     try {
-      await window.withProgress(
-        {
-          title: `Performing healthcheck...`,
-          location: ProgressLocation.Notification,
-          cancellable: false,
-        },
-        async () => {
-          const projectHealthcheck =
-            await this.dbtProjectContainer.executeAltimateDatapilotHealthcheck(
-              args,
-            );
-          this._panel!.webview.postMessage({
-            command: "response",
-            args: {
-              syncRequestId,
-              body: { projectHealthcheck },
-              status: true,
-            },
-          });
-        },
+      window.showInformationMessage(
+        "Started performing healthcheck. We will notify you once it's done.",
       );
+
+      const projectHealthcheck =
+        await this.dbtProjectContainer.executeAltimateDatapilotHealthcheck(
+          args,
+        );
+      if (this._panel?.visible) {
+        window.showInformationMessage("Healthcheck completed successfully.");
+        this._panel!.webview.postMessage({
+          command: "response",
+          args: {
+            syncRequestId,
+            body: { projectHealthcheck },
+            status: true,
+          },
+        });
+        return;
+      }
+      const result = await window.showInformationMessage(
+        "Healthcheck completed successfully.",
+        "View results",
+      );
+      if (result === "View results") {
+        this.dbtTerminal.debug(
+          "InsightsPanel",
+          "Sending healthcheck results to webview",
+        );
+        await commands.executeCommand("dbtPowerUser.Insights.focus");
+      }
+      this._panel!.webview.postMessage({
+        command: "response",
+        args: {
+          syncRequestId,
+          body: { projectHealthcheck },
+          status: true,
+        },
+      });
     } catch (e) {
       this.emitError(
         syncRequestId,
@@ -581,6 +619,35 @@ export class InsightsPanel extends AltimateWebviewProvider {
     const { command, syncRequestId, ...params } = message;
 
     switch (command) {
+      case "getNotebooks":
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId: message.syncRequestId,
+          // TODO: add other params here later
+          data: await this.altimateRequest.getNotebooks(
+            "",
+            [],
+            params.privacy as string,
+          ),
+        });
+        break;
+      case "getPreConfiguredNotebooks":
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId: message.syncRequestId,
+          data: await this.altimateRequest.getPreConfiguredNotebooks(),
+        });
+        break;
+      case "updateNotebookPrivacy":
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId: message.syncRequestId,
+          data: await this.altimateRequest.updateNotebookPrivacy(
+            params.notebookId as number,
+            params.privacy as string,
+          ),
+        });
+        break;
       case "selectDirectoryForManifest":
         this.selectDirectoryForManifest(syncRequestId);
         break;

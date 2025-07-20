@@ -1,13 +1,15 @@
 import Test from "./Test";
 import AddTest from "./AddTest";
-import { DBTModelTest, Pages } from "@modules/documentationEditor/state/types";
+import { DBTModelTest } from "@modules/documentationEditor/state/types";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { Stack, Drawer, DrawerRef, Button } from "@uicore";
 import { useMemo, useRef, useState } from "react";
 import DisplayTestDetails from "./DisplayTestDetails";
 import classes from "../../styles.module.scss";
-import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { TestsIcon } from "@assets/icons";
+import { sendTelemetryEvent } from "../telemetry";
+import { TelemetryEvents } from "@telemetryEvents";
+import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 
 interface Props {
   title: string;
@@ -19,7 +21,7 @@ const MaxVisibleTests = 3;
 
 const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
   const {
-    state: { selectedPages },
+    state: { incomingDocsData },
   } = useDocumentationContext();
   const [selectedTest, setSelectedTest] = useState<DBTModelTest | null>(null);
   const [showAllTests, setshowAllTests] = useState(false);
@@ -33,6 +35,12 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
 
   const onSelect = (test: DBTModelTest) => {
     setSelectedTest(test);
+    sendTelemetryEvent(
+      type === EntityType.MODEL
+        ? TelemetryEvents["DocumentationEditor/ModelTestClick"]
+        : TelemetryEvents["DocumentationEditor/ColumnTestClick"],
+      { entityName: title, testName: test.test_metadata?.name ?? test.key },
+    );
     drawerRef.current?.open();
   };
 
@@ -43,19 +51,13 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
         .filter((item): item is string => !!item),
     [tests],
   );
-  const isTestEnabled = useMemo(
-    () => selectedPages.includes(Pages.TESTS),
-    [selectedPages],
-  );
 
   const visibleTests = showAllTests
     ? tests
     : (tests ?? []).slice(0, MaxVisibleTests);
   const remainingTests = (tests ?? []).length - MaxVisibleTests;
+  const testKeys = incomingDocsData?.tests?.map((t) => t.key);
 
-  if (!isTestEnabled) {
-    return null;
-  }
   return (
     <div className={classes.entityTests}>
       <Stack className={type}>
@@ -69,6 +71,7 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
               test={test}
               onSelect={onSelect}
               selectedTest={selectedTest}
+              className={!testKeys?.includes(test.key) ? "border-orange" : ""}
             />
           ))}
           {!showAllTests && tests && tests.length > MaxVisibleTests ? (

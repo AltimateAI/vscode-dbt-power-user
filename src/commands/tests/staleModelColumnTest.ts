@@ -2,7 +2,11 @@ import { Diagnostic, DiagnosticSeverity, Range, Uri } from "vscode";
 import { ScanContext } from "./scanContext";
 import { AltimateScanStep } from "./step";
 import { readFileSync } from "fs";
-import { getColumnNameByCase, provideSingleton } from "../../utils";
+import {
+  getColumnNameByCase,
+  provideSingleton,
+  removeProtocol,
+} from "../../utils";
 import { createFullPathForNode } from "../../manifest/parsers";
 
 @provideSingleton(StaleModelColumnTest)
@@ -64,7 +68,7 @@ export class StaleModelColumnTest implements AltimateScanStep {
       return;
     }
     const { nodeMetaMap } = projectEventMap;
-    for (const [key, value] of nodeMetaMap) {
+    for (const value of nodeMetaMap.nodes()) {
       if (value.config.materialized === "ephemeral") {
         // ephemeral models by nature wont be materialized so we cant verify if they are stale.
         continue;
@@ -110,11 +114,11 @@ export class StaleModelColumnTest implements AltimateScanStep {
                 projectRootUri.fsPath,
                 value.package_name,
                 packagePath,
-                value.patch_path.split("://")[1],
+                removeProtocol(value.patch_path),
               ) ||
               Uri.joinPath(
                 project.projectRoot,
-                value.patch_path.split("://")[1],
+                removeProtocol(value.patch_path),
               ).fsPath;
 
             const colInDocRange = this.getTextLocation(

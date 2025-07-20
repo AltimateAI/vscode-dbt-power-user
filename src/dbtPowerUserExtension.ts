@@ -1,10 +1,4 @@
-import {
-  Disposable,
-  ExtensionContext,
-  commands,
-  window,
-  workspace,
-} from "vscode";
+import { Disposable, ExtensionContext, commands, workspace } from "vscode";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";
@@ -21,6 +15,8 @@ import { HoverProviders } from "./hover_provider";
 import { DbtPowerUserActionsCenter } from "./quickpick";
 import { ValidationProvider } from "./validation_provider";
 import { CommentProviders } from "./comment_provider";
+import { NotebookProviders } from "@lib";
+import { DbtPowerUserMcpServer } from "./mcp";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -32,6 +28,8 @@ export class DBTPowerUserExtension implements Disposable {
   static DBT_SQL_SELECTOR = [
     { language: "jinja-sql", scheme: "file" },
     { language: "sql", scheme: "file" },
+    { language: "jinja-sql", scheme: "untitled" },
+    { language: "jinja-sql", scheme: "vscode-notebook-cell" },
   ];
   static DBT_YAML_SELECTOR = [
     { language: "yaml", scheme: "file" },
@@ -62,6 +60,8 @@ export class DBTPowerUserExtension implements Disposable {
     private hoverProviders: HoverProviders,
     private validationProvider: ValidationProvider,
     private commentProviders: CommentProviders,
+    private notebookProviders: NotebookProviders,
+    private mcpServer: DbtPowerUserMcpServer,
   ) {
     this.disposables.push(
       this.dbtProjectContainer,
@@ -79,6 +79,8 @@ export class DBTPowerUserExtension implements Disposable {
       this.hoverProviders,
       this.validationProvider,
       this.commentProviders,
+      this.notebookProviders,
+      this.mcpServer,
     );
   }
 
@@ -92,6 +94,7 @@ export class DBTPowerUserExtension implements Disposable {
   }
 
   async activate(context: ExtensionContext): Promise<void> {
+    await this.mcpServer.updateMcpExtensionApi();
     this.dbtProjectContainer.setContext(context);
     this.dbtProjectContainer.initializeWalkthrough();
     await this.dbtProjectContainer.detectDBT();
@@ -110,7 +113,7 @@ export class DBTPowerUserExtension implements Disposable {
         .get<string>("dbtIntegration", "core");
       if (
         dbtIntegration !== newDbtIntegration &&
-        ["core", "cloud"].includes(newDbtIntegration)
+        ["core", "cloud", "corecommand", "fusion"].includes(newDbtIntegration)
       ) {
         commands.executeCommand("workbench.action.reloadWindow");
       }

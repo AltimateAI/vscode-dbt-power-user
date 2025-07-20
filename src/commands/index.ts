@@ -10,6 +10,12 @@ import {
   workspace,
   version,
   extensions,
+  Uri,
+  Range,
+  ProgressLocation,
+  TextEditorDecorationType,
+  DecorationRangeBehavior,
+  env,
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { RunModelType } from "../domain";
@@ -17,6 +23,7 @@ import {
   deepEqual,
   extendErrorWithSupportLinks,
   getFirstWorkspacePath,
+  getFormattedDateTime,
   provideSingleton,
 } from "../utils";
 import { RunModel } from "./runModel";
@@ -37,6 +44,12 @@ import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { DBTClient } from "../dbt_client";
 import { existsSync, readFileSync } from "fs";
 import { DBTProject } from "../manifest/dbtProject";
+import { SQLLineagePanel } from "../webview_provider/sqlLineagePanel";
+import { QueryManifestService } from "../services/queryManifestService";
+import { AltimateRequest } from "../altimate";
+import { DatapilotNotebookController, OpenNotebookRequest } from "@lib";
+import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
+import { CteInfo } from "../code_lens_provider/cteCodeLensProvider";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -55,6 +68,10 @@ export class VSCodeCommands implements Disposable {
     private conversationController: ConversationProvider,
     private pythonEnvironment: PythonEnvironment,
     private dbtClient: DBTClient,
+    private sqlLineagePanel: SQLLineagePanel,
+    private queryManifestService: QueryManifestService,
+    private altimate: AltimateRequest,
+    private notebookController: DatapilotNotebookController,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -121,6 +138,9 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.runParentModels", (model) =>
         this.runModel.runModelOnNodeTreeItem(RunModelType.RUN_PARENTS)(model),
       ),
+      commands.registerCommand("dbtPowerUser.copyModelName", (model) =>
+        env.clipboard.writeText(model.label.toString()),
+      ),
       commands.registerCommand("dbtPowerUser.showRunSQL", () =>
         this.runModel.showRunSQLOnActiveWindow(),
       ),
@@ -135,6 +155,15 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand("dbtPowerUser.executeSQL", () =>
         this.runModel.executeQueryOnActiveWindow(),
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.runSelectedQuery",
+        (uri: Uri, range: Range) => this.runSelectedQuery(uri, range),
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.runCteWithDependencies",
+        (uri: Uri, cteIndex: number, ctes: CteInfo[]) =>
+          this.runCteWithDependencies(uri, cteIndex, ctes),
       ),
       commands.registerCommand("dbtPowerUser.summarizeQuery", () =>
         this.eventEmitterService.fire({
@@ -194,6 +223,37 @@ export class VSCodeCommands implements Disposable {
 
         dbtProject.buildProject();
       }),
+      commands.registerCommand("dbtPowerUser.cleanCurrentProject", () => {
+        if (!window.activeTextEditor) {
+          return;
+        }
+        const activeFileUri = window.activeTextEditor.document.uri;
+        if (!activeFileUri) {
+          this.dbtTerminal.debug(
+            "cleanCurrentProject",
+            "skipping cleanCurrentProject without active file",
+          );
+          return;
+        }
+
+        const dbtProject =
+          this.dbtProjectContainer.findDBTProject(activeFileUri);
+        if (!dbtProject) {
+          this.dbtTerminal.debug(
+            "cleanCurrentProject",
+            `cleanCurrentProject unable to find dbtproject by active file: ${activeFileUri.path}`,
+          );
+          return;
+        }
+        this.dbtTerminal.debug(
+          "cleanCurrentProject",
+          `cleaning current project: ${dbtProject.getProjectName()} with active file: ${
+            activeFileUri.path
+          }`,
+        );
+
+        dbtProject.clean();
+      }),
       commands.registerCommand("dbtPowerUser.buildChildrenModels", () =>
         this.runModel.buildModelOnActiveWindow(RunModelType.BUILD_CHILDREN),
       ),
@@ -223,8 +283,17 @@ export class VSCodeCommands implements Disposable {
           const dbtIntegration = workspace
             .getConfiguration("dbt")
             .get<string>("dbtIntegration", "core");
-          const target = dbtIntegration === "cloud" ? "core" : "cloud";
-          const message = `Switching to dbt ${target} requires reloading the window, any unsaved changes will be lost.`;
+          const integrationModes = ["dbt core", "dbt cloud", "dbt fusion"];
+          const selectedIntegrationMode = (
+            await window.showQuickPick(integrationModes, {
+              title: "Select your flavour of dbt",
+              canPickMany: false,
+            })
+          )?.replace(/dbt /, "");
+          if (selectedIntegrationMode === dbtIntegration) {
+            return;
+          }
+          const message = `Switching to dbt ${selectedIntegrationMode} requires reloading the window, any unsaved changes will be lost.`;
           const answer = await window.showInformationMessage(
             message,
             "Confirm",
@@ -232,10 +301,7 @@ export class VSCodeCommands implements Disposable {
           if (answer === "Confirm") {
             await workspace
               .getConfiguration("dbt")
-              .update(
-                "dbtIntegration",
-                dbtIntegration === "cloud" ? "core" : "cloud",
-              );
+              .update("dbtIntegration", selectedIntegrationMode);
             await commands.executeCommand("workbench.action.reloadWindow");
           }
         },
@@ -403,6 +469,16 @@ export class VSCodeCommands implements Disposable {
           );
           this.dbtTerminal.logNewLine();
 
+          // Printing env vars
+          this.dbtTerminal.logBlockWithHeader(
+            [
+              "Printing all python paths...",
+              "* Please remove any sensitive information before sending it to us",
+            ],
+            this.pythonEnvironment.allPythonPaths.map(({ path }) => path),
+          );
+          this.dbtTerminal.logNewLine();
+
           // Printing extension settings
           const dbtSettings = workspace.getConfiguration().inspect("dbt");
           const globalValue: any = dbtSettings?.globalValue || {};
@@ -442,6 +518,10 @@ export class VSCodeCommands implements Disposable {
           const dbtIntegrationMode = workspace
             .getConfiguration("dbt")
             .get<string>("dbtIntegration", "core");
+          const allowListFolders = workspace
+            .getConfiguration("dbt")
+            .get<string[]>("allowListFolders", []);
+          const apiConnectivity = await this.altimate.checkApiConnectivity();
           this.dbtTerminal.logBlock([
             `Python Path=${this.pythonEnvironment.pythonPath}`,
             `VSCode version=${version}`,
@@ -451,6 +531,11 @@ export class VSCodeCommands implements Disposable {
             }`,
             `DBT integration mode=${dbtIntegrationMode}`,
             `First workspace path=${getFirstWorkspacePath()}`,
+            `Altimate API connectivity=${apiConnectivity.status}`,
+            apiConnectivity.errorMsg
+              ? `Altimate API connectivity error=${apiConnectivity.errorMsg}`
+              : "",
+            `AllowList Folders=${allowListFolders}`,
           ]);
           this.dbtTerminal.logNewLine();
 
@@ -527,6 +612,261 @@ export class VSCodeCommands implements Disposable {
           this.dbtTerminal.logNewLine();
           this.dbtTerminal.logLine("Diagnostics ended with error...");
           this.dbtTerminal.logLine(`Error=${e}`);
+        }
+      }),
+      commands.registerCommand(
+        "dbtPowerUser.createDatapilotNotebook",
+        async (args: OpenNotebookRequest | undefined) => {
+          this.notebookController.createNotebook(args);
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.openTargetSelector",
+        async (targets, project: DBTProject, statusBar) => {
+          try {
+            if (!targets) {
+              return;
+            }
+            this.dbtTerminal.debug(
+              "OpenTargetSelector",
+              "Showing following targets",
+              targets,
+            );
+            const target = await window.showQuickPick(targets, {
+              title: "Select your target",
+              canPickMany: false,
+            });
+            if (target) {
+              await project.setSelectedTarget(target);
+              await statusBar.updateStatusBar();
+              this.dbtTerminal.info(
+                "OpenTargetSelector",
+                "Selecting target",
+                true,
+                target,
+              );
+            }
+          } catch (error) {
+            this.dbtTerminal.error(
+              "OpenTargetSelector",
+              "An error occurred while changing target",
+              error,
+            );
+            window.showErrorMessage(
+              "An error occurred while changing target: " + error,
+            );
+          }
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.createSqlFile",
+        async (args: { code?: string; fileName?: string } | undefined) => {
+          const { code, fileName } = args || {};
+          try {
+            const project =
+              await this.queryManifestService.getOrPickProjectFromWorkspace();
+            if (!project) {
+              window.showErrorMessage("No dbt project selected.");
+              return;
+            }
+
+            // Open a new untitled sql file by default
+            let docOpenPromise = workspace.openTextDocument({
+              language: "jinja-sql",
+            });
+            // If file name is provided, open the file in the project
+            if (fileName) {
+              const uri = Uri.parse(
+                `${project.projectRoot}/${fileName}-${getFormattedDateTime()}.sql`,
+              ).with({ scheme: "untitled" });
+              docOpenPromise = workspace.openTextDocument(uri);
+            }
+
+            const annotationDecoration: TextEditorDecorationType =
+              window.createTextEditorDecorationType({
+                rangeBehavior: DecorationRangeBehavior.OpenOpen,
+              });
+
+            const contentText =
+              "Enter your query here and execute it just like any dbt model file. This file is unsaved, you can either save it to your project or save it as a bookmark for later usage or share it with your team members.";
+
+            const decorations = [
+              {
+                renderOptions: {
+                  before: {
+                    color: "#666666",
+                    contentText,
+                    // hacking to add more css properties
+                    width: "90%;display: block;white-space: pre-line;",
+                  },
+                },
+                range: new Range(2, 0, 2, 0),
+              },
+            ];
+
+            docOpenPromise.then((doc) => {
+              // set this to sql language so we can bind codelens and other features
+              languages.setTextDocumentLanguage(doc, "jinja-sql");
+              window.showTextDocument(doc).then((editor) => {
+                editor.edit((editBuilder) => {
+                  const entireDocumentRange = new Range(
+                    doc.positionAt(0),
+                    doc.positionAt(doc.getText().length),
+                  );
+                  editBuilder.replace(entireDocumentRange, code || "\n");
+
+                  editor.setDecorations(annotationDecoration, decorations);
+                  setTimeout(() => {
+                    commands.executeCommand("cursorMove", {
+                      to: "up",
+                      by: "line",
+                      value: 1,
+                    });
+                  }, 0);
+                  const disposable = workspace.onDidChangeTextDocument((e) => {
+                    const activeEditor = window.activeTextEditor;
+                    if (activeEditor && e.document === editor.document) {
+                      if (activeEditor.document.getText().trim()) {
+                        activeEditor.setDecorations(annotationDecoration, []);
+                        disposable.dispose();
+                      }
+                    }
+                  });
+                });
+              });
+            });
+          } catch (e) {
+            const message = (e as Error).message;
+            this.dbtTerminal.error("createSqlFile", message, e, true);
+            window.showErrorMessage(message);
+          }
+        },
+      ),
+      commands.registerCommand("dbtPowerUser.sqlLineage", async () => {
+        window.withProgress(
+          {
+            title: "Retrieving SQL visualization",
+            location: ProgressLocation.Notification,
+            cancellable: false,
+          },
+          async (_, token) => {
+            try {
+              const modelName = this.sqlLineagePanel.getActiveEditorFilename();
+              const lineage = await this.sqlLineagePanel.getSQLLineage(token);
+              const panel = window.createWebviewPanel(
+                SQLLineagePanel.viewType,
+                `${modelName} - visualization`,
+                ViewColumn.Two,
+                { retainContextWhenHidden: true, enableScripts: true },
+              );
+              this.sqlLineagePanel.renderSqlVisualizer(panel, lineage);
+            } catch (e) {
+              const errorMessage = (e as Error)?.message;
+              this.dbtTerminal.error("sqlLineage", errorMessage, e, true);
+              window.showErrorMessage(errorMessage);
+            }
+          },
+        );
+      }),
+      commands.registerCommand(
+        "dbtPowerUser.showDocumentation",
+        async (modelName) => {
+          const result = queryManifestService.getEventByCurrentProject();
+          if (!result) {
+            return;
+          }
+          const { event } = result;
+          if (!event) {
+            return;
+          }
+          const { nodeMetaMap } = event;
+          const model = nodeMetaMap.lookupByBaseName(modelName);
+          if (!model?.path) {
+            return;
+          }
+          const doc = await workspace.openTextDocument(Uri.file(model.path));
+          await window.showTextDocument(doc);
+          await commands.executeCommand("dbtPowerUser.DocsEdit.focus");
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.showDatapilotNotebooksQuickPick",
+        async () => {
+          const notebookQuickPick = new NotebookQuickPick();
+          await notebookQuickPick.showNotebookPicker();
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.showNotebookProfileQuery",
+        async () => {
+          await commands.executeCommand(
+            "dbtPowerUser.createDatapilotNotebook",
+            {
+              template: "Profile your query",
+            },
+          );
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.showNotebookTestSuggestions",
+        async () => {
+          await commands.executeCommand(
+            "dbtPowerUser.createDatapilotNotebook",
+            {
+              template: "Get test suggestions",
+            },
+          );
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.showNotebookGenerateBaseModelSql",
+        async () => {
+          await commands.executeCommand(
+            "dbtPowerUser.createDatapilotNotebook",
+            {
+              template: "Generate dbt base model sql",
+            },
+          );
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.showNotebookGenerateModelYaml",
+        async () => {
+          await commands.executeCommand(
+            "dbtPowerUser.createDatapilotNotebook",
+            {
+              template: "Generate dbt model yaml",
+            },
+          );
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.showNotebookGenerateModelCTE",
+        async () => {
+          await commands.executeCommand(
+            "dbtPowerUser.createDatapilotNotebook",
+            {
+              template: "Generate dbt model CTE",
+            },
+          );
+        },
+      ),
+      commands.registerCommand("dbtPowerUser.applyDeferConfig", async () => {
+        const projects = this.dbtProjectContainer.getProjects();
+        try {
+          await Promise.all(
+            projects.map((project) => project.applyDeferConfig()),
+          );
+          window.showInformationMessage("Applied defer configuration");
+        } catch (error) {
+          this.dbtTerminal.error(
+            "applyDeferConfig",
+            "Failed to apply defer configuration",
+            error,
+          );
+          window.showErrorMessage(
+            `Failed to apply defer configuration: ${error}`,
+          );
         }
       }),
     );
@@ -611,6 +951,209 @@ export class VSCodeCommands implements Disposable {
       this.dbtTerminal.logLine(d.message);
     }
     await project.debug();
+  }
+
+  private runSelectedQuery(uri: Uri, range: Range): void {
+    // Get the document and extract the selected text
+    const document = workspace.textDocuments.find(
+      (doc) => doc.uri.toString() === uri.toString(),
+    );
+    if (!document) {
+      window.showErrorMessage("Document not found");
+      return;
+    }
+
+    const selectedQuery = document.getText(range);
+    if (!selectedQuery.trim()) {
+      window.showErrorMessage("No query selected");
+      return;
+    }
+
+    // Create a model name based on the selection - use "cte_query" as default
+    const modelName = "cte_query";
+
+    // Execute the selected query using the existing infrastructure
+    this.dbtProjectContainer.executeSQL(uri, selectedQuery, modelName);
+  }
+
+  private async runCteWithDependencies(
+    uri: Uri,
+    cteIndex: number,
+    ctes: CteInfo[],
+  ): Promise<void> {
+    this.dbtTerminal.debug(
+      "CteExecution",
+      `Starting CTE execution for index ${cteIndex} with ${ctes.length} total CTEs`,
+    );
+
+    try {
+      // Get the document asynchronously
+      let document = workspace.textDocuments.find(
+        (doc) => doc.uri.toString() === uri.toString(),
+      );
+
+      if (!document) {
+        // Try to open the document if not found in workspace
+        try {
+          document = await workspace.openTextDocument(uri);
+        } catch (error) {
+          this.dbtTerminal.error(
+            "CteExecution",
+            `Failed to open document: ${uri.toString()}`,
+            error,
+          );
+          window.showErrorMessage("Document not found and could not be opened");
+          return;
+        }
+      }
+
+      const text = document.getText();
+
+      // Find the target CTE and all its dependencies
+      const targetCte = ctes[cteIndex];
+      if (!targetCte) {
+        this.dbtTerminal.warn(
+          "CteExecution",
+          `CTE not found at index ${cteIndex}, available CTEs: ${ctes.length}`,
+        );
+        window.showErrorMessage("CTE not found");
+        return;
+      }
+
+      this.dbtTerminal.debug(
+        "CteExecution",
+        `Target CTE: ${targetCte.name} (index: ${targetCte.index})`,
+      );
+
+      // Get all CTEs from the same WITH clause that come before or at the target index
+      const sameScopeCtesUpToTarget = ctes.filter(
+        (cte) =>
+          cte.withClauseStart === targetCte.withClauseStart &&
+          cte.index <= targetCte.index,
+      );
+
+      this.dbtTerminal.debug(
+        "CteExecution",
+        `Found ${sameScopeCtesUpToTarget.length} CTEs in dependency chain: ${sameScopeCtesUpToTarget.map((c) => c.name).join(", ")}`,
+      );
+
+      // Build the complete query with dependencies
+      const cteDefinitions: string[] = [];
+
+      for (const cte of sameScopeCtesUpToTarget) {
+        // Extract the full CTE definition (name + AS + query)
+        const cteStart = cte.range.start;
+
+        // Get from CTE name to end of its query
+        const cteStartPos = document.offsetAt(cteStart);
+
+        // Improved regex to handle quoted identifiers, dotted names, and complex column lists
+        // Supports: identifier, "quoted identifier", schema.table, `backtick quoted`, [bracket quoted]
+        const cteNameMatch = text
+          .substring(cteStartPos)
+          .match(
+            /^((?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\])(?:\.(?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\]))*(?:\s*\([^)]*\))?)\s+as\s*\(/i,
+          );
+
+        if (cteNameMatch) {
+          const cteQuery = document.getText(cte.queryRange);
+          const fullCteDefinition = `${cteNameMatch[1]} AS (\n${cteQuery}\n)`;
+          cteDefinitions.push(fullCteDefinition);
+
+          this.dbtTerminal.debug(
+            "CteExecution",
+            `Added CTE to query: ${cteNameMatch[1]} (${cteQuery.length} chars)`,
+          );
+        } else {
+          this.dbtTerminal.warn(
+            "CteExecution",
+            `Could not parse CTE definition for: ${cte.name}`,
+          );
+        }
+      }
+
+      // Check if we have any valid CTE definitions
+      if (cteDefinitions.length === 0) {
+        this.dbtTerminal.warn(
+          "CteExecution",
+          "No valid CTE definitions found, cannot build query",
+        );
+        window.showErrorMessage("Failed to extract CTE definitions");
+        return;
+      }
+
+      // Build the complete query including preamble before WITH clause
+      // Extract everything before the WITH clause (dbt configs, variables, etc.)
+      const preamble = text.substring(0, targetCte.withClauseStart).trim();
+
+      let query = "";
+      if (preamble) {
+        query += preamble + "\n\n";
+        this.dbtTerminal.debug(
+          "CteExecution",
+          `Including preamble (${preamble.length} chars) before WITH clause`,
+        );
+      }
+
+      query += "WITH ";
+      query += cteDefinitions.join(",\n");
+
+      // Add a simple SELECT to execute the target CTE with proper quoting
+      const quotedTargetName = this.quoteSqlIdentifier(targetCte.name);
+      query += `\nSELECT * FROM ${quotedTargetName}`;
+
+      this.dbtTerminal.debug(
+        "CteExecution",
+        `Generated query length: ${query.length} characters`,
+      );
+
+      // Create a unique model name with timestamp to prevent collisions
+      const timestamp = Date.now();
+      const hash = this.generateShortHash(targetCte.name + timestamp);
+      const modelName = `cte_${targetCte.name}_${hash}`;
+
+      this.dbtTerminal.debug(
+        "CteExecution",
+        `Executing CTE query with model name: ${modelName}`,
+      );
+
+      // Execute the complete query with dependencies
+      this.dbtProjectContainer.executeSQL(uri, query, modelName);
+    } catch (error) {
+      this.dbtTerminal.error(
+        "CteExecution",
+        "Unexpected error in runCteWithDependencies",
+        error,
+      );
+      window.showErrorMessage(
+        `Failed to execute CTE: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  private quoteSqlIdentifier(identifier: string): string {
+    // If identifier is already quoted or contains dots, return as-is
+    if (identifier.match(/^["'`\[]/) || identifier.includes(".")) {
+      return identifier;
+    }
+
+    // If identifier contains special characters or spaces, quote it
+    if (!identifier.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+      return `"${identifier}"`;
+    }
+
+    return identifier;
+  }
+
+  private generateShortHash(input: string): string {
+    // Simple hash function to generate a short unique suffix
+    let hash = 0;
+    for (let i = 0; i < input.length; i++) {
+      const char = input.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(36).substring(0, 6);
   }
 
   dispose() {

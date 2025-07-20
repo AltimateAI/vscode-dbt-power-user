@@ -163,7 +163,8 @@ caption {
     color: var(--stroke--orange, #e38e00);
   }
 }
-body.vscode-dark {
+body.vscode-dark,
+body.vscode-high-contrast:not(.vscode-high-contrast-light) {
   .alert-warning {
     background: rgba(255, 206, 115, 0.1);
     border: none;
@@ -174,4 +175,12 @@ body.vscode-dark {
 .offcanvas{
   background-color: var(--background--base);
   color: var(--text-color--title)
+}
+
+.modal-content {
+  background-color: var(--background--04);
+}
+
+.border-orange {
+  border-color: var(--stroke--orange) !important;
 }

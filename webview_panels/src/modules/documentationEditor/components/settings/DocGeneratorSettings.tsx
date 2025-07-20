@@ -1,5 +1,4 @@
-import { OptionType, Label, Select, Stack, Drawer } from "@uicore";
-import { SettingsIcon } from "@assets/icons";
+import { OptionType, Label, Select, Stack, Drawer, DrawerRef } from "@uicore";
 import {
   Languages,
   Persona,
@@ -10,13 +9,20 @@ import { ActionMeta } from "react-select";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { updateUserInstructions } from "@modules/documentationEditor/state/documentationSlice";
 import { panelLogger } from "@modules/logger";
+import { sendTelemetryEvent } from "../telemetry";
+import { TelemetryEvents } from "@telemetryEvents";
+import { useEffect, useRef } from "react";
 
 const DocGeneratorSettings = (): JSX.Element => {
   const {
     dispatch,
     state: { userInstructions },
   } = useDocumentationContext();
+  const drawerRef = useRef<DrawerRef | null>(null);
 
+  useEffect(() => {
+    drawerRef.current?.open();
+  }, []);
   const handleChange = (value: unknown, meta: ActionMeta<unknown>) => {
     if (!meta.name) {
       return;
@@ -25,6 +31,10 @@ const DocGeneratorSettings = (): JSX.Element => {
     dispatch(
       updateUserInstructions({ [meta.name]: (value as OptionType).value }),
     );
+    sendTelemetryEvent(TelemetryEvents["DocumentationEditor/SettingsUpdate"], {
+      field: meta.name,
+      value: (value as OptionType).value,
+    });
 
     localStorage.setItem(
       "userInstructions",
@@ -35,16 +45,12 @@ const DocGeneratorSettings = (): JSX.Element => {
     );
   };
 
+  const onOpen = () => {
+    sendTelemetryEvent(TelemetryEvents["DocumentationEditor/SettingsOpen"]);
+  };
+
   return (
-    <Drawer
-      buttonProps={{ outline: true }}
-      buttonText={
-        <>
-          <SettingsIcon style={{ height: 16 }} /> Settings
-        </>
-      }
-      title="Help"
-    >
+    <Drawer title="Help" onOpen={onOpen} ref={drawerRef}>
       <Stack direction="column">
         <h5>Configure settings for document generation</h5>
         <Stack direction="column">

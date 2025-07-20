@@ -20,7 +20,7 @@ import { notEmpty } from "../../utils";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { DBTProject } from "../dbtProject";
 
-type DBTGraphType = {
+export type DBTGraphType = {
   [name: string]: string[];
 };
 
@@ -43,11 +43,9 @@ export class GraphParser {
         project.projectRoot
       }`,
     );
-    const unique = (nodes: any[]) => Array.from(new Set(nodes));
-
     const parents: NodeGraphMap = Object.entries(parentMap).reduce(
       (map, [nodeName, nodes]) => {
-        const currentNodes = unique(nodes)
+        const currentNodes = nodes
           .map(
             this.mapToNode(
               sourceMetaMap,
@@ -65,7 +63,7 @@ export class GraphParser {
 
     const children: NodeGraphMap = Object.entries(childrenMap).reduce(
       (map, [nodeName, nodes]) => {
-        const currentNodes = unique(nodes)
+        const currentNodes = nodes
           .map(
             this.mapToNode(
               sourceMetaMap,
@@ -84,7 +82,7 @@ export class GraphParser {
 
     const tests: NodeGraphMap = Object.entries(childrenMap).reduce(
       (map, [nodeName, nodes]) => {
-        const currentNodes = unique(nodes)
+        const currentNodes = nodes
           .map(
             this.mapToNode(
               sourceMetaMap,
@@ -103,7 +101,7 @@ export class GraphParser {
 
     const metrics: NodeGraphMap = Object.entries(childrenMap).reduce(
       (map, [nodeName, nodes]) => {
-        const currentNodes = unique(nodes)
+        const currentNodes = nodes
           .map(
             this.mapToNode(
               sourceMetaMap,
@@ -160,12 +158,22 @@ export class GraphParser {
           );
         }
         case "model": {
-          const url = nodeMetaMap.get(nodeName)?.path!;
-          return new Model(nodeName, parentNodeName, url);
+          // can this ever be not there?
+          const model = nodeMetaMap.lookupByUniqueId(parentNodeName);
+          if (!model) {
+            return;
+          }
+          const url = model?.path!;
+          return new Model(model.alias, parentNodeName, url);
         }
         case "seed": {
-          const url = nodeMetaMap.get(nodeName)?.path!;
-          return new Seed(nodeName, parentNodeName, url);
+          // can this ever be not there?
+          const model = nodeMetaMap.lookupByUniqueId(parentNodeName);
+          if (!model) {
+            return;
+          }
+          const url = model?.path!;
+          return new Seed(model.alias, parentNodeName, url);
         }
         case "test": {
           // nodeName => more interesting label possibilities?
@@ -174,15 +182,15 @@ export class GraphParser {
           return new Test(nodeName, parentNodeName, url ?? "");
         }
         case "analysis": {
-          const url = nodeMetaMap.get(nodeName)?.path!;
+          const url = nodeMetaMap.lookupByBaseName(nodeName)?.path!;
           return new Analysis(nodeName, parentNodeName, url);
         }
         case "snapshot": {
-          const url = nodeMetaMap.get(nodeName)?.path!;
+          const url = nodeMetaMap.lookupByBaseName(nodeName)?.path!;
           return new Snapshot(nodeName, parentNodeName, url);
         }
         case "exposure": {
-          const url = nodeMetaMap.get(nodeName)?.path!;
+          const url = nodeMetaMap.lookupByBaseName(nodeName)?.path!;
           return new Exposure(nodeName, parentNodeName, url);
         }
         case "semantic_model": {

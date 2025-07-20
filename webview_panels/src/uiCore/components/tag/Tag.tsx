@@ -3,15 +3,20 @@ import classes from "./tag.module.scss";
 
 const Tag = ({
   children,
-  color,
+  color = "default",
   className,
+  type = "default",
   ...rest
 }: {
   children: ReactNode;
-  color?: string;
+  color?: "primary" | "orange" | "default";
+  type?: "rounded" | "default";
 } & HTMLAttributes<HTMLSpanElement>): JSX.Element => {
   return (
-    <span className={`${className ?? ""} ${classes.tag} ${color}`} {...rest}>
+    <span
+      className={`${className ?? ""} ${classes.tag} ${color === "default" ? "" : color} ${type === "rounded" ? classes.rounded : ""}`}
+      {...rest}
+    >
       {children}
     </span>
   );

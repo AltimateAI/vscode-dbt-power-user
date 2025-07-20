@@ -11,11 +11,19 @@
   cursor: pointer;
   line-height: 1.8;
 
-  &:hover{
+  &.rounded {
+    border-radius: 2.4rem;
+  }
+
+  &:hover {
     border-color: var(--primary-color);
   }
-  &:global.primary{
+  &:global.primary {
     background-color: var(--primary-color);
     color: var(--text-color--white);
+  }
+  &:global.orange {
+    background-color: var(--background-orange);
+    color: var(--stroke--orange);
   }
 }

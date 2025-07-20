@@ -4,10 +4,21 @@ import {
   executeRequestInSync,
   handleIncomingResponse,
 } from "./requestExecutor";
-import { IncomingMessageProps, IncomingSyncResponse, Themes, User } from "./types";
+import {
+  AppStateProps,
+  IncomingMessageProps,
+  IncomingSyncResponse,
+  Themes,
+  User,
+} from "./types";
 import { panelLogger } from "@modules/logger";
 import { UnknownAction } from "@reduxjs/toolkit";
-import { setCurrentUser, setUsers, updateTheme } from "./appSlice";
+import {
+  setCurrentUser,
+  setTenantInfo,
+  setUsers,
+  updateTheme,
+} from "./appSlice";
 
 const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
   const onMesssage = useCallback(
@@ -24,9 +35,24 @@ const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
     [],
   );
 
+  const isDark = (element: HTMLElement) => {
+    const classList = element.classList;
+    if (classList.contains("vscode-dark")) {
+      return true;
+    }
+
+    if (classList.contains("vscode-high-contrast-light")) {
+      return false;
+    }
+
+    if (classList.contains("vscode-high-contrast")) {
+      return true;
+    }
+
+    return false;
+  };
   const setTheme = (element: HTMLElement) => {
-    const isDark = element.classList.contains("vscode-dark");
-    dispatch(updateTheme(isDark ? Themes.Dark : Themes.Light));
+    dispatch(updateTheme(isDark(element) ? Themes.Dark : Themes.Light));
   };
 
   const loadUsersDetails = () => {
@@ -35,18 +61,35 @@ const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
         panelLogger.log("getUsers", data);
         dispatch(setUsers(data as User[]));
       })
-      .catch((err) => panelLogger.error("error while fetching users list", err));
-  }
+      .catch((err) =>
+        panelLogger.error("error while fetching users list", err),
+      );
+  };
 
   const loadCurrentUser = () => {
     executeRequestInSync("getCurrentUser", {})
       .then((data) => {
         panelLogger.log("getCurrentUser", data);
         dispatch(setCurrentUser(data as User));
-
       })
-      .catch((err) => panelLogger.error("error while fetching current user", err));
-  }
+      .catch((err) =>
+        panelLogger.error("error while fetching current user", err),
+      );
+  };
+
+  const loadTenantInfo = () => {
+    executeRequestInSync("fetch", {
+      endpoint: "auth/tenant-info",
+      fetchArgs: { method: "GET" },
+    })
+      .then((data) => {
+        panelLogger.log("loadTenantInfo", data);
+        dispatch(setTenantInfo(data as AppStateProps["tenantInfo"]));
+      })
+      .catch((err) =>
+        panelLogger.error("error while fetching tenant info", err),
+      );
+  };
 
   useEffect(() => {
     window.addEventListener("message", onMesssage);
@@ -61,6 +104,7 @@ const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
 
     loadUsersDetails();
     loadCurrentUser();
+    loadTenantInfo();
 
     themeObserver.observe(document.body, {
       attributes: true,

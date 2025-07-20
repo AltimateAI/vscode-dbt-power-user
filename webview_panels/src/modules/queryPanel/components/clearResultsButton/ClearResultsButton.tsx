@@ -1,3 +1,4 @@
+import { CloseIcon } from "@assets/icons";
 import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
 import { resetData } from "@modules/queryPanel/context/queryPanelSlice";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
@@ -13,7 +14,7 @@ const ClearResultsButton = (): JSX.Element | null => {
     return null;
   }
   return (
-    <Button outline onClick={handleClear}>
+    <Button outline onClick={handleClear} icon={<CloseIcon />}>
       Clear results
     </Button>
   );

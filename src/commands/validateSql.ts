@@ -106,7 +106,7 @@ export class ValidateSql {
       return;
     }
     const { graphMetaMap, nodeMetaMap } = event;
-    const node = nodeMetaMap.get(modelName);
+    const node = nodeMetaMap.lookupByBaseName(modelName);
     if (!node) {
       return;
     }
@@ -151,9 +151,7 @@ export class ValidateSql {
           if (cancellationToken.isCancellationRequested) {
             return;
           }
-          const modelsToFetch = DBTProject.getNonEphemeralParents(event, [
-            node.uniqueId,
-          ]);
+          const modelsToFetch = project.getNonEphemeralParents([node.uniqueId]);
           const {
             mappedNode,
             relationsWithoutColumns: _relationsWithoutColumns,

@@ -1,9 +1,39 @@
 import { provide } from "inversify-binding-decorators";
-import { NodeMetaMap } from "../../domain";
+import { NodeMetaData, NodeMetaMap } from "../../domain";
 import { DBTProject } from "../dbtProject";
 import { createFullPathForNode } from ".";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { getExternalProjectNamesFromDbtLoomConfig } from "../../utils";
+import * as path from "path";
+import { basename } from "path";
+
+export class NodeMetaMapImpl implements NodeMetaMap {
+  constructor(
+    private latestVersionLookupMap: Map<string, string> = new Map(),
+    private modelNameLookupMap: Map<string, string> = new Map(),
+    private modelMetadataLookupMap: Map<string, NodeMetaData> = new Map(),
+  ) {}
+
+  lookupByBaseName(modelBaseName: string): NodeMetaData | undefined {
+    const uniqueId = this.modelNameLookupMap.get(modelBaseName);
+    if (!uniqueId) {
+      return;
+    }
+    return this.lookupByUniqueId(uniqueId);
+  }
+
+  lookupByUniqueId(uniqueId: string): NodeMetaData | undefined {
+    const latestVersionUniqueID = this.latestVersionLookupMap.get(uniqueId);
+    if (latestVersionUniqueID) {
+      return this.modelMetadataLookupMap.get(latestVersionUniqueID);
+    }
+    return this.modelMetadataLookupMap.get(uniqueId);
+  }
+
+  nodes(): Iterable<NodeMetaData> {
+    return this.modelMetadataLookupMap.values();
+  }
+}
 
 @provide(NodeParser)
 export class NodeParser {
@@ -20,9 +50,11 @@ export class NodeParser {
           project.projectRoot
         }`,
       );
-      const modelMetaMap: NodeMetaMap = new Map();
+      const latestVersionLookupMap: Map<string, string> = new Map();
+      const modelMetadataLookupMap: Map<string, NodeMetaData> = new Map();
+      const modelNameLookupMap: Map<string, string> = new Map();
       if (nodesMap === null || nodesMap === undefined) {
-        resolve(modelMetaMap);
+        resolve(new NodeMetaMapImpl(new Map(), new Map()));
       }
       const nodesMaps = Object.values(nodesMap).filter((model) =>
         DBTProject.isResourceNode(model.resource_type),
@@ -47,6 +79,8 @@ export class NodeParser {
           schema,
           alias,
           package_name,
+          latest_version,
+          version,
           unique_id,
           columns,
           description,
@@ -54,6 +88,7 @@ export class NodeParser {
           config,
           resource_type,
           depends_on,
+          meta,
         } = nodesMap;
         const fullPath = createFullPathForNode(
           projectName,
@@ -62,7 +97,16 @@ export class NodeParser {
           packagePath,
           original_file_path,
         );
-        modelMetaMap.set(name, {
+        const targetPath = project.getTargetPath();
+        if (fullPath) {
+          modelNameLookupMap.set(path.parse(fullPath).name, unique_id);
+        }
+        if (version && latest_version && version === latest_version) {
+          const parts = unique_id.split(".");
+          parts.pop();
+          latestVersionLookupMap.set(parts.join("."), unique_id);
+        }
+        modelMetadataLookupMap.set(unique_id, {
           path: fullPath,
           database,
           schema,
@@ -79,6 +123,15 @@ export class NodeParser {
           is_external_project: Boolean(
             externalProjectNames?.includes(package_name),
           ),
+          compiled_path: targetPath
+            ? path.join(
+                targetPath,
+                "compiled",
+                package_name,
+                original_file_path,
+              )
+            : "",
+          meta: meta,
         });
       }
       this.terminal.debug(
@@ -86,9 +139,15 @@ export class NodeParser {
         `Returning nodes for "${project.getProjectName()}" at ${
           project.projectRoot
         }`,
-        modelMetaMap,
+        modelNameLookupMap,
+        modelMetadataLookupMap,
       );
-      resolve(modelMetaMap);
+      const nodeMetaMap: NodeMetaMap = new NodeMetaMapImpl(
+        latestVersionLookupMap,
+        modelNameLookupMap,
+        modelMetadataLookupMap,
+      );
+      resolve(nodeMetaMap);
     });
   }
 }

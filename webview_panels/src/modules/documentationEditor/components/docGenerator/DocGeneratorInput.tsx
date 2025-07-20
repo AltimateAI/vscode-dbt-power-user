@@ -1,10 +1,11 @@
 import {
   DBTDocumentation,
   DBTDocumentationColumn,
+  DBTModelTest,
   DocsGenerateModelRequestV2,
 } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
-import { Input, InputGroup, Stack } from "@uicore";
+import { Input, InputGroup, Stack, Tag } from "@uicore";
 import {
   ChangeEvent,
   useCallback,
@@ -23,23 +24,31 @@ import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import AddCoversationButton from "../conversation/AddCoversationButton";
 import { panelLogger } from "@modules/logger";
+import { DocumentationPropagationButton } from "../documentationPropagation/DocumentationPropagation";
+import { isArrayEqual } from "@modules/documentationEditor/utils";
+import DocBlockInserter from "./DocBlockInserter";
 
 interface Props {
   entity: DBTDocumentationColumn | DBTDocumentation;
   onSubmit: (data: DocsGenerateModelRequestV2) => void;
   placeholder?: string;
   type: EntityType;
+  title: string;
+  tests?: DBTModelTest[];
 }
 const DocGeneratorInput = ({
   onSubmit,
   entity,
   placeholder,
   type,
+  title,
+  tests,
 }: Props): JSX.Element => {
   const stackRef = useRef<HTMLDivElement | null>(null);
   const {
     state: {
       userInstructions,
+      incomingDocsData,
       currentDocsData,
       insertedEntityName,
       selectedConversationGroup,
@@ -47,9 +56,30 @@ const DocGeneratorInput = ({
     },
     dispatch,
   } = useDocumentationContext();
-  const [showButton, setShowButton] = useState(true);
   const [description, setDescription] = useState("");
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const [inputRows, setInputRows] = useState(1);
+
+  useEffect(() => {
+    if (!inputRef.current) {
+      return;
+    }
+    let fontSize = 13; // default font size
+    try {
+      fontSize = parseFloat(window.getComputedStyle(inputRef.current).fontSize);
+    } catch (e) {
+      panelLogger.error("Error parsing font size", e);
+    }
+    // generally character width is 0.5 of font size
+    const charWidth = fontSize * 0.5;
+    const newLines = (description.match(/\n/g) ?? []).length;
+    const rows =
+      Math.ceil(
+        ((description.length - newLines) * charWidth) /
+          inputRef.current.clientWidth,
+      ) + newLines;
+    setInputRows(rows);
+  }, [description]);
 
   const selectedConversationGroupData = useMemo(() => {
     if (!selectedConversationGroup) {
@@ -136,43 +166,123 @@ const DocGeneratorInput = ({
     }
   };
 
-  const handleHideButton = () => setShowButton(false);
-  const handleShowButton = () => setShowButton(true);
+  const handleInsertDocBlock = (docRef: string) => {
+    if (!inputRef.current) {
+      return;
+    }
+
+    const input = inputRef.current as HTMLTextAreaElement;
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    const currentValue = description;
+    
+    const newValue = 
+      currentValue.substring(0, start) + 
+      docRef + 
+      currentValue.substring(end);
+    
+    setDescription(newValue);
+    
+    // Update Redux state
+    if (type === EntityType.COLUMN) {
+      dispatch(
+        updateColumnsInCurrentDocsData({
+          columns: [{ name: entity.name, description: newValue }],
+          isNewGeneration: true,
+        }),
+      );
+    }
+
+    if (type === EntityType.MODEL) {
+      dispatch(
+        updateCurrentDocsData({
+          name: entity.name,
+          description: newValue,
+          isNewGeneration: true,
+        }),
+      );
+    }
+
+    // Set cursor position after the inserted text
+    setTimeout(() => {
+      if (input) {
+        const newCursorPosition = start + docRef.length;
+        input.setSelectionRange(newCursorPosition, newCursorPosition);
+        input.focus();
+      }
+    }, 10);
+  };
 
   const variant = entity.description ? Variants.ICON : Variants.ICON_WITH_TEXT;
+  const entityColumn = incomingDocsData?.docs?.columns?.find(
+    (c) => c.name === entity.name,
+  );
+  const incomingTestKeys = incomingDocsData?.tests
+    ?.filter((t) =>
+      type === EntityType.MODEL
+        ? !t.column_name
+        : t.column_name === entity.name,
+    )
+    .map((t) => t.key);
+  const currTestKeys = tests?.map((t) => t.key);
+  const isTestsDirty = !isArrayEqual(
+    incomingTestKeys ?? [],
+    currTestKeys ?? [],
+  );
+  const isDescriptionDirty =
+    type === EntityType.MODEL
+      ? currentDocsData?.description !== incomingDocsData?.docs?.description
+      : entity.description !== entityColumn?.description;
+  const isDirty = isDescriptionDirty || isTestsDirty;
 
   return (
-    <Stack ref={stackRef}>
-      <InputGroup className={classes.inputGroup}>
-        <Input
-          innerRef={inputRef}
-          value={description}
-          onChange={onChange}
-          onFocus={handleHideButton}
-          onBlur={handleShowButton}
-          type="textarea"
-          rows={description ? 5 : 1}
-          placeholder={placeholder}
-        />
-
-        {showButton ? (
-          <Stack className={classes.actionButtons}>
-            <AddCoversationButton
-              field="description"
-              value={description}
-              name={entity.name}
-              type={type}
-              model={currentDocsData?.name}
-            />
-            <GenerateButton
-              onSubmit={handleSubmit}
-              variant={variant}
-              entityName={entity.name}
-            />
-          </Stack>
+    <>
+      <Stack className="align-items-center mb-2">
+        <h4 className="mb-0">{title}</h4>
+        {type === EntityType.COLUMN &&
+        (entity as DBTDocumentationColumn).type ? (
+          <Tag type="rounded">{(entity as DBTDocumentationColumn).type}</Tag>
         ) : null}
-      </InputGroup>
-    </Stack>
+        {isDirty ? (
+          <Tag color="orange" type="rounded">
+            modified
+          </Tag>
+        ) : null}
+        <div className="spacer" />
+        <Stack className={classes.actionButtons}>
+          <DocBlockInserter 
+            inputRef={inputRef} 
+            onInsert={handleInsertDocBlock} 
+          />
+          <DocumentationPropagationButton type={type} name={entity.name} />
+          <AddCoversationButton
+            field="description"
+            value={description}
+            name={entity.name}
+            type={type}
+            model={currentDocsData?.name}
+          />
+          <GenerateButton
+            onSubmit={handleSubmit}
+            variant={variant}
+            entityName={entity.name}
+          />
+        </Stack>
+      </Stack>
+      <Stack ref={stackRef}>
+        <InputGroup className={classes.inputGroup}>
+          <Input
+            innerRef={inputRef}
+            value={description}
+            onChange={onChange}
+            type="textarea"
+            rows={inputRows}
+            placeholder={placeholder}
+            className={isDescriptionDirty ? "border-orange" : ""}
+          />
+        </InputGroup>
+      </Stack>
+    </>
   );
 };
 

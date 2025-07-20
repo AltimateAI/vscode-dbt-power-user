@@ -1,22 +1,39 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { QueryPanelStateProps } from "./types";
+import {
+  QueryBookmarkResponse,
+  QueryPanelStateProps,
+  QueryPanelViewType,
+} from "./types";
+import { QueryPanelTitleTabState } from "../components/QueryPanelContents/types";
 
 export const initialState = {
+  viewType: QueryPanelViewType.DEFAULT,
   loading: false,
   queryResults: undefined,
   queryExecutionInfo: undefined,
   queryResultsError: undefined,
   compiledCodeMarkup: undefined,
   hintIndex: -1,
-  lastHintTimestamp: 0,
   limit: undefined,
   perspectiveTheme: "Vintage",
+  queryHistory: [],
+  queryBookmarks: {},
+  queryHistoryDisabled: false,
+  tabState: QueryPanelTitleTabState.Preview,
+  queryBookmarksTagsFromDB: undefined,
+  activeEditor: undefined,
 } as QueryPanelStateProps;
 
 const queryPanelSlice = createSlice({
   name: "queryPanelState",
   initialState,
   reducers: {
+    setActiveEditor: (
+      state,
+      action: PayloadAction<QueryPanelStateProps["activeEditor"]>,
+    ) => {
+      state.activeEditor = action.payload;
+    },
     resetData: (state) => {
       return {
         ...state,
@@ -27,11 +44,41 @@ const queryPanelSlice = createSlice({
         loading: false,
       };
     },
+    setQueryBookmarksTagsFromDB: (
+      state,
+      action: PayloadAction<QueryPanelStateProps["queryBookmarksTagsFromDB"]>,
+    ) => {
+      state.queryBookmarksTagsFromDB = action.payload;
+    },
+    setViewType: (
+      state,
+      action: PayloadAction<QueryPanelStateProps["viewType"]>,
+    ) => {
+      state.viewType = action.payload;
+    },
     setHintIndex: (
       state,
       action: PayloadAction<QueryPanelStateProps["hintIndex"]>,
     ) => {
       state.hintIndex = action.payload;
+    },
+    setTabState: (
+      state,
+      action: PayloadAction<QueryPanelStateProps["tabState"]>,
+    ) => {
+      state.tabState = action.payload;
+    },
+    setQueryHistoryDisabled: (
+      state,
+      action: PayloadAction<QueryPanelStateProps["queryHistoryDisabled"]>,
+    ) => {
+      state.queryHistoryDisabled = action.payload;
+    },
+    setQueryHistory: (
+      state,
+      action: PayloadAction<QueryPanelStateProps["queryHistory"]>,
+    ) => {
+      state.queryHistory = action.payload;
     },
     setPerspectiveTheme: (
       state,
@@ -44,12 +91,6 @@ const queryPanelSlice = createSlice({
       action: PayloadAction<QueryPanelStateProps["compiledCodeMarkup"]>,
     ) => {
       state.compiledCodeMarkup = action.payload;
-    },
-    setLastHintTimestamp: (
-      state,
-      action: PayloadAction<QueryPanelStateProps["lastHintTimestamp"]>,
-    ) => {
-      state.lastHintTimestamp = action.payload;
     },
     setLimit: (state, action: PayloadAction<QueryPanelStateProps["limit"]>) => {
       state.limit = action.payload;
@@ -79,10 +120,20 @@ const queryPanelSlice = createSlice({
     ) => {
       state.loading = action.payload;
     },
+    setQueryBookmarks: (
+      state,
+      action: PayloadAction<{
+        response: QueryBookmarkResponse;
+        type: "public" | "private";
+      }>,
+    ) => {
+      state.queryBookmarks[action.payload.type] = action.payload.response;
+    },
   },
 });
 
 export const {
+  setViewType,
   resetData,
   setLoading,
   setHintIndex,
@@ -90,9 +141,14 @@ export const {
   setQueryResultsError,
   setQueryExecutionInfo,
   setQueryResults,
-  setLastHintTimestamp,
   setLimit,
   setPerspectiveTheme,
+  setQueryHistory,
+  setQueryBookmarks,
+  setQueryHistoryDisabled,
+  setTabState,
+  setQueryBookmarksTagsFromDB,
+  setActiveEditor,
 } = queryPanelSlice.actions;
 
 export default queryPanelSlice;

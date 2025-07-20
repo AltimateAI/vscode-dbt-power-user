@@ -2,6 +2,7 @@ import {
   CancellationToken,
   Diagnostic,
   DiagnosticCollection,
+  DiagnosticSeverity,
   Disposable,
   languages,
   Range,
@@ -34,6 +35,8 @@ import {
   Node,
   ExecuteSQLError,
   HealthcheckArgs,
+  CLIDBTCommandExecutionStrategy,
+  DBTCommandExecutionStrategy,
 } from "./dbtIntegration";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
@@ -53,6 +56,8 @@ import { ManifestPathType } from "../constants";
 import { DBTTerminal } from "./dbtTerminal";
 import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
+import { NodeMetaData } from "../domain";
+import * as crypto from "crypto";
 
 const DEFAULT_QUERY_TEMPLATE = "select * from ({query}) as query limit {limit}";
 
@@ -239,12 +244,14 @@ export class DBTCoreProjectIntegration
   private profilesDir?: string;
   private targetPath?: string;
   private adapterType?: string;
+  private targetName?: string;
   private version?: number[];
+  private projectName: string = "unknown_" + crypto.randomUUID();
   private packagesInstallPath?: string;
   private modelPaths?: string[];
   private seedPaths?: string[];
   private macroPaths?: string[];
-  private python: PythonBridge;
+  protected python: PythonBridge;
   private disposables: Disposable[] = [];
   private readonly rebuildManifestDiagnostics =
     languages.createDiagnosticCollection("dbt");
@@ -254,15 +261,19 @@ export class DBTCoreProjectIntegration
 
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
-    private pythonEnvironment: PythonEnvironment,
+    protected pythonEnvironment: PythonEnvironment,
     private telemetry: TelemetryService,
     private pythonDBTCommandExecutionStrategy: PythonDBTCommandExecutionStrategy,
+    protected cliDBTCommandExecutionStrategyFactory: (
+      path: Uri,
+      dbtPath: string,
+    ) => DBTCommandExecutionStrategy,
     private dbtProjectContainer: DBTProjectContainer,
     private altimateRequest: AltimateRequest,
-    private dbtTerminal: DBTTerminal,
+    protected dbtTerminal: DBTTerminal,
     private validationProvider: ValidationProvider,
     private deferToProdService: DeferToProdService,
-    private projectRoot: Uri,
+    protected projectRoot: Uri,
     private projectConfigDiagnostics: DiagnosticCollection,
   ) {
     this.dbtTerminal.debug(
@@ -323,10 +334,10 @@ export class DBTCoreProjectIntegration
       const dbtVersion = await this.version;
       //dbt supports limit macro after v1.5
       if (dbtVersion && dbtVersion[0] >= 1 && dbtVersion[1] >= 5) {
-        const args = { sql: query, limit };
+        const args = { compiled_code: query, limit };
         const queryTemplateFromMacro = await this.python?.lock(
           (python) =>
-            python!`to_dict(project.execute_macro('get_limit_subquery_sql', ${args}))`,
+            python!`to_dict(project.execute_macro('get_show_sql', ${args}, ${query}))`,
         );
 
         this.dbtTerminal.debug(
@@ -340,7 +351,7 @@ export class DBTCoreProjectIntegration
         };
       }
     } catch (err) {
-      console.error("Error while getting get_limit_subquery_sql macro", err);
+      console.error("Error while getting get_show_sql macro", err);
       this.telemetry.sendTelemetryError(
         "executeMacroGetLimitSubquerySQLError",
         err,
@@ -368,13 +379,34 @@ export class DBTCoreProjectIntegration
   async refreshProjectConfig(): Promise<void> {
     await this.createPythonDbtProject(this.python);
     await this.python.ex`project.init_project()`;
+    this.targetName = await this.findSelectedTarget();
     this.targetPath = await this.findTargetPath();
     this.modelPaths = await this.findModelPaths();
     this.seedPaths = await this.findSeedPaths();
     this.macroPaths = await this.findMacroPaths();
     this.packagesInstallPath = await this.findPackagesInstallPath();
     this.version = await this.findVersion();
+    this.projectName = await this.findProjectName();
     this.adapterType = await this.findAdapterType();
+  }
+
+  async findSelectedTarget(): Promise<string> {
+    return await this.python.lock(
+      (python) => python`to_dict(project.config.target_name)`,
+    );
+  }
+
+  async setSelectedTarget(targetName: string): Promise<void> {
+    await this.python.lock(
+      (python) => python`project.set_selected_target(${targetName})`,
+    );
+    await this.refreshProjectConfig();
+  }
+
+  async getTargetNames(): Promise<Array<string>> {
+    return await this.python.lock(
+      (python) => python`to_dict(project.get_target_names())`,
+    );
   }
 
   async executeSQL(
@@ -421,9 +453,10 @@ export class DBTCoreProjectIntegration
           }
           throw new ExecuteSQLError((err as Error).message, compiledQuery!);
         } finally {
+          await this.cleanupConnections();
           await queryThread.end();
         }
-        return { ...result, compiled_stmt: compiledQuery };
+        return { ...result, compiled_stmt: compiledQuery, modelName };
       },
     );
   }
@@ -505,6 +538,10 @@ export class DBTCoreProjectIntegration
     }
   }
 
+  getSelectedTarget() {
+    return this.targetName;
+  }
+
   getTargetPath(): string | undefined {
     return this.targetPath;
   }
@@ -533,6 +570,10 @@ export class DBTCoreProjectIntegration
     return this.version;
   }
 
+  getProjectName(): string {
+    return this.projectName;
+  }
+
   async findAdapterType(): Promise<string | undefined> {
     return this.python.lock<string>(
       (python) => python`project.config.credentials.type`,
@@ -541,6 +582,29 @@ export class DBTCoreProjectIntegration
 
   getPythonBridgeStatus(): boolean {
     return this.python.connected;
+  }
+
+  async cleanupConnections(): Promise<void> {
+    try {
+      await this.python.ex`project.cleanup_connections()`;
+    } catch (exc) {
+      if (exc instanceof PythonException) {
+        this.telemetry.sendTelemetryEvent(
+          "pythonBridgeCleanupConnectionsError",
+          {
+            error: exc.exception.message,
+            adapter: this.getAdapterType() || "unknown", // TODO: this should be moved to dbtProject
+          },
+        );
+      }
+      this.telemetry.sendTelemetryEvent(
+        "pythonBridgeCleanupConnectionsUnexpectedError",
+        {
+          error: (exc as Error).message,
+          adapter: this.getAdapterType() || "unknown", // TODO: this should be moved to dbtProject
+        },
+      );
+    }
   }
 
   getAllDiagnostic(): Diagnostic[] {
@@ -608,31 +672,31 @@ export class DBTCoreProjectIntegration
   }
 
   async runModel(command: DBTCommand) {
-    this.addCommandToQueue(
+    return this.addCommandToQueue(
       await this.addDeferParams(this.dbtCoreCommand(command)),
     );
   }
 
   async buildModel(command: DBTCommand) {
-    this.addCommandToQueue(
+    return this.addCommandToQueue(
       await this.addDeferParams(this.dbtCoreCommand(command)),
     );
   }
 
   async buildProject(command: DBTCommand) {
-    this.addCommandToQueue(
+    return this.addCommandToQueue(
       await this.addDeferParams(this.dbtCoreCommand(command)),
     );
   }
 
   async runTest(command: DBTCommand) {
-    this.addCommandToQueue(
+    return this.addCommandToQueue(
       await this.addDeferParams(this.dbtCoreCommand(command)),
     );
   }
 
   async runModelTest(command: DBTCommand) {
-    this.addCommandToQueue(
+    return this.addCommandToQueue(
       await this.addDeferParams(this.dbtCoreCommand(command)),
     );
   }
@@ -645,6 +709,14 @@ export class DBTCoreProjectIntegration
 
   async generateDocs(command: DBTCommand) {
     this.addCommandToQueue(this.dbtCoreCommand(command));
+  }
+
+  async clean(command: DBTCommand) {
+    const { stdout, stderr } = await this.dbtCoreCommand(command).execute();
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    return stdout;
   }
 
   async executeCommandImmediately(command: DBTCommand) {
@@ -673,7 +745,7 @@ export class DBTCoreProjectIntegration
     if (!isInstalled) {
       return;
     }
-    this.executionInfrastructure.addCommandToQueue(
+    return this.executionInfrastructure.addCommandToQueue(
       DBTCoreProjectIntegration.QUEUE_ALL,
       command,
     );
@@ -789,12 +861,16 @@ export class DBTCoreProjectIntegration
     return command;
   }
 
-  private dbtCoreCommand(command: DBTCommand) {
+  protected dbtCoreCommand(command: DBTCommand) {
     command.addArgument("--project-dir");
     command.addArgument(this.projectRoot.fsPath);
     if (this.profilesDir) {
       command.addArgument("--profiles-dir");
       command.addArgument(this.profilesDir);
+    }
+    if (this.targetName) {
+      command.addArgument("--target");
+      command.addArgument(this.targetName);
     }
     command.setExecutionStrategy(this.pythonDBTCommandExecutionStrategy);
     return command;
@@ -887,10 +963,31 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  async getBulkSchema(
+  async getBulkCompiledSQL(models: NodeMetaData[]) {
+    const result: Record<string, string> = {};
+    for (const m of models) {
+      try {
+        const compiledSQL = await this.unsafeCompileNode(m.name);
+        result[m.uniqueId] = compiledSQL;
+      } catch (e) {
+        this.dbtTerminal.error(
+          "getBulkCompiledSQL",
+          `Unable to compile sql for model ${m.uniqueId}`,
+          e,
+          true,
+        );
+      }
+    }
+    return result;
+  }
+
+  async getBulkSchemaFromDB(
     nodes: DBTNode[],
     cancellationToken: CancellationToken,
   ): Promise<Record<string, DBColumn[]>> {
+    if (nodes.length === 0) {
+      return {};
+    }
     const result: Record<string, DBColumn[]> = {};
     for (const n of nodes) {
       if (cancellationToken.isCancellationRequested) {
@@ -908,6 +1005,24 @@ export class DBTCoreProjectIntegration
       }
     }
     return result;
+  }
+
+  async validateWhetherSqlHasColumns(
+    sql: string,
+    dialect: string,
+  ): Promise<boolean> {
+    this.throwBridgeErrorIfAvailable();
+    return this.python?.lock<boolean>(
+      (python) =>
+        python!`to_dict(validate_whether_sql_has_columns(${sql}, ${dialect}))`,
+    );
+  }
+
+  async fetchSqlglotSchema(sql: string, dialect: string): Promise<string[]> {
+    this.throwBridgeErrorIfAvailable();
+    return this.python?.lock<string[]>(
+      (python) => python!`to_dict(fetch_schema_from_sql(${sql}, ${dialect}))`,
+    );
   }
 
   async getCatalog(): Promise<Catalog> {
@@ -990,7 +1105,13 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  private throwBridgeErrorIfAvailable() {
+  private async findProjectName(): Promise<string> {
+    return this.python?.lock<string>(
+      (python) => python!`to_dict(project.config.project_name)`,
+    );
+  }
+
+  protected throwBridgeErrorIfAvailable() {
     const allDiagnostics: DiagnosticCollection[] = [
       this.pythonBridgeDiagnostics,
       this.projectConfigDiagnostics,
@@ -999,9 +1120,11 @@ export class DBTCoreProjectIntegration
 
     for (const diagnosticCollection of allDiagnostics) {
       for (const [_, diagnostics] of diagnosticCollection) {
-        if (diagnostics.length > 0) {
-          const firstError = diagnostics[0];
-          throw new Error(firstError.message);
+        const error = diagnostics.find(
+          (diagnostic) => diagnostic.severity === DiagnosticSeverity.Error,
+        );
+        if (error) {
+          throw new Error(error.message);
         }
       }
     }
@@ -1070,7 +1193,7 @@ export class DBTCoreProjectIntegration
       await healthCheckThread.ex`from dbt_healthcheck import *`;
       const result = await healthCheckThread.lock<ProjectHealthcheck>(
         (python) =>
-          python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
+          python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}, ${this.altimateRequest.getAIKey()}, ${this.altimateRequest.getInstanceName()}, ${AltimateRequest.ALTIMATE_URL}))`,
       );
       return result;
     } finally {
@@ -1114,6 +1237,12 @@ export class DBTCoreProjectIntegration
       (python) =>
         python!`project.set_defer_config(${deferToProduction}, ${manifestPath}, ${favorState})`,
     );
+    await this.refreshProjectConfig();
+    await this.rebuildManifest();
+  }
+
+  async applySelectedTarget(): Promise<void> {
+    await this.refreshProjectConfig();
     await this.rebuildManifest();
   }
 

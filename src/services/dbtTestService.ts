@@ -1,18 +1,35 @@
-import { window } from "vscode";
+import { env, ProgressLocation, WebviewView, window } from "vscode";
 import {
   AltimateRequest,
   CreateDbtTestRequest,
   UserInputError,
 } from "../altimate";
-import { isColumnNameEqual, provideSingleton } from "../utils";
+import {
+  extendErrorWithSupportLinks,
+  getColumnNameByCase,
+  getColumnTestConfigFromYml,
+  isColumnNameEqual,
+  provideSingleton,
+  removeProtocol,
+} from "../utils";
 import { DocGenService } from "./docGenService";
 import { StreamingService } from "./streamingService";
 import { QueryManifestService } from "./queryManifestService";
 import path = require("path");
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { MacroMetaMap, TestMetaData } from "../domain";
+import {
+  MacroMetaMap,
+  TestMetaData,
+  TestMetadataAcceptedValues,
+  TestMetadataRelationships,
+} from "../domain";
 import { parse, stringify } from "yaml";
 import { readFileSync } from "fs";
+import { DBTProject } from "../manifest/dbtProject";
+import { getTestSuggestions } from "@lib";
+import { ExecuteSQLResult } from "../dbt_client/dbtIntegration";
+import { TelemetryService } from "../telemetry";
+import { TelemetryEvents } from "../telemetry/events";
 
 @provideSingleton(DbtTestService)
 export class DbtTestService {
@@ -22,14 +39,48 @@ export class DbtTestService {
     private altimateRequest: AltimateRequest,
     private queryManifestService: QueryManifestService,
     private dbtTerminal: DBTTerminal,
+    private telemetryService: TelemetryService,
   ) {}
 
+  // Remove duplicate tests from tests array
+  public removeDuplicateTests(
+    tests: (
+      | string
+      | TestMetadataAcceptedValues
+      | TestMetadataRelationships
+      | {
+          [x: string]: any;
+        }
+      | null
+    )[],
+  ) {
+    const seen = new Set();
+    return tests.filter((item) => {
+      const stringified = JSON.stringify(item);
+      if (seen.has(stringified)) {
+        return false;
+      }
+      seen.add(stringified);
+      return true;
+    });
+  }
+
+  private returnTestMetadataFromKwargs(test: TestMetaData) {
+    // If this is new test added in doc editor webview panel and not saved yet, return the config from kwargs
+    if (test.test_metadata?.kwargs) {
+      const { model, ...rest } = test.test_metadata.kwargs;
+      if (Object.keys(rest).length > 0) {
+        return stringify(rest);
+      }
+    }
+  }
+
   private filterAndStringifyTest = (
-    tests: Record<string, Record<string, unknown>>[],
+    testsPerColumnOrModelFromYml: Record<string, Record<string, unknown>>[],
     test: TestMetaData,
   ) => {
-    if (!tests?.length) {
-      return;
+    if (!testsPerColumnOrModelFromYml?.length) {
+      return this.returnTestMetadataFromKwargs(test);
     }
 
     // Ignore these generic fields, as we handle these fields differently in UI
@@ -41,25 +92,25 @@ export class DbtTestService {
     const { name, namespace } = test.test_metadata;
     const fullName = namespace ? `${namespace}.${name}` : name;
 
-    const selectedTest = tests.find(
-      (t: Record<string, Record<string, unknown>>) => {
-        return Boolean(t[fullName]);
-      },
+    const existingConfig = getColumnTestConfigFromYml(
+      testsPerColumnOrModelFromYml,
+      test.test_metadata.kwargs,
+      fullName,
     );
 
-    if (!selectedTest) {
+    if (!existingConfig) {
       this.dbtTerminal.debug("getDbtTestCode", "no test available in yml");
-      return;
+      return this.returnTestMetadataFromKwargs(test);
     }
 
     this.dbtTerminal.debug(
       "getDbtTestCode",
-      "sending selected test from yml",
-      selectedTest,
+      "sending selected config from yml",
+      existingConfig,
     );
 
     // Remove fields which are already handled in UI
-    const filteredConfig = Object.entries(selectedTest[fullName]).reduce(
+    const filteredConfig = Object.entries(existingConfig).reduce(
       (acc: Record<string, unknown>, [key, value]) => {
         if (ignoredFields.includes(key)) {
           return acc;
@@ -94,7 +145,7 @@ export class DbtTestService {
     const {
       event: { nodeMetaMap },
     } = eventResult;
-    const node = nodeMetaMap.get(modelName);
+    const node = nodeMetaMap.lookupByBaseName(modelName);
     if (!node) {
       return;
     }
@@ -104,7 +155,7 @@ export class DbtTestService {
     }
 
     const patchPath = node?.patch_path?.includes("://")
-      ? path.join(project.projectRoot.fsPath, node.patch_path.split("://")[1])
+      ? path.join(project.projectRoot.fsPath, removeProtocol(node.patch_path))
       : node.patch_path;
 
     if (!patchPath) {
@@ -217,7 +268,7 @@ export class DbtTestService {
     }
 
     const adapter = dbtProject.getAdapterType();
-    const { documentation } = await this.docGenService.getDocumentation(
+    const { documentation } = await this.docGenService.getCompiledDocumentation(
       params.filePath,
     );
     if (!documentation) {
@@ -256,20 +307,35 @@ export class DbtTestService {
     if (!project) {
       return undefined;
     }
+
+    const { currentDocument } = eventResult;
+    const modelName = path.basename(currentDocument.uri.fsPath, ".sql");
+    return this.getTestsForModel(modelName);
+  }
+
+  public async getTestsForModel(modelName: string) {
+    const eventResult = this.queryManifestService.getEventByCurrentProject();
+    if (!eventResult?.event || !eventResult?.currentDocument) {
+      return undefined;
+    }
+
+    const project = this.queryManifestService.getProject();
+    if (!project) {
+      return undefined;
+    }
     const projectName = project.getProjectName();
 
     const {
       event: { nodeMetaMap, graphMetaMap, testMetaMap, macroMetaMap },
-      currentDocument,
     } = eventResult;
-    const modelName = path.basename(currentDocument.uri.fsPath, ".sql");
+
     this.dbtTerminal.debug(
       "dbtTests",
       "getting tests by modelName:",
       false,
       modelName,
     );
-    const _node = nodeMetaMap.get(modelName);
+    const _node = nodeMetaMap.lookupByBaseName(modelName);
     if (!_node) {
       this.dbtTerminal.debug("no node for tableName:", modelName);
       return;
@@ -314,5 +380,85 @@ export class DbtTestService {
         };
       })
       .filter((t) => Boolean(t));
+  }
+
+  public async generateTestsForColumns(
+    project: DBTProject,
+    panel: WebviewView | undefined,
+  ) {
+    if (!this.altimateRequest.handlePreviewFeatures()) {
+      return;
+    }
+    return await window.withProgress(
+      {
+        title: "Generating tests...",
+        location: ProgressLocation.Notification,
+        cancellable: false,
+      },
+      async () => {
+        try {
+          this.telemetryService.startTelemetryEvent(
+            TelemetryEvents["DocumentationEditor/BulkGenerateTests"],
+          );
+
+          const currentFilePath = window.activeTextEditor?.document.uri;
+          if (!currentFilePath) {
+            return;
+          }
+          const modelName = path.basename(currentFilePath.fsPath, ".sql");
+
+          const columnsInRelation = await project.getColumnsOfModel(modelName);
+          const testSuggestions = await getTestSuggestions({
+            adapter: project.getAdapterType(),
+            columnsInRelation,
+            tableRelation: modelName,
+            dbtConfig: {},
+            queryFn: async (query: string) => {
+              const result = (await project.executeSQL(
+                query,
+                modelName,
+                true,
+                true,
+              )) as ExecuteSQLResult;
+              return result;
+            },
+          });
+
+          this.telemetryService.endTelemetryEvent(
+            TelemetryEvents["DocumentationEditor/BulkGenerateTests"],
+          );
+          if (!testSuggestions) {
+            return;
+          }
+
+          this.dbtTerminal.debug(
+            "docsEditPanel:generateTestsForColumns",
+            "testSuggestions",
+            testSuggestions,
+          );
+          const testSuggestionsForModel = testSuggestions?.models[0];
+
+          const sessionID = `${
+            env.sessionId
+          }-${modelName}-numColumns-${testSuggestionsForModel?.columns.length}-${Date.now()}`;
+
+          await this.altimateRequest.trackBulkTestGen(sessionID);
+          return testSuggestionsForModel;
+        } catch (error) {
+          this.telemetryService.endTelemetryEvent(
+            TelemetryEvents["DocumentationEditor/BulkGenerateTests"],
+            error,
+          );
+          this.dbtTerminal.error(
+            "docsEditPanel:generateTestsForColumns",
+            "error",
+            error,
+          );
+          window.showErrorMessage(
+            extendErrorWithSupportLinks((error as Error).message),
+          );
+        }
+      },
+    );
   }
 }

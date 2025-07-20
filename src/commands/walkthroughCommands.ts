@@ -21,6 +21,7 @@ enum PromptAnswer {
 enum DbtInstallationPromptAnswer {
   INSTALL = "Install dbt core",
   INSTALL_CLOUD = "Install dbt cloud",
+  INSTALL_FUSION = "Install dbt fusion",
 }
 
 @provideSingleton(WalkthroughCommands)
@@ -128,14 +129,80 @@ export class WalkthroughCommands {
   }
 
   async installDbt(): Promise<void> {
-    if (
-      workspace
-        .getConfiguration("dbt")
-        .get<string>("dbtIntegration", "core") === "cloud"
-    ) {
-      this.installDbtCloud();
-    } else {
-      this.installDbtCore();
+    const dbtIntegration = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+    switch (dbtIntegration) {
+      case "core":
+        return this.installDbtCore();
+      case "fusion":
+        return this.installDbtFusion();
+      case "cloud":
+        return this.installDbtCloud();
+      default:
+        throw new Error(
+          `Unsupported dbt integration: ${dbtIntegration}. Supported values are 'core', 'cloud', 'fusion'.`,
+        );
+    }
+  }
+
+  private async installDbtFusion(): Promise<void> {
+    let error = undefined;
+    await window.withProgress(
+      {
+        title: `Installing dbt fusion...`,
+        location: ProgressLocation.Notification,
+        cancellable: false,
+      },
+      async () => {
+        try {
+          const platform = process.platform;
+          let command: string;
+          let args: string[];
+
+          if (platform === "darwin" || platform === "linux") {
+            command = "sh";
+            args = [
+              "-c",
+              "curl -fsSL https://public.cdn.getdbt.com/fs/install/install.sh | sh -s -- --update",
+            ];
+          } else if (platform === "win32") {
+            command = "powershell";
+            args = [
+              "-Command",
+              "irm https://public.cdn.getdbt.com/fs/install/install.ps1 | iex",
+            ];
+          } else {
+            throw new Error(
+              `Unsupported platform: ${platform}, only MacOS, Linux and Windows are supported for dbt fusion installation`,
+            );
+          }
+
+          await this.commandProcessExecutionFactory
+            .createCommandProcessExecution({
+              command,
+              args,
+              cwd: getFirstWorkspacePath(),
+              envVars: this.pythonEnvironment.environmentVariables,
+            })
+            .completeWithTerminalOutput();
+
+          // Initialize after installation
+          await this.dbtProjectContainer.detectDBT();
+          this.dbtProjectContainer.initialize();
+        } catch (err) {
+          error = err;
+        }
+      },
+    );
+    if (error) {
+      const answer = await window.showErrorMessage(
+        "Could not install dbt fusion: " + (error as Error).message,
+        DbtInstallationPromptAnswer.INSTALL_FUSION,
+      );
+      if (answer === DbtInstallationPromptAnswer.INSTALL_FUSION) {
+        commands.executeCommand("dbtPowerUser.installDbt");
+      }
     }
   }
 
@@ -191,11 +258,20 @@ export class WalkthroughCommands {
 
   private async installDbtCore(): Promise<void> {
     const dbtVersion: QuickPickItem | undefined = await window.showQuickPick(
-      ["1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8"].map(
-        (value) => ({
-          label: value,
-        }),
-      ),
+      [
+        "1.0",
+        "1.1",
+        "1.2",
+        "1.3",
+        "1.4",
+        "1.5",
+        "1.6",
+        "1.7",
+        "1.8",
+        "1.9",
+      ].map((value) => ({
+        label: value,
+      })),
       {
         title: "Select your dbt version",
         canPickMany: false,

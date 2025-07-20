@@ -3,14 +3,8 @@ import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { provideSingleton } from "../utils";
 import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
 import { existsSync } from "fs";
-import { DBTCoreDetection } from "./dbtCoreIntegration";
-import { DBTCloudDetection } from "./dbtCloudIntegration";
 import { DBTDetection } from "./dbtIntegration";
-
-enum DbtInstallationPromptAnswer {
-  INSTALL = "Install dbt core",
-  INSTALL_CLOUD = "Install dbt Cloud",
-}
+import { inject } from "inversify";
 
 enum PythonInterpreterPromptAnswer {
   SELECT = "Select Python interpreter",
@@ -34,27 +28,11 @@ export class DBTClient implements Disposable {
     this._onDBTInstallationVerificationEvent,
   ];
   private shownError = false;
-  private dbtIntegrationMode = "core";
-  private dbtDetection: DBTDetection;
-
   constructor(
     private pythonEnvironment: PythonEnvironment,
-    private dbtCoreDetection: DBTCoreDetection,
-    private dbtCloudDetection: DBTCloudDetection,
-  ) {
-    this.dbtIntegrationMode = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
-
-    switch (this.dbtIntegrationMode) {
-      case "cloud":
-        this.dbtDetection = this.dbtCloudDetection;
-        break;
-      default:
-        this.dbtDetection = this.dbtCoreDetection;
-        break;
-    }
-  }
+    @inject("Factory<DBTDetection>")
+    private dbtDetectionFactory: () => DBTDetection,
+  ) {}
 
   dispose() {
     while (this.disposables.length) {
@@ -82,7 +60,7 @@ export class DBTClient implements Disposable {
     this.shownError = false;
     this._dbtInstalled = undefined;
     this._pythonInstalled = this.pythonPathExists();
-    this._dbtInstalled = await this.dbtDetection.detectDBT();
+    this._dbtInstalled = await this.dbtDetectionFactory().detectDBT();
     this._onDBTInstallationVerificationEvent.fire({
       inProgress: false,
       installed: this._dbtInstalled,
@@ -112,22 +90,29 @@ export class DBTClient implements Disposable {
       }
       return false;
     }
+    if (!this.pythonEnvironment.isPython3) {
+      const answer = await window.showErrorMessage(
+        "Only Python 3 is supported by dbt, please select a Python 3 interpreter",
+        PythonInterpreterPromptAnswer.SELECT,
+      );
+      if (answer === PythonInterpreterPromptAnswer.SELECT) {
+        commands.executeCommand("python.setInterpreter");
+      }
+      return false;
+    }
     return this.showErrorIfDbtIsNotInstalled();
   }
 
   private async executeInstallDbtCommand(message: string, option: string) {
-    const dbtIntegration = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
     const answer = await window.showErrorMessage(
       message,
       option,
-      dbtIntegration === "cloud" ? "Switch to dbt core" : "Switch to dbt cloud",
+      "Change dbt flavour",
     );
     if (answer === option) {
       commands.executeCommand("dbtPowerUser.installDbt");
     }
-    if (answer?.includes("Switch")) {
+    if (answer?.includes("Change")) {
       commands.executeCommand("dbtPowerUser.switchDbtIntegration");
     }
   }
@@ -137,16 +122,33 @@ export class DBTClient implements Disposable {
       if (!this.shownError) {
         // We don't want to flood the user with errors
         this.shownError = true;
-        if (this.dbtIntegrationMode === "cloud") {
-          await this.executeInstallDbtCommand(
-            "Please ensure dbt cloud cli is installed.",
-            DbtInstallationPromptAnswer.INSTALL_CLOUD,
-          );
-        } else {
-          await this.executeInstallDbtCommand(
-            "Please ensure dbt is installed.",
-            DbtInstallationPromptAnswer.INSTALL,
-          );
+        const dbtIntegrationMode = workspace
+          .getConfiguration("dbt")
+          .get<string>("dbtIntegration", "core");
+        switch (dbtIntegrationMode) {
+          case "fusion":
+            await this.executeInstallDbtCommand(
+              "Please ensure dbt fusion cli is installed.",
+              "Install dbt fusion",
+            );
+            break;
+          case "core":
+            await this.executeInstallDbtCommand(
+              "Please ensure dbt core cli is installed.",
+              "Install dbt core",
+            );
+            break;
+          case "cloud":
+            await this.executeInstallDbtCommand(
+              "Please ensure dbt cloud cli is installed.",
+              "Install dbt cloud",
+            );
+            break;
+          default:
+            window.showErrorMessage(
+              `Unknown dbt integration mode: ${dbtIntegrationMode}. Supported modes are: core, cloud, fusion.`,
+            );
+            break;
         }
       }
       return false;

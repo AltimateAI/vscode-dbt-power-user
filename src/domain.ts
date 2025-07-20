@@ -1,6 +1,5 @@
 import * as path from "path";
 
-export type NodeMetaMap = Map<string, NodeMetaData>;
 export type MacroMetaMap = Map<string, MacroMetaData>;
 export type MetricMetaMap = Map<string, MetricMetaData>;
 export type SourceMetaMap = Map<string, SourceMetaData>;
@@ -9,6 +8,12 @@ export type ExposureMetaMap = Map<string, ExposureMetaData>;
 export type DocMetaMap = Map<string, DocMetaData>;
 export type NodeMetaType = NodeMetaData;
 export type SourceMetaType = SourceTable;
+
+export interface NodeMetaMap {
+  lookupByBaseName(modelBaseName: string): NodeMetaData | undefined;
+  lookupByUniqueId(uniqueId: string): NodeMetaData | undefined;
+  nodes(): Iterable<NodeMetaData>;
+}
 
 export interface MacroMetaData {
   path: string | undefined; // in dbt cloud, packages are not downloaded locally
@@ -40,12 +45,15 @@ export interface NodeMetaData {
   resource_type: string;
   depends_on: DependsOn;
   is_external_project: boolean;
+  compiled_path: string;
+  meta: any;
 }
 
 export interface ColumnMetaData {
   name: string;
   description: string;
   data_type: string;
+  meta: any;
 }
 
 interface Config {
@@ -60,6 +68,7 @@ export interface SourceMetaData {
   tables: SourceTable[];
   package_name: string;
   is_external_project: boolean;
+  meta: any;
 }
 
 export interface SourceTable {

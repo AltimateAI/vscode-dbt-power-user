@@ -53,7 +53,7 @@ export class DbtSQLAction {
                 ),
               ),
             },
-            "Explain the sql query (Preview feature)",
+            "Explain the sql query",
             "dbtPowerUser.summarizeQuery",
           ),
           new SQLActionItem(
@@ -72,8 +72,14 @@ export class DbtSQLAction {
                 ),
               ),
             },
-            "Convert sql to dbt model (Preview feature)",
+            "Convert sql to dbt model",
             "dbtPowerUser.sqlToModel",
+          ),
+          new SQLActionItem(
+            "Visualize SQL",
+            new ThemeIcon("preview"),
+            "Visualize the sql query",
+            "dbtPowerUser.sqlLineage",
           ),
         ];
 

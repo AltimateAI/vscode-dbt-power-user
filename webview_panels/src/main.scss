@@ -7,7 +7,8 @@ html {
   font-size: var(--vscode-font-size, 13px);
 }
 
-body {
+body,
+body.vscode-high-contrast-light {
   --primary-color: #{variables.$primaryColor};
   --text-color--title: #171717;
   --text-color--paragraph: #4a4d51;
@@ -42,9 +43,11 @@ body {
   --gray--gray-02: #3a3d41;
   --gray--blue--gray-01: #082247;
   --gray--blue--gray-02: #374c6a;
+  --background-orange: #32240c;
 }
 
-body.vscode-dark {
+body.vscode-dark,
+body.vscode-high-contrast:not(.vscode-high-contrast-light) {
   --primary-color: #247efe;
   --text-color--title: #e8e8e8;
   --text-color--paragraph: #c4cad2;
@@ -78,11 +81,12 @@ body.vscode-dark {
   --gray--gray-02: #3a3d41;
   --gray--blue--gray-01: #082247;
   --gray--blue--gray-02: #374c6a;
+  --background-orange: #32240c;
 }
 
 body {
   color: var(--text-color--title);
-  background: var(--background--base);
+  background: var(--vscode-panel-background);
   padding: var(--spacing-3xl) var(--spacing-2xl) !important;
   line-height: 160%;
 }
@@ -163,4 +167,14 @@ code {
   text-overflow: ellipsis;
   overflow-x: hidden;
   white-space: nowrap;
+}
+
+.new-feature{
+  background: rgb(255, 105, 74);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  position: absolute;
+  top: -4px;
+  right: -4px;
 }

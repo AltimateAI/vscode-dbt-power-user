@@ -59,6 +59,7 @@ export class ConversationProvider implements Disposable {
   private disposables: Disposable[] = [];
   private commentController;
   private timer: NodeJS.Timeout | undefined;
+  private isPolling: boolean = false;
   // record of share id with conv group
   // used to identify deleted records during polling
   // can be removed in future if we get right events like delete, add etc.,
@@ -143,6 +144,7 @@ export class ConversationProvider implements Disposable {
     this.timer = setTimeout(() => {
       this.loadThreads();
     }, pollingInterval * 1000);
+    this.isPolling = true;
   }
 
   private async loadThreads() {
@@ -151,7 +153,9 @@ export class ConversationProvider implements Disposable {
       "loading threads",
     );
     const shares = await this.conversationService.loadSharedDocs();
-    this.setupPolling();
+    if (shares && shares.length && !this.isPolling) {
+      this.setupPolling();
+    }
 
     if (!shares?.length) {
       this.dbtTerminal.debug(
@@ -242,10 +246,10 @@ export class ConversationProvider implements Disposable {
           (this.commentController!.createCommentThread(
             uri,
             new Range(
-              conversationGroup.meta.range.start.line,
-              conversationGroup.meta.range.start.character,
-              conversationGroup.meta.range.end.line,
-              conversationGroup.meta.range.end.character,
+              conversationGroup.meta.range?.start.line || 0,
+              conversationGroup.meta.range?.start.character || 0,
+              conversationGroup.meta.range?.end.line || 0,
+              conversationGroup.meta.range?.end.character || 0,
             ),
             [],
           ) as ConversationCommentThread);
@@ -430,7 +434,7 @@ export class ConversationProvider implements Disposable {
       return;
     }
 
-    const currentNode = event.nodeMetaMap.get(resourceName);
+    const currentNode = event.nodeMetaMap.lookupByBaseName(resourceName);
     // For model
     if (currentNode) {
       return {
@@ -466,7 +470,7 @@ export class ConversationProvider implements Disposable {
     message: string,
     uri: Uri,
     extraMeta: Record<string, unknown> = {},
-    range: Range,
+    range: Range | undefined,
     source: "vscode" | "documentation-editor" = "vscode",
   ) {
     this.telemetry.sendTelemetryEvent("dbtCollaboration:create", {
@@ -487,7 +491,7 @@ export class ConversationProvider implements Disposable {
     const highlight =
       rest.field === "description"
         ? (value as string)
-        : (range.isSingleLine
+        : (range?.isSingleLine
             ? editor?.document.lineAt(range.start.line).text
             : editor?.document.getText(range)) || "";
 
@@ -498,10 +502,12 @@ export class ConversationProvider implements Disposable {
       uniqueId: nodeMeta?.uniqueId,
       filePath: path.relative(project?.projectRoot.fsPath || "", uri.fsPath),
       resource_type: nodeMeta?.resource_type,
-      range: {
-        end: range.end,
-        start: range.start,
-      },
+      range: range
+        ? {
+            end: range.end,
+            start: range.start,
+          }
+        : undefined,
     };
     let shareName = "Discussion on ";
     if (nodeMeta?.uniqueId) {
@@ -611,6 +617,10 @@ export class ConversationProvider implements Disposable {
           `Unable to save your comment. ${(error as Error).message}`,
         ),
       );
+    } finally {
+      if (!this.isPolling) {
+        this.setupPolling();
+      }
     }
   }
 

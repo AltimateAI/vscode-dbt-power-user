@@ -1,4 +1,5 @@
-:global .vscode-dark {
+:global .vscode-dark,
+:global .vscode-high-contrast:not(.vscode-high-contrast-light) {
 .altimate-select {
   [class*="-control"]{
     border-color: transparent;

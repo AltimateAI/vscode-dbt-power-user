@@ -10,6 +10,7 @@ import { QueryAnalysisCommands } from "./commands";
 import { AltimateIcon } from "@assets/icons";
 import { QueryAnalysisType } from "./types";
 import { useMemo } from "react";
+import classes from "../../datapilot.module.scss";
 
 const QUERY_HAPPY_LIMIT = 10;
 const DefaultActions = [
@@ -52,7 +53,7 @@ const QueryAnalysis = (): JSX.Element | null => {
     <Stack direction="column">
       <DatapilotHeader />
 
-      <CodeBlock code={chat.query} language="sql" fileName={chat.fileName} />
+      <CodeBlock code={chat.query} language="sql" fileName={chat.fileName} classname={classes.codeblock}/>
       {showLineLimitWarning ? (
         <Card>
           <CardTitle>

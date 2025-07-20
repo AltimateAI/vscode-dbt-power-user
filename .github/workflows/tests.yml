@@ -1,0 +1,71 @@
+name: Tests
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: ["*"]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            webview_panels/package-lock.json
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run install:panels
+      - name: Compile
+        run: npm run compile
+
+      - name: Install xvfb
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+      - name: Run tests (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          xvfb-run --auto-servernum npm run compile && xvfb-run --auto-servernum npm run test:coverage
+      - name: Run tests (macOS/Windows)
+        if: runner.os != 'Linux'
+        run: |
+          npm run compile && npm run test:coverage
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: test-results/
+
+      - name: Upload coverage results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.os }}
+          path: |
+            coverage/
+            .nyc_output/
+            *.lcov
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./coverage/
+          flags: unittests
+          name: codecov-${{ matrix.os }}
+          fail_ci_if_error: false

@@ -5,9 +5,12 @@ import {
   DocsGenerateUserInstructions,
   DocumentationStateProps,
   MetadataColumn,
-  Pages,
 } from "./types";
-import { mergeCurrentAndIncomingDocumentationColumns } from "../utils";
+import {
+  isStateDirty,
+  mergeCurrentAndIncomingDocumentationColumns,
+} from "../utils";
+import { Citation } from "@lib";
 
 export const initialState = {
   incomingDocsData: undefined,
@@ -15,25 +18,34 @@ export const initialState = {
   currentDocsTests: undefined,
   project: undefined,
   generationHistory: [],
-  isDocGeneratedForAnyColumn: false,
-  isTestUpdatedForAnyColumn: false,
   insertedEntityName: undefined,
+  docUpdatedForModel: undefined,
+  docUpdatedForColumns: [],
   userInstructions: {
     language: undefined,
     persona: undefined,
     prompt_hint: undefined,
   },
-  selectedPages: [Pages.DOCUMENTATION],
   conversations: {},
   showConversationsRightPanel: false,
   collaborationEnabled: false,
   missingDocumentationMessage: undefined,
+  searchQuery: "",
+  showSingleDocsPropRightPanel: false,
+  showBulkDocsPropRightPanel: false,
+  docBlocks: [],
 } as DocumentationStateProps;
 
 const documentationSlice = createSlice({
   name: "documentationState",
   initialState,
   reducers: {
+    setSearchQuery: (
+      state,
+      action: PayloadAction<DocumentationStateProps["searchQuery"]>,
+    ) => {
+      state.searchQuery = action.payload;
+    },
     updatConversations: (
       state,
       { payload }: PayloadAction<DocumentationStateProps["conversations"]>,
@@ -41,9 +53,6 @@ const documentationSlice = createSlice({
       Object.entries(payload).forEach(([shareId, conversationGroups]) => {
         state.conversations[parseInt(shareId)] = conversationGroups;
       });
-    },
-    addToSelectedPage: (state, action: PayloadAction<Pages>) => {
-      state.selectedPages.push(action.payload);
     },
     setMissingDocumentationMessage: (
       state,
@@ -61,6 +70,22 @@ const documentationSlice = createSlice({
     ) => {
       state.showConversationsRightPanel = action.payload;
     },
+    updateSingleDocsPropRightPanel: (
+      state,
+      action: PayloadAction<
+        DocumentationStateProps["showSingleDocsPropRightPanel"]
+      >,
+    ) => {
+      state.showSingleDocsPropRightPanel = action.payload;
+    },
+    updateBulkDocsPropRightPanel: (
+      state,
+      action: PayloadAction<
+        DocumentationStateProps["showBulkDocsPropRightPanel"]
+      >,
+    ) => {
+      state.showBulkDocsPropRightPanel = action.payload;
+    },
     updateCollaborationEnabled: (
       state,
       action: PayloadAction<DocumentationStateProps["collaborationEnabled"]>,
@@ -75,19 +100,18 @@ const documentationSlice = createSlice({
     ) => {
       state.selectedConversationGroup = action.payload;
     },
-    removeFromSelectedPage: (state, action: PayloadAction<Pages>) => {
-      if (state.selectedPages.length === 1) {
-        return;
-      }
-      state.selectedPages = state.selectedPages.filter(
-        (p) => p !== action.payload,
-      );
-    },
     setProject: (
       state,
       action: PayloadAction<DocumentationStateProps["project"]>,
     ) => {
       state.project = action.payload;
+      state.docBlocks = [];
+    },
+    setDocBlocks: (
+      state,
+      action: PayloadAction<DocumentationStateProps["docBlocks"]>,
+    ) => {
+      state.docBlocks = action.payload;
     },
     updateCurrentDocsTests: (
       state,
@@ -105,22 +129,15 @@ const documentationSlice = createSlice({
       state,
       action: PayloadAction<DocumentationStateProps["incomingDocsData"]>,
     ) => {
-      const isDifferentEntity =
-        action.payload?.docs?.uniqueId !== state.currentDocsData?.uniqueId;
-
-      // if current file is not changed, then keep the current changes
-      if (!isDifferentEntity) {
-        return;
-      }
-
+      state.docBlocks = [];
       // if test/docs data is not changed, then update the state
-      const isCleanForm =
-        !state.isDocGeneratedForAnyColumn && !state.isTestUpdatedForAnyColumn;
+      const isCleanForm = !isStateDirty(state);
 
       if (
         !state.currentDocsData || // if first load, currentDocsData will be undefined
         isCleanForm
       ) {
+        state.incomingDocsData = action.payload ?? {};
         state.currentDocsData = action.payload?.docs;
         state.currentDocsTests = action.payload?.tests;
         return;
@@ -137,10 +154,11 @@ const documentationSlice = createSlice({
         (Partial<DBTDocumentation> & { isNewGeneration?: boolean }) | undefined
       >,
     ) => {
-      state.incomingDocsData = undefined;
       // incase of yml files, incoming docs data will be {}, so checking for keys length as well
       if (!action.payload || !Object.keys(action.payload).length) {
         state.currentDocsData = undefined;
+        state.docUpdatedForColumns = [];
+        state.docUpdatedForModel = undefined;
         return;
       }
       if (!action.payload.name) {
@@ -158,14 +176,22 @@ const documentationSlice = createSlice({
         action.payload.name &&
         state.currentDocsData?.name !== action.payload.name
       ) {
+        state.docUpdatedForModel = undefined;
+        state.docUpdatedForColumns = [];
         // @ts-expect-error TODO fix this type
         state.currentDocsData = action.payload;
         return;
       }
-      state.currentDocsData = { ...state.currentDocsData, ...action.payload };
-      if (action.payload.isNewGeneration !== undefined) {
-        state.isDocGeneratedForAnyColumn = action.payload.isNewGeneration;
+
+      // If description is changed, then show coaching
+      if (
+        state.currentDocsData?.name === action.payload.name &&
+        state.currentDocsData.description !== action.payload.description
+      ) {
+        state.docUpdatedForModel = action.payload.name;
       }
+
+      state.currentDocsData = { ...state.currentDocsData, ...action.payload };
     },
     updateColumnsAfterSync: (
       state,
@@ -184,23 +210,33 @@ const documentationSlice = createSlice({
           state.currentDocsData.columns,
           columns,
         );
-      state.isDocGeneratedForAnyColumn = true;
     },
     updateColumnsInCurrentDocsData: (
       state,
       {
-        payload: { columns, isNewGeneration },
+        payload: { columns },
       }: PayloadAction<{
         columns: Partial<
           MetadataColumn & {
             description?: string;
+            citations?: Citation[];
           }
         >[];
         isNewGeneration?: boolean;
       }>,
     ) => {
       if (!state.currentDocsData) {
+        state.docUpdatedForColumns = [];
         return;
+      }
+      const modifiedColumns = columns
+        ?.map((column) => column.name)
+        .filter(Boolean) as string[];
+      if (modifiedColumns) {
+        state.docUpdatedForColumns = [
+          ...state.docUpdatedForColumns,
+          ...modifiedColumns,
+        ];
       }
       state.currentDocsData.columns = state.currentDocsData.columns.map((c) => {
         const updatedColumn = columns.find((column) => c.name === column.name);
@@ -209,9 +245,6 @@ const documentationSlice = createSlice({
         }
         return c;
       });
-      if (isNewGeneration !== undefined) {
-        state.isDocGeneratedForAnyColumn = isNewGeneration;
-      }
     },
     addToGenerationsHistory: (
       state,
@@ -226,12 +259,6 @@ const documentationSlice = createSlice({
       action: PayloadAction<GenerationDBDataProps[]>,
     ) => {
       state.generationHistory = action.payload;
-    },
-    setIsDocGeneratedForAnyColumn: (state, action: PayloadAction<boolean>) => {
-      state.isDocGeneratedForAnyColumn = action.payload;
-    },
-    setIsTestUpdatedForAnyColumn: (state, action: PayloadAction<boolean>) => {
-      state.isTestUpdatedForAnyColumn = action.payload;
     },
     resetGenerationsHistory: (state, _action: PayloadAction<undefined>) => {
       state.generationHistory = [];
@@ -251,20 +278,20 @@ export const {
   updateColumnsInCurrentDocsData,
   updateColumnsAfterSync,
   setProject,
+  setDocBlocks,
   addToGenerationsHistory,
   resetGenerationsHistory,
   setGenerationsHistory,
   updateUserInstructions,
-  setIsDocGeneratedForAnyColumn,
-  setIsTestUpdatedForAnyColumn,
   setInsertedEntityName,
   updateCurrentDocsTests,
-  addToSelectedPage,
-  removeFromSelectedPage,
   updatConversations,
   updateConversationsRightPanelState,
   updateSelectedConversationGroup,
   updateCollaborationEnabled,
   setMissingDocumentationMessage,
+  setSearchQuery,
+  updateSingleDocsPropRightPanel,
+  updateBulkDocsPropRightPanel,
 } = documentationSlice.actions;
 export default documentationSlice;

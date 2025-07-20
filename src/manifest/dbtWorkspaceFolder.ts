@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "fs";
-import { inject } from "inversify";
+import { inject, postConstruct } from "inversify";
 import * as path from "path";
 import {
   Diagnostic,
@@ -22,10 +22,9 @@ import {
 import { TelemetryService } from "../telemetry";
 import { YAMLError } from "yaml";
 import { ProjectRegisteredUnregisteredEvent } from "./dbtProjectContainer";
-import { DBTCoreProjectDetection } from "../dbt_client/dbtCoreIntegration";
-import { DBTCloudProjectDetection } from "../dbt_client/dbtCloudIntegration";
-import { DBTProjectDetection } from "../dbt_client/dbtIntegration";
+
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTProjectDetection } from "src/dbt_client/dbtIntegration";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
@@ -37,6 +36,7 @@ export class DBTWorkspaceFolder implements Disposable {
     new EventEmitter<RebuildManifestStatusChange>();
   readonly onRebuildManifestStatusChange =
     this._onRebuildManifestStatusChange.event;
+  private dbtProjectDetection: DBTProjectDetection | undefined;
 
   constructor(
     @inject("DBTProjectFactory")
@@ -45,8 +45,8 @@ export class DBTWorkspaceFolder implements Disposable {
       projectConfig: any,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
     ) => DBTProject,
-    private dbtCoreProjectDetection: DBTCoreProjectDetection,
-    private dbtCloudProjectDetection: DBTCloudProjectDetection,
+    @inject("Factory<DBTProjectDetection>")
+    private dbtProjectDetectionFactory: () => DBTProjectDetection,
     private telemetry: TelemetryService,
     private dbtTerminal: DBTTerminal,
     public workspaceFolder: WorkspaceFolder,
@@ -81,12 +81,55 @@ export class DBTWorkspaceFolder implements Disposable {
     return allowListFolders;
   }
 
+  private async retryWithBackoff<T>(
+    fn: () => Thenable<T>,
+    retries: number = 5,
+    backoff: number = 1000,
+  ): Promise<T> {
+    let attempt = 0;
+    while (attempt < retries) {
+      try {
+        const result = await fn();
+        if (Array.isArray(result) && result.length === 0) {
+          this.dbtTerminal.debug(
+            "discoverProjects",
+            "no projects found. retrying...",
+            false,
+          );
+          throw new Error("no projects found. retrying");
+        }
+        return result;
+      } catch (error) {
+        attempt++;
+        if (attempt >= retries) {
+          throw error;
+        }
+        await new Promise((resolve) => setTimeout(resolve, backoff * attempt));
+      }
+    }
+    this.dbtTerminal.debug(
+      "discoverProjects",
+      "no projects found after maximum retries",
+      false,
+    );
+    throw new Error("no projects found after maximum retries");
+  }
+
   async discoverProjects() {
-    const dbtProjectFiles = await workspace.findFiles(
-      new RelativePattern(
-        this.workspaceFolder,
-        `**/${DBTProject.DBT_PROJECT_FILE}`,
-      ),
+    // Ignore dbt_packages and venv/site-packages/dbt project folders
+    const excludePattern =
+      "**/{dbt_packages,site-packages,dbt_internal_packages}";
+    const dbtProjectFiles = await this.retryWithBackoff(
+      () =>
+        workspace.findFiles(
+          new RelativePattern(
+            this.workspaceFolder,
+            `**/${DBTProject.DBT_PROJECT_FILE}`,
+          ),
+          new RelativePattern(this.workspaceFolder, excludePattern),
+        ),
+      5,
+      1000,
     );
     this.dbtTerminal.info(
       "discoverProjects",
@@ -104,7 +147,7 @@ export class DBTWorkspaceFolder implements Disposable {
     );
 
     const projectDirectories = dbtProjectFiles
-      .filter((uri) => statSync(uri.fsPath).isFile())
+      .filter((uri) => existsSync(uri.fsPath) && statSync(uri.fsPath).isFile())
       .filter((uri) => this.notInVenv(uri.fsPath))
       .filter((uri) => {
         return (
@@ -131,18 +174,10 @@ export class DBTWorkspaceFolder implements Disposable {
       .getConfiguration("dbt")
       .get<string>("dbtIntegration", "core");
 
-    let dbtProjectDetection: DBTProjectDetection;
-    switch (dbtIntegrationMode) {
-      case "cloud":
-        dbtProjectDetection = this.dbtCloudProjectDetection;
-        break;
-      default:
-        dbtProjectDetection = this.dbtCoreProjectDetection;
-        break;
-    }
-
     const filteredProjects =
-      await dbtProjectDetection.discoverProjects(projectDirectories);
+      await this.dbtProjectDetectionFactory().discoverProjects(
+        projectDirectories,
+      );
 
     this.dbtTerminal.info(
       "discoverProjects",
@@ -264,6 +299,7 @@ export class DBTWorkspaceFolder implements Disposable {
     watcher.onDidCreate((uri) => {
       const allowListFolders = this.getAllowListFolders();
       if (
+        existsSync(uri.fsPath) &&
         statSync(uri.fsPath).isFile() &&
         this.notInVenv(uri.fsPath) &&
         this.notInDBtPackages(

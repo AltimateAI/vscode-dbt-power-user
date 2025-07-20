@@ -29,6 +29,7 @@ import {
   ValidateSqlParseErrorResponse,
 } from "../altimate";
 import { ProjectHealthcheck } from "./dbtCoreIntegration";
+import { NodeMetaData } from "../domain";
 
 interface DBTCommandExecution {
   command: (token?: CancellationToken) => Promise<void>;
@@ -168,7 +169,7 @@ export class PythonDBTCommandExecutionStrategy
   }
 
   private dbtCommand(args: string[]): string {
-    args = args.map((arg) => `r'${arg}'`);
+    args = args.map((arg) => `r"""${arg.replace(/"/g, '\\"')}"""`);
     const dbtCustomRunnerImport = workspace
       .getConfiguration("dbt")
       .get<string>(
@@ -176,9 +177,9 @@ export class PythonDBTCommandExecutionStrategy
         "from dbt.cli.main import dbtRunner",
       );
     return `has_dbt_runner = True
-try: 
+try:
     ${dbtCustomRunnerImport}
-except:
+except Exception:
     has_dbt_runner = False
 if has_dbt_runner:
     dbt_cli = dbtRunner()
@@ -198,6 +199,7 @@ export class DBTCommand {
     public logToTerminal: boolean = false,
     public executionStrategy?: DBTCommandExecutionStrategy,
     public token?: CancellationToken,
+    public downloadArtifacts: boolean = false,
   ) {}
 
   addArgument(arg: string) {
@@ -238,6 +240,7 @@ export interface ExecuteSQLResult {
   };
   raw_sql: string;
   compiled_sql: string;
+  modelName: string;
 }
 
 export class ExecuteSQLError extends Error {
@@ -271,7 +274,7 @@ export interface HealthcheckArgs {
   configPath?: string;
 }
 
-export interface DBTProjectDetection extends Disposable {
+export interface DBTProjectDetection {
   discoverProjects(projectConfigFiles: Uri[]): Promise<Uri[]>;
 }
 
@@ -322,6 +325,9 @@ export interface DBTProjectIntegration extends Disposable {
   initializeProject(): Promise<void>;
   // called when project configuration is changed
   refreshProjectConfig(): Promise<void>;
+  // Change target
+  setSelectedTarget(targetName: string): Promise<void>;
+  getTargetNames(): Promise<Array<string>>;
   // retrieve dbt configs
   getTargetPath(): string | undefined;
   getModelPaths(): string[] | undefined;
@@ -330,6 +336,8 @@ export interface DBTProjectIntegration extends Disposable {
   getPackageInstallPath(): string | undefined;
   getAdapterType(): string | undefined;
   getVersion(): number[] | undefined;
+  getProjectName(): string;
+  getSelectedTarget(): string | undefined;
   // parse manifest
   rebuildManifest(): Promise<void>;
   // execute queries
@@ -339,13 +347,14 @@ export interface DBTProjectIntegration extends Disposable {
     modelName: string,
   ): Promise<QueryExecution>;
   // dbt commands
-  runModel(command: DBTCommand): Promise<void>;
-  buildModel(command: DBTCommand): Promise<void>;
-  buildProject(command: DBTCommand): Promise<void>;
-  runTest(command: DBTCommand): Promise<void>;
-  runModelTest(command: DBTCommand): Promise<void>;
+  runModel(command: DBTCommand): Promise<CommandProcessResult | undefined>;
+  buildModel(command: DBTCommand): Promise<CommandProcessResult | undefined>;
+  buildProject(command: DBTCommand): Promise<CommandProcessResult | undefined>;
+  runTest(command: DBTCommand): Promise<CommandProcessResult | undefined>;
+  runModelTest(command: DBTCommand): Promise<CommandProcessResult | undefined>;
   compileModel(command: DBTCommand): Promise<void>;
   generateDocs(command: DBTCommand): Promise<void>;
+  clean(command: DBTCommand): Promise<string>;
   executeCommandImmediately(command: DBTCommand): Promise<CommandProcessResult>;
   deps(command: DBTCommand): Promise<string>;
   debug(command: DBTCommand): Promise<string>;
@@ -370,18 +379,23 @@ export interface DBTProjectIntegration extends Disposable {
   getColumnsOfModel(modelName: string): Promise<DBColumn[]>;
   getCatalog(): Promise<Catalog>;
   getDebounceForRebuildManifest(): number;
-  getBulkSchema(
+  getBulkSchemaFromDB(
     nodes: DBTNode[],
     cancellationToken: CancellationToken,
   ): Promise<Record<string, DBColumn[]>>;
+  getBulkCompiledSQL(models: NodeMetaData[]): Promise<Record<string, string>>;
+  validateWhetherSqlHasColumns(sql: string, dialect: string): Promise<boolean>;
+  fetchSqlglotSchema(sql: string, dialect: string): Promise<string[]>;
   findPackageVersion(packageName: string): string | undefined;
   performDatapilotHealthcheck(
     args: HealthcheckArgs,
   ): Promise<ProjectHealthcheck>;
   applyDeferConfig(): Promise<void>;
+  applySelectedTarget(): Promise<void>;
   getAllDiagnostic(): Diagnostic[];
   throwDiagnosticsErrorIfAvailable(): void;
   getPythonBridgeStatus(): boolean;
+  cleanupConnections(): Promise<void>;
 }
 
 @provide(DBTCommandExecutionInfrastructure)
@@ -445,7 +459,10 @@ export class DBTCommandExecutionInfrastructure {
     this.queues.set(queueName, []);
   }
 
-  async addCommandToQueue(queueName: string, command: DBTCommand) {
+  async addCommandToQueue(
+    queueName: string,
+    command: DBTCommand,
+  ): Promise<CommandProcessResult | undefined> {
     this.queues.get(queueName)!.push({
       command: async (token) => {
         await command.execute(token);
@@ -456,6 +473,7 @@ export class DBTCommandExecutionInfrastructure {
       showProgress: command.showProgress,
     });
     this.pickCommandToRun(queueName);
+    return undefined;
   }
 
   private async pickCommandToRun(queueName: string): Promise<void> {
@@ -639,8 +657,28 @@ export class DBTCommandFactory {
     );
   }
 
+  createCleanCommand(): DBTCommand {
+    return new DBTCommand(
+      "Cleaning dbt project...",
+      ["clean"],
+      true,
+      true,
+      true,
+    );
+  }
+
   createInstallDepsCommand(): DBTCommand {
     return new DBTCommand("Installing packages...", ["deps"], true, true, true);
+  }
+
+  createAddPackagesCommand(packages: string[]): DBTCommand {
+    return new DBTCommand(
+      "Installing packages...",
+      ["deps", "--add-package", ...packages],
+      true,
+      true,
+      true,
+    );
   }
 
   createDebugCommand(): DBTCommand {

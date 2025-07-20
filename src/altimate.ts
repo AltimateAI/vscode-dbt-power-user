@@ -1,6 +1,6 @@
+import type { RequestInit } from "node-fetch";
 import { CommentThread, env, Uri, window, workspace } from "vscode";
 import { provideSingleton, processStreamResponse } from "./utils";
-import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
 import { join } from "path";
@@ -10,6 +10,8 @@ import { RateLimitException, ExecutionsExhaustedException } from "./exceptions";
 import { DBTProject } from "./manifest/dbtProject";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
+import { PreconfiguredNotebookItem, NotebookItem, NotebookSchema } from "@lib";
+import * as vscode from "vscode";
 
 export class NoCredentialsError extends Error {}
 
@@ -44,31 +46,57 @@ export type ModelNode = {
   alias: string;
   uniqueId: string;
   columns: { [columnName: string]: ColumnMetaData };
+  path: string | undefined;
+};
+
+export type ModelInfo = {
+  model_node: ModelNode;
+  compiled_sql?: string;
+  raw_sql?: string;
 };
 
 export interface DBTColumnLineageRequest {
-  targets: { uniqueId: string; column_name: string }[];
   model_dialect: string;
-  model_info: {
-    model_node: ModelNode;
-    compiled_sql?: string;
-  }[];
-  schemas?: Schemas | null;
+  targets: { uniqueId: string; column_name: string }[];
+  model_info: ModelInfo[];
   upstream_expansion: boolean;
-  selected_column: {
-    model_node?: ModelNode;
-    column: string;
-  };
-  parent_models: {
-    model_node: ModelNode;
-  }[];
+  upstream_models: string[];
+  selected_column: { model_node?: ModelNode; column: string };
   session_id: string;
+  show_indirect_edges: boolean;
+  event_type: string;
 }
 
 export interface DBTColumnLineageResponse {
   column_lineage: ColumnLineage[];
   confidence?: { confidence: string; message?: string };
+  errors?: string[];
+  errors_dict?: Record<string, string[]>;
 }
+
+interface SQLLineageRequest {
+  model_dialect: string;
+  model_info: { model_node: ModelNode }[];
+  compiled_sql: string;
+  session_id: string;
+}
+
+export type SqlLineageDetails = Record<
+  string,
+  {
+    name: string;
+    type: string;
+    nodeType?: string;
+    nodeId?: string;
+    sql: string;
+    columns: { name: string; datatype?: string; expression?: string }[];
+  }
+>;
+type SqlLineageResponse = {
+  tableEdges: [string, string][];
+  details: SqlLineageDetails;
+  nodePositions?: Record<string, [number, number]>;
+};
 
 interface SQLToModelRequest {
   sql: string;
@@ -92,6 +120,24 @@ interface DBTProjectHealthConfigResponse {
 
 export interface SQLToModelResponse {
   sql: string;
+}
+
+interface NotebooksResponse {
+  notebooks: PreconfiguredNotebookItem[];
+}
+
+interface AddNotebookRequest {
+  name: string;
+  description: string;
+  tags_list: string[];
+  data?: NotebookSchema;
+}
+
+interface UpdateNotebookRequest {
+  name: string;
+  description?: string;
+  tags_list?: string[];
+  data?: NotebookSchema;
 }
 
 interface OnewayFeedback {
@@ -144,6 +190,17 @@ interface DbtModel {
   adapter?: string;
 }
 
+export interface QueryBookmark {
+  id: number;
+  compiled_sql: string;
+  raw_sql: string;
+  name: string;
+  adapter_type: string;
+  created_on: string;
+  updated_on: string;
+  tags: { id: number; tag: string }[];
+}
+
 export interface QueryAnalysisRequest {
   session_id: string;
   job_type: QueryAnalysisType;
@@ -181,8 +238,10 @@ export interface DocsGenerateResponse {
   column_descriptions?: {
     column_name: string;
     column_description: string;
+    column_citations?: { id: string; content: string }[];
   }[];
   model_description?: string;
+  model_citations?: { id: string; content: string }[];
 }
 
 export interface DBTCoreIntegration {
@@ -232,6 +291,11 @@ interface FeedbackResponse {
   ok: boolean;
 }
 
+interface BulkDocsPropRequest {
+  num_columns: number;
+  session_id: string;
+}
+
 interface AltimateConfig {
   key: string;
   instance: string;
@@ -267,17 +331,19 @@ export interface ConversationGroup {
     uniqueId?: string;
     filePath: string;
     resource_type?: string;
-    range: {
-      end: CommentThread["range"]["end"];
-      start: CommentThread["range"]["start"];
-    };
+    range:
+      | {
+          end: vscode.Range["end"];
+          start: vscode.Range["start"];
+        }
+      | undefined;
   };
   conversations: Conversation[];
 }
 
 @provideSingleton(AltimateRequest)
 export class AltimateRequest {
-  private static ALTIMATE_URL = workspace
+  public static ALTIMATE_URL = workspace
     .getConfiguration("dbt")
     .get<string>("altimateUrl", "https://api.myaltimate.com");
 
@@ -286,6 +352,11 @@ export class AltimateRequest {
     private dbtTerminal: DBTTerminal,
     private pythonEnvironment: PythonEnvironment,
   ) {}
+
+  private async internalFetch<T>(url: string, init?: RequestInit) {
+    const nodeFetch = (await import("node-fetch")).default;
+    return nodeFetch(url, init);
+  }
 
   getInstanceName() {
     return this.pythonEnvironment.getResolvedConfigValue(
@@ -362,7 +433,7 @@ export class AltimateRequest {
       abortController.abort();
     }, timeout);
     try {
-      const response = await fetch(url, {
+      const response = await this.internalFetch(url, {
         method: "POST",
         body: JSON.stringify(request),
         signal: abortController.signal,
@@ -463,7 +534,7 @@ export class AltimateRequest {
     const blob = (await this.readStreamToBlob(
       createReadStream(filePath),
     )) as Blob;
-    const response = await fetch(endpoint, {
+    const response = await this.internalFetch(endpoint, {
       ...fetchArgs,
       method: "PUT",
       body: blob,
@@ -539,7 +610,7 @@ export class AltimateRequest {
 
     try {
       const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
-      const response = await fetch(url, {
+      const response = await this.internalFetch(url, {
         method: "GET",
         ...fetchArgs,
         signal: abortController.signal,
@@ -589,8 +660,12 @@ export class AltimateRequest {
         status: response.status,
         textResponse,
       });
+      let jsonResponse: any;
+      try {
+        jsonResponse = JSON.parse(textResponse);
+      } catch {}
       throw new APIError(
-        `Could not process request, server responded with ${response.status}: ${textResponse}`,
+        `Could not process request, server responded with ${response.status}: ${jsonResponse?.detail || textResponse}`,
       );
     } catch (e) {
       this.dbtTerminal.error("apiCatchAllError", "catchAllError", e, true, {
@@ -623,8 +698,13 @@ export class AltimateRequest {
         "AltimateRequest",
         `fetching artifactUrl: ${artifactUrl}`,
       );
-      const response = await fetch(artifactUrl, { agent: undefined });
+      const response = await this.internalFetch(artifactUrl, {
+        agent: undefined,
+      });
 
+      if (!response.ok) {
+        throw new Error(`Failed to download file: ${response.statusText}`);
+      }
       const fileStream = createWriteStream(destinationPath);
       await new Promise((resolve, reject) => {
         response.body?.pipe(fileStream);
@@ -684,7 +764,7 @@ export class AltimateRequest {
   }
 
   async getColumnLevelLineage(req: DBTColumnLineageRequest) {
-    return this.fetch<DBTColumnLineageResponse>("dbt/v3/lineage", {
+    return this.fetch<DBTColumnLineageResponse>("dbt/v4/lineage", {
       method: "POST",
       body: JSON.stringify(req),
     });
@@ -708,6 +788,25 @@ export class AltimateRequest {
       },
     });
     return (await response.json()) as Record<string, any> | undefined;
+  }
+
+  async checkApiConnectivity() {
+    const url = `${AltimateRequest.ALTIMATE_URL}/health`;
+    try {
+      const response = await this.internalFetch(url, { method: "GET" });
+      const { status } = (await response.json()) as { status: string };
+      return { status };
+    } catch (e) {
+      this.dbtTerminal.error(
+        "checkApiConnectivity",
+        "Unable to connect to backend",
+        e,
+        true,
+        { url },
+      );
+      const errorMsg = e instanceof Error ? e.message : JSON.stringify(e);
+      return { status: "not-ok", errorMsg };
+    }
   }
 
   async fetchProjectIntegrations() {
@@ -849,6 +948,85 @@ export class AltimateRequest {
     }>("dbt/dbt_docs_share/verify_upload/", {
       method: "POST",
       body: JSON.stringify({ share_id }),
+    });
+  }
+
+  async getQueryBookmarks() {
+    return await this.fetch<QueryBookmark[]>(`query/bookmark`);
+  }
+
+  async sqlLineage(req: SQLLineageRequest) {
+    return this.fetch<SqlLineageResponse>("dbt/v3/sql_lineage", {
+      method: "POST",
+      body: JSON.stringify(req),
+    });
+  }
+
+  async bulkDocsPropCredit(req: BulkDocsPropRequest) {
+    return this.fetch<FeedbackResponse>("dbt/v4/bulk-docs-prop-credits", {
+      method: "POST",
+      body: JSON.stringify(req),
+    });
+  }
+
+  async getPreConfiguredNotebooks() {
+    return this.fetch<PreconfiguredNotebookItem[]>(
+      "notebook/preconfigured/list",
+      {
+        method: "GET",
+      },
+    );
+  }
+
+  async getNotebooks(
+    name: string = "",
+    tags_list: string[] = [],
+    privacy: string = "private",
+  ) {
+    const params = new URLSearchParams({
+      name,
+      privacy,
+      ...(tags_list.length > 0 && { tags_list: tags_list.join(",") }),
+    });
+    return this.fetch<NotebookItem[]>(`notebook/list?${params.toString()}`, {
+      method: "GET",
+    });
+  }
+
+  async addNotebook(req: AddNotebookRequest) {
+    return this.fetch<FeedbackResponse>("notebook", {
+      method: "POST",
+      body: JSON.stringify(req),
+    });
+  }
+
+  async deleteNotebook(id: number) {
+    return this.fetch<FeedbackResponse>(`notebook/${id}`, {
+      method: "DELETE",
+    });
+  }
+
+  async updateNotebook(id: number, req: UpdateNotebookRequest) {
+    return this.fetch<FeedbackResponse>(`notebook/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(req),
+    });
+  }
+
+  async updateNotebookPrivacy(id: number, privacy: string) {
+    const params = new URLSearchParams({ privacy: privacy });
+    return this.fetch<FeedbackResponse>(
+      `notebook/privacy/${id}?${params.toString()}`,
+      {
+        method: "PUT",
+      },
+    );
+  }
+
+  async trackBulkTestGen(sessionId: string) {
+    return this.fetch<{ ok: boolean }>(`dbt/v2/bulk_test_gen`, {
+      method: "POST",
+      body: JSON.stringify({ session_id: sessionId }),
     });
   }
 }

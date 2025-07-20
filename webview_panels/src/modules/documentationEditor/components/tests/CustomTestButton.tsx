@@ -1,10 +1,12 @@
 import { ShinesIcon } from "@assets/icons";
-import { ListGroupItem, Tag } from "@uicore";
+import { ListGroupItem } from "@uicore";
 import classes from "../../styles.module.scss";
 import useAppContext from "@modules/app/useAppContext";
 import { RequestTypes } from "@modules/dataPilot/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
+import { sendTelemetryEvent } from "../telemetry";
+import { TelemetryEvents } from "@telemetryEvents";
 
 interface Props {
   column: string;
@@ -19,6 +21,11 @@ const CustomTestButton = ({ column, type }: Props): JSX.Element => {
 
   const onClick = () => {
     const id = crypto.randomUUID();
+
+    sendTelemetryEvent(
+      TelemetryEvents["DocumentationEditor/AddCustomTestClick"],
+      { type, entityName: column },
+    );
 
     postMessageToDataPilot({
       id,
@@ -40,7 +47,6 @@ const CustomTestButton = ({ column, type }: Props): JSX.Element => {
     >
       Custom Test
       <ShinesIcon />
-      <Tag>Beta</Tag>
     </ListGroupItem>
   );
 };

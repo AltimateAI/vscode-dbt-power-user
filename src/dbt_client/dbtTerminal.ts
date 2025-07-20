@@ -39,7 +39,9 @@ export class DBTTerminal {
   logBlock(block: string[]) {
     this.logHorizontalRule();
     for (const line of block) {
-      this.logLine(line);
+      if (line) {
+        this.logLine(line);
+      }
     }
     this.logHorizontalRule();
   }
@@ -107,15 +109,16 @@ export class DBTTerminal {
     sendTelemetry = true,
     ...args: any[]
   ) {
+    let errorMessage = message;
     if (e instanceof PythonException) {
-      message += `:${e.exception.message}`;
+      errorMessage = `${message}:${e.toString()}`;
     } else if (e instanceof Error) {
-      message += `:${e.message}`;
-    } else {
-      message += `:${e}`;
+      errorMessage = `${message}:${e.message}`;
+    } else if (e) {
+      errorMessage = `${message}:${e}`;
     }
-    this.outputChannel?.error(`${name}:${stripANSI(message)}`, args);
-    console.error(`${name}:${message}`, args);
+    this.outputChannel?.error(`${name}:${stripANSI(errorMessage)}`, args);
+    console.error(`${name}:${errorMessage}`, args);
     if (sendTelemetry) {
       this.telemetry.sendTelemetryError(name, e, { message });
     }
@@ -141,6 +144,7 @@ export class DBTTerminal {
           },
         },
       });
+      this.disposables.push(this.terminal);
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }

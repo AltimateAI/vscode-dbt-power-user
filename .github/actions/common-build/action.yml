@@ -1,0 +1,22 @@
+# .github/actions/common-build/action.yml
+name: "Common Build"
+description: "Common build steps for the project"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+        cache: "npm"
+        cache-dependency-path: |
+          package-lock.json
+          webview_panels/package-lock.json
+    - run: npm ci
+      shell: bash
+    - run: npm ci
+      shell: bash
+      working-directory: ./webview_panels
+    - run: npm run postinstall
+      shell: bash

@@ -1,17 +1,10 @@
+try:
+    from dbt.version import __version__ as dbt_version
+except Exception:
+    raise Exception("dbt not found. Please install dbt to use this extension.")
+
+
 from decimal import Decimal
-import dbt.adapters.factory
-
-# This is critical because `get_adapter` is all over dbt-core
-# as they expect a singleton adapter instance per plugin,
-# so dbt-niceDatabase will have one adapter instance named niceDatabase.
-# This makes sense in dbt-land where we have a single Project/Profile
-# combination executed in process from start to finish or a single tenant RPC
-# This doesn't fit our paradigm of one adapter per DbtProject in a multitenant server,
-# so we create an adapter instance **independent** of the FACTORY cache
-# and attach it directly to our RuntimeConfig which is passed through
-# anywhere dbt-core needs config including in all `get_adapter` calls
-dbt.adapters.factory.get_adapter = lambda config: config.adapter
-
 import os
 import threading
 import uuid
@@ -37,14 +30,13 @@ from typing import (
 
 import agate
 import json
-from dbt.adapters.factory import get_adapter_class_by_name
+from dbt.adapters.factory import get_adapter, register_adapter
 from dbt.config.runtime import RuntimeConfig
 from dbt.flags import set_from_args
 from dbt.parser.manifest import ManifestLoader, process_node
 from dbt.parser.sql import SqlBlockParser, SqlMacroParser
 from dbt.task.sql import SqlCompileRunner, SqlExecuteRunner
 from dbt.tracking import disable_tracking
-from dbt.version import __version__ as dbt_version
 
 DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER = (
     int(v) if v.isnumeric() else v for v in dbt_version.split(".")
@@ -125,6 +117,30 @@ def validate_sql(
     except Exception as e:
         raise Exception(str(e))
 
+def fetch_schema_from_sql(sql: str, dialect: str):
+    try:
+        ALTIMATE_PACKAGE_PATH = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "altimate_packages"
+        )
+        with add_path(ALTIMATE_PACKAGE_PATH):
+            from altimate.fetch_schema import fetch_schema
+
+            return fetch_schema(sql, dialect)
+    except Exception as e:
+        raise Exception(str(e))
+    
+def validate_whether_sql_has_columns(sql: str, dialect: str):
+    try:
+        ALTIMATE_PACKAGE_PATH = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "altimate_packages"
+        )
+        with add_path(ALTIMATE_PACKAGE_PATH):
+            from altimate.fetch_schema import validate_whether_sql_has_columns
+
+            return validate_whether_sql_has_columns(sql, dialect)
+    except Exception as e:
+        raise Exception(str(e))
+
 
 def to_dict(obj):
     if isinstance(obj, agate.Table):
@@ -185,11 +201,23 @@ def memoize_get_rendered(function):
 
 
 def default_profiles_dir(project_dir):
+    """Determines the directory where dbt will look for profiles.yml.
+    
+    When DBT_PROFILES_DIR is set:
+    - If it's an absolute path, use it as is
+    - If it's a relative path, resolve it relative to the project directory
+      This matches dbt core's behavior and other path handling in the codebase
+      (see https://github.com/AltimateAI/vscode-dbt-power-user/issues/1518)
+    
+    When DBT_PROFILES_DIR is not set:
+    - Look for profiles.yml in the project directory
+    - If not found, default to ~/.dbt/
+    """
     if "DBT_PROFILES_DIR" in os.environ:
         profiles_dir = os.path.expanduser(os.environ["DBT_PROFILES_DIR"])
         if os.path.isabs(profiles_dir):
             return os.path.normpath(profiles_dir)
-        return os.path.join(project_dir, profiles_dir)
+        return os.path.normpath(os.path.join(project_dir, profiles_dir))
     project_profiles_file = os.path.normpath(os.path.join(project_dir, "profiles.yml"))
     return (
         project_dir
@@ -248,19 +276,26 @@ class ConfigInterface:
         defer: Optional[bool] = False,
         state: Optional[str] = None,
         favor_state: Optional[bool] = False,
+        # dict in 1.5.x onwards, json string before.
+        vars: Optional[Union[Dict[str, Any], str]] = {} if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 5 else "{}",
     ):
         self.threads = threads
-        self.target = target
+        self.target = target if target else os.environ.get("DBT_TARGET")
         self.profiles_dir = profiles_dir
         self.project_dir = project_dir
         self.dependencies = []
         self.single_threaded = threads == 1
         self.quiet = True
-        self.profile = profile
+        self.profile = profile if profile else os.environ.get("DBT_PROFILE")
         self.target_path = target_path
         self.defer = defer
         self.state = state
         self.favor_state = favor_state
+        # dict in 1.5.x onwards, json string before.
+        if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 5:
+            self.vars = vars if vars else json.loads(os.environ.get("DBT_VARS", "{}"))
+        else:
+            self.vars = vars if vars else os.environ.get("DBT_VARS", "{}")
 
     def __str__(self):
         return f"ConfigInterface(threads={self.threads}, target={self.target}, profiles_dir={self.profiles_dir}, project_dir={self.project_dir}, profile={self.profile}, target_path={self.target_path})"
@@ -313,7 +348,7 @@ class DbtProject:
 
     def __init__(
         self,
-        target: Optional[str] = None,
+        target_name: Optional[str] = None,
         profiles_dir: Optional[str] = None,
         project_dir: Optional[str] = None,
         threads: Optional[int] = 1,
@@ -322,10 +357,11 @@ class DbtProject:
         defer_to_prod: bool = False,
         manifest_path: Optional[str] = None,
         favor_state: bool = False,
+        vars: Optional[Dict[str, Any]] = {},
     ):
         self.args = ConfigInterface(
             threads=threads,
-            target=target,
+            target=target_name,
             profiles_dir=profiles_dir,
             project_dir=project_dir,
             profile=profile,
@@ -333,6 +369,7 @@ class DbtProject:
             defer=defer_to_prod,
             state=manifest_path,
             favor_state=favor_state,
+            vars=vars,
         )
 
         # Utilities
@@ -348,16 +385,6 @@ class DbtProject:
         self.defer_to_prod_manifest_path = manifest_path
         self.favor_state = favor_state
 
-    def get_adapter(self):
-        """This inits a new Adapter which is fundamentally different than
-        the singleton approach in the core lib"""
-        adapter_name = self.config.credentials.type
-        adapter_type = get_adapter_class_by_name(adapter_name)
-        if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
-            from dbt.mp_context import get_mp_context
-            return adapter_type(self.config, get_mp_context())
-        return adapter_type(self.config)
-
     def init_config(self):
         if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
             from dbt_common.context import set_invocation_context
@@ -365,22 +392,28 @@ class DbtProject:
             set_invocation_context(os.environ)
             set_from_args(self.args, None)
             # Copy over global_flags
-            self.args.__dict__.update(get_flags().__dict__)
+            for key, value in get_flags().__dict__.items():
+                if key not in self.args.__dict__:
+                    self.args.__dict__[key] = value
         else:
             set_from_args(self.args, self.args)
         self.config = RuntimeConfig.from_args(self.args)
         if hasattr(self.config, "source_paths"):
             self.config.model_paths = self.config.source_paths
+        if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
+            from dbt.mp_context import get_mp_context
+            register_adapter(self.config, get_mp_context())
+        else:
+            register_adapter(self.config)
 
     def init_project(self):
         try:
             self.init_config()
-            self.adapter = self.get_adapter()
+            self.adapter = get_adapter(self.config)
             self.adapter.connections.set_connection_name()
             if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
                 from dbt.context.providers import generate_runtime_macro_context
                 self.adapter.set_macro_context_generator(generate_runtime_macro_context)
-            self.config.adapter = self.adapter
             self.create_parser()
         except Exception as e:
             # reset project
@@ -403,9 +436,14 @@ class DbtProject:
         self._sql_runner = None
         
     def create_parser(self) -> None:
+        all_projects = self.config.load_dependencies()
+        # filter out project with value LoomRunnableConfig class type as those projects are dependency projects
+        # https://github.com/AltimateAI/vscode-dbt-power-user/issues/1224
+        all_projects = {k: v for k, v in all_projects.items() if not v.__class__.__name__ == "LoomRunnableConfig"}
+        
         project_parser = ManifestLoader(
             self.config,
-            self.config.load_dependencies(),
+            all_projects,
             self.adapter.connections.set_query_header,
         )
         self.dbt = project_parser.load()
@@ -432,6 +470,7 @@ class DbtProject:
             threads=args.threads,
             profile=args.profile,
             target_path=args.target_path,
+            vars=args.vars,
         )
 
     @property
@@ -591,7 +630,7 @@ class DbtProject:
         if original_node is not None:
             if isinstance(original_node, str):
                 original_node = self.get_ref_node(original_node)
-            if original_node is not None and "materialized" in original_node.node_info.keys() and original_node.node_info["materialized"] == "incremental":
+            if original_node is not None and isinstance(original_node.node_info, dict) and "materialized" in original_node.node_info.keys() and original_node.node_info["materialized"] == "incremental":
                 sql_node.schema = original_node.schema
                 sql_node.database = original_node.database
                 sql_node.alias = original_node.alias
@@ -601,7 +640,7 @@ class DbtProject:
         return sql_node
 
     @lru_cache(maxsize=100)
-    def get_macro_function(self, macro_name: str) -> Callable[[Dict[str, Any]], Any]:
+    def get_macro_function(self, macro_name: str, compiled_code: Optional[str] = None) -> Callable[[Dict[str, Any]], Any]:
         """Get macro as a function which takes a dict via argument named `kwargs`,
         ie: `kwargs={"relation": ...}`
 
@@ -609,8 +648,11 @@ class DbtProject:
         make_schema_fn({'name': '__test_schema_1'})\n
         make_schema_fn({'name': '__test_schema_2'})"""
         if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
+            model_context = {}
+            if compiled_code is not None:
+                model_context["compiled_code"] = compiled_code
             return partial(
-                self.adapter.execute_macro, macro_name=macro_name
+                self.adapter.execute_macro, macro_name=macro_name, context_override=model_context,
             )
         else:
             return partial(
@@ -627,9 +669,10 @@ class DbtProject:
         self,
         macro: str,
         kwargs: Optional[Dict[str, Any]] = None,
+        compiled_code: Optional[str] = None
     ) -> Any:
         """Wraps adapter execute_macro. Execute a macro like a function."""
-        return self.get_macro_function(macro)(kwargs=kwargs)
+        return self.get_macro_function(macro, compiled_code)(kwargs=kwargs)
 
     def execute_sql(self, raw_sql: str, original_node: Optional[Union["ManifestNode", str]] = None) -> DbtAdapterExecutionResult:
         """Execute dbt SQL statement against database"""
@@ -650,6 +693,8 @@ class DbtProject:
     def execute_node(self, node: "ManifestNode") -> DbtAdapterExecutionResult:
         """Execute dbt SQL statement against database from a"ManifestNode"""
         try:
+            if node is None:
+                raise ValueError("This model doesn't exist within this dbt project")
             raw_sql: str = getattr(node, RAW_CODE)
             compiled_sql: Optional[str] = getattr(node, COMPILED_CODE, None)
             if compiled_sql:
@@ -675,6 +720,8 @@ class DbtProject:
         self, node: "ManifestNode"
     ) -> Optional[DbtAdapterCompilationResult]:
         try:
+            if node is None:
+                raise ValueError("This model doesn't exist within this dbt project")
             with self.adapter.connection_named("master"):
                 return self._compile_node(node)
         except Exception as e:
@@ -837,5 +884,23 @@ class DbtProject:
             return None
         try:
             return self.adapter.validate_sql(compiled_sql)
+        except Exception as e:
+            raise Exception(str(e))
+
+    def get_target_names(self):
+        from dbt.config.profile import read_profile
+        profile = read_profile(self.args.profiles_dir)
+        profile = profile[self.config.profile_name]
+        if "outputs" in profile:
+            outputs = profile["outputs"]
+            return outputs.keys()
+        return []
+    
+    def set_selected_target(self, target: str):
+        self.args.target = target
+
+    def cleanup_connections(self):
+        try:
+            self.adapter.cleanup_connections()
         except Exception as e:
             raise Exception(str(e))

@@ -5,49 +5,48 @@ import {
   resetData,
   setCompiledCodeMarkup,
   setHintIndex,
-  setLastHintTimestamp,
   setLimit,
   setLoading,
   setPerspectiveTheme,
+  setQueryHistoryDisabled,
   setQueryExecutionInfo,
+  setQueryHistory,
   setQueryResults,
   setQueryResultsError,
+  setViewType,
+  setActiveEditor,
 } from "./context/queryPanelSlice";
 import useQueryPanelState from "./useQueryPanelState";
 import { panelLogger } from "@modules/logger";
-import { executeRequestInAsync } from "@modules/app/requestExecutor";
-import { HINTS, HINT_VISIBILITY_DELAY } from "./constants";
-import { QueryPanelStateProps } from "./context/types";
+import { executeRequestInSync } from "@modules/app/requestExecutor";
+import { HINTS } from "./constants";
+import {
+  QueryHistory,
+  QueryPanelStateProps,
+  QueryPanelViewType,
+} from "./context/types";
 
 const useQueryPanelListeners = (): { loading: boolean } => {
   const dispatch = useQueryPanelDispatch();
-  const { loading, lastHintTimestamp, hintIndex } = useQueryPanelState();
-  const lastHintTimestampRef = useRef(0);
+  const { loading, hintIndex, queryResults } = useQueryPanelState();
   const hintInterval = useRef<NodeJS.Timeout>();
+  const hintIndexRef = useRef<number>(hintIndex);
   const queryExecutionTimer = useRef<NodeJS.Timeout>();
   const queryStart = useRef(Date.now());
 
   useEffect(() => {
-    lastHintTimestampRef.current = lastHintTimestamp;
-  }, [lastHintTimestamp]);
+    hintIndexRef.current = hintIndex;
+  }, [hintIndex]);
 
   const handleHintMessage = useCallback(() => {
-    const now = Date.now();
     dispatch(setHintIndex(-1));
-    if (lastHintTimestampRef.current + HINT_VISIBILITY_DELAY < now) {
-      dispatch(setLastHintTimestamp(now));
-      HINTS.sort(() => Math.random() - 0.5);
-      executeRequestInAsync("setContext", {
-        key: "lastHintTimestamp",
-        value: now,
-      });
-      dispatch(setHintIndex((hintIndex + 1) % HINTS.length));
+    HINTS.sort(() => Math.random() - 0.5);
+    dispatch(setHintIndex((hintIndexRef.current + 1) % HINTS.length));
 
-      hintInterval.current = setInterval(() => {
-        dispatch(setHintIndex((hintIndex + 1) % HINTS.length));
-      }, 3500);
-    }
-  }, [dispatch, lastHintTimestampRef.current]);
+    hintInterval.current = setInterval(() => {
+      dispatch(setHintIndex((hintIndexRef.current + 1) % HINTS.length));
+    }, 3500);
+  }, [dispatch, hintIndex]);
 
   const clearData = () => {
     dispatch(resetData());
@@ -95,6 +94,7 @@ const useQueryPanelListeners = (): { loading: boolean } => {
         data: args.rows,
         columnNames: args.columnNames,
         columnTypes: args.columnTypes,
+        raw_sql: args.raw_sql,
       } as QueryPanelStateProps["queryResults"]),
     );
     dispatch(setCompiledCodeMarkup(args.compiled_sql as string));
@@ -106,6 +106,23 @@ const useQueryPanelListeners = (): { loading: boolean } => {
     clearData();
     clearHintInterval();
     endQueryExecutionTimer();
+  };
+
+  const handleIncomingQueryHistory = (args: QueryHistory[]) => {
+    dispatch(setQueryHistory(args));
+  };
+
+  const collectQueryResultsDebugInfo = () => {
+    const perspectiveViewer = document.querySelector("perspective-viewer");
+    const table = perspectiveViewer
+      ?.querySelector("perspective-datagrid-json-viewer-plugin")
+      ?.shadowRoot?.querySelectorAll("regular-table tr");
+    void executeRequestInSync("collectQueryResultsDebugInfo", {
+      perspectiveHeight: perspectiveViewer?.offsetHeight,
+      perspectiveScrollHeight: perspectiveViewer?.scrollHeight,
+      tableRowsCount: table?.length,
+      queryResults,
+    });
   };
 
   const onMesssage = useCallback(
@@ -123,17 +140,37 @@ const useQueryPanelListeners = (): { loading: boolean } => {
           handleQueryResults(args);
           break;
         case "renderLoading":
-          panelLogger.info(lastHintTimestampRef.current);
           handleLoading();
           break;
+        case "queryHistory":
+          handleIncomingQueryHistory(args.args.body as QueryHistory[]);
+          break;
+        case "updateViewType":
+          dispatch(
+            setViewType(
+              (args.args.body as { type: QueryPanelViewType })
+                .type as QueryPanelViewType,
+            ),
+          );
+          break;
         case "getContext":
-          // @ts-expect-error valid type
-          dispatch(setLastHintTimestamp(args.lastHintTimestamp as number));
           // @ts-expect-error valid type
           dispatch(setLimit(args.limit as number));
           // @ts-expect-error valid type
           dispatch(setPerspectiveTheme(args.perspectiveTheme as string));
-
+          dispatch(
+            // @ts-expect-error valid type
+            setQueryHistoryDisabled(args.queryHistoryDisabled as boolean),
+          );
+          dispatch(
+            setActiveEditor(
+              // @ts-expect-error valid type
+              args.activeEditor as QueryPanelStateProps["activeEditor"],
+            ),
+          );
+          break;
+        case "collectQueryResultsDebugInfo":
+          collectQueryResultsDebugInfo();
           break;
         default:
           break;
@@ -143,7 +180,7 @@ const useQueryPanelListeners = (): { loading: boolean } => {
   );
 
   useEffect(() => {
-    executeRequestInAsync("getQueryPanelContext", {});
+    void executeRequestInSync("getQueryPanelContext", {});
   }, []);
 
   useEffect(() => {
@@ -153,6 +190,25 @@ const useQueryPanelListeners = (): { loading: boolean } => {
       window.removeEventListener("message", onMesssage);
     };
   }, [onMesssage]);
+
+  useEffect(() => {
+    void executeRequestInSync("getQueryTabData", {}).then((data) => {
+      if (data) {
+        const typedData = data as QueryPanelStateProps;
+        handleQueryResults({
+          rows: typedData?.queryResults?.data,
+          columnNames: typedData?.queryResults?.columnNames,
+          columnTypes: typedData?.queryResults?.columnTypes,
+          compiled_sql: typedData.compiledCodeMarkup,
+        });
+        dispatch(
+          setQueryExecutionInfo({
+            elapsedTime: typedData.queryExecutionInfo!.elapsedTime,
+          }),
+        );
+      }
+    });
+  }, []);
 
   return { loading };
 };

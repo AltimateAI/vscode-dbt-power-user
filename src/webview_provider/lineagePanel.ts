@@ -139,7 +139,7 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     const { command, args } = message;
     // common commands
     if (command === "openFile") {
-      const { url } = args;
+      const url = args.params?.url;
       if (!url) {
         return;
       }
@@ -173,14 +173,6 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
       return;
     }
 
-    if (command === "openURL") {
-      if (!args.url) {
-        return;
-      }
-      env.openExternal(Uri.parse(args.url));
-      return;
-    }
-
     if (command === "reactError") {
       const typeMapper: { [key: string]: string } = {
         generic: "Generic",
@@ -193,7 +185,8 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     }
 
     // specific commands
-    this.telemetry.sendTelemetryEvent(command);
+    // Will add specific events in respective places in the future
+    // this.telemetry.sendTelemetryEvent(command);
     this.getPanel().handleCommand(message);
   };
 }
