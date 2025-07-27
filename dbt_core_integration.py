@@ -1,6 +1,6 @@
 try:
     from dbt.version import __version__ as dbt_version
-except:
+except Exception:
     raise Exception("dbt not found. Please install dbt to use this extension.")
 
 
@@ -693,6 +693,8 @@ class DbtProject:
     def execute_node(self, node: "ManifestNode") -> DbtAdapterExecutionResult:
         """Execute dbt SQL statement against database from a"ManifestNode"""
         try:
+            if node is None:
+                raise ValueError("This model doesn't exist within this dbt project")
             raw_sql: str = getattr(node, RAW_CODE)
             compiled_sql: Optional[str] = getattr(node, COMPILED_CODE, None)
             if compiled_sql:
@@ -718,6 +720,8 @@ class DbtProject:
         self, node: "ManifestNode"
     ) -> Optional[DbtAdapterCompilationResult]:
         try:
+            if node is None:
+                raise ValueError("This model doesn't exist within this dbt project")
             with self.adapter.connection_named("master"):
                 return self._compile_node(node)
         except Exception as e:
@@ -894,3 +898,9 @@ class DbtProject:
     
     def set_selected_target(self, target: str):
         self.args.target = target
+
+    def cleanup_connections(self):
+        try:
+            self.adapter.cleanup_connections()
+        except Exception as e:
+            raise Exception(str(e))

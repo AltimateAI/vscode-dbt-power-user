@@ -6,7 +6,7 @@ def eliminate_ctes(expression):
     Remove unused CTEs from an expression.
 
     Example:
-        >>> import sqlglot as sqlglot
+        >>> import sqlglot
         >>> sql = "WITH y AS (SELECT a FROM x) SELECT a FROM z"
         >>> expression = sqlglot.parse_one(sql)
         >>> eliminate_ctes(expression).sql()
@@ -32,7 +32,7 @@ def eliminate_ctes(expression):
                     cte_node.pop()
 
                     # Pop the entire WITH clause if this is the last CTE
-                    if len(with_node.expressions) <= 0:
+                    if with_node and len(with_node.expressions) <= 0:
                         with_node.pop()
 
                     # Decrement the ref count for all sources this CTE selects from

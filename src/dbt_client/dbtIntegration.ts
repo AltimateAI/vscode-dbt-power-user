@@ -177,9 +177,9 @@ export class PythonDBTCommandExecutionStrategy
         "from dbt.cli.main import dbtRunner",
       );
     return `has_dbt_runner = True
-try: 
+try:
     ${dbtCustomRunnerImport}
-except:
+except Exception:
     has_dbt_runner = False
 if has_dbt_runner:
     dbt_cli = dbtRunner()
@@ -274,7 +274,7 @@ export interface HealthcheckArgs {
   configPath?: string;
 }
 
-export interface DBTProjectDetection extends Disposable {
+export interface DBTProjectDetection {
   discoverProjects(projectConfigFiles: Uri[]): Promise<Uri[]>;
 }
 
@@ -354,6 +354,7 @@ export interface DBTProjectIntegration extends Disposable {
   runModelTest(command: DBTCommand): Promise<CommandProcessResult | undefined>;
   compileModel(command: DBTCommand): Promise<void>;
   generateDocs(command: DBTCommand): Promise<void>;
+  clean(command: DBTCommand): Promise<string>;
   executeCommandImmediately(command: DBTCommand): Promise<CommandProcessResult>;
   deps(command: DBTCommand): Promise<string>;
   debug(command: DBTCommand): Promise<string>;
@@ -394,6 +395,7 @@ export interface DBTProjectIntegration extends Disposable {
   getAllDiagnostic(): Diagnostic[];
   throwDiagnosticsErrorIfAvailable(): void;
   getPythonBridgeStatus(): boolean;
+  cleanupConnections(): Promise<void>;
 }
 
 @provide(DBTCommandExecutionInfrastructure)
@@ -649,6 +651,16 @@ export class DBTCommandFactory {
     return new DBTCommand(
       "Generating dbt Docs...",
       ["docs", "generate"],
+      true,
+      true,
+      true,
+    );
+  }
+
+  createCleanCommand(): DBTCommand {
+    return new DBTCommand(
+      "Cleaning dbt project...",
+      ["clean"],
       true,
       true,
       true,

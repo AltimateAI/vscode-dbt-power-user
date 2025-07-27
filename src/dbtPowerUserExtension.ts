@@ -94,6 +94,7 @@ export class DBTPowerUserExtension implements Disposable {
   }
 
   async activate(context: ExtensionContext): Promise<void> {
+    await this.mcpServer.updateMcpExtensionApi();
     this.dbtProjectContainer.setContext(context);
     this.dbtProjectContainer.initializeWalkthrough();
     await this.dbtProjectContainer.detectDBT();
@@ -112,7 +113,7 @@ export class DBTPowerUserExtension implements Disposable {
         .get<string>("dbtIntegration", "core");
       if (
         dbtIntegration !== newDbtIntegration &&
-        ["core", "cloud", "corecommand"].includes(newDbtIntegration)
+        ["core", "cloud", "corecommand", "fusion"].includes(newDbtIntegration)
       ) {
         commands.executeCommand("workbench.action.reloadWindow");
       }

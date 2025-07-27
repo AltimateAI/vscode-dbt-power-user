@@ -9,7 +9,7 @@ import { createFullPathForNode } from ".";
 export class DocParser {
   constructor(private terminal: DBTTerminal) {}
 
-  createDocMetaMap(docs: any[], project: DBTProject): Promise<DocMetaMap> {
+  createDocMetaMap(docs: any, project: DBTProject): Promise<DocMetaMap> {
     return new Promise(async (resolve) => {
       this.terminal.debug(
         "DocParser",
@@ -22,12 +22,8 @@ export class DocParser {
         resolve(docMetaMap);
         return;
       }
-      if (typeof docs[Symbol.iterator] !== "function") {
-        resolve(docMetaMap);
-        return;
-      }
-      for (const doc of docs) {
-        const { package_name, name, original_file_path } = doc;
+      for (const doc of Object.values(docs)) {
+        const { package_name, name, original_file_path } = doc as any;
         const packageName = package_name;
         // TODO: these things can change so we should recreate them if project config changes
         const projectName = project.getProjectName();
@@ -47,6 +43,7 @@ export class DocParser {
           original_file_path,
         );
         if (!fullPath) {
+          resolve(docMetaMap);
           return;
         }
         try {

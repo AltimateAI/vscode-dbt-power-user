@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.56.2",
+  "version": "0.58.7",
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -172,7 +172,8 @@
             "enum": [
               "core",
               "cloud",
-              "corecommand"
+              "corecommand",
+              "fusion"
             ],
             "default": "core",
             "description": "Select dbt core or dbt cloud"
@@ -308,6 +309,11 @@
             },
             "default": [],
             "description": "Add additional params to `sqlfmt`"
+          },
+          "dbt.disableDepthsCalculation": {
+            "type": "boolean",
+            "description": "Disable DAG depth calculation and decoration",
+            "default": false
           },
           "dbt.deferConfigPerProject": {
             "type": "object",
@@ -553,7 +559,7 @@
       },
       {
         "command": "dbtPowerUser.sqlToModel",
-        "title": "Convert to dbt Model (Preview feature)",
+        "title": "Convert to dbt Model",
         "shortTitle": "Convert to dbt Model",
         "category": "dbt Power User",
         "icon": {
@@ -743,6 +749,12 @@
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
         }
+      },
+      {
+        "command": "dbtPowerUser.cleanCurrentProject",
+        "title": "Clean dbt Project",
+        "category": "dbt Power User",
+        "icon": "$(clear-all)"
       },
       {
         "command": "dbtPowerUser.printEnvVars",
@@ -1021,6 +1033,11 @@
         {
           "command": "dbtPowerUser.runCurrentModel",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.enableBuildModel",
+          "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.cleanCurrentProject",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
           "group": "inline"
         }
       ],
@@ -1363,6 +1380,7 @@
     "@types/glob": "^8.1.0",
     "@types/istanbul-lib-coverage": "^2.0.6",
     "@types/jest": "^29.5.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.14.11",
     "@types/vscode": "^1.95.0",
     "@types/which": "^3.0.4",

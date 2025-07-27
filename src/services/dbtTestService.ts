@@ -10,6 +10,7 @@ import {
   getColumnTestConfigFromYml,
   isColumnNameEqual,
   provideSingleton,
+  removeProtocol,
 } from "../utils";
 import { DocGenService } from "./docGenService";
 import { StreamingService } from "./streamingService";
@@ -154,7 +155,7 @@ export class DbtTestService {
     }
 
     const patchPath = node?.patch_path?.includes("://")
-      ? path.join(project.projectRoot.fsPath, node.patch_path.split("://")[1])
+      ? path.join(project.projectRoot.fsPath, removeProtocol(node.patch_path))
       : node.patch_path;
 
     if (!patchPath) {
@@ -267,7 +268,7 @@ export class DbtTestService {
     }
 
     const adapter = dbtProject.getAdapterType();
-    const { documentation } = await this.docGenService.getDocumentation(
+    const { documentation } = await this.docGenService.getCompiledDocumentation(
       params.filePath,
     );
     if (!documentation) {

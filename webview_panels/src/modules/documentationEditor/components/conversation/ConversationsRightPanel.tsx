@@ -32,7 +32,7 @@ const ConversationsRightPanel = (): JSX.Element => {
 
   // Get only conversation groups specific to this model
   const conversations = useMemo(() => {
-    if (!currentDocsData?.uniqueId || !currentDocsData?.resource_type) {
+    if (!currentDocsData?.uniqueId) {
       return {};
     }
 
@@ -45,8 +45,6 @@ const ConversationsRightPanel = (): JSX.Element => {
         const conversationGroupsInCurrentModel = conversationGroups.filter(
           (conversationGroup) =>
             conversationGroup.meta.uniqueId === currentDocsData.uniqueId &&
-            conversationGroup.meta.resource_type ===
-              currentDocsData.resource_type &&
             conversationGroup.meta.field,
         );
 
@@ -60,7 +58,6 @@ const ConversationsRightPanel = (): JSX.Element => {
     );
   }, [
     allConversations,
-    currentDocsData?.resource_type,
     currentDocsData?.uniqueId,
   ]);
 

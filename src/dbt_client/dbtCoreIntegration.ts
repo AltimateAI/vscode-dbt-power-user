@@ -453,6 +453,7 @@ export class DBTCoreProjectIntegration
           }
           throw new ExecuteSQLError((err as Error).message, compiledQuery!);
         } finally {
+          await this.cleanupConnections();
           await queryThread.end();
         }
         return { ...result, compiled_stmt: compiledQuery, modelName };
@@ -583,6 +584,29 @@ export class DBTCoreProjectIntegration
     return this.python.connected;
   }
 
+  async cleanupConnections(): Promise<void> {
+    try {
+      await this.python.ex`project.cleanup_connections()`;
+    } catch (exc) {
+      if (exc instanceof PythonException) {
+        this.telemetry.sendTelemetryEvent(
+          "pythonBridgeCleanupConnectionsError",
+          {
+            error: exc.exception.message,
+            adapter: this.getAdapterType() || "unknown", // TODO: this should be moved to dbtProject
+          },
+        );
+      }
+      this.telemetry.sendTelemetryEvent(
+        "pythonBridgeCleanupConnectionsUnexpectedError",
+        {
+          error: (exc as Error).message,
+          adapter: this.getAdapterType() || "unknown", // TODO: this should be moved to dbtProject
+        },
+      );
+    }
+  }
+
   getAllDiagnostic(): Diagnostic[] {
     const projectURI = Uri.joinPath(
       this.projectRoot,
@@ -685,6 +709,14 @@ export class DBTCoreProjectIntegration
 
   async generateDocs(command: DBTCommand) {
     this.addCommandToQueue(this.dbtCoreCommand(command));
+  }
+
+  async clean(command: DBTCommand) {
+    const { stdout, stderr } = await this.dbtCoreCommand(command).execute();
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    return stdout;
   }
 
   async executeCommandImmediately(command: DBTCommand) {
