@@ -211,7 +211,7 @@ The dbt Power User Extension has great features out of the box. Add a free [Alti
             </div>
             <div class="column">
                 <ul>
-                    <li><a href="cursor/examples">MCP Server Tools</a></li> 
+                    <li><a href="https://datamates-docs.myaltimate.com/user-guide/home/">DataMates</a></li> 
                     <li><a href="test/lineage/#column-lineage">Data Lineage: Column Level </a></li>
                     <li><a href="develop/explanation">Query Explanation AI</a></li>
                     <li><a href="develop/translateSQL">Query Translation AI</a></li>
