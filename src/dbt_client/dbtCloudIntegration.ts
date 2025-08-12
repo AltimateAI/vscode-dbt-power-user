@@ -878,15 +878,11 @@ export class DBTCloudProjectIntegration
     const bulkModelQuery = `
 {% set result = {} %}
 {% for n in ${JSON.stringify(nodes)} %}
-  {% set columns = adapter.get_columns_in_relation(ref(n["name"])) %}
-  {% set new_columns = [] %}
-  {% for column in columns %}
-    {% do new_columns.append({"column": column.name, "dtype": column.dtype}) %}
-  {% endfor %}
-  {% do result.update({n["unique_id"]:new_columns}) %}
-{% endfor %}
-{% for n in graph.sources.values() %}
-  {% set columns = adapter.get_columns_in_relation(source(n["source_name"], n["identifier"])) %}
+  {% if n["resource_type"] == "source" %}
+    {% set columns = adapter.get_columns_in_relation(source(n["name"], n["table"])) %}
+  {% else %}
+    {% set columns = adapter.get_columns_in_relation(ref(n["name"])) %}
+  {% endif %}
   {% set new_columns = [] %}
   {% for column in columns %}
     {% do new_columns.append({"column": column.name, "dtype": column.dtype}) %}
