@@ -6,7 +6,7 @@ import {
   NoCredentialsError,
 } from "../altimate";
 
-const validTenantRegex = new RegExp(/^[a-z_][a-z0-9_]*$/);
+const validTenantRegex = new RegExp(/^[a-z_][a-z0-9_-]*$/);
 
 @provideSingleton(ValidationProvider)
 export class ValidationProvider implements Disposable {
