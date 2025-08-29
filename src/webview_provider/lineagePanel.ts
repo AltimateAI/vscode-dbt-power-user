@@ -2,14 +2,12 @@ import {
   CancellationToken,
   commands,
   Disposable,
-  env,
   TextEditor,
   Uri,
   WebviewView,
   WebviewViewProvider,
   WebviewViewResolveContext,
   window,
-  workspace,
 } from "vscode";
 import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
@@ -18,7 +16,6 @@ import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
-import { ModelGraphViewPanel } from "./modelGraphViewPanel";
 import { NewLineagePanel } from "./newLineagePanel";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
@@ -42,8 +39,7 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
 
   public constructor(
     private lineagePanel: NewLineagePanel,
-    private legacyLineagePanel: ModelGraphViewPanel,
-    dbtProjectContainer: DBTProjectContainer,
+    private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
     private dbtTerminal: DBTTerminal,
   ) {
@@ -65,12 +61,7 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
   }
 
   private getPanel() {
-    const isEnableNewLineagePanel = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("enableNewLineagePanel", false);
-    return isEnableNewLineagePanel
-      ? this.lineagePanel
-      : this.legacyLineagePanel;
+    return this.lineagePanel;
   }
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
@@ -109,18 +100,12 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     this.panel = panel;
     this.context = context;
     this.token = token;
-    const panelType = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("enableNewLineagePanel", false);
 
     this.init();
     panel.webview.onDidReceiveMessage(this.handleWebviewMessage, null, []);
     const sendLineageViewEvent = () => {
       if (this.panel!.visible) {
-        // keeping the legacy event name same for analysis
-        this.telemetry.sendTelemetryEvent(
-          panelType ? "NewLineagePanelActive" : "LineagePanelActive",
-        );
+        this.telemetry.sendTelemetryEvent("NewLineagePanelActive");
       }
     };
     sendLineageViewEvent();
@@ -147,24 +132,6 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
         preview: false,
         preserveFocus: true,
       });
-      return;
-    }
-
-    if (command === "setNewLineageView") {
-      await workspace
-        .getConfiguration("dbt")
-        .update("enableNewLineagePanel", true);
-      this.init();
-      this.telemetry.sendTelemetryEvent("NewLineagePanelSelected");
-      return;
-    }
-
-    if (command === "setLegacyLineageView") {
-      await workspace
-        .getConfiguration("dbt")
-        .update("enableNewLineagePanel", false);
-      this.init();
-      this.telemetry.sendTelemetryEvent("LegacyLineagePanelSelected");
       return;
     }
 
