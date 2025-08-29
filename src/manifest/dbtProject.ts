@@ -863,10 +863,14 @@ export class DBTProject implements Disposable {
     originalModelName: string | undefined = undefined,
   ): Promise<string | undefined> {
     this.telemetry.sendTelemetryEvent("compileQuery");
+    const fullRefresh = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("previewFullRefresh", false);
     try {
       return await this.dbtProjectIntegration.unsafeCompileQuery(
         query,
         originalModelName,
+        fullRefresh,
       );
     } catch (exc: any) {
       if (exc instanceof PythonException) {
@@ -914,10 +918,12 @@ export class DBTProject implements Disposable {
   async unsafeCompileQuery(
     query: string,
     originalModelName: string | undefined = undefined,
+    fullRefresh = false,
   ) {
     return this.dbtProjectIntegration.unsafeCompileQuery(
       query,
       originalModelName,
+      fullRefresh,
     );
   }
 
@@ -1232,11 +1238,16 @@ export class DBTProject implements Disposable {
       limit: limit.toString(),
     });
 
+    const fullRefresh = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("previewFullRefresh", false);
+
     if (returnImmediately) {
       const execution = await this.dbtProjectIntegration.executeSQL(
         query,
         limit,
         modelName,
+        fullRefresh,
       );
       const result = await execution.executeQuery();
       if (returnRawResults) {
@@ -1263,7 +1274,12 @@ export class DBTProject implements Disposable {
       command: "executeQuery",
       payload: {
         query,
-        fn: this.dbtProjectIntegration.executeSQL(query, limit, modelName),
+        fn: this.dbtProjectIntegration.executeSQL(
+          query,
+          limit,
+          modelName,
+          fullRefresh,
+        ),
         projectName: this.getProjectName(),
       },
     });
