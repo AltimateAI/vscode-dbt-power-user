@@ -85,6 +85,48 @@ This page provides a comprehensive overview of all available configuration setti
 - **Options**: ["Vintage", "Pro Light", "Pro Dark", "Vaporwave", "Solarized", "Solarized Dark", "Monokai"]
 - **Description**: Choose the visual theme for the query results viewer.
 
+#### dbt.enableBuildModel
+
+- **Type**: boolean
+- **Default**: true
+- **Description**: Enable the 'Build dbt Model' button in SQL files.
+
+#### dbt.enableExecuteSql
+
+- **Type**: boolean
+- **Default**: true
+- **Description**: Enable the 'Execute SQL' button in SQL files.
+
+#### dbt.enableSqlQuickPick
+
+- **Type**: boolean
+- **Default**: true
+- **Description**: Enable the 'SQL Actions' button in SQL files.
+
+#### dbt.enableRunModel
+
+- **Type**: boolean
+- **Default**: true
+- **Description**: Enable the 'Run dbt Model' button in SQL files.
+
+#### dbt.enableTestModel
+
+- **Type**: boolean
+- **Default**: true
+- **Description**: Enable the 'Test dbt Model' button in SQL files.
+
+#### dbt.enableSqlPreview
+
+- **Type**: boolean
+- **Default**: true
+- **Description**: Enable the 'Compiled dbt Preview' button in SQL files.
+
+#### dbt.enableConvertToModel
+
+- **Type**: boolean
+- **Default**: true
+- **Description**: Enable the 'Convert to dbt model' button in SQL files.
+
 ## Model Generation Settings
 
 #### dbt.fileNameTemplateGenerateModel
