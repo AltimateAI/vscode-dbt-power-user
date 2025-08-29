@@ -1415,7 +1415,7 @@ export class DBTProject implements Disposable {
     const dependencyNodes = graphMetaMap[key];
     const dependencyNode = dependencyNodes.get(node.uniqueId);
     if (!dependencyNode) {
-      throw Error("graphMetaMap[" + key + "] has no entries for " + table);
+      return [];
     }
     const tables: Map<string, Table> = new Map();
     dependencyNode.nodes.forEach(({ url, key }) => {
