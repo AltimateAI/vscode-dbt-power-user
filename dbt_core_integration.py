@@ -142,13 +142,24 @@ def validate_whether_sql_has_columns(sql: str, dialect: str):
         raise Exception(str(e))
 
 
-def to_dict(obj):
+def to_dict(obj, visited=None):
+    if visited is None:
+        visited = set()
+    
+    # Check for circular references using object id
+    obj_id = id(obj)
+    if obj_id in visited:
+        return "<circular reference>"
+    
     if isinstance(obj, agate.Table):
-        return {
-            "rows": [to_dict(row) for row in obj.rows],
+        visited.add(obj_id)
+        result = {
+            "rows": [to_dict(row, visited) for row in obj.rows],
             "column_names": obj.column_names,
             "column_types": list(map(lambda x: x.__class__.__name__, obj.column_types)),
         }
+        visited.remove(obj_id)
+        return result
     if isinstance(obj, str):
         return obj
     if isinstance(obj, Decimal):
@@ -156,15 +167,27 @@ def to_dict(obj):
     if isinstance(obj, (datetime, date, time)):
         return obj.isoformat()
     elif isinstance(obj, dict):
-        return dict((key, to_dict(val)) for key, val in obj.items())
+        visited.add(obj_id)
+        result = dict((key, to_dict(val, visited)) for key, val in obj.items())
+        visited.remove(obj_id)
+        return result
     elif isinstance(obj, Iterable):
-        return [to_dict(val) for val in obj]
+        visited.add(obj_id)
+        result = [to_dict(val, visited) for val in obj]
+        visited.remove(obj_id)
+        return result
     elif hasattr(obj, "__dict__"):
-        return to_dict(vars(obj))
+        visited.add(obj_id)
+        result = to_dict(vars(obj), visited)
+        visited.remove(obj_id)
+        return result
     elif hasattr(obj, "__slots__"):
-        return to_dict(
-            dict((name, getattr(obj, name)) for name in getattr(obj, "__slots__"))
+        visited.add(obj_id)
+        result = to_dict(
+            dict((name, getattr(obj, name)) for name in getattr(obj, "__slots__")), visited
         )
+        visited.remove(obj_id)
+        return result
     return obj
 
 
