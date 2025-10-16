@@ -159,11 +159,20 @@ export class PythonDBTCommandExecutionStrategy
     if (command.token !== undefined) {
       tokens.push(command.token);
     }
+
+    // Extract project directory from --project-dir argument to use as working directory
+    // This ensures dbt-loom and other tools can find their config files in the correct project root
+    let projectDir = getFirstWorkspacePath();
+    const projectDirIndex = args.indexOf("--project-dir");
+    if (projectDirIndex !== -1 && projectDirIndex + 1 < args.length) {
+      projectDir = args[projectDirIndex + 1];
+    }
+
     return this.commandProcessExecutionFactory.createCommandProcessExecution({
       command: this.pythonEnvironment.pythonPath,
       args: ["-c", this.dbtCommand(args)],
       tokens,
-      cwd: getFirstWorkspacePath(),
+      cwd: projectDir,
       envVars: this.pythonEnvironment.environmentVariables,
     });
   }

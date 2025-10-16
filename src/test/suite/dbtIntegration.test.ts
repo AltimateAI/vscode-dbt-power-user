@@ -3,6 +3,7 @@ import { Uri } from "vscode";
 import {
   CLIDBTCommandExecutionStrategy,
   DBTCommand,
+  PythonDBTCommandExecutionStrategy,
 } from "../../dbt_client/dbtIntegration";
 import {
   CommandProcessExecution,
@@ -250,5 +251,155 @@ describe("DBTCommand Test Suite", () => {
       command,
       undefined,
     );
+  });
+});
+
+describe("PythonDBTCommandExecutionStrategy Tests", () => {
+  let strategy: PythonDBTCommandExecutionStrategy;
+  let mockCommandProcessExecutionFactory: jest.Mocked<CommandProcessExecutionFactory>;
+  let mockPythonEnvironment: jest.Mocked<PythonEnvironment>;
+  let mockTerminal: jest.Mocked<DBTTerminal>;
+  let mockTelemetry: jest.Mocked<TelemetryService>;
+  let mockCommandProcessExecution: jest.Mocked<CommandProcessExecution>;
+
+  beforeEach(() => {
+    // Mock workspace.workspaceFolders for getFirstWorkspacePath()
+    const workspace = require("vscode").workspace;
+    Object.defineProperty(workspace, "workspaceFolders", {
+      get: () => [{ uri: { fsPath: "/test/workspace" } }],
+      configurable: true,
+    });
+
+    // Create mock dependencies
+    mockCommandProcessExecution = {
+      complete: jest
+        .fn()
+        .mockResolvedValue({ stdout: "success", stderr: "", exitCode: 0 }),
+      completeWithTerminalOutput: jest
+        .fn()
+        .mockResolvedValue({ stdout: "success", stderr: "", exitCode: 0 }),
+      disposables: [],
+      terminal: {} as any,
+      command: "",
+      spawn: jest.fn(),
+      kill: jest.fn(),
+      dispose: jest.fn(),
+      formatText: jest.fn(),
+    } as unknown as jest.Mocked<CommandProcessExecution>;
+
+    mockCommandProcessExecutionFactory = {
+      createCommandProcessExecution: jest
+        .fn()
+        .mockReturnValue(mockCommandProcessExecution),
+    } as unknown as jest.Mocked<CommandProcessExecutionFactory>;
+
+    mockPythonEnvironment = {
+      pythonPath: "/path/to/python",
+      environmentVariables: { PATH: "/some/path" },
+    } as unknown as jest.Mocked<PythonEnvironment>;
+
+    mockTerminal = {
+      show: jest.fn(),
+      log: jest.fn(),
+      trace: jest.fn(),
+      debug: jest.fn(),
+      info: jest.fn(),
+      error: jest.fn(),
+      dispose: jest.fn(),
+    } as unknown as jest.Mocked<DBTTerminal>;
+
+    mockTelemetry = {
+      sendTelemetryEvent: jest.fn(),
+      sendTelemetryError: jest.fn(),
+    } as unknown as jest.Mocked<TelemetryService>;
+
+    // Create strategy instance
+    strategy = new PythonDBTCommandExecutionStrategy(
+      mockCommandProcessExecutionFactory,
+      mockPythonEnvironment,
+      mockTerminal,
+      mockTelemetry,
+    );
+  });
+
+  afterEach(() => {
+    // Reset workspace.workspaceFolders
+    const workspace = require("vscode").workspace;
+    Object.defineProperty(workspace, "workspaceFolders", {
+      get: () => undefined,
+      configurable: true,
+    });
+    jest.clearAllMocks();
+  });
+
+  it("should use project directory from --project-dir argument as cwd", async () => {
+    // Arrange
+    const projectDir = "/path/to/dbt/project";
+    const command = new DBTCommand(
+      "Running dbt command",
+      ["run", "--project-dir", projectDir, "--select", "my_model"],
+      true,
+      true,
+      true,
+    );
+
+    // Act
+    await strategy.execute(command);
+
+    // Assert
+    expect(
+      mockCommandProcessExecutionFactory.createCommandProcessExecution,
+    ).toHaveBeenCalled();
+
+    const callArgs = (
+      mockCommandProcessExecutionFactory.createCommandProcessExecution as jest.Mock
+    ).mock.calls[0][0];
+    expect(callArgs.cwd).toBe(projectDir);
+  });
+
+  it("should fall back to workspace path when --project-dir is not present", async () => {
+    // Arrange
+    const command = new DBTCommand(
+      "Running dbt command",
+      ["run", "--select", "my_model"],
+      true,
+      true,
+      true,
+    );
+
+    // Act
+    await strategy.execute(command);
+
+    // Assert
+    expect(
+      mockCommandProcessExecutionFactory.createCommandProcessExecution,
+    ).toHaveBeenCalled();
+
+    const callArgs = (
+      mockCommandProcessExecutionFactory.createCommandProcessExecution as jest.Mock
+    ).mock.calls[0][0];
+    // Should use the workspace path
+    expect(callArgs.cwd).toBe("/test/workspace");
+  });
+
+  it("should handle --project-dir at different positions in args array", async () => {
+    // Arrange
+    const projectDir = "/another/dbt/project";
+    const command = new DBTCommand(
+      "Running dbt command",
+      ["compile", "--select", "model1", "--project-dir", projectDir],
+      true,
+      true,
+      true,
+    );
+
+    // Act
+    await strategy.execute(command);
+
+    // Assert
+    const callArgs = (
+      mockCommandProcessExecutionFactory.createCommandProcessExecution as jest.Mock
+    ).mock.calls[0][0];
+    expect(callArgs.cwd).toBe(projectDir);
   });
 });
