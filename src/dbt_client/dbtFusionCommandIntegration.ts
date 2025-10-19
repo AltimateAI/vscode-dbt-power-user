@@ -23,7 +23,7 @@ import {
   DBTTerminal,
   PythonEnvironment,
 } from "../modules";
-import { DBTCloudProjectIntegration, getDBTPath } from "./dbtCloudIntegration";
+import { DBTCloudProjectIntegration } from "./dbtCloudIntegration";
 import path, { join } from "path";
 
 @provideSingleton(DBTFusionCommandDetection)
@@ -35,12 +35,11 @@ export class DBTFusionCommandDetection implements DBTDetection {
   ) {}
 
   async detectDBT(): Promise<boolean> {
-    const dbtPath = getDBTPath(this.pythonEnvironment, this.terminal);
     try {
       this.terminal.debug("DBTCLIDetection", "Detecting dbt fusion cli");
       const checkDBTInstalledProcess =
         this.commandProcessExecutionFactory.createCommandProcessExecution({
-          command: dbtPath,
+          command: "dbtf",
           args: ["--version"],
           cwd: getFirstWorkspacePath(),
         });
@@ -105,6 +104,11 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
       ),
     );
     return command;
+  }
+
+  async initializeProject(): Promise<void> {
+    await super.initializeProject();
+    this.dbtPath = "dbtf";
   }
 
   protected async initializePaths() {
