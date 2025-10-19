@@ -3,6 +3,8 @@ import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { ProjectQuickPick } from "./projectQuickPick";
 import { DbtPowerUserControlCenterAction } from "./puQuickPick";
 import { DbtSQLAction } from "./sqlQuickPick";
+import { SharedStateService } from "../services/sharedStateService";
+import { OnboardingPanel } from "../webview_provider/onboardingPanel";
 
 export class DbtPowerUserActionsCenter implements Disposable {
   private disposables: Disposable[] = [];
@@ -12,12 +14,20 @@ export class DbtPowerUserActionsCenter implements Disposable {
     private projectQuickPick: ProjectQuickPick,
     private dbtProjectContainer: DBTProjectContainer,
     private sqlQuickPick: DbtSQLAction,
+    private emitterService: SharedStateService,
+    private onboardingPanel: OnboardingPanel,
   ) {
     commands.registerCommand("dbtPowerUser.puQuickPick", async () => {
       await this.puLaunchQuickPick.openPuQuickPick();
     });
     commands.registerCommand("dbtPowerUser.openInsights", async () => {
       await commands.executeCommand("dbtPowerUser.Insights.focus");
+    });
+    commands.registerCommand("dbtPowerUser.openOnboarding", async () => {
+      this.emitterService.eventEmitter.fire({
+        command: "onboarding:render",
+        payload: {},
+      });
     });
     commands.registerCommand("dbtPowerUser.sqlQuickPick", async () => {
       await this.sqlQuickPick.openQuickPick();
