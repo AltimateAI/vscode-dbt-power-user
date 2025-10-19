@@ -7,6 +7,7 @@ import { Container } from "inversify";
 import {
   CLIDBTCommandExecutionStrategy,
   PythonDBTCommandExecutionStrategy,
+  DBTCommandExecutionInfrastructure,
 } from "../../dbt_client/dbtIntegration";
 import { TelemetryService } from "../../telemetry";
 import { DBTProjectContainer } from "../../manifest/dbtProjectContainer";
@@ -18,6 +19,9 @@ import {
   CommandProcessExecutionFactory,
   CommandProcessExecution,
 } from "../../commandProcessExecution";
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
 
 // Mock workspace folders
 jest.mock("vscode", () => ({
@@ -254,5 +258,134 @@ describe("DBTCoreDetection Tests", () => {
       cwd: "/test/workspace",
       envVars: {},
     });
+  });
+});
+
+describe("DBTCoreProjectIntegration - dbt-loom config", () => {
+  let mockExecutionInfrastructure: jest.Mocked<DBTCommandExecutionInfrastructure>;
+  let mockTelemetry: jest.Mocked<TelemetryService>;
+  let mockPythonBridge: jest.Mocked<any>;
+  let tempDir: string;
+
+  beforeEach(() => {
+    // Create a temporary directory for testing
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dbt-test-"));
+
+    // Create mock dependencies
+    mockPythonBridge = {
+      lock: jest.fn(),
+      ex: jest.fn(),
+      connected: true,
+    };
+
+    mockTelemetry = {
+      sendTelemetryEvent: jest.fn(),
+      sendTelemetryError: jest.fn(),
+      setTelemetryCustomAttribute: jest.fn(),
+    } as any;
+
+    mockExecutionInfrastructure = {
+      createPythonBridge: jest.fn().mockReturnValue(mockPythonBridge),
+      createQueue: jest.fn(),
+    } as any;
+  });
+
+  afterEach(() => {
+    // Clean up temporary directory
+    if (tempDir && fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+    jest.clearAllMocks();
+  });
+
+  it("should set DBT_LOOM_CONFIG_PATH when dbt_loom.config.yml exists", () => {
+    // Arrange
+    const projectRoot = Uri.file(tempDir);
+    const dbtLoomConfigPath = path.join(tempDir, "dbt_loom.config.yml");
+
+    // Create the dbt_loom.config.yml file
+    fs.writeFileSync(dbtLoomConfigPath, "# Test config file");
+
+    const mockDiagnosticCollection =
+      languages.createDiagnosticCollection("dbt-project-config");
+    const mockPythonEnvChangeEmitter = new EventEmitter<Uri | undefined>();
+
+    // Act
+    new DBTCoreProjectIntegration(
+      mockExecutionInfrastructure as any,
+      {
+        onPythonEnvironmentChanged: mockPythonEnvChangeEmitter.event,
+        pythonPath: "/usr/bin/python3",
+        environmentVariables: {},
+      } as any,
+      mockTelemetry,
+      {} as PythonDBTCommandExecutionStrategy,
+      {} as (
+        projectRoot: Uri,
+        dbtPath: string,
+      ) => CLIDBTCommandExecutionStrategy,
+      {} as DBTProjectContainer,
+      {} as AltimateRequest,
+      {
+        debug: jest.fn(),
+        error: jest.fn(),
+        log: jest.fn(),
+      } as any,
+      {} as ValidationProvider,
+      {} as DeferToProdService,
+      projectRoot,
+      mockDiagnosticCollection,
+    );
+
+    // Assert
+    expect(mockExecutionInfrastructure.createPythonBridge).toHaveBeenCalledWith(
+      tempDir,
+      {
+        DBT_LOOM_CONFIG_PATH: dbtLoomConfigPath,
+      },
+    );
+  });
+
+  it("should not set DBT_LOOM_CONFIG_PATH when dbt_loom.config.yml does not exist", () => {
+    // Arrange
+    const projectRoot = Uri.file(tempDir);
+    // Explicitly NOT creating the dbt_loom.config.yml file
+
+    const mockDiagnosticCollection =
+      languages.createDiagnosticCollection("dbt-project-config");
+    const mockPythonEnvChangeEmitter = new EventEmitter<Uri | undefined>();
+
+    // Act
+    new DBTCoreProjectIntegration(
+      mockExecutionInfrastructure as any,
+      {
+        onPythonEnvironmentChanged: mockPythonEnvChangeEmitter.event,
+        pythonPath: "/usr/bin/python3",
+        environmentVariables: {},
+      } as any,
+      mockTelemetry,
+      {} as PythonDBTCommandExecutionStrategy,
+      {} as (
+        projectRoot: Uri,
+        dbtPath: string,
+      ) => CLIDBTCommandExecutionStrategy,
+      {} as DBTProjectContainer,
+      {} as AltimateRequest,
+      {
+        debug: jest.fn(),
+        error: jest.fn(),
+        log: jest.fn(),
+      } as any,
+      {} as ValidationProvider,
+      {} as DeferToProdService,
+      projectRoot,
+      mockDiagnosticCollection,
+    );
+
+    // Assert
+    expect(mockExecutionInfrastructure.createPythonBridge).toHaveBeenCalledWith(
+      tempDir,
+      {}, // Empty env object when file doesn't exist
+    );
   });
 });

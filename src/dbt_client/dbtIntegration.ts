@@ -413,7 +413,10 @@ export class DBTCommandExecutionInfrastructure {
     private terminal: DBTTerminal,
   ) {}
 
-  createPythonBridge(cwd: string): PythonBridge {
+  createPythonBridge(
+    cwd: string,
+    env?: { [key: string]: string | undefined },
+  ): PythonBridge {
     let pythonPath = this.pythonEnvironment.pythonPath;
     const envVars = this.pythonEnvironment.environmentVariables;
 
@@ -440,6 +443,7 @@ export class DBTCommandExecutionInfrastructure {
       python: pythonPath,
       cwd: cwd,
       env: {
+        ...env,
         ...envVars,
         PYTHONPATH: __dirname,
       },
