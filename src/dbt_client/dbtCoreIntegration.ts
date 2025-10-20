@@ -280,18 +280,14 @@ export class DBTCoreProjectIntegration
       "DBTCoreProjectIntegration",
       `Registering dbt core project at ${this.projectRoot}`,
     );
-    this.python = this.executionInfrastructure.createPythonBridge(
-      this.projectRoot.fsPath,
-    );
+    this.python = this.createPythonBridge();
     this.executionInfrastructure.createQueue(
       DBTCoreProjectIntegration.QUEUE_ALL,
     );
 
     this.disposables.push(
       this.pythonEnvironment.onPythonEnvironmentChanged(() => {
-        this.python = this.executionInfrastructure.createPythonBridge(
-          this.projectRoot.fsPath,
-        );
+        this.python = this.createPythonBridge();
       }),
       this.rebuildManifestDiagnostics,
       this.pythonBridgeDiagnostics,
@@ -409,6 +405,24 @@ export class DBTCoreProjectIntegration
     );
   }
 
+  private createPythonBridge(): PythonBridge {
+    const env: { [key: string]: string | undefined } = {};
+
+    // Check if dbt_loom.config.yml exists and add it to environment
+    const dbtLoomConfigPath = path.join(
+      this.projectRoot.fsPath,
+      "dbt_loom.config.yml",
+    );
+    if (existsSync(dbtLoomConfigPath)) {
+      env.DBT_LOOM_CONFIG_PATH = dbtLoomConfigPath;
+    }
+
+    return this.executionInfrastructure.createPythonBridge(
+      this.projectRoot.fsPath,
+      env,
+    );
+  }
+
   async executeSQL(
     query: string,
     limit: number,
@@ -417,9 +431,7 @@ export class DBTCoreProjectIntegration
     this.throwBridgeErrorIfAvailable();
     const { limitQuery } = await this.getQuery(query, limit);
 
-    const queryThread = this.executionInfrastructure.createPythonBridge(
-      this.projectRoot.fsPath,
-    );
+    const queryThread = this.createPythonBridge();
     return new QueryExecution(
       async () => {
         queryThread.kill(2);
@@ -1185,9 +1197,7 @@ export class DBTCoreProjectIntegration
     configPath,
   }: HealthcheckArgs): Promise<ProjectHealthcheck> {
     this.throwBridgeErrorIfAvailable();
-    const healthCheckThread = this.executionInfrastructure.createPythonBridge(
-      this.projectRoot.fsPath,
-    );
+    const healthCheckThread = this.createPythonBridge();
     try {
       await this.createPythonDbtProject(healthCheckThread);
       await healthCheckThread.ex`from dbt_healthcheck import *`;
