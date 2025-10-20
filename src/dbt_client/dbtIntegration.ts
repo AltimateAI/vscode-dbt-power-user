@@ -274,7 +274,7 @@ export interface HealthcheckArgs {
   configPath?: string;
 }
 
-export interface DBTProjectDetection extends Disposable {
+export interface DBTProjectDetection {
   discoverProjects(projectConfigFiles: Uri[]): Promise<Uri[]>;
 }
 
@@ -354,6 +354,7 @@ export interface DBTProjectIntegration extends Disposable {
   runModelTest(command: DBTCommand): Promise<CommandProcessResult | undefined>;
   compileModel(command: DBTCommand): Promise<void>;
   generateDocs(command: DBTCommand): Promise<void>;
+  clean(command: DBTCommand): Promise<string>;
   executeCommandImmediately(command: DBTCommand): Promise<CommandProcessResult>;
   deps(command: DBTCommand): Promise<string>;
   debug(command: DBTCommand): Promise<string>;
@@ -412,7 +413,10 @@ export class DBTCommandExecutionInfrastructure {
     private terminal: DBTTerminal,
   ) {}
 
-  createPythonBridge(cwd: string): PythonBridge {
+  createPythonBridge(
+    cwd: string,
+    env?: { [key: string]: string | undefined },
+  ): PythonBridge {
     let pythonPath = this.pythonEnvironment.pythonPath;
     const envVars = this.pythonEnvironment.environmentVariables;
 
@@ -439,6 +443,7 @@ export class DBTCommandExecutionInfrastructure {
       python: pythonPath,
       cwd: cwd,
       env: {
+        ...env,
         ...envVars,
         PYTHONPATH: __dirname,
       },
@@ -650,6 +655,16 @@ export class DBTCommandFactory {
     return new DBTCommand(
       "Generating dbt Docs...",
       ["docs", "generate"],
+      true,
+      true,
+      true,
+    );
+  }
+
+  createCleanCommand(): DBTCommand {
+    return new DBTCommand(
+      "Cleaning dbt project...",
+      ["clean"],
       true,
       true,
       true,

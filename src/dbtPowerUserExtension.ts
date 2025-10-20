@@ -94,28 +94,33 @@ export class DBTPowerUserExtension implements Disposable {
   }
 
   async activate(context: ExtensionContext): Promise<void> {
-    this.dbtProjectContainer.setContext(context);
-    this.dbtProjectContainer.initializeWalkthrough();
-    await this.dbtProjectContainer.detectDBT();
-    await this.dbtProjectContainer.initializeDBTProjects();
-    await this.statusBars.initialize();
-    // Ask to reload the window if the dbt integration changes
-    const dbtIntegration = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
-    workspace.onDidChangeConfiguration((e) => {
-      if (!e.affectsConfiguration("dbt")) {
-        return;
-      }
-      const newDbtIntegration = workspace
+    try {
+      await this.mcpServer.updateMcpExtensionApi();
+      this.dbtProjectContainer.setContext(context);
+      this.dbtProjectContainer.initializeWalkthrough();
+      await this.dbtProjectContainer.detectDBT();
+      await this.dbtProjectContainer.initializeDBTProjects();
+      await this.statusBars.initialize();
+      // Ask to reload the window if the dbt integration changes
+      const dbtIntegration = workspace
         .getConfiguration("dbt")
         .get<string>("dbtIntegration", "core");
-      if (
-        dbtIntegration !== newDbtIntegration &&
-        ["core", "cloud", "corecommand"].includes(newDbtIntegration)
-      ) {
-        commands.executeCommand("workbench.action.reloadWindow");
-      }
-    });
+      workspace.onDidChangeConfiguration((e) => {
+        if (!e.affectsConfiguration("dbt")) {
+          return;
+        }
+        const newDbtIntegration = workspace
+          .getConfiguration("dbt")
+          .get<string>("dbtIntegration", "core");
+        if (
+          dbtIntegration !== newDbtIntegration &&
+          ["core", "cloud", "corecommand", "fusion"].includes(newDbtIntegration)
+        ) {
+          commands.executeCommand("workbench.action.reloadWindow");
+        }
+      });
+    } catch (error) {
+      this.telemetry.sendTelemetryError("extensionActivationError", error);
+    }
   }
 }

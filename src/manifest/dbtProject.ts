@@ -70,6 +70,7 @@ import { TelemetryEvents } from "../telemetry/events";
 import { RunResultsEvent } from "./event/runResultsEvent";
 import { DBTCoreCommandProjectIntegration } from "../dbt_client/dbtCoreCommandIntegration";
 import { Table } from "src/services/dbtLineageService";
+import { DBTFusionCommandProjectIntegration } from "src/dbt_client/dbtFusionCommandIntegration";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -138,6 +139,9 @@ export class DBTProject implements Disposable {
     private dbtCloudIntegrationFactory: (
       path: Uri,
     ) => DBTCloudProjectIntegration,
+    private dbtFusionCommandIntegrationFactory: (
+      path: Uri,
+    ) => DBTFusionCommandProjectIntegration,
     private altimate: AltimateRequest,
     private validationProvider: ValidationProvider,
     path: Uri,
@@ -171,6 +175,11 @@ export class DBTProject implements Disposable {
     switch (dbtIntegrationMode) {
       case "cloud":
         this.dbtProjectIntegration = this.dbtCloudIntegrationFactory(
+          this.projectRoot,
+        );
+        break;
+      case "fusion":
+        this.dbtProjectIntegration = this.dbtFusionCommandIntegrationFactory(
           this.projectRoot,
         );
         break;
@@ -733,6 +742,12 @@ export class DBTProject implements Disposable {
     this.telemetry.sendTelemetryEvent("generateDocs");
   }
 
+  clean() {
+    const cleanCommand = this.dbtCommandFactory.createCleanCommand();
+    this.telemetry.sendTelemetryEvent("clean");
+    return this.dbtProjectIntegration.clean(cleanCommand);
+  }
+
   debug() {
     const debugCommand = this.dbtCommandFactory.createDebugCommand();
     this.telemetry.sendTelemetryEvent("debug");
@@ -1190,6 +1205,20 @@ export class DBTProject implements Disposable {
     // if user added a semicolon at the end, let,s remove it.
     query = query.replace(/;\s*$/, "");
 
+    // Check if query already contains a LIMIT clause and extract it
+    const limitRegex = /\bLIMIT\s+(\d+)\s*$/i;
+    const limitMatch = query.match(limitRegex);
+
+    if (limitMatch) {
+      // Override the limit with the one from the query
+      const queryLimit = parseInt(limitMatch[1], 10);
+      if (queryLimit > 0) {
+        limit = queryLimit;
+      }
+      // Remove the LIMIT clause from the query as we'll add it back later
+      query = query.replace(limitRegex, "").trim();
+    }
+
     if (limit <= 0) {
       window.showErrorMessage("Please enter a positive number for query limit");
       return;
@@ -1386,7 +1415,7 @@ export class DBTProject implements Disposable {
     const dependencyNodes = graphMetaMap[key];
     const dependencyNode = dependencyNodes.get(node.uniqueId);
     if (!dependencyNode) {
-      throw Error("graphMetaMap[" + key + "] has no entries for " + table);
+      return [];
     }
     const tables: Map<string, Table> = new Map();
     dependencyNode.nodes.forEach(({ url, key }) => {

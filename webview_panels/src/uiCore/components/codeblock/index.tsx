@@ -18,13 +18,13 @@ const CodeBlockComponent = ({
   fileName,
   showLineNumbers,
   titleActions,
-  classname
+  classname,
 }: Props): JSX.Element => {
   const {
     state: { theme },
   } = useAppContext();
   const codeBlockTheme = theme === Themes.Dark ? "dark" : "light";
-  const editorTheme = theme === Themes.Dark ? "vsc-dark-plus" : "vs";
+  const editorTheme = theme === Themes.Dark ? "vsc-dark-plus" : "tomorrow";
   return (
     <div className={classes.codeblock}>
       <CodeblockLib

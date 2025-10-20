@@ -1,4 +1,12 @@
-import { FormGroup, IconButton, Input, Label, Select, Spinner } from "@uicore";
+import {
+  FormGroup,
+  IconButton,
+  Input,
+  Label,
+  Select,
+  Spinner,
+  Stack,
+} from "@uicore";
 import {
   executeRequestInAsync,
   executeRequestInSync,
@@ -170,7 +178,7 @@ export const ManifestSelection = ({
         </Label>
         {manifestPathType === ManifestPathType.REMOTE &&
           projectIntegrations && (
-            <>
+            <Stack className="justify-between" style={{ width: "60%" }}>
               <Select
                 options={projectIntegrations}
                 className={classes.pathInput}
@@ -186,13 +194,13 @@ export const ManifestSelection = ({
               <IconButton
                 title="Refetch Project Integrations"
                 onClick={handleRefresh}
-                color="outline"
                 className={classes.refreshBtn}
+                color="outline"
                 disabled={fetchingProjectIntegrations}
               >
                 {!fetchingProjectIntegrations ? <RefreshIcon /> : <Spinner />}
               </IconButton>
-            </>
+            </Stack>
           )}
       </div>
     </FormGroup>

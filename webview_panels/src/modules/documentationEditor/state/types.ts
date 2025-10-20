@@ -25,8 +25,8 @@ export interface DBTDocumentation {
   generated: boolean;
   aiEnabled: boolean;
   patchPath?: string;
-  resource_type: string;
   uniqueId: string;
+  resource_type?: string;
   citations?: Citation[];
 }
 
@@ -61,6 +61,11 @@ export interface TestMetadataRelationshipsKwArgs extends TestMetadataKwArgs {
   to?: string;
 }
 
+export interface DocBlock {
+  name: string;
+  path: string;
+}
+
 export interface DocumentationStateProps {
   docUpdatedForModel?: string;
   docUpdatedForColumns: string[];
@@ -82,6 +87,7 @@ export interface DocumentationStateProps {
   collaborationEnabled: boolean;
   missingDocumentationMessage?: { message: string; type: "warning" | "error" };
   searchQuery: string;
+  docBlocks: DocBlock[];
 }
 
 export interface DBTModelTest {
