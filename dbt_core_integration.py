@@ -240,7 +240,7 @@ def default_profiles_dir(project_dir):
         profiles_dir = os.path.expanduser(os.environ["DBT_PROFILES_DIR"])
         if os.path.isabs(profiles_dir):
             return os.path.normpath(profiles_dir)
-        return os.path.normpath(os.path.join(project_dir, profiles_dir))
+        return os.path.normpath(profiles_dir)
     project_profiles_file = os.path.normpath(os.path.join(project_dir, "profiles.yml"))
     return (
         project_dir
