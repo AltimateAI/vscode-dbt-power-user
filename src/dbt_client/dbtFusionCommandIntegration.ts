@@ -16,15 +16,141 @@ import {
   DBTNode,
   DBTDetection,
   DBTProjectDetection,
+  DBTCommandExecutionInfrastructure,
+  DBTCommandFactory,
+  DBTCommandExecutionStrategy,
 } from "./dbtIntegration";
 import {
   CommandProcessExecutionFactory,
   DBTProject,
   DBTTerminal,
   PythonEnvironment,
+  TelemetryService,
+  AltimateRequest,
 } from "../modules";
+import { ValidationProvider } from "../validation_provider";
+import { DeferToProdService } from "../services/deferToProdService";
 import { DBTCloudProjectIntegration } from "./dbtCloudIntegration";
 import path, { join } from "path";
+import which from "which";
+
+/**
+ * Resolves the dbtf alias from shell configuration
+ * @returns The resolved path/command that dbtf aliases to, or null if not found
+ */
+async function resolveDbtfAlias(
+  commandProcessExecutionFactory: CommandProcessExecutionFactory,
+  terminal: DBTTerminal,
+): Promise<string | null> {
+  const platform = process.platform;
+
+  // Windows: Use doskey to check for aliases/macros
+  if (platform === "win32") {
+    try {
+      const aliasProcess =
+        commandProcessExecutionFactory.createCommandProcessExecution({
+          command: "doskey",
+          args: ["/macros"],
+          cwd: getFirstWorkspacePath(),
+        });
+
+      const { stdout } = await aliasProcess.complete();
+
+      // Parse output like: "dbtf=path\to\dbt $*"
+      const match = stdout.match(/dbtf=(.+?)(?:\s+\$\*)?$/m);
+      if (match) {
+        const resolved = match[1].trim();
+        terminal.debug("resolveDbtfAlias", `Found Windows macro: ${resolved}`);
+        return resolved;
+      }
+    } catch (error) {
+      terminal.debug(
+        "resolveDbtfAlias",
+        "Windows doskey resolution failed",
+        error,
+      );
+    }
+    return null;
+  }
+
+  // Unix-like systems: Use shell alias command
+  const shell = process.env.SHELL || "/bin/bash";
+
+  try {
+    const aliasProcess =
+      commandProcessExecutionFactory.createCommandProcessExecution({
+        command: shell,
+        args: ["-i", "-c", "alias dbtf 2>/dev/null || echo ''"],
+        cwd: getFirstWorkspacePath(),
+      });
+
+    const { stdout } = await aliasProcess.complete();
+    terminal.debug("resolveDbtfAlias", `alias command output: ${stdout}`);
+
+    // Parse different alias formats
+    // Bash: alias dbtf='path' or alias dbtf="path"
+    // Zsh: dbtf: aliased to path
+    // Direct: dbtf=path
+    const bashMatch = stdout.match(/alias dbtf=['"](.+?)['"]/);
+    const zshMatch = stdout.match(/dbtf.*aliased to (.+?)$/m);
+    const directMatch = stdout.match(/dbtf=(.+?)$/m);
+
+    if (bashMatch) {
+      const resolved = bashMatch[1].trim();
+      terminal.debug("resolveDbtfAlias", `Found bash alias: ${resolved}`);
+      return resolved;
+    }
+    if (zshMatch) {
+      const resolved = zshMatch[1].trim();
+      terminal.debug("resolveDbtfAlias", `Found zsh alias: ${resolved}`);
+      return resolved;
+    }
+    if (directMatch) {
+      const resolved = directMatch[1].trim();
+      terminal.debug("resolveDbtfAlias", `Found direct alias: ${resolved}`);
+      return resolved;
+    }
+  } catch (error) {
+    terminal.debug("resolveDbtfAlias", "Shell alias resolution failed", error);
+  }
+
+  return null;
+}
+
+/**
+ * Resolves the dbtf command path with fallback chain:
+ * 1. Try to resolve shell alias for dbtf
+ * 2. Try to find dbt in PATH
+ * 3. Fallback to "dbt" as command name
+ * @returns The resolved path to the dbt/dbtf command
+ */
+async function resolveDbtfPath(
+  commandProcessExecutionFactory: CommandProcessExecutionFactory,
+  terminal: DBTTerminal,
+): Promise<string> {
+  // Try to resolve alias via shell
+  const aliasResolved = await resolveDbtfAlias(
+    commandProcessExecutionFactory,
+    terminal,
+  );
+  if (aliasResolved) {
+    terminal.debug("resolveDbtfPath", `Resolved via alias: ${aliasResolved}`);
+    return aliasResolved;
+  }
+
+  // Try which/where for dbt
+  try {
+    const dbtPath = await which("dbt");
+    terminal.debug("resolveDbtfPath", `Found dbt in PATH: ${dbtPath}`);
+    return dbtPath;
+  } catch {
+    // dbt not in PATH either
+  }
+
+  // Fallback to just "dbt" command name
+  terminal.debug("resolveDbtfPath", "Falling back to 'dbt' command");
+  return "dbt";
+}
 
 @provideSingleton(DBTFusionCommandDetection)
 export class DBTFusionCommandDetection implements DBTDetection {
@@ -37,9 +163,20 @@ export class DBTFusionCommandDetection implements DBTDetection {
   async detectDBT(): Promise<boolean> {
     try {
       this.terminal.debug("DBTCLIDetection", "Detecting dbt fusion cli");
+
+      // Resolve dbtf command (handles aliases, symlinks, PATH)
+      const dbtfPath = await resolveDbtfPath(
+        this.commandProcessExecutionFactory,
+        this.terminal,
+      );
+      this.terminal.debug(
+        "DBTCLIDetection",
+        `Resolved dbtf command to: ${dbtfPath}`,
+      );
+
       const checkDBTInstalledProcess =
         this.commandProcessExecutionFactory.createCommandProcessExecution({
-          command: "dbtf",
+          command: dbtfPath,
           args: ["--version"],
           cwd: getFirstWorkspacePath(),
         });
@@ -96,6 +233,36 @@ export class DBTFusionCommandProjectDetection implements DBTProjectDetection {
 
 @provideSingleton(DBTFusionCommandProjectIntegration)
 export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegration {
+  constructor(
+    executionInfrastructure: DBTCommandExecutionInfrastructure,
+    dbtCommandFactory: DBTCommandFactory,
+    cliDBTCommandExecutionStrategyFactory: (
+      path: Uri,
+      dbtPath: string,
+    ) => DBTCommandExecutionStrategy,
+    telemetry: TelemetryService,
+    pythonEnvironment: PythonEnvironment,
+    terminal: DBTTerminal,
+    validationProvider: ValidationProvider,
+    deferToProdService: DeferToProdService,
+    projectRoot: Uri,
+    altimateRequest: AltimateRequest,
+    private commandProcessExecutionFactory: CommandProcessExecutionFactory,
+  ) {
+    super(
+      executionInfrastructure,
+      dbtCommandFactory,
+      cliDBTCommandExecutionStrategyFactory,
+      telemetry,
+      pythonEnvironment,
+      terminal,
+      validationProvider,
+      deferToProdService,
+      projectRoot,
+      altimateRequest,
+    );
+  }
+
   protected dbtCloudCommand(command: DBTCommand) {
     command.setExecutionStrategy(
       this.cliDBTCommandExecutionStrategyFactory(
@@ -108,7 +275,15 @@ export class DBTFusionCommandProjectIntegration extends DBTCloudProjectIntegrati
 
   async initializeProject(): Promise<void> {
     await super.initializeProject();
-    this.dbtPath = "dbtf";
+    // Resolve dbtf command (handles aliases, symlinks, PATH)
+    this.dbtPath = await resolveDbtfPath(
+      this.commandProcessExecutionFactory,
+      this.terminal,
+    );
+    this.terminal.debug(
+      "DBTFusionInitialization",
+      `Resolved dbtf command to: ${this.dbtPath}`,
+    );
   }
 
   protected async initializePaths() {
