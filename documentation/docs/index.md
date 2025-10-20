@@ -1,7 +1,6 @@
 # Accelerate dbt and SQL Development by 3x
 
-/// admonition | The Power User extension is also available on Cursor! [Click here](https://www.cursor.com/how-to-install-extension) to learn how to install the extension for Cursor.
-type: info
+/// admonition | We've released our [DataMates Extension](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server) - to give you the power to use AI TeamMates! [Click here](https://datamates-docs.myaltimate.com/) to learn more.
 ///
 
 Welcome to the docs for [dbt Power User VSCode Extension](https://marketplace.visualstudio.com/items?itemName=innoverio.vscode-dbt-power-user), an [open sourced](https://github.com/AltimateAI/vscode-dbt-power-user) extension created by [Altimate AI](https://www.altimate.ai/).
@@ -212,7 +211,7 @@ The dbt Power User Extension has great features out of the box. Add a free [Alti
             </div>
             <div class="column">
                 <ul>
-                    <li><a href="cursor/examples">MCP Server Tools</a></li> 
+                    <li><a href="https://datamates-docs.myaltimate.com/user-guide/home/">DataMates</a></li> 
                     <li><a href="test/lineage/#column-lineage">Data Lineage: Column Level </a></li>
                     <li><a href="develop/explanation">Query Explanation AI</a></li>
                     <li><a href="develop/translateSQL">Query Translation AI</a></li>

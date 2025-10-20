@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.58.5",
+  "version": "0.58.13",
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -524,7 +524,7 @@
       },
       {
         "command": "dbtPowerUser.sqlToModel",
-        "title": "Convert to dbt Model (Preview feature)",
+        "title": "Convert to dbt Model",
         "shortTitle": "Convert to dbt Model",
         "category": "dbt Power User",
         "icon": {
