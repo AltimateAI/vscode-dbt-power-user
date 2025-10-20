@@ -301,6 +301,7 @@ class ConfigInterface:
         favor_state: Optional[bool] = False,
         # dict in 1.5.x onwards, json string before.
         vars: Optional[Union[Dict[str, Any], str]] = {} if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 5 else "{}",
+        full_refresh: Optional[bool] = False,
     ):
         self.threads = threads
         self.target = target if target else os.environ.get("DBT_TARGET")
@@ -314,6 +315,7 @@ class ConfigInterface:
         self.defer = defer
         self.state = state
         self.favor_state = favor_state
+        self.full_refresh = full_refresh
         # dict in 1.5.x onwards, json string before.
         if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 5:
             self.vars = vars if vars else json.loads(os.environ.get("DBT_VARS", "{}"))
@@ -381,6 +383,7 @@ class DbtProject:
         manifest_path: Optional[str] = None,
         favor_state: bool = False,
         vars: Optional[Dict[str, Any]] = {},
+        full_refresh: bool = False,
     ):
         self.args = ConfigInterface(
             threads=threads,
@@ -393,6 +396,7 @@ class DbtProject:
             state=manifest_path,
             favor_state=favor_state,
             vars=vars,
+            full_refresh=full_refresh,
         )
 
         # Utilities
@@ -697,21 +701,28 @@ class DbtProject:
         """Wraps adapter execute_macro. Execute a macro like a function."""
         return self.get_macro_function(macro, compiled_code)(kwargs=kwargs)
 
-    def execute_sql(self, raw_sql: str, original_node: Optional[Union["ManifestNode", str]] = None) -> DbtAdapterExecutionResult:
+    def execute_sql(self, raw_sql: str, original_node: Optional[Union["ManifestNode", str]] = None, full_refresh: bool = False) -> DbtAdapterExecutionResult:
         """Execute dbt SQL statement against database"""
-        with self.adapter.connection_named("master"):
-            # if no jinja chars then these are synonymous
-            compiled_sql = raw_sql
-            if has_jinja(raw_sql):
-                # jinja found, compile it
-                compilation_result = self._compile_sql(raw_sql, original_node)
-                compiled_sql = compilation_result.compiled_sql
+        prev = getattr(self.args, "full_refresh", False)
+        self.args.full_refresh = full_refresh
+        set_from_args(self.args, None)
+        try:
+            with self.adapter.connection_named("master"):
+                # if no jinja chars then these are synonymous
+                compiled_sql = raw_sql
+                if has_jinja(raw_sql):
+                    # jinja found, compile it
+                    compilation_result = self._compile_sql(raw_sql, original_node)
+                    compiled_sql = compilation_result.compiled_sql
 
-            return DbtAdapterExecutionResult(
-                *self.adapter_execute(compiled_sql, fetch=True),
-                raw_sql,
-                compiled_sql,
-            )
+                return DbtAdapterExecutionResult(
+                    *self.adapter_execute(compiled_sql, fetch=True),
+                    raw_sql,
+                    compiled_sql,
+                )
+        finally:
+            self.args.full_refresh = prev
+            set_from_args(self.args, None)
 
     def execute_node(self, node: "ManifestNode") -> DbtAdapterExecutionResult:
         """Execute dbt SQL statement against database from a"ManifestNode"""
@@ -732,12 +743,18 @@ class DbtProject:
         except Exception as e:
             raise Exception(str(e))
 
-    def compile_sql(self, raw_sql: str, original_node: Optional["ManifestNode"] = None) -> DbtAdapterCompilationResult:
+    def compile_sql(self, raw_sql: str, original_node: Optional["ManifestNode"] = None, full_refresh: bool = False) -> DbtAdapterCompilationResult:
         try:
+            prev = getattr(self.args, "full_refresh", False)
+            self.args.full_refresh = full_refresh
+            set_from_args(self.args, None)
             with self.adapter.connection_named("master"):
                 return self._compile_sql(raw_sql, original_node)
         except Exception as e:
             raise Exception(str(e))
+        finally:
+            self.args.full_refresh = prev
+            set_from_args(self.args, None)
 
     def compile_node(
         self, node: "ManifestNode"
