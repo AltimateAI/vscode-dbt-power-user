@@ -148,7 +148,7 @@ def sql_parse_errors(sql: str, dialect: str):
 
 def get_start_and_end_position(sql: str, invalid_string: str):
     start, end, num_occurences = find_single_occurrence_indices(sql, invalid_string)
-    if start and end:
+    if start is not None and end is not None:
         return (
             list(get_line_and_column_from_position(sql, start)),
             list(get_line_and_column_from_position(sql, end)),
