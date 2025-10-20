@@ -20,8 +20,8 @@
         },
         "background": {
           "activeOnStart": true,
-          "beginsPattern": "^.*assets by path.*",
-          "endsPattern": "^.*compiled successfully.*"
+          "beginsPattern": "^.*build started.*",
+          "endsPattern": "^.*built in.*"
         }
       }
     },
