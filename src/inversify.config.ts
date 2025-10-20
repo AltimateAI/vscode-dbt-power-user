@@ -225,6 +225,7 @@ container
         container.get(DeferToProdService),
         projectRoot,
         container.get(AltimateRequest),
+        container.get(CommandProcessExecutionFactory),
       );
     };
   });
