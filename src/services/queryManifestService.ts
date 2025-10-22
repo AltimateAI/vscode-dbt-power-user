@@ -1,21 +1,21 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import { TextDocument, Uri, window } from "vscode";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { DBTProject } from "../manifest/dbtProject";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProject } from "../dbt_client/dbtProject";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
-import { provideSingleton } from "../utils";
-import { SharedStateService } from "./sharedStateService";
+} from "../dbt_client/event/manifestCacheChangedEvent";
 import { ProjectQuickPick } from "../quickpick/projectQuickPick";
+import { SharedStateService } from "./sharedStateService";
 
-@provideSingleton(QueryManifestService)
 export class QueryManifestService {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     protected emitterService: SharedStateService,
     private projectQuickPick: ProjectQuickPick,

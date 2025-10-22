@@ -1,11 +1,11 @@
-import { MarkdownString, Uri } from "vscode";
 import {
   MacroMetaData,
   NodeMetaData,
   NodeMetaType,
   SourceMetaType,
-} from "../domain";
-import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
+} from "@altimateai/dbt-integration";
+import { MarkdownString, Uri } from "vscode";
+import { ManifestCacheProjectAddedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
 
 export function generateHoverMarkdownString(
   node: NodeMetaType | SourceMetaType,
@@ -86,10 +86,10 @@ export const generateMacroHoverMarkdown = (
   if (node.depends_on.macros?.length || node.depends_on.nodes?.length) {
     const dependsOn = [
       ...(node.depends_on.macros?.map((m) =>
-        [...event.macroMetaMap.values()].find((macro) => macro.uniqueId === m),
+        [...event.macroMetaMap.values()].find((macro) => macro.unique_id === m),
       ) || []),
       ...(node.depends_on.nodes?.map((m) =>
-        [...event.nodeMetaMap.nodes()].find((macro) => macro.uniqueId === m),
+        [...event.nodeMetaMap.nodes()].find((macro) => macro.unique_id === m),
       ) || []),
     ];
     addSeparator(content);
@@ -119,5 +119,5 @@ const buildLink = (node: MacroMetaData | NodeMetaData | undefined) => {
     return node.name;
   }
 
-  return `[${node.name}](${Uri.file(node.path)} "${node.uniqueId}")`;
+  return `[${node.name}](${Uri.file(node.path)} "${node.unique_id}")`;
 };

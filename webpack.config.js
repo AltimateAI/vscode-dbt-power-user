@@ -39,6 +39,11 @@ const config = {
     alias: {
       "@extension": path.resolve(__dirname, "./src/modules.ts"),
       "@lib": path.resolve(__dirname, "./src/lib/index"),
+      // Development: use local TypeScript source (same as webpack and tsconfig)
+      // "@altimateai/dbt-integration": path.resolve(
+      //   __dirname,
+      //   "../altimate-dbt-integration/src/index.ts",
+      // ),
     },
   },
   module: {
@@ -59,30 +64,77 @@ const config = {
       patterns: [
         {
           from: path.resolve(__dirname, "altimate_notebook_kernel.py"),
-          to: "altimate_notebook_kernel.py",
+          to: path.resolve(
+            __dirname,
+            "dist/altimate_python_packages/altimate_notebook_kernel.py",
+          ),
         },
+        // Development: use local Python files (same as webpack and tsconfig)
+        // {
+        //   from: path.resolve(
+        //     __dirname,
+        //     "../altimate-dbt-integration/node_modules/python-bridge/node_python_bridge.py",
+        //   ),
+        //   to: "node_python_bridge.py",
+        // },
+        // {
+        //   from: path.resolve(
+        //     __dirname,
+        //     "../altimate-dbt-integration/src/altimate_python_packages/dbt_core_integration.py",
+        //   ),
+        //   to: "dbt_core_integration.py",
+        // },
+        // {
+        //   from: path.resolve(
+        //     __dirname,
+        //     "../altimate-dbt-integration/src/altimate_python_packages/dbt_utils.py",
+        //   ),
+        //   to: "dbt_utils.py",
+        // },
+        // {
+        //   from: path.resolve(
+        //     __dirname,
+        //     "../altimate-dbt-integration/src/altimate_python_packages/altimate_packages/",
+        //   ),
+        //   to: "altimate_packages/",
+        // },
+        // Production: use npm package (commented out for development)
         {
-          from: path.resolve(__dirname, "dbt_core_integration.py"),
-          to: "dbt_core_integration.py",
-        },
-        {
-          from: path.resolve(__dirname, "dbt_cloud_integration.py"),
-          to: "dbt_cloud_integration.py",
-        },
-        {
-          from: path.resolve(__dirname, "dbt_healthcheck.py"),
-          to: "dbt_healthcheck.py",
+          from: path.resolve(
+            __dirname,
+            "node_modules/@altimateai/dbt-integration/dist/node_python_bridge.py",
+          ),
+          to: path.resolve(__dirname, "dist/node_python_bridge.py"),
         },
         {
           from: path.resolve(
             __dirname,
-            "node_modules/python-bridge/node_python_bridge.py",
+            "node_modules/@altimateai/dbt-integration/dist/altimate_python_packages/dbt_core_integration.py",
           ),
-          to: "node_python_bridge.py",
+          to: path.resolve(
+            __dirname,
+            "dist/altimate_python_packages/dbt_core_integration.py",
+          ),
         },
         {
-          from: path.resolve(__dirname, "altimate_packages/"),
-          to: "altimate_packages/",
+          from: path.resolve(
+            __dirname,
+            "node_modules/@altimateai/dbt-integration/dist/altimate_python_packages/dbt_utils.py",
+          ),
+          to: path.resolve(
+            __dirname,
+            "dist/altimate_python_packages/dbt_utils.py",
+          ),
+        },
+        {
+          from: path.resolve(
+            __dirname,
+            "node_modules/@altimateai/dbt-integration/dist/altimate_python_packages/altimate_packages/",
+          ),
+          to: path.resolve(
+            __dirname,
+            "dist/altimate_python_packages/altimate_packages/",
+          ),
         },
       ],
     }),

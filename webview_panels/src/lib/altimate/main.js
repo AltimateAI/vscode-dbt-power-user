@@ -32736,7 +32736,7 @@ const Lx = ({ datatype: e, color: t, size: n = "1rem" }) => {
           const m = p.shift();
           if (h[m.table]) continue;
           h[m.table] = !0;
-          const { tables: b } = await V5(d, m.table);
+          const { tables: b = [] } = await V5(d, m.table);
           ya(a, l, b, m.table, d, m.level, i);
           const y = $5(d, m.level);
           s(y)

@@ -1,26 +1,39 @@
 import path = require("path");
 import {
+  DBTTerminal,
+  NodeMetaData,
+  RateLimitException,
+  RESOURCE_TYPE_MODEL,
+} from "@altimateai/dbt-integration";
+import { promises as fs } from "fs";
+import { inject } from "inversify";
+import * as yaml from "js-yaml";
+import {
+  env,
   ProgressLocation,
   Uri,
   WebviewPanel,
   WebviewView,
-  env,
   window,
 } from "vscode";
 import { AltimateRequest, DocsGenerateResponse } from "../altimate";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { RateLimitException } from "../exceptions";
-import { DBTProject } from "../manifest/dbtProject";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProject } from "../dbt_client/dbtProject";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
+import { TelemetryEvents } from "../telemetry/events";
+import { extendErrorWithSupportLinks, removeProtocol } from "../utils";
 import {
   AIColumnDescription,
   DBTDocumentation,
   Source,
 } from "../webview_provider/docsEditPanel";
+import { AltimateAuthService } from "./altimateAuthService";
 import { QueryManifestService } from "./queryManifestService";
-import { TelemetryEvents } from "../telemetry/events";
+
+interface DBTDocumentationMessage {
+  documentation: DBTDocumentation | undefined;
+  message?: { message: string; type: string };
+}
 
 export interface DocumentationSchemaColumn {
   name: string;
@@ -33,7 +46,7 @@ interface DocumentationSchemaModel {
   name: string;
   description: string;
   tests: any;
-  columns: [];
+  columns: { name: string; description?: string; data_type?: string }[];
 }
 export interface DocumentationSchema {
   version: number;
@@ -67,15 +80,56 @@ interface FeedbackRequestProps {
 
 const COLUMNS_PER_CHUNK = 3;
 
-@provideSingleton(DocGenService)
 export class DocGenService {
   public constructor(
     private altimateRequest: AltimateRequest,
     protected dbtProjectContainer: DBTProjectContainer,
     protected telemetry: TelemetryService,
     private queryManifestService: QueryManifestService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
+    private altimateAuthService: AltimateAuthService,
   ) {}
+
+  private getCompiledDocumentationFromNode(
+    currentNode: NodeMetaData | undefined,
+    modelName: string,
+    filePath: string,
+  ): DBTDocumentation | undefined {
+    if (!currentNode) {
+      return;
+    }
+    const docColumns = currentNode.columns;
+    return {
+      aiEnabled: this.altimateRequest.enabled(),
+      name: modelName,
+      patchPath: currentNode.patch_path,
+      description: currentNode.description,
+      generated: false,
+      uniqueId: currentNode.unique_id,
+      resource_type: currentNode.resource_type,
+      filePath,
+      columns: Object.values(docColumns).map((column) => {
+        return {
+          name: column.name,
+          description: column.description,
+          generated: false,
+          source: Source.YAML,
+          type: column.data_type?.toLowerCase(),
+        };
+      }),
+    };
+  }
+
+  private getCurrentNode(modelName: string): NodeMetaData | undefined {
+    const eventResult = this.queryManifestService.getEventByCurrentProject();
+    if (!eventResult || !eventResult.event) {
+      return undefined;
+    }
+
+    const { event } = eventResult;
+    return event.nodeMetaMap.lookupByBaseName(modelName);
+  }
 
   private async generateDocsForColumn(
     documentation: DBTDocumentation | undefined,
@@ -196,16 +250,32 @@ export class DocGenService {
     }
   }
 
-  public async getDocumentationForCurrentActiveFile() {
-    return this.getDocumentation(window.activeTextEditor?.document?.uri.fsPath);
+  public async getCompiledDocumentationForCurrentActiveFile() {
+    return this.getCompiledDocumentation(
+      window.activeTextEditor?.document?.uri.fsPath,
+    );
   }
 
-  private getMissingDocumentationMessage(filePath?: string) {
-    const message =
-      "A valid dbt model file needs to be open and active in the editor area above to view documentation for that model.";
-    if (!filePath) {
-      return { message, type: "warning" };
+  public async getUncompiledDocumentationForCurrentActiveFile() {
+    return this.getUncompiledDocumentation(
+      window.activeTextEditor?.document?.uri.fsPath,
+    );
+  }
+
+  private getDocumentationValidationMessage(
+    filePath?: string,
+    context?: "project" | "node" | "resource_type" | "model_path",
+  ) {
+    // File is not a .sql file
+    if (!filePath?.endsWith(".sql")) {
+      return {
+        message:
+          "Documentation is only available for .sql files. Please open a dbt model (.sql) file.",
+        type: "warning",
+      };
     }
+
+    // Check for project diagnostics errors
     try {
       this.queryManifestService
         .getProjectByUri(Uri.file(filePath))
@@ -214,60 +284,190 @@ export class DocGenService {
       return { message: (err as Error).message, type: "error" };
     }
 
-    return { message, type: "warning" };
-  }
-
-  public async getDocumentation(filePath?: string): Promise<{
-    documentation: DBTDocumentation | undefined;
-    message?: { message: string; type: string };
-  }> {
-    const eventResult = this.queryManifestService.getEventByCurrentProject();
-    if (!eventResult) {
+    // Context-specific error messages
+    if (context === "project") {
       return {
-        documentation: undefined,
-        message: this.getMissingDocumentationMessage(filePath),
+        message:
+          "Unable to find dbt project or project root for this file. Ensure the file is part of a valid dbt project.",
+        type: "warning",
       };
     }
-    const { event } = eventResult;
 
-    if (!event || !filePath) {
+    if (context === "node") {
       return {
-        documentation: undefined,
-        message: this.getMissingDocumentationMessage(filePath),
+        message:
+          "Model not found in dbt manifest. Ensure the model has been compiled and exists in the dbt project.",
+        type: "warning",
       };
+    }
+
+    if (context === "resource_type") {
+      return {
+        message:
+          "Documentation is only available for dbt models. This file appears to be a snapshot, macro, test, or other dbt resource type which is not supported.",
+        type: "warning",
+      };
+    }
+
+    // Default generic message
+    return {
+      message:
+        "A valid dbt model file needs to be open and active in the editor area above to view documentation for that model.",
+      type: "warning",
+    };
+  }
+
+  private async getDocumentation(
+    filePath?: string,
+    compiled: boolean = true,
+  ): Promise<DBTDocumentationMessage> {
+    // Initial validation (file path, .sql extension, diagnostics)
+    const initialValidation = this.getDocumentationValidationMessage(filePath);
+    if (initialValidation.type === "error" || !filePath) {
+      return { documentation: undefined, message: initialValidation };
     }
 
     const modelName = path.basename(filePath, ".sql");
-    const currentNode = event.nodeMetaMap.lookupByBaseName(modelName);
-    if (currentNode === undefined) {
+    const project = this.dbtProjectContainer.findDBTProject(Uri.file(filePath));
+
+    // Project validation
+    if (!project || !project.projectRoot) {
       return {
         documentation: undefined,
-        message: this.getMissingDocumentationMessage(filePath),
+        message: this.getDocumentationValidationMessage(filePath, "project"),
       };
     }
 
-    const docColumns = currentNode.columns;
-    return {
-      documentation: {
-        aiEnabled: this.altimateRequest.enabled(),
-        name: modelName,
-        patchPath: currentNode.patch_path,
-        description: currentNode.description,
-        generated: false,
-        resource_type: currentNode.resource_type,
-        uniqueId: currentNode.uniqueId,
+    // Model path validation - ensure file is in configured model directories
+    const modelPaths = project.getModelPaths();
+    if (
+      !modelPaths ||
+      !modelPaths.some(
+        (modelPath) =>
+          filePath.startsWith(modelPath + path.sep) ||
+          path.dirname(filePath) === modelPath,
+      )
+    ) {
+      return {
+        documentation: undefined,
+        message: this.getDocumentationValidationMessage(filePath, "model_path"),
+      };
+    }
+
+    // Node validation
+    const currentNode = this.getCurrentNode(modelName);
+    if (!currentNode) {
+      return {
+        documentation: undefined,
+        message: this.getDocumentationValidationMessage(filePath, "node"),
+      };
+    }
+
+    // Resource type validation - ensure it's a model
+    if (currentNode.resource_type !== RESOURCE_TYPE_MODEL) {
+      return {
+        documentation: undefined,
+        message: this.getDocumentationValidationMessage(
+          filePath,
+          "resource_type",
+        ),
+      };
+    }
+
+    // Branch based on compiled vs uncompiled
+    if (compiled) {
+      // Compiled documentation path
+      const documentation = this.getCompiledDocumentationFromNode(
+        currentNode,
+        modelName,
         filePath,
-        columns: Object.values(docColumns).map((column) => {
-          return {
-            name: column.name,
-            description: column.description,
+      );
+      return { documentation };
+    } else {
+      // Uncompiled documentation path
+      if (!currentNode.patch_path) {
+        return {
+          documentation: {
+            aiEnabled: this.altimateRequest.enabled(),
+            name: modelName,
+            description: "",
+            uniqueId: currentNode.unique_id,
+            resource_type: currentNode.resource_type,
             generated: false,
-            source: Source.YAML,
-            type: column.data_type?.toLowerCase(),
+            filePath,
+            columns: [],
+          },
+        };
+      }
+
+      try {
+        // Read and parse the YAML file
+        const yamlPath = path.join(
+          project.projectRoot.fsPath,
+          removeProtocol(currentNode.patch_path),
+        );
+        const content = await fs.readFile(yamlPath, "utf8");
+        const parsedDoc = yaml.load(content) as DocumentationSchema;
+
+        // Find matching model definition
+        const modelDef = parsedDoc.models?.find((m) => m.name === modelName);
+        if (!modelDef) {
+          return {
+            documentation: {
+              aiEnabled: this.altimateRequest.enabled(),
+              name: modelName,
+              description: "",
+              uniqueId: currentNode.unique_id,
+              resource_type: currentNode.resource_type,
+              filePath,
+              generated: false,
+              columns: [],
+            },
           };
-        }),
-      } as DBTDocumentation,
-    };
+        }
+
+        // Map to DBTDocumentation format
+        return {
+          documentation: {
+            aiEnabled: this.altimateRequest.enabled(),
+            name: modelName,
+            patchPath: currentNode.patch_path,
+            description: modelDef.description || "",
+            generated: false,
+            uniqueId: currentNode.unique_id,
+            resource_type: currentNode.resource_type,
+            filePath,
+            columns: (modelDef.columns || []).map((column) => ({
+              name: column.name,
+              description: column.description || "",
+              generated: false,
+              source: Source.YAML,
+              type: column.data_type?.toLowerCase(),
+            })),
+          },
+        };
+      } catch (error) {
+        this.dbtTerminal.error(
+          "docGenService:getDocumentationYamlError",
+          `Error reading YAML documentation: ${error}`,
+          error,
+        );
+      }
+      // falling back on compiled implementation
+      return this.getDocumentation(filePath, true);
+    }
+  }
+
+  public async getCompiledDocumentation(
+    filePath?: string,
+  ): Promise<DBTDocumentationMessage> {
+    return this.getDocumentation(filePath, true);
+  }
+
+  public async getUncompiledDocumentation(
+    filePath?: string,
+  ): Promise<DBTDocumentationMessage> {
+    return this.getDocumentation(filePath, false);
   }
 
   private chunk(a: string[], n: number) {
@@ -286,7 +486,7 @@ export class DocGenService {
     panel,
     isBulkGen,
   }: GenerateDocsForColumnsProps) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
     if (!project || !window.activeTextEditor) {
@@ -426,7 +626,7 @@ export class DocGenService {
     columnIndexCount,
     isBulkGen,
   }: GenerateDocsForModelProps) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
     if (!project) {
@@ -539,7 +739,7 @@ export class DocGenService {
           if (!project) {
             throw new Error("Unable to find project");
           }
-          const { documentation } = await this.getDocumentation();
+          const { documentation } = await this.getUncompiledDocumentation();
           const compiledSql = await project.unsafeCompileQuery(queryText);
           const request = message.data;
           request["feedback_text"] = message.comment;

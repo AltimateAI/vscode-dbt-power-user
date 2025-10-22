@@ -1,15 +1,16 @@
-import { window } from "vscode";
-import path = require("path");
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { TelemetryService } from "../telemetry";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import { PythonException } from "python-bridge";
+import { window } from "vscode";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { TelemetryService } from "../telemetry";
+import { extendErrorWithSupportLinks } from "../utils";
+import path = require("path");
 
-@provideSingleton(BigQueryCostEstimate)
 export class BigQueryCostEstimate {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private telemetry: TelemetryService,
   ) {}

@@ -6,12 +6,10 @@ import {
   window,
   workspace,
 } from "vscode";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { DBTInstallationVerificationEvent } from "../dbt_client/dbtVersionEvent";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { provideSingleton } from "../utils";
-import { RebuildManifestCombinedStatusChange } from "../manifest/event/manifestCacheChangedEvent";
+import { RebuildManifestCombinedStatusChange } from "../dbt_client/event/manifestCacheChangedEvent";
 
-@provideSingleton(VersionStatusBar)
 export class VersionStatusBar implements Disposable {
   readonly statusBar: StatusBarItem = window.createStatusBarItem(
     StatusBarAlignment.Left,

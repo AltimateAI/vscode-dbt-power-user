@@ -1,23 +1,24 @@
-import { Disposable, workspace, extensions, ConfigurationTarget } from "vscode";
-import { provideSingleton } from "../utils";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { DbtPowerUserMcpServerTools } from "./server";
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
+import { ConfigurationTarget, Disposable, extensions, workspace } from "vscode";
 import { AltimateRequest } from "../modules";
-import { ToolRegistry } from "./types";
+import { AltimateAuthService } from "../services/altimateAuthService";
 import { SharedStateService } from "../services/sharedStateService";
+import { DbtPowerUserMcpServerTools } from "./server";
+import { ToolRegistry } from "./types";
 
-@provideSingleton(DbtPowerUserMcpServer)
 export class DbtPowerUserMcpServer implements Disposable {
   private disposables: Disposable[] = [];
   private mcpExtensionApi: ToolRegistry | undefined;
 
   constructor(
     private dbtPowerUserMcpServerTools: DbtPowerUserMcpServerTools,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private altimate: AltimateRequest,
     private eventEmitter: SharedStateService,
+    private altimateAuthService: AltimateAuthService,
   ) {
-    this.updateMcpExtensionApi();
     workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration("altimate.onboardedMcpServer")) {
         this.registerToolsInMcpExtension();
@@ -33,45 +34,53 @@ export class DbtPowerUserMcpServer implements Disposable {
     );
   }
 
-  private async updateMcpExtensionApi() {
-    const extension = extensions.getExtension(
-      "altimateai.vscode-altimate-mcp-server",
-    );
-
-    if (!extension) {
-      this.dbtTerminal.error(
-        "DbtPowerUserMcpServer: enableMcpExtensionIntegration",
-        "Failed to install MCP extension",
-        { message: "Failed to install Altimate MCP Server extension" },
+  async updateMcpExtensionApi() {
+    try {
+      const extension = extensions.getExtension(
+        "altimateai.vscode-altimate-mcp-server",
       );
-      return;
-    }
 
-    if (!extension.isActive) {
-      await extension.activate();
-    }
-    await extension.exports.ready;
-    this.mcpExtensionApi = extension.exports as ToolRegistry;
+      if (!extension) {
+        this.dbtTerminal.error(
+          "DbtPowerUserMcpServer: enableMcpExtensionIntegration",
+          "Failed to install MCP extension",
+          { message: "Failed to install Altimate MCP Server extension" },
+        );
+        return;
+      }
 
-    await this.mcpExtensionApi.addMcpIntegrationConfig([
-      {
-        title: "Advanced Data Tools",
-        description:
-          "Enhance your experience with advanced data exploration features. By enabling this option, you allow data lookup queries to be processed and shared with Cursor. Features include:\n• Query specific column values\n• Execute SQL\n• Previewing data structures",
-        enableButton: "Enable Advanced Features",
-        disableButton: "Disable Features",
-        ide: ["cursor", "vscode"],
-        onCommandTrigger: async () => {
-          return await workspace
-            .getConfiguration("dbt")
-            .update(
-              "enableMcpDataSourceQueryTools",
-              true,
-              ConfigurationTarget.Global,
-            );
+      if (!extension.isActive) {
+        await extension.activate();
+      }
+      await extension.exports.ready;
+      this.mcpExtensionApi = extension.exports as ToolRegistry;
+
+      await this.mcpExtensionApi.addMcpIntegrationConfig([
+        {
+          title: "Advanced Data Tools",
+          description:
+            "Enhance your experience with advanced data exploration features. By enabling this option, you allow data lookup queries to be processed and shared with Cursor. Features include:\n• Query specific column values\n• Execute SQL\n• Previewing data structures",
+          enableButton: "Enable Advanced Features",
+          disableButton: "Disable Features",
+          ide: ["cursor", "vscode"],
+          onCommandTrigger: async () => {
+            return await workspace
+              .getConfiguration("dbt")
+              .update(
+                "enableMcpDataSourceQueryTools",
+                true,
+                ConfigurationTarget.Global,
+              );
+          },
         },
-      },
-    ]);
+      ]);
+    } catch (error) {
+      this.dbtTerminal.error(
+        "DbtPowerUserMcpServer:updateMcpExtensionApiError",
+        "Error updating MCP extension API",
+        { message: (error as Error).message },
+      );
+    }
   }
 
   private async registerToolsInMcpExtension() {
@@ -97,7 +106,7 @@ export class DbtPowerUserMcpServer implements Disposable {
       "DbtPowerUserMcpServer",
       "Onboarding completed, proceeding with tools registration",
     );
-    if (!this.altimate.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       this.dbtTerminal.info(
         "DbtPowerUserMcpServer: enableMcpExtensionIntegration",
         "Preview features are not enabled, skipping MCP server start",
@@ -109,7 +118,11 @@ export class DbtPowerUserMcpServer implements Disposable {
       const tools = this.dbtPowerUserMcpServerTools.getMcpTools();
       await this.mcpExtensionApi.registerTools(tools);
     } catch (error) {
-      console.error("Error registering tool:", error);
+      this.dbtTerminal.error(
+        "DbtPowerUserMcpServer:registerToolsInMcpExtensionError",
+        "Error registering tools in MCP extension",
+        { message: (error as Error).message },
+      );
     }
   }
 

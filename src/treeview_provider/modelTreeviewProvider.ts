@@ -3,10 +3,17 @@ import { provide } from "inversify-binding-decorators";
 import * as path from "path";
 
 import {
+  GraphMetaMap,
+  NodeData,
+  NodeMetaData,
+  NodeMetaMap,
+} from "@altimateai/dbt-integration";
+import {
   Command,
   Disposable,
   Event,
   EventEmitter,
+  MarkdownString,
   ProviderResult,
   TextDocument,
   ThemeIcon,
@@ -16,28 +23,76 @@ import {
   Uri,
   window,
 } from "vscode";
-import {
-  Analysis,
-  Exposure,
-  GraphMetaMap,
-  Node,
-  NodeMetaData,
-  NodeMetaMap,
-  Seed,
-  Snapshot,
-  Source,
-  Test,
-} from "../domain";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
+} from "../dbt_client/event/manifestCacheChangedEvent";
 import {
   getCurrentlySelectedModelNameInYamlConfig,
-  provideSingleton,
+  getDepthColor,
   removeProtocol,
 } from "../utils";
+
+interface IconPath {
+  light: string;
+  dark: string;
+}
+
+abstract class Node {
+  label: string;
+  key: string;
+  url: string | undefined;
+  iconPath: IconPath = {
+    light: path.join(
+      path.resolve(__dirname),
+      "../media/images/model_light.svg",
+    ),
+    dark: path.join(path.resolve(__dirname), "../media/images/model_dark.svg"),
+  };
+  displayInModelTree: boolean = true;
+
+  constructor(label: string, key: string, url?: string) {
+    this.label = label;
+    this.key = key;
+    this.url = url;
+  }
+}
+
+class Model extends Node {}
+
+class Seed extends Node {}
+class Test extends Node {
+  // displayInModelTree = false;
+  iconPath = {
+    light: path.join(
+      path.resolve(__dirname),
+      "../media/images/source_light.svg",
+    ),
+    dark: path.join(path.resolve(__dirname), "../media/images/source_dark.svg"),
+  };
+}
+class Analysis extends Node {
+  displayInModelTree = true;
+}
+class Exposure extends Node {
+  displayInModelTree = true;
+}
+class Metric extends Node {
+  displayInModelTree = false;
+}
+
+class Snapshot extends Node {}
+
+class Source extends Node {
+  iconPath = {
+    light: path.join(
+      path.resolve(__dirname),
+      "../media/images/source_light.svg",
+    ),
+    dark: path.join(path.resolve(__dirname), "../media/images/source_dark.svg"),
+  };
+}
 
 @provide(ModelTreeviewProvider)
 abstract class ModelTreeviewProvider
@@ -123,7 +178,34 @@ abstract class ModelTreeviewProvider
     if (!model) {
       return Promise.resolve([]);
     }
-    return Promise.resolve(this.getTreeItems(model.uniqueId, event));
+    return Promise.resolve(this.getTreeItems(model.unique_id, event));
+  }
+
+  private nodeDataToNode(nodeData: NodeData): Node | undefined {
+    const resourceType = nodeData.resourceType;
+    switch (resourceType) {
+      case "snapshot":
+        return new Snapshot(nodeData.label, nodeData.key, nodeData.url);
+      case "exposure":
+        return new Exposure(nodeData.label, nodeData.key, nodeData.url);
+      case "analysis":
+        return new Analysis(nodeData.label, nodeData.key, nodeData.url);
+      case "test":
+        return new Test(nodeData.label, nodeData.key, nodeData.url);
+      case "source":
+        return new Source(nodeData.label, nodeData.key, nodeData.url);
+      case "seed":
+        return new Seed(nodeData.label, nodeData.key, nodeData.url);
+      case "semantic_model":
+        return new Metric(nodeData.label, nodeData.key, nodeData.url);
+      case "model":
+        return new Model(nodeData.label, nodeData.key, nodeData.url);
+      default:
+        console.log(
+          `Resource Type '${resourceType}' not implemented in ModelTreeviewProvider.nodeDataToNode`,
+        );
+        return undefined;
+    }
   }
 
   private getNodeTreeItem(node: Node): NodeTreeItem {
@@ -158,17 +240,28 @@ abstract class ModelTreeviewProvider
       return [];
     }
     return parentModels.nodes
-      .filter((node) => node.displayInModelTree)
+      .flatMap((nodeData) => {
+        const node = this.nodeDataToNode(nodeData);
+        return node && node.displayInModelTree ? [node] : [];
+      })
       .map((node) => {
         const childNodes = graphMetaMap[this.treeType]
           .get(node.key)
-          ?.nodes.filter((node) => node.displayInModelTree);
+          ?.nodes.map((nodeData) => this.nodeDataToNode(nodeData))
+          .filter((node) => node && node.displayInModelTree);
 
         const treeItem = this.getNodeTreeItem(node);
         treeItem.collapsibleState =
           childNodes?.length !== 0
             ? TreeItemCollapsibleState.Collapsed
             : TreeItemCollapsibleState.None;
+
+        // Calculate depth from modelDepthMap
+        const depth = event.modelDepthMap.get(node.key);
+        if (depth !== undefined) {
+          treeItem.setDepth(depth);
+        }
+
         return treeItem;
       });
   }
@@ -273,7 +366,7 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
             `Documentation View Warning: No columns found in manifest.json for ${modelName}, go edit the documentation in the documentation editor panel and run dbt docs generate`,
           );
         }
-        const key = currentNode.uniqueId;
+        const key = currentNode.unique_id;
         const label = currentNode.alias;
         const description = `[ ${currentNode.config.materialized.toUpperCase()} ]  -  schema : ${
           currentNode.schema
@@ -332,6 +425,7 @@ export class NodeTreeItem extends TreeItem {
   collapsibleState = TreeItemCollapsibleState.Collapsed;
   key: string;
   url: string | undefined;
+  depth?: number;
 
   constructor(node: Node) {
     super(node.label);
@@ -350,6 +444,21 @@ export class NodeTreeItem extends TreeItem {
         arguments: [Uri.file(node.url)],
       };
     }
+  }
+
+  setDepth(depth: number) {
+    this.depth = depth;
+    const color = getDepthColor(depth);
+    const depthInfo = `(${depth})`;
+    this.description = this.description
+      ? `${this.description} ${depthInfo}`
+      : depthInfo;
+    this.tooltip = new MarkdownString(
+      `**DAG Depth:** <span style="color:${color}">${depth}</span>\n\n` +
+        `The longest path of models between a source and this model is ${depth} nodes long.`,
+    );
+    this.tooltip.isTrusted = true;
+    this.tooltip.supportHtml = true;
   }
 }
 
@@ -490,35 +599,30 @@ class TestTreeItem extends NodeTreeItem {
   contextValue = "test";
 }
 
-@provideSingleton(ModelTestTreeview)
 export class ModelTestTreeview extends ModelTreeviewProvider {
   constructor(dbtProjectContainer: DBTProjectContainer) {
     super(dbtProjectContainer, "tests");
   }
 }
 
-@provideSingleton(ParentModelTreeview)
 export class ParentModelTreeview extends ModelTreeviewProvider {
   constructor(dbtProjectContainer: DBTProjectContainer) {
     super(dbtProjectContainer, "parents");
   }
 }
 
-@provideSingleton(ChildrenModelTreeview)
 export class ChildrenModelTreeview extends ModelTreeviewProvider {
   constructor(dbtProjectContainer: DBTProjectContainer) {
     super(dbtProjectContainer, "children");
   }
 }
 
-@provideSingleton(DocumentationTreeview)
 export class DocumentationTreeview extends DocumentationTreeviewProvider {
   constructor(dbtProjectContainer: DBTProjectContainer) {
     super(dbtProjectContainer);
   }
 }
 
-@provideSingleton(IconActionsTreeview)
 export class IconActionsTreeview extends IconActionsTreeviewProvider {}
 
 // Find appropriate a model from file content (if YAML) or from a file name (otherwise)

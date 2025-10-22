@@ -1,36 +1,34 @@
+import { DBTTerminal, TestMetaData } from "@altimateai/dbt-integration";
 import { readFileSync } from "fs";
+import { inject } from "inversify";
 import {
   CancellationToken,
   Range,
-  TextEditor,
   WebviewView,
   WebviewViewResolveContext,
   window,
   workspace,
 } from "vscode";
 import { AltimateRequest } from "../altimate";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { QueryManifestService } from "../services/queryManifestService";
+import { ConversationProvider } from "../comment_provider/conversationProvider";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { ManifestCacheChangedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
+import { AltimateAuthService } from "../services/altimateAuthService";
+import { ConversationService } from "../services/conversationService";
+import { DbtTestService } from "../services/dbtTestService";
 import { DocGenService } from "../services/docGenService";
+import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
+import { UsersService } from "../services/usersService";
 import { TelemetryService } from "../telemetry";
-import { provideSingleton } from "../utils";
 import {
   AltimateWebviewProvider,
   HandleCommandProps,
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
-import { DocsGenPanelView } from "./docsEditPanel";
-import { TestMetaData } from "../domain";
-import { DbtTestService } from "../services/dbtTestService";
-import { UsersService } from "../services/usersService";
-import { ConversationProvider } from "../comment_provider/conversationProvider";
 import { DbtDocsView } from "./DbtDocsView";
-import { ConversationService } from "../services/conversationService";
+import { DocsGenPanelView } from "./docsEditPanel";
 
-@provideSingleton(NewDocsGenPanel)
 export class NewDocsGenPanel
   extends AltimateWebviewProvider
   implements DocsGenPanelView
@@ -46,12 +44,14 @@ export class NewDocsGenPanel
     private docGenService: DocGenService,
     protected emitterService: SharedStateService,
     protected queryManifestService: QueryManifestService,
+    @inject("DBTTerminal")
     protected dbtTerminal: DBTTerminal,
     private dbtTestService: DbtTestService,
     protected userService: UsersService,
     private dbtDocsView: DbtDocsView,
     private conversationProvider: ConversationProvider,
     private conversationService: ConversationService,
+    protected altimateAuthService: AltimateAuthService,
   ) {
     super(
       dbtProjectContainer,
@@ -61,6 +61,7 @@ export class NewDocsGenPanel
       dbtTerminal,
       queryManifestService,
       userService,
+      altimateAuthService,
     );
   }
 
@@ -190,13 +191,13 @@ export class NewDocsGenPanel
 
         break;
 
-      case "getCurrentModelDocumentation":
+      case "getCurrentModelDocumentation": {
         if (!this._panel) {
           return;
         }
 
         const { documentation, message: missingDocumentationMessage } =
-          await this.docGenService.getDocumentationForCurrentActiveFile();
+          await this.docGenService.getUncompiledDocumentationForCurrentActiveFile();
         this.sendResponseToWebview({
           command: "renderDocumentation",
           docs: documentation,
@@ -208,6 +209,7 @@ export class NewDocsGenPanel
             .get<boolean>("enableCollaboration", false),
         });
         break;
+      }
 
       case "getColumnsOfSources":
         this.handleSyncRequestFromWebview(

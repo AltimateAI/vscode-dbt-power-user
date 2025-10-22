@@ -1,4 +1,7 @@
-import { fluentProvide } from "inversify-binding-decorators";
+import {
+  TestMetadataAcceptedValues,
+  TestMetadataRelationships,
+} from "@altimateai/dbt-integration";
 import * as path from "path";
 import {
   Disposable,
@@ -7,15 +10,10 @@ import {
   Range,
   TextDocument,
   Uri,
-  workspace,
   window,
+  workspace,
 } from "vscode";
-import { readFileSync } from "fs";
-import { parse, parseDocument } from "yaml";
-import {
-  TestMetadataAcceptedValues,
-  TestMetadataRelationships,
-} from "./domain";
+import { parseDocument } from "yaml";
 
 export const isEnclosedWithinCodeBlock = (
   document: TextDocument,
@@ -74,10 +72,6 @@ export const isEnclosedWithinCodeBlock = (
   );
 };
 
-export const notEmpty = <T>(value: T | null | undefined): value is T => {
-  return value !== null && value !== undefined;
-};
-
 export const arrayEquals = <T>(a: Array<T>, b: Array<T>): boolean => {
   return a.sort().toString() === b.sort().toString();
 };
@@ -98,10 +92,6 @@ export const setupWatcherHandler: (
   watcher.onDidCreate(() => handler()),
   watcher.onDidDelete(() => handler()),
 ];
-
-export const provideSingleton = (identifier: any) => {
-  return fluentProvide(identifier).inSingletonScope().done();
-};
 
 export function extendErrorWithSupportLinks(error: string): string {
   return (
@@ -133,42 +123,6 @@ export function getFirstWorkspacePath(): string {
 export const getProjectRelativePath = (projectRoot: Uri) => {
   const ws = workspace.getWorkspaceFolder(projectRoot);
   return path.relative(ws?.uri.fsPath || "", projectRoot.fsPath);
-};
-
-export const processStreamResponse = async (
-  stream: NodeJS.ReadableStream | ReadableStream,
-  cb: (data: string) => void,
-): Promise<string> => {
-  if (stream instanceof ReadableStream) {
-    const reader = stream.getReader();
-    const decoder = new TextDecoder();
-    let result = "";
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          break;
-        }
-        const chunk = decoder.decode(value, { stream: true });
-        result += chunk;
-        cb(chunk);
-      }
-      return result;
-    } finally {
-      reader.releaseLock();
-    }
-  } else {
-    return new Promise((resolve, reject) => {
-      let result = "";
-      stream.on("data", (chunk: Buffer) => {
-        const data = chunk.toString();
-        result += data;
-        cb(data);
-      });
-      stream.on("end", () => resolve(result));
-      stream.on("error", reject);
-    });
-  }
 };
 
 export const deepEqual = (obj1: any, obj2: any): boolean => {
@@ -253,34 +207,6 @@ export const isQuotedIdentifier = (columnName: string, adapter: string) => {
 
   // snowflake and most of the db follow standard sql spec of making the column names to uppercase by default
   return !/^([_A-Z]+[_A-Z0-9$]*)$/.test(columnName);
-};
-
-export const getExternalProjectNamesFromDbtLoomConfig = (
-  projectRoot: string,
-) => {
-  const dbtLoomConfigPath =
-    process.env.DBT_LOOM_CONFIG_PATH ||
-    path.join(projectRoot, "dbt_loom.config.yml");
-
-  try {
-    const fileContents = readFileSync(dbtLoomConfigPath, "utf8");
-    if (fileContents) {
-      const dbtLoomConfig = (parse(fileContents, {
-        strict: false,
-        uniqueKeys: false,
-        maxAliasCount: -1,
-      }) || {}) as { manifests?: { name: string }[] };
-
-      return dbtLoomConfig.manifests?.map((manifest) => manifest.name);
-    }
-  } catch (error) {
-    console.debug(
-      "NodeParser",
-      `Error reading dbt_loom.config.yml at ${dbtLoomConfigPath}`,
-      error,
-    );
-  }
-  return null;
 };
 
 export const isRelationship = (
@@ -467,4 +393,31 @@ export function getCurrentlySelectedModelNameInYamlConfig(): string {
 
 export function removeProtocol(input: string): string {
   return input.replace(/^[^:]+:\/\//, "");
+}
+
+export function getDepthColor(depth: number): string {
+  const mediumDepthThreshold = workspace
+    .getConfiguration("dbt")
+    .get<number>("mediumDepthThreshold", 5);
+  const highDepthThreshold = workspace
+    .getConfiguration("dbt")
+    .get<number>("highDepthThreshold", 10);
+
+  const lowDepthColor = workspace
+    .getConfiguration("dbt")
+    .get<string>("lowDepthColor", "#00ff00");
+  const mediumDepthColor = workspace
+    .getConfiguration("dbt")
+    .get<string>("mediumDepthColor", "#ffa500");
+  const highDepthColor = workspace
+    .getConfiguration("dbt")
+    .get<string>("highDepthColor", "#ff0000");
+
+  if (depth >= highDepthThreshold) {
+    return highDepthColor; // Configurable color for high depth
+  } else if (depth >= mediumDepthThreshold) {
+    return mediumDepthColor; // Configurable color for medium depth
+  } else {
+    return lowDepthColor; // Configurable color for low depth
+  }
 }

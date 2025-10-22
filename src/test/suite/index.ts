@@ -1,6 +1,6 @@
-import "reflect-metadata";
-import * as path from "path";
 import { glob } from "glob";
+import * as path from "path";
+import "reflect-metadata";
 import { setupCoverage } from "./coverage";
 
 export async function run(): Promise<void> {

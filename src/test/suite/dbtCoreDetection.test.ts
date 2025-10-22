@@ -1,18 +1,17 @@
-import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
-import { DBTCoreDetection } from "../../dbt_client/dbtCoreIntegration";
 import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
-} from "../../commandProcessExecution";
-import { PythonEnvironment } from "../../manifest/pythonEnvironment";
-import { workspace, Uri } from "vscode";
+  DBTCoreDetection,
+} from "@altimateai/dbt-integration";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { Uri, workspace } from "vscode";
+import { PythonEnvironment } from "../../dbt_client/pythonEnvironment";
 
 describe("DBTCoreDetection Tests", () => {
   let detection: DBTCoreDetection;
   let mockCommandProcessExecutionFactory: jest.Mocked<CommandProcessExecutionFactory>;
   let mockPythonEnvironment: jest.Mocked<PythonEnvironment>;
   let mockCommandProcessExecution: jest.Mocked<CommandProcessExecution>;
-  let workspaceFoldersSpy: jest.SpyInstance;
 
   beforeEach(() => {
     // Mock workspace folders
@@ -90,7 +89,6 @@ describe("DBTCoreDetection Tests", () => {
     ).toHaveBeenCalledWith({
       command: "/path/to/python",
       args: ["-c", "import dbt"],
-      cwd: "/test/workspace",
       envVars: { PATH: "/some/path" },
     });
     expect(mockCommandProcessExecution.complete).toHaveBeenCalled();

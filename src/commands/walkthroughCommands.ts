@@ -1,17 +1,21 @@
 import {
-  window,
-  QuickPickItem,
-  ProgressLocation,
+  CommandProcessExecutionFactory,
+  DBTTerminal,
+} from "@altimateai/dbt-integration";
+import { inject } from "inversify";
+import { gte } from "semver";
+import {
   commands,
+  ProgressLocation,
+  QuickPickItem,
+  window,
   workspace,
 } from "vscode";
-import { getFirstWorkspacePath, provideSingleton } from "../utils";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { TelemetryService } from "../telemetry";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
-import { CommandProcessExecutionFactory } from "../commandProcessExecution";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { TelemetryService } from "../telemetry";
+import { getFirstWorkspacePath } from "../utils";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -24,13 +28,14 @@ enum DbtInstallationPromptAnswer {
   INSTALL_FUSION = "Install dbt fusion",
 }
 
-@provideSingleton(WalkthroughCommands)
 export class WalkthroughCommands {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
+    @inject(PythonEnvironment)
     private pythonEnvironment: PythonEnvironment,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {}
 
@@ -68,8 +73,8 @@ export class WalkthroughCommands {
           return;
         }
         const runModelOutput = await project.debug();
-        if (runModelOutput.includes("ERROR")) {
-          throw new Error(runModelOutput);
+        if (runModelOutput.fullOutput.includes("ERROR")) {
+          throw new Error(runModelOutput.fullOutput);
         }
       } catch (err) {
         this.dbtTerminal.error(
@@ -269,6 +274,7 @@ export class WalkthroughCommands {
         "1.7",
         "1.8",
         "1.9",
+        "1.10",
       ].map((value) => ({
         label: value,
       })),
@@ -322,9 +328,13 @@ export class WalkthroughCommands {
             "--no-cache-dir",
             "--force-reinstall",
           ];
-          if (packageVersion >= "1.8") {
+          const isIndependentAdapterPackage = gte(
+            packageVersion + ".0",
+            "1.8.0",
+          );
+          if (isIndependentAdapterPackage) {
             args.push(`dbt-core==${packageVersion}`);
-            args.push(`${packageName}>=${packageVersion}`);
+            args.push(`${packageName}`);
           } else {
             args.push(`${packageName}==${packageVersion}`);
           }

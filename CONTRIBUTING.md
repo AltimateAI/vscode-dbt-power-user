@@ -59,6 +59,99 @@ Maintaining consistent code style and formatting is crucial for readability and 
 
 When introducing new features or addressing bugs, consider the current codebase and community needs. Engage in discussions with fellow community members if you're unsure about design decisions or implementation details.
 
+## Local Development with @altimateai/dbt-integration Library
+
+When working on the extension, you may need to develop against a local version of the `@altimateai/dbt-integration` library instead of the published npm package. This allows you to test changes to both the extension and the integration library simultaneously.
+
+### Setup for Local Development
+
+1. **Clone the dbt-integration repository:** First, ensure you have the `altimate-dbt-integration` repository cloned as a sibling directory to this project:
+
+   ```bash
+   cd /path/to/your/projects
+   git clone https://github.com/altimateai/altimate-dbt-integration.git
+   cd vscode-dbt-power-user
+   ```
+
+   Your directory structure should look like:
+
+   ```
+   /path/to/your/projects/
+   ├── altimate-dbt-integration/
+   └── vscode-dbt-power-user/
+   ```
+
+2. **Switch to local development mode:** Modify the following configuration files to use the local TypeScript source instead of the npm package:
+
+   **jest.config.js**: Uncomment the local development lines:
+
+   ```javascript
+   // Development: use local TypeScript source (same as webpack and tsconfig)
+   "^@altimateai/dbt-integration$":
+     "<rootDir>/../altimate-dbt-integration/src/index.ts",
+   // Production: use npm package (commented out for development)
+   // "^@altimateai/dbt-integration$": "@altimateai/dbt-integration",
+   ```
+
+   **tsconfig.json**: Update the configuration:
+
+   ```json
+   {
+     // "rootDir": "src",
+     "rootDirs": ["src", "../altimate-dbt-integration/src"],
+     "paths": {
+       "@altimateai/dbt-integration": [
+         "../altimate-dbt-integration/src/index.ts"
+       ],
+       "@extension": ["./src/modules.ts"],
+       "@lib": ["./src/lib/index"]
+     }
+   }
+   ```
+
+   **webpack.config.js**: Update the alias and copy plugin configurations:
+
+   ```javascript
+   // In resolve.alias section:
+   "@altimateai/dbt-integration": path.resolve(
+     __dirname,
+     "../altimate-dbt-integration/src/index.ts",
+   ),
+
+   // In CopyWebpackPlugin, comment out production copies and uncomment development copies:
+   // Development: use local Python files
+   {
+     from: path.resolve(
+       __dirname,
+       "../altimate-dbt-integration/node_modules/python-bridge/node_python_bridge.py",
+     ),
+     to: "node_python_bridge.py",
+   },
+   // ... (other local file copies)
+   ```
+
+### Switching Back to Production Mode
+
+When you're done with local development, revert the configuration changes to use the published npm package:
+
+1. **jest.config.js**: Comment out local development lines and uncomment production lines
+2. **tsconfig.json**: Set `"rootDir": "src"` and remove the local path mapping
+3. **webpack.config.js**: Remove local alias and use npm package copies in CopyWebpackPlugin
+
+### Benefits of Local Development Mode
+
+- **Real-time changes**: Modify both the extension and integration library simultaneously
+- **Debugging**: Set breakpoints and debug across both codebases
+- **Testing**: Test integration library changes before publishing
+- **Development workflow**: Faster iteration when working on features that span both repositories
+
+### Important Notes
+
+- Ensure both repositories are on compatible branches when doing local development
+- The local development setup expects the `altimate-dbt-integration` directory to be a sibling of `vscode-dbt-power-user`
+- Always test with the production npm package configuration before submitting pull requests
+- The Python files from the integration library are copied during the webpack build process
+
 ## Testing
 
 Comprehensive testing is essential for maintaining the extension's stability and reliability. While adding new features or fixing bugs, run tests locally helps ensure your changes don't introduce regressions.

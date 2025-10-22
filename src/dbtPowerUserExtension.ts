@@ -1,29 +1,27 @@
-import { Disposable, ExtensionContext, commands, workspace } from "vscode";
+import { NotebookProviders } from "@lib";
+import { commands, Disposable, ExtensionContext, workspace } from "vscode";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";
+import { CommentProviders } from "./comment_provider";
 import { ContentProviders } from "./content_provider";
+import { DBTProjectContainer } from "./dbt_client/dbtProjectContainer";
 import { DefinitionProviders } from "./definition_provider";
 import { DocumentFormattingEditProviders } from "./document_formatting_edit_provider";
-import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
-import { StatusBars } from "./statusbar";
-import { TreeviewProviders } from "./treeview_provider";
-import { provideSingleton } from "./utils";
-import { WebviewViewProviders } from "./webview_provider";
-import { TelemetryService } from "./telemetry";
 import { HoverProviders } from "./hover_provider";
-import { DbtPowerUserActionsCenter } from "./quickpick";
-import { ValidationProvider } from "./validation_provider";
-import { CommentProviders } from "./comment_provider";
-import { NotebookProviders } from "@lib";
 import { DbtPowerUserMcpServer } from "./mcp";
+import { DbtPowerUserActionsCenter } from "./quickpick";
+import { StatusBars } from "./statusbar";
+import { TelemetryService } from "./telemetry";
+import { TreeviewProviders } from "./treeview_provider";
+import { ValidationProvider } from "./validation_provider";
+import { WebviewViewProviders } from "./webview_provider";
 
 enum PromptAnswer {
   YES = "Yes",
   NO = "No",
 }
 
-@provideSingleton(DBTPowerUserExtension)
 export class DBTPowerUserExtension implements Disposable {
   static DBT_SQL_SELECTOR = [
     { language: "jinja-sql", scheme: "file" },
@@ -94,28 +92,33 @@ export class DBTPowerUserExtension implements Disposable {
   }
 
   async activate(context: ExtensionContext): Promise<void> {
-    this.dbtProjectContainer.setContext(context);
-    this.dbtProjectContainer.initializeWalkthrough();
-    await this.dbtProjectContainer.detectDBT();
-    await this.dbtProjectContainer.initializeDBTProjects();
-    await this.statusBars.initialize();
-    // Ask to reload the window if the dbt integration changes
-    const dbtIntegration = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
-    workspace.onDidChangeConfiguration((e) => {
-      if (!e.affectsConfiguration("dbt")) {
-        return;
-      }
-      const newDbtIntegration = workspace
+    try {
+      await this.mcpServer.updateMcpExtensionApi();
+      this.dbtProjectContainer.setContext(context);
+      this.dbtProjectContainer.initializeWalkthrough();
+      await this.dbtProjectContainer.detectDBT();
+      await this.dbtProjectContainer.initializeDBTProjects();
+      await this.statusBars.initialize();
+      // Ask to reload the window if the dbt integration changes
+      const dbtIntegration = workspace
         .getConfiguration("dbt")
         .get<string>("dbtIntegration", "core");
-      if (
-        dbtIntegration !== newDbtIntegration &&
-        ["core", "cloud", "corecommand", "fusion"].includes(newDbtIntegration)
-      ) {
-        commands.executeCommand("workbench.action.reloadWindow");
-      }
-    });
+      workspace.onDidChangeConfiguration((e) => {
+        if (!e.affectsConfiguration("dbt")) {
+          return;
+        }
+        const newDbtIntegration = workspace
+          .getConfiguration("dbt")
+          .get<string>("dbtIntegration", "core");
+        if (
+          dbtIntegration !== newDbtIntegration &&
+          ["core", "cloud", "corecommand", "fusion"].includes(newDbtIntegration)
+        ) {
+          commands.executeCommand("workbench.action.reloadWindow");
+        }
+      });
+    } catch (error) {
+      this.telemetry.sendTelemetryError("extensionActivationError", error);
+    }
   }
 }

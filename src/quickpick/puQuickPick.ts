@@ -1,16 +1,15 @@
 import {
+  commands,
   Disposable,
   QuickPickItem,
   QuickPickItemKind,
   ThemeIcon,
   Uri,
-  commands,
   window,
   workspace,
 } from "vscode";
-import { provideSingleton } from "../utils";
+import { isCursor } from "../mcp/utils";
 
-@provideSingleton(DbtPowerUserControlCenterAction)
 export class DbtPowerUserControlCenterAction {
   async openPuQuickPick() {
     const disposables: Disposable[] = [];
@@ -30,12 +29,24 @@ export class DbtPowerUserControlCenterAction {
             "Switch between dbt core, cloud or fusion",
             "dbtPowerUser.switchDbtIntegration",
           ),
-          new DbtPowerUserControlPanelItem(
-            "Setup Extension",
-            "debug",
-            "Open the extension setup walkthrough",
-            "dbtPowerUser.openSetupWalkthrough",
-          ),
+          isCursor()
+            ? new DbtPowerUserControlPanelItem(
+                "Setup Guide",
+                "link-external",
+                "View the manual setup guide for Cursor IDE",
+                "vscode.open",
+                [
+                  Uri.parse(
+                    "https://docs.myaltimate.com/setup/reqdConfig/#manual-method-of-configuration",
+                  ),
+                ],
+              )
+            : new DbtPowerUserControlPanelItem(
+                "Setup Extension",
+                "debug",
+                "Open the extension setup walkthrough",
+                "dbtPowerUser.openSetupWalkthrough",
+              ),
           new DbtPowerUserControlPanelItem(
             "dbt Power User Tutorials",
             "book",

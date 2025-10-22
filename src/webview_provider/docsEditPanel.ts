@@ -1,9 +1,20 @@
+import {
+  DBTTerminal,
+  Table,
+  TestMetaData,
+  TestMetadataAcceptedValues,
+  TestMetadataRelationships,
+} from "@altimateai/dbt-integration";
 import { existsSync, readFileSync, writeFileSync } from "fs";
+import { inject } from "inversify";
+import { PythonException } from "python-bridge";
+import { gte } from "semver";
 import {
   CancellationToken,
   CancellationTokenSource,
   ColorThemeKind,
   Disposable,
+  env,
   ProgressLocation,
   TextEditor,
   Uri,
@@ -14,13 +25,24 @@ import {
   WebviewViewResolveContext,
   window,
   workspace,
-  env,
 } from "vscode";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { parse, parseDocument, stringify, YAMLMap, YAMLSeq } from "yaml";
+import { AltimateRequest, UserInputError } from "../altimate";
+import { DBTProject } from "../dbt_client/dbtProject";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
+} from "../dbt_client/event/manifestCacheChangedEvent";
+import { DbtLineageService } from "../services/dbtLineageService";
+import { DbtTestService } from "../services/dbtTestService";
+import {
+  DocGenService,
+  DocumentationSchema,
+  DocumentationSchemaColumn,
+} from "../services/docGenService";
+import { TelemetryService } from "../telemetry";
+import { TelemetryEvents } from "../telemetry/events";
 import {
   extendErrorWithSupportLinks,
   getColumnNameByCase,
@@ -29,37 +51,11 @@ import {
   isColumnNameEqual,
   isQuotedIdentifier,
   isRelationship,
-  provideSingleton,
   removeProtocol,
 } from "../utils";
-import path = require("path");
-import { PythonException } from "python-bridge";
-import { TelemetryService } from "../telemetry";
-import { AltimateRequest, UserInputError } from "../altimate";
-import { stringify, parse, parseDocument, YAMLSeq, YAMLMap } from "yaml";
-import { NewDocsGenPanel } from "./newDocsGenPanel";
-import { DBTProject } from "../manifest/dbtProject";
-import {
-  DocGenService,
-  DocumentationSchema,
-  DocumentationSchemaColumn,
-} from "../services/docGenService";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import {
-  TestMetaData,
-  TestMetadataAcceptedValues,
-  TestMetadataRelationships,
-} from "../domain";
-import { DbtTestService } from "../services/dbtTestService";
-import { gte } from "semver";
-import { TelemetryEvents } from "../telemetry/events";
 import { SendMessageProps } from "./altimateWebviewProvider";
-import {
-  CllEvents,
-  DbtLineageService,
-  Table,
-} from "../services/dbtLineageService";
-import { Model } from "@lib";
+import { NewDocsGenPanel } from "./newDocsGenPanel";
+import path = require("path");
 
 export enum Source {
   YAML = "YAML",
@@ -83,7 +79,10 @@ export interface DBTDocumentation {
   columns: DBTDocumentationColumn[];
   generated: boolean;
   aiEnabled: boolean;
+  filePath: string;
   patchPath?: string;
+  uniqueId?: string;
+  resource_type?: string;
 }
 
 export interface AIColumnDescription {
@@ -101,7 +100,6 @@ export interface DocsGenPanelView extends WebviewViewProvider {
   ): void;
 }
 
-@provideSingleton(DocsEditViewPanel)
 export class DocsEditViewPanel implements WebviewViewProvider {
   public static readonly viewType = "dbtPowerUser.DocsEdit";
   private panel: WebviewView | undefined;
@@ -122,6 +120,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     private newDocsPanel: NewDocsGenPanel,
     private docGenService: DocGenService,
     private dbtTestService: DbtTestService,
+    @inject("DBTTerminal")
     private terminal: DBTTerminal,
     private dbtLineageService: DbtLineageService,
   ) {
@@ -169,7 +168,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
   private async transmitData() {
     const { documentation, message } =
-      await this.docGenService.getDocumentationForCurrentActiveFile();
+      await this.docGenService.getUncompiledDocumentationForCurrentActiveFile();
     this.documentation = documentation;
     if (this._panel) {
       await this._panel.webview.postMessage({
@@ -181,8 +180,31 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         collaborationEnabled: workspace
           .getConfiguration("dbt")
           .get<boolean>("enableCollaboration", false),
+        docBlocks: this.getDocBlocksForCurrentProject(),
       });
     }
+  }
+
+  private getDocBlocksForCurrentProject(): Array<{
+    name: string;
+    path: string;
+  }> {
+    const project = this.getProject();
+    if (!project) {
+      return [];
+    }
+
+    const manifestEvent = this.eventMap.get(project.projectRoot.fsPath);
+    if (!manifestEvent?.docMetaMap) {
+      return [];
+    }
+
+    return Array.from(manifestEvent.docMetaMap.entries()).map(
+      ([name, metaData]) => ({
+        name,
+        path: metaData.path,
+      }),
+    );
   }
 
   private async transmitColumns(columns: MetadataColumn[]) {
@@ -757,26 +779,90 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 location: ProgressLocation.Notification,
                 cancellable: false,
               },
-              () => this.saveDocumentation(message, syncRequestId),
+              async () => {
+                await this.saveDocumentation(message, syncRequestId);
+                await this.reloadDocumentationFromManifest();
+                const tests =
+                  await this.dbtTestService.getTestsForCurrentModel();
+                if (syncRequestId) {
+                  this._panel!.webview.postMessage({
+                    command: "response",
+                    args: {
+                      syncRequestId,
+                      body: {
+                        saved: true,
+                        tests,
+                        documentation: this.documentation,
+                      },
+                      status: true,
+                    },
+                  });
+                }
+              },
             );
             break;
           case "saveDocumentationBulk": {
             this.telemetry.sendTelemetryEvent(
               TelemetryEvents["DocumentationEditor/SaveBulk"],
             );
-            const successfulSaves: string[] = [];
-            for (const item of message.models) {
-              const model = await this.saveDocumentation(item, syncRequestId);
-              if (model) {
-                successfulSaves.push(model);
+
+            // Transform raw data into models array
+            const {
+              allColumns,
+              selectedColumns,
+              tableMetadata,
+              testsMetadata,
+              currentDocsData,
+              startColumns,
+            } = message;
+
+            const defaultPackageName = tableMetadata.filter(
+              (t: any) => t.packageName,
+            )[0]?.packageName;
+            const defaultPatchPath = defaultPackageName
+              ? defaultPackageName + "://models/schema.yml"
+              : "";
+
+            const models = [];
+
+            for (const item of allColumns) {
+              const key = item.model + "/" + item.column;
+              if (!selectedColumns[key]) {
+                continue;
               }
+              const splits = item.model.split(".");
+              const modelName = splits[splits.length - 1];
+              const node = tableMetadata.find(
+                (t: any) => t.table === item.model,
+              );
+              const columnDescription =
+                currentDocsData?.columns.find((c: any) => c.name === item.root)
+                  ?.description ?? "";
+              models.push({
+                name: modelName,
+                description: node?.description,
+                columns: [
+                  { name: item.column, description: columnDescription },
+                ],
+                dialogType: "Existing file",
+                // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+                patchPath: node?.patchPath || defaultPatchPath,
+                filePath: node?.url,
+                updatedTests: testsMetadata[item.model],
+              });
+            }
+
+            const successfulSaves: string[] = [];
+            for (const item of models) {
+              await this.saveDocumentation(item, syncRequestId);
+              successfulSaves.push(item.name);
             }
             if (successfulSaves.length > 0) {
               window.showInformationMessage(
                 `Successfully propagated to: ${Array.from(new Set(successfulSaves)).join(", ")}`,
               );
               this.altimateRequest.bulkDocsPropCredit({
-                num_columns: message.numColumns,
+                num_columns: startColumns.length,
                 session_id: env.sessionId,
               });
             }
@@ -787,6 +873,14 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       null,
       this._disposables,
     );
+  }
+
+  private async reloadDocumentationFromManifest() {
+    // Force reload from manifest after manifest refresh
+    this.loadedFromManifest = false;
+    this.documentation = (
+      await this.docGenService.getUncompiledDocumentationForCurrentActiveFile()
+    ).documentation;
   }
 
   private async saveDocumentation(message: any, syncRequestId: string) {
@@ -981,28 +1075,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         }
       }
 
-      // Force reload from manifest after manifest refresh
-      this.loadedFromManifest = false;
       writeFileSync(patchPath, stringify(parsedDocFile, { lineWidth: 0 }));
-      this.documentation = (
-        await this.docGenService.getDocumentationForCurrentActiveFile()
-      ).documentation;
-      const tests = await this.dbtTestService.getTestsForCurrentModel();
-      if (syncRequestId) {
-        this._panel!.webview.postMessage({
-          command: "response",
-          args: {
-            syncRequestId,
-            body: {
-              saved: true,
-              tests,
-              documentation: this.documentation,
-            },
-            status: true,
-          },
-        });
-      }
-      return this.documentation?.name;
     } catch (error) {
       this.transmitError();
       this.telemetry.sendTelemetryError(

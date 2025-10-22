@@ -26,6 +26,7 @@ import AddCoversationButton from "../conversation/AddCoversationButton";
 import { panelLogger } from "@modules/logger";
 import { DocumentationPropagationButton } from "../documentationPropagation/DocumentationPropagation";
 import { isArrayEqual } from "@modules/documentationEditor/utils";
+import DocBlockInserter from "./DocBlockInserter";
 
 interface Props {
   entity: DBTDocumentationColumn | DBTDocumentation;
@@ -165,6 +166,53 @@ const DocGeneratorInput = ({
     }
   };
 
+  const handleInsertDocBlock = (docRef: string) => {
+    if (!inputRef.current) {
+      return;
+    }
+
+    const input = inputRef.current as HTMLTextAreaElement;
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    const currentValue = description;
+    
+    const newValue = 
+      currentValue.substring(0, start) + 
+      docRef + 
+      currentValue.substring(end);
+    
+    setDescription(newValue);
+    
+    // Update Redux state
+    if (type === EntityType.COLUMN) {
+      dispatch(
+        updateColumnsInCurrentDocsData({
+          columns: [{ name: entity.name, description: newValue }],
+          isNewGeneration: true,
+        }),
+      );
+    }
+
+    if (type === EntityType.MODEL) {
+      dispatch(
+        updateCurrentDocsData({
+          name: entity.name,
+          description: newValue,
+          isNewGeneration: true,
+        }),
+      );
+    }
+
+    // Set cursor position after the inserted text
+    setTimeout(() => {
+      if (input) {
+        const newCursorPosition = start + docRef.length;
+        input.setSelectionRange(newCursorPosition, newCursorPosition);
+        input.focus();
+      }
+    }, 10);
+  };
+
   const variant = entity.description ? Variants.ICON : Variants.ICON_WITH_TEXT;
   const entityColumn = incomingDocsData?.docs?.columns?.find(
     (c) => c.name === entity.name,
@@ -202,6 +250,10 @@ const DocGeneratorInput = ({
         ) : null}
         <div className="spacer" />
         <Stack className={classes.actionButtons}>
+          <DocBlockInserter 
+            inputRef={inputRef} 
+            onInsert={handleInsertDocBlock} 
+          />
           <DocumentationPropagationButton type={type} name={entity.name} />
           <AddCoversationButton
             field="description"

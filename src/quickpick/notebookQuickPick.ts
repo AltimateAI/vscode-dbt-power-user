@@ -1,4 +1,4 @@
-import { QuickPickItem, window, commands } from "vscode";
+import { commands, QuickPickItem, window } from "vscode";
 
 export interface NotebookQuickPickItem extends QuickPickItem {
   label: string;

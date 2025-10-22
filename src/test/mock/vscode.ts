@@ -9,27 +9,68 @@ export const ExtensionKind = {
 
 export { Uri };
 
-export const Range = class {
-  constructor(
-    public startLine: number,
-    public startCharacter: number,
-    public endLine: number,
-    public endCharacter: number,
-  ) {}
-};
-
-export const Position = class {
+export class Position {
   constructor(
     public line: number,
     public character: number,
   ) {}
-};
+
+  // Add common Position methods for compatibility
+  isEqual(other: Position): boolean {
+    return this.line === other.line && this.character === other.character;
+  }
+
+  isBefore(other: Position): boolean {
+    return (
+      this.line < other.line ||
+      (this.line === other.line && this.character < other.character)
+    );
+  }
+
+  isAfter(other: Position): boolean {
+    return (
+      this.line > other.line ||
+      (this.line === other.line && this.character > other.character)
+    );
+  }
+
+  isBeforeOrEqual(other: Position): boolean {
+    return this.isBefore(other) || this.isEqual(other);
+  }
+
+  isAfterOrEqual(other: Position): boolean {
+    return this.isAfter(other) || this.isEqual(other);
+  }
+}
+
+export class Range {
+  public start: Position;
+  public end: Position;
+
+  constructor(start: Position, end: Position) {
+    this.start = start;
+    this.end = end;
+  }
+}
 
 export const DiagnosticSeverity = {
   Error: 0,
   Warning: 1,
   Information: 2,
   Hint: 3,
+};
+
+export const TreeItemCollapsibleState = {
+  None: 0,
+  Collapsed: 1,
+  Expanded: 2,
+};
+
+export const TreeItem = class {
+  constructor(
+    public label?: string,
+    public collapsibleState?: number,
+  ) {}
 };
 
 export const Diagnostic = class {
@@ -108,6 +149,7 @@ export const languages = {
       // Mock implementation that does nothing by default
     },
   }),
+  registerCodeLensProvider: jest.fn().mockReturnValue({ dispose: jest.fn() }),
 };
 
 export const resetMocks = () => {
