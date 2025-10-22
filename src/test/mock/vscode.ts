@@ -1,5 +1,4 @@
 import { jest } from "@jest/globals";
-import { Uri } from "vscode";
 
 // Export VSCode types that were previously defined
 export const ExtensionKind = {
@@ -7,7 +6,10 @@ export const ExtensionKind = {
   Workspace: 2,
 };
 
-export { Uri };
+export const Uri = {
+  file: jest.fn((f: string) => ({ fsPath: f })),
+  parse: jest.fn(),
+};
 
 export class Position {
   constructor(
@@ -110,6 +112,9 @@ export const window = {
     hide: jest.fn(),
     dispose: jest.fn(),
   }),
+  withProgress: jest
+    .fn()
+    .mockImplementation((_options: any, task: any) => task()),
 };
 
 export const workspace = {
@@ -119,6 +124,12 @@ export const workspace = {
     update: jest.fn(),
   }),
   workspaceFolders: [],
+  getWorkspaceFolder: jest.fn((uri: typeof Uri) => {
+    if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
+      return workspace.workspaceFolders[0];
+    }
+    return undefined;
+  }),
   onDidChangeConfiguration: jest.fn().mockReturnValue({ dispose: jest.fn() }),
   onDidChangeWorkspaceFolders: jest
     .fn()
@@ -129,11 +140,12 @@ export const workspace = {
     onDidDelete: jest.fn().mockReturnValue({ dispose: jest.fn() }),
     dispose: jest.fn(),
   }),
-};
+} as any;
 
 export const languages = {
   createDiagnosticCollection: jest.fn().mockReturnValue({
     set: jest.fn(),
+    get: jest.fn(),
     delete: jest.fn(),
     clear: jest.fn(),
     dispose: jest.fn(),
@@ -151,6 +163,21 @@ export const languages = {
   }),
   registerCodeLensProvider: jest.fn().mockReturnValue({ dispose: jest.fn() }),
 };
+
+export const EventEmitter = jest.fn().mockImplementation(() => ({
+  event: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+  fire: jest.fn(),
+  dispose: jest.fn(),
+}));
+
+export const ProgressLocation = {
+  Notification: 15,
+};
+
+export const RelativePattern = jest.fn();
+export const ViewColumn = {};
+export const Disposable = jest.fn();
+export const Event = jest.fn();
 
 export const resetMocks = () => {
   jest.clearAllMocks();
