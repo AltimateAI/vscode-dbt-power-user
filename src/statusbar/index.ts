@@ -1,10 +1,8 @@
 import { Disposable } from "vscode";
-import { provideSingleton } from "../utils";
-import { VersionStatusBar } from "./versionStatusBar";
 import { DeferToProductionStatusBar } from "./deferToProductionStatusBar";
 import { TargetStatusBar } from "./targetStatusBar";
+import { VersionStatusBar } from "./versionStatusBar";
 
-@provideSingleton(StatusBars)
 export class StatusBars implements Disposable {
   private disposables: Disposable[] = [];
 

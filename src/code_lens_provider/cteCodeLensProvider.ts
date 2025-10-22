@@ -1,14 +1,14 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import {
   CancellationToken,
   CodeLens,
   CodeLensProvider,
   Command,
+  Disposable,
   Range,
   TextDocument,
-  Disposable,
 } from "vscode";
-import { provideSingleton } from "../utils";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { AltimateRequest } from "../altimate";
 
 export interface CteInfo {
@@ -19,7 +19,6 @@ export interface CteInfo {
   withClauseStart: number; // Start position of the WITH clause
 }
 
-@provideSingleton(CteCodeLensProvider)
 export class CteCodeLensProvider implements CodeLensProvider, Disposable {
   private disposables: Disposable[] = [];
 
@@ -37,6 +36,7 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
   private static readonly MAX_COLUMN_LIST_LENGTH = 1000;
 
   constructor(
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private altimate: AltimateRequest,
   ) {}

@@ -1,3 +1,4 @@
+import { RESOURCE_TYPE_ANALYSIS } from "@altimateai/dbt-integration";
 import {
   CancellationToken,
   CompletionContext,
@@ -11,13 +12,12 @@ import {
   TextDocument,
   Uri,
 } from "vscode";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { ManifestCacheChangedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
-import { DBTProject } from "../manifest/dbtProject";
+import { isEnclosedWithinCodeBlock } from "../utils";
 
-@provideSingleton(ModelAutocompletionProvider) // TODO autocomplete doesn't work when mistype, delete and retype
+// TODO autocomplete doesn't work when mistype, delete and retype
 export class ModelAutocompletionProvider
   implements CompletionItemProvider, Disposable
 {
@@ -141,9 +141,7 @@ export class ModelAutocompletionProvider
       const projectName = project.getProjectName();
       const models = added.nodeMetaMap.nodes();
       const autocompleteItems = Array.from(models)
-        .filter(
-          (model) => model.resource_type !== DBTProject.RESOURCE_TYPE_ANALYSIS,
-        )
+        .filter((model) => model.resource_type !== RESOURCE_TYPE_ANALYSIS)
         .map((model) => ({
           projectName,
           packageName: model.package_name,

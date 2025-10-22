@@ -1,3 +1,4 @@
+import { MacroMetaMap } from "@altimateai/dbt-integration";
 import {
   Definition,
   DefinitionLink,
@@ -9,12 +10,10 @@ import {
   TextDocument,
   Uri,
 } from "vscode";
-import { MacroMetaMap } from "../domain";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { ManifestCacheChangedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
-@provideSingleton(MacroDefinitionProvider)
+import { isEnclosedWithinCodeBlock } from "../utils";
 export class MacroDefinitionProvider implements DefinitionProvider, Disposable {
   private macroToLocationMap: Map<string, MacroMetaMap> = new Map();
   private static readonly IS_MACRO = /\w+\.?\w+/;

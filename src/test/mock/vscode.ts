@@ -60,6 +60,19 @@ export const DiagnosticSeverity = {
   Hint: 3,
 };
 
+export const TreeItemCollapsibleState = {
+  None: 0,
+  Collapsed: 1,
+  Expanded: 2,
+};
+
+export const TreeItem = class {
+  constructor(
+    public label?: string,
+    public collapsibleState?: number,
+  ) {}
+};
+
 export const Diagnostic = class {
   constructor(
     public range: any,

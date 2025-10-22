@@ -1,19 +1,17 @@
+import { NotebookService } from "@lib";
 import {
   CancellationToken,
   CodeLens,
   CodeLensProvider,
   Command,
+  Disposable,
   Range,
   TextDocument,
-  Disposable,
   window,
 } from "vscode";
-import { provideSingleton } from "../utils";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { QueryManifestService } from "../services/queryManifestService";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { NotebookService } from "@lib";
 
-@provideSingleton(VirtualSqlCodeLensProvider)
 export class VirtualSqlCodeLensProvider
   implements CodeLensProvider, Disposable
 {

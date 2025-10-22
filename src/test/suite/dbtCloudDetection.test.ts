@@ -1,13 +1,14 @@
-import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
-import { DBTCloudDetection } from "../../dbt_client/dbtCloudIntegration";
 import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
-} from "../../commandProcessExecution";
-import { PythonEnvironment } from "../../manifest/pythonEnvironment";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
-import { mock, instance, when, anything } from "ts-mockito";
+  DBTCloudDetection,
+  DBTTerminal,
+} from "@altimateai/dbt-integration";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { anything, instance, mock, when } from "ts-mockito";
 import { workspace } from "vscode";
+import { PythonEnvironment } from "../../dbt_client/pythonEnvironment";
+import { VSCodeDBTTerminal } from "../../dbt_client/vscodeTerminal";
 
 describe("DBTCloudDetection Tests", () => {
   let mockCommandProcessExecutionFactory: CommandProcessExecutionFactory;
@@ -19,7 +20,7 @@ describe("DBTCloudDetection Tests", () => {
   beforeEach(() => {
     mockCommandProcessExecutionFactory = mock(CommandProcessExecutionFactory);
     mockPythonEnvironment = mock(PythonEnvironment);
-    mockTerminal = mock(DBTTerminal);
+    mockTerminal = mock(VSCodeDBTTerminal);
     mockCommandProcessExecution = mock<CommandProcessExecution>();
 
     // Setup default mocks

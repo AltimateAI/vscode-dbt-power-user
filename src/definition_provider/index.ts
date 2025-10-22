@@ -1,12 +1,10 @@
 import { Disposable, languages } from "vscode";
 import { DBTPowerUserExtension } from "../dbtPowerUserExtension";
-import { provideSingleton } from "../utils";
 import { DocDefinitionProvider } from "./docDefinitionProvider";
 import { MacroDefinitionProvider } from "./macroDefinitionProvider";
 import { ModelDefinitionProvider } from "./modelDefinitionProvider";
 import { SourceDefinitionProvider } from "./sourceDefinitionProvider";
 
-@provideSingleton(DefinitionProviders)
 export class DefinitionProviders implements Disposable {
   private disposables: Disposable[] = [];
 

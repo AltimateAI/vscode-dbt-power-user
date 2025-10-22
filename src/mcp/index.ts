@@ -1,21 +1,23 @@
-import { Disposable, workspace, extensions, ConfigurationTarget } from "vscode";
-import { provideSingleton } from "../utils";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { DbtPowerUserMcpServerTools } from "./server";
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
+import { ConfigurationTarget, Disposable, extensions, workspace } from "vscode";
 import { AltimateRequest } from "../modules";
-import { ToolRegistry } from "./types";
+import { AltimateAuthService } from "../services/altimateAuthService";
 import { SharedStateService } from "../services/sharedStateService";
+import { DbtPowerUserMcpServerTools } from "./server";
+import { ToolRegistry } from "./types";
 
-@provideSingleton(DbtPowerUserMcpServer)
 export class DbtPowerUserMcpServer implements Disposable {
   private disposables: Disposable[] = [];
   private mcpExtensionApi: ToolRegistry | undefined;
 
   constructor(
     private dbtPowerUserMcpServerTools: DbtPowerUserMcpServerTools,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private altimate: AltimateRequest,
     private eventEmitter: SharedStateService,
+    private altimateAuthService: AltimateAuthService,
   ) {
     workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration("altimate.onboardedMcpServer")) {
@@ -104,7 +106,7 @@ export class DbtPowerUserMcpServer implements Disposable {
       "DbtPowerUserMcpServer",
       "Onboarding completed, proceeding with tools registration",
     );
-    if (!this.altimate.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       this.dbtTerminal.info(
         "DbtPowerUserMcpServer: enableMcpExtensionIntegration",
         "Preview features are not enabled, skipping MCP server start",

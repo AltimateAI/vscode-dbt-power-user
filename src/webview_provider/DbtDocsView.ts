@@ -1,18 +1,18 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import { ViewColumn, WebviewPanel, window } from "vscode";
 import { AltimateRequest } from "../altimate";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { AltimateAuthService } from "../services/altimateAuthService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
+import { UsersService } from "../services/usersService";
 import { TelemetryService } from "../telemetry";
-import { provideSingleton } from "../utils";
 import {
   AltimateWebviewProvider,
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
-import { UsersService } from "../services/usersService";
 
-@provideSingleton(DbtDocsView)
 export class DbtDocsView extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.DbtDocs";
   protected viewPath = "/dbt-docs";
@@ -25,9 +25,11 @@ export class DbtDocsView extends AltimateWebviewProvider {
     protected altimateRequest: AltimateRequest,
     protected telemetry: TelemetryService,
     protected emitterService: SharedStateService,
+    @inject("DBTTerminal")
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
+    protected altimateAuthService: AltimateAuthService,
   ) {
     super(
       dbtProjectContainer,
@@ -37,6 +39,7 @@ export class DbtDocsView extends AltimateWebviewProvider {
       dbtTerminal,
       queryManifestService,
       usersService,
+      altimateAuthService,
     );
 
     const t = this;

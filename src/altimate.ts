@@ -1,31 +1,17 @@
+import {
+  AltimateHttpClient,
+  ColumnMetaData,
+  DBTConfiguration,
+  DBTTerminal,
+  NodeMetaData,
+  SourceMetaData,
+} from "@altimateai/dbt-integration";
+import { NotebookItem, NotebookSchema, PreconfiguredNotebookItem } from "@lib";
+import { inject } from "inversify";
 import type { RequestInit } from "node-fetch";
-import { CommentThread, env, Uri, window, workspace } from "vscode";
-import { provideSingleton, processStreamResponse } from "./utils";
-import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
-import { TelemetryService } from "./telemetry";
-import { join } from "path";
-import { createReadStream, createWriteStream, mkdirSync, ReadStream } from "fs";
-import * as os from "os";
-import { RateLimitException, ExecutionsExhaustedException } from "./exceptions";
-import { DBTProject } from "./manifest/dbtProject";
-import { DBTTerminal } from "./dbt_client/dbtTerminal";
-import { PythonEnvironment } from "./manifest/pythonEnvironment";
-import { PreconfiguredNotebookItem, NotebookItem, NotebookSchema } from "@lib";
 import * as vscode from "vscode";
 
-export class NoCredentialsError extends Error {}
-
-export class NotFoundError extends Error {}
-
 export class UserInputError extends Error {}
-
-export class ForbiddenError extends Error {
-  constructor() {
-    super("Invalid credentials. Please check instance name and API Key.");
-  }
-}
-
-export class APIError extends Error {}
 
 export interface ColumnLineage {
   source: { uniqueId: string; column_name: string };
@@ -252,25 +238,6 @@ export interface DBTCoreIntegration {
   last_file_upload_time: string;
 }
 
-interface DownloadArtifactResponse {
-  url: string;
-  dbt_core_integration_file_id: number;
-}
-
-export type ValidateSqlParseErrorType =
-  | "sql_parse_error"
-  | "sql_invalid_error"
-  | "sql_unknown_error";
-
-export interface ValidateSqlParseErrorResponse {
-  error_type?: ValidateSqlParseErrorType;
-  errors: {
-    description: string;
-    start_position?: [number, number];
-    end_position?: [number, number];
-  }[];
-}
-
 export interface TenantUser {
   id: number;
   uuid: string;
@@ -294,15 +261,6 @@ interface FeedbackResponse {
 interface BulkDocsPropRequest {
   num_columns: number;
   session_id: string;
-}
-
-interface AltimateConfig {
-  key: string;
-  instance: string;
-}
-
-enum PromptAnswer {
-  YES = "Get your free API Key",
 }
 
 export interface SharedDoc {
@@ -341,81 +299,32 @@ export interface ConversationGroup {
   conversations: Conversation[];
 }
 
-@provideSingleton(AltimateRequest)
 export class AltimateRequest {
-  public static ALTIMATE_URL = workspace
-    .getConfiguration("dbt")
-    .get<string>("altimateUrl", "https://api.myaltimate.com");
-
   constructor(
-    private telemetry: TelemetryService,
     private dbtTerminal: DBTTerminal,
-    private pythonEnvironment: PythonEnvironment,
+    @inject("DBTConfiguration")
+    private dbtConfiguration: DBTConfiguration,
+    private altimateHttpClient: AltimateHttpClient,
   ) {}
 
-  private async internalFetch<T>(url: string, init?: RequestInit) {
-    const nodeFetch = (await import("node-fetch")).default;
-    return nodeFetch(url, init);
+  public getAltimateUrl(): string {
+    return this.altimateHttpClient.getAltimateUrl();
+  }
+
+  private async internalFetch(url: string, init?: RequestInit) {
+    return this.altimateHttpClient.internalFetch(url, init);
   }
 
   getInstanceName() {
-    return this.pythonEnvironment.getResolvedConfigValue(
-      "altimateInstanceName",
-    );
+    return this.dbtConfiguration.getAltimateInstanceName();
   }
 
   getAIKey() {
-    return this.pythonEnvironment.getResolvedConfigValue("altimateAiKey");
+    return this.dbtConfiguration.getAltimateAiKey();
   }
 
   public enabled(): boolean {
-    return !!this.getConfig();
-  }
-
-  private async showAPIKeyMessage(message: string) {
-    const answer = await window.showInformationMessage(
-      message,
-      PromptAnswer.YES,
-    );
-    if (answer === PromptAnswer.YES) {
-      env.openExternal(
-        Uri.parse("https://app.myaltimate.com/register?source=extension"),
-      );
-    }
-  }
-
-  private getConfig(): AltimateConfig | undefined {
-    const key = this.getAIKey();
-    const instance = this.getInstanceName();
-    if (!key || !instance) {
-      return undefined;
-    }
-    return { key, instance };
-  }
-
-  getCredentialsMessage(): string | undefined {
-    const key = this.getAIKey();
-    const instance = this.getInstanceName();
-
-    if (!key && !instance) {
-      return `To use this feature, please add an API Key and an instance name in the settings.`;
-    }
-    if (!key) {
-      return `To use this feature, please add an API key in the settings.`;
-    }
-    if (!instance) {
-      return `To use this feature, please add an instance name in the settings.`;
-    }
-    return;
-  }
-
-  handlePreviewFeatures(): boolean {
-    const message = this.getCredentialsMessage();
-    if (!message) {
-      return true;
-    }
-    this.showAPIKeyMessage(message);
-    return false;
+    return !!this.altimateHttpClient.getConfig();
   }
 
   async fetchAsStream<R>(
@@ -424,103 +333,12 @@ export class AltimateRequest {
     onProgress: (response: string) => void,
     timeout: number = 120000,
   ) {
-    this.throwIfLocalMode(endpoint);
-    const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
-    this.dbtTerminal.debug("fetchAsStream:request", url, request);
-    const config = this.getConfig()!;
-    const abortController = new AbortController();
-    const timeoutHandler = setTimeout(() => {
-      abortController.abort();
-    }, timeout);
-    try {
-      const response = await this.internalFetch(url, {
-        method: "POST",
-        body: JSON.stringify(request),
-        signal: abortController.signal,
-        headers: {
-          "x-tenant": config.instance,
-          Authorization: "Bearer " + config.key,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.ok && response.status === 200) {
-        if (!response?.body) {
-          this.dbtTerminal.debug("fetchAsStream", "empty response");
-          return null;
-        }
-        const responseText = await processStreamResponse(
-          response.body,
-          onProgress,
-        );
-
-        return responseText;
-      }
-      if (
-        // response codes when backend authorization fails
-        response.status === 401 ||
-        response.status === 403
-      ) {
-        this.telemetry.sendTelemetryEvent("invalidCredentials", { url });
-        throw new ForbiddenError();
-      }
-      if (response.status === 404) {
-        this.telemetry.sendTelemetryEvent("resourceNotFound", { url });
-        throw new NotFoundError("Resource Not found");
-      }
-      if (response.status === 402) {
-        const jsonResponse = (await response.json()) as { detail: string };
-        throw new ExecutionsExhaustedException(jsonResponse.detail);
-      }
-      const textResponse = await response.text();
-      this.dbtTerminal.debug(
-        "network:response",
-        "error from backend",
-        textResponse,
-      );
-      if (response.status === 429) {
-        throw new RateLimitException(
-          textResponse,
-          response.headers.get("Retry-After")
-            ? parseInt(response.headers.get("Retry-After") || "")
-            : 1 * 60 * 1000, // default to 1 min
-        );
-      }
-      this.telemetry.sendTelemetryError("apiError", {
-        endpoint,
-        status: response.status,
-        textResponse,
-      });
-      throw new APIError(
-        `Could not process request, server responded with ${response.status}: ${textResponse}`,
-      );
-    } catch (error) {
-      this.dbtTerminal.error(
-        "apiCatchAllError",
-        "fetchAsStream catchAllError",
-        error,
-        true,
-        {
-          endpoint,
-        },
-      );
-      throw error;
-    } finally {
-      clearTimeout(timeoutHandler);
-    }
-    return null;
-  }
-
-  private async readStreamToBlob(stream: ReadStream) {
-    return new Promise((resolve, reject) => {
-      const chunks: any[] = [];
-      stream.on("data", (chunk) => chunks.push(chunk));
-      stream.on("end", () => {
-        const blob = new Blob(chunks);
-        resolve(blob);
-      });
-      stream.on("error", reject);
-    });
+    return this.altimateHttpClient.fetchAsStream(
+      endpoint,
+      request,
+      onProgress,
+      timeout,
+    );
   }
 
   async uploadToS3(
@@ -528,65 +346,38 @@ export class AltimateRequest {
     fetchArgs: Record<string, unknown>,
     filePath: string,
   ) {
-    this.dbtTerminal.debug("uploadToS3:", endpoint, fetchArgs, filePath);
-    this.throwIfLocalMode(endpoint);
-
-    const blob = (await this.readStreamToBlob(
-      createReadStream(filePath),
-    )) as Blob;
-    const response = await this.internalFetch(endpoint, {
-      ...fetchArgs,
-      method: "PUT",
-      body: blob,
-    });
-
-    this.dbtTerminal.debug(
-      "uploadToS3:response:",
-      `${response.status}`,
-      response.statusText,
-    );
-    if (!response.ok || response.status !== 200) {
-      const textResponse = await response.text();
-      this.telemetry.sendTelemetryError("uploadToS3", {
-        endpoint,
-        status: response.status,
-        textResponse,
-      });
-      throw new Error("Failed to upload data to signed url");
-    }
-
-    return response;
+    return this.altimateHttpClient.uploadToS3(endpoint, fetchArgs, filePath);
   }
 
   private throwIfLocalMode(endpoint: string) {
-    const isLocalMode = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("isLocalMode", false);
-    if (!isLocalMode) {
-      return;
+    try {
+      this.altimateHttpClient.throwIfLocalMode(endpoint);
+    } catch (error) {
+      // Apply additional local mode exceptions specific to AltimateRequest
+      endpoint = endpoint.split("?")[0];
+      if (
+        [
+          /^dbtconfig\/datapilot_version\/.*$/,
+          /^dbtconfig\/.*\/download$/,
+        ].some((regex) => regex.test(endpoint))
+      ) {
+        return;
+      }
+      if (
+        [
+          "auth_health",
+          "dbtconfig",
+          "dbt/v1/fetch_artifact_url",
+          "dbtconfig/extension/start_scan",
+          "dbt/v1/project_integrations",
+          "dbt/v1/defer_to_prod_event",
+          "dbt/v3/validate-credentials",
+        ].includes(endpoint)
+      ) {
+        return;
+      }
+      throw error;
     }
-    endpoint = endpoint.split("?")[0];
-    if (
-      [/^dbtconfig\/datapilot_version\/.*$/, /^dbtconfig\/.*\/download$/].some(
-        (regex) => regex.test(endpoint),
-      )
-    ) {
-      return;
-    }
-    if (
-      [
-        "auth_health",
-        "dbtconfig",
-        "dbt/v1/fetch_artifact_url",
-        "dbtconfig/extension/start_scan",
-        "dbt/v1/project_integrations",
-        "dbt/v1/defer_to_prod_event",
-        "dbt/v3/validate-credentials",
-      ].includes(endpoint)
-    ) {
-      return;
-    }
-    throw new Error("This feature is not supported in local mode.");
   }
 
   async fetch<T>(
@@ -596,133 +387,11 @@ export class AltimateRequest {
   ): Promise<T> {
     this.dbtTerminal.debug("network:request", endpoint, fetchArgs);
     this.throwIfLocalMode(endpoint);
-
-    const abortController = new AbortController();
-    const timeoutHandler = setTimeout(() => {
-      abortController.abort();
-    }, timeout);
-
-    const message = this.getCredentialsMessage();
-    if (message) {
-      throw new NoCredentialsError(message);
-    }
-    const config = this.getConfig()!;
-
-    try {
-      const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
-      const response = await this.internalFetch(url, {
-        method: "GET",
-        ...fetchArgs,
-        signal: abortController.signal,
-        headers: {
-          "x-tenant": config.instance,
-          Authorization: "Bearer " + config.key,
-          "Content-Type": "application/json",
-        },
-      });
-      this.dbtTerminal.debug("network:response", endpoint, response.status);
-      if (response.ok && response.status === 200) {
-        const jsonResponse = await response.json();
-        return jsonResponse as T;
-      }
-      if (
-        // response codes when backend authorization fails
-        response.status === 401 ||
-        response.status === 403
-      ) {
-        this.telemetry.sendTelemetryEvent("invalidCredentials", { url });
-        throw new ForbiddenError();
-      }
-      if (response.status === 404) {
-        this.telemetry.sendTelemetryEvent("resourceNotFound", { url });
-        throw new NotFoundError("Resource Not found");
-      }
-      if (response.status === 402) {
-        const jsonResponse = (await response.json()) as { detail: string };
-        throw new ExecutionsExhaustedException(jsonResponse.detail);
-      }
-      const textResponse = await response.text();
-      this.dbtTerminal.debug(
-        "network:response",
-        "error from backend",
-        textResponse,
-      );
-      if (response.status === 429) {
-        throw new RateLimitException(
-          textResponse,
-          response.headers.get("Retry-After")
-            ? parseInt(response.headers.get("Retry-After") || "")
-            : 1 * 60 * 1000, // default to 1 min
-        );
-      }
-      this.telemetry.sendTelemetryError("apiError", {
-        endpoint,
-        status: response.status,
-        textResponse,
-      });
-      let jsonResponse: any;
-      try {
-        jsonResponse = JSON.parse(textResponse);
-      } catch {}
-      throw new APIError(
-        `Could not process request, server responded with ${response.status}: ${jsonResponse?.detail || textResponse}`,
-      );
-    } catch (e) {
-      this.dbtTerminal.error("apiCatchAllError", "catchAllError", e, true, {
-        endpoint,
-      });
-      throw e;
-    } finally {
-      clearTimeout(timeoutHandler);
-    }
-  }
-
-  async downloadFileLocally(
-    artifactUrl: string,
-    projectRoot: Uri,
-    fileName = "manifest.json",
-  ): Promise<string> {
-    const hashedProjectRoot = DBTProject.hashProjectRoot(projectRoot.fsPath);
-    const tempFolder = join(os.tmpdir(), hashedProjectRoot);
-
-    try {
-      this.dbtTerminal.debug(
-        "AltimateRequest",
-        `creating temporary folder: ${tempFolder} for file: ${fileName}`,
-      );
-      mkdirSync(tempFolder, { recursive: true });
-
-      const destinationPath = join(tempFolder, fileName);
-
-      this.dbtTerminal.debug(
-        "AltimateRequest",
-        `fetching artifactUrl: ${artifactUrl}`,
-      );
-      const response = await this.internalFetch(artifactUrl, {
-        agent: undefined,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to download file: ${response.statusText}`);
-      }
-      const fileStream = createWriteStream(destinationPath);
-      await new Promise((resolve, reject) => {
-        response.body?.pipe(fileStream);
-        response.body?.on("error", reject);
-        fileStream.on("finish", resolve);
-      });
-
-      this.dbtTerminal.debug("File downloaded successfully!", fileName);
-      return tempFolder;
-    } catch (err) {
-      this.dbtTerminal.error(
-        "downloadFileLocally",
-        `Could not save ${fileName} locally`,
-        err,
-      );
-      window.showErrorMessage(`Could not save ${fileName} locally: ${err}`);
-      throw err;
-    }
+    return this.altimateHttpClient.fetch<T>(
+      endpoint,
+      fetchArgs as RequestInit,
+      timeout,
+    );
   }
 
   private getQueryString = (
@@ -778,7 +447,7 @@ export class AltimateRequest {
   }
 
   async validateCredentials(instance: string, key: string) {
-    const url = `${AltimateRequest.ALTIMATE_URL}/dbt/v3/validate-credentials`;
+    const url = `${this.getAltimateUrl()}/dbt/v3/validate-credentials`;
     const response = await fetch(url, {
       method: "GET",
       headers: {
@@ -791,7 +460,7 @@ export class AltimateRequest {
   }
 
   async checkApiConnectivity() {
-    const url = `${AltimateRequest.ALTIMATE_URL}/health`;
+    const url = `${this.getAltimateUrl()}/health`;
     try {
       const response = await this.internalFetch(url, { method: "GET" });
       const { status } = (await response.json()) as { status: string };
@@ -811,22 +480,6 @@ export class AltimateRequest {
 
   async fetchProjectIntegrations() {
     return this.fetch<DBTCoreIntegration[]>("dbt/v1/project_integrations");
-  }
-
-  async sendDeferToProdEvent(defer_type: string) {
-    return this.fetch("dbt/v1/defer_to_prod_event", {
-      method: "POST",
-      body: JSON.stringify({ defer_type }),
-    });
-  }
-
-  async fetchArtifactUrl(artifact_type: string, dbtCoreIntegrationId: number) {
-    return this.fetch<DownloadArtifactResponse>(
-      `dbt/v1/fetch_artifact_url${this.getQueryString({
-        artifact_type: artifact_type,
-        dbt_core_integration_id: dbtCoreIntegrationId,
-      })}`,
-    );
   }
 
   async getHealthcheckConfigs() {
@@ -923,8 +576,6 @@ export class AltimateRequest {
     data: {
       name: string;
       description?: string;
-      uri?: Uri;
-      model?: string;
     },
     projectName: string,
   ) {

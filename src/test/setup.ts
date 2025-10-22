@@ -88,4 +88,27 @@ jest.mock("vscode", () => ({
     line,
     character,
   })),
+  TreeItemCollapsibleState: {
+    None: 0,
+    Collapsed: 1,
+    Expanded: 2,
+  },
+  TreeItem: jest.fn().mockImplementation((label, collapsibleState) => ({
+    label,
+    collapsibleState,
+  })),
+  CancellationTokenSource: jest.fn().mockImplementation(() => ({
+    token: {
+      onCancellationRequested: jest.fn(),
+      isCancellationRequested: false,
+    },
+    cancel: jest.fn(),
+    dispose: jest.fn(),
+  })),
+  CancellationToken: {
+    None: {
+      onCancellationRequested: jest.fn(),
+      isCancellationRequested: false,
+    },
+  },
 }));

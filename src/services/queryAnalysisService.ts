@@ -1,3 +1,5 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import { Range, window } from "vscode";
 import {
   AltimateRequest,
@@ -7,12 +9,11 @@ import {
   QueryTranslateRequest,
   UserInputError,
 } from "../altimate";
-import { provideSingleton } from "../utils";
-import { QueryManifestService } from "./queryManifestService";
+import { AltimateAuthService } from "./altimateAuthService";
 import { DocGenService } from "./docGenService";
-import { StreamingService } from "./streamingService";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { FileService } from "./fileService";
+import { QueryManifestService } from "./queryManifestService";
+import { StreamingService } from "./streamingService";
 
 export interface QueryTranslateIncomingRequest {
   source?: string;
@@ -27,15 +28,16 @@ export interface QueryTranslateExplanationIncomingRequest {
   translatedSql: string;
 }
 
-@provideSingleton(QueryAnalysisService)
 export class QueryAnalysisService {
   public constructor(
     private docGenService: DocGenService,
     private streamingService: StreamingService,
     private altimateRequest: AltimateRequest,
     private queryManifestService: QueryManifestService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private fileService: FileService,
+    private altimateAuthService: AltimateAuthService,
   ) {}
 
   public getSelectedQuery() {
@@ -64,7 +66,7 @@ export class QueryAnalysisService {
   }
 
   public async executeQueryTranslate(params: QueryTranslateIncomingRequest) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
 
@@ -117,7 +119,7 @@ export class QueryAnalysisService {
     params: QueryTranslateExplanationIncomingRequest,
     syncRequestId?: string,
   ) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
 
@@ -150,7 +152,7 @@ export class QueryAnalysisService {
     job_type: QueryAnalysisType,
     syncRequestId?: string,
   ) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
 
@@ -230,7 +232,7 @@ export class QueryAnalysisService {
     user_request: string;
     filePath?: string;
   }) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
     const dbtProject = this.queryManifestService.getProject();

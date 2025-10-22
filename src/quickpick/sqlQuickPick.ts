@@ -1,3 +1,4 @@
+import * as path from "path";
 import {
   commands,
   Disposable,
@@ -6,11 +7,8 @@ import {
   Uri,
   window,
 } from "vscode";
-import { provideSingleton } from "../utils";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import * as path from "path";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 
-@provideSingleton(DbtSQLAction)
 export class DbtSQLAction {
   constructor(private dbtProjectContainer: DBTProjectContainer) {}
 

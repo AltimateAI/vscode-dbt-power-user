@@ -1,12 +1,12 @@
 import { ShinesIcon } from "@assets/icons";
-import { ListGroupItem } from "@uicore";
-import classes from "../../styles.module.scss";
 import useAppContext from "@modules/app/useAppContext";
+import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { RequestTypes } from "@modules/dataPilot/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
-import { EntityType } from "@modules/dataPilot/components/docGen/types";
-import { sendTelemetryEvent } from "../telemetry";
 import { TelemetryEvents } from "@telemetryEvents";
+import { ListGroupItem } from "@uicore";
+import classes from "../../styles.module.scss";
+import { sendTelemetryEvent } from "../telemetry";
 
 interface Props {
   column: string;

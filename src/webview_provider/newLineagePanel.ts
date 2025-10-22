@@ -1,3 +1,12 @@
+import {
+  DBTTerminal,
+  ExposureMetaData,
+  NodeMetaData,
+  RESOURCE_TYPE_SOURCE,
+  SourceTable,
+  Table,
+} from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import * as path from "path";
 import {
   CancellationToken,
@@ -11,23 +20,18 @@ import {
   workspace,
 } from "vscode";
 import { AltimateRequest } from "../altimate";
-import { ExposureMetaData, NodeMetaData, SourceTable } from "../domain";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { LineagePanelView } from "./lineagePanel";
-import { DBTProject } from "../manifest/dbtProject";
-import { TelemetryService } from "../telemetry";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { AltimateWebviewProvider } from "./altimateWebviewProvider";
+import { DBTProject } from "../dbt_client/dbtProject";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { ManifestCacheProjectAddedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
+import { AltimateAuthService } from "../services/altimateAuthService";
+import { CllEvents, DbtLineageService } from "../services/dbtLineageService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
-import {
-  CllEvents,
-  DbtLineageService,
-  Table,
-} from "../services/dbtLineageService";
+import { TelemetryService } from "../telemetry";
+import { extendErrorWithSupportLinks } from "../utils";
+import { AltimateWebviewProvider } from "./altimateWebviewProvider";
+import { LineagePanelView } from "./lineagePanel";
 
 class DerivedCancellationTokenSource extends CancellationTokenSource {
   constructor(linkedToken: CancellationToken) {
@@ -38,7 +42,6 @@ class DerivedCancellationTokenSource extends CancellationTokenSource {
   }
 }
 
-@provideSingleton(NewLineagePanel)
 export class NewLineagePanel
   extends AltimateWebviewProvider
   implements LineagePanelView
@@ -52,11 +55,13 @@ export class NewLineagePanel
     protected dbtProjectContainer: DBTProjectContainer,
     private altimate: AltimateRequest,
     protected telemetry: TelemetryService,
+    @inject("DBTTerminal")
     private terminal: DBTTerminal,
     private dbtLineageService: DbtLineageService,
     eventEmitterService: SharedStateService,
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
+    protected altimateAuthService: AltimateAuthService,
   ) {
     super(
       dbtProjectContainer,
@@ -66,6 +71,7 @@ export class NewLineagePanel
       terminal,
       queryManifestService,
       usersService,
+      altimateAuthService,
     );
   }
 
@@ -239,7 +245,7 @@ export class NewLineagePanel
     }
 
     if (command === "previewFeature") {
-      this.altimate.handlePreviewFeatures();
+      this.altimateAuthService.handlePreviewFeatures();
       return;
     }
 
@@ -397,7 +403,7 @@ export class NewLineagePanel
     }
     const splits = table.split(".");
     const nodeType = splits[0];
-    if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
+    if (nodeType === RESOURCE_TYPE_SOURCE) {
       const { sourceMetaMap } = event.event;
       const sourceName = splits[2];
       const tableName = splits[3];
@@ -555,7 +561,7 @@ export class NewLineagePanel
         missingLineageMessage: this.getMissingLineageMessage(),
       };
     }
-    const key = _node.uniqueId;
+    const key = _node.unique_id;
     const url = window.activeTextEditor!.document.uri.path;
     const node = this.dbtLineageService.createTable(event.event, url, key);
     return { node, aiEnabled };

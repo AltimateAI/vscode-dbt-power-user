@@ -1,3 +1,5 @@
+import { RefreshIcon } from "@assets/icons";
+import { panelLogger } from "@modules/logger";
 import {
   FormGroup,
   IconButton,
@@ -11,11 +13,9 @@ import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "../app/requestExecutor";
-import classes from "./defer.module.scss";
 import { ManifestPathType } from "./constants";
+import classes from "./defer.module.scss";
 import { ManifestSelectionProps } from "./types";
-import { panelLogger } from "@modules/logger";
-import { RefreshIcon } from "@assets/icons";
 
 export const ManifestSelection = ({
   dbtProjectRoot,
@@ -46,8 +46,8 @@ export const ManifestSelection = ({
     if (!(response as { updated: boolean }).updated) {
       setDeferState((prevState) => ({
         ...prevState,
-        manifestPathForDeferral: "",
-        manifestPathType: ManifestPathType.EMPTY,
+        manifestPathForDeferral,
+        manifestPathType,
       }));
     }
   };

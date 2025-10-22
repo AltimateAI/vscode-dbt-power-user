@@ -26,8 +26,8 @@ import PreviewFeatureIcon from "@modules/previewFeature/PreviewFeatureIcon";
 const DefaultDeferState = {
   deferToProduction: false,
   favorState: false,
-  manifestPathForDeferral: "",
-  manifestPathType: ManifestPathType.EMPTY,
+  manifestPathForDeferral: undefined,
+  manifestPathType: undefined,
   projectIntegrations: [],
   dbtCoreIntegrationId: undefined,
 };

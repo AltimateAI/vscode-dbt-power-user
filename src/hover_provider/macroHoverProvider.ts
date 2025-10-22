@@ -1,31 +1,30 @@
 import {
-  CancellationToken,
-  HoverProvider,
-  Hover,
-  Position,
-  ProviderResult,
-  TextDocument,
-  Disposable,
-} from "vscode";
-import { TelemetryService } from "../telemetry";
-import { generateMacroHoverMarkdown } from "./utils";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { QueryManifestService } from "../services/queryManifestService";
-import { provideSingleton } from "../utils";
-import {
+  DBTTerminal,
   MacroMetaData,
   MacroMetaMap,
   NodeMetaData,
   NodeMetaMap,
-  SourceMetaMap,
-} from "../domain";
+} from "@altimateai/dbt-integration";
+import { inject } from "inversify";
+import {
+  CancellationToken,
+  Disposable,
+  Hover,
+  HoverProvider,
+  Position,
+  ProviderResult,
+  TextDocument,
+} from "vscode";
+import { QueryManifestService } from "../services/queryManifestService";
+import { TelemetryService } from "../telemetry";
+import { generateMacroHoverMarkdown } from "./utils";
 
-@provideSingleton(MacroHoverProvider)
 export class MacroHoverProvider implements HoverProvider, Disposable {
   private disposables: Disposable[] = [];
 
   constructor(
     private telemetry: TelemetryService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private queryManifestService: QueryManifestService,
   ) {}
@@ -62,7 +61,7 @@ export class MacroHoverProvider implements HoverProvider, Disposable {
     }
 
     const referencedBy = this.getNodesReferencingMacro(
-      macroMeta.uniqueId,
+      macroMeta.unique_id,
       macroMetaMap,
       nodeMetaMap,
     );

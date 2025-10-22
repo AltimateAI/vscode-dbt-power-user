@@ -1,18 +1,15 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import {
-  StatusBarItem,
-  StatusBarAlignment,
-  window,
   Disposable,
+  StatusBarAlignment,
+  StatusBarItem,
   TextEditor,
+  window,
   workspace,
-  Uri,
 } from "vscode";
-import { DeferToProdService } from "../services/deferToProdService";
-import { provideSingleton } from "../utils";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 
-@provideSingleton(DeferToProductionStatusBar)
 export class DeferToProductionStatusBar implements Disposable {
   readonly statusBar: StatusBarItem = window.createStatusBarItem(
     StatusBarAlignment.Left,
@@ -21,8 +18,8 @@ export class DeferToProductionStatusBar implements Disposable {
   private disposables: Disposable[] = [];
 
   constructor(
-    private deferToProdService: DeferToProdService,
     private dbtProjectContainer: DBTProjectContainer,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {
     this.disposables.push(
@@ -68,15 +65,14 @@ export class DeferToProductionStatusBar implements Disposable {
     this.statusBar.show();
   }
 
-  public updateStatusBar(projectRoot?: string) {
+  public updateStatusBar() {
     try {
-      if (!projectRoot) {
-        const currentProject = this.getCurrentProject();
-        projectRoot = currentProject.projectRoot.fsPath;
+      const currentProject = this.getCurrentProject();
+      if (!currentProject) {
+        this.statusBar.hide();
       }
-      const config =
-        this.deferToProdService.getDeferConfigByProjectRoot(projectRoot);
-      if (config?.deferToProduction) {
+      const config = currentProject.getDeferConfig();
+      if (config.deferToProduction) {
         this.showTextInStatusBar("$(sync) Defer");
         this.statusBar.show();
         return;

@@ -1,18 +1,21 @@
 import {
-  window,
-  QuickPickItem,
-  ProgressLocation,
+  CommandProcessExecutionFactory,
+  DBTTerminal,
+} from "@altimateai/dbt-integration";
+import { inject } from "inversify";
+import { gte } from "semver";
+import {
   commands,
+  ProgressLocation,
+  QuickPickItem,
+  window,
   workspace,
 } from "vscode";
-import { getFirstWorkspacePath, provideSingleton } from "../utils";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { TelemetryService } from "../telemetry";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
-import { CommandProcessExecutionFactory } from "../commandProcessExecution";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { gte } from "semver";
+import { TelemetryService } from "../telemetry";
+import { getFirstWorkspacePath } from "../utils";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -25,13 +28,14 @@ enum DbtInstallationPromptAnswer {
   INSTALL_FUSION = "Install dbt fusion",
 }
 
-@provideSingleton(WalkthroughCommands)
 export class WalkthroughCommands {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
+    @inject(PythonEnvironment)
     private pythonEnvironment: PythonEnvironment,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {}
 
@@ -69,8 +73,8 @@ export class WalkthroughCommands {
           return;
         }
         const runModelOutput = await project.debug();
-        if (runModelOutput.includes("ERROR")) {
-          throw new Error(runModelOutput);
+        if (runModelOutput.fullOutput.includes("ERROR")) {
+          throw new Error(runModelOutput.fullOutput);
         }
       } catch (err) {
         this.dbtTerminal.error(

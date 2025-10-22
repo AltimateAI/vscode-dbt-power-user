@@ -9,7 +9,6 @@ import {
   Uri,
 } from "vscode";
 import { CST, LineCounter, Parser } from "yaml";
-import { provideSingleton } from "../utils";
 
 interface Position {
   line: number;
@@ -24,7 +23,6 @@ export interface GenerateModelFromSourceParams {
   tableIdentifier?: string;
 }
 
-@provideSingleton(SourceModelCreationCodeLensProvider)
 export class SourceModelCreationCodeLensProvider implements CodeLensProvider {
   private codeLenses: CodeLens[] = [];
   private _onDidChangeCodeLenses: EventEmitter<void> = new EventEmitter<void>();

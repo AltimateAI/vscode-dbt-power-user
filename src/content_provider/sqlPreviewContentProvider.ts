@@ -4,22 +4,18 @@ import {
   Event,
   EventEmitter,
   FileSystemWatcher,
+  ProgressLocation,
   RelativePattern,
   TextDocumentContentProvider,
   Uri,
-  workspace,
   window,
-  ProgressLocation,
+  workspace,
 } from "vscode";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { debounce, provideSingleton } from "../utils";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
-import { DeferToProdService } from "../services/deferToProdService";
-import { AltimateRequest } from "../altimate";
-import { ManifestPathType } from "../constants";
+import { debounce } from "../utils";
 import path = require("path");
 
-@provideSingleton(SqlPreviewContentProvider)
 export class SqlPreviewContentProvider
   implements TextDocumentContentProvider, Disposable
 {
@@ -32,8 +28,6 @@ export class SqlPreviewContentProvider
 
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
-    private deferToProdService: DeferToProdService,
-    private altimateRequest: AltimateRequest,
     private telemetry: TelemetryService,
   ) {
     this.subscriptions = workspace.onDidCloseTextDocument((compilationDoc) => {
@@ -93,21 +87,7 @@ export class SqlPreviewContentProvider
       }
       this.telemetry.sendTelemetryEvent("requestCompilation");
       await project.refreshProjectConfig();
-      const result = await project.unsafeCompileQuery(query, modelName);
-      const { manifestPathType } =
-        this.deferToProdService.getDeferConfigByProjectRoot(
-          project.projectRoot.fsPath,
-        );
-      const dbtIntegrationMode = workspace
-        .getConfiguration("dbt")
-        .get<string>("dbtIntegration", "core");
-      if (
-        dbtIntegrationMode.startsWith("core") &&
-        manifestPathType === ManifestPathType.REMOTE
-      ) {
-        this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
-      }
-      return result;
+      return await project.unsafeCompileQuery(query, modelName);
     } catch (error: any) {
       const errorMessage = (error as Error).message;
       window.showErrorMessage(`Error while compiling: ${errorMessage}`);

@@ -1,20 +1,22 @@
-import { Disposable, commands, window, workspace } from "vscode";
-import { provideSingleton } from "../utils";
 import {
-  AltimateRequest,
   ForbiddenError,
   NoCredentialsError,
-} from "../altimate";
+} from "@altimateai/dbt-integration";
+import { commands, Disposable, window, workspace } from "vscode";
+import { AltimateRequest } from "../altimate";
+import { AltimateAuthService } from "../services/altimateAuthService";
 
 const validTenantRegex = new RegExp(/^[a-z_][a-z0-9_-]*$/);
 
-@provideSingleton(ValidationProvider)
 export class ValidationProvider implements Disposable {
   private disposables: Disposable[] = [];
   private _isAuthenticated = false;
   private cachedConfig = workspace.getConfiguration("dbt");
 
-  constructor(private altimate: AltimateRequest) {
+  constructor(
+    private altimate: AltimateRequest,
+    private altimateAuthService: AltimateAuthService,
+  ) {
     this.disposables.push(
       workspace.onDidChangeConfiguration((e) => {
         if (!e.affectsConfiguration("dbt")) {
@@ -126,7 +128,7 @@ export class ValidationProvider implements Disposable {
 
   throwIfNotAuthenticated() {
     if (!this.isAuthenticated()) {
-      const message = this.altimate.getCredentialsMessage();
+      const message = this.altimateAuthService.getCredentialsMessage();
       throw message ? new NoCredentialsError(message) : new ForbiddenError();
     }
   }

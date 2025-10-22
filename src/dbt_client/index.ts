@@ -1,16 +1,14 @@
-import { commands, Disposable, EventEmitter, window, workspace } from "vscode";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { provideSingleton } from "../utils";
-import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
+import { DBTDetection } from "@altimateai/dbt-integration";
 import { existsSync } from "fs";
-import { DBTDetection } from "./dbtIntegration";
 import { inject } from "inversify";
+import { commands, Disposable, EventEmitter, window, workspace } from "vscode";
+import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
+import { PythonEnvironment } from "./pythonEnvironment";
 
 enum PythonInterpreterPromptAnswer {
   SELECT = "Select Python interpreter",
 }
 
-@provideSingleton(DBTClient)
 export class DBTClient implements Disposable {
   private _onDBTInstallationVerificationEvent =
     new EventEmitter<DBTInstallationVerificationEvent>();
@@ -29,6 +27,7 @@ export class DBTClient implements Disposable {
   ];
   private shownError = false;
   constructor(
+    @inject(PythonEnvironment)
     private pythonEnvironment: PythonEnvironment,
     @inject("Factory<DBTDetection>")
     private dbtDetectionFactory: () => DBTDetection,

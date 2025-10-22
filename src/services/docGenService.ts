@@ -1,5 +1,12 @@
 import path = require("path");
+import {
+  DBTTerminal,
+  NodeMetaData,
+  RateLimitException,
+  RESOURCE_TYPE_MODEL,
+} from "@altimateai/dbt-integration";
 import { promises as fs } from "fs";
+import { inject } from "inversify";
 import * as yaml from "js-yaml";
 import {
   env,
@@ -10,23 +17,17 @@ import {
   window,
 } from "vscode";
 import { AltimateRequest, DocsGenerateResponse } from "../altimate";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { NodeMetaData } from "../domain";
-import { RateLimitException } from "../exceptions";
-import { DBTProject } from "../manifest/dbtProject";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProject } from "../dbt_client/dbtProject";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
-import {
-  extendErrorWithSupportLinks,
-  provideSingleton,
-  removeProtocol,
-} from "../utils";
+import { extendErrorWithSupportLinks, removeProtocol } from "../utils";
 import {
   AIColumnDescription,
   DBTDocumentation,
   Source,
 } from "../webview_provider/docsEditPanel";
+import { AltimateAuthService } from "./altimateAuthService";
 import { QueryManifestService } from "./queryManifestService";
 
 interface DBTDocumentationMessage {
@@ -79,14 +80,15 @@ interface FeedbackRequestProps {
 
 const COLUMNS_PER_CHUNK = 3;
 
-@provideSingleton(DocGenService)
 export class DocGenService {
   public constructor(
     private altimateRequest: AltimateRequest,
     protected dbtProjectContainer: DBTProjectContainer,
     protected telemetry: TelemetryService,
     private queryManifestService: QueryManifestService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
+    private altimateAuthService: AltimateAuthService,
   ) {}
 
   private getCompiledDocumentationFromNode(
@@ -104,7 +106,7 @@ export class DocGenService {
       patchPath: currentNode.patch_path,
       description: currentNode.description,
       generated: false,
-      uniqueId: currentNode.uniqueId,
+      uniqueId: currentNode.unique_id,
       resource_type: currentNode.resource_type,
       filePath,
       columns: Object.values(docColumns).map((column) => {
@@ -362,7 +364,7 @@ export class DocGenService {
     }
 
     // Resource type validation - ensure it's a model
-    if (currentNode.resource_type !== DBTProject.RESOURCE_TYPE_MODEL) {
+    if (currentNode.resource_type !== RESOURCE_TYPE_MODEL) {
       return {
         documentation: undefined,
         message: this.getDocumentationValidationMessage(
@@ -389,7 +391,7 @@ export class DocGenService {
             aiEnabled: this.altimateRequest.enabled(),
             name: modelName,
             description: "",
-            uniqueId: currentNode.uniqueId,
+            uniqueId: currentNode.unique_id,
             resource_type: currentNode.resource_type,
             generated: false,
             filePath,
@@ -415,7 +417,7 @@ export class DocGenService {
               aiEnabled: this.altimateRequest.enabled(),
               name: modelName,
               description: "",
-              uniqueId: currentNode.uniqueId,
+              uniqueId: currentNode.unique_id,
               resource_type: currentNode.resource_type,
               filePath,
               generated: false,
@@ -432,7 +434,7 @@ export class DocGenService {
             patchPath: currentNode.patch_path,
             description: modelDef.description || "",
             generated: false,
-            uniqueId: currentNode.uniqueId,
+            uniqueId: currentNode.unique_id,
             resource_type: currentNode.resource_type,
             filePath,
             columns: (modelDef.columns || []).map((column) => ({
@@ -484,7 +486,7 @@ export class DocGenService {
     panel,
     isBulkGen,
   }: GenerateDocsForColumnsProps) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
     if (!project || !window.activeTextEditor) {
@@ -624,7 +626,7 @@ export class DocGenService {
     columnIndexCount,
     isBulkGen,
   }: GenerateDocsForModelProps) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
+    if (!this.altimateAuthService.handlePreviewFeatures()) {
       return;
     }
     if (!project) {

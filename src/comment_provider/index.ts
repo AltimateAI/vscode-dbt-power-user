@@ -1,9 +1,6 @@
-import { Disposable, languages } from "vscode";
-import { DBTPowerUserExtension } from "../dbtPowerUserExtension";
-import { provideSingleton } from "../utils";
+import { Disposable } from "vscode";
 import { ConversationProvider } from "./conversationProvider";
 
-@provideSingleton(CommentProviders)
 export class CommentProviders implements Disposable {
   private disposables: Disposable[] = [];
   constructor(private conversationProvider: ConversationProvider) {

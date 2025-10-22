@@ -1,8 +1,8 @@
-import useAppContext from "@modules/app/useAppContext";
-import { Themes } from "@modules/app/types";
 import { CodeBlock as CodeblockLib } from "@lib";
-import classes from "./codeblock.module.scss";
+import { Themes } from "@modules/app/types";
+import useAppContext from "@modules/app/useAppContext";
 import { ReactNode } from "react";
+import classes from "./codeblock.module.scss";
 
 interface Props {
   code: string;
