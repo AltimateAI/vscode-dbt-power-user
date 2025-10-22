@@ -19,7 +19,7 @@ export class MissingSchemaTest implements AltimateScanStep {
       // blacklisting node types.. should we instead whitelist just models and sources?
       if (
         // TODO - need to filter out only models here but the resource type isnt available
-        !value.uniqueId.startsWith(RESOURCE_TYPE_MODEL) ||
+        !value.unique_id.startsWith(RESOURCE_TYPE_MODEL) ||
         value.config.materialized === "seed" ||
         value.config.materialized === "ephemeral"
       ) {
@@ -44,7 +44,7 @@ export class MissingSchemaTest implements AltimateScanStep {
         if (missingDocsDict === undefined) {
           scanResults["missingDoc"] = missingDocsDict = new Set<string>();
         }
-        missingDocsDict.add(value.uniqueId);
+        missingDocsDict.add(value.unique_id);
       }
     }
   }

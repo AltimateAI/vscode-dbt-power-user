@@ -561,7 +561,7 @@ export class NewLineagePanel
         missingLineageMessage: this.getMissingLineageMessage(),
       };
     }
-    const key = _node.uniqueId;
+    const key = _node.unique_id;
     const url = window.activeTextEditor!.document.uri.path;
     const node = this.dbtLineageService.createTable(event.event, url, key);
     return { node, aiEnabled };

@@ -170,7 +170,7 @@ export class SQLLineagePanel
     }
     let model_info: { model_node: ModelNode }[] = [];
     const config = workspace.getConfiguration("dbt.lineage");
-    const modelId = currNode.uniqueId;
+    const modelId = currNode.unique_id;
     const modelsToFetch = project.getNonEphemeralParents([modelId]);
     let shouldFetchSchema = false;
     if (currNode.path) {
@@ -230,7 +230,7 @@ export class SQLLineagePanel
       }
     }
     nodeMapping[modelName] = {
-      nodeId: currNode.uniqueId,
+      nodeId: currNode.unique_id,
       type: currNode.resource_type,
     };
     const FINAL_SELECT = "__final_select__";

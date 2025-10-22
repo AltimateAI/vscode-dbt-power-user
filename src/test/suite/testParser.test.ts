@@ -89,7 +89,7 @@ describe("TestParser Test Suite", () => {
     expect(result.size).toBe(1);
     const testMeta = result.get("test_1");
     expect(testMeta).toBeTruthy();
-    expect(testMeta?.uniqueId).toBe("test.test_1");
+    expect(testMeta?.unique_id).toBe("test.test_1");
     expect(testMeta?.raw_sql).toBe("SELECT * FROM table");
     expect(testMeta?.path).toBe(
       path.join(mockAdapter.getProjectRoot(), "tests/test_1.sql"),

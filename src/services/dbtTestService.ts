@@ -340,7 +340,7 @@ export class DbtTestService {
       this.dbtTerminal.debug("no node for tableName:", modelName);
       return;
     }
-    const key = _node.uniqueId;
+    const key = _node.unique_id;
     return (graphMetaMap["tests"].get(key)?.nodes || [])
       .map((n) => {
         const testKey = n.label.split(".")[0];

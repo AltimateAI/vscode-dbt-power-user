@@ -21,7 +21,7 @@ export class UndocumentedModelColumnTest implements AltimateScanStep {
     for (const value of nodeMetaMap.nodes()) {
       if (
         (scanResults["missingDoc"] !== undefined &&
-          scanResults["missingDoc"].has(value.uniqueId)) ||
+          scanResults["missingDoc"].has(value.unique_id)) ||
         value.config.materialized === "seed" ||
         value.config.materialized === "ephemeral"
       ) {
