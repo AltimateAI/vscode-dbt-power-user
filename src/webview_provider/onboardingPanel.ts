@@ -1,3 +1,5 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import {
   commands,
   Uri,
@@ -6,22 +8,20 @@ import {
   window,
   workspace,
 } from "vscode";
-import { provideSingleton } from "../utils";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { AltimateRequest } from "../altimate";
+import { WalkthroughCommands } from "../commands/walkthroughCommands";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { AltimateAuthService } from "../services/altimateAuthService";
+import { QueryManifestService } from "../services/queryManifestService";
+import { SharedStateService } from "../services/sharedStateService";
+import { UsersService } from "../services/usersService";
 import { TelemetryService } from "../telemetry";
 import {
   AltimateWebviewProvider,
   HandleCommandProps,
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
-import { AltimateRequest } from "../altimate";
-import { SharedStateService } from "../services/sharedStateService";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { QueryManifestService } from "../services/queryManifestService";
-import { UsersService } from "../services/usersService";
-import { WalkthroughCommands } from "../commands/walkthroughCommands";
 
-@provideSingleton(OnboardingPanel)
 export class OnboardingPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.Onboarding";
   protected viewPath = "/onboarding";
@@ -32,10 +32,12 @@ export class OnboardingPanel extends AltimateWebviewProvider {
     protected altimateRequest: AltimateRequest,
     protected telemetry: TelemetryService,
     protected emitterService: SharedStateService,
+    @inject("DBTTerminal")
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
     protected walkthroughCommands: WalkthroughCommands,
+    protected altimateAuthService: AltimateAuthService,
   ) {
     super(
       dbtProjectContainer,
@@ -45,6 +47,7 @@ export class OnboardingPanel extends AltimateWebviewProvider {
       dbtTerminal,
       queryManifestService,
       usersService,
+      altimateAuthService,
     );
 
     const t = this;

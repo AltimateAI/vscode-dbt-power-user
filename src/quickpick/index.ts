@@ -1,10 +1,10 @@
 import { commands, Disposable, window } from "vscode";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { SharedStateService } from "../services/sharedStateService";
+import { OnboardingPanel } from "../webview_provider/onboardingPanel";
 import { ProjectQuickPick } from "./projectQuickPick";
 import { DbtPowerUserControlCenterAction } from "./puQuickPick";
 import { DbtSQLAction } from "./sqlQuickPick";
-import { SharedStateService } from "../services/sharedStateService";
-import { OnboardingPanel } from "../webview_provider/onboardingPanel";
 
 export class DbtPowerUserActionsCenter implements Disposable {
   private disposables: Disposable[] = [];

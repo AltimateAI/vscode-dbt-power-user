@@ -146,6 +146,7 @@ import { LineagePanel } from "./webview_provider/lineagePanel";
 import { ModelGraphViewPanel } from "./webview_provider/modelGraphViewPanel";
 import { NewDocsGenPanel } from "./webview_provider/newDocsGenPanel";
 import { NewLineagePanel } from "./webview_provider/newLineagePanel";
+import { OnboardingPanel } from "./webview_provider/onboardingPanel";
 import { QueryResultPanel } from "./webview_provider/queryResultPanel";
 import { SQLLineagePanel } from "./webview_provider/sqlLineagePanel";
 
@@ -1727,6 +1728,23 @@ container
   })
   .inSingletonScope();
 
+container
+  .bind(OnboardingPanel)
+  .toDynamicValue((context) => {
+    return new OnboardingPanel(
+      context.container.get(DBTProjectContainer),
+      context.container.get(AltimateRequest),
+      context.container.get(TelemetryService),
+      context.container.get(SharedStateService),
+      context.container.get("DBTTerminal"),
+      context.container.get(QueryManifestService),
+      context.container.get(UsersService),
+      context.container.get(WalkthroughCommands),
+      context.container.get(AltimateAuthService),
+    );
+  })
+  .inSingletonScope();
+
 // Bind DbtPowerUserActionsCenter
 container
   .bind(DbtPowerUserActionsCenter)
@@ -1736,6 +1754,8 @@ container
       context.container.get(ProjectQuickPick),
       context.container.get(DBTProjectContainer),
       context.container.get(DbtSQLAction),
+      context.container.get(SharedStateService),
+      context.container.get(OnboardingPanel),
     );
   })
   .inSingletonScope();
