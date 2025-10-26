@@ -17,7 +17,7 @@ import {
 import { useEffect, useState } from "react";
 import classes from "./onboarding.module.scss";
 
-const { Text, Paragraph } = Typography;
+const { Text, Paragraph, Title } = Typography;
 const { Panel } = Collapse;
 
 interface AltimateSetupStepProps {
@@ -135,8 +135,36 @@ const AltimateSetupStep = ({
         "getIntegrations",
         {},
       )) as Integration[];
-      setExistingIntegrations(response || []);
-      setShowExistingIntegrations((response || []).length > 0);
+
+      // For each integration, fetch its sync status
+      const integrationsWithSync = await Promise.all(
+        (response || []).map(async (integration) => {
+          if (integration.environments && integration.environments.length > 0) {
+            try {
+              const syncData = (await executeRequestInSync(
+                "getIntegrationSyncStatus",
+                {
+                  integrationId: integration.id,
+                  environment: integration.environments[0].name,
+                },
+              )) as Integration | null;
+
+              if (syncData?.sync_history) {
+                return { ...integration, sync_history: syncData.sync_history };
+              }
+            } catch (err) {
+              panelLogger.error(
+                "Error fetching sync status for integration",
+                err,
+              );
+            }
+          }
+          return integration;
+        }),
+      );
+
+      setExistingIntegrations(integrationsWithSync);
+      setShowExistingIntegrations(integrationsWithSync.length > 0);
     } catch (err) {
       panelLogger.error("Error loading integrations", err);
       setExistingIntegrations([]);
@@ -416,6 +444,282 @@ const AltimateSetupStep = ({
     }
   };
 
+  // Calculate current star level based on progress
+  const getStarLevel = () => {
+    if (!isAltimateConfigured) return 1; // No API key = 1 star
+
+    // Check if any integration has completed sync
+    const hasCompletedSync = existingIntegrations.some(
+      (integration) =>
+        integration.sync_history &&
+        integration.sync_history.length > 0 &&
+        integration.sync_history[0].type === "Completed",
+    );
+
+    if (hasCompletedSync) return 3; // API key + synced integration = 3 stars
+    if (existingIntegrations.length > 0) return 2; // API key + integration (not synced) = 2 stars
+    return 2; // API key only = 2 stars
+  };
+
+  const renderProgressCard = () => {
+    const currentLevel = getStarLevel();
+
+    return (
+      <div
+        style={{
+          background:
+            "linear-gradient(135deg, var(--vscode-editor-background) 0%, var(--vscode-editorWidget-background) 100%)",
+          border: "2px solid var(--vscode-focusBorder)",
+          borderRadius: "12px",
+          padding: "1.5rem",
+          marginBottom: "1.5rem",
+        }}
+      >
+        {/* Title */}
+        <Title
+          level={4}
+          style={{
+            margin: 0,
+            marginBottom: "1rem",
+            color: "var(--vscode-foreground)",
+            textAlign: "center",
+          }}
+        >
+          Your Analytics Engineering Journey
+        </Title>
+
+        {/* Star Progress Bar */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "1rem",
+            position: "relative",
+          }}
+        >
+          {/* Progress line */}
+          <div
+            style={{
+              position: "absolute",
+              top: "15px",
+              left: "10%",
+              right: "10%",
+              height: "3px",
+              background: "var(--vscode-panel-border)",
+              zIndex: 0,
+            }}
+          >
+            <div
+              style={{
+                height: "100%",
+                background: "linear-gradient(90deg, #108ee9 0%, #87d068 100%)",
+                width: `${((currentLevel - 1) / 2) * 100}%`,
+                transition: "width 0.5s ease",
+              }}
+            />
+          </div>
+
+          {/* Level 1 */}
+          <div style={{ flex: 1, textAlign: "center", zIndex: 1 }}>
+            <div
+              style={{
+                width: "30px",
+                height: "30px",
+                borderRadius: "50%",
+                background:
+                  currentLevel >= 1 ? "#108ee9" : "var(--vscode-panel-border)",
+                color: "white",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 0.25rem",
+                fontSize: "0.9rem",
+              }}
+            >
+              {currentLevel >= 1 ? "⭐" : "1"}
+            </div>
+            <Text
+              style={{
+                display: "block",
+                fontSize: "0.7rem",
+                color:
+                  currentLevel >= 1
+                    ? "var(--vscode-foreground)"
+                    : "var(--vscode-descriptionForeground)",
+              }}
+            >
+              Junior
+            </Text>
+          </div>
+
+          {/* Level 2 */}
+          <div style={{ flex: 1, textAlign: "center", zIndex: 1 }}>
+            <div
+              style={{
+                width: "30px",
+                height: "30px",
+                borderRadius: "50%",
+                background:
+                  currentLevel >= 2 ? "#52c41a" : "var(--vscode-panel-border)",
+                color: "white",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 0.25rem",
+                fontSize: "0.9rem",
+              }}
+            >
+              {currentLevel >= 2 ? "⭐⭐" : "2"}
+            </div>
+            <Text
+              style={{
+                display: "block",
+                fontSize: "0.7rem",
+                color:
+                  currentLevel >= 2
+                    ? "var(--vscode-foreground)"
+                    : "var(--vscode-descriptionForeground)",
+              }}
+            >
+              +AI Features
+            </Text>
+          </div>
+
+          {/* Level 3 */}
+          <div style={{ flex: 1, textAlign: "center", zIndex: 1 }}>
+            <div
+              style={{
+                width: "30px",
+                height: "30px",
+                borderRadius: "50%",
+                background:
+                  currentLevel >= 3 ? "#87d068" : "var(--vscode-panel-border)",
+                color: "white",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 0.25rem",
+                fontSize: "0.9rem",
+              }}
+            >
+              {currentLevel >= 3 ? "⭐⭐⭐" : "3"}
+            </div>
+            <Text
+              style={{
+                display: "block",
+                fontSize: "0.7rem",
+                color:
+                  currentLevel >= 3
+                    ? "var(--vscode-foreground)"
+                    : "var(--vscode-descriptionForeground)",
+              }}
+            >
+              Senior
+            </Text>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div
+          style={{
+            height: "1px",
+            background: "var(--vscode-panel-border)",
+            margin: "1rem 0",
+          }}
+        />
+
+        {/* Next Step Section */}
+        {currentLevel === 3 ? (
+          <div style={{ textAlign: "center" }}>
+            <Text
+              style={{
+                fontSize: "1.5rem",
+                display: "block",
+                marginBottom: "0.5rem",
+              }}
+            >
+              🎉
+            </Text>
+            <Text
+              strong
+              style={{
+                display: "block",
+                marginBottom: "0.25rem",
+                color: "#87d068",
+              }}
+            >
+              All Features Unlocked!
+            </Text>
+            <Text
+              style={{
+                fontSize: "0.85rem",
+                color: "var(--vscode-descriptionForeground)",
+              }}
+            >
+              You&apos;re now a Senior Analytics Engineer with full access to
+              AI-powered insights
+            </Text>
+          </div>
+        ) : currentLevel === 2 ? (
+          <div>
+            <Text strong style={{ display: "block", marginBottom: "0.5rem" }}>
+              🎯 Next: Unlock 3-Star Features
+            </Text>
+            <Text
+              style={{
+                fontSize: "0.85rem",
+                display: "block",
+                marginBottom: "0.5rem",
+                color: "var(--vscode-descriptionForeground)",
+              }}
+            >
+              Sync your dbt integration to unlock:
+            </Text>
+            <ul
+              style={{
+                margin: "0.5rem 0",
+                paddingLeft: "1.5rem",
+                fontSize: "0.85rem",
+              }}
+            >
+              <li>💬 Instant answers about models and tests</li>
+              <li>🔍 Project health checks</li>
+              <li>🪄 AI optimization recommendations</li>
+            </ul>
+          </div>
+        ) : (
+          <div>
+            <Text strong style={{ display: "block", marginBottom: "0.5rem" }}>
+              🎯 Next: Unlock 2-Star Features
+            </Text>
+            <Text
+              style={{
+                fontSize: "0.85rem",
+                display: "block",
+                marginBottom: "0.5rem",
+                color: "var(--vscode-descriptionForeground)",
+              }}
+            >
+              Add your API key to unlock:
+            </Text>
+            <ul
+              style={{
+                margin: "0.5rem 0",
+                paddingLeft: "1.5rem",
+                fontSize: "0.85rem",
+              }}
+            >
+              <li>🧠 Advanced lineage visualization</li>
+              <li>💡 SQL query explanations</li>
+              <li>📝 Auto-generated documentation</li>
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderSyncStatus = (integration: Integration) => {
     const key = `${integration.id}-${
       integration.environments.find((e) => e.id === selectedEnvironmentId)?.name
@@ -584,66 +888,7 @@ const AltimateSetupStep = ({
   if (isAltimateConfigured) {
     return (
       <div className={classes.dbtIntegrationContainer}>
-        <div className={classes.dbtIntegrationInfo}>
-          <h3 className={classes.sectionTitle}>
-            🎉 Altimate AI is configured!
-          </h3>
-          <p className={classes.subtitle}>
-            Now, create a dbt integration to unlock powerful collaboration
-            features:
-          </p>
-
-          <div className={classes.featuresGrid}>
-            <Stack direction="row" className={classes.featureRow}>
-              <div className={classes.featureItem}>
-                <span className={classes.iconChat}>💬</span>
-                <span className={classes.featureText}>
-                  Get instant answers about your models, tests, and production
-                  runs
-                </span>
-              </div>
-
-              <div className={classes.featureItem}>
-                <span className={classes.iconSearch}>🔍</span>
-                <span className={classes.featureText}>
-                  Explore and search faster within your dbt project
-                </span>
-              </div>
-            </Stack>
-
-            <Stack direction="row" className={classes.featureRow}>
-              <div className={classes.featureItem}>
-                <span className={classes.iconBrain}>🧠</span>
-                <span className={classes.featureText}>
-                  Visualize model, column and SQL lineage with clarity
-                </span>
-              </div>
-
-              <div className={classes.featureItem}>
-                <span className={classes.iconChart}>📈</span>
-                <span className={classes.featureText}>
-                  Get checks on performance, tests, and structure
-                </span>
-              </div>
-            </Stack>
-
-            <Stack direction="row" className={classes.featureRow}>
-              <div className={classes.featureItem}>
-                <span className={classes.iconMagic}>🪄</span>
-                <span className={classes.featureText}>
-                  Gain actionable recommendations to optimize your dbt project
-                </span>
-              </div>
-
-              <div className={classes.featureItem}>
-                <span className={classes.iconGear}>⚙️</span>
-                <span className={classes.featureText}>
-                  Collaborate with your team on code and documentation
-                </span>
-              </div>
-            </Stack>
-          </div>
-        </div>
+        {renderProgressCard()}
 
         {error && (
           <Alert
@@ -679,22 +924,24 @@ const AltimateSetupStep = ({
                 }}
               >
                 <div>
-                  <h4 className={classes.sectionTitle}>
-                    Existing Integrations
-                  </h4>
-                  <p className={classes.subtitle}>
-                    You have {existingIntegrations.length} existing integration
-                    {existingIntegrations.length > 1 ? "s" : ""}. Select an
-                    integration to view the datapilot CLI command for syncing
-                    your dbt project data.
-                  </p>
+                  <Title
+                    level={4}
+                    style={{ margin: 0, marginBottom: "0.5rem" }}
+                  >
+                    Your dbt Integrations
+                  </Title>
+                  <Text
+                    style={{ color: "var(--vscode-descriptionForeground)" }}
+                  >
+                    Select an integration below to sync your project data
+                  </Text>
                 </div>
                 <Button
                   type="primary"
                   size="large"
                   onClick={() => setShowCreateForm(true)}
                 >
-                  Create New Integration
+                  + New Integration
                 </Button>
               </Stack>
 
@@ -908,6 +1155,10 @@ const AltimateSetupStep = ({
                 </div>
               )}
 
+              <Title level={4} style={{ marginBottom: "1.5rem" }}>
+                Create dbt Integration
+              </Title>
+
               <div className={classes.formGroup}>
                 <label htmlFor="project" className={classes.formLabel}>
                   dbt Project:
@@ -1026,8 +1277,13 @@ const AltimateSetupStep = ({
   // If Altimate is not configured, show the API key setup screen
   return (
     <div className={classes.altimateKeyContainer}>
+      {renderProgressCard()}
+
       <div className={classes.altimateKeyInfo}>
-        <p>To get your free Altimate API key:</p>
+        <Title level={4} style={{ marginBottom: "1rem" }}>
+          Get Your Free Altimate API Key
+        </Title>
+        <p>Follow these steps to become an Analytics Engineer:</p>
         <ol>
           <li>
             Sign up at{" "}
