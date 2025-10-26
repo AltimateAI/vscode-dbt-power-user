@@ -6,6 +6,7 @@ import { useState } from "react";
 import AltimateSetupStep from "./AltimateSetupStep";
 import classes from "./onboarding.module.scss";
 import PrerequisitesStep from "./PrerequisitesStep";
+import TutorialsStep from "./TutorialsStep";
 
 interface WizardStep {
   id: string;
@@ -33,13 +34,9 @@ const SETUP_STEPS: WizardStep[] = [
   },
   {
     id: "finish",
-    title: "Finish setup",
+    title: "Tutorials",
     description:
-      "Congratulations! If you followed all the steps, the extension should be set up for your project. You can now start using dbt Power User's features like auto-completion, query preview, lineage visualization, and more.",
-    action: {
-      label: "View Documentation",
-      command: "openDocumentation",
-    },
+      "Explore the tutorials below to learn about dbt Power User's features.",
   },
 ];
 
@@ -112,6 +109,8 @@ const SetupWizard = (): JSX.Element => {
                 <PrerequisitesStep onComplete={handleNext} />
               ) : currentStepData.id === "setupAltimate" ? (
                 <AltimateSetupStep onComplete={handleNext} />
+              ) : currentStepData.id === "finish" ? (
+                <TutorialsStep />
               ) : (
                 currentStepData.action && (
                   <Button
