@@ -62,6 +62,9 @@ const AltimateSetupStep = ({
   >(null);
   const [apiKey, setApiKey] = useState<string>("");
   const [instanceName, setInstanceName] = useState<string>("");
+  const [backendURL, setBackendURL] = useState<string>(
+    "https://api.myaltimate.com",
+  );
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState(false);
@@ -277,6 +280,7 @@ const AltimateSetupStep = ({
       await executeRequestInSync("saveAltimateKey", {
         apiKey: apiKey.trim(),
         instanceName: instanceName.trim(),
+        backendURL: backendURL.trim(),
       });
 
       setSuccess(true);
@@ -340,8 +344,18 @@ const AltimateSetupStep = ({
     }
   };
 
-  const handleSignUp = () => {
-    window.open("https://app.myaltimate.com/register", "_blank");
+  const openUrl = async (url: string) => {
+    try {
+      await executeRequestInSync("openUrl", { url });
+    } catch (err) {
+      panelLogger.error("Error opening URL", err);
+      // Fallback to window.open if the command fails
+      window.open(url, "_blank");
+    }
+  };
+
+  const handleSignUp = async () => {
+    await openUrl("https://app.myaltimate.com/register");
   };
 
   const generateDatapilotCommand = (
@@ -349,13 +363,13 @@ const AltimateSetupStep = ({
     env?: IntegrationEnvironment,
   ) => {
     // Use configuration values from state
-    const backendURL =
+    const configBackendURL =
       altimateConfig.backendURL || "https://api.myaltimate.com";
     const configInstanceName =
       altimateConfig.instanceName || "YOUR_INSTANCE_NAME";
     const configApiKey = altimateConfig.apiKey || "YOUR_API_KEY";
 
-    const baseCommand = `datapilot dbt onboard --backend-url ${backendURL} --token ${configApiKey} --instance-name ${configInstanceName} --manifest-path ./target/manifest.json --catalog-path ./target/catalog.json`;
+    const baseCommand = `datapilot dbt onboard --backend-url ${configBackendURL} --token ${configApiKey} --instance-name ${configInstanceName} --manifest-path ./target/manifest.json --catalog-path ./target/catalog.json`;
 
     let completeCommand = "";
     if (integration.integration_type === "dbt_core") {
@@ -1238,9 +1252,12 @@ const AltimateSetupStep = ({
           <p>
             Need help?{" "}
             <a
-              href="https://docs.myaltimate.com/setup/integrations/"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                void openUrl("https://docs.myaltimate.com/setup/integrations/");
+              }}
+              style={{ cursor: "pointer" }}
             >
               View integration documentation
             </a>
@@ -1333,6 +1350,27 @@ const AltimateSetupStep = ({
             />
           </div>
 
+          <div className={classes.formGroup}>
+            <label htmlFor="backend-url" className={classes.formLabel}>
+              Backend URL:
+            </label>
+            <Select
+              id="backend-url"
+              value={backendURL}
+              onChange={(value) => setBackendURL(value)}
+              disabled={isValidating || success}
+              size="large"
+              style={{ width: "100%" }}
+            >
+              <Select.Option value="https://api.myaltimate.com">
+                Community, Pro or Team Plan
+              </Select.Option>
+              <Select.Option value="https://api.getaltimate.com">
+                Enterprise Plan
+              </Select.Option>
+            </Select>
+          </div>
+
           <Stack direction="row" className={classes.altimateKeyActions}>
             <Button
               type="primary"
@@ -1356,9 +1394,12 @@ const AltimateSetupStep = ({
               <li>
                 Sign up at{" "}
                 <a
-                  href="https://app.myaltimate.com/register"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    void openUrl("https://app.myaltimate.com/register");
+                  }}
+                  style={{ cursor: "pointer" }}
                 >
                   app.myaltimate.com
                 </a>
