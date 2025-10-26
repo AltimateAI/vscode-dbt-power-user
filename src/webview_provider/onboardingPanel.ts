@@ -592,6 +592,43 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           });
         }
         break;
+      case "getIntegrationSyncStatus":
+        // Fetch integration sync status from Altimate API
+        try {
+          const { integrationId, environment } =
+            message as HandleCommandProps & {
+              integrationId: number;
+              environment: string;
+            };
+
+          if (!integrationId || !environment) {
+            throw new Error("Missing integrationId or environment");
+          }
+
+          const integrationWithSync =
+            await this.altimateRequest.fetchProjectIntegrationWithSync(
+              integrationId,
+              environment,
+            );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: integrationWithSync || null,
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "getIntegrationSyncStatus",
+            "Error fetching integration sync status",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: null,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
       case "checkDatapilotInstalled":
         // Check if datapilot CLI is installed
         try {

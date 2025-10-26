@@ -10,6 +10,8 @@ import {
   Radio,
   Select,
   Space,
+  Spin,
+  Tag,
   Typography,
 } from "antd";
 import { useEffect, useState } from "react";
@@ -34,6 +36,12 @@ interface IntegrationEnvironment {
   name: string;
 }
 
+interface SyncHistoryItem {
+  type: "Completed" | "In Progress" | "Failed";
+  time: string;
+  log_file: string | null;
+}
+
 interface Integration {
   id: number;
   name: string;
@@ -43,6 +51,7 @@ interface Integration {
   last_file_upload_time: string | null;
   is_deleted: boolean;
   integration_type: "dbt_core" | "dbt_cloud";
+  sync_history?: SyncHistoryItem[];
 }
 
 const AltimateSetupStep = ({
@@ -80,6 +89,9 @@ const AltimateSetupStep = ({
     number | null
   >(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [loadingSyncStatus, setLoadingSyncStatus] = useState<
+    Record<string, boolean>
+  >({});
 
   // Datapilot state
   const [isDatapilotInstalled, setIsDatapilotInstalled] = useState(false);
@@ -335,6 +347,35 @@ const AltimateSetupStep = ({
     void message.success("Command copied to clipboard!");
   };
 
+  const fetchSyncStatus = async (
+    integrationId: number,
+    environmentName: string,
+  ) => {
+    const key = `${integrationId}-${environmentName}`;
+    try {
+      setLoadingSyncStatus((prev) => ({ ...prev, [key]: true }));
+      const syncData = (await executeRequestInSync("getIntegrationSyncStatus", {
+        integrationId,
+        environment: environmentName,
+      })) as Integration | null;
+
+      if (syncData?.sync_history) {
+        // Update the integration with sync history
+        setExistingIntegrations((prev) =>
+          prev.map((integration) =>
+            integration.id === integrationId
+              ? { ...integration, sync_history: syncData.sync_history }
+              : integration,
+          ),
+        );
+      }
+    } catch (err) {
+      panelLogger.error("Error fetching sync status", err);
+    } finally {
+      setLoadingSyncStatus((prev) => ({ ...prev, [key]: false }));
+    }
+  };
+
   const handleAccordionChange = (key: string | string[]) => {
     const activeKey = Array.isArray(key) ? key[0] : key;
     const integrationId = activeKey ? parseInt(activeKey, 10) : null;
@@ -346,7 +387,11 @@ const AltimateSetupStep = ({
         (i) => i.id === integrationId,
       );
       if (integration?.environments && integration.environments.length > 0) {
-        setSelectedEnvironmentId(integration.environments[0].id);
+        const firstEnv = integration.environments[0];
+        setSelectedEnvironmentId(firstEnv.id);
+
+        // Fetch sync status for the first environment
+        void fetchSyncStatus(integrationId, firstEnv.name);
       } else {
         // No environments, set to null
         setSelectedEnvironmentId(null);
@@ -358,6 +403,172 @@ const AltimateSetupStep = ({
 
   const handleEnvironmentChange = (envId: number) => {
     setSelectedEnvironmentId(envId);
+
+    // Fetch sync status for the newly selected environment
+    if (selectedIntegrationId) {
+      const integration = existingIntegrations.find(
+        (i) => i.id === selectedIntegrationId,
+      );
+      const selectedEnv = integration?.environments.find((e) => e.id === envId);
+      if (selectedEnv) {
+        void fetchSyncStatus(selectedIntegrationId, selectedEnv.name);
+      }
+    }
+  };
+
+  const renderSyncStatus = (integration: Integration) => {
+    const key = `${integration.id}-${
+      integration.environments.find((e) => e.id === selectedEnvironmentId)?.name
+    }`;
+    const isLoading = loadingSyncStatus[key];
+
+    if (isLoading) {
+      return (
+        <div style={{ marginTop: "1rem", marginBottom: "0.5rem" }}>
+          <Spin size="small" style={{ marginRight: "0.5rem" }} />
+          <Text style={{ color: "var(--vscode-descriptionForeground)" }}>
+            Checking sync status...
+          </Text>
+        </div>
+      );
+    }
+
+    if (!integration.sync_history || integration.sync_history.length === 0) {
+      return (
+        <Alert
+          message="No sync history available"
+          description="This integration has not been synced yet. Run the datapilot command below to sync your project data. Once synced, features like instant answers and project health checks will become available."
+          type="warning"
+          showIcon
+          style={{ marginTop: "1rem", marginBottom: "1rem" }}
+        />
+      );
+    }
+
+    const latestSync = integration.sync_history[0];
+    let statusColor:
+      | "success"
+      | "processing"
+      | "error"
+      | "default"
+      | "warning" = "default";
+    let statusText = "";
+    let statusIcon: React.ReactNode = null;
+
+    switch (latestSync.type) {
+      case "Completed":
+        statusColor = "success";
+        statusText = "Synced";
+        break;
+      case "In Progress":
+        statusColor = "processing";
+        statusText = "Syncing...";
+        statusIcon = <Spin size="small" />;
+        break;
+      case "Failed":
+        statusColor = "error";
+        statusText = "Sync Failed";
+        break;
+    }
+
+    return (
+      <div style={{ marginTop: "1rem", marginBottom: "1rem" }}>
+        <Space direction="vertical" style={{ width: "100%" }}>
+          <div>
+            <Text
+              strong
+              style={{
+                marginRight: "0.5rem",
+                color: "var(--vscode-foreground)",
+              }}
+            >
+              Sync Status:
+            </Text>
+            <Tag
+              color={statusColor}
+              icon={statusIcon}
+              style={{ fontWeight: "500" }}
+            >
+              {statusText}
+            </Tag>
+            {latestSync.type === "Completed" && (
+              <Text
+                style={{
+                  fontSize: "0.85rem",
+                  color: "var(--vscode-descriptionForeground)",
+                  marginLeft: "0.5rem",
+                }}
+              >
+                Last synced: {new Date(latestSync.time).toLocaleString()}
+              </Text>
+            )}
+          </div>
+
+          {latestSync.type === "Completed" && (
+            <Alert
+              message="Integration is ready!"
+              description="Your integration is synced and ready to use. You can now use features like instant answers about your models, tests, and production runs, as well as project health checks."
+              type="success"
+              showIcon
+              style={{ marginTop: "0.5rem" }}
+            />
+          )}
+
+          {latestSync.type === "Failed" && (
+            <Alert
+              message="Sync failed"
+              description="The last sync attempt failed. Please try running the datapilot command again. Check the logs for more details."
+              type="error"
+              showIcon
+              style={{ marginTop: "0.5rem" }}
+            />
+          )}
+
+          {latestSync.type === "In Progress" && (
+            <Alert
+              message="Sync in progress"
+              description="Your project data is currently being synced. This may take a few minutes depending on the size of your project."
+              type="info"
+              showIcon
+              style={{ marginTop: "0.5rem" }}
+            />
+          )}
+
+          {integration.sync_history.length > 1 && (
+            <div style={{ marginTop: "0.5rem" }}>
+              <Text
+                style={{
+                  fontSize: "0.85rem",
+                  color: "var(--vscode-descriptionForeground)",
+                }}
+              >
+                Previous syncs:{" "}
+                {integration.sync_history.slice(1, 4).map((sync, idx) => (
+                  <Tag
+                    key={idx}
+                    color={
+                      sync.type === "Completed"
+                        ? "success"
+                        : sync.type === "Failed"
+                          ? "error"
+                          : "default"
+                    }
+                    style={{ marginLeft: idx === 0 ? 0 : "0.25rem" }}
+                  >
+                    {sync.type === "Completed"
+                      ? "✓"
+                      : sync.type === "Failed"
+                        ? "✗"
+                        : "•"}{" "}
+                    {new Date(sync.time).toLocaleDateString()}
+                  </Tag>
+                ))}
+              </Text>
+            </div>
+          )}
+        </Space>
+      </div>
+    );
   };
 
   // Loading state while checking configuration
@@ -613,6 +824,8 @@ const AltimateSetupStep = ({
 
                     {selectedIntegrationId === integration.id && (
                       <>
+                        {renderSyncStatus(integration)}
+
                         <Text
                           style={{
                             display: "block",
@@ -685,24 +898,13 @@ const AltimateSetupStep = ({
             <>
               {showCreateForm && showExistingIntegrations && (
                 <div style={{ marginBottom: "1.5rem" }}>
-                  <Stack
-                    direction="row"
-                    style={{
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: "1rem",
-                    }}
+                  <Button
+                    size="large"
+                    onClick={() => setShowCreateForm(false)}
+                    style={{ marginBottom: "1rem" }}
                   >
-                    <h4 className={classes.sectionTitle}>
-                      Create New Integration
-                    </h4>
-                    <Button
-                      size="large"
-                      onClick={() => setShowCreateForm(false)}
-                    >
-                      ← Back to Integrations
-                    </Button>
-                  </Stack>
+                    ← Back to Integrations
+                  </Button>
                 </div>
               )}
 
@@ -790,28 +992,20 @@ const AltimateSetupStep = ({
             </>
           )}
 
-        <Stack direction="row" className={classes.dbtIntegrationActions}>
-          {!integrationCreated && (
-            <Button
-              type="primary"
-              size="large"
-              onClick={handleCreateIntegration}
-              loading={isCreatingIntegration}
-            >
-              Create Integration
-            </Button>
-          )}
-
-          {integrationCreated && (
-            <Button
-              type="primary"
-              size="large"
-              onClick={() => onComplete && onComplete()}
-            >
-              Continue
-            </Button>
-          )}
-        </Stack>
+        {(!showExistingIntegrations || showCreateForm) && (
+          <Stack direction="row" className={classes.dbtIntegrationActions}>
+            {!integrationCreated && (
+              <Button
+                type="primary"
+                size="large"
+                onClick={handleCreateIntegration}
+                loading={isCreatingIntegration}
+              >
+                Create Integration
+              </Button>
+            )}
+          </Stack>
+        )}
 
         <div className={classes.helpText}>
           <p>

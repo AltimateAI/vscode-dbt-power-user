@@ -236,6 +236,12 @@ export interface DBTCoreIntegrationEnvironment {
   created_at: string;
 }
 
+export interface SyncHistoryItem {
+  type: "Completed" | "In Progress" | "Failed";
+  time: string;
+  log_file: string | null;
+}
+
 export interface DBTCoreIntegration {
   id: number;
   name: string;
@@ -245,6 +251,10 @@ export interface DBTCoreIntegration {
   last_file_upload_time: string | null;
   is_deleted: boolean;
   integration_type: "dbt_core" | "dbt_cloud";
+}
+
+export interface DBTCoreIntegrationWithSync extends DBTCoreIntegration {
+  sync_history: SyncHistoryItem[];
 }
 
 export interface TenantUser {
@@ -529,6 +539,15 @@ export class AltimateRequest {
 
   async fetchProjectIntegrations() {
     return this.fetch<DBTCoreIntegration[]>("dbt/v1/project_integrations");
+  }
+
+  async fetchProjectIntegrationWithSync(
+    integrationId: number,
+    environment: string,
+  ) {
+    return this.fetch<DBTCoreIntegrationWithSync>(
+      `dbt/v1/project_integrations/${integrationId}/${environment}`,
+    );
   }
 
   async getHealthcheckConfigs() {
