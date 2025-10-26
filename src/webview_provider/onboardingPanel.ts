@@ -26,6 +26,7 @@ export class OnboardingPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.Onboarding";
   protected viewPath = "/onboarding";
   protected panelDescription = "dbt Power User onboarding experience";
+  private pendingStepNavigation: string | undefined;
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
@@ -96,19 +97,42 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           "rendering onboarding view",
           payload,
         );
-        if (this._panel) {
-          (this._panel as WebviewPanel).dispose();
+        const initialStep = (payload as { initialStep?: string })?.initialStep;
+
+        // If panel already exists and is ready, just navigate to the step
+        if (this._panel && this.isWebviewReady && initialStep) {
+          // Focus the panel if it's a WebviewPanel
+          if ((this._panel as WebviewPanel).reveal) {
+            (this._panel as WebviewPanel).reveal();
+          }
+          this.sendResponseToWebview({
+            command: "navigateToStep",
+            payload: { step: initialStep },
+          });
+          break;
         }
-        const webviewPanel = window.createWebviewPanel(
-          OnboardingPanel.viewType,
-          "Get Started with dbt Power User",
-          {
-            viewColumn: ViewColumn.Active,
-          },
-          { enableScripts: true, retainContextWhenHidden: true },
-        );
-        this._panel = webviewPanel;
-        this.renderWebview(webviewPanel);
+
+        // Store the step to navigate to after webview is ready
+        this.pendingStepNavigation = initialStep;
+
+        // Create new panel if it doesn't exist
+        if (!this._panel) {
+          const webviewPanel = window.createWebviewPanel(
+            OnboardingPanel.viewType,
+            "Get Started with dbt Power User",
+            {
+              viewColumn: ViewColumn.Active,
+            },
+            { enableScripts: true, retainContextWhenHidden: true },
+          );
+          this._panel = webviewPanel;
+          this.renderWebview(webviewPanel);
+        } else {
+          // Focus the panel if it's a WebviewPanel
+          if ((this._panel as WebviewPanel).reveal) {
+            (this._panel as WebviewPanel).reveal();
+          }
+        }
 
         break;
       default:
@@ -133,6 +157,19 @@ export class OnboardingPanel extends AltimateWebviewProvider {
   private renderWebview(webview: WebviewPanel) {
     this._webview = webview.webview;
     this.renderWebviewView();
+  }
+
+  protected onWebviewReady() {
+    super.onWebviewReady();
+
+    // Send pending step navigation if any
+    if (this.pendingStepNavigation) {
+      this.sendResponseToWebview({
+        command: "navigateToStep",
+        payload: { step: this.pendingStepNavigation },
+      });
+      this.pendingStepNavigation = undefined;
+    }
   }
 
   async handleCommand(message: HandleCommandProps): Promise<void> {
