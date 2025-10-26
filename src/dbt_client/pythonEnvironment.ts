@@ -15,6 +15,7 @@ export class PythonEnvironment {
   private environmentVariableSource: Record<string, EnvFrom> = {};
   public allPythonPaths: { path: string; pathType: string }[] = [];
   public isPython3: boolean = true;
+  private _pythonVersion?: string;
 
   constructor(
     @inject("DBTTerminal")
@@ -46,6 +47,10 @@ export class PythonEnvironment {
       this.getResolvedConfigValue("dbtPythonPathOverride") ||
       this.executionDetails!.getPythonPath()
     );
+  }
+
+  public get pythonVersion(): string | undefined {
+    return this._pythonVersion;
   }
 
   public get environmentVariables(): EnvironmentVariables {
@@ -125,6 +130,7 @@ export class PythonEnvironment {
       .execCommand[0];
     const envDetails = await api.environment.getEnvironmentDetails(pythonPath);
     this.isPython3 = envDetails?.version[0] === "3";
+    this._pythonVersion = envDetails?.version?.join(".");
 
     const dbtInstalledPythonPath: string[] = [];
     // TODO: support multiple workspacefolders for python detection

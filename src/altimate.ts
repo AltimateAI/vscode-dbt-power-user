@@ -230,12 +230,21 @@ export interface DocsGenerateResponse {
   model_citations?: { id: string; content: string }[];
 }
 
+export interface DBTCoreIntegrationEnvironment {
+  id: number;
+  environment_type: string;
+  created_at: string;
+}
+
 export interface DBTCoreIntegration {
   id: number;
   name: string;
+  environments: DBTCoreIntegrationEnvironment[];
   created_at: string;
   last_modified_at: string;
-  last_file_upload_time: string;
+  last_file_upload_time: string | null;
+  is_deleted: boolean;
+  integration_type: "dbt_core" | "dbt_cloud";
 }
 
 export interface TenantUser {
@@ -457,6 +466,46 @@ export class AltimateRequest {
       },
     });
     return (await response.json()) as Record<string, any> | undefined;
+  }
+
+  async createDbtIntegration(
+    instanceName: string,
+    apiKey: string,
+    name: string,
+    environment: string,
+    integrationType: "dbt_core" | "dbt_cloud",
+  ) {
+    const url = `${this.getAltimateUrl()}/dbt/v1/project_integration`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "x-tenant": instanceName,
+        Authorization: "Bearer " + apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+        environment,
+        integration_type: integrationType,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json().catch(() => ({}))) as Record<
+        string,
+        unknown
+      >;
+      throw new Error(
+        (errorData.message as string) ||
+          `Failed to create dbt integration: ${response.statusText}`,
+      );
+    }
+
+    return (await response.json()) as {
+      dbt_core_integration_id?: number;
+      dbt_cloud_integration_id?: number;
+      integration_type: string;
+    };
   }
 
   async checkApiConnectivity() {

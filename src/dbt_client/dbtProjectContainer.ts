@@ -252,6 +252,14 @@ export class DBTProjectContainer implements Disposable {
     return this.context?.extension.id.toString() || "";
   }
 
+  get pythonInstalled(): boolean {
+    return this.dbtClient.pythonInstalled ?? false;
+  }
+
+  get dbtInstalled(): boolean {
+    return this.dbtClient.dbtInstalled ?? false;
+  }
+
   // TODO: bypasses events and could be inconsistent
   getPackageName = (uri: Uri): string | undefined => {
     return this.findDBTProject(uri)?.findPackageName(uri);

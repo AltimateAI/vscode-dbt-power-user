@@ -1,13 +1,12 @@
-import { useState } from "react";
-import { Steps, Button, Card } from "antd";
-import { Stack } from "@uicore";
-import classes from "./onboarding.module.scss";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
+import { Stack } from "@uicore";
+import { Button, Card, Steps } from "antd";
+import { useState } from "react";
+import AltimateSetupStep from "./AltimateSetupStep";
+import classes from "./onboarding.module.scss";
+import PrerequisitesStep from "./PrerequisitesStep";
 import ProjectSetupStep from "./ProjectSetupStep";
-import AltimateKeySetup from "./AltimateKeySetup";
-import DbtIntegrationSetup from "./DbtIntegrationSetup";
-import InstallDbtStep from "./InstallDbtStep";
 
 interface WizardStep {
   id: string;
@@ -22,52 +21,16 @@ interface WizardStep {
 
 const SETUP_STEPS: WizardStep[] = [
   {
-    id: "open",
-    title: "Open dbt Project",
+    id: "prerequisites",
+    title: "Setup Prerequisites",
     description:
-      "To start off, open a dbt project folder in VSCode to work with dbt Power User.",
-    action: {
-      label: "Open Folder",
-      command: "vscode.openFolder",
-    },
+      "Ensure dbt project is open, Python interpreter is configured, and dbt is installed.",
   },
   {
-    id: "selectInterpreter",
-    title: "Select Python Interpreter",
+    id: "setupAltimate",
+    title: "Setup Altimate AI",
     description:
-      "Choose the Python Interpreter where you have installed dbt or plan to install it.",
-    action: {
-      label: "Select Interpreter",
-      command: "python.setInterpreter",
-    },
-  },
-  {
-    id: "installDbt",
-    title: "Install dbt",
-    description:
-      "Choose your dbt integration type and install dbt to enable dbt Power User features.",
-  },
-  {
-    id: "setupAltimateKey",
-    title: "Setup Altimate API key",
-    description:
-      "Connect to Altimate AI to unlock advanced features like column-level lineage, AI-powered documentation generation, query translation, and more. This step is optional but highly recommended.",
-  },
-  {
-    id: "setupDbtIntegration",
-    title: "Create dbt integration in Altimate",
-    description:
-      "Set up your dbt integration in the Altimate SaaS platform to enable advanced collaboration features, project governance, and enhanced documentation capabilities.",
-  },
-  {
-    id: "associateFileExts",
-    title: "Associate File Types",
-    description:
-      "For dbt Power User to work optimally, *.sql files need to be associated with 'jinja-sql' and *.yml files with 'jinja-yaml'.",
-    action: {
-      label: "Associate File Types",
-      command: "dbtPowerUser.associateFileExts",
-    },
+      "Connect to Altimate AI and create a dbt integration to unlock advanced features like column-level lineage, AI-powered documentation generation, query translation, collaboration features, and more. This step is optional but highly recommended.",
   },
   {
     id: "setupProject",
@@ -152,17 +115,12 @@ const SetupWizard = (): JSX.Element => {
             </p>
 
             <Stack direction="row" className={classes.stepActions}>
-              {currentStepData.id === "setupProject" ? (
+              {currentStepData.id === "prerequisites" ? (
+                <PrerequisitesStep />
+              ) : currentStepData.id === "setupProject" ? (
                 <ProjectSetupStep onComplete={handleNext} />
-              ) : currentStepData.id === "setupAltimateKey" ? (
-                <AltimateKeySetup onComplete={handleNext} onSkip={handleNext} />
-              ) : currentStepData.id === "setupDbtIntegration" ? (
-                <DbtIntegrationSetup
-                  onComplete={handleNext}
-                  onSkip={handleNext}
-                />
-              ) : currentStepData.id === "installDbt" ? (
-                <InstallDbtStep onComplete={handleNext} onSkip={handleNext} />
+              ) : currentStepData.id === "setupAltimate" ? (
+                <AltimateSetupStep onComplete={handleNext} />
               ) : (
                 currentStepData.action && (
                   <Button
