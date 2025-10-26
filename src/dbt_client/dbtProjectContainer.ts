@@ -99,33 +99,6 @@ export class DBTProjectContainer implements Disposable {
       } else {
         this.projects.delete(event.root);
       }
-      const projects = Array.from(this.projects.entries());
-      commands.executeCommand(
-        "setContext",
-        "dbtPowerUser.projectCount",
-        projects.length,
-      );
-      if (projects.length === 1) {
-        this.setToWorkspaceState("dbtPowerUser.projectSelected", {
-          label: projects[0][1],
-          description: projects[0][0].fsPath,
-          uri: projects[0][0],
-        });
-        // For some reason we can't use dbtPowerUser.projectSelected to control the steps
-        commands.executeCommand(
-          "setContext",
-          "dbtPowerUser.walkthroughProjectSelected",
-          true,
-        );
-      } else {
-        // reset the experience so the user can reselect another project when running again
-        this.setToWorkspaceState("dbtPowerUser.projectSelected", null);
-        commands.executeCommand(
-          "setContext",
-          "dbtPowerUser.walkthroughProjectSelected",
-          false,
-        );
-      }
     });
   }
 
@@ -188,42 +161,6 @@ export class DBTProjectContainer implements Disposable {
       );
       this.showWalkthrough();
     }
-
-    const allProjects = await this.getProjects();
-    this.dbtTerminal.debug(
-      "dbtProjectContainer:initializeWalkthrough",
-      "getProjects",
-      allProjects,
-    );
-
-    commands.executeCommand(
-      "setContext",
-      "dbtPowerUser.projectCount",
-      allProjects.length,
-    );
-    const existingAssociations = workspace
-      .getConfiguration("files")
-      .get<any>("associations", {});
-    this.dbtTerminal.debug(
-      "dbtProjectContainer:fileAssociationsCheck",
-      "already existing fileAssociations",
-      existingAssociations,
-    );
-    let showFileAssociationsStep = false;
-    Object.entries({
-      "*.sql": ["jinja-sql", "sql"],
-      "*.yml": ["jinja-yaml", "yaml"],
-    }).forEach(([key, value]) => {
-      if (existingAssociations[key] === undefined) {
-        showFileAssociationsStep ||= true;
-      }
-      showFileAssociationsStep ||= !value.includes(existingAssociations[key]);
-    });
-    commands.executeCommand(
-      "setContext",
-      "dbtPowerUser.showFileAssociationStep",
-      showFileAssociationsStep,
-    );
   }
 
   get extensionUri() {
@@ -272,6 +209,26 @@ export class DBTProjectContainer implements Disposable {
 
   async detectDBT(): Promise<void> {
     await this.dbtClient.detectDBT();
+  }
+
+  async reinitialize(): Promise<void> {
+    // Dispose all existing workspace folders
+    this.dbtWorkspaceFolders.forEach((workspaceFolder) =>
+      workspaceFolder.dispose(),
+    );
+    this.dbtWorkspaceFolders = [];
+
+    // Clear projects map
+    this.projects.clear();
+
+    // Clear rebuild manifest status map
+    this.rebuildManifestStatusChangeMap.clear();
+
+    // Re-detect DBT with new integration type
+    await this.detectDBT();
+
+    // Re-initialize DBT projects
+    await this.initializeDBTProjects();
   }
 
   async initialize() {
