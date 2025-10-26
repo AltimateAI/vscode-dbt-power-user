@@ -2,6 +2,7 @@ import { DBTTerminal } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
 import {
   commands,
+  ConfigurationTarget,
   Uri,
   ViewColumn,
   WebviewPanel,
@@ -461,14 +462,24 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             requiredAssociations,
           ).every(([pattern, language]) => associations[pattern] === language);
 
+          // Check for dbt_project.yml files in workspace folders directly
+          // This is more reliable than checking dbtProjectContainer which may not be initialized yet
+          const excludePattern =
+            "**/{dbt_packages,site-packages,dbt_internal_packages}";
+          const dbtProjectFiles = await workspace.findFiles(
+            "**/dbt_project.yml",
+            excludePattern,
+          );
+          const projectsFoundInWorkspace = dbtProjectFiles.length > 0;
+
           this.sendResponseToWebview({
             command: "response",
             syncRequestId,
             data: {
               pythonInstalled: this.dbtProjectContainer.pythonInstalled,
               dbtInstalled: this.dbtProjectContainer.dbtInstalled,
-              projectsFound: projects.length > 0,
-              projectCount: projects.length,
+              projectsFound: projectsFoundInWorkspace,
+              projectCount: dbtProjectFiles.length,
               workspaceCount: dbtWorkspaces.length,
               dbtIntegrationMode,
               pythonPath: pythonEnvironment.pythonPath,
@@ -503,7 +514,11 @@ export class OnboardingPanel extends AltimateWebviewProvider {
 
           // Set the dbt integration configuration
           const config = workspace.getConfiguration("dbt");
-          await config.update("dbtIntegration", integrationType, true);
+          await config.update(
+            "dbtIntegration",
+            integrationType,
+            ConfigurationTarget.Workspace,
+          );
 
           this.sendResponseToWebview({
             command: "response",
