@@ -733,3 +733,125 @@
     opacity: 0.7;
   }
 }
+
+/* Tutorials Step styles */
+.tutorials-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+.tutorials-header {
+  text-align: center;
+  margin-bottom: 1rem;
+
+  h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--vscode-foreground);
+  }
+
+  p {
+    margin: 0;
+    color: var(--vscode-descriptionForeground);
+    font-size: 0.95rem;
+  }
+}
+
+.tutorials-tabs {
+  :global(.ant-tabs-nav) {
+    background-color: var(--vscode-editor-background);
+    margin-bottom: 0;
+    margin-right: 1rem;
+  }
+
+  :global(.ant-tabs-tab) {
+    background-color: var(--vscode-editor-background) !important;
+    border: 1px solid var(--vscode-panel-border) !important;
+    color: var(--vscode-foreground) !important;
+    opacity: 0.7;
+
+    &:hover {
+      color: var(--vscode-textLink-foreground) !important;
+      opacity: 1;
+    }
+  }
+
+  :global(.ant-tabs-tab-active) {
+    background-color: var(--vscode-list-activeSelectionBackground) !important;
+    border-color: var(--vscode-list-activeSelectionBackground) !important;
+    color: var(--vscode-list-activeSelectionForeground) !important;
+    opacity: 1 !important;
+
+    &:hover {
+      color: var(--vscode-list-activeSelectionForeground) !important;
+    }
+  }
+
+  :global(.ant-tabs-ink-bar) {
+    background: var(--vscode-list-activeSelectionBackground) !important;
+  }
+
+  :global(.ant-tabs-content) {
+    background-color: var(--vscode-editor-background);
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 4px;
+    padding: 1.5rem;
+    min-height: 400px;
+    max-height: 500px;
+    overflow-y: auto;
+  }
+}
+
+.tutorial-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  h4 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--vscode-foreground);
+    line-height: 1.5;
+  }
+
+  p {
+    margin: 0;
+    color: var(--vscode-descriptionForeground);
+    font-size: 0.95rem;
+    line-height: 1.6;
+
+    strong {
+      color: var(--vscode-foreground);
+      font-weight: 600;
+    }
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.5rem;
+    color: var(--vscode-foreground);
+
+    li {
+      margin-bottom: 0.5rem;
+      line-height: 1.6;
+
+      strong {
+        color: var(--vscode-foreground);
+        font-weight: 600;
+      }
+    }
+  }
+}
+
+.tutorial-image {
+  width: 100%;
+  max-width: 800px;
+  height: auto;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  margin: 0.5rem 0;
+}
