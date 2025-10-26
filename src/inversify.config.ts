@@ -123,7 +123,7 @@ import { DBTPowerUserExtension } from "./dbtPowerUserExtension";
 import { DocumentFormattingEditProviders } from "./document_formatting_edit_provider";
 import { DbtDocumentFormattingEditProvider } from "./document_formatting_edit_provider/dbtDocumentFormattingEditProvider";
 import { DbtPowerUserActionsCenter } from "./quickpick";
-import { DbtPowerUserControlCenterAction } from "./quickpick/puQuickPick";
+import { DbtPowerUserControlCenterAction } from "./quickpick/actionsQuickPick";
 import { DbtSQLAction } from "./quickpick/sqlQuickPick";
 import { StatusBars } from "./statusbar";
 import { DeferToProductionStatusBar } from "./statusbar/deferToProductionStatusBar";

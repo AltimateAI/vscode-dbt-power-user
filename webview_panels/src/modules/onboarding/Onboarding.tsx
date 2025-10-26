@@ -1,10 +1,42 @@
 import { Button, Container, Stack } from "@uicore";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import classes from "./onboarding.module.scss";
 import SetupWizard from "./SetupWizard";
 
+interface NavigateToStepMessage {
+  command: string;
+  payload?: {
+    step?: string;
+  };
+}
+
 const Onboarding = (): JSX.Element => {
   const [showWizard, setShowWizard] = useState(false);
+  const [initialStep, setInitialStep] = useState<string | undefined>();
+  const wizardRef = useRef<{ navigateToStep: (stepId: string) => void }>(null);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent<NavigateToStepMessage>) => {
+      const message = event.data;
+      if (message.command === "navigateToStep" && message.payload?.step) {
+        const stepId: string = message.payload.step;
+
+        // If wizard is already shown, navigate directly
+        if (showWizard && wizardRef.current) {
+          wizardRef.current.navigateToStep(stepId);
+        } else {
+          // Otherwise, show wizard and set initial step
+          setInitialStep(stepId);
+          setShowWizard(true);
+        }
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => {
+      window.removeEventListener("message", handleMessage);
+    };
+  }, [showWizard]);
 
   const handleGetStarted = () => {
     setShowWizard(true);
@@ -16,7 +48,7 @@ const Onboarding = (): JSX.Element => {
   };
 
   if (showWizard) {
-    return <SetupWizard />;
+    return <SetupWizard ref={wizardRef} initialStep={initialStep} />;
   }
 
   return (

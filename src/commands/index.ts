@@ -279,35 +279,6 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.clearAltimateScanResults", () =>
         this.altimateScan.clearProblems(),
       ),
-      commands.registerCommand(
-        "dbtPowerUser.switchDbtIntegration",
-        async () => {
-          const dbtIntegration = workspace
-            .getConfiguration("dbt")
-            .get<string>("dbtIntegration", "core");
-          const integrationModes = ["dbt core", "dbt cloud", "dbt fusion"];
-          const selectedIntegrationMode = (
-            await window.showQuickPick(integrationModes, {
-              title: "Select your flavour of dbt",
-              canPickMany: false,
-            })
-          )?.replace(/dbt /, "");
-          if (selectedIntegrationMode === dbtIntegration) {
-            return;
-          }
-          const message = `Switching to dbt ${selectedIntegrationMode} requires reloading the window, any unsaved changes will be lost.`;
-          const answer = await window.showInformationMessage(
-            message,
-            "Confirm",
-          );
-          if (answer === "Confirm") {
-            await workspace
-              .getConfiguration("dbt")
-              .update("dbtIntegration", selectedIntegrationMode);
-            await commands.executeCommand("workbench.action.reloadWindow");
-          }
-        },
-      ),
       commands.registerCommand("dbtPowerUser.validateProject", () => {
         const pickedProject: ProjectQuickPickItem | undefined =
           this.dbtProjectContainer.getFromWorkspaceState(
@@ -331,23 +302,19 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand(
         "dbtPowerUser.openSetupWalkthrough",
         async () => {
-          await commands.executeCommand("workbench.action.openWalkthrough");
-          commands.executeCommand(
-            "workbench.action.openWalkthrough",
-            `${this.dbtProjectContainer.extensionId}#initialSetup`,
-            true,
-          );
+          this.eventEmitterService.eventEmitter.fire({
+            command: "onboarding:render",
+            payload: { initialStep: "prerequisites" },
+          });
         },
       ),
       commands.registerCommand(
         "dbtPowerUser.openTutorialWalkthrough",
         async () => {
-          await commands.executeCommand("workbench.action.openWalkthrough");
-          commands.executeCommand(
-            "workbench.action.openWalkthrough",
-            `${this.dbtProjectContainer.extensionId}#tutorials`,
-            false,
-          );
+          this.eventEmitterService.eventEmitter.fire({
+            command: "onboarding:render",
+            payload: { initialStep: "finish" },
+          });
         },
       ),
       commands.registerCommand("dbtPowerUser.associateFileExts", async () => {

@@ -106,13 +106,13 @@ export class DBTClient implements Disposable {
     const answer = await window.showErrorMessage(
       message,
       option,
-      "Change dbt flavour",
+      "Troubleshoot",
     );
     if (answer === option) {
       commands.executeCommand("dbtPowerUser.installDbt");
     }
-    if (answer?.includes("Change")) {
-      commands.executeCommand("dbtPowerUser.switchDbtIntegration");
+    if (answer?.includes("Troubleshoot")) {
+      commands.executeCommand("dbtPowerUser.openSetupWalkthrough");
     }
   }
 

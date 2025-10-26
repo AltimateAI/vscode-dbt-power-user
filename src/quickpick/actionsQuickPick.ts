@@ -6,16 +6,11 @@ import {
   ThemeIcon,
   Uri,
   window,
-  workspace,
 } from "vscode";
-import { isCursor } from "../mcp/utils";
 
 export class DbtPowerUserControlCenterAction {
-  async openPuQuickPick() {
+  async openActions() {
     const disposables: Disposable[] = [];
-    const dbtIntegration = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
     try {
       return await new Promise<Uri | undefined>((resolve, reject) => {
         const dbtpuquickpick = window.createQuickPick<
@@ -27,30 +22,18 @@ export class DbtPowerUserControlCenterAction {
             "Change dbt flavour",
             "compare-changes",
             "Switch between dbt core, cloud or fusion",
-            "dbtPowerUser.switchDbtIntegration",
+            "dbtPowerUser.openSetupWalkthrough",
           ),
-          isCursor()
-            ? new DbtPowerUserControlPanelItem(
-                "Setup Guide",
-                "link-external",
-                "View the manual setup guide for Cursor IDE",
-                "vscode.open",
-                [
-                  Uri.parse(
-                    "https://docs.myaltimate.com/setup/reqdConfig/#manual-method-of-configuration",
-                  ),
-                ],
-              )
-            : new DbtPowerUserControlPanelItem(
-                "Setup Extension",
-                "debug",
-                "Open the extension setup walkthrough",
-                "dbtPowerUser.openSetupWalkthrough",
-              ),
           new DbtPowerUserControlPanelItem(
-            "dbt Power User Tutorials",
+            "Troubleshooting",
+            "debug",
+            "Setup the extension",
+            "dbtPowerUser.openOnboarding",
+          ),
+          new DbtPowerUserControlPanelItem(
+            "Tutorials",
             "book",
-            "Open the dbt Power User Tutorials",
+            "How ot use the extension",
             "dbtPowerUser.openTutorialWalkthrough",
           ),
           new DbtPowerUserControlPanelItem(

@@ -2,7 +2,7 @@ import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import { Stack } from "@uicore";
 import { Button, Card, Steps } from "antd";
-import { useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import AltimateSetupStep from "./AltimateSetupStep";
 import classes from "./onboarding.module.scss";
 import PrerequisitesStep from "./PrerequisitesStep";
@@ -40,8 +40,44 @@ const SETUP_STEPS: WizardStep[] = [
   },
 ];
 
-const SetupWizard = (): JSX.Element => {
-  const [currentStep, setCurrentStep] = useState(0);
+interface SetupWizardProps {
+  initialStep?: string;
+}
+
+const SetupWizard = forwardRef<
+  { navigateToStep: (stepId: string) => void },
+  SetupWizardProps
+>(({ initialStep }, ref) => {
+  // Find initial step index
+  const getInitialStepIndex = () => {
+    if (initialStep) {
+      const index = SETUP_STEPS.findIndex((step) => step.id === initialStep);
+      return index !== -1 ? index : 0;
+    }
+    return 0;
+  };
+
+  const [currentStep, setCurrentStep] = useState(getInitialStepIndex());
+
+  // Update currentStep when initialStep prop changes
+  useEffect(() => {
+    if (initialStep) {
+      const index = SETUP_STEPS.findIndex((step) => step.id === initialStep);
+      if (index !== -1) {
+        setCurrentStep(index);
+      }
+    }
+  }, [initialStep]);
+
+  // Expose navigateToStep method via ref
+  useImperativeHandle(ref, () => ({
+    navigateToStep: (stepId: string) => {
+      const index = SETUP_STEPS.findIndex((step) => step.id === stepId);
+      if (index !== -1) {
+        setCurrentStep(index);
+      }
+    },
+  }));
 
   const handleStepAction = async (step: WizardStep) => {
     try {
@@ -162,6 +198,8 @@ const SetupWizard = (): JSX.Element => {
       </div>
     </div>
   );
-};
+});
+
+SetupWizard.displayName = "SetupWizard";
 
 export default SetupWizard;
