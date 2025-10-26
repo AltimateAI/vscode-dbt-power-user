@@ -104,6 +104,9 @@ const AltimateSetupStep = ({
     backendURL: string;
   }>({ apiKey: "", instanceName: "", backendURL: "" });
 
+  // Toggle for API key setup
+  const [hasApiKey, setHasApiKey] = useState(true);
+
   useEffect(() => {
     void checkAltimateConfiguration();
   }, []);
@@ -471,18 +474,19 @@ const AltimateSetupStep = ({
             "linear-gradient(135deg, var(--vscode-editor-background) 0%, var(--vscode-editorWidget-background) 100%)",
           border: "2px solid var(--vscode-focusBorder)",
           borderRadius: "12px",
-          padding: "1.5rem",
+          padding: "1rem 1.5rem",
           marginBottom: "1.5rem",
         }}
       >
         {/* Title */}
         <Title
-          level={4}
+          level={5}
           style={{
             margin: 0,
-            marginBottom: "1rem",
+            marginBottom: "0.75rem",
             color: "var(--vscode-foreground)",
             textAlign: "center",
+            fontSize: "1.1rem",
           }}
         >
           Your Analytics Engineering Journey
@@ -494,7 +498,7 @@ const AltimateSetupStep = ({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: "1rem",
+            marginBottom: "0.75rem",
             position: "relative",
           }}
         >
@@ -524,99 +528,84 @@ const AltimateSetupStep = ({
           <div style={{ flex: 1, textAlign: "center", zIndex: 1 }}>
             <div
               style={{
-                width: "30px",
-                height: "30px",
+                width: "40px",
+                height: "40px",
                 borderRadius: "50%",
                 background:
-                  currentLevel >= 1 ? "#108ee9" : "var(--vscode-panel-border)",
-                color: "white",
+                  currentLevel >= 1
+                    ? "#108ee9"
+                    : "var(--vscode-editor-background)",
+                border:
+                  currentLevel >= 1
+                    ? "2px solid #108ee9"
+                    : "2px solid var(--vscode-panel-border)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                margin: "0 auto 0.25rem",
-                fontSize: "0.9rem",
+                margin: "0 auto",
+                fontSize: "0.8rem",
+                opacity: currentLevel >= 1 ? 1 : 0.5,
+                filter: currentLevel >= 1 ? "none" : "grayscale(100%)",
               }}
             >
-              {currentLevel >= 1 ? "⭐" : "1"}
+              ⭐
             </div>
-            <Text
-              style={{
-                display: "block",
-                fontSize: "0.7rem",
-                color:
-                  currentLevel >= 1
-                    ? "var(--vscode-foreground)"
-                    : "var(--vscode-descriptionForeground)",
-              }}
-            >
-              Junior
-            </Text>
           </div>
 
           {/* Level 2 */}
           <div style={{ flex: 1, textAlign: "center", zIndex: 1 }}>
             <div
               style={{
-                width: "30px",
-                height: "30px",
+                width: "40px",
+                height: "40px",
                 borderRadius: "50%",
                 background:
-                  currentLevel >= 2 ? "#52c41a" : "var(--vscode-panel-border)",
-                color: "white",
+                  currentLevel >= 2
+                    ? "#52c41a"
+                    : "var(--vscode-editor-background)",
+                border:
+                  currentLevel >= 2
+                    ? "2px solid #52c41a"
+                    : "2px solid var(--vscode-panel-border)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                margin: "0 auto 0.25rem",
-                fontSize: "0.9rem",
+                margin: "0 auto",
+                fontSize: "0.65rem",
+                opacity: currentLevel >= 2 ? 1 : 0.5,
+                filter: currentLevel >= 2 ? "none" : "grayscale(100%)",
               }}
             >
-              {currentLevel >= 2 ? "⭐⭐" : "2"}
+              ⭐⭐
             </div>
-            <Text
-              style={{
-                display: "block",
-                fontSize: "0.7rem",
-                color:
-                  currentLevel >= 2
-                    ? "var(--vscode-foreground)"
-                    : "var(--vscode-descriptionForeground)",
-              }}
-            >
-              +AI Features
-            </Text>
           </div>
 
           {/* Level 3 */}
           <div style={{ flex: 1, textAlign: "center", zIndex: 1 }}>
             <div
               style={{
-                width: "30px",
-                height: "30px",
+                width: "40px",
+                height: "40px",
                 borderRadius: "50%",
                 background:
-                  currentLevel >= 3 ? "#87d068" : "var(--vscode-panel-border)",
-                color: "white",
+                  currentLevel >= 3
+                    ? "#87d068"
+                    : "var(--vscode-editor-background)",
+                border:
+                  currentLevel >= 3
+                    ? "2px solid #87d068"
+                    : "2px solid var(--vscode-panel-border)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                margin: "0 auto 0.25rem",
-                fontSize: "0.9rem",
+                margin: "0 auto",
+                fontSize: "0.55rem",
+                opacity: currentLevel >= 3 ? 1 : 0.5,
+                filter: currentLevel >= 3 ? "none" : "grayscale(100%)",
               }}
             >
-              {currentLevel >= 3 ? "⭐⭐⭐" : "3"}
+              ⭐⭐⭐
             </div>
-            <Text
-              style={{
-                display: "block",
-                fontSize: "0.7rem",
-                color:
-                  currentLevel >= 3
-                    ? "var(--vscode-foreground)"
-                    : "var(--vscode-descriptionForeground)",
-              }}
-            >
-              Senior
-            </Text>
           </div>
         </div>
 
@@ -625,7 +614,7 @@ const AltimateSetupStep = ({
           style={{
             height: "1px",
             background: "var(--vscode-panel-border)",
-            margin: "1rem 0",
+            margin: "0.5rem 0",
           }}
         />
 
@@ -654,7 +643,8 @@ const AltimateSetupStep = ({
             <Text
               style={{
                 fontSize: "0.85rem",
-                color: "var(--vscode-descriptionForeground)",
+                color: "var(--vscode-foreground)",
+                opacity: 0.9,
               }}
             >
               You&apos;re now a Senior Analytics Engineer with full access to
@@ -663,57 +653,43 @@ const AltimateSetupStep = ({
           </div>
         ) : currentLevel === 2 ? (
           <div>
-            <Text strong style={{ display: "block", marginBottom: "0.5rem" }}>
+            <Text className={classes.progressCardHeading}>
               🎯 Next: Unlock 3-Star Features
             </Text>
-            <Text
-              style={{
-                fontSize: "0.85rem",
-                display: "block",
-                marginBottom: "0.5rem",
-                color: "var(--vscode-descriptionForeground)",
-              }}
-            >
+            <Text className={classes.progressCardDescription}>
               Sync your dbt integration to unlock:
             </Text>
-            <ul
-              style={{
-                margin: "0.5rem 0",
-                paddingLeft: "1.5rem",
-                fontSize: "0.85rem",
-              }}
-            >
-              <li>💬 Instant answers about models and tests</li>
-              <li>🔍 Project health checks</li>
-              <li>🪄 AI optimization recommendations</li>
-            </ul>
+            <div className={classes.progressCardFeatures}>
+              <Text className={classes.progressCardFeatureItem}>
+                💬 Instant answers about models and tests
+              </Text>
+              <Text className={classes.progressCardFeatureItem}>
+                🔍 Project health checks
+              </Text>
+              <Text className={classes.progressCardFeatureItem}>
+                🪄 AI optimization recommendations
+              </Text>
+            </div>
           </div>
         ) : (
           <div>
-            <Text strong style={{ display: "block", marginBottom: "0.5rem" }}>
+            <Text className={classes.progressCardHeading}>
               🎯 Next: Unlock 2-Star Features
             </Text>
-            <Text
-              style={{
-                fontSize: "0.85rem",
-                display: "block",
-                marginBottom: "0.5rem",
-                color: "var(--vscode-descriptionForeground)",
-              }}
-            >
-              Add your API key to unlock:
+            <Text className={classes.progressCardDescription}>
+              Add your Altimate API key to unlock:
             </Text>
-            <ul
-              style={{
-                margin: "0.5rem 0",
-                paddingLeft: "1.5rem",
-                fontSize: "0.85rem",
-              }}
-            >
-              <li>🧠 Advanced lineage visualization</li>
-              <li>💡 SQL query explanations</li>
-              <li>📝 Auto-generated documentation</li>
-            </ul>
+            <div className={classes.progressCardFeatures}>
+              <Text className={classes.progressCardFeatureItem}>
+                🧠 Advanced lineage visualization
+              </Text>
+              <Text className={classes.progressCardFeatureItem}>
+                💡 SQL query explanations
+              </Text>
+              <Text className={classes.progressCardFeatureItem}>
+                📝 Auto-generated documentation
+              </Text>
+            </div>
           </div>
         )}
       </div>
@@ -1279,94 +1255,132 @@ const AltimateSetupStep = ({
     <div className={classes.altimateKeyContainer}>
       {renderProgressCard()}
 
-      <div className={classes.altimateKeyInfo}>
-        <Title level={4} style={{ marginBottom: "1rem" }}>
-          Get Your Free Altimate API Key
-        </Title>
-        <p>Follow these steps to become an Analytics Engineer:</p>
-        <ol>
-          <li>
-            Sign up at{" "}
-            <a
-              href="https://app.myaltimate.com/register"
-              target="_blank"
-              rel="noopener noreferrer"
+      {/* Toggle for API key availability */}
+      <div
+        style={{
+          marginBottom: "1.5rem",
+          textAlign: "center",
+        }}
+      >
+        <Radio.Group
+          value={hasApiKey}
+          onChange={(e) => setHasApiKey(e.target.value as boolean)}
+          buttonStyle="solid"
+          size="large"
+        >
+          <Radio.Button value={true}>I have an Altimate API key</Radio.Button>
+          <Radio.Button value={false}>
+            I don&apos;t have an Altimate API key
+          </Radio.Button>
+        </Radio.Group>
+      </div>
+
+      {hasApiKey ? (
+        <>
+          <div className={classes.altimateKeyInfo}>
+            <Title level={4} className={classes.sectionHeading}>
+              Enter Your Altimate API Key
+            </Title>
+            <p>Enter your Altimate instance name and API key below:</p>
+          </div>
+
+          {error && (
+            <Alert
+              message="Error"
+              description={error}
+              type="error"
+              showIcon
+              closable
+              onClose={() => setError(undefined)}
+              className={classes.alertMessage}
+            />
+          )}
+
+          {success && (
+            <Alert
+              message="API key saved successfully! Now let's set up your dbt integration..."
+              type="success"
+              showIcon
+              className={classes.alertMessage}
+            />
+          )}
+
+          <div className={classes.formGroup}>
+            <label htmlFor="instance-name" className={classes.formLabel}>
+              Instance Name:
+            </label>
+            <Input
+              id="instance-name"
+              placeholder="Enter your instance name"
+              value={instanceName}
+              onChange={(e) => setInstanceName(e.target.value)}
+              disabled={isValidating || success}
+              size="large"
+            />
+          </div>
+
+          <div className={classes.formGroup}>
+            <label htmlFor="api-key" className={classes.formLabel}>
+              API Key:
+            </label>
+            <Input.Password
+              id="api-key"
+              placeholder="Enter your Altimate API key"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              disabled={isValidating || success}
+              size="large"
+            />
+          </div>
+
+          <Stack direction="row" className={classes.altimateKeyActions}>
+            <Button
+              type="primary"
+              size="large"
+              onClick={handleSaveKey}
+              loading={isValidating}
+              disabled={success}
             >
-              app.myaltimate.com
-            </a>
-          </li>
-          <li>Navigate to Settings → API Keys</li>
-          <li>Copy your API key and instance name</li>
-        </ol>
-      </div>
+              {success ? "Saved" : "Save API Key"}
+            </Button>
+          </Stack>
+        </>
+      ) : (
+        <>
+          <div className={classes.altimateKeyInfo}>
+            <Title level={4} className={classes.sectionHeading}>
+              Get Your Free Altimate API Key
+            </Title>
+            <p>Follow these steps to become an Analytics Engineer:</p>
+            <ol>
+              <li>
+                Sign up at{" "}
+                <a
+                  href="https://app.myaltimate.com/register"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  app.myaltimate.com
+                </a>
+              </li>
+              <li>Navigate to Settings → API Keys</li>
+              <li>Copy your API key and instance name</li>
+              <li>Switch to &quot;I have an Altimate API key&quot; above</li>
+            </ol>
+          </div>
 
-      {error && (
-        <Alert
-          message="Error"
-          description={error}
-          type="error"
-          showIcon
-          closable
-          onClose={() => setError(undefined)}
-          className={classes.alertMessage}
-        />
+          <Stack direction="row" className={classes.altimateKeyActions}>
+            <Button
+              type="primary"
+              size="large"
+              onClick={handleSignUp}
+              style={{ width: "100%" }}
+            >
+              Sign Up for Free at app.myaltimate.com
+            </Button>
+          </Stack>
+        </>
       )}
-
-      {success && (
-        <Alert
-          message="API key saved successfully! Now let's set up your dbt integration..."
-          type="success"
-          showIcon
-          className={classes.alertMessage}
-        />
-      )}
-
-      <div className={classes.formGroup}>
-        <label htmlFor="instance-name" className={classes.formLabel}>
-          Instance Name:
-        </label>
-        <Input
-          id="instance-name"
-          placeholder="Enter your instance name"
-          value={instanceName}
-          onChange={(e) => setInstanceName(e.target.value)}
-          disabled={isValidating || success}
-          size="large"
-        />
-      </div>
-
-      <div className={classes.formGroup}>
-        <label htmlFor="api-key" className={classes.formLabel}>
-          API Key:
-        </label>
-        <Input.Password
-          id="api-key"
-          placeholder="Enter your Altimate API key"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          disabled={isValidating || success}
-          size="large"
-        />
-      </div>
-
-      <Stack direction="row" className={classes.altimateKeyActions}>
-        <Button
-          size="large"
-          onClick={handleSignUp}
-          disabled={isValidating || success}
-        >
-          Sign Up for Free
-        </Button>
-        <Button
-          type="primary"
-          size="large"
-          onClick={handleSaveKey}
-          loading={isValidating}
-          disabled={success}
-        >
-          {success ? "Saved" : "Save API Key"}
-        </Button>
-      </Stack>
     </div>
   );
 };

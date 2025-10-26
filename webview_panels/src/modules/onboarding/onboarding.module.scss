@@ -25,7 +25,8 @@
 .subtitle {
   font-size: 1.25rem;
   margin: 0;
-  color: var(--vscode-descriptionForeground);
+  color: var(--vscode-foreground);
+  opacity: 0.9;
 }
 
 .features-grid {
@@ -72,7 +73,8 @@
 .more-text {
   font-size: 1.1rem;
   margin: 0;
-  color: var(--vscode-descriptionForeground);
+  color: var(--vscode-foreground);
+  opacity: 0.85;
 }
 
 .button-group {
@@ -102,7 +104,8 @@
 .wizard-subtitle {
   font-size: 1.1rem;
   margin-bottom: 2rem;
-  color: var(--vscode-descriptionForeground);
+  color: var(--vscode-foreground);
+  opacity: 0.9;
   text-align: center;
 }
 
@@ -146,7 +149,7 @@
 
 .step-card {
   background-color: var(--vscode-editorWidget-background);
-  border: 1px solid var(--vscode-editorWidget-border);
+  border: 1px solid var(--vscode-panel-border);
   border-radius: 8px;
   padding: 2rem;
   margin-bottom: 1rem;
@@ -182,7 +185,7 @@
   gap: 1rem;
   padding-top: 1rem;
   margin-top: auto;
-  border-top: 1px solid var(--vscode-editorWidget-border);
+  border-top: 1px solid var(--vscode-panel-border);
 }
 
 .step-counter {
@@ -268,7 +271,7 @@
   ul {
     margin: 0;
     padding-left: 1.5rem;
-    color: var(--vscode-descriptionForeground);
+    color: var(--vscode-foreground);
 
     li {
       margin-bottom: 0.25rem;
@@ -278,14 +281,61 @@
       }
 
       code {
-        background-color: var(--vscode-textCodeBlock-background);
+        background-color: var(--vscode-editor-background);
         padding: 0.125rem 0.25rem;
         border-radius: 3px;
         font-family: var(--vscode-editor-font-family);
         font-size: 0.9em;
+        border: 1px solid var(--vscode-panel-border);
       }
     }
   }
+}
+
+/* Progress Card styles */
+.progress-card-heading {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--vscode-foreground);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.progress-card-description {
+  font-size: 0.85rem;
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--vscode-foreground);
+  opacity: 0.9;
+}
+
+.progress-card-list {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--vscode-foreground);
+  opacity: 0.9;
+}
+
+.progress-card-features {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.progress-card-feature-item {
+  font-size: 0.85rem;
+  color: var(--vscode-foreground);
+  opacity: 0.9;
+  flex: 1 1 auto;
+  min-width: 150px;
+}
+
+.section-heading {
+  margin-bottom: 1rem;
+  color: var(--vscode-foreground) !important;
 }
 
 /* Altimate Key Setup styles */
@@ -293,6 +343,7 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  width: 100%;
 }
 
 .altimate-key-info {
@@ -310,7 +361,7 @@
   ol {
     margin: 0;
     padding-left: 1.5rem;
-    color: var(--vscode-descriptionForeground);
+    color: var(--vscode-foreground);
 
     li {
       margin-bottom: 0.25rem;
@@ -352,6 +403,7 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  width: 100%;
 }
 
 .dbt-integration-info {
@@ -369,7 +421,7 @@
   ul {
     margin: 0;
     padding-left: 1.5rem;
-    color: var(--vscode-descriptionForeground);
+    color: var(--vscode-foreground);
 
     li {
       margin-bottom: 0.25rem;
@@ -388,7 +440,7 @@
 .dbt-integration-steps {
   padding: 1rem;
   background-color: var(--vscode-editor-background);
-  border: 1px solid var(--vscode-editorWidget-border);
+  border: 1px solid var(--vscode-panel-border);
   border-radius: 4px;
 
   p {
@@ -399,7 +451,7 @@
   ol {
     margin: 0;
     padding-left: 1.5rem;
-    color: var(--vscode-descriptionForeground);
+    color: var(--vscode-foreground);
 
     li {
       margin-bottom: 0.5rem;
@@ -513,7 +565,7 @@
 
 .prerequisite-card {
   background-color: var(--vscode-editor-background);
-  border: 1px solid var(--vscode-editorWidget-border);
+  border: 1px solid var(--vscode-panel-border);
   border-radius: 4px;
   transition: all 0.2s ease;
 
@@ -569,7 +621,7 @@
 .prerequisite-action {
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid var(--vscode-editorWidget-border);
+  border-top: 1px solid var(--vscode-panel-border);
 }
 
 .prerequisites-actions {
