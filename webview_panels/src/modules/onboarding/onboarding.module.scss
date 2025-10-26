@@ -298,21 +298,20 @@
   margin-bottom: 0.5rem;
   color: var(--vscode-foreground);
   font-weight: 600;
-  font-size: 0.95rem;
+  text-align: center;
 }
 
 .progress-card-description {
-  font-size: 0.85rem;
   display: block;
   margin-bottom: 0.5rem;
   color: var(--vscode-foreground);
   opacity: 0.9;
+  text-align: center;
 }
 
 .progress-card-list {
   margin: 0.5rem 0;
   padding-left: 1.5rem;
-  font-size: 0.85rem;
   color: var(--vscode-foreground);
   opacity: 0.9;
 }
@@ -326,7 +325,6 @@
 }
 
 .progress-card-feature-item {
-  font-size: 0.85rem;
   color: var(--vscode-foreground);
   opacity: 0.9;
   flex: 1 1 auto;
