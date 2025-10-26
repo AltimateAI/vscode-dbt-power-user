@@ -145,6 +145,25 @@
     background-color: var(--vscode-button-secondaryBackground) !important;
     border-color: var(--vscode-button-secondaryBackground) !important;
   }
+
+  :global(.ant-steps-item-wait .ant-steps-item-icon) {
+    border-color: var(--vscode-foreground) !important;
+    opacity: 0.7;
+  }
+
+  :global(.ant-steps-item-wait .ant-steps-item-icon .ant-steps-icon) {
+    color: var(--vscode-foreground) !important;
+  }
+
+  :global(.ant-steps-item-wait .ant-steps-item-title) {
+    color: var(--vscode-foreground) !important;
+    opacity: 0.7;
+  }
+
+  :global(.ant-steps-item-wait .ant-steps-item-description) {
+    color: var(--vscode-foreground) !important;
+    opacity: 0.7;
+  }
 }
 
 .step-card {
@@ -663,6 +682,10 @@
 .prerequisites-steps {
   margin-bottom: 1.5rem;
 
+  :global(.ant-steps-item) {
+    flex: 1 !important;
+  }
+
   :global(.ant-steps-item-title) {
     color: var(--vscode-foreground) !important;
     font-size: 1.1rem !important;
@@ -673,6 +696,8 @@
     color: var(--vscode-foreground) !important;
     opacity: 0.85;
     font-size: 0.95rem !important;
+    white-space: normal !important;
+    max-width: none !important;
   }
 
   :global(.ant-steps-item-process .ant-steps-item-icon) {
@@ -689,8 +714,22 @@
     background-color: var(--vscode-button-secondaryBackground) !important;
   }
 
-  :global(.ant-steps-item-wait .ant-steps-item-title),
+  :global(.ant-steps-item-wait .ant-steps-item-icon) {
+    border-color: var(--vscode-foreground) !important;
+    opacity: 0.7;
+  }
+
+  :global(.ant-steps-item-wait .ant-steps-item-icon .ant-steps-icon) {
+    color: var(--vscode-foreground) !important;
+  }
+
+  :global(.ant-steps-item-wait .ant-steps-item-title) {
+    color: var(--vscode-foreground) !important;
+    opacity: 0.7;
+  }
+
   :global(.ant-steps-item-wait .ant-steps-item-description) {
-    opacity: 0.6;
+    color: var(--vscode-foreground) !important;
+    opacity: 0.7;
   }
 }
