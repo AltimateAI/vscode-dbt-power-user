@@ -6,7 +6,6 @@ import { useState } from "react";
 import AltimateSetupStep from "./AltimateSetupStep";
 import classes from "./onboarding.module.scss";
 import PrerequisitesStep from "./PrerequisitesStep";
-import ProjectSetupStep from "./ProjectSetupStep";
 
 interface WizardStep {
   id: string;
@@ -22,21 +21,15 @@ interface WizardStep {
 const SETUP_STEPS: WizardStep[] = [
   {
     id: "prerequisites",
-    title: "Setup Prerequisites",
+    title: "Setup dbt",
     description:
-      "Ensure dbt project is open, Python interpreter is configured, and dbt is installed.",
+      "Ensure dbt project is open, Python interpreter is configured, and dbt is installed. Then validate your project setup.",
   },
   {
     id: "setupAltimate",
     title: "Setup Altimate AI",
     description:
       "Connect to Altimate AI and create a dbt integration to unlock advanced features like column-level lineage, AI-powered documentation generation, query translation, collaboration features, and more. This step is optional but highly recommended.",
-  },
-  {
-    id: "setupProject",
-    title: "Setup and validate project",
-    description:
-      "Select your dbt project, install dependencies, and validate your setup.",
   },
   {
     id: "finish",
@@ -116,9 +109,7 @@ const SetupWizard = (): JSX.Element => {
 
             <Stack direction="row" className={classes.stepActions}>
               {currentStepData.id === "prerequisites" ? (
-                <PrerequisitesStep />
-              ) : currentStepData.id === "setupProject" ? (
-                <ProjectSetupStep onComplete={handleNext} />
+                <PrerequisitesStep onComplete={handleNext} />
               ) : currentStepData.id === "setupAltimate" ? (
                 <AltimateSetupStep onComplete={handleNext} />
               ) : (

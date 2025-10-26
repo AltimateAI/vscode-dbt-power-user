@@ -116,8 +116,8 @@
 }
 
 .wizard-sidebar {
-  flex: 0 0 350px;
-  min-width: 350px;
+  flex: 0 0 280px;
+  min-width: 280px;
 }
 
 .wizard-main {
@@ -642,3 +642,55 @@
   }
 }
 
+.validation-section {
+  margin: 1.5rem 0 1rem;
+
+  h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    color: var(--vscode-foreground);
+  }
+
+  p {
+    margin: 0;
+    color: var(--vscode-descriptionForeground);
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+}
+
+.prerequisites-steps {
+  margin-bottom: 1.5rem;
+
+  :global(.ant-steps-item-title) {
+    color: var(--vscode-foreground) !important;
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+  }
+
+  :global(.ant-steps-item-description) {
+    color: var(--vscode-foreground) !important;
+    opacity: 0.85;
+    font-size: 0.95rem !important;
+  }
+
+  :global(.ant-steps-item-process .ant-steps-item-icon) {
+    background-color: var(--vscode-button-background) !important;
+    border-color: var(--vscode-button-background) !important;
+  }
+
+  :global(.ant-steps-item-finish .ant-steps-item-icon) {
+    background-color: var(--vscode-button-secondaryBackground) !important;
+    border-color: var(--vscode-button-secondaryBackground) !important;
+  }
+
+  :global(.ant-steps-item-finish > .ant-steps-item-container > .ant-steps-item-content > .ant-steps-item-title::after) {
+    background-color: var(--vscode-button-secondaryBackground) !important;
+  }
+
+  :global(.ant-steps-item-wait .ant-steps-item-title),
+  :global(.ant-steps-item-wait .ant-steps-item-description) {
+    opacity: 0.6;
+  }
+}

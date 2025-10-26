@@ -634,36 +634,52 @@ const AltimateSetupStep = ({
 
         {/* Next Step Section */}
         {currentLevel === 3 ? (
-          <div style={{ textAlign: "center" }}>
+          <div>
             <Text
               style={{
                 fontSize: "1.5rem",
                 display: "block",
                 marginBottom: "0.5rem",
+                textAlign: "center",
               }}
             >
               🎉
             </Text>
             <Text
-              strong
-              style={{
-                display: "block",
-                marginBottom: "0.25rem",
-                color: "#87d068",
-              }}
+              className={classes.progressCardHeading}
+              style={{ color: "#87d068" }}
             >
               All Features Unlocked!
             </Text>
             <Text
-              style={{
-                fontSize: "0.85rem",
-                color: "var(--vscode-foreground)",
-                opacity: 0.9,
-              }}
+              className={classes.progressCardDescription}
+              style={{ marginBottom: "0.75rem" }}
             >
-              You&apos;re now a Senior Analytics Engineer with full access to
-              AI-powered insights
+              You now have access to all AI-powered features:
             </Text>
+            <div
+              className={classes.progressCardFeatures}
+              style={{ flexDirection: "column", gap: "0.5rem" }}
+            >
+              <Text className={classes.progressCardFeatureItem}>
+                💬 Instant answers about models and tests
+              </Text>
+              <Text className={classes.progressCardFeatureItem}>
+                🔍 Project health checks and recommendations
+              </Text>
+              <Text className={classes.progressCardFeatureItem}>
+                🪄 AI optimization and performance insights
+              </Text>
+              <Text className={classes.progressCardFeatureItem}>
+                🧠 Advanced lineage visualization
+              </Text>
+              <Text className={classes.progressCardFeatureItem}>
+                💡 SQL query explanations and translations
+              </Text>
+              <Text className={classes.progressCardFeatureItem}>
+                📝 Auto-generated documentation and tests
+              </Text>
+            </div>
           </div>
         ) : currentLevel === 2 ? (
           <div>
@@ -671,7 +687,7 @@ const AltimateSetupStep = ({
               🎯 Next: Unlock 3-Star Features
             </Text>
             <Text className={classes.progressCardDescription}>
-              Sync your dbt integration to unlock:
+              Upload your dbt artifacts your dbt integration to unlock:
             </Text>
             <div className={classes.progressCardFeatures}>
               <Text className={classes.progressCardFeatureItem}>
@@ -1145,7 +1161,7 @@ const AltimateSetupStep = ({
                 </div>
               )}
 
-              <Title level={4} style={{ marginBottom: "1.5rem" }}>
+              <Title level={4} className={classes.sectionHeading}>
                 Create dbt Integration
               </Title>
 
