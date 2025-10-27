@@ -106,7 +106,7 @@ export class DbtPowerUserMcpServer implements Disposable {
       "DbtPowerUserMcpServer",
       "Onboarding completed, proceeding with tools registration",
     );
-    if (!this.altimateAuthService.handlePreviewFeatures()) {
+    if (this.altimateAuthService.getCredentialsMessage()) {
       this.dbtTerminal.info(
         "DbtPowerUserMcpServer: enableMcpExtensionIntegration",
         "Preview features are not enabled, skipping MCP server start",

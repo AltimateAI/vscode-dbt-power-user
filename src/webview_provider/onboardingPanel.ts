@@ -127,6 +127,14 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             { enableScripts: true, retainContextWhenHidden: true },
           );
           this._panel = webviewPanel;
+
+          // Clear the panel reference when it's disposed
+          webviewPanel.onDidDispose(() => {
+            this._panel = undefined;
+            this._webview = undefined;
+            this.isWebviewReady = false;
+          });
+
           this.renderWebview(webviewPanel);
         } else {
           // Focus the panel if it's a WebviewPanel
