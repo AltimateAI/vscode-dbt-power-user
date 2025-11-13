@@ -3,9 +3,8 @@ import {
   Disposable,
   Event,
   EventEmitter,
-  FileSystemWatcher,
   ProgressLocation,
-  RelativePattern,
+  TextDocumentChangeEvent,
   TextDocumentContentProvider,
   Uri,
   window,
@@ -13,7 +12,6 @@ import {
 } from "vscode";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
-import { debounce } from "../utils";
 import path = require("path");
 
 export class SqlPreviewContentProvider
@@ -23,31 +21,78 @@ export class SqlPreviewContentProvider
 
   private _onDidChange = new EventEmitter<Uri>();
   private compilationDocs = new Map<string, Uri>();
-  private subscriptions: Disposable;
-  private watchers: Map<string, FileSystemWatcher> = new Map();
+  private subscriptions: Disposable[] = [];
+  private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
 
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
   ) {
-    this.subscriptions = workspace.onDidCloseTextDocument((compilationDoc) => {
-      const uriString = compilationDoc.uri.toString();
-      this.compilationDocs.delete(uriString);
-      const watcher = this.watchers.get(uriString);
-      if (watcher) {
-        watcher.dispose();
-        this.watchers.delete(uriString);
-      }
-    });
+    // Register a single global listener for all document changes
+    this.subscriptions.push(
+      workspace.onDidChangeTextDocument((e: TextDocumentChangeEvent) => {
+        // Check if this document has an associated preview
+        const fileUriString = e.document.uri.toString();
+        for (const [
+          previewUriString,
+          previewUri,
+        ] of this.compilationDocs.entries()) {
+          const actualFileUri = previewUri.with({ scheme: "file" });
+          if (actualFileUri.toString() === fileUriString) {
+            // Debounce the update
+            const existingTimer = this.debounceTimers.get(previewUriString);
+            if (existingTimer) {
+              clearTimeout(existingTimer);
+            }
+            const timer = setTimeout(() => {
+              this._onDidChange.fire(previewUri);
+              this.debounceTimers.delete(previewUriString);
+            }, 500);
+            this.debounceTimers.set(previewUriString, timer);
+            break;
+          }
+        }
+      }),
+    );
+
+    // Clean up when editors are closed, not when text documents are closed
+    // This prevents premature cleanup during document lifecycle events
+    this.subscriptions.push(
+      window.onDidChangeVisibleTextEditors(() => {
+        // Get all visible preview document URIs
+        const visiblePreviewUris = new Set(
+          window.visibleTextEditors
+            .filter(
+              (editor) =>
+                editor.document.uri.scheme === SqlPreviewContentProvider.SCHEME,
+            )
+            .map((editor) => editor.document.uri.toString()),
+        );
+
+        // Remove documents that are no longer visible
+        for (const [uriString] of this.compilationDocs.entries()) {
+          if (!visiblePreviewUris.has(uriString)) {
+            this.compilationDocs.delete(uriString);
+            const timer = this.debounceTimers.get(uriString);
+            if (timer) {
+              clearTimeout(timer);
+              this.debounceTimers.delete(uriString);
+            }
+          }
+        }
+      }),
+    );
   }
 
   dispose(): void {
     this._onDidChange.dispose();
-    this.subscriptions.dispose();
-    for (const watcher of this.watchers.values()) {
-      watcher.dispose();
+    for (const subscription of this.subscriptions) {
+      subscription.dispose();
     }
-    this.watchers.clear();
+    for (const timer of this.debounceTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.debounceTimers.clear();
   }
 
   get onDidChange(): Event<Uri> {
@@ -56,15 +101,8 @@ export class SqlPreviewContentProvider
 
   provideTextDocumentContent(uri: Uri): string | Thenable<string> {
     const uriString = uri.toString();
-    if (this.compilationDocs.get(uriString) === undefined) {
-      this.compilationDocs.set(uriString, uri);
-      const watcher = workspace.createFileSystemWatcher(
-        new RelativePattern(uri, "*"),
-      );
-      this.watchers.set(uriString, watcher);
-      watcher.onDidChange(debounce(() => this._onDidChange.fire(uri), 500));
-      // TODO: onDelete? onCreate?
-    }
+    // Track this preview document for change detection
+    this.compilationDocs.set(uriString, uri);
     return window.withProgress(
       {
         location: ProgressLocation.Notification,
@@ -79,7 +117,16 @@ export class SqlPreviewContentProvider
     try {
       const fsPath = decodeURI(uri.fsPath);
       const modelName = path.basename(fsPath, ".sql");
-      const query = readFileSync(fsPath, "utf8");
+
+      // Read from the active document if available, otherwise fall back to file
+      const actualFileUri = uri.with({ scheme: "file" });
+      const document = workspace.textDocuments.find(
+        (doc) => doc.uri.toString() === actualFileUri.toString(),
+      );
+      const query = document
+        ? document.getText()
+        : readFileSync(fsPath, "utf8");
+
       const project = this.dbtProjectContainer.findDBTProject(Uri.file(fsPath));
       if (project === undefined) {
         this.telemetry.sendTelemetryError("sqlPreviewNotLoadingError");
