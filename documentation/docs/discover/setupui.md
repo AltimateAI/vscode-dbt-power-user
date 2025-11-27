@@ -42,8 +42,12 @@ You need to update the following placeholders in the copied command -
 
 | Placeholder            | Description                                                                                                                       | Example                |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| Path/to/manifefst/file | This is path to your manifest file in the project directory. It's usually stored in the 'target' directory in your dbt project.   | ./target/manifest.json |
-| Path/to/catalog/file   | This is the path to your catalog file in the project directory. It's usually stored in the 'target' directory in your dbt project | ./target/catalog.json  |
+| Path/to/manifest/file | This is path to your manifest file in the project directory. It's usually stored in the 'target' directory in your dbt core project.   | ./target/manifest.json |
+| Path/to/catalog/file   | This is the path to your catalog file in the project directory. It's usually stored in the 'target' directory in your dbt core project | ./target/catalog.json  |
+
+/// admonition | Steps to manually download the manifest and json files from DBT Cloud :: Select your project in DBT Cloud UI and then navigate to Orchestration -> Environments -> {Select your environment} -> {Select the run you wish to see the lineage for} -> Artifacts. Now download the manifest.json and catalog.json files from the list of files present in the Artifacts.ßß Kindly note that these files can also be downloaded programatically using the dbt-cloud-cli tool.
+type: info
+///
 
 /// admonition | If you are missing manifest.json or catalog.json files in the target directory, please run the 'dbt build' and 'dbt docs' commands. Also, you can add steps to upload the manifest and catalog files command in your dbt pipelines. That way, you will always have up-to-date documentation and lineage in UI without any manual steps.  
  type: tip
