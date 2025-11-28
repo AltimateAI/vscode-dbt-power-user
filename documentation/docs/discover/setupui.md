@@ -45,7 +45,7 @@ You need to update the following placeholders in the copied command -
 | Path/to/manifest/file | This is path to your manifest file in the project directory. It's usually stored in the 'target' directory in your dbt core project.   | ./target/manifest.json |
 | Path/to/catalog/file   | This is the path to your catalog file in the project directory. It's usually stored in the 'target' directory in your dbt core project | ./target/catalog.json  |
 
-/// admonition | Steps to manually download the manifest and json files from DBT Cloud :: Select your project in DBT Cloud UI and then navigate to Orchestration -> Environments -> {Select your environment} -> {Select the run you wish to see the lineage for} -> Artifacts. Now download the manifest.json and catalog.json files from the list of files present in the Artifacts.ßß Kindly note that these files can also be downloaded programatically using the dbt-cloud-cli tool.
+/// admonition | Steps to manually download the manifest and json files from DBT Cloud :: Select your project in DBT Cloud UI and then navigate to Orchestration -> Environments -> {Select your environment} -> {Select the run you wish to see the lineage for} -> Artifacts. Now download the manifest.json and catalog.json files from the list of files present in the Artifacts. Kindly note that these files can also be downloaded programatically using the dbt-cloud-cli tool.
 type: info
 ///
 
