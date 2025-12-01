@@ -45,9 +45,29 @@ You need to update the following placeholders in the copied command -
 | Path/to/manifest/file | This is path to your manifest file in the project directory. It's usually stored in the 'target' directory in your dbt core project.   | ./target/manifest.json |
 | Path/to/catalog/file   | This is the path to your catalog file in the project directory. It's usually stored in the 'target' directory in your dbt core project | ./target/catalog.json  |
 
-/// admonition | Steps to manually download the manifest and json files from DBT Cloud :: Select your project in DBT Cloud UI and then navigate to Orchestration -> Environments -> {Select your environment} -> {Select the run you wish to see the lineage for} -> Artifacts. Now download the manifest.json and catalog.json files from the list of files present in the Artifacts. Kindly note that these files can also be downloaded programatically using the dbt-cloud-cli tool.
-type: info
-///
+## Commands to download manifest and catalog files from DBT Cloud:
+
+### 1. Download manifest.json
+```bash
+curl -X GET \
+  "https://cloud.getdbt.com/api/v2/accounts/${ACCOUNT_ID}/runs/${RUN_ID}/artifacts/manifest.json" \
+  -H "Authorization: Token ${DBT_CLOUD_TOKEN}" \
+  -o manifest.json
+```
+
+### 2. Download catalog.json
+```bash
+curl -X GET \
+  "https://cloud.getdbt.com/api/v2/accounts/${ACCOUNT_ID}/runs/${RUN_ID}/artifacts/catalog.json" \
+  -H "Authorization: Token ${DBT_CLOUD_TOKEN}" \
+  -o catalog.json
+```
+
+### Required Environment Variables
+
+- `ACCOUNT_ID` - Your DBT Cloud account ID
+- `RUN_ID` - The specific run ID for the artifacts
+- `DBT_CLOUD_TOKEN` - Your DBT Cloud API authentication token
 
 /// admonition | If you are missing manifest.json or catalog.json files in the target directory, please run the 'dbt build' and 'dbt docs' commands. Also, you can add steps to upload the manifest and catalog files command in your dbt pipelines. That way, you will always have up-to-date documentation and lineage in UI without any manual steps.  
  type: tip
@@ -65,6 +85,10 @@ Manifest and catalog ingestion has started. You can check the status at https://
 /// admonition | It takes a few minutes to upload the files and sync that info with the rest of the UI. You can check the status of the upload by going to the link provided in the command output.
 type: tip
 ///
+
+## Automating with CI/CD Pipelines
+
+To ensure your dbt documentation and lineage in the UI stays up-to-date automatically, we strongly recommend integrating the manifest and catalog upload process into your CI/CD pipeline. This eliminates manual steps and ensures that any changes to your dbt project are immediately reflected in the SaaS UI.
 
 ## Recorded Demo
 
