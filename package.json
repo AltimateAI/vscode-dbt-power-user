@@ -1387,7 +1387,6 @@
     "webpack-shell-plugin-next": "^2.3.1"
   },
   "extensionDependencies": [
-    "samuelcolvin.jinjahtml",
     "ms-python.python",
     "altimateai.vscode-altimate-mcp-server"
   ],
