@@ -6,7 +6,10 @@ You can install it natively or in a dev container.
 
 ## Install the extension natively
 
-You can install the extension from VSCode directly or from the [marketplace](https://marketplace.visualstudio.com/items?itemName=innoverio.vscode-dbt-power-user)
+You can install the extension from VSCode directly or from the [VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=innoverio.vscode-dbt-power-user)
+
+You can install the extension from Cursor or any other VSCode compatible editors directly or from the [Open VSX Registry](https://open-vsx.org/extension/innoverio/vscode-dbt-power-user)
+
 
 /// details | Here's how to install the extension in VSCode
 
