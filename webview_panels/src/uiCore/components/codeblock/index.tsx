@@ -1,8 +1,8 @@
-import useAppContext from "@modules/app/useAppContext";
-import { Themes } from "@modules/app/types";
 import { CodeBlock as CodeblockLib } from "@lib";
-import classes from "./codeblock.module.scss";
+import { Themes } from "@modules/app/types";
+import useAppContext from "@modules/app/useAppContext";
 import { ReactNode } from "react";
+import classes from "./codeblock.module.scss";
 
 interface Props {
   code: string;
@@ -18,13 +18,13 @@ const CodeBlockComponent = ({
   fileName,
   showLineNumbers,
   titleActions,
-  classname
+  classname,
 }: Props): JSX.Element => {
   const {
     state: { theme },
   } = useAppContext();
   const codeBlockTheme = theme === Themes.Dark ? "dark" : "light";
-  const editorTheme = theme === Themes.Dark ? "vsc-dark-plus" : "vs";
+  const editorTheme = theme === Themes.Dark ? "vsc-dark-plus" : "tomorrow";
   return (
     <div className={classes.codeblock}>
       <CodeblockLib

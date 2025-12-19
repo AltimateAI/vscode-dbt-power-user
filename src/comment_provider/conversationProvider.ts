@@ -443,7 +443,7 @@ export class ConversationProvider implements Disposable {
     if (currentNode) {
       return {
         resource_type: currentNode.resource_type,
-        uniqueId: currentNode.uniqueId,
+        uniqueId: currentNode.unique_id,
       };
     }
 
@@ -452,7 +452,7 @@ export class ConversationProvider implements Disposable {
     if (macroNode) {
       return {
         resource_type: RESOURCE_TYPE_MACRO,
-        uniqueId: macroNode.uniqueId,
+        uniqueId: macroNode.unique_id,
       };
     }
 
@@ -461,7 +461,7 @@ export class ConversationProvider implements Disposable {
     if (testNode) {
       return {
         resource_type: RESOURCE_TYPE_TEST,
-        uniqueId: testNode.uniqueId,
+        uniqueId: testNode.unique_id,
       };
     }
   }

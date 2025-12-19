@@ -11,7 +11,6 @@ import {
   DBTCommandExecutionInfrastructure,
   DBTCommandFactory,
   DBTDiagnosticData,
-  DBTFacade,
   DBTNode,
   DBTProjectIntegration,
   DBTProjectIntegrationAdapter,
@@ -86,7 +85,7 @@ interface JsonObj {
   [key: string]: string | number | undefined;
 }
 
-export class DBTProject implements Disposable, DBTFacade {
+export class DBTProject implements Disposable {
   private _manifestCacheEvent?: ManifestCacheProjectAddedEvent;
   readonly projectRoot: Uri;
   private dbtProjectIntegration: DBTProjectIntegrationAdapter;
@@ -1598,7 +1597,10 @@ export class DBTProject implements Disposable, DBTFacade {
             resource_type,
           });
         }
-        mappedNode[key] = node;
+        mappedNode[key] = {
+          uniqueId: key,
+          ...node,
+        };
       }
     }
 

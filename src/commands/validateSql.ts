@@ -107,7 +107,7 @@ export class ValidateSql {
     if (!node) {
       return;
     }
-    const parentNodes = graphMetaMap.parents.get(node.uniqueId)?.nodes;
+    const parentNodes = graphMetaMap.parents.get(node.unique_id)?.nodes;
     if (!parentNodes) {
       return;
     }
@@ -151,7 +151,9 @@ export class ValidateSql {
           if (cancellationToken.isCancellationRequested) {
             return;
           }
-          const modelsToFetch = project.getNonEphemeralParents([node.uniqueId]);
+          const modelsToFetch = project.getNonEphemeralParents([
+            node.unique_id,
+          ]);
           const {
             mappedNode,
             relationsWithoutColumns: _relationsWithoutColumns,

@@ -178,7 +178,7 @@ abstract class ModelTreeviewProvider
     if (!model) {
       return Promise.resolve([]);
     }
-    return Promise.resolve(this.getTreeItems(model.uniqueId, event));
+    return Promise.resolve(this.getTreeItems(model.unique_id, event));
   }
 
   private nodeDataToNode(nodeData: NodeData): Node | undefined {
@@ -366,7 +366,7 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
             `Documentation View Warning: No columns found in manifest.json for ${modelName}, go edit the documentation in the documentation editor panel and run dbt docs generate`,
           );
         }
-        const key = currentNode.uniqueId;
+        const key = currentNode.unique_id;
         const label = currentNode.alias;
         const description = `[ ${currentNode.config.materialized.toUpperCase()} ]  -  schema : ${
           currentNode.schema

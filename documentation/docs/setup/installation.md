@@ -1,5 +1,4 @@
-/// admonition | The Power User extension is also available on Cursor! [click here](https://www.cursor.com/how-to-install-extension) for info on how to install the [Power User extension](https://marketplace.visualstudio.com/items?itemName=innoverio.vscode-dbt-power-user) for Cursor.
-type: info
+/// admonition | We've released our [DataMates Extension](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server) - to give you the power to use AI TeamMates! [Click here](https://datamates-docs.myaltimate.com/) to learn more.
 ///
 
 There are a few different ways in which extension can be installed.

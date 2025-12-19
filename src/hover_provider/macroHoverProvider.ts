@@ -61,7 +61,7 @@ export class MacroHoverProvider implements HoverProvider, Disposable {
     }
 
     const referencedBy = this.getNodesReferencingMacro(
-      macroMeta.uniqueId,
+      macroMeta.unique_id,
       macroMetaMap,
       nodeMetaMap,
     );
