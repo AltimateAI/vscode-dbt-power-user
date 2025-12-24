@@ -59,23 +59,22 @@ class JupyterKernelExecutor:
         while True:
             try:
                 msg = self.kernel_client.get_iopub_msg(timeout=1)
+
                 def datetime_converter(o):
                     if isinstance(o, datetime):
                         return o.__str__()
-                
-                # Print formatted JSON
+
                 # print("msg", msg)
-                
+
                 if msg['msg_type'] == 'stream':
                     # for stdout
                     output.append({'mime': 'text/plain', 'value': msg['content']['text']})
-                    break
                 elif msg['msg_type'] == 'comm_open':
                     state = msg['content']['data']['state']
                     state['model_id'] = msg['content']['comm_id']
                     # Handle comm_open messages
                     output.append({'mime': 'application/vnd.jupyter.widget-view+json', 'value': state})
-                elif msg['msg_type'] == 'execute_result' or msg['msg_type'] == 'display_data':
+                elif msg['msg_type'] in ['execute_result', 'display_data']:
                     # Flag to check if any key other than 'text/plain' exists
                     other_keys_exist = False
 
@@ -88,12 +87,10 @@ class JupyterKernelExecutor:
                             other_keys_exist = True
 
                     # If no other keys exist, add the 'text/plain' value
-                    if not other_keys_exist:
+                    if not other_keys_exist and 'text/plain' in msg['content']['data']:
                         output.append({'mime': 'text/plain', 'value': msg['content']['data']['text/plain']})
-                    break
                 elif msg['msg_type'] == 'error':
                     output.append({'mime': 'text/plain', 'value': '\n'.join(msg['content']['traceback'])})
-                    break
                 elif msg['msg_type'] == 'status' and msg['content']['execution_state'] == 'idle':
                     break
             except queue.Empty:
