@@ -276,15 +276,16 @@
           "id": "insights_view",
           "title": "Actions",
           "icon": "./media/images/dbt_icon.svg"
+        },
+        {
+          "id": "run_history_view",
+          "title": "Run History",
+          "icon": "./media/images/dbt_icon.svg"
         }
       ]
     },
     "views": {
       "dbt_view": [
-        {
-          "id": "run_history_treeview",
-          "name": "Run History"
-        },
         {
           "id": "model_test_treeview",
           "name": "Model Tests"
@@ -340,6 +341,12 @@
           "id": "dbtPowerUser.Insights",
           "name": "",
           "type": "webview"
+        }
+      ],
+      "run_history_view": [
+        {
+          "id": "run_history_treeview",
+          "name": "Runs"
         }
       ]
     },
