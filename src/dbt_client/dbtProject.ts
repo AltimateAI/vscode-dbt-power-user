@@ -58,6 +58,10 @@ import {
 } from "vscode";
 import { AltimateRequest, ModelNode } from "../altimate";
 import { AltimateAuthService } from "../services/altimateAuthService";
+import {
+  RunHistoryService,
+  DbtRunResults,
+} from "../services/runHistoryService";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
@@ -144,6 +148,7 @@ export class DBTProject implements Disposable {
     private altimate: AltimateRequest,
     private validationProvider: ValidationProvider,
     private altimateAuthService: AltimateAuthService,
+    private runHistoryService: RunHistoryService,
     path: Uri,
     _projectConfig: any,
     private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,

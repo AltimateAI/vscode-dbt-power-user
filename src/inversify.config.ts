@@ -67,6 +67,7 @@ import { FileService } from "./services/fileService";
 import { QueryAnalysisService } from "./services/queryAnalysisService";
 import { QueryManifestService } from "./services/queryManifestService";
 import { SharedStateService } from "./services/sharedStateService";
+import { RunHistoryService } from "./services/runHistoryService";
 import { StreamingService } from "./services/streamingService";
 import { UsersService } from "./services/usersService";
 import { TelemetryService } from "./telemetry";
@@ -709,6 +710,7 @@ container
         container.get(AltimateRequest),
         container.get(ValidationProvider),
         container.get(AltimateAuthService),
+        container.get(RunHistoryService),
         path,
         projectConfig,
         _onManifestChanged,
@@ -830,6 +832,13 @@ container
   .bind(SharedStateService)
   .toDynamicValue(() => {
     return new SharedStateService();
+  })
+  .inSingletonScope();
+
+container
+  .bind(RunHistoryService)
+  .toDynamicValue(() => {
+    return new RunHistoryService();
   })
   .inSingletonScope();
 
