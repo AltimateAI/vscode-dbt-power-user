@@ -59,6 +59,10 @@ import { ModelNode } from "../altimate";
 import { ColumnMetaData } from "../domain";
 import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 import { SharedStateService } from "../services/sharedStateService";
+import {
+  RunHistoryService,
+  DbtRunResults,
+} from "../services/runHistoryService";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -68,6 +72,7 @@ export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
   static MANIFEST_FILE = "manifest.json";
   static CATALOG_FILE = "catalog.json";
+  static RUN_RESULTS_FILE = "run_results.json";
 
   static RESOURCE_TYPE_MODEL = "model";
   static RESOURCE_TYPE_MACRO = "macro";
@@ -116,6 +121,7 @@ export class DBTProject implements Disposable {
     ) => DBTCloudProjectIntegration,
     private altimate: AltimateRequest,
     private validationProvider: ValidationProvider,
+    private runHistoryService: RunHistoryService,
     path: Uri,
     projectConfig: any,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
@@ -212,6 +218,35 @@ export class DBTProject implements Disposable {
       return;
     }
     return path.join(targetPath, DBTProject.CATALOG_FILE);
+  }
+
+  getRunResultsPath() {
+    const targetPath = this.getTargetPath();
+    if (!targetPath) {
+      return;
+    }
+    return path.join(targetPath, DBTProject.RUN_RESULTS_FILE);
+  }
+
+  /**
+   * Read and parse the run_results.json file
+   */
+  private readRunResults(): DbtRunResults | undefined {
+    const runResultsPath = this.getRunResultsPath();
+    if (!runResultsPath || !existsSync(runResultsPath)) {
+      return undefined;
+    }
+    try {
+      const content = readFileSync(runResultsPath, "utf-8");
+      return JSON.parse(content) as DbtRunResults;
+    } catch (error) {
+      this.terminal.warn(
+        "DBTProject",
+        `Failed to read run_results.json: ${error}`,
+        false,
+      );
+      return undefined;
+    }
   }
 
   getPythonBridgeStatus() {
@@ -440,56 +475,128 @@ export class DBTProject implements Disposable {
   }
 
   async runModel(runModelParams: RunModelParams) {
+    const selectArg = `${runModelParams.plusOperatorLeft}${runModelParams.modelName}${runModelParams.plusOperatorRight}`;
+    const runId = this.runHistoryService.startRun(
+      "run",
+      ["--select", selectArg],
+      this.getProjectName(),
+      this.projectRoot.fsPath,
+    );
+
     try {
       const runModelCommand =
         this.dbtCommandFactory.createRunModelCommand(runModelParams);
       await this.dbtProjectIntegration.runModel(runModelCommand);
+
+      const runResults = this.readRunResults();
+      if (runResults) {
+        this.runHistoryService.completeRun(runId, runResults);
+      }
+
       this.telemetry.sendTelemetryEvent("runModel");
     } catch (error) {
+      this.runHistoryService.failRun(runId, (error as Error).message);
       this.handleNoCredentialsError(error);
     }
   }
 
   async buildModel(runModelParams: RunModelParams) {
+    const selectArg = `${runModelParams.plusOperatorLeft}${runModelParams.modelName}${runModelParams.plusOperatorRight}`;
+    const runId = this.runHistoryService.startRun(
+      "build",
+      ["--select", selectArg],
+      this.getProjectName(),
+      this.projectRoot.fsPath,
+    );
+
     try {
       const buildModelCommand =
         this.dbtCommandFactory.createBuildModelCommand(runModelParams);
       await this.dbtProjectIntegration.buildModel(buildModelCommand);
+
+      const runResults = this.readRunResults();
+      if (runResults) {
+        this.runHistoryService.completeRun(runId, runResults);
+      }
+
       this.telemetry.sendTelemetryEvent("buildModel");
     } catch (error) {
+      this.runHistoryService.failRun(runId, (error as Error).message);
       this.handleNoCredentialsError(error);
     }
   }
 
   async buildProject() {
+    const runId = this.runHistoryService.startRun(
+      "build",
+      [],
+      this.getProjectName(),
+      this.projectRoot.fsPath,
+    );
+
     try {
       const buildProjectCommand =
         this.dbtCommandFactory.createBuildProjectCommand();
       await this.dbtProjectIntegration.buildProject(buildProjectCommand);
+
+      const runResults = this.readRunResults();
+      if (runResults) {
+        this.runHistoryService.completeRun(runId, runResults);
+      }
+
       this.telemetry.sendTelemetryEvent("buildProject");
     } catch (error) {
+      this.runHistoryService.failRun(runId, (error as Error).message);
       this.handleNoCredentialsError(error);
     }
   }
 
   async runTest(testName: string) {
+    const runId = this.runHistoryService.startRun(
+      "test",
+      ["--select", testName],
+      this.getProjectName(),
+      this.projectRoot.fsPath,
+    );
+
     try {
       const testModelCommand =
         this.dbtCommandFactory.createTestModelCommand(testName);
       await this.dbtProjectIntegration.runTest(testModelCommand);
+
+      const runResults = this.readRunResults();
+      if (runResults) {
+        this.runHistoryService.completeRun(runId, runResults);
+      }
+
       this.telemetry.sendTelemetryEvent("runTest");
     } catch (error) {
+      this.runHistoryService.failRun(runId, (error as Error).message);
       this.handleNoCredentialsError(error);
     }
   }
 
   async runModelTest(modelName: string) {
+    const runId = this.runHistoryService.startRun(
+      "test",
+      ["--select", modelName],
+      this.getProjectName(),
+      this.projectRoot.fsPath,
+    );
+
     try {
       const testModelCommand =
         this.dbtCommandFactory.createTestModelCommand(modelName);
-      this.dbtProjectIntegration.runModelTest(testModelCommand);
-      await this.telemetry.sendTelemetryEvent("runModelTest");
+      await this.dbtProjectIntegration.runModelTest(testModelCommand);
+
+      const runResults = this.readRunResults();
+      if (runResults) {
+        this.runHistoryService.completeRun(runId, runResults);
+      }
+
+      this.telemetry.sendTelemetryEvent("runModelTest");
     } catch (error) {
+      this.runHistoryService.failRun(runId, (error as Error).message);
       this.handleNoCredentialsError(error);
     }
   }

@@ -282,6 +282,10 @@
     "views": {
       "dbt_view": [
         {
+          "id": "run_history_treeview",
+          "name": "Run History"
+        },
+        {
           "id": "model_test_treeview",
           "name": "Model Tests"
         },

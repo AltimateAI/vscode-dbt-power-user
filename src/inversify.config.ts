@@ -39,6 +39,7 @@ import { AltimateRequest } from "./altimate";
 import { ValidationProvider } from "./validation_provider";
 import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
+import { RunHistoryService } from "./services/runHistoryService";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -171,6 +172,7 @@ container
         container.get("Factory<DBTCloudProjectIntegration>"),
         container.get(AltimateRequest),
         container.get(ValidationProvider),
+        container.get(RunHistoryService),
         path,
         projectConfig,
         _onManifestChanged,
