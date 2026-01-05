@@ -1,5 +1,9 @@
 import { Disposable, Event, EventEmitter } from "vscode";
+import { RunResultsData, RunResultItem } from "@altimateai/dbt-integration";
 import { provideSingleton } from "../utils";
+
+// Re-export for consumers that were importing from this file
+export type { RunResultsData, RunResultItem };
 
 /**
  * Represents the result of a single model/test/seed execution within a dbt run
@@ -28,39 +32,6 @@ export interface RunHistoryEntry {
   models: ModelRunResult[];
   elapsedTime?: number; // seconds
   invocationId?: string;
-}
-
-/**
- * The structure of dbt's run_results.json file
- */
-export interface DbtRunResults {
-  metadata: {
-    dbt_schema_version: string;
-    dbt_version: string;
-    generated_at: string;
-    invocation_id: string;
-  };
-  results: DbtRunResultItem[];
-  elapsed_time: number;
-  args: {
-    which: string;
-    select?: string[];
-  };
-}
-
-export interface DbtRunResultItem {
-  status: string;
-  timing: {
-    name: string;
-    started_at: string;
-    completed_at: string;
-  }[];
-  execution_time: number;
-  message: string;
-  unique_id: string;
-  compiled?: boolean;
-  compiled_code?: string;
-  failures?: number | null;
 }
 
 @provideSingleton(RunHistoryService)
@@ -105,7 +76,7 @@ export class RunHistoryService implements Disposable {
   /**
    * Complete a run with results from run_results.json
    */
-  completeRun(id: string, runResults: DbtRunResults): void {
+  completeRun(id: string, runResults: RunResultsData): void {
     const entry = this.history.find((e) => e.id === id);
     if (!entry) {
       return;
@@ -113,7 +84,7 @@ export class RunHistoryService implements Disposable {
 
     entry.endTime = new Date();
     entry.elapsedTime = runResults.elapsed_time;
-    entry.invocationId = runResults.metadata.invocation_id;
+    entry.invocationId = runResults.metadata?.invocation_id;
     entry.models = this.parseResults(runResults.results);
 
     this._onHistoryChanged.fire(entry);
@@ -200,7 +171,7 @@ export class RunHistoryService implements Disposable {
   /**
    * Parse dbt run_results.json results into our ModelRunResult format
    */
-  private parseResults(results: DbtRunResultItem[]): ModelRunResult[] {
+  private parseResults(results: RunResultItem[]): ModelRunResult[] {
     return results.map((result) => {
       // Extract resource type from unique_id (e.g., "model.jaffle_shop.stg_customers")
       const resourceType = this.extractResourceType(result.unique_id);
@@ -210,8 +181,8 @@ export class RunHistoryService implements Disposable {
       return {
         name,
         uniqueId: result.unique_id,
-        status: this.mapStatus(result.status),
-        executionTime: result.execution_time,
+        status: this.mapStatus(result.status ?? "unknown"),
+        executionTime: result.execution_time ?? 0,
         message: result.message,
         resourceType,
         compiledCode: result.compiled_code,
