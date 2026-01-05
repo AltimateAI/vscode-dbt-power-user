@@ -1,3 +1,4 @@
+import * as crypto from "crypto";
 import { Disposable, Event, EventEmitter } from "vscode";
 import { RunResultsData, RunResultItem } from "@altimateai/dbt-integration";
 import { provideSingleton } from "../utils";
@@ -11,7 +12,7 @@ export type { RunResultsData, RunResultItem };
 export interface ModelRunResult {
   name: string;
   uniqueId: string;
-  status: "success" | "error" | "skipped" | "fail";
+  status: string; // dbt status: success, pass, error, fail, skipped, skip
   executionTime: number; // seconds
   message?: string;
   resourceType: "model" | "test" | "seed" | "snapshot";
@@ -181,7 +182,7 @@ export class RunHistoryService implements Disposable {
       return {
         name,
         uniqueId: result.unique_id,
-        status: this.mapStatus(result.status ?? "unknown"),
+        status: result.status ?? "error",
         executionTime: result.execution_time ?? 0,
         message: result.message,
         resourceType,
@@ -219,30 +220,10 @@ export class RunHistoryService implements Disposable {
   }
 
   /**
-   * Map dbt status strings to our status type
-   */
-  private mapStatus(status: string): "success" | "error" | "skipped" | "fail" {
-    switch (status.toLowerCase()) {
-      case "success":
-      case "pass":
-        return "success";
-      case "error":
-        return "error";
-      case "fail":
-        return "fail";
-      case "skipped":
-      case "skip":
-        return "skipped";
-      default:
-        return "error";
-    }
-  }
-
-  /**
    * Generate a unique ID for a run entry
    */
   private generateId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    return crypto.randomUUID();
   }
 
   /**

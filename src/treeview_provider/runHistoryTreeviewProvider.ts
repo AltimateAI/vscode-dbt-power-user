@@ -15,6 +15,23 @@ import {
   ModelRunResult,
 } from "../services/runHistoryService";
 
+// Map dbt status to icon configuration
+const STATUS_ICONS: Record<string, { icon: string; color: string }> = {
+  success: { icon: "check", color: "charts.green" },
+  pass: { icon: "check", color: "charts.green" },
+  error: { icon: "x", color: "charts.red" },
+  fail: { icon: "x", color: "charts.red" },
+  skipped: { icon: "debug-step-over", color: "charts.gray" },
+  skip: { icon: "debug-step-over", color: "charts.gray" },
+};
+
+const DEFAULT_ICON = { icon: "question", color: "" };
+
+const isSuccessStatus = (status: string) =>
+  status === "success" || status === "pass";
+const isErrorStatus = (status: string) =>
+  status === "error" || status === "fail";
+
 /**
  * Tree item representing a dbt command run
  */
@@ -47,11 +64,11 @@ class RunTreeItem extends TreeItem {
       ? `${entry.elapsedTime.toFixed(2)}s`
       : "";
     const modelCount = entry.models.length;
-    const successCount = entry.models.filter(
-      (m) => m.status === "success",
+    const successCount = entry.models.filter((m) =>
+      isSuccessStatus(m.status),
     ).length;
-    const failCount = entry.models.filter(
-      (m) => m.status === "error" || m.status === "fail",
+    const failCount = entry.models.filter((m) =>
+      isErrorStatus(m.status),
     ).length;
 
     const parts: string[] = [];
@@ -74,9 +91,7 @@ class RunTreeItem extends TreeItem {
       return new ThemeIcon("sync~spin", new ThemeColor("charts.yellow"));
     }
 
-    const hasError = entry.models.some(
-      (m) => m.status === "error" || m.status === "fail",
-    );
+    const hasError = entry.models.some((m) => isErrorStatus(m.status));
     if (hasError) {
       return new ThemeIcon("error", new ThemeColor("charts.red"));
     }
@@ -122,17 +137,10 @@ class ModelResultTreeItem extends TreeItem {
   }
 
   private static getIcon(result: ModelRunResult): ThemeIcon {
-    switch (result.status) {
-      case "success":
-        return new ThemeIcon("check", new ThemeColor("charts.green"));
-      case "error":
-      case "fail":
-        return new ThemeIcon("x", new ThemeColor("charts.red"));
-      case "skipped":
-        return new ThemeIcon("debug-step-over", new ThemeColor("charts.gray"));
-      default:
-        return new ThemeIcon("question");
-    }
+    const config = STATUS_ICONS[result.status] ?? DEFAULT_ICON;
+    return config.color
+      ? new ThemeIcon(config.icon, new ThemeColor(config.color))
+      : new ThemeIcon(config.icon);
   }
 
   private static getTooltip(result: ModelRunResult): string {
@@ -177,28 +185,18 @@ export class RunHistoryTreeviewProvider
 
   getChildren(element?: RunHistoryTreeItem): RunHistoryTreeItem[] {
     if (!element) {
-      // Root level: show all run entries
-      const history = this.runHistoryService.getHistory();
-      return history.map((entry) => new RunTreeItem(entry));
+      return this.runHistoryService
+        .getHistory()
+        .map((entry) => new RunTreeItem(entry));
     }
 
     if (element instanceof RunTreeItem) {
-      // Run entry level: show model results
       return element.entry.models.map(
         (result) => new ModelResultTreeItem(result),
       );
     }
 
-    // Model result level: no children
     return [];
-  }
-
-  refresh(): void {
-    this._onDidChangeTreeData.fire();
-  }
-
-  clearHistory(): void {
-    this.runHistoryService.clearHistory();
   }
 
   dispose(): void {
