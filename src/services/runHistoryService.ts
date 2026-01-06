@@ -62,8 +62,11 @@ export class RunHistoryService implements Disposable {
   /**
    * Add a completed run to history from run_results.json data
    */
-  addCompletedRun(runResults: RunResultsData, projectName: string): void {
-    const entry: RunHistoryEntry = {
+  addCompletedRun(
+    runResults: RunResultsData,
+    projectName: string,
+  ): RunHistoryEntry {
+    const result: RunHistoryEntry = {
       id: runResults.metadata?.invocation_id || `run-${Date.now()}`,
       command: runResults.metadata?.args?.which || "unknown",
       args: runResults.metadata?.args?.select || [],
@@ -73,8 +76,9 @@ export class RunHistoryService implements Disposable {
       elapsedTime: runResults.elapsed_time,
     };
 
-    this.history.unshift(entry);
-    this._onHistoryChanged.fire(entry);
+    this.history.unshift(result);
+    this._onHistoryChanged.fire(result);
+    return result;
   }
 
   getHistory(): RunHistoryEntry[] {
@@ -102,6 +106,13 @@ export class RunHistoryService implements Disposable {
     });
   }
 
+  private static readonly VALID_RESOURCE_TYPES = [
+    "model",
+    "test",
+    "seed",
+    "snapshot",
+  ] as const;
+
   /**
    * Extract resource type from unique_id
    * e.g., "model.jaffle_shop.stg_customers" -> "model"
@@ -110,15 +121,9 @@ export class RunHistoryService implements Disposable {
     uniqueId: string,
   ): "model" | "test" | "seed" | "snapshot" {
     const type = uniqueId.split(".")[0];
-    if (
-      type === "model" ||
-      type === "test" ||
-      type === "seed" ||
-      type === "snapshot"
-    ) {
-      return type;
-    }
-    return "model"; // default
+    return RunHistoryService.VALID_RESOURCE_TYPES.includes(type as any)
+      ? (type as "model" | "test" | "seed" | "snapshot")
+      : "model";
   }
 
   /**
@@ -126,8 +131,7 @@ export class RunHistoryService implements Disposable {
    * e.g., "model.jaffle_shop.stg_customers" -> "stg_customers"
    */
   private extractModelName(uniqueId: string): string {
-    const parts = uniqueId.split(".");
-    return parts[parts.length - 1] || uniqueId;
+    return uniqueId.split(".").pop() || uniqueId;
   }
 
   dispose(): void {
