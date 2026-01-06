@@ -31,10 +31,12 @@ export class RunHistoryTreeviewProvider
     );
   }
 
+  // Called by VS Code's TreeDataProvider interface
   getTreeItem(element: RunHistoryTreeItem): TreeItem {
     return element;
   }
 
+  // Called by VS Code's TreeDataProvider interface to populate the tree view
   getChildren(element?: RunHistoryTreeItem): RunHistoryTreeItem[] {
     if (!element) {
       return this.runHistoryService

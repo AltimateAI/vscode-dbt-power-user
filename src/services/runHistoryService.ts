@@ -186,7 +186,10 @@ export class RunHistoryService implements Disposable {
   }
 
   /**
-   * Generate a unique ID for a run entry
+   * Generate a unique ID for a run entry.
+   * Note: We can't use dbt's invocation_id because we need an ID before the
+   * run starts (to track pending runs), but invocation_id only comes after
+   * the run completes in run_results.json.
    */
   private generateId(): string {
     return crypto.randomUUID();
