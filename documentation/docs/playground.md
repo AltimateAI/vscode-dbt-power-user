@@ -2,50 +2,55 @@
 
 ## What is Playground?
 
-Playground is a unified multi-agent SaaS platform designed to transform how organizations interact with their entire tool stack. It serves as a single, easy-to-use solution for all your questions across Snowflake, DBT, Tableau, Databricks, Airflow, GitHub and more - enabling users to query their tools using natural language.
+Playground is a specialized agent designed for users to interact with their data stack using natural language. It is an easy-to-use solution for all your questions across Snowflake, DBT, Tableau, Databricks, Airflow, GitHub and more.
 
 ## Key Capabilities
 
 Playground empowers users to:
 
 - **Analyze performance** of existing workloads across your data infrastructure
+- **DBT Project analysis** of entire DBT project structure, models, tests, dependencies etc.
+- **Lineage exploration** to explore the lineage of DBT models and answer related questions
+- **Documentation search** allows to search through DBT models documentation as well as add missing documentation
 - **Perform root cause analysis** to quickly identify and resolve issues
 - **Conduct cross-tool analysis** spanning multiple platforms in a single conversation
 - **Generate detailed optimization plans** with quantified outcomes and projected savings
+- **Best practices review** to get recommendations on DBT models best practices implementation
 
 ## Why Do We Need Playground?
 
 Traditional AI approaches have critical limitations. These limitations are well taken care of through Playground:
 
 ### Without Playground
-1. User asks: "Why did costs spike?"
+1. User asks: "Why is my dbt model running slow?"
 2. Agent searches basic data
-3. Finds cost increase numbers
+3. Finds execution time metrics
 4. Provides incomplete analysis with:
-    - Missing: Why it happened
-    - Missing: Business context
-    - Missing: Historical patterns
+    - Missing: Root cause of performance issue
+    - Missing: Downstream impact on dependent models
+    - Missing: Historical performance trends
 
 **Result:** Incomplete, Siloed AI Responses
 
 ### With Playground
-1. User asks: "Why did costs spike?"
+1. User asks: "Why is my dbt model running slow?"
 2. Multi-agentic framework assembles rich context
 3. Provides comprehensive analysis:
-    - Root cause identified
-    - Business impact clear
-    - Actionable recommendations
+    - Root cause identified (e.g., inefficient CTEs, missing indexes)
+    - Downstream impact on dependent models assessed
+    - Actionable optimization recommendations with code examples
 
 **Result:** Context-Rich, Memory-Enhanced Intelligence
 
 ## Extending Context
 
 Beyond the integrations already connected to your SaaS instance, Playground allows you to enrich your queries with additional context:
+![Playground Datamates and Knowledge Base](images/playground-datamates-knowledge-base.png)
 
 | Option | Description |
 |--------|-------------|
-| **Datamates** | Select any Datamate to widen the context based on tools |
-| **Knowledge Bases** | Connect organizational knowledge repositories from Knowledge Hub for deeper context |
+| **Datamates** | Select any [Datamate](https://datamates-docs.myaltimate.com/user-guide/home/) to widen the context based on tools |
+| **Knowledge Bases** | Connect organizational knowledge repositories from [Knowledge Hub](https://datamates-docs.myaltimate.com/user-guide/components/knowledgehub/) for deeper context |
 | **File Attachments** | Upload documents, queries, or data files directly into your conversation |
 
 This flexibility ensures you can ask questions across a broader tool set while providing the agent with the context it needs to deliver accurate, actionable insights.
@@ -97,6 +102,9 @@ Playground provides transparency about result quality:
 
 ## Components of Playground
 
+Two important components of Playground are Chat History and Prompt Library:
+![Playground Chat History and Prompt Store](images/playground-chat-history-prompt-store.png)
+
 ### Chat History
 
 Chat History is a persistent record of all your previous conversations with Playground. Located in the left sidebar, it provides quick access to past interactions, allowing you to revisit analyses, continue previous work, or reference earlier insights.
@@ -126,7 +134,7 @@ Chat History is a persistent record of all your previous conversations with Play
 
 ### Prompt Library
 
-Prompt Library is a shared repository of pre-built, reusable prompts that help you get started quickly with common data analysis tasks. It serves as a knowledge base of effective queries created by you, your team, and the organization.
+Prompt Library is a shared repository of pre-built, reusable prompts that help you get started quickly with common data analysis tasks. It serves as a knowledge base of effective queries created by you, your team and the organization.
 
 #### Key Features
 
