@@ -7,31 +7,37 @@ import { provideSingleton } from "../utils";
 export type { RunResultsData, RunResultItem };
 
 /**
- * Represents the result of a single model/test/seed execution within a dbt run
+ * Processed model result for display in run history.
+ * This is NOT a duplicate of RunResultItem - it's an enriched version with:
+ * - Extracted model name (from unique_id)
+ * - Extracted resource type (from unique_id)
+ * - Simplified structure for UI display
  */
 export interface ModelRunResult {
   name: string;
   uniqueId: string;
-  status: string; // dbt status: success, pass, error, fail, skipped, skip
-  executionTime: number; // seconds
+  status: string;
+  executionTime: number;
   message?: string;
   resourceType: "model" | "test" | "seed" | "snapshot";
   compiledCode?: string;
 }
 
 /**
- * Represents a single dbt command execution (e.g., dbt run, dbt test)
+ * Tracks a dbt command execution session.
+ * This is NOT related to RunResultsData - it captures command metadata
+ * (start/end times, args) that doesn't exist in dbt's run_results.json.
  */
 export interface RunHistoryEntry {
   id: string;
-  command: string; // "run", "build", "test"
+  command: string;
   args: string[];
   startTime: Date;
   endTime?: Date;
   projectName: string;
   projectRoot: string;
   models: ModelRunResult[];
-  elapsedTime?: number; // seconds
+  elapsedTime?: number;
   invocationId?: string;
 }
 
