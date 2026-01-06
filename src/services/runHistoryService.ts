@@ -1,23 +1,19 @@
 import { Disposable, Event, EventEmitter } from "vscode";
+// TODO: Import from @altimateai/dbt-integration once PR #14 is merged and published
+// import { RunResultItem, RunResultsData } from "@altimateai/dbt-integration";
 
-/**
- * Structure of a single result item from dbt's run_results.json
- */
-export interface RunResultItem {
+interface RunResultItem {
   unique_id: string;
   status?: string;
   execution_time?: number;
   message?: string;
 }
 
-/**
- * Structure of dbt's run_results.json file
- */
-export interface RunResultsData {
+interface RunResultsData {
   metadata?: {
     invocation_id?: string;
     args?: {
-      which?: string; // The command: run, build, test, etc.
+      which?: string;
       select?: string[];
     };
   };
