@@ -9,7 +9,6 @@ export interface RunResultItem {
   status?: string;
   execution_time?: number;
   message?: string;
-  compiled_code?: string;
 }
 
 /**
@@ -37,7 +36,6 @@ export interface ModelRunResult {
   executionTime: number;
   message?: string;
   resourceType: "model" | "test" | "seed" | "snapshot";
-  compiledCode?: string;
 }
 
 /**
@@ -52,7 +50,6 @@ export interface RunHistoryEntry {
   startTime: Date;
   endTime?: Date;
   projectName: string;
-  projectRoot: string;
   models: ModelRunResult[];
   elapsedTime?: number;
   invocationId?: string;
@@ -72,12 +69,7 @@ export class RunHistoryService implements Disposable {
    * Start tracking a new run. Call this when a dbt command begins.
    * Returns the entry ID for later reference.
    */
-  startRun(
-    command: string,
-    args: string[],
-    projectName: string,
-    projectRoot: string,
-  ): string {
+  startRun(command: string, args: string[], projectName: string): string {
     const id = this.generateId();
     const entry: RunHistoryEntry = {
       id,
@@ -85,7 +77,6 @@ export class RunHistoryService implements Disposable {
       args,
       startTime: new Date(),
       projectName,
-      projectRoot,
       models: [],
     };
 
@@ -146,52 +137,6 @@ export class RunHistoryService implements Disposable {
   }
 
   /**
-   * Get a specific run by ID
-   */
-  getRunById(id: string): RunHistoryEntry | undefined {
-    return this.history.find((e) => e.id === id);
-  }
-
-  /**
-   * Get the most recent run
-   */
-  getLatestRun(): RunHistoryEntry | undefined {
-    return this.history[0];
-  }
-
-  /**
-   * Clear all history
-   */
-  clearHistory(): void {
-    this.history = [];
-    this._onHistoryChanged.fire(undefined);
-  }
-
-  /**
-   * Compute overall status from model results
-   */
-  getRunStatus(
-    entry: RunHistoryEntry,
-  ): "running" | "success" | "failed" | "error" {
-    if (!entry.endTime) {
-      return "running";
-    }
-
-    if (entry.models.length === 0) {
-      return "success"; // No models selected, but command completed
-    }
-
-    const hasError = entry.models.some(
-      (m) => m.status === "error" || m.status === "fail",
-    );
-    if (hasError) {
-      return "failed";
-    }
-
-    return "success";
-  }
-
-  /**
    * Parse dbt run_results.json results into our ModelRunResult format
    */
   private parseResults(results: RunResultItem[]): ModelRunResult[] {
@@ -208,7 +153,6 @@ export class RunHistoryService implements Disposable {
         executionTime: result.execution_time ?? 0,
         message: result.message,
         resourceType,
-        compiledCode: result.compiled_code,
       };
     });
   }

@@ -275,7 +275,6 @@ export class DBTProject implements Disposable {
               status: r.status,
               execution_time: r.execution_time,
               message: r.message,
-              compiled_code: r.compiled_code,
             })),
             elapsed_time: (runResultsData as any).elapsed_time ?? 0,
           });
@@ -681,7 +680,6 @@ export class DBTProject implements Disposable {
       "run",
       ["--select", selectArg],
       this.getProjectName(),
-      this.projectRoot.fsPath,
     );
     this.pendingRunIds.push(runId);
 
@@ -722,7 +720,6 @@ export class DBTProject implements Disposable {
       "build",
       ["--select", selectArg],
       this.getProjectName(),
-      this.projectRoot.fsPath,
     );
     this.pendingRunIds.push(runId);
 
@@ -764,7 +761,6 @@ export class DBTProject implements Disposable {
       "build",
       [],
       this.getProjectName(),
-      this.projectRoot.fsPath,
     );
     this.pendingRunIds.push(runId);
 
@@ -806,7 +802,6 @@ export class DBTProject implements Disposable {
       "test",
       ["--select", testName],
       this.getProjectName(),
-      this.projectRoot.fsPath,
     );
     this.pendingRunIds.push(runId);
 
@@ -846,7 +841,6 @@ export class DBTProject implements Disposable {
       "test",
       ["--select", modelName],
       this.getProjectName(),
-      this.projectRoot.fsPath,
     );
     this.pendingRunIds.push(runId);
 
