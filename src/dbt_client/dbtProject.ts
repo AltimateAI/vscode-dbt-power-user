@@ -1903,6 +1903,15 @@ export class DBTProject implements Disposable {
         try {
           await command(signal);
         } catch (error) {
+          // Clean up pending run history entry on command execution failure
+          if (this.pendingRunIds.length > 0) {
+            const failedRunId = this.pendingRunIds.shift()!;
+            this.runHistoryService.failRun(
+              failedRunId,
+              (error as Error).message,
+            );
+          }
+
           if (error instanceof NoCredentialsError) {
             this.altimateAuthService.handlePreviewFeatures();
             return;
