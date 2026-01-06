@@ -264,19 +264,22 @@ export class DBTProject implements Disposable {
         );
 
         // Complete pending run history entry
+        // Note: Using type assertion because @altimateai/dbt-integration types
+        // will be updated in a future release to include these fields
         if (this.pendingRunIds.length > 0) {
           const runId = this.pendingRunIds.shift()!;
+          const resultsData = runResultsData as any;
           this.runHistoryService.completeRun(runId, {
             metadata: {
-              invocation_id: (runResultsData as any).metadata?.invocation_id,
+              invocation_id: resultsData.metadata?.invocation_id,
             },
-            results: runResultsData.results.map((r) => ({
+            results: resultsData.results.map((r: any) => ({
               unique_id: r.unique_id,
               status: r.status,
               execution_time: r.execution_time,
               message: r.message,
             })),
-            elapsed_time: (runResultsData as any).elapsed_time ?? 0,
+            elapsed_time: resultsData.elapsed_time ?? 0,
           });
         }
 

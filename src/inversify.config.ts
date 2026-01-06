@@ -138,6 +138,7 @@ import {
   ModelTestTreeview,
   ParentModelTreeview,
 } from "./treeview_provider/modelTreeviewProvider";
+import { RunHistoryTreeviewProvider } from "./treeview_provider/runHistoryTreeviewProvider";
 import { WebviewViewProviders } from "./webview_provider";
 import { DataPilotPanel } from "./webview_provider/datapilotPanel";
 import { DbtDocsView } from "./webview_provider/DbtDocsView";
@@ -839,6 +840,15 @@ container
   .bind(RunHistoryService)
   .toDynamicValue(() => {
     return new RunHistoryService();
+  })
+  .inSingletonScope();
+
+container
+  .bind(RunHistoryTreeviewProvider)
+  .toDynamicValue((context) => {
+    return new RunHistoryTreeviewProvider(
+      context.container.get(RunHistoryService),
+    );
   })
   .inSingletonScope();
 
@@ -1700,6 +1710,7 @@ container
       context.container.get(ModelTestTreeview),
       context.container.get(DocumentationTreeview),
       context.container.get(IconActionsTreeview),
+      context.container.get(RunHistoryTreeviewProvider),
     );
   })
   .inSingletonScope();
