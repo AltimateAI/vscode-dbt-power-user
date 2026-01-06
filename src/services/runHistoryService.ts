@@ -1,4 +1,3 @@
-import * as crypto from "crypto";
 import { Disposable, Event, EventEmitter } from "vscode";
 
 /**
@@ -17,17 +16,17 @@ export interface RunResultItem {
 export interface RunResultsData {
   metadata?: {
     invocation_id?: string;
+    args?: {
+      which?: string; // The command: run, build, test, etc.
+      select?: string[];
+    };
   };
   results: RunResultItem[];
   elapsed_time: number;
 }
 
 /**
- * Processed model result for display in run history.
- * This is NOT a duplicate of RunResultItem - it's an enriched version with:
- * - Extracted model name (from unique_id)
- * - Extracted resource type (from unique_id)
- * - Simplified structure for UI display
+ * Processed model result for display in run history
  */
 export interface ModelRunResult {
   name: string;
@@ -39,20 +38,16 @@ export interface ModelRunResult {
 }
 
 /**
- * Tracks a dbt command execution session.
- * This is NOT related to RunResultsData - it captures command metadata
- * (start/end times, args) that doesn't exist in dbt's run_results.json.
+ * A completed dbt command execution
  */
 export interface RunHistoryEntry {
   id: string;
   command: string;
   args: string[];
-  startTime: Date;
-  endTime?: Date;
+  completedAt: Date;
   projectName: string;
   models: ModelRunResult[];
-  elapsedTime?: number;
-  invocationId?: string;
+  elapsedTime: number;
 }
 
 export class RunHistoryService implements Disposable {
@@ -65,71 +60,23 @@ export class RunHistoryService implements Disposable {
   private disposables: Disposable[] = [this._onHistoryChanged];
 
   /**
-   * Start tracking a new run. Call this when a dbt command begins.
-   * Returns the entry ID for later reference.
+   * Add a completed run to history from run_results.json data
    */
-  startRun(command: string, args: string[], projectName: string): string {
-    const id = this.generateId();
+  addCompletedRun(runResults: RunResultsData, projectName: string): void {
     const entry: RunHistoryEntry = {
-      id,
-      command,
-      args,
-      startTime: new Date(),
+      id: runResults.metadata?.invocation_id || `run-${Date.now()}`,
+      command: runResults.metadata?.args?.which || "unknown",
+      args: runResults.metadata?.args?.select || [],
+      completedAt: new Date(),
       projectName,
-      models: [],
+      models: this.parseResults(runResults.results),
+      elapsedTime: runResults.elapsed_time,
     };
 
     this.history.unshift(entry);
     this._onHistoryChanged.fire(entry);
-
-    return id;
   }
 
-  /**
-   * Complete a run with results from run_results.json
-   */
-  completeRun(id: string, runResults: RunResultsData): void {
-    const entry = this.history.find((e) => e.id === id);
-    if (!entry) {
-      return;
-    }
-
-    entry.endTime = new Date();
-    entry.elapsedTime = runResults.elapsed_time;
-    entry.invocationId = runResults.metadata?.invocation_id;
-    entry.models = this.parseResults(runResults.results);
-
-    this._onHistoryChanged.fire(entry);
-  }
-
-  /**
-   * Mark a run as failed (when command errors before completing)
-   */
-  failRun(id: string, errorMessage?: string): void {
-    const entry = this.history.find((e) => e.id === id);
-    if (!entry) {
-      return;
-    }
-
-    entry.endTime = new Date();
-    // Add a synthetic error result
-    entry.models = [
-      {
-        name: "Command Error",
-        uniqueId: "error",
-        status: "error",
-        executionTime: 0,
-        message: errorMessage || "Command failed to complete",
-        resourceType: "model",
-      },
-    ];
-
-    this._onHistoryChanged.fire(entry);
-  }
-
-  /**
-   * Get the full run history
-   */
   getHistory(): RunHistoryEntry[] {
     return [...this.history];
   }
@@ -181,16 +128,6 @@ export class RunHistoryService implements Disposable {
   private extractModelName(uniqueId: string): string {
     const parts = uniqueId.split(".");
     return parts[parts.length - 1] || uniqueId;
-  }
-
-  /**
-   * Generate a unique ID for a run entry.
-   * Note: We can't use dbt's invocation_id because we need an ID before the
-   * run starts (to track pending runs), but invocation_id only comes after
-   * the run completes in run_results.json.
-   */
-  private generateId(): string {
-    return crypto.randomUUID();
   }
 
   dispose(): void {

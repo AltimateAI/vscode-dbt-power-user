@@ -47,13 +47,7 @@ export class RunTreeItem extends TreeItem {
   }
 
   private static getDescription(entry: RunHistoryEntry): string {
-    if (!entry.endTime) {
-      return "Running...";
-    }
-
-    const duration = entry.elapsedTime
-      ? `${entry.elapsedTime.toFixed(2)}s`
-      : "";
+    const duration = `${entry.elapsedTime.toFixed(2)}s`;
     const modelCount = entry.models.length;
     const successCount = entry.models.filter((m) =>
       isSuccessStatus(m.status),
@@ -62,10 +56,7 @@ export class RunTreeItem extends TreeItem {
       isErrorStatus(m.status),
     ).length;
 
-    const parts: string[] = [];
-    if (duration) {
-      parts.push(duration);
-    }
+    const parts: string[] = [duration];
     if (modelCount > 0) {
       if (failCount > 0) {
         parts.push(`${successCount}/${modelCount} passed`);
@@ -78,31 +69,19 @@ export class RunTreeItem extends TreeItem {
   }
 
   private static getIcon(entry: RunHistoryEntry): ThemeIcon {
-    if (!entry.endTime) {
-      return new ThemeIcon("sync~spin", new ThemeColor("charts.yellow"));
-    }
-
     const hasError = entry.models.some((m) => isErrorStatus(m.status));
     if (hasError) {
       return new ThemeIcon("error", new ThemeColor("charts.red"));
     }
-
     return new ThemeIcon("pass", new ThemeColor("charts.green"));
   }
 
   private static getTooltip(entry: RunHistoryEntry): string {
     const lines: string[] = [];
     lines.push(`Project: ${entry.projectName}`);
-    lines.push(`Started: ${entry.startTime.toLocaleTimeString()}`);
-    if (entry.endTime) {
-      lines.push(`Ended: ${entry.endTime.toLocaleTimeString()}`);
-    }
-    if (entry.elapsedTime) {
-      lines.push(`Duration: ${entry.elapsedTime.toFixed(2)}s`);
-    }
-    if (entry.invocationId) {
-      lines.push(`Invocation: ${entry.invocationId}`);
-    }
+    lines.push(`Completed: ${entry.completedAt.toLocaleTimeString()}`);
+    lines.push(`Duration: ${entry.elapsedTime.toFixed(2)}s`);
+    lines.push(`Invocation: ${entry.id}`);
     return lines.join("\n");
   }
 }
