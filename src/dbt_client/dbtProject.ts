@@ -125,6 +125,8 @@ export class DBTProject implements Disposable {
     DBTCommandExecution[]
   >();
   private queueStates: Map<string, boolean> = new Map<string, boolean>();
+  // Track pending run history entries waiting for results
+  private pendingRunIds: string[] = [];
 
   constructor(
     @inject(PythonEnvironment)
@@ -260,6 +262,24 @@ export class DBTProject implements Disposable {
         const uniqueIds = runResultsData.results.map(
           (result) => result.unique_id,
         );
+
+        // Complete pending run history entry
+        if (this.pendingRunIds.length > 0) {
+          const runId = this.pendingRunIds.shift()!;
+          this.runHistoryService.completeRun(runId, {
+            metadata: {
+              invocation_id: (runResultsData as any).metadata?.invocation_id,
+            },
+            results: runResultsData.results.map((r) => ({
+              unique_id: r.unique_id,
+              status: r.status,
+              execution_time: r.execution_time,
+              message: r.message,
+              compiled_code: r.compiled_code,
+            })),
+            elapsed_time: (runResultsData as any).elapsed_time ?? 0,
+          });
+        }
 
         // Fire the VSCode event with parsed unique_ids
         const runResultsEvent = new RunResultsEvent(this, uniqueIds);
@@ -655,6 +675,16 @@ export class DBTProject implements Disposable {
     const runModelCommand =
       this.dbtCommandFactory.createRunModelCommand(runModelParams);
 
+    // Start run history tracking
+    const selectArg = `${runModelParams.plusOperatorLeft}${runModelParams.modelName}${runModelParams.plusOperatorRight}`;
+    const runId = this.runHistoryService.startRun(
+      "run",
+      ["--select", selectArg],
+      this.getProjectName(),
+      this.projectRoot.fsPath,
+    );
+    this.pendingRunIds.push(runId);
+
     try {
       const command =
         await this.getCurrentProjectIntegration().runModel(runModelCommand);
@@ -663,6 +693,12 @@ export class DBTProject implements Disposable {
         this.addCommandToQueue("all", command);
       }
     } catch (error) {
+      // Remove pending run and mark as failed
+      const idx = this.pendingRunIds.indexOf(runId);
+      if (idx !== -1) {
+        this.pendingRunIds.splice(idx, 1);
+        this.runHistoryService.failRun(runId, (error as Error).message);
+      }
       this.handleNoCredentialsError(error);
     }
   }
@@ -680,6 +716,16 @@ export class DBTProject implements Disposable {
     const buildModelCommand =
       this.dbtCommandFactory.createBuildModelCommand(runModelParams);
 
+    // Start run history tracking
+    const selectArg = `${runModelParams.plusOperatorLeft}${runModelParams.modelName}${runModelParams.plusOperatorRight}`;
+    const runId = this.runHistoryService.startRun(
+      "build",
+      ["--select", selectArg],
+      this.getProjectName(),
+      this.projectRoot.fsPath,
+    );
+    this.pendingRunIds.push(runId);
+
     try {
       const command =
         await this.getCurrentProjectIntegration().buildModel(buildModelCommand);
@@ -688,6 +734,12 @@ export class DBTProject implements Disposable {
         this.addCommandToQueue("all", command);
       }
     } catch (error) {
+      // Remove pending run and mark as failed
+      const idx = this.pendingRunIds.indexOf(runId);
+      if (idx !== -1) {
+        this.pendingRunIds.splice(idx, 1);
+        this.runHistoryService.failRun(runId, (error as Error).message);
+      }
       this.handleNoCredentialsError(error);
     }
   }
@@ -707,6 +759,15 @@ export class DBTProject implements Disposable {
     const buildProjectCommand =
       this.dbtCommandFactory.createBuildProjectCommand();
 
+    // Start run history tracking
+    const runId = this.runHistoryService.startRun(
+      "build",
+      [],
+      this.getProjectName(),
+      this.projectRoot.fsPath,
+    );
+    this.pendingRunIds.push(runId);
+
     try {
       const command =
         await this.getCurrentProjectIntegration().buildProject(
@@ -717,6 +778,12 @@ export class DBTProject implements Disposable {
         this.addCommandToQueue("all", command);
       }
     } catch (error) {
+      // Remove pending run and mark as failed
+      const idx = this.pendingRunIds.indexOf(runId);
+      if (idx !== -1) {
+        this.pendingRunIds.splice(idx, 1);
+        this.runHistoryService.failRun(runId, (error as Error).message);
+      }
       this.handleNoCredentialsError(error);
     }
   }
@@ -734,6 +801,15 @@ export class DBTProject implements Disposable {
     const testModelCommand =
       this.dbtCommandFactory.createTestModelCommand(testName);
 
+    // Start run history tracking
+    const runId = this.runHistoryService.startRun(
+      "test",
+      ["--select", testName],
+      this.getProjectName(),
+      this.projectRoot.fsPath,
+    );
+    this.pendingRunIds.push(runId);
+
     try {
       const command =
         await this.getCurrentProjectIntegration().runTest(testModelCommand);
@@ -742,6 +818,12 @@ export class DBTProject implements Disposable {
         this.addCommandToQueue("all", command);
       }
     } catch (error) {
+      // Remove pending run and mark as failed
+      const idx = this.pendingRunIds.indexOf(runId);
+      if (idx !== -1) {
+        this.pendingRunIds.splice(idx, 1);
+        this.runHistoryService.failRun(runId, (error as Error).message);
+      }
       this.handleNoCredentialsError(error);
     }
   }
@@ -759,6 +841,15 @@ export class DBTProject implements Disposable {
     const testModelCommand =
       this.dbtCommandFactory.createTestModelCommand(modelName);
 
+    // Start run history tracking
+    const runId = this.runHistoryService.startRun(
+      "test",
+      ["--select", modelName],
+      this.getProjectName(),
+      this.projectRoot.fsPath,
+    );
+    this.pendingRunIds.push(runId);
+
     try {
       const command =
         await this.getCurrentProjectIntegration().runModelTest(
@@ -769,6 +860,12 @@ export class DBTProject implements Disposable {
         this.addCommandToQueue("all", command);
       }
     } catch (error) {
+      // Remove pending run and mark as failed
+      const idx = this.pendingRunIds.indexOf(runId);
+      if (idx !== -1) {
+        this.pendingRunIds.splice(idx, 1);
+        this.runHistoryService.failRun(runId, (error as Error).message);
+      }
       this.handleNoCredentialsError(error);
     }
   }

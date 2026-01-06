@@ -4,7 +4,7 @@ import {
   TreeItem,
   TreeItemCollapsibleState,
 } from "vscode";
-import { RunHistoryEntry, ModelRunResult } from "../services/runHistoryService";
+import { ModelRunResult, RunHistoryEntry } from "../services/runHistoryService";
 
 // Map dbt status to icon configuration
 const STATUS_ICONS: Record<string, { icon: string; color: string }> = {
