@@ -57,7 +57,6 @@ export interface RunHistoryEntry {
 
 export class RunHistoryService implements Disposable {
   private history: RunHistoryEntry[] = [];
-  private maxEntries = 50;
 
   private _onHistoryChanged = new EventEmitter<RunHistoryEntry | undefined>();
   readonly onHistoryChanged: Event<RunHistoryEntry | undefined> =
@@ -81,7 +80,6 @@ export class RunHistoryService implements Disposable {
     };
 
     this.history.unshift(entry);
-    this.trimHistory();
     this._onHistoryChanged.fire(entry);
 
     return id;
@@ -193,15 +191,6 @@ export class RunHistoryService implements Disposable {
    */
   private generateId(): string {
     return crypto.randomUUID();
-  }
-
-  /**
-   * Keep history within maxEntries limit
-   */
-  private trimHistory(): void {
-    if (this.history.length > this.maxEntries) {
-      this.history = this.history.slice(0, this.maxEntries);
-    }
   }
 
   dispose(): void {
