@@ -45,7 +45,7 @@ Traditional AI approaches have critical limitations. These limitations are well 
 ## Extending Context
 
 Beyond the integrations already connected to your SaaS instance, Playground allows you to enrich your queries with additional context:
-![Playground Datamates and Knowledge Base](images/playground-datamates-knowledge-base.png)
+![Playground Datamates and Knowledge Base](playground/images/playground-datamates-knowledge-base.png)
 
 | Option | Description |
 |--------|-------------|
@@ -103,7 +103,7 @@ Playground provides transparency about result quality:
 ## Components of Playground
 
 Two important components of Playground are Chat History and Prompt Library:
-![Playground Chat History and Prompt Store](images/playground-chat-history-prompt-store.png)
+![Playground Chat History and Prompt Store](playground/images/playground-chat-history-prompt-store.png)
 
 ### Chat History
 
