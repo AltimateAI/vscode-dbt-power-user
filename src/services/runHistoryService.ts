@@ -1,10 +1,27 @@
 import * as crypto from "crypto";
 import { Disposable, Event, EventEmitter } from "vscode";
-import { RunResultsData, RunResultItem } from "@altimateai/dbt-integration";
-import { provideSingleton } from "../utils";
 
-// Re-export for consumers that were importing from this file
-export type { RunResultsData, RunResultItem };
+/**
+ * Structure of a single result item from dbt's run_results.json
+ */
+export interface RunResultItem {
+  unique_id: string;
+  status?: string;
+  execution_time?: number;
+  message?: string;
+  compiled_code?: string;
+}
+
+/**
+ * Structure of dbt's run_results.json file
+ */
+export interface RunResultsData {
+  metadata?: {
+    invocation_id?: string;
+  };
+  results: RunResultItem[];
+  elapsed_time: number;
+}
 
 /**
  * Processed model result for display in run history.
@@ -41,7 +58,6 @@ export interface RunHistoryEntry {
   invocationId?: string;
 }
 
-@provideSingleton(RunHistoryService)
 export class RunHistoryService implements Disposable {
   private history: RunHistoryEntry[] = [];
   private maxEntries = 50;

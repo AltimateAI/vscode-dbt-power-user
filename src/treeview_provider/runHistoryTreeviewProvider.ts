@@ -5,15 +5,13 @@ import {
   TreeDataProvider,
   TreeItem,
 } from "vscode";
-import { provideSingleton } from "../utils";
 import { RunHistoryService } from "../services/runHistoryService";
 import {
-  RunTreeItem,
   ModelResultTreeItem,
   RunHistoryTreeItem,
+  RunTreeItem,
 } from "./runHistoryTreeItems";
 
-@provideSingleton(RunHistoryTreeviewProvider)
 export class RunHistoryTreeviewProvider
   implements TreeDataProvider<RunHistoryTreeItem>, Disposable
 {

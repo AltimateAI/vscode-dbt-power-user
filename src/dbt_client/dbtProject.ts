@@ -58,10 +58,7 @@ import {
 } from "vscode";
 import { AltimateRequest, ModelNode } from "../altimate";
 import { AltimateAuthService } from "../services/altimateAuthService";
-import {
-  RunHistoryService,
-  DbtRunResults,
-} from "../services/runHistoryService";
+import { RunHistoryService } from "../services/runHistoryService";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
