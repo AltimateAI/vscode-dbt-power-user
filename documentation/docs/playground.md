@@ -9,13 +9,13 @@ Playground is a specialized agent designed for users to interact with their data
 Playground empowers users to:
 
 - **Analyze performance** of existing workloads across your data infrastructure
-- **DBT Project analysis** of entire DBT project structure, models, tests, dependencies etc.
-- **Lineage exploration** to explore the lineage of DBT models and answer related questions
-- **Documentation search** allows to search through DBT models documentation as well as add missing documentation
+- **dbt Project analysis** of entire dbt project structure, models, tests, dependencies etc.
+- **Lineage exploration** to explore the lineage of dbt models and answer related questions
+- **Documentation search** allows to search through dbt models documentation as well as add missing documentation
 - **Perform root cause analysis** to quickly identify and resolve issues
 - **Conduct cross-tool analysis** spanning multiple platforms in a single conversation
 - **Generate detailed optimization plans** with quantified outcomes and projected savings
-- **Best practices review** to get recommendations on DBT models best practices implementation
+- **Best practices review** to get recommendations on dbt models best practices implementation
 
 ## Why Do We Need Playground?
 
