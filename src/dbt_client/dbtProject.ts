@@ -269,8 +269,8 @@ export class DBTProject implements Disposable {
           {
             metadata: {
               invocation_id: resultsData.metadata?.invocation_id,
-              args: resultsData.metadata?.args,
             },
+            args: resultsData.args,
             results: resultsData.results.map((r: any) => ({
               unique_id: r.unique_id,
               status: r.status,

@@ -12,10 +12,11 @@ interface RunResultItem {
 interface RunResultsData {
   metadata?: {
     invocation_id?: string;
-    args?: {
-      which?: string;
-      select?: string[];
-    };
+  };
+  /** Top-level args dict per dbt schema */
+  args?: {
+    which?: string;
+    select?: string[];
   };
   results: RunResultItem[];
   elapsed_time: number;
@@ -64,8 +65,8 @@ export class RunHistoryService implements Disposable {
   ): RunHistoryEntry {
     const result: RunHistoryEntry = {
       id: runResults.metadata?.invocation_id || `run-${Date.now()}`,
-      command: runResults.metadata?.args?.which || "unknown",
-      args: runResults.metadata?.args?.select || [],
+      command: runResults.args?.which || "unknown",
+      args: runResults.args?.select || [],
       completedAt: new Date(),
       projectName,
       models: this.parseResults(runResults.results),

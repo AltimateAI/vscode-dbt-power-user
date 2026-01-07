@@ -25,10 +25,10 @@ describe("RunHistoryService", () => {
       const runResults = {
         metadata: {
           invocation_id: "test-invocation-123",
-          args: {
-            which: "run",
-            select: ["model1", "model2"],
-          },
+        },
+        args: {
+          which: "run",
+          select: ["model1", "model2"],
         },
         results: [
           {
@@ -76,9 +76,8 @@ describe("RunHistoryService", () => {
 
     it("should use empty array when args.select is missing", () => {
       const runResults = {
-        metadata: {
-          args: {},
-        },
+        metadata: {},
+        args: {},
         results: [],
         elapsed_time: 1.0,
       };
