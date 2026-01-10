@@ -1,3 +1,4 @@
+import { injectable } from "inversify";
 import { Disposable, Event, EventEmitter } from "vscode";
 // TODO: Import from @altimateai/dbt-integration once PR #14 is merged and published
 // import { RunResultItem, RunResultsData } from "@altimateai/dbt-integration";
@@ -47,6 +48,7 @@ export interface RunHistoryEntry {
   elapsedTime: number;
 }
 
+@injectable()
 export class RunHistoryService implements Disposable {
   private history: RunHistoryEntry[] = [];
 
@@ -95,7 +97,7 @@ export class RunHistoryService implements Disposable {
       return {
         name,
         uniqueId: result.unique_id,
-        status: result.status ?? "error",
+        status: result.status ?? "unknown",
         executionTime: result.execution_time ?? 0,
         message: result.message,
         resourceType,

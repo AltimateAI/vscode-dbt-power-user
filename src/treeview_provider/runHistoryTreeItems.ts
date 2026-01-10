@@ -6,17 +6,22 @@ import {
 } from "vscode";
 import { ModelRunResult, RunHistoryEntry } from "../services/runHistoryService";
 
-// Map dbt status to icon configuration
-const STATUS_ICONS: Record<string, { icon: string; color: string }> = {
-  success: { icon: "check", color: "charts.green" },
-  pass: { icon: "check", color: "charts.green" },
-  error: { icon: "x", color: "charts.red" },
-  fail: { icon: "x", color: "charts.red" },
-  skipped: { icon: "debug-step-over", color: "charts.gray" },
-  skip: { icon: "debug-step-over", color: "charts.gray" },
-};
-
-const DEFAULT_ICON = { icon: "question", color: "" };
+// Get icon configuration for dbt status
+function getStatusIcon(status: string): { icon: string; color: string } {
+  switch (status) {
+    case "success":
+    case "pass":
+      return { icon: "check", color: "charts.green" };
+    case "error":
+    case "fail":
+      return { icon: "x", color: "charts.red" };
+    case "skipped":
+    case "skip":
+      return { icon: "debug-step-over", color: "charts.gray" };
+    default:
+      return { icon: "question", color: "" };
+  }
+}
 
 const isSuccessStatus = (status: string) =>
   status === "success" || status === "pass";
@@ -70,10 +75,10 @@ export class RunTreeItem extends TreeItem {
 
   private static getIcon(entry: RunHistoryEntry): ThemeIcon {
     const hasError = entry.models.some((m) => isErrorStatus(m.status));
-    if (hasError) {
-      return new ThemeIcon("error", new ThemeColor("charts.red"));
-    }
-    return new ThemeIcon("pass", new ThemeColor("charts.green"));
+    const result = hasError
+      ? new ThemeIcon("error", new ThemeColor("charts.red"))
+      : new ThemeIcon("pass", new ThemeColor("charts.green"));
+    return result;
   }
 
   private static getTooltip(entry: RunHistoryEntry): string {
@@ -107,7 +112,7 @@ export class ModelResultTreeItem extends TreeItem {
   }
 
   private static getIcon(result: ModelRunResult): ThemeIcon {
-    const config = STATUS_ICONS[result.status] ?? DEFAULT_ICON;
+    const config = getStatusIcon(result.status);
     return config.color
       ? new ThemeIcon(config.icon, new ThemeColor(config.color))
       : new ThemeIcon(config.icon);
