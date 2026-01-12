@@ -173,6 +173,64 @@ Prompt Library is a shared repository of pre-built, reusable prompts that help y
 - **Knowledge Sharing** - Share effective prompts across the organization or with specific teams
 - **Parameterized Templates** - Prompts with placeholders adapt to different scenarios
 
+## Accessing Playground from SaaS Pages
+
+Playground is also seamlessly integrated throughout the SaaS platform, providing context-aware assistance directly within the pages. A Playground popup is available on every major page, offering relevant prompts and insights based on the specific data and context of that page.
+
+### How It Works
+
+Each SaaS page includes a **Playground button** (chat icon) in the bottom right corner. Clicking this button opens a Playground popup panel that:
+
+![Playground Access Button](playground/images/All Roads to Playground1.png)
+![Playground Popup Panel](playground/images/All Roads to Playground2.png)
+
+- **Automatically understands the page context** - The agent knows which page you're on and what data you're viewing
+- **Provides relevant suggested prompts** - Pre-built questions specific to that page's functionality
+- **Allows custom questions** - You can ask your own questions within the page context
+- **Offers full expansion** - Use the "Expand in Playground" link to open the full Playground experience
+
+### Page-Specific Playground Integration
+
+#### Summary Page:
+
+When accessing Playground from the **Summary** page, you get assistance focused on cost analysis and spending insights.
+
+**Use Cases**: Cost analysis, spending trends, budget forecasting, cost optimization opportunities
+
+#### Discover Page:
+
+When accessing Playground from the **Discover** page, you get assistance in identifying and prioritizing optimization opportunities.
+
+**Use Cases**: Optimization prioritization, cost-saving initiatives, quick wins identification, resource efficiency
+
+#### Datasets Page:
+
+When accessing Playground from the **Datasets** page, you get assistance for exploring and understanding your data assets.
+
+**Use Cases**: Data catalog exploration, metadata analysis, data governance, dependency mapping
+
+#### Code Page:
+
+When accessing Playground from the **Code** page (Queries tab), you get assistance for query performance analysis and optimization.
+
+**Use Cases**: Query optimization, performance troubleshooting, cost attribution, anti-pattern identification
+
+#### Infra Page:
+
+When accessing Playground from the **Infra** page, you get assistance for infrastructure management and warehouse optimization.
+
+**Use Cases**: Resource monitoring, infrastructure cost optimization, utilization analysis
+
+### Benefits of Page-Specific Playground
+
+| Benefit | Description |
+|---------|-------------|
+| **Consistent Experience** | Same powerful Playground's agent capabilities available wherever you need them |
+| **Contextual Intelligence** | The dgent understands what data and metrics are relevant to your current page |
+| **Faster Insights** | No need to switch between pages. Suggested prompts help you ask the right questions immediately without thinking about context |
+| **Progressive Disclosure** | Start with a quick popup, expand to full Playground when needed |
+| **Chat History** |  The history for all the chats done through SaaS pages is retained and can be viewed on the main Playground page|
+
 /// admonition | Playground is currently in Beta. We're continuously improving the platform based on user feedback.
 type: info
 ///
