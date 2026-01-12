@@ -49,7 +49,7 @@ You can hover over connections like join, group, union to see the code. You can 
 
 ## Same view is available in the SaaS Discovery UI
 
-SQL visualizer is also available in the SaaS Disovery UI where you can also see column lineage, dbt Model documentation and compiled code.
+SQL visualizer is also available in the SaaS Discovery UI where you can also see column lineage, dbt Model documentation and compiled code.
 Please check more details on how to set up SaaS Discovery UI [here](../discover/setupui.md)
 
 ![saas SQL Visualizer](images/saasSQLVisualizer.png)

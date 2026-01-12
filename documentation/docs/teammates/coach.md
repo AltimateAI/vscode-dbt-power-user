@@ -21,7 +21,7 @@ as shown below:
 
 ### Provide instructions
 
-You can provide instructions in the naturla language first and then the AI temmate will show you what it has understood.
+You can provide instructions in the natural language first and then the AI temmate will show you what it has understood.
 You can edit that understanding further as shown below:
 
 ![addInstructions](images/addInstructions.png)<br>
