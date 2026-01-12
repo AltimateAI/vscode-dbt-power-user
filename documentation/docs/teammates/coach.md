@@ -4,7 +4,7 @@ First, enable AI teammates functionality by going in settings -> teammates menu.
 ![enableTeammates](images/enableTeammates.png)<br>
 
 /// admonition | Unless you enable teammates in the SaaS instance, coaching and personalization outlined below won't work.
-type: warning
+    type: warning
 ///
 
 ## Documentation Writer

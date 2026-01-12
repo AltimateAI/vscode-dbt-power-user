@@ -65,12 +65,11 @@ For more in-depth diagnostics, use the developer tools in Visual Studio Code (VS
 If issues still remain unresolved, please [contact us](https://www.altimate.ai/support) via Slack or chat for further assistance.
 
 /// admonition | Feedback Widgets
-type: tip
+    type: tip
 
 There are also feedback widgets in the extension embedded in various features, where you can directly provide feedback on the roadmap or any issues that you encountered.
 ///
 
 /// admonition | Still stuck? [contact us](https://www.altimate.ai/support) via Slack or chat
-type: tip
-
+    type: tip
 ///

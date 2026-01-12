@@ -2,7 +2,7 @@ This page covers the setup steps necessary to view your dbt documentation and li
 The steps below ship your manifest.json and catalog.json projects to SaaS UI in order to visualize information like dbt model/column descriptions and column lineage.
 
 /// admonition | Please note that this lineage and documentation in UI functionality is not yet supported with dbt 1.8
-type: info
+    type: info
 ///
 
 ## Step 1: Add new integration in the "Settings" area
@@ -33,7 +33,7 @@ Here's the link to the repo: [https://github.com/AltimateAI/datapilot-cli](https
 Go to Settings->Integrations page and click on the environment name for the integration you just created. Copy the command for uploading files in the overlay screen on the side.
 
 /// admonition | manifest and catalog files don't contain any information about your data. It's all metadata about your environment. Please feel free to check our [security page](https://docs.myaltimate.com/arch/faq/) for more info on how we protect your metadata.
-type: info
+    type: info
 ///
 
 ![copyCommand](images/copyCommand.png)<br>
@@ -69,8 +69,8 @@ curl -X GET \
 - `RUN_ID` - The specific run ID for the artifacts
 - `DBT_CLOUD_TOKEN` - Your DBT Cloud API authentication token
 
-/// admonition | If you are missing manifest.json or catalog.json files in the target directory, please run the 'dbt build' and 'dbt docs' commands. Also, you can add steps to upload the manifest and catalog files command in your dbt pipelines. That way, you will always have up-to-date documentation and lineage in UI without any manual steps.  
- type: tip
+/// admonition | If you are missing manifest.json or catalog.json files in the target directory, please run the 'dbt build' and 'dbt docs' commands. Also, you can add steps to upload the manifest and catalog files command in your dbt pipelines. That way, you will always have up-to-date documentation and lineage in UI without any manual steps.
+    type: tip
 ///
 Here's the sample output after running the command and successfully uploading your files.
 
@@ -83,7 +83,7 @@ Manifest and catalog ingestion has started. You can check the status at https://
 ```
 
 /// admonition | It takes a few minutes to upload the files and sync that info with the rest of the UI. You can check the status of the upload by going to the link provided in the command output.
-type: tip
+    type: tip
 ///
 
 ## Automating with CI/CD Pipelines

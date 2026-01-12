@@ -19,7 +19,7 @@ Add additional config for -
 Your instance-url may be either "instance-name".app.getaltimate.com or "instance-name".app.myaltimate.com
 
 /// admonition | If you don't know the instance-name in above URIs, please contact the support team
-type: tip
+    type: tip
 ///
 
 Also, in "Assignments" section, please choose "skip group assignments" for now.
@@ -44,7 +44,7 @@ Please use URL as https://<tenant>.getaltimate.com/login-redirect/okta or https:
 After this point, you can start using your Altimate AI instance with SSO and start onboarding users!
 
 /// admonition | You need to have an enterprise plan for the SSO integration.
-type: info
+    type: info
 ///
 
 ## Azure AD SSO Setup
@@ -66,7 +66,7 @@ Enter a valid application name and in “Redirect URI” section, select “Web�
 Your instance-url may be either "instance-name".app.getaltimate.com or "instance-name".app.myaltimate.com
 
 /// admonition | If you don't know the instance-name in above URIs, please contact the support team
-type: tip
+    type: tip
 ///
 
 After registration, in overview section of the application, copy and save “Application (client) ID”. Then, Click “Add a certificate or secret”
@@ -78,7 +78,7 @@ click “New client secret”. Enter description and select expiration according
 ![Add Client Secret](images/addClientSecret.png)
 
 /// admonition | Make sure to contact us to update the secrets if it is expired.
-type: tip
+    type: tip
 ///
 
 Copy and save the secret value
@@ -131,7 +131,7 @@ Once you've configured your app to enable user assignment, you can go ahead and 
 ![App Users](images/appUsers.png)
 
 /// admonition | If needed, please check Microsoft Entra documentation [here](https://learn.microsoft.com/en-us/entra/identity-platform/howto-restrict-your-app-to-a-set-of-users)
-type: tip
+    type: tip
 ///
 
 ## Azure AD Troubleshooting
