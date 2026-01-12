@@ -226,7 +226,7 @@ When accessing Playground from the **Infra** page, you get assistance for infras
 | Benefit | Description |
 |---------|-------------|
 | **Consistent Experience** | Same powerful Playground's agent capabilities available wherever you need them |
-| **Contextual Intelligence** | The dgent understands what data and metrics are relevant to your current page |
+| **Contextual Intelligence** | The agent understands what data and metrics are relevant to your current page |
 | **Faster Insights** | No need to switch between pages. Suggested prompts help you ask the right questions immediately without thinking about context |
 | **Progressive Disclosure** | Start with a quick popup, expand to full Playground when needed |
 | **Chat History** |  The history for all the chats done through SaaS pages is retained and can be viewed on the main Playground page|
