@@ -4,7 +4,7 @@ We have done many security/governance reviews for these companies and we are SOC
 Here is our [Privacy Policy](https://www.altimate.ai/privacy) and [Terms of Use](https://www.altimate.ai/terms).
 
 /// admonition | If you need us to do a security review with your IT / security teams, please [contact us](https://www.altimate.ai/support) via chat or Slack.
-type: tip
+    type: tip
 ///
 
 ### **Security Measures & Protocols**
@@ -38,7 +38,7 @@ Users are authenticated with email and password combinations in the SaaS UI. In 
 Yes, at Altimate AI, we have a robust disaster recovery plan in place. Our data is backed up frequently to ensure minimal data loss. In the event of any system failure, our recovery processes are designed to restore services within an hour. This quick recovery time minimizes disruptions and ensures the continuity of our services for our users.
 
 /// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support) via chat or Slack.
-type: tip
+    type: tip
 ///
 
 ---
@@ -69,7 +69,7 @@ We do not store any actual customer data, we only store aggregate statistics and
 Our customers typically do not request or require DPAs. However, we're happy to provide a DPA or review a vendor DPA if your organization needs it.
 
 /// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support) via chat or Slack.
-type: tip
+    type: tip
 ///
 
 ### 5. **What is your cookie policy?**
@@ -96,7 +96,7 @@ We employ strict data isolation and access controls. The multi-tenant architectu
 Currently, we do not use client data for model training, so there's no opt-in or opt-out mechanism. If our policy were to change in the future, we would provide users with clear communication and choices regarding the use of their data.
 
 /// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support) via chat or Slack.
-type: tip
+    type: tip
 ///
 
 ---
@@ -142,11 +142,11 @@ The above model attributes will be referenced in the following feature descripti
 - **dbt manifest file** In the SaaS mode - when you configure "DataPilot dbt integration", manifest files are uploaded to the SaaS instance.
 
 /// admonition | If you would like to connect your on-premise storage for manifest file uploads, please [contact us](https://www.altimate.ai/support) via chat or Slack.
-type: info
+    type: info
 ///
 
 All of the details can be found in the code [here](https://github.com/AltimateAI/vscode-dbt-power-user/blob/master/src/altimate.ts). Please note that we only send meta-data, such as model schema and queries to the backend. We never send actual data to the backend and we do not store any of the meta-data.
 
 /// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support) via chat or Slack.
-type: tip
+    type: tip
 ///

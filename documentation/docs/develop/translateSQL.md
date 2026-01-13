@@ -20,7 +20,7 @@ Source dialect: Current dialect of the SQL present in the file
 Destination dialect: The SQL dialect in which you want to translate the query
 
 /// admonition | Destination dialect value is auto-populated in the drop-down based on the data backend for current dbt Project. It can be changed by clicking on it.
-type: tip
+    type: tip
 ///
 
 Hit the "Translate" button after source and destination dialects are provided.
@@ -28,7 +28,7 @@ Hit the "Translate" button after source and destination dialects are provided.
 ![translateButton](images/translateButton.png)
 
 /// admonition | Query Translate (SQL Dialect) functionality works on the whole file, and not selected code snippet. DataPilot will proceed with assumption that the whole file needs to be translated.
-type: info
+    type: info
 ///
 
 ### Step 4: Review Translated SQL and Explanation
@@ -40,7 +40,7 @@ Different databases use different functions for common operations or sometimes s
 ![actulTranslation](images/actualTranslation.png)
 
 /// admonition | You can click on "Replace" button below translated query, and translate query will replace the original query in the file.
-type: tip
+    type: tip
 ///
 
 ### Step 5: Convert SQL to dbt Model (optional)

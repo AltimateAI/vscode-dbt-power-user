@@ -46,5 +46,5 @@ If the price of the monthly subscription is lower than the yearly subscription, 
 If you would like to make an immediate change to your subscription, make the change at a yearly plan level. It will be considered an upgrade and will be effective immediately.
 
 /// admonition | If you can't find your question here, please [contact us](https://www.altimate.ai/support) via Slack.
-type: tip
+    type: tip
 ///

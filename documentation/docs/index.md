@@ -1,6 +1,6 @@
 # Accelerate dbt and SQL Development by 3x
 
-/// admonition | We've released our [DataMates Extension](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server) - to give you the power to use AI TeamMates! [Click here](https://datamates-docs.myaltimate.com/) to learn more.
+/// admonition | We've released our [Datamates Extension](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server) - to give you the power to use AI TeamMates! [Click here](https://datamates-docs.myaltimate.com/) to learn more.
 ///
 
 Welcome to the docs for [dbt Power User VSCode Extension](https://marketplace.visualstudio.com/items?itemName=innoverio.vscode-dbt-power-user), an [open sourced](https://github.com/AltimateAI/vscode-dbt-power-user) extension created by [Altimate AI](https://www.altimate.ai/).
@@ -166,10 +166,10 @@ It offers various features across three important phases of dbt and SQL work - d
 
 </div>
 
-## DataMates with AI Teammates
+## Datamates with AI Teammates
 
-The Power User extension is part of the DataMates Platform. DataMates Platform offers the functionality to automate and accelerate the work of data teams in various areas
-of platform engineering, data engineering, and analytics engineering. DataMates Platform consists of many AI teammates to help data teams with their work. For example, there is a documentation generator teammate that's specifically developed to handle data documentation work.
+The Power User extension is part of the Datamates Platform. Datamates Platform offers the functionality to automate and accelerate the work of data teams in various areas
+of platform engineering, data engineering, and analytics engineering. Datamates Platform consists of many AI teammates to help data teams with their work. For example, there is a documentation generator teammate that's specifically developed to handle data documentation work.
 
 These AI teammates are available as part of the power user extension to offer the functionality ranging from dbt models, docs, tests generation to SQL translation & explanation. AI teammates can be coached by you and personalized for your specific requirements. To learn more - please check this section on [coaching AI teammates](./teammates/coach.md).
 
@@ -211,7 +211,7 @@ The dbt Power User Extension has great features out of the box. Add a free [Alti
             </div>
             <div class="column">
                 <ul>
-                    <li><a href="https://datamates-docs.myaltimate.com/user-guide/home/">DataMates</a></li> 
+                    <li><a href="https://datamates-docs.myaltimate.com/user-guide/home/">Datamates</a></li> 
                     <li><a href="test/lineage/#column-lineage">Data Lineage: Column Level </a></li>
                     <li><a href="develop/explanation">Query Explanation AI</a></li>
                     <li><a href="develop/translateSQL">Query Translation AI</a></li>
@@ -242,7 +242,7 @@ The dbt Power User Extension has great features out of the box. Add a free [Alti
 
 ## Support
 
-Power user extension and DataMates Platform is developed and maintained by [Altimate AI team](https://www.altimate.ai).
+Power user extension and Datamates Platform is developed and maintained by [Altimate AI team](https://www.altimate.ai).
 Please join the dbt Community Slack Channel [#tools-dbt-power-user](https://getdbt.slack.com/archives/C05KPDGRMDW) to meet with the community of users of the extension.
 
 If you run into issues, please [contact us](https://www.altimate.ai/support) via Slack or chat

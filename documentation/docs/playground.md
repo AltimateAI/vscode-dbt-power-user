@@ -174,9 +174,9 @@ Prompt Library is a shared repository of pre-built, reusable prompts that help y
 - **Parameterized Templates** - Prompts with placeholders adapt to different scenarios
 
 /// admonition | Playground is currently in Beta. We're continuously improving the platform based on user feedback.
-type: info
+    type: info
 ///
 
 /// admonition | For more information and access to Playground, visit [app.myaltimate.com](https://app.myaltimate.com)
-type: tip
+    type: tip
 ///
