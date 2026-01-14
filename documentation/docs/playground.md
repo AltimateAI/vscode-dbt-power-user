@@ -232,9 +232,9 @@ When accessing Playground from the **Infra** page, you get assistance for infras
 | **Chat History** |  The history for all the chats done through SaaS pages is retained and can be viewed on the main Playground page|
 
 /// admonition | Playground is currently in Beta. We're continuously improving the platform based on user feedback.
-type: info
+    type: info
 ///
 
 /// admonition | For more information and access to Playground, visit [app.myaltimate.com](https://app.myaltimate.com)
-type: tip
+    type: tip
 ///

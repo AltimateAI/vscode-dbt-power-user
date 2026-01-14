@@ -31,9 +31,9 @@ Once you start the query explanation workflow in the DataPilot chat panel on the
 <iframe width="800" height="600" src="https://www.youtube.com/embed/OfAmF9cJHEw?si=ueaufGL_MObAJpbf" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 /// admonition | Please provide feedback on the generated explanations using thumbs up / down buttons. Your feedback will help us tremendously to improve this functionality.
-type: tip
+    type: tip
 ///
 
 /// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai)
-type: info
+    type: info
 ///

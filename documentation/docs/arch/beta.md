@@ -1,9 +1,9 @@
 /// admonition | Only use the following steps for "dbt Cloud" environments. If you have a dbt Core environment, use the [required config instructions for "dbt Core" environments](../setup/reqdConfig.md). If you have a dbt Fusion environment, use the [required config instructions for "dbt Fusion" environments](../setup/reqdConfigFusion.md).
-type: warning
+    type: warning
 ///
 
 /// admonition | dbt Cloud integration is available as beta functionality
-type: tip
+    type: tip
 ///
 
 ## Enable dbt Cloud Integration by adding an API key
@@ -32,7 +32,7 @@ Go to the VSCode extension settings, and then add an API key and instance name.
 ## Use the setup wizard for configuration (recommended)
 
 /// admonition | Need to setup environment variables? Refer to this [section](https://docs.myaltimate.com/setup/optConfig/#environment-variables-setup)
-type: warning
+    type: warning
 ///
 
 This method will save a bunch of time for you, and you can also validate your configuration. Setup wizard will help you in associating sql files with jinja-sql, selecting the right Python interpreter, make sure dbt dependencies are correctly installed etc. In the end, it will also validate your configuration.
@@ -48,7 +48,7 @@ You can start the setup wizard by clicking on dbt status icon in the bottom stat
 Click on the action button - "Select Python Interpreter" and choose your preferred python interpreter. Usually, choosing an interpreter that's recommended or mapped to your virtual environment software (e.g. venv) as per the list is a good idea. If you know the path of your Python environment, you can choose it from the list, or if the path is not present, you can enter it manually.
 
 /// admonition | If needed, please run 'where python' command on terminal to see if it shows path to Python interpreter that you are using.
-type: tip
+    type: tip
 ///
 
 **Install dbt**
@@ -61,7 +61,7 @@ Last step is clicking on button - "Validate Project" It will run a bunch of chec
 If there are some issues, it will tell you exactly what's wrong as well.
 
 /// admonition | If you still can't get the extension setup correctly, please check the [troubleshooting page](../troubleshooting.md)
-type: tip
+    type: tip
 ///
 
 ## Recorded Demo

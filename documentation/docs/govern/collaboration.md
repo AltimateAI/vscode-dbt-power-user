@@ -3,7 +3,7 @@ Collab functionality enables you to discuss code and documentation easily with t
 ## Code Collaboration Workflow
 
 /// admonition | Code Collaboration workflow allows you to discuss code without creating a PR
-type: tip
+    type: tip
 ///
 
 ### Start a discussion
@@ -13,7 +13,7 @@ You can start a discussion at the file or code block levels (single or multiple 
 ![StartDiscussion](images/startDiscussion.png)<br>
 
 /// admonition | If you click on the display icon as shown in the image above, you can show details of the discussion previously started
-type: tip
+    type: tip
 ///
 
 When a discussion is started, the extension generates dbt docs and uploads those docs to the Altimate AI SaaS instance so that non-technical stakeholders can contribute to the discussion via SaaS UI as well.
@@ -25,7 +25,7 @@ Once the discussion is started, you can publish a comment and also tag other use
 ![Add comment](images/discussionText.png)<br>
 
 /// admonition | If you don't want to tag the user but still want to share the link with them, just copy the link from the comments box, and share it with them manually (Slack, Email etc.)
-type: tip
+    type: tip
 ///
 
 ### Email notification (if a user is tagged)
@@ -96,7 +96,7 @@ You can also view the lineage from the list of all exported lineage views availa
 ![Lineage List](images/lineageList.png)
 
 /// admonition | In order to view the lineage in SaaS UI from the link, a user needs to be registered in the same Altimate AI instance
-type: info
+    type: info
 ///
 
 ## Recorded Demo
@@ -104,5 +104,5 @@ type: info
 <iframe width="800" height="600" src="https://www.youtube.com/embed/pI1U94j-pOI?si=ckfDMYqeVgjBmg-7" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 /// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai)
-type: info
+    type: info
 ///
