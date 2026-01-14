@@ -1,7 +1,6 @@
 import { injectable } from "inversify";
 import { Disposable, Event, EventEmitter } from "vscode";
-// TODO: Import from @altimateai/dbt-integration once PR #14 is merged and published
-// import { RunResultItem, RunResultsData } from "@altimateai/dbt-integration";
+// Local interfaces for run results data structure
 
 interface RunResultItem {
   unique_id: string;

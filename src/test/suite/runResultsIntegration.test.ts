@@ -12,7 +12,7 @@ import {
 import { RunHistoryService } from "../../services/runHistoryService";
 
 /**
- * Type definitions that mirror @altimateai/dbt-integration PR #14
+ * Type definitions that mirror @altimateai/dbt-integration
  */
 interface DbtIntegrationRunResultItem {
   unique_id: string;

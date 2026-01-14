@@ -262,8 +262,6 @@ export class DBTProject implements Disposable {
         );
 
         // Add completed run to history
-        // Note: Using type assertion because @altimateai/dbt-integration types
-        // will be updated in a future release to include these fields
         const resultsData = runResultsData as any;
         this.runHistoryService.addCompletedRun(
           {
