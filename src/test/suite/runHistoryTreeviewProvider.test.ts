@@ -13,6 +13,13 @@ import {
 } from "../../treeview_provider/runHistoryTreeItems";
 import { RunHistoryTreeviewProvider } from "../../treeview_provider/runHistoryTreeviewProvider";
 
+const createRunResults = (overrides: Record<string, unknown> = {}) => ({
+  metadata: { invocation_id: "test-invocation" },
+  results: [{ unique_id: "model.project.model1", status: "success" }],
+  elapsed_time: 1.0,
+  ...overrides,
+});
+
 describe("RunHistoryTreeviewProvider", () => {
   let service: RunHistoryService;
   let provider: RunHistoryTreeviewProvider;
@@ -30,108 +37,71 @@ describe("RunHistoryTreeviewProvider", () => {
 
   describe("getTreeItem", () => {
     it("should return the element itself", () => {
-      const runResults = {
-        metadata: { invocation_id: "test" },
-        results: [],
-        elapsed_time: 1.0,
-      };
-      const entry = service.addCompletedRun(runResults, "project");
+      const entry = service.addCompletedRun(createRunResults(), "project");
       const treeItem = new RunTreeItem(entry);
 
-      const result = provider.getTreeItem(treeItem);
-
-      expect(result).toBe(treeItem);
+      expect(provider.getTreeItem(treeItem)).toBe(treeItem);
     });
   });
 
   describe("getChildren", () => {
     it("should return empty array when no history", () => {
-      const children = provider.getChildren();
-
-      expect(children).toEqual([]);
+      expect(provider.getChildren()).toEqual([]);
     });
 
-    it("should return RunTreeItems for root level", () => {
-      const runResults = {
-        metadata: { invocation_id: "test-1" },
-        results: [{ unique_id: "model.project.model1", status: "success" }],
-        elapsed_time: 1.0,
-      };
-      service.addCompletedRun(runResults, "project");
+    it("should return RunTreeItems at root level in reverse chronological order", () => {
+      service.addCompletedRun(
+        createRunResults({ metadata: { invocation_id: "first" } }),
+        "project",
+      );
+      service.addCompletedRun(
+        createRunResults({
+          metadata: { invocation_id: "second" },
+          results: [
+            { unique_id: "model.project.m1", status: "success" },
+            { unique_id: "model.project.m2", status: "error" },
+          ],
+        }),
+        "project",
+      );
 
-      const children = provider.getChildren();
+      const rootChildren = provider.getChildren() as RunTreeItem[];
 
-      expect(children).toHaveLength(1);
-      // Check it's a RunTreeItem by verifying it has the entry property
-      expect((children[0] as RunTreeItem).entry).toBeDefined();
-      expect((children[0] as RunTreeItem).entry.id).toBe("test-1");
+      expect(rootChildren).toHaveLength(2);
+      expect(rootChildren[0].entry.id).toBe("second");
+      expect(rootChildren[1].entry.id).toBe("first");
     });
 
     it("should return ModelResultTreeItems for RunTreeItem children", () => {
-      const runResults = {
-        metadata: { invocation_id: "test-1" },
-        results: [
-          { unique_id: "model.project.model1", status: "success" },
-          { unique_id: "model.project.model2", status: "error" },
-        ],
-        elapsed_time: 1.0,
-      };
-      service.addCompletedRun(runResults, "project");
+      service.addCompletedRun(
+        createRunResults({
+          results: [
+            { unique_id: "model.project.model1", status: "success" },
+            { unique_id: "model.project.model2", status: "error" },
+          ],
+        }),
+        "project",
+      );
 
-      // Get the RunTreeItem from the provider
-      const rootChildren = provider.getChildren();
-      const runTreeItem = rootChildren[0] as RunTreeItem;
-
-      const children = provider.getChildren(runTreeItem);
+      const runTreeItem = provider.getChildren()[0] as RunTreeItem;
+      const children = provider.getChildren(
+        runTreeItem,
+      ) as ModelResultTreeItem[];
 
       expect(children).toHaveLength(2);
-      // Check they are ModelResultTreeItems by verifying they have the result property
-      expect((children[0] as ModelResultTreeItem).result).toBeDefined();
-      expect((children[0] as ModelResultTreeItem).result.name).toBe("model1");
-      expect((children[1] as ModelResultTreeItem).result.name).toBe("model2");
+      expect(children[0].result.name).toBe("model1");
+      expect(children[1].result.name).toBe("model2");
     });
 
     it("should return empty array for ModelResultTreeItem children", () => {
-      const runResults = {
-        metadata: { invocation_id: "test-1" },
-        results: [{ unique_id: "model.project.model1", status: "success" }],
-        elapsed_time: 1.0,
-      };
-      service.addCompletedRun(runResults, "project");
+      service.addCompletedRun(createRunResults(), "project");
 
-      // Get a ModelResultTreeItem through the provider
-      const rootChildren = provider.getChildren();
-      const runTreeItem = rootChildren[0] as RunTreeItem;
-      const modelChildren = provider.getChildren(runTreeItem);
-      const modelItem = modelChildren[0] as ModelResultTreeItem;
+      const runTreeItem = provider.getChildren()[0] as RunTreeItem;
+      const modelItem = provider.getChildren(
+        runTreeItem,
+      )[0] as ModelResultTreeItem;
 
-      const children = provider.getChildren(modelItem);
-
-      expect(children).toEqual([]);
-    });
-
-    it("should return runs in reverse chronological order", () => {
-      service.addCompletedRun(
-        {
-          metadata: { invocation_id: "first" },
-          results: [],
-          elapsed_time: 1.0,
-        },
-        "project",
-      );
-      service.addCompletedRun(
-        {
-          metadata: { invocation_id: "second" },
-          results: [],
-          elapsed_time: 1.0,
-        },
-        "project",
-      );
-
-      const children = provider.getChildren() as RunTreeItem[];
-
-      expect(children[0].entry.id).toBe("second");
-      expect(children[1].entry.id).toBe("first");
+      expect(provider.getChildren(modelItem)).toEqual([]);
     });
   });
 
@@ -140,10 +110,7 @@ describe("RunHistoryTreeviewProvider", () => {
       const listener = jest.fn();
       provider.onDidChangeTreeData(listener);
 
-      service.addCompletedRun(
-        { metadata: { invocation_id: "test" }, results: [], elapsed_time: 1.0 },
-        "project",
-      );
+      service.addCompletedRun(createRunResults(), "project");
 
       expect(listener).toHaveBeenCalled();
     });

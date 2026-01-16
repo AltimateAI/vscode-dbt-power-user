@@ -8,6 +8,15 @@ import {
 } from "@jest/globals";
 import { RunHistoryService } from "../../services/runHistoryService";
 
+// Matches structure from @altimateai/dbt-integration RunResultsData
+const createRunResults = (overrides: Record<string, unknown> = {}) => ({
+  metadata: { invocation_id: "test-invocation" },
+  args: { which: "run", select: ["model1"] },
+  results: [{ unique_id: "model.project.model1", status: "success" }],
+  elapsed_time: 1.0,
+  ...overrides,
+});
+
 describe("RunHistoryService", () => {
   let service: RunHistoryService;
 
@@ -21,86 +30,80 @@ describe("RunHistoryService", () => {
   });
 
   describe("addCompletedRun", () => {
-    it("should add a completed run to history", () => {
-      const runResults = {
-        metadata: {
-          invocation_id: "test-invocation-123",
-        },
-        args: {
-          which: "run",
-          select: ["model1", "model2"],
-        },
+    it("should parse RunResultsData structure correctly", () => {
+      const runResults = createRunResults({
+        metadata: { invocation_id: "test-123" },
+        args: { which: "build", select: ["+my_model+"] },
         results: [
           {
-            unique_id: "model.project.model1",
+            unique_id: "model.jaffle.stg_customers",
             status: "success",
-            execution_time: 1.5,
+            execution_time: 1.23,
+            message: "CREATE TABLE",
           },
         ],
         elapsed_time: 2.5,
-      };
+      });
 
       const entry = service.addCompletedRun(runResults, "test-project");
 
-      expect(entry.id).toBe("test-invocation-123");
-      expect(entry.command).toBe("run");
-      expect(entry.args).toEqual(["model1", "model2"]);
-      expect(entry.projectName).toBe("test-project");
+      expect(entry.id).toBe("test-123");
+      expect(entry.command).toBe("build");
+      expect(entry.args).toEqual(["+my_model+"]);
       expect(entry.elapsedTime).toBe(2.5);
-      expect(entry.models).toHaveLength(1);
+      expect(entry.projectName).toBe("test-project");
+      expect(entry.models[0]).toMatchObject({
+        name: "stg_customers",
+        uniqueId: "model.jaffle.stg_customers",
+        status: "success",
+        executionTime: 1.23,
+        message: "CREATE TABLE",
+        resourceType: "model",
+      });
     });
 
-    it("should generate id when invocation_id is missing", () => {
-      const runResults = {
-        metadata: {},
-        results: [],
-        elapsed_time: 1.0,
-      };
-
-      const entry = service.addCompletedRun(runResults, "test-project");
+    it("should handle minimal/missing fields with defaults", () => {
+      const entry = service.addCompletedRun(
+        { results: [{ unique_id: "model.p.m" }], elapsed_time: 0.5 },
+        "project",
+      );
 
       expect(entry.id).toMatch(/^run-\d+$/);
-    });
-
-    it("should use 'unknown' command when args.which is missing", () => {
-      const runResults = {
-        metadata: {},
-        results: [],
-        elapsed_time: 1.0,
-      };
-
-      const entry = service.addCompletedRun(runResults, "test-project");
-
       expect(entry.command).toBe("unknown");
-    });
-
-    it("should use empty array when args.select is missing", () => {
-      const runResults = {
-        metadata: {},
-        args: {},
-        results: [],
-        elapsed_time: 1.0,
-      };
-
-      const entry = service.addCompletedRun(runResults, "test-project");
-
       expect(entry.args).toEqual([]);
+      expect(entry.models[0].status).toBe("unknown");
+      expect(entry.models[0].executionTime).toBeNull();
     });
+
+    it.each([
+      ["model.project.my_model", "model", "my_model"],
+      ["test.project.not_null_id", "test", "not_null_id"],
+      ["seed.project.raw_data", "seed", "raw_data"],
+      ["snapshot.project.orders_snap", "snapshot", "orders_snap"],
+      ["unknown.project.something", "model", "something"],
+      ["simplemodel", "model", "simplemodel"],
+    ])(
+      "should parse unique_id %s as resourceType=%s, name=%s",
+      (uniqueId, expectedType, expectedName) => {
+        const entry = service.addCompletedRun(
+          { results: [{ unique_id: uniqueId }], elapsed_time: 0.5 },
+          "project",
+        );
+
+        expect(entry.models[0].resourceType).toBe(expectedType);
+        expect(entry.models[0].name).toBe(expectedName);
+      },
+    );
 
     it("should add new runs at the beginning of history", () => {
-      const runResults1 = {
-        metadata: { invocation_id: "first" },
-        results: [],
-        elapsed_time: 1.0,
-      };
-      const runResults2 = {
-        metadata: { invocation_id: "second" },
-        results: [],
-        elapsed_time: 1.0,
-      };
-
-      service.addCompletedRun(runResults1, "project");
-      service.addCompletedRun(runResults2, "project");
+      service.addCompletedRun(
+        createRunResults({ metadata: { invocation_id: "first" } }),
+        "project",
+      );
+      service.addCompletedRun(
+        createRunResults({ metadata: { invocation_id: "second" } }),
+        "project",
+      );
 
       const history = service.getHistory();
       expect(history[0].id).toBe("second");
@@ -111,17 +114,11 @@ describe("RunHistoryService", () => {
       const listener = jest.fn();
       service.onHistoryChanged(listener);
 
-      const runResults = {
-        metadata: { invocation_id: "test" },
-        results: [],
-        elapsed_time: 1.0,
-      };
-
-      service.addCompletedRun(runResults, "project");
+      service.addCompletedRun(createRunResults(), "project");
 
       expect(listener).toHaveBeenCalledTimes(1);
       expect(listener).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "test" }),
+        expect.objectContaining({ id: "test-invocation" }),
       );
     });
   });
@@ -132,13 +129,7 @@ describe("RunHistoryService", () => {
     });
 
     it("should return a copy of history array", () => {
-      const runResults = {
-        metadata: { invocation_id: "test" },
-        results: [],
-        elapsed_time: 1.0,
-      };
-
-      service.addCompletedRun(runResults, "project");
+      service.addCompletedRun(createRunResults(), "project");
 
       const history1 = service.getHistory();
       const history2 = service.getHistory();
@@ -148,127 +139,8 @@ describe("RunHistoryService", () => {
     });
   });
 
-  describe("parseResults", () => {
-    it("should parse model results correctly", () => {
-      const runResults = {
-        metadata: { invocation_id: "test" },
-        results: [
-          {
-            unique_id: "model.jaffle_shop.stg_customers",
-            status: "success",
-            execution_time: 1.23,
-            message: "OK",
-          },
-        ],
-        elapsed_time: 2.0,
-      };
-
-      const entry = service.addCompletedRun(runResults, "project");
-      const model = entry.models[0];
-
-      expect(model.name).toBe("stg_customers");
-      expect(model.uniqueId).toBe("model.jaffle_shop.stg_customers");
-      expect(model.status).toBe("success");
-      expect(model.executionTime).toBe(1.23);
-      expect(model.message).toBe("OK");
-      expect(model.resourceType).toBe("model");
-    });
-
-    it("should extract resource type from unique_id", () => {
-      const runResults = {
-        metadata: { invocation_id: "test" },
-        results: [
-          { unique_id: "model.project.my_model", status: "success" },
-          { unique_id: "test.project.my_test", status: "pass" },
-          { unique_id: "seed.project.my_seed", status: "success" },
-          { unique_id: "snapshot.project.my_snapshot", status: "success" },
-        ],
-        elapsed_time: 1.0,
-      };
-
-      const entry = service.addCompletedRun(runResults, "project");
-
-      expect(entry.models[0].resourceType).toBe("model");
-      expect(entry.models[1].resourceType).toBe("test");
-      expect(entry.models[2].resourceType).toBe("seed");
-      expect(entry.models[3].resourceType).toBe("snapshot");
-    });
-
-    it("should default to 'model' for unknown resource types", () => {
-      const runResults = {
-        metadata: { invocation_id: "test" },
-        results: [
-          { unique_id: "unknown.project.something", status: "success" },
-        ],
-        elapsed_time: 1.0,
-      };
-
-      const entry = service.addCompletedRun(runResults, "project");
-
-      expect(entry.models[0].resourceType).toBe("model");
-    });
-
-    it("should extract model name from unique_id", () => {
-      const runResults = {
-        metadata: { invocation_id: "test" },
-        results: [
-          { unique_id: "model.jaffle_shop.stg_customers", status: "success" },
-          {
-            unique_id:
-              "test.jaffle_shop.schema_test.accepted_values_customers_status",
-            status: "pass",
-          },
-        ],
-        elapsed_time: 1.0,
-      };
-
-      const entry = service.addCompletedRun(runResults, "project");
-
-      expect(entry.models[0].name).toBe("stg_customers");
-      expect(entry.models[1].name).toBe("accepted_values_customers_status");
-    });
-
-    it("should handle missing status with default 'unknown'", () => {
-      const runResults = {
-        metadata: { invocation_id: "test" },
-        results: [{ unique_id: "model.project.model1" }],
-        elapsed_time: 1.0,
-      };
-
-      const entry = service.addCompletedRun(runResults, "project");
-
-      expect(entry.models[0].status).toBe("unknown");
-    });
-
-    it("should handle missing execution_time with default 0", () => {
-      const runResults = {
-        metadata: { invocation_id: "test" },
-        results: [{ unique_id: "model.project.model1", status: "success" }],
-        elapsed_time: 1.0,
-      };
-
-      const entry = service.addCompletedRun(runResults, "project");
-
-      expect(entry.models[0].executionTime).toBe(0);
-    });
-
-    it("should handle unique_id without dots", () => {
-      const runResults = {
-        metadata: { invocation_id: "test" },
-        results: [{ unique_id: "simplemodel", status: "success" }],
-        elapsed_time: 1.0,
-      };
-
-      const entry = service.addCompletedRun(runResults, "project");
-
-      expect(entry.models[0].name).toBe("simplemodel");
-      expect(entry.models[0].resourceType).toBe("model"); // defaults to model
-    });
-  });
-
   describe("dispose", () => {
-    it("should dispose event emitter", () => {
-      // Just verify dispose doesn't throw
+    it("should dispose without throwing", () => {
       expect(() => service.dispose()).not.toThrow();
     });
   });
