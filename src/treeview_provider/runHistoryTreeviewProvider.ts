@@ -12,18 +12,6 @@ import {
   RunTreeItem,
 } from "./runHistoryTreeItems";
 
-/**
- * Provides data for the Run History treeview panel in VS Code's sidebar.
- * Implements VS Code's TreeDataProvider interface which defines how tree views are populated.
- *
- * TreeDataProvider requires two methods:
- * - getTreeItem(): Returns the visual representation of a tree element
- * - getChildren(): Returns child elements for hierarchy (root items or nested children)
- *
- * This provider displays a two-level hierarchy:
- * - Level 1: RunTreeItem (dbt command executions like "dbt run +model1")
- * - Level 2: ModelResultTreeItem (individual model/test/seed results)
- */
 export class RunHistoryTreeviewProvider
   implements TreeDataProvider<RunHistoryTreeItem>, Disposable
 {
@@ -43,12 +31,10 @@ export class RunHistoryTreeviewProvider
     );
   }
 
-  // Called by VS Code's TreeDataProvider interface
   getTreeItem(element: RunHistoryTreeItem): TreeItem {
     return element;
   }
 
-  // Called by VS Code's TreeDataProvider interface to populate the tree view
   getChildren(element?: RunHistoryTreeItem): RunHistoryTreeItem[] {
     if (!element) {
       return this.runHistoryService
