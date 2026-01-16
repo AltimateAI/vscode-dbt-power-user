@@ -1,6 +1,15 @@
 import { injectable } from "inversify";
 import { Disposable, Event, EventEmitter } from "vscode";
-// Local interfaces for run results data structure
+
+/** Valid dbt resource types for run results */
+export type ResourceType = "model" | "test" | "seed" | "snapshot";
+
+const VALID_RESOURCE_TYPES: readonly ResourceType[] = [
+  "model",
+  "test",
+  "seed",
+  "snapshot",
+] as const;
 
 interface RunResultItem {
   unique_id: string;
@@ -29,9 +38,9 @@ export interface ModelRunResult {
   name: string;
   uniqueId: string;
   status: string;
-  executionTime: number;
+  executionTime: number | null;
   message?: string;
-  resourceType: "model" | "test" | "seed" | "snapshot";
+  resourceType: ResourceType;
 }
 
 /**
@@ -88,46 +97,27 @@ export class RunHistoryService implements Disposable {
    */
   private parseResults(results: RunResultItem[]): ModelRunResult[] {
     return results.map((result) => {
-      // Extract resource type from unique_id (e.g., "model.jaffle_shop.stg_customers")
       const resourceType = this.extractResourceType(result.unique_id);
-      // Extract model name from unique_id
       const name = this.extractModelName(result.unique_id);
 
       return {
         name,
         uniqueId: result.unique_id,
         status: result.status ?? "unknown",
-        executionTime: result.execution_time ?? 0,
+        executionTime: result.execution_time ?? null,
         message: result.message,
         resourceType,
       };
     });
   }
 
-  private static readonly VALID_RESOURCE_TYPES = [
-    "model",
-    "test",
-    "seed",
-    "snapshot",
-  ] as const;
-
-  /**
-   * Extract resource type from unique_id
-   * e.g., "model.jaffle_shop.stg_customers" -> "model"
-   */
-  private extractResourceType(
-    uniqueId: string,
-  ): "model" | "test" | "seed" | "snapshot" {
+  private extractResourceType(uniqueId: string): ResourceType {
     const type = uniqueId.split(".")[0];
-    return RunHistoryService.VALID_RESOURCE_TYPES.includes(type as any)
-      ? (type as "model" | "test" | "seed" | "snapshot")
+    return VALID_RESOURCE_TYPES.includes(type as ResourceType)
+      ? (type as ResourceType)
       : "model";
   }
 
-  /**
-   * Extract model name from unique_id
-   * e.g., "model.jaffle_shop.stg_customers" -> "stg_customers"
-   */
   private extractModelName(uniqueId: string): string {
     return uniqueId.split(".").pop() || uniqueId;
   }

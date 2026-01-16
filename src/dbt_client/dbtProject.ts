@@ -261,7 +261,7 @@ export class DBTProject implements Disposable {
           (result) => result.unique_id,
         );
 
-        // Add completed run to history
+        // TODO: Replace type `any` with the updated `RunResultsEventData` type
         const resultsData = runResultsData as any;
         this.runHistoryService.addCompletedRun(
           {

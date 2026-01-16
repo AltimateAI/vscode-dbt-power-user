@@ -6,30 +6,10 @@ import {
 } from "vscode";
 import { ModelRunResult, RunHistoryEntry } from "../services/runHistoryService";
 
-// Get icon configuration for dbt status
-function getStatusIcon(status: string): { icon: string; color: string } {
-  switch (status) {
-    case "success":
-    case "pass":
-      return { icon: "check", color: "charts.green" };
-    case "error":
-    case "fail":
-      return { icon: "x", color: "charts.red" };
-    case "skipped":
-    case "skip":
-      return { icon: "debug-step-over", color: "charts.gray" };
-    default:
-      return { icon: "question", color: "" };
-  }
-}
-
-const isSuccessStatus = (status: string) =>
-  status === "success" || status === "pass";
-const isErrorStatus = (status: string) =>
-  status === "error" || status === "fail";
-
 /**
- * Tree item representing a dbt command run
+ * Top-level tree item representing a dbt command execution (e.g., `dbt run`, `dbt test`).
+ * This is the parent node displayed in the Run History treeview panel.
+ * Each RunTreeItem contains child ModelResultTreeItems for individual model/test/seed results.
  */
 export class RunTreeItem extends TreeItem {
   constructor(public readonly entry: RunHistoryEntry) {
@@ -54,11 +34,11 @@ export class RunTreeItem extends TreeItem {
   private static getDescription(entry: RunHistoryEntry): string {
     const duration = `${entry.elapsedTime.toFixed(2)}s`;
     const modelCount = entry.models.length;
-    const successCount = entry.models.filter((m) =>
-      isSuccessStatus(m.status),
+    const successCount = entry.models.filter(
+      (m) => m.status === "success" || m.status === "pass",
     ).length;
-    const failCount = entry.models.filter((m) =>
-      isErrorStatus(m.status),
+    const failCount = entry.models.filter(
+      (m) => m.status === "error" || m.status === "fail",
     ).length;
 
     const parts: string[] = [duration];
@@ -74,11 +54,13 @@ export class RunTreeItem extends TreeItem {
   }
 
   private static getIcon(entry: RunHistoryEntry): ThemeIcon {
-    const hasError = entry.models.some((m) => isErrorStatus(m.status));
-    const result = hasError
-      ? new ThemeIcon("error", new ThemeColor("charts.red"))
-      : new ThemeIcon("pass", new ThemeColor("charts.green"));
-    return result;
+    const hasError = entry.models.some(
+      (m) => m.status === "error" || m.status === "fail",
+    );
+    if (hasError) {
+      return new ThemeIcon("error", new ThemeColor("charts.red"));
+    }
+    return new ThemeIcon("pass", new ThemeColor("charts.green"));
   }
 
   private static getTooltip(entry: RunHistoryEntry): string {
@@ -91,8 +73,27 @@ export class RunTreeItem extends TreeItem {
   }
 }
 
+/** Maps dbt status to icon and theme color for display */
+function getStatusIcon(status: string): { icon: string; color: string } {
+  switch (status) {
+    case "success":
+    case "pass":
+      return { icon: "check", color: "charts.green" };
+    case "error":
+    case "fail":
+      return { icon: "x", color: "charts.red" };
+    case "skipped":
+    case "skip":
+      return { icon: "debug-step-over", color: "disabledForeground" };
+    default:
+      return { icon: "question", color: "" };
+  }
+}
+
 /**
- * Tree item representing a model/test/seed result within a run
+ * Child tree item representing an individual model, test, seed, or snapshot result.
+ * These appear as expandable children under their parent RunTreeItem.
+ * Displays the resource name, type, execution time, and status icon.
  */
 export class ModelResultTreeItem extends TreeItem {
   constructor(public readonly result: ModelRunResult) {
@@ -107,7 +108,9 @@ export class ModelResultTreeItem extends TreeItem {
   private static getDescription(result: ModelRunResult): string {
     const parts: string[] = [];
     parts.push(result.resourceType);
-    parts.push(`${result.executionTime.toFixed(2)}s`);
+    if (result.executionTime !== null) {
+      parts.push(`${result.executionTime.toFixed(2)}s`);
+    }
     return parts.join(" • ");
   }
 
@@ -123,7 +126,9 @@ export class ModelResultTreeItem extends TreeItem {
     lines.push(`Name: ${result.name}`);
     lines.push(`Type: ${result.resourceType}`);
     lines.push(`Status: ${result.status}`);
-    lines.push(`Execution Time: ${result.executionTime.toFixed(2)}s`);
+    if (result.executionTime !== null) {
+      lines.push(`Execution Time: ${result.executionTime.toFixed(2)}s`);
+    }
     if (result.message) {
       lines.push(`Message: ${result.message}`);
     }

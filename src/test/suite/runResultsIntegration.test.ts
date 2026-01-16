@@ -11,9 +11,7 @@ import {
 } from "@jest/globals";
 import { RunHistoryService } from "../../services/runHistoryService";
 
-/**
- * Type definitions that mirror @altimateai/dbt-integration
- */
+// TODO: Remove when @altimateai/dbt-integration exports these types
 interface DbtIntegrationRunResultItem {
   unique_id: string;
   status?: string;
@@ -90,23 +88,18 @@ describe("RunResultsData Integration Tests", () => {
 
     const entry = service.addCompletedRun(runResults as any, "test-project");
 
-    // Verify metadata mapping
     expect(entry.id).toBe("test-invocation-123");
     expect(entry.command).toBe("run");
     expect(entry.args).toEqual(["model1", "+model2"]);
     expect(entry.elapsedTime).toBe(4.2);
     expect(entry.projectName).toBe("test-project");
-
-    // Verify results mapping
     expect(entry.models).toHaveLength(4);
 
-    // Verify resource type extraction
     expect(entry.models[0].resourceType).toBe("model");
     expect(entry.models[1].resourceType).toBe("test");
     expect(entry.models[2].resourceType).toBe("seed");
     expect(entry.models[3].resourceType).toBe("snapshot");
 
-    // Verify field mapping
     expect(entry.models[0].uniqueId).toBe("model.project.my_model");
     expect(entry.models[0].name).toBe("my_model");
     expect(entry.models[0].status).toBe("success");
@@ -122,16 +115,11 @@ describe("RunResultsData Integration Tests", () => {
 
     const entry = service.addCompletedRun(minimalRunResults as any, "project");
 
-    // Should generate ID when missing
     expect(entry.id).toMatch(/^run-\d+$/);
-    // Should default to 'unknown' when args.which missing
     expect(entry.command).toBe("unknown");
-    // Should default to empty array when args.select missing
     expect(entry.args).toEqual([]);
-    // Should default to 'unknown' when status missing
     expect(entry.models[0].status).toBe("unknown");
-    // Should default to 0 when execution_time missing
-    expect(entry.models[0].executionTime).toBe(0);
+    expect(entry.models[0].executionTime).toBeNull();
   });
 
   it("should handle various status types", () => {
