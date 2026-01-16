@@ -58,6 +58,7 @@ import {
 } from "vscode";
 import { AltimateRequest, ModelNode } from "../altimate";
 import { AltimateAuthService } from "../services/altimateAuthService";
+import { RunHistoryService } from "../services/runHistoryService";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
@@ -144,6 +145,7 @@ export class DBTProject implements Disposable {
     private altimate: AltimateRequest,
     private validationProvider: ValidationProvider,
     private altimateAuthService: AltimateAuthService,
+    private runHistoryService: RunHistoryService,
     path: Uri,
     _projectConfig: any,
     private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
@@ -257,6 +259,25 @@ export class DBTProject implements Disposable {
         // Extract unique_ids for cache invalidation
         const uniqueIds = runResultsData.results.map(
           (result) => result.unique_id,
+        );
+
+        // TODO: Replace type `any` with the updated `RunResultsEventData` type
+        const resultsData = runResultsData as any;
+        this.runHistoryService.addCompletedRun(
+          {
+            metadata: {
+              invocation_id: resultsData.metadata?.invocation_id,
+            },
+            args: resultsData.args,
+            results: resultsData.results.map((r: any) => ({
+              unique_id: r.unique_id,
+              status: r.status,
+              execution_time: r.execution_time,
+              message: r.message,
+            })),
+            elapsed_time: resultsData.elapsed_time ?? 0,
+          },
+          this.getProjectName(),
         );
 
         // Fire the VSCode event with parsed unique_ids
