@@ -110,7 +110,7 @@ For dbt Cloud users, you can now set up automatic artifact syncing in the SaaS U
     - **Real-time**: (Coming soon) Immediate sync when dbt Cloud runs complete
 9. Click **Create Connection**
 
-After creation, your dbt Cloud projects and environments will be automatically discovered. You can then enable specific environments for artifact syncing.
+After creation, your dbt Cloud projects and environments will be automatically discovered.
 
 /// admonition | Automatic syncing keeps your documentation and lineage always up-to-date without manual intervention
     type: tip
