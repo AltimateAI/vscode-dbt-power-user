@@ -1,11 +1,11 @@
 import { describe, expect, it } from "@jest/globals";
 import { TreeItemCollapsibleState } from "vscode";
 import {
-  ModelRunResult,
   RunHistoryEntry,
+  RunResultEntry,
 } from "../../services/runHistoryService";
 import {
-  ModelResultTreeItem,
+  ResultTreeItem,
   RunTreeItem,
 } from "../../treeview_provider/runHistoryTreeItems";
 
@@ -19,14 +19,14 @@ describe("RunHistoryTreeItems", () => {
       args: [],
       completedAt: new Date("2024-01-15T10:30:00"),
       projectName: "test-project",
-      models: [],
+      results: [],
       elapsedTime: 5.5,
       ...overrides,
     });
 
-    const createModel = (
-      overrides: Partial<ModelRunResult> = {},
-    ): ModelRunResult => ({
+    const createResult = (
+      overrides: Partial<RunResultEntry> = {},
+    ): RunResultEntry => ({
       name: "m1",
       uniqueId: "model.p.m1",
       status: "success",
@@ -42,16 +42,16 @@ describe("RunHistoryTreeItems", () => {
       expect(item.label).toBe("dbt build +my_model+");
     });
 
-    it("should set collapsibleState based on models", () => {
-      const withModels = new RunTreeItem(
-        createEntry({ models: [createModel()] }),
+    it("should set collapsibleState based on results", () => {
+      const withResults = new RunTreeItem(
+        createEntry({ results: [createResult()] }),
       );
-      const withoutModels = new RunTreeItem(createEntry({ models: [] }));
+      const withoutResults = new RunTreeItem(createEntry({ results: [] }));
 
-      expect(withModels.collapsibleState).toBe(
+      expect(withResults.collapsibleState).toBe(
         TreeItemCollapsibleState.Expanded,
       );
-      expect(withoutModels.collapsibleState).toBe(
+      expect(withoutResults.collapsibleState).toBe(
         TreeItemCollapsibleState.None,
       );
     });
@@ -60,17 +60,17 @@ describe("RunHistoryTreeItems", () => {
       const allPass = new RunTreeItem(
         createEntry({
           elapsedTime: 5.5,
-          models: [
-            createModel(),
-            createModel({ name: "m2", uniqueId: "model.p.m2" }),
+          results: [
+            createResult(),
+            createResult({ name: "m2", uniqueId: "model.p.m2" }),
           ],
         }),
       );
       const someFail = new RunTreeItem(
         createEntry({
-          models: [
-            createModel({ status: "success" }),
-            createModel({
+          results: [
+            createResult({ status: "success" }),
+            createResult({
               name: "m2",
               uniqueId: "model.p.m2",
               status: "error",
@@ -84,16 +84,18 @@ describe("RunHistoryTreeItems", () => {
       expect(someFail.description).toContain("1/2 passed");
     });
 
-    it.each([
-      ["success", "pass"],
-      ["pass", "pass"],
-      ["error", "error"],
-      ["fail", "error"],
-    ])("should use %s icon for %s status", (status, expectedIcon) => {
+    it("should use pass icon for success status", () => {
       const item = new RunTreeItem(
-        createEntry({ models: [createModel({ status })] }),
+        createEntry({ results: [createResult({ status: "success" })] }),
       );
-      expect((item.iconPath as any).id).toBe(expectedIcon);
+      expect((item.iconPath as any).id).toBe("pass");
+    });
+
+    it("should use error icon for error status", () => {
+      const item = new RunTreeItem(
+        createEntry({ results: [createResult({ status: "error" })] }),
+      );
+      expect((item.iconPath as any).id).toBe("error");
     });
 
     it("should include project, duration, and invocation in tooltip", () => {
@@ -117,10 +119,10 @@ describe("RunHistoryTreeItems", () => {
     });
   });
 
-  describe("ModelResultTreeItem", () => {
+  describe("ResultTreeItem", () => {
     const createResult = (
-      overrides: Partial<ModelRunResult> = {},
-    ): ModelRunResult => ({
+      overrides: Partial<RunResultEntry> = {},
+    ): RunResultEntry => ({
       name: "test_model",
       uniqueId: "model.project.test_model",
       status: "success",
@@ -130,16 +132,14 @@ describe("RunHistoryTreeItems", () => {
     });
 
     it("should use model name as label with None collapsibleState", () => {
-      const item = new ModelResultTreeItem(
-        createResult({ name: "stg_customers" }),
-      );
+      const item = new ResultTreeItem(createResult({ name: "stg_customers" }));
 
       expect(item.label).toBe("stg_customers");
       expect(item.collapsibleState).toBe(TreeItemCollapsibleState.None);
     });
 
     it("should include resource type and execution time in description", () => {
-      const item = new ModelResultTreeItem(
+      const item = new ResultTreeItem(
         createResult({ resourceType: "test", executionTime: 3.45 }),
       );
 
@@ -147,21 +147,23 @@ describe("RunHistoryTreeItems", () => {
       expect(item.description).toContain("3.45s");
     });
 
-    it.each([
-      ["success", "check"],
-      ["pass", "check"],
-      ["error", "x"],
-      ["fail", "x"],
-      ["skipped", "debug-step-over"],
-      ["skip", "debug-step-over"],
-      ["unknown", "question"],
-    ])("should use correct icon for %s status", (status, expectedIcon) => {
-      const item = new ModelResultTreeItem(createResult({ status }));
-      expect((item.iconPath as any).id).toBe(expectedIcon);
+    it("should use check icon for success status", () => {
+      const item = new ResultTreeItem(createResult({ status: "success" }));
+      expect((item.iconPath as any).id).toBe("check");
+    });
+
+    it("should use x icon for error status", () => {
+      const item = new ResultTreeItem(createResult({ status: "error" }));
+      expect((item.iconPath as any).id).toBe("x");
+    });
+
+    it("should use debug-step-over icon for skipped status", () => {
+      const item = new ResultTreeItem(createResult({ status: "skipped" }));
+      expect((item.iconPath as any).id).toBe("debug-step-over");
     });
 
     it("should include all fields in tooltip", () => {
-      const item = new ModelResultTreeItem(
+      const item = new ResultTreeItem(
         createResult({
           name: "my_model",
           resourceType: "seed",
@@ -181,17 +183,15 @@ describe("RunHistoryTreeItems", () => {
     });
 
     it("should not include message in tooltip when absent", () => {
-      const item = new ModelResultTreeItem(
-        createResult({ message: undefined }),
-      );
+      const item = new ResultTreeItem(createResult({ message: undefined }));
       expect(item.tooltip).not.toContain("Message:");
     });
 
     it.each(["model", "test", "seed", "snapshot"] as const)(
       "should set contextValue for %s resource type",
       (resourceType) => {
-        const item = new ModelResultTreeItem(createResult({ resourceType }));
-        expect(item.contextValue).toBe(`runHistoryModel.${resourceType}`);
+        const item = new ResultTreeItem(createResult({ resourceType }));
+        expect(item.contextValue).toBe(`runHistoryResult.${resourceType}`);
       },
     );
   });

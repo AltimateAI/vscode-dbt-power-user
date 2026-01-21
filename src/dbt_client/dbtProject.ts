@@ -251,37 +251,17 @@ export class DBTProject implements Disposable {
     // Handle runResultsCreated events from dbtIntegrationAdapter
     this.dbtProjectIntegration.on(
       DBTProjectIntegrationAdapterEvents.RUN_RESULTS_PARSED,
-      (runResultsData: RunResultsEventData) => {
+      (eventData: RunResultsEventData) => {
         this.terminal.debug(
           "DBTProject",
           "Received runResultsParsed event from dbtIntegrationAdapter",
         );
-        // Extract unique_ids for cache invalidation
-        const uniqueIds = runResultsData.results.map(
-          (result) => result.unique_id,
-        );
 
-        // TODO: Replace type `any` with the updated `RunResultsEventData` type
-        const resultsData = runResultsData as any;
-        this.runHistoryService.addCompletedRun(
-          {
-            metadata: {
-              invocation_id: resultsData.metadata?.invocation_id,
-            },
-            args: resultsData.args,
-            results: resultsData.results.map((r: any) => ({
-              unique_id: r.unique_id,
-              status: r.status,
-              execution_time: r.execution_time,
-              message: r.message,
-            })),
-            elapsed_time: resultsData.elapsed_time ?? 0,
-          },
-          this.getProjectName(),
-        );
+        // Pass the pre-parsed entry directly to history service
+        this.runHistoryService.addEntry(eventData.entry);
 
-        // Fire the VSCode event with parsed unique_ids
-        const runResultsEvent = new RunResultsEvent(this, uniqueIds);
+        // Fire the VSCode event with unique_ids for cache invalidation
+        const runResultsEvent = new RunResultsEvent(this, eventData.uniqueIds);
         this._onRunResults.fire(runResultsEvent);
       },
     );

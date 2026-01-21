@@ -1,4 +1,5 @@
 import {
+  commands,
   Disposable,
   Event,
   EventEmitter,
@@ -7,7 +8,7 @@ import {
 } from "vscode";
 import { RunHistoryService } from "../services/runHistoryService";
 import {
-  ModelResultTreeItem,
+  ResultTreeItem,
   RunHistoryTreeItem,
   RunTreeItem,
 } from "./runHistoryTreeItems";
@@ -27,6 +28,8 @@ export class RunHistoryTreeviewProvider
     this.disposables.push(
       this.runHistoryService.onHistoryChanged(() => {
         this._onDidChangeTreeData.fire();
+        // Automatically focus the run history panel when new data arrives
+        commands.executeCommand("run_history_treeview.focus");
       }),
     );
   }
@@ -45,8 +48,9 @@ export class RunHistoryTreeviewProvider
     }
 
     if (element instanceof RunTreeItem) {
-      return element.entry.models.map(
-        (result) => new ModelResultTreeItem(result),
+      return element.entry.results.map(
+        (result: import("../services/runHistoryService").RunResultEntry) =>
+          new ResultTreeItem(result),
       );
     }
 

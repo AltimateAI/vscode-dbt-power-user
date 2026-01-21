@@ -4,18 +4,22 @@ import {
   TreeItem,
   TreeItemCollapsibleState,
 } from "vscode";
-import { ModelRunResult, RunHistoryEntry } from "../services/runHistoryService";
+import type {
+  RunHistoryEntry,
+  RunResultEntry,
+  RunStatus,
+} from "../services/runHistoryService";
 
 /**
  * Top-level tree item representing a dbt command execution (e.g., `dbt run`, `dbt test`).
  * This is the parent node displayed in the Run History treeview panel.
- * Each RunTreeItem contains child ModelResultTreeItems for individual model/test/seed results.
+ * Each RunTreeItem contains child ResultTreeItems for individual model/test/seed results.
  */
 export class RunTreeItem extends TreeItem {
   constructor(public readonly entry: RunHistoryEntry) {
     super(
       RunTreeItem.getLabel(entry),
-      entry.models.length > 0
+      entry.results.length > 0
         ? TreeItemCollapsibleState.Expanded
         : TreeItemCollapsibleState.None,
     );
@@ -33,20 +37,20 @@ export class RunTreeItem extends TreeItem {
 
   private static getDescription(entry: RunHistoryEntry): string {
     const duration = `${entry.elapsedTime.toFixed(2)}s`;
-    const modelCount = entry.models.length;
-    const successCount = entry.models.filter(
-      (m) => m.status === "success" || m.status === "pass",
+    const resultCount = entry.results.length;
+    const successCount = entry.results.filter(
+      (r: RunResultEntry) => r.status === "success",
     ).length;
-    const failCount = entry.models.filter(
-      (m) => m.status === "error" || m.status === "fail",
+    const errorCount = entry.results.filter(
+      (r: RunResultEntry) => r.status === "error",
     ).length;
 
     const parts: string[] = [duration];
-    if (modelCount > 0) {
-      if (failCount > 0) {
-        parts.push(`${successCount}/${modelCount} passed`);
+    if (resultCount > 0) {
+      if (errorCount > 0) {
+        parts.push(`${successCount}/${resultCount} passed`);
       } else {
-        parts.push(`${modelCount} passed`);
+        parts.push(`${resultCount} passed`);
       }
     }
 
@@ -54,8 +58,8 @@ export class RunTreeItem extends TreeItem {
   }
 
   private static getIcon(entry: RunHistoryEntry): ThemeIcon {
-    const hasError = entry.models.some(
-      (m) => m.status === "error" || m.status === "fail",
+    const hasError = entry.results.some(
+      (r: RunResultEntry) => r.status === "error",
     );
     if (hasError) {
       return new ThemeIcon("error", new ThemeColor("charts.red"));
@@ -73,20 +77,19 @@ export class RunTreeItem extends TreeItem {
   }
 }
 
-/** Maps dbt status to icon and theme color for display */
-function getStatusIcon(status: string): { icon: string; color: string } {
+/** Maps normalized RunStatus to icon and theme color for display */
+function getStatusIcon(status: RunStatus): { icon: string; color: string } {
   switch (status) {
     case "success":
-    case "pass":
       return { icon: "check", color: "charts.green" };
     case "error":
-    case "fail":
       return { icon: "x", color: "charts.red" };
     case "skipped":
-    case "skip":
       return { icon: "debug-step-over", color: "disabledForeground" };
     default:
-      return { icon: "question", color: "" };
+      // Exhaustive check - this should never happen with the RunStatus type
+      const _exhaustive: never = status;
+      return { icon: "question", color: "disabledForeground" };
   }
 }
 
@@ -95,17 +98,17 @@ function getStatusIcon(status: string): { icon: string; color: string } {
  * These appear as expandable children under their parent RunTreeItem.
  * Displays the resource name, type, execution time, and status icon.
  */
-export class ModelResultTreeItem extends TreeItem {
-  constructor(public readonly result: ModelRunResult) {
+export class ResultTreeItem extends TreeItem {
+  constructor(public readonly result: RunResultEntry) {
     super(result.name, TreeItemCollapsibleState.None);
 
-    this.description = ModelResultTreeItem.getDescription(result);
-    this.iconPath = ModelResultTreeItem.getIcon(result);
-    this.tooltip = ModelResultTreeItem.getTooltip(result);
-    this.contextValue = `runHistoryModel.${result.resourceType}`;
+    this.description = ResultTreeItem.getDescription(result);
+    this.iconPath = ResultTreeItem.getIcon(result);
+    this.tooltip = ResultTreeItem.getTooltip(result);
+    this.contextValue = `runHistoryResult.${result.resourceType}`;
   }
 
-  private static getDescription(result: ModelRunResult): string {
+  private static getDescription(result: RunResultEntry): string {
     const parts: string[] = [];
     parts.push(result.resourceType);
     if (result.executionTime !== null) {
@@ -114,14 +117,12 @@ export class ModelResultTreeItem extends TreeItem {
     return parts.join(" • ");
   }
 
-  private static getIcon(result: ModelRunResult): ThemeIcon {
+  private static getIcon(result: RunResultEntry): ThemeIcon {
     const config = getStatusIcon(result.status);
-    return config.color
-      ? new ThemeIcon(config.icon, new ThemeColor(config.color))
-      : new ThemeIcon(config.icon);
+    return new ThemeIcon(config.icon, new ThemeColor(config.color));
   }
 
-  private static getTooltip(result: ModelRunResult): string {
+  private static getTooltip(result: RunResultEntry): string {
     const lines: string[] = [];
     lines.push(`Name: ${result.name}`);
     lines.push(`Type: ${result.resourceType}`);
@@ -137,4 +138,4 @@ export class ModelResultTreeItem extends TreeItem {
   }
 }
 
-export type RunHistoryTreeItem = RunTreeItem | ModelResultTreeItem;
+export type RunHistoryTreeItem = RunTreeItem | ResultTreeItem;

@@ -6,17 +6,38 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import { RunHistoryService } from "../../services/runHistoryService";
 import {
-  ModelResultTreeItem,
+  RunHistoryEntry,
+  RunHistoryService,
+} from "../../services/runHistoryService";
+import {
+  ResultTreeItem,
   RunTreeItem,
 } from "../../treeview_provider/runHistoryTreeItems";
 import { RunHistoryTreeviewProvider } from "../../treeview_provider/runHistoryTreeviewProvider";
 
-const createRunResults = (overrides: Record<string, unknown> = {}) => ({
-  metadata: { invocation_id: "test-invocation" },
-  results: [{ unique_id: "model.project.model1", status: "success" }],
-  elapsed_time: 1.0,
+/**
+ * Create a RunHistoryEntry for testing.
+ * This matches the unified format from @altimateai/dbt-integration.
+ */
+const createEntry = (
+  overrides: Partial<RunHistoryEntry> = {},
+): RunHistoryEntry => ({
+  id: "test-invocation",
+  command: "run",
+  args: [],
+  completedAt: new Date(),
+  projectName: "project",
+  results: [
+    {
+      name: "model1",
+      uniqueId: "model.project.model1",
+      status: "success",
+      executionTime: 1.0,
+      resourceType: "model",
+    },
+  ],
+  elapsedTime: 1.0,
   ...overrides,
 });
 
@@ -37,7 +58,8 @@ describe("RunHistoryTreeviewProvider", () => {
 
   describe("getTreeItem", () => {
     it("should return the element itself", () => {
-      const entry = service.addCompletedRun(createRunResults(), "project");
+      const entry = createEntry();
+      service.addEntry(entry);
       const treeItem = new RunTreeItem(entry);
 
       expect(provider.getTreeItem(treeItem)).toBe(treeItem);
@@ -50,19 +72,27 @@ describe("RunHistoryTreeviewProvider", () => {
     });
 
     it("should return RunTreeItems at root level in reverse chronological order", () => {
-      service.addCompletedRun(
-        createRunResults({ metadata: { invocation_id: "first" } }),
-        "project",
-      );
-      service.addCompletedRun(
-        createRunResults({
-          metadata: { invocation_id: "second" },
+      service.addEntry(createEntry({ id: "first" }));
+      service.addEntry(
+        createEntry({
+          id: "second",
           results: [
-            { unique_id: "model.project.m1", status: "success" },
-            { unique_id: "model.project.m2", status: "error" },
+            {
+              name: "m1",
+              uniqueId: "model.project.m1",
+              status: "success",
+              executionTime: 1.0,
+              resourceType: "model",
+            },
+            {
+              name: "m2",
+              uniqueId: "model.project.m2",
+              status: "error",
+              executionTime: 0.5,
+              resourceType: "model",
+            },
           ],
         }),
-        "project",
       );
 
       const rootChildren = provider.getChildren() as RunTreeItem[];
@@ -72,36 +102,43 @@ describe("RunHistoryTreeviewProvider", () => {
       expect(rootChildren[1].entry.id).toBe("first");
     });
 
-    it("should return ModelResultTreeItems for RunTreeItem children", () => {
-      service.addCompletedRun(
-        createRunResults({
+    it("should return ResultTreeItems for RunTreeItem children", () => {
+      service.addEntry(
+        createEntry({
           results: [
-            { unique_id: "model.project.model1", status: "success" },
-            { unique_id: "model.project.model2", status: "error" },
+            {
+              name: "model1",
+              uniqueId: "model.project.model1",
+              status: "success",
+              executionTime: 1.0,
+              resourceType: "model",
+            },
+            {
+              name: "model2",
+              uniqueId: "model.project.model2",
+              status: "error",
+              executionTime: 0.5,
+              resourceType: "model",
+            },
           ],
         }),
-        "project",
       );
 
       const runTreeItem = provider.getChildren()[0] as RunTreeItem;
-      const children = provider.getChildren(
-        runTreeItem,
-      ) as ModelResultTreeItem[];
+      const children = provider.getChildren(runTreeItem) as ResultTreeItem[];
 
       expect(children).toHaveLength(2);
       expect(children[0].result.name).toBe("model1");
       expect(children[1].result.name).toBe("model2");
     });
 
-    it("should return empty array for ModelResultTreeItem children", () => {
-      service.addCompletedRun(createRunResults(), "project");
+    it("should return empty array for ResultTreeItem children", () => {
+      service.addEntry(createEntry());
 
       const runTreeItem = provider.getChildren()[0] as RunTreeItem;
-      const modelItem = provider.getChildren(
-        runTreeItem,
-      )[0] as ModelResultTreeItem;
+      const resultItem = provider.getChildren(runTreeItem)[0] as ResultTreeItem;
 
-      expect(provider.getChildren(modelItem)).toEqual([]);
+      expect(provider.getChildren(resultItem)).toEqual([]);
     });
   });
 
@@ -110,7 +147,7 @@ describe("RunHistoryTreeviewProvider", () => {
       const listener = jest.fn();
       provider.onDidChangeTreeData(listener);
 
-      service.addCompletedRun(createRunResults(), "project");
+      service.addEntry(createEntry());
 
       expect(listener).toHaveBeenCalled();
     });

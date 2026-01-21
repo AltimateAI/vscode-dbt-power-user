@@ -6,14 +6,33 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import { RunHistoryService } from "../../services/runHistoryService";
+import {
+  RunHistoryEntry,
+  RunHistoryService,
+} from "../../services/runHistoryService";
 
-// Matches structure from @altimateai/dbt-integration RunResultsData
-const createRunResults = (overrides: Record<string, unknown> = {}) => ({
-  metadata: { invocation_id: "test-invocation" },
-  args: { which: "run", select: ["model1"] },
-  results: [{ unique_id: "model.project.model1", status: "success" }],
-  elapsed_time: 1.0,
+/**
+ * Create a RunHistoryEntry for testing.
+ * This matches the unified format from @altimateai/dbt-integration.
+ */
+const createEntry = (
+  overrides: Partial<RunHistoryEntry> = {},
+): RunHistoryEntry => ({
+  id: "test-invocation",
+  command: "run",
+  args: ["model1"],
+  completedAt: new Date(),
+  projectName: "test-project",
+  results: [
+    {
+      name: "model1",
+      uniqueId: "model.project.model1",
+      status: "success",
+      executionTime: 1.0,
+      resourceType: "model",
+    },
+  ],
+  elapsedTime: 1.0,
   ...overrides,
 });
 
@@ -29,92 +48,31 @@ describe("RunHistoryService", () => {
     jest.clearAllMocks();
   });
 
-  describe("addCompletedRun", () => {
-    it("should parse RunResultsData structure correctly", () => {
-      const runResults = createRunResults({
-        metadata: { invocation_id: "test-123" },
-        args: { which: "build", select: ["+my_model+"] },
-        results: [
-          {
-            unique_id: "model.jaffle.stg_customers",
-            status: "success",
-            execution_time: 1.23,
-            message: "CREATE TABLE",
-          },
-        ],
-        elapsed_time: 2.5,
-      });
+  describe("addEntry", () => {
+    it("should store the entry and return it", () => {
+      const entry = createEntry({ id: "test-123" });
 
-      const entry = service.addCompletedRun(runResults, "test-project");
+      const result = service.addEntry(entry);
 
-      expect(entry.id).toBe("test-123");
-      expect(entry.command).toBe("build");
-      expect(entry.args).toEqual(["+my_model+"]);
-      expect(entry.elapsedTime).toBe(2.5);
-      expect(entry.projectName).toBe("test-project");
-      expect(entry.models[0]).toMatchObject({
-        name: "stg_customers",
-        uniqueId: "model.jaffle.stg_customers",
-        status: "success",
-        executionTime: 1.23,
-        message: "CREATE TABLE",
-        resourceType: "model",
-      });
+      expect(result).toBe(entry);
+      expect(result.id).toBe("test-123");
     });
-
-    it("should handle minimal/missing fields with defaults", () => {
-      const entry = service.addCompletedRun(
-        { results: [{ unique_id: "model.p.m" }], elapsed_time: 0.5 },
-        "project",
-      );
-
-      expect(entry.id).toMatch(/^run-\d+$/);
-      expect(entry.command).toBe("unknown");
-      expect(entry.args).toEqual([]);
-      expect(entry.models[0].status).toBe("unknown");
-      expect(entry.models[0].executionTime).toBeNull();
-    });
-
-    it.each([
-      ["model.project.my_model", "model", "my_model"],
-      ["test.project.not_null_id", "test", "not_null_id"],
-      ["seed.project.raw_data", "seed", "raw_data"],
-      ["snapshot.project.orders_snap", "snapshot", "orders_snap"],
-      ["unknown.project.something", "model", "something"],
-      ["simplemodel", "model", "simplemodel"],
-    ])(
-      "should parse unique_id %s as resourceType=%s, name=%s",
-      (uniqueId, expectedType, expectedName) => {
-        const entry = service.addCompletedRun(
-          { results: [{ unique_id: uniqueId }], elapsed_time: 0.5 },
-          "project",
-        );
-
-        expect(entry.models[0].resourceType).toBe(expectedType);
-        expect(entry.models[0].name).toBe(expectedName);
-      },
-    );
 
     it("should add new runs at the beginning of history", () => {
-      service.addCompletedRun(
-        createRunResults({ metadata: { invocation_id: "first" } }),
-        "project",
-      );
-      service.addCompletedRun(
-        createRunResults({ metadata: { invocation_id: "second" } }),
-        "project",
-      );
+      service.addEntry(createEntry({ id: "first" }));
+      service.addEntry(createEntry({ id: "second" }));
 
       const history = service.getHistory();
       expect(history[0].id).toBe("second");
       expect(history[1].id).toBe("first");
     });
 
-    it("should fire onHistoryChanged event when run is added", () => {
+    it("should fire onHistoryChanged event when entry is added", () => {
       const listener = jest.fn();
       service.onHistoryChanged(listener);
 
-      service.addCompletedRun(createRunResults(), "project");
+      const entry = createEntry({ id: "test-invocation" });
+      service.addEntry(entry);
 
       expect(listener).toHaveBeenCalledTimes(1);
       expect(listener).toHaveBeenCalledWith(
@@ -129,7 +87,7 @@ describe("RunHistoryService", () => {
     });
 
     it("should return a copy of history array", () => {
-      service.addCompletedRun(createRunResults(), "project");
+      service.addEntry(createEntry());
 
       const history1 = service.getHistory();
       const history2 = service.getHistory();
