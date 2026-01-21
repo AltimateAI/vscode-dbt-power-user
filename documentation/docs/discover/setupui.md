@@ -106,7 +106,7 @@ For dbt Cloud users, you can now set up automatic artifact syncing in the SaaS U
 6. **Custom URL** (optional): For custom dbt Cloud instances (defaults to `https://cloud.getdbt.com/api/v2/`)
 7. Click **Test Connection** to verify your setup
 8. Configure the sync schedule:
-    - **Scheduled**: Sync artifacts on a regular schedule using cron expressions (e.g., Daily at 12:00 AM UTC)
+    - **Scheduled**: Sync artifacts on a regular schedule. Select from Daily, Weekly, or Monthly frequency options and choose the time (UTC) when sync should occur (e.g., Daily at 12:00 AM UTC)
     - **Real-time**: (Coming soon) Immediate sync when dbt Cloud runs complete
 9. Click **Create Connection**
 
