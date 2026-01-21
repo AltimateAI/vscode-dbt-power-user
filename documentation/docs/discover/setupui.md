@@ -90,6 +90,32 @@ Manifest and catalog ingestion has started. You can check the status at https://
 
 To ensure your dbt documentation and lineage in the UI stays up-to-date automatically, we strongly recommend integrating the manifest and catalog upload process into your CI/CD pipeline. This eliminates manual steps and ensures that any changes to your dbt project are immediately reflected in the SaaS UI.
 
+## Automatic Sync with dbt Cloud Connection
+
+For dbt Cloud users, you can now set up automatic artifact syncing in the SaaS UI using the dbt Cloud API connection. This eliminates the need for manual file uploads or CLI commands.
+
+![DBT Cloud Connection](images/DBT_Cloud_Connection.png)
+
+### Setup Steps
+
+1. Navigate to **Settings -> Connections** and click **Create new connection**
+2. Select **dbt Cloud** as the connection type
+3. Provide the required connection details:
+4. **Service Account Token**: Generate a new Service Token from dbt Cloud Account Settings ([learn more](https://docs.getdbt.com/docs/dbt-cloud-apis/service-tokens))
+5. **Account ID**: Available at `https://cloud.getdbt.com/next/settings/accounts/{{account_id}}`
+6. **Custom URL** (optional): For custom dbt Cloud instances (defaults to `https://cloud.getdbt.com/api/v2/`)
+7. Click **Test Connection** to verify your setup
+8. Configure the sync schedule:
+    - **Scheduled**: Sync artifacts on a regular schedule. Select from Daily, Weekly, or Monthly frequency options and choose the time (UTC) when sync should occur (e.g., Daily at 12:00 AM UTC)
+    - **Real-time**: (Coming soon) Immediate sync when dbt Cloud runs complete
+9. Click **Create Connection**
+
+After creation, your dbt Cloud projects and environments will be automatically discovered.
+
+/// admonition | Automatic syncing keeps your documentation and lineage always up-to-date without manual intervention
+    type: tip
+///
+
 ## Recorded Demo
 
 <div style="position: relative; padding-bottom: 62.5%; height: 0;"><iframe src="https://www.loom.com/embed/04c57021a56144358d78140eee45a989?sid=67a35e98-48cb-4800-a38b-9392133337cb" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
