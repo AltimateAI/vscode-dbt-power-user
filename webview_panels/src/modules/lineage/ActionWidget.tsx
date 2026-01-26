@@ -2,9 +2,6 @@ import MissingLineageMessageComponent from "./MissingLineageMessage";
 import { MissingLineageMessage } from "./types";
 import FeedbackButton from "@modules/commonActionButtons/FeedbackButton";
 import HelpButton from "./components/help/HelpButton";
-import { Button } from "@uicore";
-import { executeRequestInAsync } from "@modules/app/requestExecutor";
-import { CLL } from "@lib";
 import styles from "./lineage.module.scss";
 
 const ActionWidget = ({
@@ -32,15 +29,6 @@ const ActionWidget = ({
       <div id="expand-container" />
       <div id="export-container" />
       <div id="settings-container" />
-      <Button
-        outline
-        onClick={() => {
-          executeRequestInAsync("setLegacyLineageView", {});
-          CLL.cancel();
-        }}
-      >
-        Show Legacy UX
-      </Button>
       <HelpButton />
       <div id="reset-container" />
       <FeedbackButton
