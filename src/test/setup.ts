@@ -111,4 +111,18 @@ jest.mock("vscode", () => ({
       isCancellationRequested: false,
     },
   },
+  TextEdit: {
+    insert: jest.fn().mockImplementation((position, newText) => ({
+      range: { start: position, end: position },
+      newText,
+    })),
+    replace: jest.fn().mockImplementation((range, newText) => ({
+      range,
+      newText,
+    })),
+    delete: jest.fn().mockImplementation((range) => ({
+      range,
+      newText: "",
+    })),
+  },
 }));

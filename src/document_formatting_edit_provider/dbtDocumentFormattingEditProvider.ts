@@ -122,75 +122,77 @@ export class DbtDocumentFormattingEditProvider
   ): TextEdit[] {
     const textEdits: TextEdit[] = [];
     const diffs = parseDiff(diffOutput);
+
+    // Handle empty documents - no edits possible
+    if (document.lineCount === 0) {
+      return textEdits;
+    }
+
     diffs.forEach((diff) => {
-      let lastChunk: parseDiff.Chunk;
       diff.chunks.forEach((chunk) => {
-        if (lastChunk) {
-          // Move the lines in-between chunks to their new positions
-          // (The lines after the last chunk don't need to be handled)
-          for (
-            let index = lastChunk.oldStart + lastChunk.oldLines, lineNb = 0;
-            index < chunk.oldStart;
-            index++, lineNb++
-          ) {
-            textEdits.push(
-              ...this.replace(
-                document,
-                index - 1,
-                lastChunk.newStart + lastChunk.newLines - 2 + lineNb,
-                document.lineAt(index - 1).text + "\n",
-              ),
-            );
-          }
-        }
-        // Ensure lines added are not out of bounds of chunk
-        const oldBoundChunk = chunk.oldLines + chunk.oldStart - 1;
+        // Track where we are in the old document for insertions
+        // chunk.oldStart is 1-indexed, convert to 0-indexed
+        let lastOldLineProcessed = chunk.oldStart - 1;
+        // Track consecutive ADDs to offset insertion points
+        let consecutiveAddCount = 0;
+
         chunk.changes.forEach((change) => {
           if (this.isAddChange(change)) {
-            textEdits.push(
-              TextEdit.insert(
-                document.lineAt(Math.min(change.ln, oldBoundChunk) - 1).range
-                  .start,
-                change.content.slice(1) + "\n",
-              ),
-            );
+            // For add changes, insert at the position after the last old line we processed
+            // Offset by consecutiveAddCount to handle multiple ADDs at same position
+            const insertLine = lastOldLineProcessed + consecutiveAddCount;
+            if (insertLine < document.lineCount) {
+              textEdits.push(
+                TextEdit.insert(
+                  document.lineAt(insertLine).range.start,
+                  change.content.slice(1) + "\n",
+                ),
+              );
+            } else if (document.lineCount > 0) {
+              // Insert at end of document
+              textEdits.push(
+                TextEdit.insert(
+                  document.lineAt(document.lineCount - 1).range.end,
+                  change.content.slice(1) + "\n",
+                ),
+              );
+            }
+            consecutiveAddCount++;
           }
+
           if (this.isNormalChange(change)) {
-            textEdits.push(
-              ...this.replace(
-                document,
-                change.ln1 - 1,
-                Math.min(change.ln2, oldBoundChunk) - 1,
-                change.content.slice(1) + "\n",
-              ),
-            );
+            // For normal changes, use ln1 (old file line number)
+            const oldLineIndex = change.ln1 - 1;
+            lastOldLineProcessed = oldLineIndex + 1;
+            consecutiveAddCount = 0; // Reset ADD counter
+            if (oldLineIndex < document.lineCount) {
+              textEdits.push(
+                TextEdit.replace(
+                  document.lineAt(oldLineIndex).rangeIncludingLineBreak,
+                  change.content.slice(1) + "\n",
+                ),
+              );
+            }
           }
+
           if (this.isDeleteChange(change)) {
-            textEdits.push(
-              TextEdit.delete(
-                document.lineAt(change.ln - 1).rangeIncludingLineBreak,
-              ),
-            );
+            // For delete changes, use ln (old file line number)
+            const lineIndex = change.ln - 1;
+            lastOldLineProcessed = lineIndex + 1;
+            consecutiveAddCount = 0; // Reset ADD counter
+            if (lineIndex < document.lineCount) {
+              textEdits.push(
+                TextEdit.delete(
+                  document.lineAt(lineIndex).rangeIncludingLineBreak,
+                ),
+              );
+            }
           }
         });
-        lastChunk = chunk;
       });
     });
-    return textEdits;
-  }
 
-  private replace(
-    document: TextDocument,
-    lineToDelete: number,
-    lineToInsert: number,
-    newText: string,
-  ): TextEdit[] {
-    // Reflect "replace" edits as delete & insert
-    // First, delete line, then add line
-    return [
-      TextEdit.delete(document.lineAt(lineToDelete).rangeIncludingLineBreak),
-      TextEdit.insert(document.lineAt(lineToInsert).range.start, newText),
-    ];
+    return textEdits;
   }
 
   private isAddChange(change: parseDiff.Change): change is parseDiff.AddChange {
