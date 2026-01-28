@@ -109,6 +109,7 @@ Two important components of Playground are Chat History and Prompt Library:
 
 Chat History is a persistent record of all your previous conversations with Playground. Located in the left sidebar, it provides quick access to past interactions, allowing you to revisit analyses, continue previous work, or reference earlier insights.
 
+
 #### Key Features
 
 | Feature | Description |
@@ -181,8 +182,8 @@ Playground is also seamlessly integrated throughout the SaaS platform, providing
 
 Each SaaS page includes a **Playground button** (chat icon) in the bottom right corner. Clicking this button opens a Playground popup panel that:
 
-![Playground Access Button](playground/images/All Roads to Playground1.png)
-![Playground Popup Panel](playground/images/All Roads to Playground2.png)
+![Playground Access Button](playground/images/all-roads-to-playground1.png)
+![Playground Popup Panel](playground/images/all-roads-to-playground2.png)
 
 - **Automatically understands the page context** - The agent knows which page you're on and what data you're viewing
 - **Provides relevant suggested prompts** - Pre-built questions specific to that page's functionality
