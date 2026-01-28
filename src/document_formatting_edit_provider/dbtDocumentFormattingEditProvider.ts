@@ -123,75 +123,53 @@ export class DbtDocumentFormattingEditProvider
     const textEdits: TextEdit[] = [];
     const diffs = parseDiff(diffOutput);
     diffs.forEach((diff) => {
-      let lastChunk: parseDiff.Chunk;
       diff.chunks.forEach((chunk) => {
-        if (lastChunk) {
-          // Move the lines in-between chunks to their new positions
-          // (The lines after the last chunk don't need to be handled)
-          for (
-            let index = lastChunk.oldStart + lastChunk.oldLines, lineNb = 0;
-            index < chunk.oldStart;
-            index++, lineNb++
-          ) {
-            textEdits.push(
-              ...this.replace(
-                document,
-                index - 1,
-                lastChunk.newStart + lastChunk.newLines - 2 + lineNb,
-                document.lineAt(index - 1).text + "\n",
-              ),
-            );
-          }
-        }
-        // Ensure lines added are not out of bounds of chunk
-        const oldBoundChunk = chunk.oldLines + chunk.oldStart - 1;
+        // Process all changes in the chunk
         chunk.changes.forEach((change) => {
           if (this.isAddChange(change)) {
-            textEdits.push(
-              TextEdit.insert(
-                document.lineAt(Math.min(change.ln, oldBoundChunk) - 1).range
-                  .start,
-                change.content.slice(1) + "\n",
-              ),
-            );
+            // For add changes, use the line number directly without bounds checking
+            // The line number from the diff should be correct
+            const lineIndex = change.ln - 1;
+            if (lineIndex <= document.lineCount) {
+              textEdits.push(
+                TextEdit.insert(
+                  lineIndex < document.lineCount 
+                    ? document.lineAt(lineIndex).range.start
+                    : document.lineAt(document.lineCount - 1).range.end,
+                  change.content.slice(1) + "\n",
+                ),
+              );
+            }
           }
           if (this.isNormalChange(change)) {
-            textEdits.push(
-              ...this.replace(
-                document,
-                change.ln1 - 1,
-                Math.min(change.ln2, oldBoundChunk) - 1,
-                change.content.slice(1) + "\n",
-              ),
-            );
+            // For normal changes, ensure we're within document bounds
+            const oldLineIndex = change.ln1 - 1;
+            if (oldLineIndex < document.lineCount) {
+              textEdits.push(
+                TextEdit.replace(
+                  document.lineAt(oldLineIndex).rangeIncludingLineBreak,
+                  change.content.slice(1) + "\n",
+                ),
+              );
+            }
           }
           if (this.isDeleteChange(change)) {
-            textEdits.push(
-              TextEdit.delete(
-                document.lineAt(change.ln - 1).rangeIncludingLineBreak,
-              ),
-            );
+            // For delete changes, ensure we're within document bounds
+            const lineIndex = change.ln - 1;
+            if (lineIndex < document.lineCount) {
+              textEdits.push(
+                TextEdit.delete(
+                  document.lineAt(lineIndex).rangeIncludingLineBreak,
+                ),
+              );
+            }
           }
         });
-        lastChunk = chunk;
       });
     });
     return textEdits;
   }
 
-  private replace(
-    document: TextDocument,
-    lineToDelete: number,
-    lineToInsert: number,
-    newText: string,
-  ): TextEdit[] {
-    // Reflect "replace" edits as delete & insert
-    // First, delete line, then add line
-    return [
-      TextEdit.delete(document.lineAt(lineToDelete).rangeIncludingLineBreak),
-      TextEdit.insert(document.lineAt(lineToInsert).range.start, newText),
-    ];
-  }
 
   private isAddChange(change: parseDiff.Change): change is parseDiff.AddChange {
     return change.type === "add";
