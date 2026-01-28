@@ -10,6 +10,12 @@ You can install the extension from VSCode directly or from the [VSCode Marketpla
 
 You can install the extension from Cursor or any other VSCode compatible editors directly or from the [Open VSX Registry](https://open-vsx.org/extension/innoverio/vscode-dbt-power-user)
 
+/// admonition | Cursor IDE users: Installation may freeze
+    type: warning
+
+Some Cursor users experience the extension installation freezing for several minutes and showing a "Failed to fetch" error. This is a known Cursor issue. If you encounter this, please follow the [Cursor installation workaround](cursor_installation_workaround.md) to resolve it.
+///
+
 
 /// details | Here's how to install the extension in VSCode
 
