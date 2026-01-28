@@ -30,7 +30,13 @@ export class RunModel {
       return;
     }
     const fullPath = window.activeTextEditor.document.uri;
-    this.runDBTModelTest(fullPath);
+    const segments = fullPath.fsPath.split(path.sep);
+    if (segments.includes("tests")) {
+      const testName = path.basename(fullPath.fsPath, ".sql");
+      this.runDBTTest(fullPath, testName);
+    } else {
+      this.runDBTModelTest(fullPath);
+    }
   }
 
   compileModelOnActiveWindow() {

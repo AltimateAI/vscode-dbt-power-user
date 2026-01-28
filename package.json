@@ -121,7 +121,8 @@
           },
           "dbt.enableNewLineagePanel": {
             "type": "boolean",
-            "description": "Enable the new lineage panel in dbt."
+            "description": "Enable the new lineage panel in dbt.",
+            "default": true
           },
           "dbt.enableCollaboration": {
             "type": "boolean",
