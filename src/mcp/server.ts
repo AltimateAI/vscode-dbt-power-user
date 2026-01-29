@@ -65,7 +65,78 @@ const GetParentModelsSchema = BaseProjectRootSchema.extend({
   table: z.string(),
 });
 
+const DBT_BEST_PRACTICES_CONTENT = `# dbt Project Best Practices for AI Agents
+
+## Tool Selection: Use MCP Tools Instead of Terminal Commands
+
+**⚠️ IMPORTANT**: ALWAYS use these MCP tools instead of running dbt commands in the terminal.
+
+**⚠️ PREFERRED**: Use \`execute_sql\` for quickly validating SQL and verifying results.
+**⚠️ PREFERRED**: Use \`build_model\` for building models - it automatically rebuilds downstream dependencies.
+
+### MCP Tools Summary
+
+| Tool | Purpose |
+|------|---------|
+| \`get_best_practices\` | ⚠️ **READ FIRST** - Get workflow guidelines before starting |
+| \`build_model\` | ⚠️ **PREFERRED** - Build model with auto downstream rebuild |
+| \`compile_model\` | Convert Jinja to raw SQL (no validation, no database!) |
+| \`get_columns_of_model\` | Get column names and types for a model |
+| \`get_columns_of_source\` | Get column names and types for a source |
+| \`get_parent_models\` | Find upstream dependencies |
+| \`get_children_models\` | Find downstream dependencies |
+| \`execute_sql\` | Run verification queries |
+
+---
+
+## Critical Workflow: Write → Build → Verify
+
+### 1. Write the Model
+- Create or modify the SQL file in the \`models/\` directory
+- Use proper Jinja templating with \`{{ ref() }}\` and \`{{ source() }}\`
+
+### 2. Build the Model (REQUIRED!)
+- **ALWAYS use \`build_model\` MCP tool** - it automatically rebuilds downstream models
+- ⚠️ **WARNING**: \`compile_model\` only renders Jinja templates - it does NOT create the model in the database!
+
+### 3. Verify the Result
+- Use \`execute_sql\` MCP tool for specific verification queries
+- Or use bash: \`dbt show --select model_name --limit 10\` to preview the data
+
+## Common Mistakes to Avoid
+
+### ❌ WRONG: Stopping after compile
+1. Write model file ✓
+2. Run compile_model ✓
+3. Stop (WRONG! Model not built in database)
+
+### ✅ CORRECT: Full workflow
+1. Try out SQL using execute_sql ✓
+2. Write model file ✓
+3. Call build_model with modelName ✓ (creates model AND rebuilds downstream!)
+4. Verify with execute_sql or dbt show ✓
+
+## Selector Patterns
+
+| Pattern | Meaning |
+|---------|---------|
+| \`model\` | Just the model |
+| \`model+\` | Model and all downstream (use plusOperatorRight: "+") |
+| \`+model\` | Model and all upstream (use plusOperatorLeft: "+") |
+| \`+model+\` | Model with all dependencies |
+
+## Remember
+
+**A dbt task is NOT complete until:**
+1. The model file is written
+2. \`build_model\` has been called successfully
+3. The output has been verified
+
+Never stop at \`compile_model\` - that only renders Jinja templating, it does NOT create anything in the database!
+`;
+
 enum ToolName {
+  GET_BEST_PRACTICES = "get_best_practices",
   GET_PROJECTS = "get_projects",
   GET_CHILDREN_MODELS = "get_children_models",
   GET_PARENT_MODELS = "get_parent_models",
@@ -92,6 +163,17 @@ export class DbtPowerUserMcpServerTools implements Disposable {
   ) {}
 
   private tools: McpTool[] = [
+    {
+      name: ToolName.GET_BEST_PRACTICES,
+      description:
+        "⚠️ IMPORTANT: Call this tool BEFORE starting any dbt task to get critical workflow guidelines. Returns best practices for completing dbt tasks correctly, including the required Write → Build → Verify workflow and proper tool usage. This helps avoid common mistakes like stopping after compile.",
+      inputSchema: zodToJsonSchema(BaseSchema) as ToolInput,
+      handler: async () => {
+        return {
+          content: createTextContent(DBT_BEST_PRACTICES_CONTENT),
+        };
+      },
+    },
     {
       name: ToolName.GET_PROJECTS,
       description: `Returns detailed information about all available dbt projects including:
@@ -206,7 +288,7 @@ This must be called first to get the projectRoot parameter needed for all other 
     {
       name: ToolName.GET_COLUMNS_OF_MODEL,
       description:
-        "Returns the column names and data types for a specified dbt model. Use this to understand a model's schema before querying it.",
+        "Returns the column names and data types for a specified dbt model. WORKFLOW: Call this BEFORE completing any task to verify the output schema matches requirements.",
       inputSchema: zodToJsonSchema(GetColumnsOfModelSchema) as ToolInput,
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = GetColumnsOfModelSchema.parse(args);
@@ -282,7 +364,7 @@ This must be called first to get the projectRoot parameter needed for all other 
           {
             name: ToolName.EXECUTE_SQL,
             description:
-              "Executes SQL queries against the database, returning processed results immediately. Use this to test queries and retrieve data from the database.",
+              "⚠️ PREFERRED for validation: Execute SQL queries against the database and get results immediately. WORKFLOW: Use this to spot-check row counts, verify key values, and validate your logic before and after building models.",
             inputSchema: zodToJsonSchema(ExecuteSQLSchema) as ToolInput,
             handler: async (args: Record<string, unknown>) => {
               const validatedArgs = ExecuteSQLSchema.parse(args);
@@ -309,7 +391,7 @@ This must be called first to get the projectRoot parameter needed for all other 
     {
       name: ToolName.COMPILE_MODEL,
       description:
-        "Converts a dbt model's Jinja SQL into raw SQL. Use this to inspect the generated SQL before executing it. Note: This does not validate if the SQL will run successfully.",
+        "Converts Jinja SQL to raw SQL. ⚠️ WARNING: This ONLY performs Jinja templating - it does NOT validate SQL syntax or create anything in the database! You MUST call build_model to actually create the model.",
       inputSchema: zodToJsonSchema(CompileModelSchema) as ToolInput,
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = CompileModelSchema.parse(args);
@@ -329,7 +411,7 @@ This must be called first to get the projectRoot parameter needed for all other 
     {
       name: ToolName.COMPILE_QUERY,
       description:
-        "Compile query, this will only convert the Jinja SQL to SQL, not determine if the SQL actually works. If the compilation succeeds, use the execute SQL and validate the data.",
+        "Converts Jinja SQL query to raw SQL. ⚠️ WARNING: This ONLY performs Jinja templating - it does NOT validate SQL syntax or execute anything! Use execute_sql to run and validate the query.",
       inputSchema: zodToJsonSchema(CompileQuerySchema) as ToolInput,
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = CompileQuerySchema.parse(args);
@@ -352,7 +434,7 @@ This must be called first to get the projectRoot parameter needed for all other 
     {
       name: ToolName.RUN_MODEL,
       description:
-        "Executes a dbt model in the database. Use + for plusOperatorLeft to include parent models, and + for plusOperatorRight to include child models in the run.",
+        "Runs a dbt model. For most cases, prefer build_model instead as it also runs tests. Use + for plusOperatorLeft to include upstream models, and + for plusOperatorRight to include downstream models.",
       inputSchema: zodToJsonSchema(RunModelSchema) as ToolInput,
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = RunModelSchema.parse(args);
@@ -376,7 +458,7 @@ This must be called first to get the projectRoot parameter needed for all other 
     {
       name: ToolName.BUILD_MODEL,
       description:
-        "Builds a dbt model in the database. Use + for plusOperatorLeft to include parent models, and + for plusOperatorRight to include child models in the build.",
+        "⚠️ PREFERRED: Builds a dbt model AND runs its tests. Use + for plusOperatorRight to also rebuild downstream models (recommended after fixes). This ensures data consistency throughout your pipeline.",
       inputSchema: zodToJsonSchema(BuildModelSchema) as ToolInput,
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = BuildModelSchema.parse(args);
@@ -400,7 +482,7 @@ This must be called first to get the projectRoot parameter needed for all other 
     {
       name: ToolName.BUILD_PROJECT,
       description:
-        "Builds the dbt project, this will run seeds, models and all related tests",
+        "Builds the entire dbt project including seeds, models, and all tests. For single model changes, prefer build_model instead.",
       inputSchema: zodToJsonSchema(BuildProjectSchema) as ToolInput,
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = BuildProjectSchema.parse(args);
@@ -420,7 +502,7 @@ This must be called first to get the projectRoot parameter needed for all other 
     {
       name: ToolName.RUN_TEST,
       description:
-        "Run an indivdual test based on the test name in the dbt manifest.",
+        "Runs an individual dbt test by test name from the manifest. Note: build_model already includes tests, so use this only for running specific tests independently.",
       inputSchema: zodToJsonSchema(RunTestSchema) as ToolInput,
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = RunTestSchema.parse(args);
@@ -442,7 +524,7 @@ This must be called first to get the projectRoot parameter needed for all other 
     {
       name: ToolName.RUN_MODEL_TEST,
       description:
-        "Run model tests, use this tool to run the existing tests defined for the dbt model",
+        "Runs all tests defined for a specific dbt model. Note: build_model already includes tests, so use this only when you need to run tests without rebuilding the model.",
       inputSchema: zodToJsonSchema(RunModelTestSchema) as ToolInput,
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = RunModelTestSchema.parse(args);
@@ -464,7 +546,7 @@ This must be called first to get the projectRoot parameter needed for all other 
     {
       name: ToolName.ADD_DBT_PACKAGES,
       description:
-        "Add dbt package(s) to the project, the dbt package string should be in the form of packageName@version",
+        "Adds dbt package(s) to the project's packages.yml. Format: packageName@version. After adding packages, call install_deps to install them.",
       inputSchema: zodToJsonSchema(AddDbtPackagesSchema) as ToolInput,
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = AddDbtPackagesSchema.parse(args);
@@ -486,7 +568,7 @@ This must be called first to get the projectRoot parameter needed for all other 
     {
       name: ToolName.INSTALL_DEPS,
       description:
-        "Install dbt package dependencies based on the dbt projects's packages.yml file",
+        "Installs dbt package dependencies from packages.yml. Call this after adding packages with add_dbt_packages, or when setting up a project.",
       inputSchema: zodToJsonSchema(InstallDepsSchema) as ToolInput,
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = InstallDepsSchema.parse(args);
