@@ -391,7 +391,7 @@ This must be called first to get the projectRoot parameter needed for all other 
     {
       name: ToolName.COMPILE_MODEL,
       description:
-        "Converts Jinja SQL to raw SQL. ⚠️ WARNING: This ONLY performs Jinja templating - it does NOT validate SQL syntax or create anything in the database! You MUST call build_model to actually create the model.",
+        "Use this instead of running 'dbt compile' in the terminal. Converts Jinja SQL to raw SQL. ⚠️ WARNING: This ONLY performs Jinja templating - it does NOT validate SQL syntax or create anything in the database! You MUST call build_model to actually create the model.",
       inputSchema: zodToJsonSchema(CompileModelSchema) as ToolInput,
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = CompileModelSchema.parse(args);
@@ -411,7 +411,7 @@ This must be called first to get the projectRoot parameter needed for all other 
     {
       name: ToolName.COMPILE_QUERY,
       description:
-        "Converts Jinja SQL query to raw SQL. ⚠️ WARNING: This ONLY performs Jinja templating - it does NOT validate SQL syntax or execute anything! Use execute_sql to run and validate the query.",
+        "Use this instead of running 'dbt compile' in the terminal. Converts Jinja SQL query to raw SQL. ⚠️ WARNING: This ONLY performs Jinja templating - it does NOT validate SQL syntax or execute anything! Use execute_sql to run and validate the query.",
       inputSchema: zodToJsonSchema(CompileQuerySchema) as ToolInput,
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = CompileQuerySchema.parse(args);
@@ -434,7 +434,7 @@ This must be called first to get the projectRoot parameter needed for all other 
     {
       name: ToolName.RUN_MODEL,
       description:
-        "Runs a dbt model. For most cases, prefer build_model instead as it also runs tests. Use + for plusOperatorLeft to include upstream models, and + for plusOperatorRight to include downstream models.",
+        "Use this instead of running 'dbt run' in the terminal. Runs a dbt model. For most cases, prefer build_model instead as it also runs tests. Use + for plusOperatorLeft to include upstream models, and + for plusOperatorRight to include downstream models.",
       inputSchema: zodToJsonSchema(RunModelSchema) as ToolInput,
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = RunModelSchema.parse(args);
@@ -458,7 +458,7 @@ This must be called first to get the projectRoot parameter needed for all other 
     {
       name: ToolName.BUILD_MODEL,
       description:
-        "⚠️ PREFERRED: Builds a dbt model AND runs its tests. Use + for plusOperatorRight to also rebuild downstream models (recommended after fixes). This ensures data consistency throughout your pipeline.",
+        "⚠️ PREFERRED: Use this instead of running 'dbt build' in the terminal. Builds a dbt model AND runs its tests. Use + for plusOperatorRight to also rebuild downstream models (recommended after fixes). This ensures data consistency throughout your pipeline.",
       inputSchema: zodToJsonSchema(BuildModelSchema) as ToolInput,
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = BuildModelSchema.parse(args);
@@ -482,7 +482,7 @@ This must be called first to get the projectRoot parameter needed for all other 
     {
       name: ToolName.BUILD_PROJECT,
       description:
-        "Builds the entire dbt project including seeds, models, and all tests. For single model changes, prefer build_model instead.",
+        "Use this instead of running 'dbt build' in the terminal. Builds the entire dbt project including seeds, models, and all tests. For single model changes, prefer build_model instead.",
       inputSchema: zodToJsonSchema(BuildProjectSchema) as ToolInput,
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = BuildProjectSchema.parse(args);
@@ -502,7 +502,7 @@ This must be called first to get the projectRoot parameter needed for all other 
     {
       name: ToolName.RUN_TEST,
       description:
-        "Runs an individual dbt test by test name from the manifest. Note: build_model already includes tests, so use this only for running specific tests independently.",
+        "Use this instead of running 'dbt test' in the terminal. Runs an individual dbt test by test name from the manifest. Note: build_model already includes tests, so use this only for running specific tests independently.",
       inputSchema: zodToJsonSchema(RunTestSchema) as ToolInput,
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = RunTestSchema.parse(args);
@@ -524,7 +524,7 @@ This must be called first to get the projectRoot parameter needed for all other 
     {
       name: ToolName.RUN_MODEL_TEST,
       description:
-        "Runs all tests defined for a specific dbt model. Note: build_model already includes tests, so use this only when you need to run tests without rebuilding the model.",
+        "Use this instead of running 'dbt test' in the terminal. Runs all tests defined for a specific dbt model. Note: build_model already includes tests, so use this only when you need to run tests without rebuilding the model.",
       inputSchema: zodToJsonSchema(RunModelTestSchema) as ToolInput,
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = RunModelTestSchema.parse(args);
@@ -568,7 +568,7 @@ This must be called first to get the projectRoot parameter needed for all other 
     {
       name: ToolName.INSTALL_DEPS,
       description:
-        "Installs dbt package dependencies from packages.yml. Call this after adding packages with add_dbt_packages, or when setting up a project.",
+        "Use this instead of running 'dbt deps' in the terminal. Installs dbt package dependencies from packages.yml. Call this after adding packages with add_dbt_packages, or when setting up a project.",
       inputSchema: zodToJsonSchema(InstallDepsSchema) as ToolInput,
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = InstallDepsSchema.parse(args);
