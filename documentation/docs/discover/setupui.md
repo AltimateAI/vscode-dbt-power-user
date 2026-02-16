@@ -130,6 +130,10 @@ After creation, your dbt Cloud projects and environments will be automatically d
     type: tip
 ///
 
+/// admonition | The dbt cloud connection deletion has a processing delay of a few hours. If you need to recreate the same connection immediately, contact us.
+    type: warning
+///
+
 ## Recorded Demo
 
 <div style="position: relative; padding-bottom: 62.5%; height: 0;"><iframe src="https://www.loom.com/embed/04c57021a56144358d78140eee45a989?sid=67a35e98-48cb-4800-a38b-9392133337cb" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
