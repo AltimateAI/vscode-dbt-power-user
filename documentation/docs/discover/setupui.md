@@ -106,6 +106,10 @@ Before setting up the connection, create a service token in dbt Cloud with **Job
 6. Click **Save**
 7. **Important**: Copy and save the token immediately — you won't be able to view it again
 
+![DBT Cloud Connection](images/dbtCreateServiceToken.png)
+
+![DBT Cloud Connection](images/dbtServiceTokenPermission.png)
+
 > **Note**: Permission availability may vary by dbt Cloud plan. Refer to the [dbt Cloud Service Tokens documentation](https://docs.getdbt.com/docs/dbt-cloud-apis/service-tokens) for details.
 
 ![DBT Cloud Connection](images/DBT_Cloud_Connection.png)
