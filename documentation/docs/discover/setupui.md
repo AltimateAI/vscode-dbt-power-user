@@ -94,6 +94,20 @@ To ensure your dbt documentation and lineage in the UI stays up-to-date automati
 
 For dbt Cloud users, you can now set up automatic artifact syncing in the SaaS UI using the dbt Cloud API connection. This eliminates the need for manual file uploads or CLI commands.
 
+### Prerequisites: Create a dbt Cloud Service Token
+
+Before setting up the connection, create a service token in dbt Cloud with **Job Viewer** permission. This grants read-only access to the Jobs API for fetching artifacts (manifest.json, catalog.json) from your dbt Cloud runs.
+
+1. Click your account name in the left menu and select **Account settings**
+2. Select **Service Tokens** from the left sidebar
+3. Click **+ New Token**
+4. Enter a descriptive name (e.g., "Altimate Integration")
+5. Assign the **Job Viewer** permission and select the projects you want to sync
+6. Click **Save**
+7. **Important**: Copy and save the token immediately — you won't be able to view it again
+
+> **Note**: Permission availability may vary by dbt Cloud plan. Refer to the [dbt Cloud Service Tokens documentation](https://docs.getdbt.com/docs/dbt-cloud-apis/service-tokens) for details.
+
 ![DBT Cloud Connection](images/DBT_Cloud_Connection.png)
 
 ### Setup Steps
