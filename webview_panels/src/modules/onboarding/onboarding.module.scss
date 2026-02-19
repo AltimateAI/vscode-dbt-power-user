@@ -55,7 +55,12 @@
 .icon-bulb,
 .icon-docs,
 .icon-chart,
-.icon-database {
+.icon-database,
+.icon-chat,
+.icon-search,
+.icon-brain,
+.icon-gear,
+.icon-magic {
   font-size: 1.5rem;
   flex-shrink: 0;
 }
@@ -372,6 +377,14 @@
   }
 }
 
+.section-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  color: var(--vscode-foreground);
+  text-align: center;
+}
+
 .dbt-integration-steps {
   padding: 1rem;
   background-color: var(--vscode-editor-background);
@@ -443,22 +456,6 @@
   }
 }
 
-.integration-type-card {
-  background-color: var(--vscode-editor-background);
-  border: 1px solid var(--vscode-editorWidget-border);
-  border-radius: 4px;
-  padding: 1.5rem;
-
-  :global(.ant-radio-wrapper) {
-    display: flex;
-    align-items: flex-start;
-    margin-bottom: 0;
-  }
-
-  :global(.ant-radio) {
-    margin-top: 0.25rem;
-  }
-}
 
 .radio-option {
   display: flex;
@@ -486,3 +483,112 @@
   justify-content: flex-end;
   flex-wrap: wrap;
 }
+
+/* Prerequisites Step styles */
+.prerequisites-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.prerequisites-info {
+  background-color: var(--vscode-textBlockQuote-background);
+  border-left: 3px solid var(--vscode-textLink-foreground);
+  padding: 1rem;
+  border-radius: 4px;
+
+  p {
+    margin: 0;
+    color: var(--vscode-foreground);
+    font-weight: 500;
+  }
+}
+
+.prerequisite-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.prerequisite-card {
+  background-color: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-editorWidget-border);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: var(--vscode-focusBorder);
+  }
+
+  :global(.ant-card-body) {
+    padding: 1.25rem;
+  }
+}
+
+.prerequisite-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.prerequisite-card-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  flex: 1;
+
+  h3 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--vscode-foreground);
+  }
+}
+
+.prerequisite-icon {
+  font-size: 1.5rem;
+  color: var(--vscode-textLink-foreground);
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.prerequisite-description {
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.9rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.prerequisite-status {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.prerequisite-action {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--vscode-editorWidget-border);
+}
+
+.prerequisites-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.diagnostics-summary {
+  text-align: center;
+  padding: 1rem;
+  background-color: var(--vscode-textBlockQuote-background);
+  border-radius: 4px;
+
+  p {
+    margin: 0;
+    color: var(--vscode-descriptionForeground);
+    font-size: 0.9rem;
+  }
+}
+
