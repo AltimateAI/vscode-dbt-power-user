@@ -485,6 +485,11 @@
         "title": "Open dbt Power User insights panel"
       },
       {
+        "command": "dbtPowerUser.openOnboarding",
+        "category": "dbt Power User",
+        "title": "Get Started with dbt Power User"
+      },
+      {
         "command": "dbtPowerUser.sqlQuickPick",
         "title": "SQL Actions",
         "category": "dbt Power User",
