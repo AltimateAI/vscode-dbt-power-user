@@ -286,10 +286,12 @@ export class OnboardingPanel extends AltimateWebviewProvider {
       case "saveAltimateKey":
         // Save Altimate API key and instance name
         try {
-          const { apiKey, instanceName } = message as HandleCommandProps & {
-            apiKey: string;
-            instanceName: string;
-          };
+          const { apiKey, instanceName, backendURL } =
+            message as HandleCommandProps & {
+              apiKey: string;
+              instanceName: string;
+              backendURL?: string;
+            };
 
           // Save to VSCode settings
           await commands.executeCommand(
@@ -301,6 +303,9 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           const config = workspace.getConfiguration("dbt");
           await config.update("altimateAiKey", apiKey, true);
           await config.update("altimateInstanceName", instanceName, true);
+          if (backendURL) {
+            await config.update("altimateUrl", backendURL, true);
+          }
 
           this.sendResponseToWebview({
             command: "response",
@@ -699,6 +704,33 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             command: "response",
             syncRequestId,
             data: { apiKey: "", instanceName: "", backendURL: "" },
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "openUrl":
+        // Open URL in external browser
+        try {
+          const { url } = message as HandleCommandProps & {
+            url: string;
+          };
+
+          if (!url) {
+            throw new Error("No URL specified");
+          }
+
+          await commands.executeCommand("vscode.open", Uri.parse(url));
+
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { success: true },
+          });
+        } catch (error) {
+          this.dbtTerminal.error("openUrl", "Error opening URL", error);
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
             error: error instanceof Error ? error.message : String(error),
           });
         }

@@ -17,7 +17,7 @@ import {
 import { useEffect, useState } from "react";
 import classes from "./onboarding.module.scss";
 
-const { Text, Paragraph } = Typography;
+const { Text, Paragraph, Title } = Typography;
 const { Panel } = Collapse;
 
 interface AltimateSetupStepProps {
@@ -62,6 +62,9 @@ const AltimateSetupStep = ({
   >(null);
   const [apiKey, setApiKey] = useState<string>("");
   const [instanceName, setInstanceName] = useState<string>("");
+  const [backendURL, setBackendURL] = useState<string>(
+    "https://api.myaltimate.com",
+  );
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState(false);
@@ -104,6 +107,9 @@ const AltimateSetupStep = ({
     backendURL: string;
   }>({ apiKey: "", instanceName: "", backendURL: "" });
 
+  // Toggle for API key setup
+  const [hasApiKey, setHasApiKey] = useState(true);
+
   useEffect(() => {
     void checkAltimateConfiguration();
   }, []);
@@ -135,8 +141,36 @@ const AltimateSetupStep = ({
         "getIntegrations",
         {},
       )) as Integration[];
-      setExistingIntegrations(response || []);
-      setShowExistingIntegrations((response || []).length > 0);
+
+      // For each integration, fetch its sync status
+      const integrationsWithSync = await Promise.all(
+        (response || []).map(async (integration) => {
+          if (integration.environments && integration.environments.length > 0) {
+            try {
+              const syncData = (await executeRequestInSync(
+                "getIntegrationSyncStatus",
+                {
+                  integrationId: integration.id,
+                  environment: integration.environments[0].name,
+                },
+              )) as Integration | null;
+
+              if (syncData?.sync_history) {
+                return { ...integration, sync_history: syncData.sync_history };
+              }
+            } catch (err) {
+              panelLogger.error(
+                "Error fetching sync status for integration",
+                err,
+              );
+            }
+          }
+          return integration;
+        }),
+      );
+
+      setExistingIntegrations(integrationsWithSync);
+      setShowExistingIntegrations(integrationsWithSync.length > 0);
     } catch (err) {
       panelLogger.error("Error loading integrations", err);
       setExistingIntegrations([]);
@@ -246,6 +280,7 @@ const AltimateSetupStep = ({
       await executeRequestInSync("saveAltimateKey", {
         apiKey: apiKey.trim(),
         instanceName: instanceName.trim(),
+        backendURL: backendURL.trim(),
       });
 
       setSuccess(true);
@@ -309,8 +344,18 @@ const AltimateSetupStep = ({
     }
   };
 
-  const handleSignUp = () => {
-    window.open("https://app.myaltimate.com/register", "_blank");
+  const openUrl = async (url: string) => {
+    try {
+      await executeRequestInSync("openUrl", { url });
+    } catch (err) {
+      panelLogger.error("Error opening URL", err);
+      // Fallback to window.open if the command fails
+      window.open(url, "_blank");
+    }
+  };
+
+  const handleSignUp = async () => {
+    await openUrl("https://app.myaltimate.com/register");
   };
 
   const generateDatapilotCommand = (
@@ -318,13 +363,13 @@ const AltimateSetupStep = ({
     env?: IntegrationEnvironment,
   ) => {
     // Use configuration values from state
-    const backendURL =
+    const configBackendURL =
       altimateConfig.backendURL || "https://api.myaltimate.com";
     const configInstanceName =
       altimateConfig.instanceName || "YOUR_INSTANCE_NAME";
     const configApiKey = altimateConfig.apiKey || "YOUR_API_KEY";
 
-    const baseCommand = `datapilot dbt onboard --backend-url ${backendURL} --token ${configApiKey} --instance-name ${configInstanceName} --manifest-path ./target/manifest.json --catalog-path ./target/catalog.json`;
+    const baseCommand = `datapilot dbt onboard --backend-url ${configBackendURL} --token ${configApiKey} --instance-name ${configInstanceName} --manifest-path ./target/manifest.json --catalog-path ./target/catalog.json`;
 
     let completeCommand = "";
     if (integration.integration_type === "dbt_core") {
@@ -414,6 +459,271 @@ const AltimateSetupStep = ({
         void fetchSyncStatus(selectedIntegrationId, selectedEnv.name);
       }
     }
+  };
+
+  // Calculate current star level based on progress
+  const getStarLevel = () => {
+    if (!isAltimateConfigured) return 1; // No API key = 1 star
+
+    // Check if any integration has completed sync
+    const hasCompletedSync = existingIntegrations.some(
+      (integration) =>
+        integration.sync_history &&
+        integration.sync_history.length > 0 &&
+        integration.sync_history[0].type === "Completed",
+    );
+
+    if (hasCompletedSync) return 3; // API key + synced integration = 3 stars
+    if (existingIntegrations.length > 0) return 2; // API key + integration (not synced) = 2 stars
+    return 2; // API key only = 2 stars
+  };
+
+  const renderProgressCard = () => {
+    const currentLevel = getStarLevel();
+
+    return (
+      <div
+        style={{
+          background:
+            "linear-gradient(135deg, var(--vscode-editor-background) 0%, var(--vscode-editorWidget-background) 100%)",
+          border: "2px solid var(--vscode-focusBorder)",
+          borderRadius: "12px",
+          padding: "1rem 1.5rem",
+          marginBottom: "1.5rem",
+        }}
+      >
+        {/* Title */}
+        <Title
+          level={5}
+          style={{
+            margin: 0,
+            marginBottom: "0.75rem",
+            color: "var(--vscode-foreground)",
+            textAlign: "center",
+            fontSize: "1.1rem",
+          }}
+        >
+          Your Analytics Engineering Journey
+        </Title>
+
+        {/* Star Progress Bar */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "0.75rem",
+            position: "relative",
+          }}
+        >
+          {/* Progress line */}
+          <div
+            style={{
+              position: "absolute",
+              top: "15px",
+              left: "10%",
+              right: "10%",
+              height: "3px",
+              background: "var(--vscode-panel-border)",
+              zIndex: 0,
+            }}
+          >
+            <div
+              style={{
+                height: "100%",
+                background: "linear-gradient(90deg, #108ee9 0%, #87d068 100%)",
+                width: `${((currentLevel - 1) / 2) * 100}%`,
+                transition: "width 0.5s ease",
+              }}
+            />
+          </div>
+
+          {/* Level 1 */}
+          <div style={{ flex: 1, textAlign: "center", zIndex: 1 }}>
+            <div
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "50%",
+                background:
+                  currentLevel >= 1
+                    ? "#108ee9"
+                    : "var(--vscode-editor-background)",
+                border:
+                  currentLevel >= 1
+                    ? "2px solid #108ee9"
+                    : "2px solid var(--vscode-panel-border)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto",
+                fontSize: "0.8rem",
+                opacity: currentLevel >= 1 ? 1 : 0.5,
+                filter: currentLevel >= 1 ? "none" : "grayscale(100%)",
+              }}
+            >
+              ⭐
+            </div>
+          </div>
+
+          {/* Level 2 */}
+          <div style={{ flex: 1, textAlign: "center", zIndex: 1 }}>
+            <div
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "50%",
+                background:
+                  currentLevel >= 2
+                    ? "#52c41a"
+                    : "var(--vscode-editor-background)",
+                border:
+                  currentLevel >= 2
+                    ? "2px solid #52c41a"
+                    : "2px solid var(--vscode-panel-border)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto",
+                fontSize: "0.65rem",
+                opacity: currentLevel >= 2 ? 1 : 0.5,
+                filter: currentLevel >= 2 ? "none" : "grayscale(100%)",
+              }}
+            >
+              ⭐⭐
+            </div>
+          </div>
+
+          {/* Level 3 */}
+          <div style={{ flex: 1, textAlign: "center", zIndex: 1 }}>
+            <div
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "50%",
+                background:
+                  currentLevel >= 3
+                    ? "#87d068"
+                    : "var(--vscode-editor-background)",
+                border:
+                  currentLevel >= 3
+                    ? "2px solid #87d068"
+                    : "2px solid var(--vscode-panel-border)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto",
+                fontSize: "0.55rem",
+                opacity: currentLevel >= 3 ? 1 : 0.5,
+                filter: currentLevel >= 3 ? "none" : "grayscale(100%)",
+              }}
+            >
+              ⭐⭐⭐
+            </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div
+          style={{
+            height: "1px",
+            background: "var(--vscode-panel-border)",
+            margin: "0.5rem 0",
+          }}
+        />
+
+        {/* Next Step Section */}
+        {currentLevel === 3 ? (
+          <div>
+            <Text
+              style={{
+                fontSize: "1.5rem",
+                display: "block",
+                marginBottom: "0.5rem",
+                textAlign: "center",
+              }}
+            >
+              🎉
+            </Text>
+            <Text
+              className={classes.progressCardHeading}
+              style={{ color: "#87d068" }}
+            >
+              All Features Unlocked!
+            </Text>
+            <Text
+              className={classes.progressCardDescription}
+              style={{ marginBottom: "0.75rem" }}
+            >
+              You now have access to all AI-powered features:
+            </Text>
+            <div
+              className={classes.progressCardFeatures}
+              style={{ flexDirection: "column", gap: "0.5rem" }}
+            >
+              <Text className={classes.progressCardFeatureItem}>
+                💬 Instant answers about models and tests
+              </Text>
+              <Text className={classes.progressCardFeatureItem}>
+                🔍 Project health checks and recommendations
+              </Text>
+              <Text className={classes.progressCardFeatureItem}>
+                🪄 AI optimization and performance insights
+              </Text>
+              <Text className={classes.progressCardFeatureItem}>
+                🧠 Advanced lineage visualization
+              </Text>
+              <Text className={classes.progressCardFeatureItem}>
+                💡 SQL query explanations and translations
+              </Text>
+              <Text className={classes.progressCardFeatureItem}>
+                📝 Auto-generated documentation and tests
+              </Text>
+            </div>
+          </div>
+        ) : currentLevel === 2 ? (
+          <div>
+            <Text className={classes.progressCardHeading}>
+              🎯 Next: Unlock 3-Star Features
+            </Text>
+            <Text className={classes.progressCardDescription}>
+              Upload your dbt artifacts your dbt integration to unlock:
+            </Text>
+            <div className={classes.progressCardFeatures}>
+              <Text className={classes.progressCardFeatureItem}>
+                💬 Instant answers about models and tests
+              </Text>
+              <Text className={classes.progressCardFeatureItem}>
+                🔍 Project health checks
+              </Text>
+              <Text className={classes.progressCardFeatureItem}>
+                🪄 AI optimization recommendations
+              </Text>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <Text className={classes.progressCardHeading}>
+              🎯 Next: Unlock 2-Star Features
+            </Text>
+            <Text className={classes.progressCardDescription}>
+              Add your Altimate API key to unlock:
+            </Text>
+            <div className={classes.progressCardFeatures}>
+              <Text className={classes.progressCardFeatureItem}>
+                🧠 Advanced lineage visualization
+              </Text>
+              <Text className={classes.progressCardFeatureItem}>
+                💡 SQL query explanations
+              </Text>
+              <Text className={classes.progressCardFeatureItem}>
+                📝 Auto-generated documentation
+              </Text>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   const renderSyncStatus = (integration: Integration) => {
@@ -584,66 +894,7 @@ const AltimateSetupStep = ({
   if (isAltimateConfigured) {
     return (
       <div className={classes.dbtIntegrationContainer}>
-        <div className={classes.dbtIntegrationInfo}>
-          <h3 className={classes.sectionTitle}>
-            🎉 Altimate AI is configured!
-          </h3>
-          <p className={classes.subtitle}>
-            Now, create a dbt integration to unlock powerful collaboration
-            features:
-          </p>
-
-          <div className={classes.featuresGrid}>
-            <Stack direction="row" className={classes.featureRow}>
-              <div className={classes.featureItem}>
-                <span className={classes.iconChat}>💬</span>
-                <span className={classes.featureText}>
-                  Get instant answers about your models, tests, and production
-                  runs
-                </span>
-              </div>
-
-              <div className={classes.featureItem}>
-                <span className={classes.iconSearch}>🔍</span>
-                <span className={classes.featureText}>
-                  Explore and search faster within your dbt project
-                </span>
-              </div>
-            </Stack>
-
-            <Stack direction="row" className={classes.featureRow}>
-              <div className={classes.featureItem}>
-                <span className={classes.iconBrain}>🧠</span>
-                <span className={classes.featureText}>
-                  Visualize model, column and SQL lineage with clarity
-                </span>
-              </div>
-
-              <div className={classes.featureItem}>
-                <span className={classes.iconChart}>📈</span>
-                <span className={classes.featureText}>
-                  Get checks on performance, tests, and structure
-                </span>
-              </div>
-            </Stack>
-
-            <Stack direction="row" className={classes.featureRow}>
-              <div className={classes.featureItem}>
-                <span className={classes.iconMagic}>🪄</span>
-                <span className={classes.featureText}>
-                  Gain actionable recommendations to optimize your dbt project
-                </span>
-              </div>
-
-              <div className={classes.featureItem}>
-                <span className={classes.iconGear}>⚙️</span>
-                <span className={classes.featureText}>
-                  Collaborate with your team on code and documentation
-                </span>
-              </div>
-            </Stack>
-          </div>
-        </div>
+        {renderProgressCard()}
 
         {error && (
           <Alert
@@ -679,22 +930,24 @@ const AltimateSetupStep = ({
                 }}
               >
                 <div>
-                  <h4 className={classes.sectionTitle}>
-                    Existing Integrations
-                  </h4>
-                  <p className={classes.subtitle}>
-                    You have {existingIntegrations.length} existing integration
-                    {existingIntegrations.length > 1 ? "s" : ""}. Select an
-                    integration to view the datapilot CLI command for syncing
-                    your dbt project data.
-                  </p>
+                  <Title
+                    level={4}
+                    style={{ margin: 0, marginBottom: "0.5rem" }}
+                  >
+                    Your dbt Integrations
+                  </Title>
+                  <Text
+                    style={{ color: "var(--vscode-descriptionForeground)" }}
+                  >
+                    Select an integration below to sync your project data
+                  </Text>
                 </div>
                 <Button
                   type="primary"
                   size="large"
                   onClick={() => setShowCreateForm(true)}
                 >
-                  Create New Integration
+                  + New Integration
                 </Button>
               </Stack>
 
@@ -908,6 +1161,10 @@ const AltimateSetupStep = ({
                 </div>
               )}
 
+              <Title level={4} className={classes.sectionHeading}>
+                Create dbt Integration
+              </Title>
+
               <div className={classes.formGroup}>
                 <label htmlFor="project" className={classes.formLabel}>
                   dbt Project:
@@ -1011,9 +1268,12 @@ const AltimateSetupStep = ({
           <p>
             Need help?{" "}
             <a
-              href="https://docs.myaltimate.com/setup/integrations/"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                void openUrl("https://docs.myaltimate.com/setup/integrations/");
+              }}
+              style={{ cursor: "pointer" }}
             >
               View integration documentation
             </a>
@@ -1026,91 +1286,158 @@ const AltimateSetupStep = ({
   // If Altimate is not configured, show the API key setup screen
   return (
     <div className={classes.altimateKeyContainer}>
-      <div className={classes.altimateKeyInfo}>
-        <p>To get your free Altimate API key:</p>
-        <ol>
-          <li>
-            Sign up at{" "}
-            <a
-              href="https://app.myaltimate.com/register"
-              target="_blank"
-              rel="noopener noreferrer"
+      {renderProgressCard()}
+
+      {/* Toggle for API key availability */}
+      <div
+        style={{
+          marginBottom: "1.5rem",
+          textAlign: "center",
+        }}
+      >
+        <Radio.Group
+          value={hasApiKey}
+          onChange={(e) => setHasApiKey(e.target.value as boolean)}
+          buttonStyle="solid"
+          size="large"
+        >
+          <Radio.Button value={true}>I have an Altimate API key</Radio.Button>
+          <Radio.Button value={false}>
+            I don&apos;t have an Altimate API key
+          </Radio.Button>
+        </Radio.Group>
+      </div>
+
+      {hasApiKey ? (
+        <>
+          <div className={classes.altimateKeyInfo}>
+            <Title level={4} className={classes.sectionHeading}>
+              Enter Your Altimate API Key
+            </Title>
+            <p>Enter your Altimate instance name and API key below:</p>
+          </div>
+
+          {error && (
+            <Alert
+              message="Error"
+              description={error}
+              type="error"
+              showIcon
+              closable
+              onClose={() => setError(undefined)}
+              className={classes.alertMessage}
+            />
+          )}
+
+          {success && (
+            <Alert
+              message="API key saved successfully! Now let's set up your dbt integration..."
+              type="success"
+              showIcon
+              className={classes.alertMessage}
+            />
+          )}
+
+          <div className={classes.formGroup}>
+            <label htmlFor="instance-name" className={classes.formLabel}>
+              Instance Name:
+            </label>
+            <Input
+              id="instance-name"
+              placeholder="Enter your instance name"
+              value={instanceName}
+              onChange={(e) => setInstanceName(e.target.value)}
+              disabled={isValidating || success}
+              size="large"
+            />
+          </div>
+
+          <div className={classes.formGroup}>
+            <label htmlFor="api-key" className={classes.formLabel}>
+              API Key:
+            </label>
+            <Input.Password
+              id="api-key"
+              placeholder="Enter your Altimate API key"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              disabled={isValidating || success}
+              size="large"
+            />
+          </div>
+
+          <div className={classes.formGroup}>
+            <label htmlFor="backend-url" className={classes.formLabel}>
+              Backend URL:
+            </label>
+            <Select
+              id="backend-url"
+              value={backendURL}
+              onChange={(value) => setBackendURL(value)}
+              disabled={isValidating || success}
+              size="large"
+              style={{ width: "100%" }}
             >
-              app.myaltimate.com
-            </a>
-          </li>
-          <li>Navigate to Settings → API Keys</li>
-          <li>Copy your API key and instance name</li>
-        </ol>
-      </div>
+              <Select.Option value="https://api.myaltimate.com">
+                Community, Pro or Team Plan
+              </Select.Option>
+              <Select.Option value="https://api.getaltimate.com">
+                Enterprise Plan
+              </Select.Option>
+            </Select>
+          </div>
 
-      {error && (
-        <Alert
-          message="Error"
-          description={error}
-          type="error"
-          showIcon
-          closable
-          onClose={() => setError(undefined)}
-          className={classes.alertMessage}
-        />
+          <Stack direction="row" className={classes.altimateKeyActions}>
+            <Button
+              type="primary"
+              size="large"
+              onClick={handleSaveKey}
+              loading={isValidating}
+              disabled={success}
+            >
+              {success ? "Saved" : "Save API Key"}
+            </Button>
+          </Stack>
+        </>
+      ) : (
+        <>
+          <div className={classes.altimateKeyInfo}>
+            <Title level={4} className={classes.sectionHeading}>
+              Get Your Free Altimate API Key
+            </Title>
+            <p>Follow these steps to become an Analytics Engineer:</p>
+            <ol>
+              <li>
+                Sign up at{" "}
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    void openUrl("https://app.myaltimate.com/register");
+                  }}
+                  style={{ cursor: "pointer" }}
+                >
+                  app.myaltimate.com
+                </a>
+              </li>
+              <li>Navigate to Settings → API Keys</li>
+              <li>Copy your API key and instance name</li>
+              <li>Switch to &quot;I have an Altimate API key&quot; above</li>
+            </ol>
+          </div>
+
+          <Stack direction="row" className={classes.altimateKeyActions}>
+            <Button
+              type="primary"
+              size="large"
+              onClick={handleSignUp}
+              style={{ width: "100%" }}
+            >
+              Sign Up for Free at app.myaltimate.com
+            </Button>
+          </Stack>
+        </>
       )}
-
-      {success && (
-        <Alert
-          message="API key saved successfully! Now let's set up your dbt integration..."
-          type="success"
-          showIcon
-          className={classes.alertMessage}
-        />
-      )}
-
-      <div className={classes.formGroup}>
-        <label htmlFor="instance-name" className={classes.formLabel}>
-          Instance Name:
-        </label>
-        <Input
-          id="instance-name"
-          placeholder="Enter your instance name"
-          value={instanceName}
-          onChange={(e) => setInstanceName(e.target.value)}
-          disabled={isValidating || success}
-          size="large"
-        />
-      </div>
-
-      <div className={classes.formGroup}>
-        <label htmlFor="api-key" className={classes.formLabel}>
-          API Key:
-        </label>
-        <Input.Password
-          id="api-key"
-          placeholder="Enter your Altimate API key"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          disabled={isValidating || success}
-          size="large"
-        />
-      </div>
-
-      <Stack direction="row" className={classes.altimateKeyActions}>
-        <Button
-          size="large"
-          onClick={handleSignUp}
-          disabled={isValidating || success}
-        >
-          Sign Up for Free
-        </Button>
-        <Button
-          type="primary"
-          size="large"
-          onClick={handleSaveKey}
-          loading={isValidating}
-          disabled={success}
-        >
-          {success ? "Saved" : "Save API Key"}
-        </Button>
-      </Stack>
     </div>
   );
 };

@@ -10,7 +10,7 @@ import {
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import { Stack } from "@uicore";
-import { Alert, Button, Card, Radio, Space } from "antd";
+import { Alert, Button, Card, Radio, Select, Space, Spin, Steps } from "antd";
 import { useEffect, useState } from "react";
 import InstallDbtStep from "./InstallDbtStep";
 import classes from "./onboarding.module.scss";
@@ -62,7 +62,30 @@ interface PrerequisiteCheck {
   };
 }
 
-const PrerequisitesStep = (): JSX.Element => {
+interface Project {
+  label: string;
+  projectRoot: string;
+}
+
+type ValidationState =
+  | "idle"
+  | "loading"
+  | "running-deps"
+  | "validating"
+  | "complete"
+  | "error";
+
+type WizardPhase = "prerequisites" | "validation";
+
+interface PrerequisitesStepProps {
+  onComplete?: () => void;
+}
+
+const PrerequisitesStep = ({
+  onComplete,
+}: PrerequisitesStepProps): JSX.Element => {
+  const [currentPhase, setCurrentPhase] =
+    useState<WizardPhase>("prerequisites");
   const [checking, setChecking] = useState(false);
   const [showInstallDbt, setShowInstallDbt] = useState(false);
   const [diagnostics, setDiagnostics] = useState<DiagnosticsStatus | null>(
@@ -74,6 +97,11 @@ const PrerequisitesStep = (): JSX.Element => {
   const [changingIntegration, setChangingIntegration] = useState(false);
   const [showIntegrationOptions, setShowIntegrationOptions] = useState(false);
   const [expandedCheckId, setExpandedCheckId] = useState<string | null>(null);
+  const [validationState, setValidationState] =
+    useState<ValidationState>("idle");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProject, setSelectedProject] = useState<string | undefined>();
+  const [statusMessage, setStatusMessage] = useState<string>("");
   const [checks, setChecks] = useState<PrerequisiteCheck[]>([
     {
       id: "project",
@@ -190,9 +218,72 @@ const PrerequisitesStep = (): JSX.Element => {
     }
   };
 
+  const fetchProjects = async () => {
+    try {
+      const projectList = (await executeRequestInSync(
+        "getProjects",
+        {},
+      )) as Project[];
+      setProjects(projectList ?? []);
+
+      // Auto-select if only one project
+      if (projectList && projectList.length === 1) {
+        setSelectedProject(projectList[0].projectRoot);
+      }
+    } catch (err) {
+      panelLogger.error("Error fetching projects", err);
+      setError(
+        "Failed to load projects. Please ensure you have a dbt project open.",
+      );
+    }
+  };
+
+  const handleValidateSetup = async () => {
+    if (!selectedProject) {
+      setError("Please select a project first");
+      return;
+    }
+
+    try {
+      setError(undefined);
+
+      // Step 1: Run dbt deps
+      setValidationState("running-deps");
+      setStatusMessage("Installing dbt dependencies...");
+      await executeRequestInSync("runDbtDeps", {
+        projectRoot: selectedProject,
+      });
+
+      // Step 2: Validate project
+      setValidationState("validating");
+      setStatusMessage("Validating project setup...");
+      await executeRequestInSync("validateProject", {
+        projectRoot: selectedProject,
+      });
+
+      setValidationState("complete");
+      setStatusMessage("Project setup completed successfully!");
+
+      // Call onComplete callback if provided
+      if (onComplete) {
+        setTimeout(onComplete, 1500);
+      }
+    } catch (err) {
+      panelLogger.error("Error validating setup", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to validate setup. Check the terminal for details.",
+      );
+      setValidationState("error");
+    }
+  };
+
   useEffect(() => {
     // Run diagnostics on mount
     void runDiagnostics();
+    // Fetch projects on mount
+    void fetchProjects();
 
     // Listen for Python environment changes
     const handleMessage = (event: MessageEvent) => {
@@ -287,6 +378,10 @@ const PrerequisitesStep = (): JSX.Element => {
     diagnostics?.pythonInstalled &&
     diagnostics?.dbtInstalled &&
     diagnostics?.projectsFound;
+
+  const isValidating =
+    validationState === "running-deps" || validationState === "validating";
+  const isValidationComplete = validationState === "complete";
 
   const getCheckDetails = (checkId: string): React.ReactNode => {
     if (!diagnostics) return null;
@@ -411,14 +506,24 @@ const PrerequisitesStep = (): JSX.Element => {
     );
   }
 
+  const currentStep = currentPhase === "prerequisites" ? 0 : 1;
+
   return (
     <div className={classes.prerequisitesContainer}>
-      <div className={classes.prerequisitesInfo}>
-        <p>
-          Before you can use dbt Power User, we need to ensure the following
-          prerequisites are met:
-        </p>
-      </div>
+      <Steps
+        current={currentStep}
+        items={[
+          {
+            title: "Setup Prerequisites",
+            description: "Check environment",
+          },
+          {
+            title: "Validate Setup",
+            description: "Configure and validate project",
+          },
+        ]}
+        className={classes.prerequisitesSteps}
+      />
 
       {error && (
         <Alert
@@ -429,175 +534,315 @@ const PrerequisitesStep = (): JSX.Element => {
           closable
           onClose={() => setError(undefined)}
           className={classes.alertMessage}
+          style={{ marginTop: "1.5rem" }}
         />
       )}
 
-      {allChecksPassed && (
-        <Alert
-          message="All prerequisites met!"
-          description="Your environment is properly configured. You can proceed to the next step."
-          type="success"
-          showIcon
-          className={classes.alertMessage}
-        />
-      )}
-
-      <Card className={classes.prerequisiteCard}>
-        <div className={classes.prerequisiteCardHeader}>
-          <div className={classes.prerequisiteCardTitle}>
-            <span className={classes.prerequisiteIcon}>
-              <DatabaseOutlined />
-            </span>
-            <div>
-              <h3>dbt Integration Type</h3>
-              {!showIntegrationOptions && (
-                <>
-                  <p className={classes.prerequisiteDescription}>
-                    <strong>
-                      {dbtIntegrationType === "core" && "dbt Core"}
-                      {dbtIntegrationType === "fusion" && "dbt Fusion (beta)"}
-                      {dbtIntegrationType === "cloud" && "dbt Cloud CLI"}
-                    </strong>
-                    {" - "}
-                    {dbtIntegrationType === "core" &&
-                      "Local dbt installation via Python"}
-                    {dbtIntegrationType === "fusion" &&
-                      "dbt Fusion CLI for enhanced performance"}
-                    {dbtIntegrationType === "cloud" && "Connect to dbt Cloud"}
-                  </p>
-                </>
-              )}
-            </div>
-          </div>
-          {!showIntegrationOptions && (
-            <Button
-              onClick={() => setShowIntegrationOptions(true)}
-              disabled={changingIntegration || checking}
-            >
-              Change
-            </Button>
-          )}
-        </div>
-
-        {showIntegrationOptions && (
-          <div className={classes.prerequisiteAction}>
-            <p
-              className={classes.prerequisiteDescription}
-              style={{ marginBottom: "1rem" }}
-            >
-              Choose how dbt Power User connects to dbt. You can change this
-              later in settings.
+      {currentPhase === "prerequisites" && (
+        <>
+          <div className={classes.prerequisitesInfo}>
+            <p>
+              Before you can use dbt Power User, we need to ensure the following
+              prerequisites are met:
             </p>
-            <Radio.Group
-              value={dbtIntegrationType}
-              onChange={(e) => {
-                void handleIntegrationTypeChange(
-                  e.target.value as DbtIntegrationType,
-                );
-                setShowIntegrationOptions(false);
-              }}
-              disabled={changingIntegration || checking}
-            >
-              <Space
-                direction="vertical"
-                size="middle"
-                style={{ width: "100%" }}
-              >
-                <Radio value="core">
-                  <div className={classes.radioOption}>
-                    <strong>dbt Core</strong>
-                    <p className={classes.radioDescription}>
-                      Use local dbt installation via Python. Best for local
-                      development with full control.
-                    </p>
-                  </div>
-                </Radio>
-                <Radio value="fusion">
-                  <div className={classes.radioOption}>
-                    <strong>dbt Fusion (beta)</strong>
-                    <p className={classes.radioDescription}>
-                      Use dbt Fusion CLI for enhanced performance and additional
-                      features (beta)
-                    </p>
-                  </div>
-                </Radio>
-                <Radio value="cloud">
-                  <div className={classes.radioOption}>
-                    <strong>dbt Cloud CLI</strong>
-                    <p className={classes.radioDescription}>
-                      Connect to dbt Cloud for teams using dbt Cloud CLI
-                    </p>
-                  </div>
-                </Radio>
-              </Space>
-            </Radio.Group>
-            <div style={{ marginTop: "1rem" }}>
-              <Button onClick={() => setShowIntegrationOptions(false)}>
-                Cancel
-              </Button>
-            </div>
           </div>
-        )}
-      </Card>
 
-      <div className={classes.prerequisiteChecks}>
-        {checks.map((check) => (
-          <Card
-            key={check.id}
-            className={classes.prerequisiteCard}
-            onClick={() =>
-              check.status === "success" && toggleCheckDetails(check.id)
-            }
-            style={{
-              cursor: check.status === "success" ? "pointer" : "default",
-            }}
-          >
+          {allChecksPassed && (
+            <Alert
+              message="All prerequisites met!"
+              description="Your environment is properly configured. Click 'Validate Setup' to continue."
+              type="success"
+              showIcon
+              className={classes.alertMessage}
+            />
+          )}
+
+          <Card className={classes.prerequisiteCard}>
             <div className={classes.prerequisiteCardHeader}>
               <div className={classes.prerequisiteCardTitle}>
-                <span className={classes.prerequisiteIcon}>{check.icon}</span>
-                <div style={{ flex: 1 }}>
-                  <h3>{check.title}</h3>
-                  <p className={classes.prerequisiteDescription}>
-                    {check.description}
-                  </p>
-                  {check.status === "success" &&
-                    expandedCheckId === check.id &&
-                    getCheckDetails(check.id)}
+                <span className={classes.prerequisiteIcon}>
+                  <DatabaseOutlined />
+                </span>
+                <div>
+                  <h3>dbt Integration Type</h3>
+                  {!showIntegrationOptions && (
+                    <>
+                      <p className={classes.prerequisiteDescription}>
+                        <strong>
+                          {dbtIntegrationType === "core" && "dbt Core"}
+                          {dbtIntegrationType === "fusion" &&
+                            "dbt Fusion (beta)"}
+                          {dbtIntegrationType === "cloud" && "dbt Cloud CLI"}
+                        </strong>
+                        {" - "}
+                        {dbtIntegrationType === "core" &&
+                          "Local dbt installation via Python"}
+                        {dbtIntegrationType === "fusion" &&
+                          "dbt Fusion CLI for enhanced performance"}
+                        {dbtIntegrationType === "cloud" &&
+                          "Connect to dbt Cloud"}
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
-              <div className={classes.prerequisiteStatus}>
-                {getStatusIcon(check.status)}
-              </div>
+              {!showIntegrationOptions && (
+                <Button
+                  onClick={() => setShowIntegrationOptions(true)}
+                  disabled={changingIntegration || checking}
+                >
+                  Change
+                </Button>
+              )}
             </div>
 
-            {check.status === "error" && check.action && (
+            {showIntegrationOptions && (
               <div className={classes.prerequisiteAction}>
-                <Button
-                  type="primary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void handleAction(check);
-                  }}
-                  disabled={checking}
+                <p
+                  className={classes.prerequisiteDescription}
+                  style={{ marginBottom: "1rem" }}
                 >
-                  {check.action.label}
-                </Button>
+                  Choose how dbt Power User connects to dbt. You can change this
+                  later in settings.
+                </p>
+                <Radio.Group
+                  value={dbtIntegrationType}
+                  onChange={(e) => {
+                    void handleIntegrationTypeChange(
+                      e.target.value as DbtIntegrationType,
+                    );
+                    setShowIntegrationOptions(false);
+                  }}
+                  disabled={changingIntegration || checking}
+                >
+                  <Space
+                    direction="vertical"
+                    size="middle"
+                    style={{ width: "100%" }}
+                  >
+                    <Radio value="core">
+                      <div className={classes.radioOption}>
+                        <strong>dbt Core</strong>
+                        <p className={classes.radioDescription}>
+                          Use local dbt installation via Python. Best for local
+                          development with full control.
+                        </p>
+                      </div>
+                    </Radio>
+                    <Radio value="fusion">
+                      <div className={classes.radioOption}>
+                        <strong>dbt Fusion (beta)</strong>
+                        <p className={classes.radioDescription}>
+                          Use dbt Fusion CLI for enhanced performance and
+                          additional features (beta)
+                        </p>
+                      </div>
+                    </Radio>
+                    <Radio value="cloud">
+                      <div className={classes.radioOption}>
+                        <strong>dbt Cloud CLI</strong>
+                        <p className={classes.radioDescription}>
+                          Connect to dbt Cloud for teams using dbt Cloud CLI
+                        </p>
+                      </div>
+                    </Radio>
+                  </Space>
+                </Radio.Group>
+                <div style={{ marginTop: "1rem" }}>
+                  <Button onClick={() => setShowIntegrationOptions(false)}>
+                    Cancel
+                  </Button>
+                </div>
               </div>
             )}
           </Card>
-        ))}
-      </div>
 
-      <Stack direction="row" className={classes.prerequisitesActions}>
-        <Button
-          size="large"
-          onClick={() => void runDiagnostics()}
-          disabled={checking}
-          icon={checking ? <SyncOutlined spin /> : <SyncOutlined />}
-        >
-          {checking ? "Checking..." : "Recheck Prerequisites"}
-        </Button>
-      </Stack>
+          <div className={classes.prerequisiteChecks}>
+            {checks.map((check) => (
+              <Card
+                key={check.id}
+                className={classes.prerequisiteCard}
+                onClick={() =>
+                  check.status === "success" && toggleCheckDetails(check.id)
+                }
+                style={{
+                  cursor: check.status === "success" ? "pointer" : "default",
+                }}
+              >
+                <div className={classes.prerequisiteCardHeader}>
+                  <div className={classes.prerequisiteCardTitle}>
+                    <span className={classes.prerequisiteIcon}>
+                      {check.icon}
+                    </span>
+                    <div style={{ flex: 1 }}>
+                      <h3>{check.title}</h3>
+                      <p className={classes.prerequisiteDescription}>
+                        {check.description}
+                      </p>
+                      {check.status === "success" &&
+                        expandedCheckId === check.id &&
+                        getCheckDetails(check.id)}
+                    </div>
+                  </div>
+                  <div className={classes.prerequisiteStatus}>
+                    {getStatusIcon(check.status)}
+                  </div>
+                </div>
+
+                {check.status === "error" && check.action && (
+                  <div className={classes.prerequisiteAction}>
+                    <Button
+                      type="primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleAction(check);
+                      }}
+                      disabled={checking}
+                    >
+                      {check.action.label}
+                    </Button>
+                  </div>
+                )}
+              </Card>
+            ))}
+          </div>
+
+          <Stack direction="row" className={classes.prerequisitesActions}>
+            <Button
+              size="large"
+              onClick={() => void runDiagnostics()}
+              disabled={checking}
+              icon={checking ? <SyncOutlined spin /> : <SyncOutlined />}
+            >
+              {checking ? "Checking..." : "Recheck Prerequisites"}
+            </Button>
+
+            {allChecksPassed && (
+              <Button
+                type="primary"
+                size="large"
+                onClick={() => {
+                  setCurrentPhase("validation");
+                  setError(undefined);
+                }}
+              >
+                Validate Setup
+              </Button>
+            )}
+          </Stack>
+        </>
+      )}
+
+      {currentPhase === "validation" && (
+        <>
+          <div className={classes.validationSection}>
+            <h3>Validate Setup</h3>
+            <p>Select your dbt project and validate your setup.</p>
+          </div>
+
+          {projects.length > 0 ? (
+            <Card className={classes.prerequisiteCard}>
+              <div className={classes.projectSelector}>
+                <label
+                  htmlFor="project-select"
+                  className={classes.prerequisiteDescription}
+                >
+                  <strong>Select your dbt project:</strong>
+                </label>
+                <Select
+                  id="project-select"
+                  style={{ width: "100%", marginTop: "0.5rem" }}
+                  placeholder="Choose a project"
+                  value={selectedProject}
+                  onChange={setSelectedProject}
+                  disabled={isValidating || isValidationComplete}
+                  size="large"
+                  options={projects.map((project) => ({
+                    label: project.label,
+                    value: project.projectRoot,
+                  }))}
+                />
+              </div>
+
+              {isValidating && (
+                <Alert
+                  message={statusMessage}
+                  type="info"
+                  showIcon
+                  icon={<Spin size="small" />}
+                  className={classes.alertMessage}
+                  style={{ marginTop: "1rem" }}
+                />
+              )}
+
+              {isValidationComplete && (
+                <Alert
+                  message={statusMessage}
+                  type="success"
+                  showIcon
+                  className={classes.alertMessage}
+                  style={{ marginTop: "1rem" }}
+                />
+              )}
+
+              {!isValidationComplete && selectedProject && (
+                <div
+                  className={classes.setupInfo}
+                  style={{ marginTop: "1rem" }}
+                >
+                  <p>
+                    <strong>This will:</strong>
+                  </p>
+                  <ul>
+                    <li>
+                      Select the project:{" "}
+                      <strong>
+                        {projects.find((p) => p.projectRoot === selectedProject)
+                          ?.label ?? "..."}
+                      </strong>
+                    </li>
+                    <li>
+                      Run <code>dbt deps</code> to install packages
+                    </li>
+                    <li>
+                      Run <code>dbt debug</code> to validate your setup
+                    </li>
+                  </ul>
+                </div>
+              )}
+            </Card>
+          ) : (
+            <Alert
+              message="No dbt projects found"
+              description="Please ensure you have a dbt project open in your workspace."
+              type="warning"
+              showIcon
+            />
+          )}
+
+          <Stack direction="row" className={classes.prerequisitesActions}>
+            <Button
+              size="large"
+              onClick={() => setCurrentPhase("prerequisites")}
+              disabled={isValidating}
+            >
+              Back
+            </Button>
+
+            <Button
+              type="primary"
+              size="large"
+              onClick={handleValidateSetup}
+              disabled={
+                !selectedProject || isValidating || isValidationComplete
+              }
+              loading={isValidating}
+            >
+              {isValidating ? "Validating..." : "Validate Setup"}
+            </Button>
+          </Stack>
+        </>
+      )}
     </div>
   );
 };
