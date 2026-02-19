@@ -467,15 +467,37 @@ export class AltimateRequest {
 
   async validateCredentials(instance: string, key: string) {
     const url = `${this.getAltimateUrl()}/dbt/v3/validate-credentials`;
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "x-tenant": instance,
-        Authorization: "Bearer " + key,
-        "Content-Type": "application/json",
-      },
-    });
-    return (await response.json()) as Record<string, any> | undefined;
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "x-tenant": instance,
+          Authorization: "Bearer " + key,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          return {
+            error:
+              "Invalid credentials. Please check your API key and instance name.",
+          };
+        }
+        return {
+          error: `Validation failed with status ${response.status}`,
+        };
+      }
+
+      return (await response.json()) as Record<string, any> | undefined;
+    } catch (error) {
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to validate credentials. Please check your network connection.",
+      };
+    }
   }
 
   async createDbtIntegration(

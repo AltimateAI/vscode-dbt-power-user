@@ -127,6 +127,14 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             { enableScripts: true, retainContextWhenHidden: true },
           );
           this._panel = webviewPanel;
+
+          // Clear the panel reference when it's disposed
+          webviewPanel.onDidDispose(() => {
+            this._panel = undefined;
+            this._webview = undefined;
+            this.isWebviewReady = false;
+          });
+
           this.renderWebview(webviewPanel);
         } else {
           // Focus the panel if it's a WebviewPanel
@@ -331,18 +339,59 @@ export class OnboardingPanel extends AltimateWebviewProvider {
               backendURL?: string;
             };
 
-          // Save to VSCode settings
-          await commands.executeCommand(
-            "workbench.action.openSettings",
-            "dbt.altimateAiKey",
+          // Validate credentials before saving
+          this.dbtTerminal.debug(
+            "saveAltimateKey",
+            "Validating credentials before saving",
+            { instanceName },
           );
 
-          // Use workspace configuration to save the settings
+          const validationResult =
+            await this.altimateRequest.validateCredentials(
+              instanceName,
+              apiKey,
+            );
+
+          if (!validationResult || validationResult.error) {
+            const errorMessage =
+              validationResult?.error ||
+              "Invalid credentials. Please check your API key and instance name.";
+            this.dbtTerminal.error(
+              "saveAltimateKey",
+              "Credential validation failed",
+              errorMessage,
+            );
+            this.sendResponseToWebview({
+              command: "response",
+              syncRequestId,
+              error: errorMessage,
+            });
+            return;
+          }
+
+          this.dbtTerminal.debug(
+            "saveAltimateKey",
+            "Credentials validated successfully",
+          );
+
+          // Use workspace configuration to save the settings at user level
           const config = workspace.getConfiguration("dbt");
-          await config.update("altimateAiKey", apiKey, true);
-          await config.update("altimateInstanceName", instanceName, true);
+          await config.update(
+            "altimateAiKey",
+            apiKey,
+            ConfigurationTarget.Global,
+          );
+          await config.update(
+            "altimateInstanceName",
+            instanceName,
+            ConfigurationTarget.Global,
+          );
           if (backendURL) {
-            await config.update("altimateUrl", backendURL, true);
+            await config.update(
+              "altimateUrl",
+              backendURL,
+              ConfigurationTarget.Global,
+            );
           }
 
           this.sendResponseToWebview({
