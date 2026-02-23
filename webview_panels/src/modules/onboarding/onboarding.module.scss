@@ -25,7 +25,8 @@
 .subtitle {
   font-size: 1.25rem;
   margin: 0;
-  color: var(--vscode-descriptionForeground);
+  color: var(--vscode-foreground);
+  opacity: 0.9;
 }
 
 .features-grid {
@@ -72,7 +73,8 @@
 .more-text {
   font-size: 1.1rem;
   margin: 0;
-  color: var(--vscode-descriptionForeground);
+  color: var(--vscode-foreground);
+  opacity: 0.85;
 }
 
 .button-group {
@@ -102,7 +104,8 @@
 .wizard-subtitle {
   font-size: 1.1rem;
   margin-bottom: 2rem;
-  color: var(--vscode-descriptionForeground);
+  color: var(--vscode-foreground);
+  opacity: 0.9;
   text-align: center;
 }
 
@@ -113,8 +116,8 @@
 }
 
 .wizard-sidebar {
-  flex: 0 0 350px;
-  min-width: 350px;
+  flex: 0 0 280px;
+  min-width: 280px;
 }
 
 .wizard-main {
@@ -142,11 +145,30 @@
     background-color: var(--vscode-button-secondaryBackground) !important;
     border-color: var(--vscode-button-secondaryBackground) !important;
   }
+
+  :global(.ant-steps-item-wait .ant-steps-item-icon) {
+    border-color: var(--vscode-foreground) !important;
+    opacity: 0.7;
+  }
+
+  :global(.ant-steps-item-wait .ant-steps-item-icon .ant-steps-icon) {
+    color: var(--vscode-foreground) !important;
+  }
+
+  :global(.ant-steps-item-wait .ant-steps-item-title) {
+    color: var(--vscode-foreground) !important;
+    opacity: 0.7;
+  }
+
+  :global(.ant-steps-item-wait .ant-steps-item-description) {
+    color: var(--vscode-foreground) !important;
+    opacity: 0.7;
+  }
 }
 
 .step-card {
   background-color: var(--vscode-editorWidget-background);
-  border: 1px solid var(--vscode-editorWidget-border);
+  border: 1px solid var(--vscode-panel-border);
   border-radius: 8px;
   padding: 2rem;
   margin-bottom: 1rem;
@@ -182,7 +204,7 @@
   gap: 1rem;
   padding-top: 1rem;
   margin-top: auto;
-  border-top: 1px solid var(--vscode-editorWidget-border);
+  border-top: 1px solid var(--vscode-panel-border);
 }
 
 .step-counter {
@@ -268,7 +290,7 @@
   ul {
     margin: 0;
     padding-left: 1.5rem;
-    color: var(--vscode-descriptionForeground);
+    color: var(--vscode-foreground);
 
     li {
       margin-bottom: 0.25rem;
@@ -278,11 +300,12 @@
       }
 
       code {
-        background-color: var(--vscode-textCodeBlock-background);
+        background-color: var(--vscode-editor-background);
         padding: 0.125rem 0.25rem;
         border-radius: 3px;
         font-family: var(--vscode-editor-font-family);
         font-size: 0.9em;
+        border: 1px solid var(--vscode-panel-border);
       }
     }
   }
@@ -310,7 +333,7 @@
   ol {
     margin: 0;
     padding-left: 1.5rem;
-    color: var(--vscode-descriptionForeground);
+    color: var(--vscode-foreground);
 
     li {
       margin-bottom: 0.25rem;
@@ -369,7 +392,7 @@
   ul {
     margin: 0;
     padding-left: 1.5rem;
-    color: var(--vscode-descriptionForeground);
+    color: var(--vscode-foreground);
 
     li {
       margin-bottom: 0.25rem;
@@ -388,7 +411,7 @@
 .dbt-integration-steps {
   padding: 1rem;
   background-color: var(--vscode-editor-background);
-  border: 1px solid var(--vscode-editorWidget-border);
+  border: 1px solid var(--vscode-panel-border);
   border-radius: 4px;
 
   p {
@@ -399,7 +422,7 @@
   ol {
     margin: 0;
     padding-left: 1.5rem;
-    color: var(--vscode-descriptionForeground);
+    color: var(--vscode-foreground);
 
     li {
       margin-bottom: 0.5rem;
@@ -513,7 +536,7 @@
 
 .prerequisite-card {
   background-color: var(--vscode-editor-background);
-  border: 1px solid var(--vscode-editorWidget-border);
+  border: 1px solid var(--vscode-panel-border);
   border-radius: 4px;
   transition: all 0.2s ease;
 
@@ -569,7 +592,7 @@
 .prerequisite-action {
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid var(--vscode-editorWidget-border);
+  border-top: 1px solid var(--vscode-panel-border);
 }
 
 .prerequisites-actions {
