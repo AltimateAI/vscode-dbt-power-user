@@ -1,4 +1,4 @@
-/// admonition | We've released our [DataMates Extension](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server) - to give you the power to use AI TeamMates! [Click here](https://datamates-docs.myaltimate.com/) to learn more.
+/// admonition | We've released our [Datamates Extension](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server) - to give you the power to use AI TeamMates! [Click here](https://datamates-docs.myaltimate.com/) to learn more.
 ///
 
 There are a few different ways in which extension can be installed.
@@ -6,7 +6,16 @@ You can install it natively or in a dev container.
 
 ## Install the extension natively
 
-You can install the extension from VSCode directly or from the [marketplace](https://marketplace.visualstudio.com/items?itemName=innoverio.vscode-dbt-power-user)
+You can install the extension from VSCode directly or from the [VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=innoverio.vscode-dbt-power-user)
+
+You can install the extension from Cursor or any other VSCode compatible editors directly or from the [Open VSX Registry](https://open-vsx.org/extension/innoverio/vscode-dbt-power-user)
+
+/// admonition | Cursor IDE users: Installation may freeze
+    type: warning
+
+Some Cursor users experience the extension installation freezing for several minutes and showing a "Failed to fetch" error. This is a known Cursor issue. If you encounter this, please follow the [Cursor installation workaround](cursor_installation_workaround.md) to resolve it.
+///
+
 
 /// details | Here's how to install the extension in VSCode
 
@@ -17,11 +26,11 @@ You can install the extension from VSCode directly or from the [marketplace](htt
 ///
 
 /// admonition | Need to setup environment variables? Refer to this [section](https://docs.myaltimate.com/setup/optConfig/#environment-variables-setup)
-type: warning
+    type: warning
 ///
 
 /// admonition | If you are seeing the message "Reload required", please reload the VSCode or restart the VSCode.
-type: info
+    type: info
 ///
 
 ## Install the extension in a dev container (or in codespaces)
@@ -52,5 +61,5 @@ Please add the following configuration in to your devcontainer.json file:
 ```
 
 /// admonition | Please do NOT forget to do required configuration based on your dbt setup: [dbt Core](reqdConfig.md), [dbt Cloud](reqdConfigCloud.md), or [dbt Fusion](reqdConfigFusion.md), and [optional configuration](optConfig.md)!!
-type: warning
+    type: warning
 ///

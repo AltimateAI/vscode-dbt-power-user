@@ -4,6 +4,7 @@ import {
   EnvironmentVariables,
   RunModelType,
 } from "@altimateai/dbt-integration";
+import * as fs from "fs";
 import { inject } from "inversify";
 import { basename } from "path";
 import {
@@ -369,7 +370,10 @@ export class DBTProjectContainer implements Disposable {
   }
 
   private createModelParams(modelPath: Uri, type?: RunModelType) {
-    const modelName = basename(modelPath.fsPath, ".sql");
+    const modelName = basename(
+      fs.realpathSync.native(modelPath.fsPath),
+      ".sql",
+    );
     const plusOperatorLeft =
       type === RunModelType.RUN_PARENTS ||
       type === RunModelType.BUILD_PARENTS ||

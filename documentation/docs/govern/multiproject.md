@@ -8,7 +8,7 @@ Power User extension now supports dbt-loom, where native features like query pre
 - Sample project [example with dbt-loom configured](https://github.com/Bl3f/dbt-loom-example)
 
 /// admonition | Please make sure dbt_loom.config.yml file is in the root of your multi-project directory
-type: warning
+    type: warning
 ///
 
 ## Reference models from other projects in code via auto-complete

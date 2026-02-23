@@ -5,7 +5,7 @@ Prevent issues from getting shipped to production! Project governance functional
 Project governance functionality is available in the power user extension and the open-source Python package.
 
 /// admonition | Also, the project governance functionality is available as a Python package, so the checks can be integrated in your Git, CI/CD workflows. More details [here](https://datapilot.readthedocs.io/en/latest/insights.html)
-type: tip
+    type: tip
 ///
 
 ## Configure Checks
@@ -26,7 +26,7 @@ Select the YAML file by clicking on "Select Config Path"
 ### SaaS Configuration of Checks
 
 /// admonition | SaaS configuration method allows you to share multiple configurations and reference those as per environments, teams, and projects.
-type: tip
+    type: tip
 ///
 
 First, navigate to governance menu item on left hand side nav and choose "new dbt Governance Config".
@@ -60,7 +60,7 @@ Select the right config for checks from the list
 Click the start scan button. You may be asked to install Altimate AI DataPilot package.
 
 /// admonition | DataPilot python package is [open source package](https://github.com/AltimateAI/datapilot), that's actually used to do governance checks with the power user extension
-type: tip
+    type: tip
 ///
 
 The scan usually runs in a few seconds, but depending on the size of your project and manifest / catalog files it may take longer.

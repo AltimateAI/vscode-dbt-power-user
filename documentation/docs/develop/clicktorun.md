@@ -11,6 +11,6 @@ The toolbar action to build models is present on the top right corner of the VSC
 ![extensionPanel](images/extensionPanel.gif)
 
 /// admonition | You cannot build models from the side panel
-type: info
+    type: info
 
 ///

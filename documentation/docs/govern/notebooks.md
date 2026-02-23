@@ -11,7 +11,7 @@ You can also utilize some out-of-the-box notebook templates for common tasks - e
 Many times, this ad-hoc work is dependent on organizational best practices and the type of data that your team works on. So, these notebooks can be reused by your team members as well as extended teams. That's why we have enabled sharing - where you can share notebooks with other users in your Altimate AI saas instance. This is especially useful when you have popular notebooks spread across multiple code repositories.
 
 /// admonition | We would love to hear your feedback on what additional functionality we can build in this area. If you have encountered any issues in this functionality, please message us over [chat](https://app.myaltimate.com/contactus)
-type: tip
+    type: tip
 ///
 
 ## Enable notebooks in VSCode
@@ -23,7 +23,7 @@ You just need to add the following line to the settings.json file in your .vscod
 ```
 
 /// admonition | If you don't have the .vscode directory at the root of the repo, please create it
-type: info
+    type: info
 ///
 
 Then, reload or restart your VSCode.
@@ -51,7 +51,7 @@ After you are done, you can just save the notebook file like any other file in V
 There are a few ways in which you can trigger notebook templates.
 
 /// admonition | The notebook templates may use some standard Python packages, and VSCode may ask for your confirmation before installing the necessary packages
-type: info
+    type: info
 ///
 
 **There is a contextual notebook menu available at the top of the file when you open any SQL file in VSCode**
@@ -104,7 +104,7 @@ This template helps extract exposures from Metabase
 ![expoMetabase](images/expoMetabase.png)<br>
 
 /// admonition | We would love to hear your feedback on what additional templates or functionality we can build in this area. If you have encountered any issues in this functionality, please message us over [chat](https://app.myaltimate.com/contactus)
-type: tip
+    type: tip
 ///
 
 ## Share notebook

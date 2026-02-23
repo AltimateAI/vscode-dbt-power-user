@@ -1,11 +1,11 @@
 /// admonition | Only use the following steps for "dbt Core" environments. If you have a dbt Cloud environment, use the [required config instructions for "dbt Cloud" environments](./reqdConfigCloud.md). If you have a dbt Fusion environment, use the [required config instructions for "dbt Fusion" environments](./reqdConfigFusion.md).
-type: warning
+    type: warning
 ///
 
 ## Use the setup wizard for configuration (recommended)
 
 /// admonition | Need to setup environment variables? Refer to this [section](https://docs.myaltimate.com/setup/optConfig/#environment-variables-setup)
-type: warning
+    type: warning
 ///
 
 This method will save a bunch of time for you, and you can also validate your configuration. Setup wizard will help you in associating sql files with jinja-sql, selecting the right Python interpreter, make sure dbt dependencies are correctly installed etc. In the end, it will also validate your configuration.
@@ -23,7 +23,7 @@ You can start the setup wizard by clicking on dbt status icon in bottom status b
 Click on the action button - "Select Python Interpreter" and choose your preferred python interpreter. Usually, choosing interpreter that's recommended, or mapped to your virtual environment software (e.g. venv) as per the list is a good idea. If you know the path of your Python environment, you can choose it from the list or if the path is not present there, you can enter it manually.
 
 /// admonition | If needed, please run 'where python' command on terminal to see if it shows path to Python interpreter that you are using.
-type: tip
+    type: tip
 ///
 
 **Install dbt**
@@ -41,13 +41,13 @@ Last step is clicking on button - "Validate Project" It will run a bunch of chec
 If there are some issues, it will tell you exactly what's wrong as well.
 
 /// admonition | If you still can't get the extension setup correctly, please contact us via slack or chat through [support page](https://www.altimate.ai/support)
-type: tip
+    type: tip
 ///
 
 ## Manual method of configuration
 
 /// admonition | Please follow the manual method only if you couldn't use the setup wizard above.
-type: info
+    type: info
 
 ///
 
@@ -55,11 +55,11 @@ type: info
 
 There are two different methods to do this. Please follow only one method:
 
-#### Method1: Configure in Preferences > Settings in the extension
+#### Method 1: Configure in Preferences > Settings in the extension
 
 ![File Associations](images/associations.png)
 
-#### Method2: Update the settings.json file directly
+#### Method 2: Update the settings.json file directly
 
 /// details | Type 'settings.json' in the VS Code command pallet to open it
 
@@ -91,14 +91,14 @@ Select the Python interpreter that has dbt installed.
 ![Select Python interpreter](images/selectInterpreter.gif)
 
 /// admonition | Tip
-type: info
+    type: info
 
 If you select a python environment with dbt already installed, the dbt label on the bottom strip of the VS Code will show a checkmark.
 
 ///
 
 /// details | If dbt is shown as not installed in the extension, the extension can install dbt for you automatically - just click on the dbt status icon on the bottom strip of the VSCode.
-type: tip
+    type: tip
 
 <interactive demo to install dbt in Python environment>
 
@@ -107,7 +107,7 @@ type: tip
 ///
 
 /// admonition | Warning for Python path overrides
-type: warning
+    type: warning
 
 Avoid using the setting dbt.dbtPythonPathOverride unless using Meltano, the extension depends on the Python interpreter for visual code compatible environment variable parsing.
 
