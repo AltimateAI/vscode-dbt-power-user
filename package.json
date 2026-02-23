@@ -119,10 +119,6 @@
             "displayName": "MCP Server SSL Certificate Path",
             "default": ""
           },
-          "dbt.enableNewLineagePanel": {
-            "type": "boolean",
-            "description": "Enable the new lineage panel in dbt."
-          },
           "dbt.enableCollaboration": {
             "type": "boolean",
             "description": "Enable dbt docs collaboration.",

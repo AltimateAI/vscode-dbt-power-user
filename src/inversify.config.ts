@@ -143,7 +143,6 @@ import { DbtDocsView } from "./webview_provider/DbtDocsView";
 import { DocsEditViewPanel } from "./webview_provider/docsEditPanel";
 import { InsightsPanel } from "./webview_provider/insightsPanel";
 import { LineagePanel } from "./webview_provider/lineagePanel";
-import { ModelGraphViewPanel } from "./webview_provider/modelGraphViewPanel";
 import { NewDocsGenPanel } from "./webview_provider/newDocsGenPanel";
 import { NewLineagePanel } from "./webview_provider/newLineagePanel";
 import { QueryResultPanel } from "./webview_provider/queryResultPanel";
@@ -1532,7 +1531,6 @@ container
   .toDynamicValue((context) => {
     return new LineagePanel(
       context.container.get(NewLineagePanel),
-      context.container.get(ModelGraphViewPanel),
       context.container.get(DBTProjectContainer),
       context.container.get(TelemetryService),
       context.container.get("DBTTerminal"),
@@ -1613,16 +1611,6 @@ container
       context.container.get(QueryManifestService),
       context.container.get(UsersService),
       context.container.get(AltimateAuthService),
-    );
-  })
-  .inSingletonScope();
-
-container
-  .bind(ModelGraphViewPanel)
-  .toDynamicValue((context) => {
-    return new ModelGraphViewPanel(
-      context.container.get(DBTProjectContainer),
-      context.container.get("DBTTerminal"),
     );
   })
   .inSingletonScope();
