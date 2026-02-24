@@ -14,7 +14,7 @@
     "allowJs": true,
     "checkJs": false,
     "moduleResolution": "node",
-    "types": ["node", "jest", "vscode"],
+    "types": ["node", "jest", "mocha", "vscode"],
     "baseUrl": ".",
     "paths": {
       // "@altimateai/dbt-integration": ["../altimate-dbt-integration/src/index.ts"],
