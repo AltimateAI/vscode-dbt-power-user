@@ -10,6 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
+import AltimateSetupStep from "./AltimateSetupStep";
 import classes from "./onboarding.module.scss";
 import PrerequisitesStep, {
   PrerequisitesStepHandle,
@@ -46,6 +47,24 @@ const SETUP_STEPS: WizardStep[] = [
     title: "Validate Setup",
     description: "Configure and validate project",
     parentId: "dbt",
+  },
+  {
+    id: "altimate",
+    title: "Setup Altimate AI",
+    description: "Connect to Altimate AI for advanced features",
+    isParent: true,
+  },
+  {
+    id: "altimateKey",
+    title: "Configure API Key",
+    description: "Connect to Altimate AI",
+    parentId: "altimate",
+  },
+  {
+    id: "altimateIntegration",
+    title: "Create Integration",
+    description: "Set up dbt integration",
+    parentId: "altimate",
   },
   {
     id: "finish",
@@ -254,6 +273,19 @@ const SetupWizard = forwardRef<
                   phase="validation"
                   onComplete={handleNext}
                   onReadyChange={handleReadyChange}
+                />
+              )}
+              {currentStepData.id === "altimateKey" && (
+                <AltimateSetupStep
+                  phase="key"
+                  onComplete={handleNext}
+                />
+              )}
+              {currentStepData.id === "altimateIntegration" && (
+                <AltimateSetupStep
+                  phase="integration"
+                  onComplete={handleNext}
+                  onBack={handlePrevious}
                 />
               )}
               {currentStepData.id === "finish" && <TutorialsStep />}

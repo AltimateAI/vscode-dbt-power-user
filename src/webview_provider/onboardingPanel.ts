@@ -298,6 +298,120 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           });
         }
         break;
+      case "checkAltimateConfiguration":
+        // Check if Altimate is already configured
+        try {
+          const config = workspace.getConfiguration("dbt");
+          const apiKey = config.get<string>("altimateAiKey");
+          const instanceName = config.get<string>("altimateInstanceName");
+          const dbtIntegrationType = config.get<string>(
+            "dbtIntegration",
+            "core",
+          );
+
+          const isConfigured = !!(apiKey && instanceName);
+
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { isConfigured, dbtIntegrationType },
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "checkAltimateConfiguration",
+            "Error checking Altimate configuration",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "saveAltimateKey":
+        // Save Altimate API key and instance name
+        try {
+          const { apiKey, instanceName, backendURL } =
+            message as HandleCommandProps & {
+              apiKey: string;
+              instanceName: string;
+              backendURL?: string;
+            };
+
+          // Validate credentials before saving
+          this.dbtTerminal.debug(
+            "saveAltimateKey",
+            "Validating credentials before saving",
+            { instanceName },
+          );
+
+          const validationResult =
+            await this.altimateRequest.validateCredentials(
+              instanceName,
+              apiKey,
+            );
+
+          if (!validationResult || validationResult.error) {
+            const errorMessage =
+              validationResult?.error ||
+              "Invalid credentials. Please check your API key and instance name.";
+            this.dbtTerminal.error(
+              "saveAltimateKey",
+              "Credential validation failed",
+              errorMessage,
+            );
+            this.sendResponseToWebview({
+              command: "response",
+              syncRequestId,
+              error: errorMessage,
+            });
+            return;
+          }
+
+          this.dbtTerminal.debug(
+            "saveAltimateKey",
+            "Credentials validated successfully",
+          );
+
+          // Use workspace configuration to save the settings at user level
+          const config = workspace.getConfiguration("dbt");
+          await config.update(
+            "altimateAiKey",
+            apiKey,
+            ConfigurationTarget.Global,
+          );
+          await config.update(
+            "altimateInstanceName",
+            instanceName,
+            ConfigurationTarget.Global,
+          );
+          if (backendURL) {
+            await config.update(
+              "altimateUrl",
+              backendURL,
+              ConfigurationTarget.Global,
+            );
+          }
+
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { success: true },
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "saveAltimateKey",
+            "Error saving Altimate API key",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
       case "installDbt":
         // Install dbt with specified integration type
         try {
@@ -505,6 +619,192 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           this.sendResponseToWebview({
             command: "response",
             syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "createDbtIntegration":
+        // Create dbt integration via Altimate API
+        try {
+          const { name, environment, integrationType } =
+            message as HandleCommandProps & {
+              name: string;
+              environment: string;
+              integrationType: "dbt_core" | "dbt_cloud";
+            };
+
+          if (!name || !environment || !integrationType) {
+            throw new Error("Missing required parameters");
+          }
+
+          const config = workspace.getConfiguration("dbt");
+          const instanceName = config.get<string>("altimateInstanceName");
+          const apiKey = config.get<string>("altimateAiKey");
+
+          if (!instanceName || !apiKey) {
+            throw new Error(
+              "Altimate API key and instance name must be configured first",
+            );
+          }
+
+          // Call Altimate API to create the integration
+          const response = await this.altimateRequest.createDbtIntegration(
+            instanceName,
+            apiKey,
+            name,
+            environment,
+            integrationType,
+          );
+
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: response,
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "createDbtIntegration",
+            "Error creating dbt integration",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "getIntegrations":
+        // Fetch existing dbt integrations from Altimate API
+        try {
+          const integrations =
+            await this.altimateRequest.fetchProjectIntegrations();
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: integrations || [],
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "getIntegrations",
+            "Error fetching integrations",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: [],
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "getIntegrationSyncStatus":
+        // Fetch integration sync status from Altimate API
+        try {
+          const { integrationId, environment } =
+            message as HandleCommandProps & {
+              integrationId: number;
+              environment: string;
+            };
+
+          if (!integrationId || !environment) {
+            throw new Error("Missing integrationId or environment");
+          }
+
+          const integrationWithSync =
+            await this.altimateRequest.fetchProjectIntegrationWithSync(
+              integrationId,
+              environment,
+            );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: integrationWithSync || null,
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "getIntegrationSyncStatus",
+            "Error fetching integration sync status",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: null,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "checkDatapilotInstalled":
+        // Check if datapilot CLI is installed
+        try {
+          const isInstalled =
+            await this.dbtProjectContainer.checkIfAltimateDatapilotInstalled();
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { isInstalled },
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "checkDatapilotInstalled",
+            "Error checking datapilot installation",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { isInstalled: false },
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "installDatapilot":
+        // Install datapilot CLI
+        try {
+          await this.dbtProjectContainer.installAltimateDatapilot();
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { success: true },
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "installDatapilot",
+            "Error installing datapilot",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { success: false },
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "getAltimateConfig":
+        // Get Altimate configuration for datapilot command
+        try {
+          const config = workspace.getConfiguration("dbt");
+          const apiKey = config.get<string>("altimateAiKey");
+          const instanceName = config.get<string>("altimateInstanceName");
+          const backendURL = this.altimateRequest.getAltimateUrl();
+
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { apiKey, instanceName, backendURL },
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "getAltimateConfig",
+            "Error getting Altimate configuration",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { apiKey: "", instanceName: "", backendURL: "" },
             error: error instanceof Error ? error.message : String(error),
           });
         }

@@ -1,5 +1,5 @@
 import { NotebookProviders } from "@lib";
-import { commands, Disposable, ExtensionContext, workspace } from "vscode";
+import { Disposable, ExtensionContext, workspace } from "vscode";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";
@@ -16,11 +16,6 @@ import { TelemetryService } from "./telemetry";
 import { TreeviewProviders } from "./treeview_provider";
 import { ValidationProvider } from "./validation_provider";
 import { WebviewViewProviders } from "./webview_provider";
-
-enum PromptAnswer {
-  YES = "Yes",
-  NO = "No",
-}
 
 export class DBTPowerUserExtension implements Disposable {
   static DBT_SQL_SELECTOR = [
@@ -98,25 +93,38 @@ export class DBTPowerUserExtension implements Disposable {
       this.dbtProjectContainer.initializeWalkthrough();
       await this.dbtProjectContainer.detectDBT();
       await this.dbtProjectContainer.initializeDBTProjects();
-      await this.statusBars.initialize();
-      // Ask to reload the window if the dbt integration changes
-      const dbtIntegration = workspace
+      this.statusBars.initialize();
+      // Reinitialize extension when dbt integration type changes
+      let dbtIntegration = workspace
         .getConfiguration("dbt")
         .get<string>("dbtIntegration", "core");
-      workspace.onDidChangeConfiguration((e) => {
-        if (!e.affectsConfiguration("dbt")) {
-          return;
-        }
-        const newDbtIntegration = workspace
-          .getConfiguration("dbt")
-          .get<string>("dbtIntegration", "core");
-        if (
-          dbtIntegration !== newDbtIntegration &&
-          ["core", "cloud", "corecommand", "fusion"].includes(newDbtIntegration)
-        ) {
-          commands.executeCommand("workbench.action.reloadWindow");
-        }
-      });
+      this.disposables.push(
+        workspace.onDidChangeConfiguration(async (e) => {
+          if (!e.affectsConfiguration("dbt.dbtIntegration")) {
+            return;
+          }
+          const newDbtIntegration = workspace
+            .getConfiguration("dbt")
+            .get<string>("dbtIntegration", "core");
+          if (
+            dbtIntegration !== newDbtIntegration &&
+            ["core", "cloud", "corecommand", "fusion"].includes(
+              newDbtIntegration,
+            )
+          ) {
+            dbtIntegration = newDbtIntegration;
+            try {
+              await this.dbtProjectContainer.reinitialize();
+              this.statusBars.initialize();
+            } catch (error) {
+              this.telemetry.sendTelemetryError(
+                "dbtIntegrationChangeError",
+                error,
+              );
+            }
+          }
+        }),
+      );
     } catch (error) {
       this.telemetry.sendTelemetryError("extensionActivationError", error);
     }
