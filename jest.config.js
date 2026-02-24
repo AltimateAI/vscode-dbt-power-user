@@ -3,6 +3,7 @@ module.exports = {
   testEnvironment: "node",
   roots: ["<rootDir>/src"],
   testMatch: ["**/*.test.ts"],
+  testPathIgnorePatterns: ["/node_modules/", "/src/test/integration/"],
   transform: {
     "^.+\\.tsx?$": ["ts-jest", { tsconfig: "tsconfig.json" }],
   },
