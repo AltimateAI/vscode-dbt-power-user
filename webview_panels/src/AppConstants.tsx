@@ -1,11 +1,12 @@
 // import { lazy } from "react";
-import Insights from "./modules/insights/Insights";
-import Home from "./modules/home/Home";
-import DocumentationProvider from "@modules/documentationEditor/DocumentationProvider";
 import DataPilotPanel from "@modules/dataPilot";
 import DbtDocsView from "@modules/dbtDocs/DbtDocsView";
-import QueryPanelProvider from "@modules/queryPanel/QueryPanelProvider";
+import DocumentationProvider from "@modules/documentationEditor/DocumentationProvider";
 import LineageView from "@modules/lineage/LineageView";
+import Onboarding from "@modules/onboarding/Onboarding";
+import QueryPanelProvider from "@modules/queryPanel/QueryPanelProvider";
+import Home from "./modules/home/Home";
+import Insights from "./modules/insights/Insights";
 
 // TODO: lazy loading breaks loading dynamic webviews when having css because of vite dynamic loading
 // research on how to fix that and then use lazy loading
@@ -27,4 +28,5 @@ export const AvailableRoutes = {
   "/dbt-docs": { component: <DbtDocsView /> },
   "/query-panel": { component: <QueryPanelProvider /> },
   "/lineage": { component: <LineageView /> },
+  "/onboarding": { component: <Onboarding /> },
 };

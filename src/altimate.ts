@@ -230,12 +230,31 @@ export interface DocsGenerateResponse {
   model_citations?: { id: string; content: string }[];
 }
 
+export interface DBTCoreIntegrationEnvironment {
+  id: number;
+  environment_type: string;
+  created_at: string;
+}
+
+export interface SyncHistoryItem {
+  type: "Completed" | "In Progress" | "Failed";
+  time: string;
+  log_file: string | null;
+}
+
 export interface DBTCoreIntegration {
   id: number;
   name: string;
+  environments: DBTCoreIntegrationEnvironment[];
   created_at: string;
   last_modified_at: string;
-  last_file_upload_time: string;
+  last_file_upload_time: string | null;
+  is_deleted: boolean;
+  integration_type: "dbt_core" | "dbt_cloud";
+}
+
+export interface DBTCoreIntegrationWithSync extends DBTCoreIntegration {
+  sync_history: SyncHistoryItem[];
 }
 
 export interface TenantUser {
@@ -448,15 +467,77 @@ export class AltimateRequest {
 
   async validateCredentials(instance: string, key: string) {
     const url = `${this.getAltimateUrl()}/dbt/v3/validate-credentials`;
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "x-tenant": instance,
+          Authorization: "Bearer " + key,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          return {
+            error:
+              "Invalid credentials. Please check your API key and instance name.",
+          };
+        }
+        return {
+          error: `Validation failed with status ${response.status}`,
+        };
+      }
+
+      return (await response.json()) as Record<string, any> | undefined;
+    } catch (error) {
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to validate credentials. Please check your network connection.",
+      };
+    }
+  }
+
+  async createDbtIntegration(
+    instanceName: string,
+    apiKey: string,
+    name: string,
+    environment: string,
+    integrationType: "dbt_core" | "dbt_cloud",
+  ) {
+    const url = `${this.getAltimateUrl()}/dbt/v1/project_integration`;
     const response = await fetch(url, {
-      method: "GET",
+      method: "POST",
       headers: {
-        "x-tenant": instance,
-        Authorization: "Bearer " + key,
+        "x-tenant": instanceName,
+        Authorization: "Bearer " + apiKey,
         "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        name,
+        environment,
+        integration_type: integrationType,
+      }),
     });
-    return (await response.json()) as Record<string, any> | undefined;
+
+    if (!response.ok) {
+      const errorData = (await response.json().catch(() => ({}))) as Record<
+        string,
+        unknown
+      >;
+      throw new Error(
+        (errorData.message as string) ||
+          `Failed to create dbt integration: ${response.statusText}`,
+      );
+    }
+
+    return (await response.json()) as {
+      dbt_core_integration_id?: number;
+      dbt_cloud_integration_id?: number;
+      integration_type: string;
+    };
   }
 
   async checkApiConnectivity() {
@@ -480,6 +561,15 @@ export class AltimateRequest {
 
   async fetchProjectIntegrations() {
     return this.fetch<DBTCoreIntegration[]>("dbt/v1/project_integrations");
+  }
+
+  async fetchProjectIntegrationWithSync(
+    integrationId: number,
+    environment: string,
+  ) {
+    return this.fetch<DBTCoreIntegrationWithSync>(
+      `dbt/v1/project_integrations/${integrationId}/${environment}`,
+    );
   }
 
   async getHealthcheckConfigs() {
