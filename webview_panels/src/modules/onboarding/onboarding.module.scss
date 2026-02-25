@@ -436,31 +436,33 @@
 .substep {
   padding-left: 24px !important;
 
+  :global(.ant-steps-item-container) {
+    align-items: center !important;
+  }
+
   :global(.ant-steps-item-icon) {
     width: 24px !important;
     height: 24px !important;
     font-size: 12px !important;
     line-height: 24px !important;
+    margin-top: 0 !important;
+  }
+
+  :global(.ant-steps-item-content) {
+    min-height: auto !important;
   }
 
   :global(.ant-steps-item-title) {
     font-size: 0.9rem !important;
+    line-height: 24px !important;
+    padding-right: 0 !important;
   }
 }
 
-// Parent step — group header, no numbered icon
+// Parent step — same size as default steps, bold title
 .parent-step {
-  :global(.ant-steps-item-icon) {
-    display: none !important;
-  }
-
   :global(.ant-steps-item-title) {
     font-weight: 600 !important;
-    font-size: 1rem !important;
-  }
-
-  :global(.ant-steps-item-tail) {
-    display: none !important;
   }
 }
 

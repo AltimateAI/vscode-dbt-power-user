@@ -199,13 +199,11 @@ const SetupWizard = forwardRef<
             direction="vertical"
             items={SETUP_STEPS.map((step, index) => ({
               title: step.title,
-              description: step.isParent ? undefined : step.description,
               className: step.parentId
                 ? classes.substep
                 : step.isParent
                   ? classes.parentStep
                   : undefined,
-              disabled: step.isParent,
               status: getStepStatus(step, index, currentStep),
             }))}
             className={classes.wizardSteps}
