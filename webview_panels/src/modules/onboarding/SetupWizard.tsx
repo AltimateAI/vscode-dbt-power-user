@@ -78,8 +78,10 @@ const getStepStatus = (
     const childIndices = SETUP_STEPS.map((s, i) =>
       s.parentId === step.id ? i : -1,
     ).filter((i) => i !== -1);
-    if (childIndices.every((i) => i < currentStep)) return "finish";
-    if (childIndices.some((i) => i === currentStep)) return "process";
+    const firstChild = Math.min(...childIndices);
+    const lastChild = Math.max(...childIndices);
+    if (currentStep > lastChild) return "finish";
+    if (currentStep >= firstChild) return "process";
     return "wait";
   }
   if (index < currentStep) return "finish";
@@ -199,11 +201,7 @@ const SetupWizard = forwardRef<
             direction="vertical"
             items={SETUP_STEPS.map((step, index) => ({
               title: step.title,
-              className: step.parentId
-                ? classes.substep
-                : step.isParent
-                  ? classes.parentStep
-                  : undefined,
+              className: step.parentId ? classes.substep : classes.parentStep,
               status: getStepStatus(step, index, currentStep),
             }))}
             className={classes.wizardSteps}

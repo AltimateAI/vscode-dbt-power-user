@@ -432,37 +432,39 @@
   }
 }
 
-// Substep indentation in sidebar
+// Consistent spacing for all steps
+.wizard-steps :global(.ant-steps-item) {
+  padding-bottom: 16px !important;
+}
+
+// Substep — smaller icon, text vertically centered
 .substep {
-  padding-left: 24px !important;
-
-  :global(.ant-steps-item-container) {
-    align-items: center !important;
-  }
-
   :global(.ant-steps-item-icon) {
     width: 24px !important;
     height: 24px !important;
-    font-size: 12px !important;
-    line-height: 24px !important;
-    margin-top: 0 !important;
-  }
-
-  :global(.ant-steps-item-content) {
-    min-height: auto !important;
+    min-width: 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 11px !important;
+    line-height: 22px !important;
+    margin-inline-start: 4px !important;
+    margin-top: 4px !important;
   }
 
   :global(.ant-steps-item-title) {
-    font-size: 0.9rem !important;
-    line-height: 24px !important;
-    padding-right: 0 !important;
+    font-size: 13px !important;
   }
 }
 
-// Parent step — same size as default steps, bold title
+// Parent step — bold title, force tail line when active
 .parent-step {
   :global(.ant-steps-item-title) {
     font-weight: 600 !important;
+  }
+
+  &:global(.ant-steps-item-process) :global(.ant-steps-item-tail)::after {
+    background-color: var(--vscode-button-background) !important;
   }
 }
 
