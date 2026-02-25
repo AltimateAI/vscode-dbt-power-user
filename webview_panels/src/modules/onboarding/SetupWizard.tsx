@@ -173,9 +173,11 @@ const SetupWizard = forwardRef<
 
   // Reset readiness when step changes
   useEffect(() => {
-    const needsReadinessCheck = ["prerequisites", "validation"].includes(
-      SETUP_STEPS[currentStep]?.id ?? "",
-    );
+    const needsReadinessCheck = [
+      "prerequisites",
+      "validation",
+      "altimateKey",
+    ].includes(SETUP_STEPS[currentStep]?.id ?? "");
     setStepReady(!needsReadinessCheck);
     setStepLoading(false);
   }, [currentStep]);
@@ -279,13 +281,14 @@ const SetupWizard = forwardRef<
                 <AltimateSetupStep
                   phase="key"
                   onComplete={handleNext}
+                  onReadyChange={handleReadyChange}
                 />
               )}
               {currentStepData.id === "altimateIntegration" && (
                 <AltimateSetupStep
                   phase="integration"
                   onComplete={handleNext}
-                  onBack={handlePrevious}
+                  onReadyChange={handleReadyChange}
                 />
               )}
               {currentStepData.id === "finish" && <TutorialsStep />}

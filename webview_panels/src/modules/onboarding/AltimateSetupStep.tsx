@@ -25,7 +25,7 @@ type AltimatePhase = "key" | "integration";
 interface AltimateSetupStepProps {
   phase: AltimatePhase;
   onComplete?: () => void;
-  onBack?: () => void;
+  onReadyChange?: (ready: boolean, loading?: boolean) => void;
 }
 
 type IntegrationType = "dbt_core" | "dbt_cloud";
@@ -61,7 +61,7 @@ interface Integration {
 const AltimateSetupStep = ({
   phase,
   onComplete,
-  onBack,
+  onReadyChange,
 }: AltimateSetupStepProps): JSX.Element => {
   const [isAltimateConfigured, setIsAltimateConfigured] = useState<
     boolean | null
@@ -119,6 +119,16 @@ const AltimateSetupStep = ({
   useEffect(() => {
     void checkAltimateConfiguration();
   }, []);
+
+  // Report readiness to parent wizard
+  useEffect(() => {
+    if (phase === "key") {
+      onReadyChange?.(!!isAltimateConfigured);
+    } else {
+      // Integration phase is always ready (optional step)
+      onReadyChange?.(true);
+    }
+  }, [phase, isAltimateConfigured]);
 
   const loadProjects = async () => {
     try {
@@ -924,11 +934,6 @@ const AltimateSetupStep = ({
           showIcon
           className={classes.alertMessage}
         />
-        {onBack && (
-          <Button size="large" onClick={onBack} style={{ marginTop: "1rem" }}>
-            Back to API Key Setup
-          </Button>
-        )}
       </div>
     );
   }
