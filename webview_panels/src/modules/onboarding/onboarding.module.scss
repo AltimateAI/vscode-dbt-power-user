@@ -500,13 +500,28 @@
 }
 
 .wizard-navigation {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 1rem;
   padding-top: 1rem;
   margin-top: auto;
   border-top: 1px solid var(--vscode-panel-border);
+
+  // Left column — align start
+  > :first-child {
+    justify-self: start;
+  }
+
+  // Center column — always centered
+  > :nth-child(2) {
+    justify-self: center;
+  }
+
+  // Right column — align end
+  > :last-child {
+    justify-self: end;
+  }
 }
 
 .step-counter {

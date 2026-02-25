@@ -269,15 +269,17 @@ const SetupWizard = forwardRef<
             </Stack>
 
             <Stack direction="row" className={classes.wizardNavigation}>
-              {!isFirstNavigable && (
+              {!isFirstNavigable ? (
                 <Button onClick={handlePrevious} size="large">
                   Back
                 </Button>
+              ) : (
+                <div />
               )}
               <div className={classes.stepCounter}>
                 Step {currentNavigableIndex + 1} of {navigableSteps.length}
               </div>
-              {!isLastNavigable && (
+              {!isLastNavigable ? (
                 <Button
                   type="primary"
                   onClick={handleNextClick}
@@ -292,6 +294,8 @@ const SetupWizard = forwardRef<
                       : "Validate Setup"
                     : "Next"}
                 </Button>
+              ) : (
+                <div />
               )}
             </Stack>
           </Card>
