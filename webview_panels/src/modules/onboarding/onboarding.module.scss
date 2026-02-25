@@ -91,6 +91,272 @@
   background-color: var(--vscode-editor-background);
   color: var(--vscode-foreground);
   min-height: 100vh;
+
+  // Dark mode overrides for Ant Design components
+  :global(body.vscode-dark) &,
+  :global(body.vscode-high-contrast) & {
+    :global(.ant-btn-default) {
+      background-color: var(--vscode-input-background);
+      color: var(--vscode-foreground);
+      border-color: var(--vscode-contrastBorder, var(--vscode-panel-border));
+
+      &:hover:not(:disabled) {
+        background-color: var(--vscode-list-hoverBackground);
+        color: var(--vscode-foreground);
+        border-color: var(--vscode-focusBorder);
+      }
+
+      &:disabled {
+        background-color: var(--vscode-input-background);
+        color: var(--vscode-disabledForeground);
+        border-color: var(--vscode-panel-border);
+        opacity: 0.5;
+      }
+    }
+
+    :global(.ant-btn-primary:disabled) {
+      background-color: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      border-color: var(--vscode-button-background);
+      opacity: 0.5;
+    }
+
+    :global(.ant-alert) {
+      background-color: var(--vscode-input-background);
+      border-color: var(--vscode-panel-border);
+
+      :global(.ant-alert-message) {
+        color: var(--vscode-foreground);
+      }
+
+      :global(.ant-alert-description) {
+        color: var(--vscode-foreground);
+      }
+
+      :global(.ant-alert-close-icon) {
+        color: var(--vscode-foreground);
+      }
+    }
+
+    :global(.ant-alert-info) {
+      border-color: var(--vscode-textLink-foreground);
+    }
+
+    :global(.ant-alert-success) {
+      border-color: var(--vscode-testing-iconPassed, #52c41a);
+    }
+
+    :global(.ant-alert-warning) {
+      border-color: var(--vscode-editorWarning-foreground, #faad14);
+    }
+
+    :global(.ant-alert-error) {
+      border-color: var(--vscode-editorError-foreground, #ff4d4f);
+    }
+
+    // Input and Input.Password
+    :global(.ant-input),
+    :global(.ant-input-password .ant-input) {
+      background-color: var(--vscode-input-background);
+      color: var(--vscode-input-foreground);
+      border-color: var(--vscode-panel-border);
+
+      &::placeholder {
+        color: var(--vscode-input-placeholderForeground);
+      }
+
+      &:hover {
+        border-color: var(--vscode-focusBorder);
+      }
+
+      &:focus,
+      &:global(.ant-input-focused) {
+        border-color: var(--vscode-focusBorder);
+        box-shadow: 0 0 0 2px rgba(var(--vscode-focusBorder), 0.2);
+      }
+
+      &:disabled,
+      &[disabled] {
+        background-color: var(--vscode-input-background);
+        color: var(--vscode-disabledForeground);
+        border-color: var(--vscode-panel-border);
+        opacity: 0.5;
+      }
+    }
+
+    :global(.ant-input-password) {
+      background-color: var(--vscode-input-background);
+      border-color: var(--vscode-panel-border);
+
+      &:hover {
+        border-color: var(--vscode-focusBorder);
+      }
+
+      &:global(.ant-input-affix-wrapper-focused) {
+        border-color: var(--vscode-focusBorder);
+      }
+
+      :global(.ant-input-suffix) {
+        color: var(--vscode-foreground);
+      }
+    }
+
+    // Select and dropdown
+    :global(.ant-select) {
+      :global(.ant-select-selector) {
+        background-color: var(--vscode-input-background) !important;
+        color: var(--vscode-input-foreground) !important;
+        border-color: var(--vscode-panel-border) !important;
+      }
+
+      &:hover :global(.ant-select-selector) {
+        border-color: var(--vscode-focusBorder) !important;
+      }
+
+      &:global(.ant-select-focused) :global(.ant-select-selector) {
+        border-color: var(--vscode-focusBorder) !important;
+      }
+
+      :global(.ant-select-arrow) {
+        color: var(--vscode-foreground);
+      }
+
+      :global(.ant-select-clear) {
+        background-color: var(--vscode-input-background);
+        color: var(--vscode-foreground);
+      }
+
+      :global(.ant-select-selection-placeholder) {
+        color: var(--vscode-input-placeholderForeground) !important;
+      }
+
+      :global(.ant-select-selection-item) {
+        color: var(--vscode-input-foreground) !important;
+      }
+
+      &:global(.ant-select-disabled) {
+        :global(.ant-select-selector) {
+          background-color: var(--vscode-input-background) !important;
+          color: var(--vscode-disabledForeground) !important;
+          opacity: 0.5;
+        }
+      }
+    }
+
+    // Radio buttons (circle style)
+    :global(.ant-radio-wrapper) {
+      color: var(--vscode-foreground);
+
+      :global(.ant-radio) {
+        :global(.ant-radio-inner) {
+          background-color: var(--vscode-input-background);
+          border-color: var(--vscode-panel-border);
+        }
+
+        &:global(.ant-radio-checked) :global(.ant-radio-inner) {
+          background-color: var(--vscode-button-background);
+          border-color: var(--vscode-button-background);
+        }
+      }
+
+      &:hover :global(.ant-radio) :global(.ant-radio-inner) {
+        border-color: var(--vscode-focusBorder);
+      }
+
+      &:global(.ant-radio-wrapper-disabled) {
+        color: var(--vscode-disabledForeground);
+        opacity: 0.5;
+
+        :global(.ant-radio) :global(.ant-radio-inner) {
+          background-color: var(--vscode-input-background);
+          border-color: var(--vscode-panel-border);
+        }
+      }
+    }
+
+    // Radio.Button toggle (segmented style)
+    :global(.ant-radio-group) {
+      :global(.ant-radio-button-wrapper) {
+        background-color: var(--vscode-input-background);
+        color: var(--vscode-foreground);
+        border-color: var(--vscode-panel-border);
+
+        &:hover {
+          color: var(--vscode-textLink-foreground);
+        }
+
+        &:global(.ant-radio-button-wrapper-checked) {
+          background-color: var(--vscode-button-background);
+          color: var(--vscode-button-foreground);
+          border-color: var(--vscode-button-background);
+
+          &:hover {
+            color: var(--vscode-button-foreground);
+          }
+        }
+
+        &:global(.ant-radio-button-wrapper-disabled) {
+          background-color: var(--vscode-input-background);
+          color: var(--vscode-disabledForeground);
+          border-color: var(--vscode-panel-border);
+          opacity: 0.5;
+        }
+      }
+    }
+
+    // Typography
+    :global(.ant-typography) {
+      color: var(--vscode-foreground);
+    }
+
+    // Collapse / Accordion
+    :global(.ant-collapse) {
+      background-color: var(--vscode-input-background);
+      border-color: var(--vscode-panel-border);
+
+      :global(.ant-collapse-item) {
+        border-color: var(--vscode-panel-border);
+      }
+
+      :global(.ant-collapse-header) {
+        color: var(--vscode-foreground) !important;
+        background-color: var(--vscode-editor-background);
+      }
+
+      :global(.ant-collapse-content) {
+        background-color: var(--vscode-input-background);
+        border-color: var(--vscode-panel-border);
+        color: var(--vscode-foreground);
+      }
+
+      :global(.ant-collapse-expand-icon) {
+        color: var(--vscode-foreground);
+      }
+    }
+
+    // Tags
+    :global(.ant-tag) {
+      background-color: var(--vscode-input-background);
+      color: var(--vscode-foreground);
+      border-color: var(--vscode-panel-border);
+    }
+
+    // Card
+    :global(.ant-card) {
+      background-color: var(--vscode-editor-background);
+      border-color: var(--vscode-panel-border);
+      color: var(--vscode-foreground);
+
+      :global(.ant-card-head) {
+        color: var(--vscode-foreground);
+        border-color: var(--vscode-panel-border);
+      }
+
+      :global(.ant-card-body) {
+        color: var(--vscode-foreground);
+      }
+    }
+  }
 }
 
 .wizard-title {
@@ -854,4 +1120,31 @@
   border: 1px solid var(--vscode-panel-border);
   border-radius: 4px;
   margin: 0.5rem 0;
+}
+
+// Select dropdown popup renders in a portal outside .wizard-container,
+// so it needs a global dark-mode override
+:global(body.vscode-dark),
+:global(body.vscode-high-contrast) {
+  :global(.ant-select-dropdown) {
+    background-color: var(--vscode-input-background);
+    border: 1px solid var(--vscode-panel-border);
+
+    :global(.ant-select-item) {
+      color: var(--vscode-foreground);
+    }
+
+    :global(.ant-select-item-option-active) {
+      background-color: var(--vscode-list-hoverBackground);
+    }
+
+    :global(.ant-select-item-option-selected) {
+      background-color: var(--vscode-list-activeSelectionBackground);
+      color: var(--vscode-list-activeSelectionForeground);
+    }
+
+    :global(.ant-select-item-empty) {
+      color: var(--vscode-disabledForeground);
+    }
+  }
 }
