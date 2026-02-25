@@ -11,19 +11,32 @@ interface WizardStep {
   id: string;
   title: string;
   description: string;
+  isParent?: boolean;
+  parentId?: string;
   action?: {
     label: string;
     command: string;
   };
-  isConditional?: boolean;
 }
 
 const SETUP_STEPS: WizardStep[] = [
   {
-    id: "prerequisites",
+    id: "dbt",
     title: "Setup dbt",
-    description:
-      "Ensure dbt project is open, Python interpreter is configured, and dbt is installed. Then validate your project setup.",
+    description: "Configure your dbt environment",
+    isParent: true,
+  },
+  {
+    id: "prerequisites",
+    title: "Setup Prerequisites",
+    description: "Check environment",
+    parentId: "dbt",
+  },
+  {
+    id: "validation",
+    title: "Validate Setup",
+    description: "Configure and validate project",
+    parentId: "dbt",
   },
   {
     id: "finish",
@@ -33,6 +46,47 @@ const SETUP_STEPS: WizardStep[] = [
   },
 ];
 
+/** Find the next navigable (non-parent) step index */
+const findNextStep = (fromIndex: number): number => {
+  for (let i = fromIndex + 1; i < SETUP_STEPS.length; i++) {
+    if (!SETUP_STEPS[i].isParent) return i;
+  }
+  return fromIndex;
+};
+
+/** Find the previous navigable (non-parent) step index */
+const findPreviousStep = (fromIndex: number): number => {
+  for (let i = fromIndex - 1; i >= 0; i--) {
+    if (!SETUP_STEPS[i].isParent) return i;
+  }
+  return fromIndex;
+};
+
+/** Get the first child index for a parent step */
+const getFirstChildIndex = (parentId: string): number => {
+  const idx = SETUP_STEPS.findIndex((s) => s.parentId === parentId);
+  return idx !== -1 ? idx : 0;
+};
+
+/** Determine status for a step based on currentStep */
+const getStepStatus = (
+  step: WizardStep,
+  index: number,
+  currentStep: number,
+): "finish" | "process" | "wait" => {
+  if (step.isParent) {
+    const childIndices = SETUP_STEPS.map((s, i) =>
+      s.parentId === step.id ? i : -1,
+    ).filter((i) => i !== -1);
+    if (childIndices.every((i) => i < currentStep)) return "finish";
+    if (childIndices.some((i) => i === currentStep)) return "process";
+    return "wait";
+  }
+  if (index < currentStep) return "finish";
+  if (index === currentStep) return "process";
+  return "wait";
+};
+
 interface SetupWizardProps {
   initialStep?: string;
 }
@@ -41,33 +95,45 @@ const SetupWizard = forwardRef<
   { navigateToStep: (stepId: string) => void },
   SetupWizardProps
 >(({ initialStep }, ref) => {
-  // Find initial step index
   const getInitialStepIndex = () => {
     if (initialStep) {
       const index = SETUP_STEPS.findIndex((step) => step.id === initialStep);
-      return index !== -1 ? index : 0;
+      if (index !== -1) {
+        // If pointing at a parent, jump to its first child
+        if (SETUP_STEPS[index].isParent) {
+          return getFirstChildIndex(SETUP_STEPS[index].id);
+        }
+        return index;
+      }
     }
-    return 0;
+    // Default to first navigable step
+    return findNextStep(-1);
   };
 
   const [currentStep, setCurrentStep] = useState(getInitialStepIndex());
 
-  // Update currentStep when initialStep prop changes
   useEffect(() => {
     if (initialStep) {
       const index = SETUP_STEPS.findIndex((step) => step.id === initialStep);
       if (index !== -1) {
-        setCurrentStep(index);
+        if (SETUP_STEPS[index].isParent) {
+          setCurrentStep(getFirstChildIndex(SETUP_STEPS[index].id));
+        } else {
+          setCurrentStep(index);
+        }
       }
     }
   }, [initialStep]);
 
-  // Expose navigateToStep method via ref
   useImperativeHandle(ref, () => ({
     navigateToStep: (stepId: string) => {
       const index = SETUP_STEPS.findIndex((step) => step.id === stepId);
       if (index !== -1) {
-        setCurrentStep(index);
+        if (SETUP_STEPS[index].isParent) {
+          setCurrentStep(getFirstChildIndex(SETUP_STEPS[index].id));
+        } else {
+          setCurrentStep(index);
+        }
       }
     },
   }));
@@ -92,18 +158,31 @@ const SetupWizard = forwardRef<
   };
 
   const handleNext = () => {
-    if (currentStep < SETUP_STEPS.length - 1) {
-      setCurrentStep(currentStep + 1);
-    }
+    setCurrentStep(findNextStep(currentStep));
   };
 
   const handlePrevious = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+    setCurrentStep(findPreviousStep(currentStep));
+  };
+
+  const handleSidebarChange = (index: number) => {
+    const step = SETUP_STEPS[index];
+    if (step.isParent) {
+      setCurrentStep(getFirstChildIndex(step.id));
+    } else {
+      setCurrentStep(index);
     }
   };
 
   const currentStepData = SETUP_STEPS[currentStep];
+
+  // Count only navigable steps for the step counter
+  const navigableSteps = SETUP_STEPS.filter((s) => !s.isParent);
+  const currentNavigableIndex = navigableSteps.findIndex(
+    (s) => s.id === currentStepData.id,
+  );
+  const isFirstNavigable = currentNavigableIndex === 0;
+  const isLastNavigable = currentNavigableIndex === navigableSteps.length - 1;
 
   return (
     <div className={classes.wizardContainer}>
@@ -116,11 +195,18 @@ const SetupWizard = forwardRef<
         <div className={classes.wizardSidebar}>
           <Steps
             current={currentStep}
-            onChange={setCurrentStep}
+            onChange={handleSidebarChange}
             direction="vertical"
-            items={SETUP_STEPS.map((step) => ({
+            items={SETUP_STEPS.map((step, index) => ({
               title: step.title,
-              description: step.isConditional ? "(Conditional)" : undefined,
+              description: step.isParent ? undefined : step.description,
+              className: step.parentId
+                ? classes.substep
+                : step.isParent
+                  ? classes.parentStep
+                  : undefined,
+              disabled: step.isParent,
+              status: getStepStatus(step, index, currentStep),
             }))}
             className={classes.wizardSteps}
           />
@@ -134,38 +220,46 @@ const SetupWizard = forwardRef<
             </p>
 
             <Stack direction="row" className={classes.stepActions}>
-              {currentStepData.id === "prerequisites" ? (
-                <PrerequisitesStep onComplete={handleNext} />
-              ) : currentStepData.id === "finish" ? (
-                <TutorialsStep />
-              ) : (
-                currentStepData.action && (
-                  <Button
-                    type="primary"
-                    size="large"
-                    onClick={() => handleStepAction(currentStepData)}
-                  >
-                    {currentStepData.action.label}
-                  </Button>
-                )
+              {currentStepData.id === "prerequisites" && (
+                <PrerequisitesStep
+                  phase="prerequisites"
+                  onComplete={handleNext}
+                />
+              )}
+              {currentStepData.id === "validation" && (
+                <PrerequisitesStep
+                  phase="validation"
+                  onComplete={handleNext}
+                  onBack={handlePrevious}
+                />
+              )}
+              {currentStepData.id === "finish" && <TutorialsStep />}
+              {currentStepData.action && (
+                <Button
+                  type="primary"
+                  size="large"
+                  onClick={() => handleStepAction(currentStepData)}
+                >
+                  {currentStepData.action.label}
+                </Button>
               )}
             </Stack>
 
             <Stack direction="row" className={classes.wizardNavigation}>
               <Button
                 onClick={handlePrevious}
-                disabled={currentStep === 0}
+                disabled={isFirstNavigable}
                 size="large"
               >
                 Previous
               </Button>
               <div className={classes.stepCounter}>
-                Step {currentStep + 1} of {SETUP_STEPS.length}
+                Step {currentNavigableIndex + 1} of {navigableSteps.length}
               </div>
               <Button
                 type="primary"
                 onClick={handleNext}
-                disabled={currentStep === SETUP_STEPS.length - 1}
+                disabled={isLastNavigable}
                 size="large"
               >
                 Next

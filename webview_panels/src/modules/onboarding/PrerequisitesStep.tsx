@@ -10,7 +10,7 @@ import {
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import { Stack } from "@uicore";
-import { Alert, Button, Card, Radio, Select, Space, Spin, Steps } from "antd";
+import { Alert, Button, Card, Radio, Select, Space, Spin } from "antd";
 import { useEffect, useState } from "react";
 import InstallDbtStep from "./InstallDbtStep";
 import classes from "./onboarding.module.scss";
@@ -78,14 +78,16 @@ type ValidationState =
 type WizardPhase = "prerequisites" | "validation";
 
 interface PrerequisitesStepProps {
+  phase: WizardPhase;
   onComplete?: () => void;
+  onBack?: () => void;
 }
 
 const PrerequisitesStep = ({
+  phase,
   onComplete,
+  onBack,
 }: PrerequisitesStepProps): JSX.Element => {
-  const [currentPhase, setCurrentPhase] =
-    useState<WizardPhase>("prerequisites");
   const [checking, setChecking] = useState(false);
   const [showInstallDbt, setShowInstallDbt] = useState(false);
   const [diagnostics, setDiagnostics] = useState<DiagnosticsStatus | null>(
@@ -506,25 +508,8 @@ const PrerequisitesStep = ({
     );
   }
 
-  const currentStep = currentPhase === "prerequisites" ? 0 : 1;
-
   return (
     <div className={classes.prerequisitesContainer}>
-      <Steps
-        current={currentStep}
-        items={[
-          {
-            title: "Setup Prerequisites",
-            description: "Check environment",
-          },
-          {
-            title: "Validate Setup",
-            description: "Configure and validate project",
-          },
-        ]}
-        className={classes.prerequisitesSteps}
-      />
-
       {error && (
         <Alert
           message="Error"
@@ -538,7 +523,7 @@ const PrerequisitesStep = ({
         />
       )}
 
-      {currentPhase === "prerequisites" && (
+      {phase === "prerequisites" && (
         <>
           <div className={classes.prerequisitesInfo}>
             <p>
@@ -722,8 +707,8 @@ const PrerequisitesStep = ({
                 type="primary"
                 size="large"
                 onClick={() => {
-                  setCurrentPhase("validation");
                   setError(undefined);
+                  onComplete?.();
                 }}
               >
                 Validate Setup
@@ -733,7 +718,7 @@ const PrerequisitesStep = ({
         </>
       )}
 
-      {currentPhase === "validation" && (
+      {phase === "validation" && (
         <>
           <div className={classes.validationSection}>
             <h3>Validate Setup</h3>
@@ -823,7 +808,7 @@ const PrerequisitesStep = ({
           <Stack direction="row" className={classes.prerequisitesActions}>
             <Button
               size="large"
-              onClick={() => setCurrentPhase("prerequisites")}
+              onClick={() => onBack?.()}
               disabled={isValidating}
             >
               Back

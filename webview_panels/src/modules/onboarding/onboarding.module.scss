@@ -432,6 +432,38 @@
   }
 }
 
+// Substep indentation in sidebar
+.substep {
+  padding-left: 24px !important;
+
+  :global(.ant-steps-item-icon) {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 12px !important;
+    line-height: 24px !important;
+  }
+
+  :global(.ant-steps-item-title) {
+    font-size: 0.9rem !important;
+  }
+}
+
+// Parent step — group header, no numbered icon
+.parent-step {
+  :global(.ant-steps-item-icon) {
+    display: none !important;
+  }
+
+  :global(.ant-steps-item-title) {
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+  }
+
+  :global(.ant-steps-item-tail) {
+    display: none !important;
+  }
+}
+
 .step-card {
   background-color: var(--vscode-editorWidget-background);
   border: 1px solid var(--vscode-panel-border);
