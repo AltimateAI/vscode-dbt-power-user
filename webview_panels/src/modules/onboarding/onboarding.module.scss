@@ -393,6 +393,7 @@
 
 .wizard-steps {
   margin-bottom: 0;
+  counter-reset: parent-step;
 
   :global(.ant-steps-item-title) {
     color: var(--vscode-foreground) !important;
@@ -437,7 +438,7 @@
   padding-bottom: 16px !important;
 }
 
-// Substep — smaller icon, text vertically centered
+// Substep — smaller circle, hide number but keep checkmark
 .substep {
   :global(.ant-steps-item-icon) {
     width: 24px !important;
@@ -446,10 +447,26 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: 11px !important;
     line-height: 22px !important;
     margin-inline-start: 4px !important;
     margin-top: 4px !important;
+  }
+
+  // Hide number text via font-size: 0, keep container for checkmark
+  :global(.ant-steps-item-icon .ant-steps-icon) {
+    font-size: 0 !important;
+  }
+
+  // Checkmark needs explicit size and color since parent is font-size: 0
+  :global(.ant-steps-item-icon .ant-steps-icon .ant-steps-finish-icon) {
+    font-size: 12px !important;
+    color: var(--vscode-button-foreground, #fff) !important;
+  }
+
+  // Finished substeps keep blue circle (not muted secondaryBackground)
+  &:global(.ant-steps-item-finish) :global(.ant-steps-item-icon) {
+    background-color: var(--vscode-button-background) !important;
+    border-color: var(--vscode-button-background) !important;
   }
 
   :global(.ant-steps-item-title) {
@@ -457,10 +474,39 @@
   }
 }
 
-// Parent step — bold title, force tail line when active
+// Parent step — bold title, custom 1/2/3 numbering via CSS counter
 .parent-step {
+  counter-increment: parent-step;
+
   :global(.ant-steps-item-title) {
     font-weight: 600 !important;
+  }
+
+  // Replace Antd's sequential number with parent counter
+  :global(.ant-steps-item-icon .ant-steps-icon) {
+    font-size: 0 !important;
+  }
+
+  :global(.ant-steps-item-icon .ant-steps-icon)::after {
+    content: counter(parent-step);
+    font-size: 14px;
+    color: inherit;
+  }
+
+  // When finished, show checkmark instead of counter
+  &:global(.ant-steps-item-finish) :global(.ant-steps-item-icon .ant-steps-icon)::after {
+    content: none;
+  }
+
+  &:global(.ant-steps-item-finish) :global(.ant-steps-item-icon .ant-steps-icon .ant-steps-finish-icon) {
+    font-size: 14px !important;
+    color: var(--vscode-button-foreground, #fff) !important;
+  }
+
+  // Finished parents also keep blue circle
+  &:global(.ant-steps-item-finish) :global(.ant-steps-item-icon) {
+    background-color: var(--vscode-button-background) !important;
+    border-color: var(--vscode-button-background) !important;
   }
 
   &:global(.ant-steps-item-process) :global(.ant-steps-item-tail)::after {
