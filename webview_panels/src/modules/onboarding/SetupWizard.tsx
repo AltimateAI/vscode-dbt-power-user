@@ -2,9 +2,18 @@ import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import { Stack } from "@uicore";
 import { Button, Card, Steps } from "antd";
-import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import classes from "./onboarding.module.scss";
-import PrerequisitesStep from "./PrerequisitesStep";
+import PrerequisitesStep, {
+  PrerequisitesStepHandle,
+} from "./PrerequisitesStep";
 import TutorialsStep from "./TutorialsStep";
 
 interface WizardStep {
@@ -113,6 +122,9 @@ const SetupWizard = forwardRef<
   };
 
   const [currentStep, setCurrentStep] = useState(getInitialStepIndex());
+  const [stepReady, setStepReady] = useState(false);
+  const [stepLoading, setStepLoading] = useState(false);
+  const stepRef = useRef<PrerequisitesStepHandle>(null);
 
   useEffect(() => {
     if (initialStep) {
@@ -140,6 +152,20 @@ const SetupWizard = forwardRef<
     },
   }));
 
+  // Reset readiness when step changes
+  useEffect(() => {
+    const needsReadinessCheck = ["prerequisites", "validation"].includes(
+      SETUP_STEPS[currentStep]?.id ?? "",
+    );
+    setStepReady(!needsReadinessCheck);
+    setStepLoading(false);
+  }, [currentStep]);
+
+  const handleReadyChange = useCallback((ready: boolean, loading?: boolean) => {
+    setStepReady(ready);
+    setStepLoading(loading ?? false);
+  }, []);
+
   const handleStepAction = async (step: WizardStep) => {
     try {
       if (step.action) {
@@ -165,6 +191,14 @@ const SetupWizard = forwardRef<
 
   const handlePrevious = () => {
     setCurrentStep(findPreviousStep(currentStep));
+  };
+
+  const handleNextClick = () => {
+    if (stepRef.current) {
+      stepRef.current.triggerNext();
+    } else {
+      handleNext();
+    }
   };
 
   const handleSidebarChange = (index: number) => {
@@ -218,15 +252,18 @@ const SetupWizard = forwardRef<
             <Stack direction="row" className={classes.stepActions}>
               {currentStepData.id === "prerequisites" && (
                 <PrerequisitesStep
+                  ref={stepRef}
                   phase="prerequisites"
                   onComplete={handleNext}
+                  onReadyChange={handleReadyChange}
                 />
               )}
               {currentStepData.id === "validation" && (
                 <PrerequisitesStep
+                  ref={stepRef}
                   phase="validation"
                   onComplete={handleNext}
-                  onBack={handlePrevious}
+                  onReadyChange={handleReadyChange}
                 />
               )}
               {currentStepData.id === "finish" && <TutorialsStep />}
@@ -242,24 +279,30 @@ const SetupWizard = forwardRef<
             </Stack>
 
             <Stack direction="row" className={classes.wizardNavigation}>
-              <Button
-                onClick={handlePrevious}
-                disabled={isFirstNavigable}
-                size="large"
-              >
-                Previous
-              </Button>
+              {!isFirstNavigable && (
+                <Button onClick={handlePrevious} size="large">
+                  Back
+                </Button>
+              )}
               <div className={classes.stepCounter}>
                 Step {currentNavigableIndex + 1} of {navigableSteps.length}
               </div>
-              <Button
-                type="primary"
-                onClick={handleNext}
-                disabled={isLastNavigable}
-                size="large"
-              >
-                Next
-              </Button>
+              {!isLastNavigable && (
+                <Button
+                  type="primary"
+                  onClick={handleNextClick}
+                  disabled={!stepReady}
+                  loading={stepLoading}
+                  size="large"
+                >
+                  {currentStepData.id === "prerequisites" ||
+                  currentStepData.id === "validation"
+                    ? stepLoading
+                      ? "Validating..."
+                      : "Validate Setup"
+                    : "Next"}
+                </Button>
+              )}
             </Stack>
           </Card>
 

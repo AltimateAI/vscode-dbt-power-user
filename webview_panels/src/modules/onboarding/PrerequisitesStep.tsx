@@ -9,9 +9,8 @@ import {
 } from "@ant-design/icons";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
-import { Stack } from "@uicore";
 import { Alert, Button, Card, Radio, Select, Space, Spin } from "antd";
-import { useEffect, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import InstallDbtStep from "./InstallDbtStep";
 import classes from "./onboarding.module.scss";
 
@@ -77,17 +76,20 @@ type ValidationState =
 
 type WizardPhase = "prerequisites" | "validation";
 
+export interface PrerequisitesStepHandle {
+  triggerNext: () => void;
+}
+
 interface PrerequisitesStepProps {
   phase: WizardPhase;
   onComplete?: () => void;
-  onBack?: () => void;
+  onReadyChange?: (ready: boolean, loading?: boolean) => void;
 }
 
-const PrerequisitesStep = ({
-  phase,
-  onComplete,
-  onBack,
-}: PrerequisitesStepProps): JSX.Element => {
+const PrerequisitesStep = forwardRef<
+  PrerequisitesStepHandle,
+  PrerequisitesStepProps
+>(({ phase, onComplete, onReadyChange }, ref) => {
   const [checking, setChecking] = useState(false);
   const [showInstallDbt, setShowInstallDbt] = useState(false);
   const [diagnostics, setDiagnostics] = useState<DiagnosticsStatus | null>(
@@ -385,6 +387,26 @@ const PrerequisitesStep = ({
     validationState === "running-deps" || validationState === "validating";
   const isValidationComplete = validationState === "complete";
 
+  // Report readiness to parent wizard
+  const isStepReady =
+    phase === "prerequisites"
+      ? !!allChecksPassed
+      : !!selectedProject && !isValidating && !isValidationComplete;
+
+  useEffect(() => {
+    onReadyChange?.(isStepReady, phase === "validation" && isValidating);
+  }, [isStepReady, isValidating]);
+
+  useImperativeHandle(ref, () => ({
+    triggerNext: () => {
+      if (phase === "prerequisites") {
+        onComplete?.();
+      } else if (phase === "validation") {
+        void handleValidateSetup();
+      }
+    },
+  }));
+
   const getCheckDetails = (checkId: string): React.ReactNode => {
     if (!diagnostics) return null;
 
@@ -535,7 +557,7 @@ const PrerequisitesStep = ({
           {allChecksPassed && (
             <Alert
               message="All prerequisites met!"
-              description="Your environment is properly configured. Click 'Validate Setup' to continue."
+              description="Your environment is properly configured. Click 'Next' to continue."
               type="success"
               showIcon
               className={classes.alertMessage}
@@ -715,21 +737,6 @@ const PrerequisitesStep = ({
               </Card>
             ))}
           </div>
-
-          <Stack direction="row" className={classes.prerequisitesActions}>
-            {allChecksPassed && (
-              <Button
-                type="primary"
-                size="large"
-                onClick={() => {
-                  setError(undefined);
-                  onComplete?.();
-                }}
-              >
-                Validate Setup
-              </Button>
-            )}
-          </Stack>
         </>
       )}
 
@@ -819,32 +826,12 @@ const PrerequisitesStep = ({
               showIcon
             />
           )}
-
-          <Stack direction="row" className={classes.prerequisitesActions}>
-            <Button
-              size="large"
-              onClick={() => onBack?.()}
-              disabled={isValidating}
-            >
-              Back
-            </Button>
-
-            <Button
-              type="primary"
-              size="large"
-              onClick={handleValidateSetup}
-              disabled={
-                !selectedProject || isValidating || isValidationComplete
-              }
-              loading={isValidating}
-            >
-              {isValidating ? "Validating..." : "Validate Setup"}
-            </Button>
-          </Stack>
         </>
       )}
     </div>
   );
-};
+});
+
+PrerequisitesStep.displayName = "PrerequisitesStep";
 
 export default PrerequisitesStep;
