@@ -542,6 +542,30 @@ const PrerequisitesStep = ({
             />
           )}
 
+          {diagnostics && !allChecksPassed && (
+            <Alert
+              message="Some prerequisites are not met"
+              description={
+                <div>
+                  <p style={{ margin: "0 0 0.5rem 0" }}>
+                    Please resolve the issues below, then recheck.
+                  </p>
+                  <Button
+                    size="large"
+                    onClick={() => void runDiagnostics()}
+                    disabled={checking}
+                    icon={checking ? <SyncOutlined spin /> : <SyncOutlined />}
+                  >
+                    {checking ? "Checking..." : "Recheck Prerequisites"}
+                  </Button>
+                </div>
+              }
+              type="warning"
+              showIcon
+              className={classes.alertMessage}
+            />
+          )}
+
           <Card className={classes.prerequisiteCard}>
             <div className={classes.prerequisiteCardHeader}>
               <div className={classes.prerequisiteCardTitle}>
@@ -693,15 +717,6 @@ const PrerequisitesStep = ({
           </div>
 
           <Stack direction="row" className={classes.prerequisitesActions}>
-            <Button
-              size="large"
-              onClick={() => void runDiagnostics()}
-              disabled={checking}
-              icon={checking ? <SyncOutlined spin /> : <SyncOutlined />}
-            >
-              {checking ? "Checking..." : "Recheck Prerequisites"}
-            </Button>
-
             {allChecksPassed && (
               <Button
                 type="primary"
