@@ -23,12 +23,15 @@ export class DbtPowerUserActionsCenter implements Disposable {
     commands.registerCommand("dbtPowerUser.openInsights", async () => {
       await commands.executeCommand("dbtPowerUser.Insights.focus");
     });
-    commands.registerCommand("dbtPowerUser.openOnboarding", async () => {
-      this.emitterService.eventEmitter.fire({
-        command: "onboarding:render",
-        payload: {},
-      });
-    });
+    commands.registerCommand(
+      "dbtPowerUser.openOnboarding",
+      async (initialStep?: string) => {
+        this.emitterService.eventEmitter.fire({
+          command: "onboarding:render",
+          payload: initialStep ? { initialStep } : {},
+        });
+      },
+    );
     commands.registerCommand("dbtPowerUser.sqlQuickPick", async () => {
       await this.sqlQuickPick.openQuickPick();
     });

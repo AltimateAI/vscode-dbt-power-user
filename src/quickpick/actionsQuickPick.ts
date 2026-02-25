@@ -29,6 +29,7 @@ export class DbtPowerUserControlCenterAction {
             "debug",
             "Setup the extension",
             "dbtPowerUser.openOnboarding",
+            ["prerequisites"],
           ),
           new DbtPowerUserControlPanelItem(
             "Tutorials",
