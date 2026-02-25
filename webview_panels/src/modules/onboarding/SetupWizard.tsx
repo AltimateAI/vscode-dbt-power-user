@@ -201,15 +201,6 @@ const SetupWizard = forwardRef<
     }
   };
 
-  const handleSidebarChange = (index: number) => {
-    const step = SETUP_STEPS[index];
-    if (step.isParent) {
-      setCurrentStep(getFirstChildIndex(step.id));
-    } else {
-      setCurrentStep(index);
-    }
-  };
-
   const currentStepData = SETUP_STEPS[currentStep];
 
   // Count only navigable steps for the step counter
@@ -231,7 +222,6 @@ const SetupWizard = forwardRef<
         <div className={classes.wizardSidebar}>
           <Steps
             current={currentStep}
-            onChange={handleSidebarChange}
             direction="vertical"
             items={SETUP_STEPS.map((step, index) => ({
               title: step.title,
