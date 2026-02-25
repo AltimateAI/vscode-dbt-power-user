@@ -1,7 +1,9 @@
+import type { RunResultsEventData } from "@altimateai/dbt-integration";
 import {
   DataPilotHealtCheckParams,
   DBTTerminal,
   EnvironmentVariables,
+  RunModelParams,
   RunModelType,
 } from "@altimateai/dbt-integration";
 import * as fs from "fs";
@@ -341,6 +343,60 @@ export class DBTProjectContainer implements Disposable {
     return this.dbtWorkspaceFolders.flatMap((workspaceFolder) =>
       workspaceFolder.getProjects(),
     );
+  }
+
+  findProjectByName(projectName: string): DBTProject | undefined {
+    return this.getProjects().find(
+      (project) => project.getProjectName() === projectName,
+    );
+  }
+
+  rerunFromHistory(entry: RunResultsEventData): void {
+    const project = this.findProjectByName(entry.projectName);
+    if (!project) {
+      window.showErrorMessage(
+        `Project "${entry.projectName}" is not currently loaded.`,
+      );
+      return;
+    }
+
+    const runModelParams = this.parseHistoryArgs(entry.args);
+
+    switch (entry.command) {
+      case "run":
+        project.runModel(runModelParams);
+        break;
+      case "build":
+        if (runModelParams.modelName) {
+          project.buildModel(runModelParams);
+        } else {
+          project.buildProject();
+        }
+        break;
+      case "test":
+        if (entry.args.length > 0) {
+          project.runTest(entry.args[0]);
+        }
+        break;
+      case "compile":
+        project.compileModel(runModelParams);
+        break;
+      default:
+        window.showWarningMessage(
+          `Re-run is not supported for command: dbt ${entry.command}`,
+        );
+    }
+  }
+
+  private parseHistoryArgs(args: string[]): RunModelParams {
+    if (args.length === 0) {
+      return { plusOperatorLeft: "", modelName: "", plusOperatorRight: "" };
+    }
+    const selector = args[0];
+    const plusOperatorLeft = selector.startsWith("+") ? "+" : "";
+    const plusOperatorRight = selector.endsWith("+") ? "+" : "";
+    const modelName = selector.replace(/^\+/, "").replace(/\+$/, "");
+    return { plusOperatorLeft, modelName, plusOperatorRight };
   }
 
   getAdapters(): string[] {

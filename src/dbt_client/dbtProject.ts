@@ -58,6 +58,7 @@ import {
 } from "vscode";
 import { AltimateRequest, ModelNode } from "../altimate";
 import { AltimateAuthService } from "../services/altimateAuthService";
+import { RunHistoryService } from "../services/runHistoryService";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
@@ -144,6 +145,7 @@ export class DBTProject implements Disposable {
     private altimate: AltimateRequest,
     private validationProvider: ValidationProvider,
     private altimateAuthService: AltimateAuthService,
+    private runHistoryService: RunHistoryService,
     path: Uri,
     _projectConfig: any,
     private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
@@ -249,17 +251,15 @@ export class DBTProject implements Disposable {
     // Handle runResultsCreated events from dbtIntegrationAdapter
     this.dbtProjectIntegration.on(
       DBTProjectIntegrationAdapterEvents.RUN_RESULTS_PARSED,
-      (runResultsData: RunResultsEventData) => {
+      (eventData: RunResultsEventData) => {
         this.terminal.debug(
           "DBTProject",
           "Received runResultsParsed event from dbtIntegrationAdapter",
         );
-        // Extract unique_ids for cache invalidation
-        const uniqueIds = runResultsData.results.map(
-          (result) => result.unique_id,
-        );
 
-        // Fire the VSCode event with parsed unique_ids
+        this.runHistoryService.addEntry(eventData);
+
+        const uniqueIds = eventData.results.map((r) => r.uniqueId);
         const runResultsEvent = new RunResultsEvent(this, uniqueIds);
         this._onRunResults.fire(runResultsEvent);
       },
