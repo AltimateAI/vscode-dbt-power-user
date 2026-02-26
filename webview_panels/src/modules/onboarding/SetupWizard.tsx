@@ -300,7 +300,11 @@ const SetupWizard = forwardRef<
                   loading={stepLoading}
                   size="large"
                 >
-                  {currentStepData.id === "validation" ? "Tutorials" : "Next"}
+                  {currentStepData.id === "prerequisites"
+                    ? "Validate Setup"
+                    : currentStepData.id === "validation"
+                      ? "Tutorials"
+                      : "Next"}
                 </Button>
               ) : (
                 <div />
