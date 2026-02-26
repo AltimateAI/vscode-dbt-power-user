@@ -154,7 +154,7 @@ const SetupWizard = forwardRef<
 
   // Reset readiness when step changes
   useEffect(() => {
-    const needsReadinessCheck = ["prerequisites", "validation"].includes(
+    const needsReadinessCheck = ["prerequisites"].includes(
       SETUP_STEPS[currentStep]?.id ?? "",
     );
     setStepReady(!needsReadinessCheck);
@@ -291,9 +291,7 @@ const SetupWizard = forwardRef<
               ) : (
                 <div />
               )}
-              <div className={classes.stepCounter}>
-                Step {currentNavigableIndex + 1} of {navigableSteps.length}
-              </div>
+              <div />
               {!isLastNavigable ? (
                 <Button
                   type="primary"
@@ -302,12 +300,7 @@ const SetupWizard = forwardRef<
                   loading={stepLoading}
                   size="large"
                 >
-                  {currentStepData.id === "prerequisites" ||
-                  currentStepData.id === "validation"
-                    ? stepLoading
-                      ? "Validating..."
-                      : "Validate Setup"
-                    : "Next"}
+                  {currentStepData.id === "validation" ? "Tutorials" : "Next"}
                 </Button>
               ) : (
                 <div />
