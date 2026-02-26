@@ -238,11 +238,14 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             throw new Error(`Project not found: ${projectRoot}`);
           }
 
-          await this.walkthroughCommands.installDeps({
-            label: project.getProjectName(),
-            description: projectRoot,
-            uri: projectUri,
-          });
+          await this.walkthroughCommands.installDeps(
+            {
+              label: project.getProjectName(),
+              description: projectRoot,
+              uri: projectUri,
+            },
+            true,
+          );
 
           this.sendResponseToWebview({
             command: "response",
@@ -274,11 +277,14 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             throw new Error(`Project not found: ${projectRoot}`);
           }
 
-          await this.walkthroughCommands.validateProjects({
-            label: project.getProjectName(),
-            description: projectRoot,
-            uri: projectUri,
-          });
+          await this.walkthroughCommands.validateProjects(
+            {
+              label: project.getProjectName(),
+              description: projectRoot,
+              uri: projectUri,
+            },
+            true,
+          );
 
           this.sendResponseToWebview({
             command: "response",
