@@ -371,7 +371,8 @@ const PrerequisitesStep = forwardRef<
   const allChecksPassed =
     diagnostics?.pythonInstalled &&
     diagnostics?.dbtInstalled &&
-    diagnostics?.projectsFound;
+    diagnostics?.projectsFound &&
+    diagnostics?.fileAssociationsConfigured;
 
   const isValidating =
     validationState === "running-deps" || validationState === "validating";

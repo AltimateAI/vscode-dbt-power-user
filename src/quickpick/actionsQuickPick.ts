@@ -34,7 +34,7 @@ export class DbtPowerUserControlCenterAction {
           new DbtPowerUserControlPanelItem(
             "Tutorials",
             "book",
-            "How ot use the extension",
+            "How to use the extension",
             "dbtPowerUser.openTutorialWalkthrough",
           ),
           new DbtPowerUserControlPanelItem(
