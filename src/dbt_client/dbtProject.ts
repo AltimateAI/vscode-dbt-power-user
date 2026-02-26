@@ -287,13 +287,13 @@ export class DBTProject implements Disposable {
           this._manifestCacheEvent = addedEvent;
         }
       }),
-      this.PythonEnvironment.onPythonEnvironmentChanged(() =>
-        this.onPythonEnvironmentChanged(),
-      ),
       this.onRunResults((event) => {
         this.invalidateCacheUsingUniqueIds(event.uniqueIds || []);
       }),
     );
+
+    // Initialize Python environment and set up change listener
+    this.initializePythonEnvironmentListener();
 
     this.terminal.debug(
       "DbtProject",
@@ -301,6 +301,24 @@ export class DBTProject implements Disposable {
         this.projectRoot
       }`,
     );
+  }
+
+  private initializePythonEnvironmentListener(): void {
+    this.PythonEnvironment.initialize()
+      .then(() => {
+        this.disposables.push(
+          this.PythonEnvironment.onPythonEnvironmentChanged(() =>
+            this.onPythonEnvironmentChanged(),
+          ),
+        );
+      })
+      .catch((err) => {
+        this.terminal.error(
+          "dbtProject:initializePythonEnvironmentListener",
+          "Failed to initialize Python environment listener",
+          err,
+        );
+      });
   }
 
   private async isDbtLoomInstalled(): Promise<boolean> {
@@ -982,15 +1000,7 @@ export class DBTProject implements Disposable {
   }
 
   getDBTVersion(): number[] | undefined {
-    // TODO: do this when config or python env changes and cache value
-    try {
-      return this.getCurrentProjectIntegration().getVersion();
-    } catch (exc) {
-      window.showErrorMessage(
-        extendErrorWithSupportLinks("Could not get dbt version." + exc),
-      );
-      this.telemetry.sendTelemetryError("getDBTVersionError", { error: exc });
-    }
+    return this.getCurrentProjectIntegration().getVersion();
   }
 
   async compileQuery(

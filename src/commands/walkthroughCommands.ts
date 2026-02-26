@@ -39,7 +39,10 @@ export class WalkthroughCommands {
     private dbtTerminal: DBTTerminal,
   ) {}
 
-  async validateProjects(projectContext: ProjectQuickPickItem | undefined) {
+  async validateProjects(
+    projectContext: ProjectQuickPickItem | undefined,
+    skipConfirmation = false,
+  ) {
     if (projectContext === undefined) {
       // This shouldnt happen really
       window.showErrorMessage(
@@ -55,42 +58,46 @@ export class WalkthroughCommands {
     ) {
       debugCommand = "dbt environment show";
     }
-    const answer = await window.showInformationMessage(
-      `Do you want to validate the project: ${projectContext.label}? This will run the command '${debugCommand}' inside this project. Do you want to continue?`,
-      PromptAnswer.YES,
-      PromptAnswer.NO,
-    );
-    if (answer === PromptAnswer.YES) {
-      try {
-        this.telemetry.sendTelemetryEvent("validateProject");
-        const project = this.dbtProjectContainer.findDBTProject(
-          projectContext.uri,
-        );
-        if (project === undefined) {
-          window.showErrorMessage(
-            `Project ${projectContext.label} was not found`,
-          );
-          return;
-        }
-        const runModelOutput = await project.debug();
-        if (runModelOutput.fullOutput.includes("ERROR")) {
-          throw new Error(runModelOutput.fullOutput);
-        }
-      } catch (err) {
-        this.dbtTerminal.error(
-          "validateProjectError",
-          `Error when validating ${projectContext.label}`,
-          err,
-        );
-        window.showErrorMessage(
-          "Error running dbt debug for project " +
-            projectContext.label +
-            ". Please check the output tab for more details.",
-        );
+    if (!skipConfirmation) {
+      const answer = await window.showInformationMessage(
+        `Do you want to validate the project: ${projectContext.label}? This will run the command '${debugCommand}' inside this project. Do you want to continue?`,
+        PromptAnswer.YES,
+        PromptAnswer.NO,
+      );
+      if (answer !== PromptAnswer.YES) {
+        return;
       }
     }
+    try {
+      this.telemetry.sendTelemetryEvent("validateProject");
+      const project = this.dbtProjectContainer.findDBTProject(
+        projectContext.uri,
+      );
+      if (project === undefined) {
+        throw new Error(`Project ${projectContext.label} was not found`);
+      }
+      const runModelOutput = await project.debug();
+      if (runModelOutput.fullOutput.includes("ERROR")) {
+        throw new Error(runModelOutput.fullOutput);
+      }
+    } catch (err) {
+      this.dbtTerminal.error(
+        "validateProjectError",
+        `Error when validating ${projectContext.label}`,
+        err,
+      );
+      window.showErrorMessage(
+        "Error running dbt debug for project " +
+          projectContext.label +
+          ". Please check the output tab for more details.",
+      );
+      throw err;
+    }
   }
-  async installDeps(projectContext: ProjectQuickPickItem | undefined) {
+  async installDeps(
+    projectContext: ProjectQuickPickItem | undefined,
+    skipConfirmation = false,
+  ) {
     if (projectContext === undefined) {
       // This shouldnt happen really
       window.showErrorMessage(
@@ -98,38 +105,39 @@ export class WalkthroughCommands {
       );
       return;
     }
-    const answer = await window.showInformationMessage(
-      `Do you want to install packages for the project: ${projectContext.label}? This will run the command 'dbt deps' inside this project. Do you want to continue?`,
-      PromptAnswer.YES,
-      PromptAnswer.NO,
-    );
-    if (answer === PromptAnswer.YES) {
-      try {
-        this.telemetry.sendTelemetryEvent("installDeps");
-        const project = this.dbtProjectContainer.findDBTProject(
-          projectContext.uri,
-        );
-        if (project === undefined) {
-          window.showErrorMessage(
-            `Project ${projectContext.label} was not found`,
-          );
-          return;
-        }
-
-        await project.installDeps();
-      } catch (err) {
-        this.dbtTerminal.debug(
-          "WalkthroughCommands.installDeps",
-          "Could not install deps",
-          err,
-        );
-        this.telemetry.sendTelemetryError("installDepsError", err);
-        window.showErrorMessage(
-          "Error installing dbt dependencies for project " +
-            projectContext.label +
-            ". Please check the output tab for more details.",
-        );
+    if (!skipConfirmation) {
+      const answer = await window.showInformationMessage(
+        `Do you want to install packages for the project: ${projectContext.label}? This will run the command 'dbt deps' inside this project. Do you want to continue?`,
+        PromptAnswer.YES,
+        PromptAnswer.NO,
+      );
+      if (answer !== PromptAnswer.YES) {
+        return;
       }
+    }
+    try {
+      this.telemetry.sendTelemetryEvent("installDeps");
+      const project = this.dbtProjectContainer.findDBTProject(
+        projectContext.uri,
+      );
+      if (project === undefined) {
+        throw new Error(`Project ${projectContext.label} was not found`);
+      }
+
+      await project.installDeps();
+    } catch (err) {
+      this.dbtTerminal.debug(
+        "WalkthroughCommands.installDeps",
+        "Could not install deps",
+        err,
+      );
+      this.telemetry.sendTelemetryError("installDepsError", err);
+      window.showErrorMessage(
+        "Error installing dbt dependencies for project " +
+          projectContext.label +
+          ". Please check the output tab for more details.",
+      );
+      throw err;
     }
   }
 

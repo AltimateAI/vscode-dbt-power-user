@@ -1,0 +1,1247 @@
+.onboarding-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: var(--vscode-editor-background);
+  color: var(--vscode-foreground);
+  padding: 2rem;
+}
+
+.content {
+  max-width: 800px;
+  text-align: center;
+  gap: 2rem;
+}
+
+.main-title {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 0;
+  line-height: 1.3;
+  color: var(--vscode-foreground);
+}
+
+.subtitle {
+  font-size: 1.25rem;
+  margin: 0;
+  color: var(--vscode-foreground);
+  opacity: 0.9;
+}
+
+.features-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin: 1rem 0;
+}
+
+.feature-row {
+  display: flex;
+  flex-direction: row;
+  gap: 2rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.1rem;
+  min-width: 200px;
+}
+
+.icon-pencil,
+.icon-bulb,
+.icon-docs,
+.icon-chart,
+.icon-database,
+.icon-chat,
+.icon-search,
+.icon-brain,
+.icon-gear,
+.icon-magic {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.feature-text {
+  color: var(--vscode-foreground);
+}
+
+.more-text {
+  font-size: 1.1rem;
+  margin: 0;
+  color: var(--vscode-foreground);
+  opacity: 0.85;
+}
+
+.button-group {
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+/* Wizard styles */
+.wizard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  background-color: var(--vscode-editor-background);
+  color: var(--vscode-foreground);
+  min-height: 100vh;
+
+  // Dark mode overrides for Ant Design components
+  :global(body.vscode-dark) &,
+  :global(body.vscode-high-contrast) & {
+    :global(.ant-btn-default) {
+      background-color: var(--vscode-input-background);
+      color: var(--vscode-foreground);
+      border-color: var(--vscode-contrastBorder, var(--vscode-panel-border));
+
+      &:hover:not(:disabled) {
+        background-color: var(--vscode-list-hoverBackground);
+        color: var(--vscode-foreground);
+        border-color: var(--vscode-focusBorder);
+      }
+
+      &:disabled {
+        background-color: var(--vscode-input-background);
+        color: var(--vscode-disabledForeground);
+        border-color: var(--vscode-panel-border);
+        opacity: 0.5;
+      }
+    }
+
+    :global(.ant-btn-primary:disabled) {
+      background-color: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      border-color: var(--vscode-button-background);
+      opacity: 0.5;
+    }
+
+    :global(.ant-alert) {
+      background-color: var(--vscode-input-background);
+      border-color: var(--vscode-panel-border);
+
+      :global(.ant-alert-message) {
+        color: var(--vscode-foreground);
+      }
+
+      :global(.ant-alert-description) {
+        color: var(--vscode-foreground);
+      }
+
+      :global(.ant-alert-close-icon) {
+        color: var(--vscode-foreground);
+      }
+    }
+
+    :global(.ant-alert-info) {
+      border-color: var(--vscode-textLink-foreground);
+    }
+
+    :global(.ant-alert-success) {
+      border-color: var(--vscode-testing-iconPassed, #52c41a);
+    }
+
+    :global(.ant-alert-warning) {
+      border-color: var(--vscode-editorWarning-foreground, #faad14);
+    }
+
+    :global(.ant-alert-error) {
+      border-color: var(--vscode-editorError-foreground, #ff4d4f);
+    }
+
+    // Input and Input.Password
+    :global(.ant-input),
+    :global(.ant-input-password .ant-input) {
+      background-color: var(--vscode-input-background);
+      color: var(--vscode-input-foreground);
+      border-color: var(--vscode-panel-border);
+
+      &::placeholder {
+        color: var(--vscode-input-placeholderForeground);
+      }
+
+      &:hover {
+        border-color: var(--vscode-focusBorder);
+      }
+
+      &:focus,
+      &:global(.ant-input-focused) {
+        border-color: var(--vscode-focusBorder);
+        box-shadow: 0 0 0 2px rgba(var(--vscode-focusBorder), 0.2);
+      }
+
+      &:disabled,
+      &[disabled] {
+        background-color: var(--vscode-input-background);
+        color: var(--vscode-disabledForeground);
+        border-color: var(--vscode-panel-border);
+        opacity: 0.5;
+      }
+    }
+
+    :global(.ant-input-password) {
+      background-color: var(--vscode-input-background);
+      border-color: var(--vscode-panel-border);
+
+      &:hover {
+        border-color: var(--vscode-focusBorder);
+      }
+
+      &:global(.ant-input-affix-wrapper-focused) {
+        border-color: var(--vscode-focusBorder);
+      }
+
+      :global(.ant-input-suffix) {
+        color: var(--vscode-foreground);
+      }
+    }
+
+    // Select and dropdown
+    :global(.ant-select) {
+      :global(.ant-select-selector) {
+        background-color: var(--vscode-input-background) !important;
+        color: var(--vscode-input-foreground) !important;
+        border-color: var(--vscode-panel-border) !important;
+      }
+
+      &:hover :global(.ant-select-selector) {
+        border-color: var(--vscode-focusBorder) !important;
+      }
+
+      &:global(.ant-select-focused) :global(.ant-select-selector) {
+        border-color: var(--vscode-focusBorder) !important;
+      }
+
+      :global(.ant-select-arrow) {
+        color: var(--vscode-foreground);
+      }
+
+      :global(.ant-select-clear) {
+        background-color: var(--vscode-input-background);
+        color: var(--vscode-foreground);
+      }
+
+      :global(.ant-select-selection-placeholder) {
+        color: var(--vscode-input-placeholderForeground) !important;
+      }
+
+      :global(.ant-select-selection-item) {
+        color: var(--vscode-input-foreground) !important;
+      }
+
+      &:global(.ant-select-disabled) {
+        :global(.ant-select-selector) {
+          background-color: var(--vscode-input-background) !important;
+          color: var(--vscode-disabledForeground) !important;
+          opacity: 0.5;
+        }
+      }
+    }
+
+    // Radio buttons (circle style)
+    :global(.ant-radio-wrapper) {
+      color: var(--vscode-foreground);
+
+      :global(.ant-radio) {
+        :global(.ant-radio-inner) {
+          background-color: var(--vscode-input-background);
+          border-color: var(--vscode-panel-border);
+        }
+
+        &:global(.ant-radio-checked) :global(.ant-radio-inner) {
+          background-color: var(--vscode-button-background);
+          border-color: var(--vscode-button-background);
+        }
+      }
+
+      &:hover :global(.ant-radio) :global(.ant-radio-inner) {
+        border-color: var(--vscode-focusBorder);
+      }
+
+      &:global(.ant-radio-wrapper-disabled) {
+        color: var(--vscode-disabledForeground);
+        opacity: 0.5;
+
+        :global(.ant-radio) :global(.ant-radio-inner) {
+          background-color: var(--vscode-input-background);
+          border-color: var(--vscode-panel-border);
+        }
+      }
+    }
+
+    // Radio.Button toggle (segmented style)
+    :global(.ant-radio-group) {
+      :global(.ant-radio-button-wrapper) {
+        background-color: var(--vscode-input-background);
+        color: var(--vscode-foreground);
+        border-color: var(--vscode-panel-border);
+
+        &:hover {
+          color: var(--vscode-textLink-foreground);
+        }
+
+        &:global(.ant-radio-button-wrapper-checked) {
+          background-color: var(--vscode-button-background);
+          color: var(--vscode-button-foreground);
+          border-color: var(--vscode-button-background);
+
+          &:hover {
+            color: var(--vscode-button-foreground);
+          }
+        }
+
+        &:global(.ant-radio-button-wrapper-disabled) {
+          background-color: var(--vscode-input-background);
+          color: var(--vscode-disabledForeground);
+          border-color: var(--vscode-panel-border);
+          opacity: 0.5;
+        }
+      }
+    }
+
+    // Typography
+    :global(.ant-typography) {
+      color: var(--vscode-foreground);
+    }
+
+    // Collapse / Accordion
+    :global(.ant-collapse) {
+      background-color: var(--vscode-input-background);
+      border-color: var(--vscode-panel-border);
+
+      :global(.ant-collapse-item) {
+        border-color: var(--vscode-panel-border);
+      }
+
+      :global(.ant-collapse-header) {
+        color: var(--vscode-foreground) !important;
+        background-color: var(--vscode-editor-background);
+      }
+
+      :global(.ant-collapse-content) {
+        background-color: var(--vscode-input-background);
+        border-color: var(--vscode-panel-border);
+        color: var(--vscode-foreground);
+      }
+
+      :global(.ant-collapse-expand-icon) {
+        color: var(--vscode-foreground);
+      }
+    }
+
+    // Tags
+    :global(.ant-tag) {
+      background-color: var(--vscode-input-background);
+      color: var(--vscode-foreground);
+      border-color: var(--vscode-panel-border);
+    }
+
+    // Card
+    :global(.ant-card) {
+      background-color: var(--vscode-editor-background);
+      border-color: var(--vscode-panel-border);
+      color: var(--vscode-foreground);
+
+      :global(.ant-card-head) {
+        color: var(--vscode-foreground);
+        border-color: var(--vscode-panel-border);
+      }
+
+      :global(.ant-card-body) {
+        color: var(--vscode-foreground);
+      }
+    }
+  }
+}
+
+.wizard-title {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--vscode-foreground);
+  text-align: center;
+}
+
+.wizard-subtitle {
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+  color: var(--vscode-foreground);
+  opacity: 0.9;
+  text-align: center;
+}
+
+.wizard-content {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.wizard-sidebar {
+  flex: 0 0 280px;
+  min-width: 280px;
+}
+
+.wizard-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.wizard-steps {
+  margin-bottom: 0;
+  counter-reset: parent-step;
+
+  :global(.ant-steps-item-title) {
+    color: var(--vscode-foreground) !important;
+  }
+
+  :global(.ant-steps-item-description) {
+    color: var(--vscode-descriptionForeground) !important;
+  }
+
+  :global(.ant-steps-item-process .ant-steps-item-icon) {
+    background-color: var(--vscode-button-background) !important;
+    border-color: var(--vscode-button-background) !important;
+  }
+
+  :global(.ant-steps-item-finish .ant-steps-item-icon) {
+    background-color: var(--vscode-button-secondaryBackground) !important;
+    border-color: var(--vscode-button-secondaryBackground) !important;
+  }
+
+  :global(.ant-steps-item-wait .ant-steps-item-icon) {
+    border-color: var(--vscode-foreground) !important;
+    opacity: 0.7;
+  }
+
+  :global(.ant-steps-item-wait .ant-steps-item-icon .ant-steps-icon) {
+    color: var(--vscode-foreground) !important;
+  }
+
+  :global(.ant-steps-item-wait .ant-steps-item-title) {
+    color: var(--vscode-foreground) !important;
+    opacity: 0.7;
+  }
+
+  :global(.ant-steps-item-wait .ant-steps-item-description) {
+    color: var(--vscode-foreground) !important;
+    opacity: 0.7;
+  }
+}
+
+// Consistent spacing for all steps
+.wizard-steps :global(.ant-steps-item) {
+  padding-bottom: 16px !important;
+}
+
+// Substep — smaller circle, hide number but keep checkmark
+.substep {
+  :global(.ant-steps-item-icon) {
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 22px !important;
+    margin-inline-start: 4px !important;
+    margin-top: 4px !important;
+  }
+
+  // Hide number text via font-size: 0, keep container for checkmark
+  :global(.ant-steps-item-icon .ant-steps-icon) {
+    font-size: 0 !important;
+  }
+
+  // Checkmark needs explicit size and color since parent is font-size: 0
+  :global(.ant-steps-item-icon .ant-steps-icon .ant-steps-finish-icon) {
+    font-size: 12px !important;
+    color: var(--vscode-button-foreground, #fff) !important;
+  }
+
+  // Finished substeps keep blue circle (not muted secondaryBackground)
+  &:global(.ant-steps-item-finish) :global(.ant-steps-item-icon) {
+    background-color: var(--vscode-button-background) !important;
+    border-color: var(--vscode-button-background) !important;
+  }
+
+  :global(.ant-steps-item-title) {
+    font-size: 13px !important;
+  }
+}
+
+// Parent step — bold title, custom 1/2/3 numbering via CSS counter
+.parent-step {
+  counter-increment: parent-step;
+
+  :global(.ant-steps-item-title) {
+    font-weight: 600 !important;
+  }
+
+  // Replace Antd's sequential number with parent counter
+  :global(.ant-steps-item-icon .ant-steps-icon) {
+    font-size: 0 !important;
+  }
+
+  :global(.ant-steps-item-icon .ant-steps-icon)::after {
+    content: counter(parent-step);
+    font-size: 14px;
+    color: inherit;
+  }
+
+  // When finished, show checkmark instead of counter
+  &:global(.ant-steps-item-finish) :global(.ant-steps-item-icon .ant-steps-icon)::after {
+    content: none;
+  }
+
+  &:global(.ant-steps-item-finish) :global(.ant-steps-item-icon .ant-steps-icon .ant-steps-finish-icon) {
+    font-size: 14px !important;
+    color: var(--vscode-button-foreground, #fff) !important;
+  }
+
+  // Finished parents also keep blue circle
+  &:global(.ant-steps-item-finish) :global(.ant-steps-item-icon) {
+    background-color: var(--vscode-button-background) !important;
+    border-color: var(--vscode-button-background) !important;
+  }
+
+  &:global(.ant-steps-item-process) :global(.ant-steps-item-tail)::after {
+    background-color: var(--vscode-button-background) !important;
+  }
+}
+
+.step-card {
+  background-color: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 1rem;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+
+  h2 {
+    font-size: 1.5rem;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: var(--vscode-foreground);
+  }
+}
+
+.step-description {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: 1.5rem;
+}
+
+.step-actions {
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-grow: 1;
+}
+
+.wizard-navigation {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 1rem;
+  margin-top: auto;
+  border-top: 1px solid var(--vscode-panel-border);
+
+  // Left column — align start
+  > :first-child {
+    justify-self: start;
+  }
+
+  // Center column — always centered
+  > :nth-child(2) {
+    justify-self: center;
+  }
+
+  // Right column — align end
+  > :last-child {
+    justify-self: end;
+  }
+}
+
+.step-counter {
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.9rem;
+  flex: 1;
+  text-align: center;
+}
+
+.wizard-footer {
+  text-align: center;
+  padding-top: 1rem;
+
+  p {
+    color: var(--vscode-descriptionForeground);
+    font-size: 0.9rem;
+  }
+
+  a {
+    color: var(--vscode-textLink-foreground);
+    text-decoration: none;
+
+    &:hover {
+      color: var(--vscode-textLink-activeForeground);
+      text-decoration: underline;
+    }
+  }
+}
+
+/* Project Setup Step styles */
+.project-setup-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: 1rem;
+
+  p {
+    color: var(--vscode-descriptionForeground);
+    margin: 0;
+  }
+}
+
+.project-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.project-label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--vscode-foreground);
+}
+
+.alert-message {
+  margin-top: 1rem;
+}
+
+.setup-actions {
+  margin-top: 1rem;
+}
+
+.setup-info {
+  background-color: var(--vscode-textBlockQuote-background);
+  border-left: 3px solid var(--vscode-textLink-foreground);
+  padding: 1rem;
+  border-radius: 4px;
+
+  p {
+    margin: 0 0 0.5rem 0;
+    color: var(--vscode-foreground);
+    font-weight: 500;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.5rem;
+    color: var(--vscode-foreground);
+
+    li {
+      margin-bottom: 0.25rem;
+
+      strong {
+        color: var(--vscode-foreground);
+      }
+
+      code {
+        background-color: var(--vscode-editor-background);
+        padding: 0.125rem 0.25rem;
+        border-radius: 3px;
+        font-family: var(--vscode-editor-font-family);
+        font-size: 0.9em;
+        border: 1px solid var(--vscode-panel-border);
+      }
+    }
+  }
+}
+
+/* Progress Card styles */
+.progress-card-heading {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--vscode-foreground);
+  font-weight: 600;
+  text-align: center;
+}
+
+.progress-card-description {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--vscode-foreground);
+  opacity: 0.9;
+  text-align: center;
+}
+
+.progress-card-list {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  color: var(--vscode-foreground);
+  opacity: 0.9;
+}
+
+.progress-card-features {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.progress-card-feature-item {
+  color: var(--vscode-foreground);
+  opacity: 0.9;
+  flex: 1 1 auto;
+  min-width: 150px;
+}
+
+.section-heading {
+  margin-bottom: 1rem;
+  color: var(--vscode-foreground) !important;
+}
+
+/* Altimate Key Setup styles */
+.altimate-key-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.altimate-key-info {
+  background-color: var(--vscode-textBlockQuote-background);
+  border-left: 3px solid var(--vscode-textLink-foreground);
+  padding: 1rem;
+  border-radius: 4px;
+
+  p {
+    margin: 0 0 0.5rem 0;
+    color: var(--vscode-foreground);
+    font-weight: 500;
+  }
+
+  ol {
+    margin: 0;
+    padding-left: 1.5rem;
+    color: var(--vscode-foreground);
+
+    li {
+      margin-bottom: 0.25rem;
+
+      a {
+        color: var(--vscode-textLink-foreground);
+        text-decoration: none;
+
+        &:hover {
+          color: var(--vscode-textLink-activeForeground);
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--vscode-foreground);
+}
+
+.altimate-key-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* Dbt Integration Setup styles */
+.dbt-integration-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.dbt-integration-info {
+  background-color: var(--vscode-textBlockQuote-background);
+  border-left: 3px solid var(--vscode-textLink-foreground);
+  padding: 1rem;
+  border-radius: 4px;
+
+  p {
+    margin: 0 0 0.5rem 0;
+    color: var(--vscode-foreground);
+    font-weight: 500;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.5rem;
+    color: var(--vscode-foreground);
+
+    li {
+      margin-bottom: 0.25rem;
+    }
+  }
+}
+
+.section-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  color: var(--vscode-foreground);
+  text-align: center;
+}
+
+.dbt-integration-steps {
+  padding: 1rem;
+  background-color: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+
+  p {
+    margin: 0 0 0.5rem 0;
+    color: var(--vscode-foreground);
+  }
+
+  ol {
+    margin: 0;
+    padding-left: 1.5rem;
+    color: var(--vscode-foreground);
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+  }
+}
+
+.dbt-integration-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.help-text {
+  text-align: center;
+  padding-top: 0.5rem;
+
+  p {
+    color: var(--vscode-descriptionForeground);
+    font-size: 0.9rem;
+    margin: 0;
+  }
+
+  a {
+    color: var(--vscode-textLink-foreground);
+    text-decoration: none;
+
+    &:hover {
+      color: var(--vscode-textLink-activeForeground);
+      text-decoration: underline;
+    }
+  }
+}
+
+/* Install dbt Step styles */
+.install-dbt-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.install-dbt-info {
+  background-color: var(--vscode-textBlockQuote-background);
+  border-left: 3px solid var(--vscode-textLink-foreground);
+  padding: 1rem;
+  border-radius: 4px;
+
+  p {
+    margin: 0;
+    color: var(--vscode-foreground);
+    font-weight: 500;
+  }
+}
+
+
+.radio-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-left: 0.5rem;
+
+  strong {
+    color: var(--vscode-foreground);
+    font-size: 1rem;
+    font-weight: 600;
+  }
+}
+
+.radio-description {
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.9rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.install-dbt-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* Prerequisites Step styles */
+.prerequisites-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.prerequisites-info {
+  background-color: var(--vscode-textBlockQuote-background);
+  border-left: 3px solid var(--vscode-textLink-foreground);
+  padding: 1rem;
+  border-radius: 4px;
+
+  p {
+    margin: 0;
+    color: var(--vscode-foreground);
+    font-weight: 500;
+  }
+}
+
+.prerequisite-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.prerequisite-card {
+  background-color: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: var(--vscode-focusBorder);
+  }
+
+  :global(.ant-card-body) {
+    padding: 1.25rem;
+  }
+}
+
+.prerequisite-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.prerequisite-card-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  flex: 1;
+
+  h3 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--vscode-foreground);
+  }
+}
+
+.prerequisite-icon {
+  font-size: 1.5rem;
+  color: var(--vscode-textLink-foreground);
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.prerequisite-description {
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.9rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.prerequisite-status {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.prerequisite-action {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+.prerequisites-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.diagnostics-summary {
+  text-align: center;
+  padding: 1rem;
+  background-color: var(--vscode-textBlockQuote-background);
+  border-radius: 4px;
+
+  p {
+    margin: 0;
+    color: var(--vscode-descriptionForeground);
+    font-size: 0.9rem;
+  }
+}
+
+.validation-section {
+  margin: 1.5rem 0 1rem;
+
+  h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    color: var(--vscode-foreground);
+  }
+
+  p {
+    margin: 0;
+    color: var(--vscode-descriptionForeground);
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+}
+
+.prerequisites-steps {
+  margin-bottom: 1.5rem;
+
+  :global(.ant-steps-item) {
+    flex: 1 !important;
+  }
+
+  :global(.ant-steps-item-title) {
+    color: var(--vscode-foreground) !important;
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+  }
+
+  :global(.ant-steps-item-description) {
+    color: var(--vscode-foreground) !important;
+    opacity: 0.85;
+    font-size: 0.95rem !important;
+    white-space: normal !important;
+    max-width: none !important;
+  }
+
+  :global(.ant-steps-item-process .ant-steps-item-icon) {
+    background-color: var(--vscode-button-background) !important;
+    border-color: var(--vscode-button-background) !important;
+  }
+
+  :global(.ant-steps-item-finish .ant-steps-item-icon) {
+    background-color: var(--vscode-button-secondaryBackground) !important;
+    border-color: var(--vscode-button-secondaryBackground) !important;
+  }
+
+  :global(.ant-steps-item-finish > .ant-steps-item-container > .ant-steps-item-content > .ant-steps-item-title::after) {
+    background-color: var(--vscode-button-secondaryBackground) !important;
+  }
+
+  :global(.ant-steps-item-wait .ant-steps-item-icon) {
+    border-color: var(--vscode-foreground) !important;
+    opacity: 0.7;
+  }
+
+  :global(.ant-steps-item-wait .ant-steps-item-icon .ant-steps-icon) {
+    color: var(--vscode-foreground) !important;
+  }
+
+  :global(.ant-steps-item-wait .ant-steps-item-title) {
+    color: var(--vscode-foreground) !important;
+    opacity: 0.7;
+  }
+
+  :global(.ant-steps-item-wait .ant-steps-item-description) {
+    color: var(--vscode-foreground) !important;
+    opacity: 0.7;
+  }
+}
+
+/* Tutorials Step styles */
+.tutorials-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+.tutorials-header {
+  text-align: center;
+  margin-bottom: 1rem;
+
+  h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--vscode-foreground);
+  }
+
+  p {
+    margin: 0;
+    color: var(--vscode-descriptionForeground);
+    font-size: 0.95rem;
+  }
+}
+
+.tutorials-tabs {
+  :global(.ant-tabs-nav) {
+    background-color: var(--vscode-editor-background);
+    margin-bottom: 0;
+    margin-right: 1rem;
+  }
+
+  :global(.ant-tabs-tab) {
+    background-color: var(--vscode-editor-background) !important;
+    border: 1px solid var(--vscode-panel-border) !important;
+    color: var(--vscode-foreground) !important;
+    opacity: 0.7;
+
+    &:hover {
+      color: var(--vscode-textLink-foreground) !important;
+      opacity: 1;
+    }
+  }
+
+  :global(.ant-tabs-tab-active) {
+    background-color: var(--vscode-list-activeSelectionBackground) !important;
+    border-color: var(--vscode-list-activeSelectionBackground) !important;
+    color: var(--vscode-list-activeSelectionForeground) !important;
+    opacity: 1 !important;
+
+    &:hover {
+      color: var(--vscode-list-activeSelectionForeground) !important;
+    }
+  }
+
+  :global(.ant-tabs-ink-bar) {
+    background: var(--vscode-list-activeSelectionBackground) !important;
+  }
+
+  :global(.ant-tabs-content) {
+    background-color: var(--vscode-editor-background);
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 4px;
+    padding: 1.5rem;
+    min-height: 400px;
+    max-height: 500px;
+    overflow-y: auto;
+  }
+}
+
+.tutorial-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  h4 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--vscode-foreground);
+    line-height: 1.5;
+  }
+
+  p {
+    margin: 0;
+    color: var(--vscode-descriptionForeground);
+    font-size: 0.95rem;
+    line-height: 1.6;
+
+    strong {
+      color: var(--vscode-foreground);
+      font-weight: 600;
+    }
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.5rem;
+    color: var(--vscode-foreground);
+
+    li {
+      margin-bottom: 0.5rem;
+      line-height: 1.6;
+
+      strong {
+        color: var(--vscode-foreground);
+        font-weight: 600;
+      }
+    }
+  }
+}
+
+.tutorial-image {
+  width: 100%;
+  max-width: 800px;
+  height: auto;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  margin: 0.5rem 0;
+}
+
+// Select dropdown popup renders in a portal outside .wizard-container,
+// so it needs a global dark-mode override
+:global(body.vscode-dark),
+:global(body.vscode-high-contrast) {
+  :global(.ant-select-dropdown) {
+    background-color: var(--vscode-input-background);
+    border: 1px solid var(--vscode-panel-border);
+
+    :global(.ant-select-item) {
+      color: var(--vscode-foreground);
+    }
+
+    :global(.ant-select-item-option-active) {
+      background-color: var(--vscode-list-hoverBackground);
+    }
+
+    :global(.ant-select-item-option-selected) {
+      background-color: var(--vscode-list-activeSelectionBackground);
+      color: var(--vscode-list-activeSelectionForeground);
+    }
+
+    :global(.ant-select-item-empty) {
+      color: var(--vscode-disabledForeground);
+    }
+  }
+}

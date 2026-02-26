@@ -1,0 +1,550 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
+import {
+  commands,
+  ConfigurationTarget,
+  Uri,
+  ViewColumn,
+  WebviewPanel,
+  window,
+  workspace,
+} from "vscode";
+import { AltimateRequest } from "../altimate";
+import { WalkthroughCommands } from "../commands/walkthroughCommands";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { AltimateAuthService } from "../services/altimateAuthService";
+import { QueryManifestService } from "../services/queryManifestService";
+import { SharedStateService } from "../services/sharedStateService";
+import { UsersService } from "../services/usersService";
+import { TelemetryService } from "../telemetry";
+import {
+  AltimateWebviewProvider,
+  HandleCommandProps,
+  SharedStateEventEmitterProps,
+} from "./altimateWebviewProvider";
+
+export class OnboardingPanel extends AltimateWebviewProvider {
+  public static readonly viewType = "dbtPowerUser.Onboarding";
+  protected viewPath = "/onboarding";
+  protected panelDescription = "dbt Power User onboarding experience";
+  private pendingStepNavigation: string | undefined;
+
+  public constructor(
+    protected dbtProjectContainer: DBTProjectContainer,
+    protected altimateRequest: AltimateRequest,
+    protected telemetry: TelemetryService,
+    protected emitterService: SharedStateService,
+    @inject("DBTTerminal")
+    protected dbtTerminal: DBTTerminal,
+    protected queryManifestService: QueryManifestService,
+    protected usersService: UsersService,
+    protected walkthroughCommands: WalkthroughCommands,
+    protected altimateAuthService: AltimateAuthService,
+  ) {
+    super(
+      dbtProjectContainer,
+      altimateRequest,
+      telemetry,
+      emitterService,
+      dbtTerminal,
+      queryManifestService,
+      usersService,
+      altimateAuthService,
+    );
+
+    const t = this;
+    this._disposables.push(
+      emitterService.eventEmitter.event((d) =>
+        t.onEvent(d as SharedStateEventEmitterProps),
+      ),
+    );
+
+    // Initialize Python environment and listen to changes
+    this.initializePythonEnvironmentListener();
+  }
+
+  private async initializePythonEnvironmentListener() {
+    try {
+      const pythonEnvironment = this.dbtProjectContainer.getPythonEnvironment();
+      // Ensure Python environment is initialized before accessing event
+      await pythonEnvironment.initialize();
+
+      // Listen to Python environment changes and notify webview
+      this._disposables.push(
+        pythonEnvironment.onPythonEnvironmentChanged(() => {
+          this.dbtTerminal.debug(
+            "onboardingPanel:pythonEnvironmentChanged",
+            "Python environment changed, notifying webview",
+          );
+          this.sendResponseToWebview({
+            command: "pythonEnvironmentChanged",
+          });
+        }),
+      );
+    } catch (err) {
+      this.dbtTerminal.error(
+        "onboardingPanel:initializePythonEnvironmentListener",
+        "Failed to initialize Python environment listener",
+        err,
+      );
+    }
+  }
+
+  protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
+    switch (command) {
+      case "onboarding:render":
+        this.dbtTerminal.debug(
+          "onboarding:render",
+          "rendering onboarding view",
+          payload,
+        );
+        const initialStep = (payload as { initialStep?: string })?.initialStep;
+
+        // If panel already exists and is ready, just navigate to the step
+        if (this._panel && this.isWebviewReady && initialStep) {
+          // Focus the panel if it's a WebviewPanel
+          if ((this._panel as WebviewPanel).reveal) {
+            (this._panel as WebviewPanel).reveal();
+          }
+          this.sendResponseToWebview({
+            command: "navigateToStep",
+            payload: { step: initialStep },
+          });
+          break;
+        }
+
+        // Store the step to navigate to after webview is ready
+        this.pendingStepNavigation = initialStep;
+
+        // Create new panel if it doesn't exist
+        if (!this._panel) {
+          const webviewPanel = window.createWebviewPanel(
+            OnboardingPanel.viewType,
+            "Get Started with dbt Power User",
+            {
+              viewColumn: ViewColumn.Active,
+            },
+            { enableScripts: true, retainContextWhenHidden: true },
+          );
+          this._panel = webviewPanel;
+
+          // Clear the panel reference when it's disposed
+          webviewPanel.onDidDispose(() => {
+            this._panel = undefined;
+            this._webview = undefined;
+            this.isWebviewReady = false;
+          });
+
+          this.renderWebview(webviewPanel);
+        } else {
+          // Focus the panel if it's a WebviewPanel
+          if ((this._panel as WebviewPanel).reveal) {
+            (this._panel as WebviewPanel).reveal();
+          }
+        }
+
+        break;
+      default:
+        super.onEvent({ command, payload });
+        break;
+    }
+  }
+
+  protected renderWebviewView() {
+    if (!this._webview) {
+      return;
+    }
+
+    this._webview.onDidReceiveMessage(this.handleCommand, this, []);
+
+    this._webview.html = this.getHtml(
+      this._webview,
+      this.dbtProjectContainer.extensionUri,
+    );
+  }
+
+  private renderWebview(webview: WebviewPanel) {
+    this._webview = webview.webview;
+    this.renderWebviewView();
+  }
+
+  protected onWebviewReady() {
+    super.onWebviewReady();
+
+    // Send pending step navigation if any
+    if (this.pendingStepNavigation) {
+      this.sendResponseToWebview({
+        command: "navigateToStep",
+        payload: { step: this.pendingStepNavigation },
+      });
+      this.pendingStepNavigation = undefined;
+    }
+  }
+
+  async handleCommand(message: HandleCommandProps): Promise<void> {
+    const { command, syncRequestId } = message;
+
+    switch (command) {
+      case "openSetupWizard":
+        // Trigger the VSCode walkthrough
+        await commands.executeCommand(
+          "workbench.action.openWalkthrough",
+          "innoverio.vscode-dbt-power-user#initialSetup",
+        );
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId,
+          data: { success: true },
+        });
+        break;
+      case "getProjects":
+        // Get available dbt projects
+        try {
+          const projects = this.dbtProjectContainer.getProjects();
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: projects.map((p) => ({
+              label: p.getProjectName(),
+              projectRoot: p.projectRoot.fsPath,
+            })),
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "getProjects",
+            "Error getting projects",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "runDbtDeps":
+        // Run dbt deps for selected project
+        try {
+          const { projectRoot } = message as HandleCommandProps & {
+            projectRoot: string;
+          };
+          const projectUri = Uri.file(projectRoot);
+          const projects = this.dbtProjectContainer.getProjects();
+          const project = projects.find(
+            (p) => p.projectRoot.fsPath === projectRoot,
+          );
+
+          if (!project) {
+            throw new Error(`Project not found: ${projectRoot}`);
+          }
+
+          await this.walkthroughCommands.installDeps(
+            {
+              label: project.getProjectName(),
+              description: projectRoot,
+              uri: projectUri,
+            },
+            true,
+          );
+
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { success: true },
+          });
+        } catch (error) {
+          this.dbtTerminal.error("runDbtDeps", "Error running dbt deps", error);
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "validateProject":
+        // Validate project setup
+        try {
+          const { projectRoot } = message as HandleCommandProps & {
+            projectRoot: string;
+          };
+          const projectUri = Uri.file(projectRoot);
+          const projects = this.dbtProjectContainer.getProjects();
+          const project = projects.find(
+            (p) => p.projectRoot.fsPath === projectRoot,
+          );
+
+          if (!project) {
+            throw new Error(`Project not found: ${projectRoot}`);
+          }
+
+          await this.walkthroughCommands.validateProjects(
+            {
+              label: project.getProjectName(),
+              description: projectRoot,
+              uri: projectUri,
+            },
+            true,
+          );
+
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { success: true },
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "validateProject",
+            "Error validating project",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "installDbt":
+        // Install dbt with specified integration type
+        try {
+          const { integrationType } = message as HandleCommandProps & {
+            integrationType: "core" | "fusion" | "cloud";
+          };
+
+          if (!integrationType) {
+            throw new Error("No integration type specified");
+          }
+
+          // Set the dbt integration configuration before installation
+          const config = workspace.getConfiguration("dbt");
+          await config.update("dbtIntegration", integrationType, true);
+
+          // Call the installDbt command
+          await this.walkthroughCommands.installDbt();
+
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { success: true },
+          });
+        } catch (error) {
+          this.dbtTerminal.error("installDbt", "Error installing dbt", error);
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "executeCommand":
+        // Execute VSCode commands from the wizard
+        try {
+          const commandToExecute = (
+            message as HandleCommandProps & { vscodeCommand?: string }
+          ).vscodeCommand;
+          if (!commandToExecute) {
+            throw new Error("No VSCode command specified in message");
+          }
+          await commands.executeCommand(commandToExecute);
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { success: true },
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "executeCommand",
+            "Error executing command",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "getDiagnosticsStatus":
+        // Get current diagnostics status for setup prerequisites
+        try {
+          const projects = this.dbtProjectContainer.getProjects();
+          const dbtWorkspaces = this.dbtProjectContainer.dbtWorkspaceFolders;
+          const dbtIntegrationMode = workspace
+            .getConfiguration("dbt")
+            .get<string>("dbtIntegration", "core");
+          const pythonEnvironment =
+            this.dbtProjectContainer.getPythonEnvironment();
+
+          // Get dbt version from any project that has it defined
+          let dbtVersion: string | undefined;
+          for (const project of projects) {
+            try {
+              const version = project.getDBTVersion();
+              if (version) {
+                dbtVersion = version.join(".");
+                break;
+              }
+            } catch (error) {
+              // Continue to next project
+              continue;
+            }
+          }
+
+          // Check if file associations are configured for dbt
+          const filesConfig = workspace.getConfiguration("files");
+          const associations =
+            filesConfig.get<Record<string, string>>("associations") || {};
+          const requiredAssociations = {
+            "*.sql": "jinja-sql",
+            "*.yml": "jinja-yaml",
+            "*.yaml": "jinja-yaml",
+          };
+          const fileAssociationsConfigured = Object.entries(
+            requiredAssociations,
+          ).every(([pattern, language]) => associations[pattern] === language);
+
+          // Check for dbt_project.yml files in workspace folders directly
+          // This is more reliable than checking dbtProjectContainer which may not be initialized yet
+          const excludePattern =
+            "**/{dbt_packages,site-packages,dbt_internal_packages}";
+          const dbtProjectFiles = await workspace.findFiles(
+            "**/dbt_project.yml",
+            excludePattern,
+          );
+          const projectsFoundInWorkspace = dbtProjectFiles.length > 0;
+
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: {
+              pythonInstalled: this.dbtProjectContainer.pythonInstalled,
+              dbtInstalled: this.dbtProjectContainer.dbtInstalled,
+              projectsFound: projectsFoundInWorkspace,
+              projectCount: dbtProjectFiles.length,
+              workspaceCount: dbtWorkspaces.length,
+              dbtIntegrationMode,
+              pythonPath: pythonEnvironment.pythonPath,
+              pythonVersion: pythonEnvironment.pythonVersion,
+              dbtVersion,
+              fileAssociationsConfigured,
+            },
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "getDiagnosticsStatus",
+            "Error getting diagnostics status",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "setDbtIntegration":
+        // Set dbt integration mode
+        try {
+          const { integrationType } = message as HandleCommandProps & {
+            integrationType: "core" | "fusion" | "cloud";
+          };
+
+          if (!integrationType) {
+            throw new Error("No integration type specified");
+          }
+
+          // Set the dbt integration configuration
+          const config = workspace.getConfiguration("dbt");
+          await config.update(
+            "dbtIntegration",
+            integrationType,
+            ConfigurationTarget.Workspace,
+          );
+
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { success: true },
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "setDbtIntegration",
+            "Error setting dbt integration",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "configureFileAssociations":
+        // Configure file associations for dbt files
+        try {
+          const filesConfig = workspace.getConfiguration("files");
+          const currentAssociations =
+            filesConfig.get<Record<string, string>>("associations") || {};
+
+          // Merge with existing associations (don't overwrite user's other associations)
+          const updatedAssociations = {
+            ...currentAssociations,
+            "*.sql": "jinja-sql",
+            "*.yml": "jinja-yaml",
+            "*.yaml": "jinja-yaml",
+          };
+
+          // Update at user level (global = true)
+          await filesConfig.update("associations", updatedAssociations, true);
+
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { success: true },
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "configureFileAssociations",
+            "Error configuring file associations",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "openUrl":
+        // Open URL in external browser
+        try {
+          const { url } = message as HandleCommandProps & {
+            url: string;
+          };
+
+          if (!url) {
+            throw new Error("No URL specified");
+          }
+
+          await commands.executeCommand("vscode.open", Uri.parse(url));
+
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { success: true },
+          });
+        } catch (error) {
+          this.dbtTerminal.error("openUrl", "Error opening URL", error);
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      default:
+        super.handleCommand(message);
+        break;
+    }
+  }
+}
