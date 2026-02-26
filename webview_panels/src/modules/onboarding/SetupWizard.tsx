@@ -224,6 +224,21 @@ const SetupWizard = forwardRef<
 
   const currentStepData = SETUP_STEPS[currentStep];
 
+  // Determine which parent group is active so we can hide inactive substeps
+  const activeParentId = currentStepData.isParent
+    ? currentStepData.id
+    : currentStepData.parentId;
+
+  // Only show: top-level steps (parents + standalone) and children of the active parent
+  const visibleSteps = SETUP_STEPS.map((step, index) => ({
+    step,
+    originalIndex: index,
+  })).filter(({ step }) => !step.parentId || step.parentId === activeParentId);
+
+  const currentVisibleIndex = visibleSteps.findIndex(
+    ({ originalIndex }) => originalIndex === currentStep,
+  );
+
   // Count only navigable steps for the step counter
   const navigableSteps = SETUP_STEPS.filter((s) => !s.isParent);
   const currentNavigableIndex = navigableSteps.findIndex(
@@ -242,12 +257,12 @@ const SetupWizard = forwardRef<
       <div className={classes.wizardContent}>
         <div className={classes.wizardSidebar}>
           <Steps
-            current={currentStep}
+            current={currentVisibleIndex}
             direction="vertical"
-            items={SETUP_STEPS.map((step, index) => ({
+            items={visibleSteps.map(({ step, originalIndex }) => ({
               title: step.title,
               className: step.parentId ? classes.substep : classes.parentStep,
-              status: getStepStatus(step, index, currentStep),
+              status: getStepStatus(step, originalIndex, currentStep),
             }))}
             className={classes.wizardSteps}
           />
