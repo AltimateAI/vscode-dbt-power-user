@@ -37,6 +37,7 @@ import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { DiagnosticsOutputChannel } from "../services/diagnosticsOutputChannel";
 import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
+import { RunTreeItem } from "../treeview_provider/runHistoryTreeItems";
 import {
   deepEqual,
   extendErrorWithSupportLinks,
@@ -88,6 +89,12 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand("dbtPowerUser.runCurrentModel", () =>
         this.runModel.runModelOnActiveWindow(),
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.rerunFromHistory",
+        (item: RunTreeItem) => {
+          this.dbtProjectContainer.rerunFromHistory(item.entry);
+        },
       ),
       commands.registerCommand("dbtPowerUser.testCurrentModel", () =>
         this.runModel.runTestsOnActiveWindow(),

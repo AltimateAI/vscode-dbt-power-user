@@ -66,6 +66,7 @@ import { DocGenService } from "./services/docGenService";
 import { FileService } from "./services/fileService";
 import { QueryAnalysisService } from "./services/queryAnalysisService";
 import { QueryManifestService } from "./services/queryManifestService";
+import { RunHistoryService } from "./services/runHistoryService";
 import { SharedStateService } from "./services/sharedStateService";
 import { StreamingService } from "./services/streamingService";
 import { UsersService } from "./services/usersService";
@@ -137,6 +138,7 @@ import {
   ModelTestTreeview,
   ParentModelTreeview,
 } from "./treeview_provider/modelTreeviewProvider";
+import { RunHistoryTreeviewProvider } from "./treeview_provider/runHistoryTreeviewProvider";
 import { WebviewViewProviders } from "./webview_provider";
 import { DataPilotPanel } from "./webview_provider/datapilotPanel";
 import { DbtDocsView } from "./webview_provider/DbtDocsView";
@@ -708,6 +710,7 @@ container
         container.get(AltimateRequest),
         container.get(ValidationProvider),
         container.get(AltimateAuthService),
+        container.get(RunHistoryService),
         path,
         projectConfig,
         _onManifestChanged,
@@ -829,6 +832,22 @@ container
   .bind(SharedStateService)
   .toDynamicValue(() => {
     return new SharedStateService();
+  })
+  .inSingletonScope();
+
+container
+  .bind(RunHistoryService)
+  .toDynamicValue(() => {
+    return new RunHistoryService();
+  })
+  .inSingletonScope();
+
+container
+  .bind(RunHistoryTreeviewProvider)
+  .toDynamicValue((context) => {
+    return new RunHistoryTreeviewProvider(
+      context.container.get(RunHistoryService),
+    );
   })
   .inSingletonScope();
 
@@ -1679,6 +1698,7 @@ container
       context.container.get(ModelTestTreeview),
       context.container.get(DocumentationTreeview),
       context.container.get(IconActionsTreeview),
+      context.container.get(RunHistoryTreeviewProvider),
     );
   })
   .inSingletonScope();

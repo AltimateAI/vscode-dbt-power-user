@@ -352,6 +352,11 @@
           "id": "insights_view",
           "title": "Actions",
           "icon": "./media/images/dbt_icon.svg"
+        },
+        {
+          "id": "run_history_view",
+          "title": "Run History",
+          "icon": "./media/images/dbt_icon.svg"
         }
       ]
     },
@@ -412,6 +417,12 @@
           "id": "dbtPowerUser.Insights",
           "name": "",
           "type": "webview"
+        }
+      ],
+      "run_history_view": [
+        {
+          "id": "run_history_treeview",
+          "name": "Runs"
         }
       ]
     },
@@ -497,6 +508,12 @@
           "light": "./media/images/run-light.svg",
           "dark": "./media/images/run-dark.svg"
         }
+      },
+      {
+        "command": "dbtPowerUser.rerunFromHistory",
+        "title": "Re-run Command",
+        "category": "dbt Power User",
+        "icon": "$(debug-rerun)"
       },
       {
         "command": "dbtPowerUser.openDatapilotWithQuery",
@@ -1036,6 +1053,11 @@
       ],
       "view/item/context": [
         {
+          "command": "dbtPowerUser.rerunFromHistory",
+          "when": "view == run_history_treeview && viewItem == runHistoryEntry",
+          "group": "inline"
+        },
+        {
           "command": "dbtPowerUser.runTest",
           "when": "view == model_test_treeview && viewItem != source",
           "group": "inline"
@@ -1391,7 +1413,7 @@
     "altimateai.vscode-altimate-mcp-server"
   ],
   "dependencies": {
-    "@altimateai/dbt-integration": "^0.2.2",
+    "@altimateai/dbt-integration": "^0.2.3",
     "@jupyterlab/coreutils": "^6.2.4",
     "@jupyterlab/nbformat": "^4.2.4",
     "@jupyterlab/services": "^6.6.7",
@@ -1410,6 +1432,7 @@
     "node-abort-controller": "^3.1.1",
     "node-fetch": "^3.3.2",
     "parse-diff": "^0.11.1",
+    "python-bridge": "^1.1.0",
     "reflect-metadata": "^0.2.2",
     "semver": "^7.6.3",
     "which": "^4.0.0",
