@@ -269,11 +269,6 @@ const PrerequisitesStep = forwardRef<
       setStatusMessage("Project setup completed successfully!");
     } catch (err) {
       panelLogger.error("Error validating setup", err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to validate setup. Check the terminal for details.",
-      );
       setValidationState("error");
     }
   };
