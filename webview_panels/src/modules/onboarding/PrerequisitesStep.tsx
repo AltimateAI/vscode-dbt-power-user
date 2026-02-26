@@ -267,11 +267,6 @@ const PrerequisitesStep = forwardRef<
 
       setValidationState("complete");
       setStatusMessage("Project setup completed successfully!");
-
-      // Call onComplete callback if provided
-      if (onComplete) {
-        setTimeout(onComplete, 1500);
-      }
     } catch (err) {
       panelLogger.error("Error validating setup", err);
       setError(
@@ -388,22 +383,15 @@ const PrerequisitesStep = forwardRef<
   const isValidationComplete = validationState === "complete";
 
   // Report readiness to parent wizard
-  const isStepReady =
-    phase === "prerequisites"
-      ? !!allChecksPassed
-      : !!selectedProject && !isValidating && !isValidationComplete;
+  const isStepReady = phase === "prerequisites" ? !!allChecksPassed : true;
 
   useEffect(() => {
-    onReadyChange?.(isStepReady, phase === "validation" && isValidating);
-  }, [isStepReady, isValidating]);
+    onReadyChange?.(isStepReady);
+  }, [isStepReady]);
 
   useImperativeHandle(ref, () => ({
     triggerNext: () => {
-      if (phase === "prerequisites") {
-        onComplete?.();
-      } else if (phase === "validation") {
-        void handleValidateSetup();
-      }
+      onComplete?.();
     },
   }));
 
@@ -756,19 +744,39 @@ const PrerequisitesStep = forwardRef<
                 >
                   <strong>Select your dbt project:</strong>
                 </label>
-                <Select
-                  id="project-select"
-                  style={{ width: "100%", marginTop: "0.5rem" }}
-                  placeholder="Choose a project"
-                  value={selectedProject}
-                  onChange={setSelectedProject}
-                  disabled={isValidating || isValidationComplete}
-                  size="large"
-                  options={projects.map((project) => ({
-                    label: project.label,
-                    value: project.projectRoot,
-                  }))}
-                />
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    marginTop: "0.5rem",
+                    minWidth: 0,
+                  }}
+                >
+                  <Select
+                    id="project-select"
+                    style={{ flex: 1, minWidth: 0 }}
+                    placeholder="Choose a project"
+                    value={selectedProject}
+                    onChange={setSelectedProject}
+                    disabled={isValidating || isValidationComplete}
+                    size="large"
+                    options={projects.map((project) => ({
+                      label: project.label,
+                      value: project.projectRoot,
+                    }))}
+                  />
+                  <Button
+                    type="primary"
+                    size="large"
+                    style={{ flexShrink: 0 }}
+                    onClick={() => void handleValidateSetup()}
+                    loading={isValidating}
+                    disabled={!selectedProject || isValidating}
+                  >
+                    {isValidating ? "Validating..." : "Validate Setup"}
+                  </Button>
+                </div>
               </div>
 
               {isValidating && (
