@@ -1220,7 +1220,7 @@
     "@altimateai/dbt-integration": "^0.2.3",
     "@jupyterlab/coreutils": "^6.2.4",
     "@jupyterlab/nbformat": "^4.2.4",
-    "@jupyterlab/services": "^6.6.7",
+    "@jupyterlab/services": "^7.0.0",
     "@modelcontextprotocol/sdk": "^1.7.0",
     "@nteract/messaging": "^7.0.20",
     "@types/express": "^5.0.0",
@@ -1230,7 +1230,7 @@
     "@vscode/vsce": "^2.31.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "dayjs": "^1.11.13",
-    "express": "^5.0.1",
+    "express": "^5.1.0",
     "inversify": "^6.0.2",
     "inversify-binding-decorators": "^4.0.0",
     "node-abort-controller": "^3.1.1",
@@ -1242,7 +1242,7 @@
     "which": "^4.0.0",
     "ws": "^8.18.0",
     "yaml": "^2.5.0",
-    "zeromq": "^6.1.0",
+    "zeromq": "^6.1.1",
     "zod-to-json-schema": "^3.24.3"
   },
   "lint-staged": {

@@ -28,15 +28,37 @@ function createJupyterKernelWithoutSerialization() {
     );
   }
   var fileContents = fs.readFileSync(filePath, { encoding: "utf8" });
-  var replacedContents = fileContents
-    .replace(
+
+  // v7+: serialization moved to serverSettings.serializer methods
+  var hasV7Serializer =
+    fileContents.includes("this.serverSettings.serializer.serialize(") ||
+    fileContents.includes("this.serverSettings.serializer.deserialize(");
+
+  var replacedContents;
+  if (hasV7Serializer) {
+    replacedContents = fileContents
+      .replace(
+        /this\.serverSettings\.serializer\.deserialize\(([^,]+),\s*this\._ws\.protocol\)/g,
+        "$1",
+      )
+      .replace(
+        /this\.serverSettings\.serializer\.serialize\(([^,]+),\s*this\._ws\.protocol\)/g,
+        "$1",
+      );
+  } else {
+    // v6: serialization done via standalone serialize module import
+    replacedContents = fileContents.replace(
       /^const serialize =.*$/gm,
       "const serialize = { serialize: (a) => a, deserialize: (a) => a };",
-    )
-    .replace(
-      "const owned = team.session === this.clientId;",
-      "const owned = parentHeader.session === this.clientId;",
     );
+  }
+
+  // Fix team.session bug present in some v6 releases
+  replacedContents = replacedContents.replace(
+    "const owned = team.session === this.clientId;",
+    "const owned = parentHeader.session === this.clientId;",
+  );
+
   if (replacedContents === fileContents) {
     throw new Error(
       "Jupyter lab default kernel cannot be made non serializing",
