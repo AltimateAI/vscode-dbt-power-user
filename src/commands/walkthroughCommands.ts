@@ -329,12 +329,11 @@ export class WalkthroughCommands {
             "1.8.0",
           );
           if (isIndependentAdapterPackage) {
-            args.push(`dbt-core==${packageVersion}`);
+            args.push(`dbt-core~=${packageVersion}.0`);
             args.push(`${packageName}`);
           } else {
             args.push(`${packageName}==${packageVersion}`);
           }
-          args.push("--upgrade");
           const { stdout, stderr } = await this.commandProcessExecutionFactory
             .createCommandProcessExecution({
               command: this.pythonEnvironment.pythonPath,
