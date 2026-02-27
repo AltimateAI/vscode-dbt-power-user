@@ -20,7 +20,7 @@ import {
   window,
   workspace,
 } from "vscode";
-import { AltimateRequest, ModelNode, SqlLineageDetails } from "../altimate";
+import { AltimateRequest, SqlLineageDetails } from "../altimate";
 import { DBTProject } from "../dbt_client/dbtProject";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
@@ -168,27 +168,17 @@ export class SQLLineagePanel
     if (!currNode) {
       throw new Error(`Unable to find model for model ${modelName}`);
     }
-    let model_info: { model_node: ModelNode }[] = [];
-    const config = workspace.getConfiguration("dbt.lineage");
     const modelId = currNode.unique_id;
     const modelsToFetch = project.getNonEphemeralParents([modelId]);
-    let shouldFetchSchema = false;
-    if (currNode.path) {
-      const sql = (
-        await workspace.fs.readFile(Uri.file(currNode.path))
-      ).toString();
-      shouldFetchSchema = !(await project.validateWhetherSqlHasColumns(sql));
-    }
-
-    if (config.get("useSchemaForQueryVisualizer", false) || shouldFetchSchema) {
-      const abortController = new AbortController();
-      token.onCancellationRequested(() => abortController.abort());
-      const { mappedNode } = await project.getNodesWithDBColumns(
-        modelsToFetch,
-        abortController.signal,
-      );
-      model_info = modelsToFetch.map((n) => ({ model_node: mappedNode[n] }));
-    }
+    const abortController = new AbortController();
+    token.onCancellationRequested(() => abortController.abort());
+    const { mappedNode } = await project.getNodesWithDBColumns(
+      modelsToFetch,
+      abortController.signal,
+    );
+    const model_info = modelsToFetch.map((n) => ({
+      model_node: mappedNode[n],
+    }));
     const hash = crypto.createHash("md5").update(compiledSQL).digest("hex");
     const sessionId = `${env.sessionId}-${hash}`;
     const response = await this.altimate.sqlLineage({
@@ -316,10 +306,6 @@ export class SQLLineagePanel
               showSelectEdges: config.get("showSelectEdges", true),
               showNonSelectEdges: config.get("showNonSelectEdges", true),
               defaultExpansion: config.get("defaultExpansion", 1),
-              useSchemaForQueryVisualizer: config.get(
-                "useSchemaForQueryVisualizer",
-                false,
-              ),
             },
           },
         });

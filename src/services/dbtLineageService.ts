@@ -1,4 +1,5 @@
 import {
+  computeColumnLineage,
   GraphMetaMap,
   NodeGraphMap,
   RESOURCE_TYPE_ANALYSIS,
@@ -345,6 +346,45 @@ export class DbtLineageService {
     }
 
     const modelDialect = project.getAdapterType();
+
+    // --- altimate-core: try local column lineage first ---
+    const cllEngine = workspace
+      .getConfiguration("dbt")
+      .get<string>("lineage.cllEngine", "legacy");
+
+    if (cllEngine === "sqlEngine") {
+      try {
+        const localResult = await computeColumnLineage(
+          modelDialect,
+          modelInfos,
+          {
+            showIndirectEdges,
+            isCancelled: () =>
+              cancellationTokenSource.token.isCancellationRequested,
+          },
+        );
+        if (localResult) {
+          this.dbtTerminal.debug(
+            "newLineagePanel:getConnectedColumns",
+            "altimate-core-node result",
+            {
+              lineageCount: localResult.column_lineage.length,
+              errors: localResult.errors,
+            },
+          );
+          return localResult;
+        }
+      } catch (error) {
+        this.dbtTerminal.warn(
+          "newLineagePanel:getConnectedColumns",
+          "altimate-core-node failed, falling back to legacy API",
+          true,
+          error,
+        );
+      }
+    }
+    // --- end altimate-core ---
+
     try {
       if (cancellationTokenSource.token.isCancellationRequested) {
         return { column_lineage: [] };
