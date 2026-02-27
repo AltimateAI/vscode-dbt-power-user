@@ -28,15 +28,18 @@ function createJupyterKernelWithoutSerialization() {
     );
   }
   var fileContents = fs.readFileSync(filePath, { encoding: "utf8" });
+
+  // Strip websocket serialization by replacing serializer calls with pass-through.
   var replacedContents = fileContents
     .replace(
-      /^const serialize =.*$/gm,
-      "const serialize = { serialize: (a) => a, deserialize: (a) => a };",
+      /this\.serverSettings\.serializer\.deserialize\(([^,]+),\s*this\._ws\.protocol\)/g,
+      "$1",
     )
     .replace(
-      "const owned = team.session === this.clientId;",
-      "const owned = parentHeader.session === this.clientId;",
+      /this\.serverSettings\.serializer\.serialize\(([^,]+),\s*this\._ws\.protocol\)/g,
+      "$1",
     );
+
   if (replacedContents === fileContents) {
     throw new Error(
       "Jupyter lab default kernel cannot be made non serializing",
