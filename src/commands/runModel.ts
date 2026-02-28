@@ -14,6 +14,15 @@ export class RunModel {
       return;
     }
     const fullPath = window.activeTextEditor.document.uri;
+    
+    // Check if the file is in the tests directory (singular test)
+    const relativePath = fullPath.fsPath;
+    if (relativePath.includes('/tests/') || relativePath.includes('\\tests\\')) {
+      // This is a singular test file, run it as a test instead of a model
+      this.runDBTModelTest(fullPath);
+      return;
+    }
+    
     this.runDBTModel(fullPath, type);
   }
 
