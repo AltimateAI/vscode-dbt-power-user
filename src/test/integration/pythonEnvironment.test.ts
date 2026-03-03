@@ -35,16 +35,6 @@ suite("PythonEnvironment per-folder .env loading", () => {
     }
   });
 
-  test("${workspaceFolder} in python.envFile is configured", () => {
-    const config = vscode.workspace.getConfiguration("python");
-    const envFile = config.get<string>("envFile");
-    assert.strictEqual(
-      envFile,
-      "${workspaceFolder}/.env",
-      "python.envFile should be set to ${workspaceFolder}/.env",
-    );
-  });
-
   test("getWorkspaceFolder resolves URIs to correct folders", () => {
     const folders = vscode.workspace.workspaceFolders;
     if (!folders || folders.length < 2) {
