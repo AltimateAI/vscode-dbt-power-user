@@ -1,0 +1,6 @@
+first_project:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('FIRST_DB_PATH', 'fallback.duckdb') }}"
