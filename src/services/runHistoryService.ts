@@ -25,14 +25,31 @@ export class RunHistoryService implements Disposable {
   /**
    * Add a completed run to history.
    * Accepts pre-parsed RunResultsEventData from dbt-integration.
+   *
+   * Matches on command + args + project so re-running the same command
+   * updates the existing entry in-place rather than creating a duplicate.
    */
   addEntry(entry: RunResultsEventData): RunResultsEventData {
+    const entryKey = RunHistoryService.entryKey(entry);
+    const existingIndex = this.history.findIndex(
+      (e) => RunHistoryService.entryKey(e) === entryKey,
+    );
+    if (existingIndex !== -1) {
+      this.history[existingIndex] = entry;
+      this._onHistoryChanged.fire(entry);
+      return entry;
+    }
+
     this.history.unshift(entry);
     if (this.history.length > RunHistoryService.MAX_ENTRIES) {
       this.history.pop();
     }
     this._onHistoryChanged.fire(entry);
     return entry;
+  }
+
+  private static entryKey(entry: RunResultsEventData): string {
+    return `${entry.projectName}\0${entry.command}\0${entry.args.join(" ")}`;
   }
 
   get entries(): readonly RunResultsEventData[] {

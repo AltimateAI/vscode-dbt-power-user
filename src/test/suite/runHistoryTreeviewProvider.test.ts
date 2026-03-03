@@ -33,7 +33,7 @@ describe("RunHistoryTreeviewProvider", () => {
     it("should return the element itself", () => {
       const entry = createEntry();
       service.addEntry(entry);
-      const treeItem = new RunTreeItem(entry, 1);
+      const treeItem = new RunTreeItem(entry);
 
       expect(provider.getTreeItem(treeItem)).toBe(treeItem);
     });
@@ -45,10 +45,11 @@ describe("RunHistoryTreeviewProvider", () => {
     });
 
     it("should return RunTreeItems at root level in reverse chronological order", () => {
-      service.addEntry(createEntry({ id: "first" }));
+      service.addEntry(createEntry({ id: "first", command: "run" }));
       service.addEntry(
         createEntry({
           id: "second",
+          command: "build",
           results: [
             createResult(),
             createResult({

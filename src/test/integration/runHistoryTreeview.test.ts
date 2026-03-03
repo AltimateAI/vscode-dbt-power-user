@@ -75,7 +75,7 @@ suite("Run History TreeView Integration", function () {
     service.addEntry(createEntry({ command: "build", args: ["+stg_orders+"] }));
 
     const item = provider.getChildren()[0] as RunTreeItem;
-    assert.strictEqual(item.label, "dbt build +stg_orders+");
+    assert.strictEqual(item.label, "dbt build --select +stg_orders+");
     assert.ok(
       typeof item.description === "string" && item.description.length > 0,
     );
@@ -131,8 +131,8 @@ suite("Run History TreeView Integration", function () {
   });
 
   test("multiple entries appear in reverse chronological order", function () {
-    service.addEntry(createEntry({ id: "first" }));
-    service.addEntry(createEntry({ id: "second" }));
+    service.addEntry(createEntry({ id: "first", command: "run" }));
+    service.addEntry(createEntry({ id: "second", command: "build" }));
 
     const children = provider.getChildren() as RunTreeItem[];
     assert.strictEqual(children.length, 2);

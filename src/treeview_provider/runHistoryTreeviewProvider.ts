@@ -40,7 +40,7 @@ export class RunHistoryTreeviewProvider
   getChildren(element?: RunHistoryTreeItem): RunHistoryTreeItem[] {
     if (!element) {
       const entries = this.runHistoryService.entries;
-      return entries.map((entry) => new RunTreeItem(entry, entries.length));
+      return entries.map((entry) => new RunTreeItem(entry));
     }
 
     if (element instanceof RunTreeItem) {
