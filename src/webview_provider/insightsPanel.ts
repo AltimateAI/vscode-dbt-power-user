@@ -169,7 +169,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       );
 
       const currentConfig: Record<string, DeferConfig> = workspace
-        .getConfiguration("dbt")
+        .getConfiguration("dbt", Uri.file(params.projectRoot))
         .get("deferConfigPerProject", {});
       const root = getProjectRelativePath(Uri.file(params.projectRoot));
 
@@ -669,7 +669,9 @@ export class InsightsPanel extends AltimateWebviewProvider {
         break;
       case "getDeferToProductionConfig":
         const { projectRoot } = params as { projectRoot?: string };
-        const project = this.getCurrentProject();
+        const project = projectRoot
+          ? this.dbtProjectContainer.findDBTProject(Uri.file(projectRoot))
+          : this.getCurrentProject();
         if (!project) {
           this.sendResponseToWebview({
             command: "response",

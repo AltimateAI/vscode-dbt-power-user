@@ -1769,7 +1769,7 @@ export class DBTProject implements Disposable {
   private retrieveDeferConfigFromSettings(): DeferConfig | undefined {
     const relativePath = getProjectRelativePath(this.projectRoot);
     const currentConfig: Record<string, DeferConfig> = workspace
-      .getConfiguration("dbt")
+      .getConfiguration("dbt", this.projectRoot)
       .get("deferConfigPerProject", {});
     if (currentConfig[relativePath]) {
       const config = currentConfig[relativePath];
