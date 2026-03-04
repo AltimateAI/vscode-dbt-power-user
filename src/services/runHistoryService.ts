@@ -26,14 +26,14 @@ export class RunHistoryService implements Disposable {
    * Add a completed run to history.
    * Accepts pre-parsed RunResultsEventData from dbt-integration.
    *
-   * Matches on command + args + project so re-running the same command
-   * updates the existing entry in-place rather than creating a duplicate.
+   * Dedup by invocation ID (`entry.id`). Each dbt run generates a unique
+   * invocation_id, so re-running the same command creates a new entry —
+   * this is intentional so users can compare stats across runs. The only
+   * case where dedup fires is fs.watch emitting multiple events for the
+   * same file write (same invocation_id read twice).
    */
   addEntry(entry: RunResultsEventData): RunResultsEventData {
-    const entryKey = RunHistoryService.entryKey(entry);
-    const existingIndex = this.history.findIndex(
-      (e) => RunHistoryService.entryKey(e) === entryKey,
-    );
+    const existingIndex = this.history.findIndex((e) => e.id === entry.id);
     if (existingIndex !== -1) {
       this.history[existingIndex] = entry;
       this._onHistoryChanged.fire(entry);
@@ -46,10 +46,6 @@ export class RunHistoryService implements Disposable {
     }
     this._onHistoryChanged.fire(entry);
     return entry;
-  }
-
-  private static entryKey(entry: RunResultsEventData): string {
-    return `${entry.projectName}\0${entry.command}\0${entry.args.join(" ")}`;
   }
 
   get entries(): readonly RunResultsEventData[] {

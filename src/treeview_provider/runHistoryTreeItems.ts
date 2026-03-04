@@ -17,7 +17,7 @@ import {
  */
 export class RunTreeItem extends TreeItem {
   constructor(public readonly entry: RunResultsEventData) {
-    super(RunTreeItem.getLabel(entry), RunTreeItem.getCollapsibleState(entry));
+    super(entry.command, RunTreeItem.getCollapsibleState(entry));
 
     this.description = RunTreeItem.getDescription(entry);
     this.iconPath = RunTreeItem.getIcon(entry);
@@ -32,13 +32,6 @@ export class RunTreeItem extends TreeItem {
       return TreeItemCollapsibleState.None;
     }
     return TreeItemCollapsibleState.Collapsed;
-  }
-
-  private static getLabel(entry: RunResultsEventData): string {
-    if (entry.args.length === 0) {
-      return `dbt ${entry.command}`;
-    }
-    return `dbt ${entry.command} --select ${entry.args.join(" ")}`;
   }
 
   private static getDescription(entry: RunResultsEventData): string {

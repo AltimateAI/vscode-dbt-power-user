@@ -23,7 +23,7 @@ describe("RunHistoryService", () => {
 
   describe("addEntry", () => {
     it("should store the entry and return it", () => {
-      const entry = createEntry({ id: "test-123" });
+      const entry = createEntry({ id: "test-123", command: "dbt run" });
 
       const result = service.addEntry(entry);
 
@@ -32,8 +32,8 @@ describe("RunHistoryService", () => {
     });
 
     it("should add new runs at the beginning of history", () => {
-      service.addEntry(createEntry({ id: "first", command: "run" }));
-      service.addEntry(createEntry({ id: "second", command: "build" }));
+      service.addEntry(createEntry({ id: "first", command: "dbt run" }));
+      service.addEntry(createEntry({ id: "second", command: "dbt build" }));
 
       const entries = service.entries;
       expect(entries[0].id).toBe("second");
@@ -44,7 +44,7 @@ describe("RunHistoryService", () => {
       const listener = jest.fn();
       service.onHistoryChanged(listener);
 
-      const entry = createEntry({ id: "test-invocation" });
+      const entry = createEntry({ id: "test-invocation", command: "dbt run" });
       service.addEntry(entry);
 
       expect(listener).toHaveBeenCalledTimes(1);
@@ -55,7 +55,13 @@ describe("RunHistoryService", () => {
 
     it("should cap history at MAX_ENTRIES", () => {
       for (let i = 0; i < 55; i++) {
-        service.addEntry(createEntry({ id: `run-${i}`, args: [`model_${i}`] }));
+        service.addEntry(
+          createEntry({
+            id: `run-${i}`,
+            command: "dbt run",
+            args: [`model_${i}`],
+          }),
+        );
       }
 
       expect(service.entries).toHaveLength(50);
@@ -65,63 +71,83 @@ describe("RunHistoryService", () => {
   });
 
   describe("deduplication", () => {
-    it("should deduplicate by command + args + project, not invocation ID", () => {
+    it("should deduplicate by invocation ID (fs.watch double-fire guard)", () => {
       service.addEntry(
         createEntry({
           id: "inv-1",
-          command: "build",
-          args: ["int_customers"],
+          command: "dbt build",
+          args: ["my_model"],
+          elapsedTime: 1.0,
+        }),
+      );
+      service.addEntry(
+        createEntry({
+          id: "inv-1",
+          command: "dbt build",
+          args: ["my_model"],
+          elapsedTime: 1.0,
+        }),
+      );
+
+      expect(service.entries).toHaveLength(1);
+    });
+
+    it("should keep separate entries for same command with different invocation IDs", () => {
+      service.addEntry(
+        createEntry({
+          id: "inv-1",
+          command: "dbt build",
+          args: ["my_model"],
           elapsedTime: 1.0,
         }),
       );
       service.addEntry(
         createEntry({
           id: "inv-2",
-          command: "build",
-          args: ["int_customers"],
+          command: "dbt build",
+          args: ["my_model"],
           elapsedTime: 2.0,
         }),
       );
 
-      expect(service.entries).toHaveLength(1);
+      expect(service.entries).toHaveLength(2);
       expect(service.entries[0].id).toBe("inv-2");
       expect(service.entries[0].elapsedTime).toBe(2.0);
+      expect(service.entries[1].id).toBe("inv-1");
+      expect(service.entries[1].elapsedTime).toBe(1.0);
     });
 
     it("should keep separate entries for different commands", () => {
-      service.addEntry(createEntry({ command: "run", args: ["my_model"] }));
-      service.addEntry(createEntry({ command: "build", args: ["my_model"] }));
-
-      expect(service.entries).toHaveLength(2);
-    });
-
-    it("should keep separate entries for different args", () => {
-      service.addEntry(createEntry({ command: "build", args: ["model_a"] }));
-      service.addEntry(createEntry({ command: "build", args: ["model_b"] }));
-
-      expect(service.entries).toHaveLength(2);
-    });
-
-    it("should update existing entry in place preserving position", () => {
       service.addEntry(
-        createEntry({ command: "run", args: ["model_a"], id: "first" }),
+        createEntry({ id: "inv-1", command: "dbt run", args: ["my_model"] }),
       );
       service.addEntry(
-        createEntry({ command: "build", args: ["model_b"], id: "second" }),
+        createEntry({ id: "inv-2", command: "dbt build", args: ["my_model"] }),
+      );
+
+      expect(service.entries).toHaveLength(2);
+    });
+
+    it("should update in place when same invocation ID is added again", () => {
+      service.addEntry(
+        createEntry({ id: "inv-1", command: "dbt run", args: ["model_a"] }),
+      );
+      service.addEntry(
+        createEntry({ id: "inv-2", command: "dbt build", args: ["model_b"] }),
       );
       service.addEntry(
         createEntry({
-          command: "run",
+          id: "inv-1",
+          command: "dbt run",
           args: ["model_a"],
-          id: "third",
           elapsedTime: 9.0,
         }),
       );
 
       expect(service.entries).toHaveLength(2);
-      // Order preserved: second at [0], first (updated) at [1]
-      expect(service.entries[0].id).toBe("second");
-      expect(service.entries[1].id).toBe("third");
+      // Position preserved: inv-2 at [0], inv-1 (updated) at [1]
+      expect(service.entries[0].id).toBe("inv-2");
+      expect(service.entries[1].id).toBe("inv-1");
       expect(service.entries[1].elapsedTime).toBe(9.0);
     });
 
@@ -130,20 +156,20 @@ describe("RunHistoryService", () => {
       service.onHistoryChanged(listener);
 
       service.addEntry(
-        createEntry({ command: "build", args: ["my_model"], id: "inv-1" }),
+        createEntry({ id: "inv-1", command: "dbt build", args: ["my_model"] }),
       );
       service.addEntry(
         createEntry({
-          command: "build",
+          id: "inv-1",
+          command: "dbt build",
           args: ["my_model"],
-          id: "inv-2",
           elapsedTime: 5.0,
         }),
       );
 
       expect(listener).toHaveBeenCalledTimes(2);
       expect(listener).toHaveBeenLastCalledWith(
-        expect.objectContaining({ id: "inv-2", elapsedTime: 5.0 }),
+        expect.objectContaining({ id: "inv-1", elapsedTime: 5.0 }),
       );
     });
   });
