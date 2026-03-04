@@ -329,7 +329,13 @@ export class DBTProjectContainer implements Disposable {
 
     switch (entry.command) {
       case "run":
-        project.runModel(runModelParams);
+        if (runModelParams.modelName) {
+          project.runModel(runModelParams);
+        } else {
+          window.showWarningMessage(
+            "Re-running project-wide dbt run is not currently supported. Please run from the terminal.",
+          );
+        }
         break;
       case "build":
         if (runModelParams.modelName) {
@@ -341,10 +347,20 @@ export class DBTProjectContainer implements Disposable {
       case "test":
         if (entry.args.length > 0) {
           project.runTest(entry.args[0]);
+        } else {
+          window.showWarningMessage(
+            "Re-running project-wide dbt test is not currently supported. Please run tests from the terminal.",
+          );
         }
         break;
       case "compile":
-        project.compileModel(runModelParams);
+        if (runModelParams.modelName) {
+          project.compileModel(runModelParams);
+        } else {
+          window.showWarningMessage(
+            "Re-running project-wide dbt compile is not currently supported. Please run from the terminal.",
+          );
+        }
         break;
       default:
         window.showWarningMessage(

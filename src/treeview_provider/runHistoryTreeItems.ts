@@ -10,23 +10,14 @@ import {
   TreeItemCollapsibleState,
 } from "vscode";
 
-/** Number of runs beyond which new items default to collapsed */
-const COLLAPSE_THRESHOLD = 5;
-
 /**
  * Top-level tree item representing a dbt command execution (e.g., `dbt run`, `dbt test`).
  * This is the parent node displayed in the Run History treeview panel.
  * Each RunTreeItem contains child ResultTreeItems for individual model/test/seed results.
  */
 export class RunTreeItem extends TreeItem {
-  constructor(
-    public readonly entry: RunResultsEventData,
-    runCount: number,
-  ) {
-    super(
-      RunTreeItem.getLabel(entry),
-      RunTreeItem.getCollapsibleState(entry, runCount),
-    );
+  constructor(public readonly entry: RunResultsEventData) {
+    super(RunTreeItem.getLabel(entry), RunTreeItem.getCollapsibleState(entry));
 
     this.description = RunTreeItem.getDescription(entry);
     this.iconPath = RunTreeItem.getIcon(entry);
@@ -36,19 +27,18 @@ export class RunTreeItem extends TreeItem {
 
   private static getCollapsibleState(
     entry: RunResultsEventData,
-    runCount: number,
   ): TreeItemCollapsibleState {
     if (entry.results.length === 0) {
       return TreeItemCollapsibleState.None;
     }
-    return runCount > COLLAPSE_THRESHOLD
-      ? TreeItemCollapsibleState.Collapsed
-      : TreeItemCollapsibleState.Expanded;
+    return TreeItemCollapsibleState.Collapsed;
   }
 
   private static getLabel(entry: RunResultsEventData): string {
-    const args = entry.args.length > 0 ? ` ${entry.args.join(" ")}` : "";
-    return `dbt ${entry.command}${args}`;
+    if (entry.args.length === 0) {
+      return `dbt ${entry.command}`;
+    }
+    return `dbt ${entry.command} --select ${entry.args.join(" ")}`;
   }
 
   private static getDescription(entry: RunResultsEventData): string {
@@ -61,19 +51,25 @@ export class RunTreeItem extends TreeItem {
       (r: RunResultEntry) => r.status === "error",
     ).length;
 
-    const parts: string[] = [duration];
-    if (resultCount > 0) {
-      if (errorCount > 0) {
-        parts.push(`${successCount}/${resultCount} passed`);
-      } else {
-        parts.push(`${resultCount} passed`);
-      }
+    const parts: string[] = [entry.projectName, duration];
+    if (resultCount === 0) {
+      parts.push("no matches");
+    } else if (errorCount > 0) {
+      parts.push(`${successCount}/${resultCount} passed`);
+    } else {
+      parts.push(`${resultCount} passed`);
     }
 
     return parts.join(" • ");
   }
 
   private static getIcon(entry: RunResultsEventData): ThemeIcon {
+    if (entry.results.length === 0) {
+      return new ThemeIcon(
+        "debug-step-over",
+        new ThemeColor("disabledForeground"),
+      );
+    }
     const hasError = entry.results.some(
       (r: RunResultEntry) => r.status === "error",
     );
@@ -128,12 +124,32 @@ export function getStatusIcon(status: RunStatus): {
  */
 export class ResultTreeItem extends TreeItem {
   constructor(public readonly result: RunResultEntry) {
-    super(result.name, TreeItemCollapsibleState.None);
+    super(ResultTreeItem.getDisplayName(result), TreeItemCollapsibleState.None);
 
     this.description = ResultTreeItem.getDescription(result);
     this.iconPath = ResultTreeItem.getIcon(result);
     this.tooltip = ResultTreeItem.getTooltip(result);
     this.contextValue = `runHistoryResult.${result.resourceType}`;
+  }
+
+  static getDisplayName(result: RunResultEntry): string {
+    if (result.resourceType === "test") {
+      return ResultTreeItem.formatTestName(result);
+    } else {
+      return result.name;
+    }
+  }
+
+  /** Extract a human-readable name from a test's `uniqueId`, falling back to `name` */
+  private static formatTestName(result: RunResultEntry): string {
+    if (result.uniqueId) {
+      // uniqueId format: "test.project_name.test_name.hash"
+      const parts = result.uniqueId.split(".");
+      if (parts.length >= 4) {
+        return parts.slice(2, -1).join(".");
+      }
+    }
+    return result.name;
   }
 
   private static getDescription(result: RunResultEntry): string {

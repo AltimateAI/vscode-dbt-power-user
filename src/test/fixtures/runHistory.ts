@@ -14,6 +14,17 @@ export const createResult = (
   ...overrides,
 });
 
+export const createTestResult = (
+  overrides: Partial<RunResultEntry> = {},
+): RunResultEntry => ({
+  name: "abc123def456",
+  uniqueId: "test.my_project.not_null_orders_order_id.abc123def456",
+  status: "success",
+  executionTime: 0.5,
+  resourceType: "test",
+  ...overrides,
+});
+
 export const createEntry = (
   overrides: Partial<RunResultsEventData> = {},
 ): RunResultsEventData => ({

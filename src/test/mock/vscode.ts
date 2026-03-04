@@ -114,6 +114,7 @@ export const commands = {
 
 export const window = {
   showInformationMessage: jest.fn().mockReturnValue(Promise.resolve()),
+  showWarningMessage: jest.fn().mockReturnValue(Promise.resolve()),
   showErrorMessage: jest.fn().mockReturnValue(Promise.resolve()),
   createOutputChannel: jest.fn().mockReturnValue({
     append: jest.fn(),

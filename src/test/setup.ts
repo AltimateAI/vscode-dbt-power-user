@@ -31,6 +31,7 @@ jest.mock("vscode", () => ({
   },
   window: {
     showInformationMessage: jest.fn(),
+    showWarningMessage: jest.fn(),
     showErrorMessage: jest.fn(),
     createTerminal: jest.fn().mockReturnValue({
       dispose: jest.fn(),
