@@ -1,7 +1,9 @@
 import {
   DBTTerminal,
   ExposureMetaData,
+  FunctionMetaData,
   NodeMetaData,
+  RESOURCE_TYPE_FUNCTION,
   RESOURCE_TYPE_SOURCE,
   SourceTable,
   Table,
@@ -162,6 +164,15 @@ export class NewLineagePanel
 
     if (command === "getExposureDetails") {
       const body = await this.getExposureDetails(params);
+      this._panel?.webview.postMessage({
+        command: "response",
+        args: { id, syncRequestId, body, status: true },
+      });
+      return;
+    }
+
+    if (command === "getFunctionDetails") {
+      const body = await this.getFunctionDetails(params);
       this._panel?.webview.postMessage({
         command: "response",
         args: { id, syncRequestId, body, status: true },
@@ -372,6 +383,19 @@ export class NewLineagePanel
     return exposureMetaMap.get(name);
   }
 
+  private async getFunctionDetails({
+    name,
+  }: {
+    name: string;
+  }): Promise<FunctionMetaData | undefined> {
+    const event = this.queryManifestService.getEventByCurrentProject();
+    if (!event?.event) {
+      return;
+    }
+    const { functionMetaMap } = event.event;
+    return functionMetaMap.get(name);
+  }
+
   private async getColumns({
     table,
     refresh,
@@ -389,6 +413,10 @@ export class NewLineagePanel
           can_lineage_expand: boolean;
           description: string;
         }[];
+        returns?: {
+          datatype: string;
+          description: string;
+        };
         meta?: { [key: string]: any };
       }
     | undefined
@@ -455,6 +483,43 @@ export class NewLineagePanel
             description: c.description,
           }))
           .sort((a, b) => a.name.localeCompare(b.name)),
+      };
+    }
+    if (nodeType === RESOURCE_TYPE_FUNCTION) {
+      const tableName = splits[2];
+      const { functionMetaMap } = event.event;
+      const fn = functionMetaMap.get(tableName);
+      if (!fn) {
+        return;
+      }
+      const columns: {
+        table: string;
+        name: string;
+        datatype: string;
+        can_lineage_expand: boolean;
+        description: string;
+      }[] = [];
+      if (fn.arguments) {
+        for (const arg of fn.arguments) {
+          columns.push({
+            table,
+            name: arg.name,
+            datatype: arg.data_type || "",
+            can_lineage_expand: false,
+            description: arg.description || "",
+          });
+        }
+      }
+      return {
+        id: table,
+        purpose: fn.description || "",
+        columns,
+        returns: fn.returns
+          ? {
+              datatype: fn.returns.data_type || "",
+              description: fn.returns.description || "",
+            }
+          : undefined,
       };
     }
     const { nodeMetaMap } = event.event;

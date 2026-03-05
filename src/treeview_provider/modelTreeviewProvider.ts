@@ -78,6 +78,9 @@ class Analysis extends Node {
 class Exposure extends Node {
   displayInModelTree = true;
 }
+class Function extends Node {
+  displayInModelTree = true;
+}
 class Metric extends Node {
   displayInModelTree = false;
 }
@@ -198,6 +201,8 @@ abstract class ModelTreeviewProvider
         return new Seed(nodeData.label, nodeData.key, nodeData.url);
       case "semantic_model":
         return new Metric(nodeData.label, nodeData.key, nodeData.url);
+      case "function":
+        return new Function(nodeData.label, nodeData.key, nodeData.url);
       case "model":
         return new Model(nodeData.label, nodeData.key, nodeData.url);
       default:
@@ -226,6 +231,9 @@ abstract class ModelTreeviewProvider
     }
     if (node instanceof Seed) {
       return new SeedTreeItem(node);
+    }
+    if (node instanceof Function) {
+      return new FunctionTreeItem(node);
     }
     return new ModelTreeItem(node);
   }
@@ -581,6 +589,10 @@ class ExposureTreeItem extends NodeTreeItem {
       path.join(path.resolve(__dirname), "../media/images/exposure_dark.svg"),
     ),
   };
+}
+
+class FunctionTreeItem extends NodeTreeItem {
+  contextValue = "function";
 }
 
 class AnalysisTreeItem extends NodeTreeItem {

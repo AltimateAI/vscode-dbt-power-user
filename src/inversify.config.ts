@@ -28,6 +28,7 @@ import {
   DeferConfig,
   DocParser,
   ExposureParser,
+  FunctionParser,
   GraphParser,
   MacroParser,
   MetricParser,
@@ -191,6 +192,11 @@ container
   .bind(ExposureParser)
   .toDynamicValue(
     (context) => new ExposureParser(context.container.get("DBTTerminal")),
+  );
+container
+  .bind(FunctionParser)
+  .toDynamicValue(
+    (context) => new FunctionParser(context.container.get("DBTTerminal")),
   );
 container
   .bind(DocParser)
@@ -680,6 +686,7 @@ container
         container.get(SourceParser),
         container.get(TestParser),
         container.get(ExposureParser),
+        container.get(FunctionParser),
         container.get(DocParser),
         container.get("DBTTerminal"),
         container.get(ModelDepthParser),
