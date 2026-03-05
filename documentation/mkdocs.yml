@@ -139,7 +139,7 @@ nav:
       - Introduction: teammates/introduction.md
       - Coach & Personalize:  teammates/coach.md
   - Datamates (New!): https://datamates-docs.myaltimate.com/
-  - Playground (Beta): playground.md
+  - Studio (Beta): studio.md
   - Support & FAQ:
       - Troubleshooting: troubleshooting.md
       - Security FAQ: arch/faq.md
