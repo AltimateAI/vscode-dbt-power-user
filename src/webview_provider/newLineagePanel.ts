@@ -19,6 +19,7 @@ import {
 import { AltimateRequest, ModelNode } from "../altimate";
 import {
   ExposureMetaData,
+  FunctionMetaData,
   GraphMetaMap,
   NodeGraphMap,
   NodeMetaData,
@@ -181,6 +182,15 @@ export class NewLineagePanel implements LineagePanelView {
 
     if (command === "getExposureDetails") {
       const body = await this.getExposureDetails(params);
+      this._panel?.webview.postMessage({
+        command: "response",
+        args: { id, body, status: true },
+      });
+      return;
+    }
+
+    if (command === "getFunctionDetails") {
+      const body = await this.getFunctionDetails(params);
       this._panel?.webview.postMessage({
         command: "response",
         args: { id, body, status: true },
@@ -365,6 +375,19 @@ export class NewLineagePanel implements LineagePanelView {
     return exposureMetaMap.get(name);
   }
 
+  private async getFunctionDetails({
+    name,
+  }: {
+    name: string;
+  }): Promise<FunctionMetaData | undefined> {
+    const event = this.getEvent();
+    if (!event) {
+      return;
+    }
+    const { functionMetaMap } = event;
+    return functionMetaMap.get(name);
+  }
+
   private async getColumns({
     table,
     refresh,
@@ -450,6 +473,45 @@ export class NewLineagePanel implements LineagePanelView {
       };
     }
     const tableName = splits[2];
+    if (nodeType === DBTProject.RESOURCE_TYPE_FUNCTION) {
+      const { functionMetaMap } = event;
+      const fn = functionMetaMap.get(tableName);
+      if (!fn) {
+        return;
+      }
+      const columns: {
+        table: string;
+        name: string;
+        datatype: string;
+        can_lineage_expand: boolean;
+        description: string;
+      }[] = [];
+      if (fn.arguments) {
+        for (const arg of fn.arguments) {
+          columns.push({
+            table,
+            name: arg.name,
+            datatype: arg.data_type || "",
+            can_lineage_expand: false,
+            description: arg.description || "",
+          });
+        }
+      }
+      if (fn.returns) {
+        columns.push({
+          table,
+          name: "RETURNS",
+          datatype: fn.returns.data_type || "",
+          can_lineage_expand: false,
+          description: fn.returns.description || "",
+        });
+      }
+      return {
+        id: table,
+        purpose: fn.description || "",
+        columns,
+      };
+    }
     const { nodeMetaMap } = event;
     const node = nodeMetaMap.get(tableName);
     if (!node) {
@@ -796,6 +858,22 @@ export class NewLineagePanel implements LineagePanelView {
         materialization: undefined,
         tests: [],
         isExternalProject: false,
+      };
+    }
+
+    if (nodeType === DBTProject.RESOURCE_TYPE_FUNCTION) {
+      const { functionMetaMap } = event;
+      const fn = functionMetaMap.get(table);
+      return {
+        table: key,
+        label: table,
+        url: tableUrl,
+        upstreamCount,
+        downstreamCount,
+        nodeType,
+        materialization: fn?.config?.type,
+        tests: [],
+        isExternalProject: fn?.is_external_project ?? false,
       };
     }
 

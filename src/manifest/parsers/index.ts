@@ -13,6 +13,7 @@ import { SourceParser } from "./sourceParser";
 import { TestParser } from "./testParser";
 import { TelemetryService } from "../../telemetry";
 import { ExposureParser } from "./exposureParser";
+import { FunctionParser } from "./functionParser";
 import { MetricParser } from "./metricParser";
 
 @provide(ManifestParser)
@@ -27,6 +28,7 @@ export class ManifestParser {
     private sourceParser: SourceParser,
     private testParser: TestParser,
     private exposureParser: ExposureParser,
+    private functionParser: FunctionParser,
     private docParser: DocParser,
     private terminal: DBTTerminal,
     private telemetry: TelemetryService,
@@ -68,6 +70,7 @@ export class ManifestParser {
             },
             docMetaMap: new Map(),
             exposureMetaMap: new Map(),
+            functionMetaMap: new Map(),
           },
         ],
       };
@@ -83,6 +86,7 @@ export class ManifestParser {
       child_map,
       docs,
       exposures,
+      functions,
     } = manifest;
 
     const nodeMetaMapPromise = this.nodeParser.createNodeMetaMap(
@@ -109,6 +113,10 @@ export class ManifestParser {
       exposures,
       project,
     );
+    const functionMetaMapPromise = this.functionParser.createFunctionMetaMap(
+      functions,
+      project,
+    );
 
     const docMetaMapPromise = this.docParser.createDocMetaMap(docs, project);
 
@@ -120,6 +128,7 @@ export class ManifestParser {
       testMetaMap,
       docMetaMap,
       exposureMetaMap,
+      functionMetaMap,
     ] = await Promise.all([
       nodeMetaMapPromise,
       macroMetaMapPromise,
@@ -128,6 +137,7 @@ export class ManifestParser {
       testMetaMapPromise,
       docMetaMapPromise,
       exposuresMetaMapPromise,
+      functionMetaMapPromise,
     ]);
 
     const graphMetaMap = this.graphParser.createGraphMetaMap(
@@ -181,6 +191,7 @@ export class ManifestParser {
           testMetaMap: testMetaMap,
           docMetaMap: docMetaMap,
           exposureMetaMap: exposureMetaMap,
+          functionMetaMap: functionMetaMap,
         },
       ],
     };

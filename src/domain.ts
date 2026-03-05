@@ -6,6 +6,7 @@ export type MetricMetaMap = Map<string, MetricMetaData>;
 export type SourceMetaMap = Map<string, SourceMetaData>;
 export type TestMetaMap = Map<string, TestMetaData>;
 export type ExposureMetaMap = Map<string, ExposureMetaData>;
+export type FunctionMetaMap = Map<string, FunctionMetaData>;
 export type DocMetaMap = Map<string, DocMetaData>;
 export type NodeMetaType = NodeMetaData;
 export type SourceMetaType = SourceTable;
@@ -133,6 +134,41 @@ export interface ExposureMetaData {
   meta?: Record<string, unknown>;
 }
 
+export interface FunctionArgument {
+  name: string;
+  data_type: string;
+  description?: string;
+  default_value?: string;
+}
+
+export interface FunctionReturns {
+  data_type: string;
+  description?: string;
+}
+
+export interface FunctionMetaData {
+  unique_id: string;
+  name: string;
+  database?: string;
+  schema?: string;
+  description?: string;
+  depends_on: DependsOn;
+  path: string | undefined;
+  package_name: string;
+  is_external_project: boolean;
+  resource_type: string;
+  config: {
+    materialized?: string;
+    type?: string;
+    volatility?: string;
+    runtime_version?: string;
+    entry_point?: string;
+  };
+  arguments?: FunctionArgument[];
+  returns?: FunctionReturns;
+  meta?: Record<string, unknown>;
+}
+
 interface NodeGraphMetaData {
   currentNode: Node;
   nodes: Node[];
@@ -196,6 +232,9 @@ export class Analysis extends Node {
   displayInModelTree = true;
 }
 export class Exposure extends Node {
+  displayInModelTree = true;
+}
+export class Function extends Node {
   displayInModelTree = true;
 }
 export class Metric extends Node {

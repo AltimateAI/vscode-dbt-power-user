@@ -2,6 +2,7 @@ import { Uri } from "vscode";
 import {
   DocMetaMap,
   ExposureMetaMap,
+  FunctionMetaMap,
   GraphMetaMap,
   MacroMetaMap,
   MetricMetaMap,
@@ -21,6 +22,7 @@ export interface ManifestCacheProjectAddedEvent {
   testMetaMap: TestMetaMap;
   docMetaMap: DocMetaMap;
   exposureMetaMap: ExposureMetaMap;
+  functionMetaMap: FunctionMetaMap;
 }
 
 export interface ManifestCacheProjectRemovedEvent {

@@ -2,6 +2,7 @@ import { provide } from "inversify-binding-decorators";
 import {
   Analysis,
   Exposure,
+  Function,
   GraphMetaMap,
   Metric,
   MetricMetaMap,
@@ -187,6 +188,9 @@ export class GraphParser {
         }
         case "semantic_model": {
           return new Metric(nodeName, parentNodeName);
+        }
+        case "function": {
+          return new Function(nodeName, parentNodeName);
         }
         default:
           console.log(`Node Type '${nodeType}' not implemented!`);
