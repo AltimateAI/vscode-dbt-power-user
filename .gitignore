@@ -40,3 +40,9 @@ Thumbs.db
 .aider*
 certs
 mcp.json
+
+# Docker setup
+docker-setup/*.vsix
+
+# Playwright MCP
+.playwright-mcp/
