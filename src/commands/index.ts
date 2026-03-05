@@ -423,9 +423,12 @@ export class VSCodeCommands implements Disposable {
           }
         },
       ),
-      commands.registerCommand("dbtPowerUser.printEnvVars", () =>
-        this.pythonEnvironment.printEnvVars(),
-      ),
+      commands.registerCommand("dbtPowerUser.printEnvVars", () => {
+        const activeFolder = window.activeTextEditor
+          ? workspace.getWorkspaceFolder(window.activeTextEditor.document.uri)
+          : undefined;
+        this.pythonEnvironment.printEnvVars(activeFolder);
+      }),
       commands.registerCommand("dbtPowerUser.diagnostics", async () => {
         try {
           this.diagnosticsOutputChannel.show();
@@ -433,14 +436,17 @@ export class VSCodeCommands implements Disposable {
           this.diagnosticsOutputChannel.logNewLine();
 
           // Printing env vars
+          const diagActiveFolder = window.activeTextEditor
+            ? workspace.getWorkspaceFolder(window.activeTextEditor.document.uri)
+            : undefined;
           this.diagnosticsOutputChannel.logBlockWithHeader(
             [
               "Printing environment variables...",
               "* Please remove any sensitive information before sending it to us",
             ],
-            Object.entries(this.pythonEnvironment.environmentVariables).map(
-              ([key, value]) => `${key}=${value}`,
-            ),
+            Object.entries(
+              this.pythonEnvironment.getEnvironmentVariables(diagActiveFolder),
+            ).map(([key, value]) => `${key}=${value}`),
           );
           this.diagnosticsOutputChannel.logNewLine();
 
