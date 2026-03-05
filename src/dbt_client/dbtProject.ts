@@ -18,6 +18,7 @@ import {
   DBTTerminal,
   DBT_PROJECT_FILE,
   DeferConfig,
+  extractOutputColumns,
   HealthcheckArgs,
   isResourceHasDbColumns,
   isResourceNode,
@@ -34,7 +35,7 @@ import {
   RunResultsEventData,
   SourceNode,
   Table,
-  validateSQLUsingSqlGlot,
+  validateSQL,
 } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
 import * as path from "path";
@@ -965,20 +966,19 @@ export class DBTProject implements Disposable {
     return this.dbtProjectIntegration.unsafeCompileNode(modelName);
   }
 
-  async validateSql(request: { sql: string; dialect: string; models: any[] }) {
+  async validateSql(request: {
+    sql: string;
+    dialect: string;
+    models: any[];
+  }): Promise<Awaited<ReturnType<typeof validateSQL>>> {
+    const { sql, dialect, models } = request;
     this.throwDiagnosticsErrorIfAvailable();
     this.throwIfNotAuthenticated();
     const sqlValidationThread = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
-    const { sql, dialect, models } = request;
     try {
-      return await validateSQLUsingSqlGlot(
-        sqlValidationThread,
-        sql,
-        dialect,
-        models,
-      );
+      return await validateSQL(sql, dialect, models, sqlValidationThread);
     } finally {
       await this.executionInfrastructure.closePythonBridge(sqlValidationThread);
     }
@@ -1128,26 +1128,6 @@ export class DBTProject implements Disposable {
         );
       await this.getCurrentProjectIntegration().cleanupConnections();
       return result;
-    } finally {
-      await this.getCurrentProjectIntegration().cleanupConnections();
-    }
-  }
-
-  async validateWhetherSqlHasColumns(sql: string) {
-    const dialect = this.getAdapterType();
-    try {
-      return await this.getCurrentProjectIntegration().validateWhetherSqlHasColumns(
-        sql,
-        dialect,
-      );
-    } catch (e) {
-      this.terminal.error(
-        "validateWhetherSqlHasColumnsError",
-        "Error while validating whether sql has columns",
-        e,
-        true,
-      );
-      return false;
     } finally {
       await this.getCurrentProjectIntegration().cleanupConnections();
     }
@@ -1639,7 +1619,6 @@ export class DBTProject implements Disposable {
     const dialect = this.getAdapterType();
 
     startTime = Date.now();
-    // can't parallelize because underlying python lock
     for (const r of sqlglotSchemaRequest) {
       if (!sqlglotSchemaResponse[r.unique_id]) {
         dbSchemaRequest.push(r);
@@ -1647,11 +1626,10 @@ export class DBTProject implements Disposable {
       }
 
       try {
-        const columns =
-          await this.getCurrentProjectIntegration().fetchSqlglotSchema(
-            sqlglotSchemaResponse[r.unique_id],
-            dialect,
-          );
+        const columns = await extractOutputColumns(
+          sqlglotSchemaResponse[r.unique_id],
+          dialect,
+        );
         sqlglotSchemas[r.unique_id] = columns.map((c) => ({
           column: c,
           dtype: "string",
@@ -1659,7 +1637,7 @@ export class DBTProject implements Disposable {
       } catch (e) {
         this.terminal.warn(
           "sqlglotSchemaFetchingFailed",
-          `Error while sqlglot schema fetching for ${r.unique_id}`,
+          `Error while schema fetching for ${r.unique_id}`,
           true,
           e,
         );

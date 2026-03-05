@@ -33,6 +33,13 @@ const config = {
     "@opentelemetry/instrumentation",
     "@azure/functions-core",
     "zeromq",
+    "@altimateai/core",
+    "@altimateai/altimate-core",
+    "@altimateai/altimate-core-darwin-arm64",
+    "@altimateai/altimate-core-darwin-x64",
+    "@altimateai/altimate-core-linux-arm64-gnu",
+    "@altimateai/altimate-core-linux-x64-gnu",
+    "@altimateai/altimate-core-win32-x64-msvc",
   ],
   resolve: {
     extensions: [".ts", ".js"],
@@ -147,6 +154,37 @@ const config = {
               cpSync("./node_modules/zeromq", "./dist/node_modules/zeromq", {
                 recursive: true,
               });
+              try {
+                cpSync(
+                  require.resolve("@altimateai/core/"),
+                  "./dist/node_modules/@altimateai/core",
+                  { recursive: true },
+                );
+              } catch (e) {
+                console.warn(`Skipping @altimateai/core: ${e.message}`);
+              }
+              // Bundle altimate-core and all platform-specific native bindings
+              const altimateCorePackages = [
+                "@altimateai/altimate-core",
+                "@altimateai/altimate-core-darwin-arm64",
+                "@altimateai/altimate-core-darwin-x64",
+                "@altimateai/altimate-core-linux-arm64-gnu",
+                "@altimateai/altimate-core-linux-x64-gnu",
+                "@altimateai/altimate-core-win32-x64-msvc",
+              ];
+              for (const pkg of altimateCorePackages) {
+                try {
+                  cpSync(
+                    `./node_modules/${pkg}`,
+                    `./dist/node_modules/${pkg}`,
+                    { recursive: true },
+                  );
+                  console.log(`Copied ${pkg}`);
+                } catch (e) {
+                  // Optional deps may not be installed on all platforms during dev
+                  console.warn(`Skipping ${pkg}: ${e.message}`);
+                }
+              }
               cpSync(
                 "./node_modules/@aminya/node-gyp-build",
                 "./dist/node_modules/@aminya/node-gyp-build",
