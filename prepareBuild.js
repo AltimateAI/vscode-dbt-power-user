@@ -145,4 +145,70 @@ async function deleteUnnecessaryZeromqPrebuilts() {
   console.log("copied ZeroMQ");
 }
 
+/**
+ * Map VSC_VSCE_TARGET to the altimate-core platform package suffix to keep.
+ * Returns empty array if no target is set (keep all).
+ */
+function getAltimateCorePackagesToKeep() {
+  const vsceTarget = process.env.VSC_VSCE_TARGET;
+  if (!vsceTarget) {
+    return [];
+  }
+  if (vsceTarget.includes("darwin")) {
+    if (vsceTarget.includes("arm64")) return ["darwin-arm64"];
+    if (vsceTarget.includes("x64")) return ["darwin-x64"];
+    return ["darwin-arm64", "darwin-x64"];
+  }
+  if (vsceTarget.includes("linux") || vsceTarget.includes("alpine")) {
+    if (vsceTarget.includes("arm64")) return ["linux-arm64-gnu"];
+    if (vsceTarget.includes("x64")) return ["linux-x64-gnu"];
+    return ["linux-arm64-gnu", "linux-x64-gnu"];
+  }
+  if (vsceTarget.includes("win32")) {
+    return ["win32-x64-msvc"];
+  }
+  return [];
+}
+
+function deleteUnnecessaryAltimateCorePackages() {
+  const vsceTarget = process.env.VSC_VSCE_TARGET;
+  if (!vsceTarget) {
+    console.log(
+      "vsceTarget is not set, keeping all altimate-core platform packages",
+    );
+    return;
+  }
+
+  console.log(
+    "pruning altimate-core platform packages for target:",
+    vsceTarget,
+  );
+  const keepSuffixes = getAltimateCorePackagesToKeep();
+  const altimateCoreDir = path.join(
+    extensionFolder,
+    "dist",
+    "node_modules",
+    "@altimateai",
+  );
+
+  if (!fs.existsSync(altimateCoreDir)) {
+    console.log("altimate-core dist directory not found, skipping");
+    return;
+  }
+
+  const entries = fs.readdirSync(altimateCoreDir);
+  for (const entry of entries) {
+    // Only prune platform-specific packages (altimate-core-<platform>)
+    if (!entry.startsWith("altimate-core-")) continue;
+    const suffix = entry.replace("altimate-core-", "");
+    if (!keepSuffixes.includes(suffix)) {
+      const fullPath = path.join(altimateCoreDir, entry);
+      console.log("deleting", fullPath);
+      fs.rmSync(fullPath, { recursive: true });
+    }
+  }
+  console.log("pruned altimate-core platform packages");
+}
+
 deleteUnnecessaryZeromqPrebuilts();
+deleteUnnecessaryAltimateCorePackages();

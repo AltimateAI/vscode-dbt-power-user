@@ -58,10 +58,53 @@ async function downloadZmqBinaries() {
   await downloadZMQ();
 }
 
+/**
+ * npm only installs optional dependencies for the current platform.
+ * For a multi-platform VSIX we need all @altimateai/altimate-core platform
+ * packages installed so they can be bundled. Force-install any missing ones.
+ */
+async function installAltimateCoreAllPlatforms() {
+  const { execSync } = require("child_process");
+  const altimateCorePackages = [
+    "@altimateai/altimate-core-darwin-arm64",
+    "@altimateai/altimate-core-darwin-x64",
+    "@altimateai/altimate-core-linux-arm64-gnu",
+    "@altimateai/altimate-core-linux-x64-gnu",
+    "@altimateai/altimate-core-win32-x64-msvc",
+  ];
+
+  const missing = altimateCorePackages.filter((pkg) => {
+    try {
+      require.resolve(pkg);
+      return false;
+    } catch {
+      return true;
+    }
+  });
+
+  if (missing.length === 0) {
+    console.log("All altimate-core platform packages already installed");
+    return;
+  }
+
+  console.log(
+    `Installing missing altimate-core platform packages: ${missing.join(", ")}`,
+  );
+  try {
+    execSync(
+      `npm install --no-save --no-audit --no-fund ${missing.join(" ")}`,
+      { stdio: "inherit" },
+    );
+    console.log("Installed all altimate-core platform packages");
+  } catch (ex) {
+    console.error("Failed to install altimate-core platform packages", ex);
+  }
+}
+
 createJupyterKernelWithoutSerialization();
-downloadZmqBinaries()
+Promise.all([downloadZmqBinaries(), installAltimateCoreAllPlatforms()])
   .then(() => process.exit(0))
   .catch((ex) => {
-    console.error("Failed to download ZMQ", ex);
+    console.error("Post-install failed", ex);
     process.exit(1);
   });
