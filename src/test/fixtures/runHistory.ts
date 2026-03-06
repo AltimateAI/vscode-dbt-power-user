@@ -26,10 +26,9 @@ export const createTestResult = (
 });
 
 export const createEntry = (
-  overrides: Partial<RunResultsEventData> = {},
+  overrides: Partial<RunResultsEventData> & { command: string },
 ): RunResultsEventData => ({
   id: "test-invocation",
-  command: "run",
   args: [],
   completedAt: new Date("2024-01-15T10:30:00"),
   projectName: "test-project",

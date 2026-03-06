@@ -1,8 +1,4 @@
-import {
-  DBTTerminal,
-  EnvironmentVariables,
-  RunResultsEventData,
-} from "@altimateai/dbt-integration";
+import { DBTTerminal, EnvironmentVariables } from "@altimateai/dbt-integration";
 import {
   afterEach,
   beforeEach,
@@ -21,19 +17,7 @@ import {
 } from "../../dbt_client/dbtProjectContainer";
 import { DBTWorkspaceFolder } from "../../dbt_client/dbtWorkspaceFolder";
 import { ManifestCacheChangedEvent } from "../../dbt_client/event/manifestCacheChangedEvent";
-
-const createRerunEntry = (
-  overrides: Partial<RunResultsEventData> = {},
-): RunResultsEventData => ({
-  id: "inv-1",
-  command: "run",
-  args: [],
-  completedAt: new Date(),
-  projectName: "test-project",
-  results: [],
-  elapsedTime: 1.0,
-  ...overrides,
-});
+import { createEntry } from "../fixtures/runHistory";
 
 describe("DBTProjectContainer Tests", () => {
   let container: DBTProjectContainer;
@@ -137,7 +121,7 @@ describe("DBTProjectContainer Tests", () => {
       jest.spyOn(container, "findProjectByName").mockReturnValue(undefined);
 
       container.rerunFromHistory(
-        createRerunEntry({ projectName: "nonexistent" }),
+        createEntry({ projectName: "nonexistent", command: "dbt run" }),
       );
 
       expect(window.showErrorMessage).toHaveBeenCalledWith(
@@ -146,9 +130,7 @@ describe("DBTProjectContainer Tests", () => {
     });
 
     it("should show warning for project-wide dbt run (empty args)", () => {
-      container.rerunFromHistory(
-        createRerunEntry({ command: "run", args: [] }),
-      );
+      container.rerunFromHistory(createEntry({ command: "dbt run", args: [] }));
 
       expect(window.showWarningMessage).toHaveBeenCalledWith(
         expect.stringContaining("dbt run"),
@@ -158,7 +140,7 @@ describe("DBTProjectContainer Tests", () => {
 
     it("should delegate to runModel when args are present", () => {
       container.rerunFromHistory(
-        createRerunEntry({ command: "run", args: ["my_model"] }),
+        createEntry({ command: "dbt run", args: ["my_model"] }),
       );
 
       expect(mockProject.runModel).toHaveBeenCalledWith(
@@ -168,7 +150,7 @@ describe("DBTProjectContainer Tests", () => {
 
     it("should show warning for project-wide dbt test (empty args)", () => {
       container.rerunFromHistory(
-        createRerunEntry({ command: "test", args: [] }),
+        createEntry({ command: "dbt test", args: [] }),
       );
 
       expect(window.showWarningMessage).toHaveBeenCalledWith(
@@ -179,7 +161,7 @@ describe("DBTProjectContainer Tests", () => {
 
     it("should delegate to runTest when args are present", () => {
       container.rerunFromHistory(
-        createRerunEntry({ command: "test", args: ["my_test"] }),
+        createEntry({ command: "dbt test", args: ["my_test"] }),
       );
 
       expect(mockProject.runTest).toHaveBeenCalledWith("my_test");
@@ -187,7 +169,7 @@ describe("DBTProjectContainer Tests", () => {
 
     it("should show warning for project-wide dbt compile (empty args)", () => {
       container.rerunFromHistory(
-        createRerunEntry({ command: "compile", args: [] }),
+        createEntry({ command: "dbt compile", args: [] }),
       );
 
       expect(window.showWarningMessage).toHaveBeenCalledWith(
@@ -198,7 +180,7 @@ describe("DBTProjectContainer Tests", () => {
 
     it("should delegate to compileModel when args are present", () => {
       container.rerunFromHistory(
-        createRerunEntry({ command: "compile", args: ["+my_model"] }),
+        createEntry({ command: "dbt compile", args: ["+my_model"] }),
       );
 
       expect(mockProject.compileModel).toHaveBeenCalledWith(
@@ -211,7 +193,7 @@ describe("DBTProjectContainer Tests", () => {
 
     it("should call buildProject for project-wide dbt build (empty args)", () => {
       container.rerunFromHistory(
-        createRerunEntry({ command: "build", args: [] }),
+        createEntry({ command: "dbt build", args: [] }),
       );
 
       expect(mockProject.buildProject).toHaveBeenCalled();
@@ -219,7 +201,7 @@ describe("DBTProjectContainer Tests", () => {
 
     it("should delegate to buildModel when build has args", () => {
       container.rerunFromHistory(
-        createRerunEntry({ command: "build", args: ["+my_model+"] }),
+        createEntry({ command: "dbt build", args: ["+my_model+"] }),
       );
 
       expect(mockProject.buildModel).toHaveBeenCalledWith(
@@ -233,7 +215,7 @@ describe("DBTProjectContainer Tests", () => {
 
     it("should show warning for unknown command", () => {
       container.rerunFromHistory(
-        createRerunEntry({ command: "seed" as any, args: [] }),
+        createEntry({ command: "dbt seed", args: [] }),
       );
 
       expect(window.showWarningMessage).toHaveBeenCalledWith(

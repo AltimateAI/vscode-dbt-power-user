@@ -1,4 +1,3 @@
-import type { RunResultsEventData } from "@altimateai/dbt-integration";
 import * as assert from "assert";
 import "reflect-metadata";
 import * as vscode from "vscode";
@@ -8,29 +7,7 @@ import {
   RunTreeItem,
 } from "../../treeview_provider/runHistoryTreeItems";
 import { RunHistoryTreeviewProvider } from "../../treeview_provider/runHistoryTreeviewProvider";
-
-function createEntry(
-  overrides: Partial<RunResultsEventData> = {},
-): RunResultsEventData {
-  return {
-    id: "inv-001",
-    command: "run",
-    args: [],
-    completedAt: new Date(),
-    projectName: "test-project",
-    results: [
-      {
-        name: "my_model",
-        uniqueId: "model.project.my_model",
-        status: "success",
-        executionTime: 1.5,
-        resourceType: "model",
-      },
-    ],
-    elapsedTime: 2.0,
-    ...overrides,
-  };
-}
+import { createEntry } from "../fixtures/runHistory";
 
 suite("Run History TreeView Integration", function () {
   this.timeout(10_000);
@@ -64,7 +41,7 @@ suite("Run History TreeView Integration", function () {
   });
 
   test("added entry produces a RunTreeItem at root", function () {
-    service.addEntry(createEntry());
+    service.addEntry(createEntry({ command: "dbt run" }));
 
     const children = provider.getChildren();
     assert.strictEqual(children.length, 1);
@@ -72,7 +49,9 @@ suite("Run History TreeView Integration", function () {
   });
 
   test("RunTreeItem has expected label and description", function () {
-    service.addEntry(createEntry({ command: "build", args: ["+stg_orders+"] }));
+    service.addEntry(
+      createEntry({ command: "dbt build --select +stg_orders+" }),
+    );
 
     const item = provider.getChildren()[0] as RunTreeItem;
     assert.strictEqual(item.label, "dbt build --select +stg_orders+");
@@ -82,7 +61,7 @@ suite("Run History TreeView Integration", function () {
   });
 
   test("RunTreeItem exposes real ThemeIcon", function () {
-    service.addEntry(createEntry());
+    service.addEntry(createEntry({ command: "dbt run" }));
 
     const item = provider.getChildren()[0] as RunTreeItem;
     assert.ok(item.iconPath instanceof vscode.ThemeIcon);
@@ -91,6 +70,7 @@ suite("Run History TreeView Integration", function () {
   test("expanding a RunTreeItem yields ResultTreeItems", function () {
     service.addEntry(
       createEntry({
+        command: "dbt run",
         results: [
           {
             name: "m1",
@@ -118,7 +98,7 @@ suite("Run History TreeView Integration", function () {
   });
 
   test("ResultTreeItem is a leaf node", function () {
-    service.addEntry(createEntry());
+    service.addEntry(createEntry({ command: "dbt run" }));
 
     const runItem = provider.getChildren()[0] as RunTreeItem;
     const resultItem = provider.getChildren(runItem)[0] as ResultTreeItem;
@@ -127,12 +107,12 @@ suite("Run History TreeView Integration", function () {
 
   test("onDidChangeTreeData fires on real EventEmitter", function (done) {
     provider.onDidChangeTreeData(() => done());
-    service.addEntry(createEntry());
+    service.addEntry(createEntry({ command: "dbt run" }));
   });
 
   test("multiple entries appear in reverse chronological order", function () {
-    service.addEntry(createEntry({ id: "first", command: "run" }));
-    service.addEntry(createEntry({ id: "second", command: "build" }));
+    service.addEntry(createEntry({ id: "first", command: "dbt run" }));
+    service.addEntry(createEntry({ id: "second", command: "dbt build" }));
 
     const children = provider.getChildren() as RunTreeItem[];
     assert.strictEqual(children.length, 2);

@@ -421,3 +421,11 @@ export function getDepthColor(depth: number): string {
     return lowDepthColor; // Configurable color for low depth
   }
 }
+
+/**
+ * Extract the dbt subcommand from a full command string.
+ * "dbt build --select model" → "build"
+ */
+export function extractDbtSubcommand(command: string): string {
+  return command.startsWith("dbt ") ? command.split(" ")[1] : command;
+}

@@ -22,6 +22,7 @@ import {
 import { AltimateRequest } from "../altimate";
 import { DBTClient } from "../dbt_client";
 import { AltimateDatapilot } from "../dbt_client/datapilot";
+import { extractDbtSubcommand } from "../utils";
 import { DBTProject } from "./dbtProject";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
 import {
@@ -327,7 +328,7 @@ export class DBTProjectContainer implements Disposable {
 
     const runModelParams = this.parseHistoryArgs(entry.args);
 
-    switch (entry.command) {
+    switch (extractDbtSubcommand(entry.command)) {
       case "run":
         if (runModelParams.modelName) {
           project.runModel(runModelParams);
@@ -364,7 +365,7 @@ export class DBTProjectContainer implements Disposable {
         break;
       default:
         window.showWarningMessage(
-          `Re-run is not supported for command: dbt ${entry.command}`,
+          `Re-run is not supported for command: ${entry.command}`,
         );
     }
   }

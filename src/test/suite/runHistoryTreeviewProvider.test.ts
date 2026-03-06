@@ -31,7 +31,7 @@ describe("RunHistoryTreeviewProvider", () => {
 
   describe("getTreeItem", () => {
     it("should return the element itself", () => {
-      const entry = createEntry();
+      const entry = createEntry({ command: "dbt run" });
       service.addEntry(entry);
       const treeItem = new RunTreeItem(entry);
 
@@ -45,11 +45,11 @@ describe("RunHistoryTreeviewProvider", () => {
     });
 
     it("should return RunTreeItems at root level in reverse chronological order", () => {
-      service.addEntry(createEntry({ id: "first", command: "run" }));
+      service.addEntry(createEntry({ id: "first", command: "dbt run" }));
       service.addEntry(
         createEntry({
           id: "second",
-          command: "build",
+          command: "dbt build",
           results: [
             createResult(),
             createResult({
@@ -71,6 +71,7 @@ describe("RunHistoryTreeviewProvider", () => {
     it("should return ResultTreeItems for RunTreeItem children", () => {
       service.addEntry(
         createEntry({
+          command: "dbt run",
           results: [
             createResult(),
             createResult({
@@ -92,7 +93,7 @@ describe("RunHistoryTreeviewProvider", () => {
     });
 
     it("should return empty array for ResultTreeItem children", () => {
-      service.addEntry(createEntry());
+      service.addEntry(createEntry({ command: "dbt run" }));
 
       const runTreeItem = provider.getChildren()[0] as RunTreeItem;
       const resultItem = provider.getChildren(runTreeItem)[0] as ResultTreeItem;
@@ -106,7 +107,7 @@ describe("RunHistoryTreeviewProvider", () => {
       const listener = jest.fn();
       provider.onDidChangeTreeData(listener);
 
-      service.addEntry(createEntry());
+      service.addEntry(createEntry({ command: "dbt run" }));
 
       expect(listener).toHaveBeenCalled();
     });

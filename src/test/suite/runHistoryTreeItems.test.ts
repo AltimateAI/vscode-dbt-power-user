@@ -13,31 +13,36 @@ import {
 
 describe("RunHistoryTreeItems", () => {
   describe("RunTreeItem", () => {
-    it("should format label with --select flag when args present", () => {
+    it("should use entry.command as label", () => {
       const item = new RunTreeItem(
-        createEntry({ command: "build", args: ["+my_model+"] }),
+        createEntry({ command: "dbt build --select +my_model+" }),
       );
       expect(item.label).toBe("dbt build --select +my_model+");
     });
 
-    it("should format label without --select when args are empty", () => {
-      const item = new RunTreeItem(createEntry({ command: "build", args: [] }));
+    it("should show command without flags", () => {
+      const item = new RunTreeItem(createEntry({ command: "dbt build" }));
       expect(item.label).toBe("dbt build");
     });
 
     it("should be collapsed by default when results exist", () => {
-      const item = new RunTreeItem(createEntry({ results: [createResult()] }));
+      const item = new RunTreeItem(
+        createEntry({ command: "dbt run", results: [createResult()] }),
+      );
       expect(item.collapsibleState).toBe(TreeItemCollapsibleState.Collapsed);
     });
 
     it("should be None when results are empty regardless of run count", () => {
-      const item = new RunTreeItem(createEntry({ results: [] }));
+      const item = new RunTreeItem(
+        createEntry({ command: "dbt run", results: [] }),
+      );
       expect(item.collapsibleState).toBe(TreeItemCollapsibleState.None);
     });
 
     it("should show project name, duration, and pass count in description", () => {
       const allPass = new RunTreeItem(
         createEntry({
+          command: "dbt run",
           projectName: "jaffle_shop",
           elapsedTime: 5.5,
           results: [
@@ -48,6 +53,7 @@ describe("RunHistoryTreeItems", () => {
       );
       const someFail = new RunTreeItem(
         createEntry({
+          command: "dbt run",
           projectName: "analytics",
           results: [
             createResult({ status: "success" }),
@@ -70,6 +76,7 @@ describe("RunHistoryTreeItems", () => {
     it("should include project name in description", () => {
       const item = new RunTreeItem(
         createEntry({
+          command: "dbt run",
           projectName: "my_dbt_project",
           elapsedTime: 1.0,
           results: [createResult()],
@@ -80,20 +87,28 @@ describe("RunHistoryTreeItems", () => {
 
     it("should use pass icon when all results succeed", () => {
       const item = new RunTreeItem(
-        createEntry({ results: [createResult({ status: "success" })] }),
+        createEntry({
+          command: "dbt run",
+          results: [createResult({ status: "success" })],
+        }),
       );
       expect((item.iconPath as any).id).toBe("pass");
     });
 
     it("should use error icon when any result has error", () => {
       const item = new RunTreeItem(
-        createEntry({ results: [createResult({ status: "error" })] }),
+        createEntry({
+          command: "dbt run",
+          results: [createResult({ status: "error" })],
+        }),
       );
       expect((item.iconPath as any).id).toBe("error");
     });
 
     it("should use skip icon when results are empty (no matches)", () => {
-      const item = new RunTreeItem(createEntry({ results: [] }));
+      const item = new RunTreeItem(
+        createEntry({ command: "dbt run", results: [] }),
+      );
       expect((item.iconPath as any).id).toBe("debug-step-over");
       expect((item.iconPath as any).color.id).toBe("disabledForeground");
     });
@@ -101,6 +116,7 @@ describe("RunHistoryTreeItems", () => {
     it("should show 'no matches' in description when results are empty", () => {
       const item = new RunTreeItem(
         createEntry({
+          command: "dbt run",
           projectName: "jaffle_shop",
           elapsedTime: 0,
           results: [],
@@ -112,6 +128,7 @@ describe("RunHistoryTreeItems", () => {
     it("should use warning icon when results have warns but no errors", () => {
       const item = new RunTreeItem(
         createEntry({
+          command: "dbt run",
           results: [
             createResult({ status: "success" }),
             createResult({
@@ -129,6 +146,7 @@ describe("RunHistoryTreeItems", () => {
     it("should include project, duration, and invocation in tooltip", () => {
       const item = new RunTreeItem(
         createEntry({
+          command: "dbt run",
           projectName: "my-project",
           elapsedTime: 12.34,
           id: "abc-123",
@@ -143,6 +161,7 @@ describe("RunHistoryTreeItems", () => {
     it("should handle completedAt as a string (JSON deserialization)", () => {
       const item = new RunTreeItem(
         createEntry({
+          command: "dbt run",
           completedAt: "2024-01-15T10:30:00.000Z" as unknown as Date,
         }),
       );
@@ -151,9 +170,9 @@ describe("RunHistoryTreeItems", () => {
     });
 
     it("should have runHistoryEntry contextValue", () => {
-      expect(new RunTreeItem(createEntry()).contextValue).toBe(
-        "runHistoryEntry",
-      );
+      expect(
+        new RunTreeItem(createEntry({ command: "dbt run" })).contextValue,
+      ).toBe("runHistoryEntry");
     });
   });
 
