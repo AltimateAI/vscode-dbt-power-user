@@ -379,6 +379,10 @@ export class DbtLineageService {
           );
           return localResult;
         }
+        this.dbtTerminal.warn(
+          "dbtLineageService:getConnectedColumns",
+          "computeColumnLineage returned null - altimate-core native module may not be loaded",
+        );
       } catch (error) {
         this.dbtTerminal.warn(
           "newLineagePanel:getConnectedColumns",

@@ -207,6 +207,24 @@ function deleteUnnecessaryAltimateCorePackages() {
       fs.rmSync(fullPath, { recursive: true });
     }
   }
+
+  // Also prune .node files from the altimate-core/ directory that don't
+  // match the target platform (these are copied by webpack for direct resolution)
+  const coreDir = path.join(altimateCoreDir, "altimate-core");
+  if (fs.existsSync(coreDir)) {
+    const coreEntries = fs.readdirSync(coreDir);
+    for (const file of coreEntries) {
+      if (!file.endsWith(".node")) continue;
+      // e.g. "altimate-core.darwin-arm64.node" → check if "darwin-arm64" is kept
+      const match = file.match(/^altimate-core\.(.+)\.node$/);
+      if (match && !keepSuffixes.includes(match[1])) {
+        const fullPath = path.join(coreDir, file);
+        console.log("deleting .node file", fullPath);
+        fs.rmSync(fullPath);
+      }
+    }
+  }
+
   console.log("pruned altimate-core platform packages");
 }
 

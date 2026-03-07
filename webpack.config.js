@@ -185,6 +185,42 @@ const config = {
                   console.warn(`Skipping ${pkg}: ${e.message}`);
                 }
               }
+              // Copy .node files directly into altimate-core/ dir so that
+              // relative require('./altimate-core.<platform>.node') works
+              // without cross-package resolution (more reliable in VS Code host)
+              const { readdirSync } = require("fs");
+              const coreDistDir =
+                "./dist/node_modules/@altimateai/altimate-core";
+              const platformDir = "./dist/node_modules/@altimateai";
+              try {
+                const entries = readdirSync(platformDir);
+                for (const entry of entries) {
+                  if (!entry.startsWith("altimate-core-")) continue;
+                  const pkgDir = path.join(platformDir, entry);
+                  try {
+                    const files = readdirSync(pkgDir);
+                    for (const file of files) {
+                      if (file.endsWith(".node")) {
+                        cpSync(
+                          path.join(pkgDir, file),
+                          path.join(coreDistDir, file),
+                        );
+                        console.log(
+                          `Copied ${file} into altimate-core/ for direct resolution`,
+                        );
+                      }
+                    }
+                  } catch (e) {
+                    console.warn(
+                      `Could not copy .node from ${entry}: ${e.message}`,
+                    );
+                  }
+                }
+              } catch (e) {
+                console.warn(
+                  `Could not read altimate-core dist dir: ${e.message}`,
+                );
+              }
               cpSync(
                 "./node_modules/@aminya/node-gyp-build",
                 "./dist/node_modules/@aminya/node-gyp-build",
