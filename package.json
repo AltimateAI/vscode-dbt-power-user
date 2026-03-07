@@ -247,6 +247,41 @@
             "description": "Override the default scale of the result table that is used by the `Preview SQL Query` command.",
             "default": 1
           },
+          "dbt.enableBuildModel": {
+            "type": "boolean",
+            "description": "Enable the 'Build dbt Model' button in SQL files",
+            "default": true
+          },
+          "dbt.enableExecuteSql": {
+            "type": "boolean",
+            "description": "Enable the 'Execute SQL' button in SQL files",
+            "default": true
+          },
+          "dbt.enableSqlQuickPick": {
+            "type": "boolean",
+            "description": "Enable the 'SQL Actions' button in SQL files",
+            "default": true
+          },
+          "dbt.enableRunModel": {
+            "type": "boolean",
+            "description": "Enable the 'Run dbt Model' button in SQL files",
+            "default": true
+          },
+          "dbt.enableTestModel": {
+            "type": "boolean",
+            "description": "Enable the 'Test dbt Model' button in SQL files",
+            "default": true
+          },
+          "dbt.enableSqlPreview": {
+            "type": "boolean",
+            "description": "Enable the 'Compiled dbt Preview' button in SQL files",
+            "default": true
+          },
+          "dbt.enableConvertToModel": {
+            "type": "boolean",
+            "description": "Enable the 'Convert to dbt model' button in SQL files",
+            "default": true
+          },
           "dbt.fileNameTemplateGenerateModel": {
             "type": "string",
             "enum": [
@@ -905,32 +940,32 @@
       "editor/title": [
         {
           "command": "dbtPowerUser.executeSQL",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.enableExecuteSql",
           "group": "navigation@1"
         },
         {
           "command": "dbtPowerUser.runCurrentModel",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.enableRunModel",
           "group": "navigation@3"
         },
         {
           "command": "dbtPowerUser.testCurrentModel",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.enableTestModel",
           "group": "navigation@4"
         },
         {
           "command": "dbtPowerUser.sqlPreview",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.enableSqlPreview",
           "group": "navigation@5"
         },
         {
           "command": "dbtPowerUser.sqlQuickPick",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.enableSqlQuickPick",
           "group": "navigation@1"
         },
         {
           "command": "dbtPowerUser.sqlToModel",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.enableConvertToModel",
           "group": "navigation@6"
         }
       ],
@@ -994,32 +1029,32 @@
       "editor/title/run": [
         {
           "command": "dbtPowerUser.buildCurrentProject",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.enableBuildModel",
           "group": "inline"
         },
         {
           "command": "dbtPowerUser.buildCurrentModel",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.enableBuildModel",
           "group": "inline"
         },
         {
           "command": "dbtPowerUser.buildChildrenModels",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.enableBuildModel",
           "group": "inline"
         },
         {
           "command": "dbtPowerUser.buildParentModels",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.enableBuildModel",
           "group": "inline"
         },
         {
           "command": "dbtPowerUser.buildChildrenParentModels",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.enableBuildModel",
           "group": "inline"
         },
         {
           "command": "dbtPowerUser.runCurrentModel",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.enableBuildModel",
           "group": "inline"
         },
         {
