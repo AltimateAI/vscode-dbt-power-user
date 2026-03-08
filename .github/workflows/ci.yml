@@ -53,6 +53,7 @@ jobs:
           npx vsce publish --target ${{ matrix.target }} $PRE_RELEASE
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          VSCE_TARGET: ${{ matrix.target }}
 
     # Send notification after all platform builds (only on the last matrix entry)
   release-vsstudio-notify:
@@ -97,6 +98,7 @@ jobs:
           npx ovsx publish --target ${{ matrix.target }} $PRE_RELEASE
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          VSCE_TARGET: ${{ matrix.target }}
 
   release-openvsx-notify:
     runs-on: ubuntu-latest
