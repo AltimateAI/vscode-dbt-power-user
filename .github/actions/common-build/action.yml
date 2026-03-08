@@ -2,6 +2,12 @@
 name: "Common Build"
 description: "Common build steps for the project"
 
+inputs:
+  vsce-target:
+    description: "VS Code target platform (e.g., darwin-arm64). When set, only the matching altimate-core native binary is installed."
+    required: false
+    default: ""
+
 runs:
   using: "composite"
   steps:
@@ -20,3 +26,5 @@ runs:
       working-directory: ./webview_panels
     - run: npm run postinstall
       shell: bash
+      env:
+        VSCE_TARGET: ${{ inputs.vsce-target }}

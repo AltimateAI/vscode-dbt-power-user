@@ -163,63 +163,56 @@ const config = {
               } catch (e) {
                 console.warn(`Skipping @altimateai/core: ${e.message}`);
               }
-              // Bundle altimate-core and all platform-specific native bindings
-              const altimateCorePackages = [
-                "@altimateai/altimate-core",
+              // Bundle altimate-core JS loader
+              try {
+                cpSync(
+                  `./node_modules/@altimateai/altimate-core`,
+                  `./dist/node_modules/@altimateai/altimate-core`,
+                  { recursive: true },
+                );
+                console.log(`Copied @altimateai/altimate-core`);
+              } catch (e) {
+                console.warn(
+                  `Skipping @altimateai/altimate-core: ${e.message}`,
+                );
+              }
+
+              // Bundle only the platform-specific native binary that is installed.
+              // When building platform-specific VSIXs, only the target platform's
+              // package will be present in node_modules (installed by postInstall.js).
+              const { readdirSync } = require("fs");
+              const altimatePlatformPackages = [
                 "@altimateai/altimate-core-darwin-arm64",
                 "@altimateai/altimate-core-darwin-x64",
                 "@altimateai/altimate-core-linux-arm64-gnu",
                 "@altimateai/altimate-core-linux-x64-gnu",
                 "@altimateai/altimate-core-win32-x64-msvc",
               ];
-              for (const pkg of altimateCorePackages) {
-                try {
-                  cpSync(
-                    `./node_modules/${pkg}`,
-                    `./dist/node_modules/${pkg}`,
-                    { recursive: true },
-                  );
-                  console.log(`Copied ${pkg}`);
-                } catch (e) {
-                  // Optional deps may not be installed on all platforms during dev
-                  console.warn(`Skipping ${pkg}: ${e.message}`);
-                }
-              }
-              // Copy .node files directly into altimate-core/ dir so that
-              // relative require('./altimate-core.<platform>.node') works
-              // without cross-package resolution (more reliable in VS Code host)
-              const { readdirSync } = require("fs");
               const coreDistDir =
                 "./dist/node_modules/@altimateai/altimate-core";
-              const platformDir = "./dist/node_modules/@altimateai";
-              try {
-                const entries = readdirSync(platformDir);
-                for (const entry of entries) {
-                  if (!entry.startsWith("altimate-core-")) continue;
-                  const pkgDir = path.join(platformDir, entry);
-                  try {
-                    const files = readdirSync(pkgDir);
-                    for (const file of files) {
-                      if (file.endsWith(".node")) {
-                        cpSync(
-                          path.join(pkgDir, file),
-                          path.join(coreDistDir, file),
-                        );
-                        console.log(
-                          `Copied ${file} into altimate-core/ for direct resolution`,
-                        );
-                      }
+              for (const pkg of altimatePlatformPackages) {
+                const srcDir = `./node_modules/${pkg.split("/").join("/")}`;
+                try {
+                  if (!require("fs").existsSync(srcDir)) continue;
+                  const destDir = `./dist/node_modules/${pkg.split("/").join("/")}`;
+                  cpSync(srcDir, destDir, { recursive: true });
+                  console.log(`Copied ${pkg}`);
+                  // Also copy .node file into altimate-core/ for direct resolution
+                  const files = readdirSync(srcDir);
+                  for (const file of files) {
+                    if (file.endsWith(".node")) {
+                      cpSync(
+                        path.join(srcDir, file),
+                        path.join(coreDistDir, file),
+                      );
+                      console.log(
+                        `Copied ${file} into altimate-core/ for direct resolution`,
+                      );
                     }
-                  } catch (e) {
-                    console.warn(
-                      `Could not copy .node from ${entry}: ${e.message}`,
-                    );
                   }
+                } catch (e) {
+                  console.warn(`Skipping ${pkg}: ${e.message}`);
                 }
-              } catch (e) {
-                console.warn(
-                  `Could not read altimate-core dist dir: ${e.message}`,
-                );
               }
               cpSync(
                 "./node_modules/@aminya/node-gyp-build",

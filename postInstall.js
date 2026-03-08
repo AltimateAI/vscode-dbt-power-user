@@ -59,33 +59,60 @@ async function downloadZmqBinaries() {
 }
 
 /**
+ * Install altimate-core platform binaries.
+ *
+ * When VSCE_TARGET is set (CI builds platform-specific VSIXs), only install the
+ * matching platform binary. Otherwise (local dev), install all platforms so the
+ * extension works regardless of which machine it runs on.
+ *
  * npm only installs optional dependencies for the current platform.
- * npm install --force still respects os/cpu filters and silently skips
- * cross-platform packages. We use npm pack + tar to manually extract
- * the tarballs into node_modules so they are available for webpack to bundle.
+ * We use npm pack + tar to manually extract the tarballs into node_modules.
  */
 async function installAltimateCoreAllPlatforms() {
   const { execSync } = require("child_process");
-  const altimateCorePackages = [
-    "@altimateai/altimate-core-darwin-arm64",
-    "@altimateai/altimate-core-darwin-x64",
-    "@altimateai/altimate-core-linux-arm64-gnu",
-    "@altimateai/altimate-core-linux-x64-gnu",
-    "@altimateai/altimate-core-win32-x64-msvc",
-  ];
 
-  const missing = altimateCorePackages.filter((pkg) => {
+  // Map VS Code target platforms to altimate-core npm package names
+  const vsceTargetToPackage = {
+    "darwin-arm64": "@altimateai/altimate-core-darwin-arm64",
+    "darwin-x64": "@altimateai/altimate-core-darwin-x64",
+    "linux-arm64": "@altimateai/altimate-core-linux-arm64-gnu",
+    "linux-x64": "@altimateai/altimate-core-linux-x64-gnu",
+    "win32-x64": "@altimateai/altimate-core-win32-x64-msvc",
+  };
+
+  const allPackages = Object.values(vsceTargetToPackage);
+  const vsceTarget = process.env.VSCE_TARGET;
+
+  let packagesToInstall;
+  if (vsceTarget) {
+    const pkg = vsceTargetToPackage[vsceTarget];
+    if (!pkg) {
+      console.warn(
+        `Unknown VSCE_TARGET "${vsceTarget}", installing all platforms`,
+      );
+      packagesToInstall = allPackages;
+    } else {
+      console.log(`VSCE_TARGET=${vsceTarget} — installing only ${pkg}`);
+      packagesToInstall = [pkg];
+    }
+  } else {
+    packagesToInstall = allPackages;
+  }
+
+  const missing = packagesToInstall.filter((pkg) => {
     const pkgDir = path.join("node_modules", ...pkg.split("/"));
     return !fs.existsSync(pkgDir);
   });
 
   if (missing.length === 0) {
-    console.log("All altimate-core platform packages already installed");
+    console.log(
+      "All required altimate-core platform packages already installed",
+    );
     return;
   }
 
   console.log(
-    `Installing missing altimate-core platform packages via npm pack: ${missing.join(", ")}`,
+    `Installing altimate-core platform packages via npm pack: ${missing.join(", ")}`,
   );
 
   const os = require("os");
@@ -112,8 +139,8 @@ async function installAltimateCoreAllPlatforms() {
     fs.rmSync(tmpDir, { recursive: true });
   } catch {}
 
-  // Verify all packages are present
-  const stillMissing = altimateCorePackages.filter((pkg) => {
+  // Verify required packages are present
+  const stillMissing = packagesToInstall.filter((pkg) => {
     const pkgDir = path.join("node_modules", ...pkg.split("/"));
     return !fs.existsSync(pkgDir);
   });
@@ -122,7 +149,9 @@ async function installAltimateCoreAllPlatforms() {
       `ERROR: These altimate-core packages are still missing: ${stillMissing.join(", ")}`,
     );
   } else {
-    console.log("All altimate-core platform packages installed successfully");
+    console.log(
+      "All required altimate-core platform packages installed successfully",
+    );
   }
 }
 
