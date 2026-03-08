@@ -50,7 +50,7 @@ jobs:
           if [ "${{ github.event_name }}" == "release" ] && [ "${{ github.event.release.prerelease }}" == "true" ]; then
             PRE_RELEASE="--pre-release"
           fi
-          npx vsce publish --target ${{ matrix.target }} $PRE_RELEASE
+          npx vsce publish --skip-duplicate --target ${{ matrix.target }} $PRE_RELEASE
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
           VSCE_TARGET: ${{ matrix.target }}
@@ -95,7 +95,7 @@ jobs:
           if [ "${{ github.event_name }}" == "release" ] && [ "${{ github.event.release.prerelease }}" == "true" ]; then
             PRE_RELEASE="--pre-release"
           fi
-          npx ovsx publish --target ${{ matrix.target }} $PRE_RELEASE
+          npx ovsx publish --skip-duplicate --target ${{ matrix.target }} $PRE_RELEASE
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
           VSCE_TARGET: ${{ matrix.target }}
