@@ -60,8 +60,9 @@ async function downloadZmqBinaries() {
 
 /**
  * npm only installs optional dependencies for the current platform.
- * For a multi-platform VSIX we need all @altimateai/altimate-core platform
- * packages installed so they can be bundled. Force-install any missing ones.
+ * npm install --force still respects os/cpu filters and silently skips
+ * cross-platform packages. We use npm pack + tar to manually extract
+ * the tarballs into node_modules so they are available for webpack to bundle.
  */
 async function installAltimateCoreAllPlatforms() {
   const { execSync } = require("child_process");
@@ -74,12 +75,8 @@ async function installAltimateCoreAllPlatforms() {
   ];
 
   const missing = altimateCorePackages.filter((pkg) => {
-    try {
-      require.resolve(pkg);
-      return false;
-    } catch {
-      return true;
-    }
+    const pkgDir = path.join("node_modules", ...pkg.split("/"));
+    return !fs.existsSync(pkgDir);
   });
 
   if (missing.length === 0) {
@@ -88,16 +85,44 @@ async function installAltimateCoreAllPlatforms() {
   }
 
   console.log(
-    `Installing missing altimate-core platform packages: ${missing.join(", ")}`,
+    `Installing missing altimate-core platform packages via npm pack: ${missing.join(", ")}`,
   );
+
+  const os = require("os");
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "altimate-core-"));
+
+  for (const pkg of missing) {
+    try {
+      // npm pack downloads the tarball without os/cpu filtering
+      const tgzFile = execSync(`npm pack ${pkg} --pack-destination ${tmpDir}`, {
+        encoding: "utf8",
+      }).trim();
+      const tgzPath = path.join(tmpDir, tgzFile);
+      const destDir = path.join("node_modules", ...pkg.split("/"));
+      fs.mkdirSync(destDir, { recursive: true });
+      execSync(`tar xzf "${tgzPath}" --strip-components=1 -C "${destDir}"`);
+      console.log(`Installed ${pkg} via npm pack + tar`);
+    } catch (ex) {
+      console.error(`Failed to install ${pkg}: ${ex.message}`);
+    }
+  }
+
+  // Clean up temp dir
   try {
-    execSync(
-      `npm install --no-save --no-audit --no-fund ${missing.join(" ")}`,
-      { stdio: "inherit" },
+    fs.rmSync(tmpDir, { recursive: true });
+  } catch {}
+
+  // Verify all packages are present
+  const stillMissing = altimateCorePackages.filter((pkg) => {
+    const pkgDir = path.join("node_modules", ...pkg.split("/"));
+    return !fs.existsSync(pkgDir);
+  });
+  if (stillMissing.length > 0) {
+    console.error(
+      `ERROR: These altimate-core packages are still missing: ${stillMissing.join(", ")}`,
     );
-    console.log("Installed all altimate-core platform packages");
-  } catch (ex) {
-    console.error("Failed to install altimate-core platform packages", ex);
+  } else {
+    console.log("All altimate-core platform packages installed successfully");
   }
 }
 
