@@ -21,6 +21,8 @@ runs:
           webview_panels/package-lock.json
     - run: npm ci
       shell: bash
+      env:
+        VSCE_TARGET: ${{ inputs.vsce-target }}
     - run: npm ci
       shell: bash
       working-directory: ./webview_panels

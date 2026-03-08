@@ -4,7 +4,7 @@ const fs = require("fs");
 function getZeroMQPreBuildsFoldersToKeep() {
   // Possible values of 'VSC_VSCE_TARGET' include platforms supported by `vsce package --target`
   // See here https://code.visualstudio.com/api/working-with-extensions/publishing-extension#platformspecific-extensions
-  const vsceTarget = process.env.VSC_VSCE_TARGET;
+  const vsceTarget = process.env.VSC_VSCE_TARGET || process.env.VSCE_TARGET;
   console.log("vsceTarget", vsceTarget);
   if (!vsceTarget) {
     // Keep all of them, as we're not building platform specific bundles.
@@ -116,7 +116,7 @@ function shouldCopyFileFromZmqFolder(resourcePath) {
 const extensionFolder = path.join(__dirname);
 
 async function deleteUnnecessaryZeromqPrebuilts() {
-  const vsceTarget = process.env.VSC_VSCE_TARGET;
+  const vsceTarget = process.env.VSC_VSCE_TARGET || process.env.VSCE_TARGET;
   if (!vsceTarget) {
     // Keep all of them, as we're not building platform specific bundles.
     console.log("vsceTarget is not set");
@@ -150,7 +150,7 @@ async function deleteUnnecessaryZeromqPrebuilts() {
  * Returns empty array if no target is set (keep all).
  */
 function getAltimateCorePackagesToKeep() {
-  const vsceTarget = process.env.VSC_VSCE_TARGET;
+  const vsceTarget = process.env.VSC_VSCE_TARGET || process.env.VSCE_TARGET;
   if (!vsceTarget) {
     return [];
   }
@@ -171,7 +171,7 @@ function getAltimateCorePackagesToKeep() {
 }
 
 function deleteUnnecessaryAltimateCorePackages() {
-  const vsceTarget = process.env.VSC_VSCE_TARGET;
+  const vsceTarget = process.env.VSC_VSCE_TARGET || process.env.VSCE_TARGET;
   if (!vsceTarget) {
     console.log(
       "vsceTarget is not set, keeping all altimate-core platform packages",
