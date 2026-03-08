@@ -71,6 +71,25 @@ async function downloadZmqBinaries() {
 async function installAltimateCoreAllPlatforms() {
   const { execSync } = require("child_process");
 
+  // Read version from the main altimate-core package to keep platform
+  // packages in sync (npm pack without a version would fetch "latest").
+  const corePkgPath = path.join(
+    "node_modules",
+    "@altimateai",
+    "altimate-core",
+    "package.json",
+  );
+  if (!fs.existsSync(corePkgPath)) {
+    console.warn(
+      "@altimateai/altimate-core not found in node_modules, skipping platform binary install",
+    );
+    return;
+  }
+  const { version: coreVersion } = JSON.parse(
+    fs.readFileSync(corePkgPath, "utf8"),
+  );
+  console.log(`altimate-core version: ${coreVersion}`);
+
   // Map VS Code target platforms to altimate-core npm package names
   const vsceTargetToPackage = {
     "darwin-arm64": "@altimateai/altimate-core-darwin-arm64",
@@ -121,9 +140,10 @@ async function installAltimateCoreAllPlatforms() {
   for (const pkg of missing) {
     try {
       // npm pack downloads the tarball without os/cpu filtering
-      const tgzFile = execSync(`npm pack ${pkg} --pack-destination ${tmpDir}`, {
-        encoding: "utf8",
-      }).trim();
+      const tgzFile = execSync(
+        `npm pack ${pkg}@${coreVersion} --pack-destination ${tmpDir}`,
+        { encoding: "utf8" },
+      ).trim();
       const tgzPath = path.join(tmpDir, tgzFile);
       const destDir = path.join("node_modules", ...pkg.split("/"));
       fs.mkdirSync(destDir, { recursive: true });
