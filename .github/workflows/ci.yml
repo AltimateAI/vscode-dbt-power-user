@@ -9,6 +9,9 @@ on:
     types:
       - created
 
+permissions:
+  contents: read
+
 jobs:
   build:
     strategy:
@@ -22,6 +25,7 @@ jobs:
         uses: ./.github/actions/common-build
 
   release-vsstudio-marketplace:
+    needs: build
     runs-on: ubuntu-latest
     if: success() && startsWith( github.ref, 'refs/tags/')
     strategy:
@@ -65,6 +69,7 @@ jobs:
           text: "Tag: ${{  github.ref_name }} release to Visual Studio Marketplace status: ${{ needs.release-vsstudio-marketplace.result == 'success' && 'succeeded' || 'failed' }} :${{ needs.release-vsstudio-marketplace.result == 'success' && 'tada' || 'disappointed' }}:"
 
   release-openvsx-marketplace:
+    needs: build
     runs-on: ubuntu-latest
     if: success() && startsWith( github.ref, 'refs/tags/')
     strategy:

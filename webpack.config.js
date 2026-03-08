@@ -177,9 +177,10 @@ const config = {
                 );
               }
 
-              // Bundle only the platform-specific native binary that is installed.
-              // When building platform-specific VSIXs, only the target platform's
-              // package will be present in node_modules (installed by postInstall.js).
+              // Copy only the .node binary directly into the altimate-core/
+              // directory — skip the platform package directories entirely.
+              // napi-rs index.js falls back to require('./altimate-core.<platform>.node')
+              // when the platform package isn't found, so this works and halves VSIX size.
               const { readdirSync } = require("fs");
               const altimatePlatformPackages = [
                 "@altimateai/altimate-core-darwin-arm64",
@@ -191,13 +192,9 @@ const config = {
               const coreDistDir =
                 "./dist/node_modules/@altimateai/altimate-core";
               for (const pkg of altimatePlatformPackages) {
-                const srcDir = `./node_modules/${pkg.split("/").join("/")}`;
+                const srcDir = `./node_modules/${pkg}`;
                 try {
                   if (!require("fs").existsSync(srcDir)) continue;
-                  const destDir = `./dist/node_modules/${pkg.split("/").join("/")}`;
-                  cpSync(srcDir, destDir, { recursive: true });
-                  console.log(`Copied ${pkg}`);
-                  // Also copy .node file into altimate-core/ for direct resolution
                   const files = readdirSync(srcDir);
                   for (const file of files) {
                     if (file.endsWith(".node")) {
@@ -206,7 +203,7 @@ const config = {
                         path.join(coreDistDir, file),
                       );
                       console.log(
-                        `Copied ${file} into altimate-core/ for direct resolution`,
+                        `Copied ${file} into altimate-core/ (skipped platform package dir)`,
                       );
                     }
                   }

@@ -19,10 +19,8 @@ runs:
         cache-dependency-path: |
           package-lock.json
           webview_panels/package-lock.json
-    - run: npm ci
+    - run: npm ci --ignore-scripts
       shell: bash
-      env:
-        VSCE_TARGET: ${{ inputs.vsce-target }}
     - run: npm ci
       shell: bash
       working-directory: ./webview_panels
