@@ -284,8 +284,15 @@
    property declarations don't compete with utility classes on the same
    property, so specificity doesn't matter here. We need the real class
    for cascade proximity (closest ancestor wins for custom properties).
+
+   RADIX PORTALS: Radix UI components (Popover, Tooltip, DropdownMenu) use
+   React portals that render to document.body, outside the .al-tw-scope
+   wrapper. The [data-radix-popper-content-wrapper] selector ensures portaled
+   content also receives the CSS variables, so hsl(var(--popover)) etc. resolve
+   correctly. Without this, portaled content has transparent backgrounds.
    --------------------------------------------------------------------------- */
-.al-tw-scope {
+.al-tw-scope,
+[data-radix-popper-content-wrapper] {
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
   --card: 0 0% 100%;
@@ -320,7 +327,10 @@
    Scoped CSS variables — dark mode (VS Code dark themes)
    --------------------------------------------------------------------------- */
 body.vscode-dark .al-tw-scope,
-body.vscode-high-contrast:not(.vscode-high-contrast-light) .al-tw-scope {
+body.vscode-dark [data-radix-popper-content-wrapper],
+body.vscode-high-contrast:not(.vscode-high-contrast-light) .al-tw-scope,
+body.vscode-high-contrast:not(.vscode-high-contrast-light)
+  [data-radix-popper-content-wrapper] {
   --background: 222.2 84% 4.9%;
   --foreground: 210 40% 98%;
   --card: 222.2 84% 4.9%;

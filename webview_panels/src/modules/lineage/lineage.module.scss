@@ -17,6 +17,14 @@ html.lineageBody {
       --divider-color: #424750;
     }
 
+    /* ReactFlow controls use fill: currentColor for SVG icons.
+       In VS Code dark themes body color is light (#e8e8e8), making
+       icons invisible on the white (#fefefe) button background.
+       Force a dark color so icons are always visible. */
+    :global .react-flow__controls-button {
+      color: #333;
+    }
+
     .lineageView {
       position: relative;
       width: 100vw;

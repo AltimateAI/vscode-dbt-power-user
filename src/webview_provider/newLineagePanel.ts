@@ -393,7 +393,11 @@ export class NewLineagePanel
       return;
     }
     const { functionMetaMap } = event.event;
-    return functionMetaMap.get(name);
+    // Node IDs use unique_id format (function.project.name), but
+    // functionMetaMap is keyed by simple function name.
+    const splits = name.split(".");
+    const functionName = splits.length >= 3 ? splits[2] : name;
+    return functionMetaMap.get(functionName);
   }
 
   private async getColumns({

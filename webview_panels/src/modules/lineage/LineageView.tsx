@@ -70,6 +70,7 @@ const LineageView = (): JSX.Element | null => {
         case "upstreamTables":
         case "downstreamTables":
         case "getExposureDetails":
+        case "getFunctionDetails":
         case "getColumns":
         case "getConnectedColumns":
         case "sendFeedback":
