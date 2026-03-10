@@ -28,14 +28,11 @@
       "@uicore": ["src/uiCore/index.ts"],
       "@lib": ["src/lib/index.ts"],
       "@altimateai/ui-components/lineage": [
-        "../../altimate-components/lib/components/lineage/index.ts"
+        "../../altimate-frontend/packages/ui-components/src/components/lineage/index.ts"
       ],
-      "@ac-uicore/shadcn": [
-        "../../altimate-components/lib/uiCore/shadcn/index.ts"
+      "@altimateai/lego": [
+        "../../altimate-frontend/packages/lego/src/index.ts"
       ],
-      "@ac-uicore": ["../../altimate-components/lib/uiCore/index.ts"],
-      "@ac-assets/*": ["../../altimate-components/lib/assets/*"],
-      "@apiHelper": ["../../altimate-components/lib/components/api"],
       "@assets/*": ["src/assets/*"],
       "@modules/*": ["src/modules/*"],
       "@testUtils": ["src/testUtils/index.ts"],

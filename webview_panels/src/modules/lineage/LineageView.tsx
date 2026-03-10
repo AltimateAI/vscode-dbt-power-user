@@ -1,4 +1,4 @@
-import { TooltipProvider } from "@ac-uicore/shadcn";
+import { TooltipProvider } from "@altimateai/lego";
 import type { Table } from "@altimateai/ui-components/lineage";
 import { ApiHelper } from "@lib";
 import {

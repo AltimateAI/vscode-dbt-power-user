@@ -44,25 +44,13 @@ export default defineConfig({
       "@telemetryEvents": path.resolve(__dirname, "../src/telemetry/events.ts"),
       "@altimateai/ui-components/lineage": path.resolve(
         __dirname,
-        "../../altimate-components/lib/components/lineage/index.ts",
+        "../../altimate-frontend/packages/ui-components/src/components/lineage/index.ts",
+      ),
+      "@altimateai/lego": path.resolve(
+        __dirname,
+        "../../altimate-frontend/packages/lego/src/index.ts",
       ),
       "@lib": path.resolve(__dirname, "./src/lib"),
-      "@ac-uicore/shadcn": path.resolve(
-        __dirname,
-        "../../altimate-components/lib/uiCore/shadcn/index.ts",
-      ),
-      "@ac-uicore": path.resolve(
-        __dirname,
-        "../../altimate-components/lib/uiCore/index.ts",
-      ),
-      "@ac-assets": path.resolve(
-        __dirname,
-        "../../altimate-components/lib/assets",
-      ),
-      "@apiHelper": path.resolve(
-        __dirname,
-        "../../altimate-components/lib/components/api",
-      ),
     },
   },
   css: {
