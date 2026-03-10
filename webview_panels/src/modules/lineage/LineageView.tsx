@@ -1,6 +1,5 @@
 import { TooltipProvider } from "@altimateai/lego";
 import type { Table } from "@altimateai/ui-components/lineage";
-import { ApiHelper } from "@lib";
 import {
   executeRequestInAsync,
   executeRequestInSync,
@@ -11,13 +10,17 @@ import { useEffect, useState } from "react";
 import ActionWidget from "./ActionWidget";
 import DemoButton from "./components/demo/DemoButton";
 import styles from "./lineage.module.scss";
+import "./tailwind-globals.css";
 import { MissingLineageMessage, StaticLineageProps } from "./types";
 
-// Dynamic import to isolate load errors from crashing the entire app
+// Dynamic import to isolate load errors from crashing the entire app.
+// ApiHelper is imported here (not statically) to get the same module instance
+// that lineage components use internally, enabling runtime patching.
 interface LineageModuleExports {
   Lineage: typeof import("@altimateai/ui-components/lineage").Lineage;
   CLL: typeof import("@altimateai/ui-components/lineage").CLL;
   CllEvents: typeof import("@altimateai/ui-components/lineage").CllEvents;
+  ApiHelper: typeof import("@altimateai/ui-components/lineage").ApiHelper;
 }
 let lineageModule: LineageModuleExports | null = null;
 let lineageLoadError: unknown = null;
@@ -56,10 +59,11 @@ const LineageView = (): JSX.Element | null => {
   }, []);
 
   useEffect(() => {
-    if (!isComponentsApiInitialized) {
+    if (!isComponentsApiInitialized || !lineageModule) {
       return;
     }
     panelLogger.info("LineageView updating components api helper");
+    const { ApiHelper } = lineageModule;
     // @ts-expect-error TODO: add type generic for executeRequestInSync
     ApiHelper.get = async (url: string, data?: Record<string, unknown>) => {
       switch (url) {
@@ -86,7 +90,7 @@ const LineageView = (): JSX.Element | null => {
       }
     };
     setIsApiHelperInitialized(true);
-  }, [isComponentsApiInitialized]);
+  }, [isComponentsApiInitialized, isLineageLoaded]);
 
   const render = (
     data: {
@@ -166,33 +170,35 @@ const LineageView = (): JSX.Element | null => {
   const lineageType = renderNode.details ? "sql" : "dynamic";
 
   return (
-    <TooltipProvider>
-      <div className={styles.lineageView}>
-        <ActionWidget
-          missingLineageMessage={missingLineageMessage}
-          aiEnabled={renderNode.aiEnabled}
-          lineageType={lineageType}
-        />
-        {lineageType === "sql" ? null : (
-          <div className="bottom-right-container">
-            <DemoButton />
-          </div>
-        )}
-        <div className={styles.lineageWrap}>
-          <Lineage
-            theme={theme}
-            dynamicLineage={renderNode}
+    <div className="al-tw-scope">
+      <TooltipProvider>
+        <div className={styles.lineageView}>
+          <ActionWidget
+            missingLineageMessage={missingLineageMessage}
+            aiEnabled={renderNode.aiEnabled}
             lineageType={lineageType}
-            sqlLineage={
-              lineageType === "sql"
-                ? (renderNode as StaticLineageProps)
-                : undefined
-            }
-            allowSyncColumnsWithDB
           />
+          {lineageType === "sql" ? null : (
+            <div className="bottom-right-container">
+              <DemoButton />
+            </div>
+          )}
+          <div className={styles.lineageWrap}>
+            <Lineage
+              theme={theme}
+              dynamicLineage={renderNode}
+              lineageType={lineageType}
+              sqlLineage={
+                lineageType === "sql"
+                  ? (renderNode as StaticLineageProps)
+                  : undefined
+              }
+              allowSyncColumnsWithDB
+            />
+          </div>
         </div>
-      </div>
-    </TooltipProvider>
+      </TooltipProvider>
+    </div>
   );
 };
 
