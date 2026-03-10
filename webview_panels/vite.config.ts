@@ -1,8 +1,8 @@
-import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import svgr from "vite-plugin-svgr";
-import path from "path";
 import { cpSync } from "fs";
+import path from "path";
+import { defineConfig } from "vite";
+import svgr from "vite-plugin-svgr";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -21,12 +21,16 @@ export default defineConfig({
     },
   ],
   build: {
+    cssCodeSplit: false,
     rollupOptions: {
       input: "./src/main.tsx",
       output: {
         entryFileNames: `assets/[name].js`,
-        chunkFileNames: `assets/[name].js`,
-        assetFileNames: `assets/[name].[ext]`,
+        chunkFileNames: `assets/chunk-[name].js`,
+        assetFileNames: (assetInfo) =>
+          assetInfo.name === "style.css"
+            ? "assets/main.css"
+            : "assets/[name].[ext]",
       },
     },
   },
@@ -38,8 +42,27 @@ export default defineConfig({
       "@testUtils": path.resolve(__dirname, "./src/testUtils"),
       "@vscodeApi": path.resolve(__dirname, "./src/modules/vscode"),
       "@telemetryEvents": path.resolve(__dirname, "../src/telemetry/events.ts"),
+      "@altimateai/ui-components/lineage": path.resolve(
+        __dirname,
+        "../../altimate-components/lib/components/lineage/index.ts",
+      ),
       "@lib": path.resolve(__dirname, "./src/lib"),
-      "@lib-testUtils": path.resolve(__dirname, "./src/lib/testUtils.ts"),
+      "@ac-uicore/shadcn": path.resolve(
+        __dirname,
+        "../../altimate-components/lib/uiCore/shadcn/index.ts",
+      ),
+      "@ac-uicore": path.resolve(
+        __dirname,
+        "../../altimate-components/lib/uiCore/index.ts",
+      ),
+      "@ac-assets": path.resolve(
+        __dirname,
+        "../../altimate-components/lib/assets",
+      ),
+      "@apiHelper": path.resolve(
+        __dirname,
+        "../../altimate-components/lib/components/api",
+      ),
     },
   },
   css: {

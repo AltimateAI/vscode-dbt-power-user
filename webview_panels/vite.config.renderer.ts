@@ -1,8 +1,8 @@
-import cssInjectedByJsPlugin from "vite-plugin-css-injected-by-js";
-import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import svgr from "vite-plugin-svgr";
 import path from "path";
+import { defineConfig } from "vite";
+import cssInjectedByJsPlugin from "vite-plugin-css-injected-by-js";
+import svgr from "vite-plugin-svgr";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -53,7 +53,27 @@ export default defineConfig({
       "@testUtils": path.resolve(__dirname, "./src/testUtils"),
       "@vscodeApi": path.resolve(__dirname, "./src/modules/vscode"),
       "@telemetryEvents": path.resolve(__dirname, "../src/telemetry/events.ts"),
+      "@altimateai/ui-components/lineage": path.resolve(
+        __dirname,
+        "../../altimate-components/lib/components/lineage/index.ts",
+      ),
       "@lib": path.resolve(__dirname, "./src/lib"),
+      "@ac-uicore/shadcn": path.resolve(
+        __dirname,
+        "../../altimate-components/lib/uiCore/shadcn/index.ts",
+      ),
+      "@ac-uicore": path.resolve(
+        __dirname,
+        "../../altimate-components/lib/uiCore/index.ts",
+      ),
+      "@ac-assets": path.resolve(
+        __dirname,
+        "../../altimate-components/lib/assets",
+      ),
+      "@apiHelper": path.resolve(
+        __dirname,
+        "../../altimate-components/lib/components/api",
+      ),
     },
   },
   css: {

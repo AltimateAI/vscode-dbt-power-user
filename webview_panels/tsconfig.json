@@ -7,7 +7,8 @@
     "skipLibCheck": true,
 
     /* Bundler mode */
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
@@ -26,7 +27,15 @@
     "paths": {
       "@uicore": ["src/uiCore/index.ts"],
       "@lib": ["src/lib/index.ts"],
-      "@lib-testUtils": ["src/lib/testUtils.ts"],
+      "@altimateai/ui-components/lineage": [
+        "../../altimate-components/lib/components/lineage/index.ts"
+      ],
+      "@ac-uicore/shadcn": [
+        "../../altimate-components/lib/uiCore/shadcn/index.ts"
+      ],
+      "@ac-uicore": ["../../altimate-components/lib/uiCore/index.ts"],
+      "@ac-assets/*": ["../../altimate-components/lib/assets/*"],
+      "@apiHelper": ["../../altimate-components/lib/components/api"],
       "@assets/*": ["src/assets/*"],
       "@modules/*": ["src/modules/*"],
       "@testUtils": ["src/testUtils/index.ts"],

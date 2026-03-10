@@ -1,16 +1,36 @@
-import { ApiHelper, Lineage, CllEvents, CLL } from "@lib";
-import type { Table } from "@lib";
-import { useEffect, useState } from "react";
-import { MissingLineageMessage, StaticLineageProps } from "./types";
-import ActionWidget from "./ActionWidget";
-import useAppContext from "@modules/app/useAppContext";
-import { panelLogger } from "@modules/logger";
+import { TooltipProvider } from "@ac-uicore/shadcn";
+import type { Table } from "@altimateai/ui-components/lineage";
+import { ApiHelper } from "@lib";
 import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
-import styles from "./lineage.module.scss";
+import useAppContext from "@modules/app/useAppContext";
+import { panelLogger } from "@modules/logger";
+import { useEffect, useState } from "react";
+import ActionWidget from "./ActionWidget";
 import DemoButton from "./components/demo/DemoButton";
+import styles from "./lineage.module.scss";
+import { MissingLineageMessage, StaticLineageProps } from "./types";
+
+// Dynamic import to isolate load errors from crashing the entire app
+interface LineageModuleExports {
+  Lineage: typeof import("@altimateai/ui-components/lineage").Lineage;
+  CLL: typeof import("@altimateai/ui-components/lineage").CLL;
+  CllEvents: typeof import("@altimateai/ui-components/lineage").CllEvents;
+}
+let lineageModule: LineageModuleExports | null = null;
+let lineageLoadError: unknown = null;
+
+const lineageReady = import("@altimateai/ui-components/lineage")
+  .then((mod: LineageModuleExports) => {
+    lineageModule = mod;
+    panelLogger.info("lineage module loaded successfully");
+  })
+  .catch((err: unknown) => {
+    lineageLoadError = err;
+    panelLogger.error("Failed to load lineage module:", err);
+  });
 
 const LineageView = (): JSX.Element | null => {
   const {
@@ -18,6 +38,7 @@ const LineageView = (): JSX.Element | null => {
   } = useAppContext();
 
   const [isApiHelperInitialized, setIsApiHelperInitialized] = useState(false);
+  const [isLineageLoaded, setIsLineageLoaded] = useState(!!lineageModule);
   const [renderNode, setRenderNode] = useState<
     {
       node?: Table;
@@ -27,6 +48,12 @@ const LineageView = (): JSX.Element | null => {
   const [missingLineageMessage, setMissingLineageMessage] = useState<
     MissingLineageMessage | undefined
   >();
+
+  useEffect(() => {
+    if (!lineageModule) {
+      void lineageReady.then(() => setIsLineageLoaded(true));
+    }
+  }, []);
 
   useEffect(() => {
     if (!isComponentsApiInitialized) {
@@ -81,16 +108,17 @@ const LineageView = (): JSX.Element | null => {
     setRenderNode(data);
   };
 
-  const columnLineage = ({ event }: { event: CllEvents }) => {
-    if (event === CllEvents.CANCEL) {
-      CLL.onCancel();
+  const columnLineage = (data: { event: string }) => {
+    if (!lineageModule) return;
+    if (data.event === (lineageModule.CllEvents.CANCEL as string)) {
+      lineageModule.CLL.onCancel();
     }
   };
 
   useEffect(() => {
     const commandMap = {
       render,
-      columnLineage: (data: { event: CllEvents }) => {
+      columnLineage: (data: { event: string }) => {
         columnLineage(data);
       },
     };
@@ -118,38 +146,53 @@ const LineageView = (): JSX.Element | null => {
     executeRequestInAsync("init", {});
   }, []);
 
-  if (!isApiHelperInitialized || !renderNode) {
+  if (lineageLoadError) {
+    return (
+      <div style={{ color: "red", padding: "1em", whiteSpace: "pre-wrap" }}>
+        <strong>Failed to load lineage module:</strong>
+        <br />
+        {String(lineageLoadError)}
+        <br />
+        {lineageLoadError instanceof Error ? lineageLoadError.stack : ""}
+      </div>
+    );
+  }
+
+  if (!isLineageLoaded || !isApiHelperInitialized || !renderNode) {
     return null;
   }
 
+  const Lineage = lineageModule!.Lineage;
   const lineageType = renderNode.details ? "sql" : "dynamic";
 
   return (
-    <div className={styles.lineageView}>
-      <ActionWidget
-        missingLineageMessage={missingLineageMessage}
-        aiEnabled={renderNode.aiEnabled}
-        lineageType={lineageType}
-      />
-      {lineageType === "sql" ? null : (
-        <div className="bottom-right-container">
-          <DemoButton />
-        </div>
-      )}
-      <div className={styles.lineageWrap}>
-        <Lineage
-          theme={theme}
-          dynamicLineage={renderNode}
+    <TooltipProvider>
+      <div className={styles.lineageView}>
+        <ActionWidget
+          missingLineageMessage={missingLineageMessage}
+          aiEnabled={renderNode.aiEnabled}
           lineageType={lineageType}
-          sqlLineage={
-            lineageType === "sql"
-              ? (renderNode as StaticLineageProps)
-              : undefined
-          }
-          allowSyncColumnsWithDB
         />
+        {lineageType === "sql" ? null : (
+          <div className="bottom-right-container">
+            <DemoButton />
+          </div>
+        )}
+        <div className={styles.lineageWrap}>
+          <Lineage
+            theme={theme}
+            dynamicLineage={renderNode}
+            lineageType={lineageType}
+            sqlLineage={
+              lineageType === "sql"
+                ? (renderNode as StaticLineageProps)
+                : undefined
+            }
+            allowSyncColumnsWithDB
+          />
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 };
 

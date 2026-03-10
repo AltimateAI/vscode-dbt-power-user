@@ -10,6 +10,33 @@
   </head>
   <body>
     <div id="root"></div>
+    <script nonce="__NONCE__">
+      window.__LOAD_ERRORS__ = [];
+      window.onerror = function (msg, src, line, col, err) {
+        window.__LOAD_ERRORS__.push({
+          msg: String(msg),
+          src: src,
+          err: String(err),
+        });
+        var el = document.getElementById("root");
+        if (el)
+          el.innerHTML =
+            '<pre style="color:red;padding:1em;">Load error: ' +
+            msg +
+            "\n" +
+            (err ? err : "") +
+            "</pre>";
+      };
+      window.addEventListener("unhandledrejection", function (e) {
+        window.__LOAD_ERRORS__.push({ reason: String(e.reason) });
+        var el = document.getElementById("root");
+        if (el)
+          el.innerHTML =
+            '<pre style="color:red;padding:1em;">Unhandled rejection: ' +
+            e.reason +
+            "</pre>";
+      });
+    </script>
     <script nonce="__NONCE__" type="module" src="/src/main.tsx"></script>
   </body>
 </html>
