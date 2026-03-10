@@ -170,35 +170,33 @@ const LineageView = (): JSX.Element | null => {
   const lineageType = renderNode.details ? "sql" : "dynamic";
 
   return (
-    <div className="al-tw-scope">
-      <TooltipProvider>
-        <div className={styles.lineageView}>
-          <ActionWidget
-            missingLineageMessage={missingLineageMessage}
-            aiEnabled={renderNode.aiEnabled}
-            lineageType={lineageType}
-          />
-          {lineageType === "sql" ? null : (
-            <div className="bottom-right-container">
-              <DemoButton />
-            </div>
-          )}
-          <div className={styles.lineageWrap}>
-            <Lineage
-              theme={theme}
-              dynamicLineage={renderNode}
-              lineageType={lineageType}
-              sqlLineage={
-                lineageType === "sql"
-                  ? (renderNode as StaticLineageProps)
-                  : undefined
-              }
-              allowSyncColumnsWithDB
-            />
+    <TooltipProvider>
+      <div className={styles.lineageView}>
+        <ActionWidget
+          missingLineageMessage={missingLineageMessage}
+          aiEnabled={renderNode.aiEnabled}
+          lineageType={lineageType}
+        />
+        {lineageType === "sql" ? null : (
+          <div className="bottom-right-container">
+            <DemoButton />
           </div>
+        )}
+        <div className={`${styles.lineageWrap} al-tw-scope`}>
+          <Lineage
+            theme={theme}
+            dynamicLineage={renderNode}
+            lineageType={lineageType}
+            sqlLineage={
+              lineageType === "sql"
+                ? (renderNode as StaticLineageProps)
+                : undefined
+            }
+            allowSyncColumnsWithDB
+          />
         </div>
-      </TooltipProvider>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 };
 

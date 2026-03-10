@@ -1,6 +1,3 @@
-@tailwind components;
-@tailwind utilities;
-
 /* ============================================================================
    Scoped Tailwind Preflight + CSS variables for lego/shadcn components.
 
@@ -9,6 +6,16 @@
    Bootstrap styling in non-lineage panels that share the same main.css bundle.
    Instead, we scope the entire Preflight under .al-tw-scope so lego/shadcn
    components get the reset they expect while Bootstrap panels are unaffected.
+
+   SPECIFICITY: All Preflight selectors use :where(.al-tw-scope) so the scope
+   class contributes zero specificity. This keeps element resets at (0,0,1) —
+   the same as native Preflight — so Tailwind utility classes at (0,1,0)
+   always win. Without :where(), ".al-tw-scope button" would be (0,1,1) and
+   beat ".al-bg-background" at (0,1,0), making background-color: transparent
+   override the utility.
+
+   SOURCE ORDER: Preflight and variables MUST come before @tailwind utilities.
+   For selectors at the same specificity, last-in-source wins.
 
    SOURCE: Adapted from tailwindcss/src/css/preflight.css (Tailwind v3).
    theme() calls replaced with resolved values from our tailwind.config.ts.
@@ -24,17 +31,17 @@
 
 /* 1. Prevent padding and border from affecting element width.
    2. Allow adding a border to an element by just adding a border-width. */
-.al-tw-scope *,
-.al-tw-scope *::before,
-.al-tw-scope *::after {
+:where(.al-tw-scope) *,
+:where(.al-tw-scope) *::before,
+:where(.al-tw-scope) *::after {
   box-sizing: border-box;
   border-width: 0;
   border-style: solid;
   border-color: hsl(var(--border));
 }
 
-.al-tw-scope *::before,
-.al-tw-scope *::after {
+:where(.al-tw-scope) *::before,
+:where(.al-tw-scope) *::after {
   --tw-content: "";
 }
 
@@ -50,77 +57,77 @@
 }
 
 /* Horizontal rules */
-.al-tw-scope hr {
+:where(.al-tw-scope) hr {
   height: 0;
   color: inherit;
   border-top-width: 1px;
 }
 
 /* Headings: reset to inherit so Tailwind typography classes control them */
-.al-tw-scope h1,
-.al-tw-scope h2,
-.al-tw-scope h3,
-.al-tw-scope h4,
-.al-tw-scope h5,
-.al-tw-scope h6 {
+:where(.al-tw-scope) h1,
+:where(.al-tw-scope) h2,
+:where(.al-tw-scope) h3,
+:where(.al-tw-scope) h4,
+:where(.al-tw-scope) h5,
+:where(.al-tw-scope) h6 {
   font-size: inherit;
   font-weight: inherit;
 }
 
 /* Links: reset so Tailwind classes control color/decoration */
-.al-tw-scope a {
+:where(.al-tw-scope) a {
   color: inherit;
   text-decoration: inherit;
 }
 
-.al-tw-scope b,
-.al-tw-scope strong {
+:where(.al-tw-scope) b,
+:where(.al-tw-scope) strong {
   font-weight: bolder;
 }
 
 /* Code elements */
-.al-tw-scope code,
-.al-tw-scope kbd,
-.al-tw-scope samp,
-.al-tw-scope pre {
+:where(.al-tw-scope) code,
+:where(.al-tw-scope) kbd,
+:where(.al-tw-scope) samp,
+:where(.al-tw-scope) pre {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
   font-size: 1em;
 }
 
-.al-tw-scope small {
+:where(.al-tw-scope) small {
   font-size: 80%;
 }
 
-.al-tw-scope sub,
-.al-tw-scope sup {
+:where(.al-tw-scope) sub,
+:where(.al-tw-scope) sup {
   font-size: 75%;
   line-height: 0;
   position: relative;
   vertical-align: baseline;
 }
 
-.al-tw-scope sub {
+:where(.al-tw-scope) sub {
   bottom: -0.25em;
 }
 
-.al-tw-scope sup {
+:where(.al-tw-scope) sup {
   top: -0.5em;
 }
 
 /* Tables */
-.al-tw-scope table {
+:where(.al-tw-scope) table {
   text-indent: 0;
   border-color: inherit;
   border-collapse: collapse;
 }
 
 /* Form elements: inherit font, reset margin/padding */
-.al-tw-scope button,
-.al-tw-scope input,
-.al-tw-scope optgroup,
-.al-tw-scope select,
-.al-tw-scope textarea {
+:where(.al-tw-scope) button,
+:where(.al-tw-scope) input,
+:where(.al-tw-scope) optgroup,
+:where(.al-tw-scope) select,
+:where(.al-tw-scope) textarea {
   font-family: inherit;
   font-feature-settings: inherit;
   font-variation-settings: inherit;
@@ -133,145 +140,150 @@
   padding: 0;
 }
 
-.al-tw-scope button,
-.al-tw-scope select {
+:where(.al-tw-scope) button,
+:where(.al-tw-scope) select {
   text-transform: none;
 }
 
 /* Remove default button styles */
-.al-tw-scope button,
-.al-tw-scope input[type="button"],
-.al-tw-scope input[type="reset"],
-.al-tw-scope input[type="submit"] {
+:where(.al-tw-scope) button,
+:where(.al-tw-scope) input[type="button"],
+:where(.al-tw-scope) input[type="reset"],
+:where(.al-tw-scope) input[type="submit"] {
   -webkit-appearance: button;
   background-color: transparent;
   background-image: none;
 }
 
 /* Firefox focus style */
-.al-tw-scope :-moz-focusring {
+:where(.al-tw-scope) :-moz-focusring {
   outline: auto;
 }
 
 /* Remove Firefox :invalid styles */
-.al-tw-scope :-moz-ui-invalid {
+:where(.al-tw-scope) :-moz-ui-invalid {
   box-shadow: none;
 }
 
-.al-tw-scope progress {
+:where(.al-tw-scope) progress {
   vertical-align: baseline;
 }
 
-.al-tw-scope ::-webkit-inner-spin-button,
-.al-tw-scope ::-webkit-outer-spin-button {
+:where(.al-tw-scope) ::-webkit-inner-spin-button,
+:where(.al-tw-scope) ::-webkit-outer-spin-button {
   height: auto;
 }
 
-.al-tw-scope [type="search"] {
+:where(.al-tw-scope) [type="search"] {
   -webkit-appearance: textfield;
   outline-offset: -2px;
 }
 
-.al-tw-scope ::-webkit-search-decoration {
+:where(.al-tw-scope) ::-webkit-search-decoration {
   -webkit-appearance: none;
 }
 
-.al-tw-scope ::-webkit-file-upload-button {
+:where(.al-tw-scope) ::-webkit-file-upload-button {
   -webkit-appearance: button;
   font: inherit;
 }
 
-.al-tw-scope summary {
+:where(.al-tw-scope) summary {
   display: list-item;
 }
 
 /* Remove default spacing for block elements */
-.al-tw-scope blockquote,
-.al-tw-scope dl,
-.al-tw-scope dd,
-.al-tw-scope h1,
-.al-tw-scope h2,
-.al-tw-scope h3,
-.al-tw-scope h4,
-.al-tw-scope h5,
-.al-tw-scope h6,
-.al-tw-scope hr,
-.al-tw-scope figure,
-.al-tw-scope p,
-.al-tw-scope pre {
+:where(.al-tw-scope) blockquote,
+:where(.al-tw-scope) dl,
+:where(.al-tw-scope) dd,
+:where(.al-tw-scope) h1,
+:where(.al-tw-scope) h2,
+:where(.al-tw-scope) h3,
+:where(.al-tw-scope) h4,
+:where(.al-tw-scope) h5,
+:where(.al-tw-scope) h6,
+:where(.al-tw-scope) hr,
+:where(.al-tw-scope) figure,
+:where(.al-tw-scope) p,
+:where(.al-tw-scope) pre {
   margin: 0;
 }
 
-.al-tw-scope fieldset {
+:where(.al-tw-scope) fieldset {
   margin: 0;
   padding: 0;
 }
 
-.al-tw-scope legend {
+:where(.al-tw-scope) legend {
   padding: 0;
 }
 
 /* Lists: remove bullets and spacing */
-.al-tw-scope ol,
-.al-tw-scope ul,
-.al-tw-scope menu {
+:where(.al-tw-scope) ol,
+:where(.al-tw-scope) ul,
+:where(.al-tw-scope) menu {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.al-tw-scope dialog {
+:where(.al-tw-scope) dialog {
   padding: 0;
 }
 
-.al-tw-scope textarea {
+:where(.al-tw-scope) textarea {
   resize: vertical;
 }
 
 /* Placeholder styling */
-.al-tw-scope input::placeholder,
-.al-tw-scope textarea::placeholder {
+:where(.al-tw-scope) input::placeholder,
+:where(.al-tw-scope) textarea::placeholder {
   opacity: 1;
   color: #9ca3af;
 }
 
 /* Cursor for interactive elements */
-.al-tw-scope button,
-.al-tw-scope [role="button"] {
+:where(.al-tw-scope) button,
+:where(.al-tw-scope) [role="button"] {
   cursor: pointer;
 }
 
-.al-tw-scope :disabled {
+:where(.al-tw-scope) :disabled {
   cursor: default;
 }
 
 /* Replaced elements: block display, vertical alignment */
-.al-tw-scope img,
-.al-tw-scope svg,
-.al-tw-scope video,
-.al-tw-scope canvas,
-.al-tw-scope audio,
-.al-tw-scope iframe,
-.al-tw-scope embed,
-.al-tw-scope object {
+:where(.al-tw-scope) img,
+:where(.al-tw-scope) svg,
+:where(.al-tw-scope) video,
+:where(.al-tw-scope) canvas,
+:where(.al-tw-scope) audio,
+:where(.al-tw-scope) iframe,
+:where(.al-tw-scope) embed,
+:where(.al-tw-scope) object {
   display: block;
   vertical-align: middle;
 }
 
 /* Constrain images/videos to parent width */
-.al-tw-scope img,
-.al-tw-scope video {
+:where(.al-tw-scope) img,
+:where(.al-tw-scope) video {
   max-width: 100%;
   height: auto;
 }
 
 /* Hidden attribute */
-.al-tw-scope [hidden]:where(:not([hidden="until-found"])) {
+:where(.al-tw-scope) [hidden]:where(:not([hidden="until-found"])) {
   display: none;
 }
 
 /* ---------------------------------------------------------------------------
    Scoped CSS variables — light mode (default)
+
+   NOTE: These use .al-tw-scope (not :where) intentionally — CSS custom
+   property declarations don't compete with utility classes on the same
+   property, so specificity doesn't matter here. We need the real class
+   for cascade proximity (closest ancestor wins for custom properties).
    --------------------------------------------------------------------------- */
 .al-tw-scope {
   --background: 0 0% 100%;
@@ -337,3 +349,10 @@ body.vscode-high-contrast:not(.vscode-high-contrast-light) .al-tw-scope {
   --sidebar-border: 240 3.7% 15.9%;
   --sidebar-ring: 217.2 91.2% 59.8%;
 }
+
+/* ---------------------------------------------------------------------------
+   Tailwind utilities — MUST come after Preflight so utilities win on
+   specificity ties (both are 0,1,0 — last-in-source wins).
+   --------------------------------------------------------------------------- */
+@tailwind components;
+@tailwind utilities;

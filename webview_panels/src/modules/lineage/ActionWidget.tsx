@@ -1,8 +1,8 @@
-import MissingLineageMessageComponent from "./MissingLineageMessage";
-import { MissingLineageMessage } from "./types";
 import FeedbackButton from "@modules/commonActionButtons/FeedbackButton";
 import HelpButton from "./components/help/HelpButton";
 import styles from "./lineage.module.scss";
+import MissingLineageMessageComponent from "./MissingLineageMessage";
+import { MissingLineageMessage } from "./types";
 
 const ActionWidget = ({
   missingLineageMessage,
@@ -26,11 +26,11 @@ const ActionWidget = ({
         missingLineageMessage={missingLineageMessage}
       />
 
-      <div id="expand-container" />
-      <div id="export-container" />
-      <div id="settings-container" />
+      <div id="expand-container" className="al-tw-scope" />
+      <div id="export-container" className="al-tw-scope" />
+      <div id="settings-container" className="al-tw-scope" />
       <HelpButton />
-      <div id="reset-container" />
+      <div id="reset-container" className="al-tw-scope" />
       <FeedbackButton
         url={
           aiEnabled
