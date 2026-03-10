@@ -47,7 +47,7 @@ Traditional AI approaches have critical limitations. These limitations are well 
 ## Extending Context
 
 Beyond the integrations already connected to your SaaS instance, Studio allows you to enrich your queries with additional context:
-![Studio Datamates and Knowledge Base](studio/images/playground-datamates-knowledge-base.png)
+![Studio Datamates and Knowledge Base](studio/images/Studio-context.png)
 
 | Option               | Description                                                                                                                                                      |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -105,7 +105,7 @@ Studio provides transparency about result quality:
 ## Components of Studio
 
 Two important components of Studio are Chat History and Prompt Library:
-![Studio Chat History and Prompt Store](studio/images/playground-chat-history-prompt-store.png)
+![Studio Chat History and Prompt Store](studio/images/Studio-history-prompt-store.png)
 
 ### Chat History
 
@@ -183,8 +183,8 @@ Studio is also seamlessly integrated throughout the SaaS platform, providing con
 
 Each SaaS page includes a **Studio button** (chat icon) in the bottom right corner. Clicking this button opens a Studio popup panel that:
 
-![Studio Access Button](studio/images/all-roads-to-playground1.png)
-![Studio Popup Panel](studio/images/all-roads-to-playground2.png)
+![Studio Access Button](studio/images/Studio-chat-button.png)
+![Studio Popup Panel](studio/images/Studio-chat-popup.png)
 
 - **Automatically understands the page context** - The agent knows which page you're on and what data you're viewing
 - **Provides relevant suggested prompts** - Pre-built questions specific to that page's functionality

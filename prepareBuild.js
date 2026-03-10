@@ -4,7 +4,7 @@ const fs = require("fs");
 function getZeroMQPreBuildsFoldersToKeep() {
   // Possible values of 'VSC_VSCE_TARGET' include platforms supported by `vsce package --target`
   // See here https://code.visualstudio.com/api/working-with-extensions/publishing-extension#platformspecific-extensions
-  const vsceTarget = process.env.VSC_VSCE_TARGET;
+  const vsceTarget = process.env.VSC_VSCE_TARGET || process.env.VSCE_TARGET;
   console.log("vsceTarget", vsceTarget);
   if (!vsceTarget) {
     // Keep all of them, as we're not building platform specific bundles.
@@ -116,7 +116,7 @@ function shouldCopyFileFromZmqFolder(resourcePath) {
 const extensionFolder = path.join(__dirname);
 
 async function deleteUnnecessaryZeromqPrebuilts() {
-  const vsceTarget = process.env.VSC_VSCE_TARGET;
+  const vsceTarget = process.env.VSC_VSCE_TARGET || process.env.VSCE_TARGET;
   if (!vsceTarget) {
     // Keep all of them, as we're not building platform specific bundles.
     console.log("vsceTarget is not set");
@@ -150,7 +150,7 @@ async function deleteUnnecessaryZeromqPrebuilts() {
  * Returns empty array if no target is set (keep all).
  */
 function getAltimateCorePackagesToKeep() {
-  const vsceTarget = process.env.VSC_VSCE_TARGET;
+  const vsceTarget = process.env.VSC_VSCE_TARGET || process.env.VSCE_TARGET;
   if (!vsceTarget) {
     return [];
   }
@@ -171,7 +171,7 @@ function getAltimateCorePackagesToKeep() {
 }
 
 function deleteUnnecessaryAltimateCorePackages() {
-  const vsceTarget = process.env.VSC_VSCE_TARGET;
+  const vsceTarget = process.env.VSC_VSCE_TARGET || process.env.VSCE_TARGET;
   if (!vsceTarget) {
     console.log(
       "vsceTarget is not set, keeping all altimate-core platform packages",
@@ -207,6 +207,24 @@ function deleteUnnecessaryAltimateCorePackages() {
       fs.rmSync(fullPath, { recursive: true });
     }
   }
+
+  // Also prune .node files from the altimate-core/ directory that don't
+  // match the target platform (these are copied by webpack for direct resolution)
+  const coreDir = path.join(altimateCoreDir, "altimate-core");
+  if (fs.existsSync(coreDir)) {
+    const coreEntries = fs.readdirSync(coreDir);
+    for (const file of coreEntries) {
+      if (!file.endsWith(".node")) continue;
+      // e.g. "altimate-core.darwin-arm64.node" → check if "darwin-arm64" is kept
+      const match = file.match(/^altimate-core\.(.+)\.node$/);
+      if (match && !keepSuffixes.includes(match[1])) {
+        const fullPath = path.join(coreDir, file);
+        console.log("deleting .node file", fullPath);
+        fs.rmSync(fullPath);
+      }
+    }
+  }
+
   console.log("pruned altimate-core platform packages");
 }
 

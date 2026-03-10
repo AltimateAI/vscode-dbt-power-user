@@ -163,25 +163,51 @@ const config = {
               } catch (e) {
                 console.warn(`Skipping @altimateai/core: ${e.message}`);
               }
-              // Bundle altimate-core and all platform-specific native bindings
-              const altimateCorePackages = [
-                "@altimateai/altimate-core",
+              // Bundle altimate-core JS loader
+              try {
+                cpSync(
+                  `./node_modules/@altimateai/altimate-core`,
+                  `./dist/node_modules/@altimateai/altimate-core`,
+                  { recursive: true },
+                );
+                console.log(`Copied @altimateai/altimate-core`);
+              } catch (e) {
+                console.warn(
+                  `Skipping @altimateai/altimate-core: ${e.message}`,
+                );
+              }
+
+              // Copy only the .node binary directly into the altimate-core/
+              // directory — skip the platform package directories entirely.
+              // napi-rs index.js falls back to require('./altimate-core.<platform>.node')
+              // when the platform package isn't found, so this works and halves VSIX size.
+              const { readdirSync } = require("fs");
+              const altimatePlatformPackages = [
                 "@altimateai/altimate-core-darwin-arm64",
                 "@altimateai/altimate-core-darwin-x64",
                 "@altimateai/altimate-core-linux-arm64-gnu",
                 "@altimateai/altimate-core-linux-x64-gnu",
                 "@altimateai/altimate-core-win32-x64-msvc",
               ];
-              for (const pkg of altimateCorePackages) {
+              const coreDistDir =
+                "./dist/node_modules/@altimateai/altimate-core";
+              for (const pkg of altimatePlatformPackages) {
+                const srcDir = `./node_modules/${pkg}`;
                 try {
-                  cpSync(
-                    `./node_modules/${pkg}`,
-                    `./dist/node_modules/${pkg}`,
-                    { recursive: true },
-                  );
-                  console.log(`Copied ${pkg}`);
+                  if (!require("fs").existsSync(srcDir)) continue;
+                  const files = readdirSync(srcDir);
+                  for (const file of files) {
+                    if (file.endsWith(".node")) {
+                      cpSync(
+                        path.join(srcDir, file),
+                        path.join(coreDistDir, file),
+                      );
+                      console.log(
+                        `Copied ${file} into altimate-core/ (skipped platform package dir)`,
+                      );
+                    }
+                  }
                 } catch (e) {
-                  // Optional deps may not be installed on all platforms during dev
                   console.warn(`Skipping ${pkg}: ${e.message}`);
                 }
               }
