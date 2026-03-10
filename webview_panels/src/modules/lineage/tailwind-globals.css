@@ -1,9 +1,278 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Scoped CSS variables for lego/shadcn components.
-   These use HSL format (e.g., "0 0% 100%") consumed as hsl(var(--background)).
-   Scoped under .al-tw-scope to avoid collision with main.scss's hex --background. */
+/* ============================================================================
+   Scoped Tailwind Preflight + CSS variables for lego/shadcn components.
+
+   WHY SCOPED: We can't use @tailwind base globally because Preflight's CSS
+   reset (border-width: 0, heading font resets, list-style: none, etc.) breaks
+   Bootstrap styling in non-lineage panels that share the same main.css bundle.
+   Instead, we scope the entire Preflight under .al-tw-scope so lego/shadcn
+   components get the reset they expect while Bootstrap panels are unaffected.
+
+   SOURCE: Adapted from tailwindcss/src/css/preflight.css (Tailwind v3).
+   theme() calls replaced with resolved values from our tailwind.config.ts.
+
+   VARIABLE SCOPING: CSS custom properties use HSL format (e.g., "0 0% 100%")
+   consumed as hsl(var(--background)). Scoped under .al-tw-scope to avoid
+   collision with main.scss's hex --background variable.
+   ============================================================================ */
+
+/* ---------------------------------------------------------------------------
+   Scoped Preflight — element resets
+   --------------------------------------------------------------------------- */
+
+/* 1. Prevent padding and border from affecting element width.
+   2. Allow adding a border to an element by just adding a border-width. */
+.al-tw-scope *,
+.al-tw-scope *::before,
+.al-tw-scope *::after {
+  box-sizing: border-box;
+  border-width: 0;
+  border-style: solid;
+  border-color: hsl(var(--border));
+}
+
+.al-tw-scope *::before,
+.al-tw-scope *::after {
+  --tw-content: "";
+}
+
+/* Root-level resets applied to the scope container itself */
+.al-tw-scope {
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  tab-size: 4;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Helvetica,
+    Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Horizontal rules */
+.al-tw-scope hr {
+  height: 0;
+  color: inherit;
+  border-top-width: 1px;
+}
+
+/* Headings: reset to inherit so Tailwind typography classes control them */
+.al-tw-scope h1,
+.al-tw-scope h2,
+.al-tw-scope h3,
+.al-tw-scope h4,
+.al-tw-scope h5,
+.al-tw-scope h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/* Links: reset so Tailwind classes control color/decoration */
+.al-tw-scope a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+.al-tw-scope b,
+.al-tw-scope strong {
+  font-weight: bolder;
+}
+
+/* Code elements */
+.al-tw-scope code,
+.al-tw-scope kbd,
+.al-tw-scope samp,
+.al-tw-scope pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 1em;
+}
+
+.al-tw-scope small {
+  font-size: 80%;
+}
+
+.al-tw-scope sub,
+.al-tw-scope sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+.al-tw-scope sub {
+  bottom: -0.25em;
+}
+
+.al-tw-scope sup {
+  top: -0.5em;
+}
+
+/* Tables */
+.al-tw-scope table {
+  text-indent: 0;
+  border-color: inherit;
+  border-collapse: collapse;
+}
+
+/* Form elements: inherit font, reset margin/padding */
+.al-tw-scope button,
+.al-tw-scope input,
+.al-tw-scope optgroup,
+.al-tw-scope select,
+.al-tw-scope textarea {
+  font-family: inherit;
+  font-feature-settings: inherit;
+  font-variation-settings: inherit;
+  font-size: 100%;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  margin: 0;
+  padding: 0;
+}
+
+.al-tw-scope button,
+.al-tw-scope select {
+  text-transform: none;
+}
+
+/* Remove default button styles */
+.al-tw-scope button,
+.al-tw-scope input[type="button"],
+.al-tw-scope input[type="reset"],
+.al-tw-scope input[type="submit"] {
+  -webkit-appearance: button;
+  background-color: transparent;
+  background-image: none;
+}
+
+/* Firefox focus style */
+.al-tw-scope :-moz-focusring {
+  outline: auto;
+}
+
+/* Remove Firefox :invalid styles */
+.al-tw-scope :-moz-ui-invalid {
+  box-shadow: none;
+}
+
+.al-tw-scope progress {
+  vertical-align: baseline;
+}
+
+.al-tw-scope ::-webkit-inner-spin-button,
+.al-tw-scope ::-webkit-outer-spin-button {
+  height: auto;
+}
+
+.al-tw-scope [type="search"] {
+  -webkit-appearance: textfield;
+  outline-offset: -2px;
+}
+
+.al-tw-scope ::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+.al-tw-scope ::-webkit-file-upload-button {
+  -webkit-appearance: button;
+  font: inherit;
+}
+
+.al-tw-scope summary {
+  display: list-item;
+}
+
+/* Remove default spacing for block elements */
+.al-tw-scope blockquote,
+.al-tw-scope dl,
+.al-tw-scope dd,
+.al-tw-scope h1,
+.al-tw-scope h2,
+.al-tw-scope h3,
+.al-tw-scope h4,
+.al-tw-scope h5,
+.al-tw-scope h6,
+.al-tw-scope hr,
+.al-tw-scope figure,
+.al-tw-scope p,
+.al-tw-scope pre {
+  margin: 0;
+}
+
+.al-tw-scope fieldset {
+  margin: 0;
+  padding: 0;
+}
+
+.al-tw-scope legend {
+  padding: 0;
+}
+
+/* Lists: remove bullets and spacing */
+.al-tw-scope ol,
+.al-tw-scope ul,
+.al-tw-scope menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.al-tw-scope dialog {
+  padding: 0;
+}
+
+.al-tw-scope textarea {
+  resize: vertical;
+}
+
+/* Placeholder styling */
+.al-tw-scope input::placeholder,
+.al-tw-scope textarea::placeholder {
+  opacity: 1;
+  color: #9ca3af;
+}
+
+/* Cursor for interactive elements */
+.al-tw-scope button,
+.al-tw-scope [role="button"] {
+  cursor: pointer;
+}
+
+.al-tw-scope :disabled {
+  cursor: default;
+}
+
+/* Replaced elements: block display, vertical alignment */
+.al-tw-scope img,
+.al-tw-scope svg,
+.al-tw-scope video,
+.al-tw-scope canvas,
+.al-tw-scope audio,
+.al-tw-scope iframe,
+.al-tw-scope embed,
+.al-tw-scope object {
+  display: block;
+  vertical-align: middle;
+}
+
+/* Constrain images/videos to parent width */
+.al-tw-scope img,
+.al-tw-scope video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Hidden attribute */
+.al-tw-scope [hidden]:where(:not([hidden="until-found"])) {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Scoped CSS variables — light mode (default)
+   --------------------------------------------------------------------------- */
 .al-tw-scope {
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
@@ -35,7 +304,9 @@
   --sidebar-ring: 217.2 91.2% 59.8%;
 }
 
-/* Dark mode — activated by VS Code dark themes */
+/* ---------------------------------------------------------------------------
+   Scoped CSS variables — dark mode (VS Code dark themes)
+   --------------------------------------------------------------------------- */
 body.vscode-dark .al-tw-scope,
 body.vscode-high-contrast:not(.vscode-high-contrast-light) .al-tw-scope {
   --background: 222.2 84% 4.9%;
