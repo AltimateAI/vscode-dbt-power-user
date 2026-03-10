@@ -1509,6 +1509,7 @@ container
       context.container.get(QueryManifestService),
       context.container.get(AltimateRequest),
       context.container.get("DatapilotNotebookController"),
+      context.container.get(RunHistoryService),
     );
   })
   .inSingletonScope();

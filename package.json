@@ -525,6 +525,12 @@
         "icon": "$(debug-rerun)"
       },
       {
+        "command": "dbtPowerUser.clearRunHistory",
+        "title": "Clear Run History",
+        "category": "dbt Power User",
+        "icon": "$(clear-all)"
+      },
+      {
         "command": "dbtPowerUser.openDatapilotWithQuery",
         "title": "Start Chat",
         "category": "dbt Power User"
@@ -1058,6 +1064,11 @@
           "command": "dbtPowerUser.showHelpDatapilot",
           "when": "view == dbtPowerUser.datapilot-webview",
           "group": "navigation@3"
+        },
+        {
+          "command": "dbtPowerUser.clearRunHistory",
+          "when": "view == run_history_treeview",
+          "group": "2_clear"
         }
       ],
       "view/item/context": [
