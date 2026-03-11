@@ -578,8 +578,18 @@ export class NewLineagePanel
     };
   }
 
+  // dbt resource file extensions: .sql (models, seeds, etc.) and .py (UDFs).
+  // These are the only extensions dbt 1.11 supports for function definitions.
+  private static readonly DBT_FILE_EXTENSIONS = [".sql", ".py"];
+
   private getFilename() {
-    return path.basename(window.activeTextEditor!.document.fileName, ".sql");
+    const fileName = window.activeTextEditor!.document.fileName;
+    const ext = path.extname(fileName);
+    if (NewLineagePanel.DBT_FILE_EXTENSIONS.includes(ext)) {
+      return path.basename(fileName, ext);
+    }
+    // Non-dbt file — return basename as-is (will fail lookup gracefully)
+    return path.basename(fileName);
   }
 
   private getMissingLineageMessage() {
@@ -617,23 +627,37 @@ export class NewLineagePanel
         missingLineageMessage: this.getMissingLineageMessage(),
       };
     }
-    const { nodeMetaMap } = event.event;
+    const { nodeMetaMap, functionMetaMap } = event.event;
     const tableName = this.getFilename();
     const _node = nodeMetaMap.lookupByBaseName(tableName);
-    if (!_node) {
-      this.dbtTerminal.info(
-        "Lineage:getStartingNode",
-        `No node found for ${tableName}`,
-      );
-      return {
-        aiEnabled,
-        missingLineageMessage: this.getMissingLineageMessage(),
-      };
+    if (_node) {
+      const key = _node.unique_id;
+      const url = window.activeTextEditor!.document.uri.path;
+      const node = this.dbtLineageService.createTable(event.event, url, key);
+      return { node, aiEnabled };
     }
-    const key = _node.unique_id;
-    const url = window.activeTextEditor!.document.uri.path;
-    const node = this.dbtLineageService.createTable(event.event, url, key);
-    return { node, aiEnabled };
+
+    // Fallback: check if the active file is a dbt function (.py UDF).
+    // Functions live in functionMetaMap, not nodeMetaMap.
+    const fn = functionMetaMap.get(tableName);
+    if (fn) {
+      const url = window.activeTextEditor!.document.uri.path;
+      const node = this.dbtLineageService.createTable(
+        event.event,
+        url,
+        fn.unique_id,
+      );
+      return { node, aiEnabled };
+    }
+
+    this.dbtTerminal.info(
+      "Lineage:getStartingNode",
+      `No node found for ${tableName}`,
+    );
+    return {
+      aiEnabled,
+      missingLineageMessage: this.getMissingLineageMessage(),
+    };
   }
 
   protected renderWebviewView(webview: Webview) {
