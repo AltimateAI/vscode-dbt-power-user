@@ -299,8 +299,8 @@
   --card-foreground: 222.2 84% 4.9%;
   --popover: 0 0% 100%;
   --popover-foreground: 222.2 84% 4.9%;
-  --primary: 222.2 47.4% 11.2%;
-  --primary-foreground: 210 40% 98%;
+  --primary: 217 99% 56%;
+  --primary-foreground: 0 0% 100%;
   --secondary: 210 40% 96.1%;
   --secondary-foreground: 222.2 47.4% 11.2%;
   --muted: 210 40% 96.1%;
@@ -337,8 +337,8 @@ body.vscode-high-contrast:not(.vscode-high-contrast-light)
   --card-foreground: 0 0% 80%;
   --popover: 0 0% 15%;
   --popover-foreground: 0 0% 80%;
-  --primary: 210 40% 98%;
-  --primary-foreground: 0 0% 10%;
+  --primary: 217 99% 56%;
+  --primary-foreground: 0 0% 100%;
   --secondary: 0 0% 18%;
   --secondary-foreground: 0 0% 80%;
   --muted: 0 0% 18%;
@@ -358,6 +358,20 @@ body.vscode-high-contrast:not(.vscode-high-contrast-light)
   --sidebar-accent-foreground: 0 0% 93%;
   --sidebar-border: 0 0% 16%;
   --sidebar-ring: 217.2 91.2% 59.8%;
+}
+
+/* ---------------------------------------------------------------------------
+   Expand button overrides — force white background and dark text so the
+   outline-variant button is legible in both light and dark VS Code themes.
+   --------------------------------------------------------------------------- */
+#expand-container {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 15%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 15%;
+  --accent: 0 0% 92%;
+  --accent-foreground: 0 0% 15%;
+  --border: 0 0% 80%;
 }
 
 /* ---------------------------------------------------------------------------

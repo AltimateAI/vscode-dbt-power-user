@@ -17,8 +17,8 @@ const LineageFeedbackButton = ({ url }: { url: string }): JSX.Element => {
   return (
     <div className="al-tw-scope">
       <Button
-        variant="outline"
-        size="sm"
+        variant="default"
+        size="xs"
         className={styles.collapsibleBtn}
         onClick={handleFeedbackClick}
       >

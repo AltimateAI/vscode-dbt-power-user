@@ -59,6 +59,16 @@ html.lineageBody {
         :global .btn-outline-secondary {
           background-color: var(--background--02);
         }
+
+        :global #expand-container {
+          --background: 0 0% 100%;
+          --foreground: 0 0% 15%;
+          --card: 0 0% 100%;
+          --card-foreground: 0 0% 15%;
+          --accent: 0 0% 92%;
+          --accent-foreground: 0 0% 15%;
+          --border: 0 0% 80%;
+        }
       }
     }
     .demoModal {

@@ -10,8 +10,8 @@ const HelpButton = (): JSX.Element => {
   return (
     <div className="al-tw-scope">
       <Button
-        variant="outline"
-        size="sm"
+        variant="default"
+        size="xs"
         onClick={() => drawerRef.current?.open()}
       >
         <HelpIcon /> Help
