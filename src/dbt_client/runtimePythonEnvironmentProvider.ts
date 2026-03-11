@@ -29,6 +29,8 @@ export class VSCodeRuntimePythonEnvironmentProvider
     return {
       pythonPath: this.vscodeEnvironment.pythonPath,
       environmentVariables: this.vscodeEnvironment.environmentVariables,
+      getEnvironmentVariables: () =>
+        this.vscodeEnvironment.environmentVariables,
     };
   }
 
@@ -61,6 +63,10 @@ export class StaticRuntimePythonEnvironment
   }
 
   get environmentVariables() {
+    return this.vscodeEnvironment.environmentVariables;
+  }
+
+  getEnvironmentVariables() {
     return this.vscodeEnvironment.environmentVariables;
   }
 }

@@ -53,6 +53,7 @@ describe("DBTCoreDetection Tests", () => {
     mockPythonEnvironment = {
       pythonPath: "/path/to/python",
       environmentVariables: { PATH: "/some/path" },
+      getEnvironmentVariables: () => ({ PATH: "/some/path" }),
     } as unknown as jest.Mocked<PythonEnvironment>;
 
     detection = new DBTCoreDetection(

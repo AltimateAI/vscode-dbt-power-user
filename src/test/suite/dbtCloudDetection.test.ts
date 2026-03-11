@@ -40,7 +40,7 @@ describe("DBTCloudDetection Tests", () => {
 
     dbtCloudDetection = new DBTCloudDetection(
       instance(mockCommandProcessExecutionFactory),
-      instance(mockPythonEnvironment),
+      instance(mockPythonEnvironment) as any,
       instance(mockTerminal),
     );
   });
