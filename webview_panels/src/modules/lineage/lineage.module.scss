@@ -84,4 +84,15 @@ html.lineageBody {
       }
     }
   }
+
+  /* Icon-only button that expands to show text on hover,
+     matching the old uiCore Button icon-collapse behavior. */
+  .collapsibleBtn {
+    .collapsibleBtnText {
+      display: none;
+    }
+    &:hover .collapsibleBtnText {
+      display: inline;
+    }
+  }
 }
