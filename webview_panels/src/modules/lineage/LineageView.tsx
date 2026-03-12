@@ -1,5 +1,6 @@
 import { TooltipProvider } from "@altimateai/lego";
 import type { Table } from "@altimateai/ui-components/lineage";
+import "@altimateai/ui-components/styles.css";
 import {
   executeRequestInAsync,
   executeRequestInSync,
