@@ -1,14 +1,13 @@
 import { Disposable, window } from "vscode";
-import { provideSingleton } from "../utils";
 import {
   ChildrenModelTreeview,
   DocumentationTreeview,
+  IconActionsTreeview,
   ModelTestTreeview,
   ParentModelTreeview,
-  IconActionsTreeview,
 } from "./modelTreeviewProvider";
+import { RunHistoryTreeviewProvider } from "./runHistoryTreeviewProvider";
 
-@provideSingleton(TreeviewProviders)
 export class TreeviewProviders implements Disposable {
   private disposables: Disposable[] = [];
 
@@ -18,6 +17,7 @@ export class TreeviewProviders implements Disposable {
     private testModelTreeview: ModelTestTreeview,
     private documentationTreeView: DocumentationTreeview,
     private iconActionsTreeview: IconActionsTreeview,
+    private runHistoryTreeviewProvider: RunHistoryTreeviewProvider,
   ) {
     this.disposables.push(
       window.registerTreeDataProvider(
@@ -39,6 +39,10 @@ export class TreeviewProviders implements Disposable {
       window.registerTreeDataProvider(
         "icon_actions_treeview",
         this.iconActionsTreeview,
+      ),
+      window.registerTreeDataProvider(
+        "run_history_treeview",
+        this.runHistoryTreeviewProvider,
       ),
     );
   }

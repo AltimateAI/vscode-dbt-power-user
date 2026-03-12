@@ -1,56 +1,43 @@
 import {
+  DataPilotHealtCheckParams,
+  DbtIntegrationClient,
+  DBTTerminal,
+  DeferConfig,
+  NotFoundError,
+} from "@altimateai/dbt-integration";
+import { NotebookFileSystemProvider } from "@lib";
+import { inject } from "inversify";
+import {
   commands,
   ConfigurationTarget,
   env,
+  FileChangeEvent,
+  FileChangeType,
   ProgressLocation,
   TextEditor,
   Uri,
   window,
   workspace,
 } from "vscode";
-import { getProjectRelativePath, provideSingleton } from "../utils";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { AltimateRequest, DBTCoreIntegration } from "../altimate";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { AltimateAuthService } from "../services/altimateAuthService";
+import { QueryManifestService } from "../services/queryManifestService";
+import { SharedStateService } from "../services/sharedStateService";
+import { UsersService } from "../services/usersService";
 import { TelemetryService } from "../telemetry";
+import { getProjectRelativePath } from "../utils";
+import { ValidationProvider } from "../validation_provider";
 import {
   AltimateWebviewProvider,
   HandleCommandProps,
   UpdateConfigProps,
 } from "./altimateWebviewProvider";
-import {
-  AltimateRequest,
-  DBTCoreIntegration,
-  NotFoundError,
-} from "../altimate";
-import { SharedStateService } from "../services/sharedStateService";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { DeferToProdService } from "../services/deferToProdService";
-import { ManifestPathType } from "../constants";
-import { QueryManifestService } from "../services/queryManifestService";
-import { ValidationProvider } from "../validation_provider";
-import { UsersService } from "../services/usersService";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];
   projectRoot: string;
 };
-type ConfigOption =
-  | { configPath: string; configType: "Manual" }
-  | {
-      config: unknown;
-      config_schema: { files_required: string }[];
-      configType: "Saas";
-    }
-  | { configType: "All" };
-
-export type AltimateConfigProps = { projectRoot: string } & ConfigOption;
-
-export interface DeferConfig {
-  deferToProduction: boolean;
-  favorState: boolean;
-  manifestPathForDeferral: string;
-  manifestPathType?: ManifestPathType;
-  dbtCoreIntegrationId?: number;
-}
 
 interface DbtProject {
   projectRoot: string;
@@ -66,7 +53,6 @@ enum PromptAnswer {
   YES = "Install altimate datapilot cli",
 }
 
-@provideSingleton(InsightsPanel)
 export class InsightsPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.Insights";
   protected viewPath = "/insights";
@@ -77,13 +63,16 @@ export class InsightsPanel extends AltimateWebviewProvider {
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
     protected altimateRequest: AltimateRequest,
+    private dbtIntegrationClient: DbtIntegrationClient,
     protected telemetry: TelemetryService,
     protected emitterService: SharedStateService,
+    @inject("DBTTerminal")
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
-    private deferToProdService: DeferToProdService,
     private validationProvider: ValidationProvider,
     protected usersService: UsersService,
+    private notebookFileSystemProvider: NotebookFileSystemProvider,
+    protected altimateAuthService: AltimateAuthService,
   ) {
     super(
       dbtProjectContainer,
@@ -93,6 +82,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       dbtTerminal,
       queryManifestService,
       usersService,
+      altimateAuthService,
     );
 
     this._disposables.push(
@@ -118,12 +108,26 @@ export class InsightsPanel extends AltimateWebviewProvider {
             this.sendResponseToWebview({
               command: "renderDeferConfig",
               data: {
-                config: this.deferToProdService.getDeferConfigByProjectRoot(
-                  projectPath.projectRoot.fsPath,
-                ),
+                config: currentProject?.getDeferConfig(),
                 projectPath: currentProject?.projectRoot.fsPath,
                 dbtIntegrationMode,
               },
+            });
+          }
+        },
+      ),
+    );
+
+    this._disposables.push(
+      this.notebookFileSystemProvider.onDidChangeFile(
+        (e: FileChangeEvent[]) => {
+          const createdEvent = e.find(
+            (event) => event.type === FileChangeType.Created,
+          );
+          if (createdEvent) {
+            this.sendResponseToWebview({
+              command: "refetchNotebooks",
+              data: {},
             });
           }
         },
@@ -164,8 +168,9 @@ export class InsightsPanel extends AltimateWebviewProvider {
         "config target: ${window.activeTextEditor?.document.uri}",
       );
 
-      const currentConfig: Record<string, DeferConfig> =
-        this.deferToProdService.getDeferConfigByWorkspace();
+      const currentConfig: Record<string, DeferConfig> = workspace
+        .getConfiguration("dbt")
+        .get("deferConfigPerProject", {});
       const root = getProjectRelativePath(Uri.file(params.projectRoot));
 
       this.dbtTerminal.info(
@@ -262,7 +267,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
         return;
       }
 
-      if (!this.altimateRequest.handlePreviewFeatures()) {
+      if (!this.altimateAuthService.handlePreviewFeatures()) {
         this.projectIntegrations = [];
         if (syncRequestId) {
           this.sendResponseToWebview({
@@ -324,7 +329,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
   ) {
     try {
       this.dbtTerminal.debug("InsightsPanel", "Fetching manifest signed url");
-      const response = await this.altimateRequest.fetchArtifactUrl(
+      const response = await this.dbtIntegrationClient.fetchArtifactUrl(
         "manifest",
         dbtCoreIntegrationId,
       );
@@ -469,7 +474,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
 
   private async altimateScan(
     syncRequestId: string | undefined,
-    args: AltimateConfigProps,
+    args: DataPilotHealtCheckParams,
   ) {
     try {
       this.validationProvider.throwIfNotAuthenticated();
@@ -541,27 +546,45 @@ export class InsightsPanel extends AltimateWebviewProvider {
       args: JSON.stringify(args),
     });
     try {
-      await window.withProgress(
-        {
-          title: `Performing healthcheck...`,
-          location: ProgressLocation.Notification,
-          cancellable: false,
-        },
-        async () => {
-          const projectHealthcheck =
-            await this.dbtProjectContainer.executeAltimateDatapilotHealthcheck(
-              args,
-            );
-          this._panel!.webview.postMessage({
-            command: "response",
-            args: {
-              syncRequestId,
-              body: { projectHealthcheck },
-              status: true,
-            },
-          });
-        },
+      window.showInformationMessage(
+        "Started performing healthcheck. We will notify you once it's done.",
       );
+
+      const projectHealthcheck =
+        await this.dbtProjectContainer.executeAltimateDatapilotHealthcheck(
+          args,
+        );
+      if (this._panel?.visible) {
+        window.showInformationMessage("Healthcheck completed successfully.");
+        this._panel!.webview.postMessage({
+          command: "response",
+          args: {
+            syncRequestId,
+            body: { projectHealthcheck },
+            status: true,
+          },
+        });
+        return;
+      }
+      const result = await window.showInformationMessage(
+        "Healthcheck completed successfully.",
+        "View results",
+      );
+      if (result === "View results") {
+        this.dbtTerminal.debug(
+          "InsightsPanel",
+          "Sending healthcheck results to webview",
+        );
+        await commands.executeCommand("dbtPowerUser.Insights.focus");
+      }
+      this._panel!.webview.postMessage({
+        command: "response",
+        args: {
+          syncRequestId,
+          body: { projectHealthcheck },
+          status: true,
+        },
+      });
     } catch (e) {
       this.emitError(
         syncRequestId,
@@ -581,6 +604,35 @@ export class InsightsPanel extends AltimateWebviewProvider {
     const { command, syncRequestId, ...params } = message;
 
     switch (command) {
+      case "getNotebooks":
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId: message.syncRequestId,
+          // TODO: add other params here later
+          data: await this.altimateRequest.getNotebooks(
+            "",
+            [],
+            params.privacy as string,
+          ),
+        });
+        break;
+      case "getPreConfiguredNotebooks":
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId: message.syncRequestId,
+          data: await this.altimateRequest.getPreConfiguredNotebooks(),
+        });
+        break;
+      case "updateNotebookPrivacy":
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId: message.syncRequestId,
+          data: await this.altimateRequest.updateNotebookPrivacy(
+            params.notebookId as number,
+            params.privacy as string,
+          ),
+        });
+        break;
       case "selectDirectoryForManifest":
         this.selectDirectoryForManifest(syncRequestId);
         break;
@@ -610,16 +662,15 @@ export class InsightsPanel extends AltimateWebviewProvider {
         });
         break;
       case "altimateScan":
-        this.altimateScan(syncRequestId, params as AltimateConfigProps);
+        this.altimateScan(syncRequestId, params as DataPilotHealtCheckParams);
         break;
       case "clearAltimateScanResults":
         commands.executeCommand("dbtPowerUser.clearAltimateScanResults", {});
         break;
       case "getDeferToProductionConfig":
         const { projectRoot } = params as { projectRoot?: string };
-        const projectPath =
-          projectRoot || (await this.getCurrentProject())?.projectRoot.fsPath;
-        if (!projectPath) {
+        const project = this.getCurrentProject();
+        if (!project) {
           this.sendResponseToWebview({
             command: "response",
             syncRequestId,
@@ -630,8 +681,8 @@ export class InsightsPanel extends AltimateWebviewProvider {
           });
           return;
         }
-        const config =
-          this.deferToProdService.getDeferConfigByProjectRoot(projectPath);
+        const projectPath = project.projectRoot.fsPath;
+        const config = project.getDeferConfig();
         this.dbtTerminal.debug(
           "InsightsPanel",
           `getting defer config for ${projectPath}`,

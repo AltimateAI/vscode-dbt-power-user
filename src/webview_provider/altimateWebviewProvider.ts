@@ -1,3 +1,7 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { NotebookSchema } from "@lib";
+import { inject } from "inversify";
+import { PythonException } from "python-bridge";
 import {
   CancellationToken,
   commands,
@@ -13,20 +17,19 @@ import {
   window,
   workspace,
 } from "vscode";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { TelemetryService } from "../telemetry";
-import path = require("path");
-import {
-  ManifestCacheProjectAddedEvent,
-  ManifestCacheChangedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
 import { AltimateRequest, UserInputError } from "../altimate";
-import { SharedStateService } from "../services/sharedStateService";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import {
+  ManifestCacheChangedEvent,
+  ManifestCacheProjectAddedEvent,
+} from "../dbt_client/event/manifestCacheChangedEvent";
+import { AltimateAuthService } from "../services/altimateAuthService";
 import { QueryManifestService } from "../services/queryManifestService";
-import { PythonException } from "python-bridge";
+import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
+import { TelemetryService } from "../telemetry";
+import { extendErrorWithSupportLinks } from "../utils";
+import path = require("path");
 
 export type UpdateConfigProps = {
   key: string;
@@ -55,7 +58,6 @@ export interface SendMessageProps extends Record<string, unknown> {
  * This class is responsible for rendering the webview
  * Each panel needs to have its own provider which extends this class with correct viewPath and description
  */
-@provideSingleton(AltimateWebviewProvider)
 export class AltimateWebviewProvider implements WebviewViewProvider {
   public viewType = "dbtPowerUser.Default";
   protected viewPath = "/"; // webview route path from AppRoutes.tsx
@@ -73,9 +75,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     protected altimateRequest: AltimateRequest,
     protected telemetry: TelemetryService,
     protected emitterService: SharedStateService,
+    @inject("DBTTerminal")
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
+    protected altimateAuthService: AltimateAuthService,
   ) {
     this._disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
@@ -91,6 +95,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     );
   }
 
+  public isWebviewView(
+    panel: WebviewPanel | WebviewView,
+  ): panel is WebviewView {
+    return (<WebviewView>panel).show !== undefined;
+  }
+
   protected sendResponseToWebview({
     command,
     data,
@@ -98,7 +108,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     syncRequestId,
     ...rest
   }: SendMessageProps) {
-    this._webview?.postMessage({
+    this._panel?.webview?.postMessage({
       command,
       args: {
         syncRequestId,
@@ -128,6 +138,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
       this.sendResponseToWebview({
         command: "response",
         syncRequestId,
+        status: true,
         data: response,
       });
     } catch (error) {
@@ -147,6 +158,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         command: "response",
         syncRequestId,
         error: message,
+        status: false,
       });
     }
   }
@@ -216,6 +228,60 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     try {
       switch (command) {
+        case "configEnabled":
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            () => {
+              return workspace
+                .getConfiguration(params.section as string)
+                .get(params.config as string);
+            },
+            command,
+            true,
+          );
+          break;
+        case "deleteNotebook":
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            () => {
+              return this.altimateRequest.deleteNotebook(
+                params.notebookId as number,
+              );
+            },
+            command,
+            true,
+          );
+          break;
+        case "updateNotebook":
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            async () => {
+              const { notebookId, name, data } = params as {
+                notebookId: number;
+                name: string;
+                data?: NotebookSchema;
+              };
+              return await this.altimateRequest.updateNotebook(notebookId, {
+                name,
+                data,
+              });
+            },
+            command,
+            true,
+          );
+          break;
+        case "openNewNotebook":
+          commands.executeCommand(
+            "dbtPowerUser.createDatapilotNotebook",
+            params,
+          );
+          break;
+        case "setToWorkspaceState":
+          this.dbtProjectContainer.setToWorkspaceState(
+            params.key as string,
+            params.value,
+          );
+          break;
         case "openProblemsTab":
           commands.executeCommand("workbench.action.problems.focus");
 
@@ -256,7 +322,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               );
             },
             command,
-            true,
+            params.endpoint === "auth/tenant-info" ? false : true,
           );
           break;
         case "getProjectAdapterType":
@@ -297,7 +363,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           });
           break;
         case "validateCredentials":
-          const isValid = await this.altimateRequest.handlePreviewFeatures();
+          const isValid = this.altimateAuthService.handlePreviewFeatures();
           this.sendResponseToWebview({
             command: "response",
             syncRequestId,
@@ -326,6 +392,15 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             params.value,
           );
           break;
+        case "getFromContext":
+          this.sendResponseToWebview({
+            command: "response",
+            data: this.dbtProjectContainer.getFromGlobalState(
+              params.key as string,
+            ),
+            syncRequestId,
+          });
+          break;
         case "updateConfig":
           if (!this.isUpdateConfigProps(params)) {
             return;
@@ -338,7 +413,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           // If config is for preview feature, then check keys
           const shouldUpdate =
             !params.isPreviewFeature ||
-            this.altimateRequest.handlePreviewFeatures();
+            this.altimateAuthService.handlePreviewFeatures();
           if (shouldUpdate) {
             await workspace
               .getConfiguration("dbt")
@@ -371,6 +446,13 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             });
           }
           break;
+        case "showErrorMessage":
+          const args = params as {
+            infoMessage: string;
+            items: any[];
+          };
+          window.showErrorMessage(args.infoMessage, ...(args.items || []));
+          break;
         case "showWarningMessage":
           this.handleWarningMessage(
             params as Parameters<typeof this.handleWarningMessage>["0"],
@@ -398,6 +480,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           );
 
           break;
+        case "queryResultTab:render":
+          this.emitterService.fire({
+            command: "queryResultTab:render",
+            payload: params,
+          });
+          break;
         default:
           break;
       }
@@ -408,6 +496,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         err,
       );
     }
+  }
+
+  protected async checkIfWebviewReady() {
+    return new Promise<void>((resolve) => {
+      const interval = setInterval(() => {
+        if (this.isWebviewReady) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 500);
+    });
   }
 
   resolveWebviewView(
@@ -473,6 +572,196 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         ),
       ),
     );
+    const LineageGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "lineage.gif",
+        ),
+      ),
+    );
+
+    // Tutorial images - convert URIs to strings for serialization
+    const GenerateModelFromSourceGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "generate-model-from-source.gif",
+        ),
+      ),
+    );
+    const GenerateModelFromSQLGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "generate-model-from-SQL.gif",
+        ),
+      ),
+    );
+    const AutocompleteModelGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "autocomplete-model.gif",
+        ),
+      ),
+    );
+    const AutocompleteMacroGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "autocomplete-macro.gif",
+        ),
+      ),
+    );
+    const AutocompleteSourceGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "autocomplete-source.gif",
+        ),
+      ),
+    );
+    const DefinitionModelGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "definition-model.gif",
+        ),
+      ),
+    );
+    const DefinitionMacroGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "definition-macro.gif",
+        ),
+      ),
+    );
+    const QueryResultsAndSQLGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "query-results-and-SQL.gif",
+        ),
+      ),
+    );
+    const EDAAndExportGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "EDA-and-export.gif",
+        ),
+      ),
+    );
+    const QueryExplanationGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "query-explanation.gif",
+        ),
+      ),
+    );
+    const GraphGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "graph.gif",
+        ),
+      ),
+    );
+    const DocsEditorGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "docs-editor.gif",
+        ),
+      ),
+    );
+    const DocGenerationUsingAiGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "doc-generation-using-ai.gif",
+        ),
+      ),
+    );
+    const ModelLineageGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "model-lineage.gif",
+        ),
+      ),
+    );
+    const ColumnLineageGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "column-lineage.gif",
+        ),
+      ),
+    );
+    const ProjectScanGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "project-scan.gif",
+        ),
+      ),
+    );
+
     const codiconsUri = webview.asWebviewUri(
       Uri.joinPath(
         extensionUri,
@@ -502,12 +791,32 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             <link rel="stylesheet" type="text/css" href="${codiconsUri}">
           </head>
       
-          <body>
+          <body class="${this.viewPath.replace(/\//g, "")}">
             <div id="root"></div>
             <div id="sidebar"></div>
+            <div id="modal"></div>
             <script nonce="${nonce}" >
               window.viewPath = "${this.viewPath}";
               var spinnerUrl = "${SpinnerUrl}"
+              var lineageGif = "${LineageGif}"
+              window.tutorialImages = {
+                generateModelFromSource: "${GenerateModelFromSourceGif}",
+                generateModelFromSQL: "${GenerateModelFromSQLGif}",
+                autocompleteModel: "${AutocompleteModelGif}",
+                autocompleteMacro: "${AutocompleteMacroGif}",
+                autocompleteSource: "${AutocompleteSourceGif}",
+                definitionModel: "${DefinitionModelGif}",
+                definitionMacro: "${DefinitionMacroGif}",
+                queryResultsAndSQL: "${QueryResultsAndSQLGif}",
+                edaAndExport: "${EDAAndExportGif}",
+                queryExplanation: "${QueryExplanationGif}",
+                graph: "${GraphGif}",
+                docsEditor: "${DocsEditorGif}",
+                docGenerationUsingAi: "${DocGenerationUsingAiGif}",
+                modelLineage: "${ModelLineageGif}",
+                columnLineage: "${ColumnLineageGif}",
+                projectScan: "${ProjectScanGif}"
+              }
             </script>
             
             <script nonce="${nonce}" type="module" src="${indexJs}"></script>

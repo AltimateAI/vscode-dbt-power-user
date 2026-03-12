@@ -1,57 +1,38 @@
-import { CheckedSquareIcon, EmptySquareIcon } from "@assets/icons";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import useAppContext from "@modules/app/useAppContext";
 import CommonActionButtons from "@modules/commonActionButtons/CommonActionButtons";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
-import { Button, Stack } from "@uicore";
+import { Stack } from "@uicore";
 import { useMemo } from "react";
 import DocGeneratorColumnsList from "./components/docGenerator/DocGeneratorColumnsList";
 import DocGeneratorInput from "./components/docGenerator/DocGeneratorInput";
 import DocumentationHelpContent from "./components/help/DocumentationHelpContent";
 import SaveDocumentation from "./components/saveDocumentation/SaveDocumentation";
 import EntityWithTests from "./components/tests/EntityWithTests";
-import {
-  addToSelectedPage,
-  removeFromSelectedPage,
-  updateCurrentDocsData,
-} from "./state/documentationSlice";
-import { DocsGenerateModelRequestV2, Pages } from "./state/types";
+import { updateCurrentDocsData } from "./state/documentationSlice";
+import { DocsGenerateModelRequestV2 } from "./state/types";
 import useDocumentationContext from "./state/useDocumentationContext";
 import classes from "./styles.module.scss";
 import { addDefaultActions } from "./utils";
 import ConversationsRightPanel from "./components/conversation/ConversationsRightPanel";
-import useIncomingDocsDataHandler from "./useIncomingDocsDataHandler";
+import CoachAiIfModified from "./components/docGenerator/CoachAiIfModified";
+import Citations from "./components/docGenerator/Citations";
+import { Citation } from "@lib";
+import BulkGenerateButton from "./components/docGenerator/BulkGenerateButton";
+import { BulkDocumentationPropagationPanel } from "./components/documentationPropagation/DocumentationPropagation";
 
 const DocumentationEditor = (): JSX.Element => {
   const {
-    state: { currentDocsData, currentDocsTests, selectedPages },
+    state: { currentDocsData, currentDocsTests },
     dispatch,
   } = useDocumentationContext();
   const { postMessageToDataPilot } = useAppContext();
-  useIncomingDocsDataHandler();
-
-  const handleClick = (page: Pages) => {
-    if (selectedPages.includes(page)) {
-      dispatch(removeFromSelectedPage(page));
-      return;
-    }
-    dispatch(addToSelectedPage(page));
-  };
 
   const modelTests = useMemo(() => {
     return currentDocsTests?.filter((test) => !test.column_name);
   }, [currentDocsTests]);
-
-  const isDocumentationPageSelected = useMemo(
-    () => selectedPages.includes(Pages.DOCUMENTATION),
-    [selectedPages],
-  );
-  const isTestsPageSelected = useMemo(
-    () => selectedPages.includes(Pages.TESTS),
-    [selectedPages],
-  );
 
   const onModelDocSubmit = async (data: DocsGenerateModelRequestV2) => {
     if (!currentDocsData) {
@@ -90,13 +71,22 @@ const DocumentationEditor = (): JSX.Element => {
         description: data.description,
         user_instructions: data.user_instructions,
         columns: currentDocsData.columns,
-      })) as { description: string };
+      })) as {
+        column_descriptions?: {
+          column_name: string;
+          column_description: string;
+          column_citations?: { id: string; content: string }[];
+        }[];
+        model_description?: string;
+        model_citations?: Citation[];
+      };
 
       dispatch(
         updateCurrentDocsData({
           name: currentDocsData.name,
-          description: result.description,
+          description: result.model_description,
           isNewGeneration: true,
+          citations: result.model_citations,
         }),
       );
     } catch (error) {
@@ -119,75 +109,48 @@ const DocumentationEditor = (): JSX.Element => {
   }
 
   return (
-    <div className={classes.documentationWrapper}>
+    <div className={`${classes.documentationWrapper} ${classes.limitWidth}`}>
       <Stack className="mb-2 justify-content-between">
+        <h2>Documentation Editor</h2>
         <Stack>
-          <Button
-            color={isDocumentationPageSelected ? "primary" : "secondary"}
-            onClick={() => handleClick(Pages.DOCUMENTATION)}
-          >
-            <span className="d-inline-block me-2">
-              {isDocumentationPageSelected ? (
-                <CheckedSquareIcon />
-              ) : (
-                <EmptySquareIcon />
-              )}
-            </span>
-            Documentation
-          </Button>
-          <Button
-            color={isTestsPageSelected ? "primary" : "secondary"}
-            onClick={() => handleClick(Pages.TESTS)}
-          >
-            <span className="d-inline-block me-2">
-              {isTestsPageSelected ? (
-                <CheckedSquareIcon />
-              ) : (
-                <EmptySquareIcon />
-              )}
-            </span>
-            Tests
-          </Button>
-          {/* <Button
-          color={activePage === Pages.TAGS ? "primary" : "secondary"}
-          onClick={() => handleClick(Pages.TAGS)}
-        >
-          Tags
-        </Button> */}
+          <SaveDocumentation />
+          <BulkGenerateButton />
+          <CommonActionButtons />
         </Stack>
-        <CommonActionButtons />
       </Stack>
       <div className={classes.docGenerator}>
-        <Stack className={classes.head}>
-          <Stack>
-            <h3 className="mb-2">Model: {currentDocsData.name}</h3>
-          </Stack>
-        </Stack>
         <Stack className={classes.bodyWrap}>
           <Stack direction="column" className={classes.body}>
             <Stack direction="column">
-              <Stack direction="column" style={{ margin: "0px 0 10px 0" }}>
-                {isDocumentationPageSelected ? (
-                  <DocGeneratorInput
-                    entity={currentDocsData}
-                    type={EntityType.MODEL}
-                    onSubmit={onModelDocSubmit}
-                    placeholder="Describe your model"
-                  />
-                ) : null}
+              <Stack direction="column" style={{ margin: "1rem 0 10px 0" }}>
+                <DocGeneratorInput
+                  entity={currentDocsData}
+                  type={EntityType.MODEL}
+                  onSubmit={onModelDocSubmit}
+                  placeholder="Describe your model"
+                  title={`Model: ${currentDocsData.name}`}
+                  tests={modelTests}
+                />
                 <EntityWithTests
                   title={currentDocsData.name}
                   tests={modelTests}
                   type={EntityType.MODEL}
                 />
+                <Stack>
+                  <Citations citations={currentDocsData.citations} />
+                  <CoachAiIfModified
+                    model={currentDocsData.name}
+                    extra={{ isModelDoc: true }}
+                  />
+                </Stack>
               </Stack>
               <DocGeneratorColumnsList />
             </Stack>
-            <SaveDocumentation />
           </Stack>
         </Stack>
       </div>
       <ConversationsRightPanel />
+      <BulkDocumentationPropagationPanel />
     </div>
   );
 };

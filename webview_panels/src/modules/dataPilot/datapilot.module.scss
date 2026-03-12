@@ -15,6 +15,15 @@ body {
   :global .card {
     padding: 20px;
     background: var(--background-base);
+
+    [class^="_coachAi"]{
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+
+      li{
+        margin: 0;
+      }
+    }
   }
   :global .card-title {
     font-size: 14px;
@@ -143,4 +152,8 @@ body {
       }
     }}
   }
+}
+
+.codeblock{
+  --code-bg: transparent;
 }

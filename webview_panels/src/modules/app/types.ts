@@ -10,6 +10,11 @@ export interface AppStateProps {
   isComponentsApiInitialized: boolean;
   users: Record<number, User>;
   currentUser: User | null;
+  tenantInfo: {
+    frontendUrl: string | null;
+    currency: string;
+    teammatesEnabled: boolean;
+  };
 }
 
 export interface ContextProps {

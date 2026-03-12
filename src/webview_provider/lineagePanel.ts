@@ -1,26 +1,23 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import {
   CancellationToken,
   commands,
   Disposable,
-  env,
   TextEditor,
   Uri,
   WebviewView,
   WebviewViewProvider,
   WebviewViewResolveContext,
   window,
-  workspace,
 } from "vscode";
-import { provideSingleton } from "../utils";
-import { TelemetryService } from "../telemetry";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
-import { ModelGraphViewPanel } from "./modelGraphViewPanel";
+} from "../dbt_client/event/manifestCacheChangedEvent";
+import { TelemetryService } from "../telemetry";
 import { NewLineagePanel } from "./newLineagePanel";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 export interface LineagePanelView extends WebviewViewProvider {
   init(): void;
@@ -30,7 +27,6 @@ export interface LineagePanelView extends WebviewViewProvider {
   handleCommand(message: { command: string; args: any }): Promise<void> | void;
 }
 
-@provideSingleton(LineagePanel)
 export class LineagePanel implements WebviewViewProvider, Disposable {
   public static readonly viewType = "dbtPowerUser.Lineage";
 
@@ -42,9 +38,9 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
 
   public constructor(
     private lineagePanel: NewLineagePanel,
-    private legacyLineagePanel: ModelGraphViewPanel,
-    dbtProjectContainer: DBTProjectContainer,
+    private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {
     this.disposables.push(
@@ -65,12 +61,7 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
   }
 
   private getPanel() {
-    const isEnableNewLineagePanel = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("enableNewLineagePanel", false);
-    return isEnableNewLineagePanel
-      ? this.lineagePanel
-      : this.legacyLineagePanel;
+    return this.lineagePanel;
   }
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
@@ -109,18 +100,12 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     this.panel = panel;
     this.context = context;
     this.token = token;
-    const panelType = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("enableNewLineagePanel", false);
 
     this.init();
     panel.webview.onDidReceiveMessage(this.handleWebviewMessage, null, []);
     const sendLineageViewEvent = () => {
       if (this.panel!.visible) {
-        // keeping the legacy event name same for analysis
-        this.telemetry.sendTelemetryEvent(
-          panelType ? "NewLineagePanelActive" : "LineagePanelActive",
-        );
+        this.telemetry.sendTelemetryEvent("NewLineagePanelActive");
       }
     };
     sendLineageViewEvent();
@@ -139,7 +124,7 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     const { command, args } = message;
     // common commands
     if (command === "openFile") {
-      const { url } = args;
+      const url = args.params?.url;
       if (!url) {
         return;
       }
@@ -150,34 +135,8 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
       return;
     }
 
-    if (command === "setNewLineageView") {
-      await workspace
-        .getConfiguration("dbt")
-        .update("enableNewLineagePanel", true);
-      this.init();
-      this.telemetry.sendTelemetryEvent("NewLineagePanelSelected");
-      return;
-    }
-
-    if (command === "setLegacyLineageView") {
-      await workspace
-        .getConfiguration("dbt")
-        .update("enableNewLineagePanel", false);
-      this.init();
-      this.telemetry.sendTelemetryEvent("LegacyLineagePanelSelected");
-      return;
-    }
-
     if (command === "init") {
       this.getPanel()?.init();
-      return;
-    }
-
-    if (command === "openURL") {
-      if (!args.url) {
-        return;
-      }
-      env.openExternal(Uri.parse(args.url));
       return;
     }
 
@@ -193,7 +152,8 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     }
 
     // specific commands
-    this.telemetry.sendTelemetryEvent(command);
+    // Will add specific events in respective places in the future
+    // this.telemetry.sendTelemetryEvent(command);
     this.getPanel().handleCommand(message);
   };
 }

@@ -50,11 +50,7 @@ const ShareDbtDocsButton = (): JSX.Element => {
     }
   };
   return (
-    <Drawer
-      buttonProps={{ outline: true }}
-      buttonText={<>Share</>}
-      title="Share"
-    >
+    <Drawer buttonProps={{ outline: true }} buttonText="Share" title="Share">
       {sharedUrl ? (
         <div>
           <h4>Share this url:</h4>

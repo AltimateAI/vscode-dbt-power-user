@@ -1,6 +1,7 @@
 import type { Meta } from "@storybook/react";
 import PerspectiveViewer from "./PerspectiveViewer";
 import { TableData } from "@finos/perspective";
+import PerspectiveErrorBoundary from "./PerspectiveErrorBoundary";
 
 const meta = {
   title: "PerspectiveViewer",
@@ -18,6 +19,8 @@ export default meta;
 export const DefaultPerspectiveViewerView = {
   render: (): JSX.Element => {
     return (
+    <PerspectiveErrorBoundary>
+
       <PerspectiveViewer
         columnNames={[
           "customer_id",
@@ -41,7 +44,7 @@ export const DefaultPerspectiveViewerView = {
           [
             {
               customer_id: 1,
-              first_name: "Michael",
+              first_name: '{"first_name": "John", "last_name": "P."}',
               last_name: "P.",
               first_order: "2018-01-01",
               most_recent_order: "2018-02-10",
@@ -50,7 +53,7 @@ export const DefaultPerspectiveViewerView = {
             },
             {
               customer_id: 2,
-              first_name: "Shawn",
+              first_name: '{"first_name": "John", "last_name": "P',
               last_name: "M.",
               first_order: "2018-01-11",
               most_recent_order: "2018-01-11",
@@ -59,7 +62,7 @@ export const DefaultPerspectiveViewerView = {
             },
             {
               customer_id: 3,
-              first_name: "Kathleen",
+              first_name: "",
               last_name: "P.",
               first_order: "2018-01-02",
               most_recent_order: "2018-03-11",
@@ -68,8 +71,10 @@ export const DefaultPerspectiveViewerView = {
             },
             {
               customer_id: 6,
-              first_name: "Sarah",
-              last_name: "R.",
+              first_name:
+                '["Hello, world!","🌟","🚀","😊","🍕","❤️","📚","🎉","🌍","✨","💡","🔥","🕺","💻","🎵","🎨","⚽","🎮","🧩","🖼️","🧠"]',
+              last_name:
+                '["Hello, world!","🌟","🚀","😊","🍕","❤️","📚","🎉","🌍","✨","💡","🔥","🕺","💻","🎵","🎨","⚽","🎮","🧩","🖼️","🧠"]',
               first_order: "2018-02-19",
               most_recent_order: "2018-02-19",
               number_of_orders: 1,
@@ -77,8 +82,9 @@ export const DefaultPerspectiveViewerView = {
             },
             {
               customer_id: 7,
-              first_name: "Martin",
-              last_name: "M.",
+              first_name:
+                "MartinMartinMartinMartinMartinMartinMartinMartinMartinMartinMartinMartinMartinMartinMartin",
+              last_name: '{"last_name": { "last_name": "R."}}',
               first_order: "2018-01-14",
               most_recent_order: "2018-01-14",
               number_of_orders: 1,
@@ -86,7 +92,7 @@ export const DefaultPerspectiveViewerView = {
             },
             {
               customer_id: 8,
-              first_name: "Frank",
+              first_name: "{}",
               last_name: "R.",
               first_order: "2018-01-29",
               most_recent_order: "2018-03-12",
@@ -240,6 +246,7 @@ export const DefaultPerspectiveViewerView = {
           ] as unknown as TableData
         }
       />
+    </PerspectiveErrorBoundary>
     );
   },
 };

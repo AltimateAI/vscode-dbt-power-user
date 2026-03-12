@@ -2,19 +2,15 @@ import useDocumentationContext from "@modules/documentationEditor/state/useDocum
 import { Alert, Stack } from "@uicore";
 import DocGeneratorColumn from "./DocGeneratorColumn";
 import classes from "../../styles.module.scss";
-import BulkGenerateButton from "./BulkGenerateButton";
 import SyncWithDatabase from "./SyncWithDatabase";
 import { useMemo } from "react";
-import { DBTModelTest, Pages } from "@modules/documentationEditor/state/types";
+import { DBTModelTest } from "@modules/documentationEditor/state/types";
+import SearchColumnsInput from "../search/SearchColumnsInput";
 
 const DocGeneratorColumnsList = (): JSX.Element => {
   const {
-    state: { currentDocsData, currentDocsTests, selectedPages },
+    state: { currentDocsData, currentDocsTests, searchQuery },
   } = useDocumentationContext();
-  const isDocumentationPageSelected = useMemo(
-    () => selectedPages.includes(Pages.DOCUMENTATION),
-    [selectedPages],
-  );
 
   const testsPerColumns = useMemo(() => {
     return (
@@ -37,6 +33,14 @@ const DocGeneratorColumnsList = (): JSX.Element => {
     );
   }, [currentDocsTests]);
 
+  const filteredColumns = useMemo(() => {
+    if (!currentDocsData?.columns) return [];
+    if (!searchQuery) return currentDocsData.columns;
+    return currentDocsData.columns.filter((column) =>
+      column.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  }, [currentDocsData?.columns, searchQuery]);
+
   return (
     <div>
       <div style={{ marginBottom: 40 }}>
@@ -45,14 +49,12 @@ const DocGeneratorColumnsList = (): JSX.Element => {
             <h3>Columns</h3>
             <SyncWithDatabase />
           </Stack>
-          {isDocumentationPageSelected ? <BulkGenerateButton /> : null}
+          <SearchColumnsInput />
         </Stack>
-        {isDocumentationPageSelected ? (
-          <Alert color="warning">
-            Note: If you don’t want to override existing documentation, please
-            (re)generate documentation at the individual column level below
-          </Alert>
-        ) : null}
+        <Alert color="warning">
+          Note: If you don’t want to override existing documentation, please
+          (re)generate documentation at the individual column level below
+        </Alert>
       </div>
       {!currentDocsData?.columns ? (
         <Stack>
@@ -60,9 +62,9 @@ const DocGeneratorColumnsList = (): JSX.Element => {
         </Stack>
       ) : null}
       <Stack direction="column" className={classes.columns}>
-        {currentDocsData?.columns.map((column) => (
+        {filteredColumns.map((column) => (
           <DocGeneratorColumn
-            key={column.name}
+            key={`${column.name}-${column.type}`}
             column={column}
             tests={testsPerColumns[column.name]}
           />

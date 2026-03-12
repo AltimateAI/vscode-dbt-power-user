@@ -2,9 +2,11 @@
 
 "use strict";
 
+const WebpackShellPluginNext = require("webpack-shell-plugin-next");
 const TerserPlugin = require("terser-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 const path = require("path");
+const { cpSync } = require("fs");
 
 /**@type {import('webpack').Configuration}*/
 const config = {
@@ -30,15 +32,32 @@ const config = {
     "@azure/opentelemetry-instrumentation-azure-sdk",
     "@opentelemetry/instrumentation",
     "@azure/functions-core",
+    "zeromq",
+    "@altimateai/core",
+    "@altimateai/altimate-core",
+    "@altimateai/altimate-core-darwin-arm64",
+    "@altimateai/altimate-core-darwin-x64",
+    "@altimateai/altimate-core-linux-arm64-gnu",
+    "@altimateai/altimate-core-linux-x64-gnu",
+    "@altimateai/altimate-core-win32-x64-msvc",
   ],
   resolve: {
     extensions: [".ts", ".js"],
+    alias: {
+      "@extension": path.resolve(__dirname, "./src/modules.ts"),
+      "@lib": path.resolve(__dirname, "./src/lib/index"),
+      // Development: use local TypeScript source (same as webpack and tsconfig)
+      // "@altimateai/dbt-integration": path.resolve(
+      //   __dirname,
+      //   "../altimate-dbt-integration/src/index.ts",
+      // ),
+    },
   },
   module: {
     rules: [
       {
         test: /\.ts$/,
-        exclude: /node_modules/,
+        exclude: /(node_modules|src\/test)/,
         use: [
           {
             loader: "ts-loader",
@@ -51,29 +70,170 @@ const config = {
     new CopyPlugin({
       patterns: [
         {
-          from: path.resolve(__dirname, "dbt_core_integration.py"),
-          to: "dbt_core_integration.py",
+          from: path.resolve(__dirname, "altimate_notebook_kernel.py"),
+          to: path.resolve(
+            __dirname,
+            "dist/altimate_python_packages/altimate_notebook_kernel.py",
+          ),
         },
+        // Development: use local Python files (same as webpack and tsconfig)
+        // {
+        //   from: path.resolve(
+        //     __dirname,
+        //     "../altimate-dbt-integration/node_modules/python-bridge/node_python_bridge.py",
+        //   ),
+        //   to: "node_python_bridge.py",
+        // },
+        // {
+        //   from: path.resolve(
+        //     __dirname,
+        //     "../altimate-dbt-integration/src/altimate_python_packages/dbt_core_integration.py",
+        //   ),
+        //   to: "dbt_core_integration.py",
+        // },
+        // {
+        //   from: path.resolve(
+        //     __dirname,
+        //     "../altimate-dbt-integration/src/altimate_python_packages/dbt_utils.py",
+        //   ),
+        //   to: "dbt_utils.py",
+        // },
+        // {
+        //   from: path.resolve(
+        //     __dirname,
+        //     "../altimate-dbt-integration/src/altimate_python_packages/altimate_packages/",
+        //   ),
+        //   to: "altimate_packages/",
+        // },
+        // Production: use npm package (commented out for development)
         {
-          from: path.resolve(__dirname, "dbt_cloud_integration.py"),
-          to: "dbt_cloud_integration.py",
-        },
-        {
-          from: path.resolve(__dirname, "dbt_healthcheck.py"),
-          to: "dbt_healthcheck.py",
+          from: path.resolve(
+            __dirname,
+            "node_modules/@altimateai/dbt-integration/dist/node_python_bridge.py",
+          ),
+          to: path.resolve(__dirname, "dist/node_python_bridge.py"),
         },
         {
           from: path.resolve(
             __dirname,
-            "node_modules/python-bridge/node_python_bridge.py",
+            "node_modules/@altimateai/dbt-integration/dist/altimate_python_packages/dbt_core_integration.py",
           ),
-          to: "node_python_bridge.py",
+          to: path.resolve(
+            __dirname,
+            "dist/altimate_python_packages/dbt_core_integration.py",
+          ),
         },
         {
-          from: path.resolve(__dirname, "altimate_packages/"),
-          to: "altimate_packages/",
+          from: path.resolve(
+            __dirname,
+            "node_modules/@altimateai/dbt-integration/dist/altimate_python_packages/dbt_utils.py",
+          ),
+          to: path.resolve(
+            __dirname,
+            "dist/altimate_python_packages/dbt_utils.py",
+          ),
+        },
+        {
+          from: path.resolve(
+            __dirname,
+            "node_modules/@altimateai/dbt-integration/dist/altimate_python_packages/altimate_packages/",
+          ),
+          to: path.resolve(
+            __dirname,
+            "dist/altimate_python_packages/altimate_packages/",
+          ),
         },
       ],
+    }),
+    new WebpackShellPluginNext({
+      onBuildStart: {
+        scripts: [
+          () => {
+            try {
+              console.log("copying notebook modules");
+              cpSync("./node_modules/zeromq", "./dist/node_modules/zeromq", {
+                recursive: true,
+              });
+              try {
+                cpSync(
+                  require.resolve("@altimateai/core/"),
+                  "./dist/node_modules/@altimateai/core",
+                  { recursive: true },
+                );
+              } catch (e) {
+                console.warn(`Skipping @altimateai/core: ${e.message}`);
+              }
+              // Bundle altimate-core JS loader
+              try {
+                cpSync(
+                  `./node_modules/@altimateai/altimate-core`,
+                  `./dist/node_modules/@altimateai/altimate-core`,
+                  { recursive: true },
+                );
+                console.log(`Copied @altimateai/altimate-core`);
+              } catch (e) {
+                console.warn(
+                  `Skipping @altimateai/altimate-core: ${e.message}`,
+                );
+              }
+
+              // Copy only the .node binary directly into the altimate-core/
+              // directory — skip the platform package directories entirely.
+              // napi-rs index.js falls back to require('./altimate-core.<platform>.node')
+              // when the platform package isn't found, so this works and halves VSIX size.
+              const { readdirSync } = require("fs");
+              const altimatePlatformPackages = [
+                "@altimateai/altimate-core-darwin-arm64",
+                "@altimateai/altimate-core-darwin-x64",
+                "@altimateai/altimate-core-linux-arm64-gnu",
+                "@altimateai/altimate-core-linux-x64-gnu",
+                "@altimateai/altimate-core-win32-x64-msvc",
+              ];
+              const coreDistDir =
+                "./dist/node_modules/@altimateai/altimate-core";
+              for (const pkg of altimatePlatformPackages) {
+                const srcDir = `./node_modules/${pkg}`;
+                try {
+                  if (!require("fs").existsSync(srcDir)) continue;
+                  const files = readdirSync(srcDir);
+                  for (const file of files) {
+                    if (file.endsWith(".node")) {
+                      cpSync(
+                        path.join(srcDir, file),
+                        path.join(coreDistDir, file),
+                      );
+                      console.log(
+                        `Copied ${file} into altimate-core/ (skipped platform package dir)`,
+                      );
+                    }
+                  }
+                } catch (e) {
+                  console.warn(`Skipping ${pkg}: ${e.message}`);
+                }
+              }
+              cpSync(
+                "./node_modules/@aminya/node-gyp-build",
+                "./dist/node_modules/@aminya/node-gyp-build",
+                {
+                  recursive: true,
+                },
+              );
+              cpSync(
+                "./node_modules/node-gyp-build",
+                "./dist/node_modules/node-gyp-build",
+                {
+                  recursive: true,
+                },
+              );
+              console.log("copied notebook modules");
+            } catch (error) {
+              console.error(error.message);
+            }
+          },
+        ],
+        blocking: true,
+        parallel: false,
+      },
     }),
   ],
   optimization: {
@@ -97,4 +257,72 @@ const config = {
   },
 };
 
-module.exports = config;
+const rendererConfig = {
+  devtool: "source-map",
+  target: ["web", "es5"],
+  externals: {
+    vscode: "commonjs vscode",
+    zeromq: "zeromq",
+  },
+  entry: "./webview_panels/src/notebook/index.tsx",
+  output: {
+    path: path.resolve(__dirname, "dist"),
+    filename: "renderer.js",
+    libraryTarget: "module",
+  },
+  resolve: {
+    extensions: [".ts", ".tsx", ".css"],
+    alias: {
+      "@uicore": path.resolve(__dirname, "./webview_panels/src/uiCore"),
+      "@assets": path.resolve(__dirname, "./webview_panels/src/assets"),
+      "@modules": path.resolve(__dirname, "./webview_panels/src/modules"),
+      "@testUtils": path.resolve(__dirname, "./webview_panels/src/testUtils"),
+      "@vscodeApi": path.resolve(
+        __dirname,
+        "./webview_panels/src/modules/vscode",
+      ),
+      "@lib": path.resolve(__dirname, "./webview_panels/src/lib"),
+    },
+  },
+  experiments: {
+    outputModule: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /\.tsx?$/,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: "ts-loader",
+            options: {
+              configFile: path.resolve(
+                __dirname,
+                "./webview_panels/tsconfig.json",
+              ),
+              projectReferences: true,
+              compilerOptions: {
+                module: "esnext",
+                noEmit: false,
+                outDir: "../../out/src/renderer",
+              },
+            },
+          },
+          // {
+          //   loader: "esbuild-loader",
+          //   options: {
+          //     loader: "tsx", // Remove this if you're not using JSX
+          //     target: "es2015", // Syntax to compile to (see options below for possible values)
+          //   },
+          // },
+        ],
+      },
+      {
+        test: /\.css$/i,
+        use: ["raw-loader"],
+      },
+    ],
+  },
+};
+
+module.exports = [config];

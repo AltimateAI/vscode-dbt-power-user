@@ -1,11 +1,10 @@
 import { Disposable, languages } from "vscode";
 import { DBTPowerUserExtension } from "../dbtPowerUserExtension";
-import { provideSingleton } from "../utils";
+import { DepthDecorationProvider } from "./depthDecorationProvider";
+import { MacroHoverProvider } from "./macroHoverProvider";
 import { ModelHoverProvider } from "./modelHoverProvider";
 import { SourceHoverProvider } from "./sourceHoverProvider";
-import { MacroHoverProvider } from "./macroHoverProvider";
 
-@provideSingleton(HoverProviders)
 export class HoverProviders implements Disposable {
   private disposables: Disposable[] = [];
 
@@ -13,6 +12,7 @@ export class HoverProviders implements Disposable {
     private modelHoverProvider: ModelHoverProvider,
     private sourceHoverProvider: SourceHoverProvider,
     private macroHoverProvider: MacroHoverProvider,
+    private depthDecorationProvider: DepthDecorationProvider,
   ) {
     this.disposables.push(
       languages.registerHoverProvider(
@@ -30,6 +30,12 @@ export class HoverProviders implements Disposable {
       languages.registerHoverProvider(
         DBTPowerUserExtension.DBT_SQL_SELECTOR,
         this.macroHoverProvider,
+      ),
+    );
+    this.disposables.push(
+      languages.registerHoverProvider(
+        DBTPowerUserExtension.DBT_SQL_SELECTOR,
+        this.depthDecorationProvider,
       ),
     );
   }

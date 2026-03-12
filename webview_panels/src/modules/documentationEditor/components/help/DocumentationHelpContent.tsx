@@ -1,6 +1,8 @@
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { Alert, Button, Stack } from "@uicore";
+import { TelemetryEvents } from "@telemetryEvents";
+import { sendTelemetryEvent } from "../telemetry";
 
 const DocumentationHelpContent = ({
   showMissingDocumentationMessage,
@@ -54,7 +56,7 @@ const DocumentationHelpContent = ({
         <b>Generate Documentation:</b> This functionality requires an API key.
         You can generate descriptions for models and columns using the generate
         button. You can also bulk generate in a single action using the “Bulk
-        Generate” button. If you want to change settings like language, or
+        actions” button. If you want to change settings like language, or
         persona, please use the “Settings” button in the right top corner.{" "}
       </p>
       <p>
@@ -71,12 +73,32 @@ const DocumentationHelpContent = ({
       </p>
       <p>
         Need more help? Check out the&nbsp;
-        <a href="https://docs.myaltimate.com/document/generatedoc/">
+        <a
+          onClick={() =>
+            sendTelemetryEvent(
+              TelemetryEvents[
+                "DocumentationEditor/HelpDocumentationLinkInDocumentationClick"
+              ],
+            )
+          }
+          href="https://docs.myaltimate.com/document/generatedoc/"
+        >
           documentation
         </a>
         . For any issues or concerns, please{" "}
-        <a href="https://app.myaltimate.com/contactus">contact us</a> via chat
-        or Slack. Happy documenting!
+        <a
+          onClick={() =>
+            sendTelemetryEvent(
+              TelemetryEvents[
+                "DocumentationEditor/HelpContactusLinkInDocumentationClick"
+              ],
+            )
+          }
+          href="https://app.myaltimate.com/contactus"
+        >
+          contact us
+        </a>{" "}
+        via chat or Slack. Happy documenting!
       </p>
     </Stack>
   );

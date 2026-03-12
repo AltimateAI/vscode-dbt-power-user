@@ -15,7 +15,7 @@ const Stack = forwardRef(function stack(
   return (
     <div
       {...rest}
-      className={`${rest.className} ${classes.stack} stack-${direction}`}
+      className={`${rest.className ?? ""} ${classes.stack} stack-${direction}`}
       ref={ref}
     >
       {children}

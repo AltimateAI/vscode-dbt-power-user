@@ -6,6 +6,7 @@ import { Button } from "@uicore";
 import { useState } from "react";
 import { DataPilotChatAction } from "../../types";
 import { DocGenFollowup } from "./types";
+import { Citation } from "@lib";
 
 interface Props {
   action: DataPilotChatAction;
@@ -35,7 +36,7 @@ const AiDocActionButton = ({ action, onNewGeneration }: Props): JSX.Element => {
       follow_up_instructions: { instruction: getFollowupInstruction() },
     })) as
       | { columns: Partial<DBTDocumentationColumn>[] }
-      | { description: string };
+      | { model_description: string; model_citations?: Citation[] };
 
     setIsLoading(false);
 
@@ -49,11 +50,12 @@ const AiDocActionButton = ({ action, onNewGeneration }: Props): JSX.Element => {
         ...result.columns[0],
       };
     }
-    if ("description" in result) {
+    if ("model_description" in result) {
       generatedResult = {
         ...generatedResult,
-        description: result.description,
-        model: chat?.meta?.name as string,
+        description: result.model_description,
+        citations: result.model_citations,
+        model: (chat?.meta?.name as string | undefined) ?? "",
       };
     }
 

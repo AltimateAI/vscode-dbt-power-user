@@ -1,8 +1,10 @@
 .altimatePerspectiveViewer {
-  height: 100%; 
+  height: 100%;
+  min-height: 50vh;
   font-size: 1.25rem !important;
-  
-  &[theme="Vintage"]{
+  z-index: 20;
+
+  &[theme="Vintage"] {
     font-family: var(--bs-body-font-family) !important;
     width: auto;
     --plugin--background: var(--background--base);

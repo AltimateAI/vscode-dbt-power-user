@@ -14,6 +14,7 @@ const useQueryPanelState = (): QueryPanelStateProps & {
   const hasError = Boolean(state.queryResultsError?.data);
   const hasCode = Boolean(state.compiledCodeMarkup);
   const data = state.queryResults?.data;
+
   return {
     ...state,
     hasData,

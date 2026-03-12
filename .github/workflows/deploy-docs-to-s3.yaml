@@ -1,0 +1,44 @@
+name: Deploy Static Website to AWS
+
+# Defines when the action will run.
+# This example triggers the workflow on push events to the main branch.
+on:
+  push:
+    branches: [master]
+
+# Limit permissions for the GITHUB_TOKEN to adhere to the principle of least privilege.
+permissions:
+  contents: read
+
+# The jobs that will be executed by the workflow.
+jobs:
+  deploy:
+    # The type of runner that the job will run on.
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job.
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so the job can access it.
+      - uses: actions/checkout@v2
+
+      # Install MkDocs and any necessary plugins
+      - name: Install MkDocs with plugins
+        run: |
+          pip install mkdocs          
+          pip install mkdocs-material
+          pip install mkdocs-git-revision-date-localized-plugin
+
+      # Build your site using MkDocs
+      - name: Build site with MkDocs
+        run: |
+          cd documentation
+          mkdocs build --clean
+
+      # Deploy to AWS
+      - name: Deploy to AWS
+        uses: onramper/action-deploy-aws-static-site@v3.2.0
+        with:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          domain: docs.myaltimate.com
+          publish_dir: ./documentation/site

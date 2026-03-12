@@ -4,6 +4,7 @@ import { LoadingButton, OptionType, Select, Stack } from "@uicore";
 import { useEffect, useState } from "react";
 import { Control, Controller, UseFormSetValue } from "react-hook-form";
 import { SaveRequest } from "../types";
+import { panelLogger } from "@modules/logger";
 
 interface Props {
   control: Control<SaveRequest, unknown>;
@@ -24,23 +25,28 @@ const AcceptedValues = ({
   const [isLoading, setIsLoading] = useState(false);
   const getDistinctColumnValues = async () => {
     setIsLoading(true);
-    const result = (await executeRequestInSync("getDistinctColumnValues", {
-      model: currentDocsData?.name,
-      column,
-    })) as string[] | undefined;
-    setIsLoading(false);
+    try {
+      const result = (await executeRequestInSync("getDistinctColumnValues", {
+        model: currentDocsData?.name,
+        column,
+      })) as string[] | undefined;
 
-    if (result?.length && values?.length) {
-      const items = ["Yes, overwrite", "Cancel"];
-      const response = await executeRequestInSync("showInformationMessage", {
-        infoMessage: "Overwrite the existing values?",
-        items,
-      });
-      if (response !== items[0]) {
-        return;
+      if (result?.length && values?.length) {
+        const items = ["Yes, overwrite", "Cancel"];
+        const response = await executeRequestInSync("showInformationMessage", {
+          infoMessage: "Overwrite the existing values?",
+          items,
+        });
+        if (response !== items[0]) {
+          return;
+        }
       }
+      setValue("accepted_values", result);
+    } catch (e) {
+      panelLogger.error("Unable to get distinct values", e);
+    } finally {
+      setIsLoading(false);
     }
-    setValue("accepted_values", result);
   };
 
   useEffect(() => {

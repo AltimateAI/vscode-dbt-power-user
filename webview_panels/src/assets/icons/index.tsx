@@ -1,4 +1,5 @@
 import { HTMLAttributes } from "react";
+export { default as AddOutlineIcon } from "./add-outline.svg?react";
 export { default as LikeIcon } from "./like.svg?react";
 export { default as DislikeIcon } from "./dislike.svg?react";
 export { default as ShinesIcon } from "./shines.svg?react";
@@ -8,6 +9,8 @@ export { default as FeedbackIcon } from "./feedback.svg?react";
 export { default as AltimateIcon } from "./altimate.svg?react";
 export { default as CheckBlueIcon } from "./check-blue.svg?react";
 export { default as UncheckIcon } from "./uncheck.svg?react";
+export { default as SelectUncheckedIcon } from "./select-unchecked.svg?react";
+export { default as SelectCheckedIcon } from "./select-checked.svg?react";
 export { default as UserIcon } from "./user.svg?react";
 export { default as BlogIcon } from "./blog.svg?react";
 export { default as ContactUsIcon } from "./contact.svg?react";
@@ -18,7 +21,16 @@ export { default as EmptySquareIcon } from "./square.svg?react";
 export { default as CheckedSquareIcon } from "./checked-square.svg?react";
 export { default as TestsIcon } from "./tests.svg?react";
 export { default as FolderIcon } from "./folder.svg?react";
+export { default as NoBookmarksIcon } from "./no-bookmarks.svg?react";
+export { default as NoHistoryIcon } from "./no-history.svg?react";
+export { default as NoNotebooksIcon } from "./notebook.svg?react";
+export { default as ThinkingIcon } from "./thinking.svg?react";
+export { default as CoachAIIcon } from "./coachAi.svg?react";
+export { default as ErrorIcon } from "./error.svg?react";
+export { default as PropagateIcon } from "./propagate.svg?react";
+export { default as LoaderIcon } from "./loader.svg?react";
 import LoadingSpinnerUrl from "./spinner.gif";
+import LineageGif from "./lineage.gif";
 import "./styles.css";
 
 interface Props {
@@ -30,6 +42,10 @@ const Icon = ({
   ...rest
 }: Props & HTMLAttributes<HTMLElement>) => (
   <i className={`${className} codicon codicon-${icon}`} {...rest} />
+);
+
+export const PlayIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
+  <Icon icon="play" {...props} />
 );
 
 export const RemoveIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
@@ -124,6 +140,42 @@ export const LoadingSpinner = (): JSX.Element => (
   />
 );
 
+export const LineageDemo = (): JSX.Element => (
+  <img
+    // @ts-expect-error added in altimateWebViewProvider
+    src={(window.lineageGif as string) ?? LineageGif}
+    alt="Lineage demo"
+  />
+);
+
 export const LoadingIcon = (
   props: HTMLAttributes<HTMLElement>,
 ): JSX.Element => <Icon icon="loading" className="rotate" {...props} />;
+
+export const PlayCircleIcon = (
+  props: HTMLAttributes<HTMLElement>,
+): JSX.Element => <Icon icon="play-circle" {...props} />;
+
+export const BookmarkIcon = (
+  props: HTMLAttributes<HTMLElement>,
+): JSX.Element => <Icon icon="bookmark" {...props} />;
+
+export const ShareIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
+  <Icon icon="live-share" {...props} />
+);
+
+export const FilterIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
+  <Icon icon="filter" {...props} />
+);
+
+export const SearchIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
+  <Icon icon="search" {...props} />
+);
+
+export const FileCodeIcon = (
+  props: HTMLAttributes<HTMLElement>,
+): JSX.Element => <Icon icon="file-code" {...props} />;
+
+export const OpenNewIcon = (
+  props: HTMLAttributes<HTMLElement>,
+): JSX.Element => <Icon icon="link-external" {...props} />;

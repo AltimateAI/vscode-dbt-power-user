@@ -1,10 +1,7 @@
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { useCallback, useEffect, useState } from "react";
 import { SaveRequest } from "../types";
-import {
-  setIsTestUpdatedForAnyColumn,
-  updateCurrentDocsTests,
-} from "@modules/documentationEditor/state/documentationSlice";
+import { updateCurrentDocsTests } from "@modules/documentationEditor/state/documentationSlice";
 import { panelLogger } from "@modules/logger";
 import {
   DBTModelTest,
@@ -13,6 +10,7 @@ import {
   TestMetadataAcceptedValuesKwArgs,
 } from "@modules/documentationEditor/state/types";
 import { IncomingMessageProps } from "@modules/app/types";
+import { generateHash } from "../utils";
 
 export enum TestOperation {
   CREATE,
@@ -72,9 +70,6 @@ const useTestFormSave = (): {
 
       if (key) {
         testsData.push({
-          alias: "",
-          database: "",
-          schema: "",
           key: `${key}_${params.model}`,
           test_metadata: {
             // @ts-expect-error test
@@ -96,14 +91,17 @@ const useTestFormSave = (): {
           typeof t === "object" && typeof t[key] === "object"
             ? (t[key] as Record<string, unknown>)
             : {};
-
+        const testKey = params.model
+          ? `${key}_${params.model}_${column.name}`
+          : `${key}_${column.name}`;
+        // Remove already existing tests
+        if (testsData.find((test) => test.key === testKey)) {
+          return;
+        }
         if (key) {
           testsData.push({
-            alias: "",
-            database: "",
-            schema: "",
             column_name: column.name,
-            key: `${key}_${column.name}`,
+            key: testKey,
             test_metadata: {
               kwargs: {
                 column_name: column.name,
@@ -118,7 +116,6 @@ const useTestFormSave = (): {
     });
     panelLogger.info("insert test data", testsData);
     dispatch(updateCurrentDocsTests(testsData));
-    dispatch(setIsTestUpdatedForAnyColumn(true));
   };
 
   useEffect(() => {
@@ -161,7 +158,7 @@ const useTestFormSave = (): {
     return temp;
   };
 
-  const getUpdatedTestsData = (
+  const getUpdatedTestsData = async (
     data: SaveRequest,
     column: string,
     operation: TestOperation,
@@ -178,12 +175,10 @@ const useTestFormSave = (): {
       });
     }
     if (operation === TestOperation.CREATE) {
+      const hashKey = await generateHash(JSON.stringify({ ...data, column }));
       testsData.push({
-        alias: "",
-        database: "",
-        schema: "",
         column_name: column,
-        key: `${data.test}_${column}`,
+        key: hashKey,
         test_metadata: {
           name: data.test!,
           kwargs: {
@@ -221,7 +216,7 @@ const useTestFormSave = (): {
     return testsData;
   };
 
-  const handleSave = (
+  const handleSave = async (
     data: SaveRequest,
     column: string,
     operation: TestOperation,
@@ -232,10 +227,9 @@ const useTestFormSave = (): {
       return;
     }
 
-    const testsData = getUpdatedTestsData(data, column, operation);
+    const testsData = await getUpdatedTestsData(data, column, operation);
     panelLogger.info("add/update test data", testsData);
     dispatch(updateCurrentDocsTests(testsData));
-    dispatch(setIsTestUpdatedForAnyColumn(true));
   };
 
   return { handleSave, isSaving };

@@ -1,12 +1,11 @@
 import path = require("path");
+import { RunModelType } from "@altimateai/dbt-integration";
 import { Uri, window } from "vscode";
 import { GenerateModelFromSourceParams } from "../code_lens_provider/sourceModelCreationCodeLensProvider";
-import { RunModelType } from "../domain";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { NodeTreeItem } from "../treeview_provider/modelTreeviewProvider";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
+import { extendErrorWithSupportLinks } from "../utils";
 
-@provideSingleton(RunModel)
 export class RunModel {
   constructor(private dbtProjectContainer: DBTProjectContainer) {}
 

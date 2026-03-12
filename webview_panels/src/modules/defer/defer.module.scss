@@ -31,44 +31,41 @@
     gap: 8px;
     margin-bottom: 20px;
 
-    .title{
+    .title {
       margin-left: 10px;
     }
 
-    .path-selection-row{
+    .path-selection-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap:10px;
+      gap: 10px;
     }
 
-    .path-input{
-      max-width: 70%;
+    .path-input {
+      max-width: 90%;
+      flex: 1;
       cursor: pointer;
     }
 
-    .refresh-btn{
-      color: #fff;
-      margin-left: -5rem;
-      margin-top: 0.15rem;
-
-      :global .codicon{
+    .refresh-btn {
+      :global .codicon {
         font-size: 1.1rem;
       }
-      :global .spinner-border{
+      :global .spinner-border {
         width: 1rem;
-      height: 1rem;
-      margin-top: 0.15rem;
-      border-width: 2px;
+        height: 1rem;
+        margin-top: 0.15rem;
+        border-width: 2px;
       }
     }
   }
 }
 
-.projectSelect{
+.projectSelect {
   margin-bottom: 20px;
   min-width: 50vw;
-  :global .altimate-select{
+  :global .altimate-select {
     margin-top: 6px;
   }
 }

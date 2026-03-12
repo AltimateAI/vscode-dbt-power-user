@@ -1,24 +1,23 @@
+import { DBTTerminal, NodeMetaMap } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import {
   CancellationToken,
-  HoverProvider,
   Disposable,
+  Hover,
+  HoverProvider,
+  MarkdownString,
   Position,
   ProviderResult,
   Range,
   TextDocument,
   Uri,
-  Hover,
-  MarkdownString,
 } from "vscode";
-import { NodeMetaMap } from "../domain";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { provideSingleton } from "../utils";
+import { DBTProject } from "../dbt_client/dbtProject";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { ManifestCacheChangedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
 import { generateHoverMarkdownString } from "./utils";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
-@provideSingleton(ModelHoverProvider)
 export class ModelHoverProvider implements HoverProvider, Disposable {
   private modelToLocationMap: Map<string, NodeMetaMap> = new Map();
   private static readonly IS_REF = /(ref)\([^)]*\)/;
@@ -28,6 +27,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {
     this.disposables.push(
@@ -46,6 +46,22 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
     }
   }
 
+  private getProject(uri: Uri): DBTProject | undefined {
+    const projectByUri = this.dbtProjectContainer.findDBTProject(uri);
+    if (projectByUri) {
+      return projectByUri;
+    }
+
+    const project = this.dbtProjectContainer.getFromWorkspaceState(
+      "dbtPowerUser.projectSelected",
+    );
+    if (!project?.uri) {
+      return;
+    }
+
+    return this.dbtProjectContainer.findDBTProject(project?.uri);
+  }
+
   provideHover(
     document: TextDocument,
     position: Position,
@@ -61,7 +77,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
         resolve(undefined);
       }
       const word = document.getText(range);
-      const project = this.dbtProjectContainer.findDBTProject(document.uri);
+      const project = this.getProject(document.uri);
       if (!project) {
         this.dbtTerminal.debug(
           "modeHoverProvider:provideHover",
@@ -74,9 +90,8 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
         const dbtModel = word.match(ModelHoverProvider.GET_DBT_MODEL);
         if (dbtModel && dbtModel.length === 1) {
           const mdString = this.getHoverMarkdownFor(
-            project.getProjectName(),
             dbtModel[0],
-            document.uri,
+            project.projectRoot,
           );
           if (mdString !== undefined) {
             const hover = new Hover(mdString, new Range(position, position));
@@ -89,9 +104,8 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
         }
         if (dbtModel && dbtModel.length === 3) {
           const mdString = this.getHoverMarkdownFor(
-            dbtModel[0],
             dbtModel[2],
-            document.uri,
+            project.projectRoot,
           );
           if (mdString !== undefined) {
             const hover = new Hover(mdString, new Range(position, position));
@@ -120,7 +134,6 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
   }
 
   private getHoverMarkdownFor(
-    projectName: string,
     modelName: string,
     currentFilePath: Uri,
   ): MarkdownString | undefined {
@@ -133,7 +146,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
     if (nodeMap === undefined) {
       return;
     }
-    const node = nodeMap.get(modelName);
+    const node = nodeMap.lookupByBaseName(modelName);
     if (node) {
       return generateHoverMarkdownString(node, "ref");
     }

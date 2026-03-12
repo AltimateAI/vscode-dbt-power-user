@@ -1,22 +1,24 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import { TextDocument, Uri, window } from "vscode";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { DBTProject } from "../manifest/dbtProject";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProject } from "../dbt_client/dbtProject";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
-import { provideSingleton } from "../utils";
+} from "../dbt_client/event/manifestCacheChangedEvent";
+import { ProjectQuickPick } from "../quickpick/projectQuickPick";
 import { SharedStateService } from "./sharedStateService";
 
-@provideSingleton(QueryManifestService)
 export class QueryManifestService {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     protected emitterService: SharedStateService,
+    private projectQuickPick: ProjectQuickPick,
   ) {
     dbtProjectContainer.onDBTProjectsInitialization(() => {
       this.emitterService.fire({
@@ -130,7 +132,9 @@ export class QueryManifestService {
     return items;
   }
 
-  public getModelsInProject(currentFilePath?: Uri) {
+  public getModelsInProject(
+    currentFilePath?: Uri,
+  ): Iterable<string> | undefined {
     if (!currentFilePath) {
       return;
     }
@@ -146,15 +150,49 @@ export class QueryManifestService {
       return;
     }
 
-    const models = event.nodeMetaMap.entries();
+    // TODO: fix for model versions
+    return Array.from(event.nodeMetaMap.nodes()).map((node) => node.name);
+  }
 
-    const items = Array.from(models)
-      .filter(
-        ([key, model]) =>
-          model.resource_type !== DBTProject.RESOURCE_TYPE_ANALYSIS,
-      )
-      .map(([key]) => key);
+  // get project based on current active editor
+  // if no editor, then ask user to pick project
+  public async getOrPickProjectFromWorkspace() {
+    const uri =
+      window.activeTextEditor?.document.uri ||
+      window.activeNotebookEditor?.notebook.uri;
+    const project = uri ? this.dbtProjectContainer.findDBTProject(uri) : null;
 
-    return items;
+    if (project) {
+      return project;
+    }
+    this.dbtTerminal.debug(
+      "getProject",
+      "no project name provided, getting all projects in workspace",
+    );
+    const projects = this.dbtProjectContainer.getProjects();
+    if (projects.length === 1) {
+      this.dbtTerminal.debug(
+        "getProject",
+        `single project in workspace, returning project: ${projects[0].getProjectName()}`,
+      );
+      return projects[0];
+    }
+
+    this.dbtTerminal.debug(
+      "getProject",
+      "multiple projects in workspace, prompting user to select project",
+    );
+
+    const pickedProject = await this.projectQuickPick.projectPicker(projects);
+    if (!pickedProject) {
+      this.dbtTerminal.debug("getProject", "no project selected, returning");
+      return;
+    }
+
+    this.dbtTerminal.debug(
+      "getProject",
+      `project selected: ${pickedProject.uri}`,
+    );
+    return this.dbtProjectContainer.findDBTProject(pickedProject.uri);
   }
 }

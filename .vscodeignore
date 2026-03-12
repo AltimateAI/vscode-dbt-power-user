@@ -3,9 +3,13 @@
 out/**
 src/**
 **/node_modules
+!dist/node_modules/**
 .gitignore
 vsc-extension-quickstart.md
 **/tsconfig.json
 **/.eslintrc.json
 **/*.map
 **/*.ts
+.github
+webview_panels
+!webview_panels/dist

@@ -13,8 +13,8 @@ export interface DropdownOptions {
 export interface DeferToProductionProps {
   deferToProduction: boolean;
   favorState: boolean;
-  manifestPathForDeferral: string;
-  manifestPathType: ManifestPathType;
+  manifestPathForDeferral?: string;
+  manifestPathType?: ManifestPathType;
   projectIntegrations: DropdownOptions[];
   dbtCoreIntegrationId?: number;
 }
@@ -22,8 +22,8 @@ export interface DeferToProductionProps {
 export interface ManifestSelectionProps {
   fetchingProjectIntegrations: boolean;
   dbtProjectRoot: string;
-  manifestPathForDeferral: string;
-  manifestPathType: ManifestPathType;
+  manifestPathForDeferral?: string;
+  manifestPathType?: ManifestPathType;
   projectIntegrations: DropdownOptions[];
   dbtCoreIntegrationId?: number;
   setDeferState: React.Dispatch<React.SetStateAction<DeferToProductionProps>>;

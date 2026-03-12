@@ -1,3 +1,4 @@
+import * as path from "path";
 import {
   commands,
   Disposable,
@@ -6,11 +7,8 @@ import {
   Uri,
   window,
 } from "vscode";
-import { provideSingleton } from "../utils";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import * as path from "path";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 
-@provideSingleton(DbtSQLAction)
 export class DbtSQLAction {
   constructor(private dbtProjectContainer: DBTProjectContainer) {}
 
@@ -53,7 +51,7 @@ export class DbtSQLAction {
                 ),
               ),
             },
-            "Explain the sql query (Preview feature)",
+            "Explain the sql query",
             "dbtPowerUser.summarizeQuery",
           ),
           new SQLActionItem(
@@ -72,8 +70,14 @@ export class DbtSQLAction {
                 ),
               ),
             },
-            "Convert sql to dbt model (Preview feature)",
+            "Convert sql to dbt model",
             "dbtPowerUser.sqlToModel",
+          ),
+          new SQLActionItem(
+            "Visualize SQL",
+            new ThemeIcon("preview"),
+            "Visualize the sql query",
+            "dbtPowerUser.sqlLineage",
           ),
         ];
 

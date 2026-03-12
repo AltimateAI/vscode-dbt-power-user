@@ -14,7 +14,7 @@ import appSlice, {
 import { executeRequestInAsync, executeRequestInSync } from "./requestExecutor";
 import { ContextProps } from "./types";
 import useListeners from "./useListeners";
-import { ApiHelper } from "../../lib/altimate/altimate-components.js";
+import { ApiHelper } from "@lib";
 import { panelLogger } from "@modules/logger";
 
 export const AppContext = createContext<ContextProps>({

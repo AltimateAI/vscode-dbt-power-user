@@ -1,32 +1,36 @@
 import {
+  DBTTerminal,
+  RESOURCE_TYPE_MACRO,
+  RESOURCE_TYPE_TEST,
+} from "@altimateai/dbt-integration";
+import { inject } from "inversify";
+import {
   CancellationToken,
+  commands,
   Comment,
   CommentAuthorInformation,
   CommentMode,
   CommentReply,
+  comments,
   CommentThread,
   CommentThreadState,
   Disposable,
+  env,
   MarkdownString,
   Range,
   TextDocument,
   Uri,
-  commands,
-  comments,
-  env,
   window,
   workspace,
 } from "vscode";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import path = require("path");
+import { Conversation, ConversationGroup, SharedDoc } from "../altimate";
 import { ConversationService } from "../services/conversationService";
+import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
-import { QueryManifestService } from "../services/queryManifestService";
-import { DBTProject } from "../manifest/dbtProject";
-import { SharedDoc, ConversationGroup, Conversation } from "../altimate";
 import { TelemetryService } from "../telemetry";
+import { extendErrorWithSupportLinks } from "../utils";
+import path = require("path");
 
 // Extends vscode commentthread and add extra fields for reference
 export interface ConversationCommentThread extends CommentThread {
@@ -54,11 +58,11 @@ export class ConversationComment implements Comment {
 }
 
 const ALLOWED_FILE_EXTENSIONS = [".sql"];
-@provideSingleton(ConversationProvider)
 export class ConversationProvider implements Disposable {
   private disposables: Disposable[] = [];
   private commentController;
   private timer: NodeJS.Timeout | undefined;
+  private isPolling: boolean = false;
   // record of share id with conv group
   // used to identify deleted records during polling
   // can be removed in future if we get right events like delete, add etc.,
@@ -68,6 +72,7 @@ export class ConversationProvider implements Disposable {
   constructor(
     private conversationService: ConversationService,
     private usersService: UsersService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private emitterService: SharedStateService,
     private queryManifestService: QueryManifestService,
@@ -143,6 +148,7 @@ export class ConversationProvider implements Disposable {
     this.timer = setTimeout(() => {
       this.loadThreads();
     }, pollingInterval * 1000);
+    this.isPolling = true;
   }
 
   private async loadThreads() {
@@ -151,7 +157,9 @@ export class ConversationProvider implements Disposable {
       "loading threads",
     );
     const shares = await this.conversationService.loadSharedDocs();
-    this.setupPolling();
+    if (shares && shares.length && !this.isPolling) {
+      this.setupPolling();
+    }
 
     if (!shares?.length) {
       this.dbtTerminal.debug(
@@ -242,10 +250,10 @@ export class ConversationProvider implements Disposable {
           (this.commentController!.createCommentThread(
             uri,
             new Range(
-              conversationGroup.meta.range.start.line,
-              conversationGroup.meta.range.start.character,
-              conversationGroup.meta.range.end.line,
-              conversationGroup.meta.range.end.character,
+              conversationGroup.meta.range?.start.line || 0,
+              conversationGroup.meta.range?.start.character || 0,
+              conversationGroup.meta.range?.end.line || 0,
+              conversationGroup.meta.range?.end.character || 0,
             ),
             [],
           ) as ConversationCommentThread);
@@ -430,12 +438,12 @@ export class ConversationProvider implements Disposable {
       return;
     }
 
-    const currentNode = event.nodeMetaMap.get(resourceName);
+    const currentNode = event.nodeMetaMap.lookupByBaseName(resourceName);
     // For model
     if (currentNode) {
       return {
         resource_type: currentNode.resource_type,
-        uniqueId: currentNode.uniqueId,
+        uniqueId: currentNode.unique_id,
       };
     }
 
@@ -443,8 +451,8 @@ export class ConversationProvider implements Disposable {
     // For macro
     if (macroNode) {
       return {
-        resource_type: DBTProject.RESOURCE_TYPE_MACRO,
-        uniqueId: macroNode.uniqueId,
+        resource_type: RESOURCE_TYPE_MACRO,
+        uniqueId: macroNode.unique_id,
       };
     }
 
@@ -452,8 +460,8 @@ export class ConversationProvider implements Disposable {
     // For tests
     if (testNode) {
       return {
-        resource_type: DBTProject.RESOURCE_TYPE_TEST,
-        uniqueId: testNode.uniqueId,
+        resource_type: RESOURCE_TYPE_TEST,
+        uniqueId: testNode.unique_id,
       };
     }
   }
@@ -466,7 +474,7 @@ export class ConversationProvider implements Disposable {
     message: string,
     uri: Uri,
     extraMeta: Record<string, unknown> = {},
-    range: Range,
+    range: Range | undefined,
     source: "vscode" | "documentation-editor" = "vscode",
   ) {
     this.telemetry.sendTelemetryEvent("dbtCollaboration:create", {
@@ -487,7 +495,7 @@ export class ConversationProvider implements Disposable {
     const highlight =
       rest.field === "description"
         ? (value as string)
-        : (range.isSingleLine
+        : (range?.isSingleLine
             ? editor?.document.lineAt(range.start.line).text
             : editor?.document.getText(range)) || "";
 
@@ -498,10 +506,12 @@ export class ConversationProvider implements Disposable {
       uniqueId: nodeMeta?.uniqueId,
       filePath: path.relative(project?.projectRoot.fsPath || "", uri.fsPath),
       resource_type: nodeMeta?.resource_type,
-      range: {
-        end: range.end,
-        start: range.start,
-      },
+      range: range
+        ? {
+            end: range.end,
+            start: range.start,
+          }
+        : undefined,
     };
     let shareName = "Discussion on ";
     if (nodeMeta?.uniqueId) {
@@ -611,6 +621,10 @@ export class ConversationProvider implements Disposable {
           `Unable to save your comment. ${(error as Error).message}`,
         ),
       );
+    } finally {
+      if (!this.isPolling) {
+        this.setupPolling();
+      }
     }
   }
 

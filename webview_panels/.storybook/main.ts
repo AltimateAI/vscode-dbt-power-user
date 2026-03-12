@@ -8,9 +8,13 @@ const config: StorybookConfig = {
     "@storybook/addon-essentials",
     "@storybook/addon-interactions",
   ],
+  staticDirs: ["../src/assets"],
   framework: {
     name: "@storybook/react-vite",
     options: {},
+  },
+  typescript: {
+    reactDocgen: false,
   },
   core: {
     builder: "@storybook/builder-vite",
@@ -23,6 +27,8 @@ const config: StorybookConfig = {
       config.resolve.alias["@vscodeApi"] = require.resolve(
         "./__mocks__/vscode.ts"
       );
+
+      config.resolve.alias["crypto"] = require.resolve("./__mocks__/crypto.ts");
     }
     // Merge custom configuration into the default config
     return mergeConfig(config, {

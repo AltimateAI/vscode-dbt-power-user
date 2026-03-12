@@ -6,18 +6,30 @@ export const initialState = {
   isComponentsApiInitialized: false,
   users: {},
   currentUser: null,
+  tenantInfo: {
+    frontendUrl: null,
+    currency: "USD",
+    // This is tenant level global setting
+    teammatesEnabled: false,
+  },
 } as AppStateProps;
 
 const appSlice = createSlice({
   name: "appState",
   initialState,
   reducers: {
+    setTenantInfo: (
+      state,
+      action: PayloadAction<AppStateProps["tenantInfo"]>,
+    ) => {
+      state.tenantInfo = action.payload;
+    },
     updateTheme: (state, action: PayloadAction<Themes>) => {
       state.theme = action.payload;
     },
     updateIsComponentsApiInitialized: (
       state,
-      action: PayloadAction<boolean>
+      action: PayloadAction<boolean>,
     ) => {
       state.isComponentsApiInitialized = action.payload;
     },
@@ -35,7 +47,7 @@ const appSlice = createSlice({
     },
     setCurrentUser: (
       state,
-      action: PayloadAction<AppStateProps["currentUser"]>
+      action: PayloadAction<AppStateProps["currentUser"]>,
     ) => {
       state.currentUser = action.payload;
     },
@@ -47,5 +59,6 @@ export const {
   updateIsComponentsApiInitialized,
   setUsers,
   setCurrentUser,
+  setTenantInfo,
 } = appSlice.actions;
 export default appSlice;

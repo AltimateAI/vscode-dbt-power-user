@@ -1,0 +1,26 @@
+{
+  "extends": "@istanbuljs/nyc-config-typescript",
+  "all": true,
+  "check-coverage": true,
+  "reporter": ["text", "lcov"],
+  "exclude": [
+    "coverage/**",
+    "packages/*/test/**",
+    "test/**",
+    "test{,-*}.{js,cjs,mjs,ts}",
+    "**/*{.,-}test.{js,cjs,mjs,ts}",
+    "**/__tests__/**",
+    "**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress}.config.{js,cjs,mjs,ts}",
+    "**/node_modules/**",
+    "dist/**",
+    "out/**",
+    "src/test/**",
+    "src/**/*.test.ts",
+    "src/test/suite/**"
+  ],
+  "include": ["src/**/*.ts"],
+  "branches": 5,
+  "lines": 7,
+  "functions": 7,
+  "statements": 7
+}

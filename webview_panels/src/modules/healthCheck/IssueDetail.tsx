@@ -1,6 +1,9 @@
-import { Card, Drawer } from "@uicore";
+import { Button, Card, Drawer, Stack } from "@uicore";
 import { ModelInsight } from "./types";
 import classes from "./healthcheck.module.scss";
+import useAppContext from "@modules/app/useAppContext";
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
+import { TaskLabels } from "@lib";
 
 const DetailItem = ({ label, value }: { label: string; value: string }) => (
   <div>
@@ -10,10 +13,28 @@ const DetailItem = ({ label, value }: { label: string; value: string }) => (
 );
 
 const IssueDetail = ({ insight }: { insight: ModelInsight }): JSX.Element => {
+  const {
+    state: {
+      tenantInfo: { frontendUrl },
+    },
+  } = useAppContext();
   return (
-    <Drawer buttonProps={{ size: "sm" }} buttonText={<>Details</>}>
+    <Drawer buttonProps={{ size: "sm" }} buttonText="Details">
       <div className="p-2 h-100 d-flex flex-column gap-md">
-        <div className="fw-semibold fs-4">{insight.insight.name}</div>
+        <Stack className="justify-content-between">
+          <div className="fw-semibold fs-4">{insight.insight.name}</div>
+          {insight.insight.metadata?.teammate_check_id ? (
+            <Button
+              onClick={() =>
+                executeRequestInAsync("openURL", {
+                  url: `${frontendUrl}/teammates/${TaskLabels.ProjectGovernor}?id=${insight.insight.metadata?.teammate_check_id}`,
+                })
+              }
+            >
+              View check
+            </Button>
+          ) : null}
+        </Stack>
         <DetailItem label="File" value={insight.original_file_path} />
         <DetailItem label="Type" value={insight.insight.type} />
         <DetailItem label="Description" value={insight.insight.message} />

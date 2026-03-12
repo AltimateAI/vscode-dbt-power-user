@@ -1,0 +1,36 @@
+.loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  @keyframes rotate {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  animation: rotate 2s linear infinite;
+}
+
+.sizeXSmall {
+  width: 14px;
+  height: 14px;
+}
+
+.sizeSmall {
+  width: 20px;
+  height: 20px;
+}
+
+.sizeMedium {
+  width: 40px;
+  height: 40px;
+}
+
+.sizeLarge {
+  width: 60px;
+  height: 60px;
+}

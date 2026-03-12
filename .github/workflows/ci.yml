@@ -9,6 +9,9 @@ on:
     types:
       - created
 
+permissions:
+  contents: read
+
 jobs:
   build:
     strategy:
@@ -17,38 +20,95 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install Node.js
-        uses: actions/setup-node@v2
+        uses: actions/checkout@v4
+      - name: Run common build steps
+        uses: ./.github/actions/common-build
+
+  release-vsstudio-marketplace:
+    needs: build
+    runs-on: ubuntu-latest
+    if: success() && startsWith( github.ref, 'refs/tags/')
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - darwin-arm64
+          - darwin-x64
+          - linux-arm64
+          - linux-x64
+          - win32-x64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run common build steps
+        uses: ./.github/actions/common-build
         with:
-          node-version: "16"
-      - run: npm install
-      - run: npm install
-        working-directory: ./new_lineage_panel
-      - run: npm install
-        working-directory: ./webview_panels
-      - name: Debugging info
-        run: |
-          echo "Ref: ${{ github.ref }}"
-          echo "Matrix OS: ${{ matrix.os }}"
-          echo "Is Prerelease: ${{ github.event.release.prerelease }}"
+          vsce-target: ${{ matrix.target }}
       - name: Publish Visual Studio Marketplace
-        if: success() && startsWith( github.ref, 'refs/tags/') && matrix.os == 'ubuntu-latest'
         run: |
+          PRE_RELEASE=""
           if [ "${{ github.event_name }}" == "release" ] && [ "${{ github.event.release.prerelease }}" == "true" ]; then
-            npm run deploy-vscode -- --pre-release
-          else
-            npm run deploy-vscode
+            PRE_RELEASE="--pre-release"
           fi
+          npx vsce publish --skip-duplicate --target ${{ matrix.target }} $PRE_RELEASE
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          VSCE_TARGET: ${{ matrix.target }}
+
+    # Send notification after all platform builds (only on the last matrix entry)
+  release-vsstudio-notify:
+    runs-on: ubuntu-latest
+    needs: release-vsstudio-marketplace
+    if: always() && startsWith( github.ref, 'refs/tags/')
+    steps:
+      - name: Send Slack notification
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ needs.release-vsstudio-marketplace.result }}
+          text: "Tag: ${{  github.ref_name }} release to Visual Studio Marketplace status: ${{ needs.release-vsstudio-marketplace.result == 'success' && 'succeeded' || 'failed' }} :${{ needs.release-vsstudio-marketplace.result == 'success' && 'tada' || 'disappointed' }}:"
+
+  release-openvsx-marketplace:
+    needs: build
+    runs-on: ubuntu-latest
+    if: success() && startsWith( github.ref, 'refs/tags/')
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - darwin-arm64
+          - darwin-x64
+          - linux-arm64
+          - linux-x64
+          - win32-x64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run common build steps
+        uses: ./.github/actions/common-build
+        with:
+          vsce-target: ${{ matrix.target }}
       - name: Publish OpenVSX Marketplace
-        if: success() && startsWith( github.ref, 'refs/tags/') && matrix.os == 'ubuntu-latest'
         run: |
+          PRE_RELEASE=""
           if [ "${{ github.event_name }}" == "release" ] && [ "${{ github.event.release.prerelease }}" == "true" ]; then
-            npm run deploy-openvsx -- --pre-release
-          else
-            npm run deploy-openvsx
+            PRE_RELEASE="--pre-release"
           fi
+          npx ovsx publish --skip-duplicate --target ${{ matrix.target }} $PRE_RELEASE
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          VSCE_TARGET: ${{ matrix.target }}
+
+  release-openvsx-notify:
+    runs-on: ubuntu-latest
+    needs: release-openvsx-marketplace
+    if: always() && startsWith( github.ref, 'refs/tags/')
+    steps:
+      - name: Send Slack notification
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ needs.release-openvsx-marketplace.result }}
+          text: "Tag: ${{  github.ref_name }} release to openvsx marketplace status: ${{ needs.release-openvsx-marketplace.result == 'success' && 'succeeded' || 'failed' }} :${{ needs.release-openvsx-marketplace.result == 'success' && 'tada' || 'disappointed' }}:"

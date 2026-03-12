@@ -1,12 +1,21 @@
 import { unmanaged } from "inversify";
 import { provide } from "inversify-binding-decorators";
 import * as path from "path";
+
+import {
+  GraphMetaMap,
+  NodeData,
+  NodeMetaData,
+  NodeMetaMap,
+} from "@altimateai/dbt-integration";
 import {
   Command,
   Disposable,
   Event,
   EventEmitter,
+  MarkdownString,
   ProviderResult,
+  TextDocument,
   ThemeIcon,
   TreeDataProvider,
   TreeItem,
@@ -14,22 +23,76 @@ import {
   Uri,
   window,
 } from "vscode";
-import {
-  Analysis,
-  Exposure,
-  GraphMetaMap,
-  Node,
-  Seed,
-  Snapshot,
-  Source,
-  Test,
-} from "../domain";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
-import { provideSingleton } from "../utils";
+} from "../dbt_client/event/manifestCacheChangedEvent";
+import {
+  getCurrentlySelectedModelNameInYamlConfig,
+  getDepthColor,
+  removeProtocol,
+} from "../utils";
+
+interface IconPath {
+  light: string;
+  dark: string;
+}
+
+abstract class Node {
+  label: string;
+  key: string;
+  url: string | undefined;
+  iconPath: IconPath = {
+    light: path.join(
+      path.resolve(__dirname),
+      "../media/images/model_light.svg",
+    ),
+    dark: path.join(path.resolve(__dirname), "../media/images/model_dark.svg"),
+  };
+  displayInModelTree: boolean = true;
+
+  constructor(label: string, key: string, url?: string) {
+    this.label = label;
+    this.key = key;
+    this.url = url;
+  }
+}
+
+class Model extends Node {}
+
+class Seed extends Node {}
+class Test extends Node {
+  // displayInModelTree = false;
+  iconPath = {
+    light: path.join(
+      path.resolve(__dirname),
+      "../media/images/source_light.svg",
+    ),
+    dark: path.join(path.resolve(__dirname), "../media/images/source_dark.svg"),
+  };
+}
+class Analysis extends Node {
+  displayInModelTree = true;
+}
+class Exposure extends Node {
+  displayInModelTree = true;
+}
+class Metric extends Node {
+  displayInModelTree = false;
+}
+
+class Snapshot extends Node {}
+
+class Source extends Node {
+  iconPath = {
+    light: path.join(
+      path.resolve(__dirname),
+      "../media/images/source_light.svg",
+    ),
+    dark: path.join(path.resolve(__dirname), "../media/images/source_dark.svg"),
+  };
+}
 
 @provide(ModelTreeviewProvider)
 abstract class ModelTreeviewProvider
@@ -54,6 +117,9 @@ abstract class ModelTreeviewProvider
       this.dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event),
       ),
+      window.onDidChangeTextEditorSelection(() => {
+        this._onDidChangeTreeData.fire();
+      }),
     );
   }
 
@@ -105,17 +171,41 @@ abstract class ModelTreeviewProvider
       return Promise.resolve(this.getTreeItems(element.key, event));
     }
 
-    const { project } = event;
-    const fileName = path.basename(
-      window.activeTextEditor!.document.fileName,
-      ".sql",
+    const model = lookupModelByEditorContent(
+      event.nodeMetaMap,
+      window.activeTextEditor.document,
     );
-    const packageName =
-      this.dbtProjectContainer.getPackageName(currentFilePath) ||
-      project.getProjectName();
-    return Promise.resolve(
-      this.getTreeItems(`model.${packageName}.${fileName}`, event),
-    );
+    if (!model) {
+      return Promise.resolve([]);
+    }
+    return Promise.resolve(this.getTreeItems(model.unique_id, event));
+  }
+
+  private nodeDataToNode(nodeData: NodeData): Node | undefined {
+    const resourceType = nodeData.resourceType;
+    switch (resourceType) {
+      case "snapshot":
+        return new Snapshot(nodeData.label, nodeData.key, nodeData.url);
+      case "exposure":
+        return new Exposure(nodeData.label, nodeData.key, nodeData.url);
+      case "analysis":
+        return new Analysis(nodeData.label, nodeData.key, nodeData.url);
+      case "test":
+        return new Test(nodeData.label, nodeData.key, nodeData.url);
+      case "source":
+        return new Source(nodeData.label, nodeData.key, nodeData.url);
+      case "seed":
+        return new Seed(nodeData.label, nodeData.key, nodeData.url);
+      case "semantic_model":
+        return new Metric(nodeData.label, nodeData.key, nodeData.url);
+      case "model":
+        return new Model(nodeData.label, nodeData.key, nodeData.url);
+      default:
+        console.log(
+          `Resource Type '${resourceType}' not implemented in ModelTreeviewProvider.nodeDataToNode`,
+        );
+        return undefined;
+    }
   }
 
   private getNodeTreeItem(node: Node): NodeTreeItem {
@@ -150,17 +240,28 @@ abstract class ModelTreeviewProvider
       return [];
     }
     return parentModels.nodes
-      .filter((node) => node.displayInModelTree)
+      .flatMap((nodeData) => {
+        const node = this.nodeDataToNode(nodeData);
+        return node && node.displayInModelTree ? [node] : [];
+      })
       .map((node) => {
         const childNodes = graphMetaMap[this.treeType]
           .get(node.key)
-          ?.nodes.filter((node) => node.displayInModelTree);
+          ?.nodes.map((nodeData) => this.nodeDataToNode(nodeData))
+          .filter((node) => node && node.displayInModelTree);
 
         const treeItem = this.getNodeTreeItem(node);
         treeItem.collapsibleState =
           childNodes?.length !== 0
             ? TreeItemCollapsibleState.Collapsed
             : TreeItemCollapsibleState.None;
+
+        // Calculate depth from modelDepthMap
+        const depth = event.modelDepthMap.get(node.key);
+        if (depth !== undefined) {
+          treeItem.setDepth(depth);
+        }
+
         return treeItem;
       });
   }
@@ -183,6 +284,9 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
       this.dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event),
       ),
+      window.onDidChangeTextEditorSelection(() => {
+        this._onDidChangeTreeData.fire();
+      }),
     );
   }
 
@@ -225,14 +329,16 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
     const { nodeMetaMap } = event;
 
     if (!element) {
-      const modelName = path.basename(
-        window.activeTextEditor!.document.fileName,
-        ".sql",
+      const currentNode = lookupModelByEditorContent(
+        event.nodeMetaMap,
+        window.activeTextEditor.document,
       );
-      const currentNode = nodeMetaMap.get(modelName);
+
       if (currentNode === undefined) {
         return Promise.resolve([]);
       }
+      const modelName = currentNode.name;
+
       const children = [];
 
       if (Object.keys(currentNode.columns).length !== 0) {
@@ -250,8 +356,8 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
         const url =
           currentNode.patch_path !== null
             ? path.join(
-                projectRootpath.path,
-                currentNode.patch_path.split("://")[1],
+                projectRootpath.fsPath,
+                removeProtocol(currentNode.patch_path),
               )
             : " ";
 
@@ -260,7 +366,7 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
             `Documentation View Warning: No columns found in manifest.json for ${modelName}, go edit the documentation in the documentation editor panel and run dbt docs generate`,
           );
         }
-        const key = currentNode.uniqueId;
+        const key = currentNode.unique_id;
         const label = currentNode.alias;
         const description = `[ ${currentNode.config.materialized.toUpperCase()} ]  -  schema : ${
           currentNode.schema
@@ -298,7 +404,10 @@ class DocTreeItem extends TreeItem {
       };
     }
     if (node.iconPath !== undefined) {
-      this.iconPath = node.iconPath;
+      this.iconPath = {
+        light: Uri.file(node.iconPath.light),
+        dark: Uri.file(node.iconPath.dark),
+      };
     }
   }
 }
@@ -316,13 +425,17 @@ export class NodeTreeItem extends TreeItem {
   collapsibleState = TreeItemCollapsibleState.Collapsed;
   key: string;
   url: string | undefined;
+  depth?: number;
 
   constructor(node: Node) {
     super(node.label);
     this.key = node.key;
     this.url = node.url;
     if (node.iconPath !== undefined) {
-      this.iconPath = node.iconPath;
+      this.iconPath = {
+        light: Uri.file(node.iconPath.light),
+        dark: Uri.file(node.iconPath.dark),
+      };
     }
     if (node.url) {
       this.command = {
@@ -331,6 +444,21 @@ export class NodeTreeItem extends TreeItem {
         arguments: [Uri.file(node.url)],
       };
     }
+  }
+
+  setDepth(depth: number) {
+    this.depth = depth;
+    const color = getDepthColor(depth);
+    const depthInfo = `(${depth})`;
+    this.description = this.description
+      ? `${this.description} ${depthInfo}`
+      : depthInfo;
+    this.tooltip = new MarkdownString(
+      `**DAG Depth:** <span style="color:${color}">${depth}</span>\n\n` +
+        `The longest path of models between a source and this model is ${depth} nodes long.`,
+    );
+    this.tooltip.isTrusted = true;
+    this.tooltip.supportHtml = true;
   }
 }
 
@@ -394,11 +522,7 @@ class IconActionsTreeviewProvider implements TreeDataProvider<ActionTreeItem> {
         new ActionTreeItem("Send Feedback", undefined, {
           command: "vscode.open",
           title: "Send Feedback",
-          arguments: [
-            Uri.parse(
-              "https://docs.google.com/forms/d/e/1FAIpQLSdw7QEvM84FX0KQT1ADhxVsdHk81cdDp_a930Ggym5_Fk1vWg/viewform",
-            ),
-          ],
+          arguments: [Uri.parse("https://form.jotform.com/251105674252148")],
         }),
       ];
       return Promise.resolve([scanItem]);
@@ -413,19 +537,24 @@ class ModelTreeItem extends NodeTreeItem {
 
 class SourceTreeItem extends NodeTreeItem {
   iconPath = {
-    light: path.join(
-      path.resolve(__dirname),
-      "../media/images/source_light.svg",
+    light: Uri.file(
+      path.join(path.resolve(__dirname), "../media/images/source_light.svg"),
     ),
-    dark: path.join(path.resolve(__dirname), "../media/images/source_dark.svg"),
+    dark: Uri.file(
+      path.join(path.resolve(__dirname), "../media/images/source_dark.svg"),
+    ),
   };
   contextValue = "source";
 }
 
 class SeedTreeItem extends NodeTreeItem {
   iconPath = {
-    light: path.join(path.resolve(__dirname), "../media/images/seed_light.svg"),
-    dark: path.join(path.resolve(__dirname), "../media/images/seed_dark.svg"),
+    light: Uri.file(
+      path.join(path.resolve(__dirname), "../media/images/seed_light.svg"),
+    ),
+    dark: Uri.file(
+      path.join(path.resolve(__dirname), "../media/images/seed_dark.svg"),
+    ),
   };
   contextValue = "seed";
 }
@@ -433,13 +562,11 @@ class SeedTreeItem extends NodeTreeItem {
 class SnapshotTreeItem extends NodeTreeItem {
   contextValue = "snapshot";
   iconPath = {
-    light: path.join(
-      path.resolve(__dirname),
-      "../media/images/snapshot_light.svg",
+    light: Uri.file(
+      path.join(path.resolve(__dirname), "../media/images/snapshot_light.svg"),
     ),
-    dark: path.join(
-      path.resolve(__dirname),
-      "../media/images/snapshot_dark.svg",
+    dark: Uri.file(
+      path.join(path.resolve(__dirname), "../media/images/snapshot_dark.svg"),
     ),
   };
 }
@@ -447,13 +574,11 @@ class SnapshotTreeItem extends NodeTreeItem {
 class ExposureTreeItem extends NodeTreeItem {
   contextValue = "exposure";
   iconPath = {
-    light: path.join(
-      path.resolve(__dirname),
-      "../media/images/exposure_light.svg",
+    light: Uri.file(
+      path.join(path.resolve(__dirname), "../media/images/exposure_light.svg"),
     ),
-    dark: path.join(
-      path.resolve(__dirname),
-      "../media/images/exposure_dark.svg",
+    dark: Uri.file(
+      path.join(path.resolve(__dirname), "../media/images/exposure_dark.svg"),
     ),
   };
 }
@@ -464,42 +589,51 @@ class AnalysisTreeItem extends NodeTreeItem {
 
 class TestTreeItem extends NodeTreeItem {
   iconPath = {
-    light: path.join(
-      path.resolve(__dirname),
-      "../media/images/tests_light.svg",
+    light: Uri.file(
+      path.join(path.resolve(__dirname), "../media/images/tests_light.svg"),
     ),
-    dark: path.join(path.resolve(__dirname), "../media/images/tests_dark.svg"),
+    dark: Uri.file(
+      path.join(path.resolve(__dirname), "../media/images/tests_dark.svg"),
+    ),
   };
   contextValue = "test";
 }
 
-@provideSingleton(ModelTestTreeview)
 export class ModelTestTreeview extends ModelTreeviewProvider {
   constructor(dbtProjectContainer: DBTProjectContainer) {
     super(dbtProjectContainer, "tests");
   }
 }
 
-@provideSingleton(ParentModelTreeview)
 export class ParentModelTreeview extends ModelTreeviewProvider {
   constructor(dbtProjectContainer: DBTProjectContainer) {
     super(dbtProjectContainer, "parents");
   }
 }
 
-@provideSingleton(ChildrenModelTreeview)
 export class ChildrenModelTreeview extends ModelTreeviewProvider {
   constructor(dbtProjectContainer: DBTProjectContainer) {
     super(dbtProjectContainer, "children");
   }
 }
 
-@provideSingleton(DocumentationTreeview)
 export class DocumentationTreeview extends DocumentationTreeviewProvider {
   constructor(dbtProjectContainer: DBTProjectContainer) {
     super(dbtProjectContainer);
   }
 }
 
-@provideSingleton(IconActionsTreeview)
 export class IconActionsTreeview extends IconActionsTreeviewProvider {}
+
+// Find appropriate a model from file content (if YAML) or from a file name (otherwise)
+export function lookupModelByEditorContent(
+  nodeMetaMap: NodeMetaMap,
+  document: TextDocument,
+): NodeMetaData | undefined {
+  const modelCandidateName =
+    document.languageId === "yaml" &&
+    getCurrentlySelectedModelNameInYamlConfig()
+      ? getCurrentlySelectedModelNameInYamlConfig()
+      : path.parse(document.fileName).name;
+  return nodeMetaMap.lookupByBaseName(modelCandidateName);
+}

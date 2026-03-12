@@ -1,13 +1,21 @@
-import { FormGroup, IconButton, Input, Label, Select, Spinner } from "@uicore";
+import { RefreshIcon } from "@assets/icons";
+import { panelLogger } from "@modules/logger";
+import {
+  FormGroup,
+  IconButton,
+  Input,
+  Label,
+  Select,
+  Spinner,
+  Stack,
+} from "@uicore";
 import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "../app/requestExecutor";
-import classes from "./defer.module.scss";
 import { ManifestPathType } from "./constants";
+import classes from "./defer.module.scss";
 import { ManifestSelectionProps } from "./types";
-import { panelLogger } from "@modules/logger";
-import { RefreshIcon } from "@assets/icons";
 
 export const ManifestSelection = ({
   dbtProjectRoot,
@@ -38,8 +46,8 @@ export const ManifestSelection = ({
     if (!(response as { updated: boolean }).updated) {
       setDeferState((prevState) => ({
         ...prevState,
-        manifestPathForDeferral: "",
-        manifestPathType: ManifestPathType.EMPTY,
+        manifestPathForDeferral,
+        manifestPathType,
       }));
     }
   };
@@ -170,7 +178,7 @@ export const ManifestSelection = ({
         </Label>
         {manifestPathType === ManifestPathType.REMOTE &&
           projectIntegrations && (
-            <>
+            <Stack className="justify-between" style={{ width: "60%" }}>
               <Select
                 options={projectIntegrations}
                 className={classes.pathInput}
@@ -186,13 +194,13 @@ export const ManifestSelection = ({
               <IconButton
                 title="Refetch Project Integrations"
                 onClick={handleRefresh}
-                color="outline"
                 className={classes.refreshBtn}
+                color="outline"
                 disabled={fetchingProjectIntegrations}
               >
                 {!fetchingProjectIntegrations ? <RefreshIcon /> : <Spinner />}
               </IconButton>
-            </>
+            </Stack>
           )}
       </div>
     </FormGroup>

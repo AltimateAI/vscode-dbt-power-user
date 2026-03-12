@@ -1,3 +1,4 @@
+import { RESOURCE_TYPE_ANALYSIS } from "@altimateai/dbt-integration";
 import {
   CancellationToken,
   CompletionContext,
@@ -11,13 +12,12 @@ import {
   TextDocument,
   Uri,
 } from "vscode";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { ManifestCacheChangedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
-import { DBTProject } from "../manifest/dbtProject";
+import { isEnclosedWithinCodeBlock } from "../utils";
 
-@provideSingleton(ModelAutocompletionProvider) // TODO autocomplete doesn't work when mistype, delete and retype
+// TODO autocomplete doesn't work when mistype, delete and retype
 export class ModelAutocompletionProvider
   implements CompletionItemProvider, Disposable
 {
@@ -139,19 +139,35 @@ export class ModelAutocompletionProvider
     event.added?.forEach((added) => {
       const project = added.project;
       const projectName = project.getProjectName();
-      const models = added.nodeMetaMap.entries();
+      const models = added.nodeMetaMap.nodes();
+      const autocompleteItems = Array.from(models)
+        .filter((model) => model.resource_type !== RESOURCE_TYPE_ANALYSIS)
+        .map((model) => ({
+          projectName,
+          packageName: model.package_name,
+          // TODO: fix this autocomplete to support for model version
+          modelName: model.name,
+        }));
+
+      const uniqueItems: Record<
+        string,
+        {
+          projectName: string;
+          packageName: string;
+          modelName: string;
+        }
+      > = {};
+
+      for (const item of autocompleteItems) {
+        const key = `${item.projectName}|${item.packageName}|${item.modelName}`;
+        if (!uniqueItems[key]) {
+          uniqueItems[key] = item;
+        }
+      }
+
       this.modelAutocompleteMap.set(
         added.project.projectRoot.fsPath,
-        Array.from(models)
-          .filter(
-            ([key, model]) =>
-              model.resource_type !== DBTProject.RESOURCE_TYPE_ANALYSIS,
-          )
-          .map(([key, model]) => ({
-            projectName,
-            packageName: model.package_name,
-            modelName: key,
-          })),
+        Object.values(uniqueItems),
       );
     });
     event.removed?.forEach((removed) => {
@@ -163,7 +179,14 @@ export class ModelAutocompletionProvider
     const projectRootpath =
       this.dbtProjectContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
-      return;
+      const project = this.dbtProjectContainer.getFromWorkspaceState(
+        "dbtPowerUser.projectSelected",
+      );
+      if (!project?.uri) {
+        return;
+      }
+
+      return this.modelAutocompleteMap.get(project.uri.fsPath);
     }
     this.telemetry.sendTelemetryEvent("provideModelAutocompletion");
     return this.modelAutocompleteMap.get(projectRootpath.fsPath);

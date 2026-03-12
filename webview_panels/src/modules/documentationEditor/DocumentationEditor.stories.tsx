@@ -1,16 +1,23 @@
 import { withReactContext } from "storybook-react-context";
 import type { Meta } from "@storybook/react";
-import { DocumentationContext } from "./DocumentationProvider";
+import DocumentationProvider, {
+  DocumentationContext,
+} from "./DocumentationProvider";
 import {
   DBTDocumentationFactory,
   DBTDocumentationTestsFactory,
   TenantUserFactory,
-  ConversationGroupFactory,
 } from "@testUtils";
 import { faker } from "@faker-js/faker";
 import DocumentationEditor from "./DocumentationEditor";
-import { initialState } from "./state/documentationSlice";
-import { Pages } from "./state/types";
+import { TeamMateProvider } from "@lib";
+// import {
+//   aiLearningsFactory,
+//   coachAiResponseFactory,
+//   delay,
+//   getRandomDelay,
+// } from "@lib-testUtils";
+import { useEffect } from "react";
 
 const meta = {
   title: "Documentation Editor",
@@ -37,13 +44,12 @@ export const DefaultHelpView = {
   ],
 };
 
-const conversationsList = ConversationGroupFactory.buildList(5);
 const docsDataForTests = DBTDocumentationFactory.build();
 const testsDataForTests = docsDataForTests.columns
   .map((c, i) =>
     DBTDocumentationTestsFactory.build({
       column_name: i % 3 === 0 ? undefined : c.name,
-    }),
+    })
   )
   .map((test) => {
     if (test.test_metadata) {
@@ -62,32 +68,52 @@ const testsDataForTests = docsDataForTests.columns
   });
 export const ModelDocGenView = {
   render: (): JSX.Element => {
-    return <DocumentationEditor />;
+    useEffect(() => {
+      setTimeout(() => {
+        window.postMessage(
+          {
+            command: "renderDocumentation",
+            docs: docsDataForTests,
+            missingDocumentationMessage: "",
+            tests: testsDataForTests,
+            project: faker.system.fileName(),
+            collaborationEnabled: true,
+          },
+          "*"
+        );
+      }, 100);
+    }, []);
+    return (
+      <TeamMateProvider>
+        <DocumentationProvider />
+      </TeamMateProvider>
+    );
   },
-  decorators: [
-    withReactContext({
-      Context: DocumentationContext,
-      initialState: {
-        state: {
-          ...initialState,
-          selectedPages: [Pages.DOCUMENTATION, Pages.TESTS],
-          currentDocsData: docsDataForTests,
-          currentDocsTests: testsDataForTests,
-          project: faker.system.fileName(),
-          conversations: { 1: conversationsList },
-          showConversationsRightPanel: false,
-        },
-      },
-    }),
-  ],
+  decorators: [],
   parameters: {
     vscode: {
       func: (request: Record<string, unknown>): unknown => {
-        if (request.command === "getTestCode") {
-          return { code: `select * from users` };
-        }
-        if (request.command === "getUsers") {
-          return TenantUserFactory.buildList(5);
+        switch (request.command) {
+          case `getTestCode`:
+            return { code: `select * from users` };
+          case `getUsers`:
+            return TenantUserFactory.buildList(5);
+          case "fetch":
+            return {};
+            // switch (request.endpoint) {
+              // case `/coach/training`:
+              //   await delay(getRandomDelay());
+              //   if (
+              //     (request.fetchArgs as RequestInit | undefined)?.method ===
+              //     "POST"
+              //   ) {
+              //   return coachAiResponseFactory.build();
+              //   }
+              //   return { train_docs: aiLearningsFactory.buildList(5) };
+              // case `/coach/training/confirm`:
+              //   await delay(getRandomDelay());
+              //   return coachAiResponseFactory.build();
+            // }
         }
       },
       timer: 500,

@@ -1,0 +1,28 @@
+# .github/actions/common-build/action.yml
+name: "Common Build"
+description: "Common build steps for the project"
+
+inputs:
+  vsce-target:
+    description: "VS Code target platform (e.g., darwin-arm64). When set, only the matching altimate-core native binary is installed."
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+        cache: "npm"
+        cache-dependency-path: |
+          package-lock.json
+          webview_panels/package-lock.json
+    - run: npm ci
+      shell: bash
+      env:
+        VSCE_TARGET: ${{ inputs.vsce-target }}
+    - run: npm ci
+      shell: bash
+      working-directory: ./webview_panels

@@ -1,26 +1,29 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "target": "es6",
+    "target": "ES2020",
     "outDir": "out",
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "forceConsistentCasingInFileNames": true,
-    "importHelpers": true,
-    "types": ["reflect-metadata", "node"],
-    "lib": ["es6", "es2020", "dom"],
+    "lib": ["ES2020"],
     "sourceMap": true,
     "rootDir": "src",
-    "strict": true /* enable all strict type-checking options */
-    /* Additional Checks */
-    // "noImplicitReturns": true, /* Report error when not all code paths in function return a value. */
-    // "noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */
-    // "noUnusedParameters": true,  /* Report errors on unused parameters. */
+    // "rootDirs": ["src", "../altimate-dbt-integration/src"],
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowJs": true,
+    "checkJs": false,
+    "moduleResolution": "node",
+    "types": ["node", "jest", "mocha", "vscode"],
+    "baseUrl": ".",
+    "paths": {
+      // "@altimateai/dbt-integration": ["../altimate-dbt-integration/src/index.ts"],
+      "@extension": ["./src/modules.ts"],
+      "@lib": ["./src/lib/index"]
+    },
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
-  "exclude": [
-    "node_modules",
-    ".vscode-test",
-    "new_lineage_panel",
-    "webview_panels"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", ".vscode-test", "webview_panels", "dist", "out"]
 }

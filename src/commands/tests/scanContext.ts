@@ -1,7 +1,7 @@
-import { Catalog } from "../../dbt_client/dbtIntegration";
-import { DBTProject } from "../../manifest/dbtProject";
-import { ManifestCacheProjectAddedEvent } from "../../manifest/event/manifestCacheChangedEvent";
+import { Catalog } from "@altimateai/dbt-integration";
 import { Diagnostic } from "vscode";
+import { DBTProject } from "../../dbt_client/dbtProject";
+import { ManifestCacheProjectAddedEvent } from "../../dbt_client/event/manifestCacheChangedEvent";
 
 export interface AltimateCatalog {
   [projectName: string]: { [key: string]: Catalog };
