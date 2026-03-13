@@ -3,28 +3,31 @@ import {
   CommandProcessExecutionFactory,
   DBTCloudDetection,
   DBTTerminal,
+  RuntimePythonEnvironment,
 } from "@altimateai/dbt-integration";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { anything, instance, mock, when } from "ts-mockito";
 import { workspace } from "vscode";
-import { PythonEnvironment } from "../../dbt_client/pythonEnvironment";
 import { VSCodeDBTTerminal } from "../../dbt_client/vscodeTerminal";
 
 describe("DBTCloudDetection Tests", () => {
   let mockCommandProcessExecutionFactory: CommandProcessExecutionFactory;
-  let mockPythonEnvironment: PythonEnvironment;
+  let mockPythonEnvironment: RuntimePythonEnvironment;
   let mockTerminal: DBTTerminal;
   let mockCommandProcessExecution: CommandProcessExecution;
   let dbtCloudDetection: DBTCloudDetection;
 
   beforeEach(() => {
     mockCommandProcessExecutionFactory = mock(CommandProcessExecutionFactory);
-    mockPythonEnvironment = mock(PythonEnvironment);
     mockTerminal = mock(VSCodeDBTTerminal);
     mockCommandProcessExecution = mock<CommandProcessExecution>();
 
+    mockPythonEnvironment = {
+      pythonPath: "/usr/bin/python3",
+      getEnvironmentVariables: jest.fn().mockReturnValue({}),
+    };
+
     // Setup default mocks
-    when(mockPythonEnvironment.pythonPath).thenReturn("/usr/bin/python3");
     when(mockTerminal.debug(anything(), anything())).thenReturn();
     when(
       mockCommandProcessExecutionFactory.createCommandProcessExecution(
@@ -40,7 +43,7 @@ describe("DBTCloudDetection Tests", () => {
 
     dbtCloudDetection = new DBTCloudDetection(
       instance(mockCommandProcessExecutionFactory),
-      instance(mockPythonEnvironment),
+      mockPythonEnvironment,
       instance(mockTerminal),
     );
   });
