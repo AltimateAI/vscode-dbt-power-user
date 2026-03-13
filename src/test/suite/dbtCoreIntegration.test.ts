@@ -36,7 +36,7 @@ describe("DBTCoreDetection Tests", () => {
 
     mockPythonEnvironment = {
       pythonPath: "/usr/bin/python3",
-      environmentVariables: {},
+      getEnvironmentVariables: jest.fn().mockReturnValue({}),
     } as any;
 
     // Create the instance with mocked dependencies

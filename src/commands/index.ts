@@ -423,26 +423,54 @@ export class VSCodeCommands implements Disposable {
           }
         },
       ),
-      commands.registerCommand("dbtPowerUser.printEnvVars", () =>
-        this.pythonEnvironment.printEnvVars(),
-      ),
+      commands.registerCommand("dbtPowerUser.printEnvVars", () => {
+        const activeFolder = window.activeTextEditor
+          ? workspace.getWorkspaceFolder(window.activeTextEditor.document.uri)
+          : undefined;
+        return this.pythonEnvironment.printEnvVars(activeFolder);
+      }),
       commands.registerCommand("dbtPowerUser.diagnostics", async () => {
         try {
           this.diagnosticsOutputChannel.show();
           this.diagnosticsOutputChannel.logLine("Diagnostics started...");
           this.diagnosticsOutputChannel.logNewLine();
 
-          // Printing env vars
-          this.diagnosticsOutputChannel.logBlockWithHeader(
-            [
-              "Printing environment variables...",
-              "* Please remove any sensitive information before sending it to us",
-            ],
-            Object.entries(this.pythonEnvironment.environmentVariables).map(
-              ([key, value]) => `${key}=${value}`,
-            ),
-          );
-          this.diagnosticsOutputChannel.logNewLine();
+          // Printing env vars per project
+          const dbtProjects = this.dbtProjectContainer.getProjects();
+          if (dbtProjects.length > 0) {
+            for (const project of dbtProjects) {
+              const projectFolder = workspace.getWorkspaceFolder(
+                project.projectRoot,
+              );
+              this.diagnosticsOutputChannel.logBlockWithHeader(
+                [
+                  `Printing environment variables for project: ${project.getProjectName()}`,
+                  `  (root: ${project.projectRoot.fsPath})`,
+                  "* Please remove any sensitive information before sending it to us",
+                ],
+                Object.entries(
+                  this.pythonEnvironment.getEnvironmentVariables(projectFolder),
+                ).map(([key, value]) => `${key}=${value}`),
+              );
+              this.diagnosticsOutputChannel.logNewLine();
+            }
+          } else {
+            const activeFolder = window.activeTextEditor
+              ? workspace.getWorkspaceFolder(
+                  window.activeTextEditor.document.uri,
+                )
+              : undefined;
+            this.diagnosticsOutputChannel.logBlockWithHeader(
+              [
+                "Printing environment variables...",
+                "* Please remove any sensitive information before sending it to us",
+              ],
+              Object.entries(
+                this.pythonEnvironment.getEnvironmentVariables(activeFolder),
+              ).map(([key, value]) => `${key}=${value}`),
+            );
+            this.diagnosticsOutputChannel.logNewLine();
+          }
 
           // Printing python paths
           this.diagnosticsOutputChannel.logBlockWithHeader(

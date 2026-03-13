@@ -1,18 +1,28 @@
 import { DBTTerminal, EnvironmentVariables } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
-import { Disposable, Event, extensions, Uri, workspace } from "vscode";
+import {
+  Disposable,
+  Event,
+  extensions,
+  Uri,
+  workspace,
+  WorkspaceFolder,
+} from "vscode";
 
 type EnvFrom = "process" | "integrated" | "dotenv";
+interface EnvVarsResult {
+  vars: EnvironmentVariables;
+  sources: Record<string, EnvFrom>;
+}
 interface PythonExecutionDetails {
   getPythonPath: () => string;
   onDidChangeExecutionDetails: Event<Uri | undefined>;
-  getEnvVars: () => EnvironmentVariables;
+  getEnvVars: (workspaceFolder?: WorkspaceFolder) => EnvVarsResult;
 }
 
 export class PythonEnvironment {
   private executionDetails?: PythonExecutionDetails;
   private disposables: Disposable[] = [];
-  private environmentVariableSource: Record<string, EnvFrom> = {};
   public allPythonPaths: { path: string; pathType: string }[] = [];
   public isPython3: boolean = true;
   private _pythonVersion?: string;
@@ -31,14 +41,17 @@ export class PythonEnvironment {
     }
   }
 
-  async printEnvVars() {
+  async printEnvVars(workspaceFolder?: WorkspaceFolder) {
     await this.dbtTerminal.show(true);
-    const envVars = this.environmentVariables;
-    this.dbtTerminal.log("Printing environment variables...\r\n");
-    for (const key in envVars) {
-      this.dbtTerminal.log(
-        `${key}=${envVars[key]}\t\tsource:${this.environmentVariableSource[key]}\r\n`,
+    if (!this.executionDetails) {
+      throw new Error(
+        "executionDetails is undefined, cannot retrieve environment variables",
       );
+    }
+    const { vars, sources } = this.executionDetails.getEnvVars(workspaceFolder);
+    this.dbtTerminal.log("Printing environment variables...\r\n");
+    for (const key in vars) {
+      this.dbtTerminal.log(`${key}=${vars[key]}\t\tsource:${sources[key]}\r\n`);
     }
   }
 
@@ -54,12 +67,18 @@ export class PythonEnvironment {
   }
 
   public get environmentVariables(): EnvironmentVariables {
+    return this.getEnvironmentVariables();
+  }
+
+  public getEnvironmentVariables(
+    workspaceFolder?: WorkspaceFolder,
+  ): EnvironmentVariables {
     if (!this.executionDetails) {
       throw new Error(
         "executionDetails is undefined, cannot retrieve environment variables",
       );
     }
-    return this.executionDetails.getEnvVars();
+    return this.executionDetails.getEnvVars(workspaceFolder).vars;
   }
 
   public get onPythonEnvironmentChanged() {
@@ -74,14 +93,22 @@ export class PythonEnvironment {
     this.executionDetails = await this.activatePythonExtension();
   }
 
-  getResolvedConfigValue(key: string) {
-    const value = workspace.getConfiguration("dbt").get<string>(key, "");
-    return this.substituteSettingsVariables(value, this.environmentVariables);
+  getResolvedConfigValue(key: string, workspaceFolder?: WorkspaceFolder) {
+    const value = workspace
+      .getConfiguration("dbt", workspaceFolder?.uri)
+      .get<string>(key, "");
+    return this.substituteSettingsVariables(
+      value,
+      this.getEnvironmentVariables(workspaceFolder),
+      workspaceFolder,
+    );
   }
 
   private substituteSettingsVariables(
     value: any,
     vsCodeEnv: EnvironmentVariables,
+    workspaceFolder?: WorkspaceFolder,
+    sources?: Record<string, EnvFrom>,
   ): any {
     if (!value) {
       return value;
@@ -103,16 +130,14 @@ export class PythonEnvironment {
         );
         this.dbtTerminal.debug(
           "pythonEnvironment:substituteSettingsVariables",
-          `Picking env var ${matchResult[1]} from ${
-            this.environmentVariableSource[matchResult[1]]
-          }`,
+          `Picking env var ${matchResult[1]} from ${sources?.[matchResult[1]]}`,
         );
       }
     }
-    value = value.replace(
-      "${workspaceFolder}",
-      workspace.workspaceFolders![0].uri.fsPath,
-    );
+    const resolvedFolder = workspaceFolder || workspace.workspaceFolders?.[0];
+    if (resolvedFolder) {
+      value = value.replace("${workspaceFolder}", resolvedFolder.uri.fsPath);
+    }
     return value;
   }
 
@@ -170,11 +195,12 @@ export class PythonEnvironment {
       // 1. process env    2. integrated terminal env    3. dot env file(we can get this from python extension)
       // Collecting env vars from all 3 places and merging them into one in the above order
       // While merging, also tagging the places from where the env var has come.
-      getEnvVars: () => {
+      getEnvVars: (workspaceFolder?: WorkspaceFolder) => {
         const envVars: EnvironmentVariables = {};
+        const sources: Record<string, EnvFrom> = {};
         for (const key in process.env) {
           envVars[key] = process.env[key];
-          this.environmentVariableSource[key] = "process";
+          sources[key] = "process";
         }
         try {
           const integratedEnv:
@@ -205,30 +231,35 @@ export class PythonEnvironment {
                 envVars[key] = this.substituteSettingsVariables(
                   integratedEnv[prop][key],
                   process.env,
+                  workspaceFolder,
+                  sources,
                 );
-                this.environmentVariableSource[key] = "integrated";
+                sources[key] = "integrated";
               }
             }
           }
-          if (api.environment) {
-            const workspacePath = workspace.workspaceFolders![0];
-            this.dbtTerminal.debug(
-              "pythonEnvironment:envVars",
-              `workspacePath:${workspacePath.uri.fsPath}`,
-            );
-            const workspaceEnv =
-              api.environments.getEnvironmentVariables(workspacePath);
-            this.dbtTerminal.debug(
-              "pythonEnvironment:envVars",
-              `workspaceEnv:${Object.keys(workspaceEnv)}`,
-            );
-            for (const key in workspaceEnv) {
-              // env var from python extension also includes env var from process env
-              // therefore only merging those env var, which are not present in process env
-              // or whose value differ from process env
-              if (!(key in envVars) || workspaceEnv[key] !== envVars[key]) {
-                envVars[key] = workspaceEnv[key];
-                this.environmentVariableSource[key] = "dotenv";
+          if (api.environments) {
+            const workspacePath =
+              workspaceFolder || workspace.workspaceFolders?.[0];
+            if (workspacePath) {
+              this.dbtTerminal.debug(
+                "pythonEnvironment:envVars",
+                `workspacePath:${workspacePath.uri.fsPath}`,
+              );
+              const workspaceEnv =
+                api.environments.getEnvironmentVariables(workspacePath);
+              this.dbtTerminal.debug(
+                "pythonEnvironment:envVars",
+                `workspaceEnv:${Object.keys(workspaceEnv)}`,
+              );
+              for (const key in workspaceEnv) {
+                // env var from python extension also includes env var from process env
+                // therefore only merging those env var, which are not present in process env
+                // or whose value differ from process env
+                if (!(key in envVars) || workspaceEnv[key] !== envVars[key]) {
+                  envVars[key] = workspaceEnv[key];
+                  sources[key] = "dotenv";
+                }
               }
             }
           }
@@ -240,7 +271,7 @@ export class PythonEnvironment {
           );
         }
 
-        return envVars;
+        return { vars: envVars, sources };
       },
     });
   }
