@@ -36,6 +36,7 @@ import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { DiagnosticsOutputChannel } from "../services/diagnosticsOutputChannel";
 import { QueryManifestService } from "../services/queryManifestService";
+import { RunHistoryService } from "../services/runHistoryService";
 import { SharedStateService } from "../services/sharedStateService";
 import { RunTreeItem } from "../treeview_provider/runHistoryTreeItems";
 import {
@@ -75,6 +76,7 @@ export class VSCodeCommands implements Disposable {
     private queryManifestService: QueryManifestService,
     private altimate: AltimateRequest,
     private notebookController: DatapilotNotebookController,
+    private runHistoryService: RunHistoryService,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -96,6 +98,16 @@ export class VSCodeCommands implements Disposable {
           this.dbtProjectContainer.rerunFromHistory(item.entry);
         },
       ),
+      commands.registerCommand("dbtPowerUser.clearRunHistory", async () => {
+        const confirm = await window.showWarningMessage(
+          "Clear all run history entries?",
+          { modal: true },
+          "Clear",
+        );
+        if (confirm === "Clear") {
+          this.runHistoryService.clear();
+        }
+      }),
       commands.registerCommand("dbtPowerUser.testCurrentModel", () =>
         this.runModel.runTestsOnActiveWindow(),
       ),

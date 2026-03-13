@@ -48,6 +48,11 @@ export class RunHistoryService implements Disposable {
     return entry;
   }
 
+  clear(): void {
+    this.history = [];
+    this._onHistoryChanged.fire(undefined);
+  }
+
   get entries(): readonly RunResultsEventData[] {
     return this.history;
   }
