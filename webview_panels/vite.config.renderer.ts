@@ -53,10 +53,6 @@ export default defineConfig({
       "@testUtils": path.resolve(__dirname, "./src/testUtils"),
       "@vscodeApi": path.resolve(__dirname, "./src/modules/vscode"),
       "@telemetryEvents": path.resolve(__dirname, "../src/telemetry/events.ts"),
-      "@altimateai/lego": path.resolve(
-        __dirname,
-        "../../altimate-frontend/packages/lego/src/index.ts",
-      ),
       "@lib": path.resolve(__dirname, "./src/lib"),
     },
   },

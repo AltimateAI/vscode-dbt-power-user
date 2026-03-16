@@ -27,9 +27,6 @@
     "paths": {
       "@uicore": ["src/uiCore/index.ts"],
       "@lib": ["src/lib/index.ts"],
-      "@altimateai/lego": [
-        "../../altimate-frontend/packages/lego/src/index.ts"
-      ],
       "@assets/*": ["src/assets/*"],
       "@modules/*": ["src/modules/*"],
       "@testUtils": ["src/testUtils/index.ts"],

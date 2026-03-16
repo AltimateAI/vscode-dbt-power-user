@@ -1,4 +1,4 @@
-import { Button } from "@altimateai/lego";
+import { Button } from "@altimateai/ui-components/lineage";
 import { HelpIcon } from "@assets/icons";
 import { Drawer, DrawerRef } from "@uicore";
 import { useRef } from "react";
