@@ -90,7 +90,7 @@ const DbtIntegrationSetup = ({
         <p>
           Need help?{" "}
           <a
-            href="https://docs.myaltimate.com/setup/integrations/"
+            href="https://docs.myaltimate.com/"
             target="_blank"
             rel="noopener noreferrer"
           >
