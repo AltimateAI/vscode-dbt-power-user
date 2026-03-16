@@ -1236,6 +1236,31 @@
   border: 1px solid var(--vscode-panel-border);
   border-radius: 4px;
   margin: 0.5rem 0;
+  cursor: zoom-in;
+  transition: opacity 0.15s ease;
+
+  &:hover {
+    opacity: 0.85;
+  }
+}
+
+.image-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+  padding: 2rem;
+}
+
+.image-overlay-img {
+  max-width: 95%;
+  max-height: 95%;
+  object-fit: contain;
+  border-radius: 4px;
 }
 
 // Select dropdown popup renders in a portal outside .wizard-container,
