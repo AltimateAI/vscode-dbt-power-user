@@ -507,6 +507,7 @@ const PrerequisitesStep = forwardRef<
     return (
       <div className={classes.prerequisitesContainer}>
         <InstallDbtStep
+          initialIntegrationType={dbtIntegrationType}
           onComplete={handleDbtInstallComplete}
           onSkip={handleDbtInstallSkip}
         />
