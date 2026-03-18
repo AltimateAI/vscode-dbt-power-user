@@ -383,6 +383,9 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           const pythonEnvironment =
             this.dbtProjectContainer.getPythonEnvironment();
 
+          // Refresh Python version in case interpreter changed since last check
+          await pythonEnvironment.refreshPythonVersion();
+
           // Get dbt version from any project that has it defined
           let dbtVersion: string | undefined;
           for (const project of projects) {

@@ -66,6 +66,24 @@ export class PythonEnvironment {
     return this._pythonVersion;
   }
 
+  /** Re-fetch the Python version from the Python extension (call after interpreter change) */
+  public async refreshPythonVersion(): Promise<void> {
+    try {
+      const extension = extensions.getExtension("ms-python.python");
+      if (!extension?.isActive) {
+        return;
+      }
+      const api = extension.exports;
+      const pythonPath = this.pythonPath;
+      const envDetails =
+        await api.environment.getEnvironmentDetails(pythonPath);
+      this._pythonVersion = envDetails?.version?.join(".");
+      this.isPython3 = envDetails?.version[0] === "3";
+    } catch {
+      // Keep existing version if refresh fails
+    }
+  }
+
   public get environmentVariables(): EnvironmentVariables {
     return this.getEnvironmentVariables();
   }

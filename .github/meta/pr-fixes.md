@@ -10,3 +10,4 @@
 - Pre-select the correct integration type in the "Install dbt" step based on the already-chosen type
 - Fix false "Installation successful" for dbt Fusion/Cloud — verify dbt is actually detected after install, show actionable error if not
 - Fix Fusion CLI detection (in `altimate-dbt-integration` PR #35) — was finding dbt Core in Python venv instead of Fusion binary at `~/.local/bin/dbt`
+- Fix Python version not updating in setup UI after changing interpreter — refresh version from Python extension API on each diagnostics check
