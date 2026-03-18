@@ -1,4 +1,10 @@
-import type { Table } from "@altimateai/ui-components/lineage";
+import type {
+  ApiHelper as ApiHelperType,
+  CLL as CLLType,
+  CllEvents as CllEventsType,
+  Lineage as LineageType,
+  Table,
+} from "@altimateai/ui-components/lineage";
 import { TooltipProvider } from "@altimateai/ui-components/lineage";
 import "@altimateai/ui-components/styles.css";
 import {
@@ -14,14 +20,13 @@ import styles from "./lineage.module.scss";
 import "./tailwind-globals.css";
 import { MissingLineageMessage, StaticLineageProps } from "./types";
 
-// Dynamic import to isolate load errors from crashing the entire app.
-// ApiHelper is imported here (not statically) to get the same module instance
-// that lineage components use internally, enabling runtime patching.
+// Dynamically imported below to isolate load errors and to get the same
+// ApiHelper instance that lineage components use internally (for runtime patching).
 interface LineageModuleExports {
-  Lineage: typeof import("@altimateai/ui-components/lineage").Lineage;
-  CLL: typeof import("@altimateai/ui-components/lineage").CLL;
-  CllEvents: typeof import("@altimateai/ui-components/lineage").CllEvents;
-  ApiHelper: typeof import("@altimateai/ui-components/lineage").ApiHelper;
+  Lineage: typeof LineageType;
+  CLL: typeof CLLType;
+  CllEvents: typeof CllEventsType;
+  ApiHelper: typeof ApiHelperType;
 }
 let lineageModule: LineageModuleExports | null = null;
 let lineageLoadError: unknown = null;
