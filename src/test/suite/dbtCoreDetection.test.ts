@@ -52,7 +52,6 @@ describe("DBTCoreDetection Tests", () => {
 
     mockPythonEnvironment = {
       pythonPath: "/path/to/python",
-      environmentVariables: { PATH: "/some/path" },
       getEnvironmentVariables: jest
         .fn()
         .mockReturnValue({ PATH: "/some/path" }),
