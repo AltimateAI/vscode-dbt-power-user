@@ -21,7 +21,7 @@ html.lineageBody {
        In VS Code dark themes body color is light (#e8e8e8), making
        icons invisible on the white (#fefefe) button background.
        Force a dark color so icons are always visible. */
-    :global .react-flow__controls-button {
+    :global(.react-flow__controls-button) {
       color: #333;
     }
 
@@ -56,11 +56,11 @@ html.lineageBody {
         z-index: 1;
         align-items: center;
 
-        :global .btn-outline-secondary {
+        :global(.btn-outline-secondary) {
           background-color: var(--background--02);
         }
 
-        :global #expand-container {
+        :global(#expand-container) {
           --background: 0 0% 100%;
           --foreground: 0 0% 15%;
           --card: 0 0% 100%;
@@ -73,14 +73,14 @@ html.lineageBody {
     }
     .demoModal {
       overflow: hidden;
-      :global .modal-content {
+      :global(.modal-content) {
         width: 84%;
         height: 94%;
         margin: auto;
         margin-top: 2%;
         border-radius: 8px;
 
-        :global .close-btn {
+        :global(.close-btn) {
           position: absolute;
           top: 0px;
           right: -2rem;

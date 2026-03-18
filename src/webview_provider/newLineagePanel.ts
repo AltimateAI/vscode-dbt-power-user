@@ -582,17 +582,18 @@ export class NewLineagePanel
     };
   }
 
-  // dbt resource file extensions: .sql (models, seeds, etc.) and .py (UDFs).
-  // These are the only extensions dbt 1.11 supports for function definitions.
-  private static readonly DBT_FILE_EXTENSIONS = [".sql", ".py"];
+  private static readonly DBT_FILE_EXTENSIONS = [".sql", ".py", ".csv"];
 
-  private getFilename() {
-    const fileName = window.activeTextEditor!.document.fileName;
-    const ext = path.extname(fileName);
+  private getFilename(): string | undefined {
+    const editor = window.activeTextEditor;
+    if (!editor) {
+      return undefined;
+    }
+    const fileName = editor.document.fileName;
+    const ext = path.extname(fileName).toLowerCase();
     if (NewLineagePanel.DBT_FILE_EXTENSIONS.includes(ext)) {
       return path.basename(fileName, ext);
     }
-    // Non-dbt file — return basename as-is (will fail lookup gracefully)
     return path.basename(fileName);
   }
 
@@ -632,20 +633,41 @@ export class NewLineagePanel
       };
     }
     const { nodeMetaMap, functionMetaMap } = event.event;
+    const editor = window.activeTextEditor;
     const tableName = this.getFilename();
+    if (!editor || !tableName) {
+      return {
+        aiEnabled,
+        missingLineageMessage: this.getMissingLineageMessage(),
+      };
+    }
+    const url = editor.document.uri.path;
+    const ext = path.extname(editor.document.fileName).toLowerCase();
+
+    // For .py files, prioritize function lookup to avoid model/function
+    // basename collisions (both could share the same name).
+    if (ext === ".py") {
+      const fn = functionMetaMap.get(tableName);
+      if (fn) {
+        const node = this.dbtLineageService.createTable(
+          event.event,
+          url,
+          fn.unique_id,
+        );
+        return { node, aiEnabled };
+      }
+    }
+
     const _node = nodeMetaMap.lookupByBaseName(tableName);
     if (_node) {
       const key = _node.unique_id;
-      const url = window.activeTextEditor!.document.uri.path;
       const node = this.dbtLineageService.createTable(event.event, url, key);
       return { node, aiEnabled };
     }
 
-    // Fallback: check if the active file is a dbt function (.py UDF).
-    // Functions live in functionMetaMap, not nodeMetaMap.
+    // Non-.py fallback: check if the active file is a dbt function.
     const fn = functionMetaMap.get(tableName);
     if (fn) {
-      const url = window.activeTextEditor!.document.uri.path;
       const node = this.dbtLineageService.createTable(
         event.event,
         url,
