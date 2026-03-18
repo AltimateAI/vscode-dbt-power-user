@@ -3,7 +3,7 @@ import type { Config } from "tailwindcss";
 const config: Config = {
   content: [
     "./src/**/*.{ts,tsx}",
-    "../../altimate-frontend/packages/lego/src/**/*.{ts,tsx}",
+    "./node_modules/@altimateai/ui-components/dist/**/*.js",
   ],
   prefix: "al-",
   theme: {
