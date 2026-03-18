@@ -56,7 +56,6 @@
     "yup": "^1.3.3",
     "zod": "^3.23.8"
   },
-  "overrides": {},
   "devDependencies": {
     "@faker-js/faker": "^8.4.0",
     "@rollup/plugin-commonjs": "^26.0.1",
