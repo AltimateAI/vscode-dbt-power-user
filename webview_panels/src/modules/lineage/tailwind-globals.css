@@ -1,0 +1,382 @@
+/* ============================================================================
+   Scoped Tailwind Preflight + CSS variables for lego/shadcn components.
+
+   WHY SCOPED: We can't use @tailwind base globally because Preflight's CSS
+   reset (border-width: 0, heading font resets, list-style: none, etc.) breaks
+   Bootstrap styling in non-lineage panels that share the same main.css bundle.
+   Instead, we scope the entire Preflight under .al-tw-scope so lego/shadcn
+   components get the reset they expect while Bootstrap panels are unaffected.
+
+   SPECIFICITY: All Preflight selectors use :where(.al-tw-scope) so the scope
+   class contributes zero specificity. This keeps element resets at (0,0,1) —
+   the same as native Preflight — so Tailwind utility classes at (0,1,0)
+   always win. Without :where(), ".al-tw-scope button" would be (0,1,1) and
+   beat ".al-bg-background" at (0,1,0), making background-color: transparent
+   override the utility.
+
+   SOURCE ORDER: Preflight and variables MUST come before @tailwind utilities.
+   For selectors at the same specificity, last-in-source wins.
+
+   SOURCE: Adapted from tailwindcss/src/css/preflight.css (Tailwind v3).
+   theme() calls replaced with resolved values from our tailwind.config.ts.
+
+   VARIABLE SCOPING: CSS custom properties use HSL format (e.g., "0 0% 100%")
+   consumed as hsl(var(--background)). Scoped under .al-tw-scope to avoid
+   collision with main.scss's hex --background variable.
+   ============================================================================ */
+
+/* ---------------------------------------------------------------------------
+   Scoped Preflight — element resets
+   --------------------------------------------------------------------------- */
+
+/* 1. Prevent padding and border from affecting element width.
+   2. Allow adding a border to an element by just adding a border-width. */
+:where(.al-tw-scope) *,
+:where(.al-tw-scope) *::before,
+:where(.al-tw-scope) *::after {
+  box-sizing: border-box;
+  border-width: 0;
+  border-style: solid;
+  border-color: hsl(var(--border));
+}
+
+:where(.al-tw-scope) *::before,
+:where(.al-tw-scope) *::after {
+  --tw-content: "";
+}
+
+/* Root-level resets applied to the scope container itself */
+.al-tw-scope {
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  tab-size: 4;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Helvetica,
+    Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Horizontal rules */
+:where(.al-tw-scope) hr {
+  height: 0;
+  color: inherit;
+  border-top-width: 1px;
+}
+
+/* Headings: reset to inherit so Tailwind typography classes control them */
+:where(.al-tw-scope) h1,
+:where(.al-tw-scope) h2,
+:where(.al-tw-scope) h3,
+:where(.al-tw-scope) h4,
+:where(.al-tw-scope) h5,
+:where(.al-tw-scope) h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/* Links: reset so Tailwind classes control color/decoration */
+:where(.al-tw-scope) a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+:where(.al-tw-scope) b,
+:where(.al-tw-scope) strong {
+  font-weight: bolder;
+}
+
+/* Code elements */
+:where(.al-tw-scope) code,
+:where(.al-tw-scope) kbd,
+:where(.al-tw-scope) samp,
+:where(.al-tw-scope) pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 1em;
+}
+
+:where(.al-tw-scope) small {
+  font-size: 80%;
+}
+
+:where(.al-tw-scope) sub,
+:where(.al-tw-scope) sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+:where(.al-tw-scope) sub {
+  bottom: -0.25em;
+}
+
+:where(.al-tw-scope) sup {
+  top: -0.5em;
+}
+
+/* Tables */
+:where(.al-tw-scope) table {
+  text-indent: 0;
+  border-color: inherit;
+  border-collapse: collapse;
+}
+
+/* Form elements: inherit font, reset margin/padding */
+:where(.al-tw-scope) button,
+:where(.al-tw-scope) input,
+:where(.al-tw-scope) optgroup,
+:where(.al-tw-scope) select,
+:where(.al-tw-scope) textarea {
+  font-family: inherit;
+  font-feature-settings: inherit;
+  font-variation-settings: inherit;
+  font-size: 100%;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  margin: 0;
+  padding: 0;
+}
+
+:where(.al-tw-scope) button,
+:where(.al-tw-scope) select {
+  text-transform: none;
+}
+
+/* Remove default button styles */
+:where(.al-tw-scope) button,
+:where(.al-tw-scope) input[type="button"],
+:where(.al-tw-scope) input[type="reset"],
+:where(.al-tw-scope) input[type="submit"] {
+  -webkit-appearance: button;
+  background-color: transparent;
+  background-image: none;
+}
+
+/* Firefox focus style */
+:where(.al-tw-scope) :-moz-focusring {
+  outline: auto;
+}
+
+/* Remove Firefox :invalid styles */
+:where(.al-tw-scope) :-moz-ui-invalid {
+  box-shadow: none;
+}
+
+:where(.al-tw-scope) progress {
+  vertical-align: baseline;
+}
+
+:where(.al-tw-scope) ::-webkit-inner-spin-button,
+:where(.al-tw-scope) ::-webkit-outer-spin-button {
+  height: auto;
+}
+
+:where(.al-tw-scope) [type="search"] {
+  -webkit-appearance: textfield;
+  outline-offset: -2px;
+}
+
+:where(.al-tw-scope) ::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+:where(.al-tw-scope) ::-webkit-file-upload-button {
+  -webkit-appearance: button;
+  font: inherit;
+}
+
+:where(.al-tw-scope) summary {
+  display: list-item;
+}
+
+/* Remove default spacing for block elements */
+:where(.al-tw-scope) blockquote,
+:where(.al-tw-scope) dl,
+:where(.al-tw-scope) dd,
+:where(.al-tw-scope) h1,
+:where(.al-tw-scope) h2,
+:where(.al-tw-scope) h3,
+:where(.al-tw-scope) h4,
+:where(.al-tw-scope) h5,
+:where(.al-tw-scope) h6,
+:where(.al-tw-scope) hr,
+:where(.al-tw-scope) figure,
+:where(.al-tw-scope) p,
+:where(.al-tw-scope) pre {
+  margin: 0;
+}
+
+:where(.al-tw-scope) fieldset {
+  margin: 0;
+  padding: 0;
+}
+
+:where(.al-tw-scope) legend {
+  padding: 0;
+}
+
+/* Lists: remove bullets and spacing */
+:where(.al-tw-scope) ol,
+:where(.al-tw-scope) ul,
+:where(.al-tw-scope) menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+:where(.al-tw-scope) dialog {
+  padding: 0;
+}
+
+:where(.al-tw-scope) textarea {
+  resize: vertical;
+}
+
+/* Placeholder styling */
+:where(.al-tw-scope) input::placeholder,
+:where(.al-tw-scope) textarea::placeholder {
+  opacity: 1;
+  color: #9ca3af;
+}
+
+/* Cursor for interactive elements */
+:where(.al-tw-scope) button,
+:where(.al-tw-scope) [role="button"] {
+  cursor: pointer;
+}
+
+:where(.al-tw-scope) :disabled {
+  cursor: default;
+}
+
+/* Replaced elements: block display, vertical alignment */
+:where(.al-tw-scope) img,
+:where(.al-tw-scope) svg,
+:where(.al-tw-scope) video,
+:where(.al-tw-scope) canvas,
+:where(.al-tw-scope) audio,
+:where(.al-tw-scope) iframe,
+:where(.al-tw-scope) embed,
+:where(.al-tw-scope) object {
+  display: block;
+  vertical-align: middle;
+}
+
+/* Constrain images/videos to parent width */
+:where(.al-tw-scope) img,
+:where(.al-tw-scope) video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Hidden attribute */
+:where(.al-tw-scope) [hidden]:where(:not([hidden="until-found"])) {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Scoped CSS variables — light mode (default)
+
+   NOTE: These use .al-tw-scope (not :where) intentionally — CSS custom
+   property declarations don't compete with utility classes on the same
+   property, so specificity doesn't matter here. We need the real class
+   for cascade proximity (closest ancestor wins for custom properties).
+
+   RADIX PORTALS: Radix UI components (Popover, Tooltip, DropdownMenu) use
+   React portals that render to document.body, outside the .al-tw-scope
+   wrapper. The [data-radix-popper-content-wrapper] selector ensures portaled
+   content also receives the CSS variables, so hsl(var(--popover)) etc. resolve
+   correctly. Without this, portaled content has transparent backgrounds.
+   --------------------------------------------------------------------------- */
+.al-tw-scope,
+[data-radix-popper-content-wrapper] {
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 217 99% 56%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 222.2 84% 4.9%;
+  --radius: 0.5rem;
+  --sidebar-background: 0 0% 98%;
+  --sidebar-foreground: 240 5.3% 26.1%;
+  --sidebar-primary: 240 5.9% 10%;
+  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-accent: 240 4.8% 95.9%;
+  --sidebar-accent-foreground: 240 5.9% 10%;
+  --sidebar-border: 220 13% 91%;
+  --sidebar-ring: 217.2 91.2% 59.8%;
+}
+
+/* ---------------------------------------------------------------------------
+   Scoped CSS variables — dark mode (VS Code dark themes)
+   --------------------------------------------------------------------------- */
+body.vscode-dark .al-tw-scope,
+body.vscode-dark [data-radix-popper-content-wrapper],
+body.vscode-high-contrast:not(.vscode-high-contrast-light) .al-tw-scope,
+body.vscode-high-contrast:not(.vscode-high-contrast-light)
+  [data-radix-popper-content-wrapper] {
+  --background: 0 0% 7%;
+  --foreground: 0 0% 80%;
+  --card: 0 0% 20%;
+  --card-foreground: 0 0% 80%;
+  --popover: 0 0% 15%;
+  --popover-foreground: 0 0% 80%;
+  --primary: 217 99% 56%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 18%;
+  --secondary-foreground: 0 0% 80%;
+  --muted: 0 0% 18%;
+  --muted-foreground: 0 0% 60%;
+  --accent: 0 0% 18%;
+  --accent-foreground: 0 0% 80%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 93%;
+  --border: 0 0% 25%;
+  --input: 0 0% 25%;
+  --ring: 212.7 26.8% 83.9%;
+  --sidebar-background: 0 0% 10%;
+  --sidebar-foreground: 0 0% 93%;
+  --sidebar-primary: 224.3 76.3% 48%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 0 0% 16%;
+  --sidebar-accent-foreground: 0 0% 93%;
+  --sidebar-border: 0 0% 16%;
+  --sidebar-ring: 217.2 91.2% 59.8%;
+}
+
+/* ---------------------------------------------------------------------------
+   Expand button overrides — force white background and dark text so the
+   outline-variant button is legible in both light and dark VS Code themes.
+   --------------------------------------------------------------------------- */
+#expand-container {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 15%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 15%;
+  --accent: 0 0% 92%;
+  --accent-foreground: 0 0% 15%;
+  --border: 0 0% 80%;
+}
+
+/* ---------------------------------------------------------------------------
+   Tailwind utilities — MUST come after Preflight so utilities win on
+   specificity ties (both are 0,1,0 — last-in-source wins).
+   --------------------------------------------------------------------------- */
+@tailwind components;
+@tailwind utilities;

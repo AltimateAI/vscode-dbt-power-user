@@ -17,6 +17,14 @@ html.lineageBody {
       --divider-color: #424750;
     }
 
+    /* ReactFlow controls use fill: currentColor for SVG icons.
+       In VS Code dark themes body color is light (#e8e8e8), making
+       icons invisible on the white (#fefefe) button background.
+       Force a dark color so icons are always visible. */
+    :global(.react-flow__controls-button) {
+      color: #333;
+    }
+
     .lineageView {
       position: relative;
       width: 100vw;
@@ -48,21 +56,31 @@ html.lineageBody {
         z-index: 1;
         align-items: center;
 
-        :global .btn-outline-secondary {
+        :global(.btn-outline-secondary) {
           background-color: var(--background--02);
+        }
+
+        :global(#expand-container) {
+          --background: 0 0% 100%;
+          --foreground: 0 0% 15%;
+          --card: 0 0% 100%;
+          --card-foreground: 0 0% 15%;
+          --accent: 0 0% 92%;
+          --accent-foreground: 0 0% 15%;
+          --border: 0 0% 80%;
         }
       }
     }
     .demoModal {
       overflow: hidden;
-      :global .modal-content {
+      :global(.modal-content) {
         width: 84%;
         height: 94%;
         margin: auto;
         margin-top: 2%;
         border-radius: 8px;
 
-        :global .close-btn {
+        :global(.close-btn) {
           position: absolute;
           top: 0px;
           right: -2rem;
@@ -74,6 +92,17 @@ html.lineageBody {
           border-radius: 0 0.25rem 0.25rem 0;
         }
       }
+    }
+  }
+
+  /* Icon-only button that expands to show text on hover,
+     matching the old uiCore Button icon-collapse behavior. */
+  .collapsibleBtn {
+    .collapsibleBtnText {
+      display: none;
+    }
+    &:hover .collapsibleBtnText {
+      display: inline;
     }
   }
 }
