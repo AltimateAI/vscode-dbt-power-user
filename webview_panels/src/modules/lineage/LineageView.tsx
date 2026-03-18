@@ -1,11 +1,11 @@
-import type {
-  ApiHelper as ApiHelperType,
-  CLL as CLLType,
-  CllEvents as CllEventsType,
-  Lineage as LineageType,
-  Table,
+import type { Table } from "@altimateai/ui-components/lineage";
+import {
+  ApiHelper,
+  CLL,
+  CllEvents,
+  Lineage,
+  TooltipProvider,
 } from "@altimateai/ui-components/lineage";
-import { TooltipProvider } from "@altimateai/ui-components/lineage";
 import "@altimateai/ui-components/styles.css";
 import {
   executeRequestInAsync,
@@ -20,34 +20,12 @@ import styles from "./lineage.module.scss";
 import "./tailwind-globals.css";
 import { MissingLineageMessage, StaticLineageProps } from "./types";
 
-// Dynamically imported below to isolate load errors and to get the same
-// ApiHelper instance that lineage components use internally (for runtime patching).
-interface LineageModuleExports {
-  Lineage: typeof LineageType;
-  CLL: typeof CLLType;
-  CllEvents: typeof CllEventsType;
-  ApiHelper: typeof ApiHelperType;
-}
-let lineageModule: LineageModuleExports | null = null;
-let lineageLoadError: unknown = null;
-
-const lineageReady = import("@altimateai/ui-components/lineage")
-  .then((mod: LineageModuleExports) => {
-    lineageModule = mod;
-    panelLogger.info("lineage module loaded successfully");
-  })
-  .catch((err: unknown) => {
-    lineageLoadError = err;
-    panelLogger.error("Failed to load lineage module:", err);
-  });
-
 const LineageView = (): JSX.Element | null => {
   const {
     state: { theme, isComponentsApiInitialized },
   } = useAppContext();
 
   const [isApiHelperInitialized, setIsApiHelperInitialized] = useState(false);
-  const [isLineageLoaded, setIsLineageLoaded] = useState(!!lineageModule);
   const [renderNode, setRenderNode] = useState<
     {
       node?: Table;
@@ -59,17 +37,10 @@ const LineageView = (): JSX.Element | null => {
   >();
 
   useEffect(() => {
-    if (!lineageModule) {
-      void lineageReady.then(() => setIsLineageLoaded(true));
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isComponentsApiInitialized || !lineageModule) {
+    if (!isComponentsApiInitialized) {
       return;
     }
     panelLogger.info("LineageView updating components api helper");
-    const { ApiHelper } = lineageModule;
     // @ts-expect-error TODO: add type generic for executeRequestInSync
     ApiHelper.get = async (url: string, data?: Record<string, unknown>) => {
       switch (url) {
@@ -97,7 +68,7 @@ const LineageView = (): JSX.Element | null => {
       }
     };
     setIsApiHelperInitialized(true);
-  }, [isComponentsApiInitialized, isLineageLoaded]);
+  }, [isComponentsApiInitialized]);
 
   const render = (
     data: {
@@ -119,17 +90,16 @@ const LineageView = (): JSX.Element | null => {
     setRenderNode(data);
   };
 
-  const columnLineage = (data: { event: string }) => {
-    if (!lineageModule) return;
-    if (data.event === (lineageModule.CllEvents.CANCEL as string)) {
-      lineageModule.CLL.onCancel();
+  const columnLineage = ({ event }: { event: CllEvents }) => {
+    if (event === CllEvents.CANCEL) {
+      CLL.onCancel();
     }
   };
 
   useEffect(() => {
     const commandMap = {
       render,
-      columnLineage: (data: { event: string }) => {
+      columnLineage: (data: { event: CllEvents }) => {
         columnLineage(data);
       },
     };
@@ -157,23 +127,10 @@ const LineageView = (): JSX.Element | null => {
     executeRequestInAsync("init", {});
   }, []);
 
-  if (lineageLoadError) {
-    return (
-      <div style={{ color: "red", padding: "1em", whiteSpace: "pre-wrap" }}>
-        <strong>Failed to load lineage module:</strong>
-        <br />
-        {String(lineageLoadError)}
-        <br />
-        {lineageLoadError instanceof Error ? lineageLoadError.stack : ""}
-      </div>
-    );
-  }
-
-  if (!isLineageLoaded || !isApiHelperInitialized || !renderNode) {
+  if (!isApiHelperInitialized || !renderNode) {
     return null;
   }
 
-  const Lineage = lineageModule!.Lineage;
   const lineageType = renderNode.details ? "sql" : "dynamic";
 
   return (
