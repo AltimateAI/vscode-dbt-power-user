@@ -319,8 +319,16 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           const config = workspace.getConfiguration("dbt");
           await config.update("dbtIntegration", integrationType, true);
 
-          // Call the installDbt command
+          // Call the installDbt command (swallows errors internally)
           await this.walkthroughCommands.installDbt();
+
+          // Verify installation actually succeeded
+          if (!this.dbtProjectContainer.dbtInstalled) {
+            throw new Error(
+              `dbt ${integrationType} could not be detected after installation. ` +
+                `Check the Output panel (View → Output → "dbt") for details.`,
+            );
+          }
 
           this.sendResponseToWebview({
             command: "response",
