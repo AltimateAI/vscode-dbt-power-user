@@ -4,14 +4,14 @@ import {
   CommandProcessExecutionFactory,
   DBTCommand,
   DBTTerminal,
+  RuntimePythonEnvironment,
 } from "@altimateai/dbt-integration";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
-import { PythonEnvironment } from "../../dbt_client/pythonEnvironment";
 
 describe("CLIDBTCommandExecutionStrategy Tests", () => {
   let strategy: CLIDBTCommandExecutionStrategy;
   let mockCommandProcessExecutionFactory: jest.Mocked<CommandProcessExecutionFactory>;
-  let mockPythonEnvironment: jest.Mocked<PythonEnvironment>;
+  let mockPythonEnvironment: jest.Mocked<RuntimePythonEnvironment>;
   let mockTerminal: jest.Mocked<DBTTerminal>;
   let mockCommandProcessExecution: jest.Mocked<CommandProcessExecution>;
 
@@ -42,8 +42,10 @@ describe("CLIDBTCommandExecutionStrategy Tests", () => {
     mockPythonEnvironment = {
       pythonPath: "/path/to/python",
       environmentVariables: { PATH: "/some/path" },
-      getEnvironmentVariables: () => ({ PATH: "/some/path" }),
-    } as unknown as jest.Mocked<PythonEnvironment>;
+      getEnvironmentVariables: jest
+        .fn()
+        .mockReturnValue({ PATH: "/some/path" }),
+    } as unknown as jest.Mocked<RuntimePythonEnvironment>;
 
     mockTerminal = {
       show: jest.fn(),

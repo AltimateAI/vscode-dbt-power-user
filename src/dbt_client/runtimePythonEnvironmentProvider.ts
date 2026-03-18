@@ -1,8 +1,10 @@
 import {
+  EnvironmentVariables,
   PythonEnvironmentProvider,
   RuntimePythonEnvironment,
 } from "@altimateai/dbt-integration";
 import { inject, injectable } from "inversify";
+import { Uri, workspace } from "vscode";
 import { PythonEnvironment } from "./pythonEnvironment";
 
 @injectable()
@@ -29,8 +31,16 @@ export class VSCodeRuntimePythonEnvironmentProvider
     return {
       pythonPath: this.vscodeEnvironment.pythonPath,
       environmentVariables: this.vscodeEnvironment.environmentVariables,
-      getEnvironmentVariables: () =>
-        this.vscodeEnvironment.environmentVariables,
+      getEnvironmentVariables: (
+        workspacePath: string,
+      ): EnvironmentVariables => {
+        // workspacePath may be undefined at runtime when called by dbt-integration
+        // code that hasn't been updated to pass it yet (e.g. DBTCoreDetection)
+        const folder = workspacePath
+          ? workspace.getWorkspaceFolder(Uri.file(workspacePath))
+          : undefined;
+        return this.vscodeEnvironment.getEnvironmentVariables(folder);
+      },
     };
   }
 
@@ -62,11 +72,16 @@ export class StaticRuntimePythonEnvironment
     return this.vscodeEnvironment.pythonPath;
   }
 
-  get environmentVariables() {
+  get environmentVariables(): EnvironmentVariables {
     return this.vscodeEnvironment.environmentVariables;
   }
 
-  getEnvironmentVariables() {
-    return this.vscodeEnvironment.environmentVariables;
+  getEnvironmentVariables(workspacePath: string): EnvironmentVariables {
+    // workspacePath may be undefined at runtime when called by dbt-integration
+    // code that hasn't been updated to pass it yet (e.g. DBTCoreDetection)
+    const folder = workspacePath
+      ? workspace.getWorkspaceFolder(Uri.file(workspacePath))
+      : undefined;
+    return this.vscodeEnvironment.getEnvironmentVariables(folder);
   }
 }

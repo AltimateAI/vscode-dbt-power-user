@@ -174,6 +174,42 @@ describe("RunHistoryService", () => {
     });
   });
 
+  describe("clear", () => {
+    it("should remove all entries", () => {
+      service.addEntry(createEntry({ id: "inv-1", command: "dbt run" }));
+      service.addEntry(createEntry({ id: "inv-2", command: "dbt build" }));
+
+      service.clear();
+
+      expect(service.entries).toEqual([]);
+    });
+
+    it("should fire onHistoryChanged with undefined", () => {
+      service.addEntry(createEntry({ id: "inv-1", command: "dbt run" }));
+      const listener = jest.fn();
+      service.onHistoryChanged(listener);
+
+      service.clear();
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(listener).toHaveBeenCalledWith(undefined);
+    });
+
+    it("should be safe to call on empty history", () => {
+      expect(() => service.clear()).not.toThrow();
+      expect(service.entries).toEqual([]);
+    });
+
+    it("should allow adding entries after clearing", () => {
+      service.addEntry(createEntry({ id: "inv-1", command: "dbt run" }));
+      service.clear();
+      service.addEntry(createEntry({ id: "inv-2", command: "dbt build" }));
+
+      expect(service.entries).toHaveLength(1);
+      expect(service.entries[0].id).toBe("inv-2");
+    });
+  });
+
   describe("entries", () => {
     it("should return empty array when no runs added", () => {
       expect(service.entries).toEqual([]);

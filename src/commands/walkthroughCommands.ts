@@ -196,7 +196,7 @@ export class WalkthroughCommands {
               command,
               args,
               cwd: getFirstWorkspacePath(),
-              envVars: this.pythonEnvironment.environmentVariables,
+              envVars: this.pythonEnvironment.getEnvironmentVariables(),
             })
             .completeWithTerminalOutput();
 
@@ -241,7 +241,7 @@ export class WalkthroughCommands {
                 "--force-reinstall",
               ],
               cwd: getFirstWorkspacePath(),
-              envVars: this.pythonEnvironment.environmentVariables,
+              envVars: this.pythonEnvironment.getEnvironmentVariables(),
             })
             .completeWithTerminalOutput();
           if (
@@ -339,7 +339,7 @@ export class WalkthroughCommands {
               command: this.pythonEnvironment.pythonPath,
               args,
               cwd: getFirstWorkspacePath(),
-              envVars: this.pythonEnvironment.environmentVariables,
+              envVars: this.pythonEnvironment.getEnvironmentVariables(),
             })
             .completeWithTerminalOutput();
           if (

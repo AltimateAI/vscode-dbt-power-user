@@ -380,7 +380,11 @@ export class NewLineagePanel
 
     const { exposureMetaMap } = event.event;
 
-    return exposureMetaMap.get(name);
+    // Node IDs use unique_id format (exposure.project.name), but
+    // exposureMetaMap is keyed by simple exposure name.
+    const splits = name.split(".");
+    const exposureName = splits.length >= 3 ? splits[2] : name;
+    return exposureMetaMap.get(exposureName);
   }
 
   private async getFunctionDetails({
