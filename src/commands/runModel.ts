@@ -3,11 +3,16 @@ import { RunModelType } from "@altimateai/dbt-integration";
 import { Uri, window } from "vscode";
 import { GenerateModelFromSourceParams } from "../code_lens_provider/sourceModelCreationCodeLensProvider";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { toProjectQuickPickItem } from "../quickpick/projectQuickPick";
+import { QueryManifestService } from "../services/queryManifestService";
 import { NodeTreeItem } from "../treeview_provider/modelTreeviewProvider";
 import { extendErrorWithSupportLinks } from "../utils";
 
 export class RunModel {
-  constructor(private dbtProjectContainer: DBTProjectContainer) {}
+  constructor(
+    private dbtProjectContainer: DBTProjectContainer,
+    private queryManifestService: QueryManifestService,
+  ) {}
 
   runModelOnActiveWindow(type?: RunModelType) {
     if (!window.activeTextEditor) {
@@ -41,15 +46,59 @@ export class RunModel {
     this.compileDBTModel(fullPath);
   }
 
-  compileQueryOnActiveWindow() {
+  async compileQueryOnActiveWindow() {
     if (!window.activeTextEditor) {
       return;
     }
     const fullPath = window.activeTextEditor.document.uri;
+    if (fullPath.scheme === "untitled") {
+      const resolved = await this.ensureProjectForUntitledUri();
+      if (!resolved) {
+        return;
+      }
+    }
     const query = window.activeTextEditor.document.getText();
     if (query !== undefined) {
       this.compileDBTQuery(fullPath, query);
     }
+  }
+
+  /**
+   * Ensures a dbt project is stored in workspace state for untitled files.
+   * If no project is stored yet — or the stored project is stale (removed
+   * between sessions) — falls back to getOrPickProjectFromWorkspace() which
+   * auto-selects the single project or prompts the user to pick one.
+   * Returns true if a project is available, false if the user cancelled or
+   * no projects exist.
+   */
+  private async ensureProjectForUntitledUri(): Promise<boolean> {
+    const selectedProject = this.dbtProjectContainer.getFromWorkspaceState(
+      "dbtPowerUser.projectSelected",
+    );
+    if (selectedProject?.uri) {
+      // Validate the stored project still exists in the workspace
+      const raw = selectedProject.uri;
+      const storedUri = Uri.file(raw.fsPath || raw.path);
+      if (this.dbtProjectContainer.findDBTProject(storedUri)) {
+        return true;
+      }
+      // Stale — clear it and fall through to re-pick
+      this.dbtProjectContainer.setToWorkspaceState(
+        "dbtPowerUser.projectSelected",
+        undefined,
+      );
+    }
+    const project =
+      await this.queryManifestService.getOrPickProjectFromWorkspace();
+    if (!project) {
+      window.showErrorMessage("Unable to find dbt project for this query.");
+      return false;
+    }
+    this.dbtProjectContainer.setToWorkspaceState(
+      "dbtPowerUser.projectSelected",
+      toProjectQuickPickItem(project),
+    );
+    return true;
   }
 
   private getQuery() {
@@ -62,16 +111,26 @@ export class RunModel {
     );
   }
 
-  executeQueryOnActiveWindow() {
+  async executeQueryOnActiveWindow() {
     const query = this.getQuery();
     if (query === undefined) {
       return;
     }
     const modelPath = window.activeTextEditor?.document.uri;
-    if (modelPath) {
-      const modelName = path.basename(modelPath.fsPath, ".sql");
-      this.executeSQL(window.activeTextEditor!.document.uri, query, modelName);
+    if (!modelPath) {
+      return;
     }
+    if (modelPath.scheme === "untitled") {
+      const resolved = await this.ensureProjectForUntitledUri();
+      if (!resolved) {
+        return;
+      }
+    }
+    const modelName =
+      modelPath.scheme === "untitled"
+        ? "untitled"
+        : path.basename(modelPath.fsPath, ".sql");
+    this.executeSQL(modelPath, query, modelName);
   }
 
   runModelOnNodeTreeItem(type: RunModelType) {

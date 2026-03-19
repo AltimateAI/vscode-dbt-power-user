@@ -33,7 +33,10 @@ import { DBTProject } from "../dbt_client/dbtProject";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
 import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
-import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
+import {
+  ProjectQuickPickItem,
+  toProjectQuickPickItem,
+} from "../quickpick/projectQuickPick";
 import { DiagnosticsOutputChannel } from "../services/diagnosticsOutputChannel";
 import { QueryManifestService } from "../services/queryManifestService";
 import { RunHistoryService } from "../services/runHistoryService";
@@ -696,6 +699,13 @@ export class VSCodeCommands implements Disposable {
               window.showErrorMessage("No dbt project selected.");
               return;
             }
+
+            // Persist project selection so untitled files can resolve
+            // project context during query execution and compilation
+            this.dbtProjectContainer.setToWorkspaceState(
+              "dbtPowerUser.projectSelected",
+              toProjectQuickPickItem(project),
+            );
 
             // Open a new untitled sql file by default
             let docOpenPromise = workspace.openTextDocument({

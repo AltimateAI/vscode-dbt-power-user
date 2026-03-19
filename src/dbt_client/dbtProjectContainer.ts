@@ -102,6 +102,7 @@ export class DBTProjectContainer implements Disposable {
         this.projects.set(event.root, event.name);
       } else {
         this.projects.delete(event.root);
+        this.clearStaleProjectSelection(event.root);
       }
     });
   }
@@ -240,15 +241,10 @@ export class DBTProjectContainer implements Disposable {
   }
 
   executeSQL(uri: Uri, query: string, modelName: string): void {
-    if (uri.scheme === "untitled") {
-      const selectedProject = this.getFromWorkspaceState(
-        "dbtPowerUser.projectSelected",
-      );
-      if (selectedProject) {
-        uri = selectedProject.uri;
-      }
-    }
-    this.findDBTProject(uri)?.executeSQLOnQueryPanel(query, modelName);
+    this.findDBTProject(this.resolveProjectUri(uri))?.executeSQLOnQueryPanel(
+      query,
+      modelName,
+    );
   }
 
   runModel(modelPath: Uri, type?: RunModelType) {
@@ -286,7 +282,9 @@ export class DBTProjectContainer implements Disposable {
   }
 
   compileQuery(modelPath: Uri, query: string) {
-    return this.findDBTProject(modelPath)?.compileQuery(query);
+    return this.findDBTProject(this.resolveProjectUri(modelPath))?.compileQuery(
+      query,
+    );
   }
 
   showRunSQL(modelPath: Uri) {
@@ -477,6 +475,49 @@ export class DBTProjectContainer implements Disposable {
 
   private findDBTWorkspaceFolder(uri: Uri): DBTWorkspaceFolder | undefined {
     return this.dbtWorkspaceFolders.find((folder) => folder.contains(uri));
+  }
+
+  /**
+   * Resolves an untitled document URI to the selected project's URI.
+   * When users create ad-hoc query files (via "New query" or manually),
+   * the document has an `untitled:` scheme that can't be matched to a
+   * project directory. This method looks up the stored project selection
+   * from workspace state and returns a real file URI that findDBTProject
+   * can resolve.
+   *
+   * Workspace state stores Uri as a plain JSON object (not a Uri instance),
+   * so we reconstruct it via Uri.file() to ensure .fsPath works correctly.
+   */
+  private resolveProjectUri(uri: Uri): Uri {
+    if (uri.scheme === "untitled") {
+      const selectedProject = this.getFromWorkspaceState(
+        "dbtPowerUser.projectSelected",
+      );
+      if (selectedProject?.uri) {
+        const raw = selectedProject.uri;
+        return Uri.file(raw.fsPath || raw.path);
+      }
+    }
+    return uri;
+  }
+
+  /**
+   * Clear the stored project selection if it points to a project that was
+   * just unregistered. Prevents stale state from causing silent failures
+   * when the user later opens an untitled query file.
+   */
+  private clearStaleProjectSelection(removedRoot: Uri): void {
+    const selectedProject = this.getFromWorkspaceState(
+      "dbtPowerUser.projectSelected",
+    );
+    if (!selectedProject?.uri) {
+      return;
+    }
+    const raw = selectedProject.uri;
+    const selectedPath = raw.fsPath || raw.path;
+    if (selectedPath === removedRoot.fsPath) {
+      this.setToWorkspaceState("dbtPowerUser.projectSelected", undefined);
+    }
   }
 
   async checkIfAltimateDatapilotInstalled() {
