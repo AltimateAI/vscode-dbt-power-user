@@ -66,14 +66,13 @@ export class PythonEnvironment {
     return this._pythonVersion;
   }
 
-  /** Re-fetch the Python version from the Python extension (call after interpreter change) */
-  public async refreshPythonVersion(): Promise<void> {
+  /** Re-read Python version from the Python extension API. */
+  async refreshPythonVersion(): Promise<void> {
     try {
-      const extension = extensions.getExtension("ms-python.python");
-      if (!extension?.isActive) {
+      const api = extensions.getExtension("ms-python.python")?.exports;
+      if (!api) {
         return;
       }
-      const api = extension.exports;
       const pythonPath = this.pythonPath;
       const envDetails =
         await api.environment.getEnvironmentDetails(pythonPath);
