@@ -1171,7 +1171,10 @@
     "test:coverage": "jest --coverage",
     "pretest": "npm run clean && npm run compile",
     "clean": "rimraf out coverage",
-    "compile": "tsc -p ./"
+    "compile": "tsc -p ./",
+    "docker:deploy": "./docker-setup/deploy.sh",
+    "docker:logs": "cd docker-setup && docker compose logs -f || docker-compose logs -f",
+    "docker:stop": "cd docker-setup && docker compose down || docker-compose down"
   },
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.2",
@@ -1208,6 +1211,7 @@
     "lint-staged": "^15.2.5",
     "mocha": "^10.7.0",
     "ovsx": "^0.9.2",
+    "patch-package": "^8.0.1",
     "prettier": "^3.3.3",
     "prettier-eslint": "^15.0.1",
     "prettier-plugin-organize-imports": "^3.2.4",

@@ -1,0 +1,12 @@
+[project]
+name = "jaffle-shop"
+version = "0.1.0"
+description = "A self-contained dbt project using DuckDB"
+requires-python = ">=3.13"
+dependencies = [
+    "dbt-duckdb>=1.10.1",
+    "dbt-core>=1.11.0",
+    "sqlfluff>=3",
+    # Constrain chardet to avoid RequestsDependencyWarning from requests
+    "chardet<6",
+]

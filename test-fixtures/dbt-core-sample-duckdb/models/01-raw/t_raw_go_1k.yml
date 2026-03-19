@@ -1,0 +1,15 @@
+version: 2
+models:
+  - name: t_raw_go_1k
+    config:
+      materialized: table  
+      schema: raw     
+      tags:
+        - GO_SALES_RAW
+      sql: "SELECT * FROM go_1k"
+    columns:
+      - name: Retailer code
+      - name: Product number
+      - name: Date
+      - name: Quantity
+      

@@ -1,0 +1,60 @@
+name: GOSALES CI - SonarCloud
+
+on:
+  push:
+    branches:
+      - dbt-core-sample-duckdb
+  pull_request:
+    branches:
+      - dbt-core-sample-duckdb
+
+jobs:
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install pytest pytest-cov
+
+    - name: Set PYTHONPATH
+      run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
+
+    - name: Create .coveragerc
+      run: |
+        echo "[run]" > .coveragerc
+        echo "relative_files = True" >> .coveragerc
+        echo "source = shared_utils" >> .coveragerc
+        echo "[report]" >> .coveragerc
+        echo "omit =" >> .coveragerc
+        echo "    */__init__.py" >> .coveragerc
+        echo "    tests/*" >> .coveragerc
+
+    - name: Run tests with coverage
+      run: |
+        pytest shared_utils tests \
+          --cov=shared_utils \
+          --cov-report=xml:coverage.xml \
+          --cov-config=.coveragerc
+
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@v2
+      with:
+        args: >
+          -Dsonar.projectKey=manz01_dbt-core-sample-duckdb
+          -Dsonar.organization=manz01
+          -Dsonar.python.coverage.reportPaths=coverage.xml
+          -Dsonar.sources=shared_utils
+          -Dsonar.tests=tests
+          -Dsonar.sourceEncoding=UTF-8
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

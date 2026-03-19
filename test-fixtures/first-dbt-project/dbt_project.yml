@@ -1,7 +1,0 @@
-name: first_dbt_project
-version: "1.0.0"
-config-version: 2
-
-profile: first_dbt_project
-
-model-paths: ["models"]
