@@ -161,7 +161,7 @@ const InstallDbtStep = ({
         <p>
           Need help choosing?{" "}
           <a
-            href="https://docs.myaltimate.com/"
+            href="https://docs.myaltimate.com/setup/reqdConfig/"
             target="_blank"
             rel="noopener noreferrer"
           >

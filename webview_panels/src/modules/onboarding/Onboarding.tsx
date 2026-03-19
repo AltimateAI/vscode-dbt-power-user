@@ -43,7 +43,7 @@ const Onboarding = (): JSX.Element => {
   };
 
   const handleLearnMore = () => {
-    window.open("https://docs.myaltimate.com/", "_blank");
+    window.open("https://docs.myaltimate.com/setup/reqdConfig/", "_blank");
   };
 
   const handleTutorials = () => {

@@ -319,8 +319,19 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           const config = workspace.getConfiguration("dbt");
           await config.update("dbtIntegration", integrationType, true);
 
-          // Call the installDbt command (swallows errors internally)
-          await this.walkthroughCommands.installDbt();
+          // Call the installDbt command (swallows errors internally).
+          // Returns false if the user cancelled (e.g. dismissed quick pick).
+          const attempted = await this.walkthroughCommands.installDbt();
+
+          if (!attempted) {
+            // User cancelled — don't report as failure
+            this.sendResponseToWebview({
+              command: "response",
+              syncRequestId,
+              data: { success: false, cancelled: true },
+            });
+            break;
+          }
 
           // Verify installation actually succeeded
           if (!this.dbtProjectContainer.dbtInstalled) {

@@ -181,7 +181,10 @@ const SetupWizard = forwardRef<
     try {
       if (step.action) {
         if (step.action.command === "openDocumentation") {
-          window.open("https://docs.myaltimate.com/", "_blank");
+          window.open(
+            "https://docs.myaltimate.com/setup/reqdConfig/",
+            "_blank",
+          );
         } else {
           await executeRequestInSync("executeCommand", {
             vscodeCommand: step.action.command,
