@@ -488,7 +488,7 @@ export class DBTProjectContainer implements Disposable {
    * Workspace state stores Uri as a plain JSON object (not a Uri instance),
    * so we reconstruct it via Uri.file() to ensure .fsPath works correctly.
    */
-  private resolveProjectUri(uri: Uri): Uri {
+  resolveProjectUri(uri: Uri): Uri {
     if (uri.scheme === "untitled") {
       const selectedProject = this.getFromWorkspaceState(
         "dbtPowerUser.projectSelected",
