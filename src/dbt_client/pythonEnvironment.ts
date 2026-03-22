@@ -66,23 +66,13 @@ export class PythonEnvironment {
     return this._pythonVersion;
   }
 
-  /**
-   * Wait for the Python extension to settle after an interpreter change,
-   * then update the cached pythonPath and version. The
-   * onDidChangeExecutionDetails event fires before the Python extension
-   * updates its own API — calling getEnvironmentDetails forces it to
-   * resolve the new interpreter before we read pythonPath.
-   */
-  public async refreshPythonEnvironment(): Promise<void> {
+  /** Re-fetch the Python version from the Python extension (call after interpreter change) */
+  public async refreshPythonVersion(): Promise<void> {
     try {
       const extension = extensions.getExtension("ms-python.python");
       if (!extension?.isActive) {
         return;
       }
-      // The onDidChangeExecutionDetails event fires before the Python
-      // extension updates its internal state. Yield a tick so the
-      // extension can process the change before we read the new path.
-      await new Promise((resolve) => setTimeout(resolve, 100));
       const api = extension.exports;
       const pythonPath = this.pythonPath;
       const envDetails =
@@ -91,7 +81,7 @@ export class PythonEnvironment {
       this.isPython3 = envDetails?.version?.[0] === "3";
     } catch (e) {
       this.dbtTerminal.debug(
-        "pythonEnvironment:refreshPythonEnvironment",
+        "pythonEnvironment:refreshPythonVersion",
         "Failed to refresh Python version; keeping previous values",
         e,
       );
