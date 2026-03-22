@@ -58,11 +58,12 @@ export class DBTClient implements Disposable {
     });
     this.shownError = false;
     this._dbtInstalled = undefined;
+    // Wait for the Python extension to settle before reading pythonPath —
+    // the change event fires before the API updates its internal state.
+    // This also refreshes the cached Python version.
+    await this.pythonEnvironment.refreshPythonEnvironment();
     this._pythonInstalled = this.pythonPathExists();
     this._dbtInstalled = await this.dbtDetectionFactory().detectDBT();
-    // Refresh cached Python version — by this point the Python extension
-    // has settled after an interpreter change
-    await this.pythonEnvironment.refreshPythonVersion();
     this._onDBTInstallationVerificationEvent.fire({
       inProgress: false,
       installed: this._dbtInstalled,
