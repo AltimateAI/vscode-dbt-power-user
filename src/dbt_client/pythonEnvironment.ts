@@ -66,20 +66,25 @@ export class PythonEnvironment {
     return this._pythonVersion;
   }
 
-  /** Re-read Python version from the Python extension API. */
-  async refreshPythonVersion(): Promise<void> {
+  /** Re-fetch the Python version from the Python extension (call after interpreter change) */
+  public async refreshPythonVersion(): Promise<void> {
     try {
-      const api = extensions.getExtension("ms-python.python")?.exports;
-      if (!api) {
+      const extension = extensions.getExtension("ms-python.python");
+      if (!extension?.isActive) {
         return;
       }
+      const api = extension.exports;
       const pythonPath = this.pythonPath;
       const envDetails =
         await api.environment.getEnvironmentDetails(pythonPath);
       this._pythonVersion = envDetails?.version?.join(".");
-      this.isPython3 = envDetails?.version[0] === "3";
-    } catch {
-      // Keep existing version if refresh fails
+      this.isPython3 = envDetails?.version?.[0] === "3";
+    } catch (e) {
+      this.dbtTerminal.debug(
+        "pythonEnvironment:refreshPythonVersion",
+        "Failed to refresh Python version; keeping previous values",
+        e,
+      );
     }
   }
 
@@ -171,7 +176,7 @@ export class PythonEnvironment {
     const pythonPath = api.settings.getExecutionDetails(workspace.workspaceFile)
       .execCommand[0];
     const envDetails = await api.environment.getEnvironmentDetails(pythonPath);
-    this.isPython3 = envDetails?.version[0] === "3";
+    this.isPython3 = envDetails?.version?.[0] === "3";
     this._pythonVersion = envDetails?.version?.join(".");
 
     const dbtInstalledPythonPath: string[] = [];

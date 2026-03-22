@@ -65,10 +65,10 @@ export class OnboardingPanel extends AltimateWebviewProvider {
 
   private async initializePythonEnvironmentListener() {
     try {
-      // Listen to dbt installation verification events, which fire *after*
-      // dbt re-detection completes (triggered by interpreter changes).
-      // This ensures dbtInstalled, pythonPath, and pythonVersion are all
-      // up to date before the webview refreshes diagnostics.
+      // Listen to dbt installation verification events, which fire after
+      // checkAllInstalled() completes (triggered by interpreter changes).
+      // By this point dbtInstalled, pythonPath, and pythonVersion are all
+      // up to date, so the webview gets fresh data when it refreshes.
       this._disposables.push(
         this.dbtProjectContainer.onDBTInstallationVerification((event) => {
           if (event.inProgress) {
@@ -321,27 +321,8 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           const config = workspace.getConfiguration("dbt");
           await config.update("dbtIntegration", integrationType, true);
 
-          // Call the installDbt command (swallows errors internally).
-          // Returns false if the user cancelled (e.g. dismissed quick pick).
-          const attempted = await this.walkthroughCommands.installDbt();
-
-          if (!attempted) {
-            // User cancelled — don't report as failure
-            this.sendResponseToWebview({
-              command: "response",
-              syncRequestId,
-              data: { success: false, cancelled: true },
-            });
-            break;
-          }
-
-          // Verify installation actually succeeded
-          if (!this.dbtProjectContainer.dbtInstalled) {
-            throw new Error(
-              `dbt ${integrationType} could not be detected after installation. ` +
-                `Check the Output panel (View → Output → "dbt") for details.`,
-            );
-          }
+          // Call the installDbt command
+          await this.walkthroughCommands.installDbt();
 
           this.sendResponseToWebview({
             command: "response",

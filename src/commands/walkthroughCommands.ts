@@ -141,8 +141,7 @@ export class WalkthroughCommands {
     }
   }
 
-  /** Returns true if installation was attempted, false if user cancelled. */
-  async installDbt(): Promise<boolean> {
+  async installDbt(): Promise<void> {
     const dbtIntegration = workspace
       .getConfiguration("dbt")
       .get<string>("dbtIntegration", "core");
@@ -150,11 +149,9 @@ export class WalkthroughCommands {
       case "core":
         return this.installDbtCore();
       case "fusion":
-        await this.installDbtFusion();
-        return true;
+        return this.installDbtFusion();
       case "cloud":
-        await this.installDbtCloud();
-        return true;
+        return this.installDbtCloud();
       default:
         throw new Error(
           `Unsupported dbt integration: ${dbtIntegration}. Supported values are 'core', 'cloud', 'fusion'.`,
@@ -272,7 +269,7 @@ export class WalkthroughCommands {
     }
   }
 
-  private async installDbtCore(): Promise<boolean> {
+  private async installDbtCore(): Promise<void> {
     const dbtVersion: QuickPickItem | undefined = await window.showQuickPick(
       ["1.8", "1.9", "1.10", "1.11"].map((value) => ({
         label: value,
@@ -283,7 +280,7 @@ export class WalkthroughCommands {
       },
     );
     if (!dbtVersion) {
-      return false;
+      return;
     }
     const adapter: QuickPickItem | undefined = await window.showQuickPick(
       [
@@ -307,7 +304,7 @@ export class WalkthroughCommands {
       },
     );
     if (!adapter || !adapter.label) {
-      return false;
+      return;
     }
     const packageVersion = dbtVersion.label;
     const packageName = this.mapToAdapterPackage(adapter.label);
@@ -368,7 +365,6 @@ export class WalkthroughCommands {
         commands.executeCommand("dbtPowerUser.installDbt");
       }
     }
-    return true;
   }
 
   private mapToAdapterPackage(adapter: string): string {
