@@ -61,6 +61,11 @@ jest.mock("vscode", () => ({
     file: jest.fn((f: string) => ({ fsPath: f })),
     parse: jest.fn(),
   },
+  ProgressLocation: {
+    SourceControl: 1,
+    Window: 10,
+    Notification: 15,
+  },
   DiagnosticSeverity: {
     Error: 0,
     Warning: 1,
