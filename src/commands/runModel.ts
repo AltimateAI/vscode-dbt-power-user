@@ -78,7 +78,9 @@ export class RunModel {
     if (selectedProject?.uri) {
       // Validate the stored project still exists in the workspace
       const raw = selectedProject.uri;
-      const storedUri = Uri.file(raw.fsPath || raw.path);
+      // Workspace state deserializes Uri as a plain object — .fsPath is a
+      // getter on the Uri prototype and won't survive, so use .path.
+      const storedUri = Uri.file(raw.path);
       if (this.dbtProjectContainer.findDBTProject(storedUri)) {
         return true;
       }

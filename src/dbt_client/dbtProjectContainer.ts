@@ -490,8 +490,9 @@ export class DBTProjectContainer implements Disposable {
         "dbtPowerUser.projectSelected",
       );
       if (selectedProject?.uri) {
-        const raw = selectedProject.uri;
-        return Uri.file(raw.fsPath || raw.path);
+        // Workspace state deserializes Uri as a plain object — .fsPath is a
+        // getter on the Uri prototype and won't survive, so use .path.
+        return Uri.file(selectedProject.uri.path);
       }
     }
     return uri;
@@ -509,9 +510,7 @@ export class DBTProjectContainer implements Disposable {
     if (!selectedProject?.uri) {
       return;
     }
-    const raw = selectedProject.uri;
-    const selectedPath = raw.fsPath || raw.path;
-    if (selectedPath === removedRoot.fsPath) {
+    if (selectedProject.uri.path === removedRoot.fsPath) {
       this.setToWorkspaceState("dbtPowerUser.projectSelected", undefined);
     }
   }
