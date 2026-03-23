@@ -241,10 +241,7 @@ export class DBTProjectContainer implements Disposable {
   }
 
   executeSQL(uri: Uri, query: string, modelName: string): void {
-    this.findDBTProject(this.resolveProjectUri(uri))?.executeSQLOnQueryPanel(
-      query,
-      modelName,
-    );
+    this.findDBTProject(uri)?.executeSQLOnQueryPanel(query, modelName);
   }
 
   runModel(modelPath: Uri, type?: RunModelType) {
@@ -282,9 +279,7 @@ export class DBTProjectContainer implements Disposable {
   }
 
   compileQuery(modelPath: Uri, query: string) {
-    return this.findDBTProject(this.resolveProjectUri(modelPath))?.compileQuery(
-      query,
-    );
+    return this.findDBTProject(modelPath)?.compileQuery(query);
   }
 
   showRunSQL(modelPath: Uri) {
@@ -300,7 +295,8 @@ export class DBTProjectContainer implements Disposable {
   }
 
   findDBTProject(uri: Uri): DBTProject | undefined {
-    return this.findDBTWorkspaceFolder(uri)?.findDBTProject(uri);
+    const resolved = this.resolveProjectUri(uri);
+    return this.findDBTWorkspaceFolder(resolved)?.findDBTProject(resolved);
   }
 
   getProjects(): DBTProject[] {
