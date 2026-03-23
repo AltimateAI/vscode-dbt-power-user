@@ -13,7 +13,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [macos-latest, arc-runner, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -21,7 +21,7 @@ jobs:
       - name: Run common build steps
         uses: ./.github/actions/common-build
   release-vsstudio-marketplace:
-    runs-on: ubuntu-latest
+    runs-on: arc-runner
     if: success() && startsWith( github.ref, 'refs/tags/')
     steps:
       - name: Checkout
@@ -46,9 +46,9 @@ jobs:
         with:
           status: ${{ job.status }}
           text: "Tag: ${{  github.ref_name }} release to Visual Studio Marketplace status: ${{ job.status == 'success' && 'succeeded' || 'failed' }} :${{ job.status == 'success' && 'tada' || 'disappointed' }}:"
-  
+
   release-openvsx-marketplace:
-    runs-on: ubuntu-latest
+    runs-on: arc-runner
     if: success() && startsWith( github.ref, 'refs/tags/')
     steps:
       - name: Checkout
@@ -73,4 +73,3 @@ jobs:
         with:
           status: ${{ job.status }}
           text: "Tag: ${{  github.ref_name }} release to openvsx marketplace status: ${{ job.status == 'success' && 'succeeded' || 'failed' }} :${{ job.status == 'success' && 'tada' || 'disappointed' }}:"
-  
