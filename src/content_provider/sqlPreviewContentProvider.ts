@@ -32,13 +32,14 @@ export class SqlPreviewContentProvider
     this.subscriptions.push(
       workspace.onDidChangeTextDocument((e: TextDocumentChangeEvent) => {
         // Check if this document has an associated preview
-        const fileUriString = e.document.uri.toString();
         for (const [
           previewUriString,
           previewUri,
         ] of this.compilationDocs.entries()) {
-          const actualFileUri = previewUri.with({ scheme: "file" });
-          if (actualFileUri.toString() === fileUriString) {
+          const isSourceDocument =
+            e.document.uri.path === previewUri.path &&
+            e.document.uri.scheme !== SqlPreviewContentProvider.SCHEME;
+          if (isSourceDocument) {
             // Debounce the update
             const existingTimer = this.debounceTimers.get(previewUriString);
             if (existingTimer) {
@@ -116,21 +117,32 @@ export class SqlPreviewContentProvider
   private async requestCompilation(uri: Uri) {
     try {
       const fsPath = decodeURI(uri.fsPath);
-      const modelName = path.basename(fsPath, ".sql");
 
-      // Read from the active document if available, otherwise fall back to file
-      const actualFileUri = uri.with({ scheme: "file" });
+      // Find the source document by matching the path component.
+      // The preview URI preserves the original path (e.g. query-preview:Untitled-1
+      // came from untitled:Untitled-1), so matching by path works for any scheme.
+      const sourcePath = uri.path;
       const document = workspace.textDocuments.find(
-        (doc) => doc.uri.toString() === actualFileUri.toString(),
+        (doc) =>
+          doc.uri.path === sourcePath &&
+          doc.uri.scheme !== SqlPreviewContentProvider.SCHEME,
       );
+
+      const isUntitled = document?.uri.scheme === "untitled";
       const query = document
         ? document.getText()
         : readFileSync(fsPath, "utf8");
+      const modelName = isUntitled ? "untitled" : path.basename(fsPath, ".sql");
 
-      const project = this.dbtProjectContainer.findDBTProject(Uri.file(fsPath));
+      // findDBTProject handles untitled URIs internally via resolveProjectUri
+      const project = this.dbtProjectContainer.findDBTProject(
+        document?.uri ?? Uri.file(fsPath),
+      );
       if (project === undefined) {
         this.telemetry.sendTelemetryError("sqlPreviewNotLoadingError");
-        return "Still loading dbt project, please try again later...";
+        return isUntitled
+          ? "No dbt project selected. Please select a project first."
+          : "Still loading dbt project, please try again later...";
       }
       this.telemetry.sendTelemetryEvent("requestCompilation");
       await project.refreshProjectConfig();

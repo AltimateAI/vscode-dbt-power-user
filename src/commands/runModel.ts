@@ -50,13 +50,20 @@ export class RunModel {
     if (!window.activeTextEditor) {
       return;
     }
-    const fullPath = window.activeTextEditor.document.uri;
-    if (fullPath.scheme === "untitled") {
+    // For untitled files, ensure a project is selected before capturing
+    // editor state — the await may show a picker, during which the user
+    // could switch editors.
+    if (window.activeTextEditor.document.uri.scheme === "untitled") {
       const resolved = await this.ensureProjectForUntitledUri();
       if (!resolved) {
         return;
       }
     }
+    // Re-read editor state after the await to avoid stale references
+    if (!window.activeTextEditor) {
+      return;
+    }
+    const fullPath = window.activeTextEditor.document.uri;
     const query = window.activeTextEditor.document.getText();
     if (query !== undefined) {
       this.compileDBTQuery(fullPath, query);
@@ -114,6 +121,19 @@ export class RunModel {
   }
 
   async executeQueryOnActiveWindow() {
+    if (!window.activeTextEditor) {
+      return;
+    }
+    // For untitled files, ensure a project is selected before capturing
+    // editor state — the await may show a picker, during which the user
+    // could switch editors.
+    if (window.activeTextEditor.document.uri.scheme === "untitled") {
+      const resolved = await this.ensureProjectForUntitledUri();
+      if (!resolved) {
+        return;
+      }
+    }
+    // Re-read editor state after the await to avoid stale references
     const query = this.getQuery();
     if (query === undefined) {
       return;
@@ -121,12 +141,6 @@ export class RunModel {
     const modelPath = window.activeTextEditor?.document.uri;
     if (!modelPath) {
       return;
-    }
-    if (modelPath.scheme === "untitled") {
-      const resolved = await this.ensureProjectForUntitledUri();
-      if (!resolved) {
-        return;
-      }
     }
     const modelName =
       modelPath.scheme === "untitled"
