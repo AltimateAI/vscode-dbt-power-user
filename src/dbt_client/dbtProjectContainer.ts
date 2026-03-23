@@ -510,7 +510,7 @@ export class DBTProjectContainer implements Disposable {
     if (!selectedProject?.uri) {
       return;
     }
-    if (selectedProject.uri.path === removedRoot.fsPath) {
+    if (Uri.file(selectedProject.uri.path).fsPath === removedRoot.fsPath) {
       this.setToWorkspaceState("dbtPowerUser.projectSelected", undefined);
     }
   }
