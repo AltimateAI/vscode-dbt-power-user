@@ -62,6 +62,12 @@ const SETUP_STEPS: WizardStep[] = [
     parentId: "altimate",
   },
   {
+    id: "altimateIntegration",
+    title: "Create Integration",
+    description: "Set up dbt integration",
+    parentId: "altimate",
+  },
+  {
     id: "finish",
     title: "Tutorials",
     description:
@@ -314,6 +320,13 @@ const SetupWizard = forwardRef<
                   onReadyChange={handleReadyChange}
                 />
               )}
+              {currentStepData.id === "altimateIntegration" && (
+                <AltimateSetupStep
+                  phase="integration"
+                  onComplete={handleNext}
+                  onReadyChange={handleReadyChange}
+                />
+              )}
               {currentStepData.id === "finish" && <TutorialsStep />}
               {currentStepData.action && (
                 <Button
@@ -345,11 +358,9 @@ const SetupWizard = forwardRef<
                 >
                   {currentStepData.id === "prerequisites"
                     ? "Validate Setup"
-                    : currentStepData.id === "altimateKey"
+                    : currentStepData.id === "validation"
                       ? "Tutorials"
-                      : currentStepData.id === "validation"
-                        ? "Setup Altimate AI"
-                        : "Next"}
+                      : "Next"}
                 </Button>
               ) : (
                 <div />
