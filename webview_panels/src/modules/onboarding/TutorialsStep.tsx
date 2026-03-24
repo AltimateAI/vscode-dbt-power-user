@@ -15,6 +15,7 @@ import ProjectScanGif from "@assets/tutorial-images/project-scan.gif";
 import QueryExplanationGif from "@assets/tutorial-images/query-explanation.gif";
 import QueryResultsAndSQLGif from "@assets/tutorial-images/query-results-and-SQL.gif";
 import { Tabs } from "antd";
+import { useCallback, useState } from "react";
 import classes from "./onboarding.module.scss";
 
 // Define the type for tutorial images
@@ -266,27 +267,60 @@ const TUTORIALS: TutorialItem[] = [
 ];
 
 const TutorialsStep = (): JSX.Element => {
+  const [expandedImage, setExpandedImage] = useState<{
+    src: string;
+    alt: string;
+  } | null>(null);
+
+  const handleImageClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "IMG") {
+        const img = target as HTMLImageElement;
+        setExpandedImage({ src: img.src, alt: img.alt });
+      }
+    },
+    [],
+  );
+
   return (
     <div className={classes.tutorialsContainer}>
       <div className={classes.tutorialsHeader}>
         <h3>Explore Tutorials</h3>
         <p>
           Learn about dbt Power User features through these interactive
-          tutorials. Click through the tabs to explore each feature.
+          tutorials. Click through the tabs to explore each feature. Click any
+          image to expand it.
         </p>
       </div>
 
-      <Tabs
-        defaultActiveKey="generate_models"
-        type="card"
-        tabPosition="left"
-        className={classes.tutorialsTabs}
-        items={TUTORIALS.map((tutorial) => ({
-          key: tutorial.id,
-          label: tutorial.title,
-          children: tutorial.content,
-        }))}
-      />
+      <div role="presentation" onClick={handleImageClick}>
+        <Tabs
+          defaultActiveKey="generate_models"
+          type="card"
+          tabPosition="left"
+          className={classes.tutorialsTabs}
+          items={TUTORIALS.map((tutorial) => ({
+            key: tutorial.id,
+            label: tutorial.title,
+            children: tutorial.content,
+          }))}
+        />
+      </div>
+
+      {expandedImage && (
+        <div
+          role="presentation"
+          className={classes.imageOverlay}
+          onClick={() => setExpandedImage(null)}
+        >
+          <img
+            src={expandedImage.src}
+            alt={expandedImage.alt}
+            className={classes.imageOverlayImg}
+          />
+        </div>
+      )}
     </div>
   );
 };

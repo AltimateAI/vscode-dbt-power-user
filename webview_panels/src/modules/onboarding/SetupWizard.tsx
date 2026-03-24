@@ -9,6 +9,7 @@ import {
   useImperativeHandle,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import classes from "./onboarding.module.scss";
 import PrerequisitesStep, {
@@ -98,6 +99,14 @@ const getStepStatus = (
   return "wait";
 };
 
+const NARROW_QUERY = "(max-width: 700px)";
+const subscribe = (cb: () => void) => {
+  const mql = window.matchMedia(NARROW_QUERY);
+  mql.addEventListener("change", cb);
+  return () => mql.removeEventListener("change", cb);
+};
+const getSnapshot = () => window.matchMedia(NARROW_QUERY).matches;
+
 interface SetupWizardProps {
   initialStep?: string;
 }
@@ -106,6 +115,8 @@ const SetupWizard = forwardRef<
   { navigateToStep: (stepId: string) => void },
   SetupWizardProps
 >(({ initialStep }, ref) => {
+  const isNarrow = useSyncExternalStore(subscribe, getSnapshot);
+
   const getInitialStepIndex = () => {
     if (initialStep) {
       const index = SETUP_STEPS.findIndex((step) => step.id === initialStep);
@@ -171,7 +182,7 @@ const SetupWizard = forwardRef<
       if (step.action) {
         if (step.action.command === "openDocumentation") {
           window.open(
-            "https://docs.myaltimate.com/setup/quickstart/",
+            "https://docs.myaltimate.com/setup/reqdConfig/",
             "_blank",
           );
         } else {
@@ -237,11 +248,23 @@ const SetupWizard = forwardRef<
         <div className={classes.wizardSidebar}>
           <Steps
             current={currentVisibleIndex}
-            direction="vertical"
+            direction={isNarrow ? "horizontal" : "vertical"}
+            onChange={(visibleIndex) => {
+              const target = visibleSteps[visibleIndex];
+              if (target) {
+                const { step, originalIndex } = target;
+                if (step.isParent) {
+                  setCurrentStep(getFirstChildIndex(step.id));
+                } else {
+                  setCurrentStep(originalIndex);
+                }
+              }
+            }}
             items={visibleSteps.map(({ step, originalIndex }) => ({
               title: step.title,
               className: step.parentId ? classes.substep : classes.parentStep,
               status: getStepStatus(step, originalIndex, currentStep),
+              disabled: false,
             }))}
             className={classes.wizardSteps}
           />
