@@ -1,0 +1,16 @@
+version: 2
+models:
+  - name: t_stg_go_daily_sales
+    config:
+      materialized: table  
+      schema: stg
+      tags: GO_SALES_STG
+    columns:
+      - name: retailer_code
+      - name: product_number
+      - name: order_method_code
+      - name: transaction_date
+      - name: quantity
+      - name: unit_price
+      - name: unit_sale_price
+      

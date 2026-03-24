@@ -1,0 +1,13 @@
+version: 2
+models:
+  - name: t_stg_go_1k
+    config:
+      materialized: table  
+      schema: stg
+      tags: GO_SALES_STG
+    columns:
+      - name: retailer_code
+      - name: product_number
+      - name: transaction_date
+      - name: quantity
+      

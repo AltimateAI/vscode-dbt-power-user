@@ -81,6 +81,25 @@ export const Diagnostic = class {
   ) {}
 };
 
+export class TextEdit {
+  constructor(
+    public range: Range,
+    public newText: string,
+  ) {}
+
+  static insert(position: Position, newText: string): TextEdit {
+    return new TextEdit(new Range(position, position), newText);
+  }
+
+  static replace(range: Range, newText: string): TextEdit {
+    return new TextEdit(range, newText);
+  }
+
+  static delete(range: Range): TextEdit {
+    return new TextEdit(range, "");
+  }
+}
+
 // Mock VSCode API
 export const extensions = {
   getExtension: jest.fn(),
@@ -95,6 +114,7 @@ export const commands = {
 
 export const window = {
   showInformationMessage: jest.fn().mockReturnValue(Promise.resolve()),
+  showWarningMessage: jest.fn().mockReturnValue(Promise.resolve()),
   showErrorMessage: jest.fn().mockReturnValue(Promise.resolve()),
   createOutputChannel: jest.fn().mockReturnValue({
     append: jest.fn(),

@@ -11,5 +11,11 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 .github
+.claude
+.mcp.json
+.playwright-mcp
+docker-setup
+**/*.test.*
+CLAUDE.md
 webview_panels
 !webview_panels/dist

@@ -1,8 +1,18 @@
-import { yupResolver } from "@hookform/resolvers/yup";
-import * as Yup from "yup";
-import { Controller, useForm } from "react-hook-form";
 import { BookmarkIcon } from "@assets/icons";
+import { yupResolver } from "@hookform/resolvers/yup";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
+import { panelLogger } from "@modules/logger";
+import {
+  setQueryBookmarksTagsFromDB,
+  setTabState,
+} from "@modules/queryPanel/context/queryPanelSlice";
 import { QueryHistory } from "@modules/queryPanel/context/types";
+import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
+import useQueryPanelCommonActions from "@modules/queryPanel/useQueryPanelCommonActions";
+import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import {
   Button,
   FormGroup,
@@ -17,21 +27,11 @@ import {
   Stack,
 } from "@uicore";
 import { useRef } from "react";
-import { panelLogger } from "@modules/logger";
-import {
-  executeRequestInAsync,
-  executeRequestInSync,
-} from "@modules/app/requestExecutor";
-import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
-import {
-  setQueryBookmarksTagsFromDB,
-  setTabState,
-} from "@modules/queryPanel/context/queryPanelSlice";
-import { QueryPanelTitleTabState } from "../QueryPanelContents/types";
-import pageStyles from "../../querypanel.module.scss";
-import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
+import { Controller, useForm } from "react-hook-form";
 import { ActionMeta } from "react-select";
-import useQueryPanelCommonActions from "@modules/queryPanel/useQueryPanelCommonActions";
+import * as Yup from "yup";
+import pageStyles from "../../querypanel.module.scss";
+import { QueryPanelTitleTabState } from "../QueryPanelContents/types";
 
 interface Props {
   queryHistory: QueryHistory;
@@ -169,7 +169,7 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
                       isCreatable
                       isClearable
                       closeMenuOnSelect={false}
-                      value={tags?.map((v) => ({ label: v, value: v }) ?? [])}
+                      value={tags?.map((v) => ({ label: v, value: v })) ?? []}
                       defaultValue={[]}
                       isMulti
                       onChange={(

@@ -1,7 +1,9 @@
+import type { RunResultsEventData } from "@altimateai/dbt-integration";
 import {
   DataPilotHealtCheckParams,
   DBTTerminal,
   EnvironmentVariables,
+  RunModelParams,
   RunModelType,
 } from "@altimateai/dbt-integration";
 import * as fs from "fs";
@@ -20,6 +22,7 @@ import {
 import { AltimateRequest } from "../altimate";
 import { DBTClient } from "../dbt_client";
 import { AltimateDatapilot } from "../dbt_client/datapilot";
+import { extractDbtSubcommand } from "../utils";
 import { DBTProject } from "./dbtProject";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
 import {
@@ -138,7 +141,7 @@ export class DBTProjectContainer implements Disposable {
       false,
     );
     if (answer === PromptAnswer.YES) {
-      commands.executeCommand("dbtPowerUser.openSetupWalkthrough");
+      commands.executeCommand("dbtPowerUser.openOnboarding");
     }
     this.setToGlobalState("showSetupWalkthrough", false);
   }
@@ -306,6 +309,76 @@ export class DBTProjectContainer implements Disposable {
     return this.dbtWorkspaceFolders.flatMap((workspaceFolder) =>
       workspaceFolder.getProjects(),
     );
+  }
+
+  findProjectByName(projectName: string): DBTProject | undefined {
+    return this.getProjects().find(
+      (project) => project.getProjectName() === projectName,
+    );
+  }
+
+  rerunFromHistory(entry: RunResultsEventData): void {
+    const project = this.findProjectByName(entry.projectName);
+    if (!project) {
+      window.showErrorMessage(
+        `Project "${entry.projectName}" is not currently loaded.`,
+      );
+      return;
+    }
+
+    const runModelParams = this.parseHistoryArgs(entry.args);
+
+    switch (extractDbtSubcommand(entry.command)) {
+      case "run":
+        if (runModelParams.modelName) {
+          project.runModel(runModelParams);
+        } else {
+          window.showWarningMessage(
+            "Re-running project-wide dbt run is not currently supported. Please run from the terminal.",
+          );
+        }
+        break;
+      case "build":
+        if (runModelParams.modelName) {
+          project.buildModel(runModelParams);
+        } else {
+          project.buildProject();
+        }
+        break;
+      case "test":
+        if (entry.args.length > 0) {
+          project.runTest(entry.args[0]);
+        } else {
+          window.showWarningMessage(
+            "Re-running project-wide dbt test is not currently supported. Please run tests from the terminal.",
+          );
+        }
+        break;
+      case "compile":
+        if (runModelParams.modelName) {
+          project.compileModel(runModelParams);
+        } else {
+          window.showWarningMessage(
+            "Re-running project-wide dbt compile is not currently supported. Please run from the terminal.",
+          );
+        }
+        break;
+      default:
+        window.showWarningMessage(
+          `Re-run is not supported for command: ${entry.command}`,
+        );
+    }
+  }
+
+  private parseHistoryArgs(args: string[]): RunModelParams {
+    if (args.length === 0) {
+      return { plusOperatorLeft: "", modelName: "", plusOperatorRight: "" };
+    }
+    const selector = args[0];
+    const plusOperatorLeft = selector.startsWith("+") ? "+" : "";
+    const plusOperatorRight = selector.endsWith("+") ? "+" : "";
+    const modelName = selector.replace(/^\+/, "").replace(/\+$/, "");
+    return { plusOperatorLeft, modelName, plusOperatorRight };
   }
 
   getAdapters(): string[] {

@@ -1,0 +1,131 @@
+# -------------------------------------------------------------------------------
+# Program:        gosales_ci
+# Project:        dbt-core-sample-duckdb
+# Description:    CI workflow for SQLFluff linting of dbt models
+# Author:         Manzar Ahmed
+# First Created:  Jun 2025
+# -------------------------------------------------------------------------------
+# Program history:
+# -------------------------------------------------------------------------------
+# Date        Programmer             Description
+# ----------  ---------------------  ---------------------------------------------
+# 2025-06-25  Manzar Ahmed           v0.01/Initial version
+# -------------------------------------------------------------------------------
+
+name: GOSALES CI - SQLFluff
+
+on:
+  push:
+    branches:
+      - '**'        # run on main and all feature branches
+  pull_request:
+    branches:
+      - main        # block PRs merging into main if lint fails
+
+permissions:
+  checks: write
+  contents: read
+
+jobs:
+  sqlfluff-lint:
+    name: SQLFluff Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install SQLFluff and dbt (DuckDB)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create minimal dbt profile (DuckDB in-memory)
+        run: |
+          mkdir -p ~/.dbt
+          cat > ~/.dbt/profiles.yml <<'YAML'
+          dbt_core_sample_duckdb:
+            target: ci
+            outputs:
+              ci:
+                type: duckdb
+                path: ":memory:"
+                threads: 4
+          YAML
+
+      - name: Install dbt packages (if packages.yml present)
+        run: dbt deps || true
+
+      # 1) Lint → capture exit code (don't fail this step)
+      - name: SQLFluff lint (capture exit code + write annotations)
+        id: lint
+        env:
+          DBT_PROFILES_DIR: ~/.dbt
+        run: |
+          set -o pipefail
+          set +e
+          
+          sqlfluff lint models/ \
+            --templater dbt \
+            --dialect duckdb \
+            --format github-annotation \
+            --annotation-level failure \
+            --write-output annotations.json \
+            | tee sqlfluff_machine.log
+          rc=$?
+          set -e
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
+
+      # 2) Human-readable table in the job log (always prints)
+      - name: SQLFluff human summary (for logs)
+        env:
+          DBT_PROFILES_DIR: ~/.dbt
+        run: |
+          set +e
+          sqlfluff lint --dialect duckdb models/
+            --format human --nocolor --verbose 2 
+            
+          set -e
+
+      # (nice to have) Add a short markdown summary to the run
+      # - name: Publish step summary
+      #   run: |
+      #     echo "## SQLFluff Summary" >> "$GITHUB_STEP_SUMMARY"
+      #     echo "" >> "$GITHUB_STEP_SUMMARY"
+      #     echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
+      #     sed -n '1,200p' sqlfluff_human.log >> "$GITHUB_STEP_SUMMARY"
+      #     echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
+
+      # 3) Post PR annotations even if lint failed
+      - name: Annotate PR with SQLFluff output
+        if: always()
+        uses: yuzutech/annotations-action@v0.4.0
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          title: "SQLFluff Lint"
+          input: "./annotations.json"
+          ignore-missing-file: false
+
+      # 4) Fail the job (block PR) if there were violations
+      - name: Fail if lint failed
+        if: steps.lint.outputs.exit_code != '0'
+        run: |
+          echo "SQLFluff reported violations. See the human summary above and PR annotations."
+          exit 1
+
+      # 5) Keep artifacts for debugging (optional)
+      - name: Upload lint logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sqlfluff-logs
+          path: |
+            annotations.json
+            sqlfluff_machine.log
+            sqlfluff_human.log
+

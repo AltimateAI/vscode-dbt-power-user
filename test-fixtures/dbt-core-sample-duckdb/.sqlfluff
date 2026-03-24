@@ -1,0 +1,57 @@
+#-------------------------------------------------------------------------------
+#  Prerequisites:
+#-------------------------------------------------------------------------------
+#  1. Install SQLFluff support:
+#     pip install sqlfluff
+#
+#  2. Verify installation:
+#     sqlfluff --version
+#
+#  3. (Optional) Install pre-commit for local checks:
+#     pip install pre-commit
+#-------------------------------------------------------------------------------
+#  Example usage:  
+#
+#  1. All files in models/ directory:
+#  sqlfluff lint --dialect duckdb models/
+#
+#  sqlfluff fix --dialect duckdb models/
+#-------------------------------------------------------------------------------
+
+[sqlfluff]
+dialect = duckdb
+templater = dbt
+runaway_limit = 10
+max_line_length = 80
+indent_unit = space
+
+[sqlfluff:indentation]
+tab_space_size = 4
+
+[sqlfluff:layout:type:comma]
+spacing_before = touch
+line_position = trailing
+
+[sqlfluff:rules:capitalisation.keywords] 
+capitalisation_policy = lower
+
+[sqlfluff:rules:aliasing.table]
+aliasing = explicit
+
+[sqlfluff:rules:aliasing.column]
+aliasing = explicit
+
+[sqlfluff:rules:aliasing.expression]
+allow_scalar = False
+
+[sqlfluff:rules:capitalisation.identifiers]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.functions]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.literals]
+capitalisation_policy = lower
+
+[sqlfluff:rules:ambiguous.column_references]  # Number in group by
+group_by_and_order_by_style = implicit

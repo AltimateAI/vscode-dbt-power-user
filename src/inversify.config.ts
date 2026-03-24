@@ -28,6 +28,7 @@ import {
   DeferConfig,
   DocParser,
   ExposureParser,
+  FunctionParser,
   GraphParser,
   MacroParser,
   MetricParser,
@@ -66,10 +67,12 @@ import { DocGenService } from "./services/docGenService";
 import { FileService } from "./services/fileService";
 import { QueryAnalysisService } from "./services/queryAnalysisService";
 import { QueryManifestService } from "./services/queryManifestService";
+import { RunHistoryService } from "./services/runHistoryService";
 import { SharedStateService } from "./services/sharedStateService";
 import { StreamingService } from "./services/streamingService";
 import { UsersService } from "./services/usersService";
 import { TelemetryService } from "./telemetry";
+
 import { ValidationProvider } from "./validation_provider";
 
 // Core extension components
@@ -137,6 +140,7 @@ import {
   ModelTestTreeview,
   ParentModelTreeview,
 } from "./treeview_provider/modelTreeviewProvider";
+import { RunHistoryTreeviewProvider } from "./treeview_provider/runHistoryTreeviewProvider";
 import { WebviewViewProviders } from "./webview_provider";
 import { DataPilotPanel } from "./webview_provider/datapilotPanel";
 import { DbtDocsView } from "./webview_provider/DbtDocsView";
@@ -191,6 +195,11 @@ container
     (context) => new ExposureParser(context.container.get("DBTTerminal")),
   );
 container
+  .bind(FunctionParser)
+  .toDynamicValue(
+    (context) => new FunctionParser(context.container.get("DBTTerminal")),
+  );
+container
   .bind(DocParser)
   .toDynamicValue(
     (context) => new DocParser(context.container.get("DBTTerminal")),
@@ -219,16 +228,28 @@ container
   .inSingletonScope();
 
 container
-  .bind(PythonDBTCommandExecutionStrategy)
-  .toDynamicValue((context) => {
-    return new PythonDBTCommandExecutionStrategy(
-      context.container.get(CommandProcessExecutionFactory),
-      context.container.get("RuntimePythonEnvironment"),
-      context.container.get("DBTTerminal"),
-      context.container.get("DBTConfiguration"),
-    );
-  })
-  .inSingletonScope();
+  .bind<
+    interfaces.Factory<PythonDBTCommandExecutionStrategy>
+  >("Factory<PythonDBTCommandExecutionStrategy>")
+  .toFactory<
+    PythonDBTCommandExecutionStrategy,
+    [string]
+  >((context: interfaces.Context) => {
+    return (projectRoot: string) => {
+      const { container } = context;
+      const baseConfig = container.get<DBTConfiguration>("DBTConfiguration");
+      // Create a per-project config that returns the correct working directory
+      // so that PythonDBTCommandExecutionStrategy resolves the right .env file
+      const projectConfig = Object.create(baseConfig) as DBTConfiguration;
+      projectConfig.getWorkingDirectory = () => projectRoot;
+      return new PythonDBTCommandExecutionStrategy(
+        container.get(CommandProcessExecutionFactory),
+        container.get("RuntimePythonEnvironment"),
+        container.get("DBTTerminal"),
+        projectConfig,
+      );
+    };
+  });
 
 container.bind(DBTCommandExecutionInfrastructure).toDynamicValue((context) => {
   return new DBTCommandExecutionInfrastructure(
@@ -542,11 +563,14 @@ container
       onDiagnosticsChanged: () => void,
     ) => {
       const { container } = context;
+      const pythonStrategyFactory = container.get<
+        (projectRoot: string) => PythonDBTCommandExecutionStrategy
+      >("Factory<PythonDBTCommandExecutionStrategy>");
       return new DBTCoreProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
         container.get("RuntimePythonEnvironment"),
         container.get("PythonEnvironmentProvider"),
-        container.get(PythonDBTCommandExecutionStrategy),
+        pythonStrategyFactory(projectRoot),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
         container.get("DBTTerminal"),
         container.get("DBTConfiguration"),
@@ -574,11 +598,14 @@ container
       onDiagnosticsChanged: () => void,
     ) => {
       const { container } = context;
+      const pythonStrategyFactory = container.get<
+        (projectRoot: string) => PythonDBTCommandExecutionStrategy
+      >("Factory<PythonDBTCommandExecutionStrategy>");
       return new DBTCoreCommandProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
         container.get("RuntimePythonEnvironment"),
         container.get("PythonEnvironmentProvider"),
-        container.get(PythonDBTCommandExecutionStrategy),
+        pythonStrategyFactory(projectRoot),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
         container.get("DBTTerminal"),
         container.get("DBTConfiguration"),
@@ -678,6 +705,7 @@ container
         container.get(SourceParser),
         container.get(TestParser),
         container.get(ExposureParser),
+        container.get(FunctionParser),
         container.get(DocParser),
         container.get("DBTTerminal"),
         container.get(ModelDepthParser),
@@ -709,6 +737,7 @@ container
         container.get(AltimateRequest),
         container.get(ValidationProvider),
         container.get(AltimateAuthService),
+        container.get(RunHistoryService),
         path,
         projectConfig,
         _onManifestChanged,
@@ -830,6 +859,22 @@ container
   .bind(SharedStateService)
   .toDynamicValue(() => {
     return new SharedStateService();
+  })
+  .inSingletonScope();
+
+container
+  .bind(RunHistoryService)
+  .toDynamicValue(() => {
+    return new RunHistoryService();
+  })
+  .inSingletonScope();
+
+container
+  .bind(RunHistoryTreeviewProvider)
+  .toDynamicValue((context) => {
+    return new RunHistoryTreeviewProvider(
+      context.container.get(RunHistoryService),
+    );
   })
   .inSingletonScope();
 
@@ -1490,6 +1535,7 @@ container
       context.container.get(QueryManifestService),
       context.container.get(AltimateRequest),
       context.container.get("DatapilotNotebookController"),
+      context.container.get(RunHistoryService),
     );
   })
   .inSingletonScope();
@@ -1680,6 +1726,7 @@ container
       context.container.get(ModelTestTreeview),
       context.container.get(DocumentationTreeview),
       context.container.get(IconActionsTreeview),
+      context.container.get(RunHistoryTreeviewProvider),
     );
   })
   .inSingletonScope();

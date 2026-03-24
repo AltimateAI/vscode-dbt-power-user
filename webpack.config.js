@@ -33,6 +33,13 @@ const config = {
     "@opentelemetry/instrumentation",
     "@azure/functions-core",
     "zeromq",
+    "@altimateai/core",
+    "@altimateai/altimate-core",
+    "@altimateai/altimate-core-darwin-arm64",
+    "@altimateai/altimate-core-darwin-x64",
+    "@altimateai/altimate-core-linux-arm64-gnu",
+    "@altimateai/altimate-core-linux-x64-gnu",
+    "@altimateai/altimate-core-win32-x64-msvc",
   ],
   resolve: {
     extensions: [".ts", ".js"],
@@ -147,6 +154,63 @@ const config = {
               cpSync("./node_modules/zeromq", "./dist/node_modules/zeromq", {
                 recursive: true,
               });
+              try {
+                cpSync(
+                  require.resolve("@altimateai/core/"),
+                  "./dist/node_modules/@altimateai/core",
+                  { recursive: true },
+                );
+              } catch (e) {
+                console.warn(`Skipping @altimateai/core: ${e.message}`);
+              }
+              // Bundle altimate-core JS loader
+              try {
+                cpSync(
+                  `./node_modules/@altimateai/altimate-core`,
+                  `./dist/node_modules/@altimateai/altimate-core`,
+                  { recursive: true },
+                );
+                console.log(`Copied @altimateai/altimate-core`);
+              } catch (e) {
+                console.warn(
+                  `Skipping @altimateai/altimate-core: ${e.message}`,
+                );
+              }
+
+              // Copy only the .node binary directly into the altimate-core/
+              // directory — skip the platform package directories entirely.
+              // napi-rs index.js falls back to require('./altimate-core.<platform>.node')
+              // when the platform package isn't found, so this works and halves VSIX size.
+              const { readdirSync } = require("fs");
+              const altimatePlatformPackages = [
+                "@altimateai/altimate-core-darwin-arm64",
+                "@altimateai/altimate-core-darwin-x64",
+                "@altimateai/altimate-core-linux-arm64-gnu",
+                "@altimateai/altimate-core-linux-x64-gnu",
+                "@altimateai/altimate-core-win32-x64-msvc",
+              ];
+              const coreDistDir =
+                "./dist/node_modules/@altimateai/altimate-core";
+              for (const pkg of altimatePlatformPackages) {
+                const srcDir = `./node_modules/${pkg}`;
+                try {
+                  if (!require("fs").existsSync(srcDir)) continue;
+                  const files = readdirSync(srcDir);
+                  for (const file of files) {
+                    if (file.endsWith(".node")) {
+                      cpSync(
+                        path.join(srcDir, file),
+                        path.join(coreDistDir, file),
+                      );
+                      console.log(
+                        `Copied ${file} into altimate-core/ (skipped platform package dir)`,
+                      );
+                    }
+                  }
+                } catch (e) {
+                  console.warn(`Skipping ${pkg}: ${e.message}`);
+                }
+              }
               cpSync(
                 "./node_modules/@aminya/node-gyp-build",
                 "./dist/node_modules/@aminya/node-gyp-build",

@@ -31,6 +31,7 @@ jest.mock("vscode", () => ({
   },
   window: {
     showInformationMessage: jest.fn(),
+    showWarningMessage: jest.fn(),
     showErrorMessage: jest.fn(),
     createTerminal: jest.fn().mockReturnValue({
       dispose: jest.fn(),
@@ -93,10 +94,18 @@ jest.mock("vscode", () => ({
     Collapsed: 1,
     Expanded: 2,
   },
-  TreeItem: jest.fn().mockImplementation((label, collapsibleState) => ({
-    label,
-    collapsibleState,
-  })),
+  TreeItem: class TreeItem {
+    label: string | undefined;
+    collapsibleState: number | undefined;
+    description?: string;
+    iconPath?: any;
+    tooltip?: string;
+    contextValue?: string;
+    constructor(label?: string, collapsibleState?: number) {
+      this.label = label;
+      this.collapsibleState = collapsibleState;
+    }
+  },
   CancellationTokenSource: jest.fn().mockImplementation(() => ({
     token: {
       onCancellationRequested: jest.fn(),
@@ -111,4 +120,11 @@ jest.mock("vscode", () => ({
       isCancellationRequested: false,
     },
   },
+  ThemeIcon: jest.fn().mockImplementation((id, color) => ({
+    id,
+    color,
+  })),
+  ThemeColor: jest.fn().mockImplementation((id) => ({
+    id,
+  })),
 }));

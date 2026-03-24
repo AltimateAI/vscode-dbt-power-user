@@ -196,7 +196,7 @@ export class WalkthroughCommands {
               command,
               args,
               cwd: getFirstWorkspacePath(),
-              envVars: this.pythonEnvironment.environmentVariables,
+              envVars: this.pythonEnvironment.getEnvironmentVariables(),
             })
             .completeWithTerminalOutput();
 
@@ -241,7 +241,7 @@ export class WalkthroughCommands {
                 "--force-reinstall",
               ],
               cwd: getFirstWorkspacePath(),
-              envVars: this.pythonEnvironment.environmentVariables,
+              envVars: this.pythonEnvironment.getEnvironmentVariables(),
             })
             .completeWithTerminalOutput();
           if (
@@ -271,19 +271,7 @@ export class WalkthroughCommands {
 
   private async installDbtCore(): Promise<void> {
     const dbtVersion: QuickPickItem | undefined = await window.showQuickPick(
-      [
-        "1.0",
-        "1.1",
-        "1.2",
-        "1.3",
-        "1.4",
-        "1.5",
-        "1.6",
-        "1.7",
-        "1.8",
-        "1.9",
-        "1.10",
-      ].map((value) => ({
+      ["1.8", "1.9", "1.10", "1.11"].map((value) => ({
         label: value,
       })),
       {
@@ -341,18 +329,17 @@ export class WalkthroughCommands {
             "1.8.0",
           );
           if (isIndependentAdapterPackage) {
-            args.push(`dbt-core==${packageVersion}`);
+            args.push(`dbt-core~=${packageVersion}.0`);
             args.push(`${packageName}`);
           } else {
             args.push(`${packageName}==${packageVersion}`);
           }
-          args.push("--upgrade");
           const { stdout, stderr } = await this.commandProcessExecutionFactory
             .createCommandProcessExecution({
               command: this.pythonEnvironment.pythonPath,
               args,
               cwd: getFirstWorkspacePath(),
-              envVars: this.pythonEnvironment.environmentVariables,
+              envVars: this.pythonEnvironment.getEnvironmentVariables(),
             })
             .completeWithTerminalOutput();
           if (

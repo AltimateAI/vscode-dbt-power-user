@@ -65,16 +65,18 @@ export class OnboardingPanel extends AltimateWebviewProvider {
 
   private async initializePythonEnvironmentListener() {
     try {
-      const pythonEnvironment = this.dbtProjectContainer.getPythonEnvironment();
-      // Ensure Python environment is initialized before accessing event
-      await pythonEnvironment.initialize();
-
-      // Listen to Python environment changes and notify webview
+      // Listen to dbt installation verification events, which fire after
+      // checkAllInstalled() completes (triggered by interpreter changes).
+      // By this point dbtInstalled, pythonPath, and pythonVersion are all
+      // up to date, so the webview gets fresh data when it refreshes.
       this._disposables.push(
-        pythonEnvironment.onPythonEnvironmentChanged(() => {
+        this.dbtProjectContainer.onDBTInstallationVerification((event) => {
+          if (event.inProgress) {
+            return;
+          }
           this.dbtTerminal.debug(
-            "onboardingPanel:pythonEnvironmentChanged",
-            "Python environment changed, notifying webview",
+            "onboardingPanel:dbtInstallationVerified",
+            "dbt installation verification complete, notifying webview",
           );
           this.sendResponseToWebview({
             command: "pythonEnvironmentChanged",

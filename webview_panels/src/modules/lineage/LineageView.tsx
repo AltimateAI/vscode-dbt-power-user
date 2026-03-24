@@ -1,16 +1,24 @@
-import { ApiHelper, Lineage, CllEvents, CLL } from "@lib";
-import type { Table } from "@lib";
-import { useEffect, useState } from "react";
-import { MissingLineageMessage, StaticLineageProps } from "./types";
-import ActionWidget from "./ActionWidget";
-import useAppContext from "@modules/app/useAppContext";
-import { panelLogger } from "@modules/logger";
+import type { Table } from "@altimateai/ui-components/lineage";
+import {
+  ApiHelper,
+  CLL,
+  CllEvents,
+  Lineage,
+  TooltipProvider,
+} from "@altimateai/ui-components/lineage";
+import "@altimateai/ui-components/styles.css";
 import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
-import styles from "./lineage.module.scss";
+import useAppContext from "@modules/app/useAppContext";
+import { panelLogger } from "@modules/logger";
+import { useEffect, useState } from "react";
+import ActionWidget from "./ActionWidget";
 import DemoButton from "./components/demo/DemoButton";
+import styles from "./lineage.module.scss";
+import "./tailwind-globals.css";
+import { MissingLineageMessage, StaticLineageProps } from "./types";
 
 const LineageView = (): JSX.Element | null => {
   const {
@@ -39,6 +47,7 @@ const LineageView = (): JSX.Element | null => {
         case "upstreamTables":
         case "downstreamTables":
         case "getExposureDetails":
+        case "getFunctionDetails":
         case "getColumns":
         case "getConnectedColumns":
         case "sendFeedback":
@@ -125,31 +134,33 @@ const LineageView = (): JSX.Element | null => {
   const lineageType = renderNode.details ? "sql" : "dynamic";
 
   return (
-    <div className={styles.lineageView}>
-      <ActionWidget
-        missingLineageMessage={missingLineageMessage}
-        aiEnabled={renderNode.aiEnabled}
-        lineageType={lineageType}
-      />
-      {lineageType === "sql" ? null : (
-        <div className="bottom-right-container">
-          <DemoButton />
-        </div>
-      )}
-      <div className={styles.lineageWrap}>
-        <Lineage
-          theme={theme}
-          dynamicLineage={renderNode}
+    <TooltipProvider>
+      <div className={styles.lineageView}>
+        <ActionWidget
+          missingLineageMessage={missingLineageMessage}
+          aiEnabled={renderNode.aiEnabled}
           lineageType={lineageType}
-          sqlLineage={
-            lineageType === "sql"
-              ? (renderNode as StaticLineageProps)
-              : undefined
-          }
-          allowSyncColumnsWithDB
         />
+        {lineageType === "sql" ? null : (
+          <div className="bottom-right-container">
+            <DemoButton />
+          </div>
+        )}
+        <div className={`${styles.lineageWrap} al-tw-scope`}>
+          <Lineage
+            theme={theme}
+            dynamicLineage={renderNode}
+            lineageType={lineageType}
+            sqlLineage={
+              lineageType === "sql"
+                ? (renderNode as StaticLineageProps)
+                : undefined
+            }
+            allowSyncColumnsWithDB
+          />
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 };
 

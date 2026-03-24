@@ -167,15 +167,20 @@ const PrerequisitesStep = forwardRef<
     },
   ]);
 
-  const runDiagnostics = async () => {
+  const runDiagnostics = async (silent = false) => {
     try {
-      setChecking(true);
-      setError(undefined);
+      if (!silent) {
+        setChecking(true);
+        setError(undefined);
 
-      // Set all checks to "checking" status
-      setChecks((prev) =>
-        prev.map((check) => ({ ...check, status: "checking" as CheckStatus })),
-      );
+        // Set all checks to "checking" status
+        setChecks((prev) =>
+          prev.map((check) => ({
+            ...check,
+            status: "checking" as CheckStatus,
+          })),
+        );
+      }
 
       const status = (await executeRequestInSync(
         "getDiagnosticsStatus",
@@ -218,7 +223,9 @@ const PrerequisitesStep = forwardRef<
         prev.map((check) => ({ ...check, status: "error" as CheckStatus })),
       );
     } finally {
-      setChecking(false);
+      if (!silent) {
+        setChecking(false);
+      }
     }
   };
 
@@ -287,7 +294,7 @@ const PrerequisitesStep = forwardRef<
           "PrerequisitesStep",
           "Python environment changed, refreshing diagnostics",
         );
-        void runDiagnostics();
+        void runDiagnostics(true);
       }
     };
 
@@ -371,7 +378,8 @@ const PrerequisitesStep = forwardRef<
   const allChecksPassed =
     diagnostics?.pythonInstalled &&
     diagnostics?.dbtInstalled &&
-    diagnostics?.projectsFound;
+    diagnostics?.projectsFound &&
+    diagnostics?.fileAssociationsConfigured;
 
   const isValidating =
     validationState === "running-deps" || validationState === "validating";
@@ -506,6 +514,7 @@ const PrerequisitesStep = forwardRef<
     return (
       <div className={classes.prerequisitesContainer}>
         <InstallDbtStep
+          initialIntegrationType={dbtIntegrationType}
           onComplete={handleDbtInstallComplete}
           onSkip={handleDbtInstallSkip}
         />

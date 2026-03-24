@@ -36,7 +36,9 @@ import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { DiagnosticsOutputChannel } from "../services/diagnosticsOutputChannel";
 import { QueryManifestService } from "../services/queryManifestService";
+import { RunHistoryService } from "../services/runHistoryService";
 import { SharedStateService } from "../services/sharedStateService";
+import { RunTreeItem } from "../treeview_provider/runHistoryTreeItems";
 import {
   deepEqual,
   extendErrorWithSupportLinks,
@@ -74,6 +76,7 @@ export class VSCodeCommands implements Disposable {
     private queryManifestService: QueryManifestService,
     private altimate: AltimateRequest,
     private notebookController: DatapilotNotebookController,
+    private runHistoryService: RunHistoryService,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -89,6 +92,22 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.runCurrentModel", () =>
         this.runModel.runModelOnActiveWindow(),
       ),
+      commands.registerCommand(
+        "dbtPowerUser.rerunFromHistory",
+        (item: RunTreeItem) => {
+          this.dbtProjectContainer.rerunFromHistory(item.entry);
+        },
+      ),
+      commands.registerCommand("dbtPowerUser.clearRunHistory", async () => {
+        const confirm = await window.showWarningMessage(
+          "Clear all run history entries?",
+          { modal: true },
+          "Clear",
+        );
+        if (confirm === "Clear") {
+          this.runHistoryService.clear();
+        }
+      }),
       commands.registerCommand("dbtPowerUser.testCurrentModel", () =>
         this.runModel.runTestsOnActiveWindow(),
       ),
@@ -416,26 +435,54 @@ export class VSCodeCommands implements Disposable {
           }
         },
       ),
-      commands.registerCommand("dbtPowerUser.printEnvVars", () =>
-        this.pythonEnvironment.printEnvVars(),
-      ),
+      commands.registerCommand("dbtPowerUser.printEnvVars", () => {
+        const activeFolder = window.activeTextEditor
+          ? workspace.getWorkspaceFolder(window.activeTextEditor.document.uri)
+          : undefined;
+        return this.pythonEnvironment.printEnvVars(activeFolder);
+      }),
       commands.registerCommand("dbtPowerUser.diagnostics", async () => {
         try {
           this.diagnosticsOutputChannel.show();
           this.diagnosticsOutputChannel.logLine("Diagnostics started...");
           this.diagnosticsOutputChannel.logNewLine();
 
-          // Printing env vars
-          this.diagnosticsOutputChannel.logBlockWithHeader(
-            [
-              "Printing environment variables...",
-              "* Please remove any sensitive information before sending it to us",
-            ],
-            Object.entries(this.pythonEnvironment.environmentVariables).map(
-              ([key, value]) => `${key}=${value}`,
-            ),
-          );
-          this.diagnosticsOutputChannel.logNewLine();
+          // Printing env vars per project
+          const dbtProjects = this.dbtProjectContainer.getProjects();
+          if (dbtProjects.length > 0) {
+            for (const project of dbtProjects) {
+              const projectFolder = workspace.getWorkspaceFolder(
+                project.projectRoot,
+              );
+              this.diagnosticsOutputChannel.logBlockWithHeader(
+                [
+                  `Printing environment variables for project: ${project.getProjectName()}`,
+                  `  (root: ${project.projectRoot.fsPath})`,
+                  "* Please remove any sensitive information before sending it to us",
+                ],
+                Object.entries(
+                  this.pythonEnvironment.getEnvironmentVariables(projectFolder),
+                ).map(([key, value]) => `${key}=${value}`),
+              );
+              this.diagnosticsOutputChannel.logNewLine();
+            }
+          } else {
+            const activeFolder = window.activeTextEditor
+              ? workspace.getWorkspaceFolder(
+                  window.activeTextEditor.document.uri,
+                )
+              : undefined;
+            this.diagnosticsOutputChannel.logBlockWithHeader(
+              [
+                "Printing environment variables...",
+                "* Please remove any sensitive information before sending it to us",
+              ],
+              Object.entries(
+                this.pythonEnvironment.getEnvironmentVariables(activeFolder),
+              ).map(([key, value]) => `${key}=${value}`),
+            );
+            this.diagnosticsOutputChannel.logNewLine();
+          }
 
           // Printing python paths
           this.diagnosticsOutputChannel.logBlockWithHeader(

@@ -43,8 +43,12 @@ const Onboarding = (): JSX.Element => {
   };
 
   const handleLearnMore = () => {
-    // Open documentation in browser using standard href
-    window.open("https://docs.myaltimate.com/setup/quickstart/", "_blank");
+    window.open("https://docs.myaltimate.com/setup/reqdConfig/", "_blank");
+  };
+
+  const handleTutorials = () => {
+    setInitialStep("finish");
+    setShowWizard(true);
   };
 
   if (showWizard) {
@@ -117,6 +121,9 @@ const Onboarding = (): JSX.Element => {
           </Button>
           <Button color="primary" size="lg" onClick={handleGetStarted}>
             Get Started
+          </Button>
+          <Button color="secondary" size="lg" onClick={handleTutorials}>
+            Tutorials
           </Button>
         </Stack>
       </Stack>

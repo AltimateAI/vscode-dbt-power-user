@@ -1,8 +1,10 @@
 import {
+  computeColumnLineage,
   GraphMetaMap,
   NodeGraphMap,
   RESOURCE_TYPE_ANALYSIS,
   RESOURCE_TYPE_EXPOSURE,
+  RESOURCE_TYPE_FUNCTION,
   RESOURCE_TYPE_METRIC,
   RESOURCE_TYPE_MODEL,
   RESOURCE_TYPE_SNAPSHOT,
@@ -160,6 +162,24 @@ export class DbtLineageService {
         tests: [],
         columns: {},
         isExternalProject: false,
+      };
+    }
+
+    if (nodeType === RESOURCE_TYPE_FUNCTION) {
+      const { functionMetaMap } = event;
+      const fn = functionMetaMap.get(table);
+      const fnType = fn?.config?.type;
+      return {
+        table: key,
+        label: table,
+        url: tableUrl,
+        upstreamCount,
+        downstreamCount,
+        nodeType,
+        materialization: fnType ? `${fnType} function` : "function",
+        tests: [],
+        columns: {},
+        isExternalProject: fn?.is_external_project ?? false,
       };
     }
 
@@ -345,6 +365,59 @@ export class DbtLineageService {
     }
 
     const modelDialect = project.getAdapterType();
+
+    // --- altimate-core: try local column lineage first ---
+    const cllEngine = workspace
+      .getConfiguration("dbt")
+      .get<string>("lineage.cllEngine", "legacy");
+
+    this.dbtTerminal.debug(
+      "dbtLineageService:getConnectedColumns",
+      `Column lineage engine: ${cllEngine}`,
+    );
+
+    if (cllEngine === "sqlEngine") {
+      try {
+        const localResult = await computeColumnLineage(
+          modelDialect,
+          modelInfos,
+          {
+            showIndirectEdges,
+            isCancelled: () =>
+              cancellationTokenSource.token.isCancellationRequested,
+          },
+        );
+        if (localResult) {
+          this.dbtTerminal.debug(
+            "newLineagePanel:getConnectedColumns",
+            "altimate-core-node result",
+            {
+              lineageCount: localResult.column_lineage.length,
+              errors: localResult.errors,
+            },
+          );
+          return localResult;
+        }
+        this.dbtTerminal.warn(
+          "dbtLineageService:getConnectedColumns",
+          "computeColumnLineage returned null - altimate-core native module may not be loaded",
+        );
+      } catch (error) {
+        this.dbtTerminal.warn(
+          "newLineagePanel:getConnectedColumns",
+          "altimate-core-node failed, falling back to legacy API",
+          true,
+          error,
+        );
+      }
+    }
+    // --- end altimate-core ---
+
+    this.dbtTerminal.debug(
+      "dbtLineageService:getConnectedColumns",
+      "Using legacy API for column lineage",
+    );
+
     try {
       if (cancellationTokenSource.token.isCancellationRequested) {
         return { column_lineage: [] };

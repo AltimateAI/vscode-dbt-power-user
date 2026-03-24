@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.59.2",
+  "version": "0.60.0",
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -356,6 +356,11 @@
           "id": "insights_view",
           "title": "Actions",
           "icon": "./media/images/dbt_icon.svg"
+        },
+        {
+          "id": "run_history_view",
+          "title": "Run History",
+          "icon": "./media/images/dbt_icon.svg"
         }
       ]
     },
@@ -416,6 +421,12 @@
           "id": "dbtPowerUser.Insights",
           "name": "",
           "type": "webview"
+        }
+      ],
+      "run_history_view": [
+        {
+          "id": "run_history_treeview",
+          "name": "Runs"
         }
       ]
     },
@@ -506,6 +517,18 @@
           "light": "./media/images/run-light.svg",
           "dark": "./media/images/run-dark.svg"
         }
+      },
+      {
+        "command": "dbtPowerUser.rerunFromHistory",
+        "title": "Re-run Command",
+        "category": "dbt Power User",
+        "icon": "$(debug-rerun)"
+      },
+      {
+        "command": "dbtPowerUser.clearRunHistory",
+        "title": "Clear Run History",
+        "category": "dbt Power User",
+        "icon": "$(clear-all)"
       },
       {
         "command": "dbtPowerUser.openDatapilotWithQuery",
@@ -1041,9 +1064,19 @@
           "command": "dbtPowerUser.showHelpDatapilot",
           "when": "view == dbtPowerUser.datapilot-webview",
           "group": "navigation@3"
+        },
+        {
+          "command": "dbtPowerUser.clearRunHistory",
+          "when": "view == run_history_treeview",
+          "group": "2_clear"
         }
       ],
       "view/item/context": [
+        {
+          "command": "dbtPowerUser.rerunFromHistory",
+          "when": "view == run_history_treeview && viewItem == runHistoryEntry",
+          "group": "inline"
+        },
         {
           "command": "dbtPowerUser.runTest",
           "when": "view == model_test_treeview && viewItem != source",
@@ -1134,10 +1167,14 @@
     "install:panels": "npm install --prefix ./webview_panels",
     "test": "jest",
     "test:unit": "jest",
+    "test:integration": "npm run test-compile && node out/test/integration/runTests.js",
     "test:coverage": "jest --coverage",
     "pretest": "npm run clean && npm run compile",
     "clean": "rimraf out coverage",
-    "compile": "tsc -p ./"
+    "compile": "tsc -p ./",
+    "docker:deploy": "./docker-setup/deploy.sh",
+    "docker:logs": "cd docker-setup && docker compose logs -f || docker-compose logs -f",
+    "docker:stop": "cd docker-setup && docker compose down || docker-compose down"
   },
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.2",
@@ -1146,6 +1183,7 @@
     "@types/istanbul-lib-coverage": "^2.0.6",
     "@types/jest": "^29.5.0",
     "@types/js-yaml": "^4.0.9",
+    "@types/mocha": "^10.0.7",
     "@types/node": "^20.14.11",
     "@types/vscode": "^1.95.0",
     "@types/which": "^3.0.4",
@@ -1171,7 +1209,9 @@
     "istanbul-lib-instrument": "^6.0.3",
     "jest": "^29.5.0",
     "lint-staged": "^15.2.5",
+    "mocha": "^10.7.0",
     "ovsx": "^0.9.2",
+    "patch-package": "^8.0.1",
     "prettier": "^3.3.3",
     "prettier-eslint": "^15.0.1",
     "prettier-plugin-organize-imports": "^3.2.4",
@@ -1192,10 +1232,10 @@
     "altimateai.vscode-altimate-mcp-server"
   ],
   "dependencies": {
-    "@altimateai/dbt-integration": "^0.2.2",
+    "@altimateai/dbt-integration": "^0.2.9",
     "@jupyterlab/coreutils": "^6.2.4",
     "@jupyterlab/nbformat": "^4.2.4",
-    "@jupyterlab/services": "^6.6.7",
+    "@jupyterlab/services": "^7.0.0",
     "@modelcontextprotocol/sdk": "^1.7.0",
     "@nteract/messaging": "^7.0.20",
     "@types/express": "^5.0.0",
@@ -1205,18 +1245,19 @@
     "@vscode/vsce": "^2.31.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "dayjs": "^1.11.13",
-    "express": "^5.0.1",
+    "express": "^5.1.0",
     "inversify": "^6.0.2",
     "inversify-binding-decorators": "^4.0.0",
     "node-abort-controller": "^3.1.1",
     "node-fetch": "^3.3.2",
     "parse-diff": "^0.11.1",
+    "python-bridge": "^1.1.0",
     "reflect-metadata": "^0.2.2",
     "semver": "^7.6.3",
     "which": "^4.0.0",
     "ws": "^8.18.0",
     "yaml": "^2.5.0",
-    "zeromq": "^6.1.0",
+    "zeromq": "^6.1.1",
     "zod-to-json-schema": "^3.24.3"
   },
   "lint-staged": {
