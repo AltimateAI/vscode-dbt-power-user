@@ -1,10 +1,10 @@
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
+import { panelLogger } from "@modules/logger";
 import { LoadingButton, OptionType, Select, Stack } from "@uicore";
 import { useEffect, useState } from "react";
 import { Control, Controller, UseFormSetValue } from "react-hook-form";
 import { SaveRequest } from "../types";
-import { panelLogger } from "@modules/logger";
 
 interface Props {
   control: Control<SaveRequest, unknown>;
@@ -68,8 +68,8 @@ const AcceptedValues = ({
             hideOptionIcon
             isCreatable
             isClearable
-            value={values?.map((v) => ({ label: v, value: v }) ?? [])}
-            defaultValue={values?.map((v) => ({ label: v, value: v }) ?? [])}
+            value={values?.map((v) => ({ label: v, value: v })) ?? []}
+            defaultValue={values?.map((v) => ({ label: v, value: v })) ?? []}
             isMulti
             onChange={(updates: unknown) => {
               const newValues = ((updates ?? []) as OptionType[])?.map(

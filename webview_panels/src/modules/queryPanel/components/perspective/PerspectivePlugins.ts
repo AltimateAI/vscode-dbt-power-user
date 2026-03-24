@@ -191,7 +191,7 @@ class PerspectiveDatagridJSONViewerPlugin extends (customElements.get(
 
 customElements.define(
   "perspective-datagrid-json-viewer-plugin",
-  PerspectiveDatagridJSONViewerPlugin,
+  PerspectiveDatagridJSONViewerPlugin as unknown as CustomElementConstructor,
 );
 
 void customElements
