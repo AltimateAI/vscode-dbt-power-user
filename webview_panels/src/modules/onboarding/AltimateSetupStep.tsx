@@ -1,11 +1,9 @@
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import { Stack } from "@uicore";
-import { Alert, Button, Input, Radio, Select, Typography } from "antd";
+import { Alert, Button, Input, Select } from "antd";
 import { useEffect, useState } from "react";
 import classes from "./onboarding.module.scss";
-
-const { Title } = Typography;
 
 type AltimatePhase = "key";
 
@@ -31,9 +29,6 @@ const AltimateSetupStep = ({
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState(false);
-
-  // Toggle for API key setup
-  const [hasApiKey, setHasApiKey] = useState(true);
 
   useEffect(() => {
     void checkAltimateConfiguration();
@@ -139,125 +134,18 @@ const AltimateSetupStep = ({
   // Show API key setup form
   return (
     <div className={classes.altimateKeyContainer}>
-      {/* Toggle for API key availability */}
-      <div
-        style={{
-          marginBottom: "1.5rem",
-          textAlign: "center",
-        }}
-      >
-        <Radio.Group
-          value={hasApiKey}
-          onChange={(e) => setHasApiKey(e.target.value as boolean)}
-          buttonStyle="solid"
-          size="large"
-        >
-          <Radio.Button value={true}>I have an Altimate API key</Radio.Button>
-          <Radio.Button value={false}>
-            I don&apos;t have an Altimate API key
-          </Radio.Button>
-        </Radio.Group>
-      </div>
-
-      {hasApiKey ? (
-        <>
-          <div className={classes.altimateKeyInfo}>
-            <Title level={4} className={classes.sectionHeading}>
-              Enter Your Altimate API Key
-            </Title>
-            <p>Enter your Altimate instance name and API key below:</p>
-          </div>
-
-          {error && (
-            <Alert
-              message="Error"
-              description={error}
-              type="error"
-              showIcon
-              closable
-              onClose={() => setError(undefined)}
-              className={classes.alertMessage}
-            />
-          )}
-
-          {success && (
-            <Alert
-              message="API key saved successfully!"
-              type="success"
-              showIcon
-              className={classes.alertMessage}
-            />
-          )}
-
-          <div className={classes.formGroup}>
-            <label htmlFor="instance-name" className={classes.formLabel}>
-              Instance Name:
-            </label>
-            <Input
-              id="instance-name"
-              placeholder="Enter your instance name"
-              value={instanceName}
-              onChange={(e) => setInstanceName(e.target.value)}
-              disabled={isValidating || success}
-              size="large"
-            />
-          </div>
-
-          <div className={classes.formGroup}>
-            <label htmlFor="api-key" className={classes.formLabel}>
-              API Key:
-            </label>
-            <Input.Password
-              id="api-key"
-              placeholder="Enter your Altimate API key"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              disabled={isValidating || success}
-              size="large"
-            />
-          </div>
-
-          <div className={classes.formGroup}>
-            <label htmlFor="backend-url" className={classes.formLabel}>
-              Backend URL:
-            </label>
-            <Select
-              id="backend-url"
-              value={backendURL}
-              onChange={(value) => setBackendURL(value)}
-              disabled={isValidating || success}
-              size="large"
-              style={{ width: "100%" }}
-            >
-              <Select.Option value="https://api.myaltimate.com">
-                Community, Pro or Team Plan
-              </Select.Option>
-              <Select.Option value="https://api.getaltimate.com">
-                Enterprise Plan
-              </Select.Option>
-            </Select>
-          </div>
-
-          <Stack direction="row" className={classes.altimateKeyActions}>
-            <Button
-              type="primary"
-              size="large"
-              onClick={handleSaveKey}
-              loading={isValidating}
-              disabled={success}
-            >
-              {success ? "Saved" : "Save API Key"}
-            </Button>
-          </Stack>
-        </>
-      ) : (
-        <>
-          <div className={classes.altimateKeyInfo}>
-            <Title level={4} className={classes.sectionHeading}>
-              Get Your Free Altimate API Key
-            </Title>
-            <p>Follow these steps to become an Analytics Engineer:</p>
-            <ol>
+      <Alert
+        message={
+          <span style={{ fontWeight: 600 }}>
+            Don&apos;t have an API key? Get one for free
+          </span>
+        }
+        description={
+          <div>
+            <p style={{ margin: "0.5rem 0" }}>
+              Follow these steps to get started:
+            </p>
+            <ol style={{ margin: "0 0 1rem", paddingLeft: "1.25rem" }}>
               <li>
                 Sign up at{" "}
                 <a
@@ -266,29 +154,106 @@ const AltimateSetupStep = ({
                     e.preventDefault();
                     void openUrl("https://app.myaltimate.com/register");
                   }}
-                  style={{ cursor: "pointer" }}
                 >
                   app.myaltimate.com
                 </a>
               </li>
               <li>Navigate to Settings &rarr; API Keys</li>
               <li>Copy your API key and instance name</li>
-              <li>Switch to &quot;I have an Altimate API key&quot; above</li>
             </ol>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <Button type="primary" size="large" onClick={handleSignUp}>
+                Sign Up for Free at app.myaltimate.com
+              </Button>
+            </div>
           </div>
+        }
+        type="info"
+        showIcon
+        className={classes.alertMessage}
+      />
 
-          <Stack direction="row" className={classes.altimateKeyActions}>
-            <Button
-              type="primary"
-              size="large"
-              onClick={handleSignUp}
-              style={{ width: "100%" }}
-            >
-              Sign Up for Free at app.myaltimate.com
-            </Button>
-          </Stack>
-        </>
+      {error && (
+        <Alert
+          message="Error"
+          description={error}
+          type="error"
+          showIcon
+          closable
+          onClose={() => setError(undefined)}
+          className={classes.alertMessage}
+        />
       )}
+
+      {success && (
+        <Alert
+          message="API key saved successfully!"
+          type="success"
+          showIcon
+          className={classes.alertMessage}
+        />
+      )}
+
+      <div className={classes.formGroup}>
+        <label htmlFor="instance-name" className={classes.formLabel}>
+          Instance Name:
+        </label>
+        <Input
+          id="instance-name"
+          placeholder="Enter your instance name"
+          value={instanceName}
+          onChange={(e) => setInstanceName(e.target.value)}
+          disabled={isValidating || success}
+          size="large"
+        />
+      </div>
+
+      <div className={classes.formGroup}>
+        <label htmlFor="api-key" className={classes.formLabel}>
+          API Key:
+        </label>
+        <Input.Password
+          id="api-key"
+          placeholder="Enter your Altimate API key"
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          disabled={isValidating || success}
+          size="large"
+        />
+      </div>
+
+      <div className={classes.formGroup}>
+        <label htmlFor="backend-url" className={classes.formLabel}>
+          Backend URL:
+        </label>
+        <Select
+          id="backend-url"
+          value={backendURL}
+          onChange={(value) => setBackendURL(value)}
+          disabled={isValidating || success}
+          size="large"
+          style={{ width: "100%" }}
+        >
+          <Select.Option value="https://api.myaltimate.com">
+            Community, Pro or Team Plan
+          </Select.Option>
+          <Select.Option value="https://api.getaltimate.com">
+            Enterprise Plan
+          </Select.Option>
+        </Select>
+      </div>
+
+      <Stack direction="row" className={classes.altimateKeyActions}>
+        <Button
+          type="primary"
+          size="large"
+          onClick={handleSaveKey}
+          loading={isValidating}
+          disabled={success}
+        >
+          {success ? "Saved" : "Save API Key"}
+        </Button>
+      </Stack>
     </div>
   );
 };

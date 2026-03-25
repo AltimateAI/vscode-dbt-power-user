@@ -519,14 +519,25 @@ export class OnboardingPanel extends AltimateWebviewProvider {
         break;
       case "checkAltimateConfiguration":
         // Check if Altimate is already configured
+        // Inspect workspace-merged value first, then fall back to global scope
+        // (a workspace can have empty string "" which overrides a valid global value)
         try {
           const config = workspace.getConfiguration("dbt");
-          const apiKey = config.get<string>("altimateAiKey");
-          const instanceName = config.get<string>("altimateInstanceName");
+          let apiKey = config.get<string>("altimateAiKey");
+          let instanceName = config.get<string>("altimateInstanceName");
           const dbtIntegrationType = config.get<string>(
             "dbtIntegration",
             "core",
           );
+
+          // If merged value is empty, check global scope directly
+          if (!apiKey) {
+            apiKey = config.inspect<string>("altimateAiKey")?.globalValue ?? "";
+          }
+          if (!instanceName) {
+            instanceName =
+              config.inspect<string>("altimateInstanceName")?.globalValue ?? "";
+          }
 
           const isConfigured = !!(apiKey && instanceName);
 
@@ -569,6 +580,7 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             await this.altimateRequest.validateCredentials(
               instanceName,
               apiKey,
+              backendURL,
             );
 
           if (!validationResult || validationResult.error) {
@@ -593,8 +605,17 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             "Credentials validated successfully",
           );
 
-          // Use workspace configuration to save the settings at user level
+          // Save at Global (user) level so the key applies across all workspaces.
+          // Save altimateUrl FIRST so the ValidationProvider (which fires on
+          // config change) uses the correct endpoint when it re-validates.
           const dbtConfig = workspace.getConfiguration("dbt");
+          if (backendURL) {
+            await dbtConfig.update(
+              "altimateUrl",
+              backendURL,
+              ConfigurationTarget.Global,
+            );
+          }
           await dbtConfig.update(
             "altimateAiKey",
             apiKey,
@@ -605,13 +626,6 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             instanceName,
             ConfigurationTarget.Global,
           );
-          if (backendURL) {
-            await dbtConfig.update(
-              "altimateUrl",
-              backendURL,
-              ConfigurationTarget.Global,
-            );
-          }
 
           this.sendResponseToWebview({
             command: "response",
