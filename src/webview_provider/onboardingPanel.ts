@@ -519,25 +519,14 @@ export class OnboardingPanel extends AltimateWebviewProvider {
         break;
       case "checkAltimateConfiguration":
         // Check if Altimate is already configured
-        // Inspect workspace-merged value first, then fall back to global scope
-        // (a workspace can have empty string "" which overrides a valid global value)
         try {
           const config = workspace.getConfiguration("dbt");
-          let apiKey = config.get<string>("altimateAiKey");
-          let instanceName = config.get<string>("altimateInstanceName");
+          const apiKey = config.get<string>("altimateAiKey");
+          const instanceName = config.get<string>("altimateInstanceName");
           const dbtIntegrationType = config.get<string>(
             "dbtIntegration",
             "core",
           );
-
-          // If merged value is empty, check global scope directly
-          if (!apiKey) {
-            apiKey = config.inspect<string>("altimateAiKey")?.globalValue ?? "";
-          }
-          if (!instanceName) {
-            instanceName =
-              config.inspect<string>("altimateInstanceName")?.globalValue ?? "";
-          }
 
           const isConfigured = !!(apiKey && instanceName);
 
