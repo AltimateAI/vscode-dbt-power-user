@@ -52,7 +52,7 @@ export class TargetStatusBar implements Disposable {
         this.statusBar.command = {
           title: "Open Target selector",
           command: "dbtPowerUser.openTargetSelector",
-          arguments: [targets, currentProject, this],
+          arguments: [targets, currentProject, this, selectedTarget],
         };
         this.statusBar.show();
       }

@@ -649,7 +649,12 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand(
         "dbtPowerUser.openTargetSelector",
-        async (targets, project: DBTProject, statusBar) => {
+        async (
+          targets,
+          project: DBTProject,
+          statusBar,
+          currentTarget?: string,
+        ) => {
           try {
             if (!targets) {
               return;
@@ -659,10 +664,20 @@ export class VSCodeCommands implements Disposable {
               "Showing following targets",
               targets,
             );
-            const target = await window.showQuickPick(targets, {
+            const sortedTargets = (targets as string[]).sort((a, b) => {
+              if (a === currentTarget) return -1;
+              if (b === currentTarget) return 1;
+              return 0;
+            });
+            const items = sortedTargets.map((t) => ({
+              label: t,
+              description: t === currentTarget ? "(current)" : "",
+            }));
+            const selected = await window.showQuickPick(items, {
               title: "Select your target",
               canPickMany: false,
             });
+            const target = selected?.label;
             if (target) {
               await project.setSelectedTarget(target);
               await statusBar.updateStatusBar();
