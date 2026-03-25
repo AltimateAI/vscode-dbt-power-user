@@ -2,7 +2,7 @@ import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import { Stack } from "@uicore";
 import { Alert, Button, Input, Select } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import classes from "./onboarding.module.scss";
 
 type AltimatePhase = "key";
@@ -29,6 +29,16 @@ const AltimateSetupStep = ({
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState(false);
+  const completionTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Clear completion timer on unmount
+  useEffect(() => {
+    return () => {
+      if (completionTimerRef.current) {
+        clearTimeout(completionTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     void checkAltimateConfiguration();
@@ -74,10 +84,10 @@ const AltimateSetupStep = ({
       });
 
       setSuccess(true);
-      setIsAltimateConfigured(true);
 
-      // Wait a bit to show success message, then advance
-      setTimeout(() => {
+      // Show success message briefly, then mark configured and advance
+      completionTimerRef.current = setTimeout(() => {
+        setIsAltimateConfigured(true);
         setSuccess(false);
         onComplete?.();
       }, 1500);
