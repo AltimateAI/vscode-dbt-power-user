@@ -5,7 +5,7 @@ import { Alert, Button, Input, Radio, Select, Typography } from "antd";
 import { useEffect, useState } from "react";
 import classes from "./onboarding.module.scss";
 
-const { Text, Title } = Typography;
+const { Title } = Typography;
 
 type AltimatePhase = "key";
 
@@ -112,206 +112,6 @@ const AltimateSetupStep = ({
     await openUrl("https://app.myaltimate.com/register");
   };
 
-  // Calculate current star level based on progress
-  const getStarLevel = () => {
-    if (!isAltimateConfigured) return 1; // No API key = 1 star
-    return 2; // API key configured = 2 stars
-  };
-
-  const renderProgressCard = () => {
-    const currentLevel = getStarLevel();
-
-    return (
-      <div
-        style={{
-          background:
-            "linear-gradient(135deg, var(--vscode-editor-background) 0%, var(--vscode-editorWidget-background) 100%)",
-          border: "2px solid var(--vscode-focusBorder)",
-          borderRadius: "12px",
-          padding: "1rem 1.5rem",
-          marginBottom: "1.5rem",
-        }}
-      >
-        {/* Title */}
-        <Title
-          level={5}
-          style={{
-            margin: 0,
-            marginBottom: "0.75rem",
-            color: "var(--vscode-foreground)",
-            textAlign: "center",
-            fontSize: "1.1rem",
-          }}
-        >
-          Your Analytics Engineering Journey
-        </Title>
-
-        {/* Star Progress Bar */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "0.75rem",
-            position: "relative",
-          }}
-        >
-          {/* Progress line */}
-          <div
-            style={{
-              position: "absolute",
-              top: "15px",
-              left: "10%",
-              right: "10%",
-              height: "3px",
-              background: "var(--vscode-panel-border)",
-              zIndex: 0,
-            }}
-          >
-            <div
-              style={{
-                height: "100%",
-                background: "linear-gradient(90deg, #108ee9 0%, #87d068 100%)",
-                width: `${((currentLevel - 1) / 2) * 100}%`,
-                transition: "width 0.5s ease",
-              }}
-            />
-          </div>
-
-          {/* Level 1 */}
-          <div style={{ flex: 1, textAlign: "center", zIndex: 1 }}>
-            <div
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "50%",
-                background:
-                  currentLevel >= 1
-                    ? "#108ee9"
-                    : "var(--vscode-editor-background)",
-                border:
-                  currentLevel >= 1
-                    ? "2px solid #108ee9"
-                    : "2px solid var(--vscode-panel-border)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto",
-                fontSize: "0.8rem",
-                opacity: currentLevel >= 1 ? 1 : 0.5,
-                filter: currentLevel >= 1 ? "none" : "grayscale(100%)",
-              }}
-            >
-              {"\u2B50"}
-            </div>
-          </div>
-
-          {/* Level 2 */}
-          <div style={{ flex: 1, textAlign: "center", zIndex: 1 }}>
-            <div
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "50%",
-                background:
-                  currentLevel >= 2
-                    ? "#52c41a"
-                    : "var(--vscode-editor-background)",
-                border:
-                  currentLevel >= 2
-                    ? "2px solid #52c41a"
-                    : "2px solid var(--vscode-panel-border)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto",
-                fontSize: "0.65rem",
-                opacity: currentLevel >= 2 ? 1 : 0.5,
-                filter: currentLevel >= 2 ? "none" : "grayscale(100%)",
-              }}
-            >
-              {"\u2B50\u2B50"}
-            </div>
-          </div>
-
-          {/* Level 3 */}
-          <div style={{ flex: 1, textAlign: "center", zIndex: 1 }}>
-            <div
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "50%",
-                background: "var(--vscode-editor-background)",
-                border: "2px solid var(--vscode-panel-border)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto",
-                fontSize: "0.55rem",
-                opacity: 0.5,
-                filter: "grayscale(100%)",
-              }}
-            >
-              {"\u2B50\u2B50\u2B50"}
-            </div>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div
-          style={{
-            height: "1px",
-            background: "var(--vscode-panel-border)",
-            margin: "0.5rem 0",
-          }}
-        />
-
-        {/* Next Step Section */}
-        {currentLevel === 2 ? (
-          <div>
-            <Text className={classes.progressCardHeading}>
-              API Key Configured!
-            </Text>
-            <Text className={classes.progressCardDescription}>
-              Your Altimate API key is set up. You now have access to:
-            </Text>
-            <div className={classes.progressCardFeatures}>
-              <Text className={classes.progressCardFeatureItem}>
-                Advanced lineage visualization
-              </Text>
-              <Text className={classes.progressCardFeatureItem}>
-                SQL query explanations
-              </Text>
-              <Text className={classes.progressCardFeatureItem}>
-                Auto-generated documentation
-              </Text>
-            </div>
-          </div>
-        ) : (
-          <div>
-            <Text className={classes.progressCardHeading}>
-              Next: Unlock 2-Star Features
-            </Text>
-            <Text className={classes.progressCardDescription}>
-              Add your Altimate API key to unlock:
-            </Text>
-            <div className={classes.progressCardFeatures}>
-              <Text className={classes.progressCardFeatureItem}>
-                Advanced lineage visualization
-              </Text>
-              <Text className={classes.progressCardFeatureItem}>
-                SQL query explanations
-              </Text>
-              <Text className={classes.progressCardFeatureItem}>
-                Auto-generated documentation
-              </Text>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
   // Loading state while checking configuration
   if (isAltimateConfigured === null) {
     return (
@@ -325,7 +125,6 @@ const AltimateSetupStep = ({
   if (isAltimateConfigured) {
     return (
       <div className={classes.altimateKeyContainer}>
-        {renderProgressCard()}
         <Alert
           message="Altimate AI is already configured!"
           description="Your API key is set up. Click 'Tutorials' to continue."
@@ -340,8 +139,6 @@ const AltimateSetupStep = ({
   // Show API key setup form
   return (
     <div className={classes.altimateKeyContainer}>
-      {renderProgressCard()}
-
       {/* Toggle for API key availability */}
       <div
         style={{
