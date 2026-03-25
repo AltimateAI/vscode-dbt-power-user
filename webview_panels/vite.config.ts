@@ -1,8 +1,8 @@
-import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import svgr from "vite-plugin-svgr";
-import path from "path";
 import { cpSync } from "fs";
+import path from "path";
+import { defineConfig } from "vite";
+import svgr from "vite-plugin-svgr";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -21,12 +21,16 @@ export default defineConfig({
     },
   ],
   build: {
+    cssCodeSplit: false,
     rollupOptions: {
       input: "./src/main.tsx",
       output: {
         entryFileNames: `assets/[name].js`,
-        chunkFileNames: `assets/[name].js`,
-        assetFileNames: `assets/[name].[ext]`,
+        chunkFileNames: `assets/chunk-[name].js`,
+        assetFileNames: (assetInfo) =>
+          assetInfo.name === "style.css"
+            ? "assets/main.css"
+            : "assets/[name].[ext]",
       },
     },
   },
@@ -39,12 +43,11 @@ export default defineConfig({
       "@vscodeApi": path.resolve(__dirname, "./src/modules/vscode"),
       "@telemetryEvents": path.resolve(__dirname, "../src/telemetry/events.ts"),
       "@lib": path.resolve(__dirname, "./src/lib"),
-      "@lib-testUtils": path.resolve(__dirname, "./src/lib/testUtils.ts"),
     },
   },
   css: {
     modules: {
-      localsConvention: "camelCaseOnly",
+      localsConvention: "dashes",
     },
   },
 });

@@ -1,0 +1,10 @@
+version: 2
+
+seeds:
+  - name: "Order method code"
+    description: "GO Sales order method lookup."
+    columns:
+      - name: order_method_code
+        description: "Numeric code for the order method."
+      - name: "Order method type"
+        description: "Human-readable order method label."

@@ -1,0 +1,13 @@
+services:
+  code-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+    volumes:
+      - ..:/home/coder/extension-src:ro
+      - ${DBT_PROJECT_PATH:-/home/coder/jaffle-shop-duckdb}:/home/coder/project
+    restart: unless-stopped

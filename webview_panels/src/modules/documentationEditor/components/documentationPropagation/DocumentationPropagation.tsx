@@ -1,24 +1,24 @@
+import type { ColumnLineage } from "@altimateai/ui-components/lineage";
 import { ArrowDownIcon, ArrowUpIcon, PropagateIcon } from "@assets/icons";
-import { useEffect, useRef, useState } from "react";
-import {
-  Drawer,
-  Stack,
-  DrawerRef,
-  Button,
-  Input,
-  Loader,
-  Card,
-  CardBody,
-} from "@uicore";
-import { EntityType } from "@modules/dataPilot/components/docGen/types";
-import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
-import { ColumnLineage } from "@lib";
-import styles from "./styles.module.scss";
+import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import {
   updateBulkDocsPropRightPanel,
   updateSingleDocsPropRightPanel,
 } from "@modules/documentationEditor/state/documentationSlice";
+import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
+import {
+  Button,
+  Card,
+  CardBody,
+  Drawer,
+  DrawerRef,
+  Input,
+  Loader,
+  Stack,
+} from "@uicore";
+import { useEffect, useRef, useState } from "react";
+import styles from "./styles.module.scss";
 
 interface Props {
   name: string;

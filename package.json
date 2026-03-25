@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.59.6",
+  "version": "0.60.0",
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -523,6 +523,12 @@
         "title": "Re-run Command",
         "category": "dbt Power User",
         "icon": "$(debug-rerun)"
+      },
+      {
+        "command": "dbtPowerUser.clearRunHistory",
+        "title": "Clear Run History",
+        "category": "dbt Power User",
+        "icon": "$(clear-all)"
       },
       {
         "command": "dbtPowerUser.openDatapilotWithQuery",
@@ -1058,6 +1064,11 @@
           "command": "dbtPowerUser.showHelpDatapilot",
           "when": "view == dbtPowerUser.datapilot-webview",
           "group": "navigation@3"
+        },
+        {
+          "command": "dbtPowerUser.clearRunHistory",
+          "when": "view == run_history_treeview",
+          "group": "2_clear"
         }
       ],
       "view/item/context": [
@@ -1160,7 +1171,10 @@
     "test:coverage": "jest --coverage",
     "pretest": "npm run clean && npm run compile",
     "clean": "rimraf out coverage",
-    "compile": "tsc -p ./"
+    "compile": "tsc -p ./",
+    "docker:deploy": "./docker-setup/deploy.sh",
+    "docker:logs": "cd docker-setup && docker compose logs -f || docker-compose logs -f",
+    "docker:stop": "cd docker-setup && docker compose down || docker-compose down"
   },
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.2",
@@ -1197,6 +1211,7 @@
     "lint-staged": "^15.2.5",
     "mocha": "^10.7.0",
     "ovsx": "^0.9.2",
+    "patch-package": "^8.0.1",
     "prettier": "^3.3.3",
     "prettier-eslint": "^15.0.1",
     "prettier-plugin-organize-imports": "^3.2.4",
@@ -1216,16 +1231,8 @@
     "ms-python.python",
     "altimateai.vscode-altimate-mcp-server"
   ],
-  "optionalDependencies": {
-    "@altimateai/altimate-core": "^0.1.5",
-    "@altimateai/altimate-core-darwin-arm64": "^0.1.5",
-    "@altimateai/altimate-core-darwin-x64": "^0.1.5",
-    "@altimateai/altimate-core-linux-arm64-gnu": "^0.1.5",
-    "@altimateai/altimate-core-linux-x64-gnu": "^0.1.5",
-    "@altimateai/altimate-core-win32-x64-msvc": "^0.1.5"
-  },
   "dependencies": {
-    "@altimateai/dbt-integration": "^0.2.5",
+    "@altimateai/dbt-integration": "^0.2.9",
     "@jupyterlab/coreutils": "^6.2.4",
     "@jupyterlab/nbformat": "^4.2.4",
     "@jupyterlab/services": "^7.0.0",

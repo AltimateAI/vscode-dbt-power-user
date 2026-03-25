@@ -1,0 +1,18 @@
+# Core dbt and adapters
+dbt-core==1.9.6       
+dbt-duckdb==1.9.3     
+
+# MySQL connectivity (via mysql-connector-python)
+mysql-connector-python==9.3.0
+
+# Data wrangling
+pandas==2.2.3
+
+# Unit testing
+pytest==8.2.1
+
+# Optional development tools
+pylint==3.3.7
+sqlfluff~=3.4.0
+sqlfluff-templater-dbt~=3.4.0
+

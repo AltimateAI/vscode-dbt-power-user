@@ -1,0 +1,45 @@
+version: 2
+models:
+  - name: t_stg_go_retailers 
+    description: "This model contains the details of retailers including their unique codes and names." 
+    config:
+      materialized: table  
+      schema: stg
+      tags: GO_SALES_STG
+    columns:  
+      - name: retailer_code
+        description: "Unique identifier for the retailer"
+      - name: retailer_name
+        description: "Name of the retailer"
+      - name: retailer_type
+        description: "Type of the retailer (e.g., online, physical store)"
+      - name: country
+        description: "Country where the retailer is located"
+      - name: state
+        description: "State where the retailer is located"
+      - name: city
+        description: "City where the retailer is located"
+      - name: postal_code
+        description: "Postal code of the retailer's location"
+      - name: address
+        description: "Physical address of the retailer"
+      - name: phone_number
+        description: "Contact phone number of the retailer"
+      - name: email 
+        description: "Contact email address of the retailer"
+      - name: website
+        description: "Website URL of the retailer"
+      - name: created_at
+        description: "Timestamp when the retailer record was created"
+      - name: updated_at
+        description: "Timestamp when the retailer record was last updated"
+      - name: is_active
+        description: "Indicates whether the retailer is currently active (1 for active, 0 for inactive)"
+      - name: notes
+        description: "Additional notes or comments about the retailer"
+      - name: last_order_date
+        description: "Date of the last order placed by the retailer"
+      - name: total_orders  
+        description: "Total number of orders placed by the retailer"
+      - name: total_sales           
+

@@ -1,0 +1,34 @@
+#-----------------------------------------------------------------------------
+# Author:     Manzar Ahmed 
+# Date:       2025-05-18
+#-----------------------------------------------------------------------------
+# Version Control
+#-----------------------------------------------------------------------------
+# Ver  Date      Name          Description     
+#-----------------------------------------------------------------------------
+# 1.0  20250518  Manzar Ahmed  Initial         
+#----------------------------------------------------------------------------
+version: 2
+models:
+  - name: t_stg_go_methods
+    config:
+      materialized: table  
+      schema: stg
+      tags: 
+        - GO_SALES_STG
+    columns:
+      - name: retailer_code
+        description: "Unique identifier for the retailer"
+      - name: product_number
+        description: "Unique identifier for the product"
+      - name: order_method_code
+        description: "Code representing the order method used"
+      - name: transaction_date
+        description: "Date of the transaction"
+      - name: quantity
+        description: "Quantity of products sold in the transaction"
+      - name: unit_price
+        description: "Price per unit of the product at the time of sale"
+      - name: unit_sale_price
+        description: "Sale price per unit of the product at the time of sale"
+

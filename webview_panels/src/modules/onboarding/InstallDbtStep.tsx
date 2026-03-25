@@ -6,6 +6,7 @@ import { useState } from "react";
 import classes from "./onboarding.module.scss";
 
 interface InstallDbtStepProps {
+  initialIntegrationType?: "core" | "fusion" | "cloud";
   onComplete?: () => void;
   onSkip?: () => void;
 }
@@ -14,11 +15,13 @@ type DbtIntegrationType = "core" | "fusion" | "cloud";
 type InstallState = "idle" | "installing" | "complete" | "error";
 
 const InstallDbtStep = ({
+  initialIntegrationType,
   onComplete,
   onSkip,
 }: InstallDbtStepProps): JSX.Element => {
-  const [integrationType, setIntegrationType] =
-    useState<DbtIntegrationType>("core");
+  const [integrationType, setIntegrationType] = useState<DbtIntegrationType>(
+    initialIntegrationType ?? "core",
+  );
   const [installState, setInstallState] = useState<InstallState>("idle");
   const [error, setError] = useState<string | undefined>();
 
@@ -158,7 +161,7 @@ const InstallDbtStep = ({
         <p>
           Need help choosing?{" "}
           <a
-            href="https://docs.myaltimate.com/setup/integrations/"
+            href="https://docs.myaltimate.com/setup/reqdConfig/"
             target="_blank"
             rel="noopener noreferrer"
           >

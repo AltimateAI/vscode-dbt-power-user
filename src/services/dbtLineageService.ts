@@ -4,6 +4,7 @@ import {
   NodeGraphMap,
   RESOURCE_TYPE_ANALYSIS,
   RESOURCE_TYPE_EXPOSURE,
+  RESOURCE_TYPE_FUNCTION,
   RESOURCE_TYPE_METRIC,
   RESOURCE_TYPE_MODEL,
   RESOURCE_TYPE_SNAPSHOT,
@@ -161,6 +162,24 @@ export class DbtLineageService {
         tests: [],
         columns: {},
         isExternalProject: false,
+      };
+    }
+
+    if (nodeType === RESOURCE_TYPE_FUNCTION) {
+      const { functionMetaMap } = event;
+      const fn = functionMetaMap.get(table);
+      const fnType = fn?.config?.type;
+      return {
+        table: key,
+        label: table,
+        url: tableUrl,
+        upstreamCount,
+        downstreamCount,
+        nodeType,
+        materialization: fnType ? `${fnType} function` : "function",
+        tests: [],
+        columns: {},
+        isExternalProject: fn?.is_external_project ?? false,
       };
     }
 
@@ -379,6 +398,10 @@ export class DbtLineageService {
           );
           return localResult;
         }
+        this.dbtTerminal.warn(
+          "dbtLineageService:getConnectedColumns",
+          "computeColumnLineage returned null - altimate-core native module may not be loaded",
+        );
       } catch (error) {
         this.dbtTerminal.warn(
           "newLineagePanel:getConnectedColumns",

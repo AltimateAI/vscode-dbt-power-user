@@ -99,7 +99,7 @@ const Filters = ({
           inputId="tags"
           openMenuOnFocus
           isMulti
-          options={tags?.map((v) => ({ label: v, value: v }) ?? [])}
+          options={tags?.map((v) => ({ label: v, value: v })) ?? []}
           onChange={handleTagsChange}
           onBlur={handleTagsBlur}
         />

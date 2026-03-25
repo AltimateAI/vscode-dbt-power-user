@@ -1,0 +1,53 @@
+version: 2
+
+models:
+  - name: t_dim_products
+    description: "SCD2 dimension model for GO Sales products with surrogate key and change hash"
+    config:
+      materialized: incremental
+      schema: det
+      tags:
+        - GO_SALES_DET
+      unique_key: product_number
+
+    columns:
+      - name: dim_product_sk
+        description: "Surrogate key for each SCD2 version of the product"
+        tests:
+          - not_null
+
+      - name: product_number
+        description: "Natural key for the product"
+        tests:
+          - not_null
+          - unique
+
+      - name: product_line
+        description: "Product line category"
+
+      - name: product_type
+        description: "Product type or classification"
+
+      - name: product
+        description: "Product name or label"
+
+      - name: product_brand
+        description: "Brand associated with the product"
+
+      - name: product_color
+        description: "Color variant of the product"
+
+      - name: unit_cost
+        description: "Cost to produce or acquire the product"
+
+      - name: unit_price
+        description: "Retail price of the product"
+
+      - name: scd2_hash
+        description: "MD5 hash of tracked columns used for change detection"
+
+      - name: start_ts
+        description: "Timestamp when the product record became active"
+
+      - name: end_ts
+        description: "Timestamp when the product record was deactivated (or high_date if still active)"

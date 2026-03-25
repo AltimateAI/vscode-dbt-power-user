@@ -1,6 +1,7 @@
 import {
   DocMetaMap,
   ExposureMetaMap,
+  FunctionMetaMap,
   GraphMetaMap,
   MacroMetaMap,
   MetricMetaMap,
@@ -21,6 +22,7 @@ export interface ManifestCacheProjectAddedEvent {
   testMetaMap: TestMetaMap;
   docMetaMap: DocMetaMap;
   exposureMetaMap: ExposureMetaMap;
+  functionMetaMap: FunctionMetaMap;
   modelDepthMap: Map<string, number>;
 }
 

@@ -1,0 +1,8 @@
+[run]
+relative_files = True
+source = shared_utils
+
+[report]
+omit =
+    */__init__.py
+    tests/*

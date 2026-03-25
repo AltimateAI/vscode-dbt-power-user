@@ -141,7 +141,7 @@ export class DBTProjectContainer implements Disposable {
       false,
     );
     if (answer === PromptAnswer.YES) {
-      commands.executeCommand("dbtPowerUser.openSetupWalkthrough");
+      commands.executeCommand("dbtPowerUser.openOnboarding");
     }
     this.setToGlobalState("showSetupWalkthrough", false);
   }
