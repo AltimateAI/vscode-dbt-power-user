@@ -37,7 +37,7 @@ const AltimateSetupStep = ({
   // Report readiness to parent wizard
   useEffect(() => {
     onReadyChange?.(!!isAltimateConfigured);
-  }, [phase, isAltimateConfigured]);
+  }, [phase, isAltimateConfigured, onReadyChange]);
 
   const checkAltimateConfiguration = async () => {
     try {
