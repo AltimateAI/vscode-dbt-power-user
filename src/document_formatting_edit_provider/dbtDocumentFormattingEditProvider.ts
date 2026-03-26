@@ -24,11 +24,10 @@ import { extendErrorWithSupportLinks, getFirstWorkspacePath } from "../utils";
 
 const execAsync = promisify(exec);
 
-export class DbtDocumentFormattingEditProvider
-  implements DocumentFormattingEditProvider
-{
+// prettier-ignore
+export class DbtDocumentFormattingEditProvider implements DocumentFormattingEditProvider {
   private cachedSqlFmtPath: string | undefined;
-  private sqlFmtPathResolved = false;
+  private cachedPythonPath: string | undefined;
 
   constructor(
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
@@ -117,10 +116,12 @@ export class DbtDocumentFormattingEditProvider
   }
 
   private async findSqlFmtPath(): Promise<string | undefined> {
-    // Return cached result if still valid
+    const currentPythonPath = this.pythonEnvironment.pythonPath;
+
+    // Return cached result if still valid (same interpreter + binary exists)
     if (
-      this.sqlFmtPathResolved &&
       this.cachedSqlFmtPath &&
+      this.cachedPythonPath === currentPythonPath &&
       fs.existsSync(this.cachedSqlFmtPath)
     ) {
       return this.cachedSqlFmtPath;
@@ -128,7 +129,7 @@ export class DbtDocumentFormattingEditProvider
 
     const result = await this.discoverSqlFmtPath();
     this.cachedSqlFmtPath = result;
-    this.sqlFmtPathResolved = true;
+    this.cachedPythonPath = currentPythonPath;
     return result;
   }
 
