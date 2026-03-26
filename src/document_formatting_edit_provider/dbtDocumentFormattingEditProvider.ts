@@ -1,10 +1,11 @@
 import { CommandProcessExecutionFactory } from "@altimateai/dbt-integration";
-import { execSync } from "child_process";
+import { exec } from "child_process";
 import fs from "fs";
 import { inject } from "inversify";
 import os from "os";
 import parseDiff from "parse-diff";
 import path from "path";
+import { promisify } from "util";
 import {
   CancellationToken,
   DocumentFormattingEditProvider,
@@ -21,9 +22,14 @@ import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
 import { TelemetryService } from "../telemetry";
 import { extendErrorWithSupportLinks, getFirstWorkspacePath } from "../utils";
 
+const execAsync = promisify(exec);
+
 export class DbtDocumentFormattingEditProvider
   implements DocumentFormattingEditProvider
 {
+  private cachedSqlFmtPath: string | undefined;
+  private sqlFmtPathResolved = false;
+
   constructor(
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
     private telemetry: TelemetryService,
@@ -111,25 +117,39 @@ export class DbtDocumentFormattingEditProvider
   }
 
   private async findSqlFmtPath(): Promise<string | undefined> {
+    // Return cached result if already resolved
+    if (this.sqlFmtPathResolved) {
+      return this.cachedSqlFmtPath;
+    }
+
+    const result = await this.discoverSqlFmtPath();
+    this.cachedSqlFmtPath = result;
+    this.sqlFmtPathResolved = true;
+    return result;
+  }
+
+  private async discoverSqlFmtPath(): Promise<string | undefined> {
+    const isWindows = process.platform === "win32";
+    const exe = isWindows ? "sqlfmt.exe" : "sqlfmt";
+
     // 1. Check Python venv bin directory
     const pythonPath = this.pythonEnvironment.pythonPath;
     if (pythonPath) {
-      const candidatePath = path.join(path.dirname(pythonPath), "sqlfmt");
+      const candidatePath = path.join(path.dirname(pythonPath), exe);
       if (fs.existsSync(candidatePath)) {
         return candidatePath;
       }
     }
 
-    // 2. Check common tool binary locations (uv, pipx)
-    const candidatePaths = this.getToolBinCandidates();
-    for (const candidate of candidatePaths) {
+    // 2. Check well-known tool binary locations (uv, pipx)
+    for (const candidate of this.getToolBinCandidates(exe)) {
       if (fs.existsSync(candidate)) {
         return candidate;
       }
     }
 
-    // 3. Try to find via uv tool dir (dynamically discovers uv's tool location)
-    const uvToolPath = this.findSqlFmtInUvTools();
+    // 3. Try uv tool dir (async, non-blocking) for custom uv install locations
+    const uvToolPath = await this.findSqlFmtInUvTools(exe);
     if (uvToolPath) {
       return uvToolPath;
     }
@@ -142,46 +162,57 @@ export class DbtDocumentFormattingEditProvider
     }
   }
 
-  private getToolBinCandidates(): string[] {
+  private getToolBinCandidates(exe: string): string[] {
     const home = os.homedir();
     const candidates: string[] = [];
 
+    // UV_TOOL_BIN_DIR / PIPX_BIN_DIR override default locations
+    const uvToolBinDir = process.env.UV_TOOL_BIN_DIR;
+    if (uvToolBinDir) {
+      candidates.push(path.join(uvToolBinDir, exe));
+    }
+    const pipxBinDir = process.env.PIPX_BIN_DIR;
+    if (pipxBinDir) {
+      candidates.push(path.join(pipxBinDir, exe));
+    }
+
     if (process.platform === "win32") {
-      // Windows: uv puts tools in %APPDATA%\uv\data\tools\sqlfmt\...
       const appData = process.env.APPDATA;
       if (appData) {
         candidates.push(
-          path.join(appData, "uv", "data", "tools", "sqlfmt", "Scripts", "sqlfmt.exe"),
-        );
-        candidates.push(
-          path.join(appData, "Python", "Scripts", "sqlfmt.exe"),
+          path.join(
+            appData,
+            "uv",
+            "data",
+            "tools",
+            "shandy-sqlfmt",
+            "Scripts",
+            exe,
+          ),
+          path.join(appData, "Python", "Scripts", exe),
         );
       }
-      // pipx on Windows
       candidates.push(
-        path.join(home, ".local", "bin", "sqlfmt.exe"),
-        path.join(home, "pipx", "venvs", "sqlfmt", "Scripts", "sqlfmt.exe"),
+        path.join(home, ".local", "bin", exe),
+        path.join(home, "pipx", "venvs", "shandy-sqlfmt", "Scripts", exe),
       );
     } else {
-      // Linux/macOS: uv tool install and pipx put binaries here
-      candidates.push(
-        path.join(home, ".local", "bin", "sqlfmt"),
-      );
+      // Linux/macOS: default location for uv tool install and pipx
+      candidates.push(path.join(home, ".local", "bin", exe));
     }
 
     return candidates;
   }
 
-  private findSqlFmtInUvTools(): string | undefined {
+  private async findSqlFmtInUvTools(exe: string): Promise<string | undefined> {
     try {
-      const uvToolDir = execSync("uv tool dir", {
-        encoding: "utf-8",
-        timeout: 5000,
-      }).trim();
+      const { stdout } = await execAsync("uv tool dir", { timeout: 3000 });
+      const uvToolDir = stdout.trim();
       if (uvToolDir) {
-        const executable = process.platform === "win32"
-          ? path.join(uvToolDir, "sqlfmt", "Scripts", "sqlfmt.exe")
-          : path.join(uvToolDir, "sqlfmt", "bin", "sqlfmt");
+        const executable =
+          process.platform === "win32"
+            ? path.join(uvToolDir, "shandy-sqlfmt", "Scripts", exe)
+            : path.join(uvToolDir, "shandy-sqlfmt", "bin", exe);
         if (fs.existsSync(executable)) {
           return executable;
         }
