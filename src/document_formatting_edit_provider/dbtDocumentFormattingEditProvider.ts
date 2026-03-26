@@ -105,7 +105,7 @@ export class DbtDocumentFormattingEditProvider
       this.telemetry.sendTelemetryError("formatDbtModelApplyDiffFailed", error);
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Could not run sqlfmt. If sqlfmt is installed (e.g. via `uv tool install sqlfmt` or `pipx install sqlfmt`), " +
+          'Could not run sqlfmt. If sqlfmt is installed (e.g. via `uv tool install "shandy-sqlfmt[jinjafmt]"` or `pipx install "shandy-sqlfmt[jinjafmt]"`), ' +
             "try setting the `dbt.sqlFmtPath` setting to the full path of the sqlfmt binary, " +
             "or restart VS Code to pick up PATH changes. Detailed error: " +
             error +
