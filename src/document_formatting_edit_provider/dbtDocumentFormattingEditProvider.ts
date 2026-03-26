@@ -117,8 +117,12 @@ export class DbtDocumentFormattingEditProvider
   }
 
   private async findSqlFmtPath(): Promise<string | undefined> {
-    // Return cached result if already resolved
-    if (this.sqlFmtPathResolved) {
+    // Return cached result if still valid
+    if (
+      this.sqlFmtPathResolved &&
+      this.cachedSqlFmtPath &&
+      fs.existsSync(this.cachedSqlFmtPath)
+    ) {
       return this.cachedSqlFmtPath;
     }
 
