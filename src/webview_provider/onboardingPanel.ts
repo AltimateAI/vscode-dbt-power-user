@@ -529,11 +529,18 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           );
 
           const isConfigured = !!(apiKey && instanceName);
+          const altimateUrl = config.get<string>("altimateUrl", "");
 
           this.sendResponseToWebview({
             command: "response",
             syncRequestId,
-            data: { isConfigured, dbtIntegrationType },
+            data: {
+              isConfigured,
+              dbtIntegrationType,
+              instanceName: instanceName || "",
+              apiKey: apiKey || "",
+              altimateUrl,
+            },
           });
         } catch (error) {
           this.dbtTerminal.error(

@@ -29,6 +29,7 @@ const AltimateSetupStep = ({
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const completionTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Clear completion timer on unmount
@@ -54,8 +55,25 @@ const AltimateSetupStep = ({
       const response = (await executeRequestInSync(
         "checkAltimateConfiguration",
         {},
-      )) as { isConfigured: boolean; dbtIntegrationType?: string };
+      )) as {
+        isConfigured: boolean;
+        dbtIntegrationType?: string;
+        instanceName?: string;
+        apiKey?: string;
+        altimateUrl?: string;
+      };
       setIsAltimateConfigured(response?.isConfigured || false);
+
+      // Pre-populate fields with saved values for editing
+      if (response?.instanceName) {
+        setInstanceName(response.instanceName);
+      }
+      if (response?.apiKey) {
+        setApiKey(response.apiKey);
+      }
+      if (response?.altimateUrl) {
+        setBackendURL(response.altimateUrl);
+      }
     } catch (err) {
       panelLogger.error("Error checking Altimate configuration", err);
       setIsAltimateConfigured(false);
@@ -126,8 +144,8 @@ const AltimateSetupStep = ({
     );
   }
 
-  // If already configured, show success message
-  if (isAltimateConfigured) {
+  // If already configured and not editing, show success with edit option
+  if (isAltimateConfigured && !isEditing) {
     return (
       <div className={classes.altimateKeyContainer}>
         <Alert
@@ -137,6 +155,16 @@ const AltimateSetupStep = ({
           showIcon
           className={classes.alertMessage}
         />
+        <Button
+          size="large"
+          onClick={() => {
+            setIsEditing(true);
+            setSuccess(false);
+            setError(undefined);
+          }}
+        >
+          Edit Configuration
+        </Button>
       </div>
     );
   }
