@@ -579,9 +579,10 @@ export class OnboardingPanel extends AltimateWebviewProvider {
               backendURL,
             );
 
-          if (!validationResult || validationResult.error) {
+          if (!validationResult?.ok) {
             const errorMessage =
               validationResult?.error ||
+              validationResult?.detail ||
               "Invalid credentials. Please check your API key and instance name.";
             this.dbtTerminal.error(
               "saveAltimateKey",
