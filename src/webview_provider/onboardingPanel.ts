@@ -368,9 +368,10 @@ export class OnboardingPanel extends AltimateWebviewProvider {
               backendURL,
             );
 
-          if (!validationResult || validationResult.error) {
+          if (!validationResult?.ok) {
             const errorMessage =
               validationResult?.error ||
+              validationResult?.detail ||
               "Invalid credentials. Please check your API key and instance name.";
             this.dbtTerminal.error(
               "saveAltimateKey",
@@ -655,20 +656,8 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             throw new Error("Missing required parameters");
           }
 
-          const config = workspace.getConfiguration("dbt");
-          const instanceName = config.get<string>("altimateInstanceName");
-          const apiKey = config.get<string>("altimateAiKey");
-
-          if (!instanceName || !apiKey) {
-            throw new Error(
-              "Altimate API key and instance name must be configured first",
-            );
-          }
-
           // Call Altimate API to create the integration
           const response = await this.altimateRequest.createDbtIntegration(
-            instanceName,
-            apiKey,
             name,
             environment,
             integrationType,

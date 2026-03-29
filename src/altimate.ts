@@ -501,43 +501,22 @@ export class AltimateRequest {
   }
 
   async createDbtIntegration(
-    instanceName: string,
-    apiKey: string,
     name: string,
     environment: string,
     integrationType: "dbt_core" | "dbt_cloud",
   ) {
-    const url = `${this.getAltimateUrl()}/dbt/v1/project_integration`;
-    const response = await fetch(url, {
+    return this.fetch<{
+      dbt_core_integration_id?: number;
+      dbt_cloud_integration_id?: number;
+      integration_type: string;
+    }>("dbt/v1/project_integration", {
       method: "POST",
-      headers: {
-        "x-tenant": instanceName,
-        Authorization: "Bearer " + apiKey,
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         name,
         environment,
         integration_type: integrationType,
       }),
     });
-
-    if (!response.ok) {
-      const errorData = (await response.json().catch(() => ({}))) as Record<
-        string,
-        unknown
-      >;
-      throw new Error(
-        (errorData.message as string) ||
-          `Failed to create dbt integration: ${response.statusText}`,
-      );
-    }
-
-    return (await response.json()) as {
-      dbt_core_integration_id?: number;
-      dbt_cloud_integration_id?: number;
-      integration_type: string;
-    };
   }
 
   async checkApiConnectivity() {

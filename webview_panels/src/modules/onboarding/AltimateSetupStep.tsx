@@ -517,7 +517,7 @@ const AltimateSetupStep = ({
 
     if (hasCompletedSync) return 3; // API key + synced integration = 3 stars
     if (existingIntegrations.length > 0) return 2; // API key + integration (not synced) = 2 stars
-    return 2; // API key only = 2 stars
+    return 1; // API key only, no integration yet = 1 star
   };
 
   const renderProgressCard = () => {
@@ -945,10 +945,7 @@ const AltimateSetupStep = ({
           className={classes.alertMessage}
         />
         <Stack direction="row" className={classes.altimateKeyActions}>
-          <Button
-            size="large"
-            onClick={() => setIsEditing(true)}
-          >
+          <Button size="large" onClick={() => setIsEditing(true)}>
             Edit Configuration
           </Button>
         </Stack>

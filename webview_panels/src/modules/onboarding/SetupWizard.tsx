@@ -358,9 +358,7 @@ const SetupWizard = forwardRef<
                 >
                   {currentStepData.id === "prerequisites"
                     ? "Validate Setup"
-                    : currentStepData.id === "validation"
-                      ? "Tutorials"
-                      : "Next"}
+                    : "Next"}
                 </Button>
               ) : (
                 <div />
