@@ -198,6 +198,10 @@
 
       :global(.ant-input-suffix) {
         color: var(--vscode-foreground);
+
+        :global(.anticon) {
+          color: var(--vscode-foreground);
+        }
       }
     }
 

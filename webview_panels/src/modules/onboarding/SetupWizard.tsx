@@ -11,6 +11,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import AltimateSetupStep from "./AltimateSetupStep";
 import classes from "./onboarding.module.scss";
 import PrerequisitesStep, {
   PrerequisitesStepHandle,
@@ -47,6 +48,18 @@ const SETUP_STEPS: WizardStep[] = [
     title: "Validate Setup",
     description: "Configure and validate project",
     parentId: "dbt",
+  },
+  {
+    id: "altimate",
+    title: "Setup Altimate AI",
+    description: "Connect to Altimate AI for advanced features",
+    isParent: true,
+  },
+  {
+    id: "altimateKey",
+    title: "Configure API Key",
+    description: "Connect to Altimate AI",
+    parentId: "altimate",
   },
   {
     id: "finish",
@@ -165,7 +178,7 @@ const SetupWizard = forwardRef<
 
   // Reset readiness when step changes
   useEffect(() => {
-    const needsReadinessCheck = ["prerequisites"].includes(
+    const needsReadinessCheck = ["prerequisites", "altimateKey"].includes(
       SETUP_STEPS[currentStep]?.id ?? "",
     );
     setStepReady(!needsReadinessCheck);
@@ -294,6 +307,13 @@ const SetupWizard = forwardRef<
                   onReadyChange={handleReadyChange}
                 />
               )}
+              {currentStepData.id === "altimateKey" && (
+                <AltimateSetupStep
+                  phase="key"
+                  onComplete={handleNext}
+                  onReadyChange={handleReadyChange}
+                />
+              )}
               {currentStepData.id === "finish" && <TutorialsStep />}
               {currentStepData.action && (
                 <Button
@@ -325,9 +345,11 @@ const SetupWizard = forwardRef<
                 >
                   {currentStepData.id === "prerequisites"
                     ? "Validate Setup"
-                    : currentStepData.id === "validation"
+                    : currentStepData.id === "altimateKey"
                       ? "Tutorials"
-                      : "Next"}
+                      : currentStepData.id === "validation"
+                        ? "Setup Altimate AI"
+                        : "Next"}
                 </Button>
               ) : (
                 <div />
