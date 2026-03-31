@@ -1,0 +1,1356 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GitHub Issues — dbt Power User</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <style>
+      :root {
+        --bg-primary: #0d1117;
+        --bg-secondary: #161b22;
+        --bg-card: #21262d;
+        --border: #30363d;
+        --text-primary: #e6edf3;
+        --text-muted: #8b949e;
+        --accent-blue: #58a6ff;
+        --accent-green: #3fb950;
+        --accent-orange: #d29922;
+        --accent-red: #f85149;
+        --accent-purple: #bc8cff;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica,
+          Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      /* ── Header ── */
+      .header {
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border);
+        padding: 14px 24px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      .header-title {
+        flex-shrink: 0;
+      }
+      .header-title h1 {
+        font-size: 17px;
+        font-weight: 600;
+      }
+      .header-title .sub {
+        color: var(--text-muted);
+        font-size: 12px;
+        margin-top: 1px;
+      }
+      .header-title .sub a {
+        color: var(--accent-blue);
+        text-decoration: none;
+      }
+
+      /* ── Filters ── */
+      .filters {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        flex: 1;
+      }
+      .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .filter-group label {
+        color: var(--text-muted);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .filters select {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        color: var(--text-primary);
+        padding: 5px 8px;
+        border-radius: 6px;
+        font-size: 13px;
+        cursor: pointer;
+        min-width: 130px;
+      }
+      .filters select:hover {
+        border-color: var(--accent-blue);
+      }
+      .btn {
+        padding: 5px 14px;
+        border-radius: 6px;
+        font-size: 13px;
+        cursor: pointer;
+        border: 1px solid var(--border);
+        background: var(--bg-card);
+        color: var(--text-primary);
+        white-space: nowrap;
+      }
+      .btn-primary {
+        background: var(--accent-blue);
+        color: #0d1117;
+        border-color: var(--accent-blue);
+        font-weight: 600;
+      }
+      .btn-primary:hover {
+        opacity: 0.88;
+      }
+      .btn:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+      .cache-info {
+        color: var(--text-muted);
+        font-size: 11px;
+        margin-left: auto;
+        white-space: nowrap;
+      }
+
+      /* ── Main layout ── */
+      .main {
+        padding: 20px 24px;
+        max-width: 1440px;
+        margin: 0 auto;
+      }
+
+      /* ── Summary cards ── */
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      @media (max-width: 1200px) {
+        .cards {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+      @media (max-width: 700px) {
+        .cards {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px 18px;
+      }
+      .card .lbl {
+        color: var(--text-muted);
+        font-size: 12px;
+        margin-bottom: 6px;
+      }
+      .card .val {
+        font-size: 30px;
+        font-weight: 700;
+      }
+      .card .hint {
+        color: var(--text-muted);
+        font-size: 11px;
+        margin-top: 3px;
+      }
+      .card.red .val {
+        color: var(--accent-red);
+      }
+      .card.blue .val {
+        color: var(--accent-blue);
+      }
+      .card.green .val {
+        color: var(--accent-green);
+      }
+      .card.orange .val {
+        color: var(--accent-orange);
+      }
+
+      /* ── Sections ── */
+      .section {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 18px 20px;
+        margin-bottom: 18px;
+      }
+      .section > h2 {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 14px;
+        color: var(--text-primary);
+      }
+      .section > h2 .note {
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 400;
+        margin-left: 6px;
+      }
+
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      @media (max-width: 950px) {
+        .two-col {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* ── Charts ── */
+      .chart-wrap {
+        position: relative;
+        height: 260px;
+      }
+      .chart-wrap-tall {
+        position: relative;
+        height: 300px;
+      }
+      .chart-wrap-short {
+        position: relative;
+        height: 220px;
+      }
+
+      /* ── Tables ── */
+      .tbl-scroll {
+        overflow-x: auto;
+      }
+      .tbl-container {
+        max-height: 380px;
+        overflow-y: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      thead th {
+        background: var(--bg-secondary);
+        color: var(--text-muted);
+        font-weight: 500;
+        padding: 8px 12px;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+      tbody td {
+        padding: 7px 12px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+      }
+      tbody tr:last-child td {
+        border-bottom: none;
+      }
+      tbody tr:hover td {
+        background: rgba(255, 255, 255, 0.025);
+      }
+
+      /* ── Labels ── */
+      .badge {
+        display: inline-block;
+        padding: 1px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+        margin: 1px 2px 1px 0;
+        white-space: nowrap;
+      }
+      .badge-open {
+        background: rgba(63, 185, 80, 0.12);
+        color: var(--accent-green);
+        border: 1px solid rgba(63, 185, 80, 0.3);
+      }
+      .badge-closed {
+        background: rgba(248, 81, 73, 0.1);
+        color: var(--accent-red);
+        border: 1px solid rgba(248, 81, 73, 0.25);
+      }
+
+      /* ── Attention tabs ── */
+      .tab-bar {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 12px;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 10px;
+      }
+      .tab-btn {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        padding: 5px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .tab-btn:hover {
+        border-color: var(--accent-blue);
+        color: var(--text-primary);
+      }
+      .tab-btn.active {
+        background: var(--accent-blue);
+        color: #0d1117;
+        border-color: var(--accent-blue);
+        font-weight: 600;
+      }
+      .tab-panel {
+        display: none;
+      }
+      .tab-panel.active {
+        display: block;
+      }
+
+      /* ── AI themes ── */
+      .themes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+        gap: 12px;
+      }
+      .theme-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 14px;
+      }
+      .theme-card h3 {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--accent-blue);
+        margin-bottom: 5px;
+      }
+      .theme-card .desc {
+        color: var(--text-muted);
+        font-size: 12px;
+        margin-bottom: 8px;
+        line-height: 1.4;
+      }
+      .theme-card .count {
+        color: var(--text-muted);
+        font-size: 11px;
+        margin-bottom: 8px;
+      }
+      .theme-issues {
+        list-style: none;
+      }
+      .theme-issues li {
+        font-size: 12px;
+        padding: 2px 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .theme-issues a {
+        color: var(--text-primary);
+        text-decoration: none;
+      }
+      .theme-issues a:hover {
+        color: var(--accent-blue);
+      }
+      .theme-issues .num {
+        color: var(--text-muted);
+        margin-right: 3px;
+      }
+      .ai-notice {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 24px;
+        text-align: center;
+        color: var(--text-muted);
+      }
+      .ai-notice code {
+        background: var(--bg-primary);
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-family: monospace;
+        color: var(--text-primary);
+      }
+      .ai-notice p + p {
+        margin-top: 8px;
+      }
+
+      /* ── Pagination ── */
+      .pagination {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        justify-content: center;
+        margin-top: 14px;
+        flex-wrap: wrap;
+      }
+      .pagination button {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        color: var(--text-primary);
+        padding: 4px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .pagination button:disabled {
+        opacity: 0.35;
+        cursor: default;
+      }
+      .pagination button.active {
+        background: var(--accent-blue);
+        color: #0d1117;
+        border-color: var(--accent-blue);
+        font-weight: 600;
+      }
+      .pagination .pg-info {
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      /* ── Progress bar ── */
+      .progress-wrap {
+        width: 100px;
+        height: 7px;
+        background: var(--bg-primary);
+        border-radius: 4px;
+        overflow: hidden;
+        display: inline-block;
+        vertical-align: middle;
+      }
+      .progress-fill {
+        height: 100%;
+        background: var(--accent-green);
+        border-radius: 4px;
+      }
+
+      /* ── Misc ── */
+      .loading {
+        color: var(--text-muted);
+        font-size: 13px;
+        padding: 18px 0;
+        text-align: center;
+      }
+      .error-msg {
+        color: var(--accent-red);
+        font-size: 13px;
+        padding: 6px 0;
+      }
+      a.link {
+        color: var(--accent-blue);
+        text-decoration: none;
+      }
+      a.link:hover {
+        text-decoration: underline;
+      }
+      a.row-link {
+        color: var(--text-primary);
+        text-decoration: none;
+      }
+      a.row-link:hover {
+        color: var(--accent-blue);
+      }
+      .num-muted {
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ═══════════════════════════════════════════════ HEADER ══ -->
+    <div class="header">
+      <div class="header-title">
+        <h1>GitHub Issues Dashboard</h1>
+        <div class="sub">
+          <a
+            href="https://github.com/AltimateAI/vscode-dbt-power-user"
+            target="_blank"
+          >
+            AltimateAI/vscode-dbt-power-user
+          </a>
+        </div>
+      </div>
+
+      <div class="filters">
+        <div class="filter-group">
+          <label>Period</label>
+          <select id="f-days" onchange="onFilterChange()">
+            <option value="30">Last 30 days</option>
+            <option value="90" selected>Last 90 days</option>
+            <option value="180">Last 180 days</option>
+            <option value="365">Last year</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>State</label>
+          <select id="f-state" onchange="onFilterChange()">
+            <option value="all">All</option>
+            <option value="open">Open</option>
+            <option value="closed">Closed</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Label</label>
+          <select id="f-label" onchange="onFilterChange()">
+            <option value="All">All labels</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Milestone</label>
+          <select id="f-milestone" onchange="onFilterChange()">
+            <option value="All">All milestones</option>
+          </select>
+        </div>
+        <button
+          class="btn btn-primary"
+          id="btn-refresh"
+          onclick="refreshData()"
+        >
+          ↻ Refresh Data
+        </button>
+      </div>
+      <div class="cache-info" id="cache-info"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════ MAIN ══ -->
+    <div class="main">
+      <!-- Summary cards -->
+      <div class="cards">
+        <div class="card red">
+          <div class="lbl">Open Issues</div>
+          <div class="val" id="c-open">–</div>
+          <div class="hint">currently open</div>
+        </div>
+        <div class="card blue">
+          <div class="lbl">Opened in Period</div>
+          <div class="val" id="c-opened">–</div>
+          <div class="hint">new issues</div>
+        </div>
+        <div class="card green">
+          <div class="lbl">Closed in Period</div>
+          <div class="val" id="c-closed">–</div>
+          <div class="hint">resolved</div>
+        </div>
+        <div class="card orange">
+          <div class="lbl">Avg Days to Close</div>
+          <div class="val" id="c-avg-close">–</div>
+          <div class="hint">mean close time</div>
+        </div>
+        <div class="card">
+          <div class="lbl">No Response</div>
+          <div class="val" id="c-no-response">–</div>
+          <div class="hint">open, 0 comments, unassigned</div>
+        </div>
+      </div>
+
+      <!-- Issue trend -->
+      <div class="section">
+        <h2>Issue Trend</h2>
+        <div class="chart-wrap-tall"><canvas id="chart-trend"></canvas></div>
+        <div id="err-trend" class="error-msg"></div>
+      </div>
+
+      <!-- Labels + Age buckets -->
+      <div class="two-col">
+        <div class="section">
+          <h2>Top Labels</h2>
+          <div class="chart-wrap"><canvas id="chart-labels"></canvas></div>
+          <div id="err-labels" class="error-msg"></div>
+        </div>
+        <div class="section">
+          <h2>Open Issue Age Distribution</h2>
+          <div class="chart-wrap"><canvas id="chart-age"></canvas></div>
+          <div id="err-age" class="error-msg"></div>
+        </div>
+      </div>
+
+      <!-- Time to close + Milestones -->
+      <div class="two-col">
+        <div class="section">
+          <h2>Time to Close Distribution</h2>
+          <div class="chart-wrap"><canvas id="chart-ttc"></canvas></div>
+          <div id="err-ttc" class="error-msg"></div>
+        </div>
+        <div class="section">
+          <h2>Milestone Progress</h2>
+          <div class="tbl-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Milestone</th>
+                  <th style="text-align: right">Open</th>
+                  <th style="text-align: right">Closed</th>
+                  <th>Progress</th>
+                </tr>
+              </thead>
+              <tbody id="tbl-milestones"></tbody>
+            </table>
+          </div>
+          <div id="load-milestones" class="loading">Loading…</div>
+          <div id="err-milestones" class="error-msg"></div>
+        </div>
+      </div>
+
+      <!-- Issues needing attention -->
+      <div class="section">
+        <h2>Issues Needing Attention</h2>
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="showTab('no-response', this)">
+            No Response <span id="cnt-no-response"></span>
+          </button>
+          <button class="tab-btn" onclick="showTab('no-labels', this)">
+            No Labels <span id="cnt-no-labels"></span>
+          </button>
+          <button class="tab-btn" onclick="showTab('stale', this)">
+            Stale &gt;90 days <span id="cnt-stale"></span>
+          </button>
+        </div>
+
+        <div id="panel-no-response" class="tab-panel active">
+          <div class="tbl-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Title</th>
+                  <th>Age</th>
+                  <th>Labels</th>
+                </tr>
+              </thead>
+              <tbody id="tbl-no-response"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="panel-no-labels" class="tab-panel">
+          <div class="tbl-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Title</th>
+                  <th>Age</th>
+                  <th>Comments</th>
+                </tr>
+              </thead>
+              <tbody id="tbl-no-labels"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="panel-stale" class="tab-panel">
+          <div class="tbl-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Title</th>
+                  <th>Age</th>
+                  <th>Labels</th>
+                </tr>
+              </thead>
+              <tbody id="tbl-stale"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="load-attention" class="loading">Loading…</div>
+        <div id="err-attention" class="error-msg"></div>
+      </div>
+
+      <!-- AI theme clusters -->
+      <div class="section" id="ai-section">
+        <h2>
+          AI Theme Clusters
+          <span class="note">(Claude analysis of open issues)</span>
+        </h2>
+        <div id="ai-content">
+          <div class="loading">
+            Analyzing with Claude… this may take 30–60 s on first run
+          </div>
+        </div>
+      </div>
+
+      <!-- Issue details -->
+      <div class="section">
+        <h2>Issue Details</h2>
+        <div class="tbl-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>State</th>
+                <th>Labels</th>
+                <th>Opened</th>
+                <th>Age</th>
+                <th style="text-align: right">Comments</th>
+                <th>Assignee</th>
+                <th>Milestone</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-details"></tbody>
+          </table>
+        </div>
+        <div id="load-details" class="loading">Loading…</div>
+        <div id="err-details" class="error-msg"></div>
+        <div class="pagination" id="details-pagination"></div>
+      </div>
+    </div>
+    <!-- /main -->
+
+    <script>
+      // ─────────────────────────────────────────────────────────────────
+      // State
+      // ─────────────────────────────────────────────────────────────────
+      const charts = {};
+      let detailsPage = 1;
+
+      // ─────────────────────────────────────────────────────────────────
+      // Utilities
+      // ─────────────────────────────────────────────────────────────────
+      function esc(s) {
+        return String(s ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function formatAge(days) {
+        if (days < 1) return "< 1d";
+        if (days < 7) return days + "d";
+        if (days < 30) return Math.round(days / 7) + "w";
+        if (days < 365) return Math.round(days / 30) + "mo";
+        return (days / 365).toFixed(1) + "y";
+      }
+
+      function fmtDate(iso) {
+        return iso ? iso.slice(0, 10) : "";
+      }
+
+      function setEl(id, html) {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html;
+      }
+
+      function setText(id, txt) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = txt;
+      }
+
+      function showEl(id, show) {
+        const el = document.getElementById(id);
+        if (el) el.style.display = show ? "" : "none";
+      }
+
+      function setErr(id, msg) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = msg || "";
+      }
+
+      function destroyChart(key) {
+        if (charts[key]) {
+          charts[key].destroy();
+          delete charts[key];
+        }
+      }
+
+      function labelBadge(lb) {
+        const c = lb.color || "888888";
+        return `<span class="badge" style="background:#${esc(c)}22;color:#${esc(c)};border:1px solid #${esc(c)}44;">${esc(lb.name)}</span>`;
+      }
+
+      // ─────────────────────────────────────────────────────────────────
+      // Filters
+      // ─────────────────────────────────────────────────────────────────
+      function getFilters(extra = {}) {
+        const p = new URLSearchParams({
+          days: document.getElementById("f-days").value,
+          state: document.getElementById("f-state").value,
+          label: document.getElementById("f-label").value,
+          milestone: document.getElementById("f-milestone").value,
+          ...extra,
+        });
+        return p;
+      }
+
+      async function apiFetch(path, extra = {}) {
+        const resp = await fetch(`${path}?${getFilters(extra)}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return resp.json();
+      }
+
+      // ─────────────────────────────────────────────────────────────────
+      // Chart defaults
+      // ─────────────────────────────────────────────────────────────────
+      function chartDefaults(extra = {}) {
+        return {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 200 },
+          plugins: {
+            legend: {
+              labels: { color: "#8b949e", font: { size: 12 }, boxWidth: 14 },
+            },
+            tooltip: {
+              backgroundColor: "#21262d",
+              borderColor: "#30363d",
+              borderWidth: 1,
+              titleColor: "#e6edf3",
+              bodyColor: "#8b949e",
+            },
+          },
+          scales: {
+            x: {
+              ticks: {
+                color: "#8b949e",
+                font: { size: 11 },
+                maxTicksLimit: 14,
+              },
+              grid: { color: "rgba(48,54,61,0.5)" },
+              ...extra.x,
+            },
+            y: {
+              ticks: { color: "#8b949e", font: { size: 11 } },
+              grid: { color: "rgba(48,54,61,0.5)" },
+              beginAtZero: true,
+              ...extra.y,
+            },
+          },
+          ...extra.chartLevel,
+        };
+      }
+
+      // ─────────────────────────────────────────────────────────────────
+      // Filter options (labels + milestones dropdowns)
+      // ─────────────────────────────────────────────────────────────────
+      async function loadFilterOptions() {
+        try {
+          const data = await fetch("/api/filter-options").then((r) => r.json());
+
+          const labelSel = document.getElementById("f-label");
+          const prevLabel = labelSel.value;
+          while (labelSel.options.length > 1) labelSel.remove(1);
+          data.labels.forEach((lb) =>
+            labelSel.add(new Option(lb.name, lb.name)),
+          );
+          if (prevLabel !== "All") labelSel.value = prevLabel;
+
+          const msSel = document.getElementById("f-milestone");
+          const prevMs = msSel.value;
+          while (msSel.options.length > 1) msSel.remove(1);
+          data.milestones.forEach((ms) => msSel.add(new Option(ms, ms)));
+          if (prevMs !== "All") msSel.value = prevMs;
+        } catch (e) {
+          console.error("filter-options error", e);
+        }
+      }
+
+      // ─────────────────────────────────────────────────────────────────
+      // Summary cards
+      // ─────────────────────────────────────────────────────────────────
+      async function loadSummary() {
+        try {
+          const d = await apiFetch("/api/summary");
+          setText("c-open", d.openCount.toLocaleString());
+          setText("c-opened", d.openedInPeriod.toLocaleString());
+          setText("c-closed", d.closedInPeriod.toLocaleString());
+          setText(
+            "c-avg-close",
+            d.avgDaysToClose != null ? `${d.avgDaysToClose}d` : "–",
+          );
+          setText("c-no-response", d.noResponseCount.toLocaleString());
+        } catch (e) {
+          console.error("summary error", e);
+        }
+      }
+
+      // ─────────────────────────────────────────────────────────────────
+      // Trend
+      // ─────────────────────────────────────────────────────────────────
+      async function loadTrend() {
+        setErr("err-trend", "");
+        try {
+          const rows = await apiFetch("/api/trend");
+          destroyChart("trend");
+          const ctx = document.getElementById("chart-trend").getContext("2d");
+          charts["trend"] = new Chart(ctx, {
+            type: "line",
+            data: {
+              labels: rows.map((r) => r.date),
+              datasets: [
+                {
+                  label: "Opened",
+                  data: rows.map((r) => r.opened),
+                  borderColor: "#f85149",
+                  backgroundColor: "rgba(248,81,73,0.08)",
+                  fill: true,
+                  tension: 0.35,
+                  pointRadius: rows.length > 90 ? 0 : 3,
+                  borderWidth: 2,
+                },
+                {
+                  label: "Closed",
+                  data: rows.map((r) => r.closed),
+                  borderColor: "#3fb950",
+                  backgroundColor: "rgba(63,185,80,0.08)",
+                  fill: true,
+                  tension: 0.35,
+                  pointRadius: rows.length > 90 ? 0 : 3,
+                  borderWidth: 2,
+                },
+              ],
+            },
+            options: chartDefaults(),
+          });
+        } catch (e) {
+          setErr("err-trend", `Failed to load: ${e.message}`);
+        }
+      }
+
+      // ─────────────────────────────────────────────────────────────────
+      // Labels
+      // ─────────────────────────────────────────────────────────────────
+      async function loadLabels() {
+        setErr("err-labels", "");
+        try {
+          const rows = await apiFetch("/api/labels");
+          destroyChart("labels");
+          const ctx = document.getElementById("chart-labels").getContext("2d");
+          charts["labels"] = new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels: rows.map((r) => r.name),
+              datasets: [
+                {
+                  data: rows.map((r) => r.count),
+                  backgroundColor: rows.map((r) => `#${r.color}55`),
+                  borderColor: rows.map((r) => `#${r.color}`),
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              ...chartDefaults({ chartLevel: { indexAxis: "y" } }),
+              plugins: {
+                legend: { display: false },
+                tooltip: chartDefaults().plugins.tooltip,
+              },
+            },
+          });
+        } catch (e) {
+          setErr("err-labels", `Failed to load: ${e.message}`);
+        }
+      }
+
+      // ─────────────────────────────────────────────────────────────────
+      // Age buckets
+      // ─────────────────────────────────────────────────────────────────
+      async function loadAgeBuckets() {
+        setErr("err-age", "");
+        try {
+          const rows = await apiFetch("/api/age-buckets");
+          destroyChart("age");
+          const ctx = document.getElementById("chart-age").getContext("2d");
+          const palette = [
+            "#3fb95099",
+            "#58a6ff99",
+            "#d2992299",
+            "#f8514999",
+            "#bc8cff99",
+          ];
+          const paletteBorder = [
+            "#3fb950",
+            "#58a6ff",
+            "#d29922",
+            "#f85149",
+            "#bc8cff",
+          ];
+          charts["age"] = new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels: rows.map((r) => r.bucket),
+              datasets: [
+                {
+                  label: "Open issues",
+                  data: rows.map((r) => r.count),
+                  backgroundColor: palette,
+                  borderColor: paletteBorder,
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              ...chartDefaults(),
+              plugins: {
+                legend: { display: false },
+                tooltip: chartDefaults().plugins.tooltip,
+              },
+            },
+          });
+        } catch (e) {
+          setErr("err-age", `Failed to load: ${e.message}`);
+        }
+      }
+
+      // ─────────────────────────────────────────────────────────────────
+      // Time to close
+      // ─────────────────────────────────────────────────────────────────
+      async function loadTimeToClose() {
+        setErr("err-ttc", "");
+        try {
+          const rows = await apiFetch("/api/time-to-close");
+          destroyChart("ttc");
+          const ctx = document.getElementById("chart-ttc").getContext("2d");
+          charts["ttc"] = new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels: rows.map((r) => r.bucket),
+              datasets: [
+                {
+                  label: "Closed issues",
+                  data: rows.map((r) => r.count),
+                  backgroundColor: "#58a6ff66",
+                  borderColor: "#58a6ff",
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              ...chartDefaults(),
+              plugins: {
+                legend: { display: false },
+                tooltip: chartDefaults().plugins.tooltip,
+              },
+            },
+          });
+        } catch (e) {
+          setErr("err-ttc", `Failed to load: ${e.message}`);
+        }
+      }
+
+      // ─────────────────────────────────────────────────────────────────
+      // Milestones
+      // ─────────────────────────────────────────────────────────────────
+      async function loadMilestones() {
+        showEl("load-milestones", true);
+        setErr("err-milestones", "");
+        const tbody = document.getElementById("tbl-milestones");
+        tbody.innerHTML = "";
+        try {
+          const rows = await apiFetch("/api/milestones");
+          showEl("load-milestones", false);
+          if (!rows.length) {
+            tbody.innerHTML =
+              '<tr><td colspan="4" style="color:var(--text-muted);text-align:center;padding:20px">No milestones found</td></tr>';
+            return;
+          }
+          tbody.innerHTML = rows
+            .map((ms) => {
+              const total = ms.open + ms.closed;
+              const pct = total > 0 ? Math.round((ms.closed / total) * 100) : 0;
+              return `<tr>
+        <td><a class="link" href="${esc(ms.url)}" target="_blank">${esc(ms.title)}</a></td>
+        <td style="text-align:right;color:var(--accent-red);">${ms.open}</td>
+        <td style="text-align:right;color:var(--accent-green);">${ms.closed}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%"></div></div>
+            <span style="color:var(--text-muted);font-size:12px;">${pct}%</span>
+          </div>
+        </td>
+      </tr>`;
+            })
+            .join("");
+        } catch (e) {
+          showEl("load-milestones", false);
+          setErr("err-milestones", `Failed to load: ${e.message}`);
+        }
+      }
+
+      // ─────────────────────────────────────────────────────────────────
+      // Attention tables
+      // ─────────────────────────────────────────────────────────────────
+      async function loadAttention() {
+        showEl("load-attention", true);
+        setErr("err-attention", "");
+        try {
+          const d = await apiFetch("/api/attention");
+          showEl("load-attention", false);
+
+          // Update tab count badges
+          setText(
+            "cnt-no-response",
+            d.noResponse.length ? `(${d.noResponse.length})` : "",
+          );
+          setText(
+            "cnt-no-labels",
+            d.noLabels.length ? `(${d.noLabels.length})` : "",
+          );
+          setText("cnt-stale", d.stale.length ? `(${d.stale.length})` : "");
+
+          _fillAttentionTable("tbl-no-response", d.noResponse, (r) => [
+            `<span class="num-muted">#${r.number}</span>`,
+            `<a class="row-link" href="${esc(r.url)}" target="_blank">${esc(r.title)}</a>`,
+            formatAge(r.age_days),
+            r.labels.length
+              ? r.labels
+                  .map(
+                    (l) =>
+                      `<span class="badge" style="background:rgba(88,166,255,.12);color:#58a6ff;border:1px solid rgba(88,166,255,.3);">${esc(l)}</span>`,
+                  )
+                  .join("")
+              : '<span style="color:var(--text-muted)">–</span>',
+          ]);
+
+          _fillAttentionTable("tbl-no-labels", d.noLabels, (r) => [
+            `<span class="num-muted">#${r.number}</span>`,
+            `<a class="row-link" href="${esc(r.url)}" target="_blank">${esc(r.title)}</a>`,
+            formatAge(r.age_days),
+            r.comments,
+          ]);
+
+          _fillAttentionTable("tbl-stale", d.stale, (r) => [
+            `<span class="num-muted">#${r.number}</span>`,
+            `<a class="row-link" href="${esc(r.url)}" target="_blank">${esc(r.title)}</a>`,
+            formatAge(r.age_days),
+            r.labels.length
+              ? r.labels
+                  .map(
+                    (l) =>
+                      `<span class="badge" style="background:rgba(88,166,255,.12);color:#58a6ff;border:1px solid rgba(88,166,255,.3);">${esc(l)}</span>`,
+                  )
+                  .join("")
+              : '<span style="color:var(--text-muted)">–</span>',
+          ]);
+        } catch (e) {
+          showEl("load-attention", false);
+          setErr("err-attention", `Failed to load: ${e.message}`);
+        }
+      }
+
+      function _fillAttentionTable(tbodyId, rows, cellsFn) {
+        const tbody = document.getElementById(tbodyId);
+        if (!rows.length) {
+          const cols = tbodyId === "tbl-no-labels" ? 4 : 4;
+          tbody.innerHTML = `<tr><td colspan="${cols}" style="color:var(--accent-green);text-align:center;padding:16px;">✓ None found</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = rows
+          .map(
+            (r) =>
+              `<tr>${cellsFn(r)
+                .map((c) => `<td>${c}</td>`)
+                .join("")}</tr>`,
+          )
+          .join("");
+      }
+
+      function showTab(name, btn) {
+        document
+          .querySelectorAll(".tab-btn")
+          .forEach((b) => b.classList.remove("active"));
+        document
+          .querySelectorAll(".tab-panel")
+          .forEach((p) => p.classList.remove("active"));
+        if (btn) btn.classList.add("active");
+        const panel = document.getElementById(`panel-${name}`);
+        if (panel) panel.classList.add("active");
+      }
+
+      // ─────────────────────────────────────────────────────────────────
+      // AI Themes
+      // ─────────────────────────────────────────────────────────────────
+      async function loadAIThemes() {
+        const container = document.getElementById("ai-content");
+        container.innerHTML =
+          '<div class="loading">Analyzing open issues with Claude… (may take 30–60 s on first run)</div>';
+        try {
+          const d = await fetch("/api/ai-themes").then((r) => r.json());
+
+          if (!d.enabled) {
+            container.innerHTML = `<div class="ai-notice">
+        <p>AI analysis requires the <code>claude</code> CLI to be in your PATH.</p>
+        <p style="font-size:12px;margin-top:8px;">
+          Install Claude Code: <code>npm install -g @anthropic-ai/claude-code</code><br/>
+          Then re-run the dashboard. Uses your existing Claude Code Max auth — no API key needed.
+        </p>
+      </div>`;
+            return;
+          }
+
+          if (d.error) {
+            container.innerHTML = `<div class="error-msg">Claude error: ${esc(d.error)}</div>`;
+            return;
+          }
+
+          if (!d.themes || !d.themes.length) {
+            container.innerHTML =
+              '<div style="color:var(--text-muted);padding:12px">No themes returned by Claude.</div>';
+            return;
+          }
+
+          container.innerHTML = `<div class="themes-grid">${d.themes
+            .map((t) => {
+              const count = (t.issue_numbers || t.issues || []).length;
+              const issues = (t.issues || []).slice(0, 6);
+              return `<div class="theme-card">
+        <h3>${esc(t.theme)}</h3>
+        <div class="desc">${esc(t.description)}</div>
+        <div class="count">${count} issue${count !== 1 ? "s" : ""}</div>
+        <ul class="theme-issues">
+          ${issues
+            .map(
+              (i) => `
+            <li>
+              <a href="${esc(i.url)}" target="_blank">
+                <span class="num">#${i.number}</span>${esc(i.title)}
+              </a>
+            </li>`,
+            )
+            .join("")}
+          ${count > 6 ? `<li style="color:var(--text-muted);font-size:11px;">+${count - 6} more</li>` : ""}
+        </ul>
+      </div>`;
+            })
+            .join("")}</div>`;
+        } catch (e) {
+          container.innerHTML = `<div class="error-msg">Failed to load AI themes: ${esc(e.message)}</div>`;
+        }
+      }
+
+      // ─────────────────────────────────────────────────────────────────
+      // Issue details table
+      // ─────────────────────────────────────────────────────────────────
+      async function loadDetails(page = 1) {
+        detailsPage = page;
+        showEl("load-details", true);
+        setErr("err-details", "");
+        document.getElementById("tbl-details").innerHTML = "";
+        try {
+          const d = await apiFetch("/api/details", { page, per_page: 50 });
+          showEl("load-details", false);
+
+          if (!d.issues.length) {
+            document.getElementById("tbl-details").innerHTML =
+              '<tr><td colspan="9" style="color:var(--text-muted);text-align:center;padding:20px">No issues found</td></tr>';
+            _renderPagination(d.total, d.page, d.pages);
+            return;
+          }
+
+          document.getElementById("tbl-details").innerHTML = d.issues
+            .map(
+              (i) => `
+      <tr>
+        <td><a class="link" href="${esc(i.url)}" target="_blank" style="color:var(--text-muted);">#${i.number}</a></td>
+        <td><a class="row-link" href="${esc(i.url)}" target="_blank">${esc(i.title)}</a></td>
+        <td><span class="badge badge-${i.state}">${i.state}</span></td>
+        <td>${(i.labels || []).map((lb) => labelBadge(lb)).join("")}</td>
+        <td style="color:var(--text-muted);white-space:nowrap;font-size:12px;">${fmtDate(i.created_at)}</td>
+        <td style="color:var(--text-muted);white-space:nowrap;">${formatAge(i.age_days)}</td>
+        <td style="color:var(--text-muted);text-align:right;">${i.comments}</td>
+        <td style="color:var(--text-muted);">${esc(i.assignee || "–")}</td>
+        <td style="color:var(--text-muted);font-size:12px;">${esc(i.milestone || "–")}</td>
+      </tr>
+    `,
+            )
+            .join("");
+
+          _renderPagination(d.total, d.page, d.pages);
+        } catch (e) {
+          showEl("load-details", false);
+          setErr("err-details", `Failed to load: ${e.message}`);
+        }
+      }
+
+      function _renderPagination(total, page, pages) {
+        const container = document.getElementById("details-pagination");
+        if (pages <= 1) {
+          container.innerHTML = `<span class="pg-info">${total} issues</span>`;
+          return;
+        }
+        const prev = `<button onclick="loadDetails(${page - 1})" ${page <= 1 ? "disabled" : ""}>← Prev</button>`;
+        const next = `<button onclick="loadDetails(${page + 1})" ${page >= pages ? "disabled" : ""}>Next →</button>`;
+
+        const start = Math.max(1, page - 2);
+        const end = Math.min(pages, start + 4);
+        const pageButtons = [];
+        for (let p = start; p <= end; p++) {
+          pageButtons.push(
+            `<button onclick="loadDetails(${p})" class="${p === page ? "active" : ""}">${p}</button>`,
+          );
+        }
+        const info = `<span class="pg-info">Page ${page} of ${pages} · ${total} issues</span>`;
+        container.innerHTML = `${prev}${pageButtons.join("")}${next}${info}`;
+      }
+
+      // ─────────────────────────────────────────────────────────────────
+      // Refresh (force re-fetch from GitHub)
+      // ─────────────────────────────────────────────────────────────────
+      async function refreshData() {
+        const btn = document.getElementById("btn-refresh");
+        btn.textContent = "↺ Fetching…";
+        btn.disabled = true;
+        try {
+          await fetch("/api/refresh", { method: "POST" });
+          document.getElementById("cache-info").textContent =
+            "Refreshed just now";
+          await loadFilterOptions();
+          await loadAll();
+          loadAIThemes();
+        } catch (e) {
+          alert("Refresh failed: " + e.message);
+        } finally {
+          btn.textContent = "↻ Refresh Data";
+          btn.disabled = false;
+        }
+      }
+
+      // ─────────────────────────────────────────────────────────────────
+      // Load everything (minus AI — that runs separately / slower)
+      // ─────────────────────────────────────────────────────────────────
+      async function loadAll() {
+        detailsPage = 1;
+        await Promise.all([
+          loadSummary(),
+          loadTrend(),
+          loadLabels(),
+          loadAgeBuckets(),
+          loadTimeToClose(),
+          loadMilestones(),
+          loadAttention(),
+          loadDetails(1),
+        ]);
+      }
+
+      function onFilterChange() {
+        loadAll();
+      }
+
+      // ─────────────────────────────────────────────────────────────────
+      // Init
+      // ─────────────────────────────────────────────────────────────────
+      (async function init() {
+        await loadFilterOptions();
+        await loadAll();
+        // AI analysis is slower — load last without blocking main data
+        loadAIThemes();
+      })();
+    </script>
+  </body>
+</html>
