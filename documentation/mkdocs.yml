@@ -150,6 +150,8 @@ nav:
       - Altimate LLM Gateway: arch/llm-gateway.md
       - Pricing FAQ: arch/pricingfaq.md
 extra:
+  status:
+    new: Recently added
   analytics:
     provider: google
     property: G-LXRSS3VK5N

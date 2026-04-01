@@ -1,3 +1,7 @@
+---
+status: new
+---
+
 # Altimate Code in IDE
 
 ## What is Altimate Code?
@@ -39,6 +43,31 @@ Altimate Code provides three agent modes to match your workflow:
 - **Schema Tools** — Schema exploration, table/column discovery, metadata indexing
 - **FinOps Tools** — Cost analysis, warehouse spend reports, optimization recommendations
 - **Warehouse Tools** — Direct query execution, result preview, connection management
+
+## Benchmarks
+
+Altimate Code is **#1 on ADE-Bench** — the industry benchmark for AI data engineering agents, created by Benn Stancil (founder of Mode) in collaboration with dbt Labs. It evaluates agents on real-world analytics and data engineering tasks using actual dbt projects and databases.
+
+**The harness — not the model — is the differentiator.** Despite using Sonnet 4.6 (not the most expensive model), Altimate Code outperforms agents running on more capable models, demonstrating that purpose-built tooling and deterministic operations outperform raw model capability alone.
+
+### ADE-Bench (DuckDB Local)
+
+| Tool | Model | Score | Pass Rate |
+|------|-------|-------|-----------|
+| **Altimate Code** | Sonnet 4.6 | **32/43** | **74.4%** |
+| Cortex Code CLI | Opus 4.6 | 28/43 | 65% |
+| dbt Labs | Sonnet 4.5 | ~25/43 | 59% |
+| Claude Code (baseline) | Sonnet 4.6 | ~17/43 | 40% |
+
+### Other Benchmarks
+
+| Benchmark | Result |
+|-----------|--------|
+| **SQL Anti-Pattern Detection** | 100% accuracy across 1,077 queries, 19 categories. Zero false positives. |
+| **Column-Level Lineage** | 100% edge match across 500 queries with complex joins, CTEs, and subqueries. |
+| **Snowflake Query Optimization (TPC-H)** | 16.8% average execution speedup (3.6x vs baseline). |
+
+[Full benchmark details →](https://www.altimate.sh/benchmarks)
 
 ## LLM Access
 

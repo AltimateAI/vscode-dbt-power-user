@@ -1,22 +1,14 @@
+---
+status: new
+---
+
 # Altimate LLM Gateway
 
-The Altimate LLM Gateway is a managed LLM service that gives you access to the best AI models without managing API keys, billing, or rate limits across multiple providers.
+The Altimate LLM Gateway is a managed LLM service that gives you access to the best AI models — **60-80% cheaper** than buying tokens directly from providers. No API keys to manage, no billing across multiple providers, no rate limits to worry about.
 
 ## How It Works
 
 The gateway dynamically routes each request to the best model for the task across **Sonnet 4.6, Opus 4.6, GPT-5.4, GPT-5.3, and GPT-5.4-mini**. You pay a flat token price regardless of which model handles your request — no surprise bills from expensive model routing.
-
-## BYOK vs. Gateway
-
-| | BYOK (Bring Your Own Key) | Altimate LLM Gateway |
-|---|---|---|
-| **Cost** | Free and unlimited | Token-based pricing (10M tokens free) |
-| **API Keys** | You manage your own keys | No keys needed |
-| **Models** | Any model from your provider | Dynamic routing across best-in-class models |
-| **Data Path** | Direct to your provider — Altimate never sees it | Through Altimate with zero data retention |
-| **Best For** | Users with existing API keys or strict data residency requirements | Users who want simplicity and cost savings |
-
-Both options are always available. You can use BYOK and the gateway side by side.
 
 ## Pricing
 
@@ -42,6 +34,18 @@ Buying 20M tokens directly from providers:
 | GPT-5.4 (long context) | ~$135 | **$29** | ~79% |
 
 With Altimate, you pay $29 flat regardless of which model handles your task. Buying the same 20M tokens directly from providers would cost $75-140 depending on the model — and you'd have to manage API keys, billing, and rate limits across multiple providers yourself.
+
+## BYOK vs. Gateway
+
+| | BYOK (Bring Your Own Key) | Altimate LLM Gateway |
+|---|---|---|
+| **Cost** | Free and unlimited | Token-based pricing (10M tokens free) |
+| **API Keys** | You manage your own keys | No keys needed |
+| **Models** | Any model from your provider | Dynamic routing across best-in-class models |
+| **Data Path** | Direct to your provider — Altimate never sees it | Through Altimate with zero data retention |
+| **Best For** | Users with existing API keys or strict data residency requirements | Users who want simplicity and cost savings |
+
+Both options are always available. You can use BYOK and the gateway side by side.
 
 ## Models Available
 
@@ -94,6 +98,7 @@ This metadata is used solely to improve model ranking and routing for various ta
 - **TLS 1.3** encryption for all data in transit
 - AWS infrastructure in private VPC with network isolation
 - IAM-based RBAC with MFA enforcement for developer access
+
 
 /// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support) via chat or Slack.
     type: tip
