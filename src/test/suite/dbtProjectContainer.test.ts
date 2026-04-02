@@ -223,4 +223,35 @@ describe("DBTProjectContainer Tests", () => {
       );
     });
   });
+
+  describe("unregisterWorkspaceFolder (via workspace event)", () => {
+    it("should remove only the targeted folder, not subsequent ones", () => {
+      // Access the internal dbtWorkspaceFolders array directly to verify
+      // splice removes exactly one element (not all from index onward).
+      const folders = (container as any).dbtWorkspaceFolders as any[];
+
+      const createMockFolder = (fsPath: string) => ({
+        contains: (uri: any) => uri.fsPath.startsWith(fsPath),
+        dispose: jest.fn(),
+        workspaceFolder: { uri: { fsPath } },
+      });
+
+      const folder1 = createMockFolder("/workspace/project-a");
+      const folder2 = createMockFolder("/workspace/project-b");
+      const folder3 = createMockFolder("/workspace/project-c");
+      folders.push(folder1, folder2, folder3);
+
+      expect(folders).toHaveLength(3);
+
+      // Call the private unregisterWorkspaceFolder via its internal name
+      (container as any).unregisterWorkspaceFolder({
+        uri: { fsPath: "/workspace/project-b" },
+      });
+
+      expect(folders).toHaveLength(2);
+      expect(folders[0]).toBe(folder1);
+      expect(folders[1]).toBe(folder3);
+      expect(folder2.dispose).toHaveBeenCalled();
+    });
+  });
 });
