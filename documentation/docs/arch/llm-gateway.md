@@ -12,13 +12,12 @@ The gateway dynamically routes each request to the best model for the task acros
 
 ## Pricing
 
-| Plan | Price | Tokens/mo | Overage |
-|------|-------|-----------|---------|
-| **Community** | $0/mo | 10M (one-time grant) | BYOK only |
-| **Pro Tier 1** | $29/mo | 20M | $8.50 per 1M tokens |
-| **Pro Tier 2** | $89/mo | 60M | $7.50 per 1M tokens |
-| **Pro Tier 3** | $249/mo | 90M | $5.00 per 1M tokens |
-| **Enterprise** | Custom | Custom | Negotiated |
+| Plan | Price | Tokens/mo | $/M tokens | Overage (per 1M tokens) |
+|------|-------|-----------|------------|------------------------|
+| **Community** | $0/mo | 10M (one-time) | Free | BYOK only |
+| **Pro Tier 1** | $29/mo | 20M | $1.45 | $5/M tokens |
+| **Pro Tier 2** | $89/mo | 70M | $1.27 | $3/M tokens |
+| **Enterprise** | Custom | Custom | Custom | Negotiated |
 
 Tokens are counted as input + output combined. All tiers get access to all models — the upgrade incentive is volume, not capability.
 
