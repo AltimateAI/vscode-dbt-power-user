@@ -113,28 +113,21 @@ Altimate gives you two options for LLM access:
 
 ### 2. **Does the Altimate LLM Gateway store my prompts or responses?**
 
-No. The gateway operates with a **zero data retention** policy. Your prompts and responses are never stored — they pass through the gateway and are immediately discarded after the response is delivered.
+No. Your prompts and responses are not stored — they pass through the gateway and are discarded after the response is delivered. Your data is not used to train, fine-tune, or improve any models.
 
-The gateway does store minimal **metadata** for each request:
+The gateway does store limited **metadata** for each request:
 
 - Number of prompt and completion tokens
 - Latency
 - Model used
 
-This metadata is used solely to improve model ranking and routing for various tasks. No prompts, responses, code, SQL, credentials, or PII are stored.
+This metadata is used for billing, performance monitoring, and routing optimization.
 
-### 3. **What LLM subprocessors does the Altimate LLM Gateway use?**
+Additionally, a small number of prompts are sampled for **anonymous categorization** to power routing and model ranking. This categorization is stored completely anonymously and is never associated with your account or user ID. No code, SQL, credentials, or PII are retained.
 
-The gateway routes requests through:
+You can opt out of all telemetry by reaching out to us via the Intercom chat built into the [Altimate dashboard](https://app.myaltimate.com).
 
-- **Azure Foundry** — with Zero Data Retention (ZDR) policy
-- **AWS Bedrock** — with Zero Data Retention (ZDR) policy
-
-Both subprocessors are contractually bound to not retain any request or response data. Your data is not used to train, fine-tune, or improve any models.
-
-### 4. **What metadata does the Altimate LLM Gateway collect?**
-
-The gateway collects only:
+### 3. **What metadata does the Altimate LLM Gateway collect?**
 
 | Metadata | Purpose |
 |----------|---------|
@@ -142,8 +135,9 @@ The gateway collects only:
 | Number of completion tokens | Usage tracking and billing |
 | Latency | Performance monitoring |
 | Model used | Routing optimization |
+| Anonymous prompt categorization (sampled) | Model ranking and routing |
 
-This metadata is used solely to improve model ranking and routing. **No prompts, responses, code, SQL, or credentials are ever stored.**
+Prompt categorization is stored completely anonymously — never linked to your account or user ID. You can opt out via the Intercom chat in the [Altimate dashboard](https://app.myaltimate.com).
 
 /// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support) via chat or Slack.
     type: tip

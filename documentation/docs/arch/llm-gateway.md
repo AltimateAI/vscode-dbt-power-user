@@ -42,7 +42,7 @@ With Altimate, you pay $29 flat regardless of which model handles your task. Buy
 | **Cost** | Free and unlimited | Token-based pricing (10M tokens free) |
 | **API Keys** | You manage your own keys | No keys needed |
 | **Models** | Any model from your provider | Dynamic routing across best-in-class models |
-| **Data Path** | Direct to your provider — Altimate never sees it | Through Altimate with zero data retention |
+| **Data Path** | Direct to your provider — Altimate never sees it | Through Altimate — prompts and responses are not stored |
 | **Best For** | Users with existing API keys or strict data residency requirements | Users who want simplicity and cost savings |
 
 Both options are always available. You can use BYOK and the gateway side by side.
@@ -65,32 +65,11 @@ You don't choose the model — the gateway selects the optimal one for each requ
 
 The Altimate LLM Gateway is designed with enterprise security requirements in mind:
 
-### Zero Data Retention
+### Data Handling
 
-- **Prompts and responses are never stored.** Your code, SQL, schemas, and conversations pass through the gateway and are immediately discarded after the response is delivered.
-- **No training on your data.** Your data is not used to train, fine-tune, or improve any models — not by Altimate, not by subprocessors.
-
-### Subprocessors
-
-The gateway routes requests through:
-
-- **Azure Foundry** — with Zero Data Retention (ZDR) policy
-- **AWS Bedrock** — with Zero Data Retention (ZDR) policy
-
-Both subprocessors are contractually bound to not retain any request or response data.
-
-### Metadata Collection
-
-The gateway does store minimal metadata for each request:
-
-| Metadata | Purpose |
-|----------|---------|
-| Number of prompt tokens | Usage tracking and billing |
-| Number of completion tokens | Usage tracking and billing |
-| Latency | Performance monitoring |
-| Model used | Routing optimization |
-
-This metadata is used solely to improve model ranking and routing for various tasks. **No prompts, responses, code, SQL, credentials, or PII are stored.**
+- **Prompts and responses are not stored.** Your code, SQL, schemas, and conversations pass through the gateway and are discarded after the response is delivered.
+- **No training on your data.** Your data is not used to train, fine-tune, or improve any models.
+- The gateway stores limited metadata (token counts, latency, model used) for billing and routing. See [Security FAQ](faq.md#llm-ai-security) for full details.
 
 ### Compliance
 
