@@ -113,7 +113,7 @@ Altimate gives you two options for LLM access:
 
 ### 2. **Does the Altimate LLM Gateway store my prompts or responses?**
 
-No. Your prompts and responses are not stored — they pass through the gateway and are discarded after the response is delivered. Your data is not used to train, fine-tune, or improve any models.
+Your full prompts and responses are not retained after processing. Your data is not used to train, fine-tune, or improve any models.
 
 The gateway does store limited **metadata** for each request:
 

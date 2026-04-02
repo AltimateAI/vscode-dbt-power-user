@@ -41,7 +41,7 @@ With Altimate, you pay $29 flat regardless of which model handles your task. Buy
 | **Cost** | Free and unlimited | Token-based pricing (10M tokens free) |
 | **API Keys** | You manage your own keys | No keys needed |
 | **Models** | Any model from your provider | Dynamic routing across best-in-class models |
-| **Data Path** | Direct to your provider — Altimate never sees it | Through Altimate — prompts and responses are not stored |
+| **Data Path** | Direct to your provider — Altimate never sees it | Through Altimate — see [Security FAQ](faq.md#llm-ai-security) for data handling details |
 | **Best For** | Users with existing API keys or strict data residency requirements | Users who want simplicity and cost savings |
 
 Both options are always available. You can use BYOK and the gateway side by side.
@@ -66,9 +66,9 @@ The Altimate LLM Gateway is designed with enterprise security requirements in mi
 
 ### Data Handling
 
-- **Prompts and responses are not stored.** Your code, SQL, schemas, and conversations pass through the gateway and are discarded after the response is delivered.
-- **No training on your data.** Your data is not used to train, fine-tune, or improve any models.
-- The gateway stores limited metadata (token counts, latency, model used) for billing and routing. See [Security FAQ](faq.md#llm-ai-security) for full details.
+- **Your data is not used to train, fine-tune, or improve any models.**
+- The gateway stores limited metadata (token counts, latency, model used) for billing and routing.
+- A small number of prompts are sampled for anonymous categorization to improve routing. See [Security FAQ](faq.md#llm-ai-security) for full details.
 
 ### Compliance
 

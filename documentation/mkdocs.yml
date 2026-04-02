@@ -142,12 +142,12 @@ nav:
       - Introduction: teammates/introduction.md
       - Coach & Personalize: teammates/coach.md
   - Altimate Code: teammates/altimate-code.md
+  - Altimate LLM Gateway: arch/llm-gateway.md
   - Datamates: https://datamates-docs.myaltimate.com/
   - Studio (Beta): studio.md
   - Support & FAQ:
       - Troubleshooting: troubleshooting.md
       - Security FAQ: arch/faq.md
-      - Altimate LLM Gateway: arch/llm-gateway.md
       - Pricing FAQ: arch/pricingfaq.md
 extra:
   status:
