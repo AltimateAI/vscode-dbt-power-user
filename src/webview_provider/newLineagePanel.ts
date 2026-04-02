@@ -89,6 +89,7 @@ export class NewLineagePanel
 
   eventMapChanged(eventMap: Map<string, ManifestCacheProjectAddedEvent>): void {
     this.eventMap = eventMap;
+    this.renderStartingNode();
   }
 
   changedActiveColorTheme() {
@@ -276,7 +277,10 @@ export class NewLineagePanel
           body: {
             showSelectEdges: config.get("showSelectEdges", true),
             showNonSelectEdges: config.get("showNonSelectEdges", false),
-            defaultExpansion: config.get("defaultExpansion", 1),
+            defaultExpansion: Math.min(
+              config.get<number>("defaultExpansion", 1),
+              5,
+            ),
           },
         },
       });
