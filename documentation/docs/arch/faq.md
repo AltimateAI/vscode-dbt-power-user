@@ -101,6 +101,50 @@ Currently, we do not use client data for model training, so there's no opt-in or
 
 ---
 
+### **LLM & AI Security**
+
+### 1. **How does Altimate handle LLM access?**
+
+Altimate gives you two options for LLM access:
+
+- **BYOK (Bring Your Own Key)** — Always free and unlimited. Use your own API keys from any of 35+ supported providers (Anthropic, OpenAI, AWS Bedrock, Azure OpenAI, Google, Ollama, and more). With BYOK, your data goes directly to your chosen provider — **Altimate never sees it**.
+
+- **[Altimate LLM Gateway](llm-gateway.md)** — A managed option for users who don't want to manage API keys. The gateway dynamically routes to the best model for each task. See below for its security details.
+
+### 2. **Does the Altimate LLM Gateway store my prompts or responses?**
+
+Your full prompts and responses are not retained after processing. Your data is not used to train, fine-tune, or improve any models.
+
+The gateway does store limited **metadata** for each request:
+
+- Number of prompt and completion tokens
+- Latency
+- Model used
+
+This metadata is used for billing, performance monitoring, and routing optimization.
+
+Additionally, a small number of prompts are sampled for **anonymous categorization** to power routing and model ranking. This categorization is stored completely anonymously and is never associated with your account or user ID. No code, SQL, credentials, or PII are retained.
+
+You can opt out of all telemetry by reaching out to us via the Intercom chat built into the [Altimate dashboard](https://app.myaltimate.com).
+
+### 3. **What metadata does the Altimate LLM Gateway collect?**
+
+| Metadata | Purpose |
+|----------|---------|
+| Number of prompt tokens | Usage tracking and billing |
+| Number of completion tokens | Usage tracking and billing |
+| Latency | Performance monitoring |
+| Model used | Routing optimization |
+| Anonymous prompt categorization (sampled) | Model ranking and routing |
+
+Prompt categorization is stored completely anonymously — never linked to your account or user ID. You can opt out via the Intercom chat in the [Altimate dashboard](https://app.myaltimate.com).
+
+/// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support) via chat or Slack.
+    type: tip
+///
+
+---
+
 ## **What data get sent to the SaaS backend for the preview features?**
 
 ### Model Definition
