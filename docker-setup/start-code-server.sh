@@ -26,7 +26,7 @@ ln -s /home/coder/extension-src "$EXTENSIONS_DIR/innoverio.vscode-dbt-power-user
 if [ -d "/home/coder/project" ] && [ "$(ls -A /home/coder/project 2>/dev/null)" ]; then
     PROJECT_DIR="/home/coder/project"
 else
-    PROJECT_DIR="/home/coder/jaffle_shop_duckdb"
+    PROJECT_DIR="/home/coder/jaffle-shop-duckdb"
 fi
 
 # Start code-server with the project open

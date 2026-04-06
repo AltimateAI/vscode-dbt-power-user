@@ -306,6 +306,7 @@ export class SQLLineagePanel
               showSelectEdges: config.get("showSelectEdges", true),
               showNonSelectEdges: config.get("showNonSelectEdges", true),
               defaultExpansion: config.get("defaultExpansion", 1),
+              forceLeftToRight: config.get("forceLeftToRight", false),
             },
           },
         });

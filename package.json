@@ -153,6 +153,11 @@
             "description": "By default how much lineage should expand.",
             "default": 1
           },
+          "dbt.lineage.forceLeftToRight": {
+            "type": "boolean",
+            "description": "Force all lineage edges to flow left-to-right for a consistent layout.",
+            "default": false
+          },
           "dbt.installDepsOnProjectInitialization": {
             "type": "boolean",
             "description": "Install dbt deps on project initialization",

@@ -281,6 +281,7 @@ export class NewLineagePanel
               config.get<number>("defaultExpansion", 1),
               5,
             ),
+            forceLeftToRight: config.get("forceLeftToRight", false),
           },
         },
       });
@@ -624,15 +625,19 @@ export class NewLineagePanel
     | {
         node?: Table;
         aiEnabled: boolean;
+        forceLeftToRight: boolean;
         missingLineageMessage?: { message: string; type: string };
       }
     | undefined {
     const aiEnabled = this.altimate.enabled();
+    const config = workspace.getConfiguration("dbt.lineage");
+    const forceLeftToRight = config.get<boolean>("forceLeftToRight", false);
     const event = this.queryManifestService.getEventByCurrentProject();
     if (!event?.event) {
       this.dbtTerminal.info("Lineage:getStartingNode", "No event found");
       return {
         aiEnabled,
+        forceLeftToRight,
         missingLineageMessage: this.getMissingLineageMessage(),
       };
     }
@@ -642,6 +647,7 @@ export class NewLineagePanel
     if (!editor || !tableName) {
       return {
         aiEnabled,
+        forceLeftToRight,
         missingLineageMessage: this.getMissingLineageMessage(),
       };
     }
@@ -658,7 +664,7 @@ export class NewLineagePanel
           url,
           fn.unique_id,
         );
-        return { node, aiEnabled };
+        return { node, aiEnabled, forceLeftToRight };
       }
     }
 
@@ -666,7 +672,7 @@ export class NewLineagePanel
     if (_node) {
       const key = _node.unique_id;
       const node = this.dbtLineageService.createTable(event.event, url, key);
-      return { node, aiEnabled };
+      return { node, aiEnabled, forceLeftToRight };
     }
 
     // Non-.py fallback: check if the active file is a dbt function.
@@ -677,7 +683,7 @@ export class NewLineagePanel
         url,
         fn.unique_id,
       );
-      return { node, aiEnabled };
+      return { node, aiEnabled, forceLeftToRight };
     }
 
     this.dbtTerminal.info(
@@ -686,6 +692,7 @@ export class NewLineagePanel
     );
     return {
       aiEnabled,
+      forceLeftToRight,
       missingLineageMessage: this.getMissingLineageMessage(),
     };
   }

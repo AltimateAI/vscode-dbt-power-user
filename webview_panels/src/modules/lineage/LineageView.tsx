@@ -74,6 +74,7 @@ const LineageView = (): JSX.Element | null => {
     data: {
       node?: Table;
       aiEnabled: boolean;
+      forceLeftToRight?: boolean;
       missingLineageMessage?: MissingLineageMessage;
     } & StaticLineageProps,
   ) => {
