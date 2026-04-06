@@ -26,6 +26,10 @@ export class VSCodeDBTConfiguration implements DBTConfiguration {
       );
   }
 
+  getDbtExecutablePath(): string | undefined {
+    return workspace.getConfiguration("dbt").get<string>("dbtExecutablePath");
+  }
+
   getRunModelCommandAdditionalParams(): string[] {
     return workspace
       .getConfiguration("dbt")

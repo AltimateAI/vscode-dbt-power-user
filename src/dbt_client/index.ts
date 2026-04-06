@@ -52,17 +52,28 @@ export class DBTClient implements Disposable {
     await this.checkAllInstalled();
   }
 
+  private isCLIMode(): boolean {
+    const mode = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+    return mode === "corecommand" || mode === "cloud" || mode === "fusion";
+  }
+
   private async checkAllInstalled(): Promise<void> {
     this._onDBTInstallationVerificationEvent.fire({
       inProgress: true,
     });
     this.shownError = false;
     this._dbtInstalled = undefined;
-    this._pythonInstalled = this.pythonPathExists();
+    // CLI-based modes (corecommand, cloud, fusion) don't require a Python
+    // interpreter on disk — they shell out to a dbt binary directly.
+    this._pythonInstalled = this.isCLIMode() || this.pythonPathExists();
     this._dbtInstalled = await this.dbtDetectionFactory().detectDBT();
-    // Refresh cached Python version — by this point the Python extension
-    // has settled after an interpreter change
-    await this.pythonEnvironment.refreshPythonVersion();
+    if (!this.isCLIMode()) {
+      // Refresh cached Python version — by this point the Python extension
+      // has settled after an interpreter change
+      await this.pythonEnvironment.refreshPythonVersion();
+    }
     this._onDBTInstallationVerificationEvent.fire({
       inProgress: false,
       installed: this._dbtInstalled,
@@ -78,7 +89,8 @@ export class DBTClient implements Disposable {
   }
 
   async showErrorIfDbtOrPythonNotInstalled() {
-    if (!this._pythonInstalled) {
+    // CLI modes don't need a Python interpreter
+    if (!this._pythonInstalled && !this.isCLIMode()) {
       if (!this.shownError) {
         // We don't want to flood the user with errors
         this.shownError = true;
@@ -92,7 +104,7 @@ export class DBTClient implements Disposable {
       }
       return false;
     }
-    if (!this.pythonEnvironment.isPython3) {
+    if (!this.isCLIMode() && !this.pythonEnvironment.isPython3) {
       const answer = await window.showErrorMessage(
         "Only Python 3 is supported by dbt, please select a Python 3 interpreter",
         PythonInterpreterPromptAnswer.SELECT,
@@ -135,6 +147,7 @@ export class DBTClient implements Disposable {
             );
             break;
           case "core":
+          case "corecommand":
             await this.executeInstallDbtCommand(
               "Please ensure dbt core cli is installed.",
               "Install dbt core",
