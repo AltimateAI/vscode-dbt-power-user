@@ -28,6 +28,8 @@ import {
   ConversationProvider,
 } from "../comment_provider/conversationProvider";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
+import { CteProfilerDecorationProvider } from "../cte_profiler/cteProfilerDecorationProvider";
+import { CteProfilerService } from "../cte_profiler/cteProfilerService";
 import { DBTClient } from "../dbt_client";
 import { DBTProject } from "../dbt_client/dbtProject";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
@@ -79,6 +81,8 @@ export class VSCodeCommands implements Disposable {
     private notebookController: DatapilotNotebookController,
     private runHistoryService: RunHistoryService,
     private altimateCodeChatService: AltimateCodeChatService,
+    private cteProfilerService: CteProfilerService,
+    private cteProfilerDecorationProvider: CteProfilerDecorationProvider,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -110,6 +114,37 @@ export class VSCodeCommands implements Disposable {
           this.runHistoryService.clear();
         }
       }),
+      commands.registerCommand(
+        "dbtPowerUser.profileCtes",
+        async (uri: Uri, ctes: CteInfo[]) => {
+          let document = workspace.textDocuments.find(
+            (doc) => doc.uri.toString() === uri.toString(),
+          );
+          if (!document) {
+            try {
+              document = await workspace.openTextDocument(uri);
+            } catch (error) {
+              this.dbtTerminal.error(
+                "CteProfiler",
+                "Failed to open document",
+                error,
+              );
+              window.showErrorMessage("Document not found");
+              return;
+            }
+          }
+          this.cteProfilerService.profileModel(uri, document, ctes);
+        },
+      ),
+      commands.registerCommand("dbtPowerUser.cancelCteProfiling", () =>
+        this.cteProfilerService.cancel(),
+      ),
+      commands.registerCommand("dbtPowerUser.clearProfileResults", () =>
+        this.cteProfilerService.clearResults(),
+      ),
+      commands.registerCommand("dbtPowerUser.toggleProfileDecorations", () =>
+        this.cteProfilerDecorationProvider.toggle(),
+      ),
       commands.registerCommand("dbtPowerUser.testCurrentModel", () =>
         this.runModel.runTestsOnActiveWindow(),
       ),

@@ -86,6 +86,16 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
         `Found ${ctes.length} CTEs in document`,
       );
 
+      // Add "Profile CTEs" code lens at the first CTE
+      if (ctes.length > 0) {
+        const profileCommand: Command = {
+          title: "⏱ Profile CTEs",
+          command: "dbtPowerUser.profileCtes",
+          arguments: [document.uri, ctes],
+        };
+        codeLenses.push(new CodeLens(ctes[0].range, profileCommand));
+      }
+
       for (const cte of ctes) {
         const runCteCommand: Command = {
           title: `$(play) Execute CTE: ${cte.name}`,

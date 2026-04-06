@@ -123,6 +123,9 @@ import { CommentProviders } from "./comment_provider";
 import { ConversationProvider } from "./comment_provider/conversationProvider";
 import { ContentProviders } from "./content_provider";
 import { SqlPreviewContentProvider } from "./content_provider/sqlPreviewContentProvider";
+import { CteProfilerDecorationProvider } from "./cte_profiler/cteProfilerDecorationProvider";
+import { CteProfilerService } from "./cte_profiler/cteProfilerService";
+import { CteProfilerTreeviewProvider } from "./cte_profiler/cteProfilerTreeviewProvider";
 import { DBTPowerUserExtension } from "./dbtPowerUserExtension";
 import { DocumentFormattingEditProviders } from "./document_formatting_edit_provider";
 import { DbtDocumentFormattingEditProvider } from "./document_formatting_edit_provider/dbtDocumentFormattingEditProvider";
@@ -887,6 +890,35 @@ container
   .inSingletonScope();
 
 container
+  .bind(CteProfilerService)
+  .toDynamicValue((context) => {
+    return new CteProfilerService(
+      context.container.get(DBTProjectContainer),
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(CteProfilerDecorationProvider)
+  .toDynamicValue((context) => {
+    return new CteProfilerDecorationProvider(
+      context.container.get(CteProfilerService),
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(CteProfilerTreeviewProvider)
+  .toDynamicValue((context) => {
+    return new CteProfilerTreeviewProvider(
+      context.container.get(CteProfilerService),
+    );
+  })
+  .inSingletonScope();
+
+container
   .bind(ProjectQuickPick)
   .toDynamicValue(() => {
     return new ProjectQuickPick();
@@ -1547,6 +1579,8 @@ container
       context.container.get("DatapilotNotebookController"),
       context.container.get(RunHistoryService),
       context.container.get(AltimateCodeChatService),
+      context.container.get(CteProfilerService),
+      context.container.get(CteProfilerDecorationProvider),
     );
   })
   .inSingletonScope();
@@ -1738,6 +1772,7 @@ container
       context.container.get(DocumentationTreeview),
       context.container.get(IconActionsTreeview),
       context.container.get(RunHistoryTreeviewProvider),
+      context.container.get(CteProfilerTreeviewProvider),
     );
   })
   .inSingletonScope();
@@ -1836,6 +1871,7 @@ container
       context.container.get(CommentProviders),
       context.container.get("NotebookProviders"),
       context.container.get(DbtPowerUserMcpServer),
+      context.container.get(CteProfilerDecorationProvider),
     );
   })
   .inSingletonScope();

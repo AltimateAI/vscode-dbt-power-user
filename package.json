@@ -427,6 +427,10 @@
         {
           "id": "run_history_treeview",
           "name": "Runs"
+        },
+        {
+          "id": "cte_profiler_treeview",
+          "name": "CTE Profiler"
         }
       ]
     },
@@ -529,6 +533,27 @@
         "title": "Clear Run History",
         "category": "dbt Power User",
         "icon": "$(clear-all)"
+      },
+      {
+        "command": "dbtPowerUser.profileCtes",
+        "title": "Profile CTEs",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.cancelCteProfiling",
+        "title": "Cancel CTE Profiling",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.clearProfileResults",
+        "title": "Clear CTE Profile Results",
+        "category": "dbt Power User",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "dbtPowerUser.toggleProfileDecorations",
+        "title": "Toggle CTE Profile Decorations",
+        "category": "dbt Power User"
       },
       {
         "command": "dbtPowerUser.openDatapilotWithQuery",
@@ -1137,6 +1162,11 @@
         {
           "command": "dbtPowerUser.clearRunHistory",
           "when": "view == run_history_treeview",
+          "group": "2_clear"
+        },
+        {
+          "command": "dbtPowerUser.clearProfileResults",
+          "when": "view == cte_profiler_treeview",
           "group": "2_clear"
         }
       ],

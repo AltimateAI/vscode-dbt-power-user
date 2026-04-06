@@ -1,4 +1,5 @@
 import { Disposable, window } from "vscode";
+import { CteProfilerTreeviewProvider } from "../cte_profiler/cteProfilerTreeviewProvider";
 import {
   ChildrenModelTreeview,
   DocumentationTreeview,
@@ -18,6 +19,7 @@ export class TreeviewProviders implements Disposable {
     private documentationTreeView: DocumentationTreeview,
     private iconActionsTreeview: IconActionsTreeview,
     private runHistoryTreeviewProvider: RunHistoryTreeviewProvider,
+    private cteProfilerTreeviewProvider: CteProfilerTreeviewProvider,
   ) {
     this.disposables.push(
       window.registerTreeDataProvider(
@@ -43,6 +45,10 @@ export class TreeviewProviders implements Disposable {
       window.registerTreeDataProvider(
         "run_history_treeview",
         this.runHistoryTreeviewProvider,
+      ),
+      window.registerTreeDataProvider(
+        "cte_profiler_treeview",
+        this.cteProfilerTreeviewProvider,
       ),
     );
   }
