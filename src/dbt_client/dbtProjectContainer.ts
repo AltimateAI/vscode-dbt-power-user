@@ -471,6 +471,7 @@ export class DBTProjectContainer implements Disposable {
     }
     this.dbtWorkspaceFolders.splice(
       this.dbtWorkspaceFolders.indexOf(folderToDelete),
+      1,
     );
     folderToDelete.dispose();
   }

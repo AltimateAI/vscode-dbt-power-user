@@ -465,8 +465,8 @@ export class AltimateRequest {
     });
   }
 
-  async validateCredentials(instance: string, key: string) {
-    const url = `${this.getAltimateUrl()}/dbt/v3/validate-credentials`;
+  async validateCredentials(instance: string, key: string, baseUrl?: string) {
+    const url = `${baseUrl || this.getAltimateUrl()}/dbt/v3/validate-credentials`;
     try {
       const response = await fetch(url, {
         method: "GET",

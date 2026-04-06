@@ -517,6 +517,131 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           });
         }
         break;
+      case "checkAltimateConfiguration":
+        // Check if Altimate is already configured
+        try {
+          const config = workspace.getConfiguration("dbt");
+          const apiKey = config.get<string>("altimateAiKey");
+          const instanceName = config.get<string>("altimateInstanceName");
+          const dbtIntegrationType = config.get<string>(
+            "dbtIntegration",
+            "core",
+          );
+
+          const isConfigured = !!(apiKey && instanceName);
+          const altimateUrl = config.get<string>("altimateUrl", "");
+
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: {
+              isConfigured,
+              dbtIntegrationType,
+              instanceName: instanceName || "",
+              apiKey: apiKey || "",
+              altimateUrl,
+            },
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "checkAltimateConfiguration",
+            "Error checking Altimate configuration",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "saveAltimateKey":
+        // Save Altimate API key and instance name
+        try {
+          const { apiKey, instanceName, backendURL } =
+            message as HandleCommandProps & {
+              apiKey: string;
+              instanceName: string;
+              backendURL?: string;
+            };
+
+          // Validate credentials before saving
+          this.dbtTerminal.debug(
+            "saveAltimateKey",
+            "Validating credentials before saving",
+            { instanceName },
+          );
+
+          const validationResult =
+            await this.altimateRequest.validateCredentials(
+              instanceName,
+              apiKey,
+              backendURL,
+            );
+
+          if (!validationResult?.ok) {
+            const errorMessage =
+              validationResult?.error ||
+              validationResult?.detail ||
+              "Invalid credentials. Please check your API key and instance name.";
+            this.dbtTerminal.error(
+              "saveAltimateKey",
+              "Credential validation failed",
+              errorMessage,
+            );
+            this.sendResponseToWebview({
+              command: "response",
+              syncRequestId,
+              error: errorMessage,
+            });
+            return;
+          }
+
+          this.dbtTerminal.debug(
+            "saveAltimateKey",
+            "Credentials validated successfully",
+          );
+
+          // Save at Global (user) level so the key applies across all workspaces.
+          // Save altimateUrl FIRST so the ValidationProvider (which fires on
+          // config change) uses the correct endpoint when it re-validates.
+          const dbtConfig = workspace.getConfiguration("dbt");
+          if (backendURL) {
+            await dbtConfig.update(
+              "altimateUrl",
+              backendURL,
+              ConfigurationTarget.Global,
+            );
+          }
+          await dbtConfig.update(
+            "altimateAiKey",
+            apiKey,
+            ConfigurationTarget.Global,
+          );
+          await dbtConfig.update(
+            "altimateInstanceName",
+            instanceName,
+            ConfigurationTarget.Global,
+          );
+
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { success: true },
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "saveAltimateKey",
+            "Error saving Altimate API key",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
       case "openUrl":
         // Open URL in external browser
         try {

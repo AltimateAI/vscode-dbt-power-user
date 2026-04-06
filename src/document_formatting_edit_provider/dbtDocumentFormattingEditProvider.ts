@@ -1,8 +1,11 @@
 import { CommandProcessExecutionFactory } from "@altimateai/dbt-integration";
+import { exec } from "child_process";
 import fs from "fs";
 import { inject } from "inversify";
+import os from "os";
 import parseDiff from "parse-diff";
 import path from "path";
+import { promisify } from "util";
 import {
   CancellationToken,
   DocumentFormattingEditProvider,
@@ -19,9 +22,13 @@ import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
 import { TelemetryService } from "../telemetry";
 import { extendErrorWithSupportLinks, getFirstWorkspacePath } from "../utils";
 
-export class DbtDocumentFormattingEditProvider
-  implements DocumentFormattingEditProvider
-{
+const execAsync = promisify(exec);
+
+// prettier-ignore
+export class DbtDocumentFormattingEditProvider implements DocumentFormattingEditProvider {
+  private cachedSqlFmtPath: string | undefined;
+  private cachedPythonPath: string | undefined;
+
   constructor(
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
     private telemetry: TelemetryService,
@@ -97,7 +104,9 @@ export class DbtDocumentFormattingEditProvider
       this.telemetry.sendTelemetryError("formatDbtModelApplyDiffFailed", error);
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Could not run sqlfmt. Did you install sqlfmt? Detailed error: " +
+          'Could not run sqlfmt. If sqlfmt is installed (e.g. via `uv tool install "shandy-sqlfmt[jinjafmt]"` or `pipx install "shandy-sqlfmt[jinjafmt]"`), ' +
+            "try setting the `dbt.sqlFmtPath` setting to the full path of the sqlfmt binary, " +
+            "or restart VS Code to pick up PATH changes. Detailed error: " +
             error +
             ".",
         ),
@@ -107,14 +116,116 @@ export class DbtDocumentFormattingEditProvider
   }
 
   private async findSqlFmtPath(): Promise<string | undefined> {
+    const currentPythonPath = this.pythonEnvironment.pythonPath;
+
+    // Return cached result if still valid (same interpreter + binary exists)
+    if (
+      this.cachedSqlFmtPath &&
+      this.cachedPythonPath === currentPythonPath &&
+      fs.existsSync(this.cachedSqlFmtPath)
+    ) {
+      return this.cachedSqlFmtPath;
+    }
+
+    const result = await this.discoverSqlFmtPath();
+    this.cachedSqlFmtPath = result;
+    this.cachedPythonPath = currentPythonPath;
+    return result;
+  }
+
+  private async discoverSqlFmtPath(): Promise<string | undefined> {
+    const isWindows = process.platform === "win32";
+    const exe = isWindows ? "sqlfmt.exe" : "sqlfmt";
+
+    // 1. Check Python venv bin directory
     const pythonPath = this.pythonEnvironment.pythonPath;
     if (pythonPath) {
-      const candidatePath = path.join(path.dirname(pythonPath), "sqlfmt");
+      const candidatePath = path.join(path.dirname(pythonPath), exe);
       if (fs.existsSync(candidatePath)) {
         return candidatePath;
       }
     }
-    return await which("sqlfmt");
+
+    // 2. Check well-known tool binary locations (uv, pipx)
+    for (const candidate of this.getToolBinCandidates(exe)) {
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
+    }
+
+    // 3. Try uv tool dir (async, non-blocking) for custom uv install locations
+    const uvToolPath = await this.findSqlFmtInUvTools(exe);
+    if (uvToolPath) {
+      return uvToolPath;
+    }
+
+    // 4. Fall back to system PATH via which
+    try {
+      return await which("sqlfmt");
+    } catch {
+      return undefined;
+    }
+  }
+
+  private getToolBinCandidates(exe: string): string[] {
+    const home = os.homedir();
+    const candidates: string[] = [];
+
+    // UV_TOOL_BIN_DIR / PIPX_BIN_DIR override default locations
+    const uvToolBinDir = process.env.UV_TOOL_BIN_DIR;
+    if (uvToolBinDir) {
+      candidates.push(path.join(uvToolBinDir, exe));
+    }
+    const pipxBinDir = process.env.PIPX_BIN_DIR;
+    if (pipxBinDir) {
+      candidates.push(path.join(pipxBinDir, exe));
+    }
+
+    if (process.platform === "win32") {
+      const appData = process.env.APPDATA;
+      if (appData) {
+        candidates.push(
+          path.join(
+            appData,
+            "uv",
+            "data",
+            "tools",
+            "shandy-sqlfmt",
+            "Scripts",
+            exe,
+          ),
+          path.join(appData, "Python", "Scripts", exe),
+        );
+      }
+      candidates.push(
+        path.join(home, ".local", "bin", exe),
+        path.join(home, "pipx", "venvs", "shandy-sqlfmt", "Scripts", exe),
+      );
+    } else {
+      // Linux/macOS: default location for uv tool install and pipx
+      candidates.push(path.join(home, ".local", "bin", exe));
+    }
+
+    return candidates;
+  }
+
+  private async findSqlFmtInUvTools(exe: string): Promise<string | undefined> {
+    try {
+      const { stdout } = await execAsync("uv tool dir", { timeout: 3000 });
+      const uvToolDir = stdout.trim();
+      if (uvToolDir) {
+        const executable =
+          process.platform === "win32"
+            ? path.join(uvToolDir, "shandy-sqlfmt", "Scripts", exe)
+            : path.join(uvToolDir, "shandy-sqlfmt", "bin", exe);
+        if (fs.existsSync(executable)) {
+          return executable;
+        }
+      }
+    } catch {
+      // uv is not installed or not on PATH — ignore
+    }
+    return undefined;
   }
 
   private processDiffOutput(

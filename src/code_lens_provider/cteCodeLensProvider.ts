@@ -88,7 +88,7 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
 
       for (const cte of ctes) {
         const runCteCommand: Command = {
-          title: `▶ Execute CTE: ${cte.name}`,
+          title: `$(play) Execute CTE: ${cte.name}`,
           command: "dbtPowerUser.runCteWithDependencies",
           arguments: [document.uri, cte.index, ctes],
         };

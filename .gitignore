@@ -47,3 +47,6 @@ docker-setup/.env
 
 # Playwright MCP
 .playwright-mcp/
+
+# GitHub issues dashboard cache
+monitoring/github_issues/.cache/

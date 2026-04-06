@@ -67,6 +67,9 @@ theme:
     code: Roboto Mono
     logo: logo
 
+extra_css:
+  - stylesheets/extra.css
+
 markdown_extensions:
   - pymdownx.blocks.admonition
   - markdown.extensions.codehilite:
@@ -137,14 +140,18 @@ nav:
       - Logs force tailing: test/utilities.md
   - AI Teammates:
       - Introduction: teammates/introduction.md
-      - Coach & Personalize:  teammates/coach.md
-  - Datamates (New!): https://datamates-docs.myaltimate.com/
+      - Coach & Personalize: teammates/coach.md
+  - Altimate Code: teammates/altimate-code.md
+  - Altimate LLM Gateway: arch/llm-gateway.md
+  - Datamates: https://datamates-docs.myaltimate.com/
   - Studio (Beta): studio.md
   - Support & FAQ:
       - Troubleshooting: troubleshooting.md
       - Security FAQ: arch/faq.md
-      - Pricing FAQ: arch/pricingfaq.md 
+      - Pricing FAQ: arch/pricingfaq.md
 extra:
+  status:
+    new: Recently added
   analytics:
     provider: google
     property: G-LXRSS3VK5N
@@ -173,11 +180,11 @@ extra:
       - accept
       - reject
 copyright: >
-  Copyright &copy; 2022 - 2025 Altimate Inc –
+  Copyright &copy; 2022 - 2026 Altimate Inc –
   <a href="#__consent">Change cookie settings</a>
 
 copyright: >
-  Copyright &copy; 2022 - 2025 Altimate Inc –
+  Copyright &copy; 2022 - 2026 Altimate Inc –
   <a href="#__consent">Change cookie settings</a>
 
 repo_url: https://github.com/AltimateAI/vscode-dbt-power-user

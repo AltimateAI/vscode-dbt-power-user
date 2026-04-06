@@ -9,6 +9,10 @@
     "playwright": {
       "command": "npx",
       "args": ["@playwright/mcp@latest"]
+    },
+    "azure": {
+      "command": "npx",
+      "args": ["-y", "@azure/mcp@latest", "server", "start"]
     }
   }
 }

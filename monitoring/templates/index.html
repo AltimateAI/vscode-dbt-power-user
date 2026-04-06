@@ -1,0 +1,1202 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>dbt Power User — Error Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #0f1117;
+        --surface: #1a1d27;
+        --surface2: #22263a;
+        --border: #2e3350;
+        --text: #e2e8f0;
+        --muted: #8892b0;
+        --accent: #6366f1;
+        --accent2: #a78bfa;
+        --danger: #f87171;
+        --warn: #fb923c;
+        --ok: #4ade80;
+        --radius: 10px;
+        --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      /* ---- Header ---- */
+      header {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 16px 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+      header h1 {
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: -0.3px;
+      }
+      header h1 span {
+        color: var(--accent2);
+      }
+      #last-updated {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      /* ---- Filter bar ---- */
+      .filters {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .filters label {
+        font-size: 12px;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .filters select,
+      .filters button {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 6px;
+        padding: 5px 10px;
+        font-size: 13px;
+        cursor: pointer;
+        outline: none;
+      }
+      .filters select:focus,
+      .filters button:hover {
+        border-color: var(--accent);
+      }
+      #refresh-btn {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+        font-weight: 600;
+        padding: 5px 16px;
+      }
+      #refresh-btn:hover {
+        background: var(--accent2);
+        border-color: var(--accent2);
+      }
+
+      /* ---- Main layout ---- */
+      main {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 28px 32px 60px;
+        display: flex;
+        flex-direction: column;
+        gap: 36px;
+      }
+
+      /* ---- Section ---- */
+      .section-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text);
+        border-left: 3px solid var(--accent);
+        padding-left: 10px;
+        margin-bottom: 16px;
+      }
+
+      /* ---- Cards ---- */
+      .cards-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      @media (max-width: 900px) {
+        .cards-row {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px 24px;
+        box-shadow: var(--shadow);
+      }
+      .card .card-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+      .card .card-value {
+        font-size: 36px;
+        font-weight: 800;
+        color: var(--text);
+        letter-spacing: -1px;
+      }
+      .card.danger .card-value {
+        color: var(--danger);
+      }
+      .card.warn .card-value {
+        color: var(--warn);
+      }
+      .card.ok .card-value {
+        color: var(--ok);
+      }
+
+      /* ---- Chart panels ---- */
+      .chart-panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px 24px;
+        box-shadow: var(--shadow);
+      }
+      .chart-panel canvas {
+        width: 100% !important;
+      }
+
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .three-col {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      @media (max-width: 1100px) {
+        .two-col,
+        .three-col {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* ---- Tables ---- */
+      .table-wrap {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      thead th {
+        background: var(--surface2);
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        padding: 10px 14px;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+      }
+      thead th:hover {
+        color: var(--text);
+      }
+      thead th.sorted {
+        color: var(--accent2);
+      }
+      thead th.sorted::after {
+        content: " ↓";
+      }
+      thead th.sorted.asc::after {
+        content: " ↑";
+      }
+      tbody tr {
+        border-bottom: 1px solid var(--border);
+        transition: background 0.1s;
+      }
+      tbody tr:last-child {
+        border-bottom: none;
+      }
+      tbody tr:hover {
+        background: var(--surface2);
+      }
+      tbody td {
+        padding: 9px 14px;
+        vertical-align: top;
+      }
+      .badge {
+        display: inline-block;
+        padding: 1px 8px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+      }
+      .badge.core {
+        border-color: #6366f1;
+        color: #a78bfa;
+      }
+      .badge.cloud {
+        border-color: #22d3ee;
+        color: #67e8f9;
+      }
+      .badge.fusion {
+        border-color: #4ade80;
+        color: #86efac;
+      }
+      .badge.unknown {
+        border-color: var(--border);
+        color: var(--muted);
+      }
+
+      .count-bar-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .count-bar {
+        height: 6px;
+        border-radius: 3px;
+        background: var(--accent);
+        min-width: 2px;
+        transition: width 0.3s;
+      }
+
+      /* ---- Details table ---- */
+      .stack-toggle {
+        cursor: pointer;
+        color: var(--accent2);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .stack-toggle:hover {
+        text-decoration: underline;
+      }
+      .stack-pre {
+        display: none;
+        margin-top: 8px;
+        padding: 8px 10px;
+        background: var(--bg);
+        border-radius: 6px;
+        font-family: "SF Mono", "Fira Code", monospace;
+        font-size: 11px;
+        color: var(--muted);
+        white-space: pre-wrap;
+        word-break: break-all;
+        border: 1px solid var(--border);
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .stack-pre.open {
+        display: block;
+      }
+
+      /* ---- Pagination ---- */
+      .pagination {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+      }
+      .pagination button {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 6px;
+        padding: 4px 12px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .pagination button:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+      .pagination button:not(:disabled):hover {
+        border-color: var(--accent);
+      }
+      .pagination span {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      /* ---- Loading / error ---- */
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .loading::before {
+        content: "";
+        display: block;
+        width: 24px;
+        height: 24px;
+        border: 2px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin: 0 auto 12px;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .error-msg {
+        padding: 20px;
+        color: var(--danger);
+        font-size: 13px;
+        background: rgba(248, 113, 113, 0.08);
+        border-radius: 8px;
+        border: 1px solid rgba(248, 113, 113, 0.2);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>dbt Power User — <span>Error Dashboard</span></h1>
+      <div class="filters">
+        <label
+          >Days
+          <select id="sel-days">
+            <option value="1">Last 24h</option>
+            <option value="7" selected>Last 7 days</option>
+            <option value="14">Last 14 days</option>
+            <option value="30">Last 30 days</option>
+          </select>
+        </label>
+        <label
+          >Integration mode
+          <select id="sel-mode">
+            <option value="All">All</option>
+            <option value="core">core</option>
+            <option value="cloud">cloud</option>
+            <option value="fusion">fusion</option>
+            <option value="corecommand">corecommand</option>
+          </select>
+        </label>
+        <label
+          >Extension version
+          <select id="sel-version">
+            <option value="All">All</option>
+          </select>
+        </label>
+        <button id="refresh-btn" onclick="loadAll()">&#8635; Refresh</button>
+      </div>
+      <span id="last-updated"></span>
+    </header>
+
+    <main>
+      <!-- Section 1: Summary -->
+      <section id="sec-summary">
+        <div class="section-title">1 — Summary</div>
+        <div class="cards-row" id="summary-cards">
+          <div class="loading"></div>
+        </div>
+      </section>
+
+      <!-- Section 2: Error Trend -->
+      <section id="sec-trend">
+        <div class="section-title">2 — Error Trend Over Time</div>
+        <div class="chart-panel">
+          <div id="trend-loading" class="loading"></div>
+          <canvas
+            id="chart-trend"
+            style="display: none; max-height: 280px"
+          ></canvas>
+        </div>
+      </section>
+
+      <!-- Section 3: Top Errors -->
+      <section id="sec-top">
+        <div class="section-title">3 — Top Errors</div>
+        <div class="two-col">
+          <div class="chart-panel">
+            <div id="top-chart-loading" class="loading"></div>
+            <canvas
+              id="chart-top"
+              style="display: none; max-height: 360px"
+            ></canvas>
+          </div>
+          <div>
+            <div id="top-table-wrap"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 4–6: Mode / Platform / Version -->
+      <section id="sec-breakdown">
+        <div class="section-title">4–6 — Breakdowns</div>
+        <div class="three-col">
+          <div>
+            <div
+              style="margin-bottom: 8px; font-size: 13px; color: var(--muted)"
+            >
+              By Integration Mode
+            </div>
+            <div class="chart-panel">
+              <div id="mode-loading" class="loading"></div>
+              <canvas
+                id="chart-mode"
+                style="display: none; max-height: 260px"
+              ></canvas>
+            </div>
+          </div>
+          <div>
+            <div
+              style="margin-bottom: 8px; font-size: 13px; color: var(--muted)"
+            >
+              By OS / Architecture
+            </div>
+            <div class="chart-panel">
+              <div id="platform-loading" class="loading"></div>
+              <canvas
+                id="chart-platform"
+                style="display: none; max-height: 260px"
+              ></canvas>
+            </div>
+          </div>
+          <div>
+            <div
+              style="margin-bottom: 8px; font-size: 13px; color: var(--muted)"
+            >
+              By Extension Version
+            </div>
+            <div class="chart-panel">
+              <div id="version-loading" class="loading"></div>
+              <canvas
+                id="chart-version"
+                style="display: none; max-height: 260px"
+              ></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 7: Unhandled Errors -->
+      <section id="sec-unhandled">
+        <div class="section-title">7 — Unhandled Errors</div>
+        <div id="unhandled-wrap"></div>
+      </section>
+
+      <!-- Section 8: Error Details -->
+      <section id="sec-details">
+        <div class="section-title">8 — Error Details</div>
+        <div id="details-wrap"></div>
+      </section>
+
+      <!-- Section 9: Stack Trace Root Cause Analysis -->
+      <section id="sec-stack-analysis">
+        <div class="section-title">9 — Stack Trace Root Cause Analysis</div>
+        <div class="two-col">
+          <div class="chart-panel">
+            <div id="stack-chart-loading" class="loading"></div>
+            <canvas
+              id="chart-stack"
+              style="display: none; max-height: 420px"
+            ></canvas>
+          </div>
+          <div>
+            <div id="stack-table-wrap"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const VALID_MODES = ["core", "cloud", "fusion", "corecommand"];
+
+      let chartInstances = {};
+      let isLoading = false;
+
+      function getFilters() {
+        return {
+          days: document.getElementById("sel-days").value,
+          mode: document.getElementById("sel-mode").value,
+          version: document.getElementById("sel-version").value,
+        };
+      }
+
+      function qs(params) {
+        return "?" + new URLSearchParams(params).toString();
+      }
+
+      async function apiFetch(path, extra = {}) {
+        const f = { ...getFilters(), ...extra };
+        const resp = await fetch(path + qs(f));
+        if (!resp.ok)
+          throw new Error(`HTTP ${resp.status}: ${await resp.text()}`);
+        return resp.json();
+      }
+
+      function showError(containerId, msg) {
+        document.getElementById(containerId).innerHTML =
+          `<div class="error-msg">⚠ ${msg}</div>`;
+      }
+
+      function destroyChart(id) {
+        if (chartInstances[id]) {
+          chartInstances[id].destroy();
+          delete chartInstances[id];
+        }
+      }
+
+      // ============================================================
+      // Palette
+      // ============================================================
+      const PALETTE = [
+        "#6366f1",
+        "#a78bfa",
+        "#22d3ee",
+        "#4ade80",
+        "#fb923c",
+        "#f472b6",
+        "#facc15",
+        "#34d399",
+        "#818cf8",
+        "#f87171",
+        "#60a5fa",
+        "#e879f9",
+        "#2dd4bf",
+        "#fbbf24",
+        "#94a3b8",
+      ];
+
+      const CHART_DEFAULTS = {
+        plugins: {
+          legend: { labels: { color: "#8892b0", font: { size: 12 } } },
+        },
+        scales: {
+          x: { ticks: { color: "#8892b0" }, grid: { color: "#2e3350" } },
+          y: { ticks: { color: "#8892b0" }, grid: { color: "#2e3350" } },
+        },
+      };
+
+      // ============================================================
+      // 1. Summary cards
+      // ============================================================
+      async function loadSummary() {
+        const el = document.getElementById("summary-cards");
+        el.innerHTML = '<div class="loading"></div>';
+        try {
+          const d = await apiFetch("/api/summary");
+          el.innerHTML = `
+      <div class="card danger">
+        <div class="card-label">Total Errors</div>
+        <div class="card-value">${d.totalErrors.toLocaleString()}</div>
+      </div>
+      <div class="card warn">
+        <div class="card-label">Unique Error Types</div>
+        <div class="card-value">${d.uniqueTypes.toLocaleString()}</div>
+      </div>
+      <div class="card ok">
+        <div class="card-label">Affected Instances</div>
+        <div class="card-value">${d.affectedInstances.toLocaleString()}</div>
+      </div>
+    `;
+        } catch (e) {
+          showError("summary-cards", e.message);
+        }
+      }
+
+      // ============================================================
+      // 2. Error Trend
+      // ============================================================
+      async function loadTrend() {
+        const loading = document.getElementById("trend-loading");
+        const canvas = document.getElementById("chart-trend");
+        loading.style.display = "block";
+        canvas.style.display = "none";
+        destroyChart("trend");
+        try {
+          const rows = await apiFetch("/api/trend");
+          loading.style.display = "none";
+          canvas.style.display = "block";
+          chartInstances["trend"] = new Chart(canvas, {
+            type: "line",
+            data: {
+              labels: rows.map((r) =>
+                r.timestamp.slice(0, 16).replace("T", " "),
+              ),
+              datasets: [
+                {
+                  label: "Errors",
+                  data: rows.map((r) => r.count),
+                  borderColor: "#f87171",
+                  backgroundColor: "rgba(248,113,113,.1)",
+                  tension: 0.3,
+                  fill: true,
+                  pointRadius: rows.length > 30 ? 0 : 3,
+                },
+              ],
+            },
+            options: {
+              ...CHART_DEFAULTS,
+              plugins: {
+                ...CHART_DEFAULTS.plugins,
+                legend: { display: false },
+              },
+              scales: CHART_DEFAULTS.scales,
+            },
+          });
+        } catch (e) {
+          loading.style.display = "none";
+          document
+            .querySelector("#sec-trend .chart-panel")
+            .insertAdjacentHTML(
+              "beforeend",
+              `<div class="error-msg">⚠ ${e.message}</div>`,
+            );
+        }
+      }
+
+      // ============================================================
+      // 3. Top Errors
+      // ============================================================
+      async function loadTopErrors() {
+        const chartLoading = document.getElementById("top-chart-loading");
+        const canvas = document.getElementById("chart-top");
+        const tableWrap = document.getElementById("top-table-wrap");
+        chartLoading.style.display = "block";
+        canvas.style.display = "none";
+        tableWrap.innerHTML = '<div class="loading"></div>';
+        destroyChart("top");
+        try {
+          const rows = await apiFetch("/api/top-errors", { limit: 15 });
+          const maxCount = rows[0]?.count || 1;
+
+          // Chart (horizontal bar — top 10)
+          chartLoading.style.display = "none";
+          canvas.style.display = "block";
+          const chartRows = rows.slice(0, 10);
+          chartInstances["top"] = new Chart(canvas, {
+            type: "bar",
+            data: {
+              labels: chartRows.map((r) =>
+                r.name.length > 38 ? r.name.slice(0, 35) + "..." : r.name,
+              ),
+              datasets: [
+                {
+                  label: "Errors",
+                  data: chartRows.map((r) => r.count),
+                  backgroundColor: PALETTE.slice(0, chartRows.length),
+                  borderRadius: 4,
+                },
+              ],
+            },
+            options: {
+              indexAxis: "y",
+              plugins: { legend: { display: false } },
+              scales: {
+                x: { ticks: { color: "#8892b0" }, grid: { color: "#2e3350" } },
+                y: {
+                  ticks: { color: "#8892b0", font: { size: 11 } },
+                  grid: { color: "#2e3350" },
+                },
+              },
+            },
+          });
+
+          // Table (all rows)
+          tableWrap.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th>
+            <th>Error Type</th>
+            <th>Count</th>
+            <th>Modes</th>
+          </tr></thead>
+          <tbody>
+            ${rows
+              .map(
+                (r, i) => `
+              <tr>
+                <td style="color:var(--muted);width:32px">${i + 1}</td>
+                <td style="font-family:monospace;font-size:12px;word-break:break-all">${escHtml(r.name)}</td>
+                <td>
+                  <div class="count-bar-wrap">
+                    <div class="count-bar" style="width:${Math.round((r.count / maxCount) * 80)}px"></div>
+                    <span>${r.count.toLocaleString()}</span>
+                  </div>
+                </td>
+                <td>${modeBadges(r.modes)}</td>
+              </tr>
+            `,
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+        } catch (e) {
+          chartLoading.style.display = "none";
+          tableWrap.innerHTML = `<div class="error-msg">⚠ ${e.message}</div>`;
+        }
+      }
+
+      // ============================================================
+      // 4. By Mode (doughnut)
+      // ============================================================
+      async function loadByMode() {
+        const loading = document.getElementById("mode-loading");
+        const canvas = document.getElementById("chart-mode");
+        loading.style.display = "block";
+        canvas.style.display = "none";
+        destroyChart("mode");
+        try {
+          const rows = await apiFetch("/api/by-mode");
+          loading.style.display = "none";
+          canvas.style.display = "block";
+          chartInstances["mode"] = new Chart(canvas, {
+            type: "doughnut",
+            data: {
+              labels: rows.map((r) => r.mode),
+              datasets: [
+                { data: rows.map((r) => r.count), backgroundColor: PALETTE },
+              ],
+            },
+            options: {
+              plugins: { legend: { labels: { color: "#8892b0" } } },
+              cutout: "60%",
+            },
+          });
+        } catch (e) {
+          loading.style.display = "none";
+          document
+            .getElementById("chart-mode")
+            .insertAdjacentHTML(
+              "afterend",
+              `<div class="error-msg">⚠ ${e.message}</div>`,
+            );
+        }
+      }
+
+      // ============================================================
+      // 5. By Platform (bar)
+      // ============================================================
+      async function loadByPlatform() {
+        const loading = document.getElementById("platform-loading");
+        const canvas = document.getElementById("chart-platform");
+        loading.style.display = "block";
+        canvas.style.display = "none";
+        destroyChart("platform");
+        try {
+          const rows = await apiFetch("/api/by-platform");
+          loading.style.display = "none";
+          canvas.style.display = "block";
+          chartInstances["platform"] = new Chart(canvas, {
+            type: "bar",
+            data: {
+              labels: rows.map((r) => r.platform),
+              datasets: [
+                {
+                  label: "Errors",
+                  data: rows.map((r) => r.count),
+                  backgroundColor: PALETTE.slice(0, rows.length),
+                  borderRadius: 4,
+                },
+              ],
+            },
+            options: {
+              plugins: { legend: { display: false } },
+              scales: CHART_DEFAULTS.scales,
+            },
+          });
+        } catch (e) {
+          loading.style.display = "none";
+          document
+            .getElementById("chart-platform")
+            .insertAdjacentHTML(
+              "afterend",
+              `<div class="error-msg">⚠ ${e.message}</div>`,
+            );
+        }
+      }
+
+      // ============================================================
+      // 6. By Version (bar)
+      // ============================================================
+      async function loadByVersion() {
+        const loading = document.getElementById("version-loading");
+        const canvas = document.getElementById("chart-version");
+        loading.style.display = "block";
+        canvas.style.display = "none";
+        destroyChart("version");
+        try {
+          const rows = await apiFetch("/api/by-version");
+          loading.style.display = "none";
+          canvas.style.display = "block";
+          chartInstances["version"] = new Chart(canvas, {
+            type: "bar",
+            data: {
+              labels: rows.map((r) => r.version),
+              datasets: [
+                {
+                  label: "Errors",
+                  data: rows.map((r) => r.count),
+                  backgroundColor: "#6366f1",
+                  borderRadius: 4,
+                },
+              ],
+            },
+            options: {
+              plugins: { legend: { display: false } },
+              scales: CHART_DEFAULTS.scales,
+            },
+          });
+        } catch (e) {
+          loading.style.display = "none";
+          document
+            .getElementById("chart-version")
+            .insertAdjacentHTML(
+              "afterend",
+              `<div class="error-msg">⚠ ${e.message}</div>`,
+            );
+        }
+      }
+
+      // ============================================================
+      // 7. Unhandled Errors
+      // ============================================================
+      async function loadUnhandled() {
+        const wrap = document.getElementById("unhandled-wrap");
+        wrap.innerHTML = '<div class="loading"></div>';
+        try {
+          const rows = await apiFetch("/api/unhandled");
+          const maxCount = rows[0]?.count || 1;
+          wrap.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Message Group</th>
+            <th>Count</th>
+            <th>Versions</th>
+            <th>Modes</th>
+          </tr></thead>
+          <tbody>
+            ${rows
+              .map(
+                (r) => `
+              <tr>
+                <td style="font-family:monospace;font-size:12px">${escHtml(r.group)}</td>
+                <td>
+                  <div class="count-bar-wrap">
+                    <div class="count-bar" style="width:${Math.round((r.count / maxCount) * 80)}px;background:var(--danger)"></div>
+                    <span>${r.count.toLocaleString()}</span>
+                  </div>
+                </td>
+                <td style="font-size:12px;color:var(--muted)">${escHtml(r.versions)}</td>
+                <td>${modeBadges(r.modes)}</td>
+              </tr>
+            `,
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+        } catch (e) {
+          wrap.innerHTML = `<div class="error-msg">⚠ ${e.message}</div>`;
+        }
+      }
+
+      // ============================================================
+      // 8. Error Details (paginated)
+      // ============================================================
+      let detailsData = [];
+      let detailsPage = 0;
+      const PAGE_SIZE = 50;
+
+      async function loadDetails() {
+        const wrap = document.getElementById("details-wrap");
+        wrap.innerHTML = '<div class="loading"></div>';
+        detailsPage = 0;
+        try {
+          detailsData = await apiFetch("/api/details", { limit: 500 });
+          renderDetailsPage();
+        } catch (e) {
+          wrap.innerHTML = `<div class="error-msg">⚠ ${e.message}</div>`;
+        }
+      }
+
+      function renderDetailsPage() {
+        const wrap = document.getElementById("details-wrap");
+        const start = detailsPage * PAGE_SIZE;
+        const page = detailsData.slice(start, start + PAGE_SIZE);
+        const total = detailsData.length;
+        const pages = Math.ceil(total / PAGE_SIZE);
+
+        wrap.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Timestamp</th>
+          <th>Error Type</th>
+          <th>Message</th>
+          <th>Mode</th>
+          <th>Version</th>
+          <th>Platform</th>
+          <th>IDE</th>
+          <th>Stack</th>
+        </tr></thead>
+        <tbody>
+          ${page
+            .map((r, i) => {
+              const idx = start + i;
+              const ts = r.timestamp
+                ? r.timestamp.slice(0, 19).replace("T", " ")
+                : "";
+              return `
+              <tr>
+                <td style="white-space:nowrap;font-size:12px;color:var(--muted)">${ts}</td>
+                <td style="font-family:monospace;font-size:11px;max-width:220px;word-break:break-all">${escHtml(r.name)}</td>
+                <td style="max-width:260px;font-size:12px">${escHtml((r.message || "").slice(0, 120))}</td>
+                <td>${modeBadges(r.mode)}</td>
+                <td style="white-space:nowrap;font-size:12px">${escHtml(r.version || "")}</td>
+                <td style="white-space:nowrap;font-size:12px">${escHtml(r.os || "")} / ${escHtml(r.arch || "")}</td>
+                <td style="white-space:nowrap;font-size:12px">${escHtml(r.ide || "")}</td>
+                <td>
+                  ${
+                    r.stack
+                      ? `<span class="stack-toggle" onclick="toggleStack(this)">▶ show stack</span>
+                       <pre class="stack-pre">${escHtml(r.stack)}</pre>`
+                      : '<span style="color:var(--muted);font-size:12px">—</span>'
+                  }
+                </td>
+              </tr>
+            `;
+            })
+            .join("")}
+        </tbody>
+      </table>
+      <div class="pagination">
+        <button onclick="changePage(-1)" ${detailsPage === 0 ? "disabled" : ""}>← Prev</button>
+        <span>Page ${detailsPage + 1} of ${pages} &nbsp;·&nbsp; ${total.toLocaleString()} rows</span>
+        <button onclick="changePage(1)" ${detailsPage >= pages - 1 ? "disabled" : ""}>Next →</button>
+      </div>
+    </div>
+  `;
+      }
+
+      function changePage(delta) {
+        const pages = Math.ceil(detailsData.length / PAGE_SIZE);
+        detailsPage = Math.max(0, Math.min(pages - 1, detailsPage + delta));
+        renderDetailsPage();
+      }
+
+      function toggleStack(el) {
+        const pre = el.nextElementSibling;
+        pre.classList.toggle("open");
+        el.textContent = pre.classList.contains("open")
+          ? "▼ hide stack"
+          : "▶ show stack";
+      }
+
+      // ============================================================
+      // Versions dropdown
+      // ============================================================
+      async function loadVersions() {
+        const sel = document.getElementById("sel-version");
+        try {
+          const versions = await fetch("/api/versions" + qs(getFilters())).then(
+            (r) => r.json(),
+          );
+          const current = sel.value;
+          sel.innerHTML = '<option value="All">All</option>';
+          versions.forEach((v) => {
+            const opt = document.createElement("option");
+            opt.value = v;
+            opt.textContent = v;
+            if (v === current) opt.selected = true;
+            sel.appendChild(opt);
+          });
+        } catch (e) {
+          console.error("Failed to load versions:", e);
+        }
+      }
+
+      // ============================================================
+      // Helpers
+      // ============================================================
+      function escHtml(str) {
+        const div = document.createElement("div");
+        div.textContent = String(str || "");
+        return div.innerHTML;
+      }
+
+      function modeBadges(modes) {
+        if (!modes) return "";
+        return modes
+          .split(",")
+          .map((m) => {
+            m = m.trim();
+            if (!m || m === "undefined") return "";
+            const cls = VALID_MODES.includes(m) ? m : "unknown";
+            return `<span class="badge ${cls}">${escHtml(m)}</span> `;
+          })
+          .join("");
+      }
+
+      // ============================================================
+      // 9. Stack Trace Root Cause Analysis
+      // ============================================================
+      async function loadStackAnalysis() {
+        const chartLoading = document.getElementById("stack-chart-loading");
+        const canvas = document.getElementById("chart-stack");
+        const tableWrap = document.getElementById("stack-table-wrap");
+        chartLoading.style.display = "block";
+        canvas.style.display = "none";
+        tableWrap.innerHTML = '<div class="loading"></div>';
+        destroyChart("stack");
+        try {
+          const rows = await apiFetch("/api/stack-analysis");
+          const total = rows.reduce((s, r) => s + r.count, 0);
+          const maxCount = rows[0]?.count || 1;
+
+          // Chart — top 15 root causes
+          const chartRows = rows.slice(0, 15);
+          chartLoading.style.display = "none";
+          canvas.style.display = "block";
+          chartInstances["stack"] = new Chart(canvas, {
+            type: "bar",
+            data: {
+              labels: chartRows.map((r) =>
+                r.rootCause.length > 40
+                  ? r.rootCause.slice(0, 37) + "…"
+                  : r.rootCause,
+              ),
+              datasets: [
+                {
+                  label: "Events",
+                  data: chartRows.map((r) => r.count),
+                  backgroundColor: chartRows.map(
+                    (_, i) => PALETTE[i % PALETTE.length],
+                  ),
+                  borderRadius: 4,
+                },
+              ],
+            },
+            options: {
+              indexAxis: "y",
+              plugins: { legend: { display: false } },
+              scales: {
+                x: { ticks: { color: "#8892b0" }, grid: { color: "#2e3350" } },
+                y: {
+                  ticks: { color: "#8892b0", font: { size: 11 } },
+                  grid: { color: "#2e3350" },
+                },
+              },
+            },
+          });
+
+          // Table — all root causes
+          tableWrap.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th>
+            <th>Root Cause</th>
+            <th>Count</th>
+            <th>% of Stack Events</th>
+            <th>Top Error Types</th>
+            <th>Modes</th>
+          </tr></thead>
+          <tbody>
+            ${rows
+              .map((r, i) => {
+                const pct =
+                  total > 0 ? ((r.count / total) * 100).toFixed(1) : "0.0";
+                return `
+                <tr>
+                  <td style="color:var(--muted);width:32px">${i + 1}</td>
+                  <td style="font-weight:600;font-size:13px">${escHtml(r.rootCause)}</td>
+                  <td>
+                    <div class="count-bar-wrap">
+                      <div class="count-bar" style="width:${Math.round((r.count / maxCount) * 80)}px;background:${PALETTE[i % PALETTE.length]}"></div>
+                      <span>${r.count.toLocaleString()}</span>
+                    </div>
+                  </td>
+                  <td style="color:var(--muted);font-size:12px">${pct}%</td>
+                  <td style="font-family:monospace;font-size:11px;color:var(--muted);max-width:260px;word-break:break-all">${escHtml(r.topEvents)}</td>
+                  <td>${modeBadges(r.topModes)}</td>
+                </tr>
+              `;
+              })
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+        } catch (e) {
+          chartLoading.style.display = "none";
+          tableWrap.innerHTML = `<div class="error-msg">⚠ ${e.message}</div>`;
+        }
+      }
+
+      // ============================================================
+      // Load all
+      // ============================================================
+      async function loadAll() {
+        if (isLoading) return;
+        isLoading = true;
+        document.getElementById("last-updated").textContent = "Loading…";
+        try {
+          await Promise.all([
+            loadVersions(),
+            loadSummary(),
+            loadTrend(),
+            loadTopErrors(),
+            loadByMode(),
+            loadByPlatform(),
+            loadByVersion(),
+            loadUnhandled(),
+            loadDetails(),
+            loadStackAnalysis(),
+          ]);
+          document.getElementById("last-updated").textContent =
+            "Updated " + new Date().toLocaleTimeString();
+        } finally {
+          isLoading = false;
+        }
+      }
+
+      // Re-fetch on filter changes
+      ["sel-days", "sel-mode", "sel-version"].forEach((id) => {
+        document.getElementById(id).addEventListener("change", loadAll);
+      });
+
+      // Initial load
+      loadAll();
+    </script>
+  </body>
+</html>

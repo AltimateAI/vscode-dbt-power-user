@@ -1,7 +1,5 @@
 # Accelerate dbt and SQL Development by 3x
 
-/// admonition | We've released our [Datamates Extension](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server) - to give you the power to use AI TeamMates! [Click here](https://datamates-docs.myaltimate.com/) to learn more.
-///
 
 Welcome to the docs for [dbt Power User VSCode Extension](https://marketplace.visualstudio.com/items?itemName=innoverio.vscode-dbt-power-user), an [open sourced](https://github.com/AltimateAI/vscode-dbt-power-user) extension created by [Altimate AI](https://www.altimate.ai/).
 

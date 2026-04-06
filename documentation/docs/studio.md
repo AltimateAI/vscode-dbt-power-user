@@ -234,9 +234,9 @@ When accessing Studio from the **Infra** page, you get assistance for infrastruc
 | **Chat History**            | The history for all the chats done through SaaS pages is retained and can be viewed on the main Studio page                    |
 
 /// admonition | Studio is currently in Beta. We're continuously improving the platform based on user feedback.
-type: info
+    type: info
 ///
 
 /// admonition | For more information and access to Studio, visit [app.myaltimate.com](https://app.myaltimate.com)
-type: tip
+    type: tip
 ///
