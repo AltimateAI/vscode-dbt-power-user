@@ -9,8 +9,6 @@ import {
   Range,
   TextDocument,
 } from "vscode";
-import { AltimateRequest } from "../altimate";
-
 export interface CteInfo {
   name: string;
   range: Range;
@@ -38,7 +36,6 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
   constructor(
     @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
-    private altimate: AltimateRequest,
   ) {}
 
   dispose() {
@@ -60,15 +57,6 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
         this.dbtTerminal.debug(
           "CteCodeLensProvider",
           `Skipping non-SQL file: ${document.languageId}`,
-        );
-        return [];
-      }
-
-      // Check if Altimate API key is configured
-      if (!this.altimate.enabled()) {
-        this.dbtTerminal.debug(
-          "CteCodeLensProvider",
-          "Skipping CTE code lens - Altimate API key not configured",
         );
         return [];
       }

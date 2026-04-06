@@ -1111,10 +1111,7 @@ container
 container
   .bind(CteCodeLensProvider)
   .toDynamicValue((context) => {
-    return new CteCodeLensProvider(
-      context.container.get("DBTTerminal"),
-      context.container.get(AltimateRequest),
-    );
+    return new CteCodeLensProvider(context.container.get("DBTTerminal"));
   })
   .inSingletonScope();
 

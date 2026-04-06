@@ -1,10 +1,4 @@
-import {
-  beforeEach,
-  describe,
-  expect,
-  it,
-  jest,
-} from "@jest/globals";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { workspace } from "vscode";
 import { NewLineagePanel } from "../../webview_provider/newLineagePanel";
 
@@ -60,10 +54,14 @@ describe("NewLineagePanel", () => {
   describe("getLineageSettings — defaultExpansion cap", () => {
     it("should cap defaultExpansion at 5 when user sets a higher value", async () => {
       const mockConfig = {
-        get: jest.fn<any>().mockImplementation((key: string, defaultVal: unknown) => {
-          if (key === "defaultExpansion") return 10;
-          return defaultVal;
-        }),
+        get: jest
+          .fn<any>()
+          .mockImplementation((key: string, defaultVal: unknown) => {
+            if (key === "defaultExpansion") {
+              return 10;
+            }
+            return defaultVal;
+          }),
       };
       (workspace.getConfiguration as jest.Mock).mockReturnValue(mockConfig);
 
@@ -88,10 +86,14 @@ describe("NewLineagePanel", () => {
 
     it("should pass through defaultExpansion when within limit", async () => {
       const mockConfig = {
-        get: jest.fn<any>().mockImplementation((key: string, defaultVal: unknown) => {
-          if (key === "defaultExpansion") return 3;
-          return defaultVal;
-        }),
+        get: jest
+          .fn<any>()
+          .mockImplementation((key: string, defaultVal: unknown) => {
+            if (key === "defaultExpansion") {
+              return 3;
+            }
+            return defaultVal;
+          }),
       };
       (workspace.getConfiguration as jest.Mock).mockReturnValue(mockConfig);
 
@@ -115,9 +117,11 @@ describe("NewLineagePanel", () => {
 
     it("should use default value of 1 when setting is not configured", async () => {
       const mockConfig = {
-        get: jest.fn<any>().mockImplementation((_key: string, defaultVal: unknown) => {
-          return defaultVal;
-        }),
+        get: jest
+          .fn<any>()
+          .mockImplementation((_key: string, defaultVal: unknown) => {
+            return defaultVal;
+          }),
       };
       (workspace.getConfiguration as jest.Mock).mockReturnValue(mockConfig);
 
