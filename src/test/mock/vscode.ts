@@ -172,6 +172,63 @@ export const languages = {
   registerCodeLensProvider: jest.fn().mockReturnValue({ dispose: jest.fn() }),
 };
 
+export const SymbolKind = {
+  File: 0,
+  Module: 1,
+  Namespace: 2,
+  Package: 3,
+  Class: 4,
+  Method: 5,
+  Property: 6,
+  Field: 7,
+  Constructor: 8,
+  Enum: 9,
+  Interface: 10,
+  Function: 11,
+  Variable: 12,
+  Constant: 13,
+  String: 14,
+  Number: 15,
+  Boolean: 16,
+  Array: 17,
+  Object: 18,
+  Key: 19,
+  Null: 20,
+  EnumMember: 21,
+  Struct: 22,
+  Event: 23,
+  Operator: 24,
+  TypeParameter: 25,
+};
+
+export class DocumentSymbol {
+  children: DocumentSymbol[] = [];
+
+  constructor(
+    public name: string,
+    public detail: string,
+    public kind: number,
+    public range: Range,
+    public selectionRange: Range,
+  ) {}
+}
+
+export class SymbolInformation {
+  constructor(
+    public name: string,
+    public kind: number,
+    public containerName: string,
+    public location: any,
+  ) {}
+}
+
+export class Location {
+  constructor(
+    public uri: any,
+    public range: any,
+  ) {}
+}
+
 export const resetMocks = () => {
   jest.clearAllMocks();
 };
