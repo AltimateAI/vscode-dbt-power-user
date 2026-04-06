@@ -806,6 +806,37 @@
         "command": "dbtPowerUser.applyDeferConfig",
         "category": "dbt Power User",
         "title": "Apply defer configuration"
+      },
+      {
+        "command": "dbtPowerUser.askAltimateAboutSelection",
+        "category": "dbt Power User",
+        "title": "Ask Altimate About Selection"
+      },
+      {
+        "command": "dbtPowerUser.explainWithAltimate",
+        "category": "dbt Power User",
+        "title": "Explain with Altimate"
+      },
+      {
+        "command": "dbtPowerUser.optimizeWithAltimate",
+        "category": "dbt Power User",
+        "title": "Optimize with Altimate"
+      },
+      {
+        "command": "dbtPowerUser.analyzeFileWithAltimate",
+        "category": "dbt Power User",
+        "title": "Analyze with Altimate"
+      },
+      {
+        "command": "dbtPowerUser.openAltimateChat",
+        "category": "dbt Power User",
+        "title": "Open Altimate Code Chat",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "dbtPowerUser.reviewCodeWithAltimate",
+        "category": "dbt Power User",
+        "title": "Review with Altimate"
       }
     ],
     "keybindings": [
@@ -908,7 +939,40 @@
           "group": "notebooks@5"
         }
       ],
+      "dbtPowerUser.altimateCodeSubmenu": [
+        {
+          "command": "dbtPowerUser.askAltimateAboutSelection",
+          "group": "1@1",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "dbtPowerUser.explainWithAltimate",
+          "group": "1@2"
+        },
+        {
+          "command": "dbtPowerUser.optimizeWithAltimate",
+          "group": "1@3",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        },
+        {
+          "command": "dbtPowerUser.reviewCodeWithAltimate",
+          "group": "2@1",
+          "when": "dbtPowerUser.fileHasGitChanges"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "dbtPowerUser.analyzeFileWithAltimate",
+          "group": "altimate@1",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$|^yaml$|^jinja-yaml$/"
+        }
+      ],
       "editor/title": [
+        {
+          "command": "dbtPowerUser.openAltimateChat",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$|^yaml$|^jinja-yaml$/",
+          "group": "navigation@0"
+        },
         {
           "command": "dbtPowerUser.executeSQL",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
@@ -941,6 +1005,11 @@
         }
       ],
       "editor/context": [
+        {
+          "submenu": "dbtPowerUser.altimateCodeSubmenu",
+          "group": "altimate@1",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$|^yaml$|^jinja-yaml$/"
+        },
         {
           "submenu": "dbtPowerUser.datapilotSubmenu",
           "group": "datapilot@1",
@@ -1138,6 +1207,10 @@
       {
         "id": "dbtPowerUser.datapilotSubmenu",
         "label": "Datapilot"
+      },
+      {
+        "id": "dbtPowerUser.altimateCodeSubmenu",
+        "label": "Altimate Code"
       }
     ],
     "languages": [

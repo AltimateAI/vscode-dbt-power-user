@@ -59,6 +59,7 @@ import {
 import { VSCodeDBTConfiguration } from "./dbt_client/vscodeConfiguration";
 import { VSCodeDBTTerminal } from "./dbt_client/vscodeTerminal";
 import { AltimateAuthService } from "./services/altimateAuthService";
+import { AltimateCodeChatService } from "./services/altimateCodeChatService";
 import { ConversationService } from "./services/conversationService";
 import { DbtLineageService } from "./services/dbtLineageService";
 import { DbtTestService } from "./services/dbtTestService";
@@ -91,8 +92,8 @@ import { SourceAutocompletionProvider } from "./autocompletion_provider/sourceAu
 import { UserCompletionProvider } from "./autocompletion_provider/usercompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
 import { CteCodeLensProvider } from "./code_lens_provider/cteCodeLensProvider";
-import { DocumentationCodeLensProvider } from "./code_lens_provider/documentationCodeLensProvider";
 import { SourceModelCreationCodeLensProvider } from "./code_lens_provider/sourceModelCreationCodeLensProvider";
+import { SqlActionsCodeLensProvider } from "./code_lens_provider/sqlActionsCodeLensProvider";
 import { VirtualSqlCodeLensProvider } from "./code_lens_provider/virtualSqlCodeLensProvider";
 import { DefinitionProviders } from "./definition_provider";
 import { DocDefinitionProvider } from "./definition_provider/docDefinitionProvider";
@@ -863,6 +864,13 @@ container
   .inSingletonScope();
 
 container
+  .bind(AltimateCodeChatService)
+  .toDynamicValue(() => {
+    return new AltimateCodeChatService();
+  })
+  .inSingletonScope();
+
+container
   .bind(RunHistoryService)
   .toDynamicValue(() => {
     return new RunHistoryService();
@@ -1062,8 +1070,8 @@ container
       context.container.get(DBTProjectContainer),
       context.container.get(SourceModelCreationCodeLensProvider),
       context.container.get(VirtualSqlCodeLensProvider),
-      context.container.get(DocumentationCodeLensProvider),
       context.container.get(CteCodeLensProvider),
+      context.container.get(SqlActionsCodeLensProvider),
     );
   })
   .inSingletonScope();
@@ -1079,9 +1087,11 @@ container
   .inSingletonScope();
 
 container
-  .bind(DocumentationCodeLensProvider)
-  .toDynamicValue(() => {
-    return new DocumentationCodeLensProvider();
+  .bind(SqlActionsCodeLensProvider)
+  .toDynamicValue((context) => {
+    return new SqlActionsCodeLensProvider(
+      context.container.get(AltimateCodeChatService),
+    );
   })
   .inSingletonScope();
 
@@ -1536,6 +1546,7 @@ container
       context.container.get(AltimateRequest),
       context.container.get("DatapilotNotebookController"),
       context.container.get(RunHistoryService),
+      context.container.get(AltimateCodeChatService),
     );
   })
   .inSingletonScope();

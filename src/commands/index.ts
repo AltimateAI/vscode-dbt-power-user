@@ -34,6 +34,7 @@ import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
 import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
+import { AltimateCodeChatService } from "../services/altimateCodeChatService";
 import { DiagnosticsOutputChannel } from "../services/diagnosticsOutputChannel";
 import { QueryManifestService } from "../services/queryManifestService";
 import { RunHistoryService } from "../services/runHistoryService";
@@ -77,6 +78,7 @@ export class VSCodeCommands implements Disposable {
     private altimate: AltimateRequest,
     private notebookController: DatapilotNotebookController,
     private runHistoryService: RunHistoryService,
+    private altimateCodeChatService: AltimateCodeChatService,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -665,8 +667,12 @@ export class VSCodeCommands implements Disposable {
               targets,
             );
             const sortedTargets = (targets as string[]).sort((a, b) => {
-              if (a === currentTarget) return -1;
-              if (b === currentTarget) return 1;
+              if (a === currentTarget) {
+                return -1;
+              }
+              if (b === currentTarget) {
+                return 1;
+              }
               return 0;
             });
             const items = sortedTargets.map((t) => ({
@@ -909,6 +915,73 @@ export class VSCodeCommands implements Disposable {
           window.showErrorMessage(
             `Failed to apply defer configuration: ${error}`,
           );
+        }
+      }),
+      commands.registerCommand(
+        "dbtPowerUser.askAltimateAboutSelection",
+        async () => {
+          const context = this.altimateCodeChatService.getEditorContext();
+          if (!context) {
+            return;
+          }
+          await this.altimateCodeChatService.openChat({
+            initialMessage: `Regarding this code from \`@${context.relativePath}\`:\n\`\`\`\n${context.code}\n\`\`\``,
+            title: `Ask: ${context.fileName}`,
+          });
+        },
+      ),
+      commands.registerCommand("dbtPowerUser.explainWithAltimate", async () => {
+        const context = this.altimateCodeChatService.getEditorContext();
+        if (!context) {
+          return;
+        }
+        await this.altimateCodeChatService.openChat({
+          initialMessage: `Explain the following code from \`@${context.relativePath}\`:\n\`\`\`sql\n${context.code}\n\`\`\``,
+          title: `Explain: ${context.fileName}`,
+        });
+      }),
+      commands.registerCommand(
+        "dbtPowerUser.optimizeWithAltimate",
+        async () => {
+          const context = this.altimateCodeChatService.getEditorContext();
+          if (!context) {
+            return;
+          }
+          await this.altimateCodeChatService.openChat({
+            initialMessage: `Optimize the following SQL from \`@${context.relativePath}\` for performance and readability:\n\`\`\`sql\n${context.code}\n\`\`\``,
+            title: `Optimize: ${context.fileName}`,
+          });
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.analyzeFileWithAltimate",
+        async (uri?: Uri) => {
+          const fileUri = uri ?? window.activeTextEditor?.document.uri;
+          if (!fileUri) {
+            return;
+          }
+          const ctx = this.altimateCodeChatService.getContextForUri(fileUri);
+          if (!ctx) {
+            return;
+          }
+          await this.altimateCodeChatService.openChat({
+            initialMessage: `Analyze \`@${ctx.relativePath}\` for dbt best practices, performance, and documentation completeness.`,
+            title: `Analyze: ${ctx.fileName}`,
+          });
+        },
+      ),
+      commands.registerCommand("dbtPowerUser.openAltimateChat", async () => {
+        const context = this.altimateCodeChatService.getEditorContext();
+        if (context) {
+          await this.altimateCodeChatService.openChat({
+            initialMessage: `Help me with \`@${context.relativePath}\`:\n\`\`\`\n${context.code}\n\`\`\``,
+            title: `Chat: ${context.fileName}`,
+          });
+        } else {
+          await this.altimateCodeChatService.openChat({
+            initialMessage: "How can I help you with your dbt project?",
+            title: "Altimate Code Chat",
+          });
         }
       }),
     );
