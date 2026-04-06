@@ -3,6 +3,8 @@ import { DatapilotNotebookController, OpenNotebookRequest } from "@lib";
 import { existsSync, readFileSync } from "fs";
 import { inject } from "inversify";
 import {
+  CancellationTokenSource,
+  CodeLens,
   commands,
   CommentReply,
   CommentThread,
@@ -22,7 +24,10 @@ import {
   workspace,
 } from "vscode";
 import { AltimateRequest } from "../altimate";
-import { CteInfo } from "../code_lens_provider/cteCodeLensProvider";
+import {
+  CteCodeLensProvider,
+  CteInfo,
+} from "../code_lens_provider/cteCodeLensProvider";
 import {
   ConversationCommentThread,
   ConversationProvider,
@@ -83,6 +88,7 @@ export class VSCodeCommands implements Disposable {
     private altimateCodeChatService: AltimateCodeChatService,
     private cteProfilerService: CteProfilerService,
     private cteProfilerDecorationProvider: CteProfilerDecorationProvider,
+    private cteCodeLensProvider: CteCodeLensProvider,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -116,13 +122,21 @@ export class VSCodeCommands implements Disposable {
       }),
       commands.registerCommand(
         "dbtPowerUser.profileCtes",
-        async (uri: Uri, ctes: CteInfo[]) => {
+        async (uri?: Uri, ctes?: CteInfo[]) => {
+          // When called from command palette, args are undefined — use active editor
+          const activeEditor = window.activeTextEditor;
+          const docUri = uri ?? activeEditor?.document.uri;
+          if (!docUri) {
+            window.showErrorMessage("No active SQL file to profile.");
+            return;
+          }
+
           let document = workspace.textDocuments.find(
-            (doc) => doc.uri.toString() === uri.toString(),
+            (doc) => doc.uri.toString() === docUri.toString(),
           );
           if (!document) {
             try {
-              document = await workspace.openTextDocument(uri);
+              document = await workspace.openTextDocument(docUri);
             } catch (error) {
               this.dbtTerminal.error(
                 "CteProfiler",
@@ -133,7 +147,35 @@ export class VSCodeCommands implements Disposable {
               return;
             }
           }
-          this.cteProfilerService.profileModel(uri, document, ctes);
+
+          // If ctes not provided (command palette), re-detect from CodeLens provider
+          if (!ctes) {
+            const cts = new CancellationTokenSource();
+            const codeLenses = this.cteCodeLensProvider.provideCodeLenses(
+              document,
+              cts.token,
+            );
+            const resolved =
+              codeLenses instanceof Promise ? await codeLenses : codeLenses;
+            cts.dispose();
+            // Extract CteInfo from CodeLens arguments (index 1 is the ctes array)
+            const profileLens = resolved.find(
+              (cl: CodeLens) =>
+                cl.command?.command === "dbtPowerUser.profileCtes",
+            );
+            ctes = profileLens?.command?.arguments?.[1] as
+              | CteInfo[]
+              | undefined;
+
+            if (!ctes || ctes.length === 0) {
+              window.showInformationMessage(
+                "No CTEs found in this file to profile.",
+              );
+              return;
+            }
+          }
+
+          this.cteProfilerService.profileModel(docUri, document, ctes);
         },
       ),
       commands.registerCommand("dbtPowerUser.cancelCteProfiling", () =>

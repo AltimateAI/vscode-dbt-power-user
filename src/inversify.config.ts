@@ -1578,6 +1578,7 @@ container
       context.container.get(AltimateCodeChatService),
       context.container.get(CteProfilerService),
       context.container.get(CteProfilerDecorationProvider),
+      context.container.get(CteCodeLensProvider),
     );
   })
   .inSingletonScope();
