@@ -1221,6 +1221,18 @@
           "dark": "./media/images/dbt_file_icon.svg"
         }
       }
+    ],
+    "grammars": [
+      {
+        "language": "jinja-sql",
+        "scopeName": "source.sql.jinja",
+        "path": "./syntaxes/jinja-sql.tmLanguage.json"
+      },
+      {
+        "scopeName": "source.yaml.jinja",
+        "path": "./syntaxes/jinja-yaml.tmLanguage.json",
+        "injectTo": ["source.yaml"]
+      }
     ]
   },
   "scripts": {
