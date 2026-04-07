@@ -6,6 +6,7 @@ import {
   FileTextOutlined,
   FolderOpenOutlined,
   SyncOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
@@ -46,7 +47,13 @@ interface DiagnosticsStatus {
 
 type DbtIntegrationType = "core" | "fusion" | "cloud";
 
-type CheckStatus = "pending" | "checking" | "success" | "error";
+type CheckStatus = "pending" | "checking" | "success" | "warning" | "error";
+
+interface CheckAction {
+  label: string;
+  command?: string;
+  customAction?: () => void;
+}
 
 interface PrerequisiteCheck {
   id: string;
@@ -54,11 +61,8 @@ interface PrerequisiteCheck {
   description: string;
   status: CheckStatus;
   icon: React.ReactNode;
-  action?: {
-    label: string;
-    command?: string;
-    customAction?: () => void;
-  };
+  action?: CheckAction;
+  secondaryAction?: CheckAction;
 }
 
 interface Project {
@@ -127,6 +131,10 @@ const PrerequisitesStep = forwardRef<
       action: {
         label: "Select Interpreter",
         command: "python.setInterpreter",
+      },
+      secondaryAction: {
+        label: "Detect from terminal",
+        command: "dbtPowerUser.detectPythonFromTerminal",
       },
     },
     {
@@ -200,7 +208,14 @@ const PrerequisitesStep = forwardRef<
           if (check.id === "project") {
             newStatus = status.projectsFound ? "success" : "error";
           } else if (check.id === "python") {
-            newStatus = status.pythonInstalled ? "success" : "error";
+            if (!status.pythonInstalled) {
+              newStatus = "error";
+            } else if (!status.dbtInstalled) {
+              // Python found but dbt is not installed in this interpreter
+              newStatus = "warning";
+            } else {
+              newStatus = "success";
+            }
           } else if (check.id === "dbt") {
             newStatus = status.dbtInstalled ? "success" : "error";
           } else if (check.id === "fileAssociations") {
@@ -305,25 +320,37 @@ const PrerequisitesStep = forwardRef<
     };
   }, []);
 
-  const handleAction = async (check: PrerequisiteCheck) => {
-    if (check.action?.customAction) {
-      check.action.customAction();
-    } else if (check.action?.command) {
+  const executeCheckAction = async (action: CheckAction, checkId: string) => {
+    if (action.customAction) {
+      action.customAction();
+    } else if (action.command) {
       try {
         await executeRequestInSync("executeCommand", {
-          vscodeCommand: check.action.command,
+          vscodeCommand: action.command,
         });
 
         // Re-run diagnostics after executing command
         setTimeout(() => void runDiagnostics(), 1000);
       } catch (err) {
-        panelLogger.error(`Error executing action for ${check.id}`, err);
+        panelLogger.error(`Error executing action for ${checkId}`, err);
         setError(
           err instanceof Error
             ? err.message
-            : `Failed to execute ${check.action.label}`,
+            : `Failed to execute ${action.label}`,
         );
       }
+    }
+  };
+
+  const handleAction = async (check: PrerequisiteCheck) => {
+    if (check.action) {
+      await executeCheckAction(check.action, check.id);
+    }
+  };
+
+  const handleSecondaryAction = async (check: PrerequisiteCheck) => {
+    if (check.secondaryAction) {
+      await executeCheckAction(check.secondaryAction, check.id);
     }
   };
 
@@ -368,6 +395,8 @@ const PrerequisitesStep = forwardRef<
         return <SyncOutlined spin style={{ color: "#1890ff" }} />;
       case "success":
         return <CheckCircleOutlined style={{ color: "#52c41a" }} />;
+      case "warning":
+        return <WarningOutlined style={{ color: "#faad14" }} />;
       case "error":
         return <CloseCircleOutlined style={{ color: "#ff4d4f" }} />;
       default:
@@ -433,54 +462,59 @@ const PrerequisitesStep = forwardRef<
             </p>
           </div>
         );
-      case "python":
+      case "python": {
+        const pythonCheck = checks.find((c) => c.id === "python");
+        const showDetailButtons = pythonCheck?.status === "success";
         return (
-          <div
-            style={{
-              ...detailStyle,
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.5rem",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <div style={{ flex: 1 }}>
-                {diagnostics.pythonPath && (
-                  <p
-                    style={{ ...labelStyle, wordBreak: "break-all", margin: 0 }}
-                  >
-                    <strong>Path:</strong>{" "}
-                    <code style={codeStyle}>{diagnostics.pythonPath}</code>
-                  </p>
-                )}
-                {diagnostics.pythonVersion && (
-                  <p style={{ ...labelStyle, margin: "0.25rem 0 0 0" }}>
-                    <strong>Version:</strong> {diagnostics.pythonVersion}
-                  </p>
-                )}
-              </div>
-              <Button
-                size="small"
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  const check = checks.find((c) => c.id === "python");
-                  if (check) {
-                    await handleAction(check);
-                  }
+          <div style={detailStyle}>
+            {diagnostics.pythonPath && (
+              <p style={{ ...labelStyle, wordBreak: "break-all", margin: 0 }}>
+                <strong>Path:</strong>{" "}
+                <code style={codeStyle}>{diagnostics.pythonPath}</code>
+              </p>
+            )}
+            {diagnostics.pythonVersion && (
+              <p style={{ ...labelStyle, margin: "0.25rem 0 0 0" }}>
+                <strong>Version:</strong> {diagnostics.pythonVersion}
+              </p>
+            )}
+            {showDetailButtons && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: "0.5rem",
+                  marginTop: "0.5rem",
                 }}
-                disabled={checking}
               >
-                Change
-              </Button>
-            </div>
+                <Button
+                  size="small"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (pythonCheck) {
+                      await handleAction(pythonCheck);
+                    }
+                  }}
+                  disabled={checking}
+                >
+                  Change
+                </Button>
+                <Button
+                  size="small"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (pythonCheck) {
+                      await handleSecondaryAction(pythonCheck);
+                    }
+                  }}
+                  disabled={checking}
+                >
+                  Detect from terminal
+                </Button>
+              </div>
+            )}
           </div>
         );
+      }
       case "dbt":
         return (
           <div style={detailStyle}>
@@ -681,53 +715,70 @@ const PrerequisitesStep = forwardRef<
           </Card>
 
           <div className={classes.prerequisiteChecks}>
-            {checks.map((check) => (
-              <Card
-                key={check.id}
-                className={classes.prerequisiteCard}
-                onClick={() =>
-                  check.status === "success" && toggleCheckDetails(check.id)
-                }
-                style={{
-                  cursor: check.status === "success" ? "pointer" : "default",
-                }}
-              >
-                <div className={classes.prerequisiteCardHeader}>
-                  <div className={classes.prerequisiteCardTitle}>
-                    <span className={classes.prerequisiteIcon}>
-                      {check.icon}
-                    </span>
-                    <div style={{ flex: 1 }}>
-                      <h3>{check.title}</h3>
-                      <p className={classes.prerequisiteDescription}>
-                        {check.description}
-                      </p>
-                      {check.status === "success" &&
-                        expandedCheckId === check.id &&
-                        getCheckDetails(check.id)}
+            {checks.map((check) => {
+              const canExpand =
+                check.status === "success" || check.status === "warning";
+              return (
+                <Card
+                  key={check.id}
+                  className={classes.prerequisiteCard}
+                  onClick={() => canExpand && toggleCheckDetails(check.id)}
+                  style={{
+                    cursor: canExpand ? "pointer" : "default",
+                  }}
+                >
+                  <div className={classes.prerequisiteCardHeader}>
+                    <div className={classes.prerequisiteCardTitle}>
+                      <span className={classes.prerequisiteIcon}>
+                        {check.icon}
+                      </span>
+                      <div style={{ flex: 1 }}>
+                        <h3>{check.title}</h3>
+                        <p className={classes.prerequisiteDescription}>
+                          {check.status === "warning"
+                            ? "Python found, but dbt is not installed in this interpreter"
+                            : check.description}
+                        </p>
+                        {canExpand &&
+                          expandedCheckId === check.id &&
+                          getCheckDetails(check.id)}
+                      </div>
+                    </div>
+                    <div className={classes.prerequisiteStatus}>
+                      {getStatusIcon(check.status)}
                     </div>
                   </div>
-                  <div className={classes.prerequisiteStatus}>
-                    {getStatusIcon(check.status)}
-                  </div>
-                </div>
 
-                {check.status === "error" && check.action && (
-                  <div className={classes.prerequisiteAction}>
-                    <Button
-                      type="primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void handleAction(check);
-                      }}
-                      disabled={checking}
-                    >
-                      {check.action.label}
-                    </Button>
-                  </div>
-                )}
-              </Card>
-            ))}
+                  {(check.status === "error" || check.status === "warning") &&
+                    check.action && (
+                      <div className={classes.prerequisiteAction}>
+                        <Button
+                          type="primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleAction(check);
+                          }}
+                          disabled={checking}
+                        >
+                          {check.action.label}
+                        </Button>
+                        {check.secondaryAction && (
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleSecondaryAction(check);
+                            }}
+                            disabled={checking}
+                            style={{ marginLeft: "0.5rem" }}
+                          >
+                            {check.secondaryAction.label}
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                </Card>
+              );
+            })}
           </div>
         </>
       )}

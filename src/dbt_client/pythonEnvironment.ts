@@ -4,7 +4,9 @@ import {
   Disposable,
   Event,
   extensions,
+  Terminal,
   Uri,
+  window,
   workspace,
   WorkspaceFolder,
 } from "vscode";
@@ -161,6 +163,122 @@ export class PythonEnvironment {
       value = value.replace("${workspaceFolder}", resolvedFolder.uri.fsPath);
     }
     return value;
+  }
+
+  /**
+   * Detect Python with dbt installed from the VS Code integrated terminal.
+   * Uses shell integration API to execute a probe command in a real terminal
+   * (which has the user's shell profile, venv activations, conda, etc.).
+   * Returns undefined if no terminal with shell integration is available.
+   */
+  public async detectPythonFromShell(): Promise<string | undefined> {
+    // Unique markers to reliably extract the path from noisy terminal output.
+    const startMarker = "__DBT_DETECT_START__";
+    const endMarker = "__DBT_DETECT_END__";
+    // Build a platform-appropriate command string.
+    // POSIX shells: outer single quotes, inner double quotes in Python code.
+    // Windows/PowerShell: outer double quotes, inner single quotes in Python code.
+    const isWindows = process.platform === "win32";
+    const pyCodePosix = `import sys; __import__("dbt"); print("${startMarker}"); print(sys.executable); print("${endMarker}")`;
+    const pyCodeWin = `import sys; __import__('dbt'); print('${startMarker}'); print(sys.executable); print('${endMarker}')`;
+    const buildCmd = (pythonCmd: string) =>
+      isWindows
+        ? `${pythonCmd} -c "${pyCodeWin}"`
+        : `${pythonCmd} -c '${pyCodePosix}'`;
+
+    const terminal = this.findTerminalWithShellIntegration();
+    if (!terminal?.shellIntegration) {
+      this.dbtTerminal.debug(
+        "pythonEnvironment:detectPythonFromShell",
+        "No terminal with shell integration found",
+      );
+      return undefined;
+    }
+
+    this.dbtTerminal.debug(
+      "pythonEnvironment:detectPythonFromShell",
+      `Using terminal: ${terminal.name}`,
+    );
+    for (const pythonCmd of ["python3", "python"]) {
+      const result = await this.executeInTerminal(
+        terminal,
+        buildCmd(pythonCmd),
+        startMarker,
+        endMarker,
+      );
+      if (result) {
+        return result;
+      }
+    }
+
+    return undefined;
+  }
+
+  private findTerminalWithShellIntegration(): Terminal | undefined {
+    // Prefer the active terminal if it has shell integration
+    const active = window.activeTerminal;
+    if (active?.shellIntegration) {
+      return active;
+    }
+    // Otherwise find any terminal with shell integration
+    return window.terminals.find((t) => t.shellIntegration !== undefined);
+  }
+
+  private async executeInTerminal(
+    terminal: Terminal,
+    commandLine: string,
+    startMarker: string,
+    endMarker: string,
+  ): Promise<string | undefined> {
+    if (!terminal.shellIntegration) {
+      return undefined;
+    }
+    const execution = terminal.shellIntegration.executeCommand(commandLine);
+    // Race the stream read against a 10s timeout to avoid hanging indefinitely
+    const output = await Promise.race([
+      (async () => {
+        let collected = "";
+        for await (const data of execution.read()) {
+          collected += data;
+        }
+        return collected;
+      })(),
+      new Promise<undefined>((resolve) =>
+        setTimeout(() => resolve(undefined), 10_000),
+      ),
+    ]);
+    if (output === undefined) {
+      this.dbtTerminal.debug(
+        "pythonEnvironment:executeInTerminal",
+        `Timed out executing: ${commandLine}`,
+      );
+      return undefined;
+    }
+    // Strip ANSI/OSC escape codes and control characters
+    const cleaned = output.replace(
+      // eslint-disable-next-line no-control-regex
+      /\x1B(?:\][^\x07\x1B]*(?:\x07|\x1B\\)|[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g,
+      "",
+    );
+    this.dbtTerminal.debug(
+      "pythonEnvironment:executeInTerminal",
+      `Terminal output (cleaned): ${cleaned.slice(0, 500)}`,
+    );
+    // Extract the path between our unique markers
+    const startIdx = cleaned.indexOf(startMarker);
+    const endIdx = cleaned.indexOf(endMarker);
+    if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
+      return undefined;
+    }
+    const between = cleaned.slice(startIdx + startMarker.length, endIdx).trim();
+    if (between) {
+      this.dbtTerminal.debug(
+        "pythonEnvironment:executeInTerminal",
+        `Detected Python with dbt at: ${between}`,
+      );
+      return between;
+    }
+    return undefined;
   }
 
   private async activatePythonExtension(): Promise<PythonExecutionDetails> {
