@@ -1,5 +1,4 @@
 import { DBTTerminal, EnvironmentVariables } from "@altimateai/dbt-integration";
-import { execFile } from "child_process";
 import { inject } from "inversify";
 import {
   Disposable,
@@ -170,8 +169,7 @@ export class PythonEnvironment {
    * Detect Python with dbt installed from the VS Code integrated terminal.
    * Uses shell integration API to execute a probe command in a real terminal
    * (which has the user's shell profile, venv activations, conda, etc.).
-   * Falls back to spawning a login shell child process if shell integration
-   * is not available.
+   * Returns undefined if no terminal with shell integration is available.
    */
   public async detectPythonFromShell(): Promise<string | undefined> {
     // Unique markers to reliably extract the path from noisy terminal output.
@@ -188,58 +186,29 @@ export class PythonEnvironment {
         ? `${pythonCmd} -c "${pyCodeWin}"`
         : `${pythonCmd} -c '${pyCodePosix}'`;
 
-    // Try the active terminal first, then any existing terminal with shell integration
-    const existingTerminal = this.findTerminalWithShellIntegration();
-    if (existingTerminal?.shellIntegration) {
+    const terminal = this.findTerminalWithShellIntegration();
+    if (!terminal?.shellIntegration) {
       this.dbtTerminal.debug(
         "pythonEnvironment:detectPythonFromShell",
-        `Using existing terminal: ${existingTerminal.name}`,
+        "No terminal with shell integration found",
       );
-      for (const pythonCmd of ["python3", "python"]) {
-        const result = await this.executeInTerminal(
-          existingTerminal,
-          buildCmd(pythonCmd),
-          startMarker,
-          endMarker,
-        );
-        if (result) {
-          return result;
-        }
-      }
+      return undefined;
     }
 
-    // If no existing terminal has shell integration, create one and wait for it
     this.dbtTerminal.debug(
       "pythonEnvironment:detectPythonFromShell",
-      "No terminal with shell integration found, creating a new one",
+      `Using terminal: ${terminal.name}`,
     );
-    const created = window.createTerminal({
-      name: "dbt Python Detection",
-      hideFromUser: true,
-    });
-    try {
-      const shellIntegration = await this.waitForShellIntegration(created);
-      if (shellIntegration) {
-        for (const pythonCmd of ["python3", "python"]) {
-          const result = await this.executeInTerminal(
-            created,
-            buildCmd(pythonCmd),
-            startMarker,
-            endMarker,
-          );
-          if (result) {
-            return result;
-          }
-        }
-      } else {
-        this.dbtTerminal.debug(
-          "pythonEnvironment:detectPythonFromShell",
-          "Shell integration not available, falling back to child process",
-        );
-        return this.detectPythonViaChildProcess();
+    for (const pythonCmd of ["python3", "python"]) {
+      const result = await this.executeInTerminal(
+        terminal,
+        buildCmd(pythonCmd),
+        startMarker,
+        endMarker,
+      );
+      if (result) {
+        return result;
       }
-    } finally {
-      created.dispose();
     }
 
     return undefined;
@@ -253,29 +222,6 @@ export class PythonEnvironment {
     }
     // Otherwise find any terminal with shell integration
     return window.terminals.find((t) => t.shellIntegration !== undefined);
-  }
-
-  private waitForShellIntegration(
-    terminal: Terminal,
-  ): Promise<typeof terminal.shellIntegration> {
-    if (terminal.shellIntegration) {
-      return Promise.resolve(terminal.shellIntegration);
-    }
-    return new Promise((resolve) => {
-      const listener = window.onDidChangeTerminalShellIntegration((e) => {
-        if (e.terminal === terminal) {
-          clearTimeout(timeout);
-          listener.dispose();
-          resolve(e.shellIntegration);
-        }
-      });
-      // Track listener so it's cleaned up if the class is disposed before the timeout
-      this.disposables.push(listener);
-      const timeout = setTimeout(() => {
-        listener.dispose();
-        resolve(undefined);
-      }, 5_000);
-    });
   }
 
   private async executeInTerminal(
@@ -333,69 +279,6 @@ export class PythonEnvironment {
       return between;
     }
     return undefined;
-  }
-
-  /** Fallback: spawn a login shell child process to detect Python with dbt */
-  private async detectPythonViaChildProcess(): Promise<string | undefined> {
-    const isWindows = process.platform === "win32";
-    const pyCode = 'import sys; __import__("dbt"); print(sys.executable)';
-    for (const pythonCmd of ["python3", "python"]) {
-      const result = await this.probeChildProcess(pythonCmd, pyCode, isWindows);
-      if (result) {
-        return result;
-      }
-    }
-    return undefined;
-  }
-
-  private probeChildProcess(
-    pythonCmd: string,
-    pyCode: string,
-    isWindows: boolean,
-  ): Promise<string | undefined> {
-    return new Promise((resolve) => {
-      let cmd: string;
-      let args: string[];
-
-      if (isWindows) {
-        cmd = pythonCmd;
-        args = ["-c", pyCode];
-      } else {
-        const shell = process.env.SHELL || "/bin/bash";
-        cmd = shell;
-        args = [
-          "-l",
-          "-c",
-          `${pythonCmd} -c '${pyCode.replace(/'/g, "'\\''")}'`,
-        ];
-      }
-
-      execFile(cmd, args, { timeout: 10_000 }, (error, stdout) => {
-        if (error) {
-          this.dbtTerminal.debug(
-            "pythonEnvironment:probeChildProcess",
-            `Probe failed for ${pythonCmd}: ${error.message}`,
-          );
-          resolve(undefined);
-          return;
-        }
-        // Take the last non-empty line to skip shell startup noise
-        const detectedPath = stdout
-          .split(/\r?\n/)
-          .map((line) => line.trim())
-          .filter(Boolean)
-          .at(-1);
-        if (detectedPath) {
-          this.dbtTerminal.debug(
-            "pythonEnvironment:probeChildProcess",
-            `Detected Python with dbt at: ${detectedPath}`,
-          );
-          resolve(detectedPath);
-        } else {
-          resolve(undefined);
-        }
-      });
-    });
   }
 
   private async activatePythonExtension(): Promise<PythonExecutionDetails> {
