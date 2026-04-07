@@ -65,7 +65,7 @@ const PerspectiveViewer = ({
       case "Text":
         return "string";
       case "Integer":
-        return "integer";
+        return "float";
       case "BigInteger":
         return "string";
       case "Number":
