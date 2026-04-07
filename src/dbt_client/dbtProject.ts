@@ -67,6 +67,7 @@ import {
   extendErrorWithSupportLinks,
   getColumnNameByCase,
   getProjectRelativePath,
+  resolveSettingsVariables,
 } from "../utils";
 import { ValidationProvider } from "../validation_provider";
 import { DBTProjectLog } from "./dbtProjectLog";
@@ -1752,10 +1753,16 @@ export class DBTProject implements Disposable {
       .get("deferConfigPerProject", {});
     if (currentConfig[relativePath]) {
       const config = currentConfig[relativePath];
+      const resolvedManifestPath = config.manifestPathForDeferral
+        ? resolveSettingsVariables(
+            config.manifestPathForDeferral,
+            this.projectRoot,
+          )
+        : config.manifestPathForDeferral;
       return new DeferConfig(
         config.deferToProduction,
         config.favorState,
-        config.manifestPathForDeferral,
+        resolvedManifestPath,
         config.manifestPathType,
         config.dbtCoreIntegrationId,
       );
