@@ -69,7 +69,9 @@ Add to `.mcp.json` (project or global):
 }
 ```
 
-The package is `@playwright/mcp` (NOT `@anthropic-ai/mcp-playwright`). Use `--executable-path` to point to the system Chromium to avoid needing `npx playwright install`.
+> **Note:** The `--executable-path` above is a Linux example. On macOS, point to your browser binary instead (e.g. `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"`), or omit `--executable-path` entirely and run `npx playwright install` to use Playwright's bundled Chromium.
+
+The package is `@playwright/mcp` (NOT `@anthropic-ai/mcp-playwright`).
 
 ### Automated E2E Test Checklist
 
@@ -124,7 +126,8 @@ mcp__playwright__browser_wait_for → 20 seconds (extension activation + dbt par
 
 **7. Open file** — two approaches, tree click is more reliable:
 
-*Option A: Click file tree* (recommended — Ctrl+P can be flaky in Playwright):
+_Option A: Click file tree_ (recommended — Ctrl+P can be flaky in Playwright):
+
 ```
 mcp__playwright__browser_evaluate →
   const items = document.querySelectorAll('[role="treeitem"]');
@@ -132,7 +135,8 @@ mcp__playwright__browser_evaluate →
   if (target) { target.click(); target.click(); } // double-click to pin tab
 ```
 
-*Option B: Quick Open* (sometimes the file doesn't open — retry if title doesn't change):
+_Option B: Quick Open_ (sometimes the file doesn't open — retry if title doesn't change):
+
 ```
 mcp__playwright__browser_press_key → Control+P
 mcp__playwright__browser_snapshot → find textbox ref
@@ -150,16 +154,16 @@ mcp__playwright__browser_take_screenshot
 
 ### Common Pitfalls
 
-| Pitfall                                   | Symptom                                | Fix                                                                                       |
-| ----------------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `docker compose restart` after rebuild    | Tests pass/fail inconsistently         | Always use `up --build`                                                                   |
-| Browser connects before `dbt seed`        | "Table does not exist" error           | Seed first, then navigate                                                                 |
-| Extension marked as "removed"             | No dbt commands in palette             | Symlink must use versioned name (`innoverio.vscode-dbt-power-user-0.60.1`), not bare name. `extensions.json` registration alone is insufficient — code-server's obsolete scanner matches directory names. See PR #1859. |
-| Wrong Playwright package                  | MCP fails to connect                   | Use `@playwright/mcp`, not `@anthropic-ai/mcp-playwright`                                 |
-| `cd` into `node_modules/` for symlink ops | Subsequent commands run from wrong dir | Use absolute paths or don't cd                                                            |
-| Multiple worktrees on same Docker setup   | Port conflict / container name collision | Use `docker compose -p <project-name>` and different ports in `docker-compose.override.yml` |
-| Quick Open (`Ctrl+P`) doesn't open file   | File stays on previous tab             | Use `evaluate()` to click tree items directly: `document.querySelectorAll('[role="treeitem"]')` find + click. More reliable than Quick Open in Playwright. |
-| `.sql` files open as "MS SQL" not "Jinja SQL" | No dbt-specific syntax highlighting  | Expected until `jinjahtml` activates. Extension activation order varies — `jinjahtml` maps `.sql` → `jinja-sql` but may not be ready when the file first opens. Reload or reopen the file. |
+| Pitfall                                       | Symptom                                  | Fix                                                                                                                                                                                                                     |
+| --------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docker compose restart` after rebuild        | Tests pass/fail inconsistently           | Always use `up --build`                                                                                                                                                                                                 |
+| Browser connects before `dbt seed`            | "Table does not exist" error             | Seed first, then navigate                                                                                                                                                                                               |
+| Extension marked as "removed"                 | No dbt commands in palette               | Symlink must use versioned name (`innoverio.vscode-dbt-power-user-0.60.1`), not bare name. `extensions.json` registration alone is insufficient — code-server's obsolete scanner matches directory names. See PR #1859. |
+| Wrong Playwright package                      | MCP fails to connect                     | Use `@playwright/mcp`, not `@anthropic-ai/mcp-playwright`                                                                                                                                                               |
+| `cd` into `node_modules/` for symlink ops     | Subsequent commands run from wrong dir   | Use absolute paths or don't cd                                                                                                                                                                                          |
+| Multiple worktrees on same Docker setup       | Port conflict / container name collision | Use `docker compose -p <project-name>` and different ports in `docker-compose.override.yml`                                                                                                                             |
+| Quick Open (`Ctrl+P`) doesn't open file       | File stays on previous tab               | Use `evaluate()` to click tree items directly: `document.querySelectorAll('[role="treeitem"]')` find + click. More reliable than Quick Open in Playwright.                                                              |
+| `.sql` files open as "MS SQL" not "Jinja SQL" | No dbt-specific syntax highlighting      | Expected until `jinjahtml` activates. Extension activation order varies — `jinjahtml` maps `.sql` → `jinja-sql` but may not be ready when the file first opens. Reload or reopen the file.                              |
 
 ## Troubleshooting
 
