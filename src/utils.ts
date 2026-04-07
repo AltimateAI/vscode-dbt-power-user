@@ -429,3 +429,43 @@ export function getDepthColor(depth: number): string {
 export function extractDbtSubcommand(command: string): string {
   return command.startsWith("dbt ") ? command.split(" ")[1] : command;
 }
+
+/**
+ * Resolve VS Code variable substitution patterns in a string value.
+ * Handles ${workspaceFolder} and ${env:VAR_NAME}.
+ * VS Code only auto-resolves these in tasks.json/launch.json — extension
+ * settings must resolve them manually.
+ */
+export function resolveSettingsVariables(
+  value: string,
+  workspaceFolder?: Uri,
+): string {
+  if (!value) {
+    return value;
+  }
+
+  // Resolve ${env:VAR_NAME}
+  const regexEnv = /\$\{env:(.*?)\}/gm;
+  let match;
+  while ((match = regexEnv.exec(value)) !== null) {
+    if (match.index === regexEnv.lastIndex) {
+      regexEnv.lastIndex++;
+    }
+    const envValue = process.env[match[1]];
+    if (envValue !== undefined) {
+      value = value.replace(
+        new RegExp(`\\$\\{env:${match[1]}\\}`, "gm"),
+        envValue,
+      );
+    }
+  }
+
+  // Resolve ${workspaceFolder}
+  const folder =
+    workspaceFolder ?? workspace.workspaceFolders?.[0]?.uri;
+  if (folder) {
+    value = value.replace(/\$\{workspaceFolder\}/g, folder.fsPath);
+  }
+
+  return value;
+}
