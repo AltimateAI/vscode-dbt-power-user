@@ -1,4 +1,0 @@
-services:
-  code-server:
-    ports: !override
-      - "3003:3001"

@@ -14,7 +14,6 @@ import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import {
   CteProfileEntry,
   CteProfileResult,
-  CteRunProgress,
 } from "./cteProfilerTypes";
 
 @injectable()
@@ -26,12 +25,8 @@ export class CteProfilerService implements Disposable {
   readonly onResultChanged: Event<CteProfileResult | undefined> =
     this._onResultChanged.event;
 
-  private _onRunProgress = new EventEmitter<CteRunProgress>();
-  readonly onRunProgress: Event<CteRunProgress> = this._onRunProgress.event;
-
   private disposables: Disposable[] = [
     this._onResultChanged,
-    this._onRunProgress,
   ];
 
   constructor(
@@ -48,10 +43,6 @@ export class CteProfilerService implements Disposable {
         x.dispose();
       }
     }
-  }
-
-  get allResults(): CteProfileResult[] {
-    return Array.from(this.results.values());
   }
 
   getResult(uri: string): CteProfileResult | undefined {
@@ -123,12 +114,6 @@ export class CteProfilerService implements Disposable {
         }
 
         const targetCte = ctes[i];
-        this._onRunProgress.fire({
-          uri: uri.toString(),
-          completedIndex: i,
-          totalCtes: ctes.length,
-          currentCte: targetCte.name,
-        });
 
         const query = this.buildCountQuery(text, ctes, targetCte, document);
 
@@ -171,7 +156,7 @@ export class CteProfilerService implements Disposable {
           `CTE ${targetCte.name}: ${elapsed}ms cumulative, ${marginalTime}ms marginal, ${rowCount} rows`,
         );
 
-        // Update result with partial data so tree view refreshes live
+        // Update result with partial data so decorations refresh live
         result.ctes = this.classifyTiers(cteEntries);
         result.totalTimeMs = elapsed;
         result.totalRows = rowCount;

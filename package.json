@@ -427,10 +427,6 @@
         {
           "id": "run_history_treeview",
           "name": "Runs"
-        },
-        {
-          "id": "cte_profiler_treeview",
-          "name": "CTE Profiler"
         }
       ]
     },
@@ -1162,11 +1158,6 @@
         {
           "command": "dbtPowerUser.clearRunHistory",
           "when": "view == run_history_treeview",
-          "group": "2_clear"
-        },
-        {
-          "command": "dbtPowerUser.clearProfileResults",
-          "when": "view == cte_profiler_treeview",
           "group": "2_clear"
         }
       ],

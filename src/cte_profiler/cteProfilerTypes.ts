@@ -17,10 +17,3 @@ export interface CteProfileResult {
   timestamp: number;
   error?: string;
 }
-
-export interface CteRunProgress {
-  uri: string;
-  completedIndex: number;
-  totalCtes: number;
-  currentCte: string;
-}

@@ -58,30 +58,6 @@ node -e "
 # Clear .obsolete so code-server doesn't skip our extension on first scan
 echo '{}' > "$EXTENSIONS_DIR/.obsolete"
 
-# Register symlinked extension in extensions.json so code-server doesn't mark it obsolete.
-# Read current extensions.json, remove any existing dbt-power-user entry, append ours.
-EXTJSON="$EXTENSIONS_DIR/extensions.json"
-if [ -f "$EXTJSON" ]; then
-    python3 -c "
-import json, sys
-with open('$EXTJSON') as f:
-    exts = json.load(f)
-exts = [e for e in exts if e.get('identifier',{}).get('id') != 'innoverio.vscode-dbt-power-user']
-exts.append({
-    'identifier': {'id': 'innoverio.vscode-dbt-power-user'},
-    'version': '0.60.1',
-    'location': {'path': '$EXTENSIONS_DIR/innoverio.vscode-dbt-power-user', 'scheme': 'file', '\$mid': 1},
-    'relativeLocation': 'innoverio.vscode-dbt-power-user',
-    'metadata': {'installedTimestamp': 0, 'source': 'vsix'}
-})
-with open('$EXTJSON', 'w') as f:
-    json.dump(exts, f, indent=2)
-"
-fi
-
-# Clear .obsolete so code-server doesn't skip our symlinked extension on first scan
-echo '{}' > "$EXTENSIONS_DIR/.obsolete"
-
 # Determine project directory
 if [ -d "/home/coder/project" ] && [ "$(ls -A /home/coder/project 2>/dev/null)" ]; then
     PROJECT_DIR="/home/coder/project"

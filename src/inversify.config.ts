@@ -125,7 +125,6 @@ import { ContentProviders } from "./content_provider";
 import { SqlPreviewContentProvider } from "./content_provider/sqlPreviewContentProvider";
 import { CteProfilerDecorationProvider } from "./cte_profiler/cteProfilerDecorationProvider";
 import { CteProfilerService } from "./cte_profiler/cteProfilerService";
-import { CteProfilerTreeviewProvider } from "./cte_profiler/cteProfilerTreeviewProvider";
 import { DBTPowerUserExtension } from "./dbtPowerUserExtension";
 import { DocumentFormattingEditProviders } from "./document_formatting_edit_provider";
 import { DbtDocumentFormattingEditProvider } from "./document_formatting_edit_provider/dbtDocumentFormattingEditProvider";
@@ -905,15 +904,6 @@ container
     return new CteProfilerDecorationProvider(
       context.container.get(CteProfilerService),
       context.container.get("DBTTerminal"),
-    );
-  })
-  .inSingletonScope();
-
-container
-  .bind(CteProfilerTreeviewProvider)
-  .toDynamicValue((context) => {
-    return new CteProfilerTreeviewProvider(
-      context.container.get(CteProfilerService),
     );
   })
   .inSingletonScope();
@@ -1770,7 +1760,6 @@ container
       context.container.get(DocumentationTreeview),
       context.container.get(IconActionsTreeview),
       context.container.get(RunHistoryTreeviewProvider),
-      context.container.get(CteProfilerTreeviewProvider),
     );
   })
   .inSingletonScope();
