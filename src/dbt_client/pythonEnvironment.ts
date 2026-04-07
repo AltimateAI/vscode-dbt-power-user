@@ -178,11 +178,15 @@ export class PythonEnvironment {
     const startMarker = "__DBT_DETECT_START__";
     const endMarker = "__DBT_DETECT_END__";
     // Build a platform-appropriate command string.
-    // POSIX shells need single quotes; PowerShell needs double quotes.
-    const pyCode = `import sys; __import__("dbt"); print("${startMarker}"); print(sys.executable); print("${endMarker}")`;
+    // POSIX shells: outer single quotes, inner double quotes in Python code.
+    // Windows/PowerShell: outer double quotes, inner single quotes in Python code.
     const isWindows = process.platform === "win32";
+    const pyCodePosix = `import sys; __import__("dbt"); print("${startMarker}"); print(sys.executable); print("${endMarker}")`;
+    const pyCodeWin = `import sys; __import__('dbt'); print('${startMarker}'); print(sys.executable); print('${endMarker}')`;
     const buildCmd = (pythonCmd: string) =>
-      isWindows ? `${pythonCmd} -c "${pyCode}"` : `${pythonCmd} -c '${pyCode}'`;
+      isWindows
+        ? `${pythonCmd} -c "${pyCodeWin}"`
+        : `${pythonCmd} -c '${pyCodePosix}'`;
 
     // Try the active terminal first, then any existing terminal with shell integration
     const existingTerminal = this.findTerminalWithShellIntegration();
@@ -258,10 +262,6 @@ export class PythonEnvironment {
       return Promise.resolve(terminal.shellIntegration);
     }
     return new Promise((resolve) => {
-      const timeout = setTimeout(() => {
-        listener.dispose();
-        resolve(undefined);
-      }, 5_000);
       const listener = window.onDidChangeTerminalShellIntegration((e) => {
         if (e.terminal === terminal) {
           clearTimeout(timeout);
@@ -269,6 +269,12 @@ export class PythonEnvironment {
           resolve(e.shellIntegration);
         }
       });
+      // Track listener so it's cleaned up if the class is disposed before the timeout
+      this.disposables.push(listener);
+      const timeout = setTimeout(() => {
+        listener.dispose();
+        resolve(undefined);
+      }, 5_000);
     });
   }
 
