@@ -1,4 +1,5 @@
 import { DBTTerminal, EnvironmentVariables } from "@altimateai/dbt-integration";
+import { execFile } from "child_process";
 import { inject } from "inversify";
 import {
   Disposable,
@@ -161,6 +162,88 @@ export class PythonEnvironment {
       value = value.replace("${workspaceFolder}", resolvedFolder.uri.fsPath);
     }
     return value;
+  }
+
+  /**
+   * Detect Python with dbt installed by spawning the user's login shell.
+   * Returns the absolute path to a Python executable that can `import dbt`,
+   * or undefined if detection fails.
+   */
+  public async detectPythonFromShell(): Promise<string | undefined> {
+    const isWindows = process.platform === "win32";
+    // Script: find python3/python on PATH, verify dbt is importable, print path
+    const script = [
+      "import sys",
+      "try:",
+      "    import dbt",
+      "except ImportError:",
+      "    sys.exit(1)",
+      "print(sys.executable)",
+    ].join("\n");
+
+    const candidates = isWindows
+      ? ["python3", "python"]
+      : ["python3", "python"];
+
+    for (const pythonCmd of candidates) {
+      const detectedPath = await this.probeShellPython(
+        pythonCmd,
+        script,
+        isWindows,
+      );
+      if (detectedPath) {
+        return detectedPath;
+      }
+    }
+    return undefined;
+  }
+
+  private probeShellPython(
+    pythonCmd: string,
+    script: string,
+    isWindows: boolean,
+  ): Promise<string | undefined> {
+    return new Promise((resolve) => {
+      let cmd: string;
+      let args: string[];
+
+      if (isWindows) {
+        // On Windows, invoke python directly — shell profile is less relevant
+        cmd = pythonCmd;
+        args = ["-c", script];
+      } else {
+        // On macOS/Linux, use login shell so that PATH from shell RC is loaded
+        const shell = process.env.SHELL || "/bin/bash";
+        const inlineCmd = `${pythonCmd} -c ${this.shellQuote(script)}`;
+        cmd = shell;
+        args = ["-l", "-c", inlineCmd];
+      }
+
+      execFile(cmd, args, { timeout: 10_000 }, (error, stdout) => {
+        if (error) {
+          this.dbtTerminal.debug(
+            "pythonEnvironment:probeShellPython",
+            `Probe failed for ${pythonCmd}: ${error.message}`,
+          );
+          resolve(undefined);
+          return;
+        }
+        const detectedPath = stdout.trim();
+        if (detectedPath) {
+          this.dbtTerminal.debug(
+            "pythonEnvironment:probeShellPython",
+            `Detected Python with dbt at: ${detectedPath}`,
+          );
+          resolve(detectedPath);
+        } else {
+          resolve(undefined);
+        }
+      });
+    });
+  }
+
+  private shellQuote(s: string): string {
+    return "'" + s.replace(/'/g, "'\\''") + "'";
   }
 
   private async activatePythonExtension(): Promise<PythonExecutionDetails> {

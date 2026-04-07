@@ -443,6 +443,47 @@ export class VSCodeCommands implements Disposable {
           : undefined;
         return this.pythonEnvironment.printEnvVars(activeFolder);
       }),
+      commands.registerCommand(
+        "dbtPowerUser.detectPythonFromTerminal",
+        async () => {
+          const detectedPath =
+            await this.pythonEnvironment.detectPythonFromShell();
+          if (!detectedPath) {
+            window.showWarningMessage(
+              "Could not find a Python interpreter with dbt installed in your shell environment. " +
+                "Make sure dbt is installed and available in your terminal, then try again.",
+            );
+            return;
+          }
+
+          const currentOverride = workspace
+            .getConfiguration("dbt")
+            .get<string>("dbtPythonPathOverride", "");
+          if (currentOverride === detectedPath) {
+            window.showInformationMessage(
+              `Python path is already set to: ${detectedPath}`,
+            );
+            return;
+          }
+
+          const action = await window.showInformationMessage(
+            `Found Python with dbt at: ${detectedPath}. Use this as the Python interpreter?`,
+            "Yes",
+            "No",
+          );
+          if (action === "Yes") {
+            await workspace
+              .getConfiguration("dbt")
+              .update("dbtPythonPathOverride", detectedPath);
+            window.showInformationMessage(
+              `Python path set to: ${detectedPath}. The extension will reload.`,
+            );
+            // Re-detect dbt with the new path
+            await this.dbtProjectContainer.detectDBT();
+            this.dbtProjectContainer.initialize();
+          }
+        },
+      ),
       commands.registerCommand("dbtPowerUser.diagnostics", async () => {
         try {
           this.diagnosticsOutputChannel.show();

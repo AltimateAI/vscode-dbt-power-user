@@ -48,17 +48,20 @@ type DbtIntegrationType = "core" | "fusion" | "cloud";
 
 type CheckStatus = "pending" | "checking" | "success" | "error";
 
+interface CheckAction {
+  label: string;
+  command?: string;
+  customAction?: () => void;
+}
+
 interface PrerequisiteCheck {
   id: string;
   title: string;
   description: string;
   status: CheckStatus;
   icon: React.ReactNode;
-  action?: {
-    label: string;
-    command?: string;
-    customAction?: () => void;
-  };
+  action?: CheckAction;
+  secondaryAction?: CheckAction;
 }
 
 interface Project {
@@ -127,6 +130,10 @@ const PrerequisitesStep = forwardRef<
       action: {
         label: "Select Interpreter",
         command: "python.setInterpreter",
+      },
+      secondaryAction: {
+        label: "Detect from terminal",
+        command: "dbtPowerUser.detectPythonFromTerminal",
       },
     },
     {
@@ -305,25 +312,37 @@ const PrerequisitesStep = forwardRef<
     };
   }, []);
 
-  const handleAction = async (check: PrerequisiteCheck) => {
-    if (check.action?.customAction) {
-      check.action.customAction();
-    } else if (check.action?.command) {
+  const executeCheckAction = async (action: CheckAction, checkId: string) => {
+    if (action.customAction) {
+      action.customAction();
+    } else if (action.command) {
       try {
         await executeRequestInSync("executeCommand", {
-          vscodeCommand: check.action.command,
+          vscodeCommand: action.command,
         });
 
         // Re-run diagnostics after executing command
         setTimeout(() => void runDiagnostics(), 1000);
       } catch (err) {
-        panelLogger.error(`Error executing action for ${check.id}`, err);
+        panelLogger.error(`Error executing action for ${checkId}`, err);
         setError(
           err instanceof Error
             ? err.message
-            : `Failed to execute ${check.action.label}`,
+            : `Failed to execute ${action.label}`,
         );
       }
+    }
+  };
+
+  const handleAction = async (check: PrerequisiteCheck) => {
+    if (check.action) {
+      await executeCheckAction(check.action, check.id);
+    }
+  };
+
+  const handleSecondaryAction = async (check: PrerequisiteCheck) => {
+    if (check.secondaryAction) {
+      await executeCheckAction(check.secondaryAction, check.id);
     }
   };
 
@@ -465,19 +484,34 @@ const PrerequisitesStep = forwardRef<
                   </p>
                 )}
               </div>
-              <Button
-                size="small"
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  const check = checks.find((c) => c.id === "python");
-                  if (check) {
-                    await handleAction(check);
-                  }
-                }}
-                disabled={checking}
-              >
-                Change
-              </Button>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <Button
+                  size="small"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const check = checks.find((c) => c.id === "python");
+                    if (check) {
+                      await handleAction(check);
+                    }
+                  }}
+                  disabled={checking}
+                >
+                  Change
+                </Button>
+                <Button
+                  size="small"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const check = checks.find((c) => c.id === "python");
+                    if (check) {
+                      await handleSecondaryAction(check);
+                    }
+                  }}
+                  disabled={checking}
+                >
+                  Detect from terminal
+                </Button>
+              </div>
             </div>
           </div>
         );
@@ -724,6 +758,18 @@ const PrerequisitesStep = forwardRef<
                     >
                       {check.action.label}
                     </Button>
+                    {check.secondaryAction && (
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleSecondaryAction(check);
+                        }}
+                        disabled={checking}
+                        style={{ marginLeft: "0.5rem" }}
+                      >
+                        {check.secondaryAction.label}
+                      </Button>
+                    )}
                   </div>
                 )}
               </Card>
