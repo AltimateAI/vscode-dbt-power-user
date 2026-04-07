@@ -13,10 +13,17 @@ permissions:
   contents: read
 
 jobs:
-  bundle-size:
-    name: "Bundle Size"
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/master')
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            vsce-target: darwin-arm64
+          - os: ubuntu-latest
+            vsce-target: linux-x64
+          - os: windows-latest
+            vsce-target: win32-x64
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: read
       pull-requests: write
@@ -24,27 +31,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Install Node.js
-        uses: actions/setup-node@v4
+      - name: Run common build steps
+        uses: ./.github/actions/common-build
         with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: |
-            package-lock.json
-            webview_panels/package-lock.json
-      - name: Install dependencies
-        run: npm ci
-        env:
-          VSCE_TARGET: linux-x64
-      - name: Install webview dependencies
-        run: npm ci
-        working-directory: ./webview_panels
+          vsce-target: ${{ matrix.vsce-target }}
       - name: Build and package VSIX
-        run: npx @vscode/vsce package --target linux-x64
+        run: npx @vscode/vsce package --target ${{ matrix.vsce-target }}
         env:
-          VSCE_TARGET: linux-x64
+          VSCE_TARGET: ${{ matrix.vsce-target }}
       - name: Analyze bundle size
         id: analyze
+        shell: bash
         run: |
           python3 << 'PYEOF'
           import zipfile, os, json
@@ -87,10 +84,6 @@ jobs:
               categories[cat]['compressed'] += info.compress_size
               categories[cat]['count'] += 1
 
-          total_raw = sum(v['raw'] for v in categories.values())
-          total_compressed = sum(v['compressed'] for v in categories.values())
-
-          # Save current sizes as JSON (used for baseline caching and comparison)
           baseline = {'vsix_mb': round(vsix_mb, 1), 'categories': categories}
           with open('bundle-baseline.json', 'w') as f:
               json.dump(baseline, f)
@@ -102,29 +95,29 @@ jobs:
           PYEOF
       - name: Restore master baseline
         if: github.event_name == 'pull_request'
-        id: baseline
         uses: actions/cache/restore@v4
         with:
           path: master-baseline.json
-          key: bundle-size-baseline-will-not-match
-          restore-keys: bundle-size-baseline-
+          key: bundle-size-baseline-${{ matrix.vsce-target }}-will-not-match
+          restore-keys: bundle-size-baseline-${{ matrix.vsce-target }}-
       - name: Save master baseline
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: actions/cache/save@v4
         with:
           path: bundle-baseline.json
-          key: bundle-size-baseline-${{ github.sha }}
+          key: bundle-size-baseline-${{ matrix.vsce-target }}-${{ github.sha }}
       - name: Generate report
         id: report
+        shell: bash
         run: |
           python3 << 'PYEOF'
           import json, os
 
+          target = os.environ['VSCE_TARGET']
           current = json.load(open('bundle-baseline.json'))
           vsix_mb = current['vsix_mb']
           categories = current['categories']
 
-          # Try to load master baseline for comparison
           baseline_mb = None
           baseline_cats = None
           if os.path.exists('master-baseline.json'):
@@ -135,7 +128,6 @@ jobs:
               except Exception:
                   pass
 
-          # Build delta string for status
           if baseline_mb is not None:
               delta = vsix_mb - baseline_mb
               sign = '+' if delta >= 0 else ''
@@ -148,17 +140,17 @@ jobs:
           total_raw = sum(v['raw'] for v in categories.values())
           total_compressed = sum(v['compressed'] for v in categories.values())
 
-          # Build markdown report
+          # Build markdown report for this platform
           lines = []
-          lines.append(f'## Bundle Size Report')
+          lines.append(f'### {target}')
           lines.append(f'')
           if baseline_mb is not None:
               delta = vsix_mb - baseline_mb
               sign = '+' if delta >= 0 else ''
               icon = '🔴' if delta > 1 else '🟢' if delta < -1 else '⚪'
-              lines.append(f'**VSIX: {vsix_mb:.1f} MB** (linux-x64) · {icon} {sign}{delta:.1f} MB vs master ({baseline_mb:.1f} MB)')
+              lines.append(f'**VSIX: {vsix_mb:.1f} MB** · {icon} {sign}{delta:.1f} MB vs master ({baseline_mb:.1f} MB)')
           else:
-              lines.append(f'**VSIX: {vsix_mb:.1f} MB** (linux-x64) · no master baseline yet')
+              lines.append(f'**VSIX: {vsix_mb:.1f} MB** · no master baseline yet')
           lines.append(f'')
           lines.append(f'| Category | Size | Compressed | Files |')
           lines.append(f'|---|---:|---:|---:|')
@@ -171,13 +163,12 @@ jobs:
                   continue
               raw_s = f"{raw/1024/1024:.1f} MB" if raw >= 100*1024 else f"{raw/1024:.0f} KB"
               comp_s = f"{comp/1024/1024:.1f} MB" if comp >= 100*1024 else f"{comp/1024:.0f} KB"
-              # Add delta vs master per category
               delta_s = ''
               if baseline_cats and cat in baseline_cats:
                   d = (raw - baseline_cats[cat]['raw']) / 1024 / 1024
                   if abs(d) >= 0.1:
-                      sign = '+' if d >= 0 else ''
-                      delta_s = f' ({sign}{d:.1f})'
+                      s = '+' if d >= 0 else ''
+                      delta_s = f' ({s}{d:.1f})'
               lines.append(f'| {cat} | {raw_s}{delta_s} | {comp_s} | {v["count"]} |')
 
           lines.append(f'| **Total** | **{total_raw/1024/1024:.1f} MB** | **{total_compressed/1024/1024:.1f} MB** | **{sum(v["count"] for v in categories.values())}** |')
@@ -191,28 +182,60 @@ jobs:
 
           print(report)
           PYEOF
+        env:
+          VSCE_TARGET: ${{ matrix.vsce-target }}
       - name: Set commit status
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
             const desc = '${{ steps.report.outputs.status_desc }}';
+            const target = '${{ matrix.vsce-target }}';
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: context.payload.pull_request.head.sha,
               state: 'success',
               description: desc,
-              context: 'Bundle Size',
+              context: `Bundle Size (${target})`,
               target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
             });
-      - name: Post PR comment
+      - name: Upload report
         if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-report-${{ matrix.vsce-target }}
+          path: bundle-report.md
+          retention-days: 1
+      - name: Job summary
+        shell: bash
+        run: cat bundle-report.md >> "$GITHUB_STEP_SUMMARY"
+
+  bundle-size-report:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Download all reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bundle-report-*
+      - name: Combine reports
+        run: |
+          echo "## Bundle Size Report" > combined-report.md
+          echo "" >> combined-report.md
+          for dir in bundle-report-*/; do
+            cat "$dir/bundle-report.md" >> combined-report.md
+            echo "" >> combined-report.md
+          done
+      - name: Post PR comment
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            const report = fs.readFileSync('bundle-report.md', 'utf8');
+            const report = fs.readFileSync('combined-report.md', 'utf8');
             const marker = '<!-- bundle-size-report -->';
             const body = marker + '\n' + report;
 
@@ -239,19 +262,6 @@ jobs:
                 body,
               });
             }
-      - name: Job summary
-        run: cat bundle-report.md >> "$GITHUB_STEP_SUMMARY"
-
-  build:
-    strategy:
-      matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Run common build steps
-        uses: ./.github/actions/common-build
 
   release-vsstudio-marketplace:
     needs: build
