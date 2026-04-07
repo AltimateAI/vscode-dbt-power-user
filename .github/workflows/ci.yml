@@ -142,17 +142,19 @@ jobs:
           total_raw = sum(v['raw'] for v in categories.values())
           total_compressed = sum(v['compressed'] for v in categories.values())
 
-          # Build markdown report for this platform
-          lines = []
-          lines.append(f'### {target}')
-          lines.append(f'')
+          # Build summary line
           if baseline_mb is not None:
               delta = vsix_mb - baseline_mb
               sign = '+' if delta >= 0 else ''
               icon = '🔴' if delta > 1 else '🟢' if delta < -1 else '⚪'
-              lines.append(f'**VSIX: {vsix_mb:.1f} MB** · {icon} {sign}{delta:.1f} MB vs master ({baseline_mb:.1f} MB)')
+              summary = f'{target}: {vsix_mb:.1f} MB · {icon} {sign}{delta:.1f} MB vs master'
           else:
-              lines.append(f'**VSIX: {vsix_mb:.1f} MB** · no master baseline yet')
+              summary = f'{target}: {vsix_mb:.1f} MB'
+
+          # Build collapsible markdown report for this platform
+          lines = []
+          lines.append(f'<details>')
+          lines.append(f'<summary><strong>{summary}</strong></summary>')
           lines.append(f'')
           lines.append(f'| Category | Size | Compressed | Files |')
           lines.append(f'|---|---:|---:|---:|')
@@ -174,6 +176,8 @@ jobs:
               lines.append(f'| {cat} | {raw_s}{delta_s} | {comp_s} | {v["count"]} |')
 
           lines.append(f'| **Total** | **{total_raw/1024/1024:.1f} MB** | **{total_compressed/1024/1024:.1f} MB** | **{sum(v["count"] for v in categories.values())}** |')
+          lines.append(f'')
+          lines.append(f'</details>')
 
           report = '\n'.join(lines)
           with open('bundle-report.md', 'w') as f:
