@@ -158,6 +158,18 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.runChildrenModels", (model) =>
         this.runModel.runModelOnNodeTreeItem(RunModelType.RUN_CHILDREN)(model),
       ),
+      commands.registerCommand(
+        "dbtPowerUser.yamlRunModel",
+        (uri: Uri, modelName: string) => {
+          this.dbtProjectContainer.runModelByName(uri, modelName);
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.yamlTestModel",
+        (uri: Uri, modelName: string) => {
+          this.dbtProjectContainer.runModelTest(uri, modelName);
+        },
+      ),
       commands.registerCommand("dbtPowerUser.runParentModels", (model) =>
         this.runModel.runModelOnNodeTreeItem(RunModelType.RUN_PARENTS)(model),
       ),
