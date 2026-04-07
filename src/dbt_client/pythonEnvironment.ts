@@ -174,8 +174,12 @@ export class PythonEnvironment {
    * is not available.
    */
   public async detectPythonFromShell(): Promise<string | undefined> {
-    const script =
-      'import sys; exec("try:\\n    import dbt\\nexcept ImportError:\\n    sys.exit(1)"); print(sys.executable)';
+    // Unique markers to reliably extract the path from noisy terminal output.
+    const startMarker = "__DBT_DETECT_START__";
+    const endMarker = "__DBT_DETECT_END__";
+    // Shell-safe one-liner using single quotes. __import__("dbt") throws
+    // ModuleNotFoundError (exit 1) if dbt is missing; markers bracket the path.
+    const pyScript = `'import sys; __import__("dbt"); print("${startMarker}"); print(sys.executable); print("${endMarker}")'`;
 
     // Try the active terminal first, then any existing terminal with shell integration
     const existingTerminal = this.findTerminalWithShellIntegration();
@@ -187,7 +191,9 @@ export class PythonEnvironment {
       for (const pythonCmd of ["python3", "python"]) {
         const result = await this.executeInTerminal(
           existingTerminal,
-          `${pythonCmd} -c "${script}"`,
+          `${pythonCmd} -c ${pyScript}`,
+          startMarker,
+          endMarker,
         );
         if (result) {
           return result;
@@ -210,7 +216,9 @@ export class PythonEnvironment {
         for (const pythonCmd of ["python3", "python"]) {
           const result = await this.executeInTerminal(
             created,
-            `${pythonCmd} -c "${script}"`,
+            `${pythonCmd} -c ${pyScript}`,
+            startMarker,
+            endMarker,
           );
           if (result) {
             return result;
@@ -221,7 +229,7 @@ export class PythonEnvironment {
           "pythonEnvironment:detectPythonFromShell",
           "Shell integration not available, falling back to child process",
         );
-        return this.detectPythonViaChildProcess(script);
+        return this.detectPythonViaChildProcess();
       }
     } finally {
       created.dispose();
@@ -264,6 +272,8 @@ export class PythonEnvironment {
   private async executeInTerminal(
     terminal: Terminal,
     commandLine: string,
+    startMarker: string,
+    endMarker: string,
   ): Promise<string | undefined> {
     if (!terminal.shellIntegration) {
       return undefined;
@@ -274,43 +284,39 @@ export class PythonEnvironment {
     for await (const data of stream) {
       output += data;
     }
-    // Strip ANSI escape codes and extract the Python path from output
+    // Strip ANSI/OSC escape codes and control characters
     const cleaned = output.replace(
       // eslint-disable-next-line no-control-regex
-      /\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g,
+      /\x1B(?:\][^\x07\x1B]*(?:\x07|\x1B\\)|[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g,
       "",
     );
-    // The output contains the command echo and the result; find an absolute path
-    const pathMatch = cleaned.match(/^\s*(\/[^\s]+python[^\s]*)\s*$/m);
-    if (pathMatch) {
-      const detectedPath = pathMatch[1];
-      this.dbtTerminal.debug(
-        "pythonEnvironment:executeInTerminal",
-        `Detected Python with dbt at: ${detectedPath}`,
-      );
-      return detectedPath;
-    }
-    // Windows: look for a path like C:\... or C:/...
-    const winMatch = cleaned.match(
-      /^\s*([A-Za-z]:[/\\][^\s]+python[^\s]*)\s*$/m,
+    this.dbtTerminal.debug(
+      "pythonEnvironment:executeInTerminal",
+      `Terminal output (cleaned): ${cleaned.slice(0, 500)}`,
     );
-    if (winMatch) {
+    // Extract the path between our unique markers
+    const startIdx = cleaned.indexOf(startMarker);
+    const endIdx = cleaned.indexOf(endMarker);
+    if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
+      return undefined;
+    }
+    const between = cleaned.slice(startIdx + startMarker.length, endIdx).trim();
+    if (between) {
       this.dbtTerminal.debug(
         "pythonEnvironment:executeInTerminal",
-        `Detected Python with dbt at: ${winMatch[1]}`,
+        `Detected Python with dbt at: ${between}`,
       );
-      return winMatch[1];
+      return between;
     }
     return undefined;
   }
 
   /** Fallback: spawn a login shell child process to detect Python with dbt */
-  private async detectPythonViaChildProcess(
-    script: string,
-  ): Promise<string | undefined> {
+  private async detectPythonViaChildProcess(): Promise<string | undefined> {
     const isWindows = process.platform === "win32";
+    const pyCode = 'import sys; __import__("dbt"); print(sys.executable)';
     for (const pythonCmd of ["python3", "python"]) {
-      const result = await this.probeChildProcess(pythonCmd, script, isWindows);
+      const result = await this.probeChildProcess(pythonCmd, pyCode, isWindows);
       if (result) {
         return result;
       }
@@ -320,7 +326,7 @@ export class PythonEnvironment {
 
   private probeChildProcess(
     pythonCmd: string,
-    script: string,
+    pyCode: string,
     isWindows: boolean,
   ): Promise<string | undefined> {
     return new Promise((resolve) => {
@@ -329,14 +335,14 @@ export class PythonEnvironment {
 
       if (isWindows) {
         cmd = pythonCmd;
-        args = ["-c", script];
+        args = ["-c", pyCode];
       } else {
         const shell = process.env.SHELL || "/bin/bash";
         cmd = shell;
         args = [
           "-l",
           "-c",
-          `${pythonCmd} -c '${script.replace(/'/g, "'\\''")}'`,
+          `${pythonCmd} -c '${pyCode.replace(/'/g, "'\\''")}'`,
         ];
       }
 
