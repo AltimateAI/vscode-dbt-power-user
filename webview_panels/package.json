@@ -18,7 +18,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
-    "@altimateai/ui-components": "0.0.82-beta.2",
+    "@altimateai/ui-components": "0.0.82-beta.3",
     "@ant-design/pro-chat": "^1.15.2",
     "@finos/perspective": "^2.10.0",
     "@finos/perspective-viewer": "^2.10.0",
