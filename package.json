@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.60.1",
+  "version": "0.60.2",
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -1305,7 +1305,7 @@
     "altimateai.vscode-altimate-mcp-server"
   ],
   "dependencies": {
-    "@altimateai/dbt-integration": "^0.2.9",
+    "@altimateai/dbt-integration": "^0.2.12",
     "@jupyterlab/coreutils": "^6.2.4",
     "@jupyterlab/nbformat": "^4.2.4",
     "@jupyterlab/services": "^7.0.0",
