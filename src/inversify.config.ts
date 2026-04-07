@@ -1858,7 +1858,6 @@ container
       context.container.get(CommentProviders),
       context.container.get("NotebookProviders"),
       context.container.get(DbtPowerUserMcpServer),
-      context.container.get(CteProfilerDecorationProvider),
     );
   })
   .inSingletonScope();

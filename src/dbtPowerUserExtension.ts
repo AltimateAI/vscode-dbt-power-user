@@ -5,7 +5,6 @@ import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";
 import { CommentProviders } from "./comment_provider";
 import { ContentProviders } from "./content_provider";
-import { CteProfilerDecorationProvider } from "./cte_profiler/cteProfilerDecorationProvider";
 import { DBTProjectContainer } from "./dbt_client/dbtProjectContainer";
 import { DefinitionProviders } from "./definition_provider";
 import { DocumentFormattingEditProviders } from "./document_formatting_edit_provider";
@@ -61,7 +60,6 @@ export class DBTPowerUserExtension implements Disposable {
     private commentProviders: CommentProviders,
     private notebookProviders: NotebookProviders,
     private mcpServer: DbtPowerUserMcpServer,
-    private cteProfilerDecorationProvider: CteProfilerDecorationProvider,
   ) {
     this.disposables.push(
       this.dbtProjectContainer,
@@ -81,7 +79,6 @@ export class DBTPowerUserExtension implements Disposable {
       this.commentProviders,
       this.notebookProviders,
       this.mcpServer,
-      this.cteProfilerDecorationProvider,
     );
   }
 

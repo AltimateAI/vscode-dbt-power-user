@@ -91,6 +91,8 @@ export class VSCodeCommands implements Disposable {
     private cteCodeLensProvider: CteCodeLensProvider,
   ) {
     this.disposables.push(
+      this.cteProfilerService,
+      this.cteProfilerDecorationProvider,
       commands.registerCommand(
         "dbtPowerUser.checkIfDbtIsInstalled",
         async () => {

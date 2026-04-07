@@ -260,13 +260,7 @@ export class CteProfilerService implements Disposable {
     if (data.length === 0) {
       return 0;
     }
-    const firstRow = data[0];
-    // Try common column names for COUNT(*) result
-    const count =
-      firstRow["_profile_count"] ??
-      firstRow["count"] ??
-      firstRow["COUNT(*)"] ??
-      Object.values(firstRow)[0];
+    const count = data[0]["_profile_count"];
     return typeof count === "number" ? count : Number(count) || 0;
   }
 
