@@ -13,6 +13,149 @@ permissions:
   contents: read
 
 jobs:
+  bundle-size:
+    name: "Bundle Size"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            webview_panels/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+        env:
+          VSCE_TARGET: linux-x64
+      - name: Install webview dependencies
+        run: npm ci
+        working-directory: ./webview_panels
+      - name: Build and package VSIX
+        run: npx @vscode/vsce package --target linux-x64
+        env:
+          VSCE_TARGET: linux-x64
+      - name: Analyze bundle size
+        id: analyze
+        run: |
+          VSIX_FILE=$(ls *.vsix | head -1)
+
+          python3 << 'PYEOF'
+          import zipfile, os
+
+          vsix = [f for f in os.listdir('.') if f.endswith('.vsix')][0]
+          z = zipfile.ZipFile(vsix)
+          vsix_mb = os.path.getsize(vsix) / 1024 / 1024
+
+          categories = {}
+          for info in z.infolist():
+              name = info.filename
+              size = info.file_size
+
+              if 'altimate-core' in name and name.endswith('.node'):
+                  cat = 'Native: altimate-core'
+              elif 'zeromq/' in name and name.endswith('.node'):
+                  cat = 'Native: zeromq'
+              elif 'dist/node_modules/' in name:
+                  cat = 'Native: other node_modules'
+              elif name.endswith('extension.js') and 'dist/' in name:
+                  cat = 'Extension backend (JS)'
+              elif 'webview_panels/dist/' in name and name.endswith('.js'):
+                  cat = 'Webview JS bundles'
+              elif 'webview_panels/dist/' in name and name.endswith('.css'):
+                  cat = 'Webview CSS'
+              elif 'webview_panels/dist/' in name and (name.endswith('.gif') or name.endswith('.png')):
+                  cat = 'Webview images'
+              elif 'webview_panels/dist/' in name:
+                  cat = 'Webview other'
+              elif 'altimate_python_packages/' in name or (name.endswith('.py') and 'dist/' in name):
+                  cat = 'Python packages'
+              elif 'media/' in name:
+                  cat = 'Media assets'
+              else:
+                  cat = 'Other'
+
+              if cat not in categories:
+                  categories[cat] = {'raw': 0, 'compressed': 0, 'count': 0}
+              categories[cat]['raw'] += size
+              categories[cat]['compressed'] += info.compress_size
+              categories[cat]['count'] += 1
+
+          total_raw = sum(v['raw'] for v in categories.values())
+          total_compressed = sum(v['compressed'] for v in categories.values())
+
+          lines = []
+          lines.append(f'## Bundle Size Report')
+          lines.append(f'')
+          lines.append(f'**VSIX: {vsix_mb:.1f} MB** (linux-x64)')
+          lines.append(f'')
+          lines.append(f'| Category | Size | Compressed | Files |')
+          lines.append(f'|---|---:|---:|---:|')
+
+          sorted_cats = sorted(categories.items(), key=lambda x: x[1]['raw'], reverse=True)
+          for cat, v in sorted_cats:
+              raw = v['raw']
+              comp = v['compressed']
+              if raw < 1024:
+                  continue
+              raw_s = f"{raw/1024/1024:.1f} MB" if raw >= 100*1024 else f"{raw/1024:.0f} KB"
+              comp_s = f"{comp/1024/1024:.1f} MB" if comp >= 100*1024 else f"{comp/1024:.0f} KB"
+              lines.append(f'| {cat} | {raw_s} | {comp_s} | {v["count"]} |')
+
+          lines.append(f'| **Total** | **{total_raw/1024/1024:.1f} MB** | **{total_compressed/1024/1024:.1f} MB** | **{sum(v["count"] for v in categories.values())}** |')
+
+          report = '\n'.join(lines)
+          with open('bundle-report.md', 'w') as f:
+              f.write(report)
+
+          # Write VSIX size for the check title
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'vsix_size={vsix_mb:.1f}\n')
+
+          print(report)
+          PYEOF
+      - name: Post PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('bundle-report.md', 'utf8');
+            const marker = '<!-- bundle-size-report -->';
+            const body = marker + '\n' + report;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c => c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+      - name: Job summary
+        run: cat bundle-report.md >> "$GITHUB_STEP_SUMMARY"
+
   build:
     strategy:
       matrix:
