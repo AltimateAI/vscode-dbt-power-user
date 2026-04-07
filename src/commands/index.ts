@@ -446,12 +446,29 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand(
         "dbtPowerUser.detectPythonFromTerminal",
         async () => {
+          // Check if there's a terminal open that we can detect from
+          if (
+            !window.activeTerminal &&
+            !window.terminals.some((t) => t.shellIntegration)
+          ) {
+            const action = await window.showWarningMessage(
+              "No terminal is open. Please open a terminal with your dbt environment activated, then try again.",
+              "Open Terminal",
+            );
+            if (action === "Open Terminal") {
+              await commands.executeCommand(
+                "workbench.action.terminal.toggleTerminal",
+              );
+            }
+            return;
+          }
+
           const detectedPath =
             await this.pythonEnvironment.detectPythonFromShell();
           if (!detectedPath) {
             window.showWarningMessage(
-              "Could not find a Python interpreter with dbt installed in your shell environment. " +
-                "Make sure dbt is installed and available in your terminal, then try again.",
+              "Could not find a Python interpreter with dbt installed in your terminal. " +
+                "Make sure dbt is installed and the correct environment is activated, then try again.",
             );
             return;
           }
