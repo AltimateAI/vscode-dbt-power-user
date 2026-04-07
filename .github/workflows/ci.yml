@@ -15,6 +15,7 @@ permissions:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: macos-latest
@@ -39,6 +40,7 @@ jobs:
         run: npx @vscode/vsce package --target ${{ matrix.vsce-target }}
         env:
           VSCE_TARGET: ${{ matrix.vsce-target }}
+          NODE_OPTIONS: --max-old-space-size=8192
       - name: Analyze bundle size
         id: analyze
         shell: bash
