@@ -177,9 +177,12 @@ export class PythonEnvironment {
     // Unique markers to reliably extract the path from noisy terminal output.
     const startMarker = "__DBT_DETECT_START__";
     const endMarker = "__DBT_DETECT_END__";
-    // Shell-safe one-liner using single quotes. __import__("dbt") throws
-    // ModuleNotFoundError (exit 1) if dbt is missing; markers bracket the path.
-    const pyScript = `'import sys; __import__("dbt"); print("${startMarker}"); print(sys.executable); print("${endMarker}")'`;
+    // Build a platform-appropriate command string.
+    // POSIX shells need single quotes; PowerShell needs double quotes.
+    const pyCode = `import sys; __import__("dbt"); print("${startMarker}"); print(sys.executable); print("${endMarker}")`;
+    const isWindows = process.platform === "win32";
+    const buildCmd = (pythonCmd: string) =>
+      isWindows ? `${pythonCmd} -c "${pyCode}"` : `${pythonCmd} -c '${pyCode}'`;
 
     // Try the active terminal first, then any existing terminal with shell integration
     const existingTerminal = this.findTerminalWithShellIntegration();
@@ -191,7 +194,7 @@ export class PythonEnvironment {
       for (const pythonCmd of ["python3", "python"]) {
         const result = await this.executeInTerminal(
           existingTerminal,
-          `${pythonCmd} -c ${pyScript}`,
+          buildCmd(pythonCmd),
           startMarker,
           endMarker,
         );
@@ -216,7 +219,7 @@ export class PythonEnvironment {
         for (const pythonCmd of ["python3", "python"]) {
           const result = await this.executeInTerminal(
             created,
-            `${pythonCmd} -c ${pyScript}`,
+            buildCmd(pythonCmd),
             startMarker,
             endMarker,
           );
@@ -279,10 +282,25 @@ export class PythonEnvironment {
       return undefined;
     }
     const execution = terminal.shellIntegration.executeCommand(commandLine);
-    const stream = execution.read();
-    let output = "";
-    for await (const data of stream) {
-      output += data;
+    // Race the stream read against a 10s timeout to avoid hanging indefinitely
+    const output = await Promise.race([
+      (async () => {
+        let collected = "";
+        for await (const data of execution.read()) {
+          collected += data;
+        }
+        return collected;
+      })(),
+      new Promise<undefined>((resolve) =>
+        setTimeout(() => resolve(undefined), 10_000),
+      ),
+    ]);
+    if (output === undefined) {
+      this.dbtTerminal.debug(
+        "pythonEnvironment:executeInTerminal",
+        `Timed out executing: ${commandLine}`,
+      );
+      return undefined;
     }
     // Strip ANSI/OSC escape codes and control characters
     const cleaned = output.replace(
@@ -355,7 +373,12 @@ export class PythonEnvironment {
           resolve(undefined);
           return;
         }
-        const detectedPath = stdout.trim();
+        // Take the last non-empty line to skip shell startup noise
+        const detectedPath = stdout
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .at(-1);
         if (detectedPath) {
           this.dbtTerminal.debug(
             "pythonEnvironment:probeChildProcess",

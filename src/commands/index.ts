@@ -480,7 +480,7 @@ export class VSCodeCommands implements Disposable {
             );
             // Re-detect dbt with the new path
             await this.dbtProjectContainer.detectDBT();
-            this.dbtProjectContainer.initialize();
+            await this.dbtProjectContainer.initialize();
           }
         },
       ),
