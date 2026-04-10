@@ -53,6 +53,13 @@ export class Range {
   }
 }
 
+export class Location {
+  constructor(
+    public uri: typeof Uri | any,
+    public rangeOrPosition: Range | Position,
+  ) {}
+}
+
 export const DiagnosticSeverity = {
   Error: 0,
   Warning: 1,
