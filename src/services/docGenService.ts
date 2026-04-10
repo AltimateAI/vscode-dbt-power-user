@@ -121,13 +121,55 @@ export class DocGenService {
     };
   }
 
-  private getCurrentNode(modelName: string): NodeMetaData | undefined {
+  /**
+   * Resolve the manifest node backing a .sql file for the documentation editor.
+   *
+   * The underlying `nodeMetaMap` stores both models and snapshots in a single
+   * name-keyed map, so `lookupByBaseName` cannot disambiguate when a model and
+   * snapshot share a filename (e.g. `orders.sql` exists as both). To guarantee
+   * the model is returned (never the snapshot), we iterate the node list and
+   * match on the file path AND `resource_type === "model"`.
+   *
+   * We fall back to `lookupByBaseName` only when no node has a matching `path`
+   * (e.g. dbt Cloud, where packaged nodes may have `path === undefined`), so
+   * existing behaviour is preserved for setups without a local path.
+   */
+  private getCurrentNode(
+    modelName: string,
+    filePath: string,
+  ): NodeMetaData | undefined {
     const eventResult = this.queryManifestService.getEventByCurrentProject();
     if (!eventResult || !eventResult.event) {
       return undefined;
     }
 
     const { event } = eventResult;
+
+    // Primary resolution: match by full file path AND model resource type so
+    // a snapshot sharing the same filename never shadows the model.
+    let pathMatchFound = false;
+    for (const node of event.nodeMetaMap.nodes()) {
+      if (node.path !== filePath) {
+        continue;
+      }
+      pathMatchFound = true;
+      if (node.resource_type === RESOURCE_TYPE_MODEL) {
+        return node;
+      }
+    }
+
+    // If any node matched the path but none was a model (e.g. only a snapshot
+    // lives at this path), return the first path-matched node so the caller's
+    // downstream `resource_type` guard can produce an accurate error message.
+    if (pathMatchFound) {
+      for (const node of event.nodeMetaMap.nodes()) {
+        if (node.path === filePath) {
+          return node;
+        }
+      }
+    }
+
+    // Fallback: dbt Cloud / remote manifests may not populate `path`.
     return event.nodeMetaMap.lookupByBaseName(modelName);
   }
 
@@ -354,8 +396,9 @@ export class DocGenService {
       };
     }
 
-    // Node validation
-    const currentNode = this.getCurrentNode(modelName);
+    // Node validation - resolve by file path to disambiguate models from
+    // snapshots that share the same filename.
+    const currentNode = this.getCurrentNode(modelName, filePath);
     if (!currentNode) {
       return {
         documentation: undefined,
