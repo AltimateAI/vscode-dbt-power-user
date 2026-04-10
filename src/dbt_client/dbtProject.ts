@@ -1320,17 +1320,27 @@ export class DBTProject implements Disposable {
     );
   }
 
-  async executeSQLOnQueryPanel(query: string, modelName: string) {
+  async executeSQLOnQueryPanel(
+    query: string,
+    modelName: string,
+    fullRefresh: boolean = false,
+  ) {
     const limit = workspace
       .getConfiguration("dbt")
       .get<number>("queryLimit", 500);
-    return this.executeSQLWithLimitOnQueryPanel(query, modelName, limit);
+    return this.executeSQLWithLimitOnQueryPanel(
+      query,
+      modelName,
+      limit,
+      fullRefresh,
+    );
   }
 
   async executeSQLWithLimitOnQueryPanel(
     query: string,
     modelName: string,
     limit: number,
+    fullRefresh: boolean = false,
   ) {
     if (limit <= 0) {
       window.showErrorMessage("Please enter a positive number for query limit");
@@ -1339,6 +1349,7 @@ export class DBTProject implements Disposable {
     this.terminal.info("executeSQL", "Executed query: " + query, true, {
       adapter: this.getAdapterType(),
       limit: limit.toString(),
+      fullRefresh: fullRefresh.toString(),
     });
     this.eventEmitterService.fire({
       command: "executeQuery",
@@ -1348,6 +1359,7 @@ export class DBTProject implements Disposable {
           query,
           modelName,
           limit,
+          fullRefresh,
         ),
         projectName: this.getProjectName(),
       },
