@@ -3,17 +3,57 @@ import { RunModelType } from "@altimateai/dbt-integration";
 import { Uri, window } from "vscode";
 import { GenerateModelFromSourceParams } from "../code_lens_provider/sourceModelCreationCodeLensProvider";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { QueryManifestService } from "../services/queryManifestService";
 import { NodeTreeItem } from "../treeview_provider/modelTreeviewProvider";
 import { extendErrorWithSupportLinks } from "../utils";
 
 export class RunModel {
-  constructor(private dbtProjectContainer: DBTProjectContainer) {}
+  constructor(
+    private dbtProjectContainer: DBTProjectContainer,
+    private queryManifestService: QueryManifestService,
+  ) {}
+
+  /**
+   * Returns the singular test name for the given file URI, or undefined if
+   * the file is not a singular data test in the current project's manifest.
+   *
+   * Singular tests are SQL files under the project's configured `test-paths`
+   * that appear in the manifest as test resources without `test_metadata`
+   * (generic tests have `test_metadata`, singular tests do not).
+   */
+  private getSingularTestName(uri: Uri): string | undefined {
+    const event = this.queryManifestService.getEventByDocument(uri);
+    if (!event) {
+      return undefined;
+    }
+    const filePath = uri.fsPath;
+    for (const [name, testData] of event.testMetaMap) {
+      // Singular tests have no `test_metadata` (that's reserved for generic
+      // tests like `not_null`, `unique`, etc.). Match by file path so we
+      // don't rely on hardcoded `tests/` and honor project `test-paths`.
+      if (testData.test_metadata === undefined && testData.path === filePath) {
+        return name;
+      }
+    }
+    return undefined;
+  }
 
   runModelOnActiveWindow(type?: RunModelType) {
     if (!window.activeTextEditor) {
       return;
     }
     const fullPath = window.activeTextEditor.document.uri;
+
+    // If this is a singular test file, run it as a test regardless of the
+    // requested RunModelType — `dbt run` on a test file is never meaningful.
+    // Also handles the "Run Test" command palette entry, which falls through
+    // here with `type === RunModelType.TEST` when invoked without a tree item.
+    const singularTestName = this.getSingularTestName(fullPath);
+    if (singularTestName !== undefined) {
+      this.runDBTTest(fullPath, singularTestName);
+      return;
+    }
+
     this.runDBTModel(fullPath, type);
   }
 
@@ -30,6 +70,17 @@ export class RunModel {
       return;
     }
     const fullPath = window.activeTextEditor.document.uri;
+
+    // Singular tests must be selected by their own test name, not by the
+    // surrounding model. For generic tests attached to models, fall back to
+    // the existing model-test path which selects tests that reference the
+    // current model.
+    const singularTestName = this.getSingularTestName(fullPath);
+    if (singularTestName !== undefined) {
+      this.runDBTTest(fullPath, singularTestName);
+      return;
+    }
+
     this.runDBTModelTest(fullPath);
   }
 

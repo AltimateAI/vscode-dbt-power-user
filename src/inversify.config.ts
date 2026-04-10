@@ -1425,7 +1425,10 @@ container
 container
   .bind(RunModel)
   .toDynamicValue((context) => {
-    return new RunModel(context.container.get(DBTProjectContainer));
+    return new RunModel(
+      context.container.get(DBTProjectContainer),
+      context.container.get(QueryManifestService),
+    );
   })
   .inSingletonScope();
 
