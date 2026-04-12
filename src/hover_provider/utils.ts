@@ -26,7 +26,7 @@ export function generateHoverMarkdownString(
     content.appendMarkdown(
       `<span style="color:#347890;">(column)&nbsp;</span><span>${column.name} &nbsp;</span>`,
     );
-    if (column.data_type !== null) {
+    if (column.data_type) {
       content.appendMarkdown(
         `<span>-&nbsp;${column.data_type.toLowerCase()}</span>`,
       );
@@ -60,7 +60,7 @@ export const generateMacroHoverMarkdown = (
     content.appendMarkdown(
       `<span style="color:#347890;">(argument)&nbsp;</span><span>${macroArg.name} &nbsp;</span>`,
     );
-    if (macroArg.type !== null) {
+    if (macroArg.type) {
       content.appendMarkdown(
         `<span>-&nbsp;${macroArg.type.toLowerCase()}</span>`,
       );
