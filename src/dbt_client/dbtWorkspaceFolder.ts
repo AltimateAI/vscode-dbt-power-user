@@ -30,6 +30,43 @@ import {
   readAndParseProjectConfig,
 } from "@altimateai/dbt-integration";
 
+// Directory names that must never be treated as dbt projects even when a
+// dbt_project.yml appears inside them. Kept in sync with the static exclude
+// glob used by discoverProjects() below, so both the async discovery path
+// and the createConfigWatcher onDidCreate path reject the same set of
+// package directories.
+export const DBT_PACKAGE_DIR_NAMES: readonly string[] = [
+  "dbt_packages",
+  "dbt_internal_packages",
+  "site-packages",
+];
+
+/**
+ * Returns true when the given absolute path is not inside any known dbt
+ * package directory. Combines a race-independent static check (built-in
+ * package directory names) with a dynamic check against the packages-install
+ * paths of already-registered projects, so it is safe to call from the
+ * file-system watcher's onDidCreate handler before any project has finished
+ * initialization. See https://github.com/AltimateAI/vscode-dbt-power-user/issues/1776.
+ */
+export function isDBtProjectFileOutsidePackageDir(
+  uri: string,
+  packagesInstallPaths: (string | undefined)[],
+): boolean {
+  const segments = uri.split(/[\\/]/);
+  for (const packageDirName of DBT_PACKAGE_DIR_NAMES) {
+    if (segments.includes(packageDirName)) {
+      return false;
+    }
+  }
+  for (const packagesInstallPath of packagesInstallPaths) {
+    if (packagesInstallPath && uri.startsWith(packagesInstallPath)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
   readonly projectDiscoveryDiagnostics =
@@ -338,13 +375,6 @@ export class DBTWorkspaceFolder implements Disposable {
     uri: string,
     packagesInstallPaths: (string | undefined)[],
   ) {
-    for (const packagesInstallPath of packagesInstallPaths) {
-      if (packagesInstallPath) {
-        if (uri.startsWith(packagesInstallPath)) {
-          return false;
-        }
-      }
-    }
-    return true;
+    return isDBtProjectFileOutsidePackageDir(uri, packagesInstallPaths);
   }
 }
