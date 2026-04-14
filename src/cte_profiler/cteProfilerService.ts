@@ -11,10 +11,7 @@ import {
 } from "vscode";
 import { CteInfo } from "../code_lens_provider/cteCodeLensProvider";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
-import {
-  CteProfileEntry,
-  CteProfileResult,
-} from "./cteProfilerTypes";
+import { CteProfileEntry, CteProfileResult } from "./cteProfilerTypes";
 
 @injectable()
 export class CteProfilerService implements Disposable {
@@ -25,9 +22,7 @@ export class CteProfilerService implements Disposable {
   readonly onResultChanged: Event<CteProfileResult | undefined> =
     this._onResultChanged.event;
 
-  private disposables: Disposable[] = [
-    this._onResultChanged,
-  ];
+  private disposables: Disposable[] = [this._onResultChanged];
 
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -222,18 +217,18 @@ export class CteProfilerService implements Disposable {
 
     const cteDefinitions: string[] = [];
 
+    // Rebuild each CTE by slicing the raw source between the name position and
+    // the query body. This preserves column lists and any comments between
+    // the identifier and the AS keyword, matching what detectCtes() accepts.
     for (const cte of sameScopeCtesUpToTarget) {
-      const cteStartPos = document.offsetAt(cte.range.start);
-      const cteNameMatch = text
-        .substring(cteStartPos)
-        .match(
-          /^((?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\])(?:\.(?:[a-zA-Z_][a-zA-Z0-9_]*|"[^"]+"|`[^`]+`|\[[^\]]+\]))*(?:\s*\([^)]*\))?)\s+as\s*\(/i,
-        );
-
-      if (cteNameMatch) {
-        const cteQuery = document.getText(cte.queryRange);
-        cteDefinitions.push(`${cteNameMatch[1]} AS (\n${cteQuery}\n)`);
+      const headerStart = document.offsetAt(cte.range.start);
+      const queryBodyStart = document.offsetAt(cte.queryRange.start);
+      if (queryBodyStart <= headerStart) {
+        continue;
       }
+      const headerWithOpenParen = text.substring(headerStart, queryBodyStart);
+      const cteQuery = document.getText(cte.queryRange);
+      cteDefinitions.push(`${headerWithOpenParen}\n${cteQuery}\n)`);
     }
 
     if (cteDefinitions.length === 0) {
@@ -250,10 +245,19 @@ export class CteProfilerService implements Disposable {
     query += "WITH ";
     query += cteDefinitions.join(",\n");
 
-    const quotedName = this.quoteSqlIdentifier(targetCte.name);
+    const quotedName = this.quoteSqlIdentifier(
+      this.stripColumnList(targetCte.name),
+    );
     query += `\nSELECT COUNT(*) AS _profile_count FROM ${quotedName}`;
 
     return query;
+  }
+
+  private stripColumnList(rawName: string): string {
+    // CteCodeLensProvider.name may include a trailing column list like
+    // "my_cte (id, name)". Strip it so the FROM clause references only the
+    // identifier.
+    return rawName.replace(/\s*\([^)]*\)\s*$/, "").trim();
   }
 
   private extractRowCount(data: Record<string, unknown>[]): number {

@@ -111,6 +111,11 @@ export class CteProfilerDecorationProvider implements Disposable {
 
     for (const cte of result.ctes) {
       const line = cte.line;
+      // Line numbers are captured at profile time; the document may have been
+      // edited since, so skip entries that no longer point at a valid line.
+      if (line < 0 || line >= editor.document.lineCount) {
+        continue;
+      }
       const lineLength = editor.document.lineAt(line).text.length;
       const range = new Range(line, lineLength, line, lineLength);
 
@@ -133,15 +138,15 @@ export class CteProfilerDecorationProvider implements Disposable {
       }
     }
 
-    // Add total summary on last CTE line
+    // Add total summary on last content line of the document
     if (result.ctes.length > 0 && result.status !== "running") {
-      const lastCte = result.ctes[result.ctes.length - 1];
-      const lastLine = lastCte.line;
-      const lineLength = editor.document.lineAt(lastLine).text.length;
-
-      // Find which array the last CTE was added to and append total info
-      // We add a separate decoration for the total on the document's last content
       const totalLine = editor.document.lineCount - 1;
+      if (totalLine < 0) {
+        editor.setDecorations(this.hotDecorationType, hot);
+        editor.setDecorations(this.warmDecorationType, warm);
+        editor.setDecorations(this.coolDecorationType, cool);
+        return;
+      }
       const totalLineLength = editor.document.lineAt(totalLine).text.length;
       const totalDecoration: DecorationOptions = {
         range: new Range(
