@@ -27,11 +27,13 @@ export class AltimateCodeChatService implements Disposable {
       );
       return;
     }
-    const { sessionId } = await chat.createSession({
+    // createSession opens the panel, starts the server, creates the session,
+    // and sends the initial message — all handled by the Datamates extension's
+    // webview:ready lifecycle.
+    await chat.createSession({
       initialMessage: options.initialMessage,
       title: options.title,
     });
-    await chat.openChat(sessionId);
   }
 
   getEditorContext(): {

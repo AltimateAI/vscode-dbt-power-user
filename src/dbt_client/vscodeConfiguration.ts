@@ -4,7 +4,7 @@ import {
 } from "@altimateai/dbt-integration";
 import { injectable } from "inversify";
 import { workspace } from "vscode";
-import { getFirstWorkspacePath } from "../utils";
+import { getFirstWorkspacePath, resolveSettingsVariables } from "../utils";
 
 @injectable()
 export class VSCodeDBTConfiguration implements DBTConfiguration {
@@ -27,27 +27,30 @@ export class VSCodeDBTConfiguration implements DBTConfiguration {
   }
 
   getRunModelCommandAdditionalParams(): string[] {
-    return workspace
+    const params = workspace
       .getConfiguration("dbt")
       .get<
         string[]
       >("runModelCommandAdditionalParams", DEFAULT_CONFIGURATION_VALUES.runModelCommandAdditionalParams);
+    return params.map((p) => resolveSettingsVariables(p));
   }
 
   getBuildModelCommandAdditionalParams(): string[] {
-    return workspace
+    const params = workspace
       .getConfiguration("dbt")
       .get<
         string[]
       >("buildModelCommandAdditionalParams", DEFAULT_CONFIGURATION_VALUES.buildModelCommandAdditionalParams);
+    return params.map((p) => resolveSettingsVariables(p));
   }
 
   getTestModelCommandAdditionalParams(): string[] {
-    return workspace
+    const params = workspace
       .getConfiguration("dbt")
       .get<
         string[]
       >("testModelCommandAdditionalParams", DEFAULT_CONFIGURATION_VALUES.testModelCommandAdditionalParams);
+    return params.map((p) => resolveSettingsVariables(p));
   }
 
   getQueryTemplate(): string {
