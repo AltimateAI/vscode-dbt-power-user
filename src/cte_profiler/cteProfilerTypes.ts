@@ -13,6 +13,10 @@ export interface CteProfileResult {
   status: "running" | "complete" | "partial" | "error";
   totalTimeMs: number;
   totalRows: number;
+  // Number of CTEs the profile run was started with; lets the UI render an
+  // "X/Y CTEs" suffix for partial runs even after `ctes` only holds the
+  // entries that completed.
+  totalCount: number;
   ctes: CteProfileEntry[];
   timestamp: number;
   error?: string;

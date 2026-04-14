@@ -138,39 +138,49 @@ export class CteProfilerDecorationProvider implements Disposable {
       }
     }
 
-    // Add total summary on last content line of the document
-    if (result.ctes.length > 0 && result.status !== "running") {
+    // Add EOF summary on the last content line of the document.
+    //
+    // Status determines what (if anything) we render:
+    //   • complete → "Total: <time> · <rows> rows" — accurate model totals
+    //   • partial  → "Partial: <time> · <rows> rows (<done>/<total> CTEs)"
+    //                — values reflect only the last completed CTE; the count
+    //                  suffix makes clear the run was cut short
+    //   • error    → omit; window.showErrorMessage already surfaces the failure
+    if (
+      result.ctes.length > 0 &&
+      (result.status === "complete" || result.status === "partial")
+    ) {
       const totalLine = editor.document.lineCount - 1;
-      // Skip the total summary if a per-CTE decoration already lives on the
-      // same line — visual smear from two `after` decorations on one line is
-      // worse than dropping the summary in this edge case (in-progress SQL
-      // where the last CTE happens to end on the document's final line).
+      // Skip the summary if a per-CTE decoration already lives on the same
+      // line — visual smear from two `after` decorations on one line is worse
+      // than dropping the summary (edge case: in-progress SQL where the last
+      // CTE happens to end on the document's final line).
       const cteLineCollision = result.ctes.some(
         (cte) => cte.line === totalLine,
       );
-      if (totalLine < 0 || cteLineCollision) {
-        editor.setDecorations(this.hotDecorationType, hot);
-        editor.setDecorations(this.warmDecorationType, warm);
-        editor.setDecorations(this.coolDecorationType, cool);
-        return;
-      }
-      const totalLineLength = editor.document.lineAt(totalLine).text.length;
-      const totalDecoration: DecorationOptions = {
-        range: new Range(
-          totalLine,
-          totalLineLength,
-          totalLine,
-          totalLineLength,
-        ),
-        renderOptions: {
-          after: {
-            contentText: `  ⏱ Total: ${formatTime(result.totalTimeMs)} · ${formatRows(result.totalRows)} rows`,
-            color: new ThemeColor("editorCodeLens.foreground"),
-            fontStyle: "italic",
+      if (totalLine >= 0 && !cteLineCollision) {
+        const totalLineLength = editor.document.lineAt(totalLine).text.length;
+        const summaryText =
+          result.status === "complete"
+            ? `  ⏱ Total: ${formatTime(result.totalTimeMs)} · ${formatRows(result.totalRows)} rows`
+            : `  ⏱ Partial: ${formatTime(result.totalTimeMs)} · ${formatRows(result.totalRows)} rows (${result.ctes.length}/${result.totalCount} CTEs)`;
+        const summaryDecoration: DecorationOptions = {
+          range: new Range(
+            totalLine,
+            totalLineLength,
+            totalLine,
+            totalLineLength,
+          ),
+          renderOptions: {
+            after: {
+              contentText: summaryText,
+              color: new ThemeColor("editorCodeLens.foreground"),
+              fontStyle: "italic",
+            },
           },
-        },
-      };
-      cool.push(totalDecoration);
+        };
+        cool.push(summaryDecoration);
+      }
     }
 
     editor.setDecorations(this.hotDecorationType, hot);

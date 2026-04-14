@@ -81,6 +81,7 @@ export class CteProfilerService implements Disposable {
       status: "running",
       totalTimeMs: 0,
       totalRows: 0,
+      totalCount: ctes.length,
       ctes: [],
       timestamp: Date.now(),
     };
