@@ -89,6 +89,10 @@ jest.mock("vscode", () => ({
     line,
     character,
   })),
+  Location: jest.fn().mockImplementation((uri: any, rangeOrPosition: any) => ({
+    uri,
+    range: rangeOrPosition,
+  })),
   TreeItemCollapsibleState: {
     None: 0,
     Collapsed: 1,

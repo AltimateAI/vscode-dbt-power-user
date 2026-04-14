@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.60.2",
+  "version": "0.60.4",
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -180,7 +180,7 @@
           },
           "dbt.dbtPythonPathOverride": {
             "type": "string",
-            "description": "Path to a python executable or entrypoint. If undefined, we will use the Python extension's configured environment. Most users will not need to change this setting without specific reasoning such as custom wrappers and should instead modify the Python extensions selected interpreter."
+            "description": "Path to a Python executable. Use this when the Python extension selects a different interpreter than the one where dbt is installed (e.g. dbt works in your terminal but not in the extension). You can set this manually or run the 'Detect Python from terminal' command to auto-detect it."
           },
           "dbt.dbtCustomRunnerImport": {
             "type": "string",
@@ -762,6 +762,12 @@
         "icon": "$(debug-console)"
       },
       {
+        "command": "dbtPowerUser.detectPythonFromTerminal",
+        "title": "Detect Python from terminal",
+        "category": "dbt Power User",
+        "icon": "$(terminal)"
+      },
+      {
         "command": "dbtPowerUser.sqlLineage",
         "title": "Visualize SQL (Beta)",
         "category": "dbt Power User",
@@ -1220,6 +1226,20 @@
           "light": "./media/images/dbt_file_icon.svg",
           "dark": "./media/images/dbt_file_icon.svg"
         }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "jinja-sql",
+        "scopeName": "source.sql.jinja",
+        "path": "./syntaxes/jinja-sql.tmLanguage.json"
+      },
+      {
+        "scopeName": "source.yaml.jinja",
+        "path": "./syntaxes/jinja-yaml.tmLanguage.json",
+        "injectTo": [
+          "source.yaml"
+        ]
       }
     ]
   },
