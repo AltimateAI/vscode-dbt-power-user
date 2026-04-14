@@ -227,21 +227,32 @@ export class SqlActionsCodeLensProvider
               properties.key.source === "name"
             ) {
               const position = lineCounter.linePos(properties.key.offset);
+              const lensRange = new Range(
+                position.line - 1,
+                position.col,
+                position.line - 1,
+                position.col,
+              );
               codeLenses.push(
-                new CodeLens(
-                  new Range(
-                    position.line - 1,
-                    position.col,
-                    position.line - 1,
-                    position.col,
-                  ),
-                  {
-                    title: "Add documentation or tests",
-                    tooltip: "Add documentation or tests for this model",
-                    command: "dbtPowerUser.showDocumentation",
-                    arguments: [properties.value.source],
-                  },
-                ),
+                new CodeLens(lensRange, {
+                  title: "$(play) Run",
+                  tooltip: `Run model ${properties.value.source}`,
+                  command: "dbtPowerUser.yamlRunModel",
+                  arguments: [document.uri, properties.value.source],
+                }),
+                new CodeLens(lensRange, {
+                  title: "$(beaker) Test",
+                  tooltip: `Run tests for model ${properties.value.source}`,
+                  command: "dbtPowerUser.yamlTestModel",
+                  arguments: [document.uri, properties.value.source],
+                }),
+                new CodeLens(lensRange, {
+                  title: "$(book) Document",
+                  tooltip:
+                    "Add documentation or tests for this model",
+                  command: "dbtPowerUser.showDocumentation",
+                  arguments: [properties.value.source],
+                }),
               );
             }
           }

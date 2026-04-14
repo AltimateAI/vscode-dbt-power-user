@@ -105,6 +105,7 @@ import { DepthDecorationProvider } from "./hover_provider/depthDecorationProvide
 import { MacroHoverProvider } from "./hover_provider/macroHoverProvider";
 import { ModelHoverProvider } from "./hover_provider/modelHoverProvider";
 import { SourceHoverProvider } from "./hover_provider/sourceHoverProvider";
+import { YamlModelHoverProvider } from "./hover_provider/yamlModelHoverProvider";
 import { ProjectQuickPick } from "./quickpick/projectQuickPick";
 
 // Import missing providers and components
@@ -1177,6 +1178,7 @@ container
       context.container.get(SourceHoverProvider),
       context.container.get(MacroHoverProvider),
       context.container.get(DepthDecorationProvider),
+      context.container.get(YamlModelHoverProvider),
     );
   })
   .inSingletonScope();
@@ -1216,6 +1218,16 @@ container
   .bind(SourceHoverProvider)
   .toDynamicValue((context) => {
     return new SourceHoverProvider(
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(YamlModelHoverProvider)
+  .toDynamicValue((context) => {
+    return new YamlModelHoverProvider(
       context.container.get(DBTProjectContainer),
       context.container.get(TelemetryService),
     );
