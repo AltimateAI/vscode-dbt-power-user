@@ -1569,6 +1569,7 @@ container
       context.container.get(CteProfilerService),
       context.container.get(CteProfilerDecorationProvider),
       context.container.get(CteCodeLensProvider),
+      context.container.get(TelemetryService),
     );
   })
   .inSingletonScope();

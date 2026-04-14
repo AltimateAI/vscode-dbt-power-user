@@ -46,6 +46,8 @@ import { DiagnosticsOutputChannel } from "../services/diagnosticsOutputChannel";
 import { QueryManifestService } from "../services/queryManifestService";
 import { RunHistoryService } from "../services/runHistoryService";
 import { SharedStateService } from "../services/sharedStateService";
+import { TelemetryService } from "../telemetry";
+import { TelemetryEvents } from "../telemetry/events";
 import { RunTreeItem } from "../treeview_provider/runHistoryTreeItems";
 import {
   deepEqual,
@@ -89,6 +91,7 @@ export class VSCodeCommands implements Disposable {
     private cteProfilerService: CteProfilerService,
     private cteProfilerDecorationProvider: CteProfilerDecorationProvider,
     private cteCodeLensProvider: CteCodeLensProvider,
+    private telemetry: TelemetryService,
   ) {
     this.disposables.push(
       this.cteProfilerService,
@@ -126,6 +129,7 @@ export class VSCodeCommands implements Disposable {
         "dbtPowerUser.profileCtes",
         async (uri?: Uri, ctes?: CteInfo[]) => {
           // When called from command palette, args are undefined — use active editor
+          const source = uri ? "codeLens" : "commandPalette";
           const activeEditor = window.activeTextEditor;
           const docUri = uri ?? activeEditor?.document.uri;
           if (!docUri) {
@@ -177,12 +181,90 @@ export class VSCodeCommands implements Disposable {
             }
           }
 
-          this.cteProfilerService.profileModel(docUri, document, ctes);
+          const telemetryEvent = TelemetryEvents["CteProfiler/Profile"];
+          const totalCtes = ctes.length;
+          this.telemetry.startTelemetryEvent(
+            telemetryEvent,
+            { source },
+            { cteCount: totalCtes },
+          );
+
+          await window.withProgress(
+            {
+              location: ProgressLocation.Notification,
+              title: `Profiling ${totalCtes} CTE${totalCtes === 1 ? "" : "s"}`,
+              cancellable: true,
+            },
+            async (progress, token) => {
+              // Forward notification cancel to the service's own token.
+              token.onCancellationRequested(() => {
+                this.telemetry.sendTelemetryEvent(
+                  TelemetryEvents["CteProfiler/Cancel"],
+                  { source: "progressNotification" },
+                );
+                this.cteProfilerService.cancel();
+              });
+
+              // Report per-CTE increments as the service fires result updates.
+              let lastCount = 0;
+              const progressSub = this.cteProfilerService.onResultChanged(
+                (result) => {
+                  if (!result || result.uri !== docUri.toString()) {
+                    return;
+                  }
+                  const done = result.ctes.length;
+                  if (done <= lastCount) {
+                    return;
+                  }
+                  const delta = done - lastCount;
+                  lastCount = done;
+                  progress.report({
+                    increment: (delta / totalCtes) * 100,
+                    message: `${done}/${totalCtes} — ${result.ctes[done - 1]?.name ?? ""}`,
+                  });
+                },
+              );
+
+              try {
+                await this.cteProfilerService.profileModel(
+                  docUri,
+                  document!,
+                  ctes!,
+                );
+                const result = this.cteProfilerService.getResult(
+                  docUri.toString(),
+                );
+                this.telemetry.endTelemetryEvent(
+                  telemetryEvent,
+                  undefined,
+                  { source, status: result?.status ?? "unknown" },
+                  {
+                    cteCount: totalCtes,
+                    totalTimeMs: result?.totalTimeMs ?? 0,
+                    profiledCount: result?.ctes.length ?? 0,
+                  },
+                );
+              } catch (error) {
+                this.telemetry.endTelemetryEvent(
+                  telemetryEvent,
+                  error,
+                  { source },
+                  { cteCount: totalCtes },
+                );
+              } finally {
+                progressSub.dispose();
+              }
+            },
+          );
         },
       ),
-      commands.registerCommand("dbtPowerUser.cancelCteProfiling", () =>
-        this.cteProfilerService.cancel(),
-      ),
+      commands.registerCommand("dbtPowerUser.cancelCteProfiling", () => {
+        this.telemetry.sendTelemetryEvent(
+          TelemetryEvents["CteProfiler/Cancel"],
+          { source: "commandPalette" },
+        );
+        this.cteProfilerService.cancel();
+      }),
       commands.registerCommand("dbtPowerUser.clearProfileResults", () =>
         this.cteProfilerService.clearResults(),
       ),
