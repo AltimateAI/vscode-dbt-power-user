@@ -157,12 +157,12 @@ export class VSCodeCommands implements Disposable {
           // If ctes not provided (command palette), re-detect from CodeLens provider
           if (!ctes) {
             const cts = new CancellationTokenSource();
-            const codeLenses = this.cteCodeLensProvider.provideCodeLenses(
+            // `provideCodeLenses` returns `CodeLens[] | Thenable<CodeLens[]>`;
+            // `await` handles all three (sync array, Promise, custom Thenable).
+            const resolved = await this.cteCodeLensProvider.provideCodeLenses(
               document,
               cts.token,
             );
-            const resolved =
-              codeLenses instanceof Promise ? await codeLenses : codeLenses;
             cts.dispose();
             // Extract CteInfo from CodeLens arguments (index 1 is the ctes array)
             const profileLens = resolved.find(

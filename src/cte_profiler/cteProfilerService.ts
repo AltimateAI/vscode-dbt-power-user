@@ -99,6 +99,12 @@ export class CteProfilerService implements Disposable {
       let previousCumulativeTime = 0;
 
       for (let i = 0; i < ctes.length; i++) {
+        // Cancellation is intentionally checked between CTEs only — we cannot
+        // abort a query that's already in flight inside
+        // `immediatelyExecuteSQLWithLimit()`, which is a shared helper without
+        // a `CancellationToken`. Mid-query abort is tracked as a follow-up
+        // once that helper grows cancellation support across all dbt
+        // integrations (core/cloud/fusion/core-command + Python bridge).
         if (token.isCancellationRequested) {
           this.dbtTerminal.debug(
             "CteProfiler",

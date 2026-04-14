@@ -141,7 +141,14 @@ export class CteProfilerDecorationProvider implements Disposable {
     // Add total summary on last content line of the document
     if (result.ctes.length > 0 && result.status !== "running") {
       const totalLine = editor.document.lineCount - 1;
-      if (totalLine < 0) {
+      // Skip the total summary if a per-CTE decoration already lives on the
+      // same line — visual smear from two `after` decorations on one line is
+      // worse than dropping the summary in this edge case (in-progress SQL
+      // where the last CTE happens to end on the document's final line).
+      const cteLineCollision = result.ctes.some(
+        (cte) => cte.line === totalLine,
+      );
+      if (totalLine < 0 || cteLineCollision) {
         editor.setDecorations(this.hotDecorationType, hot);
         editor.setDecorations(this.warmDecorationType, warm);
         editor.setDecorations(this.coolDecorationType, cool);
