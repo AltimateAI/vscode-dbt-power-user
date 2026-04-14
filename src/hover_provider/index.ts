@@ -4,6 +4,7 @@ import { DepthDecorationProvider } from "./depthDecorationProvider";
 import { MacroHoverProvider } from "./macroHoverProvider";
 import { ModelHoverProvider } from "./modelHoverProvider";
 import { SourceHoverProvider } from "./sourceHoverProvider";
+import { YamlModelHoverProvider } from "./yamlModelHoverProvider";
 
 export class HoverProviders implements Disposable {
   private disposables: Disposable[] = [];
@@ -13,6 +14,7 @@ export class HoverProviders implements Disposable {
     private sourceHoverProvider: SourceHoverProvider,
     private macroHoverProvider: MacroHoverProvider,
     private depthDecorationProvider: DepthDecorationProvider,
+    private yamlModelHoverProvider: YamlModelHoverProvider,
   ) {
     this.disposables.push(
       languages.registerHoverProvider(
@@ -36,6 +38,12 @@ export class HoverProviders implements Disposable {
       languages.registerHoverProvider(
         DBTPowerUserExtension.DBT_SQL_SELECTOR,
         this.depthDecorationProvider,
+      ),
+    );
+    this.disposables.push(
+      languages.registerHoverProvider(
+        DBTPowerUserExtension.DBT_YAML_SELECTOR,
+        this.yamlModelHoverProvider,
       ),
     );
   }

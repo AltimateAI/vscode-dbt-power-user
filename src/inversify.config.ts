@@ -105,6 +105,7 @@ import { DepthDecorationProvider } from "./hover_provider/depthDecorationProvide
 import { MacroHoverProvider } from "./hover_provider/macroHoverProvider";
 import { ModelHoverProvider } from "./hover_provider/modelHoverProvider";
 import { SourceHoverProvider } from "./hover_provider/sourceHoverProvider";
+import { YamlModelHoverProvider } from "./hover_provider/yamlModelHoverProvider";
 import { ProjectQuickPick } from "./quickpick/projectQuickPick";
 
 // Import missing providers and components
@@ -112,6 +113,7 @@ import { VSCodeCommands } from "./commands";
 import { AltimateScan } from "./commands/altimateScan";
 import { BigQueryCostEstimate } from "./commands/bigQueryCostEstimate";
 import { RunModel } from "./commands/runModel";
+import { RunTest } from "./commands/runTest";
 import { SqlToModel } from "./commands/sqlToModel";
 import { MissingSchemaTest } from "./commands/tests/missingSchemaTest";
 import { StaleModelColumnTest } from "./commands/tests/staleModelColumnTest";
@@ -1195,6 +1197,7 @@ container
       context.container.get(SourceHoverProvider),
       context.container.get(MacroHoverProvider),
       context.container.get(DepthDecorationProvider),
+      context.container.get(YamlModelHoverProvider),
     );
   })
   .inSingletonScope();
@@ -1234,6 +1237,16 @@ container
   .bind(SourceHoverProvider)
   .toDynamicValue((context) => {
     return new SourceHoverProvider(
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(YamlModelHoverProvider)
+  .toDynamicValue((context) => {
+    return new YamlModelHoverProvider(
       context.container.get(DBTProjectContainer),
       context.container.get(TelemetryService),
     );
@@ -1449,6 +1462,16 @@ container
   .inSingletonScope();
 
 container
+  .bind(RunTest)
+  .toDynamicValue((context) => {
+    return new RunTest(
+      context.container.get(DBTProjectContainer),
+      context.container.get(QueryManifestService),
+    );
+  })
+  .inSingletonScope();
+
+container
   .bind(SqlToModel)
   .toDynamicValue((context) => {
     return new SqlToModel(
@@ -1549,6 +1572,7 @@ container
     return new VSCodeCommands(
       context.container.get(DBTProjectContainer),
       context.container.get(RunModel),
+      context.container.get(RunTest),
       context.container.get(SqlToModel),
       context.container.get(ValidateSql),
       context.container.get(AltimateScan),

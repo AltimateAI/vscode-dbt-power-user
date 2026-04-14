@@ -59,6 +59,7 @@ import { SQLLineagePanel } from "../webview_provider/sqlLineagePanel";
 import { AltimateScan } from "./altimateScan";
 import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
 import { RunModel } from "./runModel";
+import { RunTest } from "./runTest";
 import { SqlToModel } from "./sqlToModel";
 import { ValidateSql } from "./validateSql";
 import { WalkthroughCommands } from "./walkthroughCommands";
@@ -69,6 +70,7 @@ export class VSCodeCommands implements Disposable {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private runModel: RunModel,
+    private runTest: RunTest,
     private sqlToModel: SqlToModel,
     private validateSql: ValidateSql,
     private altimateScan: AltimateScan,
@@ -106,9 +108,14 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.installDbt", () =>
         this.walkthroughCommands.installDbt(),
       ),
-      commands.registerCommand("dbtPowerUser.runCurrentModel", () =>
-        this.runModel.runModelOnActiveWindow(),
-      ),
+      commands.registerCommand("dbtPowerUser.runCurrentModel", () => {
+        // `dbt run` on a singular test file is never meaningful; route it
+        // to `dbt test --select <test>` instead. See #1720.
+        if (this.runTest.runSingularTestOnActiveWindowIfApplicable()) {
+          return;
+        }
+        this.runModel.runModelOnActiveWindow();
+      }),
       commands.registerCommand(
         "dbtPowerUser.rerunFromHistory",
         (item: RunTreeItem) => {
@@ -271,9 +278,14 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.toggleProfileDecorations", () =>
         this.cteProfilerDecorationProvider.toggle(),
       ),
-      commands.registerCommand("dbtPowerUser.testCurrentModel", () =>
-        this.runModel.runTestsOnActiveWindow(),
-      ),
+      commands.registerCommand("dbtPowerUser.testCurrentModel", () => {
+        // Singular data tests must be selected by their own test name, not
+        // the surrounding model. See #1720.
+        if (this.runTest.runSingularTestOnActiveWindowIfApplicable()) {
+          return;
+        }
+        this.runModel.runTestsOnActiveWindow();
+      }),
       commands.registerCommand("dbtPowerUser.compileCurrentModel", () =>
         this.runModel.compileModelOnActiveWindow(),
       ),
@@ -313,11 +325,35 @@ export class VSCodeCommands implements Disposable {
           );
         },
       ),
-      commands.registerCommand("dbtPowerUser.runTest", (model) =>
-        this.runModel.runModelOnNodeTreeItem(RunModelType.TEST)(model),
-      ),
+      commands.registerCommand("dbtPowerUser.runTest", (model) => {
+        // Tree-item invocation (from the test treeview): run the selected
+        // test node — never a singular test, always a generic test.
+        if (model !== undefined) {
+          this.runModel.runModelOnNodeTreeItem(RunModelType.TEST)(model);
+          return;
+        }
+        // Command-palette invocation (no tree item): route singular test
+        // files to `dbt test --select <test>`; otherwise fall back to
+        // running the generic tests attached to the active model. See #1720.
+        if (this.runTest.runSingularTestOnActiveWindowIfApplicable()) {
+          return;
+        }
+        this.runModel.runModelOnNodeTreeItem(RunModelType.TEST)(model);
+      }),
       commands.registerCommand("dbtPowerUser.runChildrenModels", (model) =>
         this.runModel.runModelOnNodeTreeItem(RunModelType.RUN_CHILDREN)(model),
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.yamlRunModel",
+        (uri: Uri, modelName: string) => {
+          this.dbtProjectContainer.runModelByName(uri, modelName);
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.yamlTestModel",
+        (uri: Uri, modelName: string) => {
+          this.dbtProjectContainer.runModelTest(uri, modelName);
+        },
       ),
       commands.registerCommand("dbtPowerUser.runParentModels", (model) =>
         this.runModel.runModelOnNodeTreeItem(RunModelType.RUN_PARENTS)(model),
