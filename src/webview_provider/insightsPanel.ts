@@ -729,7 +729,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
           );
         } catch (err) {
           this.dbtTerminal.error(
-            "InsightsPanel",
+            "InsightsPanelError",
             "Error logging healthcheck config",
             err,
           );
