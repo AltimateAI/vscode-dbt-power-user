@@ -445,26 +445,26 @@ export function resolveSettingsVariables(
   }
 
   // Resolve ${env:VAR_NAME}
-  const regexEnv = /\$\{env:(.*?)\}/gm;
-  let match;
-  while ((match = regexEnv.exec(value)) !== null) {
-    if (match.index === regexEnv.lastIndex) {
-      regexEnv.lastIndex++;
-    }
-    const envValue = process.env[match[1]];
-    if (envValue !== undefined) {
-      value = value.replace(
-        new RegExp(`\\$\\{env:${match[1]}\\}`, "gm"),
-        envValue,
-      );
-    }
-  }
+  // Use a callback-based replace to:
+  // 1. Avoid desynchronizing a stateful global regex with the mutating string
+  //    (the previous while-loop skipped subsequent placeholders in strings
+  //    containing multiple `${env:VAR}` references).
+  // 2. Treat the replacement as a literal string — passing an env value
+  //    directly to replace() causes `$1`, `$&`, etc. in the value to be
+  //    interpreted as backreferences, silently corrupting paths like
+  //    `/home/$USER/project`.
+  // Unresolved placeholders (env var not set) are left as-is.
+  value = value.replace(/\$\{env:(.*?)\}/g, (match, varName) => {
+    const envValue = process.env[varName];
+    return envValue !== undefined ? envValue : match;
+  });
 
   // Resolve ${workspaceFolder}
-  const folder =
-    workspaceFolder ?? workspace.workspaceFolders?.[0]?.uri;
+  // Also use a callback for the same `$`-interpretation reason: workspace
+  // paths can legitimately contain `$` on Windows.
+  const folder = workspaceFolder ?? workspace.workspaceFolders?.[0]?.uri;
   if (folder) {
-    value = value.replace(/\$\{workspaceFolder\}/g, folder.fsPath);
+    value = value.replace(/\$\{workspaceFolder\}/g, () => folder.fsPath);
   }
 
   return value;

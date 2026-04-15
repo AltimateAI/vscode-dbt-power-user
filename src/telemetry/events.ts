@@ -60,6 +60,8 @@ export enum TelemetryEvents {
   "Notebook/StoreDataInKernelError" = "Notebook/StoreDataInKernelError",
   "QueryHistory/Disabled" = "QueryHistory/Disabled",
   "QueryHistory/Cleared" = "QueryHistory/Cleared",
+  "CteProfiler/Profile" = "CteProfiler/Profile",
+  "CteProfiler/Cancel" = "CteProfiler/Cancel",
   "MCP/ToolCall" = "MCP/ToolCall",
   "MCP/Onboarding" = "MCP/Onboarding",
   "MCP/Onboarding/SetUpNow" = "MCP/Onboarding/SetUpNow",

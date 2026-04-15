@@ -105,6 +105,7 @@ import { DepthDecorationProvider } from "./hover_provider/depthDecorationProvide
 import { MacroHoverProvider } from "./hover_provider/macroHoverProvider";
 import { ModelHoverProvider } from "./hover_provider/modelHoverProvider";
 import { SourceHoverProvider } from "./hover_provider/sourceHoverProvider";
+import { YamlModelHoverProvider } from "./hover_provider/yamlModelHoverProvider";
 import { ProjectQuickPick } from "./quickpick/projectQuickPick";
 
 // Import missing providers and components
@@ -112,6 +113,7 @@ import { VSCodeCommands } from "./commands";
 import { AltimateScan } from "./commands/altimateScan";
 import { BigQueryCostEstimate } from "./commands/bigQueryCostEstimate";
 import { RunModel } from "./commands/runModel";
+import { RunTest } from "./commands/runTest";
 import { SqlToModel } from "./commands/sqlToModel";
 import { MissingSchemaTest } from "./commands/tests/missingSchemaTest";
 import { StaleModelColumnTest } from "./commands/tests/staleModelColumnTest";
@@ -123,6 +125,8 @@ import { CommentProviders } from "./comment_provider";
 import { ConversationProvider } from "./comment_provider/conversationProvider";
 import { ContentProviders } from "./content_provider";
 import { SqlPreviewContentProvider } from "./content_provider/sqlPreviewContentProvider";
+import { CteProfilerDecorationProvider } from "./cte_profiler/cteProfilerDecorationProvider";
+import { CteProfilerService } from "./cte_profiler/cteProfilerService";
 import { DBTPowerUserExtension } from "./dbtPowerUserExtension";
 import { DocumentFormattingEditProviders } from "./document_formatting_edit_provider";
 import { DbtDocumentFormattingEditProvider } from "./document_formatting_edit_provider/dbtDocumentFormattingEditProvider";
@@ -887,6 +891,26 @@ container
   .inSingletonScope();
 
 container
+  .bind(CteProfilerService)
+  .toDynamicValue((context) => {
+    return new CteProfilerService(
+      context.container.get(DBTProjectContainer),
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(CteProfilerDecorationProvider)
+  .toDynamicValue((context) => {
+    return new CteProfilerDecorationProvider(
+      context.container.get(CteProfilerService),
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
+container
   .bind(ProjectQuickPick)
   .toDynamicValue(() => {
     return new ProjectQuickPick();
@@ -1079,10 +1103,7 @@ container
 container
   .bind(CteCodeLensProvider)
   .toDynamicValue((context) => {
-    return new CteCodeLensProvider(
-      context.container.get("DBTTerminal"),
-      context.container.get(AltimateRequest),
-    );
+    return new CteCodeLensProvider(context.container.get("DBTTerminal"));
   })
   .inSingletonScope();
 
@@ -1176,6 +1197,7 @@ container
       context.container.get(SourceHoverProvider),
       context.container.get(MacroHoverProvider),
       context.container.get(DepthDecorationProvider),
+      context.container.get(YamlModelHoverProvider),
     );
   })
   .inSingletonScope();
@@ -1215,6 +1237,16 @@ container
   .bind(SourceHoverProvider)
   .toDynamicValue((context) => {
     return new SourceHoverProvider(
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(YamlModelHoverProvider)
+  .toDynamicValue((context) => {
+    return new YamlModelHoverProvider(
       context.container.get(DBTProjectContainer),
       context.container.get(TelemetryService),
     );
@@ -1430,6 +1462,16 @@ container
   .inSingletonScope();
 
 container
+  .bind(RunTest)
+  .toDynamicValue((context) => {
+    return new RunTest(
+      context.container.get(DBTProjectContainer),
+      context.container.get(QueryManifestService),
+    );
+  })
+  .inSingletonScope();
+
+container
   .bind(SqlToModel)
   .toDynamicValue((context) => {
     return new SqlToModel(
@@ -1530,6 +1572,7 @@ container
     return new VSCodeCommands(
       context.container.get(DBTProjectContainer),
       context.container.get(RunModel),
+      context.container.get(RunTest),
       context.container.get(SqlToModel),
       context.container.get(ValidateSql),
       context.container.get(AltimateScan),
@@ -1547,6 +1590,10 @@ container
       context.container.get("DatapilotNotebookController"),
       context.container.get(RunHistoryService),
       context.container.get(AltimateCodeChatService),
+      context.container.get(CteProfilerService),
+      context.container.get(CteProfilerDecorationProvider),
+      context.container.get(CteCodeLensProvider),
+      context.container.get(TelemetryService),
     );
   })
   .inSingletonScope();

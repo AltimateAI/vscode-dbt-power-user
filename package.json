@@ -531,6 +531,27 @@
         "icon": "$(clear-all)"
       },
       {
+        "command": "dbtPowerUser.profileCtes",
+        "title": "Profile CTEs",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.cancelCteProfiling",
+        "title": "Cancel CTE Profiling",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.clearProfileResults",
+        "title": "Clear CTE Profile Results",
+        "category": "dbt Power User",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "dbtPowerUser.toggleProfileDecorations",
+        "title": "Toggle CTE Profile Decorations",
+        "category": "dbt Power User"
+      },
+      {
         "command": "dbtPowerUser.openDatapilotWithQuery",
         "title": "Start Chat",
         "category": "dbt Power User"
