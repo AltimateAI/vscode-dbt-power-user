@@ -8,7 +8,6 @@ import {
   ProviderResult,
   Range,
   TextDocument,
-  Uri,
 } from "vscode";
 import { parseDocument } from "yaml";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
@@ -203,7 +202,11 @@ export class YamlModelHoverProvider implements HoverProvider, Disposable {
 
         // Check if cursor is within this source block
         if (
-          !(source.range && offset >= source.range[0] && offset <= source.range[1])
+          !(
+            source.range &&
+            offset >= source.range[0] &&
+            offset <= source.range[1]
+          )
         ) {
           continue;
         }
@@ -256,10 +259,7 @@ export class YamlModelHoverProvider implements HoverProvider, Disposable {
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
-      this.nodeMetaMap.set(
-        added.project.projectRoot.fsPath,
-        added.nodeMetaMap,
-      );
+      this.nodeMetaMap.set(added.project.projectRoot.fsPath, added.nodeMetaMap);
       this.sourceMetaMap.set(
         added.project.projectRoot.fsPath,
         added.sourceMetaMap,

@@ -9,8 +9,6 @@ import {
   Range,
   TextDocument,
 } from "vscode";
-import { AltimateRequest } from "../altimate";
-
 export interface CteInfo {
   name: string;
   range: Range;
@@ -38,7 +36,6 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
   constructor(
     @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
-    private altimate: AltimateRequest,
   ) {}
 
   dispose() {
@@ -64,15 +61,6 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
         return [];
       }
 
-      // Check if Altimate API key is configured
-      if (!this.altimate.enabled()) {
-        this.dbtTerminal.debug(
-          "CteCodeLensProvider",
-          "Skipping CTE code lens - Altimate API key not configured",
-        );
-        return [];
-      }
-
       this.dbtTerminal.debug(
         "CteCodeLensProvider",
         `Starting CTE detection for ${document.uri.fsPath}`,
@@ -86,15 +74,25 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
         `Found ${ctes.length} CTEs in document`,
       );
 
+      // Render both CodeLens actions on every CTE start line:
+      //   • Execute CTE: <name>   — per-CTE query preview
+      //   • ⏱ Profile CTEs         — profiles all CTEs cumulatively
+      // Profile is duplicated across lines so users don't have to scroll to
+      // the top to trigger it; every invocation runs the full profile.
       for (const cte of ctes) {
         const runCteCommand: Command = {
           title: `$(play) Execute CTE: ${cte.name}`,
           command: "dbtPowerUser.runCteWithDependencies",
           arguments: [document.uri, cte.index, ctes],
         };
+        codeLenses.push(new CodeLens(cte.range, runCteCommand));
 
-        const codeLens = new CodeLens(cte.range, runCteCommand);
-        codeLenses.push(codeLens);
+        const profileCommand: Command = {
+          title: "⏱ Profile CTEs",
+          command: "dbtPowerUser.profileCtes",
+          arguments: [document.uri, ctes],
+        };
+        codeLenses.push(new CodeLens(cte.range, profileCommand));
 
         this.dbtTerminal.debug(
           "CteCodeLensProvider",

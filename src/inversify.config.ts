@@ -125,6 +125,8 @@ import { CommentProviders } from "./comment_provider";
 import { ConversationProvider } from "./comment_provider/conversationProvider";
 import { ContentProviders } from "./content_provider";
 import { SqlPreviewContentProvider } from "./content_provider/sqlPreviewContentProvider";
+import { CteProfilerDecorationProvider } from "./cte_profiler/cteProfilerDecorationProvider";
+import { CteProfilerService } from "./cte_profiler/cteProfilerService";
 import { DBTPowerUserExtension } from "./dbtPowerUserExtension";
 import { DocumentFormattingEditProviders } from "./document_formatting_edit_provider";
 import { DbtDocumentFormattingEditProvider } from "./document_formatting_edit_provider/dbtDocumentFormattingEditProvider";
@@ -889,6 +891,26 @@ container
   .inSingletonScope();
 
 container
+  .bind(CteProfilerService)
+  .toDynamicValue((context) => {
+    return new CteProfilerService(
+      context.container.get(DBTProjectContainer),
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(CteProfilerDecorationProvider)
+  .toDynamicValue((context) => {
+    return new CteProfilerDecorationProvider(
+      context.container.get(CteProfilerService),
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
+container
   .bind(ProjectQuickPick)
   .toDynamicValue(() => {
     return new ProjectQuickPick();
@@ -1081,10 +1103,7 @@ container
 container
   .bind(CteCodeLensProvider)
   .toDynamicValue((context) => {
-    return new CteCodeLensProvider(
-      context.container.get("DBTTerminal"),
-      context.container.get(AltimateRequest),
-    );
+    return new CteCodeLensProvider(context.container.get("DBTTerminal"));
   })
   .inSingletonScope();
 
@@ -1571,6 +1590,10 @@ container
       context.container.get("DatapilotNotebookController"),
       context.container.get(RunHistoryService),
       context.container.get(AltimateCodeChatService),
+      context.container.get(CteProfilerService),
+      context.container.get(CteProfilerDecorationProvider),
+      context.container.get(CteCodeLensProvider),
+      context.container.get(TelemetryService),
     );
   })
   .inSingletonScope();
