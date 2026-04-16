@@ -396,7 +396,6 @@ export class WalkthroughCommands {
         return "dbt-synapse";
       case "fabric":
         return "dbt-fabric";
-  const specialCases = ["trino", "athena", "postgres", "duckdb", "risingwave"];
     }
     throw new Error("Adapter is not supported" + adapter);
   }
