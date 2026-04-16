@@ -209,6 +209,9 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   contains(uri: Uri) {
+    if (!uri?.fsPath) {
+      return false;
+    }
     return (
       uri.fsPath === this.workspaceFolder.uri.fsPath ||
       uri.fsPath.startsWith(this.workspaceFolder.uri.fsPath + path.sep)
