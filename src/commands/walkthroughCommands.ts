@@ -396,6 +396,8 @@ export class WalkthroughCommands {
         return "dbt-synapse";
       case "fabric":
         return "dbt-fabric";
+      case "risingwave":
+        return "dbt-risingwave";
     }
     throw new Error("Adapter is not supported" + adapter);
   }
