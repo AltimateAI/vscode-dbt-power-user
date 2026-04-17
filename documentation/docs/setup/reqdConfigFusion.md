@@ -27,6 +27,9 @@ This method will save a bunch of time for you, and you can also validate your co
 
 You can start the setup wizard by clicking on the dbt status icon in the bottom status bar, and perform the following necessary steps:
 
+<div style="position: relative; box-sizing: content-box; max-height: 80vh; max-height: 80svh; width: 100%; aspect-ratio: 1.50; padding: 40px 0 40px 0;">
+  <iframe src="https://app.supademo.com/embed/cmnt1t4jz4hj3cr4j3knosm74?embed_v=2&utm_source=embed" loading="lazy" title="dbt Power User Setup guide-Fusion" allow="clipboard-write" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+
 **Here are the steps covered in the setup wizard**
 
 **Select dbt Integration Type**
