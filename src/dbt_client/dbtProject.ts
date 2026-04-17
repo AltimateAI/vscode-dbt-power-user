@@ -25,6 +25,7 @@ import {
   MANIFEST_FILE,
   NoCredentialsError,
   NodeMetaData,
+  NotImplementedError,
   ParsedManifest,
   ProjectHealthcheck,
   QueryExecution,
@@ -1349,6 +1350,49 @@ export class DBTProject implements Disposable {
           modelName,
           limit,
         ),
+        projectName: this.getProjectName(),
+      },
+    });
+  }
+
+  async executeModelOnQueryPanel(modelName: string) {
+    const limit = workspace
+      .getConfiguration("dbt")
+      .get<number>("queryLimit", 500);
+    return this.executeModelWithLimitOnQueryPanel(modelName, limit);
+  }
+
+  async executeModelWithLimitOnQueryPanel(modelName: string, limit: number) {
+    if (limit <= 0) {
+      window.showErrorMessage("Please enter a positive number for query limit");
+      return;
+    }
+    this.terminal.info(
+      "executeModel",
+      `Executed model: ${modelName} (limit ${limit})`,
+      true,
+      { adapter: this.getAdapterType(), limit: limit.toString() },
+    );
+    let queryExecution: QueryExecution;
+    try {
+      queryExecution = await this.dbtProjectIntegration.executeModelWithLimit(
+        modelName,
+        limit,
+      );
+    } catch (err) {
+      if (err instanceof NotImplementedError) {
+        window.showErrorMessage(
+          "Execute Model isn't available in Python-bridge mode. Switch `dbt.dbtIntegration` to `corecommand`, `cloud`, or `fusion` in settings.",
+        );
+        return;
+      }
+      throw err;
+    }
+    this.eventEmitterService.fire({
+      command: "executeQuery",
+      payload: {
+        query: `-- dbt show --select ${modelName} --limit ${limit}`,
+        fn: Promise.resolve(queryExecution),
         projectName: this.getProjectName(),
       },
     });

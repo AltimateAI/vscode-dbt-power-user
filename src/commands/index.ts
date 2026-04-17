@@ -376,6 +376,9 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.executeSQL", () =>
         this.runModel.executeQueryOnActiveWindow(),
       ),
+      commands.registerCommand("dbtPowerUser.executeModel", () =>
+        this.runModel.executeModelOnActiveWindow(),
+      ),
       commands.registerCommand(
         "dbtPowerUser.runSelectedQuery",
         (uri: Uri, range: Range) => this.runSelectedQuery(uri, range),
