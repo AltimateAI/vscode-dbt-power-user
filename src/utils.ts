@@ -200,7 +200,7 @@ export const isQuotedIdentifier = (columnName: string, adapter: string) => {
     return !new RegExp(regexFromConfig).test(columnName);
   }
 
-  const specialCases = ["trino", "athena", "postgres", "duckdb"];
+  const specialCases = ["trino", "athena", "postgres", "duckdb", "risingwave"];
   if (specialCases.includes(adapter)) {
     return !/^([_a-z]+[_a-z0-9$]*)$/.test(columnName);
   }
