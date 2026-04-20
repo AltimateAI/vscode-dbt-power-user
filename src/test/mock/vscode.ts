@@ -56,10 +56,13 @@ export class Range {
 }
 
 export class Location {
+  public range: Range | Position;
   constructor(
     public uri: typeof Uri | any,
-    public rangeOrPosition: Range | Position,
-  ) {}
+    rangeOrPosition: Range | Position,
+  ) {
+    this.range = rangeOrPosition;
+  }
 }
 
 export const DiagnosticSeverity = {
@@ -191,11 +194,29 @@ export const languages = {
   registerCodeLensProvider: jest.fn().mockReturnValue({ dispose: jest.fn() }),
 };
 
-export const EventEmitter = jest.fn().mockImplementation(() => ({
-  event: jest.fn().mockReturnValue({ dispose: jest.fn() }),
-  fire: jest.fn(),
-  dispose: jest.fn(),
-}));
+export class EventEmitter<T> {
+  private listeners: ((e: T) => any)[] = [];
+
+  event = (listener: (e: T) => any) => {
+    this.listeners.push(listener);
+    return {
+      dispose: () => {
+        const index = this.listeners.indexOf(listener);
+        if (index > -1) {
+          this.listeners.splice(index, 1);
+        }
+      },
+    };
+  };
+
+  fire(data: T): void {
+    this.listeners.forEach((listener) => listener(data));
+  }
+
+  dispose(): void {
+    this.listeners = [];
+  }
+}
 
 export const ProgressLocation = {
   Notification: 15,
@@ -222,13 +243,14 @@ export const CancellationToken = {
   },
 };
 
-export const ThemeIcon = jest
-  .fn()
-  .mockImplementation((id: string, color?: unknown) => ({ id, color }));
+export const ThemeIcon = jest.fn().mockImplementation((...args: unknown[]) => ({
+  id: args[0],
+  color: args[1],
+}));
 
 export const ThemeColor = jest
   .fn()
-  .mockImplementation((id: string) => ({ id }));
+  .mockImplementation((...args: unknown[]) => ({ id: args[0] }));
 
 export const resetMocks = () => {
   jest.clearAllMocks();

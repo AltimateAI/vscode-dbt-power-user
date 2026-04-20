@@ -17,7 +17,13 @@ describe("saveConversation highlight extraction guard", () => {
   function extractHighlight(
     field: string | undefined,
     value: unknown,
-    range: { isSingleLine?: boolean; start?: { line: number }; end?: { line: number } } | undefined,
+    range:
+      | {
+          isSingleLine?: boolean;
+          start?: { line: number };
+          end?: { line: number };
+        }
+      | undefined,
     documentLineAt: (line: number) => string,
     documentGetText: (range: unknown) => string,
   ): string {

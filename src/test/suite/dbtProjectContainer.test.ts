@@ -11,6 +11,7 @@ import {
   jest,
 } from "@jest/globals";
 import { EventEmitter } from "events";
+import * as fs from "fs";
 import { commands, ExtensionContext, Uri, window, workspace } from "vscode";
 import { DBTProjectContainer } from "../../dbt_client/dbtProjectContainer";
 import { createEntry } from "../fixtures/runHistory";
@@ -20,6 +21,12 @@ jest.mock("vscode", () => {
   const mock = jest.requireActual("../mock/vscode");
   return mock;
 });
+
+// Make fs.realpathSync.native a pass-through so model params can be derived
+// from synthetic paths without the files existing on disk.
+jest
+  .spyOn(fs.realpathSync, "native")
+  .mockImplementation((p: fs.PathLike) => p as string);
 
 describe("DBTProjectContainer Tests", () => {
   let container: DBTProjectContainer;
@@ -661,7 +668,7 @@ describe("DBTProjectContainer Tests", () => {
         false,
       );
       expect(commands.executeCommand).toHaveBeenCalledWith(
-        "dbtPowerUser.openSetupWalkthrough",
+        "dbtPowerUser.openOnboarding",
       );
     });
 
@@ -673,18 +680,15 @@ describe("DBTProjectContainer Tests", () => {
       await container.showWalkthrough();
 
       expect(commands.executeCommand).not.toHaveBeenCalledWith(
-        "dbtPowerUser.openSetupWalkthrough",
+        "dbtPowerUser.openOnboarding",
       );
     });
 
-    it("should initialize walkthrough with file associations", async () => {
+    it("should skip walkthrough when hidden in settings", async () => {
       const mockConfig = {
         get: jest.fn((key: string, defaultValue?: any) => {
           if (key === "hideWalkthrough") {
-            return false;
-          }
-          if (key === "associations") {
-            return {};
+            return true;
           }
           return defaultValue;
         }),
@@ -702,19 +706,42 @@ describe("DBTProjectContainer Tests", () => {
         },
       } as unknown as ExtensionContext;
       container.setContext(mockContext);
+      (window.showInformationMessage as any) = jest.fn();
 
       await container.initializeWalkthrough();
 
-      expect(commands.executeCommand).toHaveBeenCalledWith(
-        "setContext",
-        "dbtPowerUser.projectCount",
-        1,
+      expect(window.showInformationMessage).not.toHaveBeenCalled();
+    });
+
+    it("should trigger walkthrough when not hidden and state undefined", async () => {
+      const mockConfig = {
+        get: jest.fn((key: string, defaultValue?: any) => {
+          if (key === "hideWalkthrough") {
+            return false;
+          }
+          return defaultValue;
+        }),
+      };
+      (workspace.getConfiguration as any) = jest.fn(() => mockConfig);
+
+      const mockContext = {
+        workspaceState: {
+          get: jest.fn(),
+          update: jest.fn(),
+        },
+        globalState: {
+          get: jest.fn(() => undefined),
+          update: jest.fn(),
+        },
+      } as unknown as ExtensionContext;
+      container.setContext(mockContext);
+      (window.showInformationMessage as any) = jest.fn(() =>
+        Promise.resolve("Ignore"),
       );
-      expect(commands.executeCommand).toHaveBeenCalledWith(
-        "setContext",
-        "dbtPowerUser.showFileAssociationStep",
-        true,
-      );
+
+      await container.initializeWalkthrough();
+
+      expect(window.showInformationMessage).toHaveBeenCalled();
     });
   });
 
@@ -985,6 +1012,9 @@ describe("DBTProjectContainer Tests", () => {
       // Access the internal dbtWorkspaceFolders array directly to verify
       // splice removes exactly one element (not all from index onward).
       const folders = (container as any).dbtWorkspaceFolders as any[];
+      // The beforeEach seeds the container with one workspace folder; reset
+      // to a clean slate so we can assert on exactly the three we push below.
+      folders.length = 0;
 
       const createMockFolder = (fsPath: string) => ({
         contains: (uri: any) => uri.fsPath.startsWith(fsPath),
