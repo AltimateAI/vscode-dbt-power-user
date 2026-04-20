@@ -170,25 +170,24 @@ export const isStateDirty = (state: DocumentationStateProps): boolean => {
       return true;
     }
     if (test.test_metadata?.name === DbtGenericTests.ACCEPTED_VALUES) {
-      if (
-        (
-          test.test_metadata?.kwargs as TestMetadataAcceptedValuesKwArgs
-        ).values?.join(",") !==
-        (
-          incomingTest.test_metadata?.kwargs as TestMetadataAcceptedValuesKwArgs
-        ).values?.join(",")
-      ) {
+      const currentValues =
+        (test.test_metadata?.kwargs as TestMetadataAcceptedValuesKwArgs)
+          .values ?? [];
+      const incomingValues =
+        (incomingTest.test_metadata?.kwargs as TestMetadataAcceptedValuesKwArgs)
+          .values ?? [];
+      if (!isArrayEqual(currentValues, incomingValues)) {
         return true;
       }
     }
     if (test.test_metadata?.name === DbtGenericTests.RELATIONSHIPS) {
-      const currentTestsArgs = test.test_metadata
+      const currentArgs = test.test_metadata
         ?.kwargs as TestMetadataRelationshipsKwArgs;
-      const incomingTestsArgs = incomingTest.test_metadata
+      const incomingArgs = incomingTest.test_metadata
         ?.kwargs as TestMetadataRelationshipsKwArgs;
       if (
-        currentTestsArgs.to !== incomingTestsArgs.to ||
-        currentTestsArgs.field !== incomingTestsArgs.field
+        currentArgs.to !== incomingArgs.to ||
+        currentArgs.field !== incomingArgs.field
       ) {
         return true;
       }
