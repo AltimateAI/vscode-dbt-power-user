@@ -713,6 +713,10 @@ export class ConversationProvider implements Disposable {
   }
 
   dispose() {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = undefined;
+    }
     while (this.disposables.length) {
       const x = this.disposables.pop();
       if (x) {
