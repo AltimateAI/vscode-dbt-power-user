@@ -201,7 +201,6 @@ export default defineConfig({
     rspack: (config) => {
       config.externals = [
         "vscode",
-        "commonjs",
         // Ignored because we don't use them, and App Insights has try/catch
         // guarding their loading: https://github.com/microsoft/vscode-extension-telemetry/issues/41#issuecomment-598852991
         "applicationinsights-native-metrics",
