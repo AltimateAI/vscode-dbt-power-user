@@ -49,11 +49,19 @@ const copyAssetsPlugin: RsbuildPlugin = {
         },
       ];
 
+      // These assets are runtime-required by the extension (Python bridge,
+      // kernel, and altimate-dbt-integration Python packages). Abort the
+      // build if any of them is missing — matches webpack's CopyPlugin
+      // default (noErrorOnMissing: false) that this code replaced.
       for (const { from, to } of patterns) {
         try {
           cpSync(from, to, { recursive: true });
         } catch (error) {
-          console.error(`Failed to copy ${from}:`, (error as Error).message);
+          throw new Error(
+            `Required asset missing: failed to copy ${from} -> ${to}: ${
+              (error as Error).message
+            }`,
+          );
         }
       }
 
