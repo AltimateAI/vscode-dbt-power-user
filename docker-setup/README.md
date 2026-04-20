@@ -8,16 +8,16 @@ Develop and test the dbt Power User extension in code-server (VS Code in browser
 npm run docker:deploy
 ```
 
-This builds the extension, starts the container, and enters webpack watch mode. Open http://localhost:3001/?folder=/home/coder/project in your browser.
+This builds the extension, starts the container, and enters watch mode. Open http://localhost:3001/?folder=/home/coder/project in your browser.
 
 ## How It Works
 
 The extension source is **volume-mounted** into the container (read-only), so you don't need to rebuild a VSIX or the Docker image for every change:
 
-1. `deploy.sh` runs `npm run webpack` to build the extension
+1. `deploy.sh` runs `npm run build` to build the extension
 2. Docker container starts with the repo mounted at `/home/coder/extension-src`
 3. `start-code-server.sh` symlinks the mounted source into code-server's extensions directory
-4. `npm run watch` runs on the host — any source change triggers a webpack rebuild
+4. `npm run watch` runs on the host — any source change triggers a rebuild
 5. Reload the browser to pick up changes
 
 ## Configuration

@@ -27,8 +27,8 @@ fi
 
 # Step 2: Build the extension
 echo ""
-echo "Building extension with webpack..."
-npm run webpack
+echo "Building extension..."
+npm run build
 
 # Step 3: Build and start the container
 echo ""
@@ -52,9 +52,9 @@ until curl -sf http://localhost:3001/healthz > /dev/null 2>&1; do
 done
 echo "code-server is ready at http://localhost:3001/?folder=/home/coder/project"
 
-# Step 5: Start webpack watch for auto-recompilation
+# Step 5: Start watch for auto-recompilation
 echo ""
-echo "Starting webpack watch mode for hot-reload..."
+echo "Starting watch mode for hot-reload..."
 echo "  Changes to extension source will auto-rebuild."
 echo "  After rebuild, reload code-server in browser to pick up changes."
 echo ""
