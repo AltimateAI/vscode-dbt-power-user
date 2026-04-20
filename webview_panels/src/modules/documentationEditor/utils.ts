@@ -4,8 +4,11 @@ import { panelLogger } from "@modules/logger";
 import {
   DBTDocumentation,
   DBTDocumentationColumn,
+  DbtGenericTests,
   DocumentationStateProps,
   Source,
+  TestMetadataAcceptedValuesKwArgs,
+  TestMetadataRelationshipsKwArgs,
 } from "./state/types";
 import { GenerationDBDataProps } from "./types";
 import { DataPilotChatAction } from "../dataPilot/types";
@@ -165,6 +168,29 @@ export const isStateDirty = (state: DocumentationStateProps): boolean => {
     );
     if (!incomingTest) {
       return true;
+    }
+    if (test.test_metadata?.name === DbtGenericTests.ACCEPTED_VALUES) {
+      const currentValues =
+        (test.test_metadata?.kwargs as TestMetadataAcceptedValuesKwArgs)
+          .values ?? [];
+      const incomingValues =
+        (incomingTest.test_metadata?.kwargs as TestMetadataAcceptedValuesKwArgs)
+          .values ?? [];
+      if (!isArrayEqual(currentValues, incomingValues)) {
+        return true;
+      }
+    }
+    if (test.test_metadata?.name === DbtGenericTests.RELATIONSHIPS) {
+      const currentArgs = test.test_metadata
+        ?.kwargs as TestMetadataRelationshipsKwArgs;
+      const incomingArgs = incomingTest.test_metadata
+        ?.kwargs as TestMetadataRelationshipsKwArgs;
+      if (
+        currentArgs.to !== incomingArgs.to ||
+        currentArgs.field !== incomingArgs.field
+      ) {
+        return true;
+      }
     }
   }
   return false;
