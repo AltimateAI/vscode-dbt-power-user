@@ -69,8 +69,11 @@ const copyAssetsPlugin: RsbuildPlugin = {
       }
 
       try {
+        const altimateCoreDir = path.dirname(
+          require.resolve("@altimateai/core/package.json"),
+        );
         cpSync(
-          require.resolve("@altimateai/core/"),
+          altimateCoreDir,
           path.join(DIST, "node_modules/@altimateai/core"),
           { recursive: true },
         );
