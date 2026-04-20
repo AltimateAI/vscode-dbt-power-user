@@ -1364,7 +1364,7 @@
     "python-bridge": "^1.1.0",
     "reflect-metadata": "^0.2.2",
     "semver": "^7.6.3",
-    "which": "^4.0.0",
+    "which": "^6.0.1",
     "ws": "^8.18.0",
     "yaml": "^2.5.0",
     "zeromq": "^6.1.1",
