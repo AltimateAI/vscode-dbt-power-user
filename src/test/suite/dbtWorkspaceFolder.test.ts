@@ -1,5 +1,4 @@
 import { describe, expect, it } from "@jest/globals";
-import { Uri } from "vscode";
 import * as path from "path";
 
 /**

@@ -1,5 +1,4 @@
 import { jest } from "@jest/globals";
-import { Uri } from "vscode";
 
 // Export VSCode types that were previously defined
 export const ExtensionKind = {
@@ -7,7 +6,10 @@ export const ExtensionKind = {
   Workspace: 2,
 };
 
-export { Uri };
+export const Uri = {
+  file: jest.fn((f: string) => ({ fsPath: f })),
+  parse: jest.fn(),
+};
 
 export class Position {
   constructor(
@@ -54,10 +56,13 @@ export class Range {
 }
 
 export class Location {
+  public range: Range | Position;
   constructor(
     public uri: typeof Uri | any,
-    public rangeOrPosition: Range | Position,
-  ) {}
+    rangeOrPosition: Range | Position,
+  ) {
+    this.range = rangeOrPosition;
+  }
 }
 
 export const DiagnosticSeverity = {
@@ -137,6 +142,9 @@ export const window = {
     hide: jest.fn(),
     dispose: jest.fn(),
   }),
+  withProgress: jest
+    .fn()
+    .mockImplementation((_options: any, task: any) => task()),
 };
 
 export const workspace = {
@@ -146,6 +154,12 @@ export const workspace = {
     update: jest.fn(),
   }),
   workspaceFolders: [],
+  getWorkspaceFolder: jest.fn((uri: typeof Uri) => {
+    if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
+      return workspace.workspaceFolders[0];
+    }
+    return undefined;
+  }),
   onDidChangeConfiguration: jest.fn().mockReturnValue({ dispose: jest.fn() }),
   onDidChangeWorkspaceFolders: jest
     .fn()
@@ -156,11 +170,12 @@ export const workspace = {
     onDidDelete: jest.fn().mockReturnValue({ dispose: jest.fn() }),
     dispose: jest.fn(),
   }),
-};
+} as any;
 
 export const languages = {
   createDiagnosticCollection: jest.fn().mockReturnValue({
     set: jest.fn(),
+    get: jest.fn(),
     delete: jest.fn(),
     clear: jest.fn(),
     dispose: jest.fn(),
@@ -178,6 +193,64 @@ export const languages = {
   }),
   registerCodeLensProvider: jest.fn().mockReturnValue({ dispose: jest.fn() }),
 };
+
+export class EventEmitter<T> {
+  private listeners: ((e: T) => any)[] = [];
+
+  event = (listener: (e: T) => any) => {
+    this.listeners.push(listener);
+    return {
+      dispose: () => {
+        const index = this.listeners.indexOf(listener);
+        if (index > -1) {
+          this.listeners.splice(index, 1);
+        }
+      },
+    };
+  };
+
+  fire(data: T): void {
+    this.listeners.forEach((listener) => listener(data));
+  }
+
+  dispose(): void {
+    this.listeners = [];
+  }
+}
+
+export const ProgressLocation = {
+  Notification: 15,
+};
+
+export const RelativePattern = jest.fn();
+export const ViewColumn = {};
+export const Disposable = Object.assign(jest.fn(), { from: jest.fn() });
+export const Event = jest.fn();
+
+export const CancellationTokenSource = jest.fn().mockImplementation(() => ({
+  token: {
+    onCancellationRequested: jest.fn(),
+    isCancellationRequested: false,
+  },
+  cancel: jest.fn(),
+  dispose: jest.fn(),
+}));
+
+export const CancellationToken = {
+  None: {
+    onCancellationRequested: jest.fn(),
+    isCancellationRequested: false,
+  },
+};
+
+export const ThemeIcon = jest.fn().mockImplementation((...args: unknown[]) => ({
+  id: args[0],
+  color: args[1],
+}));
+
+export const ThemeColor = jest
+  .fn()
+  .mockImplementation((...args: unknown[]) => ({ id: args[0] }));
 
 export const resetMocks = () => {
   jest.clearAllMocks();
