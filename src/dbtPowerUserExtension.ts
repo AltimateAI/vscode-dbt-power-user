@@ -8,8 +8,10 @@ import { ContentProviders } from "./content_provider";
 import { DBTProjectContainer } from "./dbt_client/dbtProjectContainer";
 import { DefinitionProviders } from "./definition_provider";
 import { DocumentFormattingEditProviders } from "./document_formatting_edit_provider";
+import { DocumentSymbolProviders } from "./document_symbol_provider";
 import { HoverProviders } from "./hover_provider";
 import { DbtPowerUserMcpServer } from "./mcp";
+import { WorkspaceSymbolProviders } from "./workspace_symbol_provider";
 import { DbtPowerUserActionsCenter } from "./quickpick";
 import { StatusBars } from "./statusbar";
 import { TelemetryService } from "./telemetry";
@@ -60,6 +62,8 @@ export class DBTPowerUserExtension implements Disposable {
     private commentProviders: CommentProviders,
     private notebookProviders: NotebookProviders,
     private mcpServer: DbtPowerUserMcpServer,
+    private documentSymbolProviders: DocumentSymbolProviders,
+    private workspaceSymbolProviders: WorkspaceSymbolProviders,
   ) {
     this.disposables.push(
       this.dbtProjectContainer,
@@ -79,6 +83,8 @@ export class DBTPowerUserExtension implements Disposable {
       this.commentProviders,
       this.notebookProviders,
       this.mcpServer,
+      this.documentSymbolProviders,
+      this.workspaceSymbolProviders,
     );
   }
 

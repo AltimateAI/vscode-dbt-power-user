@@ -1246,7 +1246,8 @@
         "icon": {
           "light": "./media/images/dbt_file_icon.svg",
           "dark": "./media/images/dbt_file_icon.svg"
-        }
+        },
+        "configuration": "./language-configuration.json"
       }
     ],
     "grammars": [
