@@ -496,7 +496,7 @@ export class ConversationProvider implements Disposable {
       rest.field === "description"
         ? (value as string)
         : (range?.isSingleLine
-            ? editor?.document.lineAt(range.start.line).text
+            ? editor?.document.lineAt(range?.start?.line ?? 0).text
             : editor?.document.getText(range)) || "";
 
     const meta = {
