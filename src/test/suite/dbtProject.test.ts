@@ -18,6 +18,7 @@ import {
   jest,
 } from "@jest/globals";
 import { EventEmitter } from "events";
+import * as path from "path";
 import * as vscode from "vscode";
 import { AltimateRequest } from "../../altimate";
 import { DBTProject } from "../../dbt_client/dbtProject";
@@ -481,18 +482,20 @@ describe("DBTProject Test Suite", () => {
     it("should get DBT project file path", () => {
       const { DBT_PROJECT_FILE } = require("@altimateai/dbt-integration");
       expect(dbtProject.getDBTProjectFilePath()).toBe(
-        `/test/project/${DBT_PROJECT_FILE}`,
+        path.join("/test/project", DBT_PROJECT_FILE),
       );
     });
 
     it("should get manifest path", () => {
       expect(dbtProject.getManifestPath()).toBe(
-        "/project/target/manifest.json",
+        path.join("/project/target", "manifest.json"),
       );
     });
 
     it("should get catalog path", () => {
-      expect(dbtProject.getCatalogPath()).toBe("/project/target/catalog.json");
+      expect(dbtProject.getCatalogPath()).toBe(
+        path.join("/project/target", "catalog.json"),
+      );
     });
 
     it("should return undefined for paths when target path is not available", () => {
