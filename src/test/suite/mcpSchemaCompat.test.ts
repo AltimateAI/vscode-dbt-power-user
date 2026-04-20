@@ -14,12 +14,14 @@ import { zodToJsonSchema } from "zod-to-json-schema";
  * Issue: https://github.com/AltimateAI/vscode-dbt-power-user/issues/1643
  */
 
+const zodToJsonSchemaAny = zodToJsonSchema as (
+  schema: unknown,
+  options?: unknown,
+) => Record<string, unknown>;
+
 // Mirror the toToolInput helper from server.ts
 function toToolInput(schema: z.ZodType): Record<string, unknown> {
-  return zodToJsonSchema(schema, { target: "openApi3" }) as Record<
-    string,
-    unknown
-  >;
+  return zodToJsonSchemaAny(schema, { target: "openApi3" });
 }
 
 // Reproduce all schemas from server.ts
@@ -101,7 +103,7 @@ describe("MCP tool schema Gemini compatibility", () => {
   });
 
   it("default zodToJsonSchema DOES include $schema (proving the fix is needed)", () => {
-    const defaultSchema = zodToJsonSchema(BaseSchema);
+    const defaultSchema = zodToJsonSchemaAny(BaseSchema);
     expect(defaultSchema).toHaveProperty("$schema");
   });
 });
