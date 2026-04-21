@@ -345,12 +345,6 @@ export class DBTProject implements Disposable {
       return;
     }
     this.telemetry.setTelemetryCustomAttribute("dbtCloudVariant", info.variant);
-    if (info.dbtCoreVersion) {
-      this.telemetry.setTelemetryCustomAttribute(
-        "dbtCloudCoreVersion",
-        info.dbtCoreVersion.version,
-      );
-    }
     if (info.rawDbtVersion) {
       this.telemetry.setTelemetryCustomAttribute(
         "dbtCloudRawVersion",
