@@ -3,6 +3,8 @@ import {
   ExposureMetaData,
   FunctionMetaData,
   NodeMetaData,
+  Ref,
+  RelationshipParser,
   RESOURCE_TYPE_FUNCTION,
   RESOURCE_TYPE_SOURCE,
   SourceTable,
@@ -170,6 +172,15 @@ export class NewLineagePanel
 
     if (command === "getExposureDetails") {
       const body = await this.getExposureDetails(params);
+      this._panel?.webview.postMessage({
+        command: "response",
+        args: { id, syncRequestId, body, status: true },
+      });
+      return;
+    }
+
+    if (command === "getRelationships") {
+      const body = this.getRelationships();
       this._panel?.webview.postMessage({
         command: "response",
         args: { id, syncRequestId, body, status: true },
@@ -371,6 +382,26 @@ export class NewLineagePanel
     );
     console.log("addColumnsFromDB: ", nodeName, " -> ", columnsFromDB);
     return project.mergeColumnsFromDB(table, columnsFromDB);
+  }
+
+  /**
+   * ERD overlay: extract PK/FK relationships from the current project's
+   * manifest. Phase 1 only derives refs from dbt `relationships` data tests;
+   * later phases will add model contracts and naming-convention inference.
+   */
+  private getRelationships(): { refs: Ref[] } {
+    const event = this.queryManifestService.getEventByCurrentProject();
+    if (!event?.event) {
+      return { refs: [] };
+    }
+    const { testMetaMap } = event.event;
+    const parser = new RelationshipParser(this.terminal);
+    const refs = parser.fromTests(testMetaMap);
+    this.terminal.debug(
+      "NewLineagePanel",
+      `getRelationships returning ${refs.length} refs`,
+    );
+    return { refs };
   }
 
   private async getExposureDetails({
