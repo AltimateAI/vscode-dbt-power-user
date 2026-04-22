@@ -53,6 +53,7 @@ const ActionWidget = ({
 
       <div id="expand-container" className="al-tw-scope" />
       <div id="export-container" className="al-tw-scope" />
+      <div id="refs-container" className="al-tw-scope" />
       <div id="settings-container" className="al-tw-scope" />
       <HelpButton />
       <div id="reset-container" className="al-tw-scope" />
