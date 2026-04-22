@@ -206,8 +206,8 @@ export class DBTProject implements Disposable {
           "Received projectConfigChanged event from Node.js project config watcher",
         );
         const event = new ProjectConfigChangedEvent(this);
-        this._onProjectConfigChanged.fire(event);
         this.stampCloudVariantOnTelemetry();
+        this._onProjectConfigChanged.fire(event);
       },
     );
 
@@ -341,16 +341,14 @@ export class DBTProject implements Disposable {
 
   private stampCloudVariantOnTelemetry(): void {
     const info = this.dbtProjectIntegration.getCloudVariantInfo();
-    if (!info) {
-      return;
-    }
-    this.telemetry.setTelemetryCustomAttribute("dbtCloudVariant", info.variant);
-    if (info.rawDbtVersion) {
-      this.telemetry.setTelemetryCustomAttribute(
-        "dbtCloudRawVersion",
-        info.rawDbtVersion,
-      );
-    }
+    this.telemetry.setTelemetryCustomAttribute(
+      "dbtCloudVariant",
+      info?.variant ?? "",
+    );
+    this.telemetry.setTelemetryCustomAttribute(
+      "dbtCloudRawVersion",
+      info?.rawDbtVersion ?? "",
+    );
   }
 
   private invalidateCacheUsingUniqueIds(uniqueIds: string[]) {
