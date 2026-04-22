@@ -6,6 +6,7 @@ import {
   DBTCloudDetection,
   DBTCloudProjectDetection,
   DBTCloudProjectIntegration,
+  DbtCloudVariantDetector,
   DBTCommandExecutionInfrastructure,
   DBTCommandExecutionStrategy,
   DBTCommandFactory,
@@ -267,6 +268,13 @@ container
   .bind(DBTCommandFactory)
   .toDynamicValue((context) => {
     return new DBTCommandFactory(context.container.get("DBTConfiguration"));
+  })
+  .inSingletonScope();
+
+container
+  .bind(DbtCloudVariantDetector)
+  .toDynamicValue((context) => {
+    return new DbtCloudVariantDetector(context.container.get("DBTTerminal"));
   })
   .inSingletonScope();
 
@@ -649,6 +657,7 @@ container
         projectConfigDiagnostics,
         deferConfig,
         onDiagnosticsChanged,
+        container.get(DbtCloudVariantDetector),
       );
     };
   });
@@ -679,6 +688,7 @@ container
         projectConfigDiagnostics,
         deferConfig,
         onDiagnosticsChanged,
+        container.get(DbtCloudVariantDetector),
       );
     };
   });

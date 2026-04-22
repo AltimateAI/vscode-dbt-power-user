@@ -6,6 +6,7 @@ import {
   ColumnMetaData,
   DataPilotHealtCheckParams,
   DBColumn,
+  DBT_PROJECT_FILE,
   DBTCommand,
   DBTCommandExecution,
   DBTCommandExecutionInfrastructure,
@@ -16,7 +17,6 @@ import {
   DBTProjectIntegrationAdapter,
   DBTProjectIntegrationAdapterEvents,
   DBTTerminal,
-  DBT_PROJECT_FILE,
   DeferConfig,
   extractOutputColumns,
   HealthcheckArgs,
@@ -206,6 +206,7 @@ export class DBTProject implements Disposable {
           "Received projectConfigChanged event from Node.js project config watcher",
         );
         const event = new ProjectConfigChangedEvent(this);
+        this.stampCloudVariantOnTelemetry();
         this._onProjectConfigChanged.fire(event);
       },
     );
@@ -336,6 +337,18 @@ export class DBTProject implements Disposable {
     } finally {
       await this.executionInfrastructure.closePythonBridge(dbtLoomThread);
     }
+  }
+
+  private stampCloudVariantOnTelemetry(): void {
+    const info = this.dbtProjectIntegration.getCloudVariantInfo();
+    this.telemetry.setTelemetryCustomAttribute(
+      "dbtCloudVariant",
+      info?.variant ?? "",
+    );
+    this.telemetry.setTelemetryCustomAttribute(
+      "dbtCloudRawVersion",
+      info?.rawDbtVersion ?? "",
+    );
   }
 
   private invalidateCacheUsingUniqueIds(uniqueIds: string[]) {
