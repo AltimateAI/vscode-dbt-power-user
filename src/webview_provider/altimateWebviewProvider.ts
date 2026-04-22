@@ -286,6 +286,19 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           commands.executeCommand("workbench.action.problems.focus");
 
           break;
+        case "openAltimateChat":
+          commands.executeCommand("dbtPowerUser.openAltimateChat", {
+            initialMessage: params.initialMessage as string | undefined,
+            title: params.title as string | undefined,
+          });
+          if (syncRequestId) {
+            this.sendResponseToWebview({
+              command: "response",
+              syncRequestId,
+              data: { ok: true },
+            });
+          }
+          break;
         case "dbtdocsview:render":
           this.emitterService.fire({
             command: "dbtdocsview:render",

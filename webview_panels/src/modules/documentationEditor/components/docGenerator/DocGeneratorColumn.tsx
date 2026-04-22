@@ -1,24 +1,27 @@
-import { executeRequestInSync } from "@modules/app/requestExecutor";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
+import useAppContext from "@modules/app/useAppContext";
+import { EntityType } from "@modules/dataPilot/components/docGen/types";
+import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import { updateColumnsInCurrentDocsData } from "@modules/documentationEditor/state/documentationSlice";
 import {
-  DocsGenerateModelRequestV2,
   DBTDocumentationColumn,
   DBTModelTest,
+  DocsGenerateModelRequestV2,
 } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import {
   addDefaultActions,
   addDocGeneration,
 } from "@modules/documentationEditor/utils";
-import DocGeneratorInput from "./DocGeneratorInput";
-import useAppContext from "@modules/app/useAppContext";
-import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
-import { EntityType } from "@modules/dataPilot/components/docGen/types";
+import { Button, Stack } from "@uicore";
 import EntityWithTests from "../tests/EntityWithTests";
-import CoachAiIfModified from "./CoachAiIfModified";
 import Citations from "./Citations";
-import { Stack } from "@uicore";
+import CoachAiIfModified from "./CoachAiIfModified";
+import DocGeneratorInput from "./DocGeneratorInput";
 
 interface Props {
   column: DBTDocumentationColumn;
@@ -105,6 +108,27 @@ const DocGeneratorColumn = ({ column, tests }: Props): JSX.Element => {
       <Stack className="mt-2">
         <Citations citations={column.citations} />
         <CoachAiIfModified column={column.name} />
+        <Button
+          outline
+          size="sm"
+          data-testid="docs-column-ask-altimate"
+          onClick={() => {
+            const modelName = currentDocsData?.name ?? "this model";
+            const typeLine = column.type
+              ? `\n\nColumn datatype: ${column.type}`
+              : "";
+            const descLine = column.description
+              ? `\n\nCurrent description: ${column.description}`
+              : "\n\nThe column has no description yet.";
+            const initialMessage = `I'm documenting column \`${column.name}\` in model \`${modelName}\`.${typeLine}${descLine}\n\nAsk me clarifying questions if helpful, then suggest an improved description, any tests I should add, and any governance concerns I should flag.`;
+            executeRequestInAsync("openAltimateChat", {
+              initialMessage,
+              title: `Column: ${modelName}.${column.name}`,
+            });
+          }}
+        >
+          Ask Altimate
+        </Button>
       </Stack>
     </div>
   );

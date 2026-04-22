@@ -19,6 +19,10 @@ RUN apt-get update && apt-get install -y \
 # Install dbt-duckdb globally (available for all users)
 RUN pip3 install --break-system-packages dbt-duckdb
 
+# Install altimate-code globally so the Altimate MCP server can spawn the
+# packaged altimate-code binary inside the container.
+RUN npm install -g altimate-code
+
 USER coder
 
 # Create altimate directory

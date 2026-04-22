@@ -140,6 +140,7 @@ const LineageView = (): JSX.Element | null => {
           missingLineageMessage={missingLineageMessage}
           aiEnabled={renderNode.aiEnabled}
           lineageType={lineageType}
+          node={renderNode.node}
         />
         {lineageType === "sql" ? null : (
           <div className="bottom-right-container">

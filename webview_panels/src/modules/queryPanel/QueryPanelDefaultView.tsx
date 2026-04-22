@@ -1,11 +1,32 @@
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import { Stack } from "@uicore";
 import HelpContent from "./components/help/HelpContent";
 
 const QueryPanelDefaultView = (): JSX.Element => {
+  const handleOpenAltimateChat = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+  ): void => {
+    e.preventDefault();
+    executeRequestInAsync("openAltimateChat", {});
+  };
+
   return (
     <Stack style={{ gap: 30, paddingTop: "1rem" }}>
       <div>
         <div>
+          <h2>Need help? Chat with Altimate Code</h2>
+          <p>
+            Get AI-powered assistance for your dbt queries, models, and data
+            workflows.{" "}
+            <a
+              href="#"
+              onClick={handleOpenAltimateChat}
+              data-testid="open-altimate-chat-link"
+            >
+              Open Altimate Code Chat
+            </a>{" "}
+            to ask questions, explain SQL, or optimize your code.
+          </p>
           <h2>
             Upcoming Feature Alert: Enhanced Support for dbt SQL Execution in
             Notebooks

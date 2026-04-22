@@ -1225,20 +1225,30 @@ export class VSCodeCommands implements Disposable {
           });
         },
       ),
-      commands.registerCommand("dbtPowerUser.openAltimateChat", async () => {
-        const context = this.altimateCodeChatService.getEditorContext();
-        if (context) {
-          await this.altimateCodeChatService.openChat({
-            initialMessage: `Help me with \`@${context.relativePath}\`:\n\`\`\`\n${context.code}\n\`\`\``,
-            title: `Chat: ${context.fileName}`,
-          });
-        } else {
-          await this.altimateCodeChatService.openChat({
-            initialMessage: "How can I help you with your dbt project?",
-            title: "Altimate Code Chat",
-          });
-        }
-      }),
+      commands.registerCommand(
+        "dbtPowerUser.openAltimateChat",
+        async (args?: { initialMessage?: string; title?: string }) => {
+          if (args?.initialMessage) {
+            await this.altimateCodeChatService.openChat({
+              initialMessage: args.initialMessage,
+              title: args.title ?? "Altimate Code Chat",
+            });
+            return;
+          }
+          const context = this.altimateCodeChatService.getEditorContext();
+          if (context) {
+            await this.altimateCodeChatService.openChat({
+              initialMessage: `Help me with \`@${context.relativePath}\`:\n\`\`\`\n${context.code}\n\`\`\``,
+              title: `Chat: ${context.fileName}`,
+            });
+          } else {
+            await this.altimateCodeChatService.openChat({
+              initialMessage: "How can I help you with your dbt project?",
+              title: "Altimate Code Chat",
+            });
+          }
+        },
+      ),
     );
   }
 

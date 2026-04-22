@@ -1,8 +1,9 @@
+import { FileCodeIcon } from "@assets/icons";
 import { QueryHistory } from "@modules/queryPanel/context/types";
 import { ListGroupItem } from "@uicore";
 import BookmarkButton from "../queryPanelBookmarks/BookmarkButton";
 import ExecuteQueryButton from "./ExecuteQueryButton";
-import { FileCodeIcon } from "@assets/icons";
+import ModifyWithAltimateButton from "./ModifyWithAltimateButton";
 
 interface Props {
   queryHistory: QueryHistory;
@@ -35,6 +36,16 @@ const QueryHistoryRow = ({ queryHistory, onSelect }: Props): JSX.Element => {
           query={queryHistory.rawSql}
           projectName={queryHistory.projectName}
           editorName={queryHistory.modelName}
+        />
+        <ModifyWithAltimateButton
+          query={queryHistory.rawSql}
+          label={queryHistory.modelName || "query"}
+          mode="modify"
+        />
+        <ModifyWithAltimateButton
+          query={queryHistory.rawSql}
+          label={queryHistory.modelName || "query"}
+          mode="translate"
         />
         <BookmarkButton queryHistory={queryHistory} />
       </div>

@@ -1,6 +1,7 @@
 import { QueryBookmark } from "@modules/queryPanel/context/types";
 import { ListGroupItem, Stack, Tag, Tooltip } from "@uicore";
 import ExecuteQueryButton from "../queryPanelQueryHistory/ExecuteQueryButton";
+import ModifyWithAltimateButton from "../queryPanelQueryHistory/ModifyWithAltimateButton";
 import BookmarkPrivacySettingButton from "./BookmarkPrivacySettingButton";
 import DeleteBookmarkButton from "./DeleteBookmarkButton";
 
@@ -56,6 +57,16 @@ const QueryBookmarkRow = ({
           query={bookmark.raw_sql}
           projectName={""}
           editorName={bookmark.name}
+        />
+        <ModifyWithAltimateButton
+          query={bookmark.raw_sql}
+          label={bookmark.name || "bookmark"}
+          mode="modify"
+        />
+        <ModifyWithAltimateButton
+          query={bookmark.raw_sql}
+          label={bookmark.name || "bookmark"}
+          mode="translate"
         />
         <BookmarkPrivacySettingButton bookmark={bookmark} />
         <DeleteBookmarkButton bookmark={bookmark} />

@@ -100,6 +100,7 @@ enum InboundCommand {
   ViewResultSet = "viewResultSet",
   OpenCodeInEditor = "openCodeInEditor",
   ClearQueryHistory = "clearQueryHistory",
+  OpenAltimateChat = "openAltimateChat",
 }
 
 interface RecInfo {
@@ -437,6 +438,12 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             break;
           case InboundCommand.RunAdhocQuery:
             commands.executeCommand("dbtPowerUser.createSqlFile", {});
+            break;
+          case InboundCommand.OpenAltimateChat:
+            commands.executeCommand("dbtPowerUser.openAltimateChat", {
+              initialMessage: message.initialMessage,
+              title: message.title,
+            });
             break;
           case InboundCommand.ExecuteQueryFromActiveWindow:
             await this.executeQueryFromActiveWindow(message);

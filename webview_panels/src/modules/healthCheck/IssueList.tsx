@@ -1,11 +1,14 @@
-import { Card, CardTitle, CardBody, Stack, Dropdown } from "@uicore";
-import classes from "./healthcheck.module.scss";
-import { useMemo, useState } from "react";
-import { panelLogger } from "@modules/logger";
 import { ArrowDownIcon, ArrowRightIcon } from "@assets/icons";
-import { ModelInsight, ProjectHealthcheck } from "./types";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
+import { panelLogger } from "@modules/logger";
+import { Button, Card, CardBody, CardTitle, Dropdown, Stack } from "@uicore";
+import { useMemo, useState } from "react";
+import classes from "./healthcheck.module.scss";
 import { IssueDetail } from "./IssueDetail";
-import { executeRequestInSync } from "@modules/app/requestExecutor";
+import { ModelInsight, ProjectHealthcheck } from "./types";
 
 const IssueList = ({
   projectHealthcheck,
@@ -108,7 +111,24 @@ const IssueList = ({
                     <div>{insight.insight.name}</div>
                     <div>{insight.insight.type}</div>
                     <div>
-                      <IssueDetail insight={insight} />
+                      <Stack className="gap-sm">
+                        <Button
+                          color="primary"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const initialMessage = `My dbt project has this governance issue.\n\n**${insight.insight.name}** (severity: ${insight.severity}, type: ${insight.insight.type})\nFile: \`@${insight.original_file_path}\`\n\nDescription: ${insight.insight.message}\nReason flagged: ${insight.insight.reason_to_flag}\nRecommendation: ${insight.insight.recommendation}\n\nExplain why this is flagged and walk me through how to fix it in \`@${insight.original_file_path}\`.`;
+                            executeRequestInAsync("openAltimateChat", {
+                              initialMessage,
+                              title: `Fix: ${insight.insight.name}`,
+                            });
+                          }}
+                          data-testid="health-issue-row-fix-with-altimate"
+                        >
+                          Fix with Altimate
+                        </Button>
+                        <IssueDetail insight={insight} />
+                      </Stack>
                     </div>
                   </div>
                 ))}
