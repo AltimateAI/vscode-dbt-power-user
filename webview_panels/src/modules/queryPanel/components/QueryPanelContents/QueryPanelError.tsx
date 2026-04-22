@@ -29,7 +29,13 @@ const QueryPanelError = (): JSX.Element => {
         <Button
           color="primary"
           onClick={handleTroubleshoot}
-          icon={<AltimateIcon />}
+          icon={
+            <AltimateIcon
+              width={16}
+              height={16}
+              style={{ verticalAlign: "-3px", marginRight: 6 }}
+            />
+          }
           showTextAlways
         >
           Troubleshoot with Altimate
