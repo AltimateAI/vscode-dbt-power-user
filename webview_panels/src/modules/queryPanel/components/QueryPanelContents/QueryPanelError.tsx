@@ -1,5 +1,5 @@
 import { AltimateIcon } from "@assets/icons";
-import { executeRequestInSync } from "@modules/app/requestExecutor";
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import PreTag from "@modules/markdown/PreTag";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import { Button, CodeBlock, Stack } from "@uicore";
@@ -9,7 +9,7 @@ const QueryPanelError = (): JSX.Element => {
     useQueryPanelState();
 
   const handleTroubleshoot = () => {
-    void executeRequestInSync("troubleshootWithAltimate", {
+    executeRequestInAsync("troubleshootWithAltimate", {
       compiledSql: compiledCodeMarkup ?? "",
       rawSql: activeEditor?.query ?? "",
       errorMessage: queryResultsError?.message ?? "",

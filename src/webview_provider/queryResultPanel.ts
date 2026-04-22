@@ -543,11 +543,15 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             const title = troubleshoot.fileName
               ? `Troubleshoot: ${troubleshoot.fileName}`
               : "Troubleshoot: query error";
-            this.telemetry.sendTelemetryEvent("TroubleshootQueryWithAltimate");
-            await this.altimateCodeChatService.openChat({
+            const opened = await this.altimateCodeChatService.openChat({
               initialMessage,
               title,
             });
+            if (opened) {
+              this.telemetry.sendTelemetryEvent(
+                "TroubleshootQueryWithAltimate",
+              );
+            }
             break;
           }
           case InboundCommand.SetContext:
