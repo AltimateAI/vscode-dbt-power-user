@@ -1,81 +1,34 @@
-import altimateCodeBannerFallback from "@assets/altimate-code-banner-sml.png";
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
+import { Button } from "@uicore";
 
-declare global {
-  interface Window {
-    altimateCodeBannerUrl?: string;
-  }
-}
+const DOCS_URL = "https://docs.myaltimate.com/teammates/altimate-code/";
 
 const HelpContent = (): JSX.Element => {
-  const bannerUrl = window.altimateCodeBannerUrl ?? altimateCodeBannerFallback;
+  const openChat = () => {
+    executeRequestInAsync("openAltimateCodeChat", {});
+  };
+
+  const openDocs = () => {
+    executeRequestInAsync("openUrl", { url: DOCS_URL });
+  };
+
   return (
-    <div style={{ maxWidth: 720 }}>
-      <a
-        href="https://docs.myaltimate.com/teammates/altimate-code/"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <img
-          src={bannerUrl}
-          alt="Altimate Code"
-          style={{
-            width: "100%",
-            maxWidth: 480,
-            height: "auto",
-            display: "block",
-            marginBottom: "1rem",
-          }}
-        />
-      </a>
+    <div style={{ maxWidth: 640 }}>
       <p style={{ fontSize: 13, lineHeight: 1.55, marginBottom: "0.75rem" }}>
-        The open-source data engineering harness — 100+ deterministic tools for
-        SQL, dbt, column-level lineage, FinOps, and warehouse connectivity,
-        available in your IDE, terminal, and CI.
+        We recently launched <strong>Altimate Code</strong> — chat with it right
+        inside VS Code.
       </p>
-      <ul
-        style={{
-          fontSize: 13,
-          lineHeight: 1.6,
-          paddingLeft: "1.1rem",
-          marginBottom: "0.75rem",
-        }}
-      >
-        <li>
-          <strong>#1 on ADE-Bench</strong> (74.4% pass rate) —{" "}
-          <a
-            href="https://www.altimate.sh/benchmarks"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            see the benchmarks
-          </a>
-        </li>
-        <li>
-          <strong>10M free tokens</strong> across the best models via the
-          Altimate LLM Gateway — GPT-5.4, Claude Opus 4.6, Claude Sonnet 4.6 (no
-          API keys required)
-        </li>
-        <li>
-          Or <strong>bring your own key</strong> — 35+ providers including
-          Anthropic, OpenAI, Bedrock, Azure, Google, and Ollama
-        </li>
-      </ul>
-      <p style={{ fontSize: 13 }}>
-        <a
-          href="https://app.myaltimate.com/register"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Sign up free
-        </a>{" "}
-        ·{" "}
-        <a
-          href="https://docs.myaltimate.com/teammates/altimate-code/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Read the docs
-        </a>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
+        <Button color="primary" onClick={openChat}>
+          Open chat
+        </Button>
+        <Button color="secondary" onClick={openDocs}>
+          Learn More
+        </Button>
+      </div>
+      <p style={{ fontSize: 12, opacity: 0.75, margin: 0 }}>
+        #1 on ADE-Bench · 10M free tokens across GPT-5.4, Opus 4.6 &amp; Sonnet
+        4.6.
       </p>
     </div>
   );
