@@ -135,7 +135,7 @@
           },
           "dbt.enableNotebooks": {
             "type": "boolean",
-            "description": "Enable Datapilot notebooks feature",
+            "description": "Enable Altimate notebooks feature",
             "default": true
           },
           "dbt.lineage.showSelectEdges": {
@@ -456,14 +456,6 @@
         "command": "dbtPowerUser.createAltimateNotebook",
         "title": "Altimate notebook",
         "enablement": "dbt.enableNotebooks == true"
-      },
-      {
-        "command": "dbtPowerUser.datapilotProfileYourQuery",
-        "title": "Profile your query",
-        "icon": {
-          "light": "./media/images/sql-action-light.svg",
-          "dark": "./media/images/sql-action-dark.svg"
-        }
       },
       {
         "command": "dbtPowerUser.replyToConversation",

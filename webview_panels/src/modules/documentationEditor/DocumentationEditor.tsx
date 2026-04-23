@@ -50,12 +50,24 @@ const DocumentationEditor = (): JSX.Element => {
         model_citations?: Citation[];
       };
 
+      // Guard against partial responses that would clear the existing description.
+      if (
+        typeof result.model_description !== "string" ||
+        !result.model_description
+      ) {
+        panelLogger.error(
+          "generateDocsForModel returned no model description",
+          result,
+        );
+        return;
+      }
+
       dispatch(
         updateCurrentDocsData({
           name: currentDocsData.name,
           description: result.model_description,
           isNewGeneration: true,
-          citations: result.model_citations,
+          citations: result.model_citations ?? currentDocsData.citations,
         }),
       );
     } catch (error) {
