@@ -26,6 +26,7 @@ import { PythonException } from "python-bridge";
 import { AltimateRequest } from "../altimate";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { AltimateAuthService } from "../services/altimateAuthService";
+import { AltimateCodeChatService } from "../services/altimateCodeChatService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
@@ -100,6 +101,7 @@ enum InboundCommand {
   ViewResultSet = "viewResultSet",
   OpenCodeInEditor = "openCodeInEditor",
   ClearQueryHistory = "clearQueryHistory",
+  TroubleshootWithAltimate = "troubleshootWithAltimate",
 }
 
 interface RecInfo {
@@ -108,6 +110,13 @@ interface RecInfo {
 
 interface RecSummary {
   compiledSql: string;
+}
+
+interface RecTroubleshoot {
+  compiledSql: string;
+  rawSql: string;
+  errorMessage: string;
+  fileName?: string;
 }
 
 interface RecError {
@@ -159,6 +168,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
     protected altimateAuthService: AltimateAuthService,
+    private altimateCodeChatService: AltimateCodeChatService,
   ) {
     super(
       dbtProjectContainer,
@@ -522,6 +532,28 @@ export class QueryResultPanel extends AltimateWebviewProvider {
               },
             });
             break;
+          case InboundCommand.TroubleshootWithAltimate: {
+            const troubleshoot = message as RecTroubleshoot;
+            const sql = troubleshoot.compiledSql || troubleshoot.rawSql;
+            const initialMessage =
+              `I ran this query and it failed.\n\n` +
+              `Query:\n\`\`\`sql\n${sql}\n\`\`\`\n\n` +
+              `Error:\n\`\`\`\n${troubleshoot.errorMessage}\n\`\`\`\n\n` +
+              `Help me troubleshoot and fix this.`;
+            const title = troubleshoot.fileName
+              ? `Troubleshoot: ${troubleshoot.fileName}`
+              : "Troubleshoot: query error";
+            const opened = await this.altimateCodeChatService.openChat({
+              initialMessage,
+              title,
+            });
+            if (opened) {
+              this.telemetry.sendTelemetryEvent(
+                "TroubleshootQueryWithAltimate",
+              );
+            }
+            break;
+          }
           case InboundCommand.SetContext:
             this.dbtProjectContainer.setToGlobalState(
               message.key,
