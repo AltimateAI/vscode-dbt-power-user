@@ -1,4 +1,4 @@
-import { AltimateIcon } from "@assets/icons";
+import { SparkleIcon } from "@assets/icons";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import PreTag from "@modules/markdown/PreTag";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
@@ -27,15 +27,9 @@ const QueryPanelError = (): JSX.Element => {
       </h4>
       <Stack className="mt-2 mb-2">
         <Button
-          color="primary"
+          outline
           onClick={handleTroubleshoot}
-          icon={
-            <AltimateIcon
-              width={16}
-              height={16}
-              style={{ verticalAlign: "-3px", marginRight: 6 }}
-            />
-          }
+          icon={<SparkleIcon />}
           showTextAlways
         >
           Troubleshoot with Altimate
