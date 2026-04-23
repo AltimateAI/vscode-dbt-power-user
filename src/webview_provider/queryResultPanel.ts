@@ -533,15 +533,18 @@ export class QueryResultPanel extends AltimateWebviewProvider {
               );
             }
             break;
-          case InboundCommand.GetSummary:
+          case InboundCommand.GetSummary: {
             const summary = message as RecSummary;
-            this.eventEmitterService.fire({
-              command: "dbtPowerUser.summarizeQuery",
-              payload: {
-                query: summary.compiledSql,
-              },
+            const initialMessage = `Explain this query:\n\n\`\`\`sql\n${summary.compiledSql}\n\`\`\``;
+            const opened = await this.altimateCodeChatService.openChat({
+              initialMessage,
+              title: "Explain query",
             });
+            if (opened) {
+              this.telemetry.sendTelemetryEvent("SummarizeQueryWithAltimate");
+            }
             break;
+          }
           case InboundCommand.TroubleshootWithAltimate: {
             const troubleshoot = message as RecTroubleshoot;
             const sql = troubleshoot.compiledSql || troubleshoot.rawSql;

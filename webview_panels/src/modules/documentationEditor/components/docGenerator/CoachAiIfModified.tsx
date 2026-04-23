@@ -1,6 +1,6 @@
-import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
-import CoachAi from "@modules/documentationEditor/components/docGenerator/CoachAi";
 import useAppContext from "@modules/app/useAppContext";
+import CoachAi from "@modules/documentationEditor/components/docGenerator/CoachAi";
+import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import classes from "./coachAi.module.scss";
 
 const CoachAiIfModified = ({
@@ -38,7 +38,7 @@ const CoachAiIfModified = ({
 
   return (
     <div className={classes.coachAi}>
-      Do you want to coach datapilot? Click here{" "}
+      Do you want to coach the AI? Click here{" "}
       <CoachAi
         context={{ column, model: model ?? currentDocsData?.name, project }}
         extra={extra}

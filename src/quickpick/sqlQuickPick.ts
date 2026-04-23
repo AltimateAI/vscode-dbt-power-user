@@ -52,7 +52,7 @@ export class DbtSQLAction {
               ),
             },
             "Explain the sql query",
-            "dbtPowerUser.summarizeQuery",
+            "dbtPowerUser.explainWithAltimate",
           ),
           new SQLActionItem(
             "Sql to Model",

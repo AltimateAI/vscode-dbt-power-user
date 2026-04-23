@@ -174,7 +174,7 @@ export const ManifestSelection = ({
             id="manifestPathRadio"
             checked={manifestPathType === ManifestPathType.REMOTE}
           />
-          DataPilot dbt Integration
+          Altimate dbt Integration
         </Label>
         {manifestPathType === ManifestPathType.REMOTE &&
           projectIntegrations && (

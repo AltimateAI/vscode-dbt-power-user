@@ -58,6 +58,32 @@ node -e "
 # Clear .obsolete so code-server doesn't skip our extension on first scan
 echo '{}' > "$EXTENSIONS_DIR/.obsolete"
 
+# Seed code-server user settings with Altimate credentials if the host-mounted
+# credentials file is present. Reads altimateApiKey / altimateInstanceName /
+# altimateUrl (the shape of ~/.altimate/altimate.json) and writes them into
+# settings.json as dbt.altimateAiKey, dbt.altimateInstanceName, dbt.altimateUrl.
+SETTINGS_DIR="$HOME/.local/share/code-server/User"
+SETTINGS_FILE="$SETTINGS_DIR/settings.json"
+mkdir -p "$SETTINGS_DIR"
+if [ ! -f "$SETTINGS_FILE" ]; then
+    echo '{}' > "$SETTINGS_FILE"
+fi
+if [ -f "$HOME/.altimate-host/altimate.json" ]; then
+    echo "Seeding Altimate credentials from mounted altimate.json..."
+    node -e "
+      const fs = require('fs');
+      const creds = JSON.parse(fs.readFileSync('$HOME/.altimate-host/altimate.json', 'utf8'));
+      let settings = {};
+      try { settings = JSON.parse(fs.readFileSync('$SETTINGS_FILE', 'utf8')); } catch (e) {}
+      if (creds.altimateApiKey) settings['dbt.altimateAiKey'] = creds.altimateApiKey;
+      if (creds.altimateInstanceName) settings['dbt.altimateInstanceName'] = creds.altimateInstanceName;
+      if (creds.altimateUrl) settings['dbt.altimateUrl'] = creds.altimateUrl;
+      settings['altimate.onboardedMcpServer'] = true;
+      fs.writeFileSync('$SETTINGS_FILE', JSON.stringify(settings, null, 2));
+      console.log('Wrote Altimate credentials to', '$SETTINGS_FILE');
+    "
+fi
+
 # Determine project directory
 if [ -d "/home/coder/project" ] && [ "$(ls -A /home/coder/project 2>/dev/null)" ]; then
     PROJECT_DIR="/home/coder/project"

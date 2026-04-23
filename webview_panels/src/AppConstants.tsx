@@ -1,5 +1,4 @@
 // import { lazy } from "react";
-import DataPilotPanel from "@modules/dataPilot";
 import DbtDocsView from "@modules/dbtDocs/DbtDocsView";
 import DocumentationProvider from "@modules/documentationEditor/DocumentationProvider";
 import LineageView from "@modules/lineage/LineageView";
@@ -21,7 +20,6 @@ import Insights from "./modules/insights/Insights";
 export const AvailableRoutes = {
   "/": { component: <Home /> },
   "/insights": { component: <Insights /> },
-  "/datapilot": { component: <DataPilotPanel /> },
   "/docs-generator": {
     component: <DocumentationProvider />,
   },

@@ -1,6 +1,6 @@
+import { DeleteIcon, EditIcon } from "@assets/icons";
 import { yupResolver } from "@hookform/resolvers/yup";
-import * as Yup from "yup";
-import { useForm } from "react-hook-form";
+import { EntityType } from "@modules/documentationEditor/state/entityType";
 import {
   DbtGenericTests,
   DBTModelTest,
@@ -9,6 +9,7 @@ import {
   TestMetadataRelationshipsKwArgs,
 } from "@modules/documentationEditor/state/types";
 import { panelLogger } from "@modules/logger";
+import { TelemetryEvents } from "@telemetryEvents";
 import {
   Button,
   Card,
@@ -20,17 +21,16 @@ import {
   Tag,
 } from "@uicore";
 import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import * as Yup from "yup";
+import classes from "../../styles.module.scss";
+import { sendTelemetryEvent } from "../telemetry";
 import AcceptedValues from "./forms/AcceptedValues";
 import Relationships from "./forms/Relationships";
-import { SaveRequest } from "./types";
 import useTestFormSave, { TestOperation } from "./hooks/useTestFormSave";
-import classes from "../../styles.module.scss";
-import { DeleteIcon, EditIcon } from "@assets/icons";
-import { findDbtTestType } from "./utils";
 import TestDetails from "./TestDetails";
-import { EntityType } from "@modules/dataPilot/components/docGen/types";
-import { sendTelemetryEvent } from "../telemetry";
-import { TelemetryEvents } from "@telemetryEvents";
+import { SaveRequest } from "./types";
+import { findDbtTestType } from "./utils";
 
 const schema = Yup.object({
   to: Yup.string().optional(),
