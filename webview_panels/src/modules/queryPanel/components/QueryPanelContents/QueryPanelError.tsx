@@ -32,7 +32,7 @@ const QueryPanelError = (): JSX.Element => {
           icon={<SparkleIcon />}
           showTextAlways
         >
-          Troubleshoot with Altimate
+          Troubleshoot with Altimate Code
         </Button>
       </Stack>
       <details>
