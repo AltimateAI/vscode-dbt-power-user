@@ -583,6 +583,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         ),
       ),
     );
+    const AltimateCodeBannerUrl = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "altimate-code-banner-sml.png",
+        ),
+      ),
+    );
 
     // Tutorial images - convert URIs to strings for serialization
     const GenerateModelFromSourceGif = webview.asWebviewUri(
@@ -799,6 +810,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               window.viewPath = "${this.viewPath}";
               var spinnerUrl = "${SpinnerUrl}"
               var lineageGif = "${LineageGif}"
+              window.altimateCodeBannerUrl = "${AltimateCodeBannerUrl}";
               window.tutorialImages = {
                 generateModelFromSource: "${GenerateModelFromSourceGif}",
                 generateModelFromSQL: "${GenerateModelFromSQLGif}",

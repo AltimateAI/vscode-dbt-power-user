@@ -102,6 +102,7 @@ enum InboundCommand {
   OpenCodeInEditor = "openCodeInEditor",
   ClearQueryHistory = "clearQueryHistory",
   TroubleshootWithAltimate = "troubleshootWithAltimate",
+  OpenAltimateCodeChat = "openAltimateCodeChat",
 }
 
 interface RecInfo {
@@ -522,6 +523,15 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           case InboundCommand.OpenUrl:
             const config = message as RecOpenUrl;
             env.openExternal(Uri.parse(config.url));
+            break;
+          case InboundCommand.OpenAltimateCodeChat:
+            try {
+              await commands.executeCommand("altimate.openChat");
+            } catch (err) {
+              window.showErrorMessage(
+                "Altimate Code is not available. Install the Datamates extension to use chat.",
+              );
+            }
             break;
           case InboundCommand.GetSummary:
             const summary = message as RecSummary;
