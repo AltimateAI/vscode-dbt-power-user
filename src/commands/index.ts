@@ -385,24 +385,6 @@ export class VSCodeCommands implements Disposable {
         (uri: Uri, cteIndex: number, ctes: CteInfo[]) =>
           this.runCteWithDependencies(uri, cteIndex, ctes),
       ),
-      commands.registerCommand("dbtPowerUser.summarizeQuery", () =>
-        this.eventEmitterService.fire({
-          command: "dbtPowerUser.summarizeQuery",
-          payload: {},
-        }),
-      ),
-      commands.registerCommand("dbtPowerUser.changeQuery", () =>
-        this.eventEmitterService.fire({
-          command: "dbtPowerUser.changeQuery",
-          payload: {},
-        }),
-      ),
-      commands.registerCommand("dbtPowerUser.translateQuery", () =>
-        this.eventEmitterService.fire({
-          command: "dbtPowerUser.translateQuery",
-          payload: {},
-        }),
-      ),
       commands.registerCommand(
         "dbtPowerUser.createModelBasedonSourceConfig",
         (params) => {
@@ -541,18 +523,6 @@ export class VSCodeCommands implements Disposable {
           "@id:files.associations",
         );
       }),
-      commands.registerCommand("dbtPowerUser.openDatapilotWithQuery", () =>
-        this.eventEmitterService.fire({
-          command: "dbtPowerUser.openDatapilotWithQuery",
-          payload: {},
-        }),
-      ),
-      commands.registerCommand("dbtPowerUser.showHelpDatapilot", () =>
-        this.eventEmitterService.fire({
-          command: "dbtPowerUser.openHelpInDatapilot",
-          payload: {},
-        }),
-      ),
       commands.registerCommand(
         "dbtPowerUser.createConversation",
         (reply: CommentReply) => {
@@ -899,7 +869,7 @@ export class VSCodeCommands implements Disposable {
         }
       }),
       commands.registerCommand(
-        "dbtPowerUser.createDatapilotNotebook",
+        "dbtPowerUser.createAltimateNotebook",
         async (args: OpenNotebookRequest | undefined) => {
           this.notebookController.createNotebook(args);
         },
@@ -1093,7 +1063,7 @@ export class VSCodeCommands implements Disposable {
         },
       ),
       commands.registerCommand(
-        "dbtPowerUser.showDatapilotNotebooksQuickPick",
+        "dbtPowerUser.showAltimateNotebooksQuickPick",
         async () => {
           const notebookQuickPick = new NotebookQuickPick();
           await notebookQuickPick.showNotebookPicker();
@@ -1102,56 +1072,41 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand(
         "dbtPowerUser.showNotebookProfileQuery",
         async () => {
-          await commands.executeCommand(
-            "dbtPowerUser.createDatapilotNotebook",
-            {
-              template: "Profile your query",
-            },
-          );
+          await commands.executeCommand("dbtPowerUser.createAltimateNotebook", {
+            template: "Profile your query",
+          });
         },
       ),
       commands.registerCommand(
         "dbtPowerUser.showNotebookTestSuggestions",
         async () => {
-          await commands.executeCommand(
-            "dbtPowerUser.createDatapilotNotebook",
-            {
-              template: "Get test suggestions",
-            },
-          );
+          await commands.executeCommand("dbtPowerUser.createAltimateNotebook", {
+            template: "Get test suggestions",
+          });
         },
       ),
       commands.registerCommand(
         "dbtPowerUser.showNotebookGenerateBaseModelSql",
         async () => {
-          await commands.executeCommand(
-            "dbtPowerUser.createDatapilotNotebook",
-            {
-              template: "Generate dbt base model sql",
-            },
-          );
+          await commands.executeCommand("dbtPowerUser.createAltimateNotebook", {
+            template: "Generate dbt base model sql",
+          });
         },
       ),
       commands.registerCommand(
         "dbtPowerUser.showNotebookGenerateModelYaml",
         async () => {
-          await commands.executeCommand(
-            "dbtPowerUser.createDatapilotNotebook",
-            {
-              template: "Generate dbt model yaml",
-            },
-          );
+          await commands.executeCommand("dbtPowerUser.createAltimateNotebook", {
+            template: "Generate dbt model yaml",
+          });
         },
       ),
       commands.registerCommand(
         "dbtPowerUser.showNotebookGenerateModelCTE",
         async () => {
-          await commands.executeCommand(
-            "dbtPowerUser.createDatapilotNotebook",
-            {
-              template: "Generate dbt model CTE",
-            },
-          );
+          await commands.executeCommand("dbtPowerUser.createAltimateNotebook", {
+            template: "Generate dbt model CTE",
+          });
         },
       ),
       commands.registerCommand("dbtPowerUser.applyDeferConfig", async () => {

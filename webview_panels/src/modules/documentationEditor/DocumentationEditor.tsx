@@ -1,13 +1,17 @@
+import { Citation } from "@lib";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
-import useAppContext from "@modules/app/useAppContext";
 import CommonActionButtons from "@modules/commonActionButtons/CommonActionButtons";
-import { EntityType } from "@modules/dataPilot/components/docGen/types";
-import { RequestState, RequestTypes } from "@modules/dataPilot/types";
+import { EntityType } from "@modules/documentationEditor/state/entityType";
 import { panelLogger } from "@modules/logger";
 import { Stack } from "@uicore";
 import { useMemo } from "react";
+import ConversationsRightPanel from "./components/conversation/ConversationsRightPanel";
+import BulkGenerateButton from "./components/docGenerator/BulkGenerateButton";
+import Citations from "./components/docGenerator/Citations";
+import CoachAiIfModified from "./components/docGenerator/CoachAiIfModified";
 import DocGeneratorColumnsList from "./components/docGenerator/DocGeneratorColumnsList";
 import DocGeneratorInput from "./components/docGenerator/DocGeneratorInput";
+import { BulkDocumentationPropagationPanel } from "./components/documentationPropagation/DocumentationPropagation";
 import DocumentationHelpContent from "./components/help/DocumentationHelpContent";
 import SaveDocumentation from "./components/saveDocumentation/SaveDocumentation";
 import EntityWithTests from "./components/tests/EntityWithTests";
@@ -15,20 +19,12 @@ import { updateCurrentDocsData } from "./state/documentationSlice";
 import { DocsGenerateModelRequestV2 } from "./state/types";
 import useDocumentationContext from "./state/useDocumentationContext";
 import classes from "./styles.module.scss";
-import { addDefaultActions } from "./utils";
-import ConversationsRightPanel from "./components/conversation/ConversationsRightPanel";
-import CoachAiIfModified from "./components/docGenerator/CoachAiIfModified";
-import Citations from "./components/docGenerator/Citations";
-import { Citation } from "@lib";
-import BulkGenerateButton from "./components/docGenerator/BulkGenerateButton";
-import { BulkDocumentationPropagationPanel } from "./components/documentationPropagation/DocumentationPropagation";
 
 const DocumentationEditor = (): JSX.Element => {
   const {
     state: { currentDocsData, currentDocsTests },
     dispatch,
   } = useDocumentationContext();
-  const { postMessageToDataPilot } = useAppContext();
 
   const modelTests = useMemo(() => {
     return currentDocsTests?.filter((test) => !test.column_name);
@@ -38,35 +34,8 @@ const DocumentationEditor = (): JSX.Element => {
     if (!currentDocsData) {
       return;
     }
-    const showInDataPilot = !!currentDocsData.description;
-    const id = crypto.randomUUID();
 
     try {
-      const requestData = {
-        description: data.description,
-        user_instructions: data.user_instructions,
-        columns: currentDocsData.columns,
-        name: currentDocsData.name,
-      };
-      if (showInDataPilot) {
-        postMessageToDataPilot({
-          id,
-          query: `Generate Documentation for “${currentDocsData.name}”`,
-          requestType: RequestTypes.AI_DOC_GENERATION,
-          meta: requestData,
-          response: currentDocsData.description,
-          actions: addDefaultActions(
-            {
-              ...requestData,
-              modelName: currentDocsData.name,
-            },
-            "generateDocsForModel",
-          ),
-          state: RequestState.COMPLETED,
-        });
-        return;
-      }
-
       const result = (await executeRequestInSync("generateDocsForModel", {
         description: data.description,
         user_instructions: data.user_instructions,
@@ -91,11 +60,6 @@ const DocumentationEditor = (): JSX.Element => {
       );
     } catch (error) {
       panelLogger.error("error while generating doc for model", error);
-      postMessageToDataPilot({
-        id,
-        response: (error as Error).message,
-        state: RequestState.ERROR,
-      });
     }
   };
 
