@@ -146,6 +146,24 @@ interface QueryHistory {
   modelName: string;
 }
 
+// Pick a backtick fence long enough to survive any backtick sequence inside the
+// payload, so user-supplied SQL or error messages can't prematurely terminate
+// the Markdown code block we embed in the chat prompt.
+function fenceCodeBlock(content: string, language = ""): string {
+  const safe = content ?? "";
+  let fenceLength = 3;
+  const match = safe.match(/`{3,}/g);
+  if (match) {
+    for (const run of match) {
+      if (run.length >= fenceLength) {
+        fenceLength = run.length + 1;
+      }
+    }
+  }
+  const fence = "`".repeat(fenceLength);
+  return `${fence}${language}\n${safe}\n${fence}`;
+}
+
 export class QueryResultPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.PreviewResults";
   protected viewPath = "/query-panel";
@@ -535,7 +553,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             break;
           case InboundCommand.GetSummary: {
             const summary = message as RecSummary;
-            const initialMessage = `Explain this query:\n\n\`\`\`sql\n${summary.compiledSql}\n\`\`\``;
+            const initialMessage = `Explain this query:\n\n${fenceCodeBlock(
+              summary.compiledSql,
+              "sql",
+            )}`;
             const opened = await this.altimateCodeChatService.openChat({
               initialMessage,
               title: "Explain query",
@@ -550,8 +571,8 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             const sql = troubleshoot.compiledSql || troubleshoot.rawSql;
             const initialMessage =
               `I ran this query and it failed.\n\n` +
-              `Query:\n\`\`\`sql\n${sql}\n\`\`\`\n\n` +
-              `Error:\n\`\`\`\n${troubleshoot.errorMessage}\n\`\`\`\n\n` +
+              `Query:\n${fenceCodeBlock(sql, "sql")}\n\n` +
+              `Error:\n${fenceCodeBlock(troubleshoot.errorMessage)}\n\n` +
               `Help me troubleshoot and fix this.`;
             const title = troubleshoot.fileName
               ? `Troubleshoot: ${troubleshoot.fileName}`

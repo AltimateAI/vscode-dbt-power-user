@@ -27,12 +27,21 @@ fi
 
 # Mount ~/.altimate/altimate.json into the container if present so start-code-server.sh
 # can seed code-server user settings for the dbt Power User + Altimate Code extensions.
+# The docker-compose.yml consumes ALTIMATE_CREDENTIALS_FILE directly, so we only
+# export it when it points to an existing regular file — otherwise Compose could
+# fail to start or create an unexpected host directory.
 DEFAULT_CREDS_FILE="$HOME/.altimate/altimate.json"
 if [ -z "$ALTIMATE_CREDENTIALS_FILE" ] && [ -f "$DEFAULT_CREDS_FILE" ]; then
     export ALTIMATE_CREDENTIALS_FILE="$DEFAULT_CREDS_FILE"
 fi
 if [ -n "$ALTIMATE_CREDENTIALS_FILE" ]; then
-    echo "Using Altimate credentials from: $ALTIMATE_CREDENTIALS_FILE"
+    if [ -f "$ALTIMATE_CREDENTIALS_FILE" ]; then
+        export ALTIMATE_CREDENTIALS_FILE
+        echo "Using Altimate credentials from: $ALTIMATE_CREDENTIALS_FILE"
+    else
+        echo "Ignoring ALTIMATE_CREDENTIALS_FILE because it is not a file: $ALTIMATE_CREDENTIALS_FILE"
+        unset ALTIMATE_CREDENTIALS_FILE
+    fi
 fi
 
 # Step 2: Build the extension

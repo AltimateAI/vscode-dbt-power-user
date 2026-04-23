@@ -41,15 +41,26 @@ const DocGeneratorColumn = ({ column, tests }: Props): JSX.Element => {
         "generateDocsForColumn",
         requestData,
       )) as { columns: Partial<DBTDocumentationColumn>[] };
+
+      // Guard against empty/missing columns — dispatching or indexing [0] on
+      // an empty array would crash the reducer and persist a junk history entry.
+      const generatedColumn = result.columns?.[0];
+      if (!Array.isArray(result.columns) || !generatedColumn) {
+        panelLogger.error(
+          "generateDocsForColumn returned no generated columns",
+          result,
+        );
+        return;
+      }
+
       dispatch(
-        updateColumnsInCurrentDocsData({ ...result, isNewGeneration: true }),
+        updateColumnsInCurrentDocsData({
+          columns: result.columns,
+          isNewGeneration: true,
+        }),
       );
 
-      await addDocGeneration(
-        project,
-        currentDocsData.name,
-        (result as { columns: Partial<DBTDocumentationColumn>[] }).columns[0],
-      );
+      await addDocGeneration(project, currentDocsData.name, generatedColumn);
     } catch (error) {
       panelLogger.error("error while generating doc for column", error);
     }
