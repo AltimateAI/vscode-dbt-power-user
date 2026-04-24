@@ -24,9 +24,9 @@ import {
 } from "./event/manifestCacheChangedEvent";
 
 import {
+  DBT_PROJECT_FILE,
   DBTProjectDetection,
   DBTTerminal,
-  DBT_PROJECT_FILE,
   readAndParseProjectConfig,
 } from "@altimateai/dbt-integration";
 

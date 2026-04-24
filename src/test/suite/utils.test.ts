@@ -3,13 +3,7 @@ import {
   NoCredentialsError,
   RateLimitException,
 } from "@altimateai/dbt-integration";
-import {
-  afterEach,
-  describe,
-  expect,
-  it,
-  jest,
-} from "@jest/globals";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
