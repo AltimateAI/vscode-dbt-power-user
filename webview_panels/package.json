@@ -61,6 +61,7 @@
     "@rollup/plugin-commonjs": "^26.0.1",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-typescript": "^11.1.6",
+    "@storybook/addon-docs": "^9.1.20",
     "@storybook/addon-links": "^9.1.20",
     "@storybook/builder-vite": "^9.1.20",
     "@storybook/react": "^9.1.20",
@@ -99,11 +100,13 @@
     "storybook-react-context": "^0.8.0",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",
-    "vite": "^5.4.21",
-    "@storybook/addon-docs": "^9.1.20"
+    "vite": "^7.3.2"
   },
   "overrides": {
     "uuid": "^14.0.0",
-    "@babel/runtime": "^7.26.10"
+    "@babel/runtime": "^7.26.10",
+    "serialize-javascript": "^7.0.0",
+    "brace-expansion": "^2.0.2",
+    "minimatch": "^9.0.7"
   }
 }
