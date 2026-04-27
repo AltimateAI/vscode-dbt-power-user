@@ -4,7 +4,7 @@ import * as vscode from "vscode";
 export class TelemetryService implements vscode.Disposable {
   private customAttributes: { [key: string]: string } = {};
   private telemetryReporter: TelemetryReporter = new TelemetryReporter(
-    "50598369-dd83-4f9a-9a65-ca1fa6f1785c",
+    "InstrumentationKey=50598369-dd83-4f9a-9a65-ca1fa6f1785c;IngestionEndpoint=https://westus-0.in.applicationinsights.azure.com/;LiveEndpoint=https://westus.livediagnostics.monitor.azure.com/;ApplicationId=429da6f5-e7b0-40e6-a602-adaa8dcde8b9",
   );
   private eventMeasurements = new Map();
 
