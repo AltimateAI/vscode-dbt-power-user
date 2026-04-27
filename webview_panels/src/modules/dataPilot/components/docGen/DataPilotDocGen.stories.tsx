@@ -1,13 +1,13 @@
+import type { Meta } from "@storybook/react-vite";
 import { withReactContext } from "storybook-react-context";
-import type { Meta } from "@storybook/react";
 import DataPilotPanel from "../..";
-import DataPilotProvider, { DataPilotContext } from "../../DataPilotProvider";
 import {
   DatapilotDocGenActionButtonFactory,
   DatapilotDocGenFactory,
   DatapilotDocGenWithErrorFactory,
   DatapilotDocGenWithLoadingFactory,
 } from "../../../../testUtils";
+import DataPilotProvider, { DataPilotContext } from "../../DataPilotProvider";
 
 const docGenCompleted = DatapilotDocGenFactory.build({
   actions: [
