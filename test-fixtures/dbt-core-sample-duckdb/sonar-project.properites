@@ -1,0 +1,19 @@
+# Project metadata
+sonar.projectKey=go-sales
+sonar.projectName=GO Sales Data Warehouse
+sonar.organization=manz01
+
+# Python settings
+sonar.language=py
+sonar.python.version=3.10
+sonar.sourceEncoding=UTF-8
+
+# Source and tests
+sonar.sources=shared_utils
+sonar.tests=tests
+sonar.python.coverage.reportPaths=coverage.xml
+
+# Optional: pylint integration
+sonar.python.pylint.reportPath=pylint-report.txt
+sonar.inclusions=shared_utils/**/*.py
+sonar.test.inclusions=tests/**/*.py

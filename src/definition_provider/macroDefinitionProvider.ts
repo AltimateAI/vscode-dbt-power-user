@@ -1,3 +1,4 @@
+import { MacroMetaMap } from "@altimateai/dbt-integration";
 import {
   Definition,
   DefinitionLink,
@@ -9,12 +10,10 @@ import {
   TextDocument,
   Uri,
 } from "vscode";
-import { MacroMetaMap } from "../domain";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { ManifestCacheChangedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
-@provideSingleton(MacroDefinitionProvider)
+import { isEnclosedWithinCodeBlock } from "../utils";
 export class MacroDefinitionProvider implements DefinitionProvider, Disposable {
   private macroToLocationMap: Map<string, MacroMetaMap> = new Map();
   private static readonly IS_MACRO = /\w+\.?\w+/;
@@ -60,16 +59,36 @@ export class MacroDefinitionProvider implements DefinitionProvider, Disposable {
           document.uri,
         );
 
-        const macroName =
-          packageName !== undefined && !word.includes(".")
-            ? `${packageName}.${word}`
-            : word;
+        // Build the list of lookup candidates for the macro meta map. The map
+        // stores macros from the current dbt project under their bare name
+        // (e.g. `log_toto`) and macros from installed packages under
+        // `<package>.<name>` (e.g. `dbt_utils.pivot`). The editor word may
+        // already carry a package prefix, and — per issue #1754 — that prefix
+        // may be the current project's own name, which dbt accepts as a valid
+        // call even though the map is keyed by the bare name.
+        const lookupCandidates: string[] = [];
+        if (word.includes(".")) {
+          // Prefer the full `<pkg>.<name>` lookup first (cross-package call),
+          // then fall back to the bare `<name>` lookup, which matches macros
+          // defined in the current project (including self-prefixed calls).
+          lookupCandidates.push(word);
+          const dotIndex = word.indexOf(".");
+          lookupCandidates.push(word.substring(dotIndex + 1));
+        } else if (packageName !== undefined) {
+          // Inside an installed package: unprefixed calls resolve against
+          // that package's own macros, which are keyed as `<pkg>.<name>`.
+          lookupCandidates.push(`${packageName}.${word}`);
+        } else {
+          lookupCandidates.push(word);
+        }
 
-        const definition = this.getMacroDefinition(macroName, document.uri);
-        if (definition !== undefined) {
-          resolve(definition);
-          this.telemetry.sendTelemetryEvent("provideMacroDefinition");
-          return;
+        for (const candidate of lookupCandidates) {
+          const definition = this.getMacroDefinition(candidate, document.uri);
+          if (definition !== undefined) {
+            resolve(definition);
+            this.telemetry.sendTelemetryEvent("provideMacroDefinition");
+            return;
+          }
         }
       }
       resolve(undefined);

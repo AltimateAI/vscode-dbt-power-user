@@ -1,17 +1,21 @@
 import {
-  window,
-  QuickPickItem,
-  ProgressLocation,
+  CommandProcessExecutionFactory,
+  DBTTerminal,
+} from "@altimateai/dbt-integration";
+import { inject } from "inversify";
+import { gte } from "semver";
+import {
   commands,
+  ProgressLocation,
+  QuickPickItem,
+  window,
   workspace,
 } from "vscode";
-import { getFirstWorkspacePath, provideSingleton } from "../utils";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { TelemetryService } from "../telemetry";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
-import { CommandProcessExecutionFactory } from "../commandProcessExecution";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { TelemetryService } from "../telemetry";
+import { getFirstWorkspacePath } from "../utils";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -24,17 +28,21 @@ enum DbtInstallationPromptAnswer {
   INSTALL_FUSION = "Install dbt fusion",
 }
 
-@provideSingleton(WalkthroughCommands)
 export class WalkthroughCommands {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
+    @inject(PythonEnvironment)
     private pythonEnvironment: PythonEnvironment,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {}
 
-  async validateProjects(projectContext: ProjectQuickPickItem | undefined) {
+  async validateProjects(
+    projectContext: ProjectQuickPickItem | undefined,
+    skipConfirmation = false,
+  ) {
     if (projectContext === undefined) {
       // This shouldnt happen really
       window.showErrorMessage(
@@ -50,42 +58,46 @@ export class WalkthroughCommands {
     ) {
       debugCommand = "dbt environment show";
     }
-    const answer = await window.showInformationMessage(
-      `Do you want to validate the project: ${projectContext.label}? This will run the command '${debugCommand}' inside this project. Do you want to continue?`,
-      PromptAnswer.YES,
-      PromptAnswer.NO,
-    );
-    if (answer === PromptAnswer.YES) {
-      try {
-        this.telemetry.sendTelemetryEvent("validateProject");
-        const project = this.dbtProjectContainer.findDBTProject(
-          projectContext.uri,
-        );
-        if (project === undefined) {
-          window.showErrorMessage(
-            `Project ${projectContext.label} was not found`,
-          );
-          return;
-        }
-        const runModelOutput = await project.debug();
-        if (runModelOutput.includes("ERROR")) {
-          throw new Error(runModelOutput);
-        }
-      } catch (err) {
-        this.dbtTerminal.error(
-          "validateProjectError",
-          `Error when validating ${projectContext.label}`,
-          err,
-        );
-        window.showErrorMessage(
-          "Error running dbt debug for project " +
-            projectContext.label +
-            ". Please check the output tab for more details.",
-        );
+    if (!skipConfirmation) {
+      const answer = await window.showInformationMessage(
+        `Do you want to validate the project: ${projectContext.label}? This will run the command '${debugCommand}' inside this project. Do you want to continue?`,
+        PromptAnswer.YES,
+        PromptAnswer.NO,
+      );
+      if (answer !== PromptAnswer.YES) {
+        return;
       }
     }
+    try {
+      this.telemetry.sendTelemetryEvent("validateProject");
+      const project = this.dbtProjectContainer.findDBTProject(
+        projectContext.uri,
+      );
+      if (project === undefined) {
+        throw new Error(`Project ${projectContext.label} was not found`);
+      }
+      const runModelOutput = await project.debug();
+      if (runModelOutput.fullOutput.includes("ERROR")) {
+        throw new Error(runModelOutput.fullOutput);
+      }
+    } catch (err) {
+      this.dbtTerminal.error(
+        "validateProjectError",
+        `Error when validating ${projectContext.label}`,
+        err,
+      );
+      window.showErrorMessage(
+        "Error running dbt debug for project " +
+          projectContext.label +
+          ". Please check the output tab for more details.",
+      );
+      throw err;
+    }
   }
-  async installDeps(projectContext: ProjectQuickPickItem | undefined) {
+  async installDeps(
+    projectContext: ProjectQuickPickItem | undefined,
+    skipConfirmation = false,
+  ) {
     if (projectContext === undefined) {
       // This shouldnt happen really
       window.showErrorMessage(
@@ -93,38 +105,39 @@ export class WalkthroughCommands {
       );
       return;
     }
-    const answer = await window.showInformationMessage(
-      `Do you want to install packages for the project: ${projectContext.label}? This will run the command 'dbt deps' inside this project. Do you want to continue?`,
-      PromptAnswer.YES,
-      PromptAnswer.NO,
-    );
-    if (answer === PromptAnswer.YES) {
-      try {
-        this.telemetry.sendTelemetryEvent("installDeps");
-        const project = this.dbtProjectContainer.findDBTProject(
-          projectContext.uri,
-        );
-        if (project === undefined) {
-          window.showErrorMessage(
-            `Project ${projectContext.label} was not found`,
-          );
-          return;
-        }
-
-        await project.installDeps();
-      } catch (err) {
-        this.dbtTerminal.debug(
-          "WalkthroughCommands.installDeps",
-          "Could not install deps",
-          err,
-        );
-        this.telemetry.sendTelemetryError("installDepsError", err);
-        window.showErrorMessage(
-          "Error installing dbt dependencies for project " +
-            projectContext.label +
-            ". Please check the output tab for more details.",
-        );
+    if (!skipConfirmation) {
+      const answer = await window.showInformationMessage(
+        `Do you want to install packages for the project: ${projectContext.label}? This will run the command 'dbt deps' inside this project. Do you want to continue?`,
+        PromptAnswer.YES,
+        PromptAnswer.NO,
+      );
+      if (answer !== PromptAnswer.YES) {
+        return;
       }
+    }
+    try {
+      this.telemetry.sendTelemetryEvent("installDeps");
+      const project = this.dbtProjectContainer.findDBTProject(
+        projectContext.uri,
+      );
+      if (project === undefined) {
+        throw new Error(`Project ${projectContext.label} was not found`);
+      }
+
+      await project.installDeps();
+    } catch (err) {
+      this.dbtTerminal.debug(
+        "WalkthroughCommands.installDeps",
+        "Could not install deps",
+        err,
+      );
+      this.telemetry.sendTelemetryError("installDepsError", err);
+      window.showErrorMessage(
+        "Error installing dbt dependencies for project " +
+          projectContext.label +
+          ". Please check the output tab for more details.",
+      );
+      throw err;
     }
   }
 
@@ -183,7 +196,7 @@ export class WalkthroughCommands {
               command,
               args,
               cwd: getFirstWorkspacePath(),
-              envVars: this.pythonEnvironment.environmentVariables,
+              envVars: this.pythonEnvironment.getEnvironmentVariables(),
             })
             .completeWithTerminalOutput();
 
@@ -228,7 +241,7 @@ export class WalkthroughCommands {
                 "--force-reinstall",
               ],
               cwd: getFirstWorkspacePath(),
-              envVars: this.pythonEnvironment.environmentVariables,
+              envVars: this.pythonEnvironment.getEnvironmentVariables(),
             })
             .completeWithTerminalOutput();
           if (
@@ -258,18 +271,7 @@ export class WalkthroughCommands {
 
   private async installDbtCore(): Promise<void> {
     const dbtVersion: QuickPickItem | undefined = await window.showQuickPick(
-      [
-        "1.0",
-        "1.1",
-        "1.2",
-        "1.3",
-        "1.4",
-        "1.5",
-        "1.6",
-        "1.7",
-        "1.8",
-        "1.9",
-      ].map((value) => ({
+      ["1.8", "1.9", "1.10", "1.11"].map((value) => ({
         label: value,
       })),
       {
@@ -295,6 +297,7 @@ export class WalkthroughCommands {
         "trino",
         "synapse",
         "fabric",
+        "risingwave",
       ].map((value) => ({ label: value })),
       {
         title: "Select your adapter",
@@ -322,19 +325,22 @@ export class WalkthroughCommands {
             "--no-cache-dir",
             "--force-reinstall",
           ];
-          if (packageVersion >= "1.8") {
-            args.push(`dbt-core==${packageVersion}`);
-            args.push(`${packageName}>=${packageVersion}`);
+          const isIndependentAdapterPackage = gte(
+            packageVersion + ".0",
+            "1.8.0",
+          );
+          if (isIndependentAdapterPackage) {
+            args.push(`dbt-core~=${packageVersion}.0`);
+            args.push(`${packageName}`);
           } else {
             args.push(`${packageName}==${packageVersion}`);
           }
-          args.push("--upgrade");
           const { stdout, stderr } = await this.commandProcessExecutionFactory
             .createCommandProcessExecution({
               command: this.pythonEnvironment.pythonPath,
               args,
               cwd: getFirstWorkspacePath(),
-              envVars: this.pythonEnvironment.environmentVariables,
+              envVars: this.pythonEnvironment.getEnvironmentVariables(),
             })
             .completeWithTerminalOutput();
           if (
@@ -390,6 +396,8 @@ export class WalkthroughCommands {
         return "dbt-synapse";
       case "fabric":
         return "dbt-fabric";
+      case "risingwave":
+        return "dbt-risingwave";
     }
     throw new Error("Adapter is not supported" + adapter);
   }

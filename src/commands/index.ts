@@ -1,79 +1,103 @@
+import { DBTTerminal, RunModelType } from "@altimateai/dbt-integration";
+import { DatapilotNotebookController, OpenNotebookRequest } from "@lib";
+import { existsSync, readFileSync } from "fs";
+import { inject } from "inversify";
 import {
+  CancellationTokenSource,
+  CodeLens,
   commands,
   CommentReply,
   CommentThread,
+  DecorationRangeBehavior,
   Disposable,
+  env,
+  extensions,
   languages,
+  ProgressLocation,
+  Range,
   TextEditor,
+  TextEditorDecorationType,
+  Uri,
+  version,
   ViewColumn,
   window,
   workspace,
-  version,
-  extensions,
-  Uri,
-  Range,
-  ProgressLocation,
-  TextEditorDecorationType,
-  DecorationRangeBehavior,
-  env,
 } from "vscode";
+import { AltimateRequest } from "../altimate";
+import {
+  CteCodeLensProvider,
+  CteInfo,
+} from "../code_lens_provider/cteCodeLensProvider";
+import {
+  ConversationCommentThread,
+  ConversationProvider,
+} from "../comment_provider/conversationProvider";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
-import { RunModelType } from "../domain";
+import { CteProfilerDecorationProvider } from "../cte_profiler/cteProfilerDecorationProvider";
+import { CteProfilerService } from "../cte_profiler/cteProfilerService";
+import { DBTClient } from "../dbt_client";
+import { DBTProject } from "../dbt_client/dbtProject";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
+import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
+import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
+import { AltimateCodeChatService } from "../services/altimateCodeChatService";
+import { DiagnosticsOutputChannel } from "../services/diagnosticsOutputChannel";
+import { QueryManifestService } from "../services/queryManifestService";
+import { RunHistoryService } from "../services/runHistoryService";
+import { SharedStateService } from "../services/sharedStateService";
+import { TelemetryService } from "../telemetry";
+import { TelemetryEvents } from "../telemetry/events";
+import { RunTreeItem } from "../treeview_provider/runHistoryTreeItems";
 import {
   deepEqual,
   extendErrorWithSupportLinks,
   getFirstWorkspacePath,
   getFormattedDateTime,
-  provideSingleton,
 } from "../utils";
-import { RunModel } from "./runModel";
-import { SqlToModel } from "./sqlToModel";
-import { AltimateScan } from "./altimateScan";
-import { WalkthroughCommands } from "./walkthroughCommands";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
-import { ValidateSql } from "./validateSql";
-import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { SharedStateService } from "../services/sharedStateService";
-import {
-  ConversationProvider,
-  ConversationCommentThread,
-} from "../comment_provider/conversationProvider";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { DBTClient } from "../dbt_client";
-import { existsSync, readFileSync } from "fs";
-import { DBTProject } from "../manifest/dbtProject";
 import { SQLLineagePanel } from "../webview_provider/sqlLineagePanel";
-import { QueryManifestService } from "../services/queryManifestService";
-import { AltimateRequest } from "../altimate";
-import { DatapilotNotebookController, OpenNotebookRequest } from "@lib";
-import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
-import { CteInfo } from "../code_lens_provider/cteCodeLensProvider";
+import { AltimateScan } from "./altimateScan";
+import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
+import { RunModel } from "./runModel";
+import { RunTest } from "./runTest";
+import { SqlToModel } from "./sqlToModel";
+import { ValidateSql } from "./validateSql";
+import { WalkthroughCommands } from "./walkthroughCommands";
 
-@provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
   private disposables: Disposable[] = [];
 
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private runModel: RunModel,
+    private runTest: RunTest,
     private sqlToModel: SqlToModel,
     private validateSql: ValidateSql,
     private altimateScan: AltimateScan,
     private walkthroughCommands: WalkthroughCommands,
     private bigQueryCostEstimate: BigQueryCostEstimate,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
+    private diagnosticsOutputChannel: DiagnosticsOutputChannel,
     private eventEmitterService: SharedStateService,
     private conversationController: ConversationProvider,
+    @inject(PythonEnvironment)
     private pythonEnvironment: PythonEnvironment,
     private dbtClient: DBTClient,
     private sqlLineagePanel: SQLLineagePanel,
     private queryManifestService: QueryManifestService,
     private altimate: AltimateRequest,
     private notebookController: DatapilotNotebookController,
+    private runHistoryService: RunHistoryService,
+    private altimateCodeChatService: AltimateCodeChatService,
+    private cteProfilerService: CteProfilerService,
+    private cteProfilerDecorationProvider: CteProfilerDecorationProvider,
+    private cteCodeLensProvider: CteCodeLensProvider,
+    private telemetry: TelemetryService,
   ) {
     this.disposables.push(
+      this.cteProfilerService,
+      this.cteProfilerDecorationProvider,
       commands.registerCommand(
         "dbtPowerUser.checkIfDbtIsInstalled",
         async () => {
@@ -84,12 +108,184 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.installDbt", () =>
         this.walkthroughCommands.installDbt(),
       ),
-      commands.registerCommand("dbtPowerUser.runCurrentModel", () =>
-        this.runModel.runModelOnActiveWindow(),
+      commands.registerCommand("dbtPowerUser.runCurrentModel", () => {
+        // `dbt run` on a singular test file is never meaningful; route it
+        // to `dbt test --select <test>` instead. See #1720.
+        if (this.runTest.runSingularTestOnActiveWindowIfApplicable()) {
+          return;
+        }
+        this.runModel.runModelOnActiveWindow();
+      }),
+      commands.registerCommand(
+        "dbtPowerUser.rerunFromHistory",
+        (item: RunTreeItem) => {
+          this.dbtProjectContainer.rerunFromHistory(item.entry);
+        },
       ),
-      commands.registerCommand("dbtPowerUser.testCurrentModel", () =>
-        this.runModel.runTestsOnActiveWindow(),
+      commands.registerCommand("dbtPowerUser.clearRunHistory", async () => {
+        const confirm = await window.showWarningMessage(
+          "Clear all run history entries?",
+          { modal: true },
+          "Clear",
+        );
+        if (confirm === "Clear") {
+          this.runHistoryService.clear();
+        }
+      }),
+      commands.registerCommand(
+        "dbtPowerUser.profileCtes",
+        async (uri?: Uri, ctes?: CteInfo[]) => {
+          // When called from command palette, args are undefined — use active editor
+          const source = uri ? "codeLens" : "commandPalette";
+          const activeEditor = window.activeTextEditor;
+          const docUri = uri ?? activeEditor?.document.uri;
+          if (!docUri) {
+            window.showErrorMessage("No active SQL file to profile.");
+            return;
+          }
+
+          let document = workspace.textDocuments.find(
+            (doc) => doc.uri.toString() === docUri.toString(),
+          );
+          if (!document) {
+            try {
+              document = await workspace.openTextDocument(docUri);
+            } catch (error) {
+              this.dbtTerminal.error(
+                "CteProfiler",
+                "Failed to open document",
+                error,
+              );
+              window.showErrorMessage("Document not found");
+              return;
+            }
+          }
+
+          // If ctes not provided (command palette), re-detect from CodeLens provider
+          if (!ctes) {
+            const cts = new CancellationTokenSource();
+            // `provideCodeLenses` returns `CodeLens[] | Thenable<CodeLens[]>`;
+            // `await` handles all three (sync array, Promise, custom Thenable).
+            const resolved = await this.cteCodeLensProvider.provideCodeLenses(
+              document,
+              cts.token,
+            );
+            cts.dispose();
+            // Extract CteInfo from CodeLens arguments (index 1 is the ctes array)
+            const profileLens = resolved.find(
+              (cl: CodeLens) =>
+                cl.command?.command === "dbtPowerUser.profileCtes",
+            );
+            ctes = profileLens?.command?.arguments?.[1] as
+              | CteInfo[]
+              | undefined;
+
+            if (!ctes || ctes.length === 0) {
+              window.showInformationMessage(
+                "No CTEs found in this file to profile.",
+              );
+              return;
+            }
+          }
+
+          const telemetryEvent = TelemetryEvents["CteProfiler/Profile"];
+          const totalCtes = ctes.length;
+          this.telemetry.startTelemetryEvent(
+            telemetryEvent,
+            { source },
+            { cteCount: totalCtes },
+          );
+
+          await window.withProgress(
+            {
+              location: ProgressLocation.Notification,
+              title: `Profiling ${totalCtes} CTE${totalCtes === 1 ? "" : "s"}`,
+              cancellable: true,
+            },
+            async (progress, token) => {
+              // Forward notification cancel to the service's own token.
+              token.onCancellationRequested(() => {
+                this.telemetry.sendTelemetryEvent(
+                  TelemetryEvents["CteProfiler/Cancel"],
+                  { source: "progressNotification" },
+                );
+                this.cteProfilerService.cancel();
+              });
+
+              // Report per-CTE increments as the service fires result updates.
+              let lastCount = 0;
+              const progressSub = this.cteProfilerService.onResultChanged(
+                (result) => {
+                  if (!result || result.uri !== docUri.toString()) {
+                    return;
+                  }
+                  const done = result.ctes.length;
+                  if (done <= lastCount) {
+                    return;
+                  }
+                  const delta = done - lastCount;
+                  lastCount = done;
+                  progress.report({
+                    increment: (delta / totalCtes) * 100,
+                    message: `${done}/${totalCtes} — ${result.ctes[done - 1]?.name ?? ""}`,
+                  });
+                },
+              );
+
+              try {
+                await this.cteProfilerService.profileModel(
+                  docUri,
+                  document!,
+                  ctes!,
+                );
+                const result = this.cteProfilerService.getResult(
+                  docUri.toString(),
+                );
+                this.telemetry.endTelemetryEvent(
+                  telemetryEvent,
+                  undefined,
+                  { source, status: result?.status ?? "unknown" },
+                  {
+                    cteCount: totalCtes,
+                    totalTimeMs: result?.totalTimeMs ?? 0,
+                    profiledCount: result?.ctes.length ?? 0,
+                  },
+                );
+              } catch (error) {
+                this.telemetry.endTelemetryEvent(
+                  telemetryEvent,
+                  error,
+                  { source },
+                  { cteCount: totalCtes },
+                );
+              } finally {
+                progressSub.dispose();
+              }
+            },
+          );
+        },
       ),
+      commands.registerCommand("dbtPowerUser.cancelCteProfiling", () => {
+        this.telemetry.sendTelemetryEvent(
+          TelemetryEvents["CteProfiler/Cancel"],
+          { source: "commandPalette" },
+        );
+        this.cteProfilerService.cancel();
+      }),
+      commands.registerCommand("dbtPowerUser.clearProfileResults", () =>
+        this.cteProfilerService.clearResults(),
+      ),
+      commands.registerCommand("dbtPowerUser.toggleProfileDecorations", () =>
+        this.cteProfilerDecorationProvider.toggle(),
+      ),
+      commands.registerCommand("dbtPowerUser.testCurrentModel", () => {
+        // Singular data tests must be selected by their own test name, not
+        // the surrounding model. See #1720.
+        if (this.runTest.runSingularTestOnActiveWindowIfApplicable()) {
+          return;
+        }
+        this.runModel.runTestsOnActiveWindow();
+      }),
       commands.registerCommand("dbtPowerUser.compileCurrentModel", () =>
         this.runModel.compileModelOnActiveWindow(),
       ),
@@ -129,11 +325,35 @@ export class VSCodeCommands implements Disposable {
           );
         },
       ),
-      commands.registerCommand("dbtPowerUser.runTest", (model) =>
-        this.runModel.runModelOnNodeTreeItem(RunModelType.TEST)(model),
-      ),
+      commands.registerCommand("dbtPowerUser.runTest", (model) => {
+        // Tree-item invocation (from the test treeview): run the selected
+        // test node — never a singular test, always a generic test.
+        if (model !== undefined) {
+          this.runModel.runModelOnNodeTreeItem(RunModelType.TEST)(model);
+          return;
+        }
+        // Command-palette invocation (no tree item): route singular test
+        // files to `dbt test --select <test>`; otherwise fall back to
+        // running the generic tests attached to the active model. See #1720.
+        if (this.runTest.runSingularTestOnActiveWindowIfApplicable()) {
+          return;
+        }
+        this.runModel.runModelOnNodeTreeItem(RunModelType.TEST)(model);
+      }),
       commands.registerCommand("dbtPowerUser.runChildrenModels", (model) =>
         this.runModel.runModelOnNodeTreeItem(RunModelType.RUN_CHILDREN)(model),
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.yamlRunModel",
+        (uri: Uri, modelName: string) => {
+          this.dbtProjectContainer.runModelByName(uri, modelName);
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.yamlTestModel",
+        (uri: Uri, modelName: string) => {
+          this.dbtProjectContainer.runModelTest(uri, modelName);
+        },
       ),
       commands.registerCommand("dbtPowerUser.runParentModels", (model) =>
         this.runModel.runModelOnNodeTreeItem(RunModelType.RUN_PARENTS)(model),
@@ -277,35 +497,6 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.clearAltimateScanResults", () =>
         this.altimateScan.clearProblems(),
       ),
-      commands.registerCommand(
-        "dbtPowerUser.switchDbtIntegration",
-        async () => {
-          const dbtIntegration = workspace
-            .getConfiguration("dbt")
-            .get<string>("dbtIntegration", "core");
-          const integrationModes = ["dbt core", "dbt cloud", "dbt fusion"];
-          const selectedIntegrationMode = (
-            await window.showQuickPick(integrationModes, {
-              title: "Select your flavour of dbt",
-              canPickMany: false,
-            })
-          )?.replace(/dbt /, "");
-          if (selectedIntegrationMode === dbtIntegration) {
-            return;
-          }
-          const message = `Switching to dbt ${selectedIntegrationMode} requires reloading the window, any unsaved changes will be lost.`;
-          const answer = await window.showInformationMessage(
-            message,
-            "Confirm",
-          );
-          if (answer === "Confirm") {
-            await workspace
-              .getConfiguration("dbt")
-              .update("dbtIntegration", selectedIntegrationMode);
-            await commands.executeCommand("workbench.action.reloadWindow");
-          }
-        },
-      ),
       commands.registerCommand("dbtPowerUser.validateProject", () => {
         const pickedProject: ProjectQuickPickItem | undefined =
           this.dbtProjectContainer.getFromWorkspaceState(
@@ -329,23 +520,19 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand(
         "dbtPowerUser.openSetupWalkthrough",
         async () => {
-          await commands.executeCommand("workbench.action.openWalkthrough");
-          commands.executeCommand(
-            "workbench.action.openWalkthrough",
-            `${this.dbtProjectContainer.extensionId}#initialSetup`,
-            true,
-          );
+          this.eventEmitterService.eventEmitter.fire({
+            command: "onboarding:render",
+            payload: { initialStep: "prerequisites" },
+          });
         },
       ),
       commands.registerCommand(
         "dbtPowerUser.openTutorialWalkthrough",
         async () => {
-          await commands.executeCommand("workbench.action.openWalkthrough");
-          commands.executeCommand(
-            "workbench.action.openWalkthrough",
-            `${this.dbtProjectContainer.extensionId}#tutorials`,
-            false,
-          );
+          this.eventEmitterService.eventEmitter.fire({
+            command: "onboarding:render",
+            payload: { initialStep: "finish" },
+          });
         },
       ),
       commands.registerCommand("dbtPowerUser.associateFileExts", async () => {
@@ -447,37 +634,122 @@ export class VSCodeCommands implements Disposable {
           }
         },
       ),
-      commands.registerCommand("dbtPowerUser.printEnvVars", () =>
-        this.pythonEnvironment.printEnvVars(),
+      commands.registerCommand("dbtPowerUser.printEnvVars", () => {
+        const activeFolder = window.activeTextEditor
+          ? workspace.getWorkspaceFolder(window.activeTextEditor.document.uri)
+          : undefined;
+        return this.pythonEnvironment.printEnvVars(activeFolder);
+      }),
+      commands.registerCommand(
+        "dbtPowerUser.detectPythonFromTerminal",
+        async () => {
+          // Check if there's a terminal open that we can detect from
+          if (
+            !window.activeTerminal &&
+            !window.terminals.some((t) => t.shellIntegration)
+          ) {
+            const action = await window.showWarningMessage(
+              "No terminal is open. Please open a terminal with your dbt environment activated, then try again.",
+              "Open Terminal",
+            );
+            if (action === "Open Terminal") {
+              await commands.executeCommand(
+                "workbench.action.terminal.toggleTerminal",
+              );
+            }
+            return;
+          }
+
+          const detectedPath =
+            await this.pythonEnvironment.detectPythonFromShell();
+          if (!detectedPath) {
+            window.showWarningMessage(
+              "Could not find a Python interpreter with dbt installed in your terminal. " +
+                "Make sure dbt is installed and the correct environment is activated, then try again.",
+            );
+            return;
+          }
+
+          const currentOverride = workspace
+            .getConfiguration("dbt")
+            .get<string>("dbtPythonPathOverride", "");
+          if (currentOverride === detectedPath) {
+            window.showInformationMessage(
+              `Python path is already set to: ${detectedPath}`,
+            );
+            return;
+          }
+
+          const action = await window.showInformationMessage(
+            `Found Python with dbt at: ${detectedPath}. Use this as the Python interpreter?`,
+            "Yes",
+            "No",
+          );
+          if (action === "Yes") {
+            await workspace
+              .getConfiguration("dbt")
+              .update("dbtPythonPathOverride", detectedPath);
+            window.showInformationMessage(
+              `Python path set to: ${detectedPath}. The extension will reload.`,
+            );
+            // Re-detect dbt with the new path
+            await this.dbtProjectContainer.detectDBT();
+            await this.dbtProjectContainer.initialize();
+          }
+        },
       ),
       commands.registerCommand("dbtPowerUser.diagnostics", async () => {
         try {
-          await this.dbtTerminal.show(true);
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          this.dbtTerminal.logLine("Diagnostics started...");
-          this.dbtTerminal.logNewLine();
+          this.diagnosticsOutputChannel.show();
+          this.diagnosticsOutputChannel.logLine("Diagnostics started...");
+          this.diagnosticsOutputChannel.logNewLine();
 
-          // Printing env vars
-          this.dbtTerminal.logBlockWithHeader(
-            [
-              "Printing environment variables...",
-              "* Please remove any sensitive information before sending it to us",
-            ],
-            Object.entries(this.pythonEnvironment.environmentVariables).map(
-              ([key, value]) => `${key}=${value}`,
-            ),
-          );
-          this.dbtTerminal.logNewLine();
+          // Printing env vars per project
+          const dbtProjects = this.dbtProjectContainer.getProjects();
+          if (dbtProjects.length > 0) {
+            for (const project of dbtProjects) {
+              const projectFolder = workspace.getWorkspaceFolder(
+                project.projectRoot,
+              );
+              this.diagnosticsOutputChannel.logBlockWithHeader(
+                [
+                  `Printing environment variables for project: ${project.getProjectName()}`,
+                  `  (root: ${project.projectRoot.fsPath})`,
+                  "* Please remove any sensitive information before sending it to us",
+                ],
+                Object.entries(
+                  this.pythonEnvironment.getEnvironmentVariables(projectFolder),
+                ).map(([key, value]) => `${key}=${value}`),
+              );
+              this.diagnosticsOutputChannel.logNewLine();
+            }
+          } else {
+            const activeFolder = window.activeTextEditor
+              ? workspace.getWorkspaceFolder(
+                  window.activeTextEditor.document.uri,
+                )
+              : undefined;
+            this.diagnosticsOutputChannel.logBlockWithHeader(
+              [
+                "Printing environment variables...",
+                "* Please remove any sensitive information before sending it to us",
+              ],
+              Object.entries(
+                this.pythonEnvironment.getEnvironmentVariables(activeFolder),
+              ).map(([key, value]) => `${key}=${value}`),
+            );
+            this.diagnosticsOutputChannel.logNewLine();
+          }
 
-          // Printing env vars
-          this.dbtTerminal.logBlockWithHeader(
+          // Printing python paths
+          this.diagnosticsOutputChannel.logBlockWithHeader(
             [
               "Printing all python paths...",
               "* Please remove any sensitive information before sending it to us",
             ],
             this.pythonEnvironment.allPythonPaths.map(({ path }) => path),
           );
-          this.dbtTerminal.logNewLine();
+          this.diagnosticsOutputChannel.logNewLine();
 
           // Printing extension settings
           const dbtSettings = workspace.getConfiguration().inspect("dbt");
@@ -489,7 +761,7 @@ export class VSCodeCommands implements Disposable {
             ...Object.keys(defaultValue),
             ...Object.keys(workspaceValue),
           ];
-          this.dbtTerminal.logBlockWithHeader(
+          this.diagnosticsOutputChannel.logBlockWithHeader(
             [
               "Printing extension settings...",
               "* Please remove any sensitive information before sending it to us",
@@ -512,7 +784,7 @@ export class VSCodeCommands implements Disposable {
               return `${key}=${valueText}\t\t${overridenText}`;
             }),
           );
-          this.dbtTerminal.logNewLine();
+          this.diagnosticsOutputChannel.logNewLine();
 
           // Printing extension and setup info
           const dbtIntegrationMode = workspace
@@ -522,7 +794,7 @@ export class VSCodeCommands implements Disposable {
             .getConfiguration("dbt")
             .get<string[]>("allowListFolders", []);
           const apiConnectivity = await this.altimate.checkApiConnectivity();
-          this.dbtTerminal.logBlock([
+          this.diagnosticsOutputChannel.logBlock([
             `Python Path=${this.pythonEnvironment.pythonPath}`,
             `VSCode version=${version}`,
             `Extension version=${
@@ -537,81 +809,93 @@ export class VSCodeCommands implements Disposable {
               : "",
             `AllowList Folders=${allowListFolders}`,
           ]);
-          this.dbtTerminal.logNewLine();
+          this.diagnosticsOutputChannel.logNewLine();
 
           if (!this.dbtClient.pythonInstalled) {
-            this.dbtTerminal.logLine("Python is not installed");
-            this.dbtTerminal.logLine(
+            this.diagnosticsOutputChannel.logLine("Python is not installed");
+            this.diagnosticsOutputChannel.logLine(
               "Can't proceed further without fixing python installation",
             );
             return;
           }
-          this.dbtTerminal.logLine("Python is installed");
+          this.diagnosticsOutputChannel.logLine("Python is installed");
           if (!this.dbtClient.dbtInstalled) {
-            this.dbtTerminal.logLine("DBT is not installed");
-            this.dbtTerminal.logLine(
+            this.diagnosticsOutputChannel.logLine("DBT is not installed");
+            this.diagnosticsOutputChannel.logLine(
               "Can't proceed further without fixing dbt installation",
             );
             return;
           }
-          this.dbtTerminal.logLine("DBT is installed");
+          this.diagnosticsOutputChannel.logLine("DBT is installed");
           const dbtWorkspaces = this.dbtProjectContainer.dbtWorkspaceFolders;
-          this.dbtTerminal.logLine(
+          this.diagnosticsOutputChannel.logLine(
             `Number of workspaces=${dbtWorkspaces.length}`,
           );
           for (const w of dbtWorkspaces) {
-            this.dbtTerminal.logHorizontalRule();
-            this.dbtTerminal.logLine(
+            this.diagnosticsOutputChannel.logHorizontalRule();
+            this.diagnosticsOutputChannel.logLine(
               `Workspace Path=${w.workspaceFolder.uri.fsPath}`,
             );
-            this.dbtTerminal.logLine(`Adapters=${w.getAdapters()}`);
-            this.dbtTerminal.logLine(
+            this.diagnosticsOutputChannel.logLine(
+              `Adapters=${w.getAdapters()}`,
+            );
+            this.diagnosticsOutputChannel.logLine(
               `AllowList Folders=${w.getAllowListFolders()}`,
             );
             w.projectDiscoveryDiagnostics.forEach((uri, diagnostics) => {
-              this.dbtTerminal.logLine(`Problems for ${uri.fsPath}`);
+              this.diagnosticsOutputChannel.logLine(
+                `Problems for ${uri.fsPath}`,
+              );
               diagnostics.forEach((d) => {
-                this.dbtTerminal.logLine(
+                this.diagnosticsOutputChannel.logLine(
                   `source=${d.source}\tmessage=${d.message}`,
                 );
               });
             });
-            this.dbtTerminal.logHorizontalRule();
+            this.diagnosticsOutputChannel.logHorizontalRule();
           }
 
           const projects = this.dbtProjectContainer.getProjects();
-          this.dbtTerminal.logLine(`Number of projects=${projects.length}`);
+          this.diagnosticsOutputChannel.logLine(
+            `Number of projects=${projects.length}`,
+          );
           if (projects.length === 0) {
-            this.dbtTerminal.logLine("No project detected");
-            this.dbtTerminal.logLine("Can't proceed further without project");
+            this.diagnosticsOutputChannel.logLine("No project detected");
+            this.diagnosticsOutputChannel.logLine(
+              "Can't proceed further without project",
+            );
             return;
           }
-          this.dbtTerminal.logNewLine();
+          this.diagnosticsOutputChannel.logNewLine();
 
           for (const project of projects) {
             try {
-              this.dbtTerminal.logHorizontalRule();
-              this.dbtTerminal.logLine(
+              this.diagnosticsOutputChannel.logHorizontalRule();
+              this.diagnosticsOutputChannel.logLine(
                 `Printing information for ${project.getProjectName()}`,
               );
-              this.dbtTerminal.logHorizontalRule();
+              this.diagnosticsOutputChannel.logHorizontalRule();
               await this.printProjectInfo(project);
             } catch (e) {
-              this.dbtTerminal.logNewLine();
-              this.dbtTerminal.logLine(
+              this.diagnosticsOutputChannel.logNewLine();
+              this.diagnosticsOutputChannel.logLine(
                 "Failed to print all the info for the project...",
               );
-              this.dbtTerminal.logLine(`Error=${e}`);
+              this.diagnosticsOutputChannel.logLine(`Error=${e}`);
             } finally {
-              this.dbtTerminal.logHorizontalRule();
+              this.diagnosticsOutputChannel.logHorizontalRule();
             }
           }
-          this.dbtTerminal.logNewLine();
-          this.dbtTerminal.logLine("Diagnostics completed successfully...");
+          this.diagnosticsOutputChannel.logNewLine();
+          this.diagnosticsOutputChannel.logLine(
+            "Diagnostics completed successfully...",
+          );
         } catch (e) {
-          this.dbtTerminal.logNewLine();
-          this.dbtTerminal.logLine("Diagnostics ended with error...");
-          this.dbtTerminal.logLine(`Error=${e}`);
+          this.diagnosticsOutputChannel.logNewLine();
+          this.diagnosticsOutputChannel.logLine(
+            "Diagnostics ended with error...",
+          );
+          this.diagnosticsOutputChannel.logLine(`Error=${e}`);
         }
       }),
       commands.registerCommand(
@@ -622,7 +906,12 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand(
         "dbtPowerUser.openTargetSelector",
-        async (targets, project: DBTProject, statusBar) => {
+        async (
+          targets,
+          project: DBTProject,
+          statusBar,
+          currentTarget?: string,
+        ) => {
           try {
             if (!targets) {
               return;
@@ -632,10 +921,24 @@ export class VSCodeCommands implements Disposable {
               "Showing following targets",
               targets,
             );
-            const target = await window.showQuickPick(targets, {
+            const sortedTargets = (targets as string[]).sort((a, b) => {
+              if (a === currentTarget) {
+                return -1;
+              }
+              if (b === currentTarget) {
+                return 1;
+              }
+              return 0;
+            });
+            const items = sortedTargets.map((t) => ({
+              label: t,
+              description: t === currentTarget ? "(current)" : "",
+            }));
+            const selected = await window.showQuickPick(items, {
               title: "Select your target",
               canPickMany: false,
             });
+            const target = selected?.label;
             if (target) {
               await project.setSelectedTarget(target);
               await statusBar.updateStatusBar();
@@ -869,27 +1172,100 @@ export class VSCodeCommands implements Disposable {
           );
         }
       }),
+      commands.registerCommand(
+        "dbtPowerUser.askAltimateAboutSelection",
+        async () => {
+          const context = this.altimateCodeChatService.getEditorContext();
+          if (!context) {
+            return;
+          }
+          await this.altimateCodeChatService.openChat({
+            initialMessage: `Regarding this code from \`@${context.relativePath}\`:\n\`\`\`\n${context.code}\n\`\`\``,
+            title: `Ask: ${context.fileName}`,
+          });
+        },
+      ),
+      commands.registerCommand("dbtPowerUser.explainWithAltimate", async () => {
+        const context = this.altimateCodeChatService.getEditorContext();
+        if (!context) {
+          return;
+        }
+        await this.altimateCodeChatService.openChat({
+          initialMessage: `Explain the following code from \`@${context.relativePath}\`:\n\`\`\`sql\n${context.code}\n\`\`\``,
+          title: `Explain: ${context.fileName}`,
+        });
+      }),
+      commands.registerCommand(
+        "dbtPowerUser.optimizeWithAltimate",
+        async () => {
+          const context = this.altimateCodeChatService.getEditorContext();
+          if (!context) {
+            return;
+          }
+          await this.altimateCodeChatService.openChat({
+            initialMessage: `Optimize the following SQL from \`@${context.relativePath}\` for performance and readability:\n\`\`\`sql\n${context.code}\n\`\`\``,
+            title: `Optimize: ${context.fileName}`,
+          });
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.analyzeFileWithAltimate",
+        async (uri?: Uri) => {
+          const fileUri = uri ?? window.activeTextEditor?.document.uri;
+          if (!fileUri) {
+            return;
+          }
+          const ctx = this.altimateCodeChatService.getContextForUri(fileUri);
+          if (!ctx) {
+            return;
+          }
+          await this.altimateCodeChatService.openChat({
+            initialMessage: `Analyze \`@${ctx.relativePath}\` for dbt best practices, performance, and documentation completeness.`,
+            title: `Analyze: ${ctx.fileName}`,
+          });
+        },
+      ),
+      commands.registerCommand("dbtPowerUser.openAltimateChat", async () => {
+        const context = this.altimateCodeChatService.getEditorContext();
+        if (context) {
+          await this.altimateCodeChatService.openChat({
+            initialMessage: `Help me with \`@${context.relativePath}\`:\n\`\`\`\n${context.code}\n\`\`\``,
+            title: `Chat: ${context.fileName}`,
+          });
+        } else {
+          await this.altimateCodeChatService.openChat({
+            initialMessage: "How can I help you with your dbt project?",
+            title: "Altimate Code Chat",
+          });
+        }
+      }),
     );
   }
 
   private async printProjectInfo(project: DBTProject) {
-    this.dbtTerminal.logLine(`Project Name=${project.getProjectName()}`);
-    this.dbtTerminal.logLine(`Adapter Type=${project.getAdapterType()}`);
+    this.diagnosticsOutputChannel.logLine(
+      `Project Name=${project.getProjectName()}`,
+    );
+    this.diagnosticsOutputChannel.logLine(
+      `Adapter Type=${project.getAdapterType()}`,
+    );
 
     const dbtVersion = project.getDBTVersion();
     if (!dbtVersion) {
-      this.dbtTerminal.logLine("DBT is not initialized properly");
+      this.diagnosticsOutputChannel.logLine("DBT is not initialized properly");
     } else {
-      this.dbtTerminal.logLine(`DBT version=${dbtVersion.join(".")}`);
+      this.diagnosticsOutputChannel.logLine(
+        `DBT version=${dbtVersion.join(".")}`,
+      );
     }
 
     if (!project.getPythonBridgeStatus()) {
-      this.dbtTerminal.logLine("Python bridge is not connected");
+      this.diagnosticsOutputChannel.logLine("Python bridge is not connected");
     } else {
-      this.dbtTerminal.logLine("Python bridge is connected");
+      this.diagnosticsOutputChannel.logLine("Python bridge is connected");
     }
 
-    this.dbtTerminal.logNewLine();
+    this.diagnosticsOutputChannel.logNewLine();
 
     const paths = [
       {
@@ -919,7 +1295,7 @@ export class VSCodeCommands implements Disposable {
 
     for (const p of paths) {
       if (!p.path) {
-        this.dbtTerminal.logLine(`${p.pathType} path not found`);
+        this.diagnosticsOutputChannel.logLine(`${p.pathType} path not found`);
         continue;
       }
       let line = `${p.pathType} path=${p.path}\t\t`;
@@ -928,29 +1304,29 @@ export class VSCodeCommands implements Disposable {
       } else {
         line += "File exists at location";
       }
-      this.dbtTerminal.logLine(line);
+      this.diagnosticsOutputChannel.logLine(line);
     }
 
     const dbtProjectFilePath = project.getDBTProjectFilePath();
     if (existsSync(dbtProjectFilePath)) {
-      this.dbtTerminal.logNewLine();
-      this.dbtTerminal.logNewLine();
-      this.dbtTerminal.logLine("dbt_project.yml");
-      this.dbtTerminal.logHorizontalRule();
+      this.diagnosticsOutputChannel.logNewLine();
+      this.diagnosticsOutputChannel.logNewLine();
+      this.diagnosticsOutputChannel.logLine("dbt_project.yml");
+      this.diagnosticsOutputChannel.logHorizontalRule();
       const fileContent = readFileSync(dbtProjectFilePath, "utf8");
-      this.dbtTerminal.logLine(fileContent.replace(/\n/g, "\r\n"));
-      this.dbtTerminal.logHorizontalRule();
+      this.diagnosticsOutputChannel.logLine(fileContent.replace(/\n/g, "\r\n"));
+      this.diagnosticsOutputChannel.logHorizontalRule();
     }
 
-    this.dbtTerminal.logNewLine();
+    this.diagnosticsOutputChannel.logNewLine();
     const diagnostics = project.getAllDiagnostic();
-    this.dbtTerminal.logLine(
+    this.diagnosticsOutputChannel.logLine(
       `Number of diagnostics issues=${diagnostics.length}`,
     );
     for (const d of diagnostics) {
-      this.dbtTerminal.logLine(d.message);
+      this.diagnosticsOutputChannel.logLine(d.message);
     }
-    await project.debug();
+    await project.debug(false);
   }
 
   private runSelectedQuery(uri: Uri, range: Range): void {

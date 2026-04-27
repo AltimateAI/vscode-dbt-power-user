@@ -4,7 +4,7 @@ const fs = require("fs");
 function getZeroMQPreBuildsFoldersToKeep() {
   // Possible values of 'VSC_VSCE_TARGET' include platforms supported by `vsce package --target`
   // See here https://code.visualstudio.com/api/working-with-extensions/publishing-extension#platformspecific-extensions
-  const vsceTarget = process.env.VSC_VSCE_TARGET;
+  const vsceTarget = process.env.VSC_VSCE_TARGET || process.env.VSCE_TARGET;
   console.log("vsceTarget", vsceTarget);
   if (!vsceTarget) {
     // Keep all of them, as we're not building platform specific bundles.
@@ -116,7 +116,7 @@ function shouldCopyFileFromZmqFolder(resourcePath) {
 const extensionFolder = path.join(__dirname);
 
 async function deleteUnnecessaryZeromqPrebuilts() {
-  const vsceTarget = process.env.VSC_VSCE_TARGET;
+  const vsceTarget = process.env.VSC_VSCE_TARGET || process.env.VSCE_TARGET;
   if (!vsceTarget) {
     // Keep all of them, as we're not building platform specific bundles.
     console.log("vsceTarget is not set");
@@ -145,4 +145,88 @@ async function deleteUnnecessaryZeromqPrebuilts() {
   console.log("copied ZeroMQ");
 }
 
+/**
+ * Map VSC_VSCE_TARGET to the altimate-core platform package suffix to keep.
+ * Returns empty array if no target is set (keep all).
+ */
+function getAltimateCorePackagesToKeep() {
+  const vsceTarget = process.env.VSC_VSCE_TARGET || process.env.VSCE_TARGET;
+  if (!vsceTarget) {
+    return [];
+  }
+  if (vsceTarget.includes("darwin")) {
+    if (vsceTarget.includes("arm64")) return ["darwin-arm64"];
+    if (vsceTarget.includes("x64")) return ["darwin-x64"];
+    return ["darwin-arm64", "darwin-x64"];
+  }
+  if (vsceTarget.includes("linux") || vsceTarget.includes("alpine")) {
+    if (vsceTarget.includes("arm64")) return ["linux-arm64-gnu"];
+    if (vsceTarget.includes("x64")) return ["linux-x64-gnu"];
+    return ["linux-arm64-gnu", "linux-x64-gnu"];
+  }
+  if (vsceTarget.includes("win32")) {
+    return ["win32-x64-msvc"];
+  }
+  return [];
+}
+
+function deleteUnnecessaryAltimateCorePackages() {
+  const vsceTarget = process.env.VSC_VSCE_TARGET || process.env.VSCE_TARGET;
+  if (!vsceTarget) {
+    console.log(
+      "vsceTarget is not set, keeping all altimate-core platform packages",
+    );
+    return;
+  }
+
+  console.log(
+    "pruning altimate-core platform packages for target:",
+    vsceTarget,
+  );
+  const keepSuffixes = getAltimateCorePackagesToKeep();
+  const altimateCoreDir = path.join(
+    extensionFolder,
+    "dist",
+    "node_modules",
+    "@altimateai",
+  );
+
+  if (!fs.existsSync(altimateCoreDir)) {
+    console.log("altimate-core dist directory not found, skipping");
+    return;
+  }
+
+  const entries = fs.readdirSync(altimateCoreDir);
+  for (const entry of entries) {
+    // Only prune platform-specific packages (altimate-core-<platform>)
+    if (!entry.startsWith("altimate-core-")) continue;
+    const suffix = entry.replace("altimate-core-", "");
+    if (!keepSuffixes.includes(suffix)) {
+      const fullPath = path.join(altimateCoreDir, entry);
+      console.log("deleting", fullPath);
+      fs.rmSync(fullPath, { recursive: true });
+    }
+  }
+
+  // Also prune .node files from the altimate-core/ directory that don't
+  // match the target platform (these are copied by webpack for direct resolution)
+  const coreDir = path.join(altimateCoreDir, "altimate-core");
+  if (fs.existsSync(coreDir)) {
+    const coreEntries = fs.readdirSync(coreDir);
+    for (const file of coreEntries) {
+      if (!file.endsWith(".node")) continue;
+      // e.g. "altimate-core.darwin-arm64.node" → check if "darwin-arm64" is kept
+      const match = file.match(/^altimate-core\.(.+)\.node$/);
+      if (match && !keepSuffixes.includes(match[1])) {
+        const fullPath = path.join(coreDir, file);
+        console.log("deleting .node file", fullPath);
+        fs.rmSync(fullPath);
+      }
+    }
+  }
+
+  console.log("pruned altimate-core platform packages");
+}
+
 deleteUnnecessaryZeromqPrebuilts();
+deleteUnnecessaryAltimateCorePackages();

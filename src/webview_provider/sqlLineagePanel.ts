@@ -1,30 +1,36 @@
+import {
+  DBTTerminal,
+  NodeMetaData,
+  RESOURCE_TYPE_SOURCE,
+  SourceTable,
+} from "@altimateai/dbt-integration";
+import * as crypto from "crypto";
+import { inject } from "inversify";
 import * as path from "path";
 import {
   CancellationToken,
   ColorThemeKind,
-  Uri,
-  window,
-  Disposable,
-  WebviewPanel,
-  env,
-  workspace,
   commands,
+  Disposable,
+  env,
   ProgressLocation,
   TextEditor,
+  Uri,
+  WebviewPanel,
+  window,
+  workspace,
 } from "vscode";
-import { AltimateRequest, SqlLineageDetails, ModelNode } from "../altimate";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { TelemetryService } from "../telemetry";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import * as crypto from "crypto";
-import { DBTProject } from "../manifest/dbtProject";
-import { NodeMetaData, SourceTable } from "../domain";
+import { AltimateRequest, SqlLineageDetails } from "../altimate";
+import { DBTProject } from "../dbt_client/dbtProject";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { ManifestCacheProjectAddedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
+import { AltimateAuthService } from "../services/altimateAuthService";
 import { QueryManifestService } from "../services/queryManifestService";
-import { AltimateWebviewProvider } from "./altimateWebviewProvider";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
+import { TelemetryService } from "../telemetry";
+import { extendErrorWithSupportLinks } from "../utils";
+import { AltimateWebviewProvider } from "./altimateWebviewProvider";
 
 type SQLLineage = {
   tableEdges: [string, string][];
@@ -33,7 +39,6 @@ type SQLLineage = {
   errorMessage?: undefined;
 };
 
-@provideSingleton(SQLLineagePanel)
 export class SQLLineagePanel
   extends AltimateWebviewProvider
   implements Disposable
@@ -47,10 +52,12 @@ export class SQLLineagePanel
     protected dbtProjectContainer: DBTProjectContainer,
     protected altimate: AltimateRequest,
     protected telemetry: TelemetryService,
+    @inject("DBTTerminal")
     protected terminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     protected eventEmitterService: SharedStateService,
     protected usersService: UsersService,
+    protected altimateAuthService: AltimateAuthService,
   ) {
     super(
       dbtProjectContainer,
@@ -60,6 +67,7 @@ export class SQLLineagePanel
       terminal,
       queryManifestService,
       usersService,
+      altimateAuthService,
     );
     window.onDidChangeActiveColorTheme(
       async () => {
@@ -160,26 +168,17 @@ export class SQLLineagePanel
     if (!currNode) {
       throw new Error(`Unable to find model for model ${modelName}`);
     }
-    let model_info: { model_node: ModelNode }[] = [];
-    const config = workspace.getConfiguration("dbt.lineage");
-    const modelId = currNode.uniqueId;
+    const modelId = currNode.unique_id;
     const modelsToFetch = project.getNonEphemeralParents([modelId]);
-    let shouldFetchSchema = false;
-    if (currNode.path) {
-      const sql = (
-        await workspace.fs.readFile(Uri.file(currNode.path))
-      ).toString();
-      shouldFetchSchema = !(await project.validateWhetherSqlHasColumns(sql));
-    }
-
-    if (config.get("useSchemaForQueryVisualizer", false) || shouldFetchSchema) {
-      const { mappedNode } = await project.getNodesWithDBColumns(
-        event,
-        modelsToFetch,
-        token,
-      );
-      model_info = modelsToFetch.map((n) => ({ model_node: mappedNode[n] }));
-    }
+    const abortController = new AbortController();
+    token.onCancellationRequested(() => abortController.abort());
+    const { mappedNode } = await project.getNodesWithDBColumns(
+      modelsToFetch,
+      abortController.signal,
+    );
+    const model_info = modelsToFetch.map((n) => ({
+      model_node: mappedNode[n],
+    }));
     const hash = crypto.createHash("md5").update(compiledSQL).digest("hex");
     const sessionId = `${env.sessionId}-${hash}`;
     const response = await this.altimate.sqlLineage({
@@ -221,7 +220,7 @@ export class SQLLineagePanel
       }
     }
     nodeMapping[modelName] = {
-      nodeId: currNode.uniqueId,
+      nodeId: currNode.unique_id,
       type: currNode.resource_type,
     };
     const FINAL_SELECT = "__final_select__";
@@ -307,10 +306,6 @@ export class SQLLineagePanel
               showSelectEdges: config.get("showSelectEdges", true),
               showNonSelectEdges: config.get("showNonSelectEdges", true),
               defaultExpansion: config.get("defaultExpansion", 1),
-              useSchemaForQueryVisualizer: config.get(
-                "useSchemaForQueryVisualizer",
-                false,
-              ),
             },
           },
         });
@@ -370,7 +365,7 @@ export class SQLLineagePanel
     }
     const splits = table.split(".");
     const nodeType = splits[0];
-    if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
+    if (nodeType === RESOURCE_TYPE_SOURCE) {
       const { sourceMetaMap } = event;
       const sourceName = splits[2];
       const tableName = splits[3];

@@ -1,7 +1,7 @@
-import { panelLogger } from "@modules/logger";
-import OpenIcon from "./openIcon.svg?raw";
 import type { Schema } from "@finos/perspective";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
+import { panelLogger } from "@modules/logger";
+import OpenIcon from "./openIcon.svg?raw";
 
 // Dispatches a custom event with the given event name and message
 function dispatchCustomEvent(
@@ -191,7 +191,7 @@ class PerspectiveDatagridJSONViewerPlugin extends (customElements.get(
 
 customElements.define(
   "perspective-datagrid-json-viewer-plugin",
-  PerspectiveDatagridJSONViewerPlugin,
+  PerspectiveDatagridJSONViewerPlugin as unknown as CustomElementConstructor,
 );
 
 void customElements

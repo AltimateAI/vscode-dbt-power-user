@@ -36,14 +36,31 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb
-      - name: Run tests (Linux)
+      - name: Run unit tests (Linux)
         if: runner.os == 'Linux'
         run: |
           xvfb-run --auto-servernum npm run compile && xvfb-run --auto-servernum npm run test:coverage
-      - name: Run tests (macOS/Windows)
+      - name: Run unit tests (macOS/Windows)
         if: runner.os != 'Linux'
         run: |
           npm run compile && npm run test:coverage
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install sqlfmt
+        run: pip install "shandy-sqlfmt[jinjafmt]"
+
+      - name: Run integration tests (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum npm run test:integration
+
+      - name: Run integration tests (macOS/Windows)
+        if: runner.os != 'Linux'
+        run: npm run test:integration
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4

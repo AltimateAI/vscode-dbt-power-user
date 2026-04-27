@@ -1,0 +1,55 @@
+version: 2
+
+models:
+  - name: t_fct_sales
+    description: >
+      Detail-level integrated sales fact table built incrementally from staging. Includes surrogate key, audit columns, and tracks order and price details by retailer/product/method/date.
+
+    config:
+      materialized: incremental
+      schema: det     
+      tags:
+        - GO_SALES_DET
+      unique_key: fct_sales_sk
+
+    columns:
+      - name: fct_sales_sk
+        description: Numeric surrogate key generated via DuckDB sequence.
+        tests:
+          - not_null
+          - unique
+
+      - name: retailer_code
+        description: Retailer identifier from sales data.
+        tests:
+          - not_null
+
+      - name: product_number
+        description: Product SKU identifier.
+        tests:
+          - not_null
+
+      - name: order_method_code
+        description: Code representing the ordering channel (e.g., online, store).
+        tests:
+          - not_null
+
+      - name: transaction_date
+        description: Date of the sales transaction.
+        tests:
+          - not_null
+
+      - name: quantity
+        description: Number of units sold.
+
+      - name: unit_price
+        description: Regular price per unit.
+
+      - name: unit_sale_price
+        description: Final sale price per unit.
+
+      - name: create_ts
+        description: Timestamp when the record was first loaded into the detail layer.
+
+      - name: update_ts
+        description: Timestamp when the record was last updated.

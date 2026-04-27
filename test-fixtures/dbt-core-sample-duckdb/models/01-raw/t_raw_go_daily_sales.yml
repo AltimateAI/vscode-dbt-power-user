@@ -1,0 +1,18 @@
+version: 2
+models:
+  - name: t_raw_go_daily_sales
+    config:
+      materialized: table  
+      schema: raw     
+      tags:
+        - GO_SALES_RAW
+      sql: "SELECT * FROM go_daily_sales"
+    columns:
+      - name: Retailer code
+      - name: Product number
+      - name: Order method code
+      - name: Date
+      - name: Quantity
+      - name: Unit price
+      - name: Unit sale price
+      

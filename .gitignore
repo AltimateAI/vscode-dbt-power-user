@@ -40,3 +40,13 @@ Thumbs.db
 .aider*
 certs
 mcp.json
+
+# Docker setup
+docker-setup/*.vsix
+docker-setup/.env
+
+# Playwright MCP
+.playwright-mcp/
+
+# GitHub issues dashboard cache
+monitoring/github_issues/.cache/

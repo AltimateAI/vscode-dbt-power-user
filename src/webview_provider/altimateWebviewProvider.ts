@@ -1,3 +1,7 @@
+import { DBTTerminal } from "@altimateai/dbt-integration";
+import { NotebookSchema } from "@lib";
+import { inject } from "inversify";
+import { PythonException } from "python-bridge";
 import {
   CancellationToken,
   commands,
@@ -13,21 +17,19 @@ import {
   window,
   workspace,
 } from "vscode";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { TelemetryService } from "../telemetry";
-import path = require("path");
-import {
-  ManifestCacheProjectAddedEvent,
-  ManifestCacheChangedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
 import { AltimateRequest, UserInputError } from "../altimate";
-import { SharedStateService } from "../services/sharedStateService";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import {
+  ManifestCacheChangedEvent,
+  ManifestCacheProjectAddedEvent,
+} from "../dbt_client/event/manifestCacheChangedEvent";
+import { AltimateAuthService } from "../services/altimateAuthService";
 import { QueryManifestService } from "../services/queryManifestService";
-import { PythonException } from "python-bridge";
+import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
-import { NotebookSchema } from "@lib";
+import { TelemetryService } from "../telemetry";
+import { extendErrorWithSupportLinks } from "../utils";
+import path = require("path");
 
 export type UpdateConfigProps = {
   key: string;
@@ -56,7 +58,6 @@ export interface SendMessageProps extends Record<string, unknown> {
  * This class is responsible for rendering the webview
  * Each panel needs to have its own provider which extends this class with correct viewPath and description
  */
-@provideSingleton(AltimateWebviewProvider)
 export class AltimateWebviewProvider implements WebviewViewProvider {
   public viewType = "dbtPowerUser.Default";
   protected viewPath = "/"; // webview route path from AppRoutes.tsx
@@ -74,9 +75,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     protected altimateRequest: AltimateRequest,
     protected telemetry: TelemetryService,
     protected emitterService: SharedStateService,
+    @inject("DBTTerminal")
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
+    protected altimateAuthService: AltimateAuthService,
   ) {
     this._disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
@@ -360,7 +363,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           });
           break;
         case "validateCredentials":
-          const isValid = await this.altimateRequest.handlePreviewFeatures();
+          const isValid = this.altimateAuthService.handlePreviewFeatures();
           this.sendResponseToWebview({
             command: "response",
             syncRequestId,
@@ -410,7 +413,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           // If config is for preview feature, then check keys
           const shouldUpdate =
             !params.isPreviewFeature ||
-            this.altimateRequest.handlePreviewFeatures();
+            this.altimateAuthService.handlePreviewFeatures();
           if (shouldUpdate) {
             await workspace
               .getConfiguration("dbt")
@@ -580,6 +583,196 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         ),
       ),
     );
+    const AltimateCodeBannerUrl = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "altimate-code-banner-sml.png",
+        ),
+      ),
+    );
+
+    // Tutorial images - convert URIs to strings for serialization
+    const GenerateModelFromSourceGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "generate-model-from-source.gif",
+        ),
+      ),
+    );
+    const GenerateModelFromSQLGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "generate-model-from-SQL.gif",
+        ),
+      ),
+    );
+    const AutocompleteModelGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "autocomplete-model.gif",
+        ),
+      ),
+    );
+    const AutocompleteMacroGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "autocomplete-macro.gif",
+        ),
+      ),
+    );
+    const AutocompleteSourceGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "autocomplete-source.gif",
+        ),
+      ),
+    );
+    const DefinitionModelGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "definition-model.gif",
+        ),
+      ),
+    );
+    const DefinitionMacroGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "definition-macro.gif",
+        ),
+      ),
+    );
+    const QueryResultsAndSQLGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "query-results-and-SQL.gif",
+        ),
+      ),
+    );
+    const EDAAndExportGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "EDA-and-export.gif",
+        ),
+      ),
+    );
+    const QueryExplanationGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "query-explanation.gif",
+        ),
+      ),
+    );
+    const GraphGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "graph.gif",
+        ),
+      ),
+    );
+    const DocsEditorGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "docs-editor.gif",
+        ),
+      ),
+    );
+    const DocGenerationUsingAiGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "doc-generation-using-ai.gif",
+        ),
+      ),
+    );
+    const ModelLineageGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "model-lineage.gif",
+        ),
+      ),
+    );
+    const ColumnLineageGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "column-lineage.gif",
+        ),
+      ),
+    );
+    const ProjectScanGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "project-scan.gif",
+        ),
+      ),
+    );
+
     const codiconsUri = webview.asWebviewUri(
       Uri.joinPath(
         extensionUri,
@@ -617,6 +810,25 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               window.viewPath = "${this.viewPath}";
               var spinnerUrl = "${SpinnerUrl}"
               var lineageGif = "${LineageGif}"
+              window.altimateCodeBannerUrl = "${AltimateCodeBannerUrl}";
+              window.tutorialImages = {
+                generateModelFromSource: "${GenerateModelFromSourceGif}",
+                generateModelFromSQL: "${GenerateModelFromSQLGif}",
+                autocompleteModel: "${AutocompleteModelGif}",
+                autocompleteMacro: "${AutocompleteMacroGif}",
+                autocompleteSource: "${AutocompleteSourceGif}",
+                definitionModel: "${DefinitionModelGif}",
+                definitionMacro: "${DefinitionMacroGif}",
+                queryResultsAndSQL: "${QueryResultsAndSQLGif}",
+                edaAndExport: "${EDAAndExportGif}",
+                queryExplanation: "${QueryExplanationGif}",
+                graph: "${GraphGif}",
+                docsEditor: "${DocsEditorGif}",
+                docGenerationUsingAi: "${DocGenerationUsingAiGif}",
+                modelLineage: "${ModelLineageGif}",
+                columnLineage: "${ColumnLineageGif}",
+                projectScan: "${ProjectScanGif}"
+              }
             </script>
             
             <script nonce="${nonce}" type="module" src="${indexJs}"></script>

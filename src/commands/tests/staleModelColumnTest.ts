@@ -1,15 +1,10 @@
+import { createFullPathForNode } from "@altimateai/dbt-integration";
+import { readFileSync } from "fs";
 import { Diagnostic, DiagnosticSeverity, Range, Uri } from "vscode";
+import { getColumnNameByCase, removeProtocol } from "../../utils";
 import { ScanContext } from "./scanContext";
 import { AltimateScanStep } from "./step";
-import { readFileSync } from "fs";
-import {
-  getColumnNameByCase,
-  provideSingleton,
-  removeProtocol,
-} from "../../utils";
-import { createFullPathForNode } from "../../manifest/parsers";
 
-@provideSingleton(StaleModelColumnTest)
 export class StaleModelColumnTest implements AltimateScanStep {
   private getTextLocation(
     modelname: string,

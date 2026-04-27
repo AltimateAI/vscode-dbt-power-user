@@ -1,16 +1,15 @@
-import { commands, Disposable, EventEmitter, window, workspace } from "vscode";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { provideSingleton } from "../utils";
-import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
+import { DBTDetection } from "@altimateai/dbt-integration";
 import { existsSync } from "fs";
-import { DBTDetection } from "./dbtIntegration";
 import { inject } from "inversify";
+import { commands, Disposable, EventEmitter, window, workspace } from "vscode";
+import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
+import { PythonEnvironment } from "./pythonEnvironment";
 
 enum PythonInterpreterPromptAnswer {
   SELECT = "Select Python interpreter",
+  DETECT = "Detect from terminal",
 }
 
-@provideSingleton(DBTClient)
 export class DBTClient implements Disposable {
   private _onDBTInstallationVerificationEvent =
     new EventEmitter<DBTInstallationVerificationEvent>();
@@ -29,6 +28,7 @@ export class DBTClient implements Disposable {
   ];
   private shownError = false;
   constructor(
+    @inject(PythonEnvironment)
     private pythonEnvironment: PythonEnvironment,
     @inject("Factory<DBTDetection>")
     private dbtDetectionFactory: () => DBTDetection,
@@ -61,6 +61,9 @@ export class DBTClient implements Disposable {
     this._dbtInstalled = undefined;
     this._pythonInstalled = this.pythonPathExists();
     this._dbtInstalled = await this.dbtDetectionFactory().detectDBT();
+    // Refresh cached Python version — by this point the Python extension
+    // has settled after an interpreter change
+    await this.pythonEnvironment.refreshPythonVersion();
     this._onDBTInstallationVerificationEvent.fire({
       inProgress: false,
       installed: this._dbtInstalled,
@@ -83,9 +86,12 @@ export class DBTClient implements Disposable {
         const answer = await window.showErrorMessage(
           "No Python interpreter is selected or Python is not installed",
           PythonInterpreterPromptAnswer.SELECT,
+          PythonInterpreterPromptAnswer.DETECT,
         );
         if (answer === PythonInterpreterPromptAnswer.SELECT) {
           commands.executeCommand("python.setInterpreter");
+        } else if (answer === PythonInterpreterPromptAnswer.DETECT) {
+          commands.executeCommand("dbtPowerUser.detectPythonFromTerminal");
         }
       }
       return false;
@@ -94,9 +100,12 @@ export class DBTClient implements Disposable {
       const answer = await window.showErrorMessage(
         "Only Python 3 is supported by dbt, please select a Python 3 interpreter",
         PythonInterpreterPromptAnswer.SELECT,
+        PythonInterpreterPromptAnswer.DETECT,
       );
       if (answer === PythonInterpreterPromptAnswer.SELECT) {
         commands.executeCommand("python.setInterpreter");
+      } else if (answer === PythonInterpreterPromptAnswer.DETECT) {
+        commands.executeCommand("dbtPowerUser.detectPythonFromTerminal");
       }
       return false;
     }
@@ -107,13 +116,15 @@ export class DBTClient implements Disposable {
     const answer = await window.showErrorMessage(
       message,
       option,
-      "Change dbt flavour",
+      PythonInterpreterPromptAnswer.DETECT,
+      "Troubleshoot",
     );
     if (answer === option) {
       commands.executeCommand("dbtPowerUser.installDbt");
-    }
-    if (answer?.includes("Change")) {
-      commands.executeCommand("dbtPowerUser.switchDbtIntegration");
+    } else if (answer === PythonInterpreterPromptAnswer.DETECT) {
+      commands.executeCommand("dbtPowerUser.detectPythonFromTerminal");
+    } else if (answer?.includes("Troubleshoot")) {
+      commands.executeCommand("dbtPowerUser.openSetupWalkthrough");
     }
   }
 

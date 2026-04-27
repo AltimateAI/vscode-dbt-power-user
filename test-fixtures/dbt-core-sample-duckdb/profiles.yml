@@ -1,0 +1,21 @@
+dbt_core_sample_duckdb:
+  target: go_sales
+  outputs:
+    go_sales:
+      type: duckdb
+      path: '/home/u0001/dbt-core-sample-duckdb/go_sales.db'
+  # target: dev
+  # outputs:
+  #   dev:
+  #     type: snowflake
+  #     account: hlutnos.ge96755
+  #     role: gos_dbt_role
+  #     database: go_sales
+  #     warehouse: gos_wh
+  #     schema: det   
+  #     threads: 1
+  #     authenticator: snowflake
+  #     private_key_path: /home/u0001/.snowflake/rsa_key.pem
+  #     private_key_passphrase: "{{ env_var('SNOWFLAKE_KEY_PASSPHRASE') }}"
+  #     client_session_keep_alive: false
+  

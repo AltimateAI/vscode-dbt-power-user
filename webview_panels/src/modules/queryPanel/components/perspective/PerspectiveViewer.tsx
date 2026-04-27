@@ -1,30 +1,30 @@
 import perspective, { TableData } from "@finos/perspective";
 import "@finos/perspective-viewer";
-import "@finos/perspective-viewer-datagrid";
-import "@finos/perspective-viewer-d3fc";
 import {
   HTMLPerspectiveViewerElement,
   PerspectiveViewerConfig,
 } from "@finos/perspective-viewer";
-import "./themes.css";
-import "@finos/perspective-viewer/dist/css/pro.css";
-import "@finos/perspective-viewer/dist/css/pro-dark.css";
-import "@finos/perspective-viewer/dist/css/vaporwave.css";
-import "@finos/perspective-viewer/dist/css/solarized.css";
-import "@finos/perspective-viewer/dist/css/solarized-dark.css";
+import "@finos/perspective-viewer-d3fc";
+import "@finos/perspective-viewer-datagrid";
 import "@finos/perspective-viewer/dist/css/monokai.css";
-import "./PerspectivePlugins";
-import { CSSProperties, useEffect, useRef, useState } from "react";
-import { panelLogger } from "@modules/logger";
+import "@finos/perspective-viewer/dist/css/pro-dark.css";
+import "@finos/perspective-viewer/dist/css/pro.css";
+import "@finos/perspective-viewer/dist/css/solarized-dark.css";
+import "@finos/perspective-viewer/dist/css/solarized.css";
+import "@finos/perspective-viewer/dist/css/vaporwave.css";
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import useAppContext from "@modules/app/useAppContext";
+import { panelLogger } from "@modules/logger";
+import { setPerspectiveTheme } from "@modules/queryPanel/context/queryPanelSlice";
+import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
+import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
+import { Drawer, DrawerRef } from "@uicore";
+import { CSSProperties, useEffect, useRef, useState } from "react";
+import { useErrorBoundary } from "react-error-boundary";
 import classes from "./perspective.module.scss";
 import perspectiveStyles from "./perspective.scss?inline";
-import { executeRequestInAsync } from "@modules/app/requestExecutor";
-import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
-import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
-import { setPerspectiveTheme } from "@modules/queryPanel/context/queryPanelSlice";
-import { Drawer, DrawerRef } from "@uicore";
-import { useErrorBoundary } from "react-error-boundary";
+import "./PerspectivePlugins";
+import "./themes.css";
 
 interface Props {
   data: TableData;
@@ -66,6 +66,8 @@ const PerspectiveViewer = ({
         return "string";
       case "Integer":
         return "float";
+      case "BigInteger":
+        return "string";
       case "Number":
         return "float";
       default:
@@ -175,7 +177,6 @@ const PerspectiveViewer = ({
     for (let i = 0; i < columnNames.length; i++) {
       schema[columnNames[i]] = mapType(columnTypes[i]);
     }
-
     try {
       // @ts-expect-error valid parameter
       const worker = perspective.worker(dataFormats);

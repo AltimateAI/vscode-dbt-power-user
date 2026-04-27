@@ -9,7 +9,7 @@ Generating model from sources defined in yaml file is very easy as below:
 ///
 
 /// admonition | Why does the generated model appear with the syntax {{ adapter.quote(column_name)}}?
-type: info
+    type: info
 
 This syntax provides a safe way for the adapter to quote the columns.
 Since the extension supports different adapters, this is the easiest way to ensure that it works for all of them.

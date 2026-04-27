@@ -1,0 +1,23 @@
+#-----------------------------------------------------------------------------
+# Author:     Manzar Ahmed 
+# Date:       2025-05-18
+#-----------------------------------------------------------------------------
+# Version Control
+#-----------------------------------------------------------------------------
+# Ver  Date      Name          Description     
+#-----------------------------------------------------------------------------
+# 1.0  20250518  Manzar Ahmed  Initial         
+#----------------------------------------------------------------------------
+version: 2
+models:
+  - name: t_raw_go_retailers
+    config:
+      materialized: table  
+      schema: raw  
+      tags:
+        - GO_SALES_RAW
+      sql: "SELECT * FROM go_retailers"
+    # columns:
+    #   - name: Order method code
+    #   - name: Order method type
+      

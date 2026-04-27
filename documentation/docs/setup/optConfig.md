@@ -7,7 +7,7 @@ There are multiple sources from where the extension reads the environment variab
 - [dot env file (we get this from python extension)](#environment-variables-through-pythonenvfile)
 
 /// admonition | Environment variable available in vscode terminal doesn't necessarily will be available to the extension. Extension can only read environment variables if available in the above sources
-type: warning
+    type: warning
 ///
 
 ### Environment variables set outside of Visual Code (.zshrc, .bashrc, ...)
@@ -16,7 +16,7 @@ If you have variables set in .zshrc or .bashrc the extension automatically picks
 These environment variables will be passed to all operations of the extension. If you make changes to the environment variables you need to restart vscode.
 
 /// admonition | The environment variable should be valid for all your dbt projects. For example DBT_PROFILES_DIR can be set to ., that way dbt will lookup the profiles.yaml file inside the root of the dbt project.
-type: info
+    type: info
 ///
 
 ### Environment variables setup using the integrated Terminal Profiles ( .vscode/settings.json )
@@ -51,7 +51,7 @@ Linux:
 The official documentation can be found [here](https://code.visualstudio.com/docs/terminal/profiles)
 
 /// admonition | Visual Code variable substitution is not supported except the environment variable pattern ${env:*} and ${workspaceFolder}.
-type: warning
+    type: warning
 ///
 
 ### Environment variables through python.envFile
@@ -61,7 +61,7 @@ The extension also loads an environment variable definitions file identified by 
 This way supports all Visual Code variable substitution patterns but the environment variables will not be available to the vscode terminal. Read all about [environment variables](https://code.visualstudio.com/docs/python/environments#_environment-variables) supported by the Visual Code Python extension.
 
 /// admonition | Make sure the .env file is in the [right format](https://www.dotenv.org/docs/security/env) or else the extension won't be able to detected the variables.
-type: warning
+    type: warning
 ///
 
 ### Listing Environment Variables detected by the extension
@@ -75,7 +75,7 @@ We have a debugging utility available within the extension that lists down the e
    ![Sample Output](images/listEnvVariables.png)
 
 /// admonition | In certain scenarios, step 3 has to be executed twice to get the environment variables printed.
-type: warning
+    type: warning
 ///
 
 ### Default DBT Env Support
@@ -124,7 +124,7 @@ For more information you can check out these resources:
 ## [Deprecated] MSSQL, Synapse, Oracle - Query Preview Config
 
 /// admonition | It is no longer required to specify query template for any of the adapter.
-type: warning
+    type: warning
 ///
 
 Your database may not support standard SQL LIMIT statements like `SELECT * from table LIMIT 10`. You can override this default behaviour through `dbt.queryTemplate`.
@@ -150,8 +150,7 @@ These instructions are for setting the TERM environment variable to xterm-256col
 ```
 
 /// admonition | Above instructions for color highlighting are for Windows machines only
-type: warning
-
+    type: warning
 ///
 
 ## Skip Project

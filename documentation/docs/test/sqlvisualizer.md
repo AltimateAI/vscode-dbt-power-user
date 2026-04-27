@@ -12,7 +12,7 @@ The provided SQL query is visually broken down into nodes representing CTEs, joi
 - Simplified Debugging: Identify and correct errors quickly by visually tracing query logic.
 
 /// admonition | This functionality is still in beta. The functionality may change further to streamline the experience
-type: info
+    type: info
 ///
 
 ## Trigger the functionality
@@ -49,7 +49,7 @@ You can hover over connections like join, group, union to see the code. You can 
 
 ## Same view is available in the SaaS Discovery UI
 
-SQL visualizer is also available in the SaaS Disovery UI where you can also see column lineage, dbt Model documentation and compiled code.
+SQL visualizer is also available in the SaaS Discovery UI where you can also see column lineage, dbt Model documentation and compiled code.
 Please check more details on how to set up SaaS Discovery UI [here](../discover/setupui.md)
 
 ![saas SQL Visualizer](images/saasSQLVisualizer.png)

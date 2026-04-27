@@ -1,24 +1,38 @@
-import { getFirstWorkspacePath, provideSingleton } from "../utils";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { CommandProcessExecutionFactory } from "../commandProcessExecution";
-import { DBTTerminal } from "./dbtTerminal";
+import {
+  CommandProcessExecutionFactory,
+  DBTConfiguration,
+  DBTTerminal,
+} from "@altimateai/dbt-integration";
+import { inject } from "inversify";
+import { Uri, workspace } from "vscode";
+import { PythonEnvironment } from "./pythonEnvironment";
 
-@provideSingleton(AltimateDatapilot)
 export class AltimateDatapilot {
   private packageName = "altimate-datapilot-cli";
   constructor(
+    @inject(PythonEnvironment)
     private pythonEnvironment: PythonEnvironment,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
+    @inject("DBTConfiguration")
+    private dbtConfiguration: DBTConfiguration,
   ) {}
+
+  private getWorkspaceFolder() {
+    const cwd = this.dbtConfiguration.getWorkingDirectory();
+    return cwd ? workspace.getWorkspaceFolder(Uri.file(cwd)) : undefined;
+  }
 
   async checkIfAltimateDatapilotInstalled(): Promise<string> {
     const process =
       this.commandProcessExecutionFactory.createCommandProcessExecution({
         command: this.pythonEnvironment.pythonPath,
         args: ["-c", "import datapilot;print(datapilot.__version__)"],
-        cwd: getFirstWorkspacePath(),
-        envVars: this.pythonEnvironment.environmentVariables,
+        cwd: this.dbtConfiguration.getWorkingDirectory(),
+        envVars: this.pythonEnvironment.getEnvironmentVariables(
+          this.getWorkspaceFolder(),
+        ),
       });
     const { stdout, stderr } = await process.complete();
     if (stderr) {
@@ -42,8 +56,10 @@ export class AltimateDatapilot {
           "install",
           `${this.packageName}==${datapilotVersion}`,
         ],
-        cwd: getFirstWorkspacePath(),
-        envVars: this.pythonEnvironment.environmentVariables,
+        cwd: this.dbtConfiguration.getWorkingDirectory(),
+        envVars: this.pythonEnvironment.getEnvironmentVariables(
+          this.getWorkspaceFolder(),
+        ),
       })
       .completeWithTerminalOutput();
     if (!stdout.includes("Successfully installed") && stderr) {

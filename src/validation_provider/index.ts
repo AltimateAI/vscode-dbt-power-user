@@ -1,29 +1,51 @@
-import { Disposable, commands, window, workspace } from "vscode";
-import { provideSingleton } from "../utils";
 import {
-  AltimateRequest,
   ForbiddenError,
   NoCredentialsError,
-} from "../altimate";
+} from "@altimateai/dbt-integration";
+import { commands, Disposable, window, workspace } from "vscode";
+import { AltimateRequest } from "../altimate";
+import { AltimateAuthService } from "../services/altimateAuthService";
 
-const validTenantRegex = new RegExp(/^[a-z_][a-z0-9_]*$/);
+const validTenantRegex = new RegExp(/^[a-z_][a-z0-9_-]*$/);
 
-@provideSingleton(ValidationProvider)
 export class ValidationProvider implements Disposable {
   private disposables: Disposable[] = [];
   private _isAuthenticated = false;
+  private cachedConfig = workspace.getConfiguration("dbt");
 
-  constructor(private altimate: AltimateRequest) {
+  constructor(
+    private altimate: AltimateRequest,
+    private altimateAuthService: AltimateAuthService,
+  ) {
     this.disposables.push(
       workspace.onDidChangeConfiguration((e) => {
         if (!e.affectsConfiguration("dbt")) {
           return;
         }
-        this.validateCredentials();
-        this.setDBTContext();
+        this.handleConfigurationChange();
       }),
     );
     this.setDBTContext();
+  }
+
+  private handleConfigurationChange() {
+    const newConfig = workspace.getConfiguration("dbt");
+    const oldKey = this.cachedConfig.get<string>("altimateAiKey");
+    const newKey = newConfig.get<string>("altimateAiKey");
+    const oldInstance = this.cachedConfig.get<string>("altimateInstanceName");
+    const newInstance = newConfig.get<string>("altimateInstanceName");
+    const oldUrl = this.cachedConfig.get<string>("altimateUrl");
+    const newUrl = newConfig.get<string>("altimateUrl");
+
+    const credentialsChanged =
+      oldKey !== newKey || oldInstance !== newInstance || oldUrl !== newUrl;
+
+    this.cachedConfig = newConfig;
+    this.setDBTContext();
+
+    if (credentialsChanged) {
+      this.validateCredentials();
+    }
   }
 
   setDBTContext() {
@@ -93,6 +115,11 @@ export class ValidationProvider implements Disposable {
       return;
     }
     this._isAuthenticated = true;
+    if (!silent) {
+      window.showInformationMessage(
+        "Altimate AI credentials validated successfully.",
+      );
+    }
   }
 
   isAuthenticated() {
@@ -101,7 +128,7 @@ export class ValidationProvider implements Disposable {
 
   throwIfNotAuthenticated() {
     if (!this.isAuthenticated()) {
-      const message = this.altimate.getCredentialsMessage();
+      const message = this.altimateAuthService.getCredentialsMessage();
       throw message ? new NoCredentialsError(message) : new ForbiddenError();
     }
   }

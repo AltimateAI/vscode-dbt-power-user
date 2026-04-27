@@ -1,0 +1,1 @@
+select customer_id, first_name, last_name, email_address, phone_number, street_address, city, state, zip_code, country, date_of_birth, account_created_at, last_login_at, is_active, subscription_tier from {{ ref('stg_customers') }} where is_active = true and subscription_tier in ('premium', 'enterprise') order by last_login_at desc

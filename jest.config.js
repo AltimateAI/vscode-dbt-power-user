@@ -3,11 +3,13 @@ module.exports = {
   testEnvironment: "node",
   roots: ["<rootDir>/src"],
   testMatch: ["**/*.test.ts"],
+  testPathIgnorePatterns: ["/node_modules/", "/src/test/integration/"],
   transform: {
     "^.+\\.tsx?$": ["ts-jest", { tsconfig: "tsconfig.json" }],
   },
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
   setupFilesAfterEnv: ["<rootDir>/src/test/setup.ts"],
+  reporters: ["default", ["summary", { summaryThreshold: 1 }]],
   collectCoverageFrom: [
     "src/**/*.{ts,tsx}",
     "!src/test/**",
@@ -17,5 +19,12 @@ module.exports = {
   moduleNameMapper: {
     "^vscode$": "<rootDir>/src/test/mock/vscode.ts",
     "^@lib$": "<rootDir>/src/test/mock/lib.ts",
+    "^node-fetch$": "<rootDir>/src/test/mock/node-fetch.ts",
+    // Development: use local TypeScript source (same as webpack and tsconfig)
+    // "^@altimateai/dbt-integration$":
+    //   "<rootDir>/../altimate-dbt-integration/src/index.ts",
+    // Production: use npm package (commented out for development)
+    "^@altimateai/dbt-integration$": "@altimateai/dbt-integration",
+    "^@extension$": "<rootDir>/src/modules.ts",
   },
 };

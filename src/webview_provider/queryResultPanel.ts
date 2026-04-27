@@ -4,6 +4,7 @@ import {
   commands,
   env,
   ProgressLocation,
+  Range,
   Uri,
   ViewColumn,
   Webview,
@@ -12,34 +13,35 @@ import {
   WebviewViewResolveContext,
   window,
   workspace,
-  Range,
 } from "vscode";
 
+import {
+  DBTTerminal,
+  ExecuteSQLError,
+  ExecuteSQLResult,
+  QueryExecution,
+} from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import { PythonException } from "python-bridge";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { AltimateRequest } from "../altimate";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { AltimateAuthService } from "../services/altimateAuthService";
+import { AltimateCodeChatService } from "../services/altimateCodeChatService";
+import { QueryManifestService } from "../services/queryManifestService";
+import { SharedStateService } from "../services/sharedStateService";
+import { UsersService } from "../services/usersService";
+import { TelemetryService } from "../telemetry";
+import { TelemetryEvents } from "../telemetry/events";
 import {
   extendErrorWithSupportLinks,
   getFormattedDateTime,
   getStringSizeInMb,
-  provideSingleton,
 } from "../utils";
-import { TelemetryService } from "../telemetry";
-import { AltimateRequest } from "../altimate";
-import {
-  ExecuteSQLError,
-  ExecuteSQLResult,
-  QueryExecution,
-} from "../dbt_client/dbtIntegration";
-import { SharedStateService } from "../services/sharedStateService";
 import {
   AltimateWebviewProvider,
   SendMessageProps,
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { QueryManifestService } from "../services/queryManifestService";
-import { UsersService } from "../services/usersService";
-import { TelemetryEvents } from "../telemetry/events";
 import path = require("path");
 
 interface JsonObj {
@@ -99,6 +101,8 @@ enum InboundCommand {
   ViewResultSet = "viewResultSet",
   OpenCodeInEditor = "openCodeInEditor",
   ClearQueryHistory = "clearQueryHistory",
+  TroubleshootWithAltimate = "troubleshootWithAltimate",
+  OpenAltimateCodeChat = "openAltimateCodeChat",
 }
 
 interface RecInfo {
@@ -107,6 +111,13 @@ interface RecInfo {
 
 interface RecSummary {
   compiledSql: string;
+}
+
+interface RecTroubleshoot {
+  compiledSql: string;
+  rawSql: string;
+  errorMessage: string;
+  fileName?: string;
 }
 
 interface RecError {
@@ -135,7 +146,6 @@ interface QueryHistory {
   modelName: string;
 }
 
-@provideSingleton(QueryResultPanel)
 export class QueryResultPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.PreviewResults";
   protected viewPath = "/query-panel";
@@ -154,9 +164,12 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     protected telemetry: TelemetryService,
     private altimate: AltimateRequest,
     private eventEmitterService: SharedStateService,
+    @inject("DBTTerminal")
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
+    protected altimateAuthService: AltimateAuthService,
+    private altimateCodeChatService: AltimateCodeChatService,
   ) {
     super(
       dbtProjectContainer,
@@ -166,6 +179,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       dbtTerminal,
       queryManifestService,
       usersService,
+      altimateAuthService,
     );
     this._disposables.push(
       window.onDidChangeActiveTextEditor(() => {
@@ -358,9 +372,13 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         isHistoryTab ? "QueryHistoryExecuteSql" : "QueryBookmarkExecuteSql",
       );
       if (message.limit) {
-        await project.executeSQLWithLimit(message.query, "", message.limit);
+        await project.executeSQLWithLimitOnQueryPanel(
+          message.query,
+          "",
+          message.limit,
+        );
       } else {
-        await project.executeSQL(message.query, "");
+        await project.executeSQLOnQueryPanel(message.query, "");
       }
       return;
     } catch (error) {
@@ -506,6 +524,15 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             const config = message as RecOpenUrl;
             env.openExternal(Uri.parse(config.url));
             break;
+          case InboundCommand.OpenAltimateCodeChat:
+            try {
+              await commands.executeCommand("altimate.openChat");
+            } catch (err) {
+              window.showErrorMessage(
+                "Altimate Code is not available. Install the Datamates extension to use chat.",
+              );
+            }
+            break;
           case InboundCommand.GetSummary:
             const summary = message as RecSummary;
             this.eventEmitterService.fire({
@@ -515,6 +542,28 @@ export class QueryResultPanel extends AltimateWebviewProvider {
               },
             });
             break;
+          case InboundCommand.TroubleshootWithAltimate: {
+            const troubleshoot = message as RecTroubleshoot;
+            const sql = troubleshoot.compiledSql || troubleshoot.rawSql;
+            const initialMessage =
+              `I ran this query and it failed.\n\n` +
+              `Query:\n\`\`\`sql\n${sql}\n\`\`\`\n\n` +
+              `Error:\n\`\`\`\n${troubleshoot.errorMessage}\n\`\`\`\n\n` +
+              `Help me troubleshoot and fix this.`;
+            const title = troubleshoot.fileName
+              ? `Troubleshoot: ${troubleshoot.fileName}`
+              : "Troubleshoot: query error";
+            const opened = await this.altimateCodeChatService.openChat({
+              initialMessage,
+              title,
+            });
+            if (opened) {
+              this.telemetry.sendTelemetryEvent(
+                "TroubleshootQueryWithAltimate",
+              );
+            }
+            break;
+          }
           case InboundCommand.SetContext:
             this.dbtProjectContainer.setToGlobalState(
               message.key,
@@ -572,12 +621,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       query = activeEditor.document.getText(selectionRange);
     }
     this.telemetry.sendTelemetryEvent("QueryActiveWindowExecuteSql");
-    await project.executeSQLWithLimit(
+    await project.executeSQLWithLimitOnQueryPanel(
       query,
       modelName,
       message.limit,
-      false,
-      false,
     );
   }
 
@@ -685,12 +732,15 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   /** A wrapper for {@link transmitData} which converts server
    * results interface ({@link ExecuteSQLResult}) to what the webview expects */
   private async transmitDataWrapper(result: ExecuteSQLResult, query: string) {
-    const rows: JsonObj[] = [];
-    // Convert compressed array format to dict[]
+    const rows: JsonObj[] = new Array(result.table.rows.length);
+    // Convert compressed array format to dict[] - optimized version
     for (let i = 0; i < result.table.rows.length; i++) {
-      result.table.rows[i].forEach((value: any, j: any) => {
-        rows[i] = { ...rows[i], [result.table.column_names[j]]: value };
-      });
+      const row: JsonObj = {};
+      const currentRow = result.table.rows[i];
+      for (let j = 0; j < currentRow.length; j++) {
+        row[result.table.column_names[j]] = currentRow[j] as any;
+      }
+      rows[i] = row;
     }
     return await this.transmitData(
       result.table.column_names,

@@ -27,7 +27,7 @@ First, click on (+) sign next to the "Tests:" label and choose "custom tests". D
 If a test definition is not available from packages (dbt.utils or dbt.expectations) that you have installed in your environment, DataPilot writes custom SQL test code and puts it in the dbt macro.
 
 /// admonition | This functionality is marked as beta. In some rare cases, DataPilot may decide to ignore the packages that you have installed or may generate inaccurate code.
-type: info
+    type: info
 ///
 
 ![Generate tests](images/testGeneration.png)
@@ -44,7 +44,8 @@ by clicking on the test and using the "trash can icon" from the details screen
 As shown in the image above, there is a button to quickly get distinct values for a specific column with a click of a button. This helps you write the "accepted_values" test easily.
 
 /// admonition | Save changes in YAML file
-type: tip
+    type: tip
+
 You can save the changes in the existing or a new YAML file with save button at the bottom of the panel.
 If you see any issues with the content that's saved in the YAML file, please check the [optional config section](../setup/optConfig.md/#column-name-setup-for-yaml-file-updates).
 ///

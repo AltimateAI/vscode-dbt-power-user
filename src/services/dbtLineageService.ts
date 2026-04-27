@@ -1,16 +1,28 @@
 import {
+  computeColumnLineage,
+  GraphMetaMap,
+  NodeGraphMap,
+  RESOURCE_TYPE_ANALYSIS,
+  RESOURCE_TYPE_EXPOSURE,
+  RESOURCE_TYPE_FUNCTION,
+  RESOURCE_TYPE_METRIC,
+  RESOURCE_TYPE_MODEL,
+  RESOURCE_TYPE_SNAPSHOT,
+  RESOURCE_TYPE_SOURCE,
+  Table,
+} from "@altimateai/dbt-integration";
+import { inject } from "inversify";
+import { AbortError } from "node-fetch";
+import { CancellationTokenSource, env, Uri, window, workspace } from "vscode";
+import { ModelInfo } from "../altimate";
+import { ManifestCacheProjectAddedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
+import {
   AltimateRequest,
-  DBTProject,
   DBTTerminal,
   QueryManifestService,
   TelemetryService,
 } from "../modules";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { ColumnMetaData, GraphMetaMap, NodeGraphMap } from "../domain";
-import { CancellationTokenSource, env, Uri, window, workspace } from "vscode";
-import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { ModelInfo } from "../altimate";
-import { AbortError } from "node-fetch";
+import { extendErrorWithSupportLinks } from "../utils";
 
 export enum CllEvents {
   START = "start",
@@ -19,35 +31,18 @@ export enum CllEvents {
 }
 
 const CAN_COMPILE_SQL_NODE = [
-  DBTProject.RESOURCE_TYPE_MODEL,
-  DBTProject.RESOURCE_TYPE_SNAPSHOT,
-  DBTProject.RESOURCE_TYPE_ANALYSIS,
+  RESOURCE_TYPE_MODEL,
+  RESOURCE_TYPE_SNAPSHOT,
+  RESOURCE_TYPE_ANALYSIS,
 ];
 const canCompileSQL = (nodeType: string) =>
   CAN_COMPILE_SQL_NODE.includes(nodeType);
 
-export type Table = {
-  label: string;
-  table: string;
-  url: string | undefined;
-  downstreamCount: number;
-  upstreamCount: number;
-  nodeType: string;
-  materialization?: string;
-  description?: string;
-  tests: any[];
-  meta?: Map<string, any>;
-  isExternalProject: boolean;
-  columns: { [columnName: string]: ColumnMetaData };
-  patchPath?: string;
-  packageName?: string;
-};
-
-@provideSingleton(DbtLineageService)
 export class DbtLineageService {
   public constructor(
     private altimateRequest: AltimateRequest,
     protected telemetry: TelemetryService,
+    @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
     private queryManifestService: QueryManifestService,
   ) {}
@@ -109,7 +104,7 @@ export class DbtLineageService {
       graphMetaMap["parents"],
       key,
     );
-    if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
+    if (nodeType === RESOURCE_TYPE_SOURCE) {
       const { sourceMetaMap } = event;
       const schema = splits[2];
       const table = splits[3];
@@ -138,7 +133,7 @@ export class DbtLineageService {
         packageName: _node.package_name,
       };
     }
-    if (nodeType === DBTProject.RESOURCE_TYPE_METRIC) {
+    if (nodeType === RESOURCE_TYPE_METRIC) {
       return {
         table: key,
         label: splits[2],
@@ -155,7 +150,7 @@ export class DbtLineageService {
     const { nodeMetaMap } = event;
 
     const table = splits[2];
-    if (nodeType === DBTProject.RESOURCE_TYPE_EXPOSURE) {
+    if (nodeType === RESOURCE_TYPE_EXPOSURE) {
       return {
         table: key,
         label: table,
@@ -167,6 +162,24 @@ export class DbtLineageService {
         tests: [],
         columns: {},
         isExternalProject: false,
+      };
+    }
+
+    if (nodeType === RESOURCE_TYPE_FUNCTION) {
+      const { functionMetaMap } = event;
+      const fn = functionMetaMap.get(table);
+      const fnType = fn?.config?.type;
+      return {
+        table: key,
+        label: table,
+        url: tableUrl,
+        upstreamCount,
+        downstreamCount,
+        nodeType,
+        materialization: fnType ? `${fnType} function` : "function",
+        tests: [],
+        columns: {},
+        isExternalProject: fn?.is_external_project ?? false,
       };
     }
 
@@ -253,11 +266,14 @@ export class DbtLineageService {
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
     );
     // using artifacts(mappedCompiledSql) from getNodesWithDBColumns as optimization
+    const abortController = new AbortController();
+    cancellationTokenSource.token.onCancellationRequested(() =>
+      abortController.abort(),
+    );
     const { mappedNode, relationsWithoutColumns, mappedCompiledSql } =
       await project.getNodesWithDBColumns(
-        event,
         modelsToFetch,
-        cancellationTokenSource.token,
+        abortController.signal,
       );
 
     const selected_column = {
@@ -280,7 +296,6 @@ export class DbtLineageService {
       return true;
     });
     const bulkCompiledSql = await project.getBulkCompiledSql(
-      event,
       modelsToCompile.filter((m) => !mappedCompiledSql[m]),
     );
     for (const key of modelsToFetch) {
@@ -350,6 +365,59 @@ export class DbtLineageService {
     }
 
     const modelDialect = project.getAdapterType();
+
+    // --- altimate-core: try local column lineage first ---
+    const cllEngine = workspace
+      .getConfiguration("dbt")
+      .get<string>("lineage.cllEngine", "legacy");
+
+    this.dbtTerminal.debug(
+      "dbtLineageService:getConnectedColumns",
+      `Column lineage engine: ${cllEngine}`,
+    );
+
+    if (cllEngine === "sqlEngine") {
+      try {
+        const localResult = await computeColumnLineage(
+          modelDialect,
+          modelInfos,
+          {
+            showIndirectEdges,
+            isCancelled: () =>
+              cancellationTokenSource.token.isCancellationRequested,
+          },
+        );
+        if (localResult) {
+          this.dbtTerminal.debug(
+            "newLineagePanel:getConnectedColumns",
+            "altimate-core-node result",
+            {
+              lineageCount: localResult.column_lineage.length,
+              errors: localResult.errors,
+            },
+          );
+          return localResult;
+        }
+        this.dbtTerminal.warn(
+          "dbtLineageService:getConnectedColumns",
+          "computeColumnLineage returned null - altimate-core native module may not be loaded",
+        );
+      } catch (error) {
+        this.dbtTerminal.warn(
+          "newLineagePanel:getConnectedColumns",
+          "altimate-core-node failed, falling back to legacy API",
+          true,
+          error,
+        );
+      }
+    }
+    // --- end altimate-core ---
+
+    this.dbtTerminal.debug(
+      "dbtLineageService:getConnectedColumns",
+      "Using legacy API for column lineage",
+    );
+
     try {
       if (cancellationTokenSource.token.isCancellationRequested) {
         return { column_lineage: [] };

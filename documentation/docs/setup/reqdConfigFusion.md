@@ -1,9 +1,9 @@
 /// admonition | Only use the following steps for "dbt Fusion" environments. If you have a dbt Core environment, use the [required config instructions for "dbt Core" environments](./reqdConfig.md). If you have a dbt Cloud environment, use the [required config instructions for "dbt Cloud" environments](./reqdConfigCloud.md).
-type: warning
+    type: warning
 ///
 
 /// admonition | dbt Fusion integration provides enhanced performance and features
-type: tip
+    type: tip
 ///
 
 ## What is dbt Fusion?
@@ -20,12 +20,15 @@ dbt Fusion is a command-line interface that provides enhanced dbt functionality 
 ## Use the setup wizard for configuration (recommended)
 
 /// admonition | Need to setup environment variables? Refer to this [section](https://docs.myaltimate.com/setup/optConfig/#environment-variables-setup)
-type: warning
+    type: warning
 ///
 
 This method will save a bunch of time for you, and you can also validate your configuration. The setup wizard will help you in associating SQL files with jinja-sql, installing dbt Fusion if needed, and validating your project configuration.
 
 You can start the setup wizard by clicking on the dbt status icon in the bottom status bar, and perform the following necessary steps:
+
+<div style="position: relative; box-sizing: content-box; max-height: 80vh; max-height: 80svh; width: 100%; aspect-ratio: 1.50; padding: 40px 0 40px 0;">
+  <iframe src="https://app.supademo.com/embed/cmnt1t4jz4hj3cr4j3knosm74?embed_v=2&utm_source=embed" loading="lazy" title="dbt Power User Setup guide-Fusion" allow="clipboard-write" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
 **Here are the steps covered in the setup wizard**
 
@@ -49,13 +52,13 @@ The wizard will help you associate `*.sql` files with `jinja-sql` language mode 
 The last step is clicking the "Validate Project" button. It will run a bunch of checks to make sure your dbt Fusion environment and project are set up correctly. If there are issues, it will tell you exactly what's wrong.
 
 /// admonition | If you still can't get the extension setup correctly, please contact us via slack or chat through [support page](https://www.altimate.ai/support)
-type: tip
+    type: tip
 ///
 
 ## Manual method of configuration
 
 /// admonition | Please follow the manual method only if you couldn't use the setup wizard above.
-type: info
+    type: info
 ///
 
 ### Step 1: Install dbt Fusion

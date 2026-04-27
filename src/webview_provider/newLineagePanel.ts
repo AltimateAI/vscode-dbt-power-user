@@ -1,3 +1,14 @@
+import {
+  DBTTerminal,
+  ExposureMetaData,
+  FunctionMetaData,
+  NodeMetaData,
+  RESOURCE_TYPE_FUNCTION,
+  RESOURCE_TYPE_SOURCE,
+  SourceTable,
+  Table,
+} from "@altimateai/dbt-integration";
+import { inject } from "inversify";
 import * as path from "path";
 import {
   CancellationToken,
@@ -11,23 +22,18 @@ import {
   workspace,
 } from "vscode";
 import { AltimateRequest } from "../altimate";
-import { ExposureMetaData, NodeMetaData, SourceTable } from "../domain";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { LineagePanelView } from "./lineagePanel";
-import { DBTProject } from "../manifest/dbtProject";
-import { TelemetryService } from "../telemetry";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { AltimateWebviewProvider } from "./altimateWebviewProvider";
+import { DBTProject } from "../dbt_client/dbtProject";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { ManifestCacheProjectAddedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
+import { AltimateAuthService } from "../services/altimateAuthService";
+import { CllEvents, DbtLineageService } from "../services/dbtLineageService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
-import {
-  CllEvents,
-  DbtLineageService,
-  Table,
-} from "../services/dbtLineageService";
+import { TelemetryService } from "../telemetry";
+import { extendErrorWithSupportLinks } from "../utils";
+import { AltimateWebviewProvider } from "./altimateWebviewProvider";
+import { LineagePanelView } from "./lineagePanel";
 
 class DerivedCancellationTokenSource extends CancellationTokenSource {
   constructor(linkedToken: CancellationToken) {
@@ -38,7 +44,6 @@ class DerivedCancellationTokenSource extends CancellationTokenSource {
   }
 }
 
-@provideSingleton(NewLineagePanel)
 export class NewLineagePanel
   extends AltimateWebviewProvider
   implements LineagePanelView
@@ -52,11 +57,13 @@ export class NewLineagePanel
     protected dbtProjectContainer: DBTProjectContainer,
     private altimate: AltimateRequest,
     protected telemetry: TelemetryService,
+    @inject("DBTTerminal")
     private terminal: DBTTerminal,
     private dbtLineageService: DbtLineageService,
     eventEmitterService: SharedStateService,
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
+    protected altimateAuthService: AltimateAuthService,
   ) {
     super(
       dbtProjectContainer,
@@ -66,6 +73,7 @@ export class NewLineagePanel
       terminal,
       queryManifestService,
       usersService,
+      altimateAuthService,
     );
   }
 
@@ -81,6 +89,7 @@ export class NewLineagePanel
 
   eventMapChanged(eventMap: Map<string, ManifestCacheProjectAddedEvent>): void {
     this.eventMap = eventMap;
+    this.renderStartingNode();
   }
 
   changedActiveColorTheme() {
@@ -156,6 +165,15 @@ export class NewLineagePanel
 
     if (command === "getExposureDetails") {
       const body = await this.getExposureDetails(params);
+      this._panel?.webview.postMessage({
+        command: "response",
+        args: { id, syncRequestId, body, status: true },
+      });
+      return;
+    }
+
+    if (command === "getFunctionDetails") {
+      const body = await this.getFunctionDetails(params);
       this._panel?.webview.postMessage({
         command: "response",
         args: { id, syncRequestId, body, status: true },
@@ -239,7 +257,7 @@ export class NewLineagePanel
     }
 
     if (command === "previewFeature") {
-      this.altimate.handlePreviewFeatures();
+      this.altimateAuthService.handlePreviewFeatures();
       return;
     }
 
@@ -259,7 +277,10 @@ export class NewLineagePanel
           body: {
             showSelectEdges: config.get("showSelectEdges", true),
             showNonSelectEdges: config.get("showNonSelectEdges", false),
-            defaultExpansion: config.get("defaultExpansion", 1),
+            defaultExpansion: Math.min(
+              config.get<number>("defaultExpansion", 1),
+              5,
+            ),
           },
         },
       });
@@ -363,7 +384,28 @@ export class NewLineagePanel
 
     const { exposureMetaMap } = event.event;
 
-    return exposureMetaMap.get(name);
+    // Node IDs use unique_id format (exposure.project.name), but
+    // exposureMetaMap is keyed by simple exposure name.
+    const splits = name.split(".");
+    const exposureName = splits.length >= 3 ? splits[2] : name;
+    return exposureMetaMap.get(exposureName);
+  }
+
+  private async getFunctionDetails({
+    name,
+  }: {
+    name: string;
+  }): Promise<FunctionMetaData | undefined> {
+    const event = this.queryManifestService.getEventByCurrentProject();
+    if (!event?.event) {
+      return;
+    }
+    const { functionMetaMap } = event.event;
+    // Node IDs use unique_id format (function.project.name), but
+    // functionMetaMap is keyed by simple function name.
+    const splits = name.split(".");
+    const functionName = splits.length >= 3 ? splits[2] : name;
+    return functionMetaMap.get(functionName);
   }
 
   private async getColumns({
@@ -383,6 +425,10 @@ export class NewLineagePanel
           can_lineage_expand: boolean;
           description: string;
         }[];
+        returns?: {
+          datatype: string;
+          description: string;
+        };
         meta?: { [key: string]: any };
       }
     | undefined
@@ -397,7 +443,7 @@ export class NewLineagePanel
     }
     const splits = table.split(".");
     const nodeType = splits[0];
-    if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
+    if (nodeType === RESOURCE_TYPE_SOURCE) {
       const { sourceMetaMap } = event.event;
       const sourceName = splits[2];
       const tableName = splits[3];
@@ -449,6 +495,43 @@ export class NewLineagePanel
             description: c.description,
           }))
           .sort((a, b) => a.name.localeCompare(b.name)),
+      };
+    }
+    if (nodeType === RESOURCE_TYPE_FUNCTION) {
+      const tableName = splits[2];
+      const { functionMetaMap } = event.event;
+      const fn = functionMetaMap.get(tableName);
+      if (!fn) {
+        return;
+      }
+      const columns: {
+        table: string;
+        name: string;
+        datatype: string;
+        can_lineage_expand: boolean;
+        description: string;
+      }[] = [];
+      if (fn.arguments) {
+        for (const arg of fn.arguments) {
+          columns.push({
+            table,
+            name: arg.name,
+            datatype: arg.data_type || "",
+            can_lineage_expand: false,
+            description: arg.description || "",
+          });
+        }
+      }
+      return {
+        id: table,
+        purpose: fn.description || "",
+        columns,
+        returns: fn.returns
+          ? {
+              datatype: fn.returns.data_type || "",
+              description: fn.returns.description || "",
+            }
+          : undefined,
       };
     }
     const { nodeMetaMap } = event.event;
@@ -503,8 +586,19 @@ export class NewLineagePanel
     };
   }
 
-  private getFilename() {
-    return path.basename(window.activeTextEditor!.document.fileName, ".sql");
+  private static readonly DBT_FILE_EXTENSIONS = [".sql", ".py", ".csv"];
+
+  private getFilename(): string | undefined {
+    const editor = window.activeTextEditor;
+    if (!editor) {
+      return undefined;
+    }
+    const fileName = editor.document.fileName;
+    const ext = path.extname(fileName).toLowerCase();
+    if (NewLineagePanel.DBT_FILE_EXTENSIONS.includes(ext)) {
+      return path.basename(fileName, ext);
+    }
+    return path.basename(fileName);
   }
 
   private getMissingLineageMessage() {
@@ -542,23 +636,58 @@ export class NewLineagePanel
         missingLineageMessage: this.getMissingLineageMessage(),
       };
     }
-    const { nodeMetaMap } = event.event;
+    const { nodeMetaMap, functionMetaMap } = event.event;
+    const editor = window.activeTextEditor;
     const tableName = this.getFilename();
-    const _node = nodeMetaMap.lookupByBaseName(tableName);
-    if (!_node) {
-      this.dbtTerminal.info(
-        "Lineage:getStartingNode",
-        `No node found for ${tableName}`,
-      );
+    if (!editor || !tableName) {
       return {
         aiEnabled,
         missingLineageMessage: this.getMissingLineageMessage(),
       };
     }
-    const key = _node.uniqueId;
-    const url = window.activeTextEditor!.document.uri.path;
-    const node = this.dbtLineageService.createTable(event.event, url, key);
-    return { node, aiEnabled };
+    const url = editor.document.uri.path;
+    const ext = path.extname(editor.document.fileName).toLowerCase();
+
+    // For .py files, prioritize function lookup to avoid model/function
+    // basename collisions (both could share the same name).
+    if (ext === ".py") {
+      const fn = functionMetaMap.get(tableName);
+      if (fn) {
+        const node = this.dbtLineageService.createTable(
+          event.event,
+          url,
+          fn.unique_id,
+        );
+        return { node, aiEnabled };
+      }
+    }
+
+    const _node = nodeMetaMap.lookupByBaseName(tableName);
+    if (_node) {
+      const key = _node.unique_id;
+      const node = this.dbtLineageService.createTable(event.event, url, key);
+      return { node, aiEnabled };
+    }
+
+    // Non-.py fallback: check if the active file is a dbt function.
+    const fn = functionMetaMap.get(tableName);
+    if (fn) {
+      const node = this.dbtLineageService.createTable(
+        event.event,
+        url,
+        fn.unique_id,
+      );
+      return { node, aiEnabled };
+    }
+
+    this.dbtTerminal.info(
+      "Lineage:getStartingNode",
+      `No node found for ${tableName}`,
+    );
+    return {
+      aiEnabled,
+      missingLineageMessage: this.getMissingLineageMessage(),
+    };
   }
 
   protected renderWebviewView(webview: Webview) {

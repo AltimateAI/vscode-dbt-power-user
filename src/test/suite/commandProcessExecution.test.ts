@@ -1,15 +1,14 @@
-import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
-import { mock, instance, when, anything, verify } from "ts-mockito";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
-} from "../../commandProcessExecution";
-import { EventEmitter } from "events";
-import { CancellationToken } from "vscode";
-import * as path from "path";
-import * as os from "os";
+  DBTTerminal,
+} from "@altimateai/dbt-integration";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
+import { anything, instance, mock, verify, when } from "ts-mockito";
+import { VSCodeDBTTerminal } from "../../dbt_client/vscodeTerminal";
 
 describe("CommandProcessExecution Tests", () => {
   let mockTerminal: DBTTerminal;
@@ -17,7 +16,7 @@ describe("CommandProcessExecution Tests", () => {
   let testDir: string;
 
   beforeEach(() => {
-    mockTerminal = mock(DBTTerminal);
+    mockTerminal = mock(VSCodeDBTTerminal);
     when(mockTerminal.debug(anything(), anything(), anything())).thenReturn();
     factory = new CommandProcessExecutionFactory(instance(mockTerminal));
     testDir = path.join(
@@ -67,30 +66,6 @@ describe("CommandProcessExecution Tests", () => {
     expect(result.stdout.trim()).toBe("test_value");
   });
 
-  it.skip("should handle command cancellation", async () => {
-    // Create a mock cancellation token
-    const emitter = new EventEmitter();
-    const mockToken = {
-      isCancellationRequested: false,
-      onCancellationRequested: (callback: () => void) => {
-        emitter.on("cancel", callback);
-        return { dispose: () => emitter.removeListener("cancel", callback) };
-      },
-    } as CancellationToken;
-
-    const execution = factory.createCommandProcessExecution({
-      command: process.platform === "win32" ? "timeout" : "sleep",
-      args: process.platform === "win32" ? ["/t", "2"] : ["2"],
-      tokens: [mockToken],
-    });
-
-    const promise = execution.complete();
-    // Trigger cancellation
-    emitter.emit("cancel");
-
-    await expect(promise).rejects.toThrow();
-  });
-
   it("should handle command with working directory", async () => {
     const execution = factory.createCommandProcessExecution({
       command: process.platform === "win32" ? "cmd" : "sh",
@@ -118,5 +93,25 @@ describe("CommandProcessExecution Tests", () => {
 
     const result = await execution.complete();
     expect(result.stderr.trim()).toBe("error");
+  });
+
+  it("should stream output to terminal", async () => {
+    const execution = factory.createCommandProcessExecution({
+      command: process.platform === "win32" ? "cmd" : "echo",
+      args: process.platform === "win32" ? ["/c", "echo stream"] : ["stream"],
+    });
+    when(mockTerminal.log(anything())).thenReturn();
+    const result = await execution.completeWithTerminalOutput();
+    expect(result.stdout.trim()).toBe("stream");
+    verify(mockTerminal.log(anything())).atLeast(1);
+  });
+
+  it("should format text by replacing newlines", () => {
+    const execution = new CommandProcessExecution(
+      instance(mockTerminal),
+      "",
+      [],
+    );
+    expect(execution.formatText("a\n\nb")).toBe("a\r\n\rb");
   });
 });

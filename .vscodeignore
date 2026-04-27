@@ -11,5 +11,27 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 .github
+.claude
+.mcp.json
+.playwright-mcp
+docker-setup
+**/*.test.*
+CLAUDE.md
 webview_panels
 !webview_panels/dist
+
+# Non-runtime directories (docs site, test fixtures, monitoring, git hooks)
+documentation
+test-fixtures
+monitoring
+.husky
+
+# Dev/CI config files not needed in the installed extension
+jest.config.js
+.gitpod.yml
+.nycrc.json
+codecov.yml
+.prettierignore
+sweep.yaml
+prepareBuild.js
+CONTRIBUTING.md

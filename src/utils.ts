@@ -1,4 +1,7 @@
-import { fluentProvide } from "inversify-binding-decorators";
+import {
+  TestMetadataAcceptedValues,
+  TestMetadataRelationships,
+} from "@altimateai/dbt-integration";
 import * as path from "path";
 import {
   Disposable,
@@ -7,15 +10,10 @@ import {
   Range,
   TextDocument,
   Uri,
-  workspace,
   window,
+  workspace,
 } from "vscode";
-import { readFileSync } from "fs";
-import { parse, parseDocument } from "yaml";
-import {
-  TestMetadataAcceptedValues,
-  TestMetadataRelationships,
-} from "./domain";
+import { parseDocument } from "yaml";
 
 export const isEnclosedWithinCodeBlock = (
   document: TextDocument,
@@ -74,10 +72,6 @@ export const isEnclosedWithinCodeBlock = (
   );
 };
 
-export const notEmpty = <T>(value: T | null | undefined): value is T => {
-  return value !== null && value !== undefined;
-};
-
 export const arrayEquals = <T>(a: Array<T>, b: Array<T>): boolean => {
   return a.sort().toString() === b.sort().toString();
 };
@@ -98,10 +92,6 @@ export const setupWatcherHandler: (
   watcher.onDidCreate(() => handler()),
   watcher.onDidDelete(() => handler()),
 ];
-
-export const provideSingleton = (identifier: any) => {
-  return fluentProvide(identifier).inSingletonScope().done();
-};
 
 export function extendErrorWithSupportLinks(error: string): string {
   return (
@@ -133,42 +123,6 @@ export function getFirstWorkspacePath(): string {
 export const getProjectRelativePath = (projectRoot: Uri) => {
   const ws = workspace.getWorkspaceFolder(projectRoot);
   return path.relative(ws?.uri.fsPath || "", projectRoot.fsPath);
-};
-
-export const processStreamResponse = async (
-  stream: NodeJS.ReadableStream | ReadableStream,
-  cb: (data: string) => void,
-): Promise<string> => {
-  if (stream instanceof ReadableStream) {
-    const reader = stream.getReader();
-    const decoder = new TextDecoder();
-    let result = "";
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          break;
-        }
-        const chunk = decoder.decode(value, { stream: true });
-        result += chunk;
-        cb(chunk);
-      }
-      return result;
-    } finally {
-      reader.releaseLock();
-    }
-  } else {
-    return new Promise((resolve, reject) => {
-      let result = "";
-      stream.on("data", (chunk: Buffer) => {
-        const data = chunk.toString();
-        result += data;
-        cb(data);
-      });
-      stream.on("end", () => resolve(result));
-      stream.on("error", reject);
-    });
-  }
 };
 
 export const deepEqual = (obj1: any, obj2: any): boolean => {
@@ -246,41 +200,13 @@ export const isQuotedIdentifier = (columnName: string, adapter: string) => {
     return !new RegExp(regexFromConfig).test(columnName);
   }
 
-  const specialCases = ["trino", "athena", "postgres", "duckdb"];
+  const specialCases = ["trino", "athena", "postgres", "duckdb", "risingwave"];
   if (specialCases.includes(adapter)) {
     return !/^([_a-z]+[_a-z0-9$]*)$/.test(columnName);
   }
 
   // snowflake and most of the db follow standard sql spec of making the column names to uppercase by default
   return !/^([_A-Z]+[_A-Z0-9$]*)$/.test(columnName);
-};
-
-export const getExternalProjectNamesFromDbtLoomConfig = (
-  projectRoot: string,
-) => {
-  const dbtLoomConfigPath =
-    process.env.DBT_LOOM_CONFIG_PATH ||
-    path.join(projectRoot, "dbt_loom.config.yml");
-
-  try {
-    const fileContents = readFileSync(dbtLoomConfigPath, "utf8");
-    if (fileContents) {
-      const dbtLoomConfig = (parse(fileContents, {
-        strict: false,
-        uniqueKeys: false,
-        maxAliasCount: -1,
-      }) || {}) as { manifests?: { name: string }[] };
-
-      return dbtLoomConfig.manifests?.map((manifest) => manifest.name);
-    }
-  } catch (error) {
-    console.debug(
-      "NodeParser",
-      `Error reading dbt_loom.config.yml at ${dbtLoomConfigPath}`,
-      error,
-    );
-  }
-  return null;
 };
 
 export const isRelationship = (
@@ -494,4 +420,52 @@ export function getDepthColor(depth: number): string {
   } else {
     return lowDepthColor; // Configurable color for low depth
   }
+}
+
+/**
+ * Extract the dbt subcommand from a full command string.
+ * "dbt build --select model" → "build"
+ */
+export function extractDbtSubcommand(command: string): string {
+  return command.startsWith("dbt ") ? command.split(" ")[1] : command;
+}
+
+/**
+ * Resolve VS Code variable substitution patterns in a string value.
+ * Handles ${workspaceFolder} and ${env:VAR_NAME}.
+ * VS Code only auto-resolves these in tasks.json/launch.json — extension
+ * settings must resolve them manually.
+ */
+export function resolveSettingsVariables(
+  value: string,
+  workspaceFolder?: Uri,
+): string {
+  if (!value) {
+    return value;
+  }
+
+  // Resolve ${env:VAR_NAME}
+  // Use a callback-based replace to:
+  // 1. Avoid desynchronizing a stateful global regex with the mutating string
+  //    (the previous while-loop skipped subsequent placeholders in strings
+  //    containing multiple `${env:VAR}` references).
+  // 2. Treat the replacement as a literal string — passing an env value
+  //    directly to replace() causes `$1`, `$&`, etc. in the value to be
+  //    interpreted as backreferences, silently corrupting paths like
+  //    `/home/$USER/project`.
+  // Unresolved placeholders (env var not set) are left as-is.
+  value = value.replace(/\$\{env:(.*?)\}/g, (match, varName) => {
+    const envValue = process.env[varName];
+    return envValue !== undefined ? envValue : match;
+  });
+
+  // Resolve ${workspaceFolder}
+  // Also use a callback for the same `$`-interpretation reason: workspace
+  // paths can legitimately contain `$` on Windows.
+  const folder = workspaceFolder ?? workspace.workspaceFolders?.[0]?.uri;
+  if (folder) {
+    value = value.replace(/\$\{workspaceFolder\}/g, () => folder.fsPath);
+  }
+
+  return value;
 }

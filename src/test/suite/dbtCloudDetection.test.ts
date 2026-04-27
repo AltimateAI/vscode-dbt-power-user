@@ -1,29 +1,33 @@
-import { expect, describe, it, beforeEach, afterEach } from "@jest/globals";
-import { DBTCloudDetection } from "../../dbt_client/dbtCloudIntegration";
 import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
-} from "../../commandProcessExecution";
-import { PythonEnvironment } from "../../manifest/pythonEnvironment";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
-import { mock, instance, when, anything } from "ts-mockito";
+  DBTCloudDetection,
+  DBTTerminal,
+  RuntimePythonEnvironment,
+} from "@altimateai/dbt-integration";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { anything, instance, mock, when } from "ts-mockito";
 import { workspace } from "vscode";
+import { VSCodeDBTTerminal } from "../../dbt_client/vscodeTerminal";
 
 describe("DBTCloudDetection Tests", () => {
   let mockCommandProcessExecutionFactory: CommandProcessExecutionFactory;
-  let mockPythonEnvironment: PythonEnvironment;
+  let mockPythonEnvironment: RuntimePythonEnvironment;
   let mockTerminal: DBTTerminal;
   let mockCommandProcessExecution: CommandProcessExecution;
   let dbtCloudDetection: DBTCloudDetection;
 
   beforeEach(() => {
     mockCommandProcessExecutionFactory = mock(CommandProcessExecutionFactory);
-    mockPythonEnvironment = mock(PythonEnvironment);
-    mockTerminal = mock(DBTTerminal);
+    mockTerminal = mock(VSCodeDBTTerminal);
     mockCommandProcessExecution = mock<CommandProcessExecution>();
 
+    mockPythonEnvironment = {
+      pythonPath: "/usr/bin/python3",
+      getEnvironmentVariables: jest.fn().mockReturnValue({}),
+    };
+
     // Setup default mocks
-    when(mockPythonEnvironment.pythonPath).thenReturn("/usr/bin/python3");
     when(mockTerminal.debug(anything(), anything())).thenReturn();
     when(
       mockCommandProcessExecutionFactory.createCommandProcessExecution(
@@ -39,7 +43,7 @@ describe("DBTCloudDetection Tests", () => {
 
     dbtCloudDetection = new DBTCloudDetection(
       instance(mockCommandProcessExecutionFactory),
-      instance(mockPythonEnvironment),
+      mockPythonEnvironment,
       instance(mockTerminal),
     );
   });

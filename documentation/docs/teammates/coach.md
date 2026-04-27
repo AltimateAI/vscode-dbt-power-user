@@ -4,7 +4,7 @@ First, enable AI teammates functionality by going in settings -> teammates menu.
 ![enableTeammates](images/enableTeammates.png)<br>
 
 /// admonition | Unless you enable teammates in the SaaS instance, coaching and personalization outlined below won't work.
-type: warning
+    type: warning
 ///
 
 ## Documentation Writer
@@ -21,7 +21,7 @@ as shown below:
 
 ### Provide instructions
 
-You can provide instructions in the naturla language first and then the AI temmate will show you what it has understood.
+You can provide instructions in the natural language first and then the AI teammate will show you what it has understood.
 You can edit that understanding further as shown below:
 
 ![addInstructions](images/addInstructions.png)<br>

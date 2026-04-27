@@ -1,0 +1,99 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Jinja YAML Injection",
+  "scopeName": "source.yaml.jinja",
+  "injectionSelector": "L:source.yaml",
+  "patterns": [
+    { "include": "#jinja-comment" },
+    { "include": "#jinja-statement" },
+    { "include": "#jinja-expression" }
+  ],
+  "repository": {
+    "jinja-comment": {
+      "name": "comment.block.jinja",
+      "begin": "\\{#",
+      "end": "#\\}",
+      "beginCaptures": { "0": { "name": "punctuation.definition.comment.begin.jinja" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.comment.end.jinja" } }
+    },
+    "jinja-statement": {
+      "name": "meta.statement.jinja",
+      "begin": "\\{%-?",
+      "end": "-?%\\}",
+      "beginCaptures": { "0": { "name": "punctuation.definition.tag.begin.jinja" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.tag.end.jinja" } },
+      "patterns": [
+        { "include": "#jinja-keyword" },
+        { "include": "#jinja-dbt-function" },
+        { "include": "#jinja-filter" },
+        { "include": "#jinja-operator" },
+        { "include": "#jinja-string-single" },
+        { "include": "#jinja-string-double" },
+        { "include": "#jinja-number" },
+        { "include": "#jinja-boolean" },
+        { "include": "#jinja-variable" }
+      ]
+    },
+    "jinja-expression": {
+      "name": "meta.expression.jinja",
+      "begin": "\\{\\{-?",
+      "end": "-?\\}\\}",
+      "beginCaptures": { "0": { "name": "punctuation.definition.expression.begin.jinja" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.expression.end.jinja" } },
+      "patterns": [
+        { "include": "#jinja-dbt-function" },
+        { "include": "#jinja-filter" },
+        { "include": "#jinja-operator" },
+        { "include": "#jinja-string-single" },
+        { "include": "#jinja-string-double" },
+        { "include": "#jinja-number" },
+        { "include": "#jinja-boolean" },
+        { "include": "#jinja-variable" }
+      ]
+    },
+    "jinja-keyword": {
+      "match": "(?i)\\b(for|endfor|if|elif|else|endif|set|macro|endmacro|call|endcall|block|endblock|filter|endfilter|raw|endraw|extends|include|import|from|do|with|endwith)\\b",
+      "name": "keyword.control.jinja"
+    },
+    "jinja-dbt-function": {
+      "match": "\\b(ref|source|config|var|env_var|adapter|return|log|run_query|execute|this|graph|flags|target|project_name|schema|database|model|modules|exceptions|is_incremental|builtins)\\b(?=\\s*\\(|\\s*\\.)",
+      "name": "support.function.dbt.jinja"
+    },
+    "jinja-filter": {
+      "match": "(?<=\\|\\s{0,4})\\b(trim|lower|upper|title|capitalize|default|d|int|float|string|list|join|replace|regex_replace|length|count|sort|reverse|unique|first|last|map|select|reject|selectattr|rejectattr|groupby|as_bool|as_number|as_text|as_native|log|set|tojson|fromjson|fromyaml|toyaml)\\b",
+      "name": "support.function.filter.jinja"
+    },
+    "jinja-operator": {
+      "match": "\\b(and|or|not|in|is)\\b|~|\\|(?!\\})",
+      "name": "keyword.operator.jinja"
+    },
+    "jinja-string-single": {
+      "name": "string.quoted.single.jinja",
+      "begin": "'",
+      "end": "'",
+      "patterns": [
+        { "match": "\\\\.", "name": "constant.character.escape.jinja" }
+      ]
+    },
+    "jinja-string-double": {
+      "name": "string.quoted.double.jinja",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        { "match": "\\\\.", "name": "constant.character.escape.jinja" }
+      ]
+    },
+    "jinja-number": {
+      "match": "\\b\\d+(\\.\\d+)?\\b",
+      "name": "constant.numeric.jinja"
+    },
+    "jinja-boolean": {
+      "match": "\\b(true|false|True|False|none|None)\\b",
+      "name": "constant.language.jinja"
+    },
+    "jinja-variable": {
+      "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b",
+      "name": "variable.other.jinja"
+    }
+  }
+}

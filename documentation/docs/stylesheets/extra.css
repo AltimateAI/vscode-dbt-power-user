@@ -1,0 +1,69 @@
+/* Announcement banner — thin strip style */
+.md-banner {
+  background: linear-gradient(90deg, #1565c0 0%, #6a1b9a 50%, #8e24aa 100%) !important;
+  color: #ffffff !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+
+.md-banner .md-banner__inner {
+  margin: 0 auto !important;
+  padding: 0.3rem 1rem !important;
+  font-size: 0.7rem !important;
+  line-height: 1.4 !important;
+  text-align: center;
+  white-space: nowrap;
+  position: static !important;
+}
+
+.md-banner .md-banner__inner a:not(.md-banner-cta) {
+  color: #e1bee7 !important;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.md-banner .md-banner__inner a:not(.md-banner-cta):hover {
+  color: #ffffff !important;
+  text-decoration: underline;
+}
+
+.md-banner .md-banner__inner .md-banner-cta {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff !important;
+  padding: 0.15rem 0.65rem;
+  border-radius: 20px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-decoration: none !important;
+  margin-left: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.02em;
+  transition: background 0.2s;
+  vertical-align: middle;
+}
+
+.md-banner .md-banner__inner .md-banner-cta:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.md-banner .md-banner__button {
+  position: absolute !important;
+  right: 1rem !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  float: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.md-banner .md-banner__button:hover {
+  color: #ffffff !important;
+}
+
+.md-banner .md-banner__button svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}

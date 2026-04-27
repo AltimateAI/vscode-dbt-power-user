@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.58.7",
+  "version": "0.60.6",
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -180,7 +180,7 @@
           },
           "dbt.dbtPythonPathOverride": {
             "type": "string",
-            "description": "Path to a python executable or entrypoint. If undefined, we will use the Python extension's configured environment. Most users will not need to change this setting without specific reasoning such as custom wrappers and should instead modify the Python extensions selected interpreter."
+            "description": "Path to a Python executable. Use this when the Python extension selects a different interpreter than the one where dbt is installed (e.g. dbt works in your terminal but not in the extension). You can set this manually or run the 'Detect Python from terminal' command to auto-detect it."
           },
           "dbt.dbtCustomRunnerImport": {
             "type": "string",
@@ -391,6 +391,11 @@
           "id": "insights_view",
           "title": "Actions",
           "icon": "./media/images/dbt_icon.svg"
+        },
+        {
+          "id": "run_history_view",
+          "title": "Run History",
+          "icon": "./media/images/dbt_icon.svg"
         }
       ]
     },
@@ -451,6 +456,12 @@
           "id": "dbtPowerUser.Insights",
           "name": "",
           "type": "webview"
+        }
+      ],
+      "run_history_view": [
+        {
+          "id": "run_history_treeview",
+          "name": "Runs"
         }
       ]
     },
@@ -520,6 +531,11 @@
         "title": "Open dbt Power User insights panel"
       },
       {
+        "command": "dbtPowerUser.openOnboarding",
+        "category": "dbt Power User",
+        "title": "Get Started with dbt Power User"
+      },
+      {
         "command": "dbtPowerUser.sqlQuickPick",
         "title": "SQL Actions",
         "category": "dbt Power User",
@@ -536,6 +552,39 @@
           "light": "./media/images/run-light.svg",
           "dark": "./media/images/run-dark.svg"
         }
+      },
+      {
+        "command": "dbtPowerUser.rerunFromHistory",
+        "title": "Re-run Command",
+        "category": "dbt Power User",
+        "icon": "$(debug-rerun)"
+      },
+      {
+        "command": "dbtPowerUser.clearRunHistory",
+        "title": "Clear Run History",
+        "category": "dbt Power User",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "dbtPowerUser.profileCtes",
+        "title": "Profile CTEs",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.cancelCteProfiling",
+        "title": "Cancel CTE Profiling",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.clearProfileResults",
+        "title": "Clear CTE Profile Results",
+        "category": "dbt Power User",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "dbtPowerUser.toggleProfileDecorations",
+        "title": "Toggle CTE Profile Decorations",
+        "category": "dbt Power User"
       },
       {
         "command": "dbtPowerUser.openDatapilotWithQuery",
@@ -769,6 +818,12 @@
         "icon": "$(debug-console)"
       },
       {
+        "command": "dbtPowerUser.detectPythonFromTerminal",
+        "title": "Detect Python from terminal",
+        "category": "dbt Power User",
+        "icon": "$(terminal)"
+      },
+      {
         "command": "dbtPowerUser.sqlLineage",
         "title": "Visualize SQL (Beta)",
         "category": "dbt Power User",
@@ -813,6 +868,37 @@
         "command": "dbtPowerUser.applyDeferConfig",
         "category": "dbt Power User",
         "title": "Apply defer configuration"
+      },
+      {
+        "command": "dbtPowerUser.askAltimateAboutSelection",
+        "category": "dbt Power User",
+        "title": "Ask Altimate About Selection"
+      },
+      {
+        "command": "dbtPowerUser.explainWithAltimate",
+        "category": "dbt Power User",
+        "title": "Explain with Altimate"
+      },
+      {
+        "command": "dbtPowerUser.optimizeWithAltimate",
+        "category": "dbt Power User",
+        "title": "Optimize with Altimate"
+      },
+      {
+        "command": "dbtPowerUser.analyzeFileWithAltimate",
+        "category": "dbt Power User",
+        "title": "Analyze with Altimate"
+      },
+      {
+        "command": "dbtPowerUser.openAltimateChat",
+        "category": "dbt Power User",
+        "title": "Open Altimate Code Chat",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "dbtPowerUser.reviewCodeWithAltimate",
+        "category": "dbt Power User",
+        "title": "Review with Altimate"
       }
     ],
     "keybindings": [
@@ -915,7 +1001,40 @@
           "group": "notebooks@5"
         }
       ],
+      "dbtPowerUser.altimateCodeSubmenu": [
+        {
+          "command": "dbtPowerUser.askAltimateAboutSelection",
+          "group": "1@1",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "dbtPowerUser.explainWithAltimate",
+          "group": "1@2"
+        },
+        {
+          "command": "dbtPowerUser.optimizeWithAltimate",
+          "group": "1@3",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        },
+        {
+          "command": "dbtPowerUser.reviewCodeWithAltimate",
+          "group": "2@1",
+          "when": "dbtPowerUser.fileHasGitChanges"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "dbtPowerUser.analyzeFileWithAltimate",
+          "group": "altimate@1",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$|^yaml$|^jinja-yaml$/"
+        }
+      ],
       "editor/title": [
+        {
+          "command": "dbtPowerUser.openAltimateChat",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$|^yaml$|^jinja-yaml$/",
+          "group": "navigation@0"
+        },
         {
           "command": "dbtPowerUser.executeSQL",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.enableExecuteSql",
@@ -948,6 +1067,11 @@
         }
       ],
       "editor/context": [
+        {
+          "submenu": "dbtPowerUser.altimateCodeSubmenu",
+          "group": "altimate@1",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$|^yaml$|^jinja-yaml$/"
+        },
         {
           "submenu": "dbtPowerUser.datapilotSubmenu",
           "group": "datapilot@1",
@@ -1071,9 +1195,19 @@
           "command": "dbtPowerUser.showHelpDatapilot",
           "when": "view == dbtPowerUser.datapilot-webview",
           "group": "navigation@3"
+        },
+        {
+          "command": "dbtPowerUser.clearRunHistory",
+          "when": "view == run_history_treeview",
+          "group": "2_clear"
         }
       ],
       "view/item/context": [
+        {
+          "command": "dbtPowerUser.rerunFromHistory",
+          "when": "view == run_history_treeview && viewItem == runHistoryEntry",
+          "group": "inline"
+        },
         {
           "command": "dbtPowerUser.runTest",
           "when": "view == model_test_treeview && viewItem != source",
@@ -1135,6 +1269,10 @@
       {
         "id": "dbtPowerUser.datapilotSubmenu",
         "label": "Datapilot"
+      },
+      {
+        "id": "dbtPowerUser.altimateCodeSubmenu",
+        "label": "Altimate Code"
       }
     ],
     "languages": [
@@ -1146,208 +1284,17 @@
         }
       }
     ],
-    "walkthroughs": [
+    "grammars": [
       {
-        "id": "initialSetup",
-        "title": "%walkthrough.initialSetup.title%",
-        "description": "%walkthrough.initialSetup.description%",
-        "steps": [
-          {
-            "id": "open",
-            "title": "%walkthrough.initialSetup.steps.open.title%",
-            "description": "%walkthrough.initialSetup.steps.open.description%",
-            "when": "workspaceFolderCount == 0",
-            "media": {
-              "markdown": "media/loadDbtProject.md"
-            }
-          },
-          {
-            "id": "initialSupport",
-            "title": "%walkthrough.initialSetup.steps.support.title%",
-            "description": "%walkthrough.initialSetup.steps.support.description%",
-            "media": {
-              "markdown": "media/initialSetup.md"
-            }
-          },
-          {
-            "id": "updateExtension",
-            "title": "%walkthrough.initialSetup.steps.updateExtension.title%",
-            "description": "%walkthrough.initialSetup.steps.updateExtension.description%",
-            "when": "dbtPowerUser.needsExtensionUpdate",
-            "media": {
-              "markdown": "media/updateExtension.md"
-            },
-            "completionEvents": [
-              "onContext:dbtPowerUser.needsExtensionUpdate"
-            ]
-          },
-          {
-            "id": "selectInterpreter",
-            "title": "%walkthrough.initialSetup.steps.selectInterpreter.title%",
-            "description": "%walkthrough.initialSetup.steps.selectInterpreter.description%",
-            "media": {
-              "markdown": "media/selectInterpreter.md"
-            },
-            "completionEvents": [
-              "onSettingChanged:python.setInterpreter"
-            ]
-          },
-          {
-            "id": "installDbtCore",
-            "title": "%walkthrough.initialSetup.steps.installDbt.title%",
-            "description": "%walkthrough.initialSetup.steps.installDbt.description%",
-            "when": "dbtPowerUser.dbtIntegration === 'core' && !dbtPowerUser.dbtInstalled",
-            "media": {
-              "markdown": "media/installDbtCore.md"
-            },
-            "completionEvents": [
-              "onContext:dbtPowerUser.dbtInstalled"
-            ]
-          },
-          {
-            "id": "installDbtCloud",
-            "title": "%walkthrough.initialSetup.steps.installDbt.title%",
-            "description": "%walkthrough.initialSetup.steps.installDbt.description%",
-            "when": "dbtPowerUser.dbtIntegration === 'cloud' && !dbtPowerUser.dbtInstalled",
-            "media": {
-              "markdown": "media/installDbtCloud.md"
-            },
-            "completionEvents": [
-              "onContext:dbtPowerUser.dbtInstalled"
-            ]
-          },
-          {
-            "id": "associateFileExts",
-            "title": "%walkthrough.initialSetup.steps.associateFileExts.title%",
-            "description": "%walkthrough.initialSetup.steps.associateFileExts.description%",
-            "when": "dbtPowerUser.showFileAssociationStep",
-            "media": {
-              "markdown": "media/associateFileExts.md"
-            },
-            "completionEvents": [
-              "onCommand:dbtPowerUser.checkDbtInstalled"
-            ]
-          },
-          {
-            "id": "pickProject",
-            "title": "%walkthrough.initialSetup.steps.pickProject.title%",
-            "description": "%walkthrough.initialSetup.steps.pickProject.description%",
-            "when": "dbtPowerUser.dbtIntegration === 'core' && dbtPowerUser.projectCount > 1",
-            "media": {
-              "markdown": "media/pickProject.md"
-            },
-            "completionEvents": [
-              "onContext:dbtPowerUser.walkthroughProjectSelected"
-            ]
-          },
-          {
-            "id": "installDeps",
-            "title": "%walkthrough.initialSetup.steps.installDeps.title%",
-            "description": "%walkthrough.initialSetup.steps.installDeps.description%",
-            "when": "dbtPowerUser.dbtIntegration === 'core' && dbtPowerUser.walkthroughProjectSelected",
-            "media": {
-              "markdown": "media/installDeps.md"
-            },
-            "completionEvents": [
-              "onCommand:dbtPowerUser.installDeps"
-            ]
-          },
-          {
-            "id": "validateProjectCore",
-            "title": "%walkthrough.initialSetup.steps.validateProjectCore.title%",
-            "description": "%walkthrough.initialSetup.steps.validateProjectCore.description%",
-            "when": "dbtPowerUser.dbtIntegration === 'core' && dbtPowerUser.walkthroughProjectSelected",
-            "media": {
-              "markdown": "media/validateProjectCore.md"
-            },
-            "completionEvents": [
-              "onCommand:dbtPowerUser.validateProjectCore"
-            ]
-          },
-          {
-            "id": "validateProjectCloud",
-            "title": "%walkthrough.initialSetup.steps.validateProjectCloud.title%",
-            "description": "%walkthrough.initialSetup.steps.validateProjectCloud.description%",
-            "when": "dbtPowerUser.dbtIntegration === 'cloud' && dbtPowerUser.walkthroughProjectSelected",
-            "media": {
-              "markdown": "media/validateProjectCloud.md"
-            },
-            "completionEvents": [
-              "onCommand:dbtPowerUser.validateProjectCloud"
-            ]
-          },
-          {
-            "id": "finish",
-            "title": "%walkthrough.initialSetup.steps.finish.title%",
-            "description": "%walkthrough.initialSetup.steps.finish.description%",
-            "when": "dbtPowerUser.walkthroughProjectSelected",
-            "media": {
-              "markdown": "media/finish.md"
-            }
-          }
-        ]
+        "language": "jinja-sql",
+        "scopeName": "source.sql.jinja",
+        "path": "./syntaxes/jinja-sql.tmLanguage.json"
       },
       {
-        "id": "tutorials",
-        "title": "%walkthrough.tutorials.title%",
-        "description": "%walkthrough.tutorials.description%",
-        "steps": [
-          {
-            "id": "generate_models",
-            "title": "%walkthrough.tutorials.steps.generate_models.title%",
-            "description": "%walkthrough.tutorials.steps.generate_models.description%",
-            "media": {
-              "markdown": "media/generate_models.md"
-            }
-          },
-          {
-            "id": "autocompletion",
-            "title": "%walkthrough.tutorials.steps.autocompletion.title%",
-            "description": "%walkthrough.tutorials.steps.autocompletion.description%",
-            "media": {
-              "markdown": "media/autocompletion.md"
-            }
-          },
-          {
-            "id": "previews",
-            "title": "%walkthrough.tutorials.steps.previews.title%",
-            "description": "%walkthrough.tutorials.steps.previews.description%",
-            "media": {
-              "markdown": "media/previews.md"
-            }
-          },
-          {
-            "id": "dependants",
-            "title": "%walkthrough.tutorials.steps.dependants.title%",
-            "description": "%walkthrough.tutorials.steps.dependants.description%",
-            "media": {
-              "markdown": "media/dependants.md"
-            }
-          },
-          {
-            "id": "documentation",
-            "title": "%walkthrough.tutorials.steps.documentation.title%",
-            "description": "%walkthrough.tutorials.steps.documentation.description%",
-            "media": {
-              "markdown": "media/documentation.md"
-            }
-          },
-          {
-            "id": "lineage",
-            "title": "%walkthrough.tutorials.steps.lineage.title%",
-            "description": "%walkthrough.tutorials.steps.lineage.description%",
-            "media": {
-              "markdown": "media/lineage.md"
-            }
-          },
-          {
-            "id": "healthcheck",
-            "title": "%walkthrough.tutorials.steps.healthcheck.title%",
-            "description": "%walkthrough.tutorials.steps.healthcheck.description%",
-            "media": {
-              "markdown": "media/healthcheck.md"
-            }
-          }
+        "scopeName": "source.yaml.jinja",
+        "path": "./syntaxes/jinja-yaml.tmLanguage.json",
+        "injectTo": [
+          "source.yaml"
         ]
       }
     ]
@@ -1355,10 +1302,10 @@
   "scripts": {
     "postinstall": "node postInstall.js",
     "prepare": "husky",
-    "vscode:prepublish": "npm run panel:webviews && webpack --mode production && node prepareBuild.js",
-    "webpack": "npm run panel:webviews && webpack --mode development",
-    "webpack-dev": "npm run panel:webviews && webpack --mode development --watch",
-    "watch": "concurrently \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
+    "vscode:prepublish": "npm run panel:webviews && rsbuild build && node prepareBuild.js",
+    "build": "npm run panel:webviews && rsbuild build",
+    "build-dev": "npm run panel:webviews && rsbuild build --mode development",
+    "watch": "concurrently \"npm:watch --prefix ./webview_panels\" \"rsbuild build --mode development --watch\"",
     "test-compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
@@ -1369,19 +1316,25 @@
     "install:panels": "npm install --prefix ./webview_panels",
     "test": "jest",
     "test:unit": "jest",
+    "test:integration": "npm run test-compile && node out/test/integration/runTests.js",
     "test:coverage": "jest --coverage",
     "pretest": "npm run clean && npm run compile",
     "clean": "rimraf out coverage",
-    "compile": "tsc -p ./"
+    "compile": "tsc -p ./",
+    "docker:deploy": "./docker-setup/deploy.sh",
+    "docker:logs": "cd docker-setup && docker compose logs -f || docker-compose logs -f",
+    "docker:stop": "cd docker-setup && docker compose down || docker-compose down"
   },
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.2",
+    "@rsbuild/core": "^1.5.17",
     "@types/chai": "^4.3.9",
     "@types/glob": "^8.1.0",
     "@types/istanbul-lib-coverage": "^2.0.6",
     "@types/jest": "^29.5.0",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^20.14.11",
+    "@types/mocha": "^10.0.7",
+    "@types/node": "^25.6.0",
     "@types/vscode": "^1.95.0",
     "@types/which": "^3.0.4",
     "@types/ws": "^8.5.12",
@@ -1393,7 +1346,6 @@
     "@vscode/zeromq": "^0.2.1",
     "chai": "^4.3.10",
     "concurrently": "^8.2.2",
-    "copy-webpack-plugin": "^11.0.0",
     "cross-env": "^7.0.3",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^8.9.0",
@@ -1406,20 +1358,18 @@
     "istanbul-lib-instrument": "^6.0.3",
     "jest": "^29.5.0",
     "lint-staged": "^15.2.5",
-    "ovsx": "^0.9.2",
+    "mocha": "^10.7.0",
+    "ovsx": "^0.10.11",
+    "patch-package": "^8.0.1",
     "prettier": "^3.3.3",
     "prettier-eslint": "^15.0.1",
     "prettier-plugin-organize-imports": "^3.2.4",
     "source-map-support": "^0.5.21",
-    "terser-webpack-plugin": "^5.3.10",
     "ts-jest": "^29.1.0",
     "ts-loader": "^9.4.4",
     "ts-mockito": "^2.6.1",
     "ts-node": "^10.9.2",
-    "typescript": "^4.9.5",
-    "webpack": "^5.93.0",
-    "webpack-cli": "^5.1.4",
-    "webpack-shell-plugin-next": "^2.3.1"
+    "typescript": "^5.9.3"
   },
   "extensionDependencies": [
     "samuelcolvin.jinjahtml",
@@ -1427,32 +1377,34 @@
     "altimateai.vscode-altimate-mcp-server"
   ],
   "dependencies": {
+    "@altimateai/dbt-integration": "^0.2.14",
     "@jupyterlab/coreutils": "^6.2.4",
     "@jupyterlab/nbformat": "^4.2.4",
-    "@jupyterlab/services": "^6.6.7",
-    "@modelcontextprotocol/sdk": "^1.7.0",
+    "@jupyterlab/services": "^7.0.0",
+    "@modelcontextprotocol/sdk": "^1.24.0",
     "@nteract/messaging": "^7.0.20",
     "@types/express": "^5.0.0",
     "@vscode/chat-extension-utils": "^0.0.0-alpha.5",
     "@vscode/codicons": "^0.0.36",
-    "@vscode/extension-telemetry": "0.9.6",
+    "@vscode/extension-telemetry": "0.9.7",
     "@vscode/vsce": "^2.31.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "dayjs": "^1.11.13",
-    "express": "^5.0.1",
+    "express": "^5.1.0",
     "inversify": "^6.0.2",
     "inversify-binding-decorators": "^4.0.0",
     "node-abort-controller": "^3.1.1",
     "node-fetch": "^3.3.2",
     "parse-diff": "^0.11.1",
-    "python-bridge": "github:mdesmet/node-python-bridge#feat/detached",
+    "python-bridge": "^1.1.0",
     "reflect-metadata": "^0.2.2",
     "semver": "^7.6.3",
-    "which": "^4.0.0",
+    "which": "^6.0.1",
     "ws": "^8.18.0",
-    "yaml": "^2.5.0",
-    "zeromq": "^6.1.0",
-    "zod-to-json-schema": "^3.24.3"
+    "yaml": "^2.6.0",
+    "zeromq": "^6.1.1",
+    "zod": "^3.25.28",
+    "zod-to-json-schema": "^3.25.2"
   },
   "lint-staged": {
     "**/webview_panels/**/*.{ts,tsx}": [
@@ -1464,5 +1416,6 @@
       "eslint --max-warnings=0"
     ],
     "*.{js,css,md,html,json}": "prettier --cache --write"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

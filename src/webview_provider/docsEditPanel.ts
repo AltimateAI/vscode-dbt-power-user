@@ -1,9 +1,20 @@
+import {
+  DBTTerminal,
+  Table,
+  TestMetaData,
+  TestMetadataAcceptedValues,
+  TestMetadataRelationships,
+} from "@altimateai/dbt-integration";
 import { existsSync, readFileSync, writeFileSync } from "fs";
+import { inject } from "inversify";
+import { PythonException } from "python-bridge";
+import { gte } from "semver";
 import {
   CancellationToken,
   CancellationTokenSource,
   ColorThemeKind,
   Disposable,
+  env,
   ProgressLocation,
   TextEditor,
   Uri,
@@ -14,13 +25,24 @@ import {
   WebviewViewResolveContext,
   window,
   workspace,
-  env,
 } from "vscode";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { parse, parseDocument, stringify, YAMLMap, YAMLSeq } from "yaml";
+import { AltimateRequest, UserInputError } from "../altimate";
+import { DBTProject } from "../dbt_client/dbtProject";
+import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
+} from "../dbt_client/event/manifestCacheChangedEvent";
+import { DbtLineageService } from "../services/dbtLineageService";
+import { DbtTestService } from "../services/dbtTestService";
+import {
+  DocGenService,
+  DocumentationSchema,
+  DocumentationSchemaColumn,
+} from "../services/docGenService";
+import { TelemetryService } from "../telemetry";
+import { TelemetryEvents } from "../telemetry/events";
 import {
   extendErrorWithSupportLinks,
   getColumnNameByCase,
@@ -29,32 +51,11 @@ import {
   isColumnNameEqual,
   isQuotedIdentifier,
   isRelationship,
-  provideSingleton,
   removeProtocol,
 } from "../utils";
-import path = require("path");
-import { PythonException } from "python-bridge";
-import { TelemetryService } from "../telemetry";
-import { AltimateRequest, UserInputError } from "../altimate";
-import { stringify, parse, parseDocument, YAMLSeq, YAMLMap } from "yaml";
-import { NewDocsGenPanel } from "./newDocsGenPanel";
-import { DBTProject } from "../manifest/dbtProject";
-import {
-  DocGenService,
-  DocumentationSchema,
-  DocumentationSchemaColumn,
-} from "../services/docGenService";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import {
-  TestMetaData,
-  TestMetadataAcceptedValues,
-  TestMetadataRelationships,
-} from "../domain";
-import { DbtTestService } from "../services/dbtTestService";
-import { gte } from "semver";
-import { TelemetryEvents } from "../telemetry/events";
 import { SendMessageProps } from "./altimateWebviewProvider";
-import { DbtLineageService, Table } from "../services/dbtLineageService";
+import { NewDocsGenPanel } from "./newDocsGenPanel";
+import path = require("path");
 
 export enum Source {
   YAML = "YAML",
@@ -99,7 +100,6 @@ export interface DocsGenPanelView extends WebviewViewProvider {
   ): void;
 }
 
-@provideSingleton(DocsEditViewPanel)
 export class DocsEditViewPanel implements WebviewViewProvider {
   public static readonly viewType = "dbtPowerUser.DocsEdit";
   private panel: WebviewView | undefined;
@@ -120,6 +120,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     private newDocsPanel: NewDocsGenPanel,
     private docGenService: DocGenService,
     private dbtTestService: DbtTestService,
+    @inject("DBTTerminal")
     private terminal: DBTTerminal,
     private dbtLineageService: DbtLineageService,
   ) {
@@ -280,7 +281,12 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     await this.resolveWebviewView(this.panel!, this.context!, this.token!);
   };
 
-  private getTestDataByModel(message: any, modelName: string) {
+  private getTestDataByModel(
+    message: any,
+    modelName: string,
+    project?: DBTProject,
+    existingModel?: any,
+  ) {
     const tests = message.updatedTests as undefined | TestMetaData[];
 
     if (!tests?.length) {
@@ -319,7 +325,23 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       })
       .filter((t) => Boolean(t));
     const filteredTests = this.dbtTestService.removeDuplicateTests(finalTests);
-    return filteredTests.length ? filteredTests : undefined;
+    if (!filteredTests.length) {
+      return;
+    }
+
+    // dbt >= 1.8 renamed model-level `tests:` to `data_tests:`. Mirror the
+    // column-level selection logic: prefer `data_tests` on new dbt versions,
+    // but preserve `tests` if the user's YAML already uses that key.
+    const dbtVersion = project?.getDBTVersion();
+    if (
+      dbtVersion &&
+      gte(dbtVersion.join("."), "1.8.0") &&
+      existingModel?.tests === undefined
+    ) {
+      return { data_tests: filteredTests };
+    }
+
+    return { tests: filteredTests };
   }
 
   private getTestMetadataKwArgs(
@@ -1000,8 +1022,15 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         const modelTests = this.getTestDataByModel(
           message,
           model.get("name") as string,
+          project,
+          model.toJSON(),
         );
-        this.setOrDeleteInParsedDocument(model, "tests", modelTests);
+        this.setOrDeleteInParsedDocument(model, "tests", modelTests?.tests);
+        this.setOrDeleteInParsedDocument(
+          model,
+          "data_tests",
+          modelTests?.data_tests,
+        );
         if (!model.get("columns")) {
           model.set("columns", new YAMLSeq<DocumentationSchemaColumn>());
         }

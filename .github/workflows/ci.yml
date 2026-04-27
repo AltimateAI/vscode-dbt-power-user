@@ -9,68 +9,223 @@ on:
     types:
       - created
 
+permissions:
+  contents: read
+
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        include:
+          - os: macos-latest
+            vsce-target: darwin-arm64
+          - os: ubuntu-latest
+            vsce-target: linux-x64
+          - os: windows-latest
+            vsce-target: win32-x64
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Run common build steps
         uses: ./.github/actions/common-build
+        with:
+          vsce-target: ${{ matrix.vsce-target }}
+      - name: Build and package VSIX
+        run: npx @vscode/vsce package --target ${{ matrix.vsce-target }}
+        env:
+          VSCE_TARGET: ${{ matrix.vsce-target }}
+          NODE_OPTIONS: --max-old-space-size=8192
+      - name: Analyze bundle size
+        id: analyze
+        run: python3 .github/scripts/analyze-vsix.py
+      - name: Restore master baseline
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@v4
+        with:
+          path: master-baseline.json
+          key: bundle-size-baseline-${{ matrix.vsce-target }}-will-not-match
+          restore-keys: bundle-size-baseline-${{ matrix.vsce-target }}-
+      - name: Save master baseline
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: actions/cache/save@v4
+        with:
+          path: bundle-baseline.json
+          key: bundle-size-baseline-${{ matrix.vsce-target }}-${{ github.sha }}
+      - name: Generate report
+        id: report
+        run: python3 .github/scripts/generate-bundle-report.py
+        env:
+          VSCE_TARGET: ${{ matrix.vsce-target }}
+      - name: Set commit status
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const desc = '${{ steps.report.outputs.status_desc }}';
+            const target = '${{ matrix.vsce-target }}';
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: 'success',
+              description: desc,
+              context: `Bundle Size (${target})`,
+              target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+      - name: Upload report
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-report-${{ matrix.vsce-target }}
+          path: bundle-report.md
+          retention-days: 1
+      - name: Job summary
+        shell: bash
+        run: cat bundle-report.md >> "$GITHUB_STEP_SUMMARY"
+
+  bundle-size-report:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Download all reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bundle-report-*
+      - name: Combine reports
+        run: |
+          echo "## Bundle Size Report" > combined-report.md
+          echo "" >> combined-report.md
+          for dir in bundle-report-*/; do
+            cat "$dir/bundle-report.md" >> combined-report.md
+            echo "" >> combined-report.md
+          done
+      - name: Post PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('combined-report.md', 'utf8');
+            const marker = '<!-- bundle-size-report -->';
+            const body = marker + '\n' + report;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c => c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
   release-vsstudio-marketplace:
+    needs: build
     runs-on: ubuntu-latest
     if: success() && startsWith( github.ref, 'refs/tags/')
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - darwin-arm64
+          - darwin-x64
+          - linux-arm64
+          - linux-x64
+          - win32-x64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Run common build steps
         uses: ./.github/actions/common-build
+        with:
+          vsce-target: ${{ matrix.target }}
       - name: Publish Visual Studio Marketplace
         run: |
+          PRE_RELEASE=""
           if [ "${{ github.event_name }}" == "release" ] && [ "${{ github.event.release.prerelease }}" == "true" ]; then
-            npm run deploy-vscode -- --pre-release
-          else
-            npm run deploy-vscode
+            PRE_RELEASE="--pre-release"
           fi
+          npx vsce publish --skip-duplicate --target ${{ matrix.target }} $PRE_RELEASE
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          VSCE_TARGET: ${{ matrix.target }}
 
+    # Send notification after all platform builds (only on the last matrix entry)
+  release-vsstudio-notify:
+    runs-on: ubuntu-latest
+    needs: release-vsstudio-marketplace
+    if: always() && startsWith( github.ref, 'refs/tags/')
+    steps:
       - name: Send Slack notification
-        if: ${{ always() }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         uses: 8398a7/action-slack@v3
         with:
-          status: ${{ job.status }}
-          text: "Tag: ${{  github.ref_name }} release to Visual Studio Marketplace status: ${{ job.status == 'success' && 'succeeded' || 'failed' }} :${{ job.status == 'success' && 'tada' || 'disappointed' }}:"
-  
+          status: ${{ needs.release-vsstudio-marketplace.result }}
+          text: "Tag: ${{  github.ref_name }} release to Visual Studio Marketplace status: ${{ needs.release-vsstudio-marketplace.result == 'success' && 'succeeded' || 'failed' }} :${{ needs.release-vsstudio-marketplace.result == 'success' && 'tada' || 'disappointed' }}:"
+
   release-openvsx-marketplace:
+    needs: build
     runs-on: ubuntu-latest
     if: success() && startsWith( github.ref, 'refs/tags/')
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - darwin-arm64
+          - darwin-x64
+          - linux-arm64
+          - linux-x64
+          - win32-x64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Run common build steps
         uses: ./.github/actions/common-build
+        with:
+          vsce-target: ${{ matrix.target }}
       - name: Publish OpenVSX Marketplace
         run: |
+          PRE_RELEASE=""
           if [ "${{ github.event_name }}" == "release" ] && [ "${{ github.event.release.prerelease }}" == "true" ]; then
-            npm run deploy-openvsx -- --pre-release
-          else
-            npm run deploy-openvsx
+            PRE_RELEASE="--pre-release"
           fi
+          npx ovsx publish --skip-duplicate --target ${{ matrix.target }} $PRE_RELEASE
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          VSCE_TARGET: ${{ matrix.target }}
 
+  release-openvsx-notify:
+    runs-on: ubuntu-latest
+    needs: release-openvsx-marketplace
+    if: always() && startsWith( github.ref, 'refs/tags/')
+    steps:
       - name: Send Slack notification
-        if: ${{ always() }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         uses: 8398a7/action-slack@v3
         with:
-          status: ${{ job.status }}
-          text: "Tag: ${{  github.ref_name }} release to openvsx marketplace status: ${{ job.status == 'success' && 'succeeded' || 'failed' }} :${{ job.status == 'success' && 'tada' || 'disappointed' }}:"
-  
+          status: ${{ needs.release-openvsx-marketplace.result }}
+          text: "Tag: ${{  github.ref_name }} release to openvsx marketplace status: ${{ needs.release-openvsx-marketplace.result == 'success' && 'succeeded' || 'failed' }} :${{ needs.release-openvsx-marketplace.result == 'success' && 'tada' || 'disappointed' }}:"
