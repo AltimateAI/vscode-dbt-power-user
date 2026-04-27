@@ -201,13 +201,22 @@ export class DBTProject implements Disposable {
     this.dbtProjectIntegration.on(
       DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED,
       () => {
-        this.terminal.debug(
-          "DBTProject",
-          "Received projectConfigChanged event from Node.js project config watcher",
-        );
-        const event = new ProjectConfigChangedEvent(this);
-        this.stampCloudVariantOnTelemetry();
-        this._onProjectConfigChanged.fire(event);
+        try {
+          this.terminal.debug(
+            "DBTProject",
+            "Received projectConfigChanged event from Node.js project config watcher",
+          );
+          const event = new ProjectConfigChangedEvent(this);
+          this.stampCloudVariantOnTelemetry();
+          this._onProjectConfigChanged.fire(event);
+        } catch (error) {
+          this.terminal.error(
+            "DBTProject",
+            "Error handling projectConfigChanged event",
+            error,
+            false,
+          );
+        }
       },
     );
 
