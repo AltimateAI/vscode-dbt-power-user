@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "engines": {
-    "node": "18.x",
-    "npm": "^9.x"
+    "node": "^20.19.0 || >=22.12.0",
+    "npm": ">=10"
   },
-  "packageManager": "npm@9.6.7",
+  "packageManager": "npm@10.9.4",
   "scripts": {
     "dev": "vite",
     "watch": "rm -Rf ./dist; tsc && vite build --watch",
