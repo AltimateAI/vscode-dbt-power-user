@@ -16,6 +16,7 @@ import { TelemetryService } from "./telemetry";
 import { TreeviewProviders } from "./treeview_provider";
 import { ValidationProvider } from "./validation_provider";
 import { WebviewViewProviders } from "./webview_provider";
+import { WhatsNewPanel } from "./webview_provider/whatsNewPanel";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -60,6 +61,7 @@ export class DBTPowerUserExtension implements Disposable {
     private commentProviders: CommentProviders,
     private notebookProviders: NotebookProviders,
     private mcpServer: DbtPowerUserMcpServer,
+    private whatsNewPanel: WhatsNewPanel,
   ) {
     this.disposables.push(
       this.dbtProjectContainer,
@@ -79,6 +81,10 @@ export class DBTPowerUserExtension implements Disposable {
       this.commentProviders,
       this.notebookProviders,
       this.mcpServer,
+      this.whatsNewPanel,
+      commands.registerCommand("dbtPowerUser.showWhatsNew", () =>
+        this.whatsNewPanel.show("manual"),
+      ),
     );
   }
 
@@ -96,6 +102,7 @@ export class DBTPowerUserExtension implements Disposable {
       await this.mcpServer.updateMcpExtensionApi();
       this.dbtProjectContainer.setContext(context);
       this.dbtProjectContainer.initializeWalkthrough();
+      await this.dbtProjectContainer.checkAndShowWhatsNew(this.whatsNewPanel);
       await this.dbtProjectContainer.detectDBT();
       await this.dbtProjectContainer.initializeDBTProjects();
       await this.statusBars.initialize();

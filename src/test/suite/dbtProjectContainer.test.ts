@@ -745,6 +745,92 @@ describe("DBTProjectContainer Tests", () => {
     });
   });
 
+  describe("checkAndShowWhatsNew", () => {
+    let mockGlobalState: any;
+    let mockPanel: any;
+
+    const setupContext = (
+      version: string,
+      lastSeenVersion: string | undefined,
+    ) => {
+      mockGlobalState = {
+        get: jest.fn((key: unknown) =>
+          key === "lastSeenVersion" ? lastSeenVersion : undefined,
+        ),
+        update: jest.fn(),
+      };
+      const mockContext = {
+        workspaceState: { get: jest.fn(), update: jest.fn() },
+        globalState: mockGlobalState,
+        extension: { id: "test-extension", packageJSON: { version } },
+      } as unknown as ExtensionContext;
+      container.setContext(mockContext);
+    };
+
+    const setShowChangelogSetting = (value: boolean) => {
+      const mockConfig = {
+        get: jest.fn((key: unknown, defaultValue?: unknown) => {
+          if (key === "showChangelogOnUpdate") {
+            return value;
+          }
+          return defaultValue;
+        }),
+      };
+      (workspace.getConfiguration as any) = jest.fn(() => mockConfig);
+    };
+
+    beforeEach(() => {
+      mockPanel = { show: jest.fn(() => Promise.resolve()) };
+      setShowChangelogSetting(true);
+    });
+
+    it("does nothing when the version has not changed", async () => {
+      setupContext("0.60.6", "0.60.6");
+
+      await container.checkAndShowWhatsNew(mockPanel);
+
+      expect(mockPanel.show).not.toHaveBeenCalled();
+      expect(mockGlobalState.update).not.toHaveBeenCalled();
+    });
+
+    it("persists the version on first install but does not show the panel", async () => {
+      setupContext("0.60.6", undefined);
+
+      await container.checkAndShowWhatsNew(mockPanel);
+
+      expect(mockPanel.show).not.toHaveBeenCalled();
+      expect(mockGlobalState.update).toHaveBeenCalledWith(
+        "lastSeenVersion",
+        "0.60.6",
+      );
+    });
+
+    it("shows the panel and persists the version on a real update", async () => {
+      setupContext("0.60.6", "0.60.5");
+
+      await container.checkAndShowWhatsNew(mockPanel);
+
+      expect(mockGlobalState.update).toHaveBeenCalledWith(
+        "lastSeenVersion",
+        "0.60.6",
+      );
+      expect(mockPanel.show).toHaveBeenCalledWith("update");
+    });
+
+    it("skips showing the panel when the user has opted out, but still persists the version", async () => {
+      setupContext("0.60.6", "0.60.5");
+      setShowChangelogSetting(false);
+
+      await container.checkAndShowWhatsNew(mockPanel);
+
+      expect(mockGlobalState.update).toHaveBeenCalledWith(
+        "lastSeenVersion",
+        "0.60.6",
+      );
+      expect(mockPanel.show).not.toHaveBeenCalled();
+    });
+  });
+
   describe("Project Registration Events", () => {
     it("should set up project registration event handler", () => {
       // The project registration event handler is set up in the constructor
