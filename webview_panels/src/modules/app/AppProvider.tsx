@@ -1,5 +1,5 @@
-import DataPilotProvider from "@modules/dataPilot/DataPilotProvider";
-import { DataPilotChat } from "@modules/dataPilot/types";
+import { ApiHelper } from "@lib";
+import { panelLogger } from "@modules/logger";
 import {
   createContext,
   ReactNode,
@@ -14,14 +14,10 @@ import appSlice, {
 import { executeRequestInAsync, executeRequestInSync } from "./requestExecutor";
 import { ContextProps } from "./types";
 import useListeners from "./useListeners";
-import { ApiHelper } from "@lib";
-import { panelLogger } from "@modules/logger";
 
 export const AppContext = createContext<ContextProps>({
   state: initialState,
   dispatch: () => null,
-  postMessageToDataPilot: (_data) => null,
-  toggleDataPilot: (_open) => null,
 });
 
 const AppProvider = ({ children }: { children: ReactNode }): JSX.Element => {
@@ -73,33 +69,19 @@ const AppProvider = ({ children }: { children: ReactNode }): JSX.Element => {
     dispatch(updateIsComponentsApiInitialized(true));
   }, []);
 
-  const postMessageToDataPilot = (
-    data: Partial<DataPilotChat> & { id: DataPilotChat["id"] },
-  ) => {
-    executeRequestInAsync("datapilot:message", data);
-  };
-
-  const toggleDataPilot = (open: boolean) => {
-    executeRequestInAsync("datapilot:toggle", { open });
-  };
-
   useListeners(dispatch);
 
   const values = useMemo(
     () => ({
       state,
       dispatch,
-      postMessageToDataPilot,
-      toggleDataPilot,
     }),
     [state, dispatch],
   );
 
   return (
     <AppContext.Provider value={values}>
-      <DataPilotProvider>
-        <div className="App">{children}</div>
-      </DataPilotProvider>
+      <div className="App">{children}</div>
     </AppContext.Provider>
   );
 };

@@ -1,5 +1,5 @@
-import { Stack } from "@uicore";
 import { TelemetryEvents } from "@telemetryEvents";
+import { Stack } from "@uicore";
 import { sendTelemetryEvent } from "../telemetry";
 
 const TestHelpContent = (): JSX.Element => {
@@ -17,7 +17,7 @@ const TestHelpContent = (): JSX.Element => {
         <b>Add Tests:</b> You can easily add or edit generic dbt tests - unique,
         not_null, accepted_values and relationships . You can also generate code
         for custom tests from various packages like dbt expectations, dbt utils
-        using DataPilot chat. Generating custom tests requires an API key.
+        using Altimate Code chat. Generating custom tests requires an API key.
       </p>
       <p>
         <b>Save Tests:</b> Once you&apos;ve added or edited generic tests, hit

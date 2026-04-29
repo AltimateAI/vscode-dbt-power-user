@@ -272,7 +272,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           break;
         case "openNewNotebook":
           commands.executeCommand(
-            "dbtPowerUser.createDatapilotNotebook",
+            "dbtPowerUser.createAltimateNotebook",
             params,
           );
           break;
@@ -347,20 +347,6 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             return;
           }
           env.openExternal(Uri.parse(params.url as string));
-          break;
-        case "datapilot:toggle":
-          if (params.open) {
-            this.emitterService.eventEmitter.fire({
-              command: "datapilot:toggle",
-              payload: params,
-            });
-          }
-          break;
-        case "datapilot:message":
-          this.emitterService.eventEmitter.fire({
-            command: "datapilot:message",
-            payload: message,
-          });
           break;
         case "validateCredentials":
           const isValid = this.altimateAuthService.handlePreviewFeatures();

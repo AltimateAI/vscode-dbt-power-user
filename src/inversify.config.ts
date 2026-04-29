@@ -67,7 +67,6 @@ import { DbtTestService } from "./services/dbtTestService";
 import { DiagnosticsOutputChannel } from "./services/diagnosticsOutputChannel";
 import { DocGenService } from "./services/docGenService";
 import { FileService } from "./services/fileService";
-import { QueryAnalysisService } from "./services/queryAnalysisService";
 import { QueryManifestService } from "./services/queryManifestService";
 import { RunHistoryService } from "./services/runHistoryService";
 import { SharedStateService } from "./services/sharedStateService";
@@ -148,7 +147,6 @@ import {
 } from "./treeview_provider/modelTreeviewProvider";
 import { RunHistoryTreeviewProvider } from "./treeview_provider/runHistoryTreeviewProvider";
 import { WebviewViewProviders } from "./webview_provider";
-import { DataPilotPanel } from "./webview_provider/datapilotPanel";
 import { DbtDocsView } from "./webview_provider/DbtDocsView";
 import { DocsEditViewPanel } from "./webview_provider/docsEditPanel";
 import { InsightsPanel } from "./webview_provider/insightsPanel";
@@ -840,21 +838,6 @@ container
   .bind(FileService)
   .toDynamicValue(() => {
     return new FileService();
-  })
-  .inSingletonScope();
-
-container
-  .bind(QueryAnalysisService)
-  .toDynamicValue((context) => {
-    return new QueryAnalysisService(
-      context.container.get(DocGenService),
-      context.container.get(StreamingService),
-      context.container.get(AltimateRequest),
-      context.container.get(QueryManifestService),
-      context.container.get("DBTTerminal"),
-      context.container.get(FileService),
-      context.container.get(AltimateAuthService),
-    );
   })
   .inSingletonScope();
 
@@ -1655,26 +1638,6 @@ container
   .inSingletonScope();
 
 container
-  .bind(DataPilotPanel)
-  .toDynamicValue((context) => {
-    return new DataPilotPanel(
-      context.container.get(DBTProjectContainer),
-      context.container.get(TelemetryService),
-      context.container.get(AltimateRequest),
-      context.container.get(DocGenService),
-      context.container.get(SharedStateService),
-      context.container.get(QueryAnalysisService),
-      context.container.get(QueryManifestService),
-      context.container.get("DBTTerminal"),
-      context.container.get(DbtTestService),
-      context.container.get(FileService),
-      context.container.get(UsersService),
-      context.container.get(AltimateAuthService),
-    );
-  })
-  .inSingletonScope();
-
-container
   .bind(InsightsPanel)
   .toDynamicValue((context) => {
     return new InsightsPanel(
@@ -1739,7 +1702,6 @@ container
       context.container.get(QueryResultPanel),
       context.container.get(DocsEditViewPanel),
       context.container.get(LineagePanel),
-      context.container.get(DataPilotPanel),
       context.container.get(InsightsPanel),
     );
   })

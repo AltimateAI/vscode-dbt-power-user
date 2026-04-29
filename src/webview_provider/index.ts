@@ -1,5 +1,4 @@
 import { Disposable, window } from "vscode";
-import { DataPilotPanel } from "./datapilotPanel";
 import { DocsEditViewPanel } from "./docsEditPanel";
 import { InsightsPanel } from "./insightsPanel";
 import { LineagePanel } from "./lineagePanel";
@@ -12,7 +11,6 @@ export class WebviewViewProviders implements Disposable {
     private queryResultPanel: QueryResultPanel,
     private docsEditPanel: DocsEditViewPanel,
     private lineagePanel: LineagePanel,
-    private dataPilotPanel: DataPilotPanel,
     private insightsPanel: InsightsPanel,
   ) {
     this.disposables.push(
@@ -29,11 +27,6 @@ export class WebviewViewProviders implements Disposable {
       window.registerWebviewViewProvider(
         LineagePanel.viewType,
         this.lineagePanel,
-        { webviewOptions: { retainContextWhenHidden: true } },
-      ),
-      window.registerWebviewViewProvider(
-        DataPilotPanel.viewType,
-        this.dataPilotPanel,
         { webviewOptions: { retainContextWhenHidden: true } },
       ),
       window.registerWebviewViewProvider(

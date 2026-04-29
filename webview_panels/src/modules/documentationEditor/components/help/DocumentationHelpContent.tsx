@@ -1,7 +1,7 @@
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
-import { Alert, Button, Stack } from "@uicore";
 import { TelemetryEvents } from "@telemetryEvents";
+import { Alert, Button, Stack } from "@uicore";
 import { sendTelemetryEvent } from "../telemetry";
 
 const DocumentationHelpContent = ({
@@ -61,9 +61,8 @@ const DocumentationHelpContent = ({
       </p>
       <p>
         If the description is present already, and you click the “regenerate”
-        icon, DataPilot panel will be displayed on the left with prompts and
-        instructions where you can guide the DataPilot to generate descriptions
-        as per your specific preferences.
+        icon, the documentation will be regenerated using your latest
+        instructions.
       </p>
       <p>
         <b>Help Us Improve:</b> We&apos;re eager to hear from you! If

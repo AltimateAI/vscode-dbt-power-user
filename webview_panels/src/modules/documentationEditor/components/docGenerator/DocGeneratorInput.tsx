@@ -1,3 +1,9 @@
+import { executeRequestInSync } from "@modules/app/requestExecutor";
+import {
+  updateColumnsInCurrentDocsData,
+  updateCurrentDocsData,
+} from "@modules/documentationEditor/state/documentationSlice";
+import { EntityType } from "@modules/documentationEditor/state/entityType";
 import {
   DBTDocumentation,
   DBTDocumentationColumn,
@@ -5,6 +11,8 @@ import {
   DocsGenerateModelRequestV2,
 } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
+import { isArrayEqual } from "@modules/documentationEditor/utils";
+import { panelLogger } from "@modules/logger";
 import { Input, InputGroup, Stack, Tag } from "@uicore";
 import {
   ChangeEvent,
@@ -14,19 +22,11 @@ import {
   useRef,
   useState,
 } from "react";
+import AddCoversationButton from "../conversation/AddCoversationButton";
+import { DocumentationPropagationButton } from "../documentationPropagation/DocumentationPropagation";
+import DocBlockInserter from "./DocBlockInserter";
 import GenerateButton, { Variants } from "./GenerateButton";
 import classes from "./docGenInput.module.scss";
-import {
-  updateColumnsInCurrentDocsData,
-  updateCurrentDocsData,
-} from "@modules/documentationEditor/state/documentationSlice";
-import { EntityType } from "@modules/dataPilot/components/docGen/types";
-import { executeRequestInSync } from "@modules/app/requestExecutor";
-import AddCoversationButton from "../conversation/AddCoversationButton";
-import { panelLogger } from "@modules/logger";
-import { DocumentationPropagationButton } from "../documentationPropagation/DocumentationPropagation";
-import { isArrayEqual } from "@modules/documentationEditor/utils";
-import DocBlockInserter from "./DocBlockInserter";
 
 interface Props {
   entity: DBTDocumentationColumn | DBTDocumentation;
@@ -175,14 +175,12 @@ const DocGeneratorInput = ({
     const start = input.selectionStart;
     const end = input.selectionEnd;
     const currentValue = description;
-    
-    const newValue = 
-      currentValue.substring(0, start) + 
-      docRef + 
-      currentValue.substring(end);
-    
+
+    const newValue =
+      currentValue.substring(0, start) + docRef + currentValue.substring(end);
+
     setDescription(newValue);
-    
+
     // Update Redux state
     if (type === EntityType.COLUMN) {
       dispatch(
@@ -250,9 +248,9 @@ const DocGeneratorInput = ({
         ) : null}
         <div className="spacer" />
         <Stack className={classes.actionButtons}>
-          <DocBlockInserter 
-            inputRef={inputRef} 
-            onInsert={handleInsertDocBlock} 
+          <DocBlockInserter
+            inputRef={inputRef}
+            onInsert={handleInsertDocBlock}
           />
           <DocumentationPropagationButton type={type} name={entity.name} />
           <AddCoversationButton
