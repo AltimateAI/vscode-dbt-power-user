@@ -290,6 +290,10 @@ export class VSCodeCommands implements Disposable {
         this.runModel.compileModelOnActiveWindow(),
       ),
       commands.registerCommand(
+        "dbtPowerUser.compileCurrentModelFullRefresh",
+        () => this.runModel.compileModelOnActiveWindow(true),
+      ),
+      commands.registerCommand(
         "dbtPowerUser.bigqueryCostEstimate",
         ({ returnResult }: { returnResult?: boolean }) =>
           this.bigQueryCostEstimate.estimateCost({ returnResult }),
@@ -375,6 +379,9 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand("dbtPowerUser.executeSQL", () =>
         this.runModel.executeQueryOnActiveWindow(),
+      ),
+      commands.registerCommand("dbtPowerUser.executeSQLFullRefresh", () =>
+        this.runModel.executeQueryOnActiveWindow(true),
       ),
       commands.registerCommand(
         "dbtPowerUser.runSelectedQuery",

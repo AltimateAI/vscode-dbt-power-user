@@ -1333,17 +1333,27 @@ export class DBTProject implements Disposable {
     );
   }
 
-  async executeSQLOnQueryPanel(query: string, modelName: string) {
+  async executeSQLOnQueryPanel(
+    query: string,
+    modelName: string,
+    fullRefresh: boolean = false,
+  ) {
     const limit = workspace
       .getConfiguration("dbt")
       .get<number>("queryLimit", 500);
-    return this.executeSQLWithLimitOnQueryPanel(query, modelName, limit);
+    return this.executeSQLWithLimitOnQueryPanel(
+      query,
+      modelName,
+      limit,
+      fullRefresh,
+    );
   }
 
   async executeSQLWithLimitOnQueryPanel(
     query: string,
     modelName: string,
     limit: number,
+    fullRefresh: boolean = false,
   ) {
     if (limit <= 0) {
       window.showErrorMessage("Please enter a positive number for query limit");
@@ -1352,16 +1362,27 @@ export class DBTProject implements Disposable {
     this.terminal.info("executeSQL", "Executed query: " + query, true, {
       adapter: this.getAdapterType(),
       limit: limit.toString(),
+      fullRefresh: fullRefresh.toString(),
     });
+    // TODO(#1670): once `@altimateai/dbt-integration` is bumped to the version
+    // containing the `fullRefresh` plumbing
+    // (https://github.com/AltimateAI/altimate-dbt-integration/pull/44), drop
+    // the `as unknown as` cast — the published 0.2.12 types still declare
+    // `executeSQLWithLimit` with 3 params, so we widen locally here to let CI
+    // compile against the npm-published typings while the patched runtime
+    // accepts the 4th argument.
+    const executeSQLWithLimit = this.dbtProjectIntegration
+      .executeSQLWithLimit as unknown as (
+      query: string,
+      modelName: string,
+      limit: number,
+      fullRefresh?: boolean,
+    ) => Promise<QueryExecution>;
     this.eventEmitterService.fire({
       command: "executeQuery",
       payload: {
         query,
-        fn: this.dbtProjectIntegration.executeSQLWithLimit(
-          query,
-          modelName,
-          limit,
-        ),
+        fn: executeSQLWithLimit(query, modelName, limit, fullRefresh),
         projectName: this.getProjectName(),
       },
     });
