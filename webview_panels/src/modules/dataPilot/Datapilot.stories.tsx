@@ -1,5 +1,5 @@
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { withReactContext } from "storybook-react-context";
-import type { Meta, StoryObj } from "@storybook/react";
 import DataPilotPanel from ".";
 import { DataPilotContext } from "./DataPilotProvider";
 

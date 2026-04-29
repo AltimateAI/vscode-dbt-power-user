@@ -1,9 +1,9 @@
+import { RequestState } from "@modules/dataPilot/types";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { DatapilotCustomChatFactory } from "@testUtils";
 import { withReactContext } from "storybook-react-context";
-import type { Meta, StoryObj } from "@storybook/react";
 import DataPilotPanel from "../..";
 import { DataPilotContext } from "../../DataPilotProvider";
-import { DatapilotCustomChatFactory } from "@testUtils";
-import { RequestState } from "@modules/dataPilot/types";
 
 const customChatLoadingState = DatapilotCustomChatFactory.build({
   state: RequestState.LOADING,
