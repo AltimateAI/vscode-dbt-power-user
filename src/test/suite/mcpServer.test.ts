@@ -79,7 +79,44 @@ describe("DbtPowerUserMcpServer.updateMcpExtensionApi", () => {
     expect(terminal.error.mock.calls[0][0]).toBe(
       "DbtPowerUserMcpServer: enableMcpExtensionIntegration",
     );
+    // The message arg must carry the user-visible explanation directly —
+    // previously the second arg was a generic "Failed to install MCP extension"
+    // and the third was `{ message: "..." }`, which rendered as
+    // `[object Object]` in the dbt output channel.
+    expect(terminal.error.mock.calls[0][1]).toBe(
+      "Failed to install Altimate MCP Server extension",
+    );
+    expect(terminal.error.mock.calls[0][2]).toBeUndefined();
     expect(terminal.info).not.toHaveBeenCalled();
+  });
+
+  it("forwards the real Error to dbtTerminal.error when integration registration throws", async () => {
+    // Regression guard for the `[object Object]` log corruption: catch blocks
+    // used to wrap `error` in `{ message: e.message }`, which then stringified
+    // as `[object Object]` in the dbt output channel and stripped the stack
+    // from `sendTelemetryError`. The catch must forward the original Error.
+    const thrown = new Error("addMcpIntegrationConfig blew up");
+    const addMcpIntegrationConfig = jest
+      .fn<() => Promise<void>>()
+      .mockRejectedValue(thrown);
+    getExtensionMock.mockReturnValue({
+      isActive: true,
+      activate: jest.fn(),
+      exports: { addMcpIntegrationConfig },
+    });
+    const terminal = buildTerminal();
+    const server = newServer(terminal);
+
+    await server.updateMcpExtensionApi();
+
+    expect(terminal.error).toHaveBeenCalledTimes(1);
+    expect(terminal.error.mock.calls[0][0]).toBe(
+      "DbtPowerUserMcpServer:updateMcpExtensionApiError",
+    );
+    expect(terminal.error.mock.calls[0][2]).toBe(thrown);
+    // The third arg must be an actual Error instance, not a plain
+    // `{ message }` wrapper that serializes as `[object Object]`.
+    expect(terminal.error.mock.calls[0][2]).toBeInstanceOf(Error);
   });
 
   it("logs info and returns without throwing when MCP server is disabled (exports undefined)", async () => {

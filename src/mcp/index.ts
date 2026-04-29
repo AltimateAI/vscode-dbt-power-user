@@ -43,8 +43,8 @@ export class DbtPowerUserMcpServer implements Disposable {
       if (!extension) {
         this.dbtTerminal.error(
           "DbtPowerUserMcpServer: enableMcpExtensionIntegration",
-          "Failed to install MCP extension",
-          { message: "Failed to install Altimate MCP Server extension" },
+          "Failed to install Altimate MCP Server extension",
+          undefined,
         );
         return;
       }
@@ -89,7 +89,7 @@ export class DbtPowerUserMcpServer implements Disposable {
       this.dbtTerminal.error(
         "DbtPowerUserMcpServer:updateMcpExtensionApiError",
         "Error updating MCP extension API",
-        { message: (error as Error).message },
+        error,
       );
     }
   }
@@ -132,7 +132,7 @@ export class DbtPowerUserMcpServer implements Disposable {
       this.dbtTerminal.error(
         "DbtPowerUserMcpServer:registerToolsInMcpExtensionError",
         "Error registering tools in MCP extension",
-        { message: (error as Error).message },
+        error,
       );
     }
   }
