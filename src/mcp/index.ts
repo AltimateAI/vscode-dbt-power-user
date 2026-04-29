@@ -52,7 +52,18 @@ export class DbtPowerUserMcpServer implements Disposable {
       if (!extension.isActive) {
         await extension.activate();
       }
-      await extension.exports.ready;
+      // The MCP server's activate() returns undefined when
+      // `altimate.disableMcpServer = true`, leaving exports unset.
+      if (!extension.exports) {
+        this.dbtTerminal.info(
+          "DbtPowerUserMcpServer: updateMcpExtensionApi",
+          "MCP extension is installed but not exporting an API (likely disabled via altimate.disableMcpServer); skipping integration",
+        );
+        return;
+      }
+      if (extension.exports.ready) {
+        await extension.exports.ready;
+      }
       this.mcpExtensionApi = extension.exports as ToolRegistry;
 
       await this.mcpExtensionApi.addMcpIntegrationConfig([
