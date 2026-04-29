@@ -137,7 +137,7 @@ pygments==2.19.2
     # via
     #   diff-cover
     #   pytest
-pytest==9.0.2
+pytest==9.0.3
     # via sqlfluff
 python-dateutil==2.9.0.post0
     # via
