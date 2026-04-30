@@ -52,6 +52,14 @@ export class DbtPowerUserMcpServer implements Disposable {
       if (!extension.isActive) {
         await extension.activate();
       }
+      if (!extension.exports) {
+        this.dbtTerminal.error(
+          "DbtPowerUserMcpServer:updateMcpExtensionApiError",
+          "MCP extension exports not available",
+          { message: "Extension activated but exports are undefined" },
+        );
+        return;
+      }
       await extension.exports.ready;
       this.mcpExtensionApi = extension.exports as ToolRegistry;
 
