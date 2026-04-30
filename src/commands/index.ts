@@ -291,7 +291,7 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand(
         "dbtPowerUser.bigqueryCostEstimate",
-        ({ returnResult }: { returnResult?: boolean }) =>
+        ({ returnResult }: { returnResult?: boolean } = {}) =>
           this.bigQueryCostEstimate.estimateCost({ returnResult }),
       ),
       commands.registerTextEditorCommand(
