@@ -78,7 +78,7 @@ describe("DbtPowerUserMcpServer.updateMcpExtensionApi", () => {
     expect(terminal.error).not.toHaveBeenCalled();
     expect(terminal.info).toHaveBeenCalledTimes(1);
     expect(terminal.info.mock.calls[0][0]).toBe(
-      "DbtPowerUserMcpServer: enableMcpExtensionIntegration",
+      "DbtPowerUserMcpServer:enableMcpExtensionIntegration",
     );
     expect(terminal.info.mock.calls[0][1]).toBe(
       "Altimate MCP Server extension is not installed",
