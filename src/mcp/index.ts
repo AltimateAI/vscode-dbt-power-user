@@ -41,10 +41,9 @@ export class DbtPowerUserMcpServer implements Disposable {
       );
 
       if (!extension) {
-        this.dbtTerminal.error(
+        this.dbtTerminal.info(
           "DbtPowerUserMcpServer: enableMcpExtensionIntegration",
-          "Failed to install Altimate MCP Server extension",
-          undefined,
+          "Altimate MCP Server extension is not installed",
         );
         return;
       }

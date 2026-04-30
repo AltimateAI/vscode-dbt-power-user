@@ -68,26 +68,21 @@ describe("DbtPowerUserMcpServer.updateMcpExtensionApi", () => {
     jest.clearAllMocks();
   });
 
-  it("logs an error and returns when the MCP extension is not installed", async () => {
+  it("logs info and returns when the MCP extension is not installed", async () => {
     getExtensionMock.mockReturnValue(undefined);
     const terminal = buildTerminal();
     const server = newServer(terminal);
 
     await server.updateMcpExtensionApi();
 
-    expect(terminal.error).toHaveBeenCalledTimes(1);
-    expect(terminal.error.mock.calls[0][0]).toBe(
+    expect(terminal.error).not.toHaveBeenCalled();
+    expect(terminal.info).toHaveBeenCalledTimes(1);
+    expect(terminal.info.mock.calls[0][0]).toBe(
       "DbtPowerUserMcpServer: enableMcpExtensionIntegration",
     );
-    // The message arg must carry the user-visible explanation directly —
-    // previously the second arg was a generic "Failed to install MCP extension"
-    // and the third was `{ message: "..." }`, which rendered as
-    // `[object Object]` in the dbt output channel.
-    expect(terminal.error.mock.calls[0][1]).toBe(
-      "Failed to install Altimate MCP Server extension",
+    expect(terminal.info.mock.calls[0][1]).toBe(
+      "Altimate MCP Server extension is not installed",
     );
-    expect(terminal.error.mock.calls[0][2]).toBeUndefined();
-    expect(terminal.info).not.toHaveBeenCalled();
   });
 
   it("forwards the real Error to dbtTerminal.error when integration registration throws", async () => {
