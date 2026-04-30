@@ -109,10 +109,30 @@ export class TelemetryService implements vscode.Disposable {
             ? error.stack
             : JSON.stringify(error),
         ),
+        ...this.extractErrorFields(error),
         ...this.customAttributes,
       },
       measurements,
     );
+  }
+
+  // Surfaces error.name / error.message / error.code as their own properties
+  // so they survive VS Code's TelemetryLogger PII redaction (which can mask
+  // an entire stack to "<REDACTED: URL>") and can be filtered/grouped in
+  // App Insights independently of the stack trace.
+  private extractErrorFields(error: unknown): { [key: string]: string } {
+    if (!(error instanceof Error)) {
+      return {};
+    }
+    const fields: { [key: string]: string } = {
+      error_name: error.name,
+      error_message: error.message,
+    };
+    const code = (error as { code?: unknown }).code;
+    if (typeof code === "string" || typeof code === "number") {
+      fields.error_code = String(code);
+    }
+    return fields;
   }
 
   private removeGenericSecretsFromStackTrace(
