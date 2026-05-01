@@ -132,6 +132,14 @@ const LineageView = (): JSX.Element | null => {
   }
 
   const lineageType = renderNode.details ? "sql" : "dynamic";
+  // Force the inner Lineage component to fully unmount/remount when the focal
+  // node changes (or disappears). Without this, the component carries
+  // stale graph state across renders — sibling nodes from the previous
+  // focal model linger, and the missing-lineage warning ends up overlaid
+  // on top of the prior graph instead of replacing it.
+  const lineageKey = !renderNode.node
+    ? "no-node"
+    : `${renderNode.node.id ?? renderNode.node.table}::${renderNode.node.nodeType}`;
 
   return (
     <TooltipProvider>
@@ -148,6 +156,7 @@ const LineageView = (): JSX.Element | null => {
         )}
         <div className={`${styles.lineageWrap} al-tw-scope`}>
           <Lineage
+            key={lineageKey}
             theme={theme}
             dynamicLineage={renderNode}
             lineageType={lineageType}
