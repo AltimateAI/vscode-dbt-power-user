@@ -92,6 +92,11 @@ export class NewLineagePanel
     this.renderStartingNode();
   }
 
+  protected onWebviewReady() {
+    super.onWebviewReady();
+    this.renderStartingNode();
+  }
+
   changedActiveColorTheme() {
     if (!this._panel) {
       return;
