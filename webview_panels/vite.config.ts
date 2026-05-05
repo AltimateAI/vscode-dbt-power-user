@@ -43,6 +43,17 @@ export default defineConfig({
       "@vscodeApi": path.resolve(__dirname, "./src/modules/vscode"),
       "@telemetryEvents": path.resolve(__dirname, "../src/telemetry/events.ts"),
       "@lib": path.resolve(__dirname, "./src/lib"),
+      // Source-point the lineage UI to altimate-frontend during ERD-overlay development.
+      // Reverted before the feature ships — at that point ui-components will publish a
+      // version including the overlay and power-user just bumps the dep.
+      "@altimateai/ui-components/lineage": path.resolve(
+        __dirname,
+        "../../altimate-frontend/packages/ui-components/src/components/lineage/index.ts",
+      ),
+      "@altimateai/lego": path.resolve(
+        __dirname,
+        "../../altimate-frontend/packages/lego/src/index.ts",
+      ),
     },
   },
   css: {
