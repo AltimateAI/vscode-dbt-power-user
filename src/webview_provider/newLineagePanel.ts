@@ -34,6 +34,7 @@ import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
 import { TelemetryService } from "../telemetry";
 import { extendErrorWithSupportLinks } from "../utils";
+import { ValidationProvider } from "../validation_provider";
 import { AltimateWebviewProvider } from "./altimateWebviewProvider";
 import { LineagePanelView } from "./lineagePanel";
 
@@ -66,6 +67,7 @@ export class NewLineagePanel
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
     protected altimateAuthService: AltimateAuthService,
+    private validationProvider: ValidationProvider,
   ) {
     super(
       dbtProjectContainer,
@@ -389,12 +391,14 @@ export class NewLineagePanel
    * manifest. Phase 1 only derives refs from dbt `relationships` data tests;
    * later phases will add model contracts and naming-convention inference.
    *
-   * Gated behind the Altimate API key — same gate as other premium lineage
-   * features. Returns an empty list when no key is configured so the UI
-   * silently renders no overlay.
+   * Gated behind a validated Altimate API key (same gate as other premium
+   * lineage features — `aiEnabled` in `getStartingNode` reads from the same
+   * `ValidationProvider`). Returns an empty list when not authenticated so
+   * the UI silently renders no overlay. Defense-in-depth alongside the
+   * frontend's `aiEnabled` check — covers stale or manipulated webviews.
    */
   private getRelationships(): { refs: Ref[] } {
-    if (!this.altimate.enabled()) {
+    if (!this.validationProvider.isAuthenticated()) {
       return { refs: [] };
     }
     const event = this.queryManifestService.getEventByCurrentProject();
@@ -670,7 +674,11 @@ export class NewLineagePanel
         missingLineageMessage?: { message: string; type: string };
       }
     | undefined {
-    const aiEnabled = this.altimate.enabled();
+    // Stricter than `altimate.enabled()` (which only checks key + instance
+    // presence): require a successful round-trip validation. Lineage panel
+    // gates premium features on this, so an unvalidated key shouldn't unlock
+    // them.
+    const aiEnabled = this.validationProvider.isAuthenticated();
     const event = this.queryManifestService.getEventByCurrentProject();
     if (!event?.event) {
       this.dbtTerminal.info("Lineage:getStartingNode", "No event found");
