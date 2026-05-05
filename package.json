@@ -1286,6 +1286,8 @@
     "pretest": "npm run clean && npm run compile",
     "clean": "rimraf out coverage",
     "compile": "tsc -p ./",
+    "monitoring": "bash monitoring/run.sh",
+    "monitoring:issues": "bash monitoring/github_issues/run.sh",
     "docker:deploy": "./docker-setup/deploy.sh",
     "docker:logs": "cd docker-setup && docker compose logs -f || docker-compose logs -f",
     "docker:stop": "cd docker-setup && docker compose down || docker-compose down"
