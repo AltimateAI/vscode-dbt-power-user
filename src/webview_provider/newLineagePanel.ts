@@ -388,8 +388,15 @@ export class NewLineagePanel
    * ERD overlay: extract PK/FK relationships from the current project's
    * manifest. Phase 1 only derives refs from dbt `relationships` data tests;
    * later phases will add model contracts and naming-convention inference.
+   *
+   * Gated behind the Altimate API key — same gate as other premium lineage
+   * features. Returns an empty list when no key is configured so the UI
+   * silently renders no overlay.
    */
   private getRelationships(): { refs: Ref[] } {
+    if (!this.altimate.enabled()) {
+      return { refs: [] };
+    }
     const event = this.queryManifestService.getEventByCurrentProject();
     if (!event?.event) {
       return { refs: [] };
