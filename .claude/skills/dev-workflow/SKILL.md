@@ -349,8 +349,19 @@ setup_commands:
   - name: install-altimate-code-deps
     cmd: |
       if [ -d /workspace/altimate-code ]; then
-        cd /workspace/altimate-code && \
-          (~/.bun/bin/bun install 2>&1 | tail -5 || bun install 2>&1 | tail -5)
+        # Bun is required (altimate-code packageManager: bun@1.3.10).
+        # Base image lacks both unzip + bun; install on demand.
+        if ! command -v bun >/dev/null 2>&1 && [ ! -x "$HOME/.bun/bin/bun" ]; then
+          if ! command -v unzip >/dev/null 2>&1; then
+            sudo -n apt-get update -qq >/dev/null 2>&1 && \
+              sudo -n apt-get install -y -qq unzip >/dev/null 2>&1 || true
+          fi
+          curl -fsSL https://bun.sh/install | bash >/dev/null 2>&1 || true
+        fi
+        export PATH="$HOME/.bun/bin:$PATH"
+        if command -v bun >/dev/null 2>&1; then
+          (cd /workspace/altimate-code && bun install 2>&1 | tail -5) || true
+        fi
       fi
   - name: link-altimate-code-pkgs
     cmd: |
@@ -378,10 +389,11 @@ setup_commands:
         chmod +x $HOME/.local/bin/altimate
         grep -q '\.local/bin' "$HOME/.bashrc" 2>/dev/null || echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
       fi
-  # `yarn webpack` runs panel:webviews + webpack --mode development. This is
-  # the actual extension build (yarn compile only does tsc, not bundling).
+  # `yarn build-dev` runs panel:webviews + rsbuild build --mode development.
+  # This is the actual extension build (yarn compile only does tsc, not bundling).
+  # NODE_OPTIONS bumps the heap — rsbuild + vite OOM with the default 4GB.
   - name: initial-extension-build
-    cmd: yarn webpack 2>&1 | tail -10
+    cmd: NODE_OPTIONS="--max-old-space-size=8192" yarn build-dev 2>&1 | tail -20
   - name: setup-code-server-extension
     cmd: |
       EXT_DIR="$HOME/.local/share/code-server/extensions"
@@ -406,13 +418,13 @@ start_command: >
 
 ### Common ops in the sandbox
 
-- **Restart watcher**: `harness exec vscode-dbt-power-user "pkill -f 'webpack --watch'; cd /workspace/vscode-dbt-power-user && yarn watch > /tmp/webpack-watch.log 2>&1 &"`
+- **Restart watcher**: `harness exec vscode-dbt-power-user "pkill -f 'rsbuild build --watch'; cd /workspace/vscode-dbt-power-user && NODE_OPTIONS='--max-old-space-size=8192' yarn watch > /tmp/build-watch.log 2>&1 &"`
 - **Run linters / tsc**: `harness exec vscode-dbt-power-user "cd /workspace/vscode-dbt-power-user && yarn lint && yarn test-compile"`
 - **Run the local altimate CLI**: `harness exec vscode-dbt-power-user "altimate --help"` — resolves to the shim in `~/.local/bin`, runs from `/workspace/altimate-code/packages/opencode`.
 
 ### Sandbox troubleshooting
 
-- **Extension not loading in sandbox**: Check symlink at `~/.local/share/code-server/extensions/vscode-dbt-power-user` and that `dist/extension.js` was built by `yarn webpack`.
+- **Extension not loading in sandbox**: Check symlink at `~/.local/share/code-server/extensions/vscode-dbt-power-user` and that `dist/extension.js` was built by `yarn build-dev`.
 - **`altimate` binary missing**: `/workspace/altimate-code` may not have cloned. Check `harness logs <sandbox-id>` for the clone init container output.
 - **`@altimateai/*` import resolution off**: Verify the symlinks at `node_modules/@altimateai/{altimate-code,dbt-tools,drivers}` point at `/workspace/altimate-code/packages/{opencode,dbt-tools,drivers}`.
 - **Slow phase 1**: Base image may be stale. Rebuild with `az acr build --registry altimateacr --image vscode-altimate-mcp-server-base:latest -f Dockerfile.base .` (we share the mcp-server base image).
