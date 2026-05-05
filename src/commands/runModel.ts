@@ -74,6 +74,28 @@ export class RunModel {
     }
   }
 
+  async executeModelOnActiveWindow() {
+    const editor = window.activeTextEditor;
+    if (!editor) {
+      return;
+    }
+    const uri = editor.document.uri;
+    if (uri.scheme === "untitled") {
+      window.showErrorMessage(
+        "Execute Model requires a saved dbt model file. Save the file first, or use Execute Query (Cmd+Enter) for ad-hoc SQL.",
+      );
+      return;
+    }
+    const modelName = path.basename(uri.fsPath, ".sql");
+    if (!modelName) {
+      window.showErrorMessage(
+        "Execute Model requires a saved dbt model file with a valid name.",
+      );
+      return;
+    }
+    this.executeModel(uri, modelName);
+  }
+
   runModelOnNodeTreeItem(type: RunModelType) {
     return (model?: NodeTreeItem) => {
       if (model === undefined) {
@@ -167,6 +189,10 @@ export class RunModel {
 
   async executeSQL(uri: Uri, query: string, modelName: string) {
     this.dbtProjectContainer.executeSQL(uri, query, modelName);
+  }
+
+  async executeModel(uri: Uri, modelName: string) {
+    this.dbtProjectContainer.executeModel(uri, modelName);
   }
 
   showCompiledSQL(modelPath: Uri) {

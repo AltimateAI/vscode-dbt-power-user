@@ -720,6 +720,12 @@
         "icon": "$(play)"
       },
       {
+        "command": "dbtPowerUser.executeModel",
+        "title": "Execute dbt Model",
+        "category": "dbt Power User",
+        "icon": "$(play-circle)"
+      },
+      {
         "command": "dbtPowerUser.buildCurrentModel",
         "title": "Build dbt Model",
         "category": "dbt Power User",
@@ -874,6 +880,12 @@
         "when": "editorFocus && resourceLangId =~ /^sql$|^jinja-sql$/"
       },
       {
+        "key": "Ctrl+Shift+Enter",
+        "mac": "Cmd+Shift+Enter",
+        "command": "dbtPowerUser.executeModel",
+        "when": "editorFocus && resourceLangId =~ /^sql$|^jinja-sql$/"
+      },
+      {
         "key": "Ctrl+'",
         "mac": "Cmd+'",
         "command": "dbtPowerUser.sqlPreview"
@@ -1004,6 +1016,11 @@
           "command": "dbtPowerUser.executeSQL",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
           "group": "navigation@1"
+        },
+        {
+          "command": "dbtPowerUser.executeModel",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "group": "navigation@2"
         },
         {
           "command": "dbtPowerUser.runCurrentModel",

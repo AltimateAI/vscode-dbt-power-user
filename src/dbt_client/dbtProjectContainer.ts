@@ -251,6 +251,17 @@ export class DBTProjectContainer implements Disposable {
     this.findDBTProject(uri)?.executeSQLOnQueryPanel(query, modelName);
   }
 
+  executeModel(uri: Uri, modelName: string): void {
+    const project = this.findDBTProject(uri);
+    if (!project) {
+      window.showErrorMessage(
+        `No dbt project found for ${uri.fsPath}. Execute Model requires a file inside a dbt project.`,
+      );
+      return;
+    }
+    void project.executeModelOnQueryPanel(modelName);
+  }
+
   runModel(modelPath: Uri, type?: RunModelType) {
     this.findDBTProject(modelPath)?.runModel(
       this.createModelParams(modelPath, type),
