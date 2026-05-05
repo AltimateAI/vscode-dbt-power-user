@@ -304,15 +304,21 @@ This section is the machine-readable contract for the harness sandbox system. Th
 
 | Phase | Marker file | What's available |
 |---|---|---|
-| **Phase 1: code-ready** | `/workspace/.code-ready` | Source code, `node_modules`, linters, `tsc` |
-| **Phase 2: server-ready** | `/workspace/.server-ready` | code-server running on :3001, extension loaded |
+| **Phase 1: code-ready** | `/workspace/.code-ready` | Source code, `node_modules` (extension + webview_panels), `altimate-code` symlinks, `altimate` binary on PATH, linters, `tsc` |
+| **Phase 2: server-ready** | `/workspace/.server-ready` | Initial webpack build done, code-server on :3001 with the extension symlinked, `yarn watch` running |
 
-`harness spawn` returns at phase 1 (~5s with base image). Agent reads codebase while code-server starts (~30-60s for yarn compile + code-server boot).
+`harness spawn` returns at phase 1 (~10-30s with the base image). Watch mode (`yarn watch`) runs concurrent webview_panels + webpack `--watch`, so file edits auto-rebuild — reload the code-server tab to pick them up.
+
+The sandbox also clones **altimate-code** alongside at `/workspace/altimate-code` and symlinks its `@altimateai/*` workspace packages (`altimate-code`, `dbt-tools`, `drivers`) into this extension's `node_modules/`. Edits to either repo are picked up by `yarn watch` — no per-package publish/install loop. This mirrors the pattern that wires `altimate-mcp-engine` into `vscode-altimate-mcp-server`. The local `altimate` binary is also exposed on PATH (`~/.local/bin/altimate`) so any future runtime-spawn use resolves to the local clone.
 
 ```yaml
 repo: vscode-dbt-power-user
 repo_url: https://github.com/AltimateAI/vscode-dbt-power-user.git
-base_image: altimateacr.azurecr.io/vscode-dbt-power-user-base:latest
+# Reuses mcp-server's pre-baked base image — it has code-server, yarn, node,
+# bun, and the build tools we need. A dedicated vscode-dbt-power-user-base
+# image can be built later if cold-start time matters; switching here is a
+# one-line change.
+base_image: altimateacr.azurecr.io/vscode-altimate-mcp-server-base:latest
 working_dir: /workspace/vscode-dbt-power-user
 port: 3001
 health_path: /healthz
@@ -328,12 +334,54 @@ sidecars: []
 setup_commands:
   - name: enable-corepack
     cmd: corepack enable
-  - name: install-root-deps
-    cmd: yarn install --immutable 2>&1 | tail -5 || yarn install 2>&1 | tail -5
+  - name: install-extension-deps
+    cmd: yarn install --frozen-lockfile 2>&1 | tail -5 || yarn install 2>&1 | tail -5
+  # webview_panels is npm-managed (per package.json scripts: install:panels
+  # uses `npm install --prefix ./webview_panels`), so use npm here too —
+  # using yarn would create a competing yarn.lock and drift the install.
   - name: install-webview-deps
-    cmd: cd webview_panels && (yarn install --immutable 2>&1 | tail -5 || yarn install 2>&1 | tail -5)
-  - name: compile-extension
-    cmd: yarn compile
+    cmd: cd webview_panels && (npm ci 2>&1 | tail -5 || npm install 2>&1 | tail -5)
+  # altimate-code is cloned alongside at /workspace/altimate-code by the
+  # init-clone container. We install its bun deps and symlink the three
+  # @altimateai/* workspace pkgs into this extension's node_modules so any
+  # build-time consumer (rspack/webpack alias, direct import) resolves to
+  # the local source. The `altimate` shim on PATH covers the runtime case.
+  - name: install-altimate-code-deps
+    cmd: |
+      if [ -d /workspace/altimate-code ]; then
+        cd /workspace/altimate-code && \
+          (~/.bun/bin/bun install 2>&1 | tail -5 || bun install 2>&1 | tail -5)
+      fi
+  - name: link-altimate-code-pkgs
+    cmd: |
+      if [ -d /workspace/altimate-code ]; then
+        mkdir -p /workspace/vscode-dbt-power-user/node_modules/@altimateai
+        for pkg in altimate-code dbt-tools drivers; do
+          src=""
+          case "$pkg" in
+            altimate-code) src=/workspace/altimate-code/packages/opencode ;;
+            dbt-tools)     src=/workspace/altimate-code/packages/dbt-tools ;;
+            drivers)       src=/workspace/altimate-code/packages/drivers ;;
+          esac
+          [ -d "$src" ] && ln -sfn "$src" /workspace/vscode-dbt-power-user/node_modules/@altimateai/$pkg
+        done
+      fi
+  - name: expose-altimate-binary
+    cmd: |
+      if [ -d /workspace/altimate-code ]; then
+        mkdir -p $HOME/.local/bin
+        printf '%s\n' \
+          '#!/bin/bash' \
+          '# Sandbox shim — runs altimate-code from local clone, not npm.' \
+          'exec bun run --cwd /workspace/altimate-code/packages/opencode --conditions=browser src/index.ts "$@"' \
+          > $HOME/.local/bin/altimate
+        chmod +x $HOME/.local/bin/altimate
+        grep -q '\.local/bin' "$HOME/.bashrc" 2>/dev/null || echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+      fi
+  # `yarn webpack` runs panel:webviews + webpack --mode development. This is
+  # the actual extension build (yarn compile only does tsc, not bundling).
+  - name: initial-extension-build
+    cmd: yarn webpack 2>&1 | tail -10
   - name: setup-code-server-extension
     cmd: |
       EXT_DIR="$HOME/.local/share/code-server/extensions"
@@ -344,7 +392,7 @@ setup_commands:
       SETTINGS_DIR="$HOME/.local/share/code-server/User"
       mkdir -p "$SETTINGS_DIR"
       if [ ! -f "$SETTINGS_DIR/settings.json" ]; then
-        echo '{"altimate.onboardedMcpServer": true}' > "$SETTINGS_DIR/settings.json"
+        echo '{"dbt.altimateAiKey": ""}' > "$SETTINGS_DIR/settings.json"
       fi
 
 start_command: >
@@ -356,8 +404,15 @@ start_command: >
   --log debug
 ```
 
+### Common ops in the sandbox
+
+- **Restart watcher**: `harness exec vscode-dbt-power-user "pkill -f 'webpack --watch'; cd /workspace/vscode-dbt-power-user && yarn watch > /tmp/webpack-watch.log 2>&1 &"`
+- **Run linters / tsc**: `harness exec vscode-dbt-power-user "cd /workspace/vscode-dbt-power-user && yarn lint && yarn test-compile"`
+- **Run the local altimate CLI**: `harness exec vscode-dbt-power-user "altimate --help"` — resolves to the shim in `~/.local/bin`, runs from `/workspace/altimate-code/packages/opencode`.
+
 ### Sandbox troubleshooting
 
-- **Extension not loading in sandbox**: Check symlink at `~/.local/share/code-server/extensions/vscode-dbt-power-user` and that `dist/extension.js` was built by `yarn compile`.
-- **Slow phase 1**: Base image may be stale. Rebuild with `az acr build --registry altimateacr --image vscode-dbt-power-user-base:latest -f Dockerfile.base .`
-- **MCP server not starting**: Verify `altimate.onboardedMcpServer: true` in code-server settings.
+- **Extension not loading in sandbox**: Check symlink at `~/.local/share/code-server/extensions/vscode-dbt-power-user` and that `dist/extension.js` was built by `yarn webpack`.
+- **`altimate` binary missing**: `/workspace/altimate-code` may not have cloned. Check `harness logs <sandbox-id>` for the clone init container output.
+- **`@altimateai/*` import resolution off**: Verify the symlinks at `node_modules/@altimateai/{altimate-code,dbt-tools,drivers}` point at `/workspace/altimate-code/packages/{opencode,dbt-tools,drivers}`.
+- **Slow phase 1**: Base image may be stale. Rebuild with `az acr build --registry altimateacr --image vscode-altimate-mcp-server-base:latest -f Dockerfile.base .` (we share the mcp-server base image).
