@@ -369,7 +369,7 @@ export class DbtLineageService {
     // --- altimate-core: try local column lineage first ---
     const cllEngine = workspace
       .getConfiguration("dbt")
-      .get<string>("lineage.cllEngine", "legacy");
+      .get<string>("lineage.cllEngine", "sqlEngine");
 
     this.dbtTerminal.debug(
       "dbtLineageService:getConnectedColumns",
