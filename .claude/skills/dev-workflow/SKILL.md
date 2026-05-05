@@ -389,16 +389,27 @@ setup_commands:
         chmod +x $HOME/.local/bin/altimate
         grep -q '\.local/bin' "$HOME/.bashrc" 2>/dev/null || echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
       fi
+  # ts-loader declares webpack as a peerDependency but power-user's
+  # package.json doesn't list it, so install on demand. Without it the
+  # rsbuild build fails with "Cannot find module 'webpack'".
+  - name: install-webpack-peer
+    cmd: |
+      if [ ! -d node_modules/webpack ]; then
+        yarn add --dev --no-progress webpack 2>&1 | tail -3 || true
+      fi
   # `yarn build-dev` runs panel:webviews + rsbuild build --mode development.
   # This is the actual extension build (yarn compile only does tsc, not bundling).
   # NODE_OPTIONS bumps the heap — rsbuild + vite OOM with the default 4GB.
   - name: initial-extension-build
     cmd: NODE_OPTIONS="--max-old-space-size=8192" yarn build-dev 2>&1 | tail -20
+  # The symlink dir name MUST include version suffix (publisher.name-X.Y.Z),
+  # else code-server's obsolete scanner re-marks it as removed every boot.
   - name: setup-code-server-extension
     cmd: |
       EXT_DIR="$HOME/.local/share/code-server/extensions"
       mkdir -p "$EXT_DIR"
-      ln -sf /workspace/vscode-dbt-power-user "$EXT_DIR/vscode-dbt-power-user"
+      EXT_NAME="$(node -p "require('./package.json').publisher").$(node -p "require('./package.json').name")-$(node -p "require('./package.json').version")"
+      ln -sfn /workspace/vscode-dbt-power-user "$EXT_DIR/$EXT_NAME"
   - name: setup-code-server-settings
     cmd: |
       SETTINGS_DIR="$HOME/.local/share/code-server/User"
