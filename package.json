@@ -138,6 +138,11 @@
             "description": "Enable Datapilot notebooks feature",
             "default": true
           },
+          "dbt.showChangelogOnUpdate": {
+            "type": "boolean",
+            "description": "Automatically show the What's New page when the extension is updated to a new version.",
+            "default": true
+          },
           "dbt.lineage.showSelectEdges": {
             "type": "boolean",
             "description": "Show select edges in lineage panel.",
@@ -499,6 +504,11 @@
         "command": "dbtPowerUser.openOnboarding",
         "category": "dbt Power User",
         "title": "Get Started with dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.showWhatsNew",
+        "category": "dbt Power User",
+        "title": "Show What's New"
       },
       {
         "command": "dbtPowerUser.sqlQuickPick",

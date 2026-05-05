@@ -1,0 +1,88 @@
+<!--
+  Hand-authored "What's New" content. Edit this file each release cycle to
+  highlight notable changes from the previous ~3 months.
+
+  Conventions:
+    - This file ships in the VSIX and is rendered by WhatsNewPanel.
+    - Only include the body content here; the panel wraps it with theming.
+    - Group entries under the existing Develop / Test / Collaborate phases
+      so users can map highlights to the marketing surface they already know.
+    - Link to PR numbers (#1234) where useful — they render as plain text but
+      help maintainers cross-reference history.
+-->
+
+<p class="whats-new-intro">
+  Highlights from the last few months. Toggle the checkbox below if you'd rather
+  see this only when you open it manually.
+</p>
+
+<h2>🔧 Develop</h2>
+<ul>
+  <li>
+    <strong>CTE Profiler</strong> — see per-CTE timing and row counts as inline
+    decorations while a query runs, so you can spot expensive sub-queries
+    without rewriting them. (#1863)
+  </li>
+  <li>
+    <strong>YAML schema codelenses</strong> — Run/Test actions and model info
+    hovers now appear directly on YAML schema files, not just on SQL. (#1872)
+  </li>
+  <li>
+    <strong>RisingWave adapter support</strong> — first-class detection for
+    projects using the RisingWave adapter. (#1889)
+  </li>
+  <li>
+    <strong>Macro go-to-definition</strong> — resolves macros prefixed with
+    their own project name (e.g. <code>my_project.my_macro()</code>). (#1881)
+  </li>
+</ul>
+
+<h2>🧪 Test</h2>
+<ul>
+  <li>
+    <strong>Singular data tests</strong> — the “Run Test” action now recognises
+    singular data tests, not just generic schema tests. (#1879)
+  </li>
+  <li>
+    <strong>Docs editor schema fix</strong> — stops writing both
+    <code>tests:</code> and <code>data_tests:</code> for the same column,
+    keeping schema YAML clean. (#1899)
+  </li>
+</ul>
+
+<h2>🤝 Collaborate &amp; AI</h2>
+<ul>
+  <li>
+    <strong>Altimate Code product hook</strong> — Query Results welcome tab now
+    points to Altimate Code chat for context-aware help. (#1907, #1909)
+  </li>
+  <li>
+    <strong>Troubleshoot with Altimate</strong> — when a query fails, jump
+    straight from the error into a guided troubleshooting flow. (#1906)
+  </li>
+  <li>
+    <strong>MCP tool schemas</strong> — schemas now strip <code>$schema</code>
+    so Gemini and other strict consumers accept them. (#1891)
+  </li>
+</ul>
+
+<h2>🛠️ Reliability &amp; internals</h2>
+<ul>
+  <li>
+    Telemetry crash-paths hardened against undefined <code>uri.fsPath</code> /
+    <code>range.start</code>, fixing several Sentry reports. (#1890)
+  </li>
+  <li>
+    Azure telemetry restored by passing the connection string through to
+    <code>TelemetryReporter</code>. (#1912)
+  </li>
+  <li>
+    Build system migrated from webpack to rsbuild — faster compiles in
+    development and CI. (#1762)
+  </li>
+</ul>
+
+<p class="whats-new-footer">
+  Full release notes are available on the
+  <a href="https://marketplace.visualstudio.com/items/innoverio.vscode-dbt-power-user/changelog">VS Code Marketplace</a>.
+</p>

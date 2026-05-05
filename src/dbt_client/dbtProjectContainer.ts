@@ -167,6 +167,50 @@ export class DBTProjectContainer implements Disposable {
     }
   }
 
+  async checkAndShowWhatsNew(panel: {
+    show: (reason: "manual" | "update") => void | Promise<void>;
+  }) {
+    const currentVersion = this.extensionVersion;
+    const lastSeenVersion = this.getFromGlobalState("lastSeenVersion") as
+      | string
+      | undefined;
+
+    if (lastSeenVersion === currentVersion) {
+      return;
+    }
+
+    // Persist the new version regardless of whether we end up showing the
+    // panel; otherwise users who opt out would be re-prompted every restart
+    // until they update again.
+    this.setToGlobalState("lastSeenVersion", currentVersion);
+
+    if (lastSeenVersion === undefined) {
+      // Fresh install: defer to the existing setup walkthrough.
+      this.dbtTerminal.debug(
+        "dbtProjectContainer:whatsNewSkipped",
+        "fresh install, skipping What's New panel",
+      );
+      return;
+    }
+
+    const showChangelog = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("showChangelogOnUpdate", true);
+    if (!showChangelog) {
+      this.dbtTerminal.debug(
+        "dbtProjectContainer:whatsNewSkipped",
+        `dbt.showChangelogOnUpdate is false (was ${lastSeenVersion}, now ${currentVersion})`,
+      );
+      return;
+    }
+
+    this.dbtTerminal.debug(
+      "dbtProjectContainer:whatsNewDisplayed",
+      `showing What's New panel (was ${lastSeenVersion}, now ${currentVersion})`,
+    );
+    await panel.show("update");
+  }
+
   get extensionUri() {
     return this.context!.extensionUri;
   }
