@@ -458,6 +458,13 @@ export class AltimateRequest {
     });
   }
 
+  async exportLineage(req: { name: string; lineage_data: unknown }) {
+    return this.fetch<{ url: string }>("dbt/v4/export-lineage", {
+      method: "POST",
+      body: JSON.stringify(req),
+    });
+  }
+
   async runModeller(req: SQLToModelRequest) {
     return this.fetch<SQLToModelResponse>("dbt/v1/sqltomodel", {
       method: "POST",

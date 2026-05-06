@@ -246,6 +246,39 @@ export class NewLineagePanel
       return;
     }
 
+    if (command === "exportLineage") {
+      try {
+        const body = await this.altimate.exportLineage({
+          name: params.name,
+          lineage_data: params.lineage_data,
+        });
+        this._panel?.webview.postMessage({
+          command: "response",
+          args: { id, syncRequestId, body, status: true },
+        });
+      } catch (error) {
+        this._panel?.webview.postMessage({
+          command: "response",
+          args: {
+            id,
+            syncRequestId,
+            error: (error as Error).message,
+            status: false,
+          },
+        });
+        window.showErrorMessage(
+          extendErrorWithSupportLinks(
+            "Could not export lineage: " + (error as Error).message,
+          ),
+        );
+        this.telemetry.sendTelemetryError(
+          "altimateLineageExportLineageError",
+          error,
+        );
+      }
+      return;
+    }
+
     if (command === "columnLineage") {
       this.handleColumnLineage(args, () => {
         this._panel?.webview.postMessage({
