@@ -388,8 +388,14 @@ export class NewLineagePanel
 
   /**
    * ERD overlay: extract PK/FK relationships from the current project's
-   * manifest. Phase 1 only derives refs from dbt `relationships` data tests;
-   * later phases will add model contracts and naming-convention inference.
+   * manifest. Chains all four sources — `relationships` data tests (Phase 1),
+   * model contract foreign keys (Phase 2), naming-convention inference
+   * (Phase 3), and semantic-layer entity pairings (Phase 4). Each ref carries
+   * a `source` discriminator so the frontend can filter and style per-source.
+   *
+   * Inference is invoked unconditionally with the parser's default
+   * confidence floor; the frontend applies the user-controlled threshold
+   * on top. Sources are excluded by default — opt-in via params.
    *
    * Gated behind a validated Altimate API key (same gate as other premium
    * lineage features — `aiEnabled` in `getStartingNode` reads from the same
@@ -397,7 +403,10 @@ export class NewLineagePanel
    * the UI silently renders no overlay. Defense-in-depth alongside the
    * frontend's `aiEnabled` check — covers stale or manipulated webviews.
    */
-  private getRelationships(): { refs: Ref[] } {
+  private getRelationships(params?: {
+    includeSources?: boolean;
+    allowSelfReference?: boolean;
+  }): { refs: Ref[] } {
     if (!this.validationProvider.isAuthenticated()) {
       return { refs: [] };
     }
@@ -405,12 +414,32 @@ export class NewLineagePanel
     if (!event?.event) {
       return { refs: [] };
     }
-    const { testMetaMap } = event.event;
+    const { testMetaMap, nodeMetaMap, sourceMetaMap, semanticModelMetaMap } =
+      event.event;
     const parser = new RelationshipParser(this.terminal);
-    const refs = parser.fromTests(testMetaMap);
+
+    const fromTests = parser.fromTests(testMetaMap);
+    const fromContracts = parser.fromContracts(nodeMetaMap, sourceMetaMap);
+    const fromInference = parser.fromInference(nodeMetaMap, sourceMetaMap, {
+      // Emit at the parser's lowest acceptable confidence; UI applies the
+      // user-controlled threshold via the popover slider.
+      minConfidence: 0.6,
+      includeSources: params?.includeSources ?? false,
+      allowSelfReference: params?.allowSelfReference ?? false,
+    });
+    const fromSemantic = parser.fromSemanticEntities(semanticModelMetaMap);
+
+    const refs = [
+      ...fromTests,
+      ...fromContracts,
+      ...fromInference,
+      ...fromSemantic,
+    ];
     this.terminal.debug(
       "NewLineagePanel",
-      `getRelationships returning ${refs.length} refs`,
+      `getRelationships returning ${refs.length} refs (` +
+        `tests=${fromTests.length}, contracts=${fromContracts.length}, ` +
+        `inferred=${fromInference.length}, semantic=${fromSemantic.length})`,
     );
     return { refs };
   }
