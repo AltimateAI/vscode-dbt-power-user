@@ -657,7 +657,6 @@ container
         projectConfigDiagnostics,
         deferConfig,
         onDiagnosticsChanged,
-        container.get(DbtCloudVariantDetector),
       );
     };
   });
