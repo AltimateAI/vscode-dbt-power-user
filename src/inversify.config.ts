@@ -1680,6 +1680,7 @@ container
       context.container.get(ConversationProvider),
       context.container.get(ConversationService),
       context.container.get(AltimateAuthService),
+      context.container.get(AltimateCodeChatService),
     );
   })
   .inSingletonScope();
