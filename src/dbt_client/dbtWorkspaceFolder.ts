@@ -94,16 +94,26 @@ export class DBTWorkspaceFolder implements Disposable {
     while (attempt < retries) {
       try {
         const result = await fn();
-        if (Array.isArray(result) && result.length === 0) {
+        const isEmptyArray = Array.isArray(result) && result.length === 0;
+        if (!isEmptyArray) {
+          return result;
+        }
+        // Empty array — try again, in case `findFiles` returned early
+        // during VS Code's initial workspace indexing.
+        attempt++;
+        if (attempt < retries) {
           this.dbtTerminal.debug(
             "discoverProjects",
             "no projects found. retrying...",
             false,
           );
-          throw new Error("no projects found. retrying");
+          await new Promise((resolve) =>
+            setTimeout(resolve, backoff * attempt),
+          );
         }
-        return result;
       } catch (error) {
+        // Real error from fn() (e.g. permission failure). Preserve the
+        // existing retry-then-throw behaviour for these.
         attempt++;
         if (attempt >= retries) {
           throw error;
@@ -111,12 +121,23 @@ export class DBTWorkspaceFolder implements Disposable {
         await new Promise((resolve) => setTimeout(resolve, backoff * attempt));
       }
     }
+    // Bounded-loop fall-through: every attempt returned an empty array.
+    // Treat as legitimately empty rather than throwing. This is the
+    // multi-root case: VS Code's `workspaceContains:**/dbt_project.yml`
+    // activates the extension when ANY workspace folder matches, but
+    // `discoverProjects` runs on EVERY folder. A sibling folder that
+    // genuinely has no dbt project should not surface as
+    // `extensionActivationError` (telemetry cluster of 83 machines / 104
+    // events on top-2 versions in 24h was driven by exactly this). The
+    // constructor's `createConfigWatcher` keeps watching for
+    // `dbt_project.yml` creation in this folder, so a project added later
+    // will still be picked up.
     this.dbtTerminal.debug(
       "discoverProjects",
-      "no projects found after maximum retries",
+      "no projects found after maximum retries — treating folder as empty",
       false,
     );
-    throw new Error("no projects found after maximum retries");
+    return [] as T;
   }
 
   async discoverProjects() {
