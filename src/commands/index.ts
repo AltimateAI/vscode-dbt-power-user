@@ -1180,8 +1180,63 @@ export class VSCodeCommands implements Disposable {
           if (!context) {
             return;
           }
+
+          const SQL_DIALECTS = [
+            "bigquery",
+            "clickhouse",
+            "databricks",
+            "doris",
+            "duckdb",
+            "hive",
+            "mysql",
+            "oracle",
+            "postgres",
+            "redshift",
+            "snowflake",
+            "spark",
+            "sqlserver",
+            "starrocks",
+            "synapse",
+            "teradata",
+            "trino",
+          ];
+
+          const sourceDialect = await window.showQuickPick(SQL_DIALECTS, {
+            title: "Translate SQL — Step 1 of 2",
+            placeHolder: "Select source dialect",
+          });
+          if (!sourceDialect) {
+            return;
+          }
+
+          // Auto-detect target from project adapter type if available
+          let defaultTarget: string | undefined;
+          try {
+            defaultTarget = this.queryManifestService
+              .getProject()
+              ?.getAdapterType();
+          } catch {
+            // ignore — optional
+          }
+
+          const targetItems = SQL_DIALECTS.filter((d) => d !== sourceDialect);
+          if (defaultTarget && targetItems.includes(defaultTarget)) {
+            // Bubble the project adapter to the top
+            const idx = targetItems.indexOf(defaultTarget);
+            targetItems.splice(idx, 1);
+            targetItems.unshift(defaultTarget);
+          }
+
+          const targetDialect = await window.showQuickPick(targetItems, {
+            title: "Translate SQL — Step 2 of 2",
+            placeHolder: "Select target dialect",
+          });
+          if (!targetDialect) {
+            return;
+          }
+
           await this.altimateCodeChatService.openChat({
-            initialMessage: `Translate the following SQL from \`@${context.relativePath}\` to another SQL dialect:\n\`\`\`sql\n${context.code}\n\`\`\``,
+            initialMessage: `Translate the following SQL from \`@${context.relativePath}\` from **${sourceDialect}** to **${targetDialect}** dialect:\n\`\`\`sql\n${context.code}\n\`\`\``,
             title: `Translate: ${context.fileName}`,
           });
         },
