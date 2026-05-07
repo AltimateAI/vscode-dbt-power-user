@@ -676,6 +676,9 @@ container
       onDiagnosticsChanged: () => void,
     ) => {
       const { container } = context;
+      const pythonStrategyFactory = container.get<
+        (projectRoot: string) => PythonDBTCommandExecutionStrategy
+      >("Factory<PythonDBTCommandExecutionStrategy>");
       return new DBTCloudProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
         container.get(DBTCommandFactory),
@@ -688,6 +691,11 @@ container
         deferConfig,
         onDiagnosticsChanged,
         container.get(DbtCloudVariantDetector),
+        {
+          pythonDBTCommandExecutionStrategy: pythonStrategyFactory(projectRoot),
+          dbtConfiguration: container.get<DBTConfiguration>("DBTConfiguration"),
+          dbtIntegrationClient: container.get(DbtIntegrationClient),
+        },
       );
     };
   });
