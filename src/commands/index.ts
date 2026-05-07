@@ -1219,21 +1219,29 @@ export class VSCodeCommands implements Disposable {
             // ignore — optional
           }
 
-          const targetItems = SQL_DIALECTS.filter((d) => d !== sourceDialect);
-          if (defaultTarget && targetItems.includes(defaultTarget)) {
-            // Bubble the project adapter to the top
-            const idx = targetItems.indexOf(defaultTarget);
-            targetItems.splice(idx, 1);
-            targetItems.unshift(defaultTarget);
+          const targetItems: { label: string; description?: string }[] =
+            SQL_DIALECTS.filter((d) => d !== sourceDialect).map((d) => ({
+              label: d,
+              description: d === defaultTarget ? "current project" : undefined,
+            }));
+
+          // Bubble project adapter to the top
+          if (defaultTarget) {
+            const idx = targetItems.findIndex((i) => i.label === defaultTarget);
+            if (idx > 0) {
+              const [item] = targetItems.splice(idx, 1);
+              targetItems.unshift(item);
+            }
           }
 
-          const targetDialect = await window.showQuickPick(targetItems, {
+          const targetPick = await window.showQuickPick(targetItems, {
             title: "Translate SQL — Step 2 of 2",
             placeHolder: "Select target dialect",
           });
-          if (!targetDialect) {
+          if (!targetPick) {
             return;
           }
+          const targetDialect = targetPick.label;
 
           await this.altimateCodeChatService.openChat({
             initialMessage: `Translate the following SQL from \`@${context.relativePath}\` from **${sourceDialect}** to **${targetDialect}** dialect:\n\`\`\`sql\n${context.code}\n\`\`\``,
