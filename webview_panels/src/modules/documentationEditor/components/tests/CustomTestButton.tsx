@@ -24,14 +24,15 @@ const CustomTestButton = ({ column, type }: Props): JSX.Element => {
     );
 
     const model = currentDocsData?.name ?? "";
-    const columnInfo =
-      type === EntityType.MODEL ? `model \`${model}\`` : `column \`${column}\` in model \`${model}\``;
+    const isModel = type === EntityType.MODEL;
+    const subject = isModel ? `model "${model}"` : `column "${column}" in model "${model}"`;
 
     executeRequestInAsync("openAltimateCodeChatForCustomTest", {
-      column: type === EntityType.MODEL ? undefined : column,
+      column: isModel ? undefined : column,
       model,
-      initialMessage: `Generate a custom dbt test for the ${columnInfo}. The test should validate data quality and business rules. Please write the test in YAML format compatible with dbt schema.yml.`,
-      title: `Custom Test: ${type === EntityType.MODEL ? model : column}`,
+      initialMessage: `Generate Tests for ${subject}
+Please provide more information about which tests you need`,
+      title: `Add Custom Test for ${isModel ? `model: ${model}` : `column: ${column}`}`,
     });
   };
 
