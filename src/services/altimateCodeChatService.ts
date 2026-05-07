@@ -7,6 +7,7 @@ export class AltimateCodeChatService implements Disposable {
   async openChat(options: {
     initialMessage: string;
     title: string;
+    beside?: boolean;
   }): Promise<boolean> {
     const altimateExt = extensions.getExtension(
       "altimateai.vscode-altimate-mcp-server",
@@ -33,6 +34,7 @@ export class AltimateCodeChatService implements Disposable {
     await chat.createSession({
       initialMessage: options.initialMessage,
       title: options.title,
+      beside: options.beside,
     });
     return true;
   }
