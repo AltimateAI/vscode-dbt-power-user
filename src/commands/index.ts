@@ -1137,6 +1137,7 @@ export class VSCodeCommands implements Disposable {
           await this.altimateCodeChatService.openChat({
             initialMessage: `Regarding this code from \`@${context.relativePath}\`:\n\`\`\`\n${context.code}\n\`\`\``,
             title: `Ask: ${context.fileName}`,
+            beside: true,
           });
         },
       ),
@@ -1148,6 +1149,7 @@ export class VSCodeCommands implements Disposable {
         await this.altimateCodeChatService.openChat({
           initialMessage: `Explain the following code from \`@${context.relativePath}\`:\n\`\`\`sql\n${context.code}\n\`\`\``,
           title: `Explain: ${context.fileName}`,
+          beside: true,
         });
       }),
       commands.registerCommand(
@@ -1160,6 +1162,7 @@ export class VSCodeCommands implements Disposable {
           await this.altimateCodeChatService.openChat({
             initialMessage: `Optimize the following SQL from \`@${context.relativePath}\` for performance and readability:\n\`\`\`sql\n${context.code}\n\`\`\``,
             title: `Optimize: ${context.fileName}`,
+            beside: true,
           });
         },
       ),
@@ -1171,6 +1174,7 @@ export class VSCodeCommands implements Disposable {
         await this.altimateCodeChatService.openChat({
           initialMessage: `Help me change the following SQL from \`@${context.relativePath}\`:\n\`\`\`sql\n${context.code}\n\`\`\``,
           title: `Change: ${context.fileName}`,
+          beside: true,
         });
       }),
       commands.registerCommand(
@@ -1246,6 +1250,7 @@ export class VSCodeCommands implements Disposable {
           await this.altimateCodeChatService.openChat({
             initialMessage: `Translate the following SQL from \`@${context.relativePath}\` from **${sourceDialect}** to **${targetDialect}** dialect:\n\`\`\`sql\n${context.code}\n\`\`\``,
             title: `Translate: ${context.fileName}`,
+            beside: true,
           });
         },
       ),
@@ -1263,6 +1268,7 @@ export class VSCodeCommands implements Disposable {
           await this.altimateCodeChatService.openChat({
             initialMessage: `Analyze \`@${ctx.relativePath}\` for dbt best practices, performance, and documentation completeness.`,
             title: `Analyze: ${ctx.fileName}`,
+            beside: true,
           });
         },
       ),
@@ -1272,11 +1278,13 @@ export class VSCodeCommands implements Disposable {
           await this.altimateCodeChatService.openChat({
             initialMessage: `Help me with \`@${context.relativePath}\`:\n\`\`\`\n${context.code}\n\`\`\``,
             title: `Chat: ${context.fileName}`,
+            beside: true,
           });
         } else {
           await this.altimateCodeChatService.openChat({
             initialMessage: "How can I help you with your dbt project?",
             title: "Altimate Code Chat",
+            beside: true,
           });
         }
       }),
