@@ -14,6 +14,7 @@ import { ConversationProvider } from "../comment_provider/conversationProvider";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
 import { AltimateAuthService } from "../services/altimateAuthService";
+import { AltimateCodeChatService } from "../services/altimateCodeChatService";
 import { ConversationService } from "../services/conversationService";
 import { DbtTestService } from "../services/dbtTestService";
 import { DocGenService } from "../services/docGenService";
@@ -52,6 +53,7 @@ export class NewDocsGenPanel
     private conversationProvider: ConversationProvider,
     private conversationService: ConversationService,
     protected altimateAuthService: AltimateAuthService,
+    private altimateCodeChatService: AltimateCodeChatService,
   ) {
     super(
       dbtProjectContainer,
@@ -276,6 +278,14 @@ export class NewDocsGenPanel
           },
           command,
         );
+        break;
+
+      case "openAltimateCodeChatForCustomTest":
+        await this.altimateCodeChatService.openChat({
+          initialMessage: args.initialMessage as string,
+          title: args.title as string,
+          beside: true,
+        });
         break;
 
       default:
