@@ -1163,6 +1163,16 @@ export class VSCodeCommands implements Disposable {
           });
         },
       ),
+      commands.registerCommand("dbtPowerUser.changeWithAltimate", async () => {
+        const context = this.altimateCodeChatService.getEditorContext();
+        if (!context) {
+          return;
+        }
+        await this.altimateCodeChatService.openChat({
+          initialMessage: `Help me change the following SQL from \`@${context.relativePath}\`:\n\`\`\`sql\n${context.code}\n\`\`\``,
+          title: `Change: ${context.fileName}`,
+        });
+      }),
       commands.registerCommand(
         "dbtPowerUser.analyzeFileWithAltimate",
         async (uri?: Uri) => {
