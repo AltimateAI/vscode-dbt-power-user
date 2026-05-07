@@ -1174,6 +1174,19 @@ export class VSCodeCommands implements Disposable {
         });
       }),
       commands.registerCommand(
+        "dbtPowerUser.translateWithAltimate",
+        async () => {
+          const context = this.altimateCodeChatService.getEditorContext();
+          if (!context) {
+            return;
+          }
+          await this.altimateCodeChatService.openChat({
+            initialMessage: `Translate the following SQL from \`@${context.relativePath}\` to another SQL dialect:\n\`\`\`sql\n${context.code}\n\`\`\``,
+            title: `Translate: ${context.fileName}`,
+          });
+        },
+      ),
+      commands.registerCommand(
         "dbtPowerUser.analyzeFileWithAltimate",
         async (uri?: Uri) => {
           const fileUri = uri ?? window.activeTextEditor?.document.uri;
