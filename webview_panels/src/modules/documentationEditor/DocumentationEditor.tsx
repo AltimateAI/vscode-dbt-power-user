@@ -1,5 +1,5 @@
 import { Citation } from "@lib";
-import { executeRequestInSync } from "@modules/app/requestExecutor";
+import { executeRequestInAsync, executeRequestInSync } from "@modules/app/requestExecutor";
 import CommonActionButtons from "@modules/commonActionButtons/CommonActionButtons";
 import { EntityType } from "@modules/documentationEditor/state/entityType";
 import { panelLogger } from "@modules/logger";
@@ -32,6 +32,16 @@ const DocumentationEditor = (): JSX.Element => {
 
   const onModelDocSubmit = async (data: DocsGenerateModelRequestV2) => {
     if (!currentDocsData) {
+      return;
+    }
+
+    // When a description already exists, open Altimate Code chat to review/refine
+    // instead of silently overwriting — mirrors the previous DataPilot review step.
+    if (currentDocsData.description) {
+      executeRequestInAsync("openAltimateCodeChatForDocReview", {
+        initialMessage: `Review documentation for model "${currentDocsData.name}":\n\n${currentDocsData.description}\n\nWould you like me to improve it, or is there something specific you want to change?`,
+        title: `Review Doc: ${currentDocsData.name}`,
+      });
       return;
     }
 
@@ -72,6 +82,10 @@ const DocumentationEditor = (): JSX.Element => {
       );
     } catch (error) {
       panelLogger.error("error while generating doc for model", error);
+      executeRequestInAsync("openAltimateCodeChatForDocReview", {
+        initialMessage: `An error occurred while generating documentation for model "${currentDocsData.name}":\n\n${(error as Error).message}\n\nCan you help debug this?`,
+        title: `Doc Error: ${currentDocsData.name}`,
+      });
     }
   };
 
