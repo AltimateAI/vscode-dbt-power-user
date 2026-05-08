@@ -1,4 +1,7 @@
-import { executeRequestInAsync, executeRequestInSync } from "@modules/app/requestExecutor";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
 import { updateColumnsInCurrentDocsData } from "@modules/documentationEditor/state/documentationSlice";
 import { EntityType } from "@modules/documentationEditor/state/entityType";
 import {
@@ -34,7 +37,7 @@ const DocGeneratorColumn = ({ column, tests }: Props): JSX.Element => {
     // instead of silently overwriting — mirrors the previous DataPilot review step.
     if (column.description) {
       executeRequestInAsync("openAltimateCodeChatForDocReview", {
-        initialMessage: `Review documentation for column "${column.name}" in model "${currentDocsData.name}":\n\n${column.description}\n\nWould you like me to improve it, or is there something specific you want to change?`,
+        initialMessage: `I want to improve the documentation for column "${column.name}" in model "${currentDocsData.name}". Here is what we currently have:\n\n${column.description}\n\nWhat questions do you have for me before we make any changes?`,
         title: `Review Doc: ${column.name}`,
       });
       return;

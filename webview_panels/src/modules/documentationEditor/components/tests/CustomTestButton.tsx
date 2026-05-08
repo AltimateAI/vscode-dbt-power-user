@@ -1,7 +1,7 @@
 import { ShinesIcon } from "@assets/icons";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
-import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { EntityType } from "@modules/documentationEditor/state/entityType";
+import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { TelemetryEvents } from "@telemetryEvents";
 import { ListGroupItem } from "@uicore";
 import classes from "../../styles.module.scss";
@@ -25,13 +25,14 @@ const CustomTestButton = ({ column, type }: Props): JSX.Element => {
 
     const model = currentDocsData?.name ?? "";
     const isModel = type === EntityType.MODEL;
-    const subject = isModel ? `model "${model}"` : `column "${column}" in model "${model}"`;
+    const subject = isModel
+      ? `model "${model}"`
+      : `column "${column}" in model "${model}"`;
 
     executeRequestInAsync("openAltimateCodeChatForCustomTest", {
       column: isModel ? undefined : column,
       model,
-      initialMessage: `Generate Tests for ${subject}
-Please provide more information about which tests you need`,
+      initialMessage: `I want to add custom tests for ${subject}. What do you need to know from me to write the right tests?`,
       title: `Add Custom Test for ${isModel ? `model: ${model}` : `column: ${column}`}`,
     });
   };

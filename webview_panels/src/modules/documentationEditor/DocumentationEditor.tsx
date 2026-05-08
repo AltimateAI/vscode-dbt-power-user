@@ -1,5 +1,8 @@
 import { Citation } from "@lib";
-import { executeRequestInAsync, executeRequestInSync } from "@modules/app/requestExecutor";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
 import CommonActionButtons from "@modules/commonActionButtons/CommonActionButtons";
 import { EntityType } from "@modules/documentationEditor/state/entityType";
 import { panelLogger } from "@modules/logger";
@@ -39,7 +42,7 @@ const DocumentationEditor = (): JSX.Element => {
     // instead of silently overwriting — mirrors the previous DataPilot review step.
     if (currentDocsData.description) {
       executeRequestInAsync("openAltimateCodeChatForDocReview", {
-        initialMessage: `Review documentation for model "${currentDocsData.name}":\n\n${currentDocsData.description}\n\nWould you like me to improve it, or is there something specific you want to change?`,
+        initialMessage: `I want to improve the documentation for model "${currentDocsData.name}". Here is what we currently have:\n\n${currentDocsData.description}\n\nWhat questions do you have for me before we make any changes?`,
         title: `Review Doc: ${currentDocsData.name}`,
       });
       return;
