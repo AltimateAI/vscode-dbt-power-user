@@ -1,3 +1,4 @@
+import { probeDbtCoreVersion } from "@altimateai/dbt-integration";
 import { NotebookProviders } from "@lib";
 import { commands, Disposable, ExtensionContext, workspace } from "vscode";
 import { AutocompletionProviders } from "./autocompletion_provider";
@@ -41,6 +42,13 @@ export class DBTPowerUserExtension implements Disposable {
   ];
 
   private disposables: Disposable[] = [];
+  /**
+   * Monotonic sequence counter for `refreshVersionTelemetryAttributes` so
+   * a slow earlier invocation can't overwrite attributes written by a
+   * faster later one. Each refresh captures the seq at start and only
+   * applies its results if the seq still matches.
+   */
+  private versionRefreshSeq = 0;
 
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -97,6 +105,34 @@ export class DBTPowerUserExtension implements Disposable {
       this.dbtProjectContainer.setContext(context);
       this.dbtProjectContainer.initializeWalkthrough();
       await this.dbtProjectContainer.detectDBT();
+
+      // Enrich every telemetry event with the active Python interpreter version
+      // and dbt-core dist version. Without these dimensions, App Insights can't
+      // split error clusters by Python or dbt-core version — e.g. we can't
+      // tell whether a `pythonBridgeInitPythonError "mashumaro
+      // UnserializableField"` is a Python 3.13 + mashumaro 3.14 incompat or
+      // something else. Both probes are best-effort: failure → attribute is
+      // cleared rather than blocking activation.
+      //
+      // Primed BEFORE `initializeDBTProjects()` because that call is the
+      // python-bridge init step where `pythonBridgeInitPythonError` itself
+      // originates. The `void`-fired refresh runs synchronously up to its
+      // first await, so `pythonVersion` is guaranteed in `customAttributes`
+      // by the time `initializeDBTProjects()` starts — meaning a thrown
+      // error caught below is always dimensioned with at least Python
+      // version. (`dbtCoreVersion` arrives best-effort once the spawn
+      // resolves.) Re-runs on interpreter change so the dimensions track
+      // the user's selection. `detectDBT()` is the earliest point where
+      // `pythonEnvironment.executionDetails` is set and `pythonVersion`
+      // is populated.
+      void this.refreshVersionTelemetryAttributes();
+      const pythonEnv = this.dbtProjectContainer.getPythonEnvironment();
+      this.disposables.push(
+        pythonEnv.onPythonEnvironmentChanged(() => {
+          void this.refreshVersionTelemetryAttributes();
+        }),
+      );
+
       await this.dbtProjectContainer.initializeDBTProjects();
       await this.statusBars.initialize();
       // Ask to reload the window if the dbt integration changes
@@ -119,6 +155,58 @@ export class DBTPowerUserExtension implements Disposable {
       });
     } catch (error) {
       this.telemetry.sendTelemetryError("extensionActivationError", error);
+    }
+  }
+
+  /**
+   * Populate `pythonVersion` and `dbtCoreVersion` customAttributes on the
+   * telemetry service so every event from this point forward carries them.
+   * Best-effort: if either probe fails (interpreter missing, dbt-core not
+   * installed in this venv, probe timeout), the corresponding attribute is
+   * **cleared** rather than left at a stale value from the previous
+   * interpreter. Idempotent — wired both at activation and from the
+   * `onPythonEnvironmentChanged` listener.
+   *
+   * Sequence-guarded: rapid interpreter switches can fire two refreshes
+   * concurrently. A slower earlier probe finishing last would otherwise
+   * overwrite a faster later probe's results. We capture the
+   * `versionRefreshSeq` at entry and bail before any write if a newer
+   * refresh has bumped the counter.
+   */
+  private async refreshVersionTelemetryAttributes(): Promise<void> {
+    const seq = ++this.versionRefreshSeq;
+    try {
+      const pythonEnv = this.dbtProjectContainer.getPythonEnvironment();
+      const pythonVersion = pythonEnv.pythonVersion;
+      if (seq !== this.versionRefreshSeq) {
+        return;
+      }
+      if (pythonVersion) {
+        this.telemetry.setTelemetryCustomAttribute(
+          "pythonVersion",
+          pythonVersion,
+        );
+      } else {
+        this.telemetry.clearTelemetryCustomAttribute("pythonVersion");
+      }
+      const pythonPath = pythonEnv.pythonPath;
+      const dbtCoreVersion = pythonPath
+        ? await probeDbtCoreVersion(pythonPath)
+        : undefined;
+      if (seq !== this.versionRefreshSeq) {
+        return;
+      }
+      if (dbtCoreVersion) {
+        this.telemetry.setTelemetryCustomAttribute(
+          "dbtCoreVersion",
+          dbtCoreVersion,
+        );
+      } else {
+        this.telemetry.clearTelemetryCustomAttribute("dbtCoreVersion");
+      }
+    } catch {
+      // Telemetry-enrichment failures must never block activation or
+      // surface as an error — by design these dimensions are best-effort.
     }
   }
 }

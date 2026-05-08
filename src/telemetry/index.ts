@@ -16,6 +16,18 @@ export class TelemetryService implements vscode.Disposable {
     this.customAttributes[key] = value;
   }
 
+  /**
+   * Remove a previously-set custom attribute so it stops appearing on
+   * subsequent telemetry events. Use when the dimension no longer applies
+   * — e.g. the user switched Python interpreters and we couldn't probe a
+   * fresh value, so the previous interpreter's `pythonVersion` /
+   * `dbtCoreVersion` would otherwise carry over and corrupt dimensioning
+   * for events from the new interpreter.
+   */
+  clearTelemetryCustomAttribute(key: string) {
+    delete this.customAttributes[key];
+  }
+
   startTelemetryEvent(
     eventName: string,
     properties?: { [key: string]: string },
