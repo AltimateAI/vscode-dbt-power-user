@@ -1,4 +1,4 @@
-import { executeRequestInSync } from "@modules/app/requestExecutor";
+import { executeRequestInAsync, executeRequestInSync } from "@modules/app/requestExecutor";
 import { updateColumnsInCurrentDocsData } from "@modules/documentationEditor/state/documentationSlice";
 import { EntityType } from "@modules/documentationEditor/state/entityType";
 import {
@@ -27,6 +27,16 @@ const DocGeneratorColumn = ({ column, tests }: Props): JSX.Element => {
 
   const handleColumnSubmit = async (data: DocsGenerateModelRequestV2) => {
     if (!currentDocsData || !project) {
+      return;
+    }
+
+    // When a description already exists, open Altimate Code chat to review/refine
+    // instead of silently overwriting — mirrors the previous DataPilot review step.
+    if (column.description) {
+      executeRequestInAsync("openAltimateCodeChatForDocReview", {
+        initialMessage: `Review documentation for column "${column.name}" in model "${currentDocsData.name}":\n\n${column.description}\n\nWould you like me to improve it, or is there something specific you want to change?`,
+        title: `Review Doc: ${column.name}`,
+      });
       return;
     }
 
@@ -63,6 +73,10 @@ const DocGeneratorColumn = ({ column, tests }: Props): JSX.Element => {
       await addDocGeneration(project, currentDocsData.name, generatedColumn);
     } catch (error) {
       panelLogger.error("error while generating doc for column", error);
+      executeRequestInAsync("openAltimateCodeChatForDocReview", {
+        initialMessage: `An error occurred while generating documentation for column "${column.name}" in model "${currentDocsData.name}":\n\n${(error as Error).message}\n\nCan you help debug this?`,
+        title: `Doc Error: ${column.name}`,
+      });
     }
   };
   return (
