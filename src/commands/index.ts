@@ -1172,7 +1172,7 @@ export class VSCodeCommands implements Disposable {
           return;
         }
         await this.altimateCodeChatService.openChat({
-          initialMessage: `Help me change the following SQL from \`@${context.relativePath}\`:\n\`\`\`sql\n${context.code}\n\`\`\``,
+          initialMessage: `I want to make changes to the SQL in \`@${context.relativePath}\`:\n\`\`\`sql\n${context.code}\n\`\`\`\nWhat do you need to know from me to make the right changes?`,
           title: `Change: ${context.fileName}`,
           beside: true,
         });
