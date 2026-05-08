@@ -412,7 +412,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           // to disable query history and retry
           case InboundCommand.ClearQueryHistory:
             this.telemetry.sendTelemetryError(
-              TelemetryEvents["QueryHistory/Cleared"],
+              TelemetryEvents["QueryHistory/ClearError"],
               message.error,
             );
             this._queryHistory = [];

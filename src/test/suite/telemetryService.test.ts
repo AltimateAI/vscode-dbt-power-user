@@ -77,13 +77,13 @@ describe("TelemetryService.sendTelemetryError surfaces diagnostic fields", () =>
 
   it("forwards error.name as a top-level property", () => {
     const err = new TypeError("Cannot destructure property 'returnResult'");
-    telemetry.sendTelemetryError("unhandlederror", err);
+    telemetry.sendTelemetryError("unhandledRejectionError", err);
     expect(captureProperties().error_name).toBe("TypeError");
   });
 
   it("forwards error.message as a top-level property (survives URL redaction)", () => {
     const err = new Error("Channel closed");
-    telemetry.sendTelemetryError("unhandlederror", err);
+    telemetry.sendTelemetryError("unhandledRejectionError", err);
     expect(captureProperties().error_message).toBe("Channel closed");
   });
 

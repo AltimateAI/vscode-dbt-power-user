@@ -88,7 +88,7 @@ export class DbtDocumentFormattingEditProvider implements DocumentFormattingEdit
           return this.processDiffOutput(document, (e as Error).message);
         } catch (error) {
           this.telemetry.sendTelemetryError(
-            "formatDbtModelApplyDiffFailed",
+            "formatDbtModelApplyDiffError",
             error,
           );
           window.showErrorMessage(
@@ -101,7 +101,7 @@ export class DbtDocumentFormattingEditProvider implements DocumentFormattingEdit
         }
       }
     } catch (error) {
-      this.telemetry.sendTelemetryError("formatDbtModelApplyDiffFailed", error);
+      this.telemetry.sendTelemetryError("formatDbtModelApplyDiffError", error);
       window.showErrorMessage(
         extendErrorWithSupportLinks(
           'Could not run sqlfmt. If sqlfmt is installed (e.g. via `uv tool install "shandy-sqlfmt[jinjafmt]"` or `pipx install "shandy-sqlfmt[jinjafmt]"`), ' +
