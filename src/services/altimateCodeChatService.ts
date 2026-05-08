@@ -5,7 +5,8 @@ export class AltimateCodeChatService implements Disposable {
   private disposables: Disposable[] = [];
 
   async openChat(options: {
-    initialMessage: string;
+    initialMessage?: string;
+    prefillMessage?: string;
     title: string;
     beside?: boolean;
   }): Promise<boolean> {
@@ -33,6 +34,7 @@ export class AltimateCodeChatService implements Disposable {
     // webview:ready lifecycle.
     await chat.createSession({
       initialMessage: options.initialMessage,
+      prefillMessage: options.prefillMessage,
       title: options.title,
       beside: options.beside,
     });

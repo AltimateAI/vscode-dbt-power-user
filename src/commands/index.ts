@@ -1135,7 +1135,7 @@ export class VSCodeCommands implements Disposable {
             return;
           }
           await this.altimateCodeChatService.openChat({
-            initialMessage: `Regarding this code from \`@${context.relativePath}\`:\n\`\`\`\n${context.code}\n\`\`\``,
+            prefillMessage: `Regarding this code from \`@${context.relativePath}\`:\n\`\`\`\n${context.code}\n\`\`\`\n`,
             title: `Ask: ${context.fileName}`,
             beside: true,
           });
