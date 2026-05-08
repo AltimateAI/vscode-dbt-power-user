@@ -38,13 +38,47 @@ const DocumentationEditor = (): JSX.Element => {
       return;
     }
 
-    // When a description already exists, open Altimate Code chat to review/refine
-    // instead of silently overwriting — mirrors the previous DataPilot review step.
+    // When a description already exists, show a quick-pick so the user can
+    // choose a regeneration style before the API is called.
     if (currentDocsData.description) {
-      executeRequestInAsync("openAltimateCodeChatForDocReview", {
-        initialMessage: `I want to improve the documentation for model "${currentDocsData.name}". Here is what we currently have:\n\n${currentDocsData.description}\n\nWhat questions do you have for me before we make any changes?`,
-        title: `Review Doc: ${currentDocsData.name}`,
-      });
+      const picked = (await executeRequestInSync("showRegenerateQuickPick", {
+        entityName: currentDocsData.name,
+        entityType: "model",
+      })) as { instruction: string } | null;
+      if (!picked) {
+        return; // user cancelled
+      }
+      try {
+        const regenResult = (await executeRequestInSync(
+          "generateDocsForModel",
+          {
+            description: data.description,
+            user_instructions: data.user_instructions,
+            columns: currentDocsData.columns,
+            follow_up_instructions: { instruction: picked.instruction },
+          },
+        )) as {
+          model_description?: string;
+          model_citations?: Citation[];
+        };
+        if (!regenResult.model_description) {
+          panelLogger.error(
+            "generateDocsForModel returned no model description",
+            regenResult,
+          );
+          return;
+        }
+        dispatch(
+          updateCurrentDocsData({
+            name: currentDocsData.name,
+            description: regenResult.model_description,
+            isNewGeneration: true,
+            citations: regenResult.model_citations ?? currentDocsData.citations,
+          }),
+        );
+      } catch (error) {
+        panelLogger.error("error while regenerating doc for model", error);
+      }
       return;
     }
 

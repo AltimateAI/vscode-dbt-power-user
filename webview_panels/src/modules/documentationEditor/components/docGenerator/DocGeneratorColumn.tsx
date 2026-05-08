@@ -33,13 +33,46 @@ const DocGeneratorColumn = ({ column, tests }: Props): JSX.Element => {
       return;
     }
 
-    // When a description already exists, open Altimate Code chat to review/refine
-    // instead of silently overwriting — mirrors the previous DataPilot review step.
+    // When a description already exists, show a quick-pick so the user can
+    // choose a regeneration style before the API is called.
     if (column.description) {
-      executeRequestInAsync("openAltimateCodeChatForDocReview", {
-        initialMessage: `I want to improve the documentation for column "${column.name}" in model "${currentDocsData.name}". Here is what we currently have:\n\n${column.description}\n\nWhat questions do you have for me before we make any changes?`,
-        title: `Review Doc: ${column.name}`,
-      });
+      const picked = (await executeRequestInSync("showRegenerateQuickPick", {
+        entityName: column.name,
+        entityType: "column",
+      })) as { instruction: string } | null;
+      if (!picked) {
+        return; // user cancelled
+      }
+      try {
+        const requestData = {
+          description: data.description,
+          user_instructions: data.user_instructions,
+          columnName: column.name,
+          columns: currentDocsData.columns,
+          follow_up_instructions: { instruction: picked.instruction },
+        };
+        const result = (await executeRequestInSync(
+          "generateDocsForColumn",
+          requestData,
+        )) as { columns: Partial<DBTDocumentationColumn>[] };
+        const generatedColumn = result.columns?.[0];
+        if (!Array.isArray(result.columns) || !generatedColumn) {
+          panelLogger.error(
+            "generateDocsForColumn returned no generated columns",
+            result,
+          );
+          return;
+        }
+        dispatch(
+          updateColumnsInCurrentDocsData({
+            columns: result.columns,
+            isNewGeneration: true,
+          }),
+        );
+        await addDocGeneration(project, currentDocsData.name, generatedColumn);
+      } catch (error) {
+        panelLogger.error("error while regenerating doc for column", error);
+      }
       return;
     }
 
