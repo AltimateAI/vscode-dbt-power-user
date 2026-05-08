@@ -27,7 +27,7 @@
  * (e.g. permission errors, malformed pattern). Both paths resolve to `[]`
  * so activation is never short-circuited by a single empty/erroring folder.
  */
-import { describe, expect, it, jest } from "@jest/globals";
+import { afterAll, beforeAll, describe, expect, it, jest } from "@jest/globals";
 import { EventEmitter, Uri, workspace } from "vscode";
 import { DBTWorkspaceFolder } from "../../dbt_client/dbtWorkspaceFolder";
 
@@ -79,6 +79,22 @@ function stubWorkspaceFindFiles(impl: () => Promise<Uri[]>) {
 }
 
 describe("discoverProjects: multi-root activation no-projects-found regression", () => {
+  // `stubWorkspaceFindFiles` mutates the shared `vscode` module object.
+  // Capture and restore so other suites in the same Jest worker aren't
+  // contaminated by our stubs.
+  let originalFindFiles: typeof workspace.findFiles;
+  let originalGetConfiguration: typeof workspace.getConfiguration;
+
+  beforeAll(() => {
+    originalFindFiles = workspace.findFiles;
+    originalGetConfiguration = workspace.getConfiguration;
+  });
+
+  afterAll(() => {
+    (workspace as any).findFiles = originalFindFiles;
+    (workspace as any).getConfiguration = originalGetConfiguration;
+  });
+
   it("returns no projects (does not throw) when findFiles is consistently empty", async () => {
     fakeTelemetry.sendTelemetryError.mockClear();
     const findFilesMock = stubWorkspaceFindFiles(() =>
