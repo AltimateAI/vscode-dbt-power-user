@@ -20,10 +20,12 @@
  * (so `statusBars.initialize` and the workspace-folder change listener never
  * ran).
  *
- * Fix: `retryWithBackoff` treats a consistently-empty result after the retry
- * budget as legitimately empty and returns `[]` instead of throwing. Real
- * errors (e.g. `findFiles` itself rejecting) still throw after retries —
- * preserving the existing escalation for non-empty failure modes.
+ * Fix: `retryWithBackoff` throws a typed `NoProjectsFound` for the
+ * consistently-empty case. `discoverProjects` catches at the call site —
+ * silently for `NoProjectsFound` (expected for multi-root workspaces),
+ * with `discoverProjectsError` telemetry for any other failure
+ * (e.g. permission errors, malformed pattern). Both paths resolve to `[]`
+ * so activation is never short-circuited by a single empty/erroring folder.
  */
 import { describe, expect, it, jest } from "@jest/globals";
 import { EventEmitter, Uri, workspace } from "vscode";
@@ -78,6 +80,7 @@ function stubWorkspaceFindFiles(impl: () => Promise<Uri[]>) {
 
 describe("discoverProjects: multi-root activation no-projects-found regression", () => {
   it("returns no projects (does not throw) when findFiles is consistently empty", async () => {
+    fakeTelemetry.sendTelemetryError.mockClear();
     const findFilesMock = stubWorkspaceFindFiles(() =>
       Promise.resolve([] as Uri[]),
     );
@@ -93,6 +96,11 @@ describe("discoverProjects: multi-root activation no-projects-found regression",
     // budget is the same as before — only the terminal disposition changed
     // from throw to graceful return.
     expect(findFilesMock).toHaveBeenCalledTimes(5);
+
+    // Empty folders are an expected multi-root case, not a failure — they
+    // must NOT fire `discoverProjectsError` telemetry, otherwise we just
+    // swap one noisy cluster for another.
+    expect(fakeTelemetry.sendTelemetryError).not.toHaveBeenCalled();
   }, 20000);
 
   it("retry budget is still ~10s — confirms backoff schedule unchanged", async () => {
@@ -134,11 +142,13 @@ describe("discoverProjects: multi-root activation no-projects-found regression",
     expect(elapsed).toBeGreaterThanOrEqual(9500);
   }, 20000);
 
-  it("real findFiles errors still propagate after retries (preserves existing escalation)", async () => {
-    // Critical that the fix doesn't accidentally swallow genuine errors —
-    // e.g. permission failures, malformed RelativePattern, indexer crashes.
-    // Only the empty-array case is treated as legitimately empty; thrown
-    // errors retain the retry-then-throw behaviour.
+  it("real findFiles errors resolve to [] AND fire discoverProjectsError telemetry", async () => {
+    // Activation must never crash on a single folder, so genuine errors
+    // (permission failures, malformed RelativePattern, indexer crashes)
+    // also resolve to []. They DO fire `discoverProjectsError` telemetry
+    // — we don't observe these in production today, but if they ever
+    // start firing we want the signal instead of silently swallowing.
+    fakeTelemetry.sendTelemetryError.mockClear();
     let calls = 0;
     const findFilesMock = stubWorkspaceFindFiles(() => {
       calls += 1;
@@ -147,10 +157,15 @@ describe("discoverProjects: multi-root activation no-projects-found regression",
 
     const folder = makeFolder();
 
-    await expect(folder.discoverProjects()).rejects.toThrow(
-      "EACCES: permission denied",
-    );
+    await expect(folder.discoverProjects()).resolves.toBeUndefined();
     expect(findFilesMock).toHaveBeenCalledTimes(5);
     expect(calls).toBe(5);
+
+    // Telemetry fires once with the underlying error — not the
+    // NoProjectsFound sentinel — so the cluster is meaningful.
+    expect(fakeTelemetry.sendTelemetryError).toHaveBeenCalledTimes(1);
+    const [eventName, error] = fakeTelemetry.sendTelemetryError.mock.calls[0];
+    expect(eventName).toBe("discoverProjectsError");
+    expect((error as Error).message).toBe("EACCES: permission denied");
   }, 20000);
 });

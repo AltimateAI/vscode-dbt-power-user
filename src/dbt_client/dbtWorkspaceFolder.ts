@@ -30,6 +30,11 @@ import {
   readAndParseProjectConfig,
 } from "@altimateai/dbt-integration";
 
+// Sentinel for the empty-after-retries case in `retryWithBackoff`. Lets the
+// caller distinguish "this folder has no dbt project" (silent, expected for
+// multi-root workspaces) from a real `findFiles` failure (telemetry-worthy).
+class NoProjectsFound extends Error {}
+
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
   readonly projectDiscoveryDiagnostics =
@@ -94,26 +99,16 @@ export class DBTWorkspaceFolder implements Disposable {
     while (attempt < retries) {
       try {
         const result = await fn();
-        const isEmptyArray = Array.isArray(result) && result.length === 0;
-        if (!isEmptyArray) {
-          return result;
-        }
-        // Empty array — try again, in case `findFiles` returned early
-        // during VS Code's initial workspace indexing.
-        attempt++;
-        if (attempt < retries) {
+        if (Array.isArray(result) && result.length === 0) {
           this.dbtTerminal.debug(
             "discoverProjects",
             "no projects found. retrying...",
             false,
           );
-          await new Promise((resolve) =>
-            setTimeout(resolve, backoff * attempt),
-          );
+          throw new NoProjectsFound("no projects found. retrying");
         }
+        return result;
       } catch (error) {
-        // Real error from fn() (e.g. permission failure). Preserve the
-        // existing retry-then-throw behaviour for these.
         attempt++;
         if (attempt >= retries) {
           throw error;
@@ -121,38 +116,40 @@ export class DBTWorkspaceFolder implements Disposable {
         await new Promise((resolve) => setTimeout(resolve, backoff * attempt));
       }
     }
-    // Bounded-loop fall-through: every attempt returned an empty array.
-    // Treat as legitimately empty rather than throwing. This is the
-    // multi-root case: VS Code's `workspaceContains:**/dbt_project.yml`
-    // activates the extension when ANY workspace folder matches, but
-    // `discoverProjects` runs on EVERY folder. A sibling folder that
-    // genuinely has no dbt project should not surface as
-    // `extensionActivationError` (telemetry cluster of 83 machines / 104
-    // events on top-2 versions in 24h was driven by exactly this). The
-    // constructor's `createConfigWatcher` keeps watching for
-    // `dbt_project.yml` creation in this folder, so a project added later
-    // will still be picked up.
     this.dbtTerminal.debug(
       "discoverProjects",
-      "no projects found after maximum retries — treating folder as empty",
+      "no projects found after maximum retries",
       false,
     );
-    return [] as T;
+    throw new NoProjectsFound("no projects found after maximum retries");
   }
 
   async discoverProjects() {
     // Ignore dbt_packages and venv/site-packages/dbt project folders
     const excludePattern =
       "**/{dbt_packages,site-packages,dbt_internal_packages}";
-    const dbtProjectFiles = await this.retryWithBackoff(
-      () =>
-        workspace.findFiles(
-          new RelativePattern(this.workspaceFolder, `**/${DBT_PROJECT_FILE}`),
-          new RelativePattern(this.workspaceFolder, excludePattern),
-        ),
-      5,
-      1000,
-    );
+    // Multi-root workspaces activate the extension when any folder contains
+    // `dbt_project.yml`, but discoverProjects runs on every folder. A folder
+    // that genuinely has no dbt project must resolve to an empty result
+    // rather than fail activation. The constructor's `createConfigWatcher`
+    // still watches this folder, so a project added later is picked up.
+    let dbtProjectFiles: Uri[] = [];
+    try {
+      dbtProjectFiles = await this.retryWithBackoff(
+        () =>
+          workspace.findFiles(
+            new RelativePattern(this.workspaceFolder, `**/${DBT_PROJECT_FILE}`),
+            new RelativePattern(this.workspaceFolder, excludePattern),
+          ),
+        5,
+        1000,
+      );
+    } catch (error) {
+      if (!(error instanceof NoProjectsFound)) {
+        this.telemetry.sendTelemetryError("discoverProjectsError", error);
+      }
+      dbtProjectFiles = [];
+    }
     this.dbtTerminal.info(
       "discoverProjects",
       "foundProjects",
