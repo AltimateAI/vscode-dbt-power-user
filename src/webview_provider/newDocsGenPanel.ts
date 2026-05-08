@@ -281,6 +281,7 @@ export class NewDocsGenPanel
         break;
 
       case "openAltimateCodeChatForCustomTest":
+      case "openAltimateCodeChatForDocReview":
         await this.altimateCodeChatService.openChat({
           initialMessage: args.initialMessage as string,
           title: args.title as string,
