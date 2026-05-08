@@ -30,7 +30,7 @@ function attachUnhandledRejectionRouting(
 ): (reason: unknown) => void {
   const onUnhandledRejection = (reason: unknown) => {
     try {
-      telemetry.sendTelemetryError("unhandledRejection", reason);
+      telemetry.sendTelemetryError("catchAllError", reason);
     } catch {
       // Telemetry failures must never re-enter the rejection path.
     }
@@ -73,7 +73,7 @@ describe("unhandledRejection routing", () => {
 
     expect(telemetry.sendTelemetryError).toHaveBeenCalledTimes(1);
     expect(telemetry.sendTelemetryError).toHaveBeenCalledWith(
-      "unhandledRejection",
+      "catchAllError",
       channelClosed,
     );
   });

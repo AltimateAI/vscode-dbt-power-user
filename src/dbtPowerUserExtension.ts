@@ -108,7 +108,7 @@ export class DBTPowerUserExtension implements Disposable {
       // parallel — both events stream to App Insights, queryable separately.
       const onUnhandledRejection = (reason: unknown) => {
         try {
-          this.telemetry.sendTelemetryError("unhandledRejection", reason);
+          this.telemetry.sendTelemetryError("catchAllError", reason);
         } catch {
           // Telemetry failures must never re-enter the rejection path.
         }
