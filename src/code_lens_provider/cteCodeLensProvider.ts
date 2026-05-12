@@ -662,7 +662,7 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
       pos++;
     }
 
-    this.dbtTerminal.warn(
+    this.dbtTerminal.debug(
       "CteCodeLensProvider",
       `No main SELECT found after WITH clause starting at ${withStartPos}, checked ${selectsChecked} SELECT statements`,
     );
