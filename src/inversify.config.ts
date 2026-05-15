@@ -283,6 +283,7 @@ container
     return new DBTCoreDetection(
       context.container.get("RuntimePythonEnvironment"),
       context.container.get(CommandProcessExecutionFactory),
+      context.container.get("DBTTerminal"),
     );
   })
   .inSingletonScope();
