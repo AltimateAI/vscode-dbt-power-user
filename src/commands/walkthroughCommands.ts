@@ -225,7 +225,12 @@ export class WalkthroughCommands {
 
   private async installDbtCloud(): Promise<void> {
     const platform = process.platform;
-    this.telemetry.sendTelemetryEvent("installDbtCloud", { platform });
+    const telemetryProps = {
+      platform,
+      pythonPath: this.pythonEnvironment.pythonPath ?? "unknown",
+      pythonVersion: this.pythonEnvironment.pythonVersion ?? "unknown",
+    };
+    this.telemetry.sendTelemetryEvent("installDbtCloud", telemetryProps);
     let error = undefined;
     await window.withProgress(
       {
@@ -261,9 +266,11 @@ export class WalkthroughCommands {
           this.dbtProjectContainer.initialize();
         } catch (err) {
           error = err;
-          this.telemetry.sendTelemetryError("installDbtCloudError", err, {
-            platform,
-          });
+          this.telemetry.sendTelemetryError(
+            "installDbtCloudError",
+            err,
+            telemetryProps,
+          );
         }
       },
     );
@@ -324,6 +331,8 @@ export class WalkthroughCommands {
       packageName,
       dbtVersion: packageVersion,
       platform,
+      pythonPath: this.pythonEnvironment.pythonPath ?? "unknown",
+      pythonVersion: this.pythonEnvironment.pythonVersion ?? "unknown",
     };
     this.telemetry.sendTelemetryEvent("installDbtCore", telemetryProps);
     let error = undefined;
