@@ -41,6 +41,30 @@ export function isPowerUserRejection(reason: unknown): boolean {
   );
 }
 
+// `python-bridge` (Bluebird-based) wraps every Python call in a Promise that
+// runs a `.finally()` cleanup callback. When the bridge is disposed while a
+// call is in flight, the cleanup fires after the child process exits and
+// hits `child.send()` on a closed IPC channel, producing
+// `Error: Channel closed` with the unmistakable Bluebird signature
+// (`PassThroughHandlerContext.finallyHandler` + `target.send`). The call
+// site has already moved on; nothing user-visible breaks. Drop these from
+// `catchAllError` telemetry so they stop dominating the cluster.
+export function isPythonBridgeCleanupRace(reason: unknown): boolean {
+  if (reason === null || reason === undefined) {
+    return false;
+  }
+  const message = (reason as { message?: unknown }).message;
+  const stack = (reason as { stack?: unknown }).stack;
+  if (typeof stack !== "string") {
+    return false;
+  }
+  return (
+    message === "Channel closed" &&
+    stack.includes("target.send") &&
+    stack.includes("PassThroughHandlerContext.finallyHandler")
+  );
+}
+
 export class DBTPowerUserExtension implements Disposable {
   static DBT_SQL_SELECTOR = [
     { language: "jinja-sql", scheme: "file" },
@@ -126,10 +150,14 @@ export class DBTPowerUserExtension implements Disposable {
       // `localMode`. The upstream `unhandlederror` event keeps firing in
       // parallel — both events stream to App Insights, queryable separately.
       //
-      // Filter to rejections whose stack originates in our extension; see
-      // `isPowerUserRejection` above for the rationale.
+      // Filter to rejections whose stack originates in our extension and
+      // drop known-unactionable cleanup-race noise; see `isPowerUserRejection`
+      // and `isPythonBridgeCleanupRace` above for the rationale.
       const onUnhandledRejection = (reason: unknown) => {
         if (!isPowerUserRejection(reason)) {
+          return;
+        }
+        if (isPythonBridgeCleanupRace(reason)) {
           return;
         }
         try {

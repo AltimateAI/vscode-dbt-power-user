@@ -1,11 +1,31 @@
 import { describe, expect, it } from "@jest/globals";
-import { isPowerUserRejection } from "../../dbtPowerUserExtension";
+import {
+  isPowerUserRejection,
+  isPythonBridgeCleanupRace,
+} from "../../dbtPowerUserExtension";
 
 const errWithStack = (stack: string): Error => {
   const e = new Error("synthetic");
   e.stack = stack;
   return e;
 };
+
+const errWithMessageAndStack = (message: string, stack: string): Error => {
+  const e = new Error(message);
+  e.stack = stack;
+  return e;
+};
+
+// Representative stack from production telemetry (see PR description).
+const PYTHON_BRIDGE_CLEANUP_STACK = [
+  "Error: Channel closed",
+  "    at target.send (node:internal/child_process:753:16)",
+  "    at /u/.vscode/extensions/innoverio.vscode-dbt-power-user-0.61.3/dist/extension.js:130:775419",
+  "    at Promise1._execute (/u/.vscode/extensions/innoverio.vscode-dbt-power-user-0.61.3/dist/extension.js:130:487327)",
+  "    at PassThroughHandlerContext.finallyHandler (/u/.vscode/extensions/innoverio.vscode-dbt-power-user-0.61.3/dist/extension.js:130:505563)",
+  "    at PassThroughHandlerContext.tryCatcher (/u/.vscode/extensions/innoverio.vscode-dbt-power-user-0.61.3/dist/extension.js:130:583403)",
+  "    at process.processImmediate (node:internal/timers:484:21)",
+].join("\n");
 
 describe("isPowerUserRejection", () => {
   describe("forwards rejections that originate in our extension", () => {
@@ -96,5 +116,61 @@ describe("isPowerUserRejection", () => {
       (e as unknown as { stack: unknown }).stack = { not: "a string" };
       expect(isPowerUserRejection(e)).toBe(false);
     });
+  });
+});
+
+describe("isPythonBridgeCleanupRace", () => {
+  it("matches the production cleanup-race fingerprint", () => {
+    const e = errWithMessageAndStack(
+      "Channel closed",
+      PYTHON_BRIDGE_CLEANUP_STACK,
+    );
+    expect(isPythonBridgeCleanupRace(e)).toBe(true);
+  });
+
+  it("does not match a different Channel-closed source (no finally cleanup)", () => {
+    const stack = [
+      "Error: Channel closed",
+      "    at target.send (node:internal/child_process:753:16)",
+      "    at someExtensionCode (/u/.vscode/extensions/innoverio.vscode-dbt-power-user-0.61.3/dist/extension.js:42:10)",
+    ].join("\n");
+    expect(
+      isPythonBridgeCleanupRace(
+        errWithMessageAndStack("Channel closed", stack),
+      ),
+    ).toBe(false);
+  });
+
+  it("does not match a different message even with the Bluebird signature", () => {
+    expect(
+      isPythonBridgeCleanupRace(
+        errWithMessageAndStack(
+          "Some other failure",
+          PYTHON_BRIDGE_CLEANUP_STACK,
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  it("drops null / undefined / non-Error reasons", () => {
+    expect(isPythonBridgeCleanupRace(null)).toBe(false);
+    expect(isPythonBridgeCleanupRace(undefined)).toBe(false);
+    expect(isPythonBridgeCleanupRace("Channel closed")).toBe(false);
+    expect(isPythonBridgeCleanupRace({ message: "Channel closed" })).toBe(
+      false,
+    );
+  });
+
+  it("requires the target.send marker (Bluebird finally on non-IPC code is not us)", () => {
+    const stack = [
+      "Error: Channel closed",
+      "    at PassThroughHandlerContext.finallyHandler (/u/.vscode/extensions/innoverio.vscode-dbt-power-user-0.61.3/dist/extension.js:130:505563)",
+      "    at Promise1._settlePromise (/u/.vscode/extensions/innoverio.vscode-dbt-power-user-0.61.3/dist/extension.js:130:540914)",
+    ].join("\n");
+    expect(
+      isPythonBridgeCleanupRace(
+        errWithMessageAndStack("Channel closed", stack),
+      ),
+    ).toBe(false);
   });
 });
