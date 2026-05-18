@@ -161,7 +161,7 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
       // Find the end of this WITH clause (before the main SELECT)
       const withClauseEnd = this.findWithClauseEnd(text, withStartPos);
       if (withClauseEnd === -1) {
-        this.dbtTerminal.warn(
+        this.dbtTerminal.debug(
           "CteCodeLensProvider",
           `Could not find end of WITH clause #${withClauseCount} starting at ${withStartPos}`,
         );
@@ -351,7 +351,7 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
         }
         endPos++;
       }
-      this.dbtTerminal.warn(
+      this.dbtTerminal.debug(
         "CteCodeLensProvider",
         `Unterminated block comment starting at position ${pos}`,
       );
@@ -376,7 +376,7 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
         }
         endPos++;
       }
-      this.dbtTerminal.warn(
+      this.dbtTerminal.debug(
         "CteCodeLensProvider",
         `Unterminated Jinja comment starting at position ${pos}`,
       );
@@ -639,7 +639,7 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
           const remainingText = text.substring(pos);
           const nestedWithMatch = remainingText.match(/^\s*with\b/i);
           if (nestedWithMatch) {
-            this.dbtTerminal.warn(
+            this.dbtTerminal.debug(
               "CteCodeLensProvider",
               `Found nested WITH clause at position ${pos}, bailing out - nested WITH clauses are not supported`,
             );
@@ -707,7 +707,7 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
         cteMatch.index + cteMatch.fullMatch.length - 1,
       );
       if (cteQueryEnd === -1) {
-        this.dbtTerminal.warn(
+        this.dbtTerminal.debug(
           "CteCodeLensProvider",
           `Could not find matching closing parenthesis for CTE: ${cteName}`,
         );
@@ -809,7 +809,7 @@ export class CteCodeLensProvider implements CodeLensProvider, Disposable {
       );
       return pos - 1;
     } else {
-      this.dbtTerminal.warn(
+      this.dbtTerminal.debug(
         "CteCodeLensProvider",
         `Could not find matching closing paren, remaining open parens: ${parenCount}, max depth reached: ${maxDepth}`,
       );
