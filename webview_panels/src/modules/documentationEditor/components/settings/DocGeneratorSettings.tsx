@@ -54,7 +54,7 @@ const DocGeneratorSettings = ({ onClose }: Props): JSX.Element => {
   };
 
   return (
-    <Drawer title="Help" onOpen={onOpen} onClose={onClose} ref={drawerRef}>
+    <Drawer title="Settings" onOpen={onOpen} onClose={onClose} ref={drawerRef}>
       <Stack direction="column">
         <h5>Configure settings for document generation</h5>
         <Stack direction="column">
