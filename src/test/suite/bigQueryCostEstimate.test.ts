@@ -1,5 +1,5 @@
-import { describe, expect, it, jest } from "@jest/globals";
 import { DBTTerminal } from "@altimateai/dbt-integration";
+import { describe, expect, it, jest } from "@jest/globals";
 import { BigQueryCostEstimate } from "../../commands/bigQueryCostEstimate";
 import { DBTProjectContainer } from "../../dbt_client/dbtProjectContainer";
 import { TelemetryService } from "../../telemetry";
@@ -119,9 +119,9 @@ describe("BigQueryCostEstimate.estimateCost arg destructure", () => {
       return returnResult;
     }
 
-    function postFixWrapper(
-      { returnResult }: { returnResult?: boolean } = {},
-    ): boolean | undefined {
+    function postFixWrapper({ returnResult }: { returnResult?: boolean } = {}):
+      | boolean
+      | undefined {
       return returnResult;
     }
 
