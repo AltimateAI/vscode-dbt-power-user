@@ -1272,22 +1272,6 @@ export class VSCodeCommands implements Disposable {
           });
         },
       ),
-      commands.registerCommand("dbtPowerUser.openAltimateChat", async () => {
-        const context = this.altimateCodeChatService.getEditorContext();
-        if (context) {
-          await this.altimateCodeChatService.openChat({
-            initialMessage: `Help me with \`@${context.relativePath}\`:\n\`\`\`\n${context.code}\n\`\`\``,
-            title: `Chat: ${context.fileName}`,
-            beside: true,
-          });
-        } else {
-          await this.altimateCodeChatService.openChat({
-            initialMessage: "How can I help you with your dbt project?",
-            title: "Altimate Code Chat",
-            beside: true,
-          });
-        }
-      }),
     );
   }
 
