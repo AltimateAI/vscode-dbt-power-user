@@ -57,7 +57,7 @@ dbt-protos==1.0.431
     #   dbt-core
 dbt-semantic-interfaces==0.9.0
     # via dbt-core
-deepdiff==8.6.1
+deepdiff==8.6.2
     # via dbt-common
 diff-cover==10.2.0
     # via sqlfluff
