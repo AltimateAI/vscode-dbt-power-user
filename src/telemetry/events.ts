@@ -59,7 +59,7 @@ export enum TelemetryEvents {
   "Notebook/LaunchError" = "Notebook/LaunchError",
   "Notebook/StoreDataInKernelError" = "Notebook/StoreDataInKernelError",
   "QueryHistory/Disabled" = "QueryHistory/Disabled",
-  "QueryHistory/Cleared" = "QueryHistory/Cleared",
+  "QueryHistory/ClearError" = "QueryHistory/ClearError",
   "CteProfiler/Profile" = "CteProfiler/Profile",
   "CteProfiler/Cancel" = "CteProfiler/Cancel",
   "MCP/ToolCall" = "MCP/ToolCall",

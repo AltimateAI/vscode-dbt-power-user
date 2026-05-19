@@ -1,15 +1,15 @@
-import Test from "./Test";
-import AddTest from "./AddTest";
-import { DBTModelTest } from "@modules/documentationEditor/state/types";
-import { EntityType } from "@modules/dataPilot/components/docGen/types";
-import { Stack, Drawer, DrawerRef, Button } from "@uicore";
-import { useMemo, useRef, useState } from "react";
-import DisplayTestDetails from "./DisplayTestDetails";
-import classes from "../../styles.module.scss";
 import { TestsIcon } from "@assets/icons";
-import { sendTelemetryEvent } from "../telemetry";
-import { TelemetryEvents } from "@telemetryEvents";
+import { EntityType } from "@modules/documentationEditor/state/entityType";
+import { DBTModelTest } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
+import { TelemetryEvents } from "@telemetryEvents";
+import { Button, Drawer, DrawerRef, Stack } from "@uicore";
+import { useMemo, useRef, useState } from "react";
+import classes from "../../styles.module.scss";
+import { sendTelemetryEvent } from "../telemetry";
+import AddTest from "./AddTest";
+import DisplayTestDetails from "./DisplayTestDetails";
+import Test from "./Test";
 
 interface Props {
   title: string;

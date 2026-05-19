@@ -93,6 +93,31 @@ export class DBTPowerUserExtension implements Disposable {
 
   async activate(context: ExtensionContext): Promise<void> {
     try {
+      // VS Code's `@vscode/extension-telemetry` library auto-emits an
+      // `unhandlederror` event for uncaught promise rejections, but it only
+      // captures `name`/`message`/`stack` (baseTelemetrySender.sendErrorData)
+      // and skips `error.code`. That makes IPC failures like `Channel
+      // closed` (errno `ERR_IPC_CHANNEL_CLOSED`), `EPIPE`, `EBADF`, etc.
+      // indistinguishable from each other in App Insights — all just show
+      // up with `name="Error"` and `message="Channel closed"`.
+      //
+      // Route uncaught rejections through `sendTelemetryError` in addition,
+      // so they pick up our consistent `error_name` / `error_message` /
+      // `error_code` fields plus `dbtIntegrationMode` / `instanceName` /
+      // `localMode`. The upstream `unhandlederror` event keeps firing in
+      // parallel — both events stream to App Insights, queryable separately.
+      const onUnhandledRejection = (reason: unknown) => {
+        try {
+          this.telemetry.sendTelemetryError("catchAllError", reason);
+        } catch {
+          // Telemetry failures must never re-enter the rejection path.
+        }
+      };
+      process.on("unhandledRejection", onUnhandledRejection);
+      context.subscriptions.push({
+        dispose: () => process.off("unhandledRejection", onUnhandledRejection),
+      });
+
       await this.mcpServer.updateMcpExtensionApi();
       this.dbtProjectContainer.setContext(context);
       this.dbtProjectContainer.initializeWalkthrough();

@@ -30,6 +30,11 @@ import {
   readAndParseProjectConfig,
 } from "@altimateai/dbt-integration";
 
+// Sentinel for the empty-after-retries case in `retryWithBackoff`. Lets the
+// caller distinguish "this folder has no dbt project" (silent, expected for
+// multi-root workspaces) from a real `findFiles` failure (telemetry-worthy).
+class NoProjectsFound extends Error {}
+
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
   readonly projectDiscoveryDiagnostics =
@@ -100,7 +105,7 @@ export class DBTWorkspaceFolder implements Disposable {
             "no projects found. retrying...",
             false,
           );
-          throw new Error("no projects found. retrying");
+          throw new NoProjectsFound("no projects found. retrying");
         }
         return result;
       } catch (error) {
@@ -116,22 +121,35 @@ export class DBTWorkspaceFolder implements Disposable {
       "no projects found after maximum retries",
       false,
     );
-    throw new Error("no projects found after maximum retries");
+    throw new NoProjectsFound("no projects found after maximum retries");
   }
 
   async discoverProjects() {
     // Ignore dbt_packages and venv/site-packages/dbt project folders
     const excludePattern =
       "**/{dbt_packages,site-packages,dbt_internal_packages}";
-    const dbtProjectFiles = await this.retryWithBackoff(
-      () =>
-        workspace.findFiles(
-          new RelativePattern(this.workspaceFolder, `**/${DBT_PROJECT_FILE}`),
-          new RelativePattern(this.workspaceFolder, excludePattern),
-        ),
-      5,
-      1000,
-    );
+    // Multi-root workspaces activate the extension when any folder contains
+    // `dbt_project.yml`, but discoverProjects runs on every folder. A folder
+    // that genuinely has no dbt project must resolve to an empty result
+    // rather than fail activation. The constructor's `createConfigWatcher`
+    // still watches this folder, so a project added later is picked up.
+    let dbtProjectFiles: Uri[] = [];
+    try {
+      dbtProjectFiles = await this.retryWithBackoff(
+        () =>
+          workspace.findFiles(
+            new RelativePattern(this.workspaceFolder, `**/${DBT_PROJECT_FILE}`),
+            new RelativePattern(this.workspaceFolder, excludePattern),
+          ),
+        5,
+        1000,
+      );
+    } catch (error) {
+      if (!(error instanceof NoProjectsFound)) {
+        this.telemetry.sendTelemetryError("discoverProjectsError", error);
+      }
+      dbtProjectFiles = [];
+    }
     this.dbtTerminal.info(
       "discoverProjects",
       "foundProjects",

@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.60.7",
+  "version": "0.61.3",
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -41,8 +41,8 @@
   "contributes": {
     "notebookRenderer": [
       {
-        "id": "datapilot-notebook-perspective-renderer",
-        "displayName": "Github Issues Notebook Renderer",
+        "id": "altimate-notebook-perspective-renderer",
+        "displayName": "Altimate Notebook Perspective Renderer",
         "entrypoint": "./webview_panels/dist/assets/renderer.js",
         "mimeTypes": [
           "application/perspective-json"
@@ -52,7 +52,7 @@
     "notebooks": [
       {
         "type": "datapilot-notebook",
-        "displayName": "Datapilot Notebook",
+        "displayName": "Altimate Notebook",
         "selector": [
           {
             "filenamePattern": "*.notebook"
@@ -135,7 +135,7 @@
           },
           "dbt.enableNotebooks": {
             "type": "boolean",
-            "description": "Enable Datapilot notebooks feature",
+            "description": "Enable Altimate notebooks feature",
             "default": true
           },
           "dbt.lineage.showSelectEdges": {
@@ -328,12 +328,6 @@
           "title": "dbt Power User",
           "icon": "./media/images/dbt_icon.svg",
           "contextualTitle": "dbt Power User"
-        },
-        {
-          "id": "datapilot_view",
-          "title": "DataPilot Chat",
-          "icon": "./media/images/altimate.svg",
-          "contextualTitle": "Altimate Data pilot"
         }
       ],
       "panel": [
@@ -408,14 +402,6 @@
           "type": "webview"
         }
       ],
-      "datapilot_view": [
-        {
-          "type": "webview",
-          "id": "dbtPowerUser.datapilot-webview",
-          "name": "",
-          "icon": "./media/images/dbt_icon.svg"
-        }
-      ],
       "insights_view": [
         {
           "id": "dbtPowerUser.Insights",
@@ -467,17 +453,9 @@
         "title": "Create Power User SQL file"
       },
       {
-        "command": "dbtPowerUser.createDatapilotNotebook",
-        "title": "Datapilot notebook",
+        "command": "dbtPowerUser.createAltimateNotebook",
+        "title": "Altimate notebook",
         "enablement": "dbt.enableNotebooks == true"
-      },
-      {
-        "command": "dbtPowerUser.datapilotProfileYourQuery",
-        "title": "Profile your query",
-        "icon": {
-          "light": "./media/images/sql-action-light.svg",
-          "dark": "./media/images/sql-action-dark.svg"
-        }
       },
       {
         "command": "dbtPowerUser.replyToConversation",
@@ -549,26 +527,6 @@
       {
         "command": "dbtPowerUser.toggleProfileDecorations",
         "title": "Toggle CTE Profile Decorations",
-        "category": "dbt Power User"
-      },
-      {
-        "command": "dbtPowerUser.openDatapilotWithQuery",
-        "title": "Start Chat",
-        "category": "dbt Power User"
-      },
-      {
-        "command": "dbtPowerUser.summarizeQuery",
-        "title": "Explain",
-        "category": "dbt Power User"
-      },
-      {
-        "command": "dbtPowerUser.changeQuery",
-        "title": "Change",
-        "category": "dbt Power User"
-      },
-      {
-        "command": "dbtPowerUser.translateQuery",
-        "title": "Translate to other SQL dialect",
         "category": "dbt Power User"
       },
       {
@@ -684,27 +642,6 @@
         }
       },
       {
-        "command": "dbtPowerUser.resetDatapilot",
-        "title": "Start New Chat",
-        "icon": "$(add)",
-        "category": "dbt Power User"
-      },
-      {
-        "command": "dbtPowerUser.maximizeDatapilot",
-        "title": "Maximize",
-        "category": "dbt Power User",
-        "icon": {
-          "light": "./media/images/fullscreen-light.svg",
-          "dark": "./media/images/fullscreen-dark.svg"
-        }
-      },
-      {
-        "command": "dbtPowerUser.showHelpDatapilot",
-        "title": "Help",
-        "category": "dbt Power User",
-        "icon": "$(question)"
-      },
-      {
         "command": "dbtPowerUser.showCompiledSQL",
         "title": "Open dbt target folder compiled SQL",
         "category": "dbt Power User",
@@ -800,8 +737,8 @@
         "category": "dbt Power User"
       },
       {
-        "command": "dbtPowerUser.showDatapilotNotebooksQuickPick",
-        "title": "Show Datapilot Notebooks Quick Pick",
+        "command": "dbtPowerUser.showAltimateNotebooksQuickPick",
+        "title": "Show Altimate Notebooks Quick Pick",
         "category": "dbt Power User"
       },
       {
@@ -850,6 +787,16 @@
         "title": "Optimize with Altimate"
       },
       {
+        "command": "dbtPowerUser.changeWithAltimate",
+        "category": "dbt Power User",
+        "title": "Change with Altimate"
+      },
+      {
+        "command": "dbtPowerUser.translateWithAltimate",
+        "category": "dbt Power User",
+        "title": "Translate with Altimate"
+      },
+      {
         "command": "dbtPowerUser.analyzeFileWithAltimate",
         "category": "dbt Power User",
         "title": "Analyze with Altimate"
@@ -885,7 +832,7 @@
           "command": "dbtPowerUser.createSqlFile"
         },
         {
-          "command": "dbtPowerUser.createDatapilotNotebook",
+          "command": "dbtPowerUser.createAltimateNotebook",
           "when": "dbt.enableNotebooks == true",
           "group": "notebook"
         }
@@ -924,27 +871,7 @@
           "when": "commentController == altimate-conversations && !commentThreadIsEmpty"
         }
       ],
-      "dbtPowerUser.datapilotSubmenu": [
-        {
-          "command": "dbtPowerUser.openDatapilotWithQuery",
-          "group": "datapilot@1"
-        },
-        {
-          "command": "dbtPowerUser.summarizeQuery",
-          "group": "datapilot@2"
-        },
-        {
-          "command": "dbtPowerUser.changeQuery",
-          "group": "datapilot@3"
-        },
-        {
-          "command": "dbtPowerUser.translateQuery",
-          "group": "datapilot@4"
-        },
-        {
-          "command": "dbtPowerUser.sqlLineage",
-          "group": "datapilot@5"
-        },
+      "dbtPowerUser.notebooksSubmenu": [
         {
           "command": "dbtPowerUser.showNotebookProfileQuery",
           "group": "notebooks@1"
@@ -979,6 +906,16 @@
         {
           "command": "dbtPowerUser.optimizeWithAltimate",
           "group": "1@3",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        },
+        {
+          "command": "dbtPowerUser.changeWithAltimate",
+          "group": "1@4",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        },
+        {
+          "command": "dbtPowerUser.translateWithAltimate",
+          "group": "1@5",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
         },
         {
@@ -1038,9 +975,9 @@
           "when": "resourceLangId =~ /^sql$|^jinja-sql$|^yaml$|^jinja-yaml$/"
         },
         {
-          "submenu": "dbtPowerUser.datapilotSubmenu",
-          "group": "datapilot@1",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+          "submenu": "dbtPowerUser.notebooksSubmenu",
+          "group": "notebooks@1",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && dbt.enableNotebooks == true"
         },
         {
           "submenu": "dbtPowerUser.buildModel",
@@ -1060,6 +997,11 @@
         {
           "command": "dbtPowerUser.goToDocumentationEditor",
           "group": "dbt@7",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        },
+        {
+          "command": "dbtPowerUser.sqlLineage",
+          "group": "dbt@8",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
         },
         {
@@ -1152,16 +1094,6 @@
           "group": "navigation"
         },
         {
-          "command": "dbtPowerUser.resetDatapilot",
-          "when": "view == dbtPowerUser.datapilot-webview",
-          "group": "navigation@1"
-        },
-        {
-          "command": "dbtPowerUser.showHelpDatapilot",
-          "when": "view == dbtPowerUser.datapilot-webview",
-          "group": "navigation@3"
-        },
-        {
           "command": "dbtPowerUser.clearRunHistory",
           "when": "view == run_history_treeview",
           "group": "2_clear"
@@ -1232,8 +1164,8 @@
         }
       },
       {
-        "id": "dbtPowerUser.datapilotSubmenu",
-        "label": "Datapilot"
+        "id": "dbtPowerUser.notebooksSubmenu",
+        "label": "Altimate Notebooks"
       },
       {
         "id": "dbtPowerUser.altimateCodeSubmenu",
@@ -1334,7 +1266,8 @@
     "ts-loader": "^9.4.4",
     "ts-mockito": "^2.6.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "webpack": "^5.106.2"
   },
   "extensionDependencies": [
     "samuelcolvin.jinjahtml",
@@ -1342,7 +1275,7 @@
     "altimateai.vscode-altimate-mcp-server"
   ],
   "dependencies": {
-    "@altimateai/dbt-integration": "^0.2.14",
+    "@altimateai/dbt-integration": "^0.3.1",
     "@jupyterlab/coreutils": "^6.2.4",
     "@jupyterlab/nbformat": "^4.2.4",
     "@jupyterlab/services": "^7.0.0",
