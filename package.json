@@ -802,12 +802,6 @@
         "title": "Analyze with Altimate"
       },
       {
-        "command": "dbtPowerUser.openAltimateChat",
-        "category": "dbt Power User",
-        "title": "Open Altimate Code Chat",
-        "icon": "$(sparkle)"
-      },
-      {
         "command": "dbtPowerUser.reviewCodeWithAltimate",
         "category": "dbt Power User",
         "title": "Review with Altimate"
@@ -932,11 +926,6 @@
         }
       ],
       "editor/title": [
-        {
-          "command": "dbtPowerUser.openAltimateChat",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$|^yaml$|^jinja-yaml$/",
-          "group": "navigation@0"
-        },
         {
           "command": "dbtPowerUser.executeSQL",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
@@ -1242,7 +1231,7 @@
     "@vscode/test-electron": "^2.4.1",
     "@vscode/zeromq": "^0.2.1",
     "chai": "^4.3.10",
-    "concurrently": "^8.2.2",
+    "concurrently": "^9.2.1",
     "cross-env": "^7.0.3",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^8.9.0",
@@ -1259,7 +1248,7 @@
     "ovsx": "^0.10.11",
     "patch-package": "^8.0.1",
     "prettier": "^3.3.3",
-    "prettier-eslint": "^15.0.1",
+    "prettier-eslint": "^16.4.2",
     "prettier-plugin-organize-imports": "^3.2.4",
     "source-map-support": "^0.5.21",
     "ts-jest": "^29.1.0",
