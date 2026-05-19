@@ -37,7 +37,7 @@ dbt-adapters==1.22.6
     # via
     #   dbt-core
     #   dbt-duckdb
-dbt-common==1.37.2
+dbt-common==1.37.3
     # via
     #   dbt-adapters
     #   dbt-core
