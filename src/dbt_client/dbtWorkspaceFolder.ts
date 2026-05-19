@@ -85,7 +85,6 @@ export class DBTWorkspaceFolder implements Disposable {
         allowListFolders,
         nonFilteredAllowListFolders,
       );
-      this.telemetry.sendTelemetryEvent("nonExistingAllowListFolders");
     }
     return allowListFolders;
   }
