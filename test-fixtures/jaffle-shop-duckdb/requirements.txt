@@ -175,7 +175,7 @@ six==1.17.0
     # via python-dateutil
 snowplow-tracker==1.1.0
     # via dbt-core
-sqlfluff==4.0.4
+sqlfluff==4.2.0
     # via jaffle-shop (pyproject.toml)
 sqlparse==0.5.4
     # via dbt-core
