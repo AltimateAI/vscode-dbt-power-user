@@ -38,6 +38,17 @@ export function generateHoverMarkdownString(
     }
     content.appendMarkdown("</br>");
   }
+  addSeparator(content);
+  const cmdArgs = encodeURIComponent(
+    JSON.stringify({
+      initialMessage: `Explain the transformation logic of the dbt model \`${node.name}\`. Walk through what it selects, filters, joins, and aggregates — step by step.`,
+      title: `Explain: ${node.name}`,
+      beside: true,
+    }),
+  );
+  content.appendMarkdown(
+    `[$(sparkle) Explain transformation](command:altimate.openChat?${cmdArgs})`,
+  );
   return content;
 }
 
