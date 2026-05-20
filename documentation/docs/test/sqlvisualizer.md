@@ -23,18 +23,6 @@ Click on "SQL Actions" icon as shown in the image below and choose "Visualize SQ
 
 ![SQL Actions Trigger](images/buttonSQLActions.png)
 
-### Right Click Menu
-
-You can just right click in the file, chose "DataPilot" menu and then choose option "Visualize SQL"
-
-![Right Click Visualizer](images/rightClickVisualizer.png)
-
-### Command Palette
-
-Open the model file for which you need to see SQL visualization. Then, press cmd+shift+P (for Mac) or Ctrl+shift+P (for Windows) to bring up the command palette. Search for "SQL visualizer" and execute it.
-
-![Command SQL Visualizer](images/commandSQLVisualizer.png)
-
 ## View the SQL components flow
 
 Please use the bottom left corner buttons to zoom in / zoom out, etc.
