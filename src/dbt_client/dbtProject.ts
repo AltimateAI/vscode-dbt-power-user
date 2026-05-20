@@ -1114,13 +1114,16 @@ export class DBTProject implements Disposable {
         true,
         { model, column },
       );
-      const result = this.dbtProjectIntegration.getColumnValues(model, column);
+      const result = await this.dbtProjectIntegration.getColumnValues(
+        model,
+        column,
+      );
       this.telemetry.endTelemetryEvent(
         TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
         undefined,
         { column, model },
       );
-      return (result as any).flat();
+      return result;
     } catch (error) {
       this.telemetry.endTelemetryEvent(
         TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
