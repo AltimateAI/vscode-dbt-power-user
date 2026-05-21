@@ -90,12 +90,13 @@ export class SqlFmtAvailabilityNotifier implements Disposable {
       return;
     }
 
-    const sqlFmtPath = await this.formattingProvider.resolveSqlFmtPath();
-    // Even if we discover sqlfmt later (user installs it without restarting),
-    // suppressing further prompts this session is the right behaviour — the
-    // notification's job is to tell them about the missing dep once, not to
-    // continually re-check.
+    // Latch synchronously, before the await, so concurrent maybeNotify calls
+    // (e.g. onManifestChanged + onDidChangeActiveTextEditor firing in the same
+    // tick) can't both pass the guard above and double-prompt. Also covers the
+    // "user installs sqlfmt mid-session" case the same way the old placement
+    // did — once per session, not per editor change.
     this.notifiedThisSession = true;
+    const sqlFmtPath = await this.formattingProvider.resolveSqlFmtPath();
     if (sqlFmtPath) {
       return;
     }
