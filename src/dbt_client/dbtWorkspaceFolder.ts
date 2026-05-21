@@ -67,7 +67,7 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   getAllowListFolders() {
-    const nonFilteredAlolowListFolders = workspace
+    const nonFilteredAllowListFolders = workspace
       .getConfiguration("dbt")
       .get<string[]>("allowListFolders", [])
       .map((folder) => {
@@ -76,16 +76,15 @@ export class DBTWorkspaceFolder implements Disposable {
         }
         return folder;
       });
-    const allowListFolders = nonFilteredAlolowListFolders.filter((folder) =>
+    const allowListFolders = nonFilteredAllowListFolders.filter((folder) =>
       existsSync(folder),
     );
-    if (nonFilteredAlolowListFolders.length === allowListFolders.length) {
+    if (nonFilteredAllowListFolders.length !== allowListFolders.length) {
       console.warn(
         "filtered out non-existing allowListFolders",
         allowListFolders,
-        nonFilteredAlolowListFolders,
+        nonFilteredAllowListFolders,
       );
-      this.telemetry.sendTelemetryEvent("nonExistingAllowListFolders");
     }
     return allowListFolders;
   }
