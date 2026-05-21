@@ -39,7 +39,9 @@ describe("TelemetryService.sendTelemetryError surfaces diagnostic fields", () =>
     (vscode as { env?: unknown }).env = {
       appName: "Visual Studio Code",
       createTelemetryLogger: jest.fn().mockReturnValue({
-        onDidChangeEnableStates: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+        onDidChangeEnableStates: jest
+          .fn()
+          .mockReturnValue({ dispose: jest.fn() }),
         isErrorsEnabled: false,
         isUsageEnabled: false,
         logUsage: jest.fn(),
@@ -88,10 +90,11 @@ describe("TelemetryService.sendTelemetryError surfaces diagnostic fields", () =>
   });
 
   it("forwards error.code for system errors (ENOENT, EACCES, etc.)", () => {
-    const err = Object.assign(
-      new Error("spawn /usr/local/bin/python ENOENT"),
-      { code: "ENOENT", syscall: "spawn", errno: -2 },
-    );
+    const err = Object.assign(new Error("spawn /usr/local/bin/python ENOENT"), {
+      code: "ENOENT",
+      syscall: "spawn",
+      errno: -2,
+    });
     telemetry.sendTelemetryError(
       "innoverio.vscode-dbt-power-user/CommandProcessExecutionError",
       err,
