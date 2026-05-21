@@ -59,8 +59,12 @@ const CommonActionButtons = (): JSX.Element => {
         )}
       </PopoverWithButton>
 
-      {action === SelectedAction.SETTINGS ? <DocGeneratorSettings /> : null}
-      {action === SelectedAction.HELP ? <HelpButton /> : null}
+      {action === SelectedAction.SETTINGS ? (
+        <DocGeneratorSettings onClose={() => setAction(undefined)} />
+      ) : null}
+      {action === SelectedAction.HELP ? (
+        <HelpButton onClose={() => setAction(undefined)} />
+      ) : null}
     </Stack>
   );
 };
