@@ -271,7 +271,12 @@ export class CteProfilerService implements Disposable {
     if (data.length === 0) {
       return 0;
     }
-    const count = data[0]["_profile_count"];
+    // Read the single COUNT(*) value by position rather than by name. The
+    // profiler builds the query itself and aliases the result, but adapters
+    // fold the alias according to their dialect's identifier rules — Snowflake
+    // and Oracle uppercase unquoted aliases, so a lowercase key lookup
+    // misses the row and the profiler reports 0 for every CTE.
+    const count = Object.values(data[0])[0];
     return typeof count === "number" ? count : Number(count) || 0;
   }
 
