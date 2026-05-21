@@ -353,6 +353,7 @@ export class YamlModelHoverProvider implements HoverProvider, Disposable {
     const content = new MarkdownString();
     content.supportHtml = true;
     content.isTrusted = true;
+    content.supportThemeIcons = true;
 
     content.appendMarkdown(
       `<span style="color:#347890;">(column)&nbsp;</span><span><strong>${columnName}</strong></span>`,

@@ -14,6 +14,7 @@ export function generateHoverMarkdownString(
   const content = new MarkdownString();
   content.supportHtml = true;
   content.isTrusted = true;
+  content.supportThemeIcons = true;
   content.appendMarkdown(
     `<span style="color:#347890;">(${nodeType})&nbsp;</span><span><strong>${node.name}</strong></span>`,
   );
@@ -60,6 +61,7 @@ export const generateMacroHoverMarkdown = (
   const content = new MarkdownString();
   content.supportHtml = true;
   content.isTrusted = true;
+  content.supportThemeIcons = true;
   content.appendMarkdown(
     `<span style="color:#347890;">(Macro)&nbsp;</span><span><strong>${node.name}</strong></span>`,
   );
