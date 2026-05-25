@@ -991,7 +991,7 @@
         {
           "command": "dbtPowerUser.sqlLineage",
           "group": "dbt@8",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && resourceScheme != 'query-preview'"
         },
         {
           "command": "dbtPowerUser.testCurrentModel",
@@ -1016,7 +1016,7 @@
         {
           "command": "dbtPowerUser.validateSql",
           "group": "dbt@4",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && resourceScheme != 'query-preview'"
         },
         {
           "command": "dbtPowerUser.bigqueryCostEstimate",
