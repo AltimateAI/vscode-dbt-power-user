@@ -1271,7 +1271,7 @@
     "@types/express": "^5.0.0",
     "@vscode/chat-extension-utils": "^0.0.0-alpha.5",
     "@vscode/codicons": "^0.0.36",
-    "@vscode/extension-telemetry": "0.9.7",
+    "@vscode/extension-telemetry": "1.5.2",
     "@vscode/vsce": "^3.9.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "dayjs": "^1.11.13",
