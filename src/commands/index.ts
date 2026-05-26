@@ -1016,6 +1016,17 @@ export class VSCodeCommands implements Disposable {
         },
       ),
       commands.registerCommand("dbtPowerUser.sqlLineage", async () => {
+        const activeUri = window.activeTextEditor?.document.uri;
+        if (activeUri?.scheme === SqlPreviewContentProvider.SCHEME) {
+          // The compiled-SQL preview is a read-only derived artifact served by
+          // a TextDocumentContentProvider; workspace.fs has no provider for its
+          // scheme, so reading it throws ENOPRO. Visualize SQL operates on the
+          // source model, so there is nothing to visualize from the preview.
+          window.showInformationMessage(
+            "Visualize SQL runs on a dbt model file, not the compiled SQL preview.",
+          );
+          return;
+        }
         window.withProgress(
           {
             title: "Retrieving SQL visualization",

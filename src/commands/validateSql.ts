@@ -91,6 +91,16 @@ export class ValidateSql {
     }
     const activedoc = window.activeTextEditor;
     const currentFilePath = activedoc.document.uri;
+    if (currentFilePath.scheme === SqlPreviewContentProvider.SCHEME) {
+      // The compiled-SQL preview is a read-only derived artifact served by a
+      // TextDocumentContentProvider; workspace.fs has no provider for its
+      // scheme, so reading it throws ENOPRO. Validate SQL operates on the
+      // source model, so there is nothing to validate from the preview.
+      window.showInformationMessage(
+        "Validate SQL runs on a dbt model file, not the compiled SQL preview.",
+      );
+      return;
+    }
     const project = this.dbtProjectContainer.findDBTProject(currentFilePath);
     if (!project) {
       await window.showErrorMessage("Unable to build project");
@@ -191,12 +201,7 @@ export class ValidateSql {
       models: parentModels,
     };
     const response = await this.getProject()?.validateSql(request);
-    const activeUri = window.activeTextEditor?.document.uri;
-    if (activeUri.scheme === SqlPreviewContentProvider.SCHEME) {
-      // current focus on compiled sql document
-      return;
-    }
-    const compileSQLUri = activeUri.with({
+    const compileSQLUri = currentFilePath.with({
       scheme: SqlPreviewContentProvider.SCHEME,
     });
     const isOpen = !!window.visibleTextEditors.find(
