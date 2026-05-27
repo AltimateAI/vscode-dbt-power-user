@@ -1,5 +1,7 @@
 import { DBTTerminal, EnvironmentVariables } from "@altimateai/dbt-integration";
+import { existsSync } from "fs";
 import { inject } from "inversify";
+import { isAbsolute } from "path";
 import {
   Disposable,
   Event,
@@ -175,12 +177,30 @@ export class PythonEnvironment {
     // Unique markers to reliably extract the path from noisy terminal output.
     const startMarker = "__DBT_DETECT_START__";
     const endMarker = "__DBT_DETECT_END__";
+    // Emit each marker as two string literals joined at runtime by Python, so the
+    // *contiguous* marker token never appears in the command text itself. Shell
+    // integration echoes the command line into the same stream we read back; if a
+    // literal marker were in the source, the marker search in executeInTerminal
+    // would match the echo and extract a fragment of the probe code instead of the
+    // real interpreter path. (That produced an invalid dbtPythonPathOverride like
+    // `"); print(sys.executable); print("`.) The joined token only ever appears in
+    // stdout.
+    const asSplitLiteral = (marker: string, quote: string): string => {
+      const mid = Math.ceil(marker.length / 2);
+      return `${quote}${marker.slice(0, mid)}${quote} + ${quote}${marker.slice(
+        mid,
+      )}${quote}`;
+    };
     // Build a platform-appropriate command string.
     // POSIX shells: outer single quotes, inner double quotes in Python code.
     // Windows/PowerShell: outer double quotes, inner single quotes in Python code.
     const isWindows = process.platform === "win32";
-    const pyCodePosix = `import sys; __import__("dbt"); print("${startMarker}"); print(sys.executable); print("${endMarker}")`;
-    const pyCodeWin = `import sys; __import__('dbt'); print('${startMarker}'); print(sys.executable); print('${endMarker}')`;
+    const pyCode = (quote: string) =>
+      `import sys; __import__(${quote}dbt${quote}); ` +
+      `print(${asSplitLiteral(startMarker, quote)}); print(sys.executable); ` +
+      `print(${asSplitLiteral(endMarker, quote)})`;
+    const pyCodePosix = pyCode('"');
+    const pyCodeWin = pyCode("'");
     const buildCmd = (pythonCmd: string) =>
       isWindows
         ? `${pythonCmd} -c "${pyCodeWin}"`
@@ -234,7 +254,8 @@ export class PythonEnvironment {
       return undefined;
     }
     const execution = terminal.shellIntegration.executeCommand(commandLine);
-    // Race the stream read against a 10s timeout to avoid hanging indefinitely
+    // Race the stream read against a 10s timeout to avoid hanging indefinitely.
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const output = await Promise.race([
       (async () => {
         let collected = "";
@@ -243,10 +264,15 @@ export class PythonEnvironment {
         }
         return collected;
       })(),
-      new Promise<undefined>((resolve) =>
-        setTimeout(() => resolve(undefined), 10_000),
-      ),
-    ]);
+      new Promise<undefined>((resolve) => {
+        timer = setTimeout(() => resolve(undefined), 10_000);
+      }),
+    ]).finally(() => {
+      // Clear the timer when the read wins so it doesn't keep the event loop alive.
+      if (timer) {
+        clearTimeout(timer);
+      }
+    });
     if (output === undefined) {
       this.dbtTerminal.debug(
         "pythonEnvironment:executeInTerminal",
@@ -272,6 +298,16 @@ export class PythonEnvironment {
     }
     const between = cleaned.slice(startIdx + startMarker.length, endIdx).trim();
     if (between) {
+      // Defense-in-depth: only accept an absolute path to an existing file, so
+      // shell noise or a leaked command echo can never be persisted as the
+      // interpreter (dbt.dbtPythonPathOverride).
+      if (!isAbsolute(between) || !existsSync(between)) {
+        this.dbtTerminal.debug(
+          "pythonEnvironment:executeInTerminal",
+          `Ignoring detected value that is not a valid interpreter path: ${between}`,
+        );
+        return undefined;
+      }
       this.dbtTerminal.debug(
         "pythonEnvironment:executeInTerminal",
         `Detected Python with dbt at: ${between}`,
