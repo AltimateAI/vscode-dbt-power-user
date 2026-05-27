@@ -805,6 +805,11 @@
         "command": "dbtPowerUser.reviewCodeWithAltimate",
         "category": "dbt Power User",
         "title": "Review with Altimate"
+      },
+      {
+        "command": "dbtPowerUser.troubleshootError",
+        "title": "Troubleshoot with Altimate Code",
+        "category": "dbt Power User"
       }
     ],
     "keybindings": [
@@ -1118,6 +1123,12 @@
           "command": "dbtPowerUser.goToDocumentationEditor",
           "when": "view == documentation_treeview",
           "group": "inline"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "dbtPowerUser.troubleshootError",
+          "when": "false"
         }
       ]
     },

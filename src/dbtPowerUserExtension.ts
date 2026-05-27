@@ -1,5 +1,13 @@
 import { NotebookProviders } from "@lib";
-import { commands, Disposable, ExtensionContext, workspace } from "vscode";
+import {
+  commands,
+  Disposable,
+  ExtensionContext,
+  languages,
+  Uri,
+  window,
+  workspace,
+} from "vscode";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";
@@ -14,6 +22,10 @@ import { DbtPowerUserActionsCenter } from "./quickpick";
 import { StatusBars } from "./statusbar";
 import { TelemetryService } from "./telemetry";
 import { TreeviewProviders } from "./treeview_provider";
+import {
+  TROUBLESHOOT_COMMAND,
+  TroubleshootCodeActionProvider,
+} from "./troubleshootCodeActions";
 import { ValidationProvider } from "./validation_provider";
 import { WebviewViewProviders } from "./webview_provider";
 
@@ -118,6 +130,33 @@ export class DBTPowerUserExtension implements Disposable {
         dispose: () => process.off("unhandledRejection", onUnhandledRejection),
       });
 
+      // Register CodeAction provider for diagnostics (Troubleshoot with Altimate Code)
+      context.subscriptions.push(
+        languages.registerCodeActionsProvider(
+          { scheme: "file" },
+          new TroubleshootCodeActionProvider(),
+          {
+            providedCodeActionKinds:
+              TroubleshootCodeActionProvider.providedKinds,
+          },
+        ),
+      );
+      // Register URI handler for vscode://innoverio.vscode-dbt-power-user/troubleshoot
+      context.subscriptions.push(
+        window.registerUriHandler({
+          handleUri(uri: Uri): void {
+            if (uri.path === "/troubleshoot") {
+              const params = new URLSearchParams(uri.query);
+              const errorMessage = params.get("error") ?? "";
+              const source = params.get("source") ?? "";
+              commands.executeCommand(TROUBLESHOOT_COMMAND, {
+                errorMessage,
+                source,
+              });
+            }
+          },
+        }),
+      );
       await this.mcpServer.updateMcpExtensionApi();
       this.dbtProjectContainer.setContext(context);
       this.dbtProjectContainer.initializeWalkthrough();
