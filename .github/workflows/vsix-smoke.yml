@@ -1,17 +1,22 @@
 name: VSIX Smoke
 
 # Verifies the PUBLISHED dbt Power User VSIX installs and activates cleanly
-# in a fresh code-server container. Catches publish breakage that the
-# Tests workflow (which runs against source) cannot.
+# in a fresh code-server container, AND that the upgrade path from the
+# previously-published version to the current latest works.
+#
+# Catches publish-time breakage that the Tests workflow (which runs against
+# source) cannot. The pre-release version of this check runs from ci.yml's
+# release-smoke job BEFORE vsce publish, so we can stop bad releases at the
+# door — this scheduled workflow is the safety-net post-publish.
 #
 # The actual logic lives in docker-setup/vsix-smoke.sh so Anas/Sai can run
 # the same check locally on their laptop:
-#   bash docker-setup/vsix-smoke.sh --version 0.61.5
+#   bash docker-setup/vsix-smoke.sh --from-version 0.61.4 --version 0.61.5
 #
 # Triggers:
-#   - schedule:    daily 06:00 UTC sanity check that the marketplace install still works
-#   - workflow_dispatch: manual trigger with optional --version / --from-version
-#   - release:     post-publish verification (with 5-min sleep so marketplace propagates)
+#   - schedule:    daily 06:00 UTC. Auto-resolves previous version and runs upgrade scenario.
+#   - workflow_dispatch: manual. Inputs override the auto-resolved versions.
+#   - release:     post-publish verification. Auto-resolves prev = old marketplace latest.
 
 on:
   schedule:
@@ -19,19 +24,23 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to install (e.g. 0.61.5; default: latest)"
-        type: string
-        default: "latest"
-      from_version:
-        description: "If set, verify the upgrade path FROM this version TO --version"
+        description: "Version to install (e.g. 0.61.5; default: latest published)"
         type: string
         default: ""
+      from_version:
+        description: "Baseline version for upgrade test (default: auto-resolve to previous published)"
+        type: string
+        default: ""
+      skip_upgrade:
+        description: "Skip the upgrade scenario; do fresh-install only"
+        type: boolean
+        default: false
   release:
     types: [published]
 
 permissions:
   contents: read
-  issues: write   # for the regression-issue helper below; no Slack secret required
+  issues: write
 
 concurrency:
   group: vsix-smoke
@@ -48,20 +57,57 @@ jobs:
       - name: Set up Docker Buildx (layer cache)
         uses: docker/setup-buildx-action@v3
 
-      - name: Resolve version under test
-        id: ver
+      - name: Resolve target and baseline versions
+        id: resolve
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
           DISPATCH_VERSION: ${{ inputs.version }}
+          DISPATCH_FROM: ${{ inputs.from_version }}
+          SKIP_UPGRADE: ${{ inputs.skip_upgrade }}
+          GITHUB_OUTPUT: ${{ env.GITHUB_OUTPUT }}
         run: |
-          if [ -n "$RELEASE_TAG" ]; then
-            # tag form `v0.61.5` -> `0.61.5`
-            echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
-          elif [ -n "$DISPATCH_VERSION" ] && [ "$DISPATCH_VERSION" != "latest" ]; then
-            echo "version=$DISPATCH_VERSION" >> "$GITHUB_OUTPUT"
-          else
-            echo "version=latest" >> "$GITHUB_OUTPUT"
-          fi
+          python3 - <<'PY'
+          import json, os, re, urllib.request
+
+          release_tag    = os.environ.get("RELEASE_TAG", "")
+          user_version   = os.environ.get("DISPATCH_VERSION", "")
+          user_from      = os.environ.get("DISPATCH_FROM", "")
+          skip_upgrade   = os.environ.get("SKIP_UPGRADE", "") == "true"
+
+          # Resolve the target (the version we're testing the install + activation of)
+          if release_tag:
+              target = release_tag.lstrip("v")
+          elif user_version:
+              target = user_version
+          else:
+              target = "latest"
+
+          # Resolve the baseline (only matters if we're running the upgrade scenario)
+          if skip_upgrade:
+              baseline = ""
+          elif user_from:
+              baseline = user_from
+          else:
+              with urllib.request.urlopen(
+                  "https://open-vsx.org/api/innoverio/vscode-dbt-power-user"
+              ) as r:
+                  data = json.load(r)
+              # allVersions is latest-first; filter out channel aliases like "latest"/"pre-release"
+              numeric = [v for v in data.get("allVersions", {}) if re.match(r"^\d", v)]
+              # If we're testing a specific version, skip past it in the list
+              if target != "latest" and target in numeric:
+                  i = numeric.index(target)
+                  baseline = numeric[i + 1] if i + 1 < len(numeric) else ""
+              else:
+                  # "latest" or unknown: previous = numeric[1] (because [0] is current latest)
+                  baseline = numeric[1] if len(numeric) > 1 else ""
+
+          out = os.environ["GITHUB_OUTPUT"]
+          with open(out, "a") as f:
+              f.write(f"target={target}\n")
+              f.write(f"baseline={baseline}\n")
+          print(f"target={target}  baseline={baseline or '(skipped)'}")
+          PY
 
       - name: Wait for marketplace propagation (post-publish only)
         if: github.event_name == 'release'
@@ -71,25 +117,25 @@ jobs:
 
       - name: Run vsix-smoke.sh
         env:
-          VERSION: ${{ steps.ver.outputs.version }}
-          FROM_VERSION: ${{ inputs.from_version }}
+          TARGET: ${{ steps.resolve.outputs.target }}
+          BASELINE: ${{ steps.resolve.outputs.baseline }}
         run: |
           args=()
-          if [ "$VERSION" != "latest" ]; then
-            args+=(--version "$VERSION")
+          if [ "$TARGET" != "latest" ]; then
+            args+=(--version "$TARGET")
           fi
-          if [ -n "$FROM_VERSION" ]; then
-            args+=(--from-version "$FROM_VERSION")
+          if [ -n "$BASELINE" ]; then
+            args+=(--from-version "$BASELINE")
           fi
+          echo "Running: bash docker-setup/vsix-smoke.sh ${args[*]}"
           bash docker-setup/vsix-smoke.sh "${args[@]}"
 
-      - name: Upload code-server logs on failure
+      - name: Upload build log on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: vsix-smoke-logs-${{ github.run_id }}
-          path: |
-            /tmp/vsix-smoke-build.log
+          path: /tmp/vsix-smoke-build.log
           retention-days: 14
           if-no-files-found: ignore
 
@@ -102,7 +148,6 @@ jobs:
             const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const body = `Scheduled \`vsix-smoke\` workflow failed on ${today}.\n\nRun: ${runUrl}`;
 
-            // Find any open vsix-smoke issue from the last 7 days so we don't spam
             const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
