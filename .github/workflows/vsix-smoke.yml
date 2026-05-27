@@ -55,7 +55,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx (layer cache)
-        uses: docker/setup-buildx-action@v3
+        # Third-party action — pinned to a commit SHA per CodeQL guidance.
+        # First-party actions/* in this workflow use tag refs to match repo convention.
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Resolve target and baseline versions
         id: resolve

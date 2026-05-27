@@ -45,11 +45,30 @@ Usage: $0 [--version VERSION | --vsix-file PATH] [--from-version PREV] [--keep]
 EOF
 }
 
+need_value() {
+  # $1: option name (--version etc), $2: argv count remaining, $3: candidate value
+  local opt="$1" remaining="$2" candidate="${3:-}"
+  if [ "$remaining" -lt 2 ] || [ -z "$candidate" ] || [ "${candidate:0:1}" = "-" ]; then
+    echo "Missing value for $opt" >&2
+    usage >&2
+    exit 2
+  fi
+}
+
 while [ $# -gt 0 ]; do
   case "$1" in
-    --version) VERSION="$2"; shift 2 ;;
-    --vsix-file) VSIX_FILE="$2"; shift 2 ;;
-    --from-version) FROM_VERSION="$2"; shift 2 ;;
+    --version)
+      need_value "--version" "$#" "${2:-}"
+      VERSION="$2"; shift 2
+      ;;
+    --vsix-file)
+      need_value "--vsix-file" "$#" "${2:-}"
+      VSIX_FILE="$2"; shift 2
+      ;;
+    --from-version)
+      need_value "--from-version" "$#" "${2:-}"
+      FROM_VERSION="$2"; shift 2
+      ;;
     --keep) KEEP=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
