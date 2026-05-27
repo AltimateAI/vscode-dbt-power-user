@@ -37,6 +37,14 @@ on:
         default: false
   release:
     types: [published]
+  # Pre-merge gate: when a PR touches the docker setup or this workflow itself,
+  # run the same marketplace upgrade scenario against the PR head. Cheaper than
+  # waiting for the daily cron and catches regressions in the script before they
+  # land on master.
+  pull_request:
+    paths:
+      - "docker-setup/**"
+      - ".github/workflows/vsix-smoke.yml"
 
 permissions:
   contents: read
