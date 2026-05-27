@@ -1,0 +1,131 @@
+name: VSIX Smoke
+
+# Verifies the PUBLISHED dbt Power User VSIX installs and activates cleanly
+# in a fresh code-server container. Catches publish breakage that the
+# Tests workflow (which runs against source) cannot.
+#
+# The actual logic lives in docker-setup/vsix-smoke.sh so Anas/Sai can run
+# the same check locally on their laptop:
+#   bash docker-setup/vsix-smoke.sh --version 0.61.5
+#
+# Triggers:
+#   - schedule:    daily 06:00 UTC sanity check that the marketplace install still works
+#   - workflow_dispatch: manual trigger with optional --version / --from-version
+#   - release:     post-publish verification (with 5-min sleep so marketplace propagates)
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to install (e.g. 0.61.5; default: latest)"
+        type: string
+        default: "latest"
+      from_version:
+        description: "If set, verify the upgrade path FROM this version TO --version"
+        type: string
+        default: ""
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  issues: write   # for the regression-issue helper below; no Slack secret required
+
+concurrency:
+  group: vsix-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: VSIX install + activation
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx (layer cache)
+        uses: docker/setup-buildx-action@v3
+
+      - name: Resolve version under test
+        id: ver
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          DISPATCH_VERSION: ${{ inputs.version }}
+        run: |
+          if [ -n "$RELEASE_TAG" ]; then
+            # tag form `v0.61.5` -> `0.61.5`
+            echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+          elif [ -n "$DISPATCH_VERSION" ] && [ "$DISPATCH_VERSION" != "latest" ]; then
+            echo "version=$DISPATCH_VERSION" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Wait for marketplace propagation (post-publish only)
+        if: github.event_name == 'release'
+        run: |
+          echo "Sleeping 5 minutes so the marketplace has the new version before we ask for it"
+          sleep 300
+
+      - name: Run vsix-smoke.sh
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+          FROM_VERSION: ${{ inputs.from_version }}
+        run: |
+          args=()
+          if [ "$VERSION" != "latest" ]; then
+            args+=(--version "$VERSION")
+          fi
+          if [ -n "$FROM_VERSION" ]; then
+            args+=(--from-version "$FROM_VERSION")
+          fi
+          bash docker-setup/vsix-smoke.sh "${args[@]}"
+
+      - name: Upload code-server logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-smoke-logs-${{ github.run_id }}
+          path: |
+            /tmp/vsix-smoke-build.log
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Open or update GitHub issue on scheduled failure
+        if: failure() && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const today = new Date().toISOString().split('T')[0];
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = `Scheduled \`vsix-smoke\` workflow failed on ${today}.\n\nRun: ${runUrl}`;
+
+            // Find any open vsix-smoke issue from the last 7 days so we don't spam
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'vsix-smoke',
+              per_page: 5,
+            });
+
+            if (issues.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues[0].number,
+                body,
+              });
+              core.info(`Commented on existing issue #${issues[0].number}`);
+            } else {
+              const { data: created } = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `vsix-smoke failed (${today})`,
+                body,
+                labels: ['vsix-smoke', 'bug'],
+              });
+              core.info(`Opened issue #${created.number}`);
+            }
