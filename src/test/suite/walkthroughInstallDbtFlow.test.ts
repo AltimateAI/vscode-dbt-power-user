@@ -20,6 +20,7 @@ describe("WalkthroughCommands.installDbt — externally-managed flow", () => {
   let commands: WalkthroughCommands;
   let runCommands: { command: string; args: string[] }[];
   let configUpdates: { key: string; value: unknown }[];
+  let dbtProjectContainer: { detectDBT: jest.Mock; initialize: jest.Mock };
 
   // Save originals to restore after each test.
   const orig = {
@@ -32,7 +33,11 @@ describe("WalkthroughCommands.installDbt — externally-managed flow", () => {
 
   beforeEach(() => {
     workspaceDir = mkdtempSync(join(tmpdir(), "dbt-install-"));
-    venvPython = join(workspaceDir, ".venv", "bin", "python");
+    // Mirror the runtime venv interpreter layout (Scripts/python.exe on Windows).
+    venvPython =
+      process.platform === "win32"
+        ? join(workspaceDir, ".venv", "Scripts", "python.exe")
+        : join(workspaceDir, ".venv", "bin", "python");
     runCommands = [];
     configUpdates = [];
 
@@ -96,7 +101,7 @@ describe("WalkthroughCommands.installDbt — externally-managed flow", () => {
       pythonVersion: "3.12.0",
       getEnvironmentVariables: () => ({}),
     };
-    const dbtProjectContainer = {
+    dbtProjectContainer = {
       detectDBT: jest.fn(() => Promise.resolve()),
       initialize: jest.fn(),
     };
@@ -158,5 +163,21 @@ describe("WalkthroughCommands.installDbt — externally-managed flow", () => {
       c.args.includes("--break-system-packages"),
     );
     expect(forced).toBe(false);
+  });
+
+  it("restores the previous interpreter override if post-install detection fails", async () => {
+    dbtProjectContainer.detectDBT = jest.fn(() =>
+      Promise.reject(new Error("detect failed")),
+    );
+
+    await commands.installDbt();
+
+    // Override is set to the venv, then rolled back to the prior value
+    // (undefined here) so the workspace isn't left on a half-applied interpreter.
+    expect(configUpdates).toEqual([
+      { key: "dbtPythonPathOverride", value: venvPython },
+      { key: "dbtPythonPathOverride", value: undefined },
+    ]);
+    expect(window.showErrorMessage).toHaveBeenCalled();
   });
 });

@@ -481,6 +481,9 @@ export class WalkthroughCommands {
     }
     const venvDir = join(workspacePath, ".venv");
     const venvPython = this.resolveVenvPython(venvDir);
+    const config = workspace.getConfiguration("dbt");
+    const previousOverride = config.get<string>("dbtPythonPathOverride");
+    let overrideUpdated = false;
     this.telemetry.sendTelemetryEvent("installDbtCoreVenv", telemetryProps);
     let error: unknown;
     await window.withProgress(
@@ -508,12 +511,18 @@ export class WalkthroughCommands {
             }
           }
           await this.runPipInstall(venvPython, installArgs);
-          await workspace
-            .getConfiguration("dbt")
-            .update("dbtPythonPathOverride", venvPython);
+          // Point the interpreter at the venv before re-detecting so detection
+          // resolves dbt from the new environment.
+          await config.update("dbtPythonPathOverride", venvPython);
+          overrideUpdated = true;
           await this.dbtProjectContainer.detectDBT();
           this.dbtProjectContainer.initialize();
         } catch (err) {
+          // Don't leave the workspace pointing at a half-set interpreter if a
+          // later step failed; restore the previous override.
+          if (overrideUpdated) {
+            await config.update("dbtPythonPathOverride", previousOverride);
+          }
           error = err;
           this.telemetry.sendTelemetryError(
             "installDbtCoreVenvError",
