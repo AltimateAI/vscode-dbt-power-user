@@ -83,6 +83,21 @@ if [ -n "$VSIX_FILE" ]; then
   VSIX_FILE="$(cd "$(dirname "$VSIX_FILE")" && pwd)/$(basename "$VSIX_FILE")"
 fi
 
+# Resolve "latest" to a concrete semver via OpenVSX. Otherwise code-server's
+# --install-extension treats a bare publisher.name as "any version of this
+# extension is fine" — when an older version is already installed, it
+# no-ops and the upgrade scenario silently does nothing.
+if [ -z "$VSIX_FILE" ] && [ "$VERSION" = "latest" ]; then
+  resolved=$(curl -sf "https://open-vsx.org/api/innoverio/vscode-dbt-power-user/latest" \
+    | python3 -c 'import json,sys; print(json.load(sys.stdin)["version"])' 2>/dev/null || true)
+  if [ -z "$resolved" ]; then
+    echo "FAIL: could not resolve 'latest' from OpenVSX" >&2
+    exit 1
+  fi
+  VERSION="$resolved"
+  echo "==> Resolved 'latest' -> ${VERSION}"
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$REPO_ROOT"
@@ -137,7 +152,10 @@ done
 
 install_and_verify() {
   # $1: "marketplace" or "file"
-  # $2: when source=marketplace: version (or "latest"); when source=file: host path to .vsix
+  # $2: when source=marketplace: concrete semver version; when source=file: host path to .vsix
+  #     Callers must resolve "latest" to a concrete semver before calling — otherwise
+  #     code-server treats a bare extension id as "any version present is fine" and
+  #     silently no-ops when an older version is already installed.
   local source="$1"
   local arg="$2"
   local target install_label expected_version=""
@@ -151,10 +169,13 @@ install_and_verify() {
     # Best-effort version sniff from filename: name-X.Y.Z[-target].vsix
     expected_version=$(echo "$base" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
   else
-    target="$EXTENSION_ID"
-    [ "$arg" != "latest" ] && target="${EXTENSION_ID}@${arg}"
+    if [ "$arg" = "latest" ] || [ -z "$arg" ]; then
+      red "FAIL: marketplace install requires a concrete semver, got '$arg'"
+      return 1
+    fi
+    target="${EXTENSION_ID}@${arg}"
     install_label="$target"
-    [ "$arg" != "latest" ] && expected_version="$arg"
+    expected_version="$arg"
   fi
 
   echo "==> Installing $install_label"
