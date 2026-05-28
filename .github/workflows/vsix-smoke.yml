@@ -221,3 +221,100 @@ jobs:
               });
               core.info(`Opened issue #${created.number}`);
             }
+
+  # PR-time twin of ci.yml's release-smoke job: builds the linux-x64 VSIX
+  # from the PR head (i.e. the unreleased extension this PR would publish)
+  # and runs the upgrade scenario against the current marketplace baseline.
+  # Mirrors exactly what release-smoke does on tag push, so the PR check
+  # IS the pre-release gate, just verified before merge instead of at
+  # publish time. Only fires on pull_request.
+  pr-build-smoke:
+    name: PR-built VSIX install + activation
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Run common build steps
+        uses: ./.github/actions/common-build
+        with:
+          vsce-target: linux-x64
+      - name: Package linux-x64 VSIX from PR head
+        run: npx @vscode/vsce package --target linux-x64
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+      - name: Resolve marketplace baseline from OpenVSX
+        id: prev
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, re, urllib.request
+          with urllib.request.urlopen(
+              "https://open-vsx.org/api/innoverio/vscode-dbt-power-user"
+          ) as r:
+              data = json.load(r)
+          numeric = [v for v in data.get("allVersions", {}) if re.match(r"^\d", v)]
+          baseline = numeric[0] if numeric else ""
+          print(f"baseline={baseline}")
+          PY
+      - name: Smoke test PR-built VSIX (upgrade from marketplace baseline)
+        env:
+          BASELINE: ${{ steps.prev.outputs.baseline }}
+          VSIX_SMOKE_REPORT: /tmp/vsix-smoke-summary.md
+        run: |
+          VSIX_FILE=$(ls *.vsix | head -1)
+          if [ -z "$VSIX_FILE" ]; then
+            echo "::error::No .vsix file produced by vsce package"
+            exit 1
+          fi
+          echo "Testing PR-built VSIX: $VSIX_FILE"
+          echo "Upgrade baseline (from marketplace): ${BASELINE:-none}"
+          args=(--vsix-file "$VSIX_FILE")
+          if [ -n "$BASELINE" ]; then
+            args+=(--from-version "$BASELINE")
+          fi
+          bash docker-setup/vsix-smoke.sh "${args[@]}"
+      - name: Publish PR-built smoke report to job summary
+        if: always()
+        env:
+          TRIGGER: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          {
+            echo "## Source under test"
+            echo
+            echo "- **Trigger**: \`$TRIGGER\` — testing the VSIX **built from PR head** (unreleased)"
+            echo "- **Ref**:     \`$REF\`"
+            echo "- **Commit**:  \`$SHA\`"
+            if [ -n "$PR" ]; then
+              echo "- **PR**:      [#$PR](https://github.com/${{ github.repository }}/pull/$PR)"
+            fi
+            echo "- **VSIX**:    $(ls *.vsix 2>/dev/null | head -1 || echo '(no vsix produced)')"
+            echo "- **Workflow**: [\`.github/workflows/vsix-smoke.yml\`](https://github.com/${{ github.repository }}/blob/$SHA/.github/workflows/vsix-smoke.yml)"
+            echo "- **Script**:  [\`docker-setup/vsix-smoke.sh\`](https://github.com/${{ github.repository }}/blob/$SHA/docker-setup/vsix-smoke.sh)"
+            echo
+            if [ -s /tmp/vsix-smoke-summary.md ]; then
+              cat /tmp/vsix-smoke-summary.md
+            else
+              echo ":warning: smoke script did not produce \`/tmp/vsix-smoke-summary.md\`."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload PR-built evidence report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-smoke-pr-built-evidence-${{ github.run_id }}
+          path: /tmp/vsix-smoke-summary.md
+          retention-days: 30
+          if-no-files-found: ignore
+      - name: Upload PR-built VSIX as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-smoke-pr-built-vsix-${{ github.run_id }}
+          path: "*.vsix"
+          retention-days: 7
+          if-no-files-found: ignore
