@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "@jest/globals";
+import { join } from "path";
 import { WalkthroughCommands } from "../../commands/walkthroughCommands";
 
 // The helpers under test don't touch constructor dependencies, so we can
@@ -47,15 +48,20 @@ describe("WalkthroughCommands.resolveVenvPython", () => {
     Object.defineProperty(process, "platform", { value: originalPlatform });
   });
 
+  // Compare against join() (not a literal slash path) so the assertion is
+  // host-agnostic: path.join uses the host separator regardless of the mocked
+  // process.platform, which only drives the bin vs Scripts branch.
   it("resolves a POSIX venv interpreter", () => {
     Object.defineProperty(process, "platform", { value: "linux" });
-    expect(cmd.resolveVenvPython("/work/.venv")).toBe("/work/.venv/bin/python");
+    expect(cmd.resolveVenvPython("/work/.venv")).toBe(
+      join("/work/.venv", "bin", "python"),
+    );
   });
 
   it("resolves a Windows venv interpreter", () => {
     Object.defineProperty(process, "platform", { value: "win32" });
-    const resolved = cmd.resolveVenvPython("C:/work/.venv");
-    expect(resolved).toContain("Scripts");
-    expect(resolved).toContain("python.exe");
+    expect(cmd.resolveVenvPython("/work/.venv")).toBe(
+      join("/work/.venv", "Scripts", "python.exe"),
+    );
   });
 });
