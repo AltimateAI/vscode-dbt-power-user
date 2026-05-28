@@ -110,6 +110,34 @@ red()   { printf '\033[0;31m%s\033[0m\n' "$*"; }
 green() { printf '\033[0;32m%s\033[0m\n' "$*"; }
 dim()   { printf '\033[0;2m%s\033[0m\n' "$*"; }
 
+# Machine-readable evidence trail. Workflows append this to GITHUB_STEP_SUMMARY
+# so the run page shows exactly what was tested and how — no scrolling raw logs.
+REPORT="${VSIX_SMOKE_REPORT:-/tmp/vsix-smoke-summary.md}"
+: > "$REPORT"
+report() { printf '%s\n' "$*" >> "$REPORT"; }
+
+report "# VSIX Smoke Report"
+report
+report "- **Extension**: \`$EXTENSION_ID\`"
+report "- **Started**: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+report "- **Host**: $(uname -s) $(uname -m)"
+report "- **Docker**: $(docker version --format '{{.Server.Version}}' 2>/dev/null || echo 'unknown')"
+report
+report "## What was tested"
+report
+if [ -n "$VSIX_FILE" ]; then
+  report "- **Target artifact**: local VSIX \`$(basename "$VSIX_FILE")\`"
+else
+  report "- **Target version**: \`$VERSION\` (from marketplace)"
+fi
+if [ -n "$FROM_VERSION" ]; then
+  report "- **Baseline (upgrade from)**: \`$FROM_VERSION\` (from marketplace)"
+  report "- **Scenario**: upgrade — install baseline first, then install target on top"
+else
+  report "- **Scenario**: fresh install only"
+fi
+report
+
 cleanup() {
   local code=$?
   if [ "$KEEP" -eq 0 ]; then
@@ -178,19 +206,42 @@ install_and_verify() {
     expected_version="$arg"
   fi
 
+  local phase_label="${PHASE_LABEL:-Install}"
+  report "### ${phase_label}: ${install_label}"
+  report
+  report "**Command:** \`code-server --install-extension ${target}\`"
+  report
+
   echo "==> Installing $install_label"
-  if ! docker exec "$CONTAINER_NAME" code-server --install-extension "$target" 2>&1; then
+  local install_out
+  install_out=$(docker exec "$CONTAINER_NAME" code-server --install-extension "$target" 2>&1) || {
     red "FAIL: --install-extension exited non-zero for $install_label"
+    echo "$install_out"
+    report "**Install output:**"
+    report '```'
+    report "$install_out"
+    report '```'
+    report ":x: install failed"
     return 1
-  fi
+  }
+  echo "$install_out"
+  report "**Install output:**"
+  report '```'
+  report "$install_out"
+  report '```'
 
   echo "==> Verifying with --list-extensions"
   local listed
   listed=$(docker exec "$CONTAINER_NAME" code-server --list-extensions --show-versions)
   echo "$listed"
+  report "**\`--list-extensions --show-versions\` after install:**"
+  report '```'
+  report "$listed"
+  report '```'
 
   if ! echo "$listed" | grep -qE "^${EXTENSION_ID//./\\.}@"; then
     red "FAIL: $EXTENSION_ID not present in installed extensions"
+    report ":x: $EXTENSION_ID missing from list"
     return 1
   fi
 
@@ -198,8 +249,10 @@ install_and_verify() {
     if ! echo "$listed" | grep -qE "^${EXTENSION_ID//./\\.}@${expected_version}$"; then
       red "FAIL: expected version $expected_version but installed list shows:"
       echo "$listed" | grep "^${EXTENSION_ID}" || true
+      report ":x: expected \`${EXTENSION_ID}@${expected_version}\`, list shows \`$(echo "$listed" | grep "^${EXTENSION_ID}" || echo 'none')\`"
       return 1
     fi
+    report ":white_check_mark: version match: \`${EXTENSION_ID}@${expected_version}\` present"
   fi
 
   echo "==> Verifying activation (scanning code-server logs for activation errors)"
@@ -213,8 +266,14 @@ install_and_verify() {
   if [ -n "$activation_errors" ]; then
     red "FAIL: activation errors in code-server logs"
     echo "$activation_errors" | tail -10
+    report ":x: activation errors detected in code-server logs:"
+    report '```'
+    report "$activation_errors"
+    report '```'
     return 1
   fi
+  report ":white_check_mark: activation scan clean (no \`Failed to activate\` / \`UnhandledRejection\` matching \`$EXTENSION_ID\` in code-server logs)"
+  report
 
   green "    install + activation OK"
 }
@@ -223,26 +282,38 @@ target_label() {
   if [ -n "$VSIX_FILE" ]; then echo "local file $(basename "$VSIX_FILE")"; else echo "$VERSION"; fi
 }
 
+report "## Phases"
+report
 if [ -n "$FROM_VERSION" ]; then
   echo "==> Phase 1/2: baseline install of $FROM_VERSION from marketplace"
-  install_and_verify "marketplace" "$FROM_VERSION"
+  PHASE_LABEL="Phase 1/2 — baseline install" install_and_verify "marketplace" "$FROM_VERSION"
   echo
   echo "==> Phase 2/2: upgrade to $(target_label)"
   if [ -n "$VSIX_FILE" ]; then
-    install_and_verify "file" "$VSIX_FILE"
+    PHASE_LABEL="Phase 2/2 — upgrade" install_and_verify "file" "$VSIX_FILE"
   else
-    install_and_verify "marketplace" "$VERSION"
+    PHASE_LABEL="Phase 2/2 — upgrade" install_and_verify "marketplace" "$VERSION"
   fi
 else
   if [ -n "$VSIX_FILE" ]; then
-    install_and_verify "file" "$VSIX_FILE"
+    PHASE_LABEL="Fresh install" install_and_verify "file" "$VSIX_FILE"
   else
-    install_and_verify "marketplace" "$VERSION"
+    PHASE_LABEL="Fresh install" install_and_verify "marketplace" "$VERSION"
   fi
 fi
 
+report "## Final container state"
+report
+report '```'
+docker exec "$CONTAINER_NAME" code-server --list-extensions --show-versions 2>/dev/null >> "$REPORT"
+report '```'
+report
+report ":white_check_mark: **Overall: PASS**"
+
 echo
 green "==> PASS"
+echo
+dim "Evidence report written to $REPORT"
 if [ "$KEEP" -eq 1 ]; then
   echo
   dim "Container left running for manual inspection:"

@@ -129,6 +129,7 @@ jobs:
         env:
           TARGET: ${{ steps.resolve.outputs.target }}
           BASELINE: ${{ steps.resolve.outputs.baseline }}
+          VSIX_SMOKE_REPORT: /tmp/vsix-smoke-summary.md
         run: |
           args=()
           if [ "$TARGET" != "latest" ]; then
@@ -139,6 +140,42 @@ jobs:
           fi
           echo "Running: bash docker-setup/vsix-smoke.sh ${args[*]}"
           bash docker-setup/vsix-smoke.sh "${args[@]}"
+
+      - name: Publish run report to job summary
+        if: always()
+        env:
+          TRIGGER: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          {
+            echo "## Source under test"
+            echo
+            echo "- **Trigger**: \`$TRIGGER\`"
+            echo "- **Ref**:     \`$REF\`"
+            echo "- **Commit**:  \`$SHA\`"
+            if [ -n "$PR" ]; then
+              echo "- **PR**:      [#$PR](https://github.com/${{ github.repository }}/pull/$PR)"
+            fi
+            echo "- **Workflow file**: [\`.github/workflows/vsix-smoke.yml\`](https://github.com/${{ github.repository }}/blob/$SHA/.github/workflows/vsix-smoke.yml)"
+            echo "- **Script**: [\`docker-setup/vsix-smoke.sh\`](https://github.com/${{ github.repository }}/blob/$SHA/docker-setup/vsix-smoke.sh)"
+            echo
+            if [ -s /tmp/vsix-smoke-summary.md ]; then
+              cat /tmp/vsix-smoke-summary.md
+            else
+              echo ":warning: smoke script did not produce \`/tmp/vsix-smoke-summary.md\` — likely failed before phase setup."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload evidence report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-smoke-evidence-${{ github.run_id }}
+          path: /tmp/vsix-smoke-summary.md
+          retention-days: 30
+          if-no-files-found: ignore
 
       - name: Upload build log on failure
         if: failure()
