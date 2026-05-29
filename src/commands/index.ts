@@ -49,7 +49,6 @@ import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
 import { RunTreeItem } from "../treeview_provider/runHistoryTreeItems";
-import { TROUBLESHOOT_COMMAND } from "../troubleshootCodeActions";
 import {
   deepEqual,
   extendErrorWithSupportLinks,
@@ -1280,41 +1279,6 @@ export class VSCodeCommands implements Disposable {
           await this.altimateCodeChatService.openChat({
             initialMessage: `Analyze \`@${ctx.relativePath}\` for dbt best practices, performance, and documentation completeness.`,
             title: `Analyze: ${ctx.fileName}`,
-            beside: true,
-          });
-        },
-      ),
-      commands.registerCommand(
-        TROUBLESHOOT_COMMAND,
-        (errorCtx: {
-          errorMessage?: string;
-          errorCode?: string;
-          source?: string;
-          filePath?: string;
-          lineNumber?: number;
-        }) => {
-          const errorMsg = errorCtx?.errorMessage ?? "Unknown error";
-          const filePath = errorCtx?.filePath ?? "";
-          const lineNumber = errorCtx?.lineNumber ?? 0;
-          const source = errorCtx?.source ?? "";
-          const prompt = [
-            "I have an error in my dbt project that I need help troubleshooting:",
-            "",
-            "**Error:** " + errorMsg,
-            filePath
-              ? "**File:** " +
-                filePath +
-                (lineNumber ? ":" + String(lineNumber) : "")
-              : null,
-            source ? "**Source:** " + source : null,
-            "",
-            "Can you help me fix this?",
-          ]
-            .filter((line) => line !== null)
-            .join("\n");
-          this.altimateCodeChatService.openChat({
-            initialMessage: prompt,
-            title: "Troubleshoot: " + (source || "Error"),
             beside: true,
           });
         },

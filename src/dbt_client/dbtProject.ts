@@ -516,8 +516,16 @@ export class DBTProject implements Disposable {
     diagnostic.code = {
       value: "Troubleshoot with Altimate Code",
       target: Uri.parse(
-        "vscode://innoverio.vscode-dbt-power-user/troubleshoot?source=dbt%20Power%20User&error=" +
-          encodeURIComponent(data.message),
+        `command:altimate.troubleshootError?${encodeURIComponent(
+          JSON.stringify([
+            {
+              errorMessage: data.message,
+              source: "dbt",
+              filePath: "",
+              lineNumber: diagnostic.range.start.line + 1,
+            },
+          ]),
+        )}`,
       ),
     };
     return diagnostic;

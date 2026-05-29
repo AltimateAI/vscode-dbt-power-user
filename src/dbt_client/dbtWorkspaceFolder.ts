@@ -293,8 +293,16 @@ export class DBTWorkspaceFolder implements Disposable {
         yamlDiagnostic.code = {
           value: "Troubleshoot with Altimate Code",
           target: Uri.parse(
-            "vscode://innoverio.vscode-dbt-power-user/troubleshoot?source=dbt%20Power%20User&error=" +
-              encodeURIComponent(error.message),
+            `command:altimate.troubleshootError?${encodeURIComponent(
+              JSON.stringify([
+                {
+                  errorMessage: error.message,
+                  source: "dbt",
+                  filePath: "",
+                  lineNumber: yamlDiagnostic.range.start.line + 1,
+                },
+              ]),
+            )}`,
           ),
         };
         this.projectDiscoveryDiagnostics.set(
