@@ -60,10 +60,38 @@ export class PythonEnvironment {
   }
 
   public get pythonPath() {
-    return (
-      this.getResolvedConfigValue("dbtPythonPathOverride") ||
-      this.executionDetails!.getPythonPath()
-    );
+    const override = this.getResolvedConfigValue("dbtPythonPathOverride");
+    if (override) {
+      if (this.isUsableInterpreterOverride(override)) {
+        return override;
+      }
+      // Self-heal already-poisoned configs: a value persisted by an earlier
+      // buggy terminal probe (e.g. a leaked command-echo fragment) would
+      // otherwise poison every dbt/pip invocation as "Command not found".
+      // Ignore it and fall back to normal detection. sendTelemetry=true so we
+      // can watch recovery across the affected machines.
+      this.dbtTerminal.warn(
+        "pythonEnvironment:pythonPath",
+        `Ignoring invalid dbtPythonPathOverride (not a usable interpreter): ${override}`,
+        true,
+      );
+    }
+    return this.executionDetails!.getPythonPath();
+  }
+
+  /**
+   * Whether a user-supplied dbtPythonPathOverride is something we can actually
+   * invoke. Two valid shapes:
+   *  - a bare command resolved via PATH ("python", "python3", "python3.11")
+   *  - a filesystem path (absolute or containing a separator) that exists
+   * Anything else (shell noise, a leaked probe fragment) is rejected so it can
+   * never be used as the interpreter.
+   */
+  private isUsableInterpreterOverride(value: string): boolean {
+    if (/^[\w.+-]+$/.test(value)) {
+      return true;
+    }
+    return (isAbsolute(value) || /[\\/]/.test(value)) && existsSync(value);
   }
 
   public get pythonVersion(): string | undefined {

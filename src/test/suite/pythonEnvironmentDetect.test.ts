@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
-import { window } from "vscode";
+import { window, workspace } from "vscode";
 import { PythonEnvironment } from "../../dbt_client/pythonEnvironment";
 
 /**
@@ -94,5 +94,81 @@ describe("PythonEnvironment.detectPythonFromShell", () => {
     );
 
     expect(await env.detectPythonFromShell()).toBeUndefined();
+  });
+});
+
+/**
+ * Read-side guard on the `pythonPath` getter. The terminal-probe fix above stops
+ * *new* poisoning, but machines that already wrote a garbage
+ * dbt.dbtPythonPathOverride (a leaked probe fragment) stay broken on every
+ * dbt/pip call until the user clears the setting by hand. The getter therefore
+ * ignores an override that is not a usable interpreter and falls back to normal
+ * detection, self-healing those configs on next launch.
+ */
+describe("PythonEnvironment.pythonPath override guard", () => {
+  const FALLBACK = "/fallback/python/from/detection";
+  const warn = jest.fn();
+  const originalGetConfiguration = workspace.getConfiguration;
+  let env: PythonEnvironment;
+
+  beforeEach(() => {
+    env = new PythonEnvironment({ debug: jest.fn(), warn } as any);
+    // Satisfy getEnvironmentVariables() (used while resolving the setting) and
+    // provide the value returned when the override is ignored.
+    (env as any).executionDetails = {
+      getEnvVars: () => ({ vars: {} }),
+      getPythonPath: () => FALLBACK,
+    };
+  });
+
+  afterEach(() => {
+    (workspace as any).getConfiguration = originalGetConfiguration;
+    jest.clearAllMocks();
+  });
+
+  function setOverride(value: string) {
+    (workspace as any).getConfiguration = jest.fn(() => ({
+      get: jest.fn(() => value),
+    }));
+  }
+
+  it("keeps a valid absolute interpreter path that exists on disk", () => {
+    setOverride(process.execPath);
+
+    expect(env.pythonPath).toBe(process.execPath);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("keeps a bare command that resolves via PATH (e.g. python3)", () => {
+    setOverride("python3");
+
+    expect(env.pythonPath).toBe("python3");
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("ignores the leaked probe-fragment value and falls back, with telemetry", () => {
+    setOverride(`"); print(sys.executable); print("`);
+
+    expect(env.pythonPath).toBe(FALLBACK);
+    // sendTelemetry flag (3rd arg) must be true so recovery is observable.
+    expect(warn).toHaveBeenCalledWith(
+      "pythonEnvironment:pythonPath",
+      expect.stringContaining("Ignoring invalid dbtPythonPathOverride"),
+      true,
+    );
+  });
+
+  it("ignores an absolute override path that does not exist on disk", () => {
+    setOverride("/no/such/python/binary");
+
+    expect(env.pythonPath).toBe(FALLBACK);
+    expect(warn).toHaveBeenCalled();
+  });
+
+  it("falls back without warning when no override is set", () => {
+    setOverride("");
+
+    expect(env.pythonPath).toBe(FALLBACK);
+    expect(warn).not.toHaveBeenCalled();
   });
 });
