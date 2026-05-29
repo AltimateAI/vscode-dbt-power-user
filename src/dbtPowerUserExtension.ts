@@ -1,5 +1,12 @@
 import { NotebookProviders } from "@lib";
-import { commands, Disposable, ExtensionContext, workspace } from "vscode";
+import {
+  commands,
+  Disposable,
+  ExtensionContext,
+  Uri,
+  window,
+  workspace,
+} from "vscode";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";
@@ -117,6 +124,24 @@ export class DBTPowerUserExtension implements Disposable {
       context.subscriptions.push({
         dispose: () => process.off("unhandledRejection", onUnhandledRejection),
       });
+
+      context.subscriptions.push(
+        window.registerUriHandler({
+          handleUri(uri: Uri): void {
+            if (uri.path === "/troubleshoot") {
+              const params = new URLSearchParams(uri.query);
+              const errorMessage = params.get("error") ?? "";
+              const source = params.get("source") ?? "dbt";
+              commands.executeCommand("altimate.troubleshootError", {
+                errorMessage,
+                source,
+                filePath: "",
+                lineNumber: 0,
+              });
+            }
+          },
+        }),
+      );
 
       await this.mcpServer.updateMcpExtensionApi();
       this.dbtProjectContainer.setContext(context);

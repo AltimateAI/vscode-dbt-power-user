@@ -260,16 +260,7 @@ export class ValidateSql {
         diagnostic.code = {
           value: "Troubleshoot with Altimate Code",
           target: Uri.parse(
-            `command:altimate.troubleshootError?${encodeURIComponent(
-              JSON.stringify([
-                {
-                  errorMessage: description,
-                  source: "dbt",
-                  filePath: "",
-                  lineNumber: diagnostic.range.start.line + 1,
-                },
-              ]),
-            )}`,
+            `vscode://innoverio.vscode-dbt-power-user/troubleshoot?source=dbt&error=${encodeURIComponent(description)}`,
           ),
         };
         return diagnostic;
