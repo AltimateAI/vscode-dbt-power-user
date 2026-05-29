@@ -1,0 +1,6 @@
+2026-05-29 07:42:38.637 [warning] pythonEnvironment:pythonPath:Ignoring invalid dbtPythonPathOverride (not a usable interpreter): "); print(sys.executable); print(" []
+2026-05-29 07:42:38.662 [debug] DBTCommandExecutionInfrastructure:Starting python bridge [{"pythonPath":"/bin/python3","PYTHONPATH":"/home/coder/extension-src/dist/altimate_python_packages"}]
+2026-05-29 07:42:38.662 [warning] pythonEnvironment:pythonPath:Ignoring invalid dbtPythonPathOverride (not a usable interpreter): "); print(sys.executable); print(" []
+2026-05-29 07:42:40.283 [debug] DBTCommandExecutionInfrastructure:Starting python bridge [{"pythonPath":"/bin/python3","cwd":"/home/coder/jaffle-shop-duckdb","PYTHONPATH":"/home/coder/extension-src/dist/altimate_python_packages"}]
+2026-05-29 07:42:40.283 [warning] pythonEnvironment:pythonPath:Ignoring invalid dbtPythonPathOverride (not a usable interpreter): "); print(sys.executable); print(" []
+2026-05-29 07:42:40.284 [debug] DBTCommandExecutionInfrastructure:Starting python bridge [{"pythonPath":"/bin/python3","cwd":"/home/coder/jaffle-shop-duckdb","PYTHONPATH":"/home/coder/extension-src/dist/altimate_python_packages"}]
