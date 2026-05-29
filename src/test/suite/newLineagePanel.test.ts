@@ -1,4 +1,11 @@
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import { window, workspace } from "vscode";
 import { NewLineagePanel } from "../../webview_provider/newLineagePanel";
 
@@ -195,5 +202,224 @@ describe("NewLineagePanel", () => {
         true,
       );
     });
+  });
+});
+
+describe("NewLineagePanel — source YAML rooting", () => {
+  let panel: NewLineagePanel;
+
+  // Build a fake TextEditor over a source YAML body.
+  const makeEditor = (filePath: string, body: string, cursorLine = 0) => {
+    const lines = body.split("\n");
+    return {
+      document: {
+        fileName: filePath,
+        uri: { fsPath: filePath, path: filePath },
+        lineCount: lines.length,
+        lineAt: (line: number) => ({ text: lines[line] ?? "" }),
+      },
+      selection: { active: { line: cursorLine } },
+    };
+  };
+
+  const sourceTable = (name: string, filePath: string) => ({
+    name,
+    identifier: name,
+    path: filePath,
+    description: "",
+    columns: {},
+  });
+
+  const makeEvent = (sourceMetaMap: Map<string, any>) => ({
+    event: {
+      sourceMetaMap,
+      nodeMetaMap: { lookupByBaseName: jest.fn().mockReturnValue(undefined) },
+      functionMetaMap: new Map(),
+    },
+  });
+
+  beforeEach(() => {
+    panel = Object.create(NewLineagePanel.prototype);
+    (panel as any)._panel = { webview: { postMessage: jest.fn() } };
+    (panel as any).altimate = { enabled: jest.fn().mockReturnValue(false) };
+    (panel as any).dbtTerminal = {
+      info: jest.fn(),
+      debug: jest.fn(),
+      error: jest.fn(),
+    };
+    (panel as any).dbtLineageService = {
+      createTable: jest.fn((_e: unknown, _u: unknown, key: string) => ({
+        table: key,
+      })),
+    };
+    (window as any).activeTextEditor = undefined;
+  });
+
+  afterEach(() => {
+    (window as any).activeTextEditor = undefined;
+  });
+
+  it("builds the source.<pkg>.<source>.<table> key for tables in a file", () => {
+    const filePath = "/proj/models/sources/identifies.yml";
+    const sourceMetaMap = new Map([
+      [
+        "segment_website_production",
+        {
+          package_name: "proj",
+          name: "segment_website_production",
+          tables: [sourceTable("identifies", filePath)],
+        },
+      ],
+    ]);
+    const matches = (panel as any).getSourceTablesForFile(
+      sourceMetaMap,
+      filePath,
+    );
+    expect(matches).toHaveLength(1);
+    expect(matches[0].key).toBe(
+      "source.proj.segment_website_production.identifies",
+    );
+  });
+
+  it("roots automatically at the only source table in the file", () => {
+    const filePath = "/proj/models/sources/identifies.yml";
+    const sourceMetaMap = new Map([
+      [
+        "segment_website_production",
+        {
+          package_name: "proj",
+          name: "segment_website_production",
+          tables: [sourceTable("identifies", filePath)],
+        },
+      ],
+    ]);
+    (panel as any).queryManifestService = {
+      getEventByCurrentProject: jest
+        .fn()
+        .mockReturnValue(makeEvent(sourceMetaMap)),
+      getProject: jest.fn().mockReturnValue(undefined),
+    };
+    (window as any).activeTextEditor = makeEditor(
+      filePath,
+      "sources:\n  - name: segment_website_production\n    tables:\n      - name: identifies\n",
+    );
+
+    const result = (panel as any).getStartingNode();
+
+    expect(result.node).toEqual({
+      table: "source.proj.segment_website_production.identifies",
+    });
+    expect((panel as any).dbtLineageService.createTable).toHaveBeenCalledWith(
+      expect.anything(),
+      filePath,
+      "source.proj.segment_website_production.identifies",
+    );
+  });
+
+  it("picks the source table the cursor sits within when the file has many", () => {
+    const filePath = "/proj/models/sources/multi.yml";
+    const body = [
+      "sources:",
+      "  - name: seg",
+      "    tables:",
+      "      - name: identifies", // line 3
+      "      - name: tracks", //      line 4
+      "      - name: pages", //       line 5
+    ].join("\n");
+    const sourceMetaMap = new Map([
+      [
+        "seg",
+        {
+          package_name: "proj",
+          name: "seg",
+          tables: [
+            sourceTable("identifies", filePath),
+            sourceTable("tracks", filePath),
+            sourceTable("pages", filePath),
+          ],
+        },
+      ],
+    ]);
+    (panel as any).queryManifestService = {
+      getEventByCurrentProject: jest
+        .fn()
+        .mockReturnValue(makeEvent(sourceMetaMap)),
+      getProject: jest.fn().mockReturnValue(undefined),
+    };
+    // Cursor on line 4 → the "tracks" table.
+    (window as any).activeTextEditor = makeEditor(filePath, body, 4);
+
+    const result = (panel as any).getStartingNode();
+
+    expect(result.node).toEqual({ table: "source.proj.seg.tracks" });
+  });
+
+  it("falls back to the first table when the cursor is above every declaration", () => {
+    const filePath = "/proj/models/sources/multi.yml";
+    const body = [
+      "sources:",
+      "  - name: seg",
+      "    tables:",
+      "      - name: identifies",
+      "      - name: tracks",
+    ].join("\n");
+    const sourceMetaMap = new Map([
+      [
+        "seg",
+        {
+          package_name: "proj",
+          name: "seg",
+          tables: [
+            sourceTable("identifies", filePath),
+            sourceTable("tracks", filePath),
+          ],
+        },
+      ],
+    ]);
+    (panel as any).queryManifestService = {
+      getEventByCurrentProject: jest
+        .fn()
+        .mockReturnValue(makeEvent(sourceMetaMap)),
+      getProject: jest.fn().mockReturnValue(undefined),
+    };
+    // Cursor on line 0 (the `sources:` line), above any table name.
+    (window as any).activeTextEditor = makeEditor(filePath, body, 0);
+
+    const result = (panel as any).getStartingNode();
+
+    expect(result.node).toEqual({ table: "source.proj.seg.identifies" });
+  });
+
+  it("shows the missing-lineage message for a YAML that defines no source in this file", () => {
+    const filePath = "/proj/models/staging/schema.yml";
+    // The only source lives in a different file.
+    const sourceMetaMap = new Map([
+      [
+        "seg",
+        {
+          package_name: "proj",
+          name: "seg",
+          tables: [sourceTable("identifies", "/proj/models/sources/other.yml")],
+        },
+      ],
+    ]);
+    (panel as any).queryManifestService = {
+      getEventByCurrentProject: jest
+        .fn()
+        .mockReturnValue(makeEvent(sourceMetaMap)),
+      getProject: jest.fn().mockReturnValue(undefined),
+    };
+    (window as any).activeTextEditor = makeEditor(
+      filePath,
+      "models:\n  - name: stg_orders\n",
+    );
+
+    const result = (panel as any).getStartingNode();
+
+    expect(result.node).toBeUndefined();
+    expect(result.missingLineageMessage).toEqual(
+      expect.objectContaining({ type: "warning" }),
+    );
+    expect((panel as any).dbtLineageService.createTable).not.toHaveBeenCalled();
   });
 });
