@@ -5,6 +5,7 @@ import {
   NodeMetaData,
   RESOURCE_TYPE_FUNCTION,
   RESOURCE_TYPE_SOURCE,
+  SourceMetaMap,
   SourceTable,
   Table,
 } from "@altimateai/dbt-integration";
@@ -16,6 +17,7 @@ import {
   ColorThemeKind,
   commands,
   ProgressLocation,
+  TextDocument,
   TextEditor,
   Webview,
   window,
@@ -35,6 +37,10 @@ import { extendErrorWithSupportLinks } from "../utils";
 import { AltimateWebviewProvider } from "./altimateWebviewProvider";
 import { LineagePanelView } from "./lineagePanel";
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 class DerivedCancellationTokenSource extends CancellationTokenSource {
   constructor(linkedToken: CancellationToken) {
     super();
@@ -52,6 +58,10 @@ export class NewLineagePanel
   protected panelDescription = "Lineage panel";
   private cllProgressResolve: () => void = () => {};
   private cancellationTokenSource: CancellationTokenSource | undefined;
+  // The source unique_id the panel last rooted at when a source YAML is the
+  // active file. Used to avoid redundant re-renders on every cursor move; the
+  // panel only re-roots when the cursor moves onto a different source table.
+  private lastRenderedSourceKey: string | undefined;
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
@@ -82,6 +92,37 @@ export class NewLineagePanel
       return;
     }
     if (!this._panel) {
+      return;
+    }
+    // A different file is now active; forget the previously rooted source so a
+    // source YAML re-rooted later (or on return) is always re-rendered.
+    this.lastRenderedSourceKey = undefined;
+    this.renderStartingNode();
+  }
+
+  // Re-root the lineage when the cursor moves to a different source table
+  // within an open source YAML. This is what makes opening a `sources:` file
+  // and clicking on a `- name:` entry show that source's lineage, mirroring the
+  // dbt Cloud IDE. Guarded so ordinary cursor movement (same table, or any
+  // non-source file) never triggers a redundant re-render.
+  public changedTextEditorSelection(editor: TextEditor) {
+    if (!this._panel) {
+      return;
+    }
+    if (editor !== window.activeTextEditor) {
+      return;
+    }
+    const ext = path.extname(editor.document.fileName).toLowerCase();
+    if (!NewLineagePanel.SOURCE_YAML_EXTENSIONS.includes(ext)) {
+      return;
+    }
+    const event = this.queryManifestService.getEventByCurrentProject();
+    if (!event?.event) {
+      return;
+    }
+    const resolved = this.resolveSourceStartingNode(event.event, editor);
+    const key = resolved?.key;
+    if (key === this.lastRenderedSourceKey) {
       return;
     }
     this.renderStartingNode();
@@ -626,6 +667,11 @@ export class NewLineagePanel
 
   private static readonly DBT_FILE_EXTENSIONS = [".sql", ".py", ".csv"];
 
+  // Sources are declared in YAML, which has no 1:1 file→node mapping (one file
+  // can define many sources/tables). These extensions opt a file into the
+  // cursor-aware source resolution in `getStartingNode`.
+  private static readonly SOURCE_YAML_EXTENSIONS = [".yml", ".yaml"];
+
   private getFilename(): string | undefined {
     const editor = window.activeTextEditor;
     if (!editor) {
@@ -718,6 +764,24 @@ export class NewLineagePanel
       return { node, aiEnabled };
     }
 
+    // Source YAML: a model/seed/function basename never matches, so by here the
+    // active file may be a `sources:` definition. Root at the source the cursor
+    // is on (or the file's only source table).
+    if (NewLineagePanel.SOURCE_YAML_EXTENSIONS.includes(ext)) {
+      const resolved = this.resolveSourceStartingNode(event.event, editor);
+      if (resolved) {
+        const node = this.dbtLineageService.createTable(
+          event.event,
+          resolved.table.path ?? url,
+          resolved.key,
+        );
+        if (node) {
+          this.lastRenderedSourceKey = resolved.key;
+          return { node, aiEnabled };
+        }
+      }
+    }
+
     // Only report this as telemetry for actual dbt files. A non-dbt file (e.g. a
     // .sh/.md script) can never be a dbt node, so the panel re-rendering on every
     // editor switch would otherwise emit this event constantly — pure noise. Keep
@@ -732,6 +796,96 @@ export class NewLineagePanel
       aiEnabled,
       missingLineageMessage: this.getMissingLineageMessage(),
     };
+  }
+
+  // Resolve which source table the active YAML file should root the lineage at.
+  // Returns the dbt unique_id key (`source.<pkg>.<source>.<table>`) and the
+  // matched table. Prefers the table the cursor is on/under; falls back to the
+  // file's single table, then to the first declared table for determinism.
+  private resolveSourceStartingNode(
+    event: ManifestCacheProjectAddedEvent,
+    editor: TextEditor,
+  ): { key: string; sourceName: string; table: SourceTable } | undefined {
+    const { sourceMetaMap } = event;
+    const matches = this.getSourceTablesForFile(
+      sourceMetaMap,
+      editor.document.uri.fsPath,
+    );
+    if (matches.length === 0) {
+      return undefined;
+    }
+    if (matches.length === 1) {
+      return matches[0];
+    }
+    return this.pickSourceTableByCursor(matches, editor) ?? matches[0];
+  }
+
+  // All source tables whose definition file is `filePath`. One YAML can declare
+  // several sources, each with several tables, so this can return many matches.
+  private getSourceTablesForFile(
+    sourceMetaMap: SourceMetaMap,
+    filePath: string,
+  ): { key: string; sourceName: string; table: SourceTable }[] {
+    const target = path.normalize(filePath);
+    const matches: { key: string; sourceName: string; table: SourceTable }[] =
+      [];
+    for (const source of sourceMetaMap.values()) {
+      for (const table of source.tables) {
+        if (!table.path) {
+          continue;
+        }
+        if (path.normalize(table.path) !== target) {
+          continue;
+        }
+        matches.push({
+          key: `${RESOURCE_TYPE_SOURCE}.${source.package_name}.${source.name}.${table.name}`,
+          sourceName: source.name,
+          table,
+        });
+      }
+    }
+    return matches;
+  }
+
+  // Of the candidate tables in the file, pick the one whose `name:` declaration
+  // is the closest line at or above the cursor — i.e. the table the cursor sits
+  // within. Returns undefined when the cursor is above every declaration.
+  private pickSourceTableByCursor(
+    matches: { key: string; sourceName: string; table: SourceTable }[],
+    editor: TextEditor,
+  ): { key: string; sourceName: string; table: SourceTable } | undefined {
+    const cursorLine = editor.selection.active.line;
+    let best:
+      | { key: string; sourceName: string; table: SourceTable }
+      | undefined;
+    let bestLine = -1;
+    for (const match of matches) {
+      const declLine = this.findSourceTableLine(
+        editor.document,
+        match.table.name,
+      );
+      if (declLine >= 0 && declLine <= cursorLine && declLine > bestLine) {
+        best = match;
+        bestLine = declLine;
+      }
+    }
+    return best;
+  }
+
+  // Line number of a `- name: <table>` declaration in the document, or -1.
+  private findSourceTableLine(
+    document: TextDocument,
+    tableName: string,
+  ): number {
+    const pattern = new RegExp(
+      `^\\s*-?\\s*name:\\s*["']?${escapeRegExp(tableName)}["']?\\s*$`,
+    );
+    for (let line = 0; line < document.lineCount; line++) {
+      if (pattern.test(document.lineAt(line).text)) {
+        return line;
+      }
+    }
+    return -1;
   }
 
   protected renderWebviewView(webview: Webview) {
