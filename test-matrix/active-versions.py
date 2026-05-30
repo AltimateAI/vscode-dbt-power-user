@@ -77,6 +77,29 @@ def _query_az(app_id: str, window_days: int) -> list[tuple[str, int]]:
     return _rows_from_table(json.loads(out)["tables"][0])
 
 
+def query_rows(app_id: str, window_days: int) -> list[tuple[str, int]] | None:
+    """Fetch the per-install latest-version rows via whichever backend is
+    available: the REST API when APPINSIGHTS_API_KEY is set (CI), else the az CLI
+    when logged in (local). Returns None if neither backend is usable."""
+    api_key = os.environ.get("APPINSIGHTS_API_KEY")
+    if api_key:
+        return _query_rest(app_id, api_key, window_days)
+    if shutil.which("az"):
+        return _query_az(app_id, window_days)
+    return None
+
+
+def dist_from_rows(rows: list[tuple[str, int]]) -> list[tuple[str, int, float]]:
+    """Collapse duplicate version rows (App Insights sharding) and attach share %.
+    Returns (version, installs, share) sorted by installs descending."""
+    merged: dict[str, int] = {}
+    for v, n in rows:
+        merged[v] = merged.get(v, 0) + n
+    total = sum(merged.values()) or 1
+    return [(v, n, round(100 * n / total, 2))
+            for v, n in sorted(merged.items(), key=lambda x: x[1], reverse=True)]
+
+
 def published_versions() -> set[str]:
     """Real installable releases from Open VSX. This is the authoritative list of
     published versions (verified complete, ~100+ entries) and correctly excludes
@@ -119,6 +142,31 @@ def pick_baselines(dist, target, min_share, max_baselines, include_oldest_above,
     return sorted(chosen, key=_semver_key)[:max_baselines]
 
 
+def pick_by_coverage(dist, target, coverage_pct, published, max_baselines):
+    """Pick the fewest published upgrade-from versions (most-installed first) whose
+    install share — together with the target's own share — reaches coverage_pct of
+    the total running base. Returns a semver-sorted baseline list (excludes target).
+
+    Junk/unpublished version strings are skipped (they can't be installed as a
+    baseline), but their installs still count in the denominator so coverage is
+    honest about what fraction of the REAL running base we test."""
+    total = sum(n for (_v, n, _s) in dist) or 1
+    target_installs = sum(n for (v, n, _s) in dist if v == target)
+    eligible = sorted(
+        [(v, n) for (v, n, _s) in dist
+         if v != target and _SEMVER.match(v) and (not published or v in published)],
+        key=lambda x: x[1], reverse=True,
+    )
+    chosen: list[str] = []
+    covered = target_installs
+    for v, n in eligible:
+        if 100.0 * covered / total >= coverage_pct or len(chosen) >= max_baselines:
+            break
+        chosen.append(v)
+        covered += n
+    return sorted(chosen, key=_semver_key)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--app-id", default=os.environ.get("APPINSIGHTS_APP_ID", DEFAULT_APP_ID))
@@ -132,25 +180,13 @@ def main() -> int:
     ap.add_argument("--generated-at", default="", help="ISO timestamp to stamp; default = now (UTC)")
     args = ap.parse_args()
 
-    api_key = os.environ.get("APPINSIGHTS_API_KEY")
-    if api_key:
-        rows = _query_rest(args.app_id, api_key, args.window_days)
-    elif shutil.which("az"):
-        rows = _query_az(args.app_id, args.window_days)
-    else:
+    rows = query_rows(args.app_id, args.window_days)
+    if rows is None:
         print("::error::no APPINSIGHTS_API_KEY and az CLI not available", file=sys.stderr)
         return 2
 
-    # Defensive: App Insights sampling can occasionally return a version more than
-    # once across shards; collapse to one row per version (sum installs).
-    merged: dict[str, int] = {}
-    for v, n in rows:
-        merged[v] = merged.get(v, 0) + n
-    rows = sorted(merged.items(), key=lambda x: x[1], reverse=True)
-
-    total = sum(n for _, n in rows) or 1
-    dist = [(v, n, round(100 * n / total, 2)) for v, n in rows]
-
+    dist = dist_from_rows(rows)
+    total = sum(n for _v, n, _s in dist) or 1
     published = published_versions()
     target = args.target or pick_target(dist, published)
     baselines = pick_baselines(

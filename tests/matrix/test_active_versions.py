@@ -52,6 +52,33 @@ def test_pick_baselines_excludes_unpublished_and_prerelease():
     assert b == ["0.61.4"]
 
 
+def test_pick_by_coverage_reaches_target_with_fewest_versions():
+    # By INSTALLS over total=43749: target 0.61.5 = 45.0%, then greedily add the
+    # most-installed published versions until cumulative >= 90%:
+    #   +0.61.4 -> 67.6%, +0.61.2 -> 78.6%, +0.60.7 -> 86.8%, +0.61.3 -> 94.1% (stop)
+    b = av.pick_by_coverage(_DIST, target="0.61.5", coverage_pct=90.0,
+                            published=_PUBLISHED, max_baselines=10)
+    assert b == ["0.60.7", "0.61.2", "0.61.3", "0.61.4"]   # semver-sorted, exact set
+    assert "0.61.5" not in b                                # target is never an upgrade-from
+    assert "0.61.0" not in b and "0.55.5" not in b          # not needed to reach 90%
+    # it must actually cross the threshold
+    total = sum(n for _v, n, _s in _DIST)
+    covered = sum(n for v, n, _s in _DIST if v == "0.61.5" or v in set(b))
+    assert 100 * covered / total >= 90.0
+
+
+def test_pick_by_coverage_excludes_junk_from_baselines():
+    b = av.pick_by_coverage(_DIST, target="0.61.5", coverage_pct=99.9,
+                            published=_PUBLISHED, max_baselines=20)
+    assert "1.2.16" not in b and "0.34.2003" not in b  # unpublished -> never a baseline
+
+
+def test_pick_by_coverage_respects_max_baselines():
+    b = av.pick_by_coverage(_DIST, target="0.61.5", coverage_pct=99.9,
+                            published=_PUBLISHED, max_baselines=2)
+    assert len(b) == 2
+
+
 def test_pick_baselines_respects_max():
     # Realistic shape: newer versions have MORE installs than older ones, so the
     # oldest version is not also the most-popular. With max_baselines=3 the result
