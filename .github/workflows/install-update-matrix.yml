@@ -1,0 +1,201 @@
+name: Install/Update Matrix
+
+on:
+  pull_request:
+    branches: ["*"]
+  push:
+    tags: ["*"]
+  schedule:
+    - cron: "30 6 * * *" # daily, 06:30 UTC (offset from vsix-smoke's 06:00)
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "vsix target: 'latest' or 'pr-build'"
+        type: string
+        default: "pr-build"
+
+permissions:
+  contents: read
+  pull-requests: write
+  statuses: write
+
+concurrency:
+  group: install-update-matrix-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Build one platform-specific VSIX per OS (native deps make a linux vsix
+  # uninstallable on mac/windows), each on its matching runner.
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: linux-x64 }
+          - { os: macos-latest, target: darwin-arm64 }
+          - { os: windows-latest, target: win32-x64 }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/common-build
+        with:
+          vsce-target: ${{ matrix.target }}
+      - name: Package VSIX
+        run: npx @vscode/vsce package --target ${{ matrix.target }} -o pu-${{ matrix.target }}.vsix
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vsix-${{ matrix.target }}
+          path: pu-${{ matrix.target }}.vsix
+          retention-days: 3
+
+  vscode-cells:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Blocking lane: stock VSCode, fresh + full upgrade baselines on Linux
+          - { os: ubuntu-latest,  osl: linux,   target: linux-x64,    vscode: stable,   mode: fresh,   from: "" }
+          - { os: ubuntu-latest,  osl: linux,   target: linux-x64,    vscode: stable,   mode: upgrade, from: "0.61.4" }
+          - { os: ubuntu-latest,  osl: linux,   target: linux-x64,    vscode: stable,   mode: upgrade, from: "0.60.7" }
+          - { os: ubuntu-latest,  osl: linux,   target: linux-x64,    vscode: stable,   mode: upgrade, from: "0.59.5" }
+          - { os: ubuntu-latest,  osl: linux,   target: linux-x64,    vscode: stable,   mode: upgrade, from: "0.55.5" }
+          # Blocking lane: macOS + Windows, fresh + one representative upgrade
+          - { os: macos-latest,   osl: macos,   target: darwin-arm64, vscode: stable,   mode: fresh,   from: "" }
+          - { os: macos-latest,   osl: macos,   target: darwin-arm64, vscode: stable,   mode: upgrade, from: "0.61.4" }
+          - { os: windows-latest, osl: windows, target: win32-x64,    vscode: stable,   mode: fresh,   from: "" }
+          - { os: windows-latest, osl: windows, target: win32-x64,    vscode: stable,   mode: upgrade, from: "0.61.4" }
+          # Non-blocking: Insiders fresh on Linux
+          - { os: ubuntu-latest,  osl: linux,   target: linux-x64,    vscode: insiders, mode: fresh,   from: "" }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - name: Install deps + compile test suite
+        run: |
+          npm ci
+          npm run compile
+      - uses: actions/download-artifact@v4
+        with:
+          name: vsix-${{ matrix.target }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run cell
+        shell: bash
+        run: |
+          set -e
+          eval "$(bash test-matrix/setup-dbt-env.sh)"
+          vsixes=( pu-*.vsix ); VSIX="${vsixes[0]}"
+          OUT="result-${{ matrix.osl }}-${{ matrix.vscode }}-${{ matrix.mode }}-${{ matrix.from }}.json"
+          ARGS=(--mode "${{ matrix.mode }}" --target "$PWD/$VSIX" --vscode-version "${{ matrix.vscode }}" --out "$OUT")
+          [ -n "${{ matrix.from }}" ] && ARGS+=(--from "${{ matrix.from }}")
+          if [ "${{ matrix.osl }}" = "linux" ]; then
+            sudo apt-get update && sudo apt-get install -y xvfb
+            xvfb-run -a node test-matrix/vscode-cell.mjs "${ARGS[@]}" || true
+          else
+            node test-matrix/vscode-cell.mjs "${ARGS[@]}" || true
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: result-${{ matrix.osl }}-${{ matrix.vscode }}-${{ matrix.mode }}-${{ matrix.from }}
+          path: result-*.json
+          if-no-files-found: warn
+
+  codeserver-cell:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: vsix-linux-x64
+      - name: code-server fresh + upgrade
+        run: |
+          vsixes=( pu-*.vsix ); VSIX="${vsixes[0]}"
+          bash test-matrix/codeserver-cell.sh --mode fresh   --vsix-file "$PWD/$VSIX" --out result-codeserver-fresh.json || true
+          bash test-matrix/codeserver-cell.sh --mode upgrade --from 0.61.4 --vsix-file "$PWD/$VSIX" --out result-codeserver-upgrade.json || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: result-codeserver
+          path: result-codeserver-*.json
+          if-no-files-found: warn
+
+  aggregate:
+    needs: [vscode-cells, codeserver-cell]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: result-*
+          path: results
+          merge-multiple: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Aggregate
+        id: agg
+        run: |
+          set +e
+          python3 test-matrix/aggregate.py --results-dir results --out-dir agg \
+            --target "${{ github.event_name == 'pull_request' && 'pr-build' || 'latest' }}" \
+            --trigger "${{ github.event_name }}"
+          code=$?
+          echo "blocking_failed=$([ $code -ne 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: matrix-report
+          path: agg/
+      - name: Post sticky PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = '<!-- install-update-matrix -->\n' + fs.readFileSync('agg/matrix.md', 'utf8');
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number });
+            const existing = comments.find(c => c.body.includes('<!-- install-update-matrix -->'));
+            if (existing) await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
+            else await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body });
+      - name: Set commit status (blocking gate)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const failed = '${{ steps.agg.outputs.blocking_failed }}' === 'true';
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner, repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: failed ? 'failure' : 'success',
+              description: failed ? 'Blocking-lane cell failed' : 'Install/Update matrix green',
+              context: 'Install/Update Matrix',
+              target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+      - name: Slack notify
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.MATRIX_SLACK_WEBHOOK }}
+        run: |
+          if [ -n "$SLACK_WEBHOOK_URL" ]; then
+            curl -sf -X POST -H 'Content-type: application/json' --data @agg/slack.json "$SLACK_WEBHOOK_URL" || echo "slack post failed (non-fatal)"
+          else
+            echo "MATRIX_SLACK_WEBHOOK not set; skipping Slack (channel ID pending)"
+          fi
+      - name: Fail job if blocking lane failed
+        if: steps.agg.outputs.blocking_failed == 'true'
+        run: |
+          echo "::error::Blocking-lane matrix cell(s) failed"
+          exit 1
