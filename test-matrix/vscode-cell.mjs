@@ -80,9 +80,11 @@ async function main() {
     // 1. Download the editor + resolve its CLI.
     const exe = await downloadAndUnzipVSCode(vscodeVersion);
     const [cli, ...baseArgs] = resolveCliArgsFromVSCodeExecutablePath(exe);
+    // On Windows the resolved CLI is a `.cmd` (code.cmd); execFileSync cannot run
+    // a batch file without a shell, so enable shell there (per @vscode/test-electron).
     const cliRun = (extraArgs) =>
       execFileSync(cli, [...baseArgs, "--extensions-dir", extDir, "--user-data-dir", uddDir, ...extraArgs],
-        { stdio: "pipe", encoding: "utf8" });
+        { stdio: "pipe", encoding: "utf8", shell: process.platform === "win32" });
 
     // 2. Install dependencies (real VSCode resolves ms-python.python from the MS marketplace).
     for (const dep of DEPS) {
