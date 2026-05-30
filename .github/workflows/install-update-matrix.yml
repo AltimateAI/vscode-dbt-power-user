@@ -2,7 +2,8 @@ name: Install/Update Matrix
 
 on:
   pull_request:
-    branches: ["*"]
+    # "**" matches multi-segment base branches (e.g. feat/x); "*" would not.
+    branches: ["**"]
   push:
     tags: ["*"]
   schedule:
