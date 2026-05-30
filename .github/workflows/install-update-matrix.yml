@@ -136,8 +136,66 @@ jobs:
           path: result-codeserver-*.json
           if-no-files-found: warn
 
+  # Non-blocking fork lane: Cursor (Anysphere VSCode fork), Linux only. Drives
+  # the extracted Cursor AppImage headlessly (xvfb) — @vscode/test-electron can't
+  # target a fork. A failure here renders as ⚠️ and never blocks merge/release.
+  cursor-cell:
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        # Fresh install + one representative upgrade (highest live baseline).
+        include:
+          - { mode: fresh, from: "" }
+          - { mode: upgrade, from: "" } # 'from' filled from plan baselines at run time
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - name: Install deps + compile test suite
+        run: |
+          npm ci
+          npm run compile
+      - uses: actions/download-artifact@v4
+        with:
+          name: vsix-linux-x64
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run Cursor cell
+        shell: bash
+        env:
+          BASELINES: ${{ needs.plan.outputs.baselines }}
+        run: |
+          set -e
+          sudo apt-get update && sudo apt-get install -y xvfb
+          eval "$(bash test-matrix/setup-dbt-env.sh)"
+          eval "$(bash test-matrix/provision/cursor.sh)"   # sets CURSOR_BIN, CURSOR_VERSION
+          echo "Provisioned Cursor $CURSOR_VERSION at $CURSOR_BIN"
+          vsixes=( pu-*.vsix ); VSIX="${vsixes[0]}"
+          MODE="${{ matrix.mode }}"
+          # Representative upgrade baseline = highest version from the plan job.
+          FROM=""
+          if [ "$MODE" = "upgrade" ]; then
+            FROM="$(printf '%s' "$BASELINES" | tr ',' '\n' | tail -1)"
+          fi
+          OUT="result-cursor-${MODE}-${FROM}.json"
+          ARGS=(--bin "$CURSOR_BIN" --mode "$MODE" --target "$PWD/$VSIX" --out "$OUT")
+          [ -n "$FROM" ] && ARGS+=(--from "$FROM")
+          xvfb-run -a node test-matrix/cursor-cell.mjs "${ARGS[@]}" || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: result-cursor-${{ matrix.mode }}
+          path: result-cursor-*.json
+          if-no-files-found: warn
+
   aggregate:
-    needs: [vscode-cells, codeserver-cell]
+    needs: [vscode-cells, codeserver-cell, cursor-cell]
     if: always()
     runs-on: ubuntu-latest
     steps:
