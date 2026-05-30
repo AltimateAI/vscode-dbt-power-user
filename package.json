@@ -1209,7 +1209,10 @@
     "compile": "tsc -p ./",
     "docker:deploy": "./docker-setup/deploy.sh",
     "docker:logs": "cd docker-setup && docker compose logs -f || docker-compose logs -f",
-    "docker:stop": "cd docker-setup && docker compose down || docker-compose down"
+    "docker:stop": "cd docker-setup && docker compose down || docker-compose down",
+    "matrix:vscode": "node test-matrix/vscode-cell.mjs",
+    "matrix:aggregate": "python3 test-matrix/aggregate.py",
+    "matrix:test-aggregate": "python3 -m pytest tests/matrix/ -q"
   },
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.2",
