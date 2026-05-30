@@ -7,7 +7,7 @@
 //   node test-matrix/vscode-cell.mjs --mode fresh|upgrade --target <vsixPath|latest> \
 //        [--from <baselineVersion>] [--vscode-version stable|insiders|x.y.z] --out <result.json>
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -54,6 +54,27 @@ async function main() {
 
   const extDir = mkdtempSync(join(tmpdir(), "matrix-ext-"));
   const uddDir = mkdtempSync(join(tmpdir(), "matrix-udd-"));
+
+  // Pre-seed user settings so the extension finds dbt (via the hermetic venv's
+  // python) and so the test run does NOT emit real telemetry to App Insights.
+  const userDir = join(uddDir, "User");
+  mkdirSync(userDir, { recursive: true });
+  const pyInterp = process.env.PY_INTERP || "";
+  writeFileSync(
+    join(userDir, "settings.json"),
+    JSON.stringify(
+      {
+        "dbt.dbtIntegration": "core",
+        ...(pyInterp ? { "dbt.dbtPythonPathOverride": pyInterp } : {}),
+        "dbt.altimateAiKey": "",
+        "telemetry.telemetryLevel": "off",
+        "redhat.telemetry.enabled": false,
+        "workbench.startupEditor": "none",
+      },
+      null,
+      2,
+    ),
+  );
 
   try {
     // 1. Download the editor + resolve its CLI.
