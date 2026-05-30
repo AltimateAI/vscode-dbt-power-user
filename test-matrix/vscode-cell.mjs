@@ -86,6 +86,27 @@ async function main() {
       execFileSync(cli, [...baseArgs, "--extensions-dir", extDir, "--user-data-dir", uddDir, ...extraArgs],
         { stdio: "pipe", encoding: "utf8", shell: process.platform === "win32" });
 
+    // Marketplace --install-extension is network-flaky (it can transiently resolve
+    // an empty version, esp. for older platform-specific builds). Retry a few times
+    // so a single hiccup doesn't red-flag the blocking gate. Verify the install
+    // actually landed (the CLI can exit 0 yet install nothing).
+    const sleepSync = (ms) => { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); };
+    const installFromMarketplace = (idAtVersion, label) => {
+      let lastErr;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          cliRun(["--install-extension", idAtVersion, "--force"]);
+          const listed = cliRun(["--list-extensions", "--show-versions"]);
+          if (listed.toLowerCase().includes(EXTENSION_ID.toLowerCase())) return;
+          lastErr = new Error(`installed but ${EXTENSION_ID} absent from --list-extensions`);
+        } catch (e) {
+          lastErr = e;
+        }
+        if (attempt < 3) sleepSync(5000 * attempt);
+      }
+      throw new Error(`${label} install failed after 3 attempts: ${lastErr && lastErr.message}`);
+    };
+
     // 2. Install dependencies (real VSCode resolves ms-python.python from the MS marketplace).
     for (const dep of DEPS) {
       try {
@@ -96,10 +117,10 @@ async function main() {
       }
     }
 
-    // 3. Upgrade scenario: install the baseline first.
+    // 3. Upgrade scenario: install the baseline first (with retry — flaky network).
     if (mode === "upgrade") {
       if (!fromVersion) throw new Error("--from <version> required for upgrade mode");
-      cliRun(["--install-extension", `${EXTENSION_ID}@${fromVersion}`, "--force"]);
+      installFromMarketplace(`${EXTENSION_ID}@${fromVersion}`, `baseline ${fromVersion}`);
     }
 
     // 4. Install the target (a built .vsix path, or latest from marketplace).
