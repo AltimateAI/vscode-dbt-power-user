@@ -134,11 +134,19 @@ async function main() {
     if (!existsSync(target)) throw new Error(`vsix not found: ${target}`);
     const cli = resolveCursorCli(bin);
 
-    // Cursor's CLI shim can open the GUI; force headless + a clean env, and ALWAYS
-    // verify installs by inspecting the extensions dir, not the exit code.
+    // Cursor's CLI shim can open the GUI and NEVER return — execFileSync would
+    // then block the event loop forever (the async hard-timeout can't fire). So
+    // every CLI call gets a hard `timeout` + SIGKILL; on timeout it throws and we
+    // fall through to the extensions-dir check. ALWAYS verify by inspecting the
+    // dir, never trust the exit code.
+    const CLI_TIMEOUT_MS = 90_000;
     const cliRun = (extraArgs) =>
       execFileSync(cli, ["--no-sandbox", "--extensions-dir", extDir, "--user-data-dir", uddDir, ...extraArgs],
-        { stdio: "pipe", encoding: "utf8", env: { ...process.env, ELECTRON_RUN_AS_NODE: "" } });
+        {
+          stdio: "pipe", encoding: "utf8",
+          timeout: CLI_TIMEOUT_MS, killSignal: "SIGKILL",
+          env: { ...process.env, ELECTRON_RUN_AS_NODE: "" },
+        });
 
     const installedIds = () => {
       try {

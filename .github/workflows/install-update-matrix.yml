@@ -187,7 +187,17 @@ jobs:
           OUT="result-cursor-${MODE}-${FROM}.json"
           ARGS=(--bin "$CURSOR_BIN" --mode "$MODE" --target "$PWD/$VSIX" --out "$OUT")
           [ -n "$FROM" ] && ARGS+=(--from "$FROM")
-          xvfb-run -a node test-matrix/cursor-cell.mjs "${ARGS[@]}" || true
+          # Hard outer guard: `timeout -s KILL` caps wall time even if the whole
+          # Cursor process tree wedges (the node-level backstop can't help if a
+          # synchronous child blocks the event loop). After it returns, reap any
+          # straggler Cursor/Xvfb processes so nothing keeps the job alive.
+          timeout -s KILL 12m xvfb-run -a node test-matrix/cursor-cell.mjs "${ARGS[@]}" || true
+          pkill -9 -f 'squashfs-root|cursor|Xvfb' 2>/dev/null || true
+          if [ ! -f "$OUT" ]; then
+            printf '{"runtime":"cursor","os":"linux","scenario":"%s","from":%s,"to":"pr-build","install_ok":false,"deps_resolved":{},"activation_ok":false,"dbt_flow_ok":false,"status":"fail","reason":"cell wedged — killed by outer timeout","duration_s":720,"log_artifact":"%s"}\n' \
+              "$MODE" "$([ -n "$FROM" ] && echo "\"$FROM\"" || echo null)" "$OUT" > "$OUT"
+          fi
+          echo "=== RESULT_JSON ==="; cat "$OUT"
       - uses: actions/upload-artifact@v4
         with:
           name: result-cursor-${{ matrix.mode }}
