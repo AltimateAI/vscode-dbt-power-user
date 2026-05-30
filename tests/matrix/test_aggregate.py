@@ -1,5 +1,8 @@
 import importlib.util
+import json
 import pathlib
+import subprocess
+import sys
 
 _spec = importlib.util.spec_from_file_location(
     "aggregate", pathlib.Path(__file__).resolve().parents[2] / "test-matrix" / "aggregate.py"
@@ -71,3 +74,26 @@ def test_skip_cell_renders_skip_symbol():
     results = [_cell(status="skip", reason="not applicable")]
     md = aggregate.build_matrices(results)["install_md"]
     assert "⏭️" in md
+
+
+def test_cli_writes_files_and_exit_code(tmp_path):
+    rdir = tmp_path / "results"
+    rdir.mkdir()
+    (rdir / "a.json").write_text(json.dumps(_cell()))
+    (rdir / "b.json").write_text(
+        json.dumps(
+            _cell(runtime="vscode", os="windows", status="fail", activation_ok=False, reason="x")
+        )
+    )
+    odir = tmp_path / "out"
+    root = pathlib.Path(__file__).resolve().parents[2]
+    proc = subprocess.run(
+        [sys.executable, str(root / "test-matrix" / "aggregate.py"),
+         "--results-dir", str(rdir), "--out-dir", str(odir), "--target", "0.61.5"],
+        capture_output=True, text=True,
+    )
+    assert proc.returncode == 1  # a blocking vscode cell failed
+    assert (odir / "matrix.md").exists()
+    assert (odir / "slack.json").exists()
+    slack = json.loads((odir / "slack.json").read_text())
+    assert "blocks" in slack and len(slack["blocks"]) == 2
