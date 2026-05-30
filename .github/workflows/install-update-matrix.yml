@@ -203,6 +203,13 @@ jobs:
           name: result-cursor-${{ matrix.mode }}
           path: result-cursor-*.json
           if-no-files-found: warn
+      - name: Upload Cursor console log (diagnostics)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cursor-console-${{ matrix.mode }}
+          path: cursor-console-*.log
+          if-no-files-found: ignore
 
   aggregate:
     needs: [vscode-cells, codeserver-cell, cursor-cell]

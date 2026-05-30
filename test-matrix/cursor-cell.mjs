@@ -16,7 +16,7 @@
 //        --target <vsixPath> [--from <baselineVersion>] --out <result.json>
 import { execFileSync, spawn } from "node:child_process";
 import {
-  existsSync, mkdirSync, mkdtempSync, readdirSync,
+  closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readdirSync,
   readFileSync, renameSync, rmSync, writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -208,12 +208,17 @@ async function main() {
     //    workflow via xvfb-run). Electron forks a whole process TREE, so launch
     //    it detached in its own process group and later kill the GROUP — killing
     //    only the AppRun wrapper leaves children alive that keep xvfb-run (and
-    //    thus the CI job) hanging until the GHA timeout.
+    //    thus the CI job) hanging until the GHA timeout. Capture stdout/stderr to
+    //    a file: the extension also console.*'s its logs, so the marker can show
+    //    up there even before <udd>/logs/*.log files materialize — and it gives
+    //    us something to diagnose with when activation doesn't happen.
+    const consoleLog = join(dirname(outPath), `cursor-console-${mode}${fromVersion ? "-" + fromVersion : ""}.log`);
+    const logFd = openSync(consoleLog, "w");
     const child = spawn(
       bin,
       ["--no-sandbox", "--disable-gpu", "--disable-workspace-trust",
-       "--extensions-dir", extDir, "--user-data-dir", uddDir, fixture],
-      { stdio: "ignore", detached: true, env: { ...process.env, ELECTRON_RUN_AS_NODE: "" } },
+       "--verbose", "--extensions-dir", extDir, "--user-data-dir", uddDir, fixture],
+      { stdio: ["ignore", logFd, logFd], detached: true, env: { ...process.env, ELECTRON_RUN_AS_NODE: "" } },
     );
     child.unref();
     const pgid = child.pid; // detached => child is the process-group leader
@@ -222,13 +227,16 @@ async function main() {
       for (const sig of ["SIGTERM", "SIGKILL"]) {
         try { process.kill(-pgid, sig); } catch { /* group already gone */ }
       }
+      try { closeSync(logFd); } catch { /* already closed */ }
     };
+    // The marker can appear on the captured console OR in the log files.
+    const readAll = () => readAllLogs(uddDir) + "\n" + (existsSync(consoleLog) ? readFileSync(consoleLog, "utf8") : "");
 
     const deadline = Date.now() + ACTIVATION_TIMEOUT_MS;
     let seen = "";
     try {
       while (Date.now() < deadline) {
-        seen = readAllLogs(uddDir);
+        seen = readAll();
         if (seen.includes(INIT_FAIL)) throw new Error(`found '${INIT_FAIL}' in Cursor logs`);
         if (seen.includes(INIT_OK)) break;
         await sleep(3000);
@@ -238,7 +246,16 @@ async function main() {
     }
 
     if (!seen.includes(INIT_OK)) {
-      throw new Error(`did not observe '${INIT_OK}' within ${ACTIVATION_TIMEOUT_MS / 1000}s`);
+      // Attach a diagnostic so a non-observed marker is actionable, not opaque:
+      // did Cursor start? did the extension host load + activate our extension?
+      const ext = seen.toLowerCase().includes(EXTENSION_ID.toLowerCase());
+      const host = /extension host|exthost|starting extension host/i.test(seen);
+      const activated = /activat(e|ing|ed).*dbt|dbtPowerUser/i.test(seen);
+      const tail = seen.split("\n").filter(Boolean).slice(-12).join(" ⏎ ").slice(0, 350);
+      throw new Error(
+        `did not observe '${INIT_OK}' within ${ACTIVATION_TIMEOUT_MS / 1000}s ` +
+        `[extSeen=${ext} hostSeen=${host} activationSeen=${activated} logBytes=${seen.length}] tail: ${tail}`,
+      );
     }
     // Reaching the marker means the extension host loaded our extension and it
     // registered the dbt project against the fixture — activation + dbt flow OK.
