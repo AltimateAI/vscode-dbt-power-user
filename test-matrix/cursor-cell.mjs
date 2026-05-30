@@ -109,16 +109,17 @@ function openVsxDownloadUrl(extId, version, targetPlatform) {
 }
 
 async function main() {
+  const runtime = arg("runtime", "cursor"); // "cursor" | "windsurf" (any VSCode fork)
   const bin = resolve(arg("bin", ""));
   const mode = arg("mode", "fresh");
   const target = resolve(arg("target", ""));
   const fromVersion = arg("from", null);
-  const outPath = resolve(arg("out", "/tmp/cursor-result.json"));
+  const outPath = resolve(arg("out", `/tmp/${runtime}-result.json`));
   const repoRoot = resolve(join(HERE, ".."));
   const fixture = join(repoRoot, "test-fixtures", "dbt-core-sample-duckdb");
 
   const result = {
-    runtime: "cursor", os: "linux", scenario: mode, from: fromVersion || null,
+    runtime, os: "linux", scenario: mode, from: fromVersion || null,
     to: "pr-build", install_ok: false, deps_resolved: {},
     activation_ok: false, dbt_flow_ok: false,
     status: "fail", reason: "", duration_s: 0, log_artifact: outPath,
@@ -139,8 +140,8 @@ async function main() {
   }, HARD_DEADLINE_MS);
   hardTimer.unref();
 
-  const extDir = mkdtempSync(join(tmpdir(), "cursor-ext-"));
-  const uddDir = mkdtempSync(join(tmpdir(), "cursor-udd-"));
+  const extDir = mkdtempSync(join(tmpdir(), `${runtime}-ext-`));
+  const uddDir = mkdtempSync(join(tmpdir(), `${runtime}-udd-`));
 
   // Seed user settings so the extension finds dbt (hermetic venv python) and
   // does NOT emit real telemetry during the test.
@@ -175,7 +176,7 @@ async function main() {
 
     // 1. Dependencies: download each from Open VSX (by id) and unzip into the
     //    extensions-dir. No editor CLI involved (Cursor's shim hangs headless).
-    const dl = mkdtempSync(join(tmpdir(), "cursor-dl-"));
+    const dl = mkdtempSync(join(tmpdir(), `${runtime}-dl-`));
     for (const dep of DEPS) {
       try {
         const url = openVsxDownloadUrl(dep, null, null);
@@ -212,7 +213,7 @@ async function main() {
     //    a file: the extension also console.*'s its logs, so the marker can show
     //    up there even before <udd>/logs/*.log files materialize — and it gives
     //    us something to diagnose with when activation doesn't happen.
-    const consoleLog = join(dirname(outPath), `cursor-console-${mode}${fromVersion ? "-" + fromVersion : ""}.log`);
+    const consoleLog = join(dirname(outPath), `${runtime}-console-${mode}${fromVersion ? "-" + fromVersion : ""}.log`);
     const logFd = openSync(consoleLog, "w");
     const child = spawn(
       bin,
@@ -268,10 +269,10 @@ async function main() {
     clearTimeout(hardTimer);
     result.duration_s = Math.round((Date.now() - started) / 1000);
     writeFileSync(outPath, JSON.stringify(result, null, 2));
-    console.log(`[matrix] cursor/linux/${mode} -> ${result.status}: ${result.reason || "ok"}`);
+    console.log(`[matrix] ${runtime}/linux/${mode} -> ${result.status}: ${result.reason || "ok"}`);
   }
 
-  // Cursor is a NON-BLOCKING lane: always exit 0 so the cell never fails the job;
+  // Fork lanes are NON-BLOCKING: always exit 0 so the cell never fails the job;
   // pass/fail is conveyed only via RESULT_JSON, which the aggregator renders as ⚠️.
   process.exit(0);
 }

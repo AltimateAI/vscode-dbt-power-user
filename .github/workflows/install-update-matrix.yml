@@ -211,8 +211,78 @@ jobs:
           path: cursor-console-*.log
           if-no-files-found: ignore
 
+  # Non-blocking fork lane: Windsurf (Codeium VSCode fork), Linux only. Same
+  # mechanism as Cursor — install via Open VSX download+unzip (the bundled CLI
+  # is unreliable headless), launch the extracted binary under xvfb, scan stdout
+  # for the activation marker. Reuses cursor-cell.mjs via --runtime windsurf.
+  windsurf-cell:
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { mode: fresh, from: "" }
+          - { mode: upgrade, from: "" } # 'from' filled from plan baselines at run time
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - name: Install deps + compile test suite
+        run: |
+          npm ci
+          npm run compile
+      - uses: actions/download-artifact@v4
+        with:
+          name: vsix-linux-x64
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run Windsurf cell
+        shell: bash
+        env:
+          BASELINES: ${{ needs.plan.outputs.baselines }}
+        run: |
+          set -e
+          sudo apt-get update && sudo apt-get install -y xvfb
+          eval "$(bash test-matrix/setup-dbt-env.sh)"
+          eval "$(bash test-matrix/provision/windsurf.sh)"   # sets WINDSURF_BIN, WINDSURF_VERSION
+          echo "Provisioned Windsurf $WINDSURF_VERSION at $WINDSURF_BIN"
+          vsixes=( pu-*.vsix ); VSIX="${vsixes[0]}"
+          MODE="${{ matrix.mode }}"
+          FROM=""
+          if [ "$MODE" = "upgrade" ]; then
+            FROM="$(printf '%s' "$BASELINES" | tr ',' '\n' | tail -1)"
+          fi
+          OUT="result-windsurf-${MODE}-${FROM}.json"
+          ARGS=(--runtime windsurf --bin "$WINDSURF_BIN" --mode "$MODE" --target "$PWD/$VSIX" --out "$OUT")
+          [ -n "$FROM" ] && ARGS+=(--from "$FROM")
+          timeout -s KILL 12m xvfb-run -a node test-matrix/cursor-cell.mjs "${ARGS[@]}" || true
+          pkill -9 -f 'Windsurf|windsurf|Xvfb' 2>/dev/null || true
+          if [ ! -f "$OUT" ]; then
+            printf '{"runtime":"windsurf","os":"linux","scenario":"%s","from":%s,"to":"pr-build","install_ok":false,"deps_resolved":{},"activation_ok":false,"dbt_flow_ok":false,"status":"fail","reason":"cell wedged — killed by outer timeout","duration_s":720,"log_artifact":"%s"}\n' \
+              "$MODE" "$([ -n "$FROM" ] && echo "\"$FROM\"" || echo null)" "$OUT" > "$OUT"
+          fi
+          echo "=== RESULT_JSON ==="; cat "$OUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: result-windsurf-${{ matrix.mode }}
+          path: result-windsurf-*.json
+          if-no-files-found: warn
+      - name: Upload Windsurf console log (diagnostics)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windsurf-console-${{ matrix.mode }}
+          path: windsurf-console-*.log
+          if-no-files-found: ignore
+
   aggregate:
-    needs: [vscode-cells, codeserver-cell, cursor-cell]
+    needs: [vscode-cells, codeserver-cell, cursor-cell, windsurf-cell]
     if: always()
     runs-on: ubuntu-latest
     steps:
