@@ -22,7 +22,11 @@ const EXTENSION_ID = "innoverio.vscode-dbt-power-user";
 const DEPS = ["samuelcolvin.jinjahtml", "ms-python.python", "altimateai.vscode-altimate-mcp-server"];
 const INIT_OK = "Initialized dbt project";
 const INIT_FAIL = "Unable to register dbt project";
-const ACTIVATION_TIMEOUT_MS = 120_000;
+const ACTIVATION_TIMEOUT_MS = 90_000;   // matches the VSCode lane's in-host wait
+// Absolute backstop: the whole cell (download already done by provisioner) must
+// finish well under the job timeout even if Cursor wedges. SIGKILLs the node
+// process so xvfb-run returns and the job ends with a written RESULT_JSON.
+const HARD_DEADLINE_MS = 8 * 60_000;
 
 function arg(name, def = undefined) {
   const i = process.argv.indexOf(`--${name}`);
@@ -88,6 +92,21 @@ async function main() {
     status: "fail", reason: "", duration_s: 0, log_artifact: outPath,
   };
   const started = Date.now();
+
+  // Absolute backstop so the cell can never hang the CI job: if anything wedges
+  // (e.g. a Cursor child tree refusing to die), write a timeout RESULT_JSON and
+  // hard-exit so xvfb-run returns. unref() so it never keeps node alive itself.
+  const hardTimer = setTimeout(() => {
+    if (result.status !== "pass") {
+      result.reason = result.reason || `hard timeout after ${HARD_DEADLINE_MS / 1000}s`;
+      result.duration_s = Math.round((Date.now() - started) / 1000);
+      try { writeFileSync(outPath, JSON.stringify(result, null, 2)); } catch { /* best effort */ }
+    }
+    console.log(`[matrix] cursor/linux/${mode} -> ${result.status} (hard-exit)`);
+    process.exit(0);
+  }, HARD_DEADLINE_MS);
+  hardTimer.unref();
+
   const extDir = mkdtempSync(join(tmpdir(), "cursor-ext-"));
   const uddDir = mkdtempSync(join(tmpdir(), "cursor-udd-"));
 
@@ -161,25 +180,38 @@ async function main() {
     if (!hasExt(EXTENSION_ID)) throw new Error(`target VSIX not present in extensions-dir after install`);
     result.install_ok = true;
 
-    // 4. Launch Cursor headless against the fixture (xvfb is provided by the
-    //    workflow via xvfb-run). The extension activates on workspaceContains
-    //    dbt_project.yml; we then scan its logs for the init marker.
+    // 4. Launch Cursor headless against the fixture (xvfb provided by the
+    //    workflow via xvfb-run). Electron forks a whole process TREE, so launch
+    //    it detached in its own process group and later kill the GROUP — killing
+    //    only the AppRun wrapper leaves children alive that keep xvfb-run (and
+    //    thus the CI job) hanging until the GHA timeout.
     const child = spawn(
       bin,
       ["--no-sandbox", "--disable-gpu", "--disable-workspace-trust",
        "--extensions-dir", extDir, "--user-data-dir", uddDir, fixture],
-      { stdio: "ignore", env: { ...process.env, ELECTRON_RUN_AS_NODE: "" } },
+      { stdio: "ignore", detached: true, env: { ...process.env, ELECTRON_RUN_AS_NODE: "" } },
     );
+    child.unref();
+    const pgid = child.pid; // detached => child is the process-group leader
+
+    const killCursorTree = () => {
+      for (const sig of ["SIGTERM", "SIGKILL"]) {
+        try { process.kill(-pgid, sig); } catch { /* group already gone */ }
+      }
+    };
 
     const deadline = Date.now() + ACTIVATION_TIMEOUT_MS;
     let seen = "";
-    while (Date.now() < deadline) {
-      seen = readAllLogs(uddDir);
-      if (seen.includes(INIT_FAIL)) throw new Error(`found '${INIT_FAIL}' in Cursor logs`);
-      if (seen.includes(INIT_OK)) break;
-      await sleep(3000);
+    try {
+      while (Date.now() < deadline) {
+        seen = readAllLogs(uddDir);
+        if (seen.includes(INIT_FAIL)) throw new Error(`found '${INIT_FAIL}' in Cursor logs`);
+        if (seen.includes(INIT_OK)) break;
+        await sleep(3000);
+      }
+    } finally {
+      killCursorTree();
     }
-    try { child.kill("SIGTERM"); } catch { /* already gone */ }
 
     if (!seen.includes(INIT_OK)) {
       throw new Error(`did not observe '${INIT_OK}' within ${ACTIVATION_TIMEOUT_MS / 1000}s`);
@@ -192,6 +224,7 @@ async function main() {
   } catch (err) {
     result.reason = String(err && err.message ? err.message : err).slice(0, 600);
   } finally {
+    clearTimeout(hardTimer);
     result.duration_s = Math.round((Date.now() - started) / 1000);
     writeFileSync(outPath, JSON.stringify(result, null, 2));
     console.log(`[matrix] cursor/linux/${mode} -> ${result.status}: ${result.reason || "ok"}`);

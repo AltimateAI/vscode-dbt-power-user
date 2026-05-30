@@ -142,7 +142,7 @@ jobs:
   cursor-cell:
     needs: [plan, build]
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 20
     continue-on-error: true
     strategy:
       fail-fast: false
