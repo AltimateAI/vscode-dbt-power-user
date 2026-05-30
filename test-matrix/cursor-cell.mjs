@@ -2,23 +2,32 @@
 // Driver for one Cursor matrix cell (non-blocking fork lane, Linux only).
 //
 // Cursor is an Anysphere VSCode fork. @vscode/test-electron CANNOT drive it
-// (it downloads/manages Microsoft VSCode), so we drive the extracted Cursor
-// binary directly: install deps + our VSIX via Cursor's bundled VSCode CLI into
-// throwaway dirs, then LAUNCH Cursor headless against the dbt fixture and scan
-// its logs for the activation marker — mirroring the in-host assertion the
-// VSCode lane makes, but without runTests().
+// (it downloads/manages Microsoft VSCode), AND Cursor's bundled CLI shim hangs
+// on headless `--install-extension` (verified: it wedges the job to timeout).
+// So we install WITHOUT the CLI: download each .vsix (deps + baseline from Open
+// VSX by id, target from the local build) and UNZIP it straight into a throwaway
+// extensions-dir (a .vsix is a zip; installed layout is
+// <ext-dir>/<publisher>.<name>-<version>/ holding the `extension/` contents).
+// Then LAUNCH the extracted Cursor binary headless against the dbt fixture and
+// scan its logs for the activation marker — mirroring the VSCode lane's assert.
 //
 // Usage:
 //   node test-matrix/cursor-cell.mjs --bin <cursor AppRun> --mode fresh|upgrade \
 //        --target <vsixPath> [--from <baselineVersion>] --out <result.json>
 import { execFileSync, spawn } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync, mkdirSync, mkdtempSync, readdirSync,
+  readFileSync, renameSync, rmSync, writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const EXTENSION_ID = "innoverio.vscode-dbt-power-user";
+const OPENVSX = "https://open-vsx.org/api";
+const VSIX_TARGET_PLATFORM = "linux-x64"; // runner arch — must match native deps
+// Dependency extensions resolved from Open VSX by id (all verified present).
 const DEPS = ["samuelcolvin.jinjahtml", "ms-python.python", "altimateai.vscode-altimate-mcp-server"];
 const INIT_OK = "Initialized dbt project";
 const INIT_FAIL = "Unable to register dbt project";
@@ -36,17 +45,6 @@ function arg(name, def = undefined) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-// Locate the bundled VSCode-style CLI inside the extracted Cursor tree. Cursor
-// ships it under resources/app/bin/. Falls back to AppRun if not found.
-function resolveCursorCli(bin) {
-  const root = dirname(bin); // squashfs-root/
-  for (const c of ["resources/app/bin/cursor", "resources/app/bin/code", "bin/cursor", "bin/code"]) {
-    const p = join(root, c);
-    if (existsSync(p)) return p;
-  }
-  return bin; // AppRun accepts the same CLI flags as a last resort
-}
 
 // Recursively read every *.log under a dir (Cursor writes LogOutputChannels +
 // console output under <user-data-dir>/logs/**).
@@ -74,6 +72,40 @@ function readAllLogs(uddDir) {
     }
   }
   return out.join("\n");
+}
+
+// Install a .vsix WITHOUT any editor CLI: unzip it and lay the `extension/`
+// contents into <extDir>/<publisher>.<name>-<version>/ (VSCode's on-disk format).
+function installVsixToDir(vsixPath, extDir) {
+  const tmp = mkdtempSync(join(tmpdir(), "vsix-x-"));
+  execFileSync("unzip", ["-q", "-o", vsixPath, "-d", tmp], { stdio: "pipe", timeout: 120_000 });
+  const pkg = JSON.parse(readFileSync(join(tmp, "extension", "package.json"), "utf8"));
+  const folder = `${pkg.publisher}.${pkg.name}-${pkg.version}`;
+  const dest = join(extDir, folder);
+  rmSync(dest, { recursive: true, force: true });
+  renameSync(join(tmp, "extension"), dest);
+  rmSync(tmp, { recursive: true, force: true });
+  return `${pkg.publisher}.${pkg.name}`;
+}
+
+// Download a URL to a file using curl (handles Open VSX redirects + retries).
+function curlDownload(url, outFile) {
+  execFileSync(
+    "curl", ["-fSL", "--retry", "3", "--retry-delay", "5", "-o", outFile, url],
+    { stdio: "pipe", timeout: 180_000 },
+  );
+  return outFile;
+}
+
+// Resolve an Open VSX .vsix download URL for an extension id (+ optional version
+// + target platform), via the registry metadata `files.download` field.
+function openVsxDownloadUrl(extId, version, targetPlatform) {
+  const [ns, name] = extId.split(".");
+  const seg = [OPENVSX, ns, name];
+  if (targetPlatform) seg.push(targetPlatform);
+  if (version) seg.push(version);
+  const meta = JSON.parse(execFileSync("curl", ["-fsSL", seg.join("/")], { encoding: "utf8", timeout: 60_000 }));
+  return meta?.files?.download || null;
 }
 
 async function main() {
@@ -132,59 +164,43 @@ async function main() {
   try {
     if (!bin || !existsSync(bin)) throw new Error(`cursor binary not found: ${bin}`);
     if (!existsSync(target)) throw new Error(`vsix not found: ${target}`);
-    const cli = resolveCursorCli(bin);
 
-    // Cursor's CLI shim can open the GUI and NEVER return — execFileSync would
-    // then block the event loop forever (the async hard-timeout can't fire). So
-    // every CLI call gets a hard `timeout` + SIGKILL; on timeout it throws and we
-    // fall through to the extensions-dir check. ALWAYS verify by inspecting the
-    // dir, never trust the exit code.
-    const CLI_TIMEOUT_MS = 90_000;
-    const cliRun = (extraArgs) =>
-      execFileSync(cli, ["--no-sandbox", "--extensions-dir", extDir, "--user-data-dir", uddDir, ...extraArgs],
-        {
-          stdio: "pipe", encoding: "utf8",
-          timeout: CLI_TIMEOUT_MS, killSignal: "SIGKILL",
-          env: { ...process.env, ELECTRON_RUN_AS_NODE: "" },
-        });
-
-    const installedIds = () => {
+    const hasExt = (id) => {
       try {
-        return readdirSync(extDir).map((d) => d.toLowerCase());
+        return readdirSync(extDir).some((d) => d.toLowerCase().startsWith(id.toLowerCase()));
       } catch {
-        return [];
+        return false;
       }
     };
-    const hasExt = (id) => installedIds().some((d) => d.startsWith(id.toLowerCase()));
 
-    // 1. Dependencies (resolved from Open VSX — ms-python.python likely WON'T be
-    //    there; recorded, not fatal, matching the P3 portability finding).
+    // 1. Dependencies: download each from Open VSX (by id) and unzip into the
+    //    extensions-dir. No editor CLI involved (Cursor's shim hangs headless).
+    const dl = mkdtempSync(join(tmpdir(), "cursor-dl-"));
     for (const dep of DEPS) {
       try {
-        cliRun(["--install-extension", dep, "--force"]);
-      } catch {
-        /* fall through to dir check */
+        const url = openVsxDownloadUrl(dep, null, null);
+        if (!url) throw new Error("not on Open VSX");
+        const f = curlDownload(url, join(dl, `${dep}.vsix`));
+        installVsixToDir(f, extDir);
+        result.deps_resolved[dep] = hasExt(dep);
+      } catch (e) {
+        result.deps_resolved[dep] = false;
       }
-      result.deps_resolved[dep] = hasExt(dep);
     }
 
-    // 2. Upgrade scenario: install the baseline from Open VSX first.
+    // 2. Upgrade scenario: install the baseline (Open VSX, linux-x64) first.
     if (mode === "upgrade") {
       if (!fromVersion) throw new Error("--from <version> required for upgrade mode");
-      try {
-        cliRun(["--install-extension", `${EXTENSION_ID}@${fromVersion}`, "--force"]);
-      } catch {
-        /* verified below */
-      }
-      if (!hasExt(EXTENSION_ID)) throw new Error(`baseline ${fromVersion} did not install (Open VSX?)`);
+      const url = openVsxDownloadUrl(EXTENSION_ID, fromVersion, VSIX_TARGET_PLATFORM)
+        || openVsxDownloadUrl(EXTENSION_ID, fromVersion, null);
+      if (!url) throw new Error(`baseline ${fromVersion} not found on Open VSX`);
+      const f = curlDownload(url, join(dl, `baseline-${fromVersion}.vsix`));
+      installVsixToDir(f, extDir);
+      if (!hasExt(EXTENSION_ID)) throw new Error(`baseline ${fromVersion} did not install`);
     }
 
-    // 3. Install the target VSIX from the local file.
-    try {
-      cliRun(["--install-extension", target, "--force"]);
-    } catch {
-      /* verified below */
-    }
+    // 3. Install the target VSIX from the locally-built file (overwrites baseline).
+    installVsixToDir(target, extDir);
     if (!hasExt(EXTENSION_ID)) throw new Error(`target VSIX not present in extensions-dir after install`);
     result.install_ok = true;
 
