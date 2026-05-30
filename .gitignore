@@ -50,3 +50,6 @@ docker-setup/.env
 
 # GitHub issues dashboard cache
 monitoring/github_issues/.cache/
+
+# Install/update matrix local env
+.matrix-venv/

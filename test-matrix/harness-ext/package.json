@@ -1,0 +1,11 @@
+{
+  "name": "matrix-harness",
+  "publisher": "altimate-internal",
+  "version": "0.0.0",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "main": "./noop.js",
+  "activationEvents": [],
+  "contributes": {}
+}
