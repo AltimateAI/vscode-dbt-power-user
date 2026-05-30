@@ -20,6 +20,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Compute the cell matrix. Upgrade baselines are data-driven from the live
+  # App Insights version distribution when APPINSIGHTS_API_KEY is set; otherwise
+  # a hardcoded fallback is used (fork PRs / telemetry outage).
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      baselines: ${{ steps.plan.outputs.baselines }}
+      source: ${{ steps.plan.outputs.source }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Build matrix (data-driven baselines)
+        id: plan
+        env:
+          APPINSIGHTS_API_KEY: ${{ secrets.APPINSIGHTS_API_KEY }}
+        run: python3 test-matrix/build-matrix.py >> "$GITHUB_OUTPUT"
+      - name: Echo chosen baselines
+        run: echo "source=${{ steps.plan.outputs.source }} baselines=${{ steps.plan.outputs.baselines }}"
+
   # Build one platform-specific VSIX per OS (native deps make a linux vsix
   # uninstallable on mac/windows), each on its matching runner.
   build:
@@ -48,24 +71,11 @@ jobs:
           retention-days: 3
 
   vscode-cells:
-    needs: build
+    needs: [plan, build]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          # Blocking lane: stock VSCode, fresh + full upgrade baselines on Linux
-          - { os: ubuntu-latest,  osl: linux,   target: linux-x64,    vscode: stable,   mode: fresh,   from: "" }
-          - { os: ubuntu-latest,  osl: linux,   target: linux-x64,    vscode: stable,   mode: upgrade, from: "0.61.4" }
-          - { os: ubuntu-latest,  osl: linux,   target: linux-x64,    vscode: stable,   mode: upgrade, from: "0.60.7" }
-          - { os: ubuntu-latest,  osl: linux,   target: linux-x64,    vscode: stable,   mode: upgrade, from: "0.59.5" }
-          - { os: ubuntu-latest,  osl: linux,   target: linux-x64,    vscode: stable,   mode: upgrade, from: "0.55.5" }
-          # Blocking lane: macOS + Windows, fresh + one representative upgrade
-          - { os: macos-latest,   osl: macos,   target: darwin-arm64, vscode: stable,   mode: fresh,   from: "" }
-          - { os: macos-latest,   osl: macos,   target: darwin-arm64, vscode: stable,   mode: upgrade, from: "0.61.4" }
-          - { os: windows-latest, osl: windows, target: win32-x64,    vscode: stable,   mode: fresh,   from: "" }
-          - { os: windows-latest, osl: windows, target: win32-x64,    vscode: stable,   mode: upgrade, from: "0.61.4" }
-          # Non-blocking: Insiders fresh on Linux
-          - { os: ubuntu-latest,  osl: linux,   target: linux-x64,    vscode: insiders, mode: fresh,   from: "" }
+      # Cells (incl. data-driven upgrade baselines) come from the plan job.
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     steps:
