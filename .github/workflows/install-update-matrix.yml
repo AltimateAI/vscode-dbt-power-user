@@ -257,12 +257,14 @@ jobs:
       - name: Slack notify
         if: always()
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.MATRIX_SLACK_WEBHOOK }}
+          # Prefer a matrix-specific webhook if configured; otherwise reuse the
+          # repo's existing SLACK_WEBHOOK_URL secret so notifications work today.
+          SLACK_WEBHOOK_URL: ${{ secrets.MATRIX_SLACK_WEBHOOK || secrets.SLACK_WEBHOOK_URL }}
         run: |
           if [ -n "$SLACK_WEBHOOK_URL" ]; then
             curl -sf -X POST -H 'Content-type: application/json' --data @agg/slack.json "$SLACK_WEBHOOK_URL" || echo "slack post failed (non-fatal)"
           else
-            echo "MATRIX_SLACK_WEBHOOK not set; skipping Slack (channel ID pending)"
+            echo "no Slack webhook secret set; skipping Slack notification"
           fi
       - name: Fail job if blocking lane failed
         if: steps.agg.outputs.blocking_failed == 'true'
