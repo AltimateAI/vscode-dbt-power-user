@@ -207,19 +207,22 @@ jobs:
   matrix-gate:
     runs-on: ubuntu-latest
     if: success() && startsWith(github.ref, 'refs/tags/')
-    timeout-minutes: 25
+    timeout-minutes: 60
     steps:
       - name: Wait for Install/Update Matrix status on this commit
         uses: actions/github-script@v7
         with:
           script: |
             const ref = context.sha;
-            for (let i = 0; i < 40; i++) {
+            // Poll up to ~50 min (100 x 30s): the matrix builds 3 platforms +
+            // runs 12 cells, which on a cold cache can exceed 30 min.
+            for (let i = 0; i < 100; i++) {
               const { data } = await github.rest.repos.getCombinedStatusForRef({
                 owner: context.repo.owner, repo: context.repo.repo, ref });
               const s = data.statuses.find((x) => x.context === 'Install/Update Matrix');
               if (s && s.state === 'success') { core.info('Install/Update Matrix green'); return; }
               if (s && s.state === 'failure') { core.setFailed('Install/Update Matrix failed — blocking release'); return; }
+              if (s && s.state === 'error') { core.setFailed('Install/Update Matrix status errored — blocking release'); return; }
               core.info('waiting for Install/Update Matrix status...');
               await new Promise((r) => setTimeout(r, 30000));
             }

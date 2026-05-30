@@ -97,3 +97,42 @@ def test_cli_writes_files_and_exit_code(tmp_path):
     assert (odir / "slack.json").exists()
     slack = json.loads((odir / "slack.json").read_text())
     assert "blocks" in slack and len(slack["blocks"]) == 2
+
+
+def _run_cli(rdir, odir):
+    root = pathlib.Path(__file__).resolve().parents[2]
+    return subprocess.run(
+        [sys.executable, str(root / "test-matrix" / "aggregate.py"),
+         "--results-dir", str(rdir), "--out-dir", str(odir)],
+        capture_output=True, text=True,
+    )
+
+
+def test_cli_empty_results_blocks(tmp_path):
+    rdir = tmp_path / "results"
+    rdir.mkdir()
+    odir = tmp_path / "out"
+    proc = _run_cli(rdir, odir)
+    assert proc.returncode == 1  # no results == cannot certify == block
+    assert (odir / "matrix.md").exists()
+    assert (odir / "slack.json").exists()
+
+
+def test_cli_malformed_result_blocks_even_with_a_passing_cell(tmp_path):
+    rdir = tmp_path / "results"
+    rdir.mkdir()
+    (rdir / "good.json").write_text(json.dumps(_cell()))  # a passing vscode cell
+    (rdir / "bad.json").write_text("{ this is not valid json")
+    odir = tmp_path / "out"
+    proc = _run_cli(rdir, odir)
+    assert proc.returncode == 1  # corrupt file blocks despite the good cell passing
+
+
+def test_update_matrix_separates_os_rows():
+    results = [
+        _cell(scenario="upgrade", os="linux", **{"from": "0.61.4"}),
+        _cell(scenario="upgrade", os="windows", **{"from": "0.61.4"}, status="fail", dbt_flow_ok=False),
+    ]
+    md = aggregate.build_matrices(results)["update_md"]
+    assert "vscode (linux)" in md and "vscode (windows)" in md
+    assert "✅" in md and "❌" in md

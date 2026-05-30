@@ -138,12 +138,12 @@ async function main() {
     result.dbt_flow_ok = true;
     result.status = "pass";
   } catch (err) {
-    result.reason = String(err && err.message ? err.message : err).slice(0, 500);
-    // Distinguish install failure from activation/dbt failure for the report.
-    if (result.install_ok && !result.activation_ok) {
-      result.activation_ok = false;
-      result.dbt_flow_ok = false;
-    }
+    // Capture the CLI's stderr/stdout too — execFileSync errors otherwise hide
+    // the actual reason (e.g. dependency resolution failures). install_ok /
+    // activation_ok already encode which phase failed.
+    const base = String(err && err.message ? err.message : err);
+    const std = `${(err && err.stderr) || ""}${(err && err.stdout) || ""}`.trim();
+    result.reason = (std ? `${base} | ${std}` : base).slice(0, 600);
   } finally {
     result.duration_s = Math.round((Date.now() - started) / 1000);
     writeFileSync(outPath, JSON.stringify(result, null, 2));

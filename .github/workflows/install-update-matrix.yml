@@ -8,12 +8,7 @@ on:
     tags: ["*"]
   schedule:
     - cron: "30 6 * * *" # daily, 06:30 UTC (offset from vsix-smoke's 06:00)
-  workflow_dispatch:
-    inputs:
-      target:
-        description: "vsix target: 'latest' or 'pr-build'"
-        type: string
-        default: "pr-build"
+  workflow_dispatch: {}
 
 permissions:
   contents: read

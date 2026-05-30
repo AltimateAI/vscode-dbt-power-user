@@ -78,21 +78,26 @@ def _render_install(cells: list[dict]) -> str:
 
 
 def _render_update(cells: list[dict]) -> str:
-    runtimes = sorted({c["runtime"] for c in cells}, key=_runtime_sort_key)
-    baselines = sorted({c.get("from") for c in cells if c.get("from")})
-    by = {(c["runtime"], c.get("from")): c for c in cells}
-
     lines = ["### Update matrix (upgrade baseline → target)", ""]
     if not cells:
         lines.append("_no upgrade cells in this run_")
         lines.append("")
         return "\n".join(lines)
-    lines.append("| Runtime | " + " | ".join(f"from {b}" for b in baselines) + " |")
+    # Row = (runtime, os) so OS-specific upgrade cells (e.g. linux vs windows
+    # both upgrading from 0.61.4) don't collide into one row.
+    rows = sorted(
+        {(c["runtime"], c["os"]) for c in cells},
+        key=lambda k: (_runtime_sort_key(k[0]), _os_sort_key(k[1])),
+    )
+    baselines = sorted({c.get("from") for c in cells if c.get("from")})
+    by = {(c["runtime"], c["os"], c.get("from")): c for c in cells}
+
+    lines.append("| Runtime / OS | " + " | ".join(f"from {b}" for b in baselines) + " |")
     lines.append("|---|" + "---|" * len(baselines))
-    for rt in runtimes:
-        row = [rt]
+    for rt, os_name in rows:
+        row = [f"{rt} ({os_name})"]
         for b in baselines:
-            cell = by.get((rt, b))
+            cell = by.get((rt, os_name, b))
             row.append(_cell_symbol(cell) if cell else "—")
         lines.append("| " + " | ".join(row) + " |")
     lines.append("")
@@ -125,12 +130,18 @@ def _render_slack(results: list[dict], has_blocking_failure: bool) -> list[dict]
     ]
 
 
-def _load_results(results_dir: str) -> list[dict]:
+def _load_results(results_dir: str):
+    """Load every RESULT_JSON. Returns (results, errors) where errors is a list
+    of (path, message) for files that could not be parsed."""
     out = []
+    errors = []
     for path in sorted(glob.glob(os.path.join(results_dir, "**", "*.json"), recursive=True)):
-        with open(path) as f:
-            out.append(json.load(f))
-    return out
+        try:
+            with open(path) as f:
+                out.append(json.load(f))
+        except (json.JSONDecodeError, OSError) as e:
+            errors.append((path, str(e)))
+    return out, errors
 
 
 def main() -> int:
@@ -141,10 +152,28 @@ def main() -> int:
     ap.add_argument("--trigger", default="manual")
     args = ap.parse_args()
 
-    results = _load_results(args.results_dir)
-    out = build_matrices(results)
+    results, load_errors = _load_results(args.results_dir)
     os.makedirs(args.out_dir, exist_ok=True)
+    for path, msg in load_errors:
+        print(f"::warning::unreadable result file {path}: {msg}")
 
+    if not results:
+        # No cell produced a result (e.g. every runner died before writing one).
+        # We cannot certify the matrix, so block and still emit a visible board.
+        note = "No result files found — treating as a blocking failure"
+        print(f"::error::{note}")
+        board = f"## VSIX Install + Update Matrix\n\n:x: {note}\n"
+        for name in ("install-matrix.md", "update-matrix.md", "matrix.md"):
+            with open(os.path.join(args.out_dir, name), "w") as f:
+                f.write(board)
+        with open(os.path.join(args.out_dir, "slack.json"), "w") as f:
+            json.dump(
+                {"blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": f"*❌ {note}*"}}]},
+                f, indent=2,
+            )
+        return 1
+
+    out = build_matrices(results)
     header = f"## VSIX Install + Update Matrix — target `{args.target or 'latest'}` ({args.trigger})\n\n"
     combined = header + out["install_md"] + "\n" + out["update_md"]
     with open(os.path.join(args.out_dir, "install-matrix.md"), "w") as f:
@@ -159,6 +188,10 @@ def main() -> int:
     print(combined)
     if out["has_blocking_failure"]:
         print("::error::Blocking-lane cell(s) failed — see matrix above")
+        return 1
+    if load_errors:
+        # A result file existed but was corrupt — we can't confirm that cell, so block.
+        print("::error::Some result files were unreadable — cannot certify the matrix")
         return 1
     return 0
 
