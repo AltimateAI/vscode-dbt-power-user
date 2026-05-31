@@ -409,18 +409,12 @@ jobs:
               context: 'Install/Update Matrix',
               target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
             });
-      - name: Slack notify
-        if: always()
-        env:
-          # Prefer a matrix-specific webhook if configured; otherwise reuse the
-          # repo's existing SLACK_WEBHOOK_URL secret so notifications work today.
-          SLACK_WEBHOOK_URL: ${{ secrets.MATRIX_SLACK_WEBHOOK || secrets.SLACK_WEBHOOK_URL }}
-        run: |
-          if [ -n "$SLACK_WEBHOOK_URL" ]; then
-            curl -sf -X POST -H 'Content-type: application/json' --data @agg/slack.json "$SLACK_WEBHOOK_URL" || echo "slack post failed (non-fatal)"
-          else
-            echo "no Slack webhook secret set; skipping Slack notification"
-          fi
+      # Slack notification intentionally REMOVED until the matrix is thoroughly
+      # tested and a dedicated channel is approved. Do NOT reuse the repo's shared
+      # SLACK_WEBHOOK_URL secret (a prod alerts channel). To add it back later:
+      #   1) create a dedicated webhook + set a MATRIX_SLACK_WEBHOOK repo secret
+      #   2) add a step that posts agg/slack.json to ${{ secrets.MATRIX_SLACK_WEBHOOK }}
+      #      ONLY (never a fallback to SLACK_WEBHOOK_URL).
       - name: Fail job if blocking lane failed
         if: steps.agg.outputs.blocking_failed == 'true'
         run: |
