@@ -97,9 +97,8 @@ warn "The code-server lane above exercises the same download+unzip install path 
 
 # 9. Aggregate -> board
 say "9. Aggregate into the install/update board"
-python3 test-matrix/aggregate.py --results-dir "$RESULTS" --out-dir "$RESULTS/agg" --target "$VSIX" --trigger local || true
-echo
-cat "$RESULTS/agg/matrix.md" 2>/dev/null || warn "no board produced"
+# aggregate.py already prints the combined board to stdout; don't cat it again.
+python3 test-matrix/aggregate.py --results-dir "$RESULTS" --out-dir "$RESULTS/agg" --target "$VSIX" --trigger local || warn "no board produced"
 echo
 say "Per-cell results"
 for f in "$RESULTS"/result-*.json; do
