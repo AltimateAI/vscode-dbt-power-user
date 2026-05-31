@@ -66,15 +66,23 @@ say "4. Hermetic dbt environment"
 eval "$(bash test-matrix/setup-dbt-env.sh)"
 ok "dbt env: $PY_INTERP"
 
+# On Linux (incl. the parity container) VS Code is an Electron GUI needing a
+# display — wrap in xvfb-run, exactly like CI. macOS has a real display: run bare.
+XVFB=""
+if [ "$(uname)" = "Linux" ]; then
+  if command -v xvfb-run >/dev/null 2>&1; then XVFB="xvfb-run -a"; else warn "xvfb-run missing — VS Code lane will fail on Linux"; fi
+fi
+OSL="$(uname | tr '[:upper:]' '[:lower:]')"
+
 # 5. VSCode lane — FRESH install (downloads real VS Code for this OS)
 say "5. VSCode lane — FRESH install of '$VSIX'"
-node test-matrix/vscode-cell.mjs --mode fresh --target "$VSIX" \
-  --out "$RESULTS/result-$(uname | tr '[:upper:]' '[:lower:]')-stable-fresh-.json" || true
+$XVFB node test-matrix/vscode-cell.mjs --mode fresh --target "$VSIX" \
+  --out "$RESULTS/result-$OSL-stable-fresh-.json" || true
 
 # 6. VSCode lane — UPGRADE from $FROM
 say "6. VSCode lane — UPGRADE from $FROM -> '$VSIX'"
-node test-matrix/vscode-cell.mjs --mode upgrade --from "$FROM" --target "$VSIX" \
-  --out "$RESULTS/result-$(uname | tr '[:upper:]' '[:lower:]')-stable-upgrade-$FROM.json" || true
+$XVFB node test-matrix/vscode-cell.mjs --mode upgrade --from "$FROM" --target "$VSIX" \
+  --out "$RESULTS/result-$OSL-stable-upgrade-$FROM.json" || true
 
 # 7. Optional: code-server lane via Docker (the fork-style install path)
 if [ "$WITH_CODESERVER" = "1" ]; then
