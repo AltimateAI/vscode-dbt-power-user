@@ -213,42 +213,69 @@ async function main() {
     //    a file: the extension also console.*'s its logs, so the marker can show
     //    up there even before <udd>/logs/*.log files materialize — and it gives
     //    us something to diagnose with when activation doesn't happen.
-    const consoleLog = join(dirname(outPath), `${runtime}-console-${mode}${fromVersion ? "-" + fromVersion : ""}.log`);
-    const logFd = openSync(consoleLog, "w");
-    const child = spawn(
-      bin,
-      ["--no-sandbox", "--disable-gpu", "--disable-workspace-trust",
-       "--verbose", "--extensions-dir", extDir, "--user-data-dir", uddDir, fixture],
-      { stdio: ["ignore", logFd, logFd], detached: true, env: { ...process.env, ELECTRON_RUN_AS_NODE: "" } },
-    );
-    child.unref();
-    const pgid = child.pid; // detached => child is the process-group leader
-
-    const killCursorTree = () => {
-      for (const sig of ["SIGTERM", "SIGKILL"]) {
-        try { process.kill(-pgid, sig); } catch { /* group already gone */ }
+    // One launch attempt: spawn the fork detached (own process group), wait up to
+    // ACTIVATION_TIMEOUT_MS for the marker, always tear down the whole tree.
+    // Electron forks a process TREE, so we kill the GROUP — killing only the
+    // wrapper leaves children that keep xvfb-run (and the CI job) alive.
+    const attemptLaunch = async (attempt) => {
+      const suffix = `${mode}${fromVersion ? "-" + fromVersion : ""}${attempt > 1 ? "-retry" + attempt : ""}`;
+      const consoleLog = join(dirname(outPath), `${runtime}-console-${suffix}.log`);
+      const logFd = openSync(consoleLog, "w");
+      const child = spawn(
+        bin,
+        ["--no-sandbox", "--disable-gpu", "--disable-workspace-trust",
+         "--verbose", "--extensions-dir", extDir, "--user-data-dir", uddDir, fixture],
+        { stdio: ["ignore", logFd, logFd], detached: true, env: { ...process.env, ELECTRON_RUN_AS_NODE: "" } },
+      );
+      child.unref();
+      const pgid = child.pid; // detached => child is the process-group leader
+      const killTree = () => {
+        for (const sig of ["SIGTERM", "SIGKILL"]) {
+          try { process.kill(-pgid, sig); } catch { /* group already gone */ }
+        }
+        try { closeSync(logFd); } catch { /* already closed */ }
+      };
+      // The marker can appear on the captured console OR in the log files.
+      const readAll = () => readAllLogs(uddDir) + "\n" + (existsSync(consoleLog) ? readFileSync(consoleLog, "utf8") : "");
+      const deadline = Date.now() + ACTIVATION_TIMEOUT_MS;
+      let seen = "";
+      let failMarker = false;
+      try {
+        while (Date.now() < deadline) {
+          seen = readAll();
+          if (seen.includes(INIT_FAIL)) { failMarker = true; break; }
+          if (seen.includes(INIT_OK)) break;
+          await sleep(3000);
+        }
+      } finally {
+        killTree();
       }
-      try { closeSync(logFd); } catch { /* already closed */ }
+      return { seen, failMarker };
     };
-    // The marker can appear on the captured console OR in the log files.
-    const readAll = () => readAllLogs(uddDir) + "\n" + (existsSync(consoleLog) ? readFileSync(consoleLog, "utf8") : "");
 
-    const deadline = Date.now() + ACTIVATION_TIMEOUT_MS;
+    // Forks occasionally CRASH on launch (transient DBus/Electron error → a tiny
+    // log, no extension host). Retry ONCE in that case only. Do NOT retry when the
+    // host loaded but the dbt marker simply wasn't reached — that's a real signal.
+    const MAX_LAUNCH_ATTEMPTS = 2;
     let seen = "";
-    try {
-      while (Date.now() < deadline) {
-        seen = readAll();
-        if (seen.includes(INIT_FAIL)) throw new Error(`found '${INIT_FAIL}' in Cursor logs`);
-        if (seen.includes(INIT_OK)) break;
-        await sleep(3000);
+    let failMarker = false;
+    for (let attempt = 1; attempt <= MAX_LAUNCH_ATTEMPTS; attempt++) {
+      ({ seen, failMarker } = await attemptLaunch(attempt));
+      if (seen.includes(INIT_OK) || failMarker) break;
+      const extSeen = seen.toLowerCase().includes(EXTENSION_ID.toLowerCase());
+      const looksLikeCrash = !extSeen && seen.length < 5000; // tiny log + no ext host
+      if (attempt < MAX_LAUNCH_ATTEMPTS && looksLikeCrash) {
+        console.log(`[matrix] ${runtime}/${mode} launch attempt ${attempt} crashed (logBytes=${seen.length}); retrying once`);
+        rmSync(join(uddDir, "logs"), { recursive: true, force: true }); // clean slate; keep installed extensions
+        continue;
       }
-    } finally {
-      killCursorTree();
+      break;
     }
 
+    if (failMarker) throw new Error(`found '${INIT_FAIL}' in ${runtime} logs`);
     if (!seen.includes(INIT_OK)) {
       // Attach a diagnostic so a non-observed marker is actionable, not opaque:
-      // did Cursor start? did the extension host load + activate our extension?
+      // did the fork start? did the extension host load + activate our extension?
       const ext = seen.toLowerCase().includes(EXTENSION_ID.toLowerCase());
       const host = /extension host|exthost|starting extension host/i.test(seen);
       const activated = /activat(e|ing|ed).*dbt|dbtPowerUser/i.test(seen);
