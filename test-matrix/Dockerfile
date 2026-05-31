@@ -29,14 +29,15 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 
 WORKDIR /work
 
-# Install JS deps first (cached unless lockfiles change) — fresh linux node_modules,
-# NOT the host's mac build (excluded via the scoped .dockerignore).
-COPY package.json package-lock.json ./
-COPY webview_panels/package.json webview_panels/package-lock.json ./webview_panels/
+# Copy the WHOLE repo first, then `npm ci` — exactly like CI (actions/checkout
+# then npm ci). The package's `postinstall` (node postInstall.js) reads repo
+# files, so a package.json-only copy makes it fail. Host's mac node_modules /
+# .vscode-test / venv are excluded via the scoped .dockerignore, so this still
+# produces fresh linux deps. (Trades layer caching for CI-identical correctness.)
+COPY . .
 RUN npm ci --no-audit --no-fund
 
-# Now the rest of the repo + compile the in-host test suite.
-COPY . .
+# Compile the in-host test suite.
 RUN npm run compile
 
 # pip cache warm so setup-dbt-env.sh is fast/offline-capable after build.
