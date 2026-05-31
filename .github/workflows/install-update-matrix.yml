@@ -281,8 +281,76 @@ jobs:
           path: windsurf-console-*.log
           if-no-files-found: ignore
 
+  # Non-blocking fork lane: Kiro (AWS agentic VSCode fork), Linux only. Same
+  # mechanism as Cursor/Windsurf via --runtime kiro.
+  kiro-cell:
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { mode: fresh, from: "" }
+          - { mode: upgrade, from: "" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - name: Install deps + compile test suite
+        run: |
+          npm ci
+          npm run compile
+      - uses: actions/download-artifact@v4
+        with:
+          name: vsix-linux-x64
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run Kiro cell
+        shell: bash
+        env:
+          BASELINES: ${{ needs.plan.outputs.baselines }}
+        run: |
+          set -e
+          sudo apt-get update && sudo apt-get install -y xvfb
+          eval "$(bash test-matrix/setup-dbt-env.sh)"
+          eval "$(bash test-matrix/provision/kiro.sh)"   # sets KIRO_BIN, KIRO_VERSION
+          echo "Provisioned Kiro $KIRO_VERSION at $KIRO_BIN"
+          vsixes=( pu-*.vsix ); VSIX="${vsixes[0]}"
+          MODE="${{ matrix.mode }}"
+          FROM=""
+          if [ "$MODE" = "upgrade" ]; then
+            FROM="$(printf '%s' "$BASELINES" | tr ',' '\n' | tail -1)"
+          fi
+          OUT="result-kiro-${MODE}-${FROM}.json"
+          ARGS=(--runtime kiro --bin "$KIRO_BIN" --mode "$MODE" --target "$PWD/$VSIX" --out "$OUT")
+          [ -n "$FROM" ] && ARGS+=(--from "$FROM")
+          timeout -s KILL 12m xvfb-run -a node test-matrix/cursor-cell.mjs "${ARGS[@]}" || true
+          pkill -9 -f 'Kiro|kiro|Xvfb' 2>/dev/null || true
+          if [ ! -f "$OUT" ]; then
+            printf '{"runtime":"kiro","os":"linux","scenario":"%s","from":%s,"to":"pr-build","install_ok":false,"deps_resolved":{},"activation_ok":false,"dbt_flow_ok":false,"status":"fail","reason":"cell wedged — killed by outer timeout","duration_s":720,"log_artifact":"%s"}\n' \
+              "$MODE" "$([ -n "$FROM" ] && echo "\"$FROM\"" || echo null)" "$OUT" > "$OUT"
+          fi
+          echo "=== RESULT_JSON ==="; cat "$OUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: result-kiro-${{ matrix.mode }}
+          path: result-kiro-*.json
+          if-no-files-found: warn
+      - name: Upload Kiro console log (diagnostics)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kiro-console-${{ matrix.mode }}
+          path: kiro-console-*.log
+          if-no-files-found: ignore
+
   aggregate:
-    needs: [vscode-cells, codeserver-cell, cursor-cell, windsurf-cell]
+    needs: [vscode-cells, codeserver-cell, cursor-cell, windsurf-cell, kiro-cell]
     if: always()
     runs-on: ubuntu-latest
     steps:
