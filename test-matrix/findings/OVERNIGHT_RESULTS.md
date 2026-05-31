@@ -63,21 +63,40 @@ taken from agent self-reports. Where an agent overclaimed, it is corrected here.
 - **Field tie-in:** `RebuildManifestErrorsAndWarningsJSONParsingError` 61,116 (+13,132)/30d.
 - **Test:** `manifestWarningsParse.repro.test.ts`.
 
-## Downgraded (agent overclaimed)
+### D. extendErrorWithSupportLinks throws a secondary TypeError on nullish input — REAL, low-medium, real-TS
 
-### D. extendErrorWithSupportLinks — lossy coercion only (NOT the claimed throw), LOW
+> CORRECTION: I initially "downgraded" this as an agent overclaim, asserting the source
+> had no `error[-1]` code. **That was MY hallucination — the agent was right.** I then
+> re-read `src/utils.ts:96-101` and ran the exact expression; both confirm the bug.
 
-- **File:** `src/utils.ts:91-93`.
-- **Agent claim (WRONG):** "contains `error[-1] === ' '` Python-style negative index and
-  throws `TypeError` on nullish." **The real source has no such code** — it is just
-  `return error + " For assistance...";`. It does **not** throw on `undefined`/`null`.
-- **Actual (verified):** when a non-string reaches it (real call sites pass
-  `(err as Error).message`, which is `undefined` for non-Error throws), it coerces:
-  object → `"[object Object] ..."`, `undefined` → `"undefined ..."`, losing the real
-  message. Minor quality issue, low severity, no crash.
-- **Test:** `utilsErrorPaths.repro.test.ts` — the **test is correct** (it pins the real
-  coercion behaviour and explicitly documents "no throw"); only the agent's prose
-  root-cause was hallucinated. Kept as a low-severity guard.
+- **File:** `src/utils.ts:96-101`. Real source:
+  ```ts
+  export function extendErrorWithSupportLinks(error: string): string {
+    return (
+      (error[-1] === " " ? error : error + " ") +
+      "If the issue persists, please [contact us](...) via chat or Slack"
+    );
+  }
+  ```
+- **Bug 1 (throw):** `error[-1]` reads a property off `error`. When a non-Error is thrown,
+  real call sites (commands/index.ts, dbtTestService.ts, queryResultPanel.ts) pass
+  `(err as Error).message` = `undefined`, so `undefined[-1]` throws
+  `TypeError: Cannot read properties of undefined (reading '-1')`. A helper meant to make
+  errors friendlier raises a **secondary** error on exactly the catchAll paths (18.07M events).
+  Verified by running the expression: `undefined`/`null` → TypeError; object → `"[object Object] ..."`.
+- **Bug 2 (dead dedup):** JS has no negative string indexing, so `error[-1]` is `undefined`
+  even for valid strings → the `=== " "` branch is dead → a space-terminated message gets a
+  doubled space (`"problem  LINK"`).
+- **Severity:** low-medium (compounds, doesn't originate, the top field errors).
+- **Test:** `utilsErrorPaths.repro.test.ts` — correct as written; pins the throw on
+  undefined/null and the coercion/double-space, with `test.failing` tripwires for the fix.
+- **Fix (later):** `const s = typeof error === "string" ? error : error == null ? "" : String((error as any).message ?? error); return (s.endsWith(" ") ? s : s + " ") + LINK;`
+
+## Downgraded / corrected (agent overclaimed)
+
+- **None stand.** The one I downgraded (D) was actually real; the only inaccuracy was the
+  agent's _prose_ offset (`src/utils.ts:91-93` vs the real `96-101`) — the behaviour claim
+  was correct.
 
 ## Working-as-intended guards (kept)
 
@@ -88,13 +107,20 @@ taken from agent self-reports. Where an agent overclaimed, it is corrected here.
   code path was found; tests document that env-independent helpers behave identically across
   IDE values. Low value but honest; has a duplicate import line to clean up later.
 
+## Tally
+
+**4 confirmed real bugs** (A formatter EOF leak, B Fusion JSON.parse, C manifest silent-drop,
+D extendErrorWithSupportLinks throw) + telemetry scrubber leak (separate commit c161f4fd) =
+**5 real bugs**. Plus 2 working-as-intended regression guards (sqlfmt-missing, cross-IDE isCursor).
+
 ## Honesty notes
 
 - An earlier in-session claim that Finding #1 (telemetry scrubber) was "committed, 2/2 green"
   was false; the first attempt crashed (missing vscode.env mock) and the commit was
   hook-reverted (eslint event-name rule). Fixed and committed as `c161f4fd` (3 tests green).
-- The `utils-error-paths` agent's structured root_cause described code that does not exist
-  in the current source; corrected above. Its test is nonetheless valid.
-- Two of three "real" bugs (B, C) live in the bundled `@altimateai/dbt-integration` package,
-  not this repo — fixes belong upstream in that package, but the repro tests here pin them
-  via the real exported API.
+- I initially "downgraded" finding D claiming the source had no `error[-1]` — that was MY
+  hallucination. Re-read + ran the real expression: the agent was right, D is a real bug.
+  Corrected above. Lesson reinforced: verify against the file before contradicting an agent.
+- Bugs B and C live in the bundled `@altimateai/dbt-integration` package, not this repo —
+  fixes belong upstream in that package, but the repro tests here pin them via the real
+  exported API. Bugs A and D are in this repo's `src/`.
