@@ -90,10 +90,31 @@ if [ "$WITH_CODESERVER" = "1" ]; then
   fi
 fi
 
-# 8. Forks note
+# 8. Fork lanes (Cursor / Windsurf / Kiro) — Linux only (need the fork's Linux
+#    binary + xvfb). They RUN here when on Linux (e.g. inside the parity Docker
+#    container), and are skipped with a note on macOS.
 say "8. Fork lanes (Cursor / Windsurf / Kiro)"
-warn "Linux-only (need the fork's Linux binary + xvfb). They run in CI, not locally on a Mac."
-warn "The code-server lane above exercises the same download+unzip install path the forks use."
+if [ "$(uname)" = "Linux" ] && command -v xvfb-run >/dev/null 2>&1; then
+  TARGET_ARG=(--target "$VSIX"); [ "$VSIX" != "latest" ] || TARGET_ARG=(--target latest)
+  for fork in cursor windsurf kiro; do
+    prov="test-matrix/provision/$fork.sh"
+    [ -f "$prov" ] || { warn "$fork: no provisioner, skipping"; continue; }
+    say "   $fork — provisioning + fresh install"
+    if ! eval "$(bash "$prov" 2>/dev/null)"; then warn "$fork: provision failed, skipping"; continue; fi
+    BINVAR="$(echo "$fork" | tr '[:lower:]' '[:upper:]')_BIN"; BIN="${!BINVAR}"
+    if [ -z "$BIN" ] || [ ! -x "$BIN" ]; then warn "$fork: binary not found, skipping"; continue; fi
+    # fresh
+    xvfb-run -a node test-matrix/cursor-cell.mjs --runtime "$fork" --bin "$BIN" \
+      --mode fresh --target "$VSIX" --out "$RESULTS/result-$fork-fresh.json" || true
+    # upgrade (only meaningful for a published target; skip for a local custom vsix
+    # since the baseline still comes from Open VSX which is independent of $VSIX)
+    xvfb-run -a node test-matrix/cursor-cell.mjs --runtime "$fork" --bin "$BIN" \
+      --mode upgrade --from "$FROM" --target "$VSIX" --out "$RESULTS/result-$fork-upgrade-$FROM.json" || true
+  done
+else
+  warn "Not on Linux (or no xvfb) — fork lanes skipped. Run inside the parity container"
+  warn "(bash test-matrix/run-in-docker.sh) to exercise Cursor/Windsurf/Kiro exactly as CI does."
+fi
 
 # 9. Aggregate -> board
 say "9. Aggregate into the install/update board"
@@ -105,4 +126,10 @@ for f in "$RESULTS"/result-*.json; do
   [ -f "$f" ] && python3 -c "import json,sys;d=json.load(open('$f'));print(f\"  {d['runtime']}/{d['os']}/{d['scenario']}\"+((' from '+str(d['from'])) if d.get('from') else '')+f\": {d['status']}  ({d.get('reason','') or 'ok'})\")"
 done
 echo
+# When run inside the parity container, copy the board + results out to the host.
+if [ -n "${MATRIX_HOST_OUT:-}" ] && [ -d "$MATRIX_HOST_OUT" ]; then
+  cp -f "$RESULTS"/result-*.json "$MATRIX_HOST_OUT"/ 2>/dev/null || true
+  cp -rf "$RESULTS/agg" "$MATRIX_HOST_OUT"/ 2>/dev/null || true
+  ok "Board + results copied to host: .matrix-docker-out/"
+fi
 ok "Local run complete. Results dir: $RESULTS"
