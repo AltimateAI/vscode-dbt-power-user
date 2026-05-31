@@ -89,10 +89,16 @@ function installVsixToDir(vsixPath, extDir) {
 }
 
 // Download a URL to a file using curl (handles Open VSX redirects + retries).
+// --retry-all-errors is essential: Open VSX /file/ endpoints answer 302 to a CDN,
+// and a transient CDN error AFTER the followed redirect is NOT retried by plain
+// --retry (which only retries a fixed set of transient conditions). Under QEMU the
+// CDN occasionally blips, so without this a single hiccup fails the whole cell.
 function curlDownload(url, outFile) {
   execFileSync(
-    "curl", ["-fSL", "--retry", "3", "--retry-delay", "5", "-o", outFile, url],
-    { stdio: "pipe", timeout: 180_000 },
+    "curl",
+    ["-fSL", "--retry", "5", "--retry-delay", "3", "--retry-all-errors",
+     "--connect-timeout", "30", "-o", outFile, url],
+    { stdio: "pipe", timeout: 300_000 },
   );
   return outFile;
 }
@@ -112,7 +118,11 @@ async function main() {
   const runtime = arg("runtime", "cursor"); // "cursor" | "windsurf" (any VSCode fork)
   const bin = resolve(arg("bin", ""));
   const mode = arg("mode", "fresh");
-  const target = resolve(arg("target", ""));
+  const targetRaw = arg("target", "latest");
+  // "latest" (or a bare --target flag) => fetch the published build from Open VSX,
+  // mirroring the VSCode lane. Anything else is a path to a locally-built .vsix.
+  const targetIsLatest = targetRaw === "latest" || targetRaw === true;
+  const target = targetIsLatest ? "latest" : resolve(targetRaw);
   const fromVersion = arg("from", null);
   const outPath = resolve(arg("out", `/tmp/${runtime}-result.json`));
   const repoRoot = resolve(join(HERE, ".."));
@@ -120,7 +130,7 @@ async function main() {
 
   const result = {
     runtime, os: "linux", scenario: mode, from: fromVersion || null,
-    to: "pr-build", install_ok: false, deps_resolved: {},
+    to: targetIsLatest ? "latest" : "pr-build", install_ok: false, deps_resolved: {},
     activation_ok: false, dbt_flow_ok: false,
     status: "fail", reason: "", duration_s: 0, log_artifact: outPath,
   };
@@ -164,7 +174,7 @@ async function main() {
 
   try {
     if (!bin || !existsSync(bin)) throw new Error(`cursor binary not found: ${bin}`);
-    if (!existsSync(target)) throw new Error(`vsix not found: ${target}`);
+    if (!targetIsLatest && !existsSync(target)) throw new Error(`vsix not found: ${target}`);
 
     const hasExt = (id) => {
       try {
@@ -200,8 +210,17 @@ async function main() {
       if (!hasExt(EXTENSION_ID)) throw new Error(`baseline ${fromVersion} did not install`);
     }
 
-    // 3. Install the target VSIX from the locally-built file (overwrites baseline).
-    installVsixToDir(target, extDir);
+    // 3. Install the target (overwrites baseline). "latest" => fetch the published
+    //    linux-x64 build from Open VSX (forks default to the Open VSX gallery, and
+    //    the local run has no PR-built .vsix); otherwise install the given .vsix path.
+    let targetVsix = target;
+    if (targetIsLatest) {
+      const url = openVsxDownloadUrl(EXTENSION_ID, null, VSIX_TARGET_PLATFORM)
+        || openVsxDownloadUrl(EXTENSION_ID, null, null);
+      if (!url) throw new Error(`latest ${EXTENSION_ID} not found on Open VSX`);
+      targetVsix = curlDownload(url, join(dl, "target-latest.vsix"));
+    }
+    installVsixToDir(targetVsix, extDir);
     if (!hasExt(EXTENSION_ID)) throw new Error(`target VSIX not present in extensions-dir after install`);
     result.install_ok = true;
 

@@ -108,8 +108,11 @@ if [ "$(uname)" = "Linux" ] && command -v xvfb-run >/dev/null 2>&1; then
     prov="test-matrix/provision/$fork.sh"
     [ -f "$prov" ] || { warn "$fork: no provisioner, skipping"; continue; }
     say "   $fork — provisioning + fresh install"
-    if ! eval "$(bash "$prov" 2>/dev/null)"; then warn "$fork: provision failed, skipping"; continue; fi
-    BINVAR="$(echo "$fork" | tr '[:lower:]' '[:upper:]')_BIN"; BIN="${!BINVAR}"
+    if ! prov_out="$(bash "$prov" 2>"/tmp/prov-$fork.err")" || [ -z "$prov_out" ]; then
+      warn "$fork: provision failed, skipping"; sed 's/^/      /' "/tmp/prov-$fork.err" 2>/dev/null | tail -4; continue
+    fi
+    eval "$prov_out"
+    BINVAR="$(echo "$fork" | tr '[:lower:]' '[:upper:]')_BIN"; BIN="${!BINVAR:-}"
     if [ -z "$BIN" ] || [ ! -x "$BIN" ]; then warn "$fork: binary not found, skipping"; continue; fi
     # fresh
     xvfb-run -a node test-matrix/cursor-cell.mjs --runtime "$fork" --bin "$BIN" \

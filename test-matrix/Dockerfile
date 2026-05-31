@@ -33,6 +33,14 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
+# squashfs-tools + binutils: the fork provisioners extract Cursor's AppImage
+# WITHOUT executing it (the x86_64 self-extract runtime returns exit 126 under
+# Docker Desktop's QEMU emulation on Apple Silicon). readelf computes the
+# squashfs offset; unsquashfs extracts it. No-op on native CI runners, where
+# --appimage-extract works and this fallback never runs.
+RUN apt-get update && apt-get install -y --no-install-recommends squashfs-tools binutils \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /work
 
 # Copy the WHOLE repo first, then `npm ci` — exactly like CI (actions/checkout

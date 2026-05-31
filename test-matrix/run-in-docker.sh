@@ -49,8 +49,9 @@ OUT_DIR="$REPO_ROOT/.matrix-docker-out"
 mkdir -p "$OUT_DIR"
 docker run --rm --platform "$PLATFORM" \
   --shm-size=1g \
-  "${VSIX_MOUNT[@]}" \
+  ${VSIX_MOUNT[@]+"${VSIX_MOUNT[@]}"} \
   -v "$OUT_DIR:/work/.matrix-docker-out" \
   -e MATRIX_HOST_OUT=/work/.matrix-docker-out \
-  "$IMAGE" "${RUN_ARGS[@]}"
+  -e MATRIX_MAX_VERSIONS="${MATRIX_MAX_VERSIONS:-}" \
+  "$IMAGE" ${RUN_ARGS[@]+"${RUN_ARGS[@]}"}
 echo "==> Done. Container ran the same lanes CI runs (incl. forks)."
