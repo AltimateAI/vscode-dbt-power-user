@@ -1808,7 +1808,12 @@ export class DBTProject implements Disposable {
           throw new Error(result.stdout.trim());
         }
       },
-      statusMessage: command.getCommandAsString(),
+      statusMessage: command
+        .getCommandAsString()
+        .replace(/\s*--project-dir\s+\S+/g, "")
+        .replace(/\s*--profiles-dir\s+\S+/g, "")
+        .replace(/\s+/g, " ")
+        .trim(),
       focus: command.focus,
       signal: command.signal,
       showProgress: command.showProgress,
@@ -1830,11 +1835,6 @@ export class DBTProject implements Disposable {
             this.altimateAuthService.handlePreviewFeatures();
             return;
           }
-          window.showErrorMessage(
-            extendErrorWithSupportLinks(
-              `Could not run command '${statusMessage}': ` + error + ".",
-            ),
-          );
           this.runHistoryService.notifyCommandFailed(
             statusMessage,
             String(error),
