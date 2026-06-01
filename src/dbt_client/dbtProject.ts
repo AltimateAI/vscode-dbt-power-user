@@ -1799,7 +1799,14 @@ export class DBTProject implements Disposable {
   private addCommandToQueue(queueName: string, command: DBTCommand): void {
     this.queues.get(queueName)!.push({
       command: async (signal) => {
-        await command.execute(signal);
+        const result = await command.execute(signal);
+        // dbt CLI resolves normally even on failure (CommandProcessExecution.complete()
+        // never rejects for non-zero exit). Detect pre-execution failures (compilation
+        // errors, config errors) by checking stdout. Runtime model failures generate
+        // run_results.json and are already handled via onHistoryChanged.
+        if (result?.stdout?.includes("Encountered an error:")) {
+          throw new Error(result.stdout.trim());
+        }
       },
       statusMessage: command.statusMessage,
       focus: command.focus,
