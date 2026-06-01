@@ -258,7 +258,7 @@ export class ValidateSql {
         );
         diagnostic.source = "dbt Power User";
         diagnostic.code = {
-          value: "Troubleshoot with Altimate Code",
+          value: "Fix with Altimate Code",
           target: Uri.parse(
             `vscode://innoverio.vscode-dbt-power-user/troubleshoot?source=dbt&error=${encodeURIComponent(description)}`,
           ),

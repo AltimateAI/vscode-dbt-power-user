@@ -1119,8 +1119,7 @@
           "when": "view == documentation_treeview",
           "group": "inline"
         }
-      ],
-      "commandPalette": []
+      ]
     },
     "dbtPowerUser.buildModel": [
       {
