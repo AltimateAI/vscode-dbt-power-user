@@ -56,17 +56,12 @@ export function buildRunResultFailurePrompt(
   result: RunResultEntry,
   parentCommand?: string,
 ): string {
-  const lines = [
-    `A dbt ${result.resourceType} failed. Help me diagnose and fix the error.\n`,
-    `**${result.resourceType.charAt(0).toUpperCase() + result.resourceType.slice(1)}:** \`${result.name}\``,
-    `**Unique ID:** \`${result.uniqueId}\``,
-    `**Status:** ${result.status}`,
-  ];
+  const header = parentCommand
+    ? `\`${parentCommand}\` failed. Help me fix this error.`
+    : `A dbt ${result.resourceType} failed. Help me fix this error.`;
+  const lines = [header, ``, `**Model:** \`${result.name}\``];
   if (result.message) {
-    lines.push(`**Failure message:** ${result.message}`);
-  }
-  if (parentCommand) {
-    lines.push(`**Run command:** \`${parentCommand}\``);
+    lines.push(`**Error:**\n\`\`\`\n${result.message}\n\`\`\``);
   }
   return lines.join("\n");
 }
