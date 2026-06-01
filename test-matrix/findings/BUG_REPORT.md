@@ -108,3 +108,8 @@ VSCode-Insiders 77k · Antigravity 26k · code-server 6k · Kiro 5.3k.
 | 5   | `extendErrorWithSupportLinks` throws | this repo    | low–med  | feeds 18.07M       |
 
 **In-repo fixes:** #1, #2, #5. **Upstream (`@altimateai/dbt-integration`):** #3, #4.
+
+## Ticket / issue tracking
+
+- **New discoveries (no prior issue) → Jira [AI-6873](https://altimateai.atlassian.net/browse/AI-6873)** (Medium, Ralph): bugs **#1, #2, #5** (all in-repo).
+- **Already tracked on GitHub (no new ticket):** bug **#3 → [issue #1887](https://github.com/AltimateAI/vscode-dbt-power-user/issues/1887)**; bug **#4 → [issue #1579](https://github.com/AltimateAI/vscode-dbt-power-user/issues/1579)** (both upstream `@altimateai/dbt-integration`). Repro tests here serve as regression coverage for the existing fixes.
