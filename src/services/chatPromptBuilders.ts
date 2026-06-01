@@ -63,6 +63,20 @@ export function buildCommandErrorPrompt(
   );
 }
 
+export function buildManifestErrorPrompt(
+  modelName: string,
+  rawSql: string | undefined,
+  reason: string,
+): string {
+  const sqlSection = rawSql
+    ? `\n\n**Model SQL:**\n\`\`\`sql\n${rawSql}\n\`\`\``
+    : "";
+  return (
+    `Validate SQL on model \`${modelName}\` failed: ${reason}.${sqlSection}\n\n` +
+    `Help me understand and fix this issue.`
+  );
+}
+
 export function buildSqlCompileErrorPrompt(
   modelName: string,
   rawSql: string | undefined,
