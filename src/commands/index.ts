@@ -43,16 +43,23 @@ import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
 import {
+  buildCommandErrorPrompt,
   buildRunFailurePrompt,
   buildTestFailurePrompt,
 } from "../services/chatPromptBuilders";
 import { DiagnosticsOutputChannel } from "../services/diagnosticsOutputChannel";
 import { QueryManifestService } from "../services/queryManifestService";
-import { RunHistoryService } from "../services/runHistoryService";
+import {
+  CommandFailedEvent,
+  RunHistoryService,
+} from "../services/runHistoryService";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
-import { ResultTreeItem, RunTreeItem } from "../treeview_provider/runHistoryTreeItems";
+import {
+  ResultTreeItem,
+  RunTreeItem,
+} from "../treeview_provider/runHistoryTreeItems";
 import {
   deepEqual,
   extendErrorWithSupportLinks,
@@ -1312,11 +1319,30 @@ export class VSCodeCommands implements Disposable {
           });
         }
       }),
+      // Feature 2: dbt compilation/parse error notification
+      this.runHistoryService.onCommandFailed(
+        async ({ command, error }: CommandFailedEvent) => {
+          const clicked = await window.showErrorMessage(
+            `dbt command failed: ${command}`,
+            "Fix with Altimate Code",
+          );
+          if (clicked === "Fix with Altimate Code") {
+            await this.altimateCodeChatService.openChat({
+              initialMessage: buildCommandErrorPrompt(command, error),
+              title: `Fix: ${command}`,
+              beside: true,
+            });
+          }
+        },
+      ),
       // Feature 3: Explain why this test failed (run history tree)
       commands.registerCommand(
         "dbtPowerUser.explainTestFailure",
         async (item: ResultTreeItem) => {
-          const prompt = buildTestFailurePrompt(item.result, item.parentCommand);
+          const prompt = buildTestFailurePrompt(
+            item.result,
+            item.parentCommand,
+          );
           await this.altimateCodeChatService.openChat({
             initialMessage: prompt,
             title: `Explain: ${item.result.name}`,

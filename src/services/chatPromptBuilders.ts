@@ -51,3 +51,15 @@ export function buildTestFailurePrompt(
   }
   return lines.join("\n");
 }
+
+export function buildCommandErrorPrompt(
+  command: string,
+  errorMessage: string,
+): string {
+  return (
+    `A dbt command failed with an error before completing.\n\n` +
+    `**Command:** \`${command}\`\n\n` +
+    `**Error:**\n\`\`\`\n${errorMessage}\n\`\`\`\n\n` +
+    `Help me understand and fix this error.`
+  );
+}

@@ -1828,6 +1828,10 @@ export class DBTProject implements Disposable {
               `Could not run command '${statusMessage}': ` + error + ".",
             ),
           );
+          this.runHistoryService.notifyCommandFailed(
+            statusMessage,
+            String(error),
+          );
           this.telemetry.sendTelemetryError("queueRunCommandError", error, {
             command: statusMessage,
           });
