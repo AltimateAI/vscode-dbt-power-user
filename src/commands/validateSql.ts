@@ -24,6 +24,8 @@ import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../dbt_client/event/manifestCacheChangedEvent";
+import { AltimateCodeChatService } from "../services/altimateCodeChatService";
+import { buildSqlValidationPrompt } from "../services/chatPromptBuilders";
 import { TelemetryService } from "../telemetry";
 import { extendErrorWithSupportLinks } from "../utils";
 
@@ -36,6 +38,7 @@ export class ValidateSql {
     private altimate: AltimateRequest,
     @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
+    private altimateCodeChatService: AltimateCodeChatService,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
@@ -260,6 +263,30 @@ export class ValidateSql {
     );
 
     this.diagnosticsCollection.set(compileSQLUri, diagnostics);
+
+    const sqlErrors = response.errors ?? [];
+    if (sqlErrors.length > 0) {
+      const errorSummary = sqlErrors
+        .slice(0, 2)
+        .map((e: { description: string }) => e.description)
+        .join("; ");
+      const clicked = await window.showErrorMessage(
+        `SQL validation: ${sqlErrors.length} error(s) — ${errorSummary}`,
+        "Fix this SQL",
+      );
+      if (clicked === "Fix this SQL") {
+        await this.altimateCodeChatService.openChat({
+          initialMessage: buildSqlValidationPrompt(
+            compiledQuery,
+            sqlErrors,
+            modelName,
+            project.getAdapterType(),
+          ),
+          title: `Fix SQL: ${modelName}`,
+          beside: true,
+        });
+      }
+    }
   }
 
   private getProject() {
