@@ -15,7 +15,8 @@
   },
   "version": "0.61.5",
   "engines": {
-    "vscode": "^1.95.0"
+    "vscode": "^1.95.0",
+    "node": ">=22.0.0"
   },
   "capabilities": {
     "hoverProvider": true
