@@ -42,13 +42,17 @@ import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
 import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
+import {
+  buildRunFailurePrompt,
+  buildTestFailurePrompt,
+} from "../services/chatPromptBuilders";
 import { DiagnosticsOutputChannel } from "../services/diagnosticsOutputChannel";
 import { QueryManifestService } from "../services/queryManifestService";
 import { RunHistoryService } from "../services/runHistoryService";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
-import { RunTreeItem } from "../treeview_provider/runHistoryTreeItems";
+import { ResultTreeItem, RunTreeItem } from "../treeview_provider/runHistoryTreeItems";
 import {
   deepEqual,
   extendErrorWithSupportLinks,
@@ -1279,6 +1283,43 @@ export class VSCodeCommands implements Disposable {
           await this.altimateCodeChatService.openChat({
             initialMessage: `Analyze \`@${ctx.relativePath}\` for dbt best practices, performance, and documentation completeness.`,
             title: `Analyze: ${ctx.fileName}`,
+            beside: true,
+          });
+        },
+      ),
+      // Feature 1: dbt run/build/test failure notification
+      this.runHistoryService.onHistoryChanged(async (entry) => {
+        if (!entry) {
+          return;
+        }
+        const failed = entry.results.filter((r) => r.status === "error");
+        if (failed.length === 0) {
+          return;
+        }
+        const label =
+          failed.length === 1
+            ? `\`${failed[0].name}\` failed`
+            : `${failed.length} failures in \`${entry.command}\``;
+        const clicked = await window.showErrorMessage(
+          `dbt: ${label}`,
+          "Fix with Altimate Code",
+        );
+        if (clicked === "Fix with Altimate Code") {
+          await this.altimateCodeChatService.openChat({
+            initialMessage: buildRunFailurePrompt(entry, failed),
+            title: `Fix: ${entry.command}`,
+            beside: true,
+          });
+        }
+      }),
+      // Feature 3: Explain why this test failed (run history tree)
+      commands.registerCommand(
+        "dbtPowerUser.explainTestFailure",
+        async (item: ResultTreeItem) => {
+          const prompt = buildTestFailurePrompt(item.result, item.parentCommand);
+          await this.altimateCodeChatService.openChat({
+            initialMessage: prompt,
+            title: `Explain: ${item.result.name}`,
             beside: true,
           });
         },
