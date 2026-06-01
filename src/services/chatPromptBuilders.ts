@@ -57,8 +57,7 @@ export function buildCommandErrorPrompt(
   errorMessage: string,
 ): string {
   return (
-    `A dbt command failed with an error before completing.\n\n` +
-    `**Command:** \`${command}\`\n\n` +
+    `dbt command \`${command}\` failed with an error before completing.\n\n` +
     `**Error:**\n\`\`\`\n${errorMessage}\n\`\`\`\n\n` +
     `Help me understand and fix this error.`
   );

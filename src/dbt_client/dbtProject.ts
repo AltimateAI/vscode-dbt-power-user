@@ -1808,7 +1808,7 @@ export class DBTProject implements Disposable {
           throw new Error(result.stdout.trim());
         }
       },
-      statusMessage: command.statusMessage,
+      statusMessage: command.getCommandAsString(),
       focus: command.focus,
       signal: command.signal,
       showProgress: command.showProgress,
