@@ -113,15 +113,30 @@ export class ValidateSql {
 
     const event = this.getEvent();
     if (!event) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "dbt manifest not loaded. Run `dbt parse` or wait for the manifest to load, then try again.",
+        ),
+      );
       return;
     }
     const { graphMetaMap, nodeMetaMap } = event;
     const node = nodeMetaMap.lookupByBaseName(modelName);
     if (!node) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          `Model '${modelName}' not found in the manifest. Run \`dbt parse\` to refresh the manifest.`,
+        ),
+      );
       return;
     }
     const parentNodes = graphMetaMap.parents.get(node.unique_id)?.nodes;
     if (!parentNodes) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          `Unable to resolve parent models for '${modelName}'. Check that all referenced models exist and run \`dbt parse\`.`,
+        ),
+      );
       return;
     }
 
@@ -185,6 +200,11 @@ export class ValidateSql {
       return;
     }
     if (!compiledQuery) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          `Unable to compile SQL for model '${modelName}'. Check that all referenced models and sources exist.`,
+        ),
+      );
       return;
     }
 
