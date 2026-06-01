@@ -1,7 +1,7 @@
 {
   "name": "vscode-dbt-power-user",
   "displayName": "Power User for dbt",
-  "description": "a.k.a. dbt power user makes vscode work seamlessly with dbt\u2122 core and dbt\u2122 cloud: auto-complete, preview, column lineage, AI docs generation, health checks, cost estimation etc",
+  "description": "a.k.a. dbt power user makes vscode work seamlessly with dbt™ core and dbt™ cloud: auto-complete, preview, column lineage, AI docs generation, health checks, cost estimation etc",
   "icon": "media/images/dbt.png",
   "publisher": "innoverio",
   "license": "MIT",
@@ -378,7 +378,7 @@
         },
         {
           "id": "icon_actions_treeview",
-          "name": "Project Actions \u2728"
+          "name": "Project Actions ✨"
         }
       ],
       "dbt_preview_results": [
@@ -811,6 +811,12 @@
         "title": "Explain why this test failed",
         "category": "dbt Power User",
         "icon": "$(sparkle)"
+      },
+      {
+        "command": "dbtPowerUser.fixRunFailure",
+        "title": "Fix with Altimate Code",
+        "category": "dbt Power User",
+        "icon": "$(sparkle)"
       }
     ],
     "keybindings": [
@@ -1128,6 +1134,11 @@
         {
           "command": "dbtPowerUser.explainTestFailure",
           "when": "view == run_history_treeview && viewItem =~ /runHistoryResult\\.test\\.failed/",
+          "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.fixRunFailure",
+          "when": "view == run_history_treeview && viewItem =~ /runHistoryResult\\.(model|seed|snapshot)\\.failed/",
           "group": "inline"
         }
       ]

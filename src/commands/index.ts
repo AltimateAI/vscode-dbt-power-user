@@ -45,6 +45,7 @@ import { AltimateCodeChatService } from "../services/altimateCodeChatService";
 import {
   buildCommandErrorPrompt,
   buildRunFailurePrompt,
+  buildRunResultFailurePrompt,
   buildTestFailurePrompt,
 } from "../services/chatPromptBuilders";
 import { DiagnosticsOutputChannel } from "../services/diagnosticsOutputChannel";
@@ -1346,6 +1347,21 @@ export class VSCodeCommands implements Disposable {
           await this.altimateCodeChatService.openChat({
             initialMessage: prompt,
             title: `Explain: ${item.result.name}`,
+            beside: true,
+          });
+        },
+      ),
+      // Feature 4: Fix run failure from run history tree (model/seed/snapshot)
+      commands.registerCommand(
+        "dbtPowerUser.fixRunFailure",
+        async (item: ResultTreeItem) => {
+          const prompt = buildRunResultFailurePrompt(
+            item.result,
+            item.parentCommand,
+          );
+          await this.altimateCodeChatService.openChat({
+            initialMessage: prompt,
+            title: `Fix: ${item.result.name}`,
             beside: true,
           });
         },
