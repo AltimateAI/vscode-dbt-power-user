@@ -25,7 +25,10 @@ import {
   ManifestCacheProjectAddedEvent,
 } from "../dbt_client/event/manifestCacheChangedEvent";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
-import { buildSqlValidationPrompt } from "../services/chatPromptBuilders";
+import {
+  buildSqlCompileErrorPrompt,
+  buildSqlValidationPrompt,
+} from "../services/chatPromptBuilders";
 import { TelemetryService } from "../telemetry";
 import { extendErrorWithSupportLinks } from "../utils";
 
@@ -143,6 +146,7 @@ export class ValidateSql {
     const parentModels: ModelNode[] = [];
     let relationsWithoutColumns: string[] = [];
     let compiledQuery: string | undefined;
+    let rawSql: string | undefined;
     let cancellationToken: CancellationToken | undefined;
     let abortController: AbortController | undefined;
     await window.withProgress(
@@ -157,6 +161,7 @@ export class ValidateSql {
           abortController = new AbortController();
           token.onCancellationRequested(() => abortController!.abort());
           const fileContentBytes = await workspace.fs.readFile(currentFilePath);
+          rawSql = fileContentBytes.toString();
           if (cancellationToken.isCancellationRequested) {
             return;
           }
@@ -200,11 +205,19 @@ export class ValidateSql {
       return;
     }
     if (!compiledQuery) {
-      window.showErrorMessage(
+      const clicked = await window.showErrorMessage(
         extendErrorWithSupportLinks(
           `Unable to compile SQL for model '${modelName}'. Check that all referenced models and sources exist.`,
         ),
+        "Fix with Altimate Code",
       );
+      if (clicked === "Fix with Altimate Code") {
+        await this.altimateCodeChatService.openChat({
+          initialMessage: buildSqlCompileErrorPrompt(modelName, rawSql),
+          title: `Fix compile error: ${modelName}`,
+          beside: true,
+        });
+      }
       return;
     }
 

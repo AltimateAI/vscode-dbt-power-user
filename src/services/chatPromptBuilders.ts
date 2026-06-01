@@ -62,3 +62,18 @@ export function buildCommandErrorPrompt(
     `Help me understand and fix this error.`
   );
 }
+
+export function buildSqlCompileErrorPrompt(
+  modelName: string,
+  rawSql: string | undefined,
+): string {
+  const sqlSection = rawSql
+    ? `\n\n**Model SQL:**\n\`\`\`sql\n${rawSql}\n\`\`\``
+    : "";
+  return (
+    `SQL for model \`${modelName}\` failed to compile. ` +
+    `This usually means a referenced model or source does not exist.` +
+    `${sqlSection}\n\n` +
+    `Help me understand and fix the compilation error.`
+  );
+}
