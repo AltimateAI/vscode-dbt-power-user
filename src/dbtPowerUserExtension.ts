@@ -22,6 +22,25 @@ enum PromptAnswer {
   NO = "No",
 }
 
+const POWER_USER_EXTENSION_MARKER = "innoverio.vscode-dbt-power-user";
+
+// `process.on("unhandledRejection")` fires for every rejection in the
+// extension host — including rejections originating in other extensions
+// (GitLens, Ruff, SQLFluff, VS Code core RPC, etc.) that happen to be
+// loaded in the same process. Without filtering, our `catchAllError`
+// telemetry attributes other vendors' failures to power-user, inflating
+// our error volume by ~5-10x and polluting triage. Restrict forwarding
+// to rejections whose stack points at the published extension directory.
+export function isPowerUserRejection(reason: unknown): boolean {
+  if (reason === null || reason === undefined) {
+    return false;
+  }
+  const stack = (reason as { stack?: unknown }).stack;
+  return (
+    typeof stack === "string" && stack.includes(POWER_USER_EXTENSION_MARKER)
+  );
+}
+
 export class DBTPowerUserExtension implements Disposable {
   static DBT_SQL_SELECTOR = [
     { language: "jinja-sql", scheme: "file" },
@@ -106,7 +125,13 @@ export class DBTPowerUserExtension implements Disposable {
       // `error_code` fields plus `dbtIntegrationMode` / `instanceName` /
       // `localMode`. The upstream `unhandlederror` event keeps firing in
       // parallel — both events stream to App Insights, queryable separately.
+      //
+      // Filter to rejections whose stack originates in our extension; see
+      // `isPowerUserRejection` above for the rationale.
       const onUnhandledRejection = (reason: unknown) => {
+        if (!isPowerUserRejection(reason)) {
+          return;
+        }
         try {
           this.telemetry.sendTelemetryError("catchAllError", reason);
         } catch {
