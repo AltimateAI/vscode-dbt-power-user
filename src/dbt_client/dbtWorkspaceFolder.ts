@@ -4,6 +4,7 @@ import * as path from "path";
 import {
   Diagnostic,
   Disposable,
+  env,
   EventEmitter,
   FileSystemWatcher,
   languages,
@@ -293,7 +294,7 @@ export class DBTWorkspaceFolder implements Disposable {
         yamlDiagnostic.code = {
           value: "Fix with Altimate Code",
           target: Uri.parse(
-            `vscode://innoverio.vscode-dbt-power-user/troubleshoot?source=dbt&error=${encodeURIComponent(error.message)}`,
+            `${env.uriScheme}://innoverio.vscode-dbt-power-user/troubleshoot?source=dbt&error=${encodeURIComponent(error.message)}`,
           ),
         };
         this.projectDiscoveryDiagnostics.set(

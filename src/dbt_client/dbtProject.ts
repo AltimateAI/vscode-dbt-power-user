@@ -46,6 +46,7 @@ import {
   DiagnosticCollection,
   DiagnosticSeverity,
   Disposable,
+  env,
   Event,
   EventEmitter,
   languages,
@@ -516,7 +517,7 @@ export class DBTProject implements Disposable {
     diagnostic.code = {
       value: "Fix with Altimate Code",
       target: Uri.parse(
-        `vscode://innoverio.vscode-dbt-power-user/troubleshoot?source=dbt&error=${encodeURIComponent(data.message)}`,
+        `${env.uriScheme}://innoverio.vscode-dbt-power-user/troubleshoot?source=dbt&error=${encodeURIComponent(data.message)}`,
       ),
     };
     return diagnostic;
