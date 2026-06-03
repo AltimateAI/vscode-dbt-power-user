@@ -6,7 +6,7 @@ import {
   TestMetadataRelationships,
 } from "@altimateai/dbt-integration";
 import { getTestSuggestions } from "@lib";
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { inject } from "inversify";
 import { env, ProgressLocation, WebviewView, window } from "vscode";
 import { parse, stringify } from "yaml";
@@ -453,5 +453,41 @@ export class DbtTestService {
         }
       },
     );
+  }
+
+  public async getUnitTestsForCurrentModel(): Promise<
+    { name: string }[] | undefined
+  > {
+    const eventResult = this.queryManifestService.getEventByCurrentProject();
+    if (!eventResult?.currentDocument) {
+      return undefined;
+    }
+
+    const modelName = path.basename(
+      eventResult.currentDocument.uri.fsPath,
+      ".sql",
+    );
+    return this.getUnitTestsForModel(modelName);
+  }
+
+  public getUnitTestsForModel(modelName: string): { name: string }[] {
+    const project = this.queryManifestService.getProject();
+    const manifestPath = project?.getManifestPath();
+    if (!manifestPath || !existsSync(manifestPath)) {
+      return [];
+    }
+
+    try {
+      const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+      return Object.values(manifest.nodes ?? {})
+        .filter(
+          (n: any) =>
+            n.resource_type === "unit_test" &&
+            n.unique_id.includes(`.${modelName}.`),
+        )
+        .map((n: any) => ({ name: n.name as string }));
+    } catch {
+      return [];
+    }
   }
 }

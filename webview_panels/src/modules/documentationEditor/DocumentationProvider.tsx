@@ -1,9 +1,12 @@
+import { ConversationGroup, DbtDocsShareDetails } from "@lib";
 import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
 import { IncomingMessageProps } from "@modules/app/types";
+import useAppContext from "@modules/app/useAppContext";
 import { panelLogger } from "@modules/logger";
+import { TelemetryEvents } from "@telemetryEvents";
 import {
   createContext,
   useCallback,
@@ -12,8 +15,11 @@ import {
   useReducer,
   useRef,
 } from "react";
+import { sendTelemetryEvent } from "./components/telemetry";
+import DocumentationEditor from "./DocumentationEditor";
 import documentationSlice, {
   initialState,
+  setDocBlocks,
   setGenerationsHistory,
   setIncomingDocsData,
   setInsertedEntityName,
@@ -27,25 +33,21 @@ import documentationSlice, {
   updateConversationsRightPanelState,
   updateCurrentDocsData,
   updateCurrentDocsTests,
+  updateCurrentUnitTests,
   updateSelectedConversationGroup,
   updateSingleDocsPropRightPanel,
   updateUserInstructions,
-  setDocBlocks,
 } from "./state/documentationSlice";
 import {
   DBTDocumentation,
   DBTModelTest,
+  DBTUnitTest,
+  DocBlock,
   DocsGenerateUserInstructions,
   MetadataColumn,
-  DocBlock,
 } from "./state/types";
 import { ContextProps } from "./types";
 import { getGenerationsInModel, isStateDirty } from "./utils";
-import DocumentationEditor from "./DocumentationEditor";
-import { ConversationGroup, DbtDocsShareDetails } from "@lib";
-import { TelemetryEvents } from "@telemetryEvents";
-import { sendTelemetryEvent } from "./components/telemetry";
-import useAppContext from "@modules/app/useAppContext";
 
 export const DocumentationContext = createContext<ContextProps>({
   state: initialState,
@@ -56,6 +58,7 @@ type IncomingMessageEvent = MessageEvent<
   IncomingMessageProps & {
     docs?: DBTDocumentation;
     tests?: DBTModelTest[];
+    unitTests?: DBTUnitTest[];
     project?: string;
     columns?: DBTDocumentation["columns"];
     model?: string;
@@ -126,6 +129,7 @@ const DocumentationProvider = (): JSX.Element => {
       setIncomingDocsData({
         docs: event.data.docs,
         tests: event.data.tests,
+        unitTests: event.data.unitTests,
       }),
     );
     dispatch(setProject(event.data.project));
@@ -179,6 +183,7 @@ const DocumentationProvider = (): JSX.Element => {
               case ActionState.DISCARD_PROCEED: {
                 dispatch(updateCurrentDocsData(event.data.docs));
                 dispatch(updateCurrentDocsTests(event.data.tests));
+                dispatch(updateCurrentUnitTests(event.data.unitTests));
                 if (showBulkDocsPropRightPanel) {
                   dispatch(updateBulkDocsPropRightPanel(false));
                 }

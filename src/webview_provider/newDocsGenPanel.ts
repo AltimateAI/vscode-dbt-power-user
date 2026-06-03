@@ -320,6 +320,7 @@ export class NewDocsGenPanel
         );
         break;
 
+      case "openAltimateCodeChatForUnitTest":
       case "openAltimateCodeChatForCustomTest":
       case "openAltimateCodeChatForDocReview":
         await this.altimateCodeChatService.openChat({
