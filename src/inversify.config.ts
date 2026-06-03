@@ -1700,6 +1700,7 @@ container
       context.container.get(QueryManifestService),
       context.container.get(UsersService),
       context.container.get(AltimateAuthService),
+      context.container.get(AltimateCodeChatService),
     );
   })
   .inSingletonScope();
