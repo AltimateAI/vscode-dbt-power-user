@@ -1799,9 +1799,21 @@ export class DBTProject implements Disposable {
   private addCommandToQueue(queueName: string, command: DBTCommand): void {
     this.queues.get(queueName)!.push({
       command: async (signal) => {
-        await command.execute(signal);
+        const result = await command.execute(signal);
+        // dbt CLI resolves normally even on failure (CommandProcessExecution.complete()
+        // never rejects for non-zero exit). Detect pre-execution failures (compilation
+        // errors, config errors) by checking stdout. Runtime model failures generate
+        // run_results.json and are already handled via onHistoryChanged.
+        if (result?.stdout?.includes("Encountered an error:")) {
+          throw new Error(result.stdout.trim());
+        }
       },
-      statusMessage: command.statusMessage,
+      statusMessage: command
+        .getCommandAsString()
+        .replace(/\s*--project-dir\s+\S+/g, "")
+        .replace(/\s*--profiles-dir\s+\S+/g, "")
+        .replace(/\s+/g, " ")
+        .trim(),
       focus: command.focus,
       signal: command.signal,
       showProgress: command.showProgress,
@@ -1823,10 +1835,9 @@ export class DBTProject implements Disposable {
             this.altimateAuthService.handlePreviewFeatures();
             return;
           }
-          window.showErrorMessage(
-            extendErrorWithSupportLinks(
-              `Could not run command '${statusMessage}': ` + error + ".",
-            ),
+          this.runHistoryService.notifyCommandFailed(
+            statusMessage,
+            String(error),
           );
           this.telemetry.sendTelemetryError("queueRunCommandError", error, {
             command: statusMessage,

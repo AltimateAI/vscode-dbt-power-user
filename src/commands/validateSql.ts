@@ -24,6 +24,12 @@ import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../dbt_client/event/manifestCacheChangedEvent";
+import { AltimateCodeChatService } from "../services/altimateCodeChatService";
+import {
+  buildManifestErrorPrompt,
+  buildSqlCompileErrorPrompt,
+  buildSqlValidationPrompt,
+} from "../services/chatPromptBuilders";
 import { TelemetryService } from "../telemetry";
 import { extendErrorWithSupportLinks } from "../utils";
 
@@ -36,6 +42,7 @@ export class ValidateSql {
     private altimate: AltimateRequest,
     @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
+    private altimateCodeChatService: AltimateCodeChatService,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
@@ -108,17 +115,77 @@ export class ValidateSql {
     }
     const modelName = basename(currentFilePath.fsPath, ".sql");
 
+    // Read model SQL early so all error paths can include it in the chat prompt.
+    let rawSql: string | undefined;
+    try {
+      const bytes = await workspace.fs.readFile(currentFilePath);
+      rawSql = bytes.toString();
+    } catch {
+      // Best-effort — proceed without SQL in the error prompt if the read fails.
+    }
+
     const event = this.getEvent();
     if (!event) {
+      const clicked = await window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "dbt manifest not loaded. Run `dbt parse` or wait for the manifest to load, then try again.",
+        ),
+        "Fix with Altimate Code",
+      );
+      if (clicked === "Fix with Altimate Code") {
+        await this.altimateCodeChatService.openChat({
+          initialMessage: buildManifestErrorPrompt(
+            modelName,
+            rawSql,
+            "dbt manifest is not loaded (dbt parse may be failing due to a broken ref or config error)",
+          ),
+          title: `Fix parse error: ${modelName}`,
+          beside: true,
+        });
+      }
       return;
     }
     const { graphMetaMap, nodeMetaMap } = event;
     const node = nodeMetaMap.lookupByBaseName(modelName);
     if (!node) {
+      const clicked = await window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          `Model '${modelName}' not found in the manifest. Run \`dbt parse\` to refresh the manifest.`,
+        ),
+        "Fix with Altimate Code",
+      );
+      if (clicked === "Fix with Altimate Code") {
+        await this.altimateCodeChatService.openChat({
+          initialMessage: buildManifestErrorPrompt(
+            modelName,
+            rawSql,
+            "model not found in manifest after dbt parse",
+          ),
+          title: `Fix parse error: ${modelName}`,
+          beside: true,
+        });
+      }
       return;
     }
     const parentNodes = graphMetaMap.parents.get(node.unique_id)?.nodes;
     if (!parentNodes) {
+      const clicked = await window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          `Unable to resolve parent models for '${modelName}'. Check that all referenced models exist and run \`dbt parse\`.`,
+        ),
+        "Fix with Altimate Code",
+      );
+      if (clicked === "Fix with Altimate Code") {
+        await this.altimateCodeChatService.openChat({
+          initialMessage: buildManifestErrorPrompt(
+            modelName,
+            rawSql,
+            "could not resolve parent models (broken ref or missing source)",
+          ),
+          title: `Fix parse error: ${modelName}`,
+          beside: true,
+        });
+      }
       return;
     }
 
@@ -182,6 +249,19 @@ export class ValidateSql {
       return;
     }
     if (!compiledQuery) {
+      const clicked = await window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          `Unable to compile SQL for model '${modelName}'. Check that all referenced models and sources exist.`,
+        ),
+        "Fix with Altimate Code",
+      );
+      if (clicked === "Fix with Altimate Code") {
+        await this.altimateCodeChatService.openChat({
+          initialMessage: buildSqlCompileErrorPrompt(modelName, rawSql),
+          title: `Fix compile error: ${modelName}`,
+          beside: true,
+        });
+      }
       return;
     }
 
@@ -260,6 +340,30 @@ export class ValidateSql {
     );
 
     this.diagnosticsCollection.set(compileSQLUri, diagnostics);
+
+    const sqlErrors = response.errors ?? [];
+    if (sqlErrors.length > 0) {
+      const errorSummary = sqlErrors
+        .slice(0, 2)
+        .map((e: { description: string }) => e.description)
+        .join("; ");
+      const clicked = await window.showErrorMessage(
+        `SQL validation: ${sqlErrors.length} error(s) — ${errorSummary}`,
+        "Fix this SQL",
+      );
+      if (clicked === "Fix this SQL") {
+        await this.altimateCodeChatService.openChat({
+          initialMessage: buildSqlValidationPrompt(
+            compiledQuery,
+            sqlErrors,
+            modelName,
+            project.getAdapterType(),
+          ),
+          title: `Fix SQL: ${modelName}`,
+          beside: true,
+        });
+      }
+    }
   }
 
   private getProject() {
