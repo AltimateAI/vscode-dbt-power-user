@@ -1,5 +1,5 @@
 import { DBTTerminal, TestMetaData } from "@altimateai/dbt-integration";
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { inject } from "inversify";
 import {
   CancellationToken,
@@ -173,6 +173,20 @@ export class NewDocsGenPanel
               args.test as TestMetaData,
               args.model as string,
             );
+          },
+          command,
+        );
+        break;
+
+      case "getUnitTestCode":
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const filePath = args.path as string | undefined;
+            if (!filePath || !existsSync(filePath)) {
+              return { error: "Unit test file not found" };
+            }
+            return { yaml: readFileSync(filePath, { encoding: "utf-8" }) };
           },
           command,
         );

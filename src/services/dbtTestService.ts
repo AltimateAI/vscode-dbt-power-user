@@ -456,7 +456,7 @@ export class DbtTestService {
   }
 
   public async getUnitTestsForCurrentModel(): Promise<
-    { name: string }[] | undefined
+    { name: string; path?: string }[] | undefined
   > {
     const eventResult = this.queryManifestService.getEventByCurrentProject();
     if (!eventResult?.currentDocument) {
@@ -470,9 +470,14 @@ export class DbtTestService {
     return this.getUnitTestsForModel(modelName);
   }
 
-  public getUnitTestsForModel(modelName: string): { name: string }[] {
+  public getUnitTestsForModel(
+    modelName: string,
+  ): { name: string; path?: string }[] {
     const project = this.queryManifestService.getProject();
-    const manifestPath = project?.getManifestPath();
+    if (!project) {
+      return [];
+    }
+    const manifestPath = project.getManifestPath();
     if (!manifestPath || !existsSync(manifestPath)) {
       return [];
     }
@@ -485,7 +490,12 @@ export class DbtTestService {
             n.resource_type === "unit_test" &&
             n.unique_id.includes(`.${modelName}.`),
         )
-        .map((n: any) => ({ name: n.name as string }));
+        .map((n: any) => ({
+          name: n.name as string,
+          path: n.original_file_path
+            ? path.join(project.projectRoot.fsPath, n.original_file_path)
+            : undefined,
+        }));
     } catch {
       return [];
     }

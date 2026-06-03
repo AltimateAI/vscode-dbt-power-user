@@ -68,6 +68,7 @@ export interface DocBlock {
 
 export interface DBTUnitTest {
   name: string;
+  path?: string;
 }
 
 export interface DocumentationStateProps {
