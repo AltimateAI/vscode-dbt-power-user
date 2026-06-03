@@ -1313,6 +1313,9 @@ export class VSCodeCommands implements Disposable {
           "Fix with Altimate Code",
         );
         if (clicked === "Fix with Altimate Code") {
+          this.telemetry.sendTelemetryEvent(
+            TelemetryEvents["AltimateCode/RunFailureClick"],
+          );
           await this.altimateCodeChatService.openChat({
             initialMessage: buildRunFailurePrompt(entry, failed),
             title: `Fix: ${entry.command}`,
@@ -1328,6 +1331,9 @@ export class VSCodeCommands implements Disposable {
             "Fix with Altimate Code",
           );
           if (clicked === "Fix with Altimate Code") {
+            this.telemetry.sendTelemetryEvent(
+              TelemetryEvents["AltimateCode/CommandFailureClick"],
+            );
             await this.altimateCodeChatService.openChat({
               initialMessage: buildCommandErrorPrompt(command, error),
               title: `Fix: ${command}`,
@@ -1344,6 +1350,9 @@ export class VSCodeCommands implements Disposable {
             item.result,
             item.parentCommand,
           );
+          this.telemetry.sendTelemetryEvent(
+            TelemetryEvents["AltimateCode/ExplainTestFailureClick"],
+          );
           await this.altimateCodeChatService.openChat({
             initialMessage: prompt,
             title: `Explain: ${item.result.name}`,
@@ -1359,9 +1368,35 @@ export class VSCodeCommands implements Disposable {
             item.result,
             item.parentCommand,
           );
+          this.telemetry.sendTelemetryEvent(
+            TelemetryEvents["AltimateCode/RunHistoryFixClick"],
+          );
           await this.altimateCodeChatService.openChat({
             initialMessage: prompt,
             title: `Fix: ${item.result.name}`,
+            beside: true,
+          });
+        },
+      ),
+      // Feature 5: Troubleshoot with Altimate Code (URI handler + Problems panel)
+      commands.registerCommand(
+        "altimate.troubleshootError",
+        async ({
+          errorMessage,
+          source,
+        }: {
+          errorMessage: string;
+          source: string;
+          filePath: string;
+          lineNumber: number;
+        }) => {
+          this.telemetry.sendTelemetryEvent(
+            TelemetryEvents["AltimateCode/TroubleshootCodeActionClick"],
+            { source },
+          );
+          await this.altimateCodeChatService.openChat({
+            initialMessage: `I encountered this error in my dbt project (source: ${source}):\n\n${errorMessage}\n\nHelp me troubleshoot and fix this.`,
+            title: "Troubleshoot: dbt error",
             beside: true,
           });
         },

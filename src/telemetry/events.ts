@@ -68,4 +68,12 @@ export enum TelemetryEvents {
   "MCP/Onboarding/Later" = "MCP/Onboarding/Later",
   "MCP/Onboarding/Success" = "MCP/Onboarding/Success",
   "MCP/Onboarding/Failed" = "MCP/Onboarding/Failed",
+  "AltimateCode/RunFailureClick" = "AltimateCode/RunFailureClick",
+  "AltimateCode/CommandFailureClick" = "AltimateCode/CommandFailureClick",
+  "AltimateCode/SqlValidationFixClick" = "AltimateCode/SqlValidationFixClick",
+  "AltimateCode/ValidateSqlManifestErrorClick" = "AltimateCode/ValidateSqlManifestErrorClick",
+  "AltimateCode/ValidateSqlCompileErrorClick" = "AltimateCode/ValidateSqlCompileErrorClick",
+  "AltimateCode/ExplainTestFailureClick" = "AltimateCode/ExplainTestFailureClick",
+  "AltimateCode/RunHistoryFixClick" = "AltimateCode/RunHistoryFixClick",
+  "AltimateCode/TroubleshootCodeActionClick" = "AltimateCode/TroubleshootCodeActionClick",
 }
