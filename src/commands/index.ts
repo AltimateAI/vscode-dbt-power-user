@@ -1378,29 +1378,6 @@ export class VSCodeCommands implements Disposable {
           });
         },
       ),
-      // Feature 5: Troubleshoot with Altimate Code (URI handler + Problems panel)
-      commands.registerCommand(
-        "altimate.troubleshootError",
-        async ({
-          errorMessage,
-          source,
-        }: {
-          errorMessage: string;
-          source: string;
-          filePath: string;
-          lineNumber: number;
-        }) => {
-          this.telemetry.sendTelemetryEvent(
-            TelemetryEvents["AltimateCode/TroubleshootCodeActionClick"],
-            { source },
-          );
-          await this.altimateCodeChatService.openChat({
-            initialMessage: `I encountered this error in my dbt project (source: ${source}):\n\n${errorMessage}\n\nHelp me troubleshoot and fix this.`,
-            title: "Troubleshoot: dbt error",
-            beside: true,
-          });
-        },
-      ),
     );
   }
 
