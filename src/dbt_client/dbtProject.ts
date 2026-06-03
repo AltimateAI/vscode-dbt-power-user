@@ -502,7 +502,7 @@ export class DBTProject implements Disposable {
   }
 
   private convertDiagnosticDataToVSCode(data: DBTDiagnosticData): Diagnostic {
-    return new Diagnostic(
+    const diagnostic = new Diagnostic(
       new Range(
         data.range?.startLine || 0,
         data.range?.startColumn || 0,
@@ -512,6 +512,14 @@ export class DBTProject implements Disposable {
       data.message,
       this.mapSeverityToVSCode(data.severity),
     );
+    diagnostic.source = "dbt Power User";
+    diagnostic.code = {
+      value: "Fix with Altimate Code",
+      target: Uri.parse(
+        `vscode://innoverio.vscode-dbt-power-user/troubleshoot?source=dbt&error=${encodeURIComponent(data.message)}`,
+      ),
+    };
+    return diagnostic;
   }
 
   updateDiagnosticsInProblemsPanel(): void {

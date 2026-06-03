@@ -331,11 +331,19 @@ export class ValidateSql {
         if (end_position) {
           endPos = new Position(end_position[0], end_position[1]);
         }
-        return new Diagnostic(
+        const diagnostic = new Diagnostic(
           new Range(startPos, endPos),
           description,
           DiagnosticSeverity.Error,
         );
+        diagnostic.source = "dbt Power User";
+        diagnostic.code = {
+          value: "Fix with Altimate Code",
+          target: Uri.parse(
+            `vscode://innoverio.vscode-dbt-power-user/troubleshoot?source=dbt&error=${encodeURIComponent(description)}`,
+          ),
+        };
+        return diagnostic;
       },
     );
 
