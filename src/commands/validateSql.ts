@@ -31,6 +31,7 @@ import {
   buildSqlValidationPrompt,
 } from "../services/chatPromptBuilders";
 import { TelemetryService } from "../telemetry";
+import { TelemetryEvents } from "../telemetry/events";
 import { extendErrorWithSupportLinks } from "../utils";
 
 export class ValidateSql {
@@ -133,6 +134,10 @@ export class ValidateSql {
         "Fix with Altimate Code",
       );
       if (clicked === "Fix with Altimate Code") {
+        this.telemetry.sendTelemetryEvent(
+          TelemetryEvents["AltimateCode/ValidateSqlManifestErrorClick"],
+          { modelName, reason: "manifest_not_loaded" },
+        );
         await this.altimateCodeChatService.openChat({
           initialMessage: buildManifestErrorPrompt(
             modelName,
@@ -155,6 +160,10 @@ export class ValidateSql {
         "Fix with Altimate Code",
       );
       if (clicked === "Fix with Altimate Code") {
+        this.telemetry.sendTelemetryEvent(
+          TelemetryEvents["AltimateCode/ValidateSqlManifestErrorClick"],
+          { modelName, reason: "model_not_found" },
+        );
         await this.altimateCodeChatService.openChat({
           initialMessage: buildManifestErrorPrompt(
             modelName,
@@ -176,6 +185,10 @@ export class ValidateSql {
         "Fix with Altimate Code",
       );
       if (clicked === "Fix with Altimate Code") {
+        this.telemetry.sendTelemetryEvent(
+          TelemetryEvents["AltimateCode/ValidateSqlManifestErrorClick"],
+          { modelName, reason: "parent_graph_missing" },
+        );
         await this.altimateCodeChatService.openChat({
           initialMessage: buildManifestErrorPrompt(
             modelName,
@@ -256,6 +269,10 @@ export class ValidateSql {
         "Fix with Altimate Code",
       );
       if (clicked === "Fix with Altimate Code") {
+        this.telemetry.sendTelemetryEvent(
+          TelemetryEvents["AltimateCode/ValidateSqlCompileErrorClick"],
+          { modelName },
+        );
         await this.altimateCodeChatService.openChat({
           initialMessage: buildSqlCompileErrorPrompt(modelName, rawSql),
           title: `Fix compile error: ${modelName}`,
@@ -360,6 +377,11 @@ export class ValidateSql {
         "Fix this SQL",
       );
       if (clicked === "Fix this SQL") {
+        this.telemetry.sendTelemetryEvent(
+          TelemetryEvents["AltimateCode/SqlValidationFixClick"],
+          { modelName },
+          { errorCount: sqlErrors.length },
+        );
         await this.altimateCodeChatService.openChat({
           initialMessage: buildSqlValidationPrompt(
             compiledQuery,

@@ -20,6 +20,7 @@ import { DbtPowerUserMcpServer } from "./mcp";
 import { DbtPowerUserActionsCenter } from "./quickpick";
 import { StatusBars } from "./statusbar";
 import { TelemetryService } from "./telemetry";
+import { TelemetryEvents } from "./telemetry/events";
 import { TreeviewProviders } from "./treeview_provider";
 import { ValidationProvider } from "./validation_provider";
 import { WebviewViewProviders } from "./webview_provider";
@@ -150,6 +151,7 @@ export class DBTPowerUserExtension implements Disposable {
         dispose: () => process.off("unhandledRejection", onUnhandledRejection),
       });
 
+      const telemetry = this.telemetry;
       context.subscriptions.push(
         window.registerUriHandler({
           handleUri(uri: Uri): void {
@@ -157,6 +159,10 @@ export class DBTPowerUserExtension implements Disposable {
               const params = new URLSearchParams(uri.query);
               const errorMessage = params.get("error") ?? "";
               const source = params.get("source") ?? "dbt";
+              telemetry.sendTelemetryEvent(
+                TelemetryEvents["AltimateCode/TroubleshootCodeActionClick"],
+                { source },
+              );
               commands.executeCommand("altimate.troubleshootError", {
                 errorMessage,
                 source,

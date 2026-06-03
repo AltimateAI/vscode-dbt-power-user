@@ -1313,6 +1313,14 @@ export class VSCodeCommands implements Disposable {
           "Fix with Altimate Code",
         );
         if (clicked === "Fix with Altimate Code") {
+          this.telemetry.sendTelemetryEvent(
+            TelemetryEvents["AltimateCode/RunFailureClick"],
+            {
+              command: entry.command,
+              modelName: failed.length === 1 ? failed[0].name : "",
+            },
+            { failedCount: failed.length },
+          );
           await this.altimateCodeChatService.openChat({
             initialMessage: buildRunFailurePrompt(entry, failed),
             title: `Fix: ${entry.command}`,
@@ -1328,6 +1336,10 @@ export class VSCodeCommands implements Disposable {
             "Fix with Altimate Code",
           );
           if (clicked === "Fix with Altimate Code") {
+            this.telemetry.sendTelemetryEvent(
+              TelemetryEvents["AltimateCode/CommandFailureClick"],
+              { command },
+            );
             await this.altimateCodeChatService.openChat({
               initialMessage: buildCommandErrorPrompt(command, error),
               title: `Fix: ${command}`,
@@ -1344,6 +1356,13 @@ export class VSCodeCommands implements Disposable {
             item.result,
             item.parentCommand,
           );
+          this.telemetry.sendTelemetryEvent(
+            TelemetryEvents["AltimateCode/ExplainTestFailureClick"],
+            {
+              testName: item.result.name,
+              command: item.parentCommand ?? "",
+            },
+          );
           await this.altimateCodeChatService.openChat({
             initialMessage: prompt,
             title: `Explain: ${item.result.name}`,
@@ -1358,6 +1377,14 @@ export class VSCodeCommands implements Disposable {
           const prompt = buildRunResultFailurePrompt(
             item.result,
             item.parentCommand,
+          );
+          this.telemetry.sendTelemetryEvent(
+            TelemetryEvents["AltimateCode/RunHistoryFixClick"],
+            {
+              modelName: item.result.name,
+              resourceType: item.result.resourceType,
+              command: item.parentCommand ?? "",
+            },
           );
           await this.altimateCodeChatService.openChat({
             initialMessage: prompt,
