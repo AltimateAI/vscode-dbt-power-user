@@ -316,6 +316,41 @@ describe("NewLineagePanel — source YAML rooting", () => {
     );
   });
 
+  it("roots the same way for a .yaml file (not just .yml)", () => {
+    const filePath = "/proj/models/sources/identifies.yaml";
+    const sourceMetaMap = new Map([
+      [
+        "segment_website_production",
+        {
+          package_name: "proj",
+          name: "segment_website_production",
+          tables: [sourceTable("identifies", filePath)],
+        },
+      ],
+    ]);
+    (panel as any).queryManifestService = {
+      getEventByCurrentProject: jest
+        .fn()
+        .mockReturnValue(makeEvent(sourceMetaMap)),
+      getProject: jest.fn().mockReturnValue(undefined),
+    };
+    (window as any).activeTextEditor = makeEditor(
+      filePath,
+      "sources:\n  - name: segment_website_production\n    tables:\n      - name: identifies\n",
+    );
+
+    const result = (panel as any).getStartingNode();
+
+    expect(result.node).toEqual({
+      table: "source.proj.segment_website_production.identifies",
+    });
+    expect((panel as any).dbtLineageService.createTable).toHaveBeenCalledWith(
+      expect.anything(),
+      filePath,
+      "source.proj.segment_website_production.identifies",
+    );
+  });
+
   it("picks the source table the cursor sits within when the file has many", () => {
     const filePath = "/proj/models/sources/multi.yml";
     const body = [
