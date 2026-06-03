@@ -8,6 +8,7 @@ import {
   Diagnostic,
   DiagnosticCollection,
   DiagnosticSeverity,
+  env,
   languages,
   Position,
   ProgressLocation,
@@ -357,7 +358,7 @@ export class ValidateSql {
         diagnostic.code = {
           value: "Fix with Altimate Code",
           target: Uri.parse(
-            `vscode://innoverio.vscode-dbt-power-user/troubleshoot?source=dbt&error=${encodeURIComponent(description)}`,
+            `${env.uriScheme}://innoverio.vscode-dbt-power-user/troubleshoot?source=dbt&error=${encodeURIComponent(description)}`,
           ),
         };
         return diagnostic;
