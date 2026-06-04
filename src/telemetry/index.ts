@@ -94,7 +94,7 @@ export class TelemetryService implements vscode.Disposable {
     const rawStack =
       error !== undefined && error instanceof Error
         ? error.stack
-        : JSON.stringify(error);
+        : safeSerializeTelemetryValue(error);
     const structured = extractStructuredFields(error, rawStack);
     this.telemetryReporter.sendTelemetryErrorEvent(
       eventName,
@@ -225,6 +225,10 @@ function extractStructuredFields(
 
 interface StackFrame {
   fn: string | undefined;
+  // Full path as it appeared in the stack line — kept so top-frame
+  // selection can match POWER_USER_EXTENSION_MARKER (the extension dir
+  // name survives even when the redactor masks the home-dir prefix).
+  fullPath: string;
   file: string;
   line: number;
   isInternal: boolean;
@@ -245,7 +249,7 @@ function parseStackFrames(stack: string): StackFrame[] {
     }
     const file = basenameForFrame(fullPath);
     const isInternal = NODE_INTERNAL_FILE_RE.test(fullPath);
-    out.push({ fn, file, line: lineno, isInternal });
+    out.push({ fn, fullPath, file, line: lineno, isInternal });
   }
   return out;
 }
@@ -262,8 +266,11 @@ function basenameForFrame(filePath: string): string {
 }
 
 function pickTopFrame(frames: StackFrame[]): StackFrame | undefined {
+  // Match the extension dir marker, not the "extension.js" basename — every
+  // bundled VS Code extension ships an extension.js, so a basename match
+  // could stamp stack_top_frame_* with another extension's frame.
   const powerUser = frames.find(
-    (f) => !f.isInternal && f.file.includes("extension.js"),
+    (f) => !f.isInternal && f.fullPath.includes(POWER_USER_EXTENSION_MARKER),
   );
   if (powerUser) {
     return powerUser;
@@ -291,6 +298,23 @@ function sanitizeForTelemetry(input: string | undefined): string {
     return "";
   }
   return input.replace(URL_RE, "<url>").replace(EMAIL_RE, "<email>");
+}
+
+// JSON.stringify throws on circular structures and BigInt; a throw here
+// would swallow the telemetry event itself.
+function safeSerializeTelemetryValue(value: unknown): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  try {
+    return JSON.stringify(value) ?? String(value);
+  } catch {
+    try {
+      return String(value);
+    } catch {
+      return undefined;
+    }
+  }
 }
 
 // Exposed for unit tests only.

@@ -325,6 +325,48 @@ describe("TelemetryService.sendTelemetryError emits redactor-proof structured fi
     expect(properties.stack_hash).toBeUndefined();
     expect(measurements.stack_frame_count).toBeUndefined();
   });
+
+  it("attributes the top frame to our extension dir, not another extension's extension.js", () => {
+    // Mixed-extension stack: gitlens' extension.js appears first. A bare
+    // "extension.js" basename match would stamp stack_top_frame_* with the
+    // gitlens frame; the marker match must skip to ours.
+    const err = new Error("boom");
+    err.stack = [
+      "Error: boom",
+      "    at PromiseCache.getOrCreate (/u/.vscode/extensions/eamodio.gitlens-2025.5.0/dist/extension.js:42:10)",
+      "    at DBTWorkspaceFolder.discoverProjects (/u/.vscode/extensions/innoverio.vscode-dbt-power-user-0.61.4/dist/extension.js:174:32059)",
+    ].join("\n");
+    const { properties, measurements } = sendAndCapture(err);
+    expect(properties.stack_top_frame_fn).toBe(
+      "DBTWorkspaceFolder.discoverProjects",
+    );
+    expect(measurements.stack_top_frame_line).toBe(174);
+  });
+
+  it("falls back to the first non-internal frame when no frame is from our extension", () => {
+    const err = new Error("boom");
+    err.stack = [
+      "Error: boom",
+      "    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)",
+      "    at PromiseCache.getOrCreate (/u/.vscode/extensions/eamodio.gitlens-2025.5.0/dist/extension.js:42:10)",
+    ].join("\n");
+    const { properties } = sendAndCapture(err);
+    expect(properties.stack_top_frame_fn).toBe("PromiseCache.getOrCreate");
+  });
+
+  it("does not throw when the error value is a circular object", () => {
+    const circular: { self?: unknown } = {};
+    circular.self = circular;
+    const { properties } = sendAndCapture(circular);
+    expect(properties.error_constructor).toBe("object");
+    expect(properties.stack).toBe("[object Object]");
+  });
+
+  it("does not throw when the error value is a BigInt", () => {
+    const { properties } = sendAndCapture(1n);
+    expect(properties.error_constructor).toBe("bigint");
+    expect(properties.stack).toBe("1");
+  });
 });
 
 describe("__TELEMETRY_INTERNALS__.parseStackFrames", () => {
@@ -339,6 +381,8 @@ describe("__TELEMETRY_INTERNALS__.parseStackFrames", () => {
     expect(frames).toHaveLength(1);
     expect(frames[0]).toEqual({
       fn: "DBTProject.initialize",
+      fullPath:
+        "/u/.vscode/extensions/innoverio.vscode-dbt-power-user-0.61.3/dist/extension.js",
       file: "extension.js",
       line: 159,
       isInternal: false,
