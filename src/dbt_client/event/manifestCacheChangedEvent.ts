@@ -8,11 +8,9 @@ import {
   NodeMetaMap,
   SourceMetaMap,
   TestMetaMap,
+  UnitTestMetaMap,
 } from "@altimateai/dbt-integration";
 import { Uri } from "vscode";
-// Local type until @altimateai/dbt-integration exports it
-export type UnitTestMeta = { name: string; model: string; path?: string };
-export type UnitTestMetaMap = Map<string, UnitTestMeta>;
 
 import { DBTProject } from "../dbtProject";
 

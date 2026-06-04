@@ -219,6 +219,7 @@ export class NewDocsGenPanel
           docs: documentation,
           missingDocumentationMessage,
           tests: await this.dbtTestService.getTestsForCurrentModel(),
+          unitTests: await this.dbtTestService.getUnitTestsForCurrentModel(),
           project: this.queryManifestService.getProject()?.getProjectName(),
           collaborationEnabled: workspace
             .getConfiguration("dbt")

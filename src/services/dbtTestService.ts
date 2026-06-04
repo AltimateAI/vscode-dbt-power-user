@@ -4,6 +4,7 @@ import {
   TestMetaData,
   TestMetadataAcceptedValues,
   TestMetadataRelationships,
+  UnitTestMetaData,
 } from "@altimateai/dbt-integration";
 import { getTestSuggestions } from "@lib";
 import { readFileSync } from "fs";
@@ -484,7 +485,7 @@ export class DbtTestService {
     }
 
     return Array.from(unitTestMetaMap.values())
-      .filter((ut: any) => ut.model.includes(modelName))
-      .map((ut: any) => ({ name: ut.name, path: ut.path }));
+      .filter((ut: UnitTestMetaData) => ut.model.includes(modelName))
+      .map((ut: UnitTestMetaData) => ({ name: ut.name, path: ut.path }));
   }
 }
