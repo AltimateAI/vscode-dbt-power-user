@@ -484,7 +484,7 @@ export class DbtTestService {
     }
 
     return Array.from(unitTestMetaMap.values())
-      .filter((ut) => ut.model.includes(modelName))
-      .map((ut) => ({ name: ut.name, path: ut.path }));
+      .filter((ut: any) => ut.model.includes(modelName))
+      .map((ut: any) => ({ name: ut.name, path: ut.path }));
   }
 }

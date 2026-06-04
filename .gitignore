@@ -50,3 +50,4 @@ docker-setup/.env
 
 # GitHub issues dashboard cache
 monitoring/github_issues/.cache/
+docs_edit_panel/assets/

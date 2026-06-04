@@ -65,6 +65,20 @@ const copyAssetsPlugin: RsbuildPlugin = {
         }
       }
 
+      // Copy webview panel assets to docs_edit_panel/ for the Documentation Editor webview
+      try {
+        cpSync(
+          path.resolve(__dirname, "webview_panels/dist/assets"),
+          path.resolve(__dirname, "docs_edit_panel/assets"),
+          { recursive: true },
+        );
+        console.log(
+          "Copied webview_panels/dist/assets -> docs_edit_panel/assets",
+        );
+      } catch (e) {
+        console.warn("Skipping docs_edit_panel assets: " + String(e));
+      }
+
       console.log("copying notebook modules");
       try {
         cpSync(
