@@ -40,6 +40,7 @@ import {
   RuntimePythonEnvironment,
   SourceParser,
   TestParser,
+  UnitTestParser,
 } from "@altimateai/dbt-integration";
 import * as LibNamespace from "@lib";
 import { NotebookKernelClient } from "@lib";
@@ -192,6 +193,11 @@ container
   .bind(TestParser)
   .toDynamicValue(
     (context) => new TestParser(context.container.get("DBTTerminal")),
+  );
+container
+  .bind(UnitTestParser)
+  .toDynamicValue(
+    (context) => new UnitTestParser(context.container.get("DBTTerminal")),
   );
 container
   .bind(ExposureParser)
@@ -725,6 +731,7 @@ container
         container.get(GraphParser),
         container.get(SourceParser),
         container.get(TestParser),
+        container.get(UnitTestParser),
         container.get(ExposureParser),
         container.get(FunctionParser),
         container.get(DocParser),
