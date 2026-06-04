@@ -217,6 +217,7 @@ describe("NewLineagePanel — source YAML rooting", () => {
         uri: { fsPath: filePath, path: filePath },
         lineCount: lines.length,
         lineAt: (line: number) => ({ text: lines[line] ?? "" }),
+        getText: () => body,
       },
       selection: { active: { line: cursorLine } },
     };
@@ -423,6 +424,174 @@ describe("NewLineagePanel — source YAML rooting", () => {
     const result = (panel as any).getStartingNode();
 
     expect(result.node).toEqual({ table: "source.proj.seg.identifies" });
+  });
+
+  it("does not mistake a source-level name for a table declaration", () => {
+    const filePath = "/proj/models/sources/pages.yml";
+    // The SOURCE is named "pages" and one of its TABLES is also named
+    // "pages". With a plain line regex the source-level `- name: pages`
+    // (line 1) would anchor the table, so a cursor on the `tables:` line
+    // (line 2) would wrongly pick "pages"; the AST walk only sees table
+    // declarations, so nothing is at-or-above the cursor and the panel
+    // falls back to the file's first table.
+    const body = [
+      "sources:",
+      "  - name: pages",
+      "    tables:",
+      "      - name: identifies",
+      "      - name: pages",
+    ].join("\n");
+    const sourceMetaMap = new Map([
+      [
+        "pages",
+        {
+          package_name: "proj",
+          name: "pages",
+          tables: [
+            sourceTable("identifies", filePath),
+            sourceTable("pages", filePath),
+          ],
+        },
+      ],
+    ]);
+    (panel as any).queryManifestService = {
+      getEventByCurrentProject: jest
+        .fn()
+        .mockReturnValue(makeEvent(sourceMetaMap)),
+      getProject: jest.fn().mockReturnValue(undefined),
+    };
+    (window as any).activeTextEditor = makeEditor(filePath, body, 2);
+
+    const result = (panel as any).getStartingNode();
+
+    expect(result.node).toEqual({ table: "source.proj.pages.identifies" });
+  });
+
+  it("disambiguates the same table name declared under two sources in one file", () => {
+    const filePath = "/proj/models/sources/events.yml";
+    const body = [
+      "sources:",
+      "  - name: seg",
+      "    tables:",
+      "      - name: events", // line 3
+      "  - name: ga",
+      "    tables:",
+      "      - name: events", // line 6
+    ].join("\n");
+    const sourceMetaMap = new Map([
+      [
+        "seg",
+        {
+          package_name: "proj",
+          name: "seg",
+          tables: [sourceTable("events", filePath)],
+        },
+      ],
+      [
+        "ga",
+        {
+          package_name: "proj",
+          name: "ga",
+          tables: [sourceTable("events", filePath)],
+        },
+      ],
+    ]);
+    (panel as any).queryManifestService = {
+      getEventByCurrentProject: jest
+        .fn()
+        .mockReturnValue(makeEvent(sourceMetaMap)),
+      getProject: jest.fn().mockReturnValue(undefined),
+    };
+    // Cursor on line 6 → ga's "events", not seg's (a name-only lookup
+    // would find seg's declaration line for both candidates).
+    (window as any).activeTextEditor = makeEditor(filePath, body, 6);
+
+    const result = (panel as any).getStartingNode();
+
+    expect(result.node).toEqual({ table: "source.proj.ga.events" });
+  });
+
+  it("records lastRenderedSourceKey even when createTable returns undefined", () => {
+    const filePath = "/proj/models/sources/identifies.yml";
+    const sourceMetaMap = new Map([
+      [
+        "seg",
+        {
+          package_name: "proj",
+          name: "seg",
+          tables: [sourceTable("identifies", filePath)],
+        },
+      ],
+    ]);
+    (panel as any).queryManifestService = {
+      getEventByCurrentProject: jest
+        .fn()
+        .mockReturnValue(makeEvent(sourceMetaMap)),
+      getProject: jest.fn().mockReturnValue(undefined),
+    };
+    (panel as any).dbtLineageService = {
+      createTable: jest.fn().mockReturnValue(undefined),
+    };
+    (window as any).activeTextEditor = makeEditor(
+      filePath,
+      "sources:\n  - name: seg\n    tables:\n      - name: identifies\n",
+    );
+
+    (panel as any).getStartingNode();
+
+    // The selection guard compares against this key; leaving it undefined on
+    // a failed createTable would re-trigger a full render on every cursor
+    // move until the service call succeeds.
+    expect((panel as any).lastRenderedSourceKey).toBe(
+      "source.proj.seg.identifies",
+    );
+  });
+
+  it("resolves the source only once per cursor-move render", () => {
+    const filePath = "/proj/models/sources/identifies.yml";
+    const sourceMetaMap = new Map([
+      [
+        "seg",
+        {
+          package_name: "proj",
+          name: "seg",
+          tables: [sourceTable("identifies", filePath)],
+        },
+      ],
+    ]);
+    (panel as any).queryManifestService = {
+      getEventByCurrentProject: jest
+        .fn()
+        .mockReturnValue(makeEvent(sourceMetaMap)),
+      getProject: jest.fn().mockReturnValue(undefined),
+    };
+    const editor = makeEditor(
+      filePath,
+      "sources:\n  - name: seg\n    tables:\n      - name: identifies\n",
+      3,
+    );
+    (window as any).activeTextEditor = editor;
+    const resolveSpy = jest.spyOn(
+      panel as any,
+      "resolveSourceStartingNode" as any,
+    );
+
+    (panel as any).changedTextEditorSelection(editor);
+
+    // The guard's resolution is threaded into the render path; without the
+    // threading this is 2 (guard + getStartingNode), iterating
+    // sourceMetaMap twice per cursor move.
+    expect(resolveSpy).toHaveBeenCalledTimes(1);
+    expect(
+      (panel as any)._panel.webview.postMessage,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: "render",
+        args: expect.objectContaining({
+          node: { table: "source.proj.seg.identifies" },
+        }),
+      }),
+    );
   });
 
   it("shows the missing-lineage message for a YAML that defines no source in this file", () => {

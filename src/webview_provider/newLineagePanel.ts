@@ -23,6 +23,7 @@ import {
   window,
   workspace,
 } from "vscode";
+import { isMap, isScalar, isSeq, parseDocument } from "yaml";
 import { AltimateRequest } from "../altimate";
 import { DBTProject } from "../dbt_client/dbtProject";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
@@ -37,8 +38,23 @@ import { extendErrorWithSupportLinks } from "../utils";
 import { AltimateWebviewProvider } from "./altimateWebviewProvider";
 import { LineagePanelView } from "./lineagePanel";
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+// A source table resolved to the dbt unique_id key the lineage should root at
+// (`source.<pkg>.<source>.<table>`).
+interface ResolvedSourceTable {
+  key: string;
+  sourceName: string;
+  table: SourceTable;
+}
+
+// 0-based line of `offset` within `text`.
+function lineAtOffset(text: string, offset: number): number {
+  let line = 0;
+  for (let i = 0; i < offset && i < text.length; i++) {
+    if (text.charCodeAt(i) === 10) {
+      line++;
+    }
+  }
+  return line;
 }
 
 class DerivedCancellationTokenSource extends CancellationTokenSource {
@@ -125,7 +141,9 @@ export class NewLineagePanel
     if (key === this.lastRenderedSourceKey) {
       return;
     }
-    this.renderStartingNode();
+    // Thread the resolution into the render so getStartingNode doesn't have
+    // to traverse sourceMetaMap a second time for the same cursor position.
+    this.renderStartingNode(resolved);
   }
 
   eventMapChanged(eventMap: Map<string, ManifestCacheProjectAddedEvent>): void {
@@ -160,13 +178,13 @@ export class NewLineagePanel
     this.renderStartingNode();
   }
 
-  private renderStartingNode() {
+  private renderStartingNode(resolvedSource?: ResolvedSourceTable) {
     if (!this._panel) {
       return;
     }
     this._panel.webview.postMessage({
       command: "render",
-      args: this.getStartingNode(),
+      args: this.getStartingNode(resolvedSource),
     });
   }
 
@@ -704,7 +722,7 @@ export class NewLineagePanel
     return { message, type: "warning" };
   }
 
-  private getStartingNode():
+  private getStartingNode(resolvedSource?: ResolvedSourceTable):
     | {
         node?: Table;
         aiEnabled: boolean;
@@ -768,15 +786,19 @@ export class NewLineagePanel
     // active file may be a `sources:` definition. Root at the source the cursor
     // is on (or the file's only source table).
     if (NewLineagePanel.SOURCE_YAML_EXTENSIONS.includes(ext)) {
-      const resolved = this.resolveSourceStartingNode(event.event, editor);
+      const resolved =
+        resolvedSource ?? this.resolveSourceStartingNode(event.event, editor);
       if (resolved) {
+        // Record the key before the createTable null-check: if the service
+        // fails for this key, the selection guard must still short-circuit
+        // instead of re-triggering a full render on every cursor move.
+        this.lastRenderedSourceKey = resolved.key;
         const node = this.dbtLineageService.createTable(
           event.event,
           resolved.table.path ?? url,
           resolved.key,
         );
         if (node) {
-          this.lastRenderedSourceKey = resolved.key;
           return { node, aiEnabled };
         }
       }
@@ -805,7 +827,7 @@ export class NewLineagePanel
   private resolveSourceStartingNode(
     event: ManifestCacheProjectAddedEvent,
     editor: TextEditor,
-  ): { key: string; sourceName: string; table: SourceTable } | undefined {
+  ): ResolvedSourceTable | undefined {
     const { sourceMetaMap } = event;
     const matches = this.getSourceTablesForFile(
       sourceMetaMap,
@@ -825,10 +847,9 @@ export class NewLineagePanel
   private getSourceTablesForFile(
     sourceMetaMap: SourceMetaMap,
     filePath: string,
-  ): { key: string; sourceName: string; table: SourceTable }[] {
+  ): ResolvedSourceTable[] {
     const target = path.normalize(filePath);
-    const matches: { key: string; sourceName: string; table: SourceTable }[] =
-      [];
+    const matches: ResolvedSourceTable[] = [];
     for (const source of sourceMetaMap.values()) {
       for (const table of source.tables) {
         if (!table.path) {
@@ -851,19 +872,16 @@ export class NewLineagePanel
   // is the closest line at or above the cursor — i.e. the table the cursor sits
   // within. Returns undefined when the cursor is above every declaration.
   private pickSourceTableByCursor(
-    matches: { key: string; sourceName: string; table: SourceTable }[],
+    matches: ResolvedSourceTable[],
     editor: TextEditor,
-  ): { key: string; sourceName: string; table: SourceTable } | undefined {
+  ): ResolvedSourceTable | undefined {
     const cursorLine = editor.selection.active.line;
-    let best:
-      | { key: string; sourceName: string; table: SourceTable }
-      | undefined;
+    const declLines = this.findSourceTableLines(editor.document);
+    let best: ResolvedSourceTable | undefined;
     let bestLine = -1;
     for (const match of matches) {
-      const declLine = this.findSourceTableLine(
-        editor.document,
-        match.table.name,
-      );
+      const declLine =
+        declLines.get(`${match.sourceName}.${match.table.name}`) ?? -1;
       if (declLine >= 0 && declLine <= cursorLine && declLine > bestLine) {
         best = match;
         bestLine = declLine;
@@ -872,20 +890,55 @@ export class NewLineagePanel
     return best;
   }
 
-  // Line number of a `- name: <table>` declaration in the document, or -1.
-  private findSourceTableLine(
-    document: TextDocument,
-    tableName: string,
-  ): number {
-    const pattern = new RegExp(
-      `^\\s*-?\\s*name:\\s*["']?${escapeRegExp(tableName)}["']?\\s*$`,
-    );
-    for (let line = 0; line < document.lineCount; line++) {
-      if (pattern.test(document.lineAt(line).text)) {
-        return line;
+  // Line numbers of the `- name: <table>` declarations inside each source's
+  // `tables:` block, keyed by `<source>.<table>`. Walks the YAML AST so a
+  // source-level `name:`, a model name in a mixed-purpose schema file, or a
+  // column that happens to share a table's name is never mistaken for a table
+  // declaration — and the same table name under two sources in one file maps
+  // to two distinct lines.
+  private findSourceTableLines(document: TextDocument): Map<string, number> {
+    const declLines = new Map<string, number>();
+    const text = document.getText();
+    let parsed;
+    try {
+      parsed = parseDocument(text);
+    } catch {
+      // Mid-edit YAML can be arbitrarily broken; fall back to "no
+      // declarations found" and let the caller use its first-match default.
+      return declLines;
+    }
+    const sources = parsed.get("sources");
+    if (!isSeq(sources)) {
+      return declLines;
+    }
+    for (const source of sources.items) {
+      if (!isMap(source)) {
+        continue;
+      }
+      const sourceName = source.get("name");
+      const tables = source.get("tables");
+      if (typeof sourceName !== "string" || !isSeq(tables)) {
+        continue;
+      }
+      for (const table of tables.items) {
+        if (!isMap(table)) {
+          continue;
+        }
+        const nameNode = table.get("name", true);
+        if (!isScalar(nameNode) || typeof nameNode.value !== "string") {
+          continue;
+        }
+        const offset = nameNode.range?.[0];
+        if (offset === undefined) {
+          continue;
+        }
+        declLines.set(
+          `${sourceName}.${nameNode.value}`,
+          lineAtOffset(text, offset),
+        );
       }
     }
-    return -1;
+    return declLines;
   }
 
   protected renderWebviewView(webview: Webview) {
