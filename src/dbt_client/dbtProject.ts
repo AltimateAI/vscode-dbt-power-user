@@ -243,6 +243,7 @@ export class DBTProject implements Disposable {
           sourceMetaMap: parsedManifest.sourceMetaMap,
           graphMetaMap: parsedManifest.graphMetaMap,
           testMetaMap: parsedManifest.testMetaMap,
+          unitTestMetaMap: parsedManifest.unitTestMetaMap,
           docMetaMap: parsedManifest.docMetaMap,
           exposureMetaMap: parsedManifest.exposureMetaMap,
           functionMetaMap: parsedManifest.functionMetaMap,

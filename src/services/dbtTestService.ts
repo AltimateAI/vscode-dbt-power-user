@@ -6,7 +6,7 @@ import {
   TestMetadataRelationships,
 } from "@altimateai/dbt-integration";
 import { getTestSuggestions } from "@lib";
-import { existsSync, readFileSync } from "fs";
+import { readFileSync } from "fs";
 import { inject } from "inversify";
 import { env, ProgressLocation, WebviewView, window } from "vscode";
 import { parse, stringify } from "yaml";
@@ -473,31 +473,18 @@ export class DbtTestService {
   public getUnitTestsForModel(
     modelName: string,
   ): { name: string; path?: string }[] {
-    const project = this.queryManifestService.getProject();
-    if (!project) {
-      return [];
-    }
-    const manifestPath = project.getManifestPath();
-    if (!manifestPath || !existsSync(manifestPath)) {
+    const eventResult = this.queryManifestService.getEventByCurrentProject();
+    if (!eventResult?.event) {
       return [];
     }
 
-    try {
-      const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-      return Object.values(manifest.nodes ?? {})
-        .filter(
-          (n: any) =>
-            n.resource_type === "unit_test" &&
-            n.unique_id.includes(`.${modelName}.`),
-        )
-        .map((n: any) => ({
-          name: n.name as string,
-          path: n.original_file_path
-            ? path.join(project.projectRoot.fsPath, n.original_file_path)
-            : undefined,
-        }));
-    } catch {
+    const { unitTestMetaMap } = eventResult.event;
+    if (!unitTestMetaMap) {
       return [];
     }
+
+    return Array.from(unitTestMetaMap.values())
+      .filter((ut) => ut.model.includes(modelName))
+      .map((ut) => ({ name: ut.name, path: ut.path }));
   }
 }

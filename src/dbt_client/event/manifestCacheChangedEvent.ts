@@ -8,6 +8,7 @@ import {
   NodeMetaMap,
   SourceMetaMap,
   TestMetaMap,
+  UnitTestMetaMap,
 } from "@altimateai/dbt-integration";
 import { Uri } from "vscode";
 import { DBTProject } from "../dbtProject";
@@ -20,6 +21,7 @@ export interface ManifestCacheProjectAddedEvent {
   sourceMetaMap: SourceMetaMap;
   graphMetaMap: GraphMetaMap;
   testMetaMap: TestMetaMap;
+  unitTestMetaMap: UnitTestMetaMap;
   docMetaMap: DocMetaMap;
   exposureMetaMap: ExposureMetaMap;
   functionMetaMap: FunctionMetaMap;

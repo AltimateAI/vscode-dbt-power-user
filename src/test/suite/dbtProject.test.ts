@@ -561,6 +561,7 @@ describe("DBTProject Test Suite", () => {
           metrics: new Map(),
         },
         testMetaMap: new Map(),
+        unitTestMetaMap: new Map(),
         docMetaMap: new Map(),
         exposureMetaMap: new Map(),
         modelDepthMap: new Map(),
