@@ -196,15 +196,23 @@ describe("utils tests", () => {
       expect(
         () => (msg = extendErrorWithSupportLinks(undefined)),
       ).not.toThrow();
-      expect(msg).toContain(LINK);
-      expect(msg).not.toContain("undefined");
+      expect(msg).toBe(
+        "If the issue persists, please [contact us](https://www.altimate.ai/support) via chat or Slack",
+      );
     });
 
     it("does not throw on null", () => {
       let msg = "";
       expect(() => (msg = extendErrorWithSupportLinks(null))).not.toThrow();
+      expect(msg).toBe(
+        "If the issue persists, please [contact us](https://www.altimate.ai/support) via chat or Slack",
+      );
+    });
+
+    it("returns the bare support link without leading whitespace for an empty string", () => {
+      const msg = extendErrorWithSupportLinks("");
+      expect(msg).not.toMatch(/^\s/);
       expect(msg).toContain(LINK);
-      expect(msg).not.toContain("null");
     });
 
     it("uses Error.message for Error instances", () => {

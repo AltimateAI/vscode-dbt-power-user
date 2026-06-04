@@ -96,8 +96,10 @@ export const setupWatcherHandler: (
 export function extendErrorWithSupportLinks(error: unknown): string {
   const message =
     error instanceof Error ? error.message : error == null ? "" : String(error);
+  const separator = message === "" || message.endsWith(" ") ? "" : " ";
   return (
-    (message.endsWith(" ") ? message : message + " ") +
+    message +
+    separator +
     "If the issue persists, please [contact us](https://www.altimate.ai/support) via chat or Slack"
   );
 }
