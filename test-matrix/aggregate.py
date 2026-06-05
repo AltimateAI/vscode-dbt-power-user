@@ -11,6 +11,7 @@ import argparse
 import glob
 import json
 import os
+import re
 import sys
 
 # Only these runtimes can fail a release. Everything else is informational.
@@ -65,6 +66,10 @@ def _pct(x) -> str:
     return f"{x:.1f}%" if isinstance(x, (int, float)) else "?"
 
 
+def _is_semver(v) -> bool:
+    return bool(re.match(r"^\d+\.\d+\.\d+$", v)) if isinstance(v, str) else False
+
+
 def _semver_key(v: str):
     """Sort key for plain x.y.z versions; non-semver sorts last."""
     try:
@@ -72,6 +77,14 @@ def _semver_key(v: str):
         return (0, int(a), int(b), int(c))
     except (ValueError, AttributeError):
         return (1, 0, 0, 0)
+
+
+def _newest_impact_version(impact: dict) -> str:
+    """Highest semver present in the impact map (the de-facto 'latest' a fresh
+    install lands on), so the install board can show target-version impact even
+    when result cells label `to` as 'latest'/'pr-build' rather than a semver."""
+    sv = [v for v in impact if _is_semver(v)]
+    return max(sv, key=_semver_key) if sv else ""
 
 
 LEGEND = (
@@ -108,8 +121,10 @@ def _render_install(cells: list[dict], impact: dict | None = None) -> str:
     runtimes = sorted({c["runtime"] for c in cells}, key=_runtime_sort_key)
     oses = sorted({c["os"] for c in cells}, key=_os_sort_key)
     by = {(c["runtime"], c["os"]): c for c in cells}
-    # Target version (what a fresh install lands on) — taken from the cells.
-    target = next(
+    # Target version (what a fresh install lands on). Cells label `to` as a
+    # semver, or "latest"/"pr-build" in CI — in those cases fall back to the
+    # newest version in the impact map so the per-OS target share still renders.
+    raw_target = next(
         (
             c.get("to") or c.get("target")
             for c in cells
@@ -117,6 +132,7 @@ def _render_install(cells: list[dict], impact: dict | None = None) -> str:
         ),
         "",
     )
+    target = raw_target if _is_semver(raw_target) else _newest_impact_version(impact)
 
     lines = [
         "### Install matrix (fresh install of target)",
@@ -175,23 +191,32 @@ def _render_update(cells: list[dict], impact: dict | None = None) -> str:
         return "\n".join(lines)
 
     by = {(c["runtime"], c["os"], c.get("from")): c for c in cells}
-    # Baselines per runtime — runtimes with several baselines get the dense grid;
-    # runtimes with a single baseline (the forks only test latest-minus-one) go in
-    # a compact list so the grid isn't a wall of "—".
+    # Split by runtime CLASS, not baseline count: the blocking runtimes (vscode)
+    # get the dense version×OS grid even if telemetry picks only one baseline;
+    # forks/code-server (which only test latest-minus-one) get the compact list so
+    # the grid isn't a wall of "—". (Splitting on len(baselines) mislabels a
+    # single-baseline vscode run as "Forks".)
     base_by_rt: dict[str, set] = {}
     for c in cells:
         if c.get("from"):
             base_by_rt.setdefault(c["runtime"], set()).add(c["from"])
     grid_rts = sorted(
-        (rt for rt, bs in base_by_rt.items() if len(bs) > 1), key=_runtime_sort_key
+        (rt for rt in base_by_rt if rt in BLOCKING_RUNTIMES), key=_runtime_sort_key
     )
     single_rts = sorted(
-        (rt for rt, bs in base_by_rt.items() if len(bs) == 1), key=_runtime_sort_key
+        (rt for rt in base_by_rt if rt not in BLOCKING_RUNTIMES), key=_runtime_sort_key
     )
 
-    # --- Dense grid: multi-baseline runtimes (e.g. vscode), newest baseline first.
+    # --- Dense grid: blocking runtimes (e.g. vscode), newest baseline first.
     for rt in grid_rts:
-        baselines = sorted(base_by_rt[rt], key=lambda v: _semver_key(v), reverse=True)
+        # Newest real version first; any non-semver string sorts to the END
+        # (reverse=True alone would push non-semver to the front).
+        all_b = base_by_rt[rt]
+        semver_b = sorted(
+            (v for v in all_b if _is_semver(v)), key=_semver_key, reverse=True
+        )
+        non_semver_b = sorted(v for v in all_b if not _is_semver(v))
+        baselines = semver_b + non_semver_b
         oses = sorted({c["os"] for c in cells if c["runtime"] == rt}, key=_os_sort_key)
         lines.append(f"**{rt}** — upgrade from each version → latest")
         lines.append("")

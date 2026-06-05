@@ -81,7 +81,9 @@ def live_plan(window_days: int = 30):
     # Per-version×OS impact share (best-effort; board degrades to no-% if empty).
     try:
         rows_by_os = av.query_rows_by_os(app_id, window_days)
-        impact = av.impact_by_version_os(rows_by_os) if rows_by_os else {}
+        # Pass `published` so junk/fork version strings (e.g. 1.2.16) are kept out
+        # of the impact map and can't be mistaken for the newest target version.
+        impact = av.impact_by_version_os(rows_by_os, published) if rows_by_os else {}
     except Exception as e:  # noqa: BLE001 - impact is optional, never block the plan
         print(
             f"::warning::impact query failed ({e}); board will omit %", file=sys.stderr

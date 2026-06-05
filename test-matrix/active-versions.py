@@ -60,7 +60,9 @@ KQL_BY_OS = (
     "| summarize arg_max(timestamp, v, os) by m "
     "| summarize installs=count() by v, os "
     "| sort by installs desc "
-    "| take 200"
+    "| take 2000"  # high cap: the (version×OS) cardinality is the denominator for
+    # the impact shares, so truncation would inflate every percentage. 2000 >> the
+    # realistic count (~100 versions × 3 OSes), so this is effectively "all".
 )
 
 # common.os value -> the board's OS label (matches build-matrix OSES / aggregate OS_ORDER).
@@ -175,7 +177,9 @@ def query_rows_by_os(
     return None
 
 
-def impact_by_version_os(rows_by_os: list[tuple[str, str, int]]) -> dict:
+def impact_by_version_os(
+    rows_by_os: list[tuple[str, str, int]], published: set | None = None
+) -> dict:
     """Collapse (version, os) rows into a nested share map over the FULL running
     base (every install counts in the denominator, so shares are honest):
 
@@ -184,12 +188,20 @@ def impact_by_version_os(rows_by_os: list[tuple[str, str, int]]) -> dict:
               "os": { "<board-os-label>": {"installs": int, "share": float} } } }
 
     'share' is percent of all installs (version-total and version×OS). os labels
-    use the board's macos/windows/linux naming."""
+    use the board's macos/windows/linux naming.
+
+    `published`: if given, only versions in this set are EMITTED into the map
+    (junk/fork strings like '1.2.16' that pass the x.y.z regex but aren't real
+    releases are excluded — otherwise they can be mistaken for the newest target).
+    The denominator stays the FULL running base (all installs counted), so the
+    emitted shares remain honest about what fraction of real users they cover."""
     total = sum(n for (_v, _o, n) in rows_by_os) or 1
     vmap: dict[str, dict] = {}
     for v, raw_os, n in rows_by_os:
         if not _SEMVER.match(v):
             continue  # junk/fork version strings can't be a tested baseline
+        if published and v not in published:
+            continue  # not a real published release — keep out of the map
         os_label = OS_LABEL.get(raw_os, raw_os)
         e = vmap.setdefault(v, {"total_installs": 0, "os": {}})
         e["total_installs"] += n
