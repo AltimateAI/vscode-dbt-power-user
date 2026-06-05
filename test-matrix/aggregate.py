@@ -65,6 +65,22 @@ def _pct(x) -> str:
     return f"{x:.1f}%" if isinstance(x, (int, float)) else "?"
 
 
+def _semver_key(v: str):
+    """Sort key for plain x.y.z versions; non-semver sorts last."""
+    try:
+        a, b, c = v.split(".")
+        return (0, int(a), int(b), int(c))
+    except (ValueError, AttributeError):
+        return (1, 0, 0, 0)
+
+
+LEGEND = (
+    "**Legend:** ✅ pass · ❌ blocking failure (fails the release gate) · "
+    "⚠️ non-blocking issue (forks/Insiders — informational) · ⏭️ skipped · — not run. "
+    "Percentages are the share of the live user base on that version×OS."
+)
+
+
 def build_matrices(results: list[dict], impact: dict | None = None) -> dict:
     impact = impact or {}
     install = [r for r in results if r.get("scenario") == "fresh"]
@@ -135,58 +151,89 @@ def _render_install(cells: list[dict], impact: dict | None = None) -> str:
     return "\n".join(lines)
 
 
+def _cell_text(cell: dict, impact: dict, version: str, os_name: str) -> str:
+    """A status glyph plus, when known, the version×OS user-impact share."""
+    sym = _cell_symbol(cell)
+    sh = _os_share(impact, version, os_name)
+    return f"{sym} {_pct(sh)}" if sh is not None else sym
+
+
 def _render_update(cells: list[dict], impact: dict | None = None) -> str:
     impact = impact or {}
     lines = [
-        "### Update matrix (upgrade baseline → target)",
+        "### Update matrix — upgrade to latest",
         "",
-        "_Scenario: existing install on the baseline version is updated **directly** "
-        "to latest (VS Code upgrades extensions in one hop, not sequentially). "
-        "Each cell shows pass/fail and the % of the running base on that "
-        "version×OS — i.e. who a broken upgrade would hit._",
+        "_Existing install on an older version is updated **directly to latest** "
+        "(VS Code upgrades in one hop — it does not step through intermediate "
+        "versions). Each cell: result + share of the live user base on that "
+        "version×OS = who a broken upgrade hits._",
         "",
     ]
     if not cells:
-        lines.append("_no upgrade cells in this run_")
+        lines.append("_No upgrade cells in this run._")
         lines.append("")
         return "\n".join(lines)
-    # Row = (runtime, os) so OS-specific upgrade cells (e.g. linux vs windows
-    # both upgrading from 0.61.4) don't collide into one row.
-    rows = sorted(
-        {(c["runtime"], c["os"]) for c in cells},
-        key=lambda k: (_runtime_sort_key(k[0]), _os_sort_key(k[1])),
-    )
-    baselines = sorted({c.get("from") for c in cells if c.get("from")})
-    by = {(c["runtime"], c["os"], c.get("from")): c for c in cells}
-    have_impact = bool(impact)
 
-    lines.append(
-        "| Runtime / OS | " + " | ".join(f"from {b}" for b in baselines) + " |"
+    by = {(c["runtime"], c["os"], c.get("from")): c for c in cells}
+    # Baselines per runtime — runtimes with several baselines get the dense grid;
+    # runtimes with a single baseline (the forks only test latest-minus-one) go in
+    # a compact list so the grid isn't a wall of "—".
+    base_by_rt: dict[str, set] = {}
+    for c in cells:
+        if c.get("from"):
+            base_by_rt.setdefault(c["runtime"], set()).add(c["from"])
+    grid_rts = sorted(
+        (rt for rt, bs in base_by_rt.items() if len(bs) > 1), key=_runtime_sort_key
     )
-    lines.append("|---|" + "---|" * len(baselines))
-    for rt, os_name in rows:
-        row = [f"{rt} ({os_name})"]
+    single_rts = sorted(
+        (rt for rt, bs in base_by_rt.items() if len(bs) == 1), key=_runtime_sort_key
+    )
+
+    # --- Dense grid: multi-baseline runtimes (e.g. vscode), newest baseline first.
+    for rt in grid_rts:
+        baselines = sorted(base_by_rt[rt], key=lambda v: _semver_key(v), reverse=True)
+        oses = sorted({c["os"] for c in cells if c["runtime"] == rt}, key=_os_sort_key)
+        lines.append(f"**{rt}** — upgrade from each version → latest")
+        lines.append("")
+        lines.append("| from \\ OS | " + " | ".join(oses) + " |")
+        lines.append("|:--|" + ":-:|" * len(oses))
         for b in baselines:
-            cell = by.get((rt, os_name, b))
-            if not cell:
-                row.append("—")
-                continue
-            sym = _cell_symbol(cell)
-            sh = _os_share(impact, b, os_name) if have_impact else None
-            row.append(f"{sym} {_pct(sh)}" if sh is not None else sym)
-        lines.append("| " + " | ".join(row) + " |")
-    lines.append("")
-    # Call out the worst confirmed-impact failures explicitly (blocking ❌ only).
+            row = [f"`{b}`"]
+            for os_name in oses:
+                cell = by.get((rt, os_name, b))
+                row.append(_cell_text(cell, impact, b, os_name) if cell else "—")
+            lines.append("| " + " | ".join(row) + " |")
+        lines.append("")
+
+    # --- Compact list: single-baseline runtimes (forks / code-server).
+    if single_rts:
+        lines.append("**Forks & code-server** — upgrade from latest-minus-one → latest")
+        lines.append("")
+        lines.append("| Runtime | OS | From | Result | Users on that version×OS |")
+        lines.append("|:--|:--|:--|:-:|:--|")
+        srows = sorted(
+            [c for c in cells if c["runtime"] in single_rts],
+            key=lambda c: (_runtime_sort_key(c["runtime"]), _os_sort_key(c["os"])),
+        )
+        for c in srows:
+            sh = _os_share(impact, c.get("from"), c.get("os"))
+            lines.append(
+                f"| {c['runtime']} | {c['os']} | `{c.get('from')}` | "
+                f"{_cell_symbol(c)} | {_pct(sh) if sh is not None else '—'} |"
+            )
+        lines.append("")
+
+    # Worst blocking failures, ranked by user impact (actionable triage list).
     fails = []
     for c in cells:
         if c.get("status") == "fail" and c.get("runtime") in BLOCKING_RUNTIMES:
-            sh = _os_share(impact, c.get("from"), c.get("os")) if have_impact else None
+            sh = _os_share(impact, c.get("from"), c.get("os"))
             fails.append((sh if sh is not None else -1.0, c))
     if fails:
         fails.sort(key=lambda x: x[0], reverse=True)
-        lines.append("**Blocking upgrade failures (by user impact):**")
+        lines.append("**⛔ Blocking upgrade failures (most users first):**")
         for sh, c in fails:
-            tag = f"{_pct(sh)} of users" if sh >= 0 else "impact unknown"
+            tag = f"**{_pct(sh)} of users**" if sh >= 0 else "impact unknown"
             lines.append(
                 f"- `{c.get('from')}` → latest on **{c.get('os')}** — {tag}"
                 + (f" — {c.get('reason')}" if c.get("reason") else "")
@@ -309,7 +356,22 @@ def main() -> int:
         return 1
 
     out = build_matrices(results, impact)
-    header = f"## VSIX Install + Update Matrix — target `{args.target or 'latest'}` ({args.trigger})\n\n"
+    total = len(results)
+    passed = sum(1 for r in results if r.get("status") == "pass")
+    failed = sum(1 for r in results if r.get("status") == "fail")
+    status_line = (
+        "❌ **Blocking failure**"
+        if out["has_blocking_failure"]
+        else ("⚠️ **Non-blocking issues**" if failed else "✅ **All green**")
+    )
+    header = (
+        f"## VSIX Install + Update Matrix — target `{args.target or 'latest'}` ({args.trigger})\n\n"
+        f"{status_line} · **{passed}/{total}** cells passed"
+        + (f" · {failed} failed" if failed else "")
+        + "\n\n"
+        + LEGEND
+        + "\n\n"
+    )
     combined = header + out["install_md"] + "\n" + out["update_md"]
     with open(os.path.join(args.out_dir, "install-matrix.md"), "w") as f:
         f.write(out["install_md"])

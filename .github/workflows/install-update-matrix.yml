@@ -392,6 +392,15 @@ jobs:
             --target "${{ github.event_name == 'pull_request' && 'pr-build' || 'latest' }}" \
             --trigger "${{ github.event_name }}" $IMPACT_ARG
           code=$?
+          # Render the board on the run's Summary page (formatted tables, no
+          # download). Runs whether the gate passes or fails so a red run still
+          # shows its board. Markdown is GitHub-flavored, so the | tables render.
+          if [ -f agg/matrix.md ]; then
+            cat agg/matrix.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## VSIX Install + Update Matrix" >> "$GITHUB_STEP_SUMMARY"
+            echo ":x: no board produced (no result files)." >> "$GITHUB_STEP_SUMMARY"
+          fi
           echo "blocking_failed=$([ $code -ne 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           exit 0
       - uses: actions/upload-artifact@v4
