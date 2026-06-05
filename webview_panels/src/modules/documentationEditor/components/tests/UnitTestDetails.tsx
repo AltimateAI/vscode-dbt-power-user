@@ -21,13 +21,14 @@ const UnitTestDetails = ({ test, modelName }: Props): JSX.Element => {
     executeRequestInSync("getUnitTestCode", {
       path: test.path,
       model: modelName,
+      name: test.name,
     })
       .then((result) => setContent(result as GetUnitTestCodeResponse))
       .catch((err) => {
         panelLogger.error("error loading unit test code", err);
         setContent({ error: (err as Error).message });
       });
-  }, [test.path, modelName]);
+  }, [test.path, modelName, test.name]);
 
   return (
     <Stack direction="column">
