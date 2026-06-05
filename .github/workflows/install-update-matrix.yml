@@ -39,9 +39,21 @@ jobs:
         id: plan
         env:
           APPINSIGHTS_API_KEY: ${{ secrets.APPINSIGHTS_API_KEY }}
-        run: python3 test-matrix/build-matrix.py >> "$GITHUB_OUTPUT"
+        run: |
+          python3 test-matrix/build-matrix.py >> "$GITHUB_OUTPUT"
+          # Split the per-version×OS impact map out to a file for the aggregate
+          # job (it's large + contains install-count business metrics, so it
+          # travels as an artifact rather than a step output that gets echoed).
+          grep '^impact=' "$GITHUB_OUTPUT" | tail -1 | sed 's/^impact=//' > impact.json
+          test -s impact.json || echo '{}' > impact.json
       - name: Echo chosen baselines
         run: echo "source=${{ steps.plan.outputs.source }} baselines=${{ steps.plan.outputs.baselines }}"
+      - name: Upload impact map
+        uses: actions/upload-artifact@v4
+        with:
+          name: impact-map
+          path: impact.json
+          retention-days: 3
 
   # Build one platform-specific VSIX per OS (native deps make a linux vsix
   # uninstallable on mac/windows), each on its matching runner.
@@ -350,7 +362,7 @@ jobs:
           if-no-files-found: ignore
 
   aggregate:
-    needs: [vscode-cells, codeserver-cell, cursor-cell, windsurf-cell, kiro-cell]
+    needs: [plan, vscode-cells, codeserver-cell, cursor-cell, windsurf-cell, kiro-cell]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -360,6 +372,13 @@ jobs:
           pattern: result-*
           path: results
           merge-multiple: true
+      # Per-version×OS impact map from the plan job (best-effort: the board still
+      # renders without it, just without the "% users impacted" figures).
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: impact-map
+          path: impact
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -367,9 +386,11 @@ jobs:
         id: agg
         run: |
           set +e
+          IMPACT_ARG=""
+          [ -f impact/impact.json ] && IMPACT_ARG="--impact-file impact/impact.json"
           python3 test-matrix/aggregate.py --results-dir results --out-dir agg \
             --target "${{ github.event_name == 'pull_request' && 'pr-build' || 'latest' }}" \
-            --trigger "${{ github.event_name }}"
+            --trigger "${{ github.event_name }}" $IMPACT_ARG
           code=$?
           echo "blocking_failed=$([ $code -ne 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           exit 0

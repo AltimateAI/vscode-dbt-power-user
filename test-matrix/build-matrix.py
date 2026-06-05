@@ -44,20 +44,27 @@ OSES = [
 # Reuse the tested query/selection logic from active-versions.py (hyphenated
 # filename -> load via importlib, same as the unit tests do).
 _HERE = pathlib.Path(__file__).resolve().parent
-_spec = importlib.util.spec_from_file_location("active_versions", _HERE / "active-versions.py")
+_spec = importlib.util.spec_from_file_location(
+    "active_versions", _HERE / "active-versions.py"
+)
 av = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(av)
 
 
 def live_plan(window_days: int = 30):
-    """Return (target, baselines, coverage_pct) chosen DYNAMICALLY from live App
-    Insights — via the REST API when APPINSIGHTS_API_KEY is set (CI) or the az CLI
-    when logged in (local). Returns None if no backend / query fails / empty."""
+    """Return (target, baselines, coverage_pct, impact) chosen DYNAMICALLY from
+    live App Insights — via the REST API when APPINSIGHTS_API_KEY is set (CI) or
+    the az CLI when logged in (local). Returns None if no backend / query fails /
+    empty. `impact` is the per-version×OS install-share map (or {} if the impact
+    query is unavailable — version selection still succeeds without it)."""
     app_id = os.environ.get("APPINSIGHTS_APP_ID", av.DEFAULT_APP_ID)
     try:
         rows = av.query_rows(app_id, window_days)
     except Exception as e:  # noqa: BLE001 - any failure => fall back, never crash CI
-        print(f"::warning::App Insights query failed ({e}); using fallback", file=sys.stderr)
+        print(
+            f"::warning::App Insights query failed ({e}); using fallback",
+            file=sys.stderr,
+        )
         return None
     if not rows:
         return None
@@ -65,16 +72,34 @@ def live_plan(window_days: int = 30):
     total = sum(n for (_v, n, _s) in dist) or 1
     published = av.published_versions()
     target = av.pick_target(dist, published)
-    baselines = av.pick_by_coverage(dist, target, TARGET_COVERAGE_PCT, published, MAX_BASELINES)
+    baselines = av.pick_by_coverage(
+        dist, target, TARGET_COVERAGE_PCT, published, MAX_BASELINES
+    )
     if not target or not baselines:
         return None
     covered = sum(n for (v, n, _s) in dist if v == target or v in set(baselines))
-    return target, baselines, round(100 * covered / total, 1)
+    # Per-version×OS impact share (best-effort; board degrades to no-% if empty).
+    try:
+        rows_by_os = av.query_rows_by_os(app_id, window_days)
+        impact = av.impact_by_version_os(rows_by_os) if rows_by_os else {}
+    except Exception as e:  # noqa: BLE001 - impact is optional, never block the plan
+        print(
+            f"::warning::impact query failed ({e}); board will omit %", file=sys.stderr
+        )
+        impact = {}
+    return target, baselines, round(100 * covered / total, 1), impact
 
 
 def _cell(os_name, osl, target, vscode, mode, frm):
     # "from" is a Python keyword, so build the dict explicitly.
-    return {"os": os_name, "osl": osl, "target": target, "vscode": vscode, "mode": mode, "from": frm}
+    return {
+        "os": os_name,
+        "osl": osl,
+        "target": target,
+        "vscode": vscode,
+        "mode": mode,
+        "from": frm,
+    }
 
 
 def build_include(baselines: list[str]) -> list[dict]:
@@ -96,10 +121,10 @@ def build_include(baselines: list[str]) -> list[dict]:
 def main() -> int:
     plan = live_plan()
     if plan:
-        target, baselines, coverage = plan
+        target, baselines, coverage, impact = plan
         source, coverage_s = "live", str(coverage)
     else:
-        target, baselines = FALLBACK_TARGET, FALLBACK_BASELINES
+        target, baselines, impact = FALLBACK_TARGET, FALLBACK_BASELINES, {}
         source, coverage_s = "fallback", "n/a"
 
     include = build_include(baselines)
@@ -107,8 +132,14 @@ def main() -> int:
     print("baselines=" + ",".join(baselines))
     print("source=" + source)
     print("coverage=" + coverage_s)
-    print(f"target={target} source={source} coverage={coverage_s}% "
-          f"baselines={baselines} cells={len(include)}", file=sys.stderr)
+    # Per-version×OS install-share map for the board's "% users impacted" column.
+    # Empty {} on fallback / impact-query failure — the board then omits the %.
+    print("impact=" + json.dumps(impact, separators=(",", ":")))
+    print(
+        f"target={target} source={source} coverage={coverage_s}% "
+        f"baselines={baselines} cells={len(include)} impact_versions={len(impact)}",
+        file=sys.stderr,
+    )
     return 0
 
 
