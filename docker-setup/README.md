@@ -10,6 +10,31 @@ npm run docker:deploy
 
 This builds the extension, starts the container, and enters watch mode. Open http://localhost:3001/?folder=/home/coder/project in your browser.
 
+## Reproduce a pinned IDE + extension + dbt-core version
+
+`docker-setup/launch-pinned.sh` brings up code-server (VS Code in the browser) in a
+throwaway container with an **exact** dbt Power User version, dbt-core version, and
+(optionally) code-server version — useful for reproducing a customer's environment
+without installing anything on your machine.
+
+```bash
+# extension 0.61.5 + dbt-core 1.10.18 on http://localhost:3001
+bash docker-setup/launch-pinned.sh --extension 0.61.5 --dbt 1.10.18
+
+# pin the IDE version too, and use a different port
+bash docker-setup/launch-pinned.sh --extension 0.61.5 --dbt 1.10.18 --code-server 4.99.1 --port 3002
+```
+
+Every run is a **clean install**: it removes any previous `dbt-pu-demo` container,
+builds a fresh one, installs the published extension version from OpenVSX, pins
+dbt-core, and copies the sample dbt projects in (fixing ownership + the
+`require-dbt-version` guard so they build under the pinned dbt). You only need
+**Docker + this repo cloned** — the IDE, extension, dbt, and the jaffle-shop project
+all live in the container. It prints a ready-to-open URL; stop with `docker rm -f dbt-pu-demo`.
+
+To pin a **native** (non-Docker) VS Code build instead, use
+`node test-matrix/version-install.mjs --vscode 1.117.0 --extension 0.61.5 --dbt 1.10.18`.
+
 ## How It Works
 
 The extension source is **volume-mounted** into the container (read-only), so you don't need to rebuild a VSIX or the Docker image for every change:

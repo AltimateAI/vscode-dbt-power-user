@@ -1,4 +1,7 @@
-FROM codercom/code-server:latest
+# Pin the code-server (browser IDE) version with --build-arg CS_TAG=<tag>.
+# Default "latest" preserves existing behaviour for deploy.sh / vsix-smoke.sh.
+ARG CS_TAG=latest
+FROM codercom/code-server:${CS_TAG}
 
 USER root
 
