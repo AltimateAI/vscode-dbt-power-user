@@ -110,11 +110,15 @@ if [ -f "$HOME/.altimate-host/altimate.json" ]; then
     "
 fi
 
-# Determine project directory
-if [ -d "/home/coder/project" ] && [ "$(ls -A /home/coder/project 2>/dev/null)" ]; then
+# Determine project directory. Use the mounted project only if it is a real dbt
+# project (has dbt_project.yml) — a bare non-empty check would wrongly pick the
+# placeholder dir mounted when DBT_PROJECT_PATH is unset. Otherwise fall back to
+# the built-in jaffle-shop-duckdb seeded above (note: HYPHENS, matching the dir
+# created by the seeding loop — the old underscore name pointed at nothing).
+if [ -f "/home/coder/project/dbt_project.yml" ]; then
     PROJECT_DIR="/home/coder/project"
 else
-    PROJECT_DIR="/home/coder/jaffle_shop_duckdb"
+    PROJECT_DIR="/home/coder/jaffle-shop-duckdb"
 fi
 
 # Start code-server with the project open
