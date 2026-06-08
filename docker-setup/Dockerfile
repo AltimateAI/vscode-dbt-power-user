@@ -24,6 +24,25 @@ RUN pip3 install --break-system-packages dbt-duckdb
 
 USER coder
 
+# Give the non-root `coder` user a writable npm global prefix. Without this,
+# `npm install -g` writes to the root-owned /usr prefix and fails with EACCES —
+# which is exactly what the extension's in-IDE "Install Altimate Code" step
+# (npm install -g altimate-code) hit. Setting NPM_CONFIG_PREFIX (an env var npm
+# honors) routes global installs to a coder-owned dir and puts its bin on PATH.
+ENV NPM_CONFIG_PREFIX=/home/coder/.npm-global
+ENV PATH=/home/coder/.npm-global/bin:$PATH
+# ENV PATH covers the code-server process + extension host (non-login). The
+# integrated terminal runs a login shell that re-sources /etc/profile and resets
+# PATH, so also persist the prefix in the user's shell profiles — otherwise
+# `altimate-code` is on PATH for the extension but not when typed in the terminal.
+RUN mkdir -p /home/coder/.npm-global/bin \
+    && printf '\nexport PATH=/home/coder/.npm-global/bin:$PATH\n' \
+       | tee -a /home/coder/.bashrc /home/coder/.profile >/dev/null
+
+# Pre-install the Altimate Code CLI so the web IDE is ready out of the box (the
+# "Install Altimate Code" panel's "Check Again" then passes without manual steps).
+RUN npm install -g altimate-code
+
 # Create altimate directory
 RUN mkdir -p ~/.altimate
 
