@@ -4,7 +4,7 @@
 # manifest API, verifies its sha256, extracts it, and prints the launchable binary.
 #
 # Output (last two lines, eval-able):
-#   WINDSURF_BIN=<path to Windsurf/windsurf launcher>
+#   WINDSURF_BIN=<path to the discovered launcher, e.g. Devin/devin-desktop>
 #   WINDSURF_VERSION=<x.y.z>
 #
 # Usage:
@@ -43,12 +43,34 @@ if [ -n "$sha" ]; then
   fi
 fi
 
-# 4. Extract. Tarball top dir is "Windsurf/"; launcher is Windsurf/windsurf.
+# 4. Extract, then DISCOVER the launcher instead of hardcoding its path. Windsurf
+# was acquired by Cognition and repackaged under the "Devin" name: the tarball top
+# dir went Windsurf/ -> Devin/ and the launcher windsurf -> devin-desktop, which
+# silently broke the old hardcoded "$OUT_DIR/Windsurf/windsurf" path. Find the
+# product's top-level ELF launcher (the GUI binary cursor-cell.mjs spawns),
+# skipping the Chromium helper executables; fall back to the bin/ CLI launcher
+# (VSCode-fork convention) so a future repackage can't silently break this lane.
 tar -xzf "$tarball" -C "$OUT_DIR"
-bin="$OUT_DIR/Windsurf/windsurf"
-if [ ! -x "$bin" ]; then
-  echo "FAIL: extracted Windsurf launcher not found/executable at $bin" >&2
-  ls -la "$OUT_DIR/Windsurf" 2>/dev/null | head >&2 || true
+top="$(find "$OUT_DIR" -mindepth 1 -maxdepth 1 -type d | head -1)"
+if [ -z "$top" ]; then
+  echo "FAIL: Windsurf tarball extracted no top-level directory into $OUT_DIR" >&2
+  ls -la "$OUT_DIR" >&2 || true
+  exit 1
+fi
+bin=""
+for cand in "$top"/*; do
+  [ -f "$cand" ] && [ -x "$cand" ] || continue
+  case "$(basename "$cand")" in
+    chrome-sandbox|chrome_crashpad_handler) continue ;;
+  esac
+  if file -b "$cand" | grep -q "executable"; then bin="$cand"; break; fi
+done
+if [ -z "$bin" ]; then
+  bin="$(find "$top/bin" -maxdepth 1 -type f -perm -u+x 2>/dev/null | head -1)"
+fi
+if [ -z "$bin" ] || [ ! -x "$bin" ]; then
+  echo "FAIL: could not locate the Windsurf/Devin launcher under $top" >&2
+  ls -la "$top" "$top/bin" 2>/dev/null >&2 || true
   exit 1
 fi
 

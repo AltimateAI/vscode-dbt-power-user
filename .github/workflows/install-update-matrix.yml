@@ -187,9 +187,6 @@ jobs:
           set -e
           sudo apt-get update && sudo apt-get install -y xvfb
           eval "$(bash test-matrix/setup-dbt-env.sh)"
-          eval "$(bash test-matrix/provision/cursor.sh)"   # sets CURSOR_BIN, CURSOR_VERSION
-          echo "Provisioned Cursor $CURSOR_VERSION at $CURSOR_BIN"
-          vsixes=( pu-*.vsix ); VSIX="${vsixes[0]}"
           MODE="${{ matrix.mode }}"
           # Representative upgrade baseline = highest version from the plan job.
           FROM=""
@@ -197,17 +194,39 @@ jobs:
             FROM="$(printf '%s' "$BASELINES" | tr ',' '\n' | tail -1)"
           fi
           OUT="result-cursor-${MODE}-${FROM}.json"
+          FROM_JSON="$([ -n "$FROM" ] && echo "\"$FROM\"" || echo null)"
+          # Write an ACCURATE failure result (real reason + measured duration), not a
+          # hardcoded "cell wedged"/720s placeholder, so the board's reason is honest.
+          emit_fail() { # $1=reason  $2=duration_seconds
+            local r; r="$(printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+            printf '{"runtime":"cursor","os":"linux","scenario":"%s","from":%s,"to":"pr-build","install_ok":false,"deps_resolved":{},"activation_ok":false,"dbt_flow_ok":false,"status":"fail","reason":"%s","duration_s":%s,"log_artifact":"%s"}\n' \
+              "$MODE" "$FROM_JSON" "$r" "$2" "$OUT" > "$OUT"
+          }
+          # Provision runs in $(...), so `set -e` can't see its exit code — check it
+          # explicitly and capture the real stderr reason (download/extract/launcher
+          # error) instead of silently continuing with an empty binary path.
+          t0=$SECONDS
+          if ! prov="$(bash test-matrix/provision/cursor.sh 2>/tmp/cursor-prov.err)"; then
+            reason="$(grep -E 'FAIL' /tmp/cursor-prov.err | tail -1)"
+            [ -z "$reason" ] && reason="$(tail -1 /tmp/cursor-prov.err 2>/dev/null)"
+            emit_fail "provision failed: ${reason:-unknown error}" "$((SECONDS - t0))"
+            echo "=== RESULT_JSON ==="; cat "$OUT"; cat /tmp/cursor-prov.err >&2 || true
+            exit 0
+          fi
+          eval "$prov"   # sets CURSOR_BIN, CURSOR_VERSION
+          echo "Provisioned Cursor ${CURSOR_VERSION:-?} at ${CURSOR_BIN:-?}"
+          vsixes=( pu-*.vsix ); VSIX="${vsixes[0]}"
           ARGS=(--bin "$CURSOR_BIN" --mode "$MODE" --target "$PWD/$VSIX" --out "$OUT")
           [ -n "$FROM" ] && ARGS+=(--from "$FROM")
           # Hard outer guard: `timeout -s KILL` caps wall time even if the whole
           # Cursor process tree wedges (the node-level backstop can't help if a
           # synchronous child blocks the event loop). After it returns, reap any
           # straggler Cursor/Xvfb processes so nothing keeps the job alive.
+          t1=$SECONDS
           timeout -s KILL 12m xvfb-run -a node test-matrix/cursor-cell.mjs "${ARGS[@]}" || true
           pkill -9 -f 'squashfs-root|cursor|Xvfb' 2>/dev/null || true
           if [ ! -f "$OUT" ]; then
-            printf '{"runtime":"cursor","os":"linux","scenario":"%s","from":%s,"to":"pr-build","install_ok":false,"deps_resolved":{},"activation_ok":false,"dbt_flow_ok":false,"status":"fail","reason":"cell wedged — killed by outer timeout","duration_s":720,"log_artifact":"%s"}\n' \
-              "$MODE" "$([ -n "$FROM" ] && echo "\"$FROM\"" || echo null)" "$OUT" > "$OUT"
+            emit_fail "cell produced no result within 12m (process wedged or was killed)" "$((SECONDS - t1))"
           fi
           echo "=== RESULT_JSON ==="; cat "$OUT"
       - uses: actions/upload-artifact@v4
@@ -262,22 +281,43 @@ jobs:
           set -e
           sudo apt-get update && sudo apt-get install -y xvfb
           eval "$(bash test-matrix/setup-dbt-env.sh)"
-          eval "$(bash test-matrix/provision/windsurf.sh)"   # sets WINDSURF_BIN, WINDSURF_VERSION
-          echo "Provisioned Windsurf $WINDSURF_VERSION at $WINDSURF_BIN"
-          vsixes=( pu-*.vsix ); VSIX="${vsixes[0]}"
           MODE="${{ matrix.mode }}"
           FROM=""
           if [ "$MODE" = "upgrade" ]; then
             FROM="$(printf '%s' "$BASELINES" | tr ',' '\n' | tail -1)"
           fi
           OUT="result-windsurf-${MODE}-${FROM}.json"
+          FROM_JSON="$([ -n "$FROM" ] && echo "\"$FROM\"" || echo null)"
+          # Write an ACCURATE failure result (real reason + measured duration), not a
+          # hardcoded "cell wedged"/720s placeholder, so the board's reason is honest.
+          emit_fail() { # $1=reason  $2=duration_seconds
+            local r; r="$(printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+            printf '{"runtime":"windsurf","os":"linux","scenario":"%s","from":%s,"to":"pr-build","install_ok":false,"deps_resolved":{},"activation_ok":false,"dbt_flow_ok":false,"status":"fail","reason":"%s","duration_s":%s,"log_artifact":"%s"}\n' \
+              "$MODE" "$FROM_JSON" "$r" "$2" "$OUT" > "$OUT"
+          }
+          # Provision runs in $(...), so `set -e` can't see its exit code — check it
+          # explicitly and capture the real stderr reason. This is exactly the failure
+          # mode that hid the Windsurf->Devin repackage: an empty WINDSURF_BIN slid
+          # through and the cell reported a fake "wedged/720s" instead of the launcher
+          # error. Now a provision failure produces an honest, fast result.
+          t0=$SECONDS
+          if ! prov="$(bash test-matrix/provision/windsurf.sh 2>/tmp/windsurf-prov.err)"; then
+            reason="$(grep -E 'FAIL' /tmp/windsurf-prov.err | tail -1)"
+            [ -z "$reason" ] && reason="$(tail -1 /tmp/windsurf-prov.err 2>/dev/null)"
+            emit_fail "provision failed: ${reason:-unknown error}" "$((SECONDS - t0))"
+            echo "=== RESULT_JSON ==="; cat "$OUT"; cat /tmp/windsurf-prov.err >&2 || true
+            exit 0
+          fi
+          eval "$prov"   # sets WINDSURF_BIN, WINDSURF_VERSION
+          echo "Provisioned Windsurf ${WINDSURF_VERSION:-?} at ${WINDSURF_BIN:-?}"
+          vsixes=( pu-*.vsix ); VSIX="${vsixes[0]}"
           ARGS=(--runtime windsurf --bin "$WINDSURF_BIN" --mode "$MODE" --target "$PWD/$VSIX" --out "$OUT")
           [ -n "$FROM" ] && ARGS+=(--from "$FROM")
+          t1=$SECONDS
           timeout -s KILL 12m xvfb-run -a node test-matrix/cursor-cell.mjs "${ARGS[@]}" || true
-          pkill -9 -f 'Windsurf|windsurf|Xvfb' 2>/dev/null || true
+          pkill -9 -f 'Windsurf|windsurf|Devin|devin|Xvfb' 2>/dev/null || true
           if [ ! -f "$OUT" ]; then
-            printf '{"runtime":"windsurf","os":"linux","scenario":"%s","from":%s,"to":"pr-build","install_ok":false,"deps_resolved":{},"activation_ok":false,"dbt_flow_ok":false,"status":"fail","reason":"cell wedged — killed by outer timeout","duration_s":720,"log_artifact":"%s"}\n' \
-              "$MODE" "$([ -n "$FROM" ] && echo "\"$FROM\"" || echo null)" "$OUT" > "$OUT"
+            emit_fail "cell produced no result within 12m (process wedged or was killed)" "$((SECONDS - t1))"
           fi
           echo "=== RESULT_JSON ==="; cat "$OUT"
       - uses: actions/upload-artifact@v4
@@ -330,22 +370,41 @@ jobs:
           set -e
           sudo apt-get update && sudo apt-get install -y xvfb
           eval "$(bash test-matrix/setup-dbt-env.sh)"
-          eval "$(bash test-matrix/provision/kiro.sh)"   # sets KIRO_BIN, KIRO_VERSION
-          echo "Provisioned Kiro $KIRO_VERSION at $KIRO_BIN"
-          vsixes=( pu-*.vsix ); VSIX="${vsixes[0]}"
           MODE="${{ matrix.mode }}"
           FROM=""
           if [ "$MODE" = "upgrade" ]; then
             FROM="$(printf '%s' "$BASELINES" | tr ',' '\n' | tail -1)"
           fi
           OUT="result-kiro-${MODE}-${FROM}.json"
+          FROM_JSON="$([ -n "$FROM" ] && echo "\"$FROM\"" || echo null)"
+          # Write an ACCURATE failure result (real reason + measured duration), not a
+          # hardcoded "cell wedged"/720s placeholder, so the board's reason is honest.
+          emit_fail() { # $1=reason  $2=duration_seconds
+            local r; r="$(printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+            printf '{"runtime":"kiro","os":"linux","scenario":"%s","from":%s,"to":"pr-build","install_ok":false,"deps_resolved":{},"activation_ok":false,"dbt_flow_ok":false,"status":"fail","reason":"%s","duration_s":%s,"log_artifact":"%s"}\n' \
+              "$MODE" "$FROM_JSON" "$r" "$2" "$OUT" > "$OUT"
+          }
+          # Provision runs in $(...), so `set -e` can't see its exit code — check it
+          # explicitly and capture the real stderr reason instead of silently
+          # continuing with an empty binary path.
+          t0=$SECONDS
+          if ! prov="$(bash test-matrix/provision/kiro.sh 2>/tmp/kiro-prov.err)"; then
+            reason="$(grep -E 'FAIL' /tmp/kiro-prov.err | tail -1)"
+            [ -z "$reason" ] && reason="$(tail -1 /tmp/kiro-prov.err 2>/dev/null)"
+            emit_fail "provision failed: ${reason:-unknown error}" "$((SECONDS - t0))"
+            echo "=== RESULT_JSON ==="; cat "$OUT"; cat /tmp/kiro-prov.err >&2 || true
+            exit 0
+          fi
+          eval "$prov"   # sets KIRO_BIN, KIRO_VERSION
+          echo "Provisioned Kiro ${KIRO_VERSION:-?} at ${KIRO_BIN:-?}"
+          vsixes=( pu-*.vsix ); VSIX="${vsixes[0]}"
           ARGS=(--runtime kiro --bin "$KIRO_BIN" --mode "$MODE" --target "$PWD/$VSIX" --out "$OUT")
           [ -n "$FROM" ] && ARGS+=(--from "$FROM")
+          t1=$SECONDS
           timeout -s KILL 12m xvfb-run -a node test-matrix/cursor-cell.mjs "${ARGS[@]}" || true
           pkill -9 -f 'Kiro|kiro|Xvfb' 2>/dev/null || true
           if [ ! -f "$OUT" ]; then
-            printf '{"runtime":"kiro","os":"linux","scenario":"%s","from":%s,"to":"pr-build","install_ok":false,"deps_resolved":{},"activation_ok":false,"dbt_flow_ok":false,"status":"fail","reason":"cell wedged — killed by outer timeout","duration_s":720,"log_artifact":"%s"}\n' \
-              "$MODE" "$([ -n "$FROM" ] && echo "\"$FROM\"" || echo null)" "$OUT" > "$OUT"
+            emit_fail "cell produced no result within 12m (process wedged or was killed)" "$((SECONDS - t1))"
           fi
           echo "=== RESULT_JSON ==="; cat "$OUT"
       - uses: actions/upload-artifact@v4

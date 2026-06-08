@@ -383,19 +383,38 @@ def main() -> int:
     out = build_matrices(results, impact)
     total = len(results)
     passed = sum(1 for r in results if r.get("status") == "pass")
-    failed = sum(1 for r in results if r.get("status") == "fail")
+    failed_cells = [r for r in results if r.get("status") == "fail"]
+    blocking_failed = sum(
+        1 for r in failed_cells if r.get("runtime") in BLOCKING_RUNTIMES
+    )
+    nonblocking_failed = len(failed_cells) - blocking_failed
     status_line = (
         "❌ **Blocking failure**"
         if out["has_blocking_failure"]
-        else ("⚠️ **Non-blocking issues**" if failed else "✅ **All green**")
+        else ("⚠️ **Non-blocking issues**" if failed_cells else "✅ **All green**")
     )
+    # Resolve the title to the actual target VERSION. `--target latest` (the usual
+    # workflow_dispatch value) is not a version; show the semver a fresh install
+    # really lands on so the title agrees with the per-version numbers in the body.
+    resolved = (
+        args.target if _is_semver(args.target) else _newest_impact_version(impact)
+    )
+    if resolved and not _is_semver(args.target):
+        title_target = (
+            f"{resolved} ({args.target or 'latest'})"  # e.g. "0.61.6 (latest)"
+        )
+    else:
+        title_target = resolved or args.target or "latest"
+    # Count line: separate blocking from non-blocking so "N failed" can't be misread
+    # as N release-blocking failures when they are informational fork/Insiders ⚠️.
+    counts = f"**{passed}/{total}** cells passed"
+    if failed_cells:
+        counts += (
+            f" · {blocking_failed} blocking ❌ · {nonblocking_failed} non-blocking ⚠️"
+        )
     header = (
-        f"## VSIX Install + Update Matrix — target `{args.target or 'latest'}` ({args.trigger})\n\n"
-        f"{status_line} · **{passed}/{total}** cells passed"
-        + (f" · {failed} failed" if failed else "")
-        + "\n\n"
-        + LEGEND
-        + "\n\n"
+        f"## VSIX Install + Update Matrix — target `{title_target}` ({args.trigger})\n\n"
+        f"{status_line} · {counts}\n\n" + LEGEND + "\n\n"
     )
     combined = header + out["install_md"] + "\n" + out["update_md"]
     with open(os.path.join(args.out_dir, "install-matrix.md"), "w") as f:
