@@ -50,3 +50,8 @@ docker-setup/.env
 
 # GitHub issues dashboard cache
 monitoring/github_issues/.cache/
+
+# Install/update matrix local env
+.matrix-venv/
+# Generated telemetry snapshot (install counts) — never commit (public repo)
+test-matrix/active-versions.json

@@ -1,0 +1,15 @@
+# Scoped ignore for test-matrix/Dockerfile (BuildKit reads <dockerfile>.dockerignore).
+# Keep the build context small and platform-correct: never copy the host's
+# mac-built node_modules / downloaded editors / venv — they'd be wrong-arch and huge.
+node_modules
+webview_panels/node_modules
+.vscode-test
+.matrix-venv
+**/result-*.json
+**/*-console-*.log
+.git
+docs
+out
+coverage
+.nyc_output
+*.vsix

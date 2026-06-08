@@ -1,0 +1,511 @@
+name: Install/Update Matrix
+
+on:
+  pull_request:
+    # "**" matches multi-segment base branches (e.g. feat/x); "*" would not.
+    branches: ["**"]
+  push:
+    tags: ["*"]
+  schedule:
+    - cron: "30 6 * * *" # daily, 06:30 UTC (offset from vsix-smoke's 06:00)
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pull-requests: write
+  statuses: write
+
+concurrency:
+  group: install-update-matrix-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Compute the cell matrix. Upgrade baselines are data-driven from the live
+  # App Insights version distribution when APPINSIGHTS_API_KEY is set; otherwise
+  # a hardcoded fallback is used (fork PRs / telemetry outage).
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      baselines: ${{ steps.plan.outputs.baselines }}
+      source: ${{ steps.plan.outputs.source }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Build matrix (data-driven baselines)
+        id: plan
+        env:
+          APPINSIGHTS_API_KEY: ${{ secrets.APPINSIGHTS_API_KEY }}
+        run: |
+          python3 test-matrix/build-matrix.py >> "$GITHUB_OUTPUT"
+          # Split the per-version×OS impact map out to a file for the aggregate
+          # job (it's large + contains install-count business metrics, so it
+          # travels as an artifact rather than a step output that gets echoed).
+          grep '^impact=' "$GITHUB_OUTPUT" | tail -1 | sed 's/^impact=//' > impact.json
+          test -s impact.json || echo '{}' > impact.json
+      - name: Echo chosen baselines
+        run: echo "source=${{ steps.plan.outputs.source }} baselines=${{ steps.plan.outputs.baselines }}"
+      - name: Upload impact map
+        uses: actions/upload-artifact@v4
+        with:
+          name: impact-map
+          path: impact.json
+          retention-days: 3
+
+  # Build one platform-specific VSIX per OS (native deps make a linux vsix
+  # uninstallable on mac/windows), each on its matching runner.
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: linux-x64 }
+          - { os: macos-latest, target: darwin-arm64 }
+          - { os: windows-latest, target: win32-x64 }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/common-build
+        with:
+          vsce-target: ${{ matrix.target }}
+      - name: Package VSIX
+        run: npx @vscode/vsce package --target ${{ matrix.target }} -o pu-${{ matrix.target }}.vsix
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vsix-${{ matrix.target }}
+          path: pu-${{ matrix.target }}.vsix
+          retention-days: 3
+
+  vscode-cells:
+    needs: [plan, build]
+    strategy:
+      fail-fast: false
+      # Cells (incl. data-driven upgrade baselines) come from the plan job.
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - name: Install deps + compile test suite
+        run: |
+          npm ci
+          npm run compile
+      - uses: actions/download-artifact@v4
+        with:
+          name: vsix-${{ matrix.target }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run cell
+        shell: bash
+        run: |
+          set -e
+          eval "$(bash test-matrix/setup-dbt-env.sh)"
+          vsixes=( pu-*.vsix ); VSIX="${vsixes[0]}"
+          OUT="result-${{ matrix.osl }}-${{ matrix.vscode }}-${{ matrix.mode }}-${{ matrix.from }}.json"
+          ARGS=(--mode "${{ matrix.mode }}" --target "$PWD/$VSIX" --vscode-version "${{ matrix.vscode }}" --out "$OUT")
+          [ -n "${{ matrix.from }}" ] && ARGS+=(--from "${{ matrix.from }}")
+          if [ "${{ matrix.osl }}" = "linux" ]; then
+            sudo apt-get update && sudo apt-get install -y xvfb
+            xvfb-run -a node test-matrix/vscode-cell.mjs "${ARGS[@]}" || true
+          else
+            node test-matrix/vscode-cell.mjs "${ARGS[@]}" || true
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: result-${{ matrix.osl }}-${{ matrix.vscode }}-${{ matrix.mode }}-${{ matrix.from }}
+          path: result-*.json
+          if-no-files-found: warn
+
+  codeserver-cell:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: vsix-linux-x64
+      - name: code-server fresh + upgrade
+        run: |
+          vsixes=( pu-*.vsix ); VSIX="${vsixes[0]}"
+          bash test-matrix/codeserver-cell.sh --mode fresh   --vsix-file "$PWD/$VSIX" --out result-codeserver-fresh.json || true
+          bash test-matrix/codeserver-cell.sh --mode upgrade --from 0.61.4 --vsix-file "$PWD/$VSIX" --out result-codeserver-upgrade.json || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: result-codeserver
+          path: result-codeserver-*.json
+          if-no-files-found: warn
+
+  # Non-blocking fork lane: Cursor (Anysphere VSCode fork), Linux only. Drives
+  # the extracted Cursor AppImage headlessly (xvfb) — @vscode/test-electron can't
+  # target a fork. A failure here renders as ⚠️ and never blocks merge/release.
+  cursor-cell:
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        # Fresh install + one representative upgrade (highest live baseline).
+        include:
+          - { mode: fresh, from: "" }
+          - { mode: upgrade, from: "" } # 'from' filled from plan baselines at run time
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - name: Install deps + compile test suite
+        run: |
+          npm ci
+          npm run compile
+      - uses: actions/download-artifact@v4
+        with:
+          name: vsix-linux-x64
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run Cursor cell
+        shell: bash
+        env:
+          BASELINES: ${{ needs.plan.outputs.baselines }}
+        run: |
+          set -e
+          sudo apt-get update && sudo apt-get install -y xvfb
+          eval "$(bash test-matrix/setup-dbt-env.sh)"
+          MODE="${{ matrix.mode }}"
+          # Representative upgrade baseline = highest version from the plan job.
+          FROM=""
+          if [ "$MODE" = "upgrade" ]; then
+            FROM="$(printf '%s' "$BASELINES" | tr ',' '\n' | tail -1)"
+          fi
+          OUT="result-cursor-${MODE}-${FROM}.json"
+          FROM_JSON="$([ -n "$FROM" ] && echo "\"$FROM\"" || echo null)"
+          # Write an ACCURATE failure result (real reason + measured duration), not a
+          # hardcoded "cell wedged"/720s placeholder, so the board's reason is honest.
+          emit_fail() { # $1=reason  $2=duration_seconds
+            local r; r="$(printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+            printf '{"runtime":"cursor","os":"linux","scenario":"%s","from":%s,"to":"pr-build","install_ok":false,"deps_resolved":{},"activation_ok":false,"dbt_flow_ok":false,"status":"fail","reason":"%s","duration_s":%s,"log_artifact":"%s"}\n' \
+              "$MODE" "$FROM_JSON" "$r" "$2" "$OUT" > "$OUT"
+          }
+          # Provision runs in $(...), so `set -e` can't see its exit code — check it
+          # explicitly and capture the real stderr reason (download/extract/launcher
+          # error) instead of silently continuing with an empty binary path.
+          t0=$SECONDS
+          if ! prov="$(bash test-matrix/provision/cursor.sh 2>/tmp/cursor-prov.err)"; then
+            reason="$(grep -E 'FAIL' /tmp/cursor-prov.err | tail -1)"
+            [ -z "$reason" ] && reason="$(tail -1 /tmp/cursor-prov.err 2>/dev/null)"
+            emit_fail "provision failed: ${reason:-unknown error}" "$((SECONDS - t0))"
+            echo "=== RESULT_JSON ==="; cat "$OUT"; cat /tmp/cursor-prov.err >&2 || true
+            exit 0
+          fi
+          eval "$prov"   # sets CURSOR_BIN, CURSOR_VERSION
+          echo "Provisioned Cursor ${CURSOR_VERSION:-?} at ${CURSOR_BIN:-?}"
+          vsixes=( pu-*.vsix ); VSIX="${vsixes[0]}"
+          ARGS=(--bin "$CURSOR_BIN" --mode "$MODE" --target "$PWD/$VSIX" --out "$OUT")
+          [ -n "$FROM" ] && ARGS+=(--from "$FROM")
+          # Hard outer guard: `timeout -s KILL` caps wall time even if the whole
+          # Cursor process tree wedges (the node-level backstop can't help if a
+          # synchronous child blocks the event loop). After it returns, reap any
+          # straggler Cursor/Xvfb processes so nothing keeps the job alive.
+          t1=$SECONDS
+          timeout -s KILL 12m xvfb-run -a node test-matrix/cursor-cell.mjs "${ARGS[@]}" || true
+          pkill -9 -f 'squashfs-root|cursor|Xvfb' 2>/dev/null || true
+          if [ ! -f "$OUT" ]; then
+            emit_fail "cell produced no result within 12m (process wedged or was killed)" "$((SECONDS - t1))"
+          fi
+          echo "=== RESULT_JSON ==="; cat "$OUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: result-cursor-${{ matrix.mode }}
+          path: result-cursor-*.json
+          if-no-files-found: warn
+      - name: Upload Cursor console log (diagnostics)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cursor-console-${{ matrix.mode }}
+          path: cursor-console-*.log
+          if-no-files-found: ignore
+
+  # Non-blocking fork lane: Windsurf (Codeium VSCode fork), Linux only. Same
+  # mechanism as Cursor — install via Open VSX download+unzip (the bundled CLI
+  # is unreliable headless), launch the extracted binary under xvfb, scan stdout
+  # for the activation marker. Reuses cursor-cell.mjs via --runtime windsurf.
+  windsurf-cell:
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { mode: fresh, from: "" }
+          - { mode: upgrade, from: "" } # 'from' filled from plan baselines at run time
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - name: Install deps + compile test suite
+        run: |
+          npm ci
+          npm run compile
+      - uses: actions/download-artifact@v4
+        with:
+          name: vsix-linux-x64
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run Windsurf cell
+        shell: bash
+        env:
+          BASELINES: ${{ needs.plan.outputs.baselines }}
+        run: |
+          set -e
+          sudo apt-get update && sudo apt-get install -y xvfb
+          eval "$(bash test-matrix/setup-dbt-env.sh)"
+          MODE="${{ matrix.mode }}"
+          FROM=""
+          if [ "$MODE" = "upgrade" ]; then
+            FROM="$(printf '%s' "$BASELINES" | tr ',' '\n' | tail -1)"
+          fi
+          OUT="result-windsurf-${MODE}-${FROM}.json"
+          FROM_JSON="$([ -n "$FROM" ] && echo "\"$FROM\"" || echo null)"
+          # Write an ACCURATE failure result (real reason + measured duration), not a
+          # hardcoded "cell wedged"/720s placeholder, so the board's reason is honest.
+          emit_fail() { # $1=reason  $2=duration_seconds
+            local r; r="$(printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+            printf '{"runtime":"windsurf","os":"linux","scenario":"%s","from":%s,"to":"pr-build","install_ok":false,"deps_resolved":{},"activation_ok":false,"dbt_flow_ok":false,"status":"fail","reason":"%s","duration_s":%s,"log_artifact":"%s"}\n' \
+              "$MODE" "$FROM_JSON" "$r" "$2" "$OUT" > "$OUT"
+          }
+          # Provision runs in $(...), so `set -e` can't see its exit code — check it
+          # explicitly and capture the real stderr reason. This is exactly the failure
+          # mode that hid the Windsurf->Devin repackage: an empty WINDSURF_BIN slid
+          # through and the cell reported a fake "wedged/720s" instead of the launcher
+          # error. Now a provision failure produces an honest, fast result.
+          t0=$SECONDS
+          if ! prov="$(bash test-matrix/provision/windsurf.sh 2>/tmp/windsurf-prov.err)"; then
+            reason="$(grep -E 'FAIL' /tmp/windsurf-prov.err | tail -1)"
+            [ -z "$reason" ] && reason="$(tail -1 /tmp/windsurf-prov.err 2>/dev/null)"
+            emit_fail "provision failed: ${reason:-unknown error}" "$((SECONDS - t0))"
+            echo "=== RESULT_JSON ==="; cat "$OUT"; cat /tmp/windsurf-prov.err >&2 || true
+            exit 0
+          fi
+          eval "$prov"   # sets WINDSURF_BIN, WINDSURF_VERSION
+          echo "Provisioned Windsurf ${WINDSURF_VERSION:-?} at ${WINDSURF_BIN:-?}"
+          vsixes=( pu-*.vsix ); VSIX="${vsixes[0]}"
+          ARGS=(--runtime windsurf --bin "$WINDSURF_BIN" --mode "$MODE" --target "$PWD/$VSIX" --out "$OUT")
+          [ -n "$FROM" ] && ARGS+=(--from "$FROM")
+          t1=$SECONDS
+          timeout -s KILL 12m xvfb-run -a node test-matrix/cursor-cell.mjs "${ARGS[@]}" || true
+          pkill -9 -f 'Windsurf|windsurf|Devin|devin|Xvfb' 2>/dev/null || true
+          if [ ! -f "$OUT" ]; then
+            emit_fail "cell produced no result within 12m (process wedged or was killed)" "$((SECONDS - t1))"
+          fi
+          echo "=== RESULT_JSON ==="; cat "$OUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: result-windsurf-${{ matrix.mode }}
+          path: result-windsurf-*.json
+          if-no-files-found: warn
+      - name: Upload Windsurf console log (diagnostics)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windsurf-console-${{ matrix.mode }}
+          path: windsurf-console-*.log
+          if-no-files-found: ignore
+
+  # Non-blocking fork lane: Kiro (AWS agentic VSCode fork), Linux only. Same
+  # mechanism as Cursor/Windsurf via --runtime kiro.
+  kiro-cell:
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { mode: fresh, from: "" }
+          - { mode: upgrade, from: "" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - name: Install deps + compile test suite
+        run: |
+          npm ci
+          npm run compile
+      - uses: actions/download-artifact@v4
+        with:
+          name: vsix-linux-x64
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run Kiro cell
+        shell: bash
+        env:
+          BASELINES: ${{ needs.plan.outputs.baselines }}
+        run: |
+          set -e
+          sudo apt-get update && sudo apt-get install -y xvfb
+          eval "$(bash test-matrix/setup-dbt-env.sh)"
+          MODE="${{ matrix.mode }}"
+          FROM=""
+          if [ "$MODE" = "upgrade" ]; then
+            FROM="$(printf '%s' "$BASELINES" | tr ',' '\n' | tail -1)"
+          fi
+          OUT="result-kiro-${MODE}-${FROM}.json"
+          FROM_JSON="$([ -n "$FROM" ] && echo "\"$FROM\"" || echo null)"
+          # Write an ACCURATE failure result (real reason + measured duration), not a
+          # hardcoded "cell wedged"/720s placeholder, so the board's reason is honest.
+          emit_fail() { # $1=reason  $2=duration_seconds
+            local r; r="$(printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+            printf '{"runtime":"kiro","os":"linux","scenario":"%s","from":%s,"to":"pr-build","install_ok":false,"deps_resolved":{},"activation_ok":false,"dbt_flow_ok":false,"status":"fail","reason":"%s","duration_s":%s,"log_artifact":"%s"}\n' \
+              "$MODE" "$FROM_JSON" "$r" "$2" "$OUT" > "$OUT"
+          }
+          # Provision runs in $(...), so `set -e` can't see its exit code — check it
+          # explicitly and capture the real stderr reason instead of silently
+          # continuing with an empty binary path.
+          t0=$SECONDS
+          if ! prov="$(bash test-matrix/provision/kiro.sh 2>/tmp/kiro-prov.err)"; then
+            reason="$(grep -E 'FAIL' /tmp/kiro-prov.err | tail -1)"
+            [ -z "$reason" ] && reason="$(tail -1 /tmp/kiro-prov.err 2>/dev/null)"
+            emit_fail "provision failed: ${reason:-unknown error}" "$((SECONDS - t0))"
+            echo "=== RESULT_JSON ==="; cat "$OUT"; cat /tmp/kiro-prov.err >&2 || true
+            exit 0
+          fi
+          eval "$prov"   # sets KIRO_BIN, KIRO_VERSION
+          echo "Provisioned Kiro ${KIRO_VERSION:-?} at ${KIRO_BIN:-?}"
+          vsixes=( pu-*.vsix ); VSIX="${vsixes[0]}"
+          ARGS=(--runtime kiro --bin "$KIRO_BIN" --mode "$MODE" --target "$PWD/$VSIX" --out "$OUT")
+          [ -n "$FROM" ] && ARGS+=(--from "$FROM")
+          t1=$SECONDS
+          timeout -s KILL 12m xvfb-run -a node test-matrix/cursor-cell.mjs "${ARGS[@]}" || true
+          pkill -9 -f 'Kiro|kiro|Xvfb' 2>/dev/null || true
+          if [ ! -f "$OUT" ]; then
+            emit_fail "cell produced no result within 12m (process wedged or was killed)" "$((SECONDS - t1))"
+          fi
+          echo "=== RESULT_JSON ==="; cat "$OUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: result-kiro-${{ matrix.mode }}
+          path: result-kiro-*.json
+          if-no-files-found: warn
+      - name: Upload Kiro console log (diagnostics)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kiro-console-${{ matrix.mode }}
+          path: kiro-console-*.log
+          if-no-files-found: ignore
+
+  aggregate:
+    needs: [plan, vscode-cells, codeserver-cell, cursor-cell, windsurf-cell, kiro-cell]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: result-*
+          path: results
+          merge-multiple: true
+      # Per-version×OS impact map from the plan job (best-effort: the board still
+      # renders without it, just without the "% users impacted" figures).
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: impact-map
+          path: impact
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Aggregate
+        id: agg
+        run: |
+          set +e
+          IMPACT_ARG=""
+          [ -f impact/impact.json ] && IMPACT_ARG="--impact-file impact/impact.json"
+          python3 test-matrix/aggregate.py --results-dir results --out-dir agg \
+            --target "${{ github.event_name == 'pull_request' && 'pr-build' || 'latest' }}" \
+            --trigger "${{ github.event_name }}" $IMPACT_ARG
+          code=$?
+          # Render the board on the run's Summary page (formatted tables, no
+          # download). Runs whether the gate passes or fails so a red run still
+          # shows its board. Markdown is GitHub-flavored, so the | tables render.
+          if [ -f agg/matrix.md ]; then
+            cat agg/matrix.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## VSIX Install + Update Matrix" >> "$GITHUB_STEP_SUMMARY"
+            echo ":x: no board produced (no result files)." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "blocking_failed=$([ $code -ne 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: matrix-report
+          path: agg/
+      - name: Post sticky PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = '<!-- install-update-matrix -->\n' + fs.readFileSync('agg/matrix.md', 'utf8');
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number });
+            const existing = comments.find(c => c.body.includes('<!-- install-update-matrix -->'));
+            if (existing) await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
+            else await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body });
+      - name: Set commit status (blocking gate)
+        if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (pr && pr.head.repo.full_name !== context.payload.repository.full_name) {
+              core.info('fork PR — cannot set commit status, skipping');
+              return;
+            }
+            const failed = '${{ steps.agg.outputs.blocking_failed }}' === 'true';
+            const sha = pr ? pr.head.sha : context.sha;
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner, repo: context.repo.repo,
+              sha,
+              state: failed ? 'failure' : 'success',
+              description: failed ? 'Blocking-lane cell failed' : 'Install/Update matrix green',
+              context: 'Install/Update Matrix',
+              target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+      # Slack notification intentionally REMOVED until the matrix is thoroughly
+      # tested and a dedicated channel is approved. Do NOT reuse the repo's shared
+      # SLACK_WEBHOOK_URL secret (a prod alerts channel). To add it back later:
+      #   1) create a dedicated webhook + set a MATRIX_SLACK_WEBHOOK repo secret
+      #   2) add a step that posts agg/slack.json to ${{ secrets.MATRIX_SLACK_WEBHOOK }}
+      #      ONLY (never a fallback to SLACK_WEBHOOK_URL).
+      - name: Fail job if blocking lane failed
+        if: steps.agg.outputs.blocking_failed == 'true'
+        run: |
+          echo "::error::Blocking-lane matrix cell(s) failed"
+          exit 1

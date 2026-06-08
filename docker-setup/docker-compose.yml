@@ -9,6 +9,13 @@ services:
       - PORT=3001
     volumes:
       - ..:/home/coder/extension-src:ro
-      - ${DBT_PROJECT_PATH:-/home/coder/jaffle-shop-duckdb}:/home/coder/project
+      # Mount your own dbt project by setting DBT_PROJECT_PATH to an ABSOLUTE host
+      # path. When it is unset we mount the compose dir (".") purely as a harmless
+      # placeholder so the bind resolves on every OS — a non-existent default host
+      # path like "/home/coder/jaffle-shop-duckdb" is rejected by macOS Docker
+      # Desktop ("mounts denied"). The placeholder has no dbt_project.yml, so
+      # start-code-server.sh falls back to the built-in jaffle project it seeds
+      # from test-fixtures.
+      - ${DBT_PROJECT_PATH:-.}:/home/coder/project
       - ${ALTIMATE_CREDENTIALS_FILE:-/dev/null}:/home/coder/.altimate-host/altimate.json:ro
     restart: unless-stopped
