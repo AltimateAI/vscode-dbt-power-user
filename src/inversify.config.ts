@@ -1386,6 +1386,7 @@ container
       context.container.get(QueryManifestService),
       context.container.get(UsersService),
       context.container.get(AltimateAuthService),
+      context.container.get(AltimateCodeChatService),
     );
   })
   .inSingletonScope();
@@ -1564,6 +1565,7 @@ container
       context.container.get(SharedStateService),
       context.container.get(UsersService),
       context.container.get(AltimateAuthService),
+      context.container.get(AltimateCodeChatService),
     );
   })
   .inSingletonScope();
@@ -1661,6 +1663,7 @@ container
       context.container.get(UsersService),
       context.container.get("NotebookFileSystemProvider"),
       context.container.get(AltimateAuthService),
+      context.container.get(AltimateCodeChatService),
     );
   })
   .inSingletonScope();
@@ -1818,6 +1821,7 @@ container
       context.container.get(UsersService),
       context.container.get(WalkthroughCommands),
       context.container.get(AltimateAuthService),
+      context.container.get(AltimateCodeChatService),
     );
   })
   .inSingletonScope();

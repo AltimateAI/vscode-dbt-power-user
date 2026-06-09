@@ -24,6 +24,7 @@ import {
   ManifestCacheProjectAddedEvent,
 } from "../dbt_client/event/manifestCacheChangedEvent";
 import { AltimateAuthService } from "../services/altimateAuthService";
+import { AltimateCodeChatService } from "../services/altimateCodeChatService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
@@ -80,6 +81,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
     protected altimateAuthService: AltimateAuthService,
+    protected altimateCodeChatService: AltimateCodeChatService,
   ) {
     this._disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
@@ -472,6 +474,44 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             payload: params,
           });
           break;
+        case "openAltimateCodeChat": {
+          // The lineage webview wraps its payload as `{ args: { params } }`,
+          // while other webviews send command params flat. Normalize both so
+          // any provider can trigger this.
+          const payload =
+            (params as { args?: { params?: unknown } }).args?.params ?? params;
+          const { table, column, level, question } = payload as {
+            table: string;
+            column?: string;
+            level: "model" | "column";
+            question?: string;
+          };
+          // unique_id is `model.project.name` — surface the readable name;
+          // Altimate Code Chat resolves the rest via MCP.
+          const modelName = table?.split(".").pop() || table;
+          const target =
+            level === "column" && column
+              ? `column \`${column}\` in the dbt model \`${modelName}\``
+              : `dbt model \`${modelName}\``;
+          const title =
+            level === "column" && column
+              ? `Chat: ${modelName}.${column}`
+              : `Chat: ${modelName}`;
+          if (question) {
+            await this.altimateCodeChatService.openChat({
+              initialMessage: `Regarding the ${target}:\n\n${question}`,
+              title,
+              beside: true,
+            });
+          } else {
+            await this.altimateCodeChatService.openChat({
+              prefillMessage: `Regarding the ${target}:\n\n`,
+              title,
+              beside: true,
+            });
+          }
+          break;
+        }
         default:
           break;
       }

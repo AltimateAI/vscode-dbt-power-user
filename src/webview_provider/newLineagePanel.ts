@@ -65,7 +65,7 @@ export class NewLineagePanel
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
     protected altimateAuthService: AltimateAuthService,
-    private altimateCodeChatService: AltimateCodeChatService,
+    altimateCodeChatService: AltimateCodeChatService,
   ) {
     super(
       dbtProjectContainer,
@@ -76,6 +76,7 @@ export class NewLineagePanel
       queryManifestService,
       usersService,
       altimateAuthService,
+      altimateCodeChatService,
     );
   }
 
@@ -341,45 +342,6 @@ export class NewLineagePanel
           body: { ok: true },
         },
       });
-      return;
-    }
-
-    if (command === "openAltimateCodeChat") {
-      const {
-        table,
-        column,
-        level,
-        question,
-      }: {
-        table: string;
-        column?: string;
-        level: "model" | "column";
-        question?: string;
-      } = params;
-      // unique_id is `model.project.name` — surface the readable name; Altimate
-      // Code Chat resolves the rest via MCP.
-      const modelName = table?.split(".").pop() || table;
-      const target =
-        level === "column" && column
-          ? `column \`${column}\` in the dbt model \`${modelName}\``
-          : `dbt model \`${modelName}\``;
-      const title =
-        level === "column" && column
-          ? `Chat: ${modelName}.${column}`
-          : `Chat: ${modelName}`;
-      if (question) {
-        await this.altimateCodeChatService.openChat({
-          initialMessage: `Regarding the ${target}:\n\n${question}`,
-          title,
-          beside: true,
-        });
-      } else {
-        await this.altimateCodeChatService.openChat({
-          prefillMessage: `Regarding the ${target}:\n\n`,
-          title,
-          beside: true,
-        });
-      }
       return;
     }
 

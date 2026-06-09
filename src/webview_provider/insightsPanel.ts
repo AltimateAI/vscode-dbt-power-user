@@ -22,6 +22,7 @@ import {
 import { AltimateRequest, DBTCoreIntegration } from "../altimate";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { AltimateAuthService } from "../services/altimateAuthService";
+import { AltimateCodeChatService } from "../services/altimateCodeChatService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
@@ -73,6 +74,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
     protected usersService: UsersService,
     private notebookFileSystemProvider: NotebookFileSystemProvider,
     protected altimateAuthService: AltimateAuthService,
+    altimateCodeChatService: AltimateCodeChatService,
   ) {
     super(
       dbtProjectContainer,
@@ -83,6 +85,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       queryManifestService,
       usersService,
       altimateAuthService,
+      altimateCodeChatService,
     );
 
     this._disposables.push(
