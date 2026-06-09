@@ -32,9 +32,8 @@ const UnitTestDetails = ({ test, modelName }: Props): JSX.Element => {
 
   return (
     <Stack direction="column">
-      {content?.yaml ? (
-        <CodeBlock code={content.yaml} language="yaml" fileName={test.name} />
-      ) : null}
+      <h3 className="mb-2">Unit Test: {test.name}</h3>
+      {content?.yaml ? <CodeBlock code={content.yaml} language="yaml" /> : null}
       {content?.error ? (
         <CodeBlock code={content.error} language="yaml" fileName="Error" />
       ) : null}

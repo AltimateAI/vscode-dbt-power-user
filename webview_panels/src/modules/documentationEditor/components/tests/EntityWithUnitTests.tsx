@@ -4,7 +4,15 @@ import { EntityType } from "@modules/documentationEditor/state/entityType";
 import { DBTUnitTest } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { TelemetryEvents } from "@telemetryEvents";
-import { Button, Drawer, DrawerRef, IconButton, Stack } from "@uicore";
+import {
+  Button,
+  Drawer,
+  DrawerRef,
+  IconButton,
+  Stack,
+  Tag,
+  Tooltip,
+} from "@uicore";
 import { useRef, useState } from "react";
 import classes from "../../styles.module.scss";
 import { sendTelemetryEvent } from "../telemetry";
@@ -55,19 +63,27 @@ const EntityWithUnitTests = ({ title, unitTests }: Props): JSX.Element => {
 
   return (
     <>
-      <div className={classes.entityTests}>
+      <div className={classes.entityTests} style={{ marginTop: "-1rem" }}>
         <Stack className={EntityType.MODEL}>
           <div className={classes.testsRow}>
             <p className="mb-0 d-inline">Unit Tests:</p>
             {visibleTests?.map((test) => (
-              <button
+              <Tooltip
                 key={test.name}
-                className={`badge ${classes.newTestTag}`}
-                onClick={() => onSelect(test)}
-                style={{ cursor: "pointer" }}
+                title={"Click to view details"}
+                id={`tooltip-${test.name}`}
               >
-                {test.name}
-              </button>
+                <Tag
+                  color={
+                    selectedTest?.name === test.name ? "primary" : "default"
+                  }
+                  key={test.name}
+                  className={`badge ${classes.newTestTag}`}
+                  onClick={() => onSelect(test)}
+                >
+                  {test.name}
+                </Tag>
+              </Tooltip>
             ))}
             {!showAllTests &&
             unitTests &&
