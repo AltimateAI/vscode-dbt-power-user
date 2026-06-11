@@ -1,4 +1,4 @@
-import { AddIcon } from "@assets/icons";
+import { AddIcon, InfoCircleIcon } from "@assets/icons";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import { EntityType } from "@modules/documentationEditor/state/entityType";
 import { DBTUnitTest } from "@modules/documentationEditor/state/types";
@@ -66,7 +66,29 @@ const EntityWithUnitTests = ({ title, unitTests }: Props): JSX.Element => {
       <div className={classes.entityTests} style={{ marginTop: "-1rem" }}>
         <Stack className={EntityType.MODEL}>
           <div className={classes.testsRow}>
-            <p className="mb-0 d-inline">Unit Tests:</p>
+            <p className="mb-0 d-inline">
+              Unit Tests:
+              <Tooltip
+                title={
+                  <>
+                    Business logic tests that validate your model&apos;s
+                    transformation with mocked inputs and expected outputs (dbt
+                    1.8+).{" "}
+                    <a
+                      href="https://docs.getdbt.com/docs/build/unit-tests"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      dbt docs ↗
+                    </a>
+                  </>
+                }
+              >
+                <InfoCircleIcon
+                  style={{ marginLeft: 4, cursor: "help", opacity: 0.6 }}
+                />
+              </Tooltip>
+            </p>
             {visibleTests?.map((test) => (
               <Tooltip
                 key={test.name}
