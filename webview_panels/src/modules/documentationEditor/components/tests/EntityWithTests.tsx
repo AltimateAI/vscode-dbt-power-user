@@ -65,6 +65,7 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
           <p className="mb-0 d-inline">
             <TestsIcon /> Data Tests:
             <Tooltip
+              autohide={false}
               title={
                 <>
                   Schema and data quality checks that validate your model&apos;s
