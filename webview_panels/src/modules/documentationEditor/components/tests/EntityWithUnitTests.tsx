@@ -56,7 +56,14 @@ const EntityWithUnitTests = ({ title, unitTests }: Props): JSX.Element => {
     const model = currentDocsData?.name ?? title;
     executeRequestInAsync("openAltimateCodeChatForUnitTest", {
       model,
-      initialMessage: `I want to add dbt unit tests for model "${model}". Refer to the model's existing data tests and SQL logic to propose appropriate unit tests.`,
+      initialMessage: `Analyze the "${model}" dbt model and propose unit tests for it.
+
+Steps:
+1. Review the model's SQL transformation logic and any existing data tests
+2. Identify 2–4 key business logic scenarios worth covering
+3. Show the proposed unit test YAML blocks (dbt 1.8+ format) for each scenario
+
+Do NOT write anything to project files yet. Present the proposals and wait for my approval — I will confirm which tests to add before you make any changes.`,
       title: `Add Unit Tests for model: ${model}`,
     });
   };
