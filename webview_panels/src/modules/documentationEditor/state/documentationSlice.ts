@@ -1,21 +1,24 @@
+import { Citation } from "@lib";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { GenerationDBDataProps } from "../types";
-import {
-  DBTDocumentation,
-  DocsGenerateUserInstructions,
-  DocumentationStateProps,
-  MetadataColumn,
-} from "./types";
 import {
   isStateDirty,
   mergeCurrentAndIncomingDocumentationColumns,
 } from "../utils";
-import { Citation } from "@lib";
+import {
+  DBTDocumentation,
+  DBTModelTest,
+  DBTUnitTest,
+  DocsGenerateUserInstructions,
+  DocumentationStateProps,
+  MetadataColumn,
+} from "./types";
 
 export const initialState = {
   incomingDocsData: undefined,
   currentDocsData: undefined,
   currentDocsTests: undefined,
+  currentUnitTests: undefined,
   project: undefined,
   generationHistory: [],
   insertedEntityName: undefined,
@@ -119,6 +122,12 @@ const documentationSlice = createSlice({
     ) => {
       state.currentDocsTests = action.payload;
     },
+    updateCurrentUnitTests: (
+      state,
+      action: PayloadAction<DocumentationStateProps["currentUnitTests"]>,
+    ) => {
+      state.currentUnitTests = action.payload;
+    },
     setInsertedEntityName: (
       state,
       action: PayloadAction<string | undefined>,
@@ -127,7 +136,14 @@ const documentationSlice = createSlice({
     },
     setIncomingDocsData: (
       state,
-      action: PayloadAction<DocumentationStateProps["incomingDocsData"]>,
+      action: PayloadAction<
+        | {
+            docs?: DBTDocumentation;
+            tests?: DBTModelTest[];
+            unitTests?: DBTUnitTest[];
+          }
+        | undefined
+      >,
     ) => {
       state.docBlocks = [];
       // if test/docs data is not changed, then update the state
@@ -140,6 +156,7 @@ const documentationSlice = createSlice({
         state.incomingDocsData = action.payload ?? {};
         state.currentDocsData = action.payload?.docs;
         state.currentDocsTests = action.payload?.tests;
+        state.currentUnitTests = action.payload?.unitTests;
         return;
       }
 
@@ -285,6 +302,7 @@ export const {
   updateUserInstructions,
   setInsertedEntityName,
   updateCurrentDocsTests,
+  updateCurrentUnitTests,
   updatConversations,
   updateConversationsRightPanelState,
   updateSelectedConversationGroup,

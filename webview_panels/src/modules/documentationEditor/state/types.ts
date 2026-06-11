@@ -66,12 +66,18 @@ export interface DocBlock {
   path: string;
 }
 
+export interface DBTUnitTest {
+  name: string;
+  path?: string;
+}
+
 export interface DocumentationStateProps {
   docUpdatedForModel?: string;
   docUpdatedForColumns: string[];
   incomingDocsData?: { docs?: DBTDocumentation; tests?: DBTModelTest[] };
   currentDocsData?: DBTDocumentation;
   currentDocsTests?: DBTModelTest[];
+  currentUnitTests?: DBTUnitTest[];
   project?: string;
   generationHistory: GenerationDBDataProps[];
   userInstructions: DocsGenerateUserInstructions;

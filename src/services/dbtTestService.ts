@@ -4,6 +4,7 @@ import {
   TestMetaData,
   TestMetadataAcceptedValues,
   TestMetadataRelationships,
+  UnitTestMetaData,
 } from "@altimateai/dbt-integration";
 import { getTestSuggestions } from "@lib";
 import { readFileSync } from "fs";
@@ -453,5 +454,38 @@ export class DbtTestService {
         }
       },
     );
+  }
+
+  public async getUnitTestsForCurrentModel(): Promise<
+    { name: string; path?: string }[] | undefined
+  > {
+    const eventResult = this.queryManifestService.getEventByCurrentProject();
+    if (!eventResult?.currentDocument) {
+      return undefined;
+    }
+
+    const modelName = path.basename(
+      eventResult.currentDocument.uri.fsPath,
+      ".sql",
+    );
+    return this.getUnitTestsForModel(modelName);
+  }
+
+  public getUnitTestsForModel(
+    modelName: string,
+  ): { name: string; path?: string }[] {
+    const eventResult = this.queryManifestService.getEventByCurrentProject();
+    if (!eventResult?.event) {
+      return [];
+    }
+
+    const { unitTestMetaMap } = eventResult.event;
+    if (!unitTestMetaMap) {
+      return [];
+    }
+
+    return Array.from(unitTestMetaMap.values())
+      .filter((ut: UnitTestMetaData) => ut.model.includes(modelName))
+      .map((ut: UnitTestMetaData) => ({ name: ut.name, path: ut.path }));
   }
 }

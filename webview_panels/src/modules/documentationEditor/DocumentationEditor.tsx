@@ -18,6 +18,7 @@ import { BulkDocumentationPropagationPanel } from "./components/documentationPro
 import DocumentationHelpContent from "./components/help/DocumentationHelpContent";
 import SaveDocumentation from "./components/saveDocumentation/SaveDocumentation";
 import EntityWithTests from "./components/tests/EntityWithTests";
+import EntityWithUnitTests from "./components/tests/EntityWithUnitTests";
 import { updateCurrentDocsData } from "./state/documentationSlice";
 import { DocsGenerateModelRequestV2 } from "./state/types";
 import useDocumentationContext from "./state/useDocumentationContext";
@@ -25,7 +26,7 @@ import classes from "./styles.module.scss";
 
 const DocumentationEditor = (): JSX.Element => {
   const {
-    state: { currentDocsData, currentDocsTests },
+    state: { currentDocsData, currentDocsTests, currentUnitTests },
     dispatch,
   } = useDocumentationContext();
 
@@ -162,6 +163,10 @@ const DocumentationEditor = (): JSX.Element => {
                   title={currentDocsData.name}
                   tests={modelTests}
                   type={EntityType.MODEL}
+                />
+                <EntityWithUnitTests
+                  title={currentDocsData.name}
+                  unitTests={currentUnitTests}
                 />
                 <Stack>
                   <Citations citations={currentDocsData.citations} />
