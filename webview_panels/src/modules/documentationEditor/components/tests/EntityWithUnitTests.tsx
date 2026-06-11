@@ -69,6 +69,7 @@ const EntityWithUnitTests = ({ title, unitTests }: Props): JSX.Element => {
             <p className="mb-0 d-inline">
               Unit Tests:
               <Tooltip
+                autohide={false}
                 title={
                   <>
                     Business logic tests that validate your model&apos;s
