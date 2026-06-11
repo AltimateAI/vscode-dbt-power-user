@@ -8,6 +8,8 @@ interface Props {
   id?: string;
   className?: string;
   placement?: TooltipProps["placement"];
+  /** Set to false when tooltip content is interactive (e.g. contains links). Keeps tooltip open while hovering over it. */
+  autohide?: boolean;
 }
 const Tooltip = (props: Props): JSX.Element => {
   const [tooltipOpen, setTooltipOpen] = useState(false);
@@ -28,6 +30,7 @@ const Tooltip = (props: Props): JSX.Element => {
           toggle={toggle}
           className={props.className}
           placement={props.placement ?? "auto"}
+          autohide={props.autohide ?? true}
         >
           {props.title}
         </ReactStrapTooltip>
