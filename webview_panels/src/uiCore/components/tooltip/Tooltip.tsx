@@ -4,7 +4,7 @@ import { Tooltip as ReactStrapTooltip, TooltipProps } from "reactstrap";
 
 interface Props {
   children: ReactNode;
-  title?: string;
+  title?: ReactNode;
   id?: string;
   className?: string;
   placement?: TooltipProps["placement"];
