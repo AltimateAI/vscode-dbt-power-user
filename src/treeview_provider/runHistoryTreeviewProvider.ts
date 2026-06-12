@@ -44,7 +44,9 @@ export class RunHistoryTreeviewProvider
     }
 
     if (element instanceof RunTreeItem) {
-      return element.entry.results.map((result) => new ResultTreeItem(result));
+      return element.entry.results.map(
+        (result) => new ResultTreeItem(result, element.entry.command),
+      );
     }
 
     return [];
