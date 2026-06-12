@@ -5,6 +5,7 @@ import {
   NodeMetaData,
   RESOURCE_TYPE_FUNCTION,
   RESOURCE_TYPE_SOURCE,
+  SourceMetaMap,
   SourceTable,
   Table,
 } from "@altimateai/dbt-integration";
@@ -16,11 +17,13 @@ import {
   ColorThemeKind,
   commands,
   ProgressLocation,
+  TextDocument,
   TextEditor,
   Webview,
   window,
   workspace,
 } from "vscode";
+import { isMap, isScalar, isSeq, parseDocument } from "yaml";
 import { AltimateRequest } from "../altimate";
 import { DBTProject } from "../dbt_client/dbtProject";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
@@ -34,6 +37,25 @@ import { TelemetryService } from "../telemetry";
 import { extendErrorWithSupportLinks } from "../utils";
 import { AltimateWebviewProvider } from "./altimateWebviewProvider";
 import { LineagePanelView } from "./lineagePanel";
+
+// A source table resolved to the dbt unique_id key the lineage should root at
+// (`source.<pkg>.<source>.<table>`).
+interface ResolvedSourceTable {
+  key: string;
+  sourceName: string;
+  table: SourceTable;
+}
+
+// 0-based line of `offset` within `text`.
+function lineAtOffset(text: string, offset: number): number {
+  let line = 0;
+  for (let i = 0; i < offset && i < text.length; i++) {
+    if (text.charCodeAt(i) === 10) {
+      line++;
+    }
+  }
+  return line;
+}
 
 class DerivedCancellationTokenSource extends CancellationTokenSource {
   constructor(linkedToken: CancellationToken) {
@@ -52,6 +74,10 @@ export class NewLineagePanel
   protected panelDescription = "Lineage panel";
   private cllProgressResolve: () => void = () => {};
   private cancellationTokenSource: CancellationTokenSource | undefined;
+  // The source unique_id the panel last rooted at when a source YAML is the
+  // active file. Used to avoid redundant re-renders on every cursor move; the
+  // panel only re-roots when the cursor moves onto a different source table.
+  private lastRenderedSourceKey: string | undefined;
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
@@ -84,7 +110,40 @@ export class NewLineagePanel
     if (!this._panel) {
       return;
     }
+    // A different file is now active; forget the previously rooted source so a
+    // source YAML re-rooted later (or on return) is always re-rendered.
+    this.lastRenderedSourceKey = undefined;
     this.renderStartingNode();
+  }
+
+  // Re-root the lineage when the cursor moves to a different source table
+  // within an open source YAML. This is what makes opening a `sources:` file
+  // and clicking on a `- name:` entry show that source's lineage, mirroring the
+  // dbt Cloud IDE. Guarded so ordinary cursor movement (same table, or any
+  // non-source file) never triggers a redundant re-render.
+  public changedTextEditorSelection(editor: TextEditor) {
+    if (!this._panel) {
+      return;
+    }
+    if (editor !== window.activeTextEditor) {
+      return;
+    }
+    const ext = path.extname(editor.document.fileName).toLowerCase();
+    if (!NewLineagePanel.SOURCE_YAML_EXTENSIONS.includes(ext)) {
+      return;
+    }
+    const event = this.queryManifestService.getEventByCurrentProject();
+    if (!event?.event) {
+      return;
+    }
+    const resolved = this.resolveSourceStartingNode(event.event, editor);
+    const key = resolved?.key;
+    if (key === this.lastRenderedSourceKey) {
+      return;
+    }
+    // Thread the resolution into the render so getStartingNode doesn't have
+    // to traverse sourceMetaMap a second time for the same cursor position.
+    this.renderStartingNode(resolved);
   }
 
   eventMapChanged(eventMap: Map<string, ManifestCacheProjectAddedEvent>): void {
@@ -119,13 +178,13 @@ export class NewLineagePanel
     this.renderStartingNode();
   }
 
-  private renderStartingNode() {
+  private renderStartingNode(resolvedSource?: ResolvedSourceTable) {
     if (!this._panel) {
       return;
     }
     this._panel.webview.postMessage({
       command: "render",
-      args: this.getStartingNode(),
+      args: this.getStartingNode(resolvedSource),
     });
   }
 
@@ -626,6 +685,11 @@ export class NewLineagePanel
 
   private static readonly DBT_FILE_EXTENSIONS = [".sql", ".py", ".csv"];
 
+  // Sources are declared in YAML, which has no 1:1 file→node mapping (one file
+  // can define many sources/tables). These extensions opt a file into the
+  // cursor-aware source resolution in `getStartingNode`.
+  private static readonly SOURCE_YAML_EXTENSIONS = [".yml", ".yaml"];
+
   private getFilename(): string | undefined {
     const editor = window.activeTextEditor;
     if (!editor) {
@@ -658,7 +722,7 @@ export class NewLineagePanel
     return { message, type: "warning" };
   }
 
-  private getStartingNode():
+  private getStartingNode(resolvedSource?: ResolvedSourceTable):
     | {
         node?: Table;
         aiEnabled: boolean;
@@ -718,6 +782,28 @@ export class NewLineagePanel
       return { node, aiEnabled };
     }
 
+    // Source YAML: a model/seed/function basename never matches, so by here the
+    // active file may be a `sources:` definition. Root at the source the cursor
+    // is on (or the file's only source table).
+    if (NewLineagePanel.SOURCE_YAML_EXTENSIONS.includes(ext)) {
+      const resolved =
+        resolvedSource ?? this.resolveSourceStartingNode(event.event, editor);
+      if (resolved) {
+        // Record the key before the createTable null-check: if the service
+        // fails for this key, the selection guard must still short-circuit
+        // instead of re-triggering a full render on every cursor move.
+        this.lastRenderedSourceKey = resolved.key;
+        const node = this.dbtLineageService.createTable(
+          event.event,
+          resolved.table.path ?? url,
+          resolved.key,
+        );
+        if (node) {
+          return { node, aiEnabled };
+        }
+      }
+    }
+
     // Only report this as telemetry for actual dbt files. A non-dbt file (e.g. a
     // .sh/.md script) can never be a dbt node, so the panel re-rendering on every
     // editor switch would otherwise emit this event constantly — pure noise. Keep
@@ -732,6 +818,127 @@ export class NewLineagePanel
       aiEnabled,
       missingLineageMessage: this.getMissingLineageMessage(),
     };
+  }
+
+  // Resolve which source table the active YAML file should root the lineage at.
+  // Returns the dbt unique_id key (`source.<pkg>.<source>.<table>`) and the
+  // matched table. Prefers the table the cursor is on/under; falls back to the
+  // file's single table, then to the first declared table for determinism.
+  private resolveSourceStartingNode(
+    event: ManifestCacheProjectAddedEvent,
+    editor: TextEditor,
+  ): ResolvedSourceTable | undefined {
+    const { sourceMetaMap } = event;
+    const matches = this.getSourceTablesForFile(
+      sourceMetaMap,
+      editor.document.uri.fsPath,
+    );
+    if (matches.length === 0) {
+      return undefined;
+    }
+    if (matches.length === 1) {
+      return matches[0];
+    }
+    return this.pickSourceTableByCursor(matches, editor) ?? matches[0];
+  }
+
+  // All source tables whose definition file is `filePath`. One YAML can declare
+  // several sources, each with several tables, so this can return many matches.
+  private getSourceTablesForFile(
+    sourceMetaMap: SourceMetaMap,
+    filePath: string,
+  ): ResolvedSourceTable[] {
+    const target = path.normalize(filePath);
+    const matches: ResolvedSourceTable[] = [];
+    for (const source of sourceMetaMap.values()) {
+      for (const table of source.tables) {
+        if (!table.path) {
+          continue;
+        }
+        if (path.normalize(table.path) !== target) {
+          continue;
+        }
+        matches.push({
+          key: `${RESOURCE_TYPE_SOURCE}.${source.package_name}.${source.name}.${table.name}`,
+          sourceName: source.name,
+          table,
+        });
+      }
+    }
+    return matches;
+  }
+
+  // Of the candidate tables in the file, pick the one whose `name:` declaration
+  // is the closest line at or above the cursor — i.e. the table the cursor sits
+  // within. Returns undefined when the cursor is above every declaration.
+  private pickSourceTableByCursor(
+    matches: ResolvedSourceTable[],
+    editor: TextEditor,
+  ): ResolvedSourceTable | undefined {
+    const cursorLine = editor.selection.active.line;
+    const declLines = this.findSourceTableLines(editor.document);
+    let best: ResolvedSourceTable | undefined;
+    let bestLine = -1;
+    for (const match of matches) {
+      const declLine =
+        declLines.get(`${match.sourceName}.${match.table.name}`) ?? -1;
+      if (declLine >= 0 && declLine <= cursorLine && declLine > bestLine) {
+        best = match;
+        bestLine = declLine;
+      }
+    }
+    return best;
+  }
+
+  // Line numbers of the `- name: <table>` declarations inside each source's
+  // `tables:` block, keyed by `<source>.<table>`. Walks the YAML AST so a
+  // source-level `name:`, a model name in a mixed-purpose schema file, or a
+  // column that happens to share a table's name is never mistaken for a table
+  // declaration — and the same table name under two sources in one file maps
+  // to two distinct lines.
+  private findSourceTableLines(document: TextDocument): Map<string, number> {
+    const declLines = new Map<string, number>();
+    const text = document.getText();
+    let parsed;
+    try {
+      parsed = parseDocument(text);
+    } catch {
+      // Mid-edit YAML can be arbitrarily broken; fall back to "no
+      // declarations found" and let the caller use its first-match default.
+      return declLines;
+    }
+    const sources = parsed.get("sources");
+    if (!isSeq(sources)) {
+      return declLines;
+    }
+    for (const source of sources.items) {
+      if (!isMap(source)) {
+        continue;
+      }
+      const sourceName = source.get("name");
+      const tables = source.get("tables");
+      if (typeof sourceName !== "string" || !isSeq(tables)) {
+        continue;
+      }
+      for (const table of tables.items) {
+        if (!isMap(table)) {
+          continue;
+        }
+        const nameNode = table.get("name", true);
+        if (!isScalar(nameNode) || typeof nameNode.value !== "string") {
+          continue;
+        }
+        const offset = nameNode.range?.[0];
+        if (offset === undefined) {
+          continue;
+        }
+        declLines.set(
+          `${sourceName}.${nameNode.value}`,
+          lineAtOffset(text, offset),
+        );
+      }
+    }
+    return declLines;
   }
 
   protected renderWebviewView(webview: Webview) {
