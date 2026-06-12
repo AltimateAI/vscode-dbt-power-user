@@ -3,13 +3,7 @@ import {
   NoCredentialsError,
   RateLimitException,
 } from "@altimateai/dbt-integration";
-import {
-  afterEach,
-  describe,
-  expect,
-  it,
-  jest,
-} from "@jest/globals";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
@@ -181,9 +175,57 @@ describe("utils tests", () => {
     jest.useRealTimers();
   });
 
-  it("extendErrorWithSupportLinks appends link", () => {
-    const msg = extendErrorWithSupportLinks("problem");
-    expect(msg).toContain("contact us");
+  describe("extendErrorWithSupportLinks", () => {
+    const LINK = "contact us";
+
+    it("appends the support link to a string message", () => {
+      const msg = extendErrorWithSupportLinks("problem");
+      expect(msg).toBe(
+        "problem If the issue persists, please [contact us](https://www.altimate.ai/support) via chat or Slack",
+      );
+    });
+
+    it("does not double the separating space when message already ends in one", () => {
+      const msg = extendErrorWithSupportLinks("problem ");
+      expect(msg).not.toContain("problem  If");
+      expect(msg).toContain("problem If");
+    });
+
+    it("does not throw on undefined and omits 'undefined' from output", () => {
+      let msg = "";
+      expect(
+        () => (msg = extendErrorWithSupportLinks(undefined)),
+      ).not.toThrow();
+      expect(msg).toBe(
+        "If the issue persists, please [contact us](https://www.altimate.ai/support) via chat or Slack",
+      );
+    });
+
+    it("does not throw on null", () => {
+      let msg = "";
+      expect(() => (msg = extendErrorWithSupportLinks(null))).not.toThrow();
+      expect(msg).toBe(
+        "If the issue persists, please [contact us](https://www.altimate.ai/support) via chat or Slack",
+      );
+    });
+
+    it("returns the bare support link without leading whitespace for an empty string", () => {
+      const msg = extendErrorWithSupportLinks("");
+      expect(msg).not.toMatch(/^\s/);
+      expect(msg).toContain(LINK);
+    });
+
+    it("uses Error.message for Error instances", () => {
+      const msg = extendErrorWithSupportLinks(new Error("boom"));
+      expect(msg).toContain("boom ");
+      expect(msg).toContain(LINK);
+    });
+
+    it("stringifies non-Error, non-string values", () => {
+      const msg = extendErrorWithSupportLinks(42);
+      expect(msg).toContain("42 ");
+      expect(msg).toContain(LINK);
+    });
   });
 
   it("stripANSI removes escape codes", () => {

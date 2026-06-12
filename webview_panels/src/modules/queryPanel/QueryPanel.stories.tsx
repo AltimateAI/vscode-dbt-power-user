@@ -1,13 +1,13 @@
-import type { Meta } from "@storybook/react";
-import QueryPanelProvider from "./QueryPanelProvider";
+import { panelLogger } from "@modules/logger";
+import type { Meta } from "@storybook/react-vite";
+import { TenantUserFactory } from "@testUtils";
 import { Button, Stack } from "@uicore";
 import {
   QueryBookmarkFactory,
   QueryHistoryFactory,
 } from "../../testUtils/queryResults";
-import { TenantUserFactory } from "@testUtils";
-import { panelLogger } from "@modules/logger";
 import { QueryPanelViewType } from "./context/types";
+import QueryPanelProvider from "./QueryPanelProvider";
 
 const meta = {
   title: "Query Panel",

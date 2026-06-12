@@ -6,17 +6,17 @@ import {
 } from "@lib";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import useAppContext from "@modules/app/useAppContext";
-import { panelLogger } from "@modules/logger";
-import { Drawer, Card, CardBody, Label, Stack, DrawerRef } from "@uicore";
-import { FormEvent, useRef, useState } from "react";
-import classes from "../../styles.module.scss";
-import { EntityType } from "@modules/dataPilot/components/docGen/types";
-import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import {
   updatConversations,
   updateConversationsRightPanelState,
   updateSelectedConversationGroup,
 } from "@modules/documentationEditor/state/documentationSlice";
+import { EntityType } from "@modules/documentationEditor/state/entityType";
+import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
+import { panelLogger } from "@modules/logger";
+import { Card, CardBody, Drawer, DrawerRef, Label, Stack } from "@uicore";
+import { FormEvent, useRef, useState } from "react";
+import classes from "../../styles.module.scss";
 
 interface Props {
   field: "description";

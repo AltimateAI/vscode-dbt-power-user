@@ -281,7 +281,12 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     await this.resolveWebviewView(this.panel!, this.context!, this.token!);
   };
 
-  private getTestDataByModel(message: any, modelName: string) {
+  private getTestDataByModel(
+    message: any,
+    modelName: string,
+    project?: DBTProject,
+    existingModel?: any,
+  ) {
     const tests = message.updatedTests as undefined | TestMetaData[];
 
     if (!tests?.length) {
@@ -320,7 +325,23 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       })
       .filter((t) => Boolean(t));
     const filteredTests = this.dbtTestService.removeDuplicateTests(finalTests);
-    return filteredTests.length ? filteredTests : undefined;
+    if (!filteredTests.length) {
+      return;
+    }
+
+    // dbt >= 1.8 renamed model-level `tests:` to `data_tests:`. Mirror the
+    // column-level selection logic: prefer `data_tests` on new dbt versions,
+    // but preserve `tests` if the user's YAML already uses that key.
+    const dbtVersion = project?.getDBTVersion();
+    if (
+      dbtVersion &&
+      gte(dbtVersion.join("."), "1.8.0") &&
+      existingModel?.tests === undefined
+    ) {
+      return { data_tests: filteredTests };
+    }
+
+    return { tests: filteredTests };
   }
 
   private getTestMetadataKwArgs(
@@ -1001,8 +1022,15 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         const modelTests = this.getTestDataByModel(
           message,
           model.get("name") as string,
+          project,
+          model.toJSON(),
         );
-        this.setOrDeleteInParsedDocument(model, "tests", modelTests);
+        this.setOrDeleteInParsedDocument(model, "tests", modelTests?.tests);
+        this.setOrDeleteInParsedDocument(
+          model,
+          "data_tests",
+          modelTests?.data_tests,
+        );
         if (!model.get("columns")) {
           model.set("columns", new YAMLSeq<DocumentationSchemaColumn>());
         }

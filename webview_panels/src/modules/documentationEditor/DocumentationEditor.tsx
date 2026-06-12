@@ -1,13 +1,20 @@
-import { executeRequestInSync } from "@modules/app/requestExecutor";
-import useAppContext from "@modules/app/useAppContext";
+import { Citation } from "@lib";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
 import CommonActionButtons from "@modules/commonActionButtons/CommonActionButtons";
-import { EntityType } from "@modules/dataPilot/components/docGen/types";
-import { RequestState, RequestTypes } from "@modules/dataPilot/types";
+import { EntityType } from "@modules/documentationEditor/state/entityType";
 import { panelLogger } from "@modules/logger";
 import { Stack } from "@uicore";
 import { useMemo } from "react";
+import ConversationsRightPanel from "./components/conversation/ConversationsRightPanel";
+import BulkGenerateButton from "./components/docGenerator/BulkGenerateButton";
+import Citations from "./components/docGenerator/Citations";
+import CoachAiIfModified from "./components/docGenerator/CoachAiIfModified";
 import DocGeneratorColumnsList from "./components/docGenerator/DocGeneratorColumnsList";
 import DocGeneratorInput from "./components/docGenerator/DocGeneratorInput";
+import { BulkDocumentationPropagationPanel } from "./components/documentationPropagation/DocumentationPropagation";
 import DocumentationHelpContent from "./components/help/DocumentationHelpContent";
 import SaveDocumentation from "./components/saveDocumentation/SaveDocumentation";
 import EntityWithTests from "./components/tests/EntityWithTests";
@@ -15,20 +22,12 @@ import { updateCurrentDocsData } from "./state/documentationSlice";
 import { DocsGenerateModelRequestV2 } from "./state/types";
 import useDocumentationContext from "./state/useDocumentationContext";
 import classes from "./styles.module.scss";
-import { addDefaultActions } from "./utils";
-import ConversationsRightPanel from "./components/conversation/ConversationsRightPanel";
-import CoachAiIfModified from "./components/docGenerator/CoachAiIfModified";
-import Citations from "./components/docGenerator/Citations";
-import { Citation } from "@lib";
-import BulkGenerateButton from "./components/docGenerator/BulkGenerateButton";
-import { BulkDocumentationPropagationPanel } from "./components/documentationPropagation/DocumentationPropagation";
 
 const DocumentationEditor = (): JSX.Element => {
   const {
     state: { currentDocsData, currentDocsTests },
     dispatch,
   } = useDocumentationContext();
-  const { postMessageToDataPilot } = useAppContext();
 
   const modelTests = useMemo(() => {
     return currentDocsTests?.filter((test) => !test.column_name);
@@ -38,35 +37,52 @@ const DocumentationEditor = (): JSX.Element => {
     if (!currentDocsData) {
       return;
     }
-    const showInDataPilot = !!currentDocsData.description;
-    const id = crypto.randomUUID();
+
+    // When a description already exists, show a quick-pick so the user can
+    // choose a regeneration style before the API is called.
+    if (currentDocsData.description) {
+      const picked = (await executeRequestInSync("showRegenerateQuickPick", {
+        entityName: currentDocsData.name,
+        entityType: "model",
+      })) as { instruction: string } | null;
+      if (!picked) {
+        return; // user cancelled
+      }
+      try {
+        const regenResult = (await executeRequestInSync(
+          "generateDocsForModel",
+          {
+            description: data.description,
+            user_instructions: data.user_instructions,
+            columns: currentDocsData.columns,
+            follow_up_instructions: { instruction: picked.instruction },
+          },
+        )) as {
+          model_description?: string;
+          model_citations?: Citation[];
+        };
+        if (!regenResult.model_description) {
+          panelLogger.error(
+            "generateDocsForModel returned no model description",
+            regenResult,
+          );
+          return;
+        }
+        dispatch(
+          updateCurrentDocsData({
+            name: currentDocsData.name,
+            description: regenResult.model_description,
+            isNewGeneration: true,
+            citations: regenResult.model_citations ?? currentDocsData.citations,
+          }),
+        );
+      } catch (error) {
+        panelLogger.error("error while regenerating doc for model", error);
+      }
+      return;
+    }
 
     try {
-      const requestData = {
-        description: data.description,
-        user_instructions: data.user_instructions,
-        columns: currentDocsData.columns,
-        name: currentDocsData.name,
-      };
-      if (showInDataPilot) {
-        postMessageToDataPilot({
-          id,
-          query: `Generate Documentation for “${currentDocsData.name}”`,
-          requestType: RequestTypes.AI_DOC_GENERATION,
-          meta: requestData,
-          response: currentDocsData.description,
-          actions: addDefaultActions(
-            {
-              ...requestData,
-              modelName: currentDocsData.name,
-            },
-            "generateDocsForModel",
-          ),
-          state: RequestState.COMPLETED,
-        });
-        return;
-      }
-
       const result = (await executeRequestInSync("generateDocsForModel", {
         description: data.description,
         user_instructions: data.user_instructions,
@@ -81,20 +97,31 @@ const DocumentationEditor = (): JSX.Element => {
         model_citations?: Citation[];
       };
 
+      // Guard against partial responses that would clear the existing description.
+      if (
+        typeof result.model_description !== "string" ||
+        !result.model_description
+      ) {
+        panelLogger.error(
+          "generateDocsForModel returned no model description",
+          result,
+        );
+        return;
+      }
+
       dispatch(
         updateCurrentDocsData({
           name: currentDocsData.name,
           description: result.model_description,
           isNewGeneration: true,
-          citations: result.model_citations,
+          citations: result.model_citations ?? currentDocsData.citations,
         }),
       );
     } catch (error) {
       panelLogger.error("error while generating doc for model", error);
-      postMessageToDataPilot({
-        id,
-        response: (error as Error).message,
-        state: RequestState.ERROR,
+      executeRequestInAsync("openAltimateCodeChatForDocReview", {
+        initialMessage: `An error occurred while generating documentation for model "${currentDocsData.name}":\n\n${(error as Error).message}\n\nCan you help debug this?`,
+        title: `Doc Error: ${currentDocsData.name}`,
       });
     }
   };

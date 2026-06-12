@@ -37,7 +37,7 @@ dbt-adapters==1.22.6
     # via
     #   dbt-core
     #   dbt-duckdb
-dbt-common==1.37.2
+dbt-common==1.37.3
     # via
     #   dbt-adapters
     #   dbt-core
@@ -57,13 +57,13 @@ dbt-protos==1.0.431
     #   dbt-core
 dbt-semantic-interfaces==0.9.0
     # via dbt-core
-deepdiff==8.6.1
+deepdiff==8.6.2
     # via dbt-common
 diff-cover==10.2.0
     # via sqlfluff
 duckdb==1.4.4
     # via dbt-duckdb
-idna==3.11
+idna==3.15
     # via requests
 importlib-metadata==8.7.1
     # via dbt-semantic-interfaces
@@ -133,11 +133,11 @@ pydantic==2.12.5
     #   dbt-semantic-interfaces
 pydantic-core==2.41.5
     # via pydantic
-pygments==2.19.2
+pygments==2.20.0
     # via
     #   diff-cover
     #   pytest
-pytest==9.0.2
+pytest==9.0.3
     # via sqlfluff
 python-dateutil==2.9.0.post0
     # via
@@ -162,7 +162,7 @@ referencing==0.37.0
     #   jsonschema-specifications
 regex==2026.2.28
     # via sqlfluff
-requests==2.32.5
+requests==2.33.0
     # via
     #   dbt-common
     #   dbt-core
@@ -175,7 +175,7 @@ six==1.17.0
     # via python-dateutil
 snowplow-tracker==1.1.0
     # via dbt-core
-sqlfluff==4.0.4
+sqlfluff==4.2.0
     # via jaffle-shop (pyproject.toml)
 sqlparse==0.5.4
     # via dbt-core
@@ -198,7 +198,7 @@ typing-extensions==4.15.0
     #   typing-inspection
 typing-inspection==0.4.2
     # via pydantic
-urllib3==2.6.3
+urllib3==2.7.0
     # via requests
 zipp==3.23.0
     # via importlib-metadata

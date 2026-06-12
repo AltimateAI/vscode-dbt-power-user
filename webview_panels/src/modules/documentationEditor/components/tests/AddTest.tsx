@@ -1,25 +1,25 @@
 import { AddIcon, RemoveIcon } from "@assets/icons";
+import { EntityType } from "@modules/documentationEditor/state/entityType";
 import { DbtGenericTests } from "@modules/documentationEditor/state/types";
+import { TelemetryEvents } from "@telemetryEvents";
 import {
+  Button,
   Card,
-  CardTitle,
   CardBody,
-  Stack,
+  CardTitle,
   Drawer,
   DrawerRef,
-  IconButton,
-  Button,
   Fade,
+  IconButton,
+  Stack,
   Tooltip,
 } from "@uicore";
 import { useRef, useState } from "react";
-import TestForm from "./forms/TestForm";
 import classes from "../../styles.module.scss";
-import useTestFormSave, { TestOperation } from "./hooks/useTestFormSave";
-import CustomTestButton from "./CustomTestButton";
-import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { sendTelemetryEvent } from "../telemetry";
-import { TelemetryEvents } from "@telemetryEvents";
+import CustomTestButton from "./CustomTestButton";
+import TestForm from "./forms/TestForm";
+import useTestFormSave, { TestOperation } from "./hooks/useTestFormSave";
 
 interface Props {
   title: string;
@@ -88,7 +88,7 @@ const AddTest = ({ title, currentTests, type }: Props): JSX.Element => {
                     </Button>
                   </Tooltip>
                 ))}
-          <Tooltip title="Generate test using Datapilot">
+          <Tooltip title="Generate custom test">
             <CustomTestButton column={title} type={type} />
           </Tooltip>
         </Fade>
