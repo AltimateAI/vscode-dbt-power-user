@@ -14,7 +14,8 @@ You can start the setup wizard by clicking on dbt status icon in bottom status b
 
 <interactive demo for setup wizard>
 
-<div style="position: relative; padding-bottom: calc(75.08376963350786% + 42px); height: 0;"><iframe src="https://app.supademo.com/embed/clsvee2nn062bpekcffkgv0sv" allow="clipboard-write" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+<div style="position: relative; box-sizing: content-box; max-height: 80vh; max-height: 80svh; width: 100%; aspect-ratio: 1.50; padding: 40px 0 40px 0;">
+  <iframe src="https://app.supademo.com/embed/cmnsywfgw4brfcr4j1npz9esr?embed_v=2&utm_source=embed" loading="lazy" title="dbt Power User Setup guide-Core" allow="clipboard-write" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
 **Here are steps covered in the setup wizard**
 

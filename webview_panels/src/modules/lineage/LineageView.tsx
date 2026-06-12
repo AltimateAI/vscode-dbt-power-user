@@ -67,6 +67,17 @@ const LineageView = (): JSX.Element | null => {
           break;
       }
     };
+    // @ts-expect-error TODO: add type generic for executeRequestInSync
+    ApiHelper.post = async (url: string, data?: Record<string, unknown>) => {
+      switch (url) {
+        case "dbt/v4/export-lineage":
+          return executeRequestInSync("exportLineage", {
+            args: { params: data ?? {} },
+          });
+        default:
+          break;
+      }
+    };
     setIsApiHelperInitialized(true);
   }, [isComponentsApiInitialized]);
 

@@ -13,7 +13,11 @@ import { sendTelemetryEvent } from "../telemetry";
 import { TelemetryEvents } from "@telemetryEvents";
 import { useEffect, useRef } from "react";
 
-const DocGeneratorSettings = (): JSX.Element => {
+interface Props {
+  onClose?: () => void;
+}
+
+const DocGeneratorSettings = ({ onClose }: Props): JSX.Element => {
   const {
     dispatch,
     state: { userInstructions },
@@ -50,7 +54,7 @@ const DocGeneratorSettings = (): JSX.Element => {
   };
 
   return (
-    <Drawer title="Help" onOpen={onOpen} ref={drawerRef}>
+    <Drawer title="Settings" onOpen={onOpen} onClose={onClose} ref={drawerRef}>
       <Stack direction="column">
         <h5>Configure settings for document generation</h5>
         <Stack direction="column">

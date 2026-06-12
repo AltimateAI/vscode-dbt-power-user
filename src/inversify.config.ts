@@ -6,6 +6,7 @@ import {
   DBTCloudDetection,
   DBTCloudProjectDetection,
   DBTCloudProjectIntegration,
+  DbtCloudVariantDetector,
   DBTCommandExecutionInfrastructure,
   DBTCommandExecutionStrategy,
   DBTCommandFactory,
@@ -66,7 +67,6 @@ import { DbtTestService } from "./services/dbtTestService";
 import { DiagnosticsOutputChannel } from "./services/diagnosticsOutputChannel";
 import { DocGenService } from "./services/docGenService";
 import { FileService } from "./services/fileService";
-import { QueryAnalysisService } from "./services/queryAnalysisService";
 import { QueryManifestService } from "./services/queryManifestService";
 import { RunHistoryService } from "./services/runHistoryService";
 import { SharedStateService } from "./services/sharedStateService";
@@ -105,6 +105,7 @@ import { DepthDecorationProvider } from "./hover_provider/depthDecorationProvide
 import { MacroHoverProvider } from "./hover_provider/macroHoverProvider";
 import { ModelHoverProvider } from "./hover_provider/modelHoverProvider";
 import { SourceHoverProvider } from "./hover_provider/sourceHoverProvider";
+import { YamlModelHoverProvider } from "./hover_provider/yamlModelHoverProvider";
 import { ProjectQuickPick } from "./quickpick/projectQuickPick";
 
 // Import missing providers and components
@@ -112,6 +113,7 @@ import { VSCodeCommands } from "./commands";
 import { AltimateScan } from "./commands/altimateScan";
 import { BigQueryCostEstimate } from "./commands/bigQueryCostEstimate";
 import { RunModel } from "./commands/runModel";
+import { RunTest } from "./commands/runTest";
 import { SqlToModel } from "./commands/sqlToModel";
 import { MissingSchemaTest } from "./commands/tests/missingSchemaTest";
 import { StaleModelColumnTest } from "./commands/tests/staleModelColumnTest";
@@ -123,6 +125,8 @@ import { CommentProviders } from "./comment_provider";
 import { ConversationProvider } from "./comment_provider/conversationProvider";
 import { ContentProviders } from "./content_provider";
 import { SqlPreviewContentProvider } from "./content_provider/sqlPreviewContentProvider";
+import { CteProfilerDecorationProvider } from "./cte_profiler/cteProfilerDecorationProvider";
+import { CteProfilerService } from "./cte_profiler/cteProfilerService";
 import { DBTPowerUserExtension } from "./dbtPowerUserExtension";
 import { DocumentFormattingEditProviders } from "./document_formatting_edit_provider";
 import { DbtDocumentFormattingEditProvider } from "./document_formatting_edit_provider/dbtDocumentFormattingEditProvider";
@@ -143,7 +147,6 @@ import {
 } from "./treeview_provider/modelTreeviewProvider";
 import { RunHistoryTreeviewProvider } from "./treeview_provider/runHistoryTreeviewProvider";
 import { WebviewViewProviders } from "./webview_provider";
-import { DataPilotPanel } from "./webview_provider/datapilotPanel";
 import { DbtDocsView } from "./webview_provider/DbtDocsView";
 import { DocsEditViewPanel } from "./webview_provider/docsEditPanel";
 import { InsightsPanel } from "./webview_provider/insightsPanel";
@@ -266,6 +269,13 @@ container
   })
   .inSingletonScope();
 
+container
+  .bind(DbtCloudVariantDetector)
+  .toDynamicValue((context) => {
+    return new DbtCloudVariantDetector(context.container.get("DBTTerminal"));
+  })
+  .inSingletonScope();
+
 // Bind dbt core integration classes using factory functions
 container
   .bind(DBTCoreDetection)
@@ -273,6 +283,7 @@ container
     return new DBTCoreDetection(
       context.container.get("RuntimePythonEnvironment"),
       context.container.get(CommandProcessExecutionFactory),
+      context.container.get("DBTTerminal"),
     );
   })
   .inSingletonScope();
@@ -664,6 +675,9 @@ container
       onDiagnosticsChanged: () => void,
     ) => {
       const { container } = context;
+      const pythonStrategyFactory = container.get<
+        (projectRoot: string) => PythonDBTCommandExecutionStrategy
+      >("Factory<PythonDBTCommandExecutionStrategy>");
       return new DBTCloudProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
         container.get(DBTCommandFactory),
@@ -675,6 +689,12 @@ container
         projectConfigDiagnostics,
         deferConfig,
         onDiagnosticsChanged,
+        container.get(DbtCloudVariantDetector),
+        {
+          pythonDBTCommandExecutionStrategy: pythonStrategyFactory(projectRoot),
+          dbtConfiguration: container.get<DBTConfiguration>("DBTConfiguration"),
+          dbtIntegrationClient: container.get(DbtIntegrationClient),
+        },
       );
     };
   });
@@ -830,21 +850,6 @@ container
   .inSingletonScope();
 
 container
-  .bind(QueryAnalysisService)
-  .toDynamicValue((context) => {
-    return new QueryAnalysisService(
-      context.container.get(DocGenService),
-      context.container.get(StreamingService),
-      context.container.get(AltimateRequest),
-      context.container.get(QueryManifestService),
-      context.container.get("DBTTerminal"),
-      context.container.get(FileService),
-      context.container.get(AltimateAuthService),
-    );
-  })
-  .inSingletonScope();
-
-container
   .bind(QueryManifestService)
   .toDynamicValue((context) => {
     return new QueryManifestService(
@@ -882,6 +887,26 @@ container
   .toDynamicValue((context) => {
     return new RunHistoryTreeviewProvider(
       context.container.get(RunHistoryService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(CteProfilerService)
+  .toDynamicValue((context) => {
+    return new CteProfilerService(
+      context.container.get(DBTProjectContainer),
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(CteProfilerDecorationProvider)
+  .toDynamicValue((context) => {
+    return new CteProfilerDecorationProvider(
+      context.container.get(CteProfilerService),
+      context.container.get("DBTTerminal"),
     );
   })
   .inSingletonScope();
@@ -1079,10 +1104,7 @@ container
 container
   .bind(CteCodeLensProvider)
   .toDynamicValue((context) => {
-    return new CteCodeLensProvider(
-      context.container.get("DBTTerminal"),
-      context.container.get(AltimateRequest),
-    );
+    return new CteCodeLensProvider(context.container.get("DBTTerminal"));
   })
   .inSingletonScope();
 
@@ -1176,6 +1198,7 @@ container
       context.container.get(SourceHoverProvider),
       context.container.get(MacroHoverProvider),
       context.container.get(DepthDecorationProvider),
+      context.container.get(YamlModelHoverProvider),
     );
   })
   .inSingletonScope();
@@ -1215,6 +1238,16 @@ container
   .bind(SourceHoverProvider)
   .toDynamicValue((context) => {
     return new SourceHoverProvider(
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(YamlModelHoverProvider)
+  .toDynamicValue((context) => {
+    return new YamlModelHoverProvider(
       context.container.get(DBTProjectContainer),
       context.container.get(TelemetryService),
     );
@@ -1430,6 +1463,16 @@ container
   .inSingletonScope();
 
 container
+  .bind(RunTest)
+  .toDynamicValue((context) => {
+    return new RunTest(
+      context.container.get(DBTProjectContainer),
+      context.container.get(QueryManifestService),
+    );
+  })
+  .inSingletonScope();
+
+container
   .bind(SqlToModel)
   .toDynamicValue((context) => {
     return new SqlToModel(
@@ -1450,6 +1493,7 @@ container
       context.container.get(TelemetryService),
       context.container.get(AltimateRequest),
       context.container.get("DBTTerminal"),
+      context.container.get(AltimateCodeChatService),
     );
   })
   .inSingletonScope();
@@ -1530,6 +1574,7 @@ container
     return new VSCodeCommands(
       context.container.get(DBTProjectContainer),
       context.container.get(RunModel),
+      context.container.get(RunTest),
       context.container.get(SqlToModel),
       context.container.get(ValidateSql),
       context.container.get(AltimateScan),
@@ -1547,6 +1592,10 @@ container
       context.container.get("DatapilotNotebookController"),
       context.container.get(RunHistoryService),
       context.container.get(AltimateCodeChatService),
+      context.container.get(CteProfilerService),
+      context.container.get(CteProfilerDecorationProvider),
+      context.container.get(CteCodeLensProvider),
+      context.container.get(TelemetryService),
     );
   })
   .inSingletonScope();
@@ -1564,6 +1613,7 @@ container
       context.container.get(QueryManifestService),
       context.container.get(UsersService),
       context.container.get(AltimateAuthService),
+      context.container.get(AltimateCodeChatService),
     );
   })
   .inSingletonScope();
@@ -1592,26 +1642,6 @@ container
       context.container.get(DBTProjectContainer),
       context.container.get(TelemetryService),
       context.container.get("DBTTerminal"),
-    );
-  })
-  .inSingletonScope();
-
-container
-  .bind(DataPilotPanel)
-  .toDynamicValue((context) => {
-    return new DataPilotPanel(
-      context.container.get(DBTProjectContainer),
-      context.container.get(TelemetryService),
-      context.container.get(AltimateRequest),
-      context.container.get(DocGenService),
-      context.container.get(SharedStateService),
-      context.container.get(QueryAnalysisService),
-      context.container.get(QueryManifestService),
-      context.container.get("DBTTerminal"),
-      context.container.get(DbtTestService),
-      context.container.get(FileService),
-      context.container.get(UsersService),
-      context.container.get(AltimateAuthService),
     );
   })
   .inSingletonScope();
@@ -1652,6 +1682,7 @@ container
       context.container.get(ConversationProvider),
       context.container.get(ConversationService),
       context.container.get(AltimateAuthService),
+      context.container.get(AltimateCodeChatService),
     );
   })
   .inSingletonScope();
@@ -1681,7 +1712,6 @@ container
       context.container.get(QueryResultPanel),
       context.container.get(DocsEditViewPanel),
       context.container.get(LineagePanel),
-      context.container.get(DataPilotPanel),
       context.container.get(InsightsPanel),
     );
   })

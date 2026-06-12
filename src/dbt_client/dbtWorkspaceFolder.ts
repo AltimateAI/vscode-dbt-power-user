@@ -4,6 +4,7 @@ import * as path from "path";
 import {
   Diagnostic,
   Disposable,
+  env,
   EventEmitter,
   FileSystemWatcher,
   languages,
@@ -24,9 +25,9 @@ import {
 } from "./event/manifestCacheChangedEvent";
 
 import {
+  DBT_PROJECT_FILE,
   DBTProjectDetection,
   DBTTerminal,
-  DBT_PROJECT_FILE,
   readAndParseProjectConfig,
 } from "@altimateai/dbt-integration";
 
@@ -67,6 +68,11 @@ export function isDBtProjectFileOutsidePackageDir(
   return true;
 }
 
+// Sentinel for the empty-after-retries case in `retryWithBackoff`. Lets the
+// caller distinguish "this folder has no dbt project" (silent, expected for
+// multi-root workspaces) from a real `findFiles` failure (telemetry-worthy).
+class NoProjectsFound extends Error {}
+
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
   readonly projectDiscoveryDiagnostics =
@@ -99,7 +105,7 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   getAllowListFolders() {
-    const nonFilteredAlolowListFolders = workspace
+    const nonFilteredAllowListFolders = workspace
       .getConfiguration("dbt")
       .get<string[]>("allowListFolders", [])
       .map((folder) => {
@@ -108,16 +114,15 @@ export class DBTWorkspaceFolder implements Disposable {
         }
         return folder;
       });
-    const allowListFolders = nonFilteredAlolowListFolders.filter((folder) =>
+    const allowListFolders = nonFilteredAllowListFolders.filter((folder) =>
       existsSync(folder),
     );
-    if (nonFilteredAlolowListFolders.length === allowListFolders.length) {
+    if (nonFilteredAllowListFolders.length !== allowListFolders.length) {
       console.warn(
         "filtered out non-existing allowListFolders",
         allowListFolders,
-        nonFilteredAlolowListFolders,
+        nonFilteredAllowListFolders,
       );
-      this.telemetry.sendTelemetryEvent("nonExistingAllowListFolders");
     }
     return allowListFolders;
   }
@@ -137,7 +142,7 @@ export class DBTWorkspaceFolder implements Disposable {
             "no projects found. retrying...",
             false,
           );
-          throw new Error("no projects found. retrying");
+          throw new NoProjectsFound("no projects found. retrying");
         }
         return result;
       } catch (error) {
@@ -153,22 +158,35 @@ export class DBTWorkspaceFolder implements Disposable {
       "no projects found after maximum retries",
       false,
     );
-    throw new Error("no projects found after maximum retries");
+    throw new NoProjectsFound("no projects found after maximum retries");
   }
 
   async discoverProjects() {
     // Ignore dbt_packages and venv/site-packages/dbt project folders
     const excludePattern =
       "**/{dbt_packages,site-packages,dbt_internal_packages}";
-    const dbtProjectFiles = await this.retryWithBackoff(
-      () =>
-        workspace.findFiles(
-          new RelativePattern(this.workspaceFolder, `**/${DBT_PROJECT_FILE}`),
-          new RelativePattern(this.workspaceFolder, excludePattern),
-        ),
-      5,
-      1000,
-    );
+    // Multi-root workspaces activate the extension when any folder contains
+    // `dbt_project.yml`, but discoverProjects runs on every folder. A folder
+    // that genuinely has no dbt project must resolve to an empty result
+    // rather than fail activation. The constructor's `createConfigWatcher`
+    // still watches this folder, so a project added later is picked up.
+    let dbtProjectFiles: Uri[] = [];
+    try {
+      dbtProjectFiles = await this.retryWithBackoff(
+        () =>
+          workspace.findFiles(
+            new RelativePattern(this.workspaceFolder, `**/${DBT_PROJECT_FILE}`),
+            new RelativePattern(this.workspaceFolder, excludePattern),
+          ),
+        5,
+        1000,
+      );
+    } catch (error) {
+      if (!(error instanceof NoProjectsFound)) {
+        this.telemetry.sendTelemetryError("discoverProjectsError", error);
+      }
+      dbtProjectFiles = [];
+    }
     this.dbtTerminal.info(
       "discoverProjects",
       "foundProjects",
@@ -246,6 +264,9 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   contains(uri: Uri) {
+    if (!uri?.fsPath) {
+      return false;
+    }
     return (
       uri.fsPath === this.workspaceFolder.uri.fsPath ||
       uri.fsPath.startsWith(this.workspaceFolder.uri.fsPath + path.sep)
@@ -302,9 +323,20 @@ export class DBTWorkspaceFolder implements Disposable {
         error,
       );
       if (error instanceof YAMLError) {
+        const yamlDiagnostic = new Diagnostic(
+          new Range(0, 0, 999, 999),
+          error.message,
+        );
+        yamlDiagnostic.source = "dbt Power User";
+        yamlDiagnostic.code = {
+          value: "Fix with Altimate Code",
+          target: Uri.parse(
+            `${env.uriScheme}://innoverio.vscode-dbt-power-user/troubleshoot?source=dbt&error=${encodeURIComponent(error.message)}`,
+          ),
+        };
         this.projectDiscoveryDiagnostics.set(
           Uri.joinPath(uri, DBT_PROJECT_FILE),
-          [new Diagnostic(new Range(0, 0, 999, 999), error.message)],
+          [yamlDiagnostic],
         );
       }
       window.showErrorMessage(

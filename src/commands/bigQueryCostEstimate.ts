@@ -15,7 +15,7 @@ export class BigQueryCostEstimate {
     private telemetry: TelemetryService,
   ) {}
 
-  async estimateCost({ returnResult }: { returnResult?: boolean }) {
+  async estimateCost({ returnResult }: { returnResult?: boolean } = {}) {
     const modelName = path.basename(
       window.activeTextEditor!.document.fileName,
       ".sql",
