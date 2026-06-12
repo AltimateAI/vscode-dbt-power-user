@@ -2,7 +2,9 @@ import {
   CommandProcessExecutionFactory,
   DBTTerminal,
 } from "@altimateai/dbt-integration";
+import { existsSync } from "fs";
 import { inject } from "inversify";
+import { join } from "path";
 import { gte } from "semver";
 import {
   commands,
@@ -335,7 +337,23 @@ export class WalkthroughCommands {
       pythonVersion: this.pythonEnvironment.pythonVersion ?? "unknown",
     };
     this.telemetry.sendTelemetryEvent("installDbtCore", telemetryProps);
-    let error = undefined;
+
+    const installArgs = [
+      "-m",
+      "pip",
+      "install",
+      "--no-cache-dir",
+      "--force-reinstall",
+    ];
+    if (gte(packageVersion + ".0", "1.8.0")) {
+      installArgs.push(`dbt-core~=${packageVersion}.0`);
+      installArgs.push(`${packageName}`);
+    } else {
+      installArgs.push(`${packageName}==${packageVersion}`);
+    }
+
+    const pythonPath = this.pythonEnvironment.pythonPath;
+    let error: unknown;
     await window.withProgress(
       {
         title: `Installing ${packageName} ${packageVersion}...`,
@@ -344,38 +362,7 @@ export class WalkthroughCommands {
       },
       async () => {
         try {
-          const args = [
-            "-m",
-            "pip",
-            "install",
-            "--no-cache-dir",
-            "--force-reinstall",
-          ];
-          const isIndependentAdapterPackage = gte(
-            packageVersion + ".0",
-            "1.8.0",
-          );
-          if (isIndependentAdapterPackage) {
-            args.push(`dbt-core~=${packageVersion}.0`);
-            args.push(`${packageName}`);
-          } else {
-            args.push(`${packageName}==${packageVersion}`);
-          }
-          const { stdout, stderr } = await this.commandProcessExecutionFactory
-            .createCommandProcessExecution({
-              command: this.pythonEnvironment.pythonPath,
-              args,
-              cwd: getFirstWorkspacePath(),
-              envVars: this.pythonEnvironment.getEnvironmentVariables(),
-            })
-            .completeWithTerminalOutput();
-          if (
-            !stdout.includes("Successfully installed") &&
-            !stdout.includes("Requirement already satisfied") &&
-            stderr
-          ) {
-            throw new Error(stderr);
-          }
+          await this.runPipInstall(pythonPath, installArgs);
           await this.dbtProjectContainer.detectDBT();
           this.dbtProjectContainer.initialize();
         } catch (err) {
@@ -388,14 +375,213 @@ export class WalkthroughCommands {
         }
       },
     );
-    if (error) {
-      const answer = await window.showErrorMessage(
-        "Could not install dbt: " + (error as Error).message,
-        DbtInstallationPromptAnswer.INSTALL,
+    if (!error) {
+      return;
+    }
+    const message = (error as Error).message ?? String(error);
+    // PEP 668: the interpreter (commonly a Homebrew Python) refuses global
+    // installs. Offer a virtual environment instead of a dead-end retry.
+    if (this.isExternallyManagedError(message)) {
+      await this.handleExternallyManagedInstall(
+        pythonPath,
+        installArgs,
+        telemetryProps,
       );
-      if (answer === DbtInstallationPromptAnswer.INSTALL) {
-        commands.executeCommand("dbtPowerUser.installDbt");
-      }
+      return;
+    }
+    const answer = await window.showErrorMessage(
+      "Could not install dbt: " + message,
+      DbtInstallationPromptAnswer.INSTALL,
+    );
+    if (answer === DbtInstallationPromptAnswer.INSTALL) {
+      commands.executeCommand("dbtPowerUser.installDbt");
+    }
+  }
+
+  /**
+   * Run `python -m pip install ...` and treat the absence of a success marker
+   * (with output on stderr) as a failure, mirroring pip's exit semantics.
+   */
+  private async runPipInstall(
+    pythonPath: string,
+    args: string[],
+  ): Promise<void> {
+    const { stdout, stderr } = await this.commandProcessExecutionFactory
+      .createCommandProcessExecution({
+        command: pythonPath,
+        args,
+        cwd: getFirstWorkspacePath(),
+        envVars: this.pythonEnvironment.getEnvironmentVariables(),
+      })
+      .completeWithTerminalOutput();
+    if (
+      !stdout.includes("Successfully installed") &&
+      !stdout.includes("Requirement already satisfied") &&
+      stderr
+    ) {
+      throw new Error(stderr);
+    }
+  }
+
+  /**
+   * Whether a pip failure is PEP 668 "externally-managed-environment" — the
+   * interpreter's stdlib carries an EXTERNALLY-MANAGED marker (Homebrew, Debian,
+   * Ubuntu) and pip refuses to install into it globally.
+   */
+  private isExternallyManagedError(message: string): boolean {
+    return /externally[-\s]managed/i.test(message);
+  }
+
+  private resolveVenvPython(venvDir: string): string {
+    return process.platform === "win32"
+      ? join(venvDir, "Scripts", "python.exe")
+      : join(venvDir, "bin", "python");
+  }
+
+  /**
+   * Remediation for an externally-managed interpreter: offer to create a virtual
+   * environment and install dbt there (what the Homebrew error itself
+   * recommends), with an explicit opt-in to override the protection as fallback.
+   */
+  private async handleExternallyManagedInstall(
+    pythonPath: string,
+    installArgs: string[],
+    telemetryProps: Record<string, string>,
+  ): Promise<void> {
+    const CREATE_VENV = "Create virtual environment";
+    const FORCE = "Install anyway";
+    const answer = await window.showErrorMessage(
+      `Could not install dbt: the selected Python interpreter (${pythonPath}) is externally managed (PEP 668), ` +
+        `so packages cannot be installed into it globally. Create a virtual environment and install dbt there instead?`,
+      CREATE_VENV,
+      FORCE,
+    );
+    if (answer === CREATE_VENV) {
+      await this.createVenvAndInstallDbtCore(
+        pythonPath,
+        installArgs,
+        telemetryProps,
+      );
+    } else if (answer === FORCE) {
+      await this.forceInstallDbtCore(pythonPath, installArgs, telemetryProps);
+    }
+  }
+
+  private async createVenvAndInstallDbtCore(
+    pythonPath: string,
+    installArgs: string[],
+    telemetryProps: Record<string, string>,
+  ): Promise<void> {
+    const workspacePath = workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (!workspacePath) {
+      window.showErrorMessage(
+        "Cannot create a virtual environment: no workspace folder is open.",
+      );
+      return;
+    }
+    const venvDir = join(workspacePath, ".venv");
+    const venvPython = this.resolveVenvPython(venvDir);
+    const config = workspace.getConfiguration("dbt");
+    const previousOverride = config.get<string>("dbtPythonPathOverride");
+    let overrideUpdated = false;
+    this.telemetry.sendTelemetryEvent("installDbtCoreVenv", telemetryProps);
+    let error: unknown;
+    await window.withProgress(
+      {
+        title: "Creating virtual environment and installing dbt...",
+        location: ProgressLocation.Notification,
+        cancellable: false,
+      },
+      async () => {
+        try {
+          if (!existsSync(venvPython)) {
+            const { stderr } = await this.commandProcessExecutionFactory
+              .createCommandProcessExecution({
+                command: pythonPath,
+                args: ["-m", "venv", venvDir],
+                cwd: workspacePath,
+                envVars: this.pythonEnvironment.getEnvironmentVariables(),
+              })
+              .completeWithTerminalOutput();
+            if (!existsSync(venvPython)) {
+              throw new Error(
+                stderr ||
+                  `Failed to create a virtual environment at ${venvDir}`,
+              );
+            }
+          }
+          await this.runPipInstall(venvPython, installArgs);
+          // Point the interpreter at the venv before re-detecting so detection
+          // resolves dbt from the new environment.
+          await config.update("dbtPythonPathOverride", venvPython);
+          overrideUpdated = true;
+          await this.dbtProjectContainer.detectDBT();
+          this.dbtProjectContainer.initialize();
+        } catch (err) {
+          // Don't leave the workspace pointing at a half-set interpreter if a
+          // later step failed; restore the previous override.
+          if (overrideUpdated) {
+            await config.update("dbtPythonPathOverride", previousOverride);
+          }
+          error = err;
+          this.telemetry.sendTelemetryError(
+            "installDbtCoreVenvError",
+            err,
+            telemetryProps,
+          );
+        }
+      },
+    );
+    if (error) {
+      window.showErrorMessage(
+        "Could not install dbt into a virtual environment: " +
+          ((error as Error).message ?? String(error)),
+      );
+      return;
+    }
+    window.showInformationMessage(
+      `dbt installed in ${venvDir}. The Python interpreter has been set to the new virtual environment.`,
+    );
+  }
+
+  private async forceInstallDbtCore(
+    pythonPath: string,
+    installArgs: string[],
+    telemetryProps: Record<string, string>,
+  ): Promise<void> {
+    this.telemetry.sendTelemetryEvent(
+      "installDbtCoreBreakSystemPackages",
+      telemetryProps,
+    );
+    let error: unknown;
+    await window.withProgress(
+      {
+        title: "Installing dbt...",
+        location: ProgressLocation.Notification,
+        cancellable: false,
+      },
+      async () => {
+        try {
+          await this.runPipInstall(pythonPath, [
+            ...installArgs,
+            "--break-system-packages",
+          ]);
+          await this.dbtProjectContainer.detectDBT();
+          this.dbtProjectContainer.initialize();
+        } catch (err) {
+          error = err;
+          this.telemetry.sendTelemetryError(
+            "installDbtCoreBreakSystemPackagesError",
+            err,
+            telemetryProps,
+          );
+        }
+      },
+    );
+    if (error) {
+      window.showErrorMessage(
+        "Could not install dbt: " + ((error as Error).message ?? String(error)),
+      );
     }
   }
 
