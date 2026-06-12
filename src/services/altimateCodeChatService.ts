@@ -5,9 +5,11 @@ export class AltimateCodeChatService implements Disposable {
   private disposables: Disposable[] = [];
 
   async openChat(options: {
-    initialMessage: string;
+    initialMessage?: string;
+    prefillMessage?: string;
     title: string;
-  }): Promise<void> {
+    beside?: boolean;
+  }): Promise<boolean> {
     const altimateExt = extensions.getExtension(
       "altimateai.vscode-altimate-mcp-server",
     );
@@ -15,7 +17,7 @@ export class AltimateCodeChatService implements Disposable {
       window.showErrorMessage(
         "Datamates extension is not installed or not active.",
       );
-      return;
+      return false;
     }
     if (!altimateExt.isActive) {
       await altimateExt.activate();
@@ -25,15 +27,18 @@ export class AltimateCodeChatService implements Disposable {
       window.showErrorMessage(
         "Datamates extension is out of date, please update to the latest version.",
       );
-      return;
+      return false;
     }
     // createSession opens the panel, starts the server, creates the session,
     // and sends the initial message — all handled by the Datamates extension's
     // webview:ready lifecycle.
     await chat.createSession({
       initialMessage: options.initialMessage,
+      prefillMessage: options.prefillMessage,
       title: options.title,
+      beside: options.beside,
     });
+    return true;
   }
 
   getEditorContext(): {

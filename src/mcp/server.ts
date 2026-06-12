@@ -4,12 +4,25 @@ import { inject } from "inversify";
 import { Disposable, Uri, workspace } from "vscode";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
+import { z as z4 } from "zod/v4";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { DBTProject, DBTTerminal } from "../modules";
 import { McpTool } from "./types";
 
 const ToolInputSchema = ToolSchema.shape.inputSchema;
-type ToolInput = z.infer<typeof ToolInputSchema>;
+type ToolInput = z4.infer<typeof ToolInputSchema>;
+
+/** Convert Zod schema to JSON Schema without `$schema` meta-field.
+ *  The default `jsonSchema7` target includes `"$schema": "http://json-schema.org/draft-07/schema#"`
+ *  which Gemini's tool-calling API rejects as an unsupported property. Using `openApi3`
+ *  produces an identical schema structure minus the `$schema` field.  */
+const zodToJsonSchemaAny = zodToJsonSchema as (
+  schema: unknown,
+  options?: unknown,
+) => unknown;
+function toToolInput(schema: z.ZodSchema<unknown>): ToolInput {
+  return zodToJsonSchemaAny(schema, { target: "openApi3" }) as ToolInput;
+}
 
 const BaseSchema = z.object({});
 const BaseProjectRootSchema = BaseSchema.extend({ projectRoot: z.string() });
@@ -167,7 +180,7 @@ export class DbtPowerUserMcpServerTools implements Disposable {
       name: ToolName.GET_BEST_PRACTICES,
       description:
         "⚠️ IMPORTANT: Call this tool BEFORE starting any dbt task to get critical workflow guidelines. Returns best practices for completing dbt tasks correctly, including the required Write → Build → Verify workflow and proper tool usage. This helps avoid common mistakes like stopping after compile.",
-      inputSchema: zodToJsonSchema(BaseSchema) as ToolInput,
+      inputSchema: toToolInput(BaseSchema),
       handler: async () => {
         return {
           content: createTextContent(DBT_BEST_PRACTICES_CONTENT),
@@ -191,7 +204,7 @@ export class DbtPowerUserMcpServerTools implements Disposable {
 - dbtVersion: The version of dbt being used (e.g., "1.5.0")
 - adapterType: The database adapter type (e.g., "postgres", "snowflake")
 This must be called first to get the projectRoot parameter needed for all other tools.`,
-      inputSchema: zodToJsonSchema(BaseSchema) as ToolInput,
+      inputSchema: toToolInput(BaseSchema),
       handler: async (args: Record<string, unknown>) => {
         const projects = this.dbtProjectContainer.getProjects();
         const projectDetails = await Promise.all(
@@ -289,7 +302,7 @@ This must be called first to get the projectRoot parameter needed for all other 
       name: ToolName.GET_COLUMNS_OF_MODEL,
       description:
         "Returns the column names and data types for a specified dbt model. WORKFLOW: Call this BEFORE completing any task to verify the output schema matches requirements.",
-      inputSchema: zodToJsonSchema(GetColumnsOfModelSchema) as ToolInput,
+      inputSchema: toToolInput(GetColumnsOfModelSchema),
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = GetColumnsOfModelSchema.parse(args);
         const projectRoot = decodeURIComponent(validatedArgs.projectRoot);
@@ -311,7 +324,7 @@ This must be called first to get the projectRoot parameter needed for all other 
       name: ToolName.GET_COLUMNS_OF_SOURCE,
       description:
         "Returns the column names and data types for a specified dbt source. Use this to understand a source's schema before querying it.",
-      inputSchema: zodToJsonSchema(GetColumnsOfSourceSchema) as ToolInput,
+      inputSchema: toToolInput(GetColumnsOfSourceSchema),
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = GetColumnsOfSourceSchema.parse(args);
         const projectRoot = decodeURIComponent(validatedArgs.projectRoot);
@@ -340,7 +353,7 @@ This must be called first to get the projectRoot parameter needed for all other 
             name: ToolName.GET_COLUMN_VALUES,
             description:
               "Returns the distinct values for a specified column in a model or source. Use this to understand the data distribution and possible values in a column.",
-            inputSchema: zodToJsonSchema(GetColumnValuesSchema) as ToolInput,
+            inputSchema: toToolInput(GetColumnValuesSchema),
             handler: async (args: Record<string, unknown>) => {
               const validatedArgs = GetColumnValuesSchema.parse(args);
               const projectRoot = decodeURIComponent(validatedArgs.projectRoot);
@@ -365,7 +378,7 @@ This must be called first to get the projectRoot parameter needed for all other 
             name: ToolName.EXECUTE_SQL,
             description:
               "⚠️ PREFERRED for validation: Execute SQL queries against the database and get results immediately. WORKFLOW: Use this to spot-check row counts, verify key values, and validate your logic before and after building models.",
-            inputSchema: zodToJsonSchema(ExecuteSQLSchema) as ToolInput,
+            inputSchema: toToolInput(ExecuteSQLSchema),
             handler: async (args: Record<string, unknown>) => {
               const validatedArgs = ExecuteSQLSchema.parse(args);
               const projectRoot = decodeURIComponent(validatedArgs.projectRoot);
@@ -392,7 +405,7 @@ This must be called first to get the projectRoot parameter needed for all other 
       name: ToolName.COMPILE_MODEL,
       description:
         "Use this instead of running 'dbt compile' in the terminal. Converts Jinja SQL to raw SQL. ⚠️ WARNING: This ONLY performs Jinja templating - it does NOT validate SQL syntax or create anything in the database! You MUST call build_model to actually create the model.",
-      inputSchema: zodToJsonSchema(CompileModelSchema) as ToolInput,
+      inputSchema: toToolInput(CompileModelSchema),
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = CompileModelSchema.parse(args);
         const projectRoot = decodeURIComponent(validatedArgs.projectRoot);
@@ -412,7 +425,7 @@ This must be called first to get the projectRoot parameter needed for all other 
       name: ToolName.COMPILE_QUERY,
       description:
         "Use this instead of running 'dbt compile' in the terminal. Converts Jinja SQL query to raw SQL. ⚠️ WARNING: This ONLY performs Jinja templating - it does NOT validate SQL syntax or execute anything! Use execute_sql to run and validate the query.",
-      inputSchema: zodToJsonSchema(CompileQuerySchema) as ToolInput,
+      inputSchema: toToolInput(CompileQuerySchema),
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = CompileQuerySchema.parse(args);
         const projectRoot = decodeURIComponent(validatedArgs.projectRoot);
@@ -435,7 +448,7 @@ This must be called first to get the projectRoot parameter needed for all other 
       name: ToolName.RUN_MODEL,
       description:
         "Use this instead of running 'dbt run' in the terminal. Runs a dbt model. For most cases, prefer build_model instead as it also runs tests. Use + for plusOperatorLeft to include upstream models, and + for plusOperatorRight to include downstream models.",
-      inputSchema: zodToJsonSchema(RunModelSchema) as ToolInput,
+      inputSchema: toToolInput(RunModelSchema),
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = RunModelSchema.parse(args);
         const projectRoot = decodeURIComponent(validatedArgs.projectRoot);
@@ -459,7 +472,7 @@ This must be called first to get the projectRoot parameter needed for all other 
       name: ToolName.BUILD_MODEL,
       description:
         "⚠️ PREFERRED: Use this instead of running 'dbt build' in the terminal. Builds a dbt model AND runs its tests. Use + for plusOperatorRight to also rebuild downstream models (recommended after fixes). This ensures data consistency throughout your pipeline.",
-      inputSchema: zodToJsonSchema(BuildModelSchema) as ToolInput,
+      inputSchema: toToolInput(BuildModelSchema),
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = BuildModelSchema.parse(args);
         const projectRoot = decodeURIComponent(validatedArgs.projectRoot);
@@ -483,7 +496,7 @@ This must be called first to get the projectRoot parameter needed for all other 
       name: ToolName.BUILD_PROJECT,
       description:
         "Use this instead of running 'dbt build' in the terminal. Builds the entire dbt project including seeds, models, and all tests. For single model changes, prefer build_model instead.",
-      inputSchema: zodToJsonSchema(BuildProjectSchema) as ToolInput,
+      inputSchema: toToolInput(BuildProjectSchema),
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = BuildProjectSchema.parse(args);
         const projectRoot = decodeURIComponent(validatedArgs.projectRoot);
@@ -503,7 +516,7 @@ This must be called first to get the projectRoot parameter needed for all other 
       name: ToolName.RUN_TEST,
       description:
         "Use this instead of running 'dbt test' in the terminal. Runs an individual dbt test by test name from the manifest. Note: build_model already includes tests, so use this only for running specific tests independently.",
-      inputSchema: zodToJsonSchema(RunTestSchema) as ToolInput,
+      inputSchema: toToolInput(RunTestSchema),
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = RunTestSchema.parse(args);
         const projectRoot = decodeURIComponent(validatedArgs.projectRoot);
@@ -525,7 +538,7 @@ This must be called first to get the projectRoot parameter needed for all other 
       name: ToolName.RUN_MODEL_TEST,
       description:
         "Use this instead of running 'dbt test' in the terminal. Runs all tests defined for a specific dbt model. Note: build_model already includes tests, so use this only when you need to run tests without rebuilding the model.",
-      inputSchema: zodToJsonSchema(RunModelTestSchema) as ToolInput,
+      inputSchema: toToolInput(RunModelTestSchema),
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = RunModelTestSchema.parse(args);
         const projectRoot = decodeURIComponent(validatedArgs.projectRoot);
@@ -547,7 +560,7 @@ This must be called first to get the projectRoot parameter needed for all other 
       name: ToolName.ADD_DBT_PACKAGES,
       description:
         "Adds dbt package(s) to the project's packages.yml. Format: packageName@version. After adding packages, call install_deps to install them.",
-      inputSchema: zodToJsonSchema(AddDbtPackagesSchema) as ToolInput,
+      inputSchema: toToolInput(AddDbtPackagesSchema),
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = AddDbtPackagesSchema.parse(args);
         const projectRoot = decodeURIComponent(validatedArgs.projectRoot);
@@ -569,7 +582,7 @@ This must be called first to get the projectRoot parameter needed for all other 
       name: ToolName.INSTALL_DEPS,
       description:
         "Use this instead of running 'dbt deps' in the terminal. Installs dbt package dependencies from packages.yml. Call this after adding packages with add_dbt_packages, or when setting up a project.",
-      inputSchema: zodToJsonSchema(InstallDepsSchema) as ToolInput,
+      inputSchema: toToolInput(InstallDepsSchema),
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = InstallDepsSchema.parse(args);
         const projectRoot = decodeURIComponent(validatedArgs.projectRoot);
@@ -591,7 +604,7 @@ This must be called first to get the projectRoot parameter needed for all other 
       name: ToolName.GET_CHILDREN_MODELS,
       description:
         "Returns the list of models that depend on the specified model (its children). Use this to understand a model's downstream impact and lineage.",
-      inputSchema: zodToJsonSchema(GetChildrenModelsSchema) as ToolInput,
+      inputSchema: toToolInput(GetChildrenModelsSchema),
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = GetChildrenModelsSchema.parse(args);
         const projectRoot = decodeURIComponent(validatedArgs.projectRoot);
@@ -615,7 +628,7 @@ This must be called first to get the projectRoot parameter needed for all other 
       name: ToolName.GET_PARENT_MODELS,
       description:
         "Returns the list of models that the specified model depends on (its parents). Use this to understand a model's upstream dependencies and lineage.",
-      inputSchema: zodToJsonSchema(GetParentModelsSchema) as ToolInput,
+      inputSchema: toToolInput(GetParentModelsSchema),
       handler: async (args: Record<string, unknown>) => {
         const validatedArgs = GetParentModelsSchema.parse(args);
         const projectRoot = decodeURIComponent(validatedArgs.projectRoot);

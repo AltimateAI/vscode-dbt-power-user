@@ -14,6 +14,7 @@ import { ConversationProvider } from "../comment_provider/conversationProvider";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
 import { AltimateAuthService } from "../services/altimateAuthService";
+import { AltimateCodeChatService } from "../services/altimateCodeChatService";
 import { ConversationService } from "../services/conversationService";
 import { DbtTestService } from "../services/dbtTestService";
 import { DocGenService } from "../services/docGenService";
@@ -52,6 +53,7 @@ export class NewDocsGenPanel
     private conversationProvider: ConversationProvider,
     private conversationService: ConversationService,
     protected altimateAuthService: AltimateAuthService,
+    private altimateCodeChatService: AltimateCodeChatService,
   ) {
     super(
       dbtProjectContainer,
@@ -276,6 +278,55 @@ export class NewDocsGenPanel
           },
           command,
         );
+        break;
+
+      case "showRegenerateQuickPick":
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const { entityName, entityType } = args as {
+              entityName: string;
+              entityType: string;
+            };
+            const REGEN_OPTIONS = [
+              {
+                label: "Regenerate",
+                instruction: "Regenerate the description",
+              },
+              { label: "Make it shorter", instruction: "Make it shorter" },
+              { label: "Make it longer", instruction: "Make it longer" },
+              { label: "Make it fun", instruction: "Make it fun" },
+              {
+                label: "Generate for business user",
+                instruction: "Generate for business user",
+              },
+            ];
+            const picked = await window.showQuickPick(
+              REGEN_OPTIONS.map((o) => o.label),
+              {
+                placeHolder: `How would you like to regenerate documentation for ${entityType} "${entityName}"?`,
+                title: "Regenerate Documentation",
+              },
+            );
+            if (!picked) {
+              return null;
+            }
+            return {
+              instruction: REGEN_OPTIONS.find((o) => o.label === picked)!
+                .instruction,
+            };
+          },
+          command,
+        );
+        break;
+
+      case "openAltimateCodeChatForCustomTest":
+      case "openAltimateCodeChatForDocReview":
+        await this.altimateCodeChatService.openChat({
+          initialMessage: args.initialMessage as string,
+          title: args.title as string,
+          beside: true,
+        });
         break;
 
       default:
