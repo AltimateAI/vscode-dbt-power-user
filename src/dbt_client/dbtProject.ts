@@ -246,6 +246,7 @@ export class DBTProject implements Disposable {
           docMetaMap: parsedManifest.docMetaMap,
           exposureMetaMap: parsedManifest.exposureMetaMap,
           functionMetaMap: parsedManifest.functionMetaMap,
+          semanticModelMetaMap: parsedManifest.semanticModelMetaMap,
           modelDepthMap: parsedManifest.modelDepthMap,
         };
         this._manifestCacheEvent = manifestCacheEvent;

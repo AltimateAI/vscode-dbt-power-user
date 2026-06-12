@@ -38,6 +38,7 @@ import {
   PythonDBTCommandExecutionStrategy,
   PythonEnvironmentProvider,
   RuntimePythonEnvironment,
+  SemanticModelParser,
   SourceParser,
   TestParser,
 } from "@altimateai/dbt-integration";
@@ -177,6 +178,11 @@ container
   .bind(MetricParser)
   .toDynamicValue(
     (context) => new MetricParser(context.container.get("DBTTerminal")),
+  );
+container
+  .bind(SemanticModelParser)
+  .toDynamicValue(
+    (context) => new SemanticModelParser(context.container.get("DBTTerminal")),
   );
 container
   .bind(GraphParser)
@@ -730,6 +736,7 @@ container
         container.get(DocParser),
         container.get("DBTTerminal"),
         container.get(ModelDepthParser),
+        container.get(SemanticModelParser),
       );
     };
   });
@@ -1700,6 +1707,7 @@ container
       context.container.get(QueryManifestService),
       context.container.get(UsersService),
       context.container.get(AltimateAuthService),
+      context.container.get(ValidationProvider),
     );
   })
   .inSingletonScope();

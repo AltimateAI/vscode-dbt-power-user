@@ -6,6 +6,7 @@ import {
   MacroMetaMap,
   MetricMetaMap,
   NodeMetaMap,
+  SemanticModelMetaMap,
   SourceMetaMap,
   TestMetaMap,
 } from "@altimateai/dbt-integration";
@@ -23,6 +24,7 @@ export interface ManifestCacheProjectAddedEvent {
   docMetaMap: DocMetaMap;
   exposureMetaMap: ExposureMetaMap;
   functionMetaMap: FunctionMetaMap;
+  semanticModelMetaMap: SemanticModelMetaMap;
   modelDepthMap: Map<string, number>;
 }
 

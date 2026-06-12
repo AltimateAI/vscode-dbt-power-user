@@ -4,6 +4,9 @@ const config: Config = {
   content: [
     "./src/**/*.{ts,tsx}",
     "./node_modules/@altimateai/ui-components/dist/**/*.js",
+    // Scan altimate-frontend source when source-pointing is active (ERD-overlay dev).
+    "../../altimate-frontend/packages/ui-components/src/**/*.{ts,tsx}",
+    "../../altimate-frontend/packages/lego/src/**/*.{ts,tsx}",
   ],
   prefix: "al-",
   theme: {

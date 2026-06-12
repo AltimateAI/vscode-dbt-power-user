@@ -59,6 +59,7 @@ const LineageView = (): JSX.Element | null => {
         case "showInfoNotification":
         case "previewFeature":
         case "telemetryEvents":
+        case "getRelationships":
           return executeRequestInSync(url, { args: { params: data ?? {} } });
         case "columnLineage":
           return executeRequestInSync(url, { args: data });
