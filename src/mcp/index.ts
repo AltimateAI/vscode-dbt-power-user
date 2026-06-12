@@ -41,10 +41,9 @@ export class DbtPowerUserMcpServer implements Disposable {
       );
 
       if (!extension) {
-        this.dbtTerminal.error(
-          "DbtPowerUserMcpServer: enableMcpExtensionIntegration",
-          "Failed to install MCP extension",
-          { message: "Failed to install Altimate MCP Server extension" },
+        this.dbtTerminal.info(
+          "DbtPowerUserMcpServer:enableMcpExtensionIntegration",
+          "Altimate MCP Server extension is not installed",
         );
         return;
       }
@@ -52,7 +51,18 @@ export class DbtPowerUserMcpServer implements Disposable {
       if (!extension.isActive) {
         await extension.activate();
       }
-      await extension.exports.ready;
+      // The MCP server's activate() returns undefined when
+      // `altimate.disableMcpServer = true`, leaving exports unset.
+      if (!extension.exports) {
+        this.dbtTerminal.info(
+          "DbtPowerUserMcpServer: updateMcpExtensionApi",
+          "MCP extension is installed but not exporting an API (likely disabled via altimate.disableMcpServer); skipping integration",
+        );
+        return;
+      }
+      if (extension.exports.ready) {
+        await extension.exports.ready;
+      }
       this.mcpExtensionApi = extension.exports as ToolRegistry;
 
       await this.mcpExtensionApi.addMcpIntegrationConfig([
@@ -78,7 +88,7 @@ export class DbtPowerUserMcpServer implements Disposable {
       this.dbtTerminal.error(
         "DbtPowerUserMcpServer:updateMcpExtensionApiError",
         "Error updating MCP extension API",
-        { message: (error as Error).message },
+        error,
       );
     }
   }
@@ -121,7 +131,7 @@ export class DbtPowerUserMcpServer implements Disposable {
       this.dbtTerminal.error(
         "DbtPowerUserMcpServer:registerToolsInMcpExtensionError",
         "Error registering tools in MCP extension",
-        { message: (error as Error).message },
+        error,
       );
     }
   }

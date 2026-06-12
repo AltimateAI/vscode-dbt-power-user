@@ -248,8 +248,7 @@ export class SqlActionsCodeLensProvider
                 }),
                 new CodeLens(lensRange, {
                   title: "$(book) Document",
-                  tooltip:
-                    "Add documentation or tests for this model",
+                  tooltip: "Add documentation or tests for this model",
                   command: "dbtPowerUser.showDocumentation",
                   arguments: [properties.value.source],
                 }),

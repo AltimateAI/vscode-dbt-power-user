@@ -496,7 +496,7 @@ export class ConversationProvider implements Disposable {
       rest.field === "description"
         ? (value as string)
         : (range?.isSingleLine
-            ? editor?.document.lineAt(range.start.line).text
+            ? editor?.document.lineAt(range?.start?.line ?? 0).text
             : editor?.document.getText(range)) || "";
 
     const meta = {
@@ -713,6 +713,10 @@ export class ConversationProvider implements Disposable {
   }
 
   dispose() {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = undefined;
+    }
     while (this.disposables.length) {
       const x = this.disposables.pop();
       if (x) {

@@ -4,11 +4,11 @@ import {
   Disposable,
   Hover,
   HoverProvider,
+  MarkdownString,
   Position,
   ProviderResult,
   Range,
   TextDocument,
-  Uri,
 } from "vscode";
 import { parseDocument } from "yaml";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
@@ -93,6 +93,12 @@ export class YamlModelHoverProvider implements HoverProvider, Disposable {
           }
         }
       }
+    }
+
+    const columnInfo = this.getColumnNameAtPosition(document, position);
+    if (columnInfo) {
+      this.telemetry.sendTelemetryEvent("provideYamlColumnHover");
+      return this.getColumnHover(columnInfo.columnName, columnInfo.modelName);
     }
 
     return undefined;
@@ -203,7 +209,11 @@ export class YamlModelHoverProvider implements HoverProvider, Disposable {
 
         // Check if cursor is within this source block
         if (
-          !(source.range && offset >= source.range[0] && offset <= source.range[1])
+          !(
+            source.range &&
+            offset >= source.range[0] &&
+            offset <= source.range[1]
+          )
         ) {
           continue;
         }
@@ -254,12 +264,134 @@ export class YamlModelHoverProvider implements HoverProvider, Disposable {
     return undefined;
   }
 
+  private getColumnNameAtPosition(
+    document: TextDocument,
+    position: Position,
+  ): { columnName: string; modelName: string } | null {
+    try {
+      const parsedYaml = parseDocument(document.getText());
+      if (!parsedYaml.contents) {
+        return null;
+      }
+      const offset = document.offsetAt(position);
+      const contents = parsedYaml.contents as { items?: YamlMapItem[] };
+      if (!contents.items) {
+        return null;
+      }
+
+      const modelsNode = contents.items.find(
+        (item) => item?.key?.value === "models",
+      );
+      if (!modelsNode?.value?.items) {
+        return null;
+      }
+
+      for (const model of modelsNode.value.items) {
+        if (!model?.items) {
+          continue;
+        }
+
+        // Check if cursor is within this model's block
+        if (
+          !model.range ||
+          offset < model.range[0] ||
+          offset > model.range[2]
+        ) {
+          continue;
+        }
+
+        const modelNameNode = model.items.find(
+          (item) => item?.key?.value === "name",
+        );
+        const modelName = (
+          modelNameNode?.value as { value?: string } | undefined
+        )?.value;
+        if (!modelName) {
+          continue;
+        }
+
+        const columnsNode = model.items.find(
+          (item) => item?.key?.value === "columns",
+        );
+        if (!columnsNode?.value?.items) {
+          continue;
+        }
+
+        for (const column of columnsNode.value.items) {
+          if (!column?.items) {
+            continue;
+          }
+          const colNameNode = column.items.find(
+            (item) => item?.key?.value === "name",
+          );
+          if (!colNameNode?.value) {
+            continue;
+          }
+          const columnName = (colNameNode.value as { value?: string }).value;
+          if (!columnName) {
+            continue;
+          }
+          const colNameRange = (
+            colNameNode.value as { range?: [number, number] }
+          ).range;
+          if (
+            colNameRange &&
+            offset >= colNameRange[0] &&
+            offset <= colNameRange[1]
+          ) {
+            return { columnName, modelName };
+          }
+        }
+      }
+    } catch {
+      // YAML parse errors are expected during editing
+    }
+    return null;
+  }
+
+  private getColumnHover(columnName: string, modelName: string): Hover {
+    const content = new MarkdownString();
+    content.supportHtml = true;
+    content.isTrusted = true;
+    content.supportThemeIcons = true;
+
+    content.appendMarkdown(
+      `<span style="color:#347890;">(column)&nbsp;</span><span><strong>${columnName}</strong></span>`,
+    );
+    content.appendText("\n");
+    content.appendText("\n");
+    content.appendMarkdown("---");
+    content.appendText("\n");
+    content.appendText("\n");
+
+    const suggestDescArgs = encodeURIComponent(
+      JSON.stringify({
+        initialMessage: `Suggest a clear, concise description for the column \`${columnName}\` in the dbt model \`${modelName}\`. The description should explain what the column represents, its data type if known, and any business context.`,
+        title: `Suggest description: ${columnName}`,
+        beside: true,
+      }),
+    );
+    content.appendMarkdown(
+      `[$(pencil) Suggest description](command:altimate.openChat?${suggestDescArgs})\n\n`,
+    );
+
+    const suggestTestsArgs = encodeURIComponent(
+      JSON.stringify({
+        initialMessage: `Suggest appropriate dbt tests for the column \`${columnName}\` in the model \`${modelName}\`. Consider: not_null, unique, accepted_values, relationships, and any custom tests that make sense based on the column name and context.`,
+        title: `Suggest tests: ${columnName}`,
+        beside: true,
+      }),
+    );
+    content.appendMarkdown(
+      `[$(beaker) Suggest tests](command:altimate.openChat?${suggestTestsArgs})`,
+    );
+
+    return new Hover(content);
+  }
+
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
-      this.nodeMetaMap.set(
-        added.project.projectRoot.fsPath,
-        added.nodeMetaMap,
-      );
+      this.nodeMetaMap.set(added.project.projectRoot.fsPath, added.nodeMetaMap);
       this.sourceMetaMap.set(
         added.project.projectRoot.fsPath,
         added.sourceMetaMap,

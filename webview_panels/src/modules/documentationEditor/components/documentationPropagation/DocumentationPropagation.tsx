@@ -1,11 +1,11 @@
 import type { ColumnLineage } from "@altimateai/ui-components/lineage";
 import { ArrowDownIcon, ArrowUpIcon, PropagateIcon } from "@assets/icons";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
-import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import {
   updateBulkDocsPropRightPanel,
   updateSingleDocsPropRightPanel,
 } from "@modules/documentationEditor/state/documentationSlice";
+import { EntityType } from "@modules/documentationEditor/state/entityType";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import {
   Button,

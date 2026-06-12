@@ -25,10 +25,29 @@ else
     echo "Using built-in jaffle_shop_duckdb project"
 fi
 
+# Mount ~/.altimate/altimate.json into the container if present so start-code-server.sh
+# can seed code-server user settings for the dbt Power User + Altimate Code extensions.
+# The docker-compose.yml consumes ALTIMATE_CREDENTIALS_FILE directly, so we only
+# export it when it points to an existing regular file — otherwise Compose could
+# fail to start or create an unexpected host directory.
+DEFAULT_CREDS_FILE="$HOME/.altimate/altimate.json"
+if [ -z "$ALTIMATE_CREDENTIALS_FILE" ] && [ -f "$DEFAULT_CREDS_FILE" ]; then
+    export ALTIMATE_CREDENTIALS_FILE="$DEFAULT_CREDS_FILE"
+fi
+if [ -n "$ALTIMATE_CREDENTIALS_FILE" ]; then
+    if [ -f "$ALTIMATE_CREDENTIALS_FILE" ]; then
+        export ALTIMATE_CREDENTIALS_FILE
+        echo "Using Altimate credentials from: $ALTIMATE_CREDENTIALS_FILE"
+    else
+        echo "Ignoring ALTIMATE_CREDENTIALS_FILE because it is not a file: $ALTIMATE_CREDENTIALS_FILE"
+        unset ALTIMATE_CREDENTIALS_FILE
+    fi
+fi
+
 # Step 2: Build the extension
 echo ""
-echo "Building extension with webpack..."
-npm run webpack
+echo "Building extension..."
+npm run build
 
 # Step 3: Build and start the container
 echo ""
@@ -52,9 +71,9 @@ until curl -sf http://localhost:3001/healthz > /dev/null 2>&1; do
 done
 echo "code-server is ready at http://localhost:3001/?folder=/home/coder/project"
 
-# Step 5: Start webpack watch for auto-recompilation
+# Step 5: Start watch for auto-recompilation
 echo ""
-echo "Starting webpack watch mode for hot-reload..."
+echo "Starting watch mode for hot-reload..."
 echo "  Changes to extension source will auto-rebuild."
 echo "  After rebuild, reload code-server in browser to pick up changes."
 echo ""

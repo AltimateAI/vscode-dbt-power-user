@@ -58,6 +58,58 @@ node -e "
 # Clear .obsolete so code-server doesn't skip our extension on first scan
 echo '{}' > "$EXTENSIONS_DIR/.obsolete"
 
+# Seed code-server user settings with Altimate credentials if the host-mounted
+# credentials file is present. Reads altimateApiKey / altimateInstanceName /
+# altimateUrl (the shape of ~/.altimate/altimate.json) and writes them into
+# settings.json as dbt.altimateAiKey, dbt.altimateInstanceName, dbt.altimateUrl.
+SETTINGS_DIR="$HOME/.local/share/code-server/User"
+SETTINGS_FILE="$SETTINGS_DIR/settings.json"
+mkdir -p "$SETTINGS_DIR"
+if [ ! -f "$SETTINGS_FILE" ]; then
+    echo '{}' > "$SETTINGS_FILE"
+fi
+if [ -f "$HOME/.altimate-host/altimate.json" ]; then
+    echo "Seeding Altimate credentials from mounted altimate.json..."
+    node -e "
+      const fs = require('fs');
+      let creds = {};
+      try {
+        creds = JSON.parse(
+          fs.readFileSync('$HOME/.altimate-host/altimate.json', 'utf8'),
+        );
+      } catch (e) {
+        console.warn(
+          'Skipping Altimate credential seeding: altimate.json is not valid JSON',
+        );
+        process.exit(0);
+      }
+      let settings = {};
+      try { settings = JSON.parse(fs.readFileSync('$SETTINGS_FILE', 'utf8')); } catch (e) {}
+      const nonEmpty = (v) => typeof v === 'string' && v.trim().length > 0;
+      if (nonEmpty(creds.altimateApiKey)) {
+        settings['dbt.altimateAiKey'] = creds.altimateApiKey;
+      }
+      if (nonEmpty(creds.altimateInstanceName)) {
+        settings['dbt.altimateInstanceName'] = creds.altimateInstanceName;
+      }
+      if (nonEmpty(creds.altimateUrl)) {
+        settings['dbt.altimateUrl'] = creds.altimateUrl;
+      }
+      // Only mark MCP onboarding complete once all three required credentials are
+      // present — the flag gates MCP tool registration in src/mcp/index.ts, so we
+      // must not bypass onboarding with partial auth.
+      const hasAllCredentials =
+        nonEmpty(creds.altimateApiKey) &&
+        nonEmpty(creds.altimateInstanceName) &&
+        nonEmpty(creds.altimateUrl);
+      if (hasAllCredentials) {
+        settings['altimate.onboardedMcpServer'] = true;
+      }
+      fs.writeFileSync('$SETTINGS_FILE', JSON.stringify(settings, null, 2));
+      console.log('Wrote Altimate credentials to', '$SETTINGS_FILE');
+    "
+fi
+
 # Determine project directory
 if [ -d "/home/coder/project" ] && [ "$(ls -A /home/coder/project 2>/dev/null)" ]; then
     PROJECT_DIR="/home/coder/project"

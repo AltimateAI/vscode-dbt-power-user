@@ -93,9 +93,13 @@ export const setupWatcherHandler: (
   watcher.onDidDelete(() => handler()),
 ];
 
-export function extendErrorWithSupportLinks(error: string): string {
+export function extendErrorWithSupportLinks(error: unknown): string {
+  const message =
+    error instanceof Error ? error.message : error == null ? "" : String(error);
+  const separator = message === "" || message.endsWith(" ") ? "" : " ";
   return (
-    (error[-1] === " " ? error : error + " ") +
+    message +
+    separator +
     "If the issue persists, please [contact us](https://www.altimate.ai/support) via chat or Slack"
   );
 }
@@ -200,7 +204,7 @@ export const isQuotedIdentifier = (columnName: string, adapter: string) => {
     return !new RegExp(regexFromConfig).test(columnName);
   }
 
-  const specialCases = ["trino", "athena", "postgres", "duckdb"];
+  const specialCases = ["trino", "athena", "postgres", "duckdb", "risingwave"];
   if (specialCases.includes(adapter)) {
     return !/^([_a-z]+[_a-z0-9$]*)$/.test(columnName);
   }

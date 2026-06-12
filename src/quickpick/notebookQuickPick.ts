@@ -13,19 +13,19 @@ export class NotebookQuickPick {
       {
         label: "Profile this query",
         description: "Profile this query",
-        command: "dbtPowerUser.createDatapilotNotebook",
+        command: "dbtPowerUser.createAltimateNotebook",
         arguments: [{ template: "Profile your query" }],
       },
       {
         label: "Get test suggestions",
         description: "Get test suggestions",
-        command: "dbtPowerUser.createDatapilotNotebook",
+        command: "dbtPowerUser.createAltimateNotebook",
         arguments: [{ template: "Get test suggestions" }],
       },
       {
         label: "Generate dbt base model sql",
         description: "Generate dbt base model sql",
-        command: "dbtPowerUser.createDatapilotNotebook",
+        command: "dbtPowerUser.createAltimateNotebook",
         arguments: [
           {
             template: "Generate dbt base model sql",
@@ -35,7 +35,7 @@ export class NotebookQuickPick {
       {
         label: "Generate dbt model yaml",
         description: "Generate dbt model yaml",
-        command: "dbtPowerUser.createDatapilotNotebook",
+        command: "dbtPowerUser.createAltimateNotebook",
         arguments: [
           {
             template: "Generate dbt model yaml",
@@ -45,7 +45,7 @@ export class NotebookQuickPick {
       {
         label: "Generate dbt model CTE",
         description: "Generate dbt model CTE",
-        command: "dbtPowerUser.createDatapilotNotebook",
+        command: "dbtPowerUser.createAltimateNotebook",
         arguments: [
           {
             template: "Generate dbt model CTE",

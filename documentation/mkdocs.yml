@@ -110,6 +110,7 @@ nav:
       - Generate dbt model from SQL: develop/genmodelSQL.md
       - SQL validation: test/sqlvalidation.md
       - Query explanation: develop/explanation.md
+      - Optimize SQL with Altimate: develop/optimize.md
       - Update dbt model using natural language: develop/updatemodel.md
       - Translate SQL queries (dialects): develop/translateSQL.md
   - Test:

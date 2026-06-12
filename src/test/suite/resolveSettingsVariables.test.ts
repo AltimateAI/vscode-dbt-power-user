@@ -27,9 +27,9 @@ describe("resolveSettingsVariables", () => {
     // with a mutating string, so the second placeholder was skipped.
     process.env.FOO = "alpha";
     process.env.BAR = "beta";
-    expect(
-      resolveSettingsVariables("--vars='a=${env:FOO},b=${env:BAR}'"),
-    ).toBe("--vars='a=alpha,b=beta'");
+    expect(resolveSettingsVariables("--vars='a=${env:FOO},b=${env:BAR}'")).toBe(
+      "--vars='a=alpha,b=beta'",
+    );
   });
 
   it("resolves repeated occurrences of the same ${env:VAR}", () => {
@@ -56,17 +56,17 @@ describe("resolveSettingsVariables", () => {
 
   it("resolves ${workspaceFolder} using the provided Uri", () => {
     const folder = mockUri("/workspace/project");
-    expect(
-      resolveSettingsVariables("${workspaceFolder}/models", folder),
-    ).toBe("/workspace/project/models");
+    expect(resolveSettingsVariables("${workspaceFolder}/models", folder)).toBe(
+      "/workspace/project/models",
+    );
   });
 
   it("treats workspace folder paths containing $ characters as literal", () => {
     // Windows paths can legitimately contain `$` (e.g. hidden admin shares).
     const folder = mockUri("/weird/$1/path");
-    expect(
-      resolveSettingsVariables("${workspaceFolder}/models", folder),
-    ).toBe("/weird/$1/path/models");
+    expect(resolveSettingsVariables("${workspaceFolder}/models", folder)).toBe(
+      "/weird/$1/path/models",
+    );
   });
 
   it("handles mixed ${env:VAR} and ${workspaceFolder} substitutions", () => {

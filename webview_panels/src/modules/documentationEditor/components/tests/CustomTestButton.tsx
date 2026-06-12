@@ -1,7 +1,6 @@
 import { ShinesIcon } from "@assets/icons";
-import useAppContext from "@modules/app/useAppContext";
-import { EntityType } from "@modules/dataPilot/components/docGen/types";
-import { RequestTypes } from "@modules/dataPilot/types";
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
+import { EntityType } from "@modules/documentationEditor/state/entityType";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { TelemetryEvents } from "@telemetryEvents";
 import { ListGroupItem } from "@uicore";
@@ -12,29 +11,29 @@ interface Props {
   column: string;
   type: EntityType;
 }
+
 const CustomTestButton = ({ column, type }: Props): JSX.Element => {
   const {
     state: { currentDocsData },
   } = useDocumentationContext();
 
-  const { postMessageToDataPilot } = useAppContext();
-
   const onClick = () => {
-    const id = crypto.randomUUID();
-
     sendTelemetryEvent(
       TelemetryEvents["DocumentationEditor/AddCustomTestClick"],
       { type, entityName: column },
     );
 
-    postMessageToDataPilot({
-      id,
-      requestType: RequestTypes.ADD_CUSTOM_TEST,
-      meta: {
-        column: type === EntityType.MODEL ? undefined : column,
-        model: currentDocsData?.name,
-      },
-      actions: [],
+    const model = currentDocsData?.name ?? "";
+    const isModel = type === EntityType.MODEL;
+    const subject = isModel
+      ? `model "${model}"`
+      : `column "${column}" in model "${model}"`;
+
+    executeRequestInAsync("openAltimateCodeChatForCustomTest", {
+      column: isModel ? undefined : column,
+      model,
+      initialMessage: `I want to add custom tests for ${subject}. What do you need to know from me to write the right tests?`,
+      title: `Add Custom Test for ${isModel ? `model: ${model}` : `column: ${column}`}`,
     });
   };
 
