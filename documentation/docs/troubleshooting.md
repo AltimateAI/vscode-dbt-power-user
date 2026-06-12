@@ -2,11 +2,40 @@
 
 Follow these steps to effectively troubleshoot and resolve issues with the extension:
 
-### Setup Wizard
+### Get Started panel (recommended)
 
-Initially, use the setup wizard. This tool is designed to identify and possibly resolve environment issues automatically. You can access it by selecting "dbt" or "dbt is not installed" in the bottom left bar of the IDE and then clicking on "Setup Extension".
+The fastest way to detect and resolve environment issues is the **Get Started with dbt Power User** panel. It runs through every prerequisite the extension needs — Python interpreter, dbt installation, dbt project detection, dbt deps, and database connection — and flags exactly what's missing.
+
+Open it from the command palette:
+
+- macOS: `Cmd + Shift + P`
+- Windows / Linux: `Ctrl + Shift + P`
+- Type `Get Started with dbt Power User` and run it.
+
+You can also launch it from the **Project Actions ✨** view in the dbt Power User side panel, or by clicking the **dbt** status item in the bottom status bar and choosing "Setup Extension".
+
+/// admonition | Demo from an earlier UI
+    type: warning
+
+The recording below was captured before the status-bar "Setup Extension" wizard was replaced by the **Get Started with dbt Power User** panel. The steps are the same — only the panel UI has changed.
+///
 
 <div style="position: relative; padding-bottom: calc(57.25% + 44px); height: 0;"><iframe src=https://app.supademo.com/embed/clph7wqbu4xjbpe69qnl0m9pf frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+
+### Detect Python from terminal
+
+If the extension is using the wrong Python interpreter (e.g. it sees a global Python without dbt instead of your activated virtualenv), you can have it pick up the interpreter from an open terminal:
+
+1. Open a terminal in VS Code with your dbt environment activated (e.g. `source .venv/bin/activate`, `conda activate myenv`, or `poetry shell`).
+2. Open the command palette and run **`Detect Python from terminal`**.
+
+The extension reads the active Python path directly from the shell and switches to it. This is the quickest fix for the most common "dbt not found" / "wrong dbt version" issues.
+
+/// admonition | Requires shell integration
+    type: info
+
+The command needs VS Code's terminal shell integration to read the Python path from your shell. If no terminal is open or shell integration is not active, the extension will prompt you to open one.
+///
 
 ### Problems Panel
 

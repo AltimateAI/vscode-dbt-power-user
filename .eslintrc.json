@@ -17,6 +17,17 @@
     "curly": "warn",
     "eqeqeq": "warn",
     "no-throw-literal": "warn",
-    "indent": "off"
+    "indent": "off",
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "CallExpression[callee.property.name='sendTelemetryError'][arguments.0.type='Literal'][arguments.0.value!=/Error$/]",
+        "message": "First argument to sendTelemetryError must be an event name ending in 'Error' (project convention — e.g. 'compileNodePythonError', 'extensionActivationError'). Rename the event or use a TelemetryEvents enum entry that ends in 'Error'."
+      },
+      {
+        "selector": "CallExpression[callee.property.name='sendTelemetryError'][arguments.0.object.name='TelemetryEvents'][arguments.0.property.value!=/Error$/]",
+        "message": "TelemetryEvents key passed to sendTelemetryError must end in 'Error' (project convention). Rename the enum entry in src/telemetry/events.ts and all call sites."
+      }
+    ]
   }
 }

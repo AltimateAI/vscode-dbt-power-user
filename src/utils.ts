@@ -93,9 +93,13 @@ export const setupWatcherHandler: (
   watcher.onDidDelete(() => handler()),
 ];
 
-export function extendErrorWithSupportLinks(error: string): string {
+export function extendErrorWithSupportLinks(error: unknown): string {
+  const message =
+    error instanceof Error ? error.message : error == null ? "" : String(error);
+  const separator = message === "" || message.endsWith(" ") ? "" : " ";
   return (
-    (error[-1] === " " ? error : error + " ") +
+    message +
+    separator +
     "If the issue persists, please [contact us](https://www.altimate.ai/support) via chat or Slack"
   );
 }
