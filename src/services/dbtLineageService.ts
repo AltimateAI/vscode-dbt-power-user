@@ -484,7 +484,7 @@ export class DbtLineageService {
           ),
         );
         this.telemetry.sendTelemetryError(
-          "columnLevelLineageRequestTimeout",
+          "columnLevelLineageRequestTimeoutError",
           error,
         );
         return;

@@ -10,4 +10,5 @@ services:
     volumes:
       - ..:/home/coder/extension-src:ro
       - ${DBT_PROJECT_PATH:-/home/coder/jaffle-shop-duckdb}:/home/coder/project
+      - ${ALTIMATE_CREDENTIALS_FILE:-/dev/null}:/home/coder/.altimate-host/altimate.json:ro
     restart: unless-stopped

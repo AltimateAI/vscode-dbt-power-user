@@ -118,6 +118,8 @@ export const extensions = {
   all: [],
 };
 
+export const env = { uriScheme: "vscode" };
+
 export const commands = {
   registerCommand: jest.fn().mockReturnValue({ dispose: jest.fn() }),
   getCommands: jest.fn().mockReturnValue(Promise.resolve([])),

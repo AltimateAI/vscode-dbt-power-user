@@ -160,6 +160,8 @@ export class WalkthroughCommands {
   }
 
   private async installDbtFusion(): Promise<void> {
+    const platform = process.platform;
+    this.telemetry.sendTelemetryEvent("installDbtFusion", { platform });
     let error = undefined;
     await window.withProgress(
       {
@@ -169,7 +171,6 @@ export class WalkthroughCommands {
       },
       async () => {
         try {
-          const platform = process.platform;
           let command: string;
           let args: string[];
 
@@ -205,6 +206,9 @@ export class WalkthroughCommands {
           this.dbtProjectContainer.initialize();
         } catch (err) {
           error = err;
+          this.telemetry.sendTelemetryError("installDbtFusionError", err, {
+            platform,
+          });
         }
       },
     );
@@ -220,6 +224,13 @@ export class WalkthroughCommands {
   }
 
   private async installDbtCloud(): Promise<void> {
+    const platform = process.platform;
+    const telemetryProps = {
+      platform,
+      pythonPath: this.pythonEnvironment.pythonPath ?? "unknown",
+      pythonVersion: this.pythonEnvironment.pythonVersion ?? "unknown",
+    };
+    this.telemetry.sendTelemetryEvent("installDbtCloud", telemetryProps);
     let error = undefined;
     await window.withProgress(
       {
@@ -255,6 +266,11 @@ export class WalkthroughCommands {
           this.dbtProjectContainer.initialize();
         } catch (err) {
           error = err;
+          this.telemetry.sendTelemetryError(
+            "installDbtCloudError",
+            err,
+            telemetryProps,
+          );
         }
       },
     );
@@ -309,6 +325,16 @@ export class WalkthroughCommands {
     }
     const packageVersion = dbtVersion.label;
     const packageName = this.mapToAdapterPackage(adapter.label);
+    const platform = process.platform;
+    const telemetryProps = {
+      adapter: adapter.label,
+      packageName,
+      dbtVersion: packageVersion,
+      platform,
+      pythonPath: this.pythonEnvironment.pythonPath ?? "unknown",
+      pythonVersion: this.pythonEnvironment.pythonVersion ?? "unknown",
+    };
+    this.telemetry.sendTelemetryEvent("installDbtCore", telemetryProps);
     let error = undefined;
     await window.withProgress(
       {
@@ -354,6 +380,11 @@ export class WalkthroughCommands {
           this.dbtProjectContainer.initialize();
         } catch (err) {
           error = err;
+          this.telemetry.sendTelemetryError(
+            "installDbtCoreError",
+            err,
+            telemetryProps,
+          );
         }
       },
     );

@@ -1,24 +1,22 @@
-import { executeRequestInSync } from "@modules/app/requestExecutor";
-import { updateColumnsInCurrentDocsData } from "@modules/documentationEditor/state/documentationSlice";
 import {
-  DocsGenerateModelRequestV2,
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
+import { updateColumnsInCurrentDocsData } from "@modules/documentationEditor/state/documentationSlice";
+import { EntityType } from "@modules/documentationEditor/state/entityType";
+import {
   DBTDocumentationColumn,
   DBTModelTest,
+  DocsGenerateModelRequestV2,
 } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
-import {
-  addDefaultActions,
-  addDocGeneration,
-} from "@modules/documentationEditor/utils";
-import DocGeneratorInput from "./DocGeneratorInput";
-import useAppContext from "@modules/app/useAppContext";
-import { RequestState, RequestTypes } from "@modules/dataPilot/types";
+import { addDocGeneration } from "@modules/documentationEditor/utils";
 import { panelLogger } from "@modules/logger";
-import { EntityType } from "@modules/dataPilot/components/docGen/types";
-import EntityWithTests from "../tests/EntityWithTests";
-import CoachAiIfModified from "./CoachAiIfModified";
-import Citations from "./Citations";
 import { Stack } from "@uicore";
+import EntityWithTests from "../tests/EntityWithTests";
+import Citations from "./Citations";
+import CoachAiIfModified from "./CoachAiIfModified";
+import DocGeneratorInput from "./DocGeneratorInput";
 
 interface Props {
   column: DBTDocumentationColumn;
@@ -30,14 +28,53 @@ const DocGeneratorColumn = ({ column, tests }: Props): JSX.Element => {
     dispatch,
   } = useDocumentationContext();
 
-  const { postMessageToDataPilot } = useAppContext();
   const handleColumnSubmit = async (data: DocsGenerateModelRequestV2) => {
     if (!currentDocsData || !project) {
       return;
     }
 
-    const showInDataPilot = !!column.description;
-    const id = crypto.randomUUID();
+    // When a description already exists, show a quick-pick so the user can
+    // choose a regeneration style before the API is called.
+    if (column.description) {
+      const picked = (await executeRequestInSync("showRegenerateQuickPick", {
+        entityName: column.name,
+        entityType: "column",
+      })) as { instruction: string } | null;
+      if (!picked) {
+        return; // user cancelled
+      }
+      try {
+        const requestData = {
+          description: data.description,
+          user_instructions: data.user_instructions,
+          columnName: column.name,
+          columns: currentDocsData.columns,
+          follow_up_instructions: { instruction: picked.instruction },
+        };
+        const result = (await executeRequestInSync(
+          "generateDocsForColumn",
+          requestData,
+        )) as { columns: Partial<DBTDocumentationColumn>[] };
+        const generatedColumn = result.columns?.[0];
+        if (!Array.isArray(result.columns) || !generatedColumn) {
+          panelLogger.error(
+            "generateDocsForColumn returned no generated columns",
+            result,
+          );
+          return;
+        }
+        dispatch(
+          updateColumnsInCurrentDocsData({
+            columns: result.columns,
+            isNewGeneration: true,
+          }),
+        );
+        await addDocGeneration(project, currentDocsData.name, generatedColumn);
+      } catch (error) {
+        panelLogger.error("error while regenerating doc for column", error);
+      }
+      return;
+    }
 
     try {
       const requestData = {
@@ -46,44 +83,35 @@ const DocGeneratorColumn = ({ column, tests }: Props): JSX.Element => {
         columnName: column.name,
         columns: currentDocsData?.columns,
       };
-      // Show only in datapilot
-      if (showInDataPilot) {
-        postMessageToDataPilot({
-          id,
-          query: `Generate Documentation for “${column.name}” using settings`,
-          requestType: RequestTypes.AI_DOC_GENERATION,
-          state: RequestState.COMPLETED,
-          meta: requestData,
-          response: column.description,
-          actions: addDefaultActions(
-            {
-              ...requestData,
-              modelName: currentDocsData.name,
-            },
-            "generateDocsForColumn",
-          ),
-        });
-        return;
-      }
       const result = (await executeRequestInSync(
         "generateDocsForColumn",
         requestData,
       )) as { columns: Partial<DBTDocumentationColumn>[] };
+
+      // Guard against empty/missing columns — dispatching or indexing [0] on
+      // an empty array would crash the reducer and persist a junk history entry.
+      const generatedColumn = result.columns?.[0];
+      if (!Array.isArray(result.columns) || !generatedColumn) {
+        panelLogger.error(
+          "generateDocsForColumn returned no generated columns",
+          result,
+        );
+        return;
+      }
+
       dispatch(
-        updateColumnsInCurrentDocsData({ ...result, isNewGeneration: true }),
+        updateColumnsInCurrentDocsData({
+          columns: result.columns,
+          isNewGeneration: true,
+        }),
       );
 
-      await addDocGeneration(
-        project,
-        currentDocsData.name,
-        (result as { columns: Partial<DBTDocumentationColumn>[] }).columns[0],
-      );
+      await addDocGeneration(project, currentDocsData.name, generatedColumn);
     } catch (error) {
       panelLogger.error("error while generating doc for column", error);
-      postMessageToDataPilot({
-        id,
-        response: (error as Error).message,
-        state: RequestState.ERROR,
+      executeRequestInAsync("openAltimateCodeChatForDocReview", {
+        initialMessage: `An error occurred while generating documentation for column "${column.name}" in model "${currentDocsData.name}":\n\n${(error as Error).message}\n\nCan you help debug this?`,
+        title: `Doc Error: ${column.name}`,
       });
     }
   };

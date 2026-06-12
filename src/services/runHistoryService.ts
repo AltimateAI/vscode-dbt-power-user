@@ -2,6 +2,11 @@ import type { RunResultsEventData } from "@altimateai/dbt-integration";
 import { injectable } from "inversify";
 import { Disposable, Event, EventEmitter } from "vscode";
 
+export interface CommandFailedEvent {
+  command: string;
+  error: string;
+}
+
 export type {
   RunResultEntry,
   RunResultsEventData,
@@ -20,7 +25,14 @@ export class RunHistoryService implements Disposable {
   readonly onHistoryChanged: Event<RunResultsEventData | undefined> =
     this._onHistoryChanged.event;
 
-  private disposables: Disposable[] = [this._onHistoryChanged];
+  private _onCommandFailed = new EventEmitter<CommandFailedEvent>();
+  readonly onCommandFailed: Event<CommandFailedEvent> =
+    this._onCommandFailed.event;
+
+  private disposables: Disposable[] = [
+    this._onHistoryChanged,
+    this._onCommandFailed,
+  ];
 
   /**
    * Add a completed run to history.
@@ -55,6 +67,10 @@ export class RunHistoryService implements Disposable {
 
   get entries(): readonly RunResultsEventData[] {
     return this.history;
+  }
+
+  notifyCommandFailed(command: string, error: string): void {
+    this._onCommandFailed.fire({ command, error });
   }
 
   dispose(): void {

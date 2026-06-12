@@ -42,13 +42,25 @@ import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
 import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
+import {
+  buildCommandErrorPrompt,
+  buildRunFailurePrompt,
+  buildRunResultFailurePrompt,
+  buildTestFailurePrompt,
+} from "../services/chatPromptBuilders";
 import { DiagnosticsOutputChannel } from "../services/diagnosticsOutputChannel";
 import { QueryManifestService } from "../services/queryManifestService";
-import { RunHistoryService } from "../services/runHistoryService";
+import {
+  CommandFailedEvent,
+  RunHistoryService,
+} from "../services/runHistoryService";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
-import { RunTreeItem } from "../treeview_provider/runHistoryTreeItems";
+import {
+  ResultTreeItem,
+  RunTreeItem,
+} from "../treeview_provider/runHistoryTreeItems";
 import {
   deepEqual,
   extendErrorWithSupportLinks,
@@ -385,24 +397,6 @@ export class VSCodeCommands implements Disposable {
         (uri: Uri, cteIndex: number, ctes: CteInfo[]) =>
           this.runCteWithDependencies(uri, cteIndex, ctes),
       ),
-      commands.registerCommand("dbtPowerUser.summarizeQuery", () =>
-        this.eventEmitterService.fire({
-          command: "dbtPowerUser.summarizeQuery",
-          payload: {},
-        }),
-      ),
-      commands.registerCommand("dbtPowerUser.changeQuery", () =>
-        this.eventEmitterService.fire({
-          command: "dbtPowerUser.changeQuery",
-          payload: {},
-        }),
-      ),
-      commands.registerCommand("dbtPowerUser.translateQuery", () =>
-        this.eventEmitterService.fire({
-          command: "dbtPowerUser.translateQuery",
-          payload: {},
-        }),
-      ),
       commands.registerCommand(
         "dbtPowerUser.createModelBasedonSourceConfig",
         (params) => {
@@ -541,18 +535,6 @@ export class VSCodeCommands implements Disposable {
           "@id:files.associations",
         );
       }),
-      commands.registerCommand("dbtPowerUser.openDatapilotWithQuery", () =>
-        this.eventEmitterService.fire({
-          command: "dbtPowerUser.openDatapilotWithQuery",
-          payload: {},
-        }),
-      ),
-      commands.registerCommand("dbtPowerUser.showHelpDatapilot", () =>
-        this.eventEmitterService.fire({
-          command: "dbtPowerUser.openHelpInDatapilot",
-          payload: {},
-        }),
-      ),
       commands.registerCommand(
         "dbtPowerUser.createConversation",
         (reply: CommentReply) => {
@@ -899,7 +881,7 @@ export class VSCodeCommands implements Disposable {
         }
       }),
       commands.registerCommand(
-        "dbtPowerUser.createDatapilotNotebook",
+        "dbtPowerUser.createAltimateNotebook",
         async (args: OpenNotebookRequest | undefined) => {
           this.notebookController.createNotebook(args);
         },
@@ -1046,6 +1028,17 @@ export class VSCodeCommands implements Disposable {
         },
       ),
       commands.registerCommand("dbtPowerUser.sqlLineage", async () => {
+        const activeUri = window.activeTextEditor?.document.uri;
+        if (activeUri?.scheme === SqlPreviewContentProvider.SCHEME) {
+          // The compiled-SQL preview is a read-only derived artifact served by
+          // a TextDocumentContentProvider; workspace.fs has no provider for its
+          // scheme, so reading it throws ENOPRO. Visualize SQL operates on the
+          // source model, so there is nothing to visualize from the preview.
+          window.showInformationMessage(
+            "Visualize SQL runs on a dbt model file, not the compiled SQL preview.",
+          );
+          return;
+        }
         window.withProgress(
           {
             title: "Retrieving SQL visualization",
@@ -1093,7 +1086,7 @@ export class VSCodeCommands implements Disposable {
         },
       ),
       commands.registerCommand(
-        "dbtPowerUser.showDatapilotNotebooksQuickPick",
+        "dbtPowerUser.showAltimateNotebooksQuickPick",
         async () => {
           const notebookQuickPick = new NotebookQuickPick();
           await notebookQuickPick.showNotebookPicker();
@@ -1102,56 +1095,41 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand(
         "dbtPowerUser.showNotebookProfileQuery",
         async () => {
-          await commands.executeCommand(
-            "dbtPowerUser.createDatapilotNotebook",
-            {
-              template: "Profile your query",
-            },
-          );
+          await commands.executeCommand("dbtPowerUser.createAltimateNotebook", {
+            template: "Profile your query",
+          });
         },
       ),
       commands.registerCommand(
         "dbtPowerUser.showNotebookTestSuggestions",
         async () => {
-          await commands.executeCommand(
-            "dbtPowerUser.createDatapilotNotebook",
-            {
-              template: "Get test suggestions",
-            },
-          );
+          await commands.executeCommand("dbtPowerUser.createAltimateNotebook", {
+            template: "Get test suggestions",
+          });
         },
       ),
       commands.registerCommand(
         "dbtPowerUser.showNotebookGenerateBaseModelSql",
         async () => {
-          await commands.executeCommand(
-            "dbtPowerUser.createDatapilotNotebook",
-            {
-              template: "Generate dbt base model sql",
-            },
-          );
+          await commands.executeCommand("dbtPowerUser.createAltimateNotebook", {
+            template: "Generate dbt base model sql",
+          });
         },
       ),
       commands.registerCommand(
         "dbtPowerUser.showNotebookGenerateModelYaml",
         async () => {
-          await commands.executeCommand(
-            "dbtPowerUser.createDatapilotNotebook",
-            {
-              template: "Generate dbt model yaml",
-            },
-          );
+          await commands.executeCommand("dbtPowerUser.createAltimateNotebook", {
+            template: "Generate dbt model yaml",
+          });
         },
       ),
       commands.registerCommand(
         "dbtPowerUser.showNotebookGenerateModelCTE",
         async () => {
-          await commands.executeCommand(
-            "dbtPowerUser.createDatapilotNotebook",
-            {
-              template: "Generate dbt model CTE",
-            },
-          );
+          await commands.executeCommand("dbtPowerUser.createAltimateNotebook", {
+            template: "Generate dbt model CTE",
+          });
         },
       ),
       commands.registerCommand("dbtPowerUser.applyDeferConfig", async () => {
@@ -1180,8 +1158,9 @@ export class VSCodeCommands implements Disposable {
             return;
           }
           await this.altimateCodeChatService.openChat({
-            initialMessage: `Regarding this code from \`@${context.relativePath}\`:\n\`\`\`\n${context.code}\n\`\`\``,
+            prefillMessage: `Regarding this code from \`@${context.relativePath}\`:\n\`\`\`\n${context.code}\n\`\`\`\n`,
             title: `Ask: ${context.fileName}`,
+            beside: true,
           });
         },
       ),
@@ -1193,6 +1172,7 @@ export class VSCodeCommands implements Disposable {
         await this.altimateCodeChatService.openChat({
           initialMessage: `Explain the following code from \`@${context.relativePath}\`:\n\`\`\`sql\n${context.code}\n\`\`\``,
           title: `Explain: ${context.fileName}`,
+          beside: true,
         });
       }),
       commands.registerCommand(
@@ -1205,6 +1185,95 @@ export class VSCodeCommands implements Disposable {
           await this.altimateCodeChatService.openChat({
             initialMessage: `Optimize the following SQL from \`@${context.relativePath}\` for performance and readability:\n\`\`\`sql\n${context.code}\n\`\`\``,
             title: `Optimize: ${context.fileName}`,
+            beside: true,
+          });
+        },
+      ),
+      commands.registerCommand("dbtPowerUser.changeWithAltimate", async () => {
+        const context = this.altimateCodeChatService.getEditorContext();
+        if (!context) {
+          return;
+        }
+        await this.altimateCodeChatService.openChat({
+          initialMessage: `I want to make changes to the SQL in \`@${context.relativePath}\`:\n\`\`\`sql\n${context.code}\n\`\`\`\nWhat do you need to know from me to make the right changes?`,
+          title: `Change: ${context.fileName}`,
+          beside: true,
+        });
+      }),
+      commands.registerCommand(
+        "dbtPowerUser.translateWithAltimate",
+        async () => {
+          const context = this.altimateCodeChatService.getEditorContext();
+          if (!context) {
+            return;
+          }
+
+          const SQL_DIALECTS = [
+            "bigquery",
+            "clickhouse",
+            "databricks",
+            "doris",
+            "duckdb",
+            "hive",
+            "mysql",
+            "oracle",
+            "postgres",
+            "redshift",
+            "snowflake",
+            "spark",
+            "sqlserver",
+            "starrocks",
+            "synapse",
+            "teradata",
+            "trino",
+          ];
+
+          const sourceDialect = await window.showQuickPick(SQL_DIALECTS, {
+            title: "Translate SQL — Step 1 of 2",
+            placeHolder: "Select source dialect",
+          });
+          if (!sourceDialect) {
+            return;
+          }
+
+          // Auto-detect target from project adapter type if available
+          let defaultTarget: string | undefined;
+          try {
+            defaultTarget = this.queryManifestService
+              .getProject()
+              ?.getAdapterType();
+          } catch {
+            // ignore — optional
+          }
+
+          const targetItems: { label: string; description?: string }[] =
+            SQL_DIALECTS.filter((d) => d !== sourceDialect).map((d) => ({
+              label: d,
+              description: d === defaultTarget ? "current project" : undefined,
+            }));
+
+          // Bubble project adapter to the top
+          if (defaultTarget) {
+            const idx = targetItems.findIndex((i) => i.label === defaultTarget);
+            if (idx > 0) {
+              const [item] = targetItems.splice(idx, 1);
+              targetItems.unshift(item);
+            }
+          }
+
+          const targetPick = await window.showQuickPick(targetItems, {
+            title: "Translate SQL — Step 2 of 2",
+            placeHolder: "Select target dialect",
+          });
+          if (!targetPick) {
+            return;
+          }
+          const targetDialect = targetPick.label;
+
+          await this.altimateCodeChatService.openChat({
+            initialMessage: `Translate the following SQL from \`@${context.relativePath}\` from **${sourceDialect}** to **${targetDialect}** dialect:\n\`\`\`sql\n${context.code}\n\`\`\``,
+            title: `Translate: ${context.fileName}`,
+            beside: true,
           });
         },
       ),
@@ -1222,23 +1291,108 @@ export class VSCodeCommands implements Disposable {
           await this.altimateCodeChatService.openChat({
             initialMessage: `Analyze \`@${ctx.relativePath}\` for dbt best practices, performance, and documentation completeness.`,
             title: `Analyze: ${ctx.fileName}`,
+            beside: true,
           });
         },
       ),
-      commands.registerCommand("dbtPowerUser.openAltimateChat", async () => {
-        const context = this.altimateCodeChatService.getEditorContext();
-        if (context) {
+      // Feature 1: dbt run/build/test failure notification
+      this.runHistoryService.onHistoryChanged(async (entry) => {
+        if (!entry) {
+          return;
+        }
+        const failed = entry.results.filter((r) => r.status === "error");
+        if (failed.length === 0) {
+          return;
+        }
+        const label =
+          failed.length === 1
+            ? `\`${failed[0].name}\` failed`
+            : `${failed.length} failures in \`${entry.command}\``;
+        const clicked = await window.showErrorMessage(
+          `dbt: ${label}`,
+          "Fix with Altimate Code",
+        );
+        if (clicked === "Fix with Altimate Code") {
+          this.telemetry.sendTelemetryEvent(
+            TelemetryEvents["AltimateCode/RunFailureClick"],
+            {
+              command: entry.command,
+              modelName: failed.length === 1 ? failed[0].name : "",
+            },
+            { failedCount: failed.length },
+          );
           await this.altimateCodeChatService.openChat({
-            initialMessage: `Help me with \`@${context.relativePath}\`:\n\`\`\`\n${context.code}\n\`\`\``,
-            title: `Chat: ${context.fileName}`,
-          });
-        } else {
-          await this.altimateCodeChatService.openChat({
-            initialMessage: "How can I help you with your dbt project?",
-            title: "Altimate Code Chat",
+            initialMessage: buildRunFailurePrompt(entry, failed),
+            title: `Fix: ${entry.command}`,
+            beside: true,
           });
         }
       }),
+      // Feature 2: dbt compilation/parse error notification
+      this.runHistoryService.onCommandFailed(
+        async ({ command, error }: CommandFailedEvent) => {
+          const clicked = await window.showErrorMessage(
+            `dbt command failed: ${command}`,
+            "Fix with Altimate Code",
+          );
+          if (clicked === "Fix with Altimate Code") {
+            this.telemetry.sendTelemetryEvent(
+              TelemetryEvents["AltimateCode/CommandFailureClick"],
+              { command },
+            );
+            await this.altimateCodeChatService.openChat({
+              initialMessage: buildCommandErrorPrompt(command, error),
+              title: `Fix: ${command}`,
+              beside: true,
+            });
+          }
+        },
+      ),
+      // Feature 3: Explain why this test failed (run history tree)
+      commands.registerCommand(
+        "dbtPowerUser.explainTestFailure",
+        async (item: ResultTreeItem) => {
+          const prompt = buildTestFailurePrompt(
+            item.result,
+            item.parentCommand,
+          );
+          this.telemetry.sendTelemetryEvent(
+            TelemetryEvents["AltimateCode/ExplainTestFailureClick"],
+            {
+              testName: item.result.name,
+              command: item.parentCommand ?? "",
+            },
+          );
+          await this.altimateCodeChatService.openChat({
+            initialMessage: prompt,
+            title: `Explain: ${item.result.name}`,
+            beside: true,
+          });
+        },
+      ),
+      // Feature 4: Fix run failure from run history tree (model/seed/snapshot)
+      commands.registerCommand(
+        "dbtPowerUser.fixRunFailure",
+        async (item: ResultTreeItem) => {
+          const prompt = buildRunResultFailurePrompt(
+            item.result,
+            item.parentCommand,
+          );
+          this.telemetry.sendTelemetryEvent(
+            TelemetryEvents["AltimateCode/RunHistoryFixClick"],
+            {
+              modelName: item.result.name,
+              resourceType: item.result.resourceType,
+              command: item.parentCommand ?? "",
+            },
+          );
+          await this.altimateCodeChatService.openChat({
+            initialMessage: prompt,
+            title: `Fix: ${item.result.name}`,
+            beside: true,
+          });
+        },
+      ),
     );
   }
 
