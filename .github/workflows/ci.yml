@@ -63,7 +63,7 @@ jobs:
         env:
           VSCE_TARGET: ${{ matrix.vsce-target }}
       - name: Set commit status
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/github-script@v7
         with:
           script: |
@@ -92,7 +92,7 @@ jobs:
   bundle-size-report:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       pull-requests: write
     steps:
@@ -161,6 +161,15 @@ jobs:
         uses: ./.github/actions/common-build
         with:
           vsce-target: ${{ matrix.target }}
+      - name: Verify package.json version matches release tag
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${GITHUB_REF_NAME}"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::package.json version ($PKG_VERSION) does not match release tag ($TAG_VERSION). Bump package.json before tagging — vsce publishes the version from package.json, not the tag."
+            exit 1
+          fi
+          echo "package.json version $PKG_VERSION matches tag $TAG_VERSION"
       - name: Publish Visual Studio Marketplace
         run: |
           PRE_RELEASE=""
@@ -206,6 +215,15 @@ jobs:
         uses: ./.github/actions/common-build
         with:
           vsce-target: ${{ matrix.target }}
+      - name: Verify package.json version matches release tag
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${GITHUB_REF_NAME}"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::package.json version ($PKG_VERSION) does not match release tag ($TAG_VERSION). Bump package.json before tagging — ovsx publishes the version from package.json, not the tag."
+            exit 1
+          fi
+          echo "package.json version $PKG_VERSION matches tag $TAG_VERSION"
       - name: Publish OpenVSX Marketplace
         run: |
           PRE_RELEASE=""

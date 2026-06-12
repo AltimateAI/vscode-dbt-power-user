@@ -10,7 +10,11 @@ enum Pages {
   TESTS,
 }
 
-const HelpButton = (): JSX.Element => {
+interface Props {
+  onClose?: () => void;
+}
+
+const HelpButton = ({ onClose }: Props): JSX.Element => {
   const [selectedPage, setSelectedPage] = useState(Pages.DOCUMENTATION);
   const drawerRef = useRef<DrawerRef | null>(null);
 
@@ -30,7 +34,7 @@ const HelpButton = (): JSX.Element => {
     sendTelemetryEvent(TelemetryEvents["DocumentationEditor/HelpTestsOpen"]);
   };
   return (
-    <Drawer title="Help" onOpen={onOpen} ref={drawerRef}>
+    <Drawer title="Help" onOpen={onOpen} onClose={onClose} ref={drawerRef}>
       <ButtonGroup className="mb-2">
         <Button
           color={selectedPage === Pages.DOCUMENTATION ? "primary" : "secondary"}

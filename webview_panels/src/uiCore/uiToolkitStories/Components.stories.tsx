@@ -1,5 +1,5 @@
-import { LikeIcon, SettingsIcon, ShinesIcon, PreviewIcon } from "@assets/icons";
-import type { Meta } from "@storybook/react";
+import { LikeIcon, PreviewIcon, SettingsIcon, ShinesIcon } from "@assets/icons";
+import type { Meta } from "@storybook/react-vite";
 import {
   Button,
   Card,

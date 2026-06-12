@@ -116,13 +116,17 @@ export function getStatusIcon(status: RunStatus): {
  * Displays the resource name, type, execution time, and status icon.
  */
 export class ResultTreeItem extends TreeItem {
-  constructor(public readonly result: RunResultEntry) {
+  constructor(
+    public readonly result: RunResultEntry,
+    public readonly parentCommand?: string,
+  ) {
     super(ResultTreeItem.getDisplayName(result), TreeItemCollapsibleState.None);
 
     this.description = ResultTreeItem.getDescription(result);
     this.iconPath = ResultTreeItem.getIcon(result);
     this.tooltip = ResultTreeItem.getTooltip(result);
-    this.contextValue = `runHistoryResult.${result.resourceType}`;
+    const failed = result.status === "error" || result.status === "warn";
+    this.contextValue = `runHistoryResult.${result.resourceType}${failed ? ".failed" : ""}`;
   }
 
   static getDisplayName(result: RunResultEntry): string {

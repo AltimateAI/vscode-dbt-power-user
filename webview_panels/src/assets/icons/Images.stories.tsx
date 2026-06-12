@@ -1,7 +1,7 @@
-import type { Meta } from "@storybook/react";
+import { panelLogger } from "@modules/logger";
+import type { Meta } from "@storybook/react-vite";
 import { useState } from "react";
 import * as Icons from "./index";
-import { panelLogger } from "@modules/logger";
 
 const meta = {
   title: "UiToolKit/Images",
@@ -26,7 +26,7 @@ export const Default = {
 
     const filteredIcons = searchTerm
       ? Object.keys(Icons).filter((name) =>
-          name.toLowerCase().includes(searchTerm)
+          name.toLowerCase().includes(searchTerm),
         )
       : Object.keys(Icons);
 
@@ -52,15 +52,15 @@ export const Default = {
             display: "grid",
             gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))",
             gap: "20px",
-            color: "#333"
+            color: "#333",
           }}
         >
           {filteredIcons.map((name) => {
             const IconComponent = Icons[name as keyof typeof Icons];
-            if (!IconComponent) {  
-              panelLogger.warn(`Icon ${name} not found`);  
-              return null;  
-            }  
+            if (!IconComponent) {
+              panelLogger.warn(`Icon ${name} not found`);
+              return null;
+            }
             return (
               <div key={name} style={{ textAlign: "center" }}>
                 <IconComponent width="48px" height="48px" />

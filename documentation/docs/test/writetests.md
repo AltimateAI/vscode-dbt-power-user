@@ -19,18 +19,23 @@ You can add default dbt tests: unique, not_null, accepted_values, relationship b
 
 ![Add tests](images/addGenericTest.gif)
 
-## Generate dbt Tests (Beta)
+## Generate dbt Tests 
 
-You can also generate test code for custom tests based on dbt.utils and dbt.expectations package.
-First, click on (+) sign next to the "Tests:" label and choose "custom tests". DataPilot automatically detects which dbt packages you have installed, and it generates test code based on packages in your environment.
+You can also generate test code for custom tests based on `dbt_utils` and `dbt_expectations` packages.
 
-If a test definition is not available from packages (dbt.utils or dbt.expectations) that you have installed in your environment, DataPilot writes custom SQL test code and puts it in the dbt macro.
+In the Documentation Editor, click the **(+)** sign next to the **Tests:** label and choose **custom tests**. Altimate Code opens in a side panel, asks any clarifying questions it needs, and writes the test (using `dbt_utils` / `dbt_expectations` if installed, or a custom macro otherwise).
 
-/// admonition | This functionality is marked as beta. In some rare cases, DataPilot may decide to ignore the packages that you have installed or may generate inaccurate code.
+/// admonition | Requires the Datamates extension
+    type: info
+
+Custom test generation runs through Altimate Code, which is powered by the **[Datamates](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server)** extension. Make sure Datamates is installed and active before invoking custom test generation.
+///
+
+/// admonition | Altimate Code may occasionally retry dbt commands before producing a successful test, and in rare cases may ignore installed packages or generate inaccurate code. Review the generated test before saving.
     type: info
 ///
 
-![Generate tests](images/testGeneration.png)
+![Generate tests via Altimate Code](images/testGeneration.png)
 
 ## Edit/delete dbt Tests
 
@@ -49,7 +54,3 @@ As shown in the image above, there is a button to quickly get distinct values fo
 You can save the changes in the existing or a new YAML file with save button at the bottom of the panel.
 If you see any issues with the content that's saved in the YAML file, please check the [optional config section](../setup/optConfig.md/#column-name-setup-for-yaml-file-updates).
 ///
-
-## Recorded demo video
-
-<iframe width="800" height="600" src="https://www.youtube.com/embed/VunQngGe-JE?si=G3whtDTnuJumSZ78" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>

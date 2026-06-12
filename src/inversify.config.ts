@@ -6,6 +6,7 @@ import {
   DBTCloudDetection,
   DBTCloudProjectDetection,
   DBTCloudProjectIntegration,
+  DbtCloudVariantDetector,
   DBTCommandExecutionInfrastructure,
   DBTCommandExecutionStrategy,
   DBTCommandFactory,
@@ -66,7 +67,6 @@ import { DbtTestService } from "./services/dbtTestService";
 import { DiagnosticsOutputChannel } from "./services/diagnosticsOutputChannel";
 import { DocGenService } from "./services/docGenService";
 import { FileService } from "./services/fileService";
-import { QueryAnalysisService } from "./services/queryAnalysisService";
 import { QueryManifestService } from "./services/queryManifestService";
 import { RunHistoryService } from "./services/runHistoryService";
 import { SharedStateService } from "./services/sharedStateService";
@@ -147,7 +147,6 @@ import {
 } from "./treeview_provider/modelTreeviewProvider";
 import { RunHistoryTreeviewProvider } from "./treeview_provider/runHistoryTreeviewProvider";
 import { WebviewViewProviders } from "./webview_provider";
-import { DataPilotPanel } from "./webview_provider/datapilotPanel";
 import { DbtDocsView } from "./webview_provider/DbtDocsView";
 import { DocsEditViewPanel } from "./webview_provider/docsEditPanel";
 import { InsightsPanel } from "./webview_provider/insightsPanel";
@@ -270,6 +269,13 @@ container
   })
   .inSingletonScope();
 
+container
+  .bind(DbtCloudVariantDetector)
+  .toDynamicValue((context) => {
+    return new DbtCloudVariantDetector(context.container.get("DBTTerminal"));
+  })
+  .inSingletonScope();
+
 // Bind dbt core integration classes using factory functions
 container
   .bind(DBTCoreDetection)
@@ -277,6 +283,7 @@ container
     return new DBTCoreDetection(
       context.container.get("RuntimePythonEnvironment"),
       context.container.get(CommandProcessExecutionFactory),
+      context.container.get("DBTTerminal"),
     );
   })
   .inSingletonScope();
@@ -668,6 +675,9 @@ container
       onDiagnosticsChanged: () => void,
     ) => {
       const { container } = context;
+      const pythonStrategyFactory = container.get<
+        (projectRoot: string) => PythonDBTCommandExecutionStrategy
+      >("Factory<PythonDBTCommandExecutionStrategy>");
       return new DBTCloudProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
         container.get(DBTCommandFactory),
@@ -679,6 +689,12 @@ container
         projectConfigDiagnostics,
         deferConfig,
         onDiagnosticsChanged,
+        container.get(DbtCloudVariantDetector),
+        {
+          pythonDBTCommandExecutionStrategy: pythonStrategyFactory(projectRoot),
+          dbtConfiguration: container.get<DBTConfiguration>("DBTConfiguration"),
+          dbtIntegrationClient: container.get(DbtIntegrationClient),
+        },
       );
     };
   });
@@ -830,21 +846,6 @@ container
   .bind(FileService)
   .toDynamicValue(() => {
     return new FileService();
-  })
-  .inSingletonScope();
-
-container
-  .bind(QueryAnalysisService)
-  .toDynamicValue((context) => {
-    return new QueryAnalysisService(
-      context.container.get(DocGenService),
-      context.container.get(StreamingService),
-      context.container.get(AltimateRequest),
-      context.container.get(QueryManifestService),
-      context.container.get("DBTTerminal"),
-      context.container.get(FileService),
-      context.container.get(AltimateAuthService),
-    );
   })
   .inSingletonScope();
 
@@ -1492,6 +1493,7 @@ container
       context.container.get(TelemetryService),
       context.container.get(AltimateRequest),
       context.container.get("DBTTerminal"),
+      context.container.get(AltimateCodeChatService),
     );
   })
   .inSingletonScope();
@@ -1611,6 +1613,7 @@ container
       context.container.get(QueryManifestService),
       context.container.get(UsersService),
       context.container.get(AltimateAuthService),
+      context.container.get(AltimateCodeChatService),
     );
   })
   .inSingletonScope();
@@ -1639,26 +1642,6 @@ container
       context.container.get(DBTProjectContainer),
       context.container.get(TelemetryService),
       context.container.get("DBTTerminal"),
-    );
-  })
-  .inSingletonScope();
-
-container
-  .bind(DataPilotPanel)
-  .toDynamicValue((context) => {
-    return new DataPilotPanel(
-      context.container.get(DBTProjectContainer),
-      context.container.get(TelemetryService),
-      context.container.get(AltimateRequest),
-      context.container.get(DocGenService),
-      context.container.get(SharedStateService),
-      context.container.get(QueryAnalysisService),
-      context.container.get(QueryManifestService),
-      context.container.get("DBTTerminal"),
-      context.container.get(DbtTestService),
-      context.container.get(FileService),
-      context.container.get(UsersService),
-      context.container.get(AltimateAuthService),
     );
   })
   .inSingletonScope();
@@ -1699,6 +1682,7 @@ container
       context.container.get(ConversationProvider),
       context.container.get(ConversationService),
       context.container.get(AltimateAuthService),
+      context.container.get(AltimateCodeChatService),
     );
   })
   .inSingletonScope();
@@ -1728,7 +1712,6 @@ container
       context.container.get(QueryResultPanel),
       context.container.get(DocsEditViewPanel),
       context.container.get(LineagePanel),
-      context.container.get(DataPilotPanel),
       context.container.get(InsightsPanel),
     );
   })
