@@ -1,26 +1,38 @@
-Updating or changing an existing dbt (or SQL) model using natural language is quite straightforward with this functionality.
+Updating or changing an existing dbt (or SQL) model using natural language is straightforward through Altimate Code.
 
-### Step 1: Trigger the Operation
+/// admonition | Requires the Datamates extension
+    type: info
 
-Select a piece of code, or if you want to use a whole file, right-click and choose the DataPilot menu and choose the "change" submenu
+The **Change with Altimate** action opens a chat session through the **[Datamates](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server)** extension. Make sure Datamates is installed and active before invoking it.
+///
 
-![Start Query Change](images/startDataPilotChange.png)
+### Step 1: Trigger the operation
 
-### Step 2: Instructions for Changes
+Open a `.sql` (or `.jinja-sql`) file. Optionally select the portion you want to change. Right-click and choose **Altimate Code → Change with Altimate**.
 
-Give instructions for changes in the input text box
+![Right-click Altimate Code → Change](images/startAltimateCodeChange.png)
 
-![Input to DataPilot for change](images/changeDataPilotChat.png)
+/// admonition | Where to find it
+    type: tip
 
-### Step 3: Copy the Code #Copy the changed code and put it in a file
+The Altimate Code submenu shows four actions by default: **Explain**, **Optimize**, **Change**, and **Translate**. **Change with Altimate** is the third entry and only appears on `.sql` / `.jinja-sql` files.
+///
 
-![Copy Changed Code](images/createCodeFile.png)
+### Step 2: Describe the change
 
-### Recorded demo video
+Altimate Code opens in a side panel and asks for context about the change you want. Type the instruction (e.g. "add a column for monthly revenue, joined from `orders`"). It may ask clarifying questions before producing a diff — answer them inline.
 
-<iframe width="800" height="600" src="https://www.youtube.com/embed/TqyNhLTRD0M?si=TJXknBYz1fVpMFAi" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+![Altimate Code asking clarifying question](images/changeAltimateCodeChat.png)
 
-/// admonition | Please provide feedback on the generated explanations using thumbs up / down buttons. Your feedback will help us tremendously to improve this functionality.
+![Altimate Code asking change](images/askchangeAltimateCodeChat.png)
+
+### Step 3: Review the accomplished changes
+
+Altimate Code shows an Accomplished summary listing every change it made (replaced columns, preserved business logic, validated builds, etc.). Review the summary then continue iterating with follow-up questions if needed.
+
+![Apply changed code](images/accomplished_changes.png)
+
+/// admonition | Please provide feedback on the result using thumbs up / down buttons. Your feedback will help us tremendously to improve this functionality.
     type: tip
 ///
 

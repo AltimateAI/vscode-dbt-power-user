@@ -1507,6 +1507,7 @@ container
       context.container.get(TelemetryService),
       context.container.get(AltimateRequest),
       context.container.get("DBTTerminal"),
+      context.container.get(AltimateCodeChatService),
     );
   })
   .inSingletonScope();

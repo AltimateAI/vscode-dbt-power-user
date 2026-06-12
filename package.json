@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.61.4",
+  "version": "0.61.6",
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -805,6 +805,18 @@
         "command": "dbtPowerUser.reviewCodeWithAltimate",
         "category": "dbt Power User",
         "title": "Review with Altimate"
+      },
+      {
+        "command": "dbtPowerUser.explainTestFailure",
+        "title": "Explain why this test failed",
+        "category": "dbt Power User",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "dbtPowerUser.fixRunFailure",
+        "title": "Fix with Altimate Code",
+        "category": "dbt Power User",
+        "icon": "$(lightbulb)"
       }
     ],
     "keybindings": [
@@ -991,7 +1003,7 @@
         {
           "command": "dbtPowerUser.sqlLineage",
           "group": "dbt@8",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && resourceScheme != 'query-preview'"
         },
         {
           "command": "dbtPowerUser.testCurrentModel",
@@ -1016,7 +1028,7 @@
         {
           "command": "dbtPowerUser.validateSql",
           "group": "dbt@4",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && resourceScheme != 'query-preview'"
         },
         {
           "command": "dbtPowerUser.bigqueryCostEstimate",
@@ -1118,6 +1130,16 @@
           "command": "dbtPowerUser.goToDocumentationEditor",
           "when": "view == documentation_treeview",
           "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.explainTestFailure",
+          "when": "view == run_history_treeview && viewItem =~ /runHistoryResult\\.test\\.failed/",
+          "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.fixRunFailure",
+          "when": "view == run_history_treeview && viewItem =~ /runHistoryResult\\.(model|seed|snapshot)\\.failed/",
+          "group": "inline"
         }
       ]
     },
@@ -1214,7 +1236,6 @@
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.2",
     "@rsbuild/core": "^1.5.17",
-    "@types/chai": "^4.3.9",
     "@types/glob": "^8.1.0",
     "@types/istanbul-lib-coverage": "^2.0.6",
     "@types/jest": "^29.5.0",
@@ -1230,7 +1251,6 @@
     "@vscode/debugprotocol": "^1.68.0",
     "@vscode/test-electron": "^2.4.1",
     "@vscode/zeromq": "^0.2.1",
-    "chai": "^4.3.10",
     "concurrently": "^9.2.1",
     "cross-env": "^7.0.3",
     "eslint": "^8.57.0",
@@ -1264,7 +1284,7 @@
     "altimateai.vscode-altimate-mcp-server"
   ],
   "dependencies": {
-    "@altimateai/dbt-integration": "^0.3.1",
+    "@altimateai/dbt-integration": "^0.3.2",
     "@jupyterlab/coreutils": "^6.2.4",
     "@jupyterlab/nbformat": "^4.2.4",
     "@jupyterlab/services": "^7.0.0",
@@ -1274,7 +1294,7 @@
     "@vscode/chat-extension-utils": "^0.0.0-alpha.5",
     "@vscode/codicons": "^0.0.36",
     "@vscode/extension-telemetry": "0.9.7",
-    "@vscode/vsce": "^2.31.1",
+    "@vscode/vsce": "^3.9.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "dayjs": "^1.11.13",
     "express": "^5.1.0",

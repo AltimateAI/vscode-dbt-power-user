@@ -84,11 +84,27 @@ type SqlLineageResponse = {
   nodePositions?: Record<string, [number, number]>;
 };
 
+// `@altimateai/dbt-integration` preserves dbt's manifest convention and exposes
+// `unique_id` (snake_case) on NodeMetaData / SourceMetaData. The /sqltomodel
+// backend Pydantic schema expects `uniqueId` (camelCase) — only that one field.
+// Map at the HTTP boundary instead of asking the backend to alias both shapes,
+// so the wire contract stays anchored at a single TS-owned mapper.
+type BackendModelNode = NodeMetaData & { uniqueId: string };
+type BackendSourceMetaData = SourceMetaData & { uniqueId: string };
+
+export const toBackendModelNode = (n: NodeMetaData): BackendModelNode => ({
+  ...n,
+  uniqueId: n.unique_id,
+});
+export const toBackendSourceMetaData = (
+  s: SourceMetaData,
+): BackendSourceMetaData => ({ ...s, uniqueId: s.unique_id });
+
 interface SQLToModelRequest {
   sql: string;
   adapter: string;
-  models: NodeMetaData[];
-  sources: SourceMetaData[];
+  models: BackendModelNode[];
+  sources: BackendSourceMetaData[];
 }
 
 interface DBTProjectHealthConfig {

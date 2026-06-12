@@ -42,13 +42,25 @@ import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
 import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
+import {
+  buildCommandErrorPrompt,
+  buildRunFailurePrompt,
+  buildRunResultFailurePrompt,
+  buildTestFailurePrompt,
+} from "../services/chatPromptBuilders";
 import { DiagnosticsOutputChannel } from "../services/diagnosticsOutputChannel";
 import { QueryManifestService } from "../services/queryManifestService";
-import { RunHistoryService } from "../services/runHistoryService";
+import {
+  CommandFailedEvent,
+  RunHistoryService,
+} from "../services/runHistoryService";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
-import { RunTreeItem } from "../treeview_provider/runHistoryTreeItems";
+import {
+  ResultTreeItem,
+  RunTreeItem,
+} from "../treeview_provider/runHistoryTreeItems";
 import {
   deepEqual,
   extendErrorWithSupportLinks,
@@ -1016,6 +1028,17 @@ export class VSCodeCommands implements Disposable {
         },
       ),
       commands.registerCommand("dbtPowerUser.sqlLineage", async () => {
+        const activeUri = window.activeTextEditor?.document.uri;
+        if (activeUri?.scheme === SqlPreviewContentProvider.SCHEME) {
+          // The compiled-SQL preview is a read-only derived artifact served by
+          // a TextDocumentContentProvider; workspace.fs has no provider for its
+          // scheme, so reading it throws ENOPRO. Visualize SQL operates on the
+          // source model, so there is nothing to visualize from the preview.
+          window.showInformationMessage(
+            "Visualize SQL runs on a dbt model file, not the compiled SQL preview.",
+          );
+          return;
+        }
         window.withProgress(
           {
             title: "Retrieving SQL visualization",
@@ -1268,6 +1291,104 @@ export class VSCodeCommands implements Disposable {
           await this.altimateCodeChatService.openChat({
             initialMessage: `Analyze \`@${ctx.relativePath}\` for dbt best practices, performance, and documentation completeness.`,
             title: `Analyze: ${ctx.fileName}`,
+            beside: true,
+          });
+        },
+      ),
+      // Feature 1: dbt run/build/test failure notification
+      this.runHistoryService.onHistoryChanged(async (entry) => {
+        if (!entry) {
+          return;
+        }
+        const failed = entry.results.filter((r) => r.status === "error");
+        if (failed.length === 0) {
+          return;
+        }
+        const label =
+          failed.length === 1
+            ? `\`${failed[0].name}\` failed`
+            : `${failed.length} failures in \`${entry.command}\``;
+        const clicked = await window.showErrorMessage(
+          `dbt: ${label}`,
+          "Fix with Altimate Code",
+        );
+        if (clicked === "Fix with Altimate Code") {
+          this.telemetry.sendTelemetryEvent(
+            TelemetryEvents["AltimateCode/RunFailureClick"],
+            {
+              command: entry.command,
+              modelName: failed.length === 1 ? failed[0].name : "",
+            },
+            { failedCount: failed.length },
+          );
+          await this.altimateCodeChatService.openChat({
+            initialMessage: buildRunFailurePrompt(entry, failed),
+            title: `Fix: ${entry.command}`,
+            beside: true,
+          });
+        }
+      }),
+      // Feature 2: dbt compilation/parse error notification
+      this.runHistoryService.onCommandFailed(
+        async ({ command, error }: CommandFailedEvent) => {
+          const clicked = await window.showErrorMessage(
+            `dbt command failed: ${command}`,
+            "Fix with Altimate Code",
+          );
+          if (clicked === "Fix with Altimate Code") {
+            this.telemetry.sendTelemetryEvent(
+              TelemetryEvents["AltimateCode/CommandFailureClick"],
+              { command },
+            );
+            await this.altimateCodeChatService.openChat({
+              initialMessage: buildCommandErrorPrompt(command, error),
+              title: `Fix: ${command}`,
+              beside: true,
+            });
+          }
+        },
+      ),
+      // Feature 3: Explain why this test failed (run history tree)
+      commands.registerCommand(
+        "dbtPowerUser.explainTestFailure",
+        async (item: ResultTreeItem) => {
+          const prompt = buildTestFailurePrompt(
+            item.result,
+            item.parentCommand,
+          );
+          this.telemetry.sendTelemetryEvent(
+            TelemetryEvents["AltimateCode/ExplainTestFailureClick"],
+            {
+              testName: item.result.name,
+              command: item.parentCommand ?? "",
+            },
+          );
+          await this.altimateCodeChatService.openChat({
+            initialMessage: prompt,
+            title: `Explain: ${item.result.name}`,
+            beside: true,
+          });
+        },
+      ),
+      // Feature 4: Fix run failure from run history tree (model/seed/snapshot)
+      commands.registerCommand(
+        "dbtPowerUser.fixRunFailure",
+        async (item: ResultTreeItem) => {
+          const prompt = buildRunResultFailurePrompt(
+            item.result,
+            item.parentCommand,
+          );
+          this.telemetry.sendTelemetryEvent(
+            TelemetryEvents["AltimateCode/RunHistoryFixClick"],
+            {
+              modelName: item.result.name,
+              resourceType: item.result.resourceType,
+              command: item.parentCommand ?? "",
+            },
+          );
+          await this.altimateCodeChatService.openChat({
+            initialMessage: prompt,
+            title: `Fix: ${item.result.name}`,
             beside: true,
           });
         },

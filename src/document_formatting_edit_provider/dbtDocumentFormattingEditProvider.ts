@@ -311,16 +311,4 @@ export class DbtDocumentFormattingEditProvider implements DocumentFormattingEdit
   ): change is parseDiff.NormalChange {
     return change.type === "normal";
   }
-
-  private isDeleteChange(
-    change: parseDiff.Change,
-  ): change is parseDiff.DeleteChange {
-    return (
-      /*
-          parseDiff reads sqlfmt's "\ No newline at end of file" diff output as a delete change.
-          This deceptive delete change should be skipped. So, adding an edge case to the expression.
-      */
-      change.type === "del" && change.content !== "\\ No newline at end of file"
-    );
-  }
 }
