@@ -1,5 +1,12 @@
 import { NotebookProviders } from "@lib";
-import { commands, Disposable, ExtensionContext, workspace } from "vscode";
+import {
+  commands,
+  Disposable,
+  ExtensionContext,
+  Uri,
+  window,
+  workspace,
+} from "vscode";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";
@@ -13,6 +20,7 @@ import { DbtPowerUserMcpServer } from "./mcp";
 import { DbtPowerUserActionsCenter } from "./quickpick";
 import { StatusBars } from "./statusbar";
 import { TelemetryService } from "./telemetry";
+import { TelemetryEvents } from "./telemetry/events";
 import { TreeviewProviders } from "./treeview_provider";
 import { ValidationProvider } from "./validation_provider";
 import { WebviewViewProviders } from "./webview_provider";
@@ -20,6 +28,25 @@ import { WebviewViewProviders } from "./webview_provider";
 enum PromptAnswer {
   YES = "Yes",
   NO = "No",
+}
+
+const POWER_USER_EXTENSION_MARKER = "innoverio.vscode-dbt-power-user";
+
+// `process.on("unhandledRejection")` fires for every rejection in the
+// extension host — including rejections originating in other extensions
+// (GitLens, Ruff, SQLFluff, VS Code core RPC, etc.) that happen to be
+// loaded in the same process. Without filtering, our `catchAllError`
+// telemetry attributes other vendors' failures to power-user, inflating
+// our error volume by ~5-10x and polluting triage. Restrict forwarding
+// to rejections whose stack points at the published extension directory.
+export function isPowerUserRejection(reason: unknown): boolean {
+  if (reason === null || reason === undefined) {
+    return false;
+  }
+  const stack = (reason as { stack?: unknown }).stack;
+  return (
+    typeof stack === "string" && stack.includes(POWER_USER_EXTENSION_MARKER)
+  );
 }
 
 export class DBTPowerUserExtension implements Disposable {
@@ -106,7 +133,13 @@ export class DBTPowerUserExtension implements Disposable {
       // `error_code` fields plus `dbtIntegrationMode` / `instanceName` /
       // `localMode`. The upstream `unhandlederror` event keeps firing in
       // parallel — both events stream to App Insights, queryable separately.
+      //
+      // Filter to rejections whose stack originates in our extension; see
+      // `isPowerUserRejection` above for the rationale.
       const onUnhandledRejection = (reason: unknown) => {
+        if (!isPowerUserRejection(reason)) {
+          return;
+        }
         try {
           this.telemetry.sendTelemetryError("catchAllError", reason);
         } catch {
@@ -117,6 +150,29 @@ export class DBTPowerUserExtension implements Disposable {
       context.subscriptions.push({
         dispose: () => process.off("unhandledRejection", onUnhandledRejection),
       });
+
+      const telemetry = this.telemetry;
+      context.subscriptions.push(
+        window.registerUriHandler({
+          handleUri(uri: Uri): void {
+            if (uri.path === "/troubleshoot") {
+              const params = new URLSearchParams(uri.query);
+              const errorMessage = params.get("error") ?? "";
+              const source = params.get("source") ?? "dbt";
+              telemetry.sendTelemetryEvent(
+                TelemetryEvents["AltimateCode/TroubleshootCodeActionClick"],
+                { source },
+              );
+              commands.executeCommand("altimate.troubleshootError", {
+                errorMessage,
+                source,
+                filePath: "",
+                lineNumber: 0,
+              });
+            }
+          },
+        }),
+      );
 
       await this.mcpServer.updateMcpExtensionApi();
       this.dbtProjectContainer.setContext(context);

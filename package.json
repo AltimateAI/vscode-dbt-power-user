@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.61.5",
+  "version": "0.61.6",
   "engines": {
     "vscode": "^1.95.0",
     "node": ">=22.0.0"
@@ -806,6 +806,18 @@
         "command": "dbtPowerUser.reviewCodeWithAltimate",
         "category": "dbt Power User",
         "title": "Review with Altimate"
+      },
+      {
+        "command": "dbtPowerUser.explainTestFailure",
+        "title": "Explain why this test failed",
+        "category": "dbt Power User",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "dbtPowerUser.fixRunFailure",
+        "title": "Fix with Altimate Code",
+        "category": "dbt Power User",
+        "icon": "$(lightbulb)"
       }
     ],
     "keybindings": [
@@ -1118,6 +1130,16 @@
         {
           "command": "dbtPowerUser.goToDocumentationEditor",
           "when": "view == documentation_treeview",
+          "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.explainTestFailure",
+          "when": "view == run_history_treeview && viewItem =~ /runHistoryResult\\.test\\.failed/",
+          "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.fixRunFailure",
+          "when": "view == run_history_treeview && viewItem =~ /runHistoryResult\\.(model|seed|snapshot)\\.failed/",
           "group": "inline"
         }
       ]
