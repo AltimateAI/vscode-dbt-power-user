@@ -605,33 +605,37 @@ export class InsightsPanel extends AltimateWebviewProvider {
 
     switch (command) {
       case "getNotebooks":
-        this.sendResponseToWebview({
-          command: "response",
-          syncRequestId: message.syncRequestId,
-          // TODO: add other params here later
-          data: await this.altimateRequest.getNotebooks(
-            "",
-            [],
-            params.privacy as string,
-          ),
-        });
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () =>
+            await this.altimateRequest.getNotebooks(
+              "",
+              [],
+              params.privacy as string,
+            ),
+          command,
+          true,
+        );
         break;
       case "getPreConfiguredNotebooks":
-        this.sendResponseToWebview({
-          command: "response",
-          syncRequestId: message.syncRequestId,
-          data: await this.altimateRequest.getPreConfiguredNotebooks(),
-        });
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => await this.altimateRequest.getPreConfiguredNotebooks(),
+          command,
+          true,
+        );
         break;
       case "updateNotebookPrivacy":
-        this.sendResponseToWebview({
-          command: "response",
-          syncRequestId: message.syncRequestId,
-          data: await this.altimateRequest.updateNotebookPrivacy(
-            params.notebookId as number,
-            params.privacy as string,
-          ),
-        });
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () =>
+            await this.altimateRequest.updateNotebookPrivacy(
+              params.notebookId as number,
+              params.privacy as string,
+            ),
+          command,
+          true,
+        );
         break;
       case "selectDirectoryForManifest":
         this.selectDirectoryForManifest(syncRequestId);
@@ -719,9 +723,17 @@ export class InsightsPanel extends AltimateWebviewProvider {
         await this.getProjects(syncRequestId);
         break;
       case "logDBTHealthcheckConfig":
-        await this.altimateRequest.logDBTHealthcheckConfig(
-          params.configId as string,
-        );
+        try {
+          await this.altimateRequest.logDBTHealthcheckConfig(
+            params.configId as string,
+          );
+        } catch (err) {
+          this.dbtTerminal.error(
+            "InsightsPanelError",
+            "Error logging healthcheck config",
+            err,
+          );
+        }
         break;
       case "getInsightConfigs":
         await this.handleSyncRequestFromWebview(

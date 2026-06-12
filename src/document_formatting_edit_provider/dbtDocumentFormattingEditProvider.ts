@@ -88,7 +88,7 @@ export class DbtDocumentFormattingEditProvider implements DocumentFormattingEdit
           return this.processDiffOutput(document, (e as Error).message);
         } catch (error) {
           this.telemetry.sendTelemetryError(
-            "formatDbtModelApplyDiffFailed",
+            "formatDbtModelApplyDiffError",
             error,
           );
           window.showErrorMessage(
@@ -101,7 +101,7 @@ export class DbtDocumentFormattingEditProvider implements DocumentFormattingEdit
         }
       }
     } catch (error) {
-      this.telemetry.sendTelemetryError("formatDbtModelApplyDiffFailed", error);
+      this.telemetry.sendTelemetryError("formatDbtModelApplyDiffError", error);
       window.showErrorMessage(
         extendErrorWithSupportLinks(
           'Could not run sqlfmt. If sqlfmt is installed (e.g. via `uv tool install "shandy-sqlfmt[jinjafmt]"` or `pipx install "shandy-sqlfmt[jinjafmt]"`), ' +
@@ -289,17 +289,5 @@ export class DbtDocumentFormattingEditProvider implements DocumentFormattingEdit
     change: parseDiff.Change,
   ): change is parseDiff.NormalChange {
     return change.type === "normal";
-  }
-
-  private isDeleteChange(
-    change: parseDiff.Change,
-  ): change is parseDiff.DeleteChange {
-    return (
-      /*
-          parseDiff reads sqlfmt's "\ No newline at end of file" diff output as a delete change.
-          This deceptive delete change should be skipped. So, adding an edge case to the expression.
-      */
-      change.type === "del" && change.content !== "\\ No newline at end of file"
-    );
   }
 }

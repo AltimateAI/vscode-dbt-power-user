@@ -8,9 +8,7 @@ import { Uri, workspace } from "vscode";
 import { PythonEnvironment } from "./pythonEnvironment";
 
 @injectable()
-export class VSCodeRuntimePythonEnvironmentProvider
-  implements PythonEnvironmentProvider
-{
+export class VSCodeRuntimePythonEnvironmentProvider implements PythonEnvironmentProvider {
   private callbacks: ((environment: RuntimePythonEnvironment) => void)[] = [];
 
   constructor(
@@ -60,9 +58,7 @@ export class VSCodeRuntimePythonEnvironmentProvider
 }
 
 @injectable()
-export class StaticRuntimePythonEnvironment
-  implements RuntimePythonEnvironment
-{
+export class StaticRuntimePythonEnvironment implements RuntimePythonEnvironment {
   constructor(
     @inject(PythonEnvironment)
     private vscodeEnvironment: PythonEnvironment,

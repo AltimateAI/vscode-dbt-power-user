@@ -272,7 +272,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           break;
         case "openNewNotebook":
           commands.executeCommand(
-            "dbtPowerUser.createDatapilotNotebook",
+            "dbtPowerUser.createAltimateNotebook",
             params,
           );
           break;
@@ -347,20 +347,6 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             return;
           }
           env.openExternal(Uri.parse(params.url as string));
-          break;
-        case "datapilot:toggle":
-          if (params.open) {
-            this.emitterService.eventEmitter.fire({
-              command: "datapilot:toggle",
-              payload: params,
-            });
-          }
-          break;
-        case "datapilot:message":
-          this.emitterService.eventEmitter.fire({
-            command: "datapilot:message",
-            payload: message,
-          });
           break;
         case "validateCredentials":
           const isValid = this.altimateAuthService.handlePreviewFeatures();
@@ -583,6 +569,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         ),
       ),
     );
+    const AltimateCodeBannerUrl = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "altimate-code-banner-sml.png",
+        ),
+      ),
+    );
 
     // Tutorial images - convert URIs to strings for serialization
     const GenerateModelFromSourceGif = webview.asWebviewUri(
@@ -799,6 +796,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               window.viewPath = "${this.viewPath}";
               var spinnerUrl = "${SpinnerUrl}"
               var lineageGif = "${LineageGif}"
+              window.altimateCodeBannerUrl = "${AltimateCodeBannerUrl}";
               window.tutorialImages = {
                 generateModelFromSource: "${GenerateModelFromSourceGif}",
                 generateModelFromSQL: "${GenerateModelFromSQLGif}",

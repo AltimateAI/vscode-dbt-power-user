@@ -1,57 +1,16 @@
-import { differenceInHours } from "date-fns";
 import IndexedDBHelper from "@modules/app/indexedDb";
 import { panelLogger } from "@modules/logger";
+import { differenceInHours } from "date-fns";
 import {
   DBTDocumentation,
   DBTDocumentationColumn,
+  DbtGenericTests,
   DocumentationStateProps,
   Source,
+  TestMetadataAcceptedValuesKwArgs,
+  TestMetadataRelationshipsKwArgs,
 } from "./state/types";
 import { GenerationDBDataProps } from "./types";
-import { DataPilotChatAction } from "../dataPilot/types";
-
-export const addDefaultActions = (
-  data: Record<string, unknown>,
-  command: string,
-): DataPilotChatAction[] => {
-  return [
-    {
-      title: "Regenerate",
-      data,
-      command,
-      userPrompt: "Regenerate documentation for {type} {name}",
-      datapilotTitle: "Improving documentation based on the user suggestion",
-    },
-    {
-      title: "Make it shorter",
-      data,
-      command,
-      userPrompt: "Make documentation shorter for {type} {name}",
-      datapilotTitle: "Improving documentation based on the user suggestion",
-    },
-    {
-      title: "Make it longer",
-      data,
-      command,
-      userPrompt: "Make documentation longer for {type} {name}",
-      datapilotTitle: "Improving documentation based on the user suggestion",
-    },
-    {
-      title: "Make it fun",
-      data,
-      command,
-      userPrompt: "Make documentation fun for {type} {name}",
-      datapilotTitle: "Improving documentation based on the user suggestion",
-    },
-    {
-      title: "Generate for business user",
-      data,
-      command,
-      userPrompt: "Regenerate documentation for {type} {name} as business user",
-      datapilotTitle: "Improving documentation based on the user suggestion",
-    },
-  ];
-};
 
 export const addDocGeneration = async (
   project: string,
@@ -165,6 +124,29 @@ export const isStateDirty = (state: DocumentationStateProps): boolean => {
     );
     if (!incomingTest) {
       return true;
+    }
+    if (test.test_metadata?.name === DbtGenericTests.ACCEPTED_VALUES) {
+      const currentValues =
+        (test.test_metadata?.kwargs as TestMetadataAcceptedValuesKwArgs)
+          .values ?? [];
+      const incomingValues =
+        (incomingTest.test_metadata?.kwargs as TestMetadataAcceptedValuesKwArgs)
+          .values ?? [];
+      if (!isArrayEqual(currentValues, incomingValues)) {
+        return true;
+      }
+    }
+    if (test.test_metadata?.name === DbtGenericTests.RELATIONSHIPS) {
+      const currentArgs = test.test_metadata
+        ?.kwargs as TestMetadataRelationshipsKwArgs;
+      const incomingArgs = incomingTest.test_metadata
+        ?.kwargs as TestMetadataRelationshipsKwArgs;
+      if (
+        currentArgs.to !== incomingArgs.to ||
+        currentArgs.field !== incomingArgs.field
+      ) {
+        return true;
+      }
     }
   }
   return false;

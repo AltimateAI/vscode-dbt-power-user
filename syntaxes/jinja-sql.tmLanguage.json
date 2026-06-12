@@ -1,0 +1,210 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Jinja SQL",
+  "scopeName": "source.sql.jinja",
+  "patterns": [
+    { "include": "#jinja-comment" },
+    { "include": "#jinja-statement" },
+    { "include": "#jinja-expression" },
+    { "include": "#sql-comment-line" },
+    { "include": "#sql-comment-block" },
+    { "include": "#sql-string-single" },
+    { "include": "#sql-string-double" },
+    { "include": "#sql-number" },
+    { "include": "#sql-keyword-dml" },
+    { "include": "#sql-keyword-ddl" },
+    { "include": "#sql-keyword-clause" },
+    { "include": "#sql-keyword-join" },
+    { "include": "#sql-keyword-operator" },
+    { "include": "#sql-keyword-other" },
+    { "include": "#sql-function-aggregate" },
+    { "include": "#sql-function-window" },
+    { "include": "#sql-function-date" },
+    { "include": "#sql-function-string" },
+    { "include": "#sql-function-conditional" },
+    { "include": "#sql-function-conversion" },
+    { "include": "#sql-constant" },
+    { "include": "#sql-operator" },
+    { "include": "#sql-identifier" }
+  ],
+  "repository": {
+    "jinja-comment": {
+      "name": "comment.block.jinja",
+      "begin": "\\{#",
+      "end": "#\\}",
+      "beginCaptures": { "0": { "name": "punctuation.definition.comment.begin.jinja" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.comment.end.jinja" } }
+    },
+    "jinja-statement": {
+      "name": "meta.statement.jinja",
+      "begin": "\\{%-?",
+      "end": "-?%\\}",
+      "beginCaptures": { "0": { "name": "punctuation.definition.tag.begin.jinja" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.tag.end.jinja" } },
+      "patterns": [
+        { "include": "#jinja-keyword" },
+        { "include": "#jinja-dbt-function" },
+        { "include": "#jinja-filter" },
+        { "include": "#jinja-operator" },
+        { "include": "#jinja-string-single" },
+        { "include": "#jinja-string-double" },
+        { "include": "#jinja-number" },
+        { "include": "#jinja-boolean" },
+        { "include": "#jinja-variable" }
+      ]
+    },
+    "jinja-expression": {
+      "name": "meta.expression.jinja",
+      "begin": "\\{\\{-?",
+      "end": "-?\\}\\}",
+      "beginCaptures": { "0": { "name": "punctuation.definition.expression.begin.jinja" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.expression.end.jinja" } },
+      "patterns": [
+        { "include": "#jinja-dbt-function" },
+        { "include": "#jinja-filter" },
+        { "include": "#jinja-operator" },
+        { "include": "#jinja-string-single" },
+        { "include": "#jinja-string-double" },
+        { "include": "#jinja-number" },
+        { "include": "#jinja-boolean" },
+        { "include": "#jinja-variable" }
+      ]
+    },
+    "jinja-keyword": {
+      "match": "(?i)\\b(for|endfor|if|elif|else|endif|set|macro|endmacro|call|endcall|block|endblock|filter|endfilter|raw|endraw|extends|include|import|from|do|with|endwith|autoescape|endautoescape)\\b",
+      "name": "keyword.control.jinja"
+    },
+    "jinja-dbt-function": {
+      "match": "\\b(ref|source|config|var|env_var|adapter|return|log|run_query|execute|this|graph|flags|target|project_name|schema|database|model|modules|exceptions|fromjson|tojson|fromyaml|toyaml|set_strict_mode|is_incremental|builtins)\\b(?=\\s*\\(|\\s*\\.)",
+      "name": "support.function.dbt.jinja"
+    },
+    "jinja-filter": {
+      "match": "(?<=\\|\\s{0,4})\\b(trim|lower|upper|title|capitalize|default|d|int|float|string|list|join|replace|regex_replace|length|count|sort|reverse|unique|first|last|map|select|reject|selectattr|rejectattr|groupby|batch|slice|indent|truncate|wordwrap|center|round|abs|attr|format|safe|escape|e|forceescape|urlencode|xmlattr|filesizeformat|pprint|dictsort|striptags|tojson|as_bool|as_number|as_text|as_native|log|set)\\b",
+      "name": "support.function.filter.jinja"
+    },
+    "jinja-operator": {
+      "match": "\\b(and|or|not|in|is)\\b|~|\\|(?!\\})",
+      "name": "keyword.operator.jinja"
+    },
+    "jinja-string-single": {
+      "name": "string.quoted.single.jinja",
+      "begin": "'",
+      "end": "'",
+      "patterns": [
+        { "match": "\\\\.", "name": "constant.character.escape.jinja" }
+      ]
+    },
+    "jinja-string-double": {
+      "name": "string.quoted.double.jinja",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        { "match": "\\\\.", "name": "constant.character.escape.jinja" }
+      ]
+    },
+    "jinja-number": {
+      "match": "\\b\\d+(\\.\\d+)?\\b",
+      "name": "constant.numeric.jinja"
+    },
+    "jinja-boolean": {
+      "match": "\\b(true|false|True|False|none|None)\\b",
+      "name": "constant.language.jinja"
+    },
+    "jinja-variable": {
+      "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b",
+      "name": "variable.other.jinja"
+    },
+    "sql-comment-line": {
+      "name": "comment.line.double-dash.sql",
+      "match": "--.*$"
+    },
+    "sql-comment-block": {
+      "name": "comment.block.sql",
+      "begin": "/\\*",
+      "end": "\\*/",
+      "beginCaptures": { "0": { "name": "punctuation.definition.comment.begin.sql" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.comment.end.sql" } }
+    },
+    "sql-string-single": {
+      "name": "string.quoted.single.sql",
+      "begin": "'",
+      "end": "'",
+      "patterns": [
+        { "match": "''", "name": "constant.character.escape.sql" },
+        { "include": "#jinja-expression" }
+      ]
+    },
+    "sql-string-double": {
+      "name": "string.quoted.double.sql",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        { "match": "\"\"", "name": "constant.character.escape.sql" }
+      ]
+    },
+    "sql-number": {
+      "match": "\\b\\d+(\\.\\d+)?([eE][+-]?\\d+)?\\b",
+      "name": "constant.numeric.sql"
+    },
+    "sql-keyword-dml": {
+      "match": "(?i)\\b(SELECT|INSERT|UPDATE|DELETE|MERGE|UPSERT|TRUNCATE|COPY|UNLOAD)\\b",
+      "name": "keyword.other.dml.sql"
+    },
+    "sql-keyword-ddl": {
+      "match": "(?i)\\b(CREATE|ALTER|DROP|REPLACE|RENAME|COMMENT|GRANT|REVOKE)\\b",
+      "name": "keyword.other.ddl.sql"
+    },
+    "sql-keyword-clause": {
+      "match": "(?i)\\b(FROM|WHERE|GROUP\\s+BY|ORDER\\s+BY|HAVING|LIMIT|OFFSET|FETCH|UNION|UNION\\s+ALL|INTERSECT|EXCEPT|MINUS|INTO|VALUES|SET|WITH|AS|DISTINCT|ALL|TOP|QUALIFY|WINDOW|PARTITION\\s+BY|ROWS|RANGE|UNBOUNDED|PRECEDING|FOLLOWING|CURRENT\\s+ROW)\\b",
+      "name": "keyword.other.clause.sql"
+    },
+    "sql-keyword-join": {
+      "match": "(?i)\\b(JOIN|INNER\\s+JOIN|LEFT\\s+JOIN|LEFT\\s+OUTER\\s+JOIN|RIGHT\\s+JOIN|RIGHT\\s+OUTER\\s+JOIN|FULL\\s+JOIN|FULL\\s+OUTER\\s+JOIN|CROSS\\s+JOIN|NATURAL\\s+JOIN|LATERAL|ON|USING)\\b",
+      "name": "keyword.other.join.sql"
+    },
+    "sql-keyword-operator": {
+      "match": "(?i)\\b(AND|OR|NOT|IN|EXISTS|BETWEEN|LIKE|ILIKE|RLIKE|REGEXP|IS|IS\\s+NOT|ANY|SOME|ALL|CASE|WHEN|THEN|ELSE|END)\\b",
+      "name": "keyword.operator.sql"
+    },
+    "sql-keyword-other": {
+      "match": "(?i)\\b(TABLE|VIEW|MATERIALIZED|TEMPORARY|TEMP|IF|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|TRANSACTION|INDEX|CONSTRAINT|PRIMARY\\s+KEY|FOREIGN\\s+KEY|REFERENCES|UNIQUE|CHECK|DEFAULT|NOT\\s+NULL|NULL|CASCADE|RESTRICT|SCHEMA|DATABASE|WAREHOUSE|STAGE|PIPE|STREAM|TASK|PROCEDURE|FUNCTION|RETURNS|LANGUAGE|OVER|OVERWRITE|EXTERNAL|LATERAL\\s+FLATTEN|PIVOT|UNPIVOT|TABLESAMPLE|SAMPLE|RECURSIVE|VOLATILE|TRANSIENT|CLUSTER\\s+BY|ASC|DESC|NULLS\\s+FIRST|NULLS\\s+LAST)\\b",
+      "name": "keyword.other.sql"
+    },
+    "sql-function-aggregate": {
+      "match": "(?i)\\b(COUNT|SUM|AVG|MIN|MAX|LISTAGG|ARRAY_AGG|OBJECT_AGG|MEDIAN|MODE|PERCENTILE_CONT|PERCENTILE_DISC|APPROX_COUNT_DISTINCT|HLL|STDDEV|STDDEV_POP|STDDEV_SAMP|VARIANCE|VAR_POP|VAR_SAMP|CORR|COVAR_POP|COVAR_SAMP|REGR_SLOPE|REGR_INTERCEPT|BITAND_AGG|BITOR_AGG|BOOLAND_AGG|BOOLOR_AGG|ANY_VALUE|COUNT_IF|GROUPING|GROUPING_ID)\\b(?=\\s*\\()",
+      "name": "support.function.aggregate.sql"
+    },
+    "sql-function-window": {
+      "match": "(?i)\\b(ROW_NUMBER|RANK|DENSE_RANK|NTILE|LAG|LEAD|FIRST_VALUE|LAST_VALUE|NTH_VALUE|CUME_DIST|PERCENT_RANK|RATIO_TO_REPORT|WIDTH_BUCKET|CONDITIONAL_TRUE_EVENT|CONDITIONAL_CHANGE_EVENT)\\b(?=\\s*\\()",
+      "name": "support.function.window.sql"
+    },
+    "sql-function-date": {
+      "match": "(?i)\\b(DATE_TRUNC|DATEADD|DATEDIFF|DATE_PART|DATEPART|EXTRACT|YEAR|MONTH|DAY|HOUR|MINUTE|SECOND|DAYOFWEEK|DAYOFYEAR|WEEKOFYEAR|QUARTER|LAST_DAY|NEXT_DAY|PREVIOUS_DAY|ADD_MONTHS|MONTHS_BETWEEN|TIMESTAMPADD|TIMESTAMPDIFF|TO_DATE|TO_TIMESTAMP|TO_TIMESTAMP_NTZ|TO_TIMESTAMP_LTZ|TO_TIMESTAMP_TZ|TO_CHAR|TO_VARCHAR|DATE_FROM_PARTS|TIME_FROM_PARTS|TIMESTAMP_FROM_PARTS|CURRENT_DATE|CURRENT_TIMESTAMP|CURRENT_TIME|GETDATE|SYSDATE|NOW|CONVERT_TIMEZONE|TIMEDIFF|TIMEADD|TIMESLICE)\\b(?=\\s*\\(?)",
+      "name": "support.function.datetime.sql"
+    },
+    "sql-function-string": {
+      "match": "(?i)\\b(CONCAT|UPPER|LOWER|TRIM|LTRIM|RTRIM|LPAD|RPAD|LENGTH|LEN|LEFT|RIGHT|SUBSTRING|SUBSTR|REPLACE|TRANSLATE|REVERSE|REPEAT|SPACE|SPLIT|SPLIT_PART|STRTOK|STRTOK_TO_ARRAY|REGEXP_REPLACE|REGEXP_SUBSTR|REGEXP_LIKE|REGEXP_COUNT|REGEXP_INSTR|INITCAP|CHARINDEX|POSITION|LOCATE|CONTAINS|STARTSWITH|ENDSWITH|CHR|ASCII|UNICODE|ENCODE|DECODE|BASE64_ENCODE|BASE64_DECODE|HEX_ENCODE|HEX_DECODE|MD5|SHA1|SHA2|HASH|COLLATE|SOUNDEX|EDITDISTANCE)\\b(?=\\s*\\()",
+      "name": "support.function.string.sql"
+    },
+    "sql-function-conditional": {
+      "match": "(?i)\\b(COALESCE|NVL|NVL2|NULLIF|NULLIFZERO|ZEROIFNULL|IFF|IF|IFNULL|DECODE|GREATEST|LEAST|EQUAL_NULL)\\b(?=\\s*\\()",
+      "name": "support.function.conditional.sql"
+    },
+    "sql-function-conversion": {
+      "match": "(?i)\\b(CAST|TRY_CAST|CONVERT|TRY_CONVERT|TO_NUMBER|TO_DECIMAL|TO_NUMERIC|TO_DOUBLE|TO_BOOLEAN|TO_BINARY|TO_VARIANT|TO_OBJECT|TO_ARRAY|PARSE_JSON|TRY_PARSE_JSON|PARSE_XML|TYPEOF|OBJECT_CONSTRUCT|OBJECT_INSERT|OBJECT_DELETE|OBJECT_KEYS|ARRAY_CONSTRUCT|ARRAY_APPEND|ARRAY_PREPEND|ARRAY_CAT|ARRAY_COMPACT|ARRAY_CONTAINS|ARRAY_DISTINCT|ARRAY_FLATTEN|ARRAY_INSERT|ARRAY_INTERSECTION|ARRAY_SIZE|ARRAY_SLICE|ARRAY_SORT|ARRAY_TO_STRING|FLATTEN|GET|GET_PATH|LATERAL|SYSTEM\\$TYPEOF)\\b(?=\\s*\\()",
+      "name": "support.function.conversion.sql"
+    },
+    "sql-constant": {
+      "match": "(?i)\\b(TRUE|FALSE|NULL|CURRENT_USER|CURRENT_ROLE|CURRENT_ACCOUNT|CURRENT_REGION|CURRENT_SESSION|CURRENT_SCHEMA|CURRENT_DATABASE|CURRENT_WAREHOUSE)\\b",
+      "name": "constant.language.sql"
+    },
+    "sql-operator": {
+      "match": "\\+|-|\\*|/|%|=|!=|<>|<=?|>=?|\\|\\||::",
+      "name": "keyword.operator.sql"
+    },
+    "sql-identifier": {
+      "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b",
+      "name": "variable.other.sql"
+    }
+  }
+}

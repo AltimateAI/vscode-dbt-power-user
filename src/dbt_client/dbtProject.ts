@@ -6,6 +6,7 @@ import {
   ColumnMetaData,
   DataPilotHealtCheckParams,
   DBColumn,
+  DBT_PROJECT_FILE,
   DBTCommand,
   DBTCommandExecution,
   DBTCommandExecutionInfrastructure,
@@ -16,7 +17,6 @@ import {
   DBTProjectIntegrationAdapter,
   DBTProjectIntegrationAdapterEvents,
   DBTTerminal,
-  DBT_PROJECT_FILE,
   DeferConfig,
   extractOutputColumns,
   HealthcheckArgs,
@@ -46,6 +46,7 @@ import {
   DiagnosticCollection,
   DiagnosticSeverity,
   Disposable,
+  env,
   Event,
   EventEmitter,
   languages,
@@ -67,6 +68,7 @@ import {
   extendErrorWithSupportLinks,
   getColumnNameByCase,
   getProjectRelativePath,
+  resolveSettingsVariables,
 } from "../utils";
 import { ValidationProvider } from "../validation_provider";
 import { DBTProjectLog } from "./dbtProjectLog";
@@ -205,6 +207,7 @@ export class DBTProject implements Disposable {
           "Received projectConfigChanged event from Node.js project config watcher",
         );
         const event = new ProjectConfigChangedEvent(this);
+        this.stampCloudVariantOnTelemetry();
         this._onProjectConfigChanged.fire(event);
       },
     );
@@ -335,6 +338,18 @@ export class DBTProject implements Disposable {
     } finally {
       await this.executionInfrastructure.closePythonBridge(dbtLoomThread);
     }
+  }
+
+  private stampCloudVariantOnTelemetry(): void {
+    const info = this.dbtProjectIntegration.getCloudVariantInfo();
+    this.telemetry.setTelemetryCustomAttribute(
+      "dbtCloudVariant",
+      info?.variant ?? "",
+    );
+    this.telemetry.setTelemetryCustomAttribute(
+      "dbtCloudRawVersion",
+      info?.rawDbtVersion ?? "",
+    );
   }
 
   private invalidateCacheUsingUniqueIds(uniqueIds: string[]) {
@@ -488,7 +503,7 @@ export class DBTProject implements Disposable {
   }
 
   private convertDiagnosticDataToVSCode(data: DBTDiagnosticData): Diagnostic {
-    return new Diagnostic(
+    const diagnostic = new Diagnostic(
       new Range(
         data.range?.startLine || 0,
         data.range?.startColumn || 0,
@@ -498,6 +513,14 @@ export class DBTProject implements Disposable {
       data.message,
       this.mapSeverityToVSCode(data.severity),
     );
+    diagnostic.source = "dbt Power User";
+    diagnostic.code = {
+      value: "Fix with Altimate Code",
+      target: Uri.parse(
+        `${env.uriScheme}://innoverio.vscode-dbt-power-user/troubleshoot?source=dbt&error=${encodeURIComponent(data.message)}`,
+      ),
+    };
+    return diagnostic;
   }
 
   updateDiagnosticsInProblemsPanel(): void {
@@ -1100,13 +1123,16 @@ export class DBTProject implements Disposable {
         true,
         { model, column },
       );
-      const result = this.dbtProjectIntegration.getColumnValues(model, column);
+      const result = await this.dbtProjectIntegration.getColumnValues(
+        model,
+        column,
+      );
       this.telemetry.endTelemetryEvent(
         TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
         undefined,
         { column, model },
       );
-      return (result as any).flat();
+      return result;
     } catch (error) {
       this.telemetry.endTelemetryEvent(
         TelemetryEvents["DocumentationEditor/GetDistinctColumnValues"],
@@ -1752,10 +1778,16 @@ export class DBTProject implements Disposable {
       .get("deferConfigPerProject", {});
     if (currentConfig[relativePath]) {
       const config = currentConfig[relativePath];
+      const resolvedManifestPath = config.manifestPathForDeferral
+        ? resolveSettingsVariables(
+            config.manifestPathForDeferral,
+            this.projectRoot,
+          )
+        : config.manifestPathForDeferral;
       return new DeferConfig(
         config.deferToProduction,
         config.favorState,
-        config.manifestPathForDeferral,
+        resolvedManifestPath,
         config.manifestPathType,
         config.dbtCoreIntegrationId,
       );
@@ -1776,9 +1808,21 @@ export class DBTProject implements Disposable {
   private addCommandToQueue(queueName: string, command: DBTCommand): void {
     this.queues.get(queueName)!.push({
       command: async (signal) => {
-        await command.execute(signal);
+        const result = await command.execute(signal);
+        // dbt CLI resolves normally even on failure (CommandProcessExecution.complete()
+        // never rejects for non-zero exit). Detect pre-execution failures (compilation
+        // errors, config errors) by checking stdout. Runtime model failures generate
+        // run_results.json and are already handled via onHistoryChanged.
+        if (result?.stdout?.includes("Encountered an error:")) {
+          throw new Error(result.stdout.trim());
+        }
       },
-      statusMessage: command.statusMessage,
+      statusMessage: command
+        .getCommandAsString()
+        .replace(/\s*--project-dir\s+\S+/g, "")
+        .replace(/\s*--profiles-dir\s+\S+/g, "")
+        .replace(/\s+/g, " ")
+        .trim(),
       focus: command.focus,
       signal: command.signal,
       showProgress: command.showProgress,
@@ -1800,10 +1844,9 @@ export class DBTProject implements Disposable {
             this.altimateAuthService.handlePreviewFeatures();
             return;
           }
-          window.showErrorMessage(
-            extendErrorWithSupportLinks(
-              `Could not run command '${statusMessage}': ` + error + ".",
-            ),
+          this.runHistoryService.notifyCommandFailed(
+            statusMessage,
+            String(error),
           );
           this.telemetry.sendTelemetryError("queueRunCommandError", error, {
             command: statusMessage,

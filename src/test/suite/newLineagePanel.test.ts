@@ -1,11 +1,5 @@
-import {
-  beforeEach,
-  describe,
-  expect,
-  it,
-  jest,
-} from "@jest/globals";
-import { workspace } from "vscode";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { window, workspace } from "vscode";
 import { NewLineagePanel } from "../../webview_provider/newLineagePanel";
 
 describe("NewLineagePanel", () => {
@@ -60,10 +54,14 @@ describe("NewLineagePanel", () => {
   describe("getLineageSettings — defaultExpansion cap", () => {
     it("should cap defaultExpansion at 5 when user sets a higher value", async () => {
       const mockConfig = {
-        get: jest.fn<any>().mockImplementation((key: string, defaultVal: unknown) => {
-          if (key === "defaultExpansion") return 10;
-          return defaultVal;
-        }),
+        get: jest
+          .fn<any>()
+          .mockImplementation((key: string, defaultVal: unknown) => {
+            if (key === "defaultExpansion") {
+              return 10;
+            }
+            return defaultVal;
+          }),
       };
       (workspace.getConfiguration as jest.Mock).mockReturnValue(mockConfig);
 
@@ -88,10 +86,14 @@ describe("NewLineagePanel", () => {
 
     it("should pass through defaultExpansion when within limit", async () => {
       const mockConfig = {
-        get: jest.fn<any>().mockImplementation((key: string, defaultVal: unknown) => {
-          if (key === "defaultExpansion") return 3;
-          return defaultVal;
-        }),
+        get: jest
+          .fn<any>()
+          .mockImplementation((key: string, defaultVal: unknown) => {
+            if (key === "defaultExpansion") {
+              return 3;
+            }
+            return defaultVal;
+          }),
       };
       (workspace.getConfiguration as jest.Mock).mockReturnValue(mockConfig);
 
@@ -115,9 +117,11 @@ describe("NewLineagePanel", () => {
 
     it("should use default value of 1 when setting is not configured", async () => {
       const mockConfig = {
-        get: jest.fn<any>().mockImplementation((_key: string, defaultVal: unknown) => {
-          return defaultVal;
-        }),
+        get: jest
+          .fn<any>()
+          .mockImplementation((_key: string, defaultVal: unknown) => {
+            return defaultVal;
+          }),
       };
       (workspace.getConfiguration as jest.Mock).mockReturnValue(mockConfig);
 
@@ -136,6 +140,59 @@ describe("NewLineagePanel", () => {
             }),
           }),
         }),
+      );
+    });
+  });
+
+  describe("getStartingNode — telemetry noise on non-dbt files", () => {
+    // Manifest is loaded (skips the "No event found" branch) but neither the
+    // node map nor the function map contains the active file's name, so control
+    // reaches the "No node found for <name>" dbtTerminal.info call.
+    const eventWithNoMatch = {
+      event: {
+        nodeMetaMap: { lookupByBaseName: jest.fn().mockReturnValue(undefined) },
+        functionMetaMap: { get: jest.fn().mockReturnValue(undefined) },
+      },
+    };
+
+    const setActiveFile = (fileName: string) => {
+      (window as any).activeTextEditor = {
+        document: { fileName, uri: { path: fileName } },
+      };
+    };
+
+    beforeEach(() => {
+      (panel as any).queryManifestService.getEventByCurrentProject = jest
+        .fn()
+        .mockReturnValue(eventWithNoMatch);
+      (panel as any).dbtLineageService = { createTable: jest.fn() };
+    });
+
+    it("does NOT send telemetry when the active file is a non-dbt file", () => {
+      // A shell script can never be a dbt node — this event is pure noise and
+      // accounts for the bulk of the in-the-wild Lineage:getStartingNode volume.
+      setActiveFile("/ws/scripts/etc-backfill_6.sh");
+
+      (panel as any).getStartingNode();
+
+      // dbtTerminal.info(name, message, sendTelemetry): the 3rd arg must be false.
+      expect((panel as any).dbtTerminal.info).toHaveBeenCalledWith(
+        "Lineage:getStartingNode",
+        expect.stringContaining("No node found"),
+        false,
+      );
+    });
+
+    it("still sends telemetry for a dbt file with no matching node", () => {
+      // A .sql file with no node IS a legitimate diagnostic — keep telemetry.
+      setActiveFile("/ws/models/orphan.sql");
+
+      (panel as any).getStartingNode();
+
+      expect((panel as any).dbtTerminal.info).toHaveBeenCalledWith(
+        "Lineage:getStartingNode",
+        expect.stringContaining("No node found"),
+        true,
       );
     });
   });

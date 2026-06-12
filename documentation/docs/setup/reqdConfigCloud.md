@@ -39,7 +39,8 @@ This method will save a bunch of time for you, and you can also validate your co
 
 You can start the setup wizard by clicking on dbt status icon in bottom status bar, and performing following necessary steps as shown in the recorded demo below:
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/NagRG2uV5m8?si=dO9ox-VLciCBgCUh" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<div style="position: relative; box-sizing: content-box; max-height: 80vh; max-height: 80svh; width: 100%; aspect-ratio: 1.50; padding: 40px 0 40px 0;">
+  <iframe src="https://app.supademo.com/embed/cmnt0ivy300g4w80j5zufa5p7?embed_v=2&utm_source=embed" loading="lazy" title="dbt Power User Setup guide-Cloud" allow="clipboard-write" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
 **Here are the steps covered in the setup wizard**
 
@@ -63,10 +64,6 @@ If there are some issues, it will tell you exactly what's wrong as well.
 /// admonition | If you still can't get the extension setup correctly, please check the [troubleshooting page](../troubleshooting.md)
     type: tip
 ///
-
-## Recorded Demo
-
-<iframe width="560" height="315" src="https://www.youtube.com/embed/NagRG2uV5m8?si=dO9ox-VLciCBgCUh" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 ## Questions and Answers
 

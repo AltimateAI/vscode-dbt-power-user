@@ -7,6 +7,7 @@ import { PythonEnvironment } from "./pythonEnvironment";
 
 enum PythonInterpreterPromptAnswer {
   SELECT = "Select Python interpreter",
+  DETECT = "Detect from terminal",
 }
 
 export class DBTClient implements Disposable {
@@ -97,9 +98,12 @@ export class DBTClient implements Disposable {
         const answer = await window.showErrorMessage(
           "No Python interpreter is selected or Python is not installed",
           PythonInterpreterPromptAnswer.SELECT,
+          PythonInterpreterPromptAnswer.DETECT,
         );
         if (answer === PythonInterpreterPromptAnswer.SELECT) {
           commands.executeCommand("python.setInterpreter");
+        } else if (answer === PythonInterpreterPromptAnswer.DETECT) {
+          commands.executeCommand("dbtPowerUser.detectPythonFromTerminal");
         }
       }
       return false;
@@ -108,9 +112,12 @@ export class DBTClient implements Disposable {
       const answer = await window.showErrorMessage(
         "Only Python 3 is supported by dbt, please select a Python 3 interpreter",
         PythonInterpreterPromptAnswer.SELECT,
+        PythonInterpreterPromptAnswer.DETECT,
       );
       if (answer === PythonInterpreterPromptAnswer.SELECT) {
         commands.executeCommand("python.setInterpreter");
+      } else if (answer === PythonInterpreterPromptAnswer.DETECT) {
+        commands.executeCommand("dbtPowerUser.detectPythonFromTerminal");
       }
       return false;
     }
@@ -121,12 +128,14 @@ export class DBTClient implements Disposable {
     const answer = await window.showErrorMessage(
       message,
       option,
+      PythonInterpreterPromptAnswer.DETECT,
       "Troubleshoot",
     );
     if (answer === option) {
       commands.executeCommand("dbtPowerUser.installDbt");
-    }
-    if (answer?.includes("Troubleshoot")) {
+    } else if (answer === PythonInterpreterPromptAnswer.DETECT) {
+      commands.executeCommand("dbtPowerUser.detectPythonFromTerminal");
+    } else if (answer?.includes("Troubleshoot")) {
       commands.executeCommand("dbtPowerUser.openSetupWalkthrough");
     }
   }
