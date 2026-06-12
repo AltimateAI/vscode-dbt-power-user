@@ -93,9 +93,13 @@ export const setupWatcherHandler: (
   watcher.onDidDelete(() => handler()),
 ];
 
-export function extendErrorWithSupportLinks(error: string): string {
+export function extendErrorWithSupportLinks(error: unknown): string {
+  const message =
+    error instanceof Error ? error.message : error == null ? "" : String(error);
+  const separator = message === "" || message.endsWith(" ") ? "" : " ";
   return (
-    (error[-1] === " " ? error : error + " ") +
+    message +
+    separator +
     "If the issue persists, please [contact us](https://www.altimate.ai/support) via chat or Slack"
   );
 }
@@ -200,7 +204,7 @@ export const isQuotedIdentifier = (columnName: string, adapter: string) => {
     return !new RegExp(regexFromConfig).test(columnName);
   }
 
-  const specialCases = ["trino", "athena", "postgres", "duckdb"];
+  const specialCases = ["trino", "athena", "postgres", "duckdb", "risingwave"];
   if (specialCases.includes(adapter)) {
     return !/^([_a-z]+[_a-z0-9$]*)$/.test(columnName);
   }
@@ -428,4 +432,44 @@ export function getDepthColor(depth: number): string {
  */
 export function extractDbtSubcommand(command: string): string {
   return command.startsWith("dbt ") ? command.split(" ")[1] : command;
+}
+
+/**
+ * Resolve VS Code variable substitution patterns in a string value.
+ * Handles ${workspaceFolder} and ${env:VAR_NAME}.
+ * VS Code only auto-resolves these in tasks.json/launch.json — extension
+ * settings must resolve them manually.
+ */
+export function resolveSettingsVariables(
+  value: string,
+  workspaceFolder?: Uri,
+): string {
+  if (!value) {
+    return value;
+  }
+
+  // Resolve ${env:VAR_NAME}
+  // Use a callback-based replace to:
+  // 1. Avoid desynchronizing a stateful global regex with the mutating string
+  //    (the previous while-loop skipped subsequent placeholders in strings
+  //    containing multiple `${env:VAR}` references).
+  // 2. Treat the replacement as a literal string — passing an env value
+  //    directly to replace() causes `$1`, `$&`, etc. in the value to be
+  //    interpreted as backreferences, silently corrupting paths like
+  //    `/home/$USER/project`.
+  // Unresolved placeholders (env var not set) are left as-is.
+  value = value.replace(/\$\{env:(.*?)\}/g, (match, varName) => {
+    const envValue = process.env[varName];
+    return envValue !== undefined ? envValue : match;
+  });
+
+  // Resolve ${workspaceFolder}
+  // Also use a callback for the same `$`-interpretation reason: workspace
+  // paths can legitimately contain `$` on Windows.
+  const folder = workspaceFolder ?? workspace.workspaceFolders?.[0]?.uri;
+  if (folder) {
+    value = value.replace(/\$\{workspaceFolder\}/g, () => folder.fsPath);
+  }
+
+  return value;
 }

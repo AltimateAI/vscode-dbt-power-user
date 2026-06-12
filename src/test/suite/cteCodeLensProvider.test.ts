@@ -1,7 +1,6 @@
 import { DBTTerminal } from "@altimateai/dbt-integration";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { Position, TextDocument } from "vscode";
-import { AltimateRequest } from "../../altimate";
 import {
   CteCodeLensProvider,
   CteInfo,
@@ -9,7 +8,6 @@ import {
 
 describe("CteCodeLensProvider", () => {
   let mockDBTTerminal: jest.Mocked<DBTTerminal>;
-  let mockAltimateRequest: jest.Mocked<AltimateRequest>;
   let provider: CteCodeLensProvider;
 
   beforeEach(() => {
@@ -23,13 +21,8 @@ describe("CteCodeLensProvider", () => {
       trace: jest.fn(),
     } as any;
 
-    // Mock AltimateRequest
-    mockAltimateRequest = {
-      enabled: jest.fn().mockReturnValue(true),
-    } as any;
-
     // Create provider instance
-    provider = new CteCodeLensProvider(mockDBTTerminal, mockAltimateRequest);
+    provider = new CteCodeLensProvider(mockDBTTerminal);
   });
 
   afterEach(() => {

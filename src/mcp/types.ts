@@ -2,7 +2,7 @@ import {
   CallToolResultSchema,
   ToolSchema,
 } from "@modelcontextprotocol/sdk/types";
-import { z } from "zod";
+import { z } from "zod/v4";
 
 export type ToolInput = z.infer<typeof ToolSchema.shape.inputSchema>;
 

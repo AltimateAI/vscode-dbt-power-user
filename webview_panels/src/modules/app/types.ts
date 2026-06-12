@@ -1,4 +1,3 @@
-import { DataPilotChat } from "@modules/dataPilot/types";
 import { UnknownAction } from "@reduxjs/toolkit";
 
 export enum Themes {
@@ -20,10 +19,6 @@ export interface AppStateProps {
 export interface ContextProps {
   state: AppStateProps;
   dispatch: React.Dispatch<UnknownAction>;
-  toggleDataPilot: (open: boolean) => void;
-  postMessageToDataPilot: (
-    message: Partial<DataPilotChat> & { id: DataPilotChat["id"] },
-  ) => void;
 }
 
 export interface IncomingMessageProps {

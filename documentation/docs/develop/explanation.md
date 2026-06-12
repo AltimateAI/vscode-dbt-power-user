@@ -1,34 +1,55 @@
 Query explanation is invaluable to understanding a complex piece of dbt or SQL code (especially written by others!).
 
+/// admonition | Requires the Datamates extension
+    type: info
+
+Altimate Code features (Explain, Optimize, Change, Translate, Review) open a chat session through the **[Datamates](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server)** extension. Make sure Datamates is installed and active before invoking these actions.
+///
+
 ## Start Query Explanation
 
-You can get an explanation for the entire query code in the file or selected parts. If you need an explanation for only some part of the code, select that code first. You can trigger the query explanation functionality in three different ways.
+You can get an explanation for the entire query or a selected portion. Select the code you want explained first (or leave nothing selected to explain the whole file), then trigger the action one of four ways.
 
-### Right Click Menu #Right-click, select "DataPilot" menu, and choose an action to "explain" the query.<br>
+### 1. Right-click → Altimate Code → Explain with Altimate
 
-![rightClick](images/queryExplainRightClick.png)<br>
+Open the right-click context menu on a `.sql` (or `.jinja-sql`) file, expand the **Altimate Code** submenu, and choose **Explain with Altimate**.
 
-### Utilize SQL actions menu
+![Right-click Altimate Code submenu](images/queryExplainRightClick.png)
+
+The default Altimate Code submenu shows four actions: **Explain**, **Optimize**, **Change**, and **Translate**. Two more appear conditionally:
+
+- **Ask Altimate About Selection** — visible only when text is selected.
+- **Review with Altimate** — visible only when the file has uncommitted git changes.
+
+### 2. Code lens at the top of the file
+
+A code-lens row appears above every SQL file. Click **✦ Explain** to start the same flow.
+
+![Explain code lens](images/queryExplainCodeLens.png)
+
+### 3. Editor title bar → Open Altimate Code Chat
+
+The sparkle icon in the editor title bar opens an Altimate Code chat directly. From there you can paste, ask, or use the file as context.
+
+![Open Altimate Code Chat from editor title](images/openAltimateChat.png)
+
+### 4. Utilize SQL actions menu
 
 Press "SQL actions" button from the toolbar. It will open the "SQL actions" menu drawer, as shown below. Please select the "Explain query" action.<br>
 
 ![sqlActions](images/queryExplainSQLActions.png) <br>
 
-### Explain query button from the query results panel
+## Read the explanation in the Altimate Code chat panel
 
-There is an explain query button in the query results panel where you can see compiled SQL. Pressing that button will start query explanation workflow.<br>
+Altimate Code opens in a side-panel chat (powered by the Datamates extension). It streams an explanation of the selected code and you can ask follow-up questions in the input box at the bottom.
 
-![explainButton](images/queryExplainButton.png)<br>
+![Altimate Code explanation result](images/queryExplainResult.png)
 
-## Get more details in the DataPilot chat
+## Recorded demo
 
-Once you start the query explanation workflow in the DataPilot chat panel on the left-hand side, DataPilot will show more specific suggestions to get detailed explanations on specific areas. You can choose one of those suggestions or ask more questions in the input box below the suggestions, as shown in the image below.
-
-![explainSuggestion](images/queryExplainSuggestion.png)<br>
-
-## Recorded demo video
-
-<iframe width="800" height="600" src="https://www.youtube.com/embed/OfAmF9cJHEw?si=ueaufGL_MObAJpbf" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<div style="position: relative; box-sizing: content-box; max-height: 80vh; max-height: 80svh; width: 100%; aspect-ratio: 1.55; padding: 40px 0 40px 0;">
+  <iframe src="https://app.supademo.com/embed/cmp3zl9jc0ma95lqmi9teklrn?embed_v=2&utm_source=embed" loading="lazy" title="Power User Explain Query" allow="clipboard-write" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe>
+</div>
 
 /// admonition | Please provide feedback on the generated explanations using thumbs up / down buttons. Your feedback will help us tremendously to improve this functionality.
     type: tip
