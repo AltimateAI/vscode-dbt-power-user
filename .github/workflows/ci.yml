@@ -181,20 +181,6 @@ jobs:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
           VSCE_TARGET: ${{ matrix.target }}
 
-    # Send notification after all platform builds (only on the last matrix entry)
-  release-vsstudio-notify:
-    runs-on: ubuntu-latest
-    needs: release-vsstudio-marketplace
-    if: always() && startsWith( github.ref, 'refs/tags/')
-    steps:
-      - name: Send Slack notification
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ needs.release-vsstudio-marketplace.result }}
-          text: "Tag: ${{  github.ref_name }} release to Visual Studio Marketplace status: ${{ needs.release-vsstudio-marketplace.result == 'success' && 'succeeded' || 'failed' }} :${{ needs.release-vsstudio-marketplace.result == 'success' && 'tada' || 'disappointed' }}:"
-
   release-openvsx-marketplace:
     needs: build
     runs-on: ubuntu-latest
@@ -235,15 +221,39 @@ jobs:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
           VSCE_TARGET: ${{ matrix.target }}
 
-  release-openvsx-notify:
+  # Single release notification across both marketplaces, now including the
+  # release notes body. Kept inline (not the shared AltimateAI/ci-workflows
+  # reusable) because this is a public repo and that reusable is private.
+  release-notify:
     runs-on: ubuntu-latest
-    needs: release-openvsx-marketplace
-    if: always() && startsWith( github.ref, 'refs/tags/')
+    needs: [release-vsstudio-marketplace, release-openvsx-marketplace]
+    if: always() && startsWith(github.ref, 'refs/tags/')
     steps:
+      - name: Get release notes for Slack
+        id: get_release_notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          CURRENT_TAG=${{ github.ref_name }}
+          if RELEASE_NOTES=$(gh release view "$CURRENT_TAG" --json body --jq '.body' 2>/dev/null) \
+             && [ -n "$RELEASE_NOTES" ] && [ "$RELEASE_NOTES" != "null" ]; then
+            SLACK_TEXT="🚀 *Release $CURRENT_TAG*\n\n$RELEASE_NOTES"
+          else
+            SLACK_TEXT="🚀 *Release $CURRENT_TAG*\n\nNo release notes provided."
+          fi
+          {
+            echo "slack_message<<SLACK_EOF"
+            echo -e "$SLACK_TEXT"
+            echo "SLACK_EOF"
+          } >> "$GITHUB_OUTPUT"
       - name: Send Slack notification
+        if: ${{ always() }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         uses: 8398a7/action-slack@v3
         with:
-          status: ${{ needs.release-openvsx-marketplace.result }}
-          text: "Tag: ${{  github.ref_name }} release to openvsx marketplace status: ${{ needs.release-openvsx-marketplace.result == 'success' && 'succeeded' || 'failed' }} :${{ needs.release-openvsx-marketplace.result == 'success' && 'tada' || 'disappointed' }}:"
+          status: ${{ (needs.release-vsstudio-marketplace.result == 'success' && needs.release-openvsx-marketplace.result == 'success') && 'success' || 'failure' }}
+          text: |
+            Tag: ${{ github.ref_name }} release to VS Marketplace + OpenVSX status: ${{ (needs.release-vsstudio-marketplace.result == 'success' && needs.release-openvsx-marketplace.result == 'success') && 'succeeded' || 'failed' }} :${{ (needs.release-vsstudio-marketplace.result == 'success' && needs.release-openvsx-marketplace.result == 'success') && 'tada' || 'disappointed' }}:
+
+            ${{ steps.get_release_notes.outputs.slack_message }}
