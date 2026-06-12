@@ -4,6 +4,7 @@ import * as path from "path";
 import {
   Diagnostic,
   Disposable,
+  env,
   EventEmitter,
   FileSystemWatcher,
   languages,
@@ -285,9 +286,20 @@ export class DBTWorkspaceFolder implements Disposable {
         error,
       );
       if (error instanceof YAMLError) {
+        const yamlDiagnostic = new Diagnostic(
+          new Range(0, 0, 999, 999),
+          error.message,
+        );
+        yamlDiagnostic.source = "dbt Power User";
+        yamlDiagnostic.code = {
+          value: "Fix with Altimate Code",
+          target: Uri.parse(
+            `${env.uriScheme}://innoverio.vscode-dbt-power-user/troubleshoot?source=dbt&error=${encodeURIComponent(error.message)}`,
+          ),
+        };
         this.projectDiscoveryDiagnostics.set(
           Uri.joinPath(uri, DBT_PROJECT_FILE),
-          [new Diagnostic(new Range(0, 0, 999, 999), error.message)],
+          [yamlDiagnostic],
         );
       }
       window.showErrorMessage(

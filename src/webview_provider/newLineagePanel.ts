@@ -718,9 +718,15 @@ export class NewLineagePanel
       return { node, aiEnabled };
     }
 
+    // Only report this as telemetry for actual dbt files. A non-dbt file (e.g. a
+    // .sh/.md script) can never be a dbt node, so the panel re-rendering on every
+    // editor switch would otherwise emit this event constantly — pure noise. Keep
+    // the output-channel log for debugging but skip telemetry for non-dbt files.
+    const isDbtFile = NewLineagePanel.DBT_FILE_EXTENSIONS.includes(ext);
     this.dbtTerminal.info(
       "Lineage:getStartingNode",
       `No node found for ${tableName}`,
+      isDbtFile,
     );
     return {
       aiEnabled,
