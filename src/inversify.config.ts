@@ -374,9 +374,12 @@ container
 container
   .bind(DBTCoreCommandDetection)
   .toDynamicValue((context) => {
+    const config = context.container.get<DBTConfiguration>("DBTConfiguration");
     return new DBTCoreCommandDetection(
-      context.container.get("RuntimePythonEnvironment"),
       context.container.get(CommandProcessExecutionFactory),
+      context.container.get("RuntimePythonEnvironment"),
+      context.container.get("DBTTerminal"),
+      config.getDbtExecutablePath(),
     );
   })
   .inSingletonScope();
@@ -484,6 +487,8 @@ container
           return container.get(DBTCloudDetection);
         case "fusion":
           return container.get(DBTFusionCommandDetection);
+        case "corecommand":
+          return container.get(DBTCoreCommandDetection);
         default:
           return container.get(DBTCoreDetection);
       }
@@ -506,6 +511,8 @@ container
           return container.get(DBTCloudProjectDetection);
         case "fusion":
           return container.get(DBTFusionCommandProjectDetection);
+        case "corecommand":
+          return container.get(DBTCoreCommandProjectDetection);
         default:
           return container.get(DBTCoreProjectDetection);
       }

@@ -182,6 +182,10 @@
             "type": "string",
             "description": "Path to a Python executable. Use this when the Python extension selects a different interpreter than the one where dbt is installed (e.g. dbt works in your terminal but not in the extension). You can set this manually or run the 'Detect Python from terminal' command to auto-detect it."
           },
+          "dbt.dbtExecutablePath": {
+            "type": "string",
+            "description": "Path to a dbt executable or wrapper script (e.g. a uvx wrapper). Used with 'corecommand' integration mode to bypass Python environment detection. If set, this takes priority over auto-detection of the dbt binary."
+          },
           "dbt.dbtCustomRunnerImport": {
             "type": "string",
             "description": "Python import string to import custom dbt runner. (Only supported for dbt core)",
