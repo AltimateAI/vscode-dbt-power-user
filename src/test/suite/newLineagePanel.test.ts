@@ -24,6 +24,9 @@ describe("NewLineagePanel", () => {
       getProject: jest.fn().mockReturnValue(undefined),
     };
     (panel as any).altimate = { enabled: jest.fn().mockReturnValue(false) };
+    (panel as any).validationProvider = {
+      isAuthenticated: jest.fn().mockReturnValue(false),
+    };
     (panel as any).dbtTerminal = {
       info: jest.fn(),
       debug: jest.fn(),

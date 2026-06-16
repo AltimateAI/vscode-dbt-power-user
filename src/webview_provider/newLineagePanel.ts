@@ -3,6 +3,8 @@ import {
   ExposureMetaData,
   FunctionMetaData,
   NodeMetaData,
+  Ref,
+  RelationshipParser,
   RESOURCE_TYPE_FUNCTION,
   RESOURCE_TYPE_SOURCE,
   SourceTable,
@@ -32,6 +34,7 @@ import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
 import { TelemetryService } from "../telemetry";
 import { extendErrorWithSupportLinks } from "../utils";
+import { ValidationProvider } from "../validation_provider";
 import { AltimateWebviewProvider } from "./altimateWebviewProvider";
 import { LineagePanelView } from "./lineagePanel";
 
@@ -64,6 +67,7 @@ export class NewLineagePanel
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
     protected altimateAuthService: AltimateAuthService,
+    private validationProvider: ValidationProvider,
   ) {
     super(
       dbtProjectContainer,
@@ -170,6 +174,15 @@ export class NewLineagePanel
 
     if (command === "getExposureDetails") {
       const body = await this.getExposureDetails(params);
+      this._panel?.webview.postMessage({
+        command: "response",
+        args: { id, syncRequestId, body, status: true },
+      });
+      return;
+    }
+
+    if (command === "getRelationships") {
+      const body = this.getRelationships(params);
       this._panel?.webview.postMessage({
         command: "response",
         args: { id, syncRequestId, body, status: true },
@@ -404,6 +417,64 @@ export class NewLineagePanel
     );
     console.log("addColumnsFromDB: ", nodeName, " -> ", columnsFromDB);
     return project.mergeColumnsFromDB(table, columnsFromDB);
+  }
+
+  /**
+   * ERD overlay: extract PK/FK relationships from the current project's
+   * manifest. Chains all four sources — `relationships` data tests (Phase 1),
+   * model contract foreign keys (Phase 2), naming-convention inference
+   * (Phase 3), and semantic-layer entity pairings (Phase 4). Each ref carries
+   * a `source` discriminator so the frontend can filter and style per-source.
+   *
+   * Inference is invoked unconditionally with the parser's default
+   * confidence floor; the frontend applies the user-controlled threshold
+   * on top. Sources are excluded by default — opt-in via params.
+   *
+   * Gated behind a validated Altimate API key (same gate as other premium
+   * lineage features — `aiEnabled` in `getStartingNode` reads from the same
+   * `ValidationProvider`). Returns an empty list when not authenticated so
+   * the UI silently renders no overlay. Defense-in-depth alongside the
+   * frontend's `aiEnabled` check — covers stale or manipulated webviews.
+   */
+  private getRelationships(params?: {
+    includeSources?: boolean;
+    allowSelfReference?: boolean;
+  }): { refs: Ref[] } {
+    if (!this.validationProvider.isAuthenticated()) {
+      return { refs: [] };
+    }
+    const event = this.queryManifestService.getEventByCurrentProject();
+    if (!event?.event) {
+      return { refs: [] };
+    }
+    const { testMetaMap, nodeMetaMap, sourceMetaMap, semanticModelMetaMap } =
+      event.event;
+    const parser = new RelationshipParser(this.terminal);
+
+    const fromTests = parser.fromTests(testMetaMap);
+    const fromContracts = parser.fromContracts(nodeMetaMap, sourceMetaMap);
+    const fromInference = parser.fromInference(nodeMetaMap, sourceMetaMap, {
+      // Emit at the parser's lowest acceptable confidence; UI applies the
+      // user-controlled threshold via the popover slider.
+      minConfidence: 0.6,
+      includeSources: params?.includeSources ?? false,
+      allowSelfReference: params?.allowSelfReference ?? false,
+    });
+    const fromSemantic = parser.fromSemanticEntities(semanticModelMetaMap);
+
+    const refs = [
+      ...fromTests,
+      ...fromContracts,
+      ...fromInference,
+      ...fromSemantic,
+    ];
+    this.terminal.debug(
+      "NewLineagePanel",
+      `getRelationships returning ${refs.length} refs (` +
+        `tests=${fromTests.length}, contracts=${fromContracts.length}, ` +
+        `inferred=${fromInference.length}, semantic=${fromSemantic.length})`,
+    );
+    return { refs };
   }
 
   private async getExposureDetails({
@@ -665,7 +736,11 @@ export class NewLineagePanel
         missingLineageMessage?: { message: string; type: string };
       }
     | undefined {
-    const aiEnabled = this.altimate.enabled();
+    // Stricter than `altimate.enabled()` (which only checks key + instance
+    // presence): require a successful round-trip validation. Lineage panel
+    // gates premium features on this, so an unvalidated key shouldn't unlock
+    // them.
+    const aiEnabled = this.validationProvider.isAuthenticated();
     const event = this.queryManifestService.getEventByCurrentProject();
     if (!event?.event) {
       this.dbtTerminal.info("Lineage:getStartingNode", "No event found");
