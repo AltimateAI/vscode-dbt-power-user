@@ -1,5 +1,6 @@
 import { DBTTerminal, TestMetaData } from "@altimateai/dbt-integration";
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
+import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { inject } from "inversify";
 import {
   CancellationToken,
@@ -179,6 +180,32 @@ export class NewDocsGenPanel
         );
         break;
 
+      case "getUnitTestCode":
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const filePath = args.path as string | undefined;
+            const testName = args.name as string | undefined;
+            if (!filePath || !existsSync(filePath)) {
+              return { error: "Unit test file not found" };
+            }
+            const raw = readFileSync(filePath, { encoding: "utf-8" });
+            if (!testName) {
+              return { yaml: raw };
+            }
+            try {
+              const parsed = parseYaml(raw) as Record<string, any>;
+              const unitTests: any[] = parsed?.unit_tests ?? [];
+              const match = unitTests.find((t: any) => t.name === testName);
+              return { yaml: match ? stringifyYaml(match) : raw };
+            } catch {
+              return { yaml: raw };
+            }
+          },
+          command,
+        );
+        break;
+
       case "getDistinctColumnValues":
         this.handleSyncRequestFromWebview(
           syncRequestId,
@@ -206,6 +233,7 @@ export class NewDocsGenPanel
           docs: documentation,
           missingDocumentationMessage,
           tests: await this.dbtTestService.getTestsForCurrentModel(),
+          unitTests: await this.dbtTestService.getUnitTestsForCurrentModel(),
           project: this.queryManifestService.getProject()?.getProjectName(),
           collaborationEnabled: workspace
             .getConfiguration("dbt")
@@ -321,6 +349,7 @@ export class NewDocsGenPanel
         );
         break;
 
+      case "openAltimateCodeChatForUnitTest":
       case "openAltimateCodeChatForCustomTest":
       case "openAltimateCodeChatForDocReview":
         await this.altimateCodeChatService.openChat({
