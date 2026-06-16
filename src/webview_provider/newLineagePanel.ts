@@ -182,7 +182,7 @@ export class NewLineagePanel
     }
 
     if (command === "getRelationships") {
-      const body = this.getRelationships();
+      const body = this.getRelationships(params);
       this._panel?.webview.postMessage({
         command: "response",
         args: { id, syncRequestId, body, status: true },
