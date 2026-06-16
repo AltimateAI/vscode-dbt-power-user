@@ -1,10 +1,7 @@
 import { Citation } from "@lib";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { GenerationDBDataProps } from "../types";
-import {
-  isStateDirty,
-  mergeCurrentAndIncomingDocumentationColumns,
-} from "../utils";
+import { isStateDirty, mergeCurrentAndIncomingDocumentationColumns } from "../utils";
 import {
   DBTDocumentation,
   DBTModelTest,
@@ -18,6 +15,8 @@ export const initialState = {
   incomingDocsData: undefined,
   currentDocsData: undefined,
   currentDocsTests: undefined,
+  // Note: intentionally excluded from isStateDirty — Unit Tests UI is currently
+  // read-only. Revisit if unit tests become editable.
   currentUnitTests: undefined,
   project: undefined,
   generationHistory: [],
@@ -43,15 +42,12 @@ const documentationSlice = createSlice({
   name: "documentationState",
   initialState,
   reducers: {
-    setSearchQuery: (
-      state,
-      action: PayloadAction<DocumentationStateProps["searchQuery"]>,
-    ) => {
+    setSearchQuery: (state, action: PayloadAction<DocumentationStateProps["searchQuery"]>) => {
       state.searchQuery = action.payload;
     },
     updatConversations: (
       state,
-      { payload }: PayloadAction<DocumentationStateProps["conversations"]>,
+      { payload }: PayloadAction<DocumentationStateProps["conversations"]>
     ) => {
       Object.entries(payload).forEach(([shareId, conversationGroups]) => {
         state.conversations[parseInt(shareId)] = conversationGroups;
@@ -59,79 +55,60 @@ const documentationSlice = createSlice({
     },
     setMissingDocumentationMessage: (
       state,
-      action: PayloadAction<
-        DocumentationStateProps["missingDocumentationMessage"]
-      >,
+      action: PayloadAction<DocumentationStateProps["missingDocumentationMessage"]>
     ) => {
       state.missingDocumentationMessage = action.payload;
     },
     updateConversationsRightPanelState: (
       state,
-      action: PayloadAction<
-        DocumentationStateProps["showConversationsRightPanel"]
-      >,
+      action: PayloadAction<DocumentationStateProps["showConversationsRightPanel"]>
     ) => {
       state.showConversationsRightPanel = action.payload;
     },
     updateSingleDocsPropRightPanel: (
       state,
-      action: PayloadAction<
-        DocumentationStateProps["showSingleDocsPropRightPanel"]
-      >,
+      action: PayloadAction<DocumentationStateProps["showSingleDocsPropRightPanel"]>
     ) => {
       state.showSingleDocsPropRightPanel = action.payload;
     },
     updateBulkDocsPropRightPanel: (
       state,
-      action: PayloadAction<
-        DocumentationStateProps["showBulkDocsPropRightPanel"]
-      >,
+      action: PayloadAction<DocumentationStateProps["showBulkDocsPropRightPanel"]>
     ) => {
       state.showBulkDocsPropRightPanel = action.payload;
     },
     updateCollaborationEnabled: (
       state,
-      action: PayloadAction<DocumentationStateProps["collaborationEnabled"]>,
+      action: PayloadAction<DocumentationStateProps["collaborationEnabled"]>
     ) => {
       state.collaborationEnabled = action.payload;
     },
     updateSelectedConversationGroup: (
       state,
-      action: PayloadAction<
-        DocumentationStateProps["selectedConversationGroup"]
-      >,
+      action: PayloadAction<DocumentationStateProps["selectedConversationGroup"]>
     ) => {
       state.selectedConversationGroup = action.payload;
     },
-    setProject: (
-      state,
-      action: PayloadAction<DocumentationStateProps["project"]>,
-    ) => {
+    setProject: (state, action: PayloadAction<DocumentationStateProps["project"]>) => {
       state.project = action.payload;
       state.docBlocks = [];
     },
-    setDocBlocks: (
-      state,
-      action: PayloadAction<DocumentationStateProps["docBlocks"]>,
-    ) => {
+    setDocBlocks: (state, action: PayloadAction<DocumentationStateProps["docBlocks"]>) => {
       state.docBlocks = action.payload;
     },
     updateCurrentDocsTests: (
       state,
-      action: PayloadAction<DocumentationStateProps["currentDocsTests"]>,
+      action: PayloadAction<DocumentationStateProps["currentDocsTests"]>
     ) => {
       state.currentDocsTests = action.payload;
     },
     updateCurrentUnitTests: (
       state,
-      action: PayloadAction<DocumentationStateProps["currentUnitTests"]>,
+      action: PayloadAction<DocumentationStateProps["currentUnitTests"]>
     ) => {
       state.currentUnitTests = action.payload;
     },
-    setInsertedEntityName: (
-      state,
-      action: PayloadAction<string | undefined>,
-    ) => {
+    setInsertedEntityName: (state, action: PayloadAction<string | undefined>) => {
       state.insertedEntityName = action.payload;
     },
     setIncomingDocsData: (
@@ -143,7 +120,7 @@ const documentationSlice = createSlice({
             unitTests?: DBTUnitTest[];
           }
         | undefined
-      >,
+      >
     ) => {
       state.docBlocks = [];
       // if test/docs data is not changed, then update the state
@@ -167,9 +144,7 @@ const documentationSlice = createSlice({
     },
     updateCurrentDocsData: (
       state,
-      action: PayloadAction<
-        (Partial<DBTDocumentation> & { isNewGeneration?: boolean }) | undefined
-      >,
+      action: PayloadAction<(Partial<DBTDocumentation> & { isNewGeneration?: boolean }) | undefined>
     ) => {
       // incase of yml files, incoming docs data will be {}, so checking for keys length as well
       if (!action.payload || !Object.keys(action.payload).length) {
@@ -189,10 +164,7 @@ const documentationSlice = createSlice({
       }
 
       // switching editor
-      if (
-        action.payload.name &&
-        state.currentDocsData?.name !== action.payload.name
-      ) {
+      if (action.payload.name && state.currentDocsData?.name !== action.payload.name) {
         state.docUpdatedForModel = undefined;
         state.docUpdatedForColumns = [];
         // @ts-expect-error TODO fix this type
@@ -216,17 +188,16 @@ const documentationSlice = createSlice({
         payload: { columns },
       }: PayloadAction<{
         columns: DBTDocumentation["columns"];
-      }>,
+      }>
     ) => {
       if (!state.currentDocsData) {
         return;
       }
 
-      state.currentDocsData.columns =
-        mergeCurrentAndIncomingDocumentationColumns(
-          state.currentDocsData.columns,
-          columns,
-        );
+      state.currentDocsData.columns = mergeCurrentAndIncomingDocumentationColumns(
+        state.currentDocsData.columns,
+        columns
+      );
     },
     updateColumnsInCurrentDocsData: (
       state,
@@ -240,50 +211,36 @@ const documentationSlice = createSlice({
           }
         >[];
         isNewGeneration?: boolean;
-      }>,
+      }>
     ) => {
       if (!state.currentDocsData) {
         state.docUpdatedForColumns = [];
         return;
       }
-      const modifiedColumns = columns
-        ?.map((column) => column.name)
-        .filter(Boolean) as string[];
+      const modifiedColumns = columns?.map(column => column.name).filter(Boolean) as string[];
       if (modifiedColumns) {
-        state.docUpdatedForColumns = [
-          ...state.docUpdatedForColumns,
-          ...modifiedColumns,
-        ];
+        state.docUpdatedForColumns = [...state.docUpdatedForColumns, ...modifiedColumns];
       }
-      state.currentDocsData.columns = state.currentDocsData.columns.map((c) => {
-        const updatedColumn = columns.find((column) => c.name === column.name);
+      state.currentDocsData.columns = state.currentDocsData.columns.map(c => {
+        const updatedColumn = columns.find(column => c.name === column.name);
         if (updatedColumn) {
           return { ...c, ...updatedColumn };
         }
         return c;
       });
     },
-    addToGenerationsHistory: (
-      state,
-      action: PayloadAction<GenerationDBDataProps[]>,
-    ) => {
-      action.payload.forEach((history) => {
+    addToGenerationsHistory: (state, action: PayloadAction<GenerationDBDataProps[]>) => {
+      action.payload.forEach(history => {
         state.generationHistory.push(history);
       });
     },
-    setGenerationsHistory: (
-      state,
-      action: PayloadAction<GenerationDBDataProps[]>,
-    ) => {
+    setGenerationsHistory: (state, action: PayloadAction<GenerationDBDataProps[]>) => {
       state.generationHistory = action.payload;
     },
     resetGenerationsHistory: (state, _action: PayloadAction<undefined>) => {
       state.generationHistory = [];
     },
-    updateUserInstructions: (
-      state,
-      action: PayloadAction<DocsGenerateUserInstructions>,
-    ) => {
+    updateUserInstructions: (state, action: PayloadAction<DocsGenerateUserInstructions>) => {
       state.userInstructions = { ...state.userInstructions, ...action.payload };
     },
   },
