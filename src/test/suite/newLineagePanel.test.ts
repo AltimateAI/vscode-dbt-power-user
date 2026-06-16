@@ -246,6 +246,9 @@ describe("NewLineagePanel — source YAML rooting", () => {
     panel = Object.create(NewLineagePanel.prototype);
     (panel as any)._panel = { webview: { postMessage: jest.fn() } };
     (panel as any).altimate = { enabled: jest.fn().mockReturnValue(false) };
+    (panel as any).validationProvider = {
+      isAuthenticated: jest.fn().mockReturnValue(false),
+    };
     (panel as any).dbtTerminal = {
       info: jest.fn(),
       debug: jest.fn(),
@@ -585,9 +588,7 @@ describe("NewLineagePanel — source YAML rooting", () => {
     // threading this is 2 (guard + getStartingNode), iterating
     // sourceMetaMap twice per cursor move.
     expect(resolveSpy).toHaveBeenCalledTimes(1);
-    expect(
-      (panel as any)._panel.webview.postMessage,
-    ).toHaveBeenCalledWith(
+    expect((panel as any)._panel.webview.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         command: "render",
         args: expect.objectContaining({
