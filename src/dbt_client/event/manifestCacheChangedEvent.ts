@@ -6,6 +6,7 @@ import {
   MacroMetaMap,
   MetricMetaMap,
   NodeMetaMap,
+  SemanticModelMetaMap,
   SourceMetaMap,
   TestMetaMap,
   UnitTestMetaMap,
@@ -26,6 +27,7 @@ export interface ManifestCacheProjectAddedEvent {
   docMetaMap: DocMetaMap;
   exposureMetaMap: ExposureMetaMap;
   functionMetaMap: FunctionMetaMap;
+  semanticModelMetaMap: SemanticModelMetaMap;
   modelDepthMap: Map<string, number>;
 }
 

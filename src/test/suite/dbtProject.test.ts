@@ -566,6 +566,7 @@ describe("DBTProject Test Suite", () => {
         exposureMetaMap: new Map(),
         modelDepthMap: new Map(),
         functionMetaMap: new Map(),
+        semanticModelMetaMap: new Map(),
       };
 
       // Trigger the event from the integration
