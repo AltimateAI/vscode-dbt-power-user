@@ -38,6 +38,7 @@ import {
   PythonDBTCommandExecutionStrategy,
   PythonEnvironmentProvider,
   RuntimePythonEnvironment,
+  SemanticModelParser,
   SourceParser,
   TestParser,
 } from "@altimateai/dbt-integration";
@@ -130,6 +131,7 @@ import { CteProfilerService } from "./cte_profiler/cteProfilerService";
 import { DBTPowerUserExtension } from "./dbtPowerUserExtension";
 import { DocumentFormattingEditProviders } from "./document_formatting_edit_provider";
 import { DbtDocumentFormattingEditProvider } from "./document_formatting_edit_provider/dbtDocumentFormattingEditProvider";
+import { SqlFmtAvailabilityNotifier } from "./document_formatting_edit_provider/sqlfmtAvailabilityNotifier";
 import { DbtPowerUserActionsCenter } from "./quickpick";
 import { DbtPowerUserControlCenterAction } from "./quickpick/actionsQuickPick";
 import { DbtSQLAction } from "./quickpick/sqlQuickPick";
@@ -177,6 +179,11 @@ container
   .bind(MetricParser)
   .toDynamicValue(
     (context) => new MetricParser(context.container.get("DBTTerminal")),
+  );
+container
+  .bind(SemanticModelParser)
+  .toDynamicValue(
+    (context) => new SemanticModelParser(context.container.get("DBTTerminal")),
   );
 container
   .bind(GraphParser)
@@ -730,6 +737,7 @@ container
         container.get(DocParser),
         container.get("DBTTerminal"),
         container.get(ModelDepthParser),
+        container.get(SemanticModelParser),
       );
     };
   });
@@ -1411,6 +1419,19 @@ container
   })
   .inSingletonScope();
 
+container
+  .bind(SqlFmtAvailabilityNotifier)
+  .toDynamicValue((context) => {
+    return new SqlFmtAvailabilityNotifier(
+      context.container.get(DBTProjectContainer),
+      context.container.get(DbtDocumentFormattingEditProvider),
+      context.container.get(PythonEnvironment),
+      context.container.get(CommandProcessExecutionFactory),
+      context.container.get(TelemetryService),
+    );
+  })
+  .inSingletonScope();
+
 // Bind status bar components
 container
   .bind(VersionStatusBar)
@@ -1700,6 +1721,7 @@ container
       context.container.get(QueryManifestService),
       context.container.get(UsersService),
       context.container.get(AltimateAuthService),
+      context.container.get(ValidationProvider),
     );
   })
   .inSingletonScope();
@@ -1788,6 +1810,7 @@ container
   .toDynamicValue((context) => {
     return new DocumentFormattingEditProviders(
       context.container.get(DbtDocumentFormattingEditProvider),
+      context.container.get(SqlFmtAvailabilityNotifier),
     );
   })
   .inSingletonScope();
