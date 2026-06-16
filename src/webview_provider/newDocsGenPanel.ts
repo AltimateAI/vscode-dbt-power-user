@@ -53,7 +53,7 @@ export class NewDocsGenPanel
     private conversationProvider: ConversationProvider,
     private conversationService: ConversationService,
     protected altimateAuthService: AltimateAuthService,
-    private altimateCodeChatService: AltimateCodeChatService,
+    altimateCodeChatService: AltimateCodeChatService,
   ) {
     super(
       dbtProjectContainer,
@@ -64,6 +64,7 @@ export class NewDocsGenPanel
       queryManifestService,
       userService,
       altimateAuthService,
+      altimateCodeChatService,
     );
   }
 
