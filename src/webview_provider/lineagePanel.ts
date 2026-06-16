@@ -24,6 +24,7 @@ export interface LineagePanelView extends WebviewViewProvider {
   eventMapChanged(eventMap: Map<string, ManifestCacheProjectAddedEvent>): void;
   changedActiveColorTheme(): void;
   changedActiveTextEditor(event: TextEditor | undefined): void;
+  changedTextEditorSelection(editor: TextEditor): void;
   handleCommand(message: { command: string; args: any }): Promise<void> | void;
 }
 
@@ -58,6 +59,13 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     window.onDidChangeActiveTextEditor((event: TextEditor | undefined) => {
       this.getPanel().changedActiveTextEditor(event);
     });
+    window.onDidChangeTextEditorSelection(
+      (event) => {
+        this.getPanel().changedTextEditorSelection(event.textEditor);
+      },
+      null,
+      this.disposables,
+    );
   }
 
   private getPanel() {
