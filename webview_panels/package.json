@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@altimateai/ui-components": "0.0.86",
-    "@ant-design/pro-chat": "^1.15.2",
+    "@ant-design/pro-chat": "^2.4.4",
     "@finos/perspective": "^2.10.0",
     "@finos/perspective-viewer": "^2.10.0",
     "@finos/perspective-viewer-d3fc": "^2.10.0",
