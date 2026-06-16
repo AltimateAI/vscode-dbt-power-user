@@ -74,15 +74,21 @@ export class DbtLineageService {
       return;
     }
     const tables: Map<string, Table> = new Map();
-    node.nodes.forEach(({ url, key }) => {
-      const _node = this.createTable(event, url, key);
-      if (!_node) {
-        return;
-      }
-      if (!tables.has(_node.table)) {
-        tables.set(_node.table, _node);
-      }
-    });
+    node.nodes
+      // Hide foreign-key-only edges: the parent is referenced by a declared FK
+      // constraint but never read by the model's SQL, so it isn't a data-flow
+      // edge. The edge still exists in graphMetaMap for build order / impact
+      // analysis; only this data-flow lineage view drops it.
+      .filter((n) => n.edgeType !== "constraint")
+      .forEach(({ url, key }) => {
+        const _node = this.createTable(event, url, key);
+        if (!_node) {
+          return;
+        }
+        if (!tables.has(_node.table)) {
+          tables.set(_node.table, _node);
+        }
+      });
     return Array.from(tables.values()).sort((a, b) =>
       a.table.localeCompare(b.table),
     );
@@ -211,7 +217,10 @@ export class DbtLineageService {
   }
 
   private getConnectedNodeCount(g: NodeGraphMap, key: string) {
-    return g.get(key)?.nodes.length || 0;
+    // Exclude FK-only edges so the upstream/downstream counts match the
+    // data-flow edges actually drawn in the lineage panel.
+    return (g.get(key)?.nodes || []).filter((n) => n.edgeType !== "constraint")
+      .length;
   }
 
   async getConnectedColumns(
