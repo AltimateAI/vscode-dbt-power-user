@@ -67,6 +67,7 @@ jobs:
         with:
           name: test-results-${{ matrix.os }}
           path: test-results/
+          retention-days: 7
 
       - name: Upload coverage results
         if: always()
@@ -77,6 +78,7 @@ jobs:
             coverage/
             .nyc_output/
             *.lcov
+          retention-days: 7
       - name: Upload coverage to Codecov
         if: always()
         uses: codecov/codecov-action@v3
