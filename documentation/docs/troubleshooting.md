@@ -39,9 +39,37 @@ The command needs VS Code's terminal shell integration to read the Python path f
 
 ### Problems Panel
 
-Check the problems panel for any issues with your dbt project. You can access the problems panel by clicking on the `Problems` tab.
+Open the **Problems** tab (View → Problems, or `Cmd+Shift+M` / `Ctrl+Shift+M`) to see every error and warning the extension and other tools have raised for the open workspace.
 
 ![Viewing the Problems Panel](images/problems-panel.png)
+
+#### Fix with Altimate Code (any error row)
+
+Every error row in the Problems panel carries a 💡 light-bulb button. Click it to open the **Quick Fix** dropdown and pick **Fix with Altimate Code** — this routes the error (file path, code, and message) to the Altimate Code chat panel, pre-filled and auto-sent.
+
+The light-bulb is registered by the bundled **Datamates** extension (`altimateai.vscode-altimate-mcp-server`), so it appears on errors from any source — TypeScript, Python, ESLint, dbt YAML, SQL, dbt Power User itself.
+
+![Quick Fix dropdown on a Problems-panel row showing "Fix with Altimate Code"](images/troubleshootQuickFix.png)
+
+#### Inline `Fix with Altimate Code` link on extension diagnostics
+
+For diagnostics created by the dbt Power User extension itself, a clickable **Fix with Altimate Code** text link is rendered directly in the Problems panel row — no light-bulb hover needed. This currently covers:
+
+- Python bridge errors
+- dbt manifest / rebuild errors
+- `dbt_project.yml` config errors
+- YAML parse errors
+- Validate SQL errors
+
+Clicking the link opens the Altimate Code chat with the same pre-filled context. The first click shows VS Code's one-time **"Always Allow"** popup for the deep-link — accept it once and subsequent clicks are silent.
+
+/// admonition | Works in VS Code, Cursor, and Windsurf
+    type: info
+
+The deep-link uses `vscode.env.uriScheme` to pick the host editor's scheme automatically, so the same flow opens the right chat in VS Code, Cursor, and Windsurf without manual configuration.
+///
+
+![Inline "Fix with Altimate Code" link on an extension-owned diagnostic](images/troubleshootInlineLink.png)
 
 ### Diagnostics command
 

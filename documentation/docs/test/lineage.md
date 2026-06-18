@@ -8,9 +8,12 @@ Lineage is available as model level lineage and column level lineage. You need t
 
 ![Model Lineage](images/modelLineage.png)
 
-## Expand lineage graph
+## Expand and collapse lineage graph
 
-You can expand lineage at a single expansion level by clicking (+) signs on individual blocks or you can expand multiple levels of lineage by using "Expand" button as show below
+You can adjust the lineage scope without re-opening it:
+
+- **Expand** at a single level by clicking the (+) handle on individual blocks, or expand multiple levels at once with the **Depth** popover.
+- **Collapse** at a single level by clicking the (−) handle on individual blocks, or use the **Depth** popover to decrease the parent / children depth. Collapse is **root-preserving** — the open-file node is never dropped, and any orphaned siblings are pruned automatically.
 
 ![Expand Lineage Button](images/dbtExpand.png)
 
