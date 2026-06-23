@@ -4,7 +4,7 @@ name: Deploy Static Website to AWS
 # This example triggers the workflow on push events to the main branch.
 on:
   push:
-    branches: [master, fix/docs-deploy-s3-sync]
+    branches: [master]
 
 # Limit permissions for the GITHUB_TOKEN to adhere to the principle of least privilege.
 permissions:
