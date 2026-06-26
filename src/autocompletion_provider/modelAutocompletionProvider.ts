@@ -28,9 +28,8 @@ export class ModelAutocompletionProvider
     string,
     {
       projectName: string;
-      packageName: string;
-      modelName: string;
-    }[]
+      models: { packageName: string; modelName: string }[];
+    }
   > = new Map();
   private disposables: Disposable[] = [];
 
@@ -140,35 +139,27 @@ export class ModelAutocompletionProvider
       const project = added.project;
       const projectName = project.getProjectName();
       const models = added.nodeMetaMap.nodes();
-      const autocompleteItems = Array.from(models)
-        .filter((model) => model.resource_type !== RESOURCE_TYPE_ANALYSIS)
-        .map((model) => ({
-          projectName,
-          packageName: model.package_name,
-          // TODO: fix this autocomplete to support for model version
-          modelName: model.name,
-        }));
-
-      const uniqueItems: Record<
-        string,
-        {
-          projectName: string;
-          packageName: string;
-          modelName: string;
+      const seen = new Set<string>();
+      const uniqueModels: { packageName: string; modelName: string }[] = [];
+      for (const model of models) {
+        if (model.resource_type === RESOURCE_TYPE_ANALYSIS) {
+          continue;
         }
-      > = {};
-
-      for (const item of autocompleteItems) {
-        const key = `${item.projectName}|${item.packageName}|${item.modelName}`;
-        if (!uniqueItems[key]) {
-          uniqueItems[key] = item;
+        // TODO: fix this autocomplete to support for model version
+        const key = `${model.package_name}|${model.name}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniqueModels.push({
+            packageName: model.package_name,
+            modelName: model.name,
+          });
         }
       }
 
-      this.modelAutocompleteMap.set(
-        added.project.projectRoot.fsPath,
-        Object.values(uniqueItems),
-      );
+      this.modelAutocompleteMap.set(added.project.projectRoot.fsPath, {
+        projectName,
+        models: uniqueModels,
+      });
     });
     event.removed?.forEach((removed) => {
       this.modelAutocompleteMap.delete(removed.projectRoot.fsPath);
@@ -185,23 +176,37 @@ export class ModelAutocompletionProvider
       if (!project?.uri) {
         return;
       }
-      return this.modelAutocompleteMap.get(project.uri.fsPath);
+      const entry = this.modelAutocompleteMap.get(project.uri.fsPath);
+      if (!entry) {
+        return;
+      }
+      return entry.models.map((m) => ({
+        projectName: entry.projectName,
+        ...m,
+      }));
     }
     this.telemetry.sendTelemetryEvent("provideModelAutocompletion");
 
-    // Aggregate models from all loaded projects to support cross-project refs
+    // Aggregate models from all loaded projects to support cross-project refs.
+    // Dedup on packageName|modelName so the same external model doesn't appear
+    // twice (once from the producing project's map, once from a consumer's map).
+    // projectName is set to the current project's name so the insertText logic
+    // in provideCompletionItems can detect cross-project refs via
+    // projectName !== packageName.
+    const currentProjectName =
+      this.modelAutocompleteMap.get(projectRootpath.fsPath)?.projectName ?? "";
     const seen = new Set<string>();
     const result: {
       projectName: string;
       packageName: string;
       modelName: string;
     }[] = [];
-    for (const items of this.modelAutocompleteMap.values()) {
-      for (const item of items) {
-        const key = `${item.projectName}|${item.packageName}|${item.modelName}`;
+    for (const entry of this.modelAutocompleteMap.values()) {
+      for (const model of entry.models) {
+        const key = `${model.packageName}|${model.modelName}`;
         if (!seen.has(key)) {
           seen.add(key);
-          result.push(item);
+          result.push({ projectName: currentProjectName, ...model });
         }
       }
     }
