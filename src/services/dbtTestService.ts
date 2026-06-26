@@ -204,7 +204,7 @@ export class DbtTestService {
     }
 
     const column =
-      model.columns &&
+      model?.columns &&
       model.columns.find((yamlColumn: any) =>
         isColumnNameEqual(yamlColumn.name, columnNameFromTestMetadata),
       );
