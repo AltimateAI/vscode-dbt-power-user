@@ -103,6 +103,8 @@ enum InboundCommand {
   ClearQueryHistory = "clearQueryHistory",
   TroubleshootWithAltimate = "troubleshootWithAltimate",
   OpenAltimateCodeChat = "openAltimateCodeChat",
+  ExplainWithAltimate = "explainWithAltimate",
+  ProfileQueryWithAltimate = "profileQueryWithAltimate",
 }
 
 interface RecInfo {
@@ -586,6 +588,39 @@ export class QueryResultPanel extends AltimateWebviewProvider {
               this.telemetry.sendTelemetryEvent(
                 "TroubleshootQueryWithAltimate",
               );
+            }
+            break;
+          }
+          case InboundCommand.ExplainWithAltimate: {
+            const { compiledSql, rawSql, fileName } = message as any;
+            const sql = compiledSql || rawSql;
+            const initialMessage =
+              `Explain what this query does, step by step.\n\n` +
+              `Query:\n${fenceCodeBlock(sql, "sql")}`;
+            const title = fileName ? `Explain: ${fileName}` : "Explain query";
+            const opened = await this.altimateCodeChatService.openChat({
+              initialMessage,
+              title,
+            });
+            if (opened) {
+              this.telemetry.sendTelemetryEvent("ExplainQueryWithAltimate");
+            }
+            break;
+          }
+          case InboundCommand.ProfileQueryWithAltimate: {
+            const { compiledSql, rawSql, fileName } = message as any;
+            const sql = compiledSql || rawSql;
+            const initialMessage =
+              `Profile this query — identify performance bottlenecks, ` +
+              `data distribution issues, and optimization opportunities.\n\n` +
+              `Query:\n${fenceCodeBlock(sql, "sql")}`;
+            const title = fileName ? `Profile: ${fileName}` : "Profile query";
+            const opened = await this.altimateCodeChatService.openChat({
+              initialMessage,
+              title,
+            });
+            if (opened) {
+              this.telemetry.sendTelemetryEvent("ProfileQueryWithAltimate");
             }
             break;
           }

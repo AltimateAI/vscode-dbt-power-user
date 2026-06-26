@@ -202,6 +202,19 @@ const PerspectiveViewer = ({
         }
         exportButton.removeEventListener("click", downloadAsCSV);
         exportButton.addEventListener("click", downloadAsCSV);
+
+        // Inject "Slice & Dice" label into the settings panel header
+        const sliceDiceStyleId = "altimate-slice-dice-label";
+        datagridShadowRoot.getElementById(sliceDiceStyleId)?.remove();
+        const sliceDiceStyle = document.createElement("style");
+        sliceDiceStyle.id = sliceDiceStyleId;
+        sliceDiceStyle.textContent =
+          "#settings_panel::before, .side_panel::before, #side-panel::before {" +
+          ' content: "Slice & Dice";' +
+          " display: block; font-size: 13px; font-weight: 600;" +
+          " padding: 8px 12px 4px; opacity: 0.85; letter-spacing: 0.02em;" +
+          "}";
+        datagridShadowRoot.appendChild(sliceDiceStyle);
       }
       updateCustomStyles(perspectiveTheme);
       perspectiveViewerRef.current.addEventListener(
