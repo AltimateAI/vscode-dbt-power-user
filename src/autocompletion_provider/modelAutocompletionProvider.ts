@@ -185,10 +185,26 @@ export class ModelAutocompletionProvider
       if (!project?.uri) {
         return;
       }
-
       return this.modelAutocompleteMap.get(project.uri.fsPath);
     }
     this.telemetry.sendTelemetryEvent("provideModelAutocompletion");
-    return this.modelAutocompleteMap.get(projectRootpath.fsPath);
+
+    // Aggregate models from all loaded projects to support cross-project refs
+    const seen = new Set<string>();
+    const result: {
+      projectName: string;
+      packageName: string;
+      modelName: string;
+    }[] = [];
+    for (const items of this.modelAutocompleteMap.values()) {
+      for (const item of items) {
+        const key = `${item.projectName}|${item.packageName}|${item.modelName}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          result.push(item);
+        }
+      }
+    }
+    return result;
   };
 }

@@ -106,6 +106,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
           const mdString = this.getHoverMarkdownFor(
             dbtModel[2],
             project.projectRoot,
+            dbtModel[0],
           );
           if (mdString !== undefined) {
             const hover = new Hover(mdString, new Range(position, position));
@@ -136,6 +137,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
   private getHoverMarkdownFor(
     modelName: string,
     currentFilePath: Uri,
+    packageName?: string,
   ): MarkdownString | undefined {
     const projectRootpath =
       this.dbtProjectContainer.getProjectRootpath(currentFilePath);
@@ -145,6 +147,17 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
     const nodeMap = this.modelToLocationMap.get(projectRootpath.fsPath);
     if (nodeMap === undefined) {
       return;
+    }
+    // For cross-project refs, external nodes are included in nodeMetaMap.nodes()
+    // but lookupByBaseName won't find them because their local file path is absent.
+    // Search by name + package_name instead.
+    if (packageName) {
+      const externalNode = Array.from(nodeMap.nodes()).find(
+        (n) => n.name === modelName && n.package_name === packageName,
+      );
+      if (externalNode) {
+        return generateHoverMarkdownString(externalNode, "ref");
+      }
     }
     const node = nodeMap.lookupByBaseName(modelName);
     if (node) {
