@@ -25,6 +25,7 @@ import { DBTProject } from "../dbt_client/dbtProject";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
 import { AltimateAuthService } from "../services/altimateAuthService";
+import { AltimateCodeChatService } from "../services/altimateCodeChatService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
@@ -58,6 +59,7 @@ export class SQLLineagePanel
     protected eventEmitterService: SharedStateService,
     protected usersService: UsersService,
     protected altimateAuthService: AltimateAuthService,
+    altimateCodeChatService: AltimateCodeChatService,
   ) {
     super(
       dbtProjectContainer,
@@ -68,6 +70,7 @@ export class SQLLineagePanel
       queryManifestService,
       usersService,
       altimateAuthService,
+      altimateCodeChatService,
     );
     window.onDidChangeActiveColorTheme(
       async () => {

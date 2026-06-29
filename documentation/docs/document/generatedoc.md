@@ -1,5 +1,34 @@
 Instead of writing documentation manually, you can generate the documentation!
 
+### Single-column hover shortcut
+
+The fastest way to add a description or test to **one** column is to hover the `name:` value of that column in your `schema.yml`. Two Altimate Code actions appear in the hover popup:
+
+- ✏️ **Suggest description** — drafts a clear description with business context.
+- 🧪 **Suggest tests** — suggests appropriate dbt tests (`not_null`, `unique`, `accepted_values`, `relationships`, etc.).
+
+Clicking either action opens Altimate Code chat beside the editor with a pre-filled prompt — no need to open the Documentation Editor for a single column.
+
+The hover only fires on the **value** of a column's `name:` field — not on the `name` key, not on the dash, not on the description line below. The YAML structure has to match `models: → columns: → name:`.
+
+```yaml
+models:
+  - name: stg_customers
+    columns:
+      - name: customer_id      # ← hover INSIDE these letters
+        description: primary key
+```
+
+The popup shows `(column) customer_id` on top with a divider, then the two action links. Column detection uses YAML AST traversal, so it correctly distinguishes column `name:` entries from model-level `name:` entries at any indentation level.
+
+![Hover popup on a column name: in schema.yml showing "Suggest description" and "Suggest tests"](images/hoverActionsYamlColumn.png)
+
+/// admonition | Requires `yaml` or `jinja-yaml` language
+    type: info
+
+The file's language ID (bottom-right of the editor) must be `yaml` or `jinja-yaml`. If the file shows as "Plain Text" or another language the hover won't fire. The file also has to live inside a workspace the extension recognizes as a dbt project.
+///
+
 ### Bulk generate documentation
 
 Bulk documentation generation is possible for all columns. You can also choose to bulk-generate documentation only for columns that are missing descriptions.
