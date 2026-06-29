@@ -82,3 +82,20 @@ models:
         description: Amount of the order (AUD) paid for by gift card
         tests:
           - not_null
+
+unit_tests:
+  - name: test_customer_order_aggregation
+    model: customers
+    given:
+      - input: ref('stg_customers')
+        rows:
+          - {customer_id: 1, first_name: 'Michael', last_name: 'P.'}
+      - input: ref('stg_orders')
+        rows:
+          - {order_id: 1, customer_id: 1, order_date: '2018-01-01', status: 'completed'}
+      - input: ref('stg_payments')
+        rows:
+          - {payment_id: 1, order_id: 1, payment_method: 'credit_card', amount: 10}
+    expect:
+      rows:
+        - {customer_id: 1, number_of_orders: 1, customer_lifetime_value: 10}
