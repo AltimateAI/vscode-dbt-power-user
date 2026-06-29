@@ -554,6 +554,7 @@ describe("DBTProject Test Suite", () => {
         macroMetaMap: new Map(),
         metricMetaMap: new Map(),
         sourceMetaMap: new Map(),
+        unitTestMetaMap: new Map(),
         graphMetaMap: {
           parents: new Map(),
           children: new Map(),
@@ -565,6 +566,7 @@ describe("DBTProject Test Suite", () => {
         exposureMetaMap: new Map(),
         modelDepthMap: new Map(),
         functionMetaMap: new Map(),
+        semanticModelMetaMap: new Map(),
       };
 
       // Trigger the event from the integration
