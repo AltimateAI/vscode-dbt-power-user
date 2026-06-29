@@ -176,6 +176,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         docs: this.documentation,
         missingDocumentationMessage: message,
         tests: await this.dbtTestService.getTestsForCurrentModel(),
+        unitTests: await this.dbtTestService.getUnitTestsForCurrentModel(),
         project: this.getProject()?.getProjectName(),
         collaborationEnabled: workspace
           .getConfiguration("dbt")
@@ -805,6 +806,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 await this.reloadDocumentationFromManifest();
                 const tests =
                   await this.dbtTestService.getTestsForCurrentModel();
+                const unitTests =
+                  await this.dbtTestService.getUnitTestsForCurrentModel();
                 if (syncRequestId) {
                   this._panel!.webview.postMessage({
                     command: "response",
@@ -813,6 +816,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       body: {
                         saved: true,
                         tests,
+                        unitTests,
                         documentation: this.documentation,
                       },
                       status: true,
