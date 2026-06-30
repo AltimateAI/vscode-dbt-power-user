@@ -17,13 +17,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       # Guards against lockfiles generated behind a private/corporate registry
       # proxy: every "resolved" URL must point to the public npm registry over
       # https and carry an integrity hash. Catches leaked internal hostnames and
       # lockfile-injection attacks before they land on master.
       - name: Validate package-lock.json
         run: >-
-          npx -y lockfile-lint@4
+          npx -y lockfile-lint@4.14.1
           --path package-lock.json
           --type npm
           --allowed-hosts npm
@@ -31,7 +33,7 @@ jobs:
           --validate-integrity
       - name: Validate webview_panels/package-lock.json
         run: >-
-          npx -y lockfile-lint@4
+          npx -y lockfile-lint@4.14.1
           --path webview_panels/package-lock.json
           --type npm
           --allowed-hosts npm
