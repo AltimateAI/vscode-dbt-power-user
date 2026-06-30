@@ -1,0 +1,39 @@
+name: Lockfile Lint
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  lockfile-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      # Guards against lockfiles generated behind a private/corporate registry
+      # proxy: every "resolved" URL must point to the public npm registry over
+      # https and carry an integrity hash. Catches leaked internal hostnames and
+      # lockfile-injection attacks before they land on master.
+      - name: Validate package-lock.json
+        run: >-
+          npx -y lockfile-lint@4
+          --path package-lock.json
+          --type npm
+          --allowed-hosts npm
+          --validate-https
+          --validate-integrity
+      - name: Validate webview_panels/package-lock.json
+        run: >-
+          npx -y lockfile-lint@4
+          --path webview_panels/package-lock.json
+          --type npm
+          --allowed-hosts npm
+          --validate-https
+          --validate-integrity
