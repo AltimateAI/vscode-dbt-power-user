@@ -85,16 +85,30 @@ export class SqlActionsCodeLensProvider
       return;
     }
     if (!gitExt.isActive) {
-      gitExt.activate().then(() => this.watchGitState());
+      gitExt.activate().then(
+        () => this.watchGitState(),
+        () => {
+          // Git extension failed to activate — codelens git decorations are
+          // best-effort, so skip silently rather than leaking an unhandled
+          // rejection.
+        },
+      );
       return;
     }
     this.watchGitState();
   }
 
   private watchGitState() {
-    const git: GitAPI | undefined = extensions
-      .getExtension("vscode.git")
-      ?.exports?.getAPI(1);
+    let git: GitAPI | undefined;
+    try {
+      git = extensions.getExtension("vscode.git")?.exports?.getAPI(1);
+    } catch {
+      // The built-in Git extension's getAPI(1) throws "Git model not found"
+      // when its model isn't initialized yet (lazy-activation race) or git is
+      // disabled. Git codelens decorations are best-effort — skip silently
+      // instead of surfacing an unhandled rejection (catchAllError).
+      return;
+    }
     if (!git) {
       return;
     }
