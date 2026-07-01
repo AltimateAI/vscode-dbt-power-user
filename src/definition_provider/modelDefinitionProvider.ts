@@ -124,8 +124,20 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
     if (nodeMap === undefined) {
       return;
     }
+    // For cross-project refs, external nodes are included in nodeMetaMap.nodes()
+    // but lookupByBaseName won't find them because their local file path is absent.
+    // Search by name + package_name instead.
+    const externalNode = Array.from(nodeMap.nodes()).find(
+      (n) => n.name === modelName && n.package_name === projectName,
+    );
+    if (externalNode?.path) {
+      return new Location(
+        Uri.file(externalNode.path),
+        new Range(0, 0, 999, 999),
+      );
+    }
     const location = nodeMap.lookupByBaseName(modelName);
-    if (location && location.path) {
+    if (location?.path) {
       return new Location(Uri.file(location.path), new Range(0, 0, 999, 999));
     }
     return undefined;
