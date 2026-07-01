@@ -44,9 +44,17 @@ export class SqlActionsCodeLensProvider
     this._onDidChangeCodeLenses.event;
   private disposables: Disposable[] = [];
   private changedFiles = new Set<string>();
+  private gitWatcherInitialized = false;
 
   constructor(private altimateCodeChatService: AltimateCodeChatService) {
-    this.initGitWatcher();
+    // Git watching is initialized lazily (see `ensureGitWatcher`, called from
+    // `provideCodeLenses`) rather than here. This provider is constructed during
+    // extension activation, which races the built-in Git extension's own model
+    // initialization — `getAPI(1)` throws "Git model not found" in that window.
+    // Git is only needed to gate a single codelens ("Review changes with
+    // Altimate") on files with uncommitted changes, so we don't need it until a
+    // SQL/YAML file is actually opened — by which point git has activated and
+    // the race is gone.
     this.disposables.push(
       window.onDidChangeActiveTextEditor((editor) => {
         if (editor) {
@@ -79,22 +87,46 @@ export class SqlActionsCodeLensProvider
     );
   }
 
+  private ensureGitWatcher() {
+    // Init exactly once, on first codelens request. The flag is set up front so
+    // a failed/racing attempt never re-attaches duplicate watchers.
+    if (this.gitWatcherInitialized) {
+      return;
+    }
+    this.gitWatcherInitialized = true;
+    this.initGitWatcher();
+  }
+
   private initGitWatcher() {
     const gitExt = extensions.getExtension("vscode.git");
     if (!gitExt) {
       return;
     }
     if (!gitExt.isActive) {
-      gitExt.activate().then(() => this.watchGitState());
+      gitExt.activate().then(
+        () => this.watchGitState(),
+        () => {
+          // Git extension failed to activate — codelens git decorations are
+          // best-effort, so skip silently rather than leaking an unhandled
+          // rejection.
+        },
+      );
       return;
     }
     this.watchGitState();
   }
 
   private watchGitState() {
-    const git: GitAPI | undefined = extensions
-      .getExtension("vscode.git")
-      ?.exports?.getAPI(1);
+    let git: GitAPI | undefined;
+    try {
+      git = extensions.getExtension("vscode.git")?.exports?.getAPI(1);
+    } catch {
+      // The built-in Git extension's getAPI(1) throws "Git model not found"
+      // when its model isn't initialized yet (lazy-activation race) or git is
+      // disabled. Git codelens decorations are best-effort — skip silently
+      // instead of surfacing an unhandled rejection (catchAllError).
+      return;
+    }
     if (!git) {
       return;
     }
@@ -149,6 +181,9 @@ export class SqlActionsCodeLensProvider
     document: TextDocument,
     _token: CancellationToken,
   ): ProviderResult<CodeLens[]> {
+    // Lazily start watching git the first time codelenses are requested — by
+    // now the Git extension has activated, so `getAPI(1)` won't throw.
+    this.ensureGitWatcher();
     if (document.fileName.endsWith(".sql")) {
       return this.provideSqlCodeLenses(document);
     }
