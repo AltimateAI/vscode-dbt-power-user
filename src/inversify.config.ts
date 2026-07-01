@@ -150,6 +150,10 @@ import {
 } from "./treeview_provider/modelTreeviewProvider";
 import { RunHistoryTreeviewProvider } from "./treeview_provider/runHistoryTreeviewProvider";
 import { WebviewViewProviders } from "./webview_provider";
+import { DocumentSymbolProviders } from "./document_symbol_provider";
+import { DbtDocumentSymbolProvider } from "./document_symbol_provider/dbtDocumentSymbolProvider";
+import { WorkspaceSymbolProviders } from "./workspace_symbol_provider";
+import { DbtWorkspaceSymbolProvider } from "./workspace_symbol_provider/dbtWorkspaceSymbolProvider";
 import { DbtDocsView } from "./webview_provider/DbtDocsView";
 import { DocsEditViewPanel } from "./webview_provider/docsEditPanel";
 import { InsightsPanel } from "./webview_provider/insightsPanel";
@@ -1218,6 +1222,42 @@ container
   })
   .inSingletonScope();
 
+// Bind document symbol providers
+container
+  .bind(DbtDocumentSymbolProvider)
+  .toDynamicValue(() => {
+    return new DbtDocumentSymbolProvider();
+  })
+  .inSingletonScope();
+
+container
+  .bind(DocumentSymbolProviders)
+  .toDynamicValue((context) => {
+    return new DocumentSymbolProviders(
+      context.container.get(DbtDocumentSymbolProvider),
+    );
+  })
+  .inSingletonScope();
+
+// Bind workspace symbol providers
+container
+  .bind(DbtWorkspaceSymbolProvider)
+  .toDynamicValue((context) => {
+    return new DbtWorkspaceSymbolProvider(
+      context.container.get(DBTProjectContainer),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(WorkspaceSymbolProviders)
+  .toDynamicValue((context) => {
+    return new WorkspaceSymbolProviders(
+      context.container.get(DbtWorkspaceSymbolProvider),
+    );
+  })
+  .inSingletonScope();
+
 container
   .bind(DepthDecorationProvider)
   .toDynamicValue((context) => {
@@ -1901,6 +1941,8 @@ container
       context.container.get(CommentProviders),
       context.container.get("NotebookProviders"),
       context.container.get(DbtPowerUserMcpServer),
+      context.container.get(DocumentSymbolProviders),
+      context.container.get(WorkspaceSymbolProviders),
     );
   })
   .inSingletonScope();
