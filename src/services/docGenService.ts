@@ -1,6 +1,7 @@
 import path = require("path");
 import {
   DBTTerminal,
+  ExecutionsExhaustedException,
   NodeMetaData,
   RateLimitException,
   RESOURCE_TYPE_MODEL,
@@ -28,6 +29,7 @@ import {
   Source,
 } from "../webview_provider/docsEditPanel";
 import { AltimateAuthService } from "./altimateAuthService";
+import { handleExecutionsExhausted } from "./creditsService";
 import { QueryManifestService } from "./queryManifestService";
 
 interface DBTDocumentationMessage {
@@ -602,6 +604,10 @@ export class DocGenService {
             columns: columns.join(","),
           });
         } catch (error) {
+          if (error instanceof ExecutionsExhaustedException) {
+            void handleExecutionsExhausted();
+            return;
+          }
           this.transmitError(panel);
           window.showErrorMessage(
             extendErrorWithSupportLinks(
@@ -702,6 +708,10 @@ export class DocGenService {
             },
           );
         } catch (error) {
+          if (error instanceof ExecutionsExhaustedException) {
+            void handleExecutionsExhausted();
+            return;
+          }
           this.transmitError(panel);
           window.showErrorMessage(
             extendErrorWithSupportLinks(

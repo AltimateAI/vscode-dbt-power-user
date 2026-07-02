@@ -1,4 +1,13 @@
+import { panelLogger } from "@modules/logger";
+import { UnknownAction } from "@reduxjs/toolkit";
 import { Dispatch, useCallback, useEffect } from "react";
+import {
+  setAvailableExecutions,
+  setCurrentUser,
+  setTenantInfo,
+  setUsers,
+  updateTheme,
+} from "./appSlice";
 import {
   executeRequestInAsync,
   executeRequestInSync,
@@ -11,14 +20,6 @@ import {
   Themes,
   User,
 } from "./types";
-import { panelLogger } from "@modules/logger";
-import { UnknownAction } from "@reduxjs/toolkit";
-import {
-  setCurrentUser,
-  setTenantInfo,
-  setUsers,
-  updateTheme,
-} from "./appSlice";
 
 const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
   const onMesssage = useCallback(
@@ -27,6 +28,15 @@ const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
       switch (command) {
         case "response":
           handleIncomingResponse(args as unknown as IncomingSyncResponse);
+          break;
+        case "creditsUpdate":
+          dispatch(
+            setAvailableExecutions(
+              typeof args.availableExecutions === "number"
+                ? args.availableExecutions
+                : null,
+            ),
+          );
           break;
         default:
           break;

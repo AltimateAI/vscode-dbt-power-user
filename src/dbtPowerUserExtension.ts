@@ -7,6 +7,7 @@ import {
   window,
   workspace,
 } from "vscode";
+import { AltimateRequest } from "./altimate";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";
@@ -18,6 +19,8 @@ import { DocumentFormattingEditProviders } from "./document_formatting_edit_prov
 import { HoverProviders } from "./hover_provider";
 import { DbtPowerUserMcpServer } from "./mcp";
 import { DbtPowerUserActionsCenter } from "./quickpick";
+import { AltimateAuthService } from "./services/altimateAuthService";
+import { fetchAndCacheCredits } from "./services/creditsService";
 import { StatusBars } from "./statusbar";
 import { TelemetryService } from "./telemetry";
 import { TelemetryEvents } from "./telemetry/events";
@@ -87,6 +90,8 @@ export class DBTPowerUserExtension implements Disposable {
     private commentProviders: CommentProviders,
     private notebookProviders: NotebookProviders,
     private mcpServer: DbtPowerUserMcpServer,
+    private altimateRequest: AltimateRequest,
+    private altimateAuthService: AltimateAuthService,
   ) {
     this.disposables.push(
       this.dbtProjectContainer,
@@ -180,6 +185,11 @@ export class DBTPowerUserExtension implements Disposable {
       await this.dbtProjectContainer.detectDBT();
       await this.dbtProjectContainer.initializeDBTProjects();
       await this.statusBars.initialize();
+
+      // Fetch credits balance if user is authenticated (failures are silently ignored)
+      if (this.altimateAuthService.isAuthenticated()) {
+        void fetchAndCacheCredits(this.altimateRequest);
+      }
       // Ask to reload the window if the dbt integration changes
       const dbtIntegration = workspace
         .getConfiguration("dbt")

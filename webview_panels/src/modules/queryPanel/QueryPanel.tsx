@@ -1,21 +1,22 @@
+import CreditsChip from "@modules/commonActionButtons/CreditsChip";
 import FeedbackButton from "@modules/commonActionButtons/FeedbackButton";
 import { Stack } from "@uicore";
-import HelpButton from "./components/help/HelpButton";
-import ClearResultsButton from "./components/clearResultsButton/ClearResultsButton";
-import useQueryPanelListeners from "./useQueryPanelListeners";
-import QueryPanelTitle from "./components/QueryPanelContents/QueryPanelTitle";
-import QueryPanelContent from "./components/QueryPanelContents/QueryPanelContent";
 import { useEffect } from "react";
-import classes from "./querypanel.module.scss";
-import { QueryPanelTitleTabState } from "./components/QueryPanelContents/types";
-import useQueryPanelState from "./useQueryPanelState";
 import { useQueryPanelDispatch } from "./QueryPanelProvider";
-import { setTabState } from "./context/queryPanelSlice";
+import QueryPanelContent from "./components/QueryPanelContents/QueryPanelContent";
+import QueryPanelTitle from "./components/QueryPanelContents/QueryPanelTitle";
+import { QueryPanelTitleTabState } from "./components/QueryPanelContents/types";
+import ClearResultsButton from "./components/clearResultsButton/ClearResultsButton";
+import HelpButton from "./components/help/HelpButton";
 import ShowInTabButton from "./components/openInTabButton/OpenInTabButton";
-import RunAdhocQueryButton from "./components/runAdhocQueryButton/RunAdhocQueryButton";
-import { QueryPanelViewType } from "./context/types";
-import NewNotebookButton from "./components/runAdhocQueryButton/NewNotebook";
 import QueryLimit from "./components/queryLimit/QueryLimit";
+import NewNotebookButton from "./components/runAdhocQueryButton/NewNotebook";
+import RunAdhocQueryButton from "./components/runAdhocQueryButton/RunAdhocQueryButton";
+import { setTabState } from "./context/queryPanelSlice";
+import { QueryPanelViewType } from "./context/types";
+import classes from "./querypanel.module.scss";
+import useQueryPanelListeners from "./useQueryPanelListeners";
+import useQueryPanelState from "./useQueryPanelState";
 
 const QueryPanel = (): JSX.Element => {
   const { tabState, viewType } = useQueryPanelState();
@@ -48,6 +49,7 @@ const QueryPanel = (): JSX.Element => {
               <ShowInTabButton />
             </>
           )}
+          <CreditsChip />
           <HelpButton />
           <FeedbackButton url="https://form.jotform.com/251106305895153" />
         </Stack>

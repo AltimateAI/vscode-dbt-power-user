@@ -25,6 +25,11 @@ import {
 } from "../dbt_client/event/manifestCacheChangedEvent";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
+import {
+  getCachedCredits,
+  registerCreditsBroadcaster,
+  updateCachedAvailableExecutions,
+} from "../services/creditsService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
@@ -95,6 +100,15 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         t.onEvent(d as SharedStateEventEmitterProps),
       ),
     );
+
+    // Register credits broadcaster — updates this panel's chip whenever the balance changes
+    const unregister = registerCreditsBroadcaster((available) => {
+      this._panel?.webview?.postMessage({
+        command: "creditsUpdate",
+        args: { availableExecutions: available },
+      });
+    });
+    this._disposables.push({ dispose: unregister });
   }
 
   public isWebviewView(
@@ -205,6 +219,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
   protected onWebviewReady() {
     this.isWebviewReady = true;
+    this.sendCreditsToWebview();
+  }
+
+  private sendCreditsToWebview() {
+    const credits = getCachedCredits();
+    if (credits !== null) {
+      this._panel?.webview?.postMessage({
+        command: "creditsUpdate",
+        args: { availableExecutions: credits.available_executions },
+      });
+    }
   }
 
   private async handleWarningMessage(
@@ -543,6 +568,21 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     this._panel = panel;
     this.setupWebviewOptions(context);
     this.renderWebviewView(this._panel!.webview);
+    panel.onDidChangeVisibility(() => {
+      if (panel.visible && this.altimateAuthService.isAuthenticated()) {
+        void this.altimateRequest
+          .fetch("payment/credits")
+          .then((data: any) => {
+            const available = data?.available_executions;
+            if (typeof available === "number") {
+              updateCachedAvailableExecutions(available);
+            }
+          })
+          .catch(() => {
+            // best-effort refresh, ignore failures
+          });
+      }
+    });
   }
 
   private setupWebviewOptions(context: WebviewViewResolveContext) {
