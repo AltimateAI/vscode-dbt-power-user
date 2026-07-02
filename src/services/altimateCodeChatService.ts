@@ -37,6 +37,7 @@ export class AltimateCodeChatService implements Disposable {
       prefillMessage: options.prefillMessage,
       title: options.title,
       beside: options.beside,
+      source: "poweruser",
     });
     return true;
   }
