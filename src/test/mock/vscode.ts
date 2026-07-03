@@ -65,6 +65,18 @@ export class Location {
   }
 }
 
+export class CodeLens {
+  constructor(
+    public range: Range,
+    public command?: {
+      title: string;
+      command: string;
+      tooltip?: string;
+      arguments?: any[];
+    },
+  ) {}
+}
+
 export const DiagnosticSeverity = {
   Error: 0,
   Warning: 1,
@@ -130,6 +142,10 @@ export const window = {
   showInformationMessage: jest.fn().mockReturnValue(Promise.resolve()),
   showWarningMessage: jest.fn().mockReturnValue(Promise.resolve()),
   showErrorMessage: jest.fn().mockReturnValue(Promise.resolve()),
+  onDidChangeActiveTextEditor: jest
+    .fn()
+    .mockReturnValue({ dispose: jest.fn() }),
+  activeTextEditor: undefined as any,
   createOutputChannel: jest.fn().mockReturnValue({
     append: jest.fn(),
     appendLine: jest.fn(),
