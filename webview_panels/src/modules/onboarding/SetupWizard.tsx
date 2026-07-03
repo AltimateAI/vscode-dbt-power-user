@@ -209,15 +209,15 @@ const SetupWizard = forwardRef<
     }
   };
 
-  const handleTryAltimateCode = async () => {
+  const handleTryAltimateCode = useCallback(async () => {
     try {
       await executeRequestInSync("executeCommand", {
-        vscodeCommand: "dbtPowerUser.openAltimateChat",
+        vscodeCommand: "altimate.openChat",
       });
     } catch (err) {
       panelLogger.error("Error opening Altimate Code chat", err);
     }
-  };
+  }, []);
 
   const handleNext = () => {
     setCurrentStep(findNextStep(currentStep));
