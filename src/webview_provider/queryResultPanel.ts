@@ -187,7 +187,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
     protected altimateAuthService: AltimateAuthService,
-    private altimateCodeChatService: AltimateCodeChatService,
+    altimateCodeChatService: AltimateCodeChatService,
   ) {
     super(
       dbtProjectContainer,
@@ -198,6 +198,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       queryManifestService,
       usersService,
       altimateAuthService,
+      altimateCodeChatService,
     );
     this._disposables.push(
       window.onDidChangeActiveTextEditor(() => {

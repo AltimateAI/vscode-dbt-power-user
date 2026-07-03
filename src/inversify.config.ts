@@ -38,8 +38,10 @@ import {
   PythonDBTCommandExecutionStrategy,
   PythonEnvironmentProvider,
   RuntimePythonEnvironment,
+  SemanticModelParser,
   SourceParser,
   TestParser,
+  UnitTestParser,
 } from "@altimateai/dbt-integration";
 import * as LibNamespace from "@lib";
 import { NotebookKernelClient } from "@lib";
@@ -130,6 +132,7 @@ import { CteProfilerService } from "./cte_profiler/cteProfilerService";
 import { DBTPowerUserExtension } from "./dbtPowerUserExtension";
 import { DocumentFormattingEditProviders } from "./document_formatting_edit_provider";
 import { DbtDocumentFormattingEditProvider } from "./document_formatting_edit_provider/dbtDocumentFormattingEditProvider";
+import { SqlFmtAvailabilityNotifier } from "./document_formatting_edit_provider/sqlfmtAvailabilityNotifier";
 import { DbtPowerUserActionsCenter } from "./quickpick";
 import { DbtPowerUserControlCenterAction } from "./quickpick/actionsQuickPick";
 import { DbtSQLAction } from "./quickpick/sqlQuickPick";
@@ -179,6 +182,11 @@ container
     (context) => new MetricParser(context.container.get("DBTTerminal")),
   );
 container
+  .bind(SemanticModelParser)
+  .toDynamicValue(
+    (context) => new SemanticModelParser(context.container.get("DBTTerminal")),
+  );
+container
   .bind(GraphParser)
   .toDynamicValue(
     (context) => new GraphParser(context.container.get("DBTTerminal")),
@@ -192,6 +200,11 @@ container
   .bind(TestParser)
   .toDynamicValue(
     (context) => new TestParser(context.container.get("DBTTerminal")),
+  );
+container
+  .bind(UnitTestParser)
+  .toDynamicValue(
+    (context) => new UnitTestParser(context.container.get("DBTTerminal")),
   );
 container
   .bind(ExposureParser)
@@ -725,11 +738,13 @@ container
         container.get(GraphParser),
         container.get(SourceParser),
         container.get(TestParser),
+        container.get(UnitTestParser),
         container.get(ExposureParser),
         container.get(FunctionParser),
         container.get(DocParser),
         container.get("DBTTerminal"),
         container.get(ModelDepthParser),
+        container.get(SemanticModelParser),
       );
     };
   });
@@ -1386,6 +1401,7 @@ container
       context.container.get(QueryManifestService),
       context.container.get(UsersService),
       context.container.get(AltimateAuthService),
+      context.container.get(AltimateCodeChatService),
     );
   })
   .inSingletonScope();
@@ -1407,6 +1423,19 @@ container
       context.container.get(CommandProcessExecutionFactory),
       context.container.get(TelemetryService),
       context.container.get(PythonEnvironment),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(SqlFmtAvailabilityNotifier)
+  .toDynamicValue((context) => {
+    return new SqlFmtAvailabilityNotifier(
+      context.container.get(DBTProjectContainer),
+      context.container.get(DbtDocumentFormattingEditProvider),
+      context.container.get(PythonEnvironment),
+      context.container.get(CommandProcessExecutionFactory),
+      context.container.get(TelemetryService),
     );
   })
   .inSingletonScope();
@@ -1564,6 +1593,7 @@ container
       context.container.get(SharedStateService),
       context.container.get(UsersService),
       context.container.get(AltimateAuthService),
+      context.container.get(AltimateCodeChatService),
     );
   })
   .inSingletonScope();
@@ -1661,6 +1691,7 @@ container
       context.container.get(UsersService),
       context.container.get("NotebookFileSystemProvider"),
       context.container.get(AltimateAuthService),
+      context.container.get(AltimateCodeChatService),
     );
   })
   .inSingletonScope();
@@ -1700,6 +1731,8 @@ container
       context.container.get(QueryManifestService),
       context.container.get(UsersService),
       context.container.get(AltimateAuthService),
+      context.container.get(AltimateCodeChatService),
+      context.container.get(ValidationProvider),
     );
   })
   .inSingletonScope();
@@ -1788,6 +1821,7 @@ container
   .toDynamicValue((context) => {
     return new DocumentFormattingEditProviders(
       context.container.get(DbtDocumentFormattingEditProvider),
+      context.container.get(SqlFmtAvailabilityNotifier),
     );
   })
   .inSingletonScope();
@@ -1817,6 +1851,7 @@ container
       context.container.get(UsersService),
       context.container.get(WalkthroughCommands),
       context.container.get(AltimateAuthService),
+      context.container.get(AltimateCodeChatService),
     );
   })
   .inSingletonScope();

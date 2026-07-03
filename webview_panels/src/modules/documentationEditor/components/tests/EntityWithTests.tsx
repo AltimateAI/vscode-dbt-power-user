@@ -1,9 +1,9 @@
-import { TestsIcon } from "@assets/icons";
+import { InfoCircleIcon, TestsIcon } from "@assets/icons";
 import { EntityType } from "@modules/documentationEditor/state/entityType";
 import { DBTModelTest } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { TelemetryEvents } from "@telemetryEvents";
-import { Button, Drawer, DrawerRef, Stack } from "@uicore";
+import { Button, Drawer, DrawerRef, Stack, Tooltip } from "@uicore";
 import { useMemo, useRef, useState } from "react";
 import classes from "../../styles.module.scss";
 import { sendTelemetryEvent } from "../telemetry";
@@ -63,7 +63,27 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
       <Stack className={type}>
         <div className={classes.testsRow}>
           <p className="mb-0 d-inline">
-            <TestsIcon /> Tests:
+            <TestsIcon /> Data Tests:
+            <Tooltip
+              autohide={false}
+              title={
+                <>
+                  Schema and data quality checks that validate your model&apos;s
+                  output (e.g. not_null, unique, accepted_values).{" "}
+                  <a
+                    href="https://docs.getdbt.com/docs/build/data-tests"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    dbt docs ↗
+                  </a>
+                </>
+              }
+            >
+              <InfoCircleIcon
+                style={{ marginLeft: 4, cursor: "help", opacity: 0.6 }}
+              />
+            </Tooltip>
           </p>
           {visibleTests?.map((test) => (
             <Test
