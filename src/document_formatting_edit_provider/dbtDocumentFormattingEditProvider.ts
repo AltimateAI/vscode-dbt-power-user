@@ -61,11 +61,24 @@ export class DbtDocumentFormattingEditProvider implements DocumentFormattingEdit
       "--quiet",
       ...sqlFmtAdditionalParamsSetting,
     ];
+    const sqlFmtPath = await this.resolveSqlFmtPath();
+    if (!sqlFmtPath) {
+      // sqlfmt not installed is an expected, user-actionable configuration
+      // state, not a runtime failure. Emit a distinct non-error signal and
+      // guide the user to install it, instead of classifying it as a
+      // formatDbtModelApplyDiffError (reserved for genuine sqlfmt execution or
+      // diff-processing failures). SqlFmtAvailabilityNotifier already prompts
+      // to install on first file open.
+      this.telemetry.sendTelemetryEvent("formatDbtModelSqlfmtNotInstalled");
+      window.showWarningMessage(
+        'sqlfmt not found. Install it (e.g. `uv tool install "shandy-sqlfmt[jinjafmt]"` or ' +
+          '`pipx install "shandy-sqlfmt[jinjafmt]"`), set the `dbt.sqlFmtPath` setting to the ' +
+          "sqlfmt binary, or restart VS Code to pick up PATH changes.",
+      );
+      return [];
+    }
+
     try {
-      const sqlFmtPath = await this.resolveSqlFmtPath();
-      if (!sqlFmtPath) {
-        throw new Error("sqlfmt not found");
-      }
       this.telemetry.sendTelemetryEvent("formatDbtModel", {
         sqlFmtPath: sqlFmtPathSetting ? "setting" : "path",
       });
@@ -103,11 +116,7 @@ export class DbtDocumentFormattingEditProvider implements DocumentFormattingEdit
       this.telemetry.sendTelemetryError("formatDbtModelApplyDiffError", error);
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          'Could not run sqlfmt. If sqlfmt is installed (e.g. via `uv tool install "shandy-sqlfmt[jinjafmt]"` or `pipx install "shandy-sqlfmt[jinjafmt]"`), ' +
-            "try setting the `dbt.sqlFmtPath` setting to the full path of the sqlfmt binary, " +
-            "or restart VS Code to pick up PATH changes. Detailed error: " +
-            error +
-            ".",
+          "Could not run sqlfmt. Detailed error: " + error + ".",
         ),
       );
     }
