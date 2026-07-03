@@ -189,8 +189,7 @@ export class VSCodeCommands implements Disposable {
                 cl.command?.command === "dbtPowerUser.profileCtes",
             );
             ctes = profileLens?.command?.arguments?.[1] as
-              | CteInfo[]
-              | undefined;
+              CteInfo[] | undefined;
 
             if (!ctes || ctes.length === 0) {
               window.showInformationMessage(
@@ -1393,6 +1392,11 @@ export class VSCodeCommands implements Disposable {
           });
         },
       ),
+      commands.registerCommand("dbtPowerUser.openAltimateChat", async () => {
+        await this.altimateCodeChatService.openChat({
+          title: "Altimate Code",
+        });
+      }),
     );
   }
 
