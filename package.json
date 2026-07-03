@@ -818,12 +818,6 @@
         "title": "Fix with Altimate Code",
         "category": "dbt Power User",
         "icon": "$(lightbulb)"
-      },
-      {
-        "command": "dbtPowerUser.openAltimateChat",
-        "title": "Open Altimate Code Chat",
-        "category": "dbt Power User",
-        "icon": "$(comment-discussion)"
       }
     ],
     "keybindings": [
