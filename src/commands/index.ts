@@ -1392,11 +1392,6 @@ export class VSCodeCommands implements Disposable {
           });
         },
       ),
-      commands.registerCommand("dbtPowerUser.openAltimateChat", async () => {
-        await this.altimateCodeChatService.openChat({
-          title: "Altimate Code",
-        });
-      }),
     );
   }
 
