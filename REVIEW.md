@@ -1,6 +1,6 @@
 # REVIEW.md — vscode-dbt-power-user
 
-TypeScript VSCode extension (Inversify DI, `src/`) + React/Redux webview panels (`webview_panels/`) + a Python bridge (`dbt_core_integration.py` et al.) that makes VSCode work with dbt™ — autocomplete, lineage, query preview/execution, doc generation, an MCP server, and DataPilot AI chat.
+TypeScript VSCode extension (Inversify DI, `src/`) + React/Redux webview panels (`webview_panels/`) that makes VSCode work with dbt™ — autocomplete, lineage, query preview/execution, doc generation, an MCP server, and DataPilot AI chat.
 
 ## Goal: catch what CI cannot
 
@@ -52,9 +52,9 @@ Trace the actual caller chain before flagging: who invokes this, with what value
 
 ## Repo invariants & landmines
 
-- Multiple dbt integration backends exist (`dbtCoreIntegration.ts`, `dbtCloudIntegration.ts`, `dbtFusionCommandIntegration.ts`) — a fix for one (e.g. Core) rarely applies unmodified to Cloud/Fusion; check whether the PR needs to touch all three.
+- Dbt integration backends (Core/Cloud/CoreCommand/Fusion) are consolidated behind a single `DbtIntegrationClient` (bound in `src/inversify.config.ts`), backed by the external `@altimateai/dbt-integration` library; the concrete backend is selected at runtime via the `dbtIntegration` setting (`core`/`cloud`/`corecommand`/`fusion`) — a fix that's backend-specific rarely applies unmodified to the other backends, so check which one(s) the PR needs to touch.
 - `webview_panels/` is a separate Vite/React app (own `package.json`, built via `panel:webviews` before the main `rsbuild build`) — changes there don't take effect until both build steps run.
-- The Python bridge (`dbt_core_integration.py`, Jupyter kernel) is a separate execution context from the TS extension host; errors there surface asynchronously and need their own guarding, not TS-side try/catch alone.
+- The Jupyter kernel bridge is a separate execution context from the TS extension host; errors there surface asynchronously and need their own guarding, not TS-side try/catch alone.
 - `docker-setup/` supports E2E verification against code-server + `jaffle-shop-duckdb` — reviewers use this to verify UI/activation changes end-to-end when unit tests can't cover it.
 
 ## Known-intentional — don't flag
