@@ -52,9 +52,9 @@ Trace the actual caller chain before flagging: who invokes this, with what value
 
 ## Repo invariants & landmines
 
-- Dbt integration backends (Core/Cloud/CoreCommand/Fusion) are consolidated behind a single `DbtIntegrationClient` (bound in `src/inversify.config.ts`, backed by `@altimateai/dbt-integration`); the backend is chosen at runtime via the `dbtIntegration` setting (`core`/`cloud`/`corecommand`/`fusion`) — a backend-specific fix rarely applies unmodified to the others, so check which one(s) the PR touches.
+- `DBTProjectIntegrationAdapter` (`src/inversify.config.ts` ~L720-745) wraps four separate backend factories — Core/Cloud/Fusion/CoreCommand `*ProjectIntegration` classes — and picks one at runtime via the `dbtIntegration` setting (`core`/`cloud`/`corecommand`/`fusion`); a backend-specific fix rarely applies unmodified to the others, so check which one(s) the PR touches. (`DbtIntegrationClient` is a separate shared HTTP client, not the backend selector.)
 - `webview_panels/` is a separate Vite/React app (own `package.json`, built via `panel:webviews` before `rsbuild build`) — changes don't take effect until both build steps run.
-- The Jupyter kernel bridge is a separate execution context from the TS extension host; errors there surface asynchronously and need their own guarding, not TS-side try/catch alone.
+- The Python bridge (`dbt_core_integration.py`, vendored from `@altimateai/dbt-integration` and copied at build time by `rsbuild.config.ts`) and the Jupyter kernel are separate execution contexts from the TS extension host; errors there surface asynchronously and need their own guarding, not TS-side try/catch alone.
 - `docker-setup/` supports E2E verification against code-server + `jaffle-shop-duckdb` — use this to verify UI/activation changes end-to-end when unit tests can't.
 
 ## Known-intentional — don't flag
