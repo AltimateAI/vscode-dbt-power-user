@@ -69,8 +69,18 @@ export function getCachedCredits(): CreditsInfo | null {
 export function updateCachedAvailableExecutions(remaining: number): void {
   if (cachedCredits) {
     cachedCredits.available_executions = remaining;
-    broadcastCredits(remaining);
+  } else {
+    // Cache may be empty if the initial fetch hasn't completed yet; seed it so
+    // header-driven and focus-driven updates still reflect in the panels.
+    cachedCredits = {
+      available_executions: remaining,
+      total_executions: 0,
+      feedback_grant_eligible: false,
+      feedback_grant_claimed: false,
+      feedback_grant_url: "",
+    };
   }
+  broadcastCredits(remaining);
 }
 
 export async function handleExecutionsExhausted(): Promise<void> {

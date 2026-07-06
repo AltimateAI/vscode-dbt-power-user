@@ -573,7 +573,10 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         void this.altimateRequest
           .fetch("payment/credits")
           .then((data: any) => {
-            const available = data?.available_executions;
+            // Backend returns `total_available_executions`; keep
+            // `available_executions` as a fallback for compatibility.
+            const available =
+              data?.total_available_executions ?? data?.available_executions;
             if (typeof available === "number") {
               updateCachedAvailableExecutions(available);
             }

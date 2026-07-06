@@ -20,7 +20,10 @@ import { HoverProviders } from "./hover_provider";
 import { DbtPowerUserMcpServer } from "./mcp";
 import { DbtPowerUserActionsCenter } from "./quickpick";
 import { AltimateAuthService } from "./services/altimateAuthService";
-import { fetchAndCacheCredits } from "./services/creditsService";
+import {
+  fetchAndCacheCredits,
+  updateCachedAvailableExecutions,
+} from "./services/creditsService";
 import { StatusBars } from "./statusbar";
 import { TelemetryService } from "./telemetry";
 import { TelemetryEvents } from "./telemetry/events";
@@ -189,6 +192,17 @@ export class DBTPowerUserExtension implements Disposable {
       // Fetch credits balance if user is authenticated (failures are silently ignored)
       if (this.altimateAuthService.isAuthenticated()) {
         void fetchAndCacheCredits(this.altimateRequest);
+      }
+      // Keep the cached credits balance live: the backend sets an
+      // `X-Credits-Remaining` header on every response, so each action updates
+      // the balance with no extra API calls. Guarded so listener registration
+      // can never interfere with activation.
+      try {
+        this.altimateRequest.setCreditsRemainingListener((remaining) =>
+          updateCachedAvailableExecutions(remaining),
+        );
+      } catch {
+        // Listener registration must never block activation.
       }
       // Ask to reload the window if the dbt integration changes
       const dbtIntegration = workspace

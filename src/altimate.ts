@@ -346,6 +346,16 @@ export class AltimateRequest {
     return this.altimateHttpClient.getAltimateUrl();
   }
 
+  /**
+   * Register a listener for the `X-Credits-Remaining` header the backend sets on
+   * every response. Enables live credit-balance updates with no extra API calls.
+   */
+  public setCreditsRemainingListener(
+    listener: (remaining: number) => void,
+  ): void {
+    this.altimateHttpClient.setCreditsRemainingListener(listener);
+  }
+
   private async internalFetch(url: string, init?: RequestInit) {
     return this.altimateHttpClient.internalFetch(url, init);
   }
