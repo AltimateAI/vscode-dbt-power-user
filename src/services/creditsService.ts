@@ -84,11 +84,17 @@ export function updateCachedAvailableExecutions(remaining: number): void {
 }
 
 const CREDITS_TITLE = "Need more credits?";
-const FEEDBACK_DETAIL =
-  "You're out of credits. We shape Power User for dbt around what users tell us — share how you use it on a 30-min call and we'll add 200 credits as thanks. No pitch, just learning.";
-const BUY_ONLY_DETAIL = "You're out of credits.";
+const FEEDBACK_OFFER =
+  "We shape Power User for dbt around what users tell us — share how you use it on a 30-min call and we'll add 200 credits as thanks. No pitch, just learning.";
 const LETS_TALK = "Let's talk";
 const BUY_CREDITS = "I'll buy credits";
+
+function creditsStatusLine(balance: number): string {
+  if (balance <= 0) {
+    return "You're out of credits.";
+  }
+  return `You have ${balance} credit${balance === 1 ? "" : "s"} left.`;
+}
 
 // Guard so overlapping 402s (e.g. bulk generation) present a single popup.
 let isExhaustedPopupOpen = false;
@@ -104,11 +110,15 @@ export async function handleExecutionsExhausted(): Promise<void> {
       credits?.feedback_grant_eligible && credits.feedback_grant_url,
     );
 
+    // Balance-aware copy: the chip can open this popup at any balance, so the
+    // wording reflects the actual remaining credits (real 402s report 0).
+    const status = creditsStatusLine(credits?.available_executions ?? 0);
+    const detail = canTalk ? `${status} ${FEEDBACK_OFFER}` : status;
+
     // Non-modal toast in the usual bottom-right position. The title and
     // description are combined into the message (title on its own line) since
     // corner notifications don't support a separate title field.
     const buttons = canTalk ? [LETS_TALK, BUY_CREDITS] : [BUY_CREDITS];
-    const detail = canTalk ? FEEDBACK_DETAIL : BUY_ONLY_DETAIL;
     const choice = await window.showInformationMessage(
       `${CREDITS_TITLE}\n\n${detail}`,
       ...buttons,
