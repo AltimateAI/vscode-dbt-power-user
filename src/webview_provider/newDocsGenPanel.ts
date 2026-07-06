@@ -1,6 +1,5 @@
 import { DBTTerminal, TestMetaData } from "@altimateai/dbt-integration";
 import { existsSync, readFileSync } from "fs";
-import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { inject } from "inversify";
 import {
   CancellationToken,
@@ -10,6 +9,7 @@ import {
   window,
   workspace,
 } from "vscode";
+import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { AltimateRequest } from "../altimate";
 import { ConversationProvider } from "../comment_provider/conversationProvider";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
