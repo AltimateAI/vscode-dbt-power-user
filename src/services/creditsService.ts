@@ -83,31 +83,44 @@ export function updateCachedAvailableExecutions(remaining: number): void {
   broadcastCredits(remaining);
 }
 
-export async function handleExecutionsExhausted(): Promise<void> {
-  const credits = getCachedCredits();
+const CREDITS_TITLE = "Need more credits?";
+const FEEDBACK_DETAIL =
+  "You're out of credits. We shape Power User for dbt around what users tell us — share how you use it on a 30-min call and we'll add 200 credits as thanks. No pitch, just learning.";
+const BUY_ONLY_DETAIL = "You're out of credits.";
+const LETS_TALK = "Let's talk";
+const BUY_CREDITS = "I'll buy credits";
 
-  if (credits?.feedback_grant_eligible && credits.feedback_grant_url) {
-    const choice = await window.showInformationMessage(
-      "You've run out of credits.",
-      "Let's talk",
-      "Buy credits",
+// Guard so overlapping 402s (e.g. bulk generation) present a single popup.
+let isExhaustedPopupOpen = false;
+
+export async function handleExecutionsExhausted(): Promise<void> {
+  if (isExhaustedPopupOpen) {
+    return;
+  }
+  isExhaustedPopupOpen = true;
+  try {
+    const credits = getCachedCredits();
+    const canTalk = Boolean(
+      credits?.feedback_grant_eligible && credits.feedback_grant_url,
     );
-    if (choice === "Let's talk") {
+
+    // Non-modal toast in the usual bottom-right position. The title and
+    // description are combined into the message (title on its own line) since
+    // corner notifications don't support a separate title field.
+    const buttons = canTalk ? [LETS_TALK, BUY_CREDITS] : [BUY_CREDITS];
+    const detail = canTalk ? FEEDBACK_DETAIL : BUY_ONLY_DETAIL;
+    const choice = await window.showInformationMessage(
+      `${CREDITS_TITLE}\n\n${detail}`,
+      ...buttons,
+    );
+
+    if (choice === LETS_TALK && credits?.feedback_grant_url) {
       await env.openExternal(Uri.parse(credits.feedback_grant_url));
-      window.showInformationMessage(
-        "Once you complete your booking, 200 credits will be added to your account automatically.",
-      );
-    } else if (choice === "Buy credits") {
+    } else if (choice === BUY_CREDITS) {
       await env.openExternal(Uri.parse(BILLING_URL));
     }
-  } else {
-    const choice = await window.showInformationMessage(
-      "You've run out of credits.",
-      "Buy credits",
-    );
-    if (choice === "Buy credits") {
-      await env.openExternal(Uri.parse(BILLING_URL));
-    }
+  } finally {
+    isExhaustedPopupOpen = false;
   }
 }
 

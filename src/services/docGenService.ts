@@ -29,7 +29,6 @@ import {
   Source,
 } from "../webview_provider/docsEditPanel";
 import { AltimateAuthService } from "./altimateAuthService";
-import { handleExecutionsExhausted } from "./creditsService";
 import { QueryManifestService } from "./queryManifestService";
 
 interface DBTDocumentationMessage {
@@ -605,7 +604,8 @@ export class DocGenService {
           });
         } catch (error) {
           if (error instanceof ExecutionsExhaustedException) {
-            void handleExecutionsExhausted();
+            // The central 402 handler already showed the out-of-credits popup;
+            // just stop the flow without a duplicate/generic error.
             return;
           }
           this.transmitError(panel);
@@ -709,7 +709,8 @@ export class DocGenService {
           );
         } catch (error) {
           if (error instanceof ExecutionsExhaustedException) {
-            void handleExecutionsExhausted();
+            // The central 402 handler already showed the out-of-credits popup;
+            // just stop the flow without a duplicate/generic error.
             return;
           }
           this.transmitError(panel);

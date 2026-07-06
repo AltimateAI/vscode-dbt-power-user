@@ -27,6 +27,7 @@ import { AltimateAuthService } from "../services/altimateAuthService";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
 import {
   getCachedCredits,
+  handleExecutionsExhausted,
   registerCreditsBroadcaster,
   updateCachedAvailableExecutions,
 } from "../services/creditsService";
@@ -374,6 +375,9 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             return;
           }
           env.openExternal(Uri.parse(params.url as string));
+          break;
+        case "showCreditsExhausted":
+          void handleExecutionsExhausted();
           break;
         case "validateCredentials":
           const isValid = this.altimateAuthService.handlePreviewFeatures();

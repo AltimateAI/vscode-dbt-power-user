@@ -22,6 +22,7 @@ import { DbtPowerUserActionsCenter } from "./quickpick";
 import { AltimateAuthService } from "./services/altimateAuthService";
 import {
   fetchAndCacheCredits,
+  handleExecutionsExhausted,
   updateCachedAvailableExecutions,
 } from "./services/creditsService";
 import { StatusBars } from "./statusbar";
@@ -200,6 +201,11 @@ export class DBTPowerUserExtension implements Disposable {
       try {
         this.altimateRequest.setCreditsRemainingListener((remaining) =>
           updateCachedAvailableExecutions(remaining),
+        );
+        // Single central handler: every 402 from any feature shows the same
+        // out-of-credits popup.
+        this.altimateRequest.setExecutionsExhaustedListener(() =>
+          handleExecutionsExhausted(),
         );
       } catch {
         // Listener registration must never block activation.

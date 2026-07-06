@@ -356,6 +356,15 @@ export class AltimateRequest {
     this.altimateHttpClient.setCreditsRemainingListener(listener);
   }
 
+  /**
+   * Register a listener invoked whenever any API call returns 402 (credits
+   * exhausted). Enables a single, consistent out-of-credits popup for the whole
+   * extension.
+   */
+  public setExecutionsExhaustedListener(listener: () => void): void {
+    this.altimateHttpClient.setExecutionsExhaustedListener(listener);
+  }
+
   private async internalFetch(url: string, init?: RequestInit) {
     return this.altimateHttpClient.internalFetch(url, init);
   }

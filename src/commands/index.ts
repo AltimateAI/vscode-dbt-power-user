@@ -1,4 +1,8 @@
-import { DBTTerminal, RunModelType } from "@altimateai/dbt-integration";
+import {
+  DBTTerminal,
+  ExecutionsExhaustedException,
+  RunModelType,
+} from "@altimateai/dbt-integration";
 import { DatapilotNotebookController, OpenNotebookRequest } from "@lib";
 import { existsSync, readFileSync } from "fs";
 import { inject } from "inversify";
@@ -1057,6 +1061,10 @@ export class VSCodeCommands implements Disposable {
               );
               this.sqlLineagePanel.renderSqlVisualizer(panel, lineage);
             } catch (e) {
+              // The central 402 handler already showed the out-of-credits popup.
+              if (e instanceof ExecutionsExhaustedException) {
+                return;
+              }
               const errorMessage = (e as Error)?.message;
               this.dbtTerminal.error("sqlLineage", errorMessage, e, true);
               window.showErrorMessage(errorMessage);

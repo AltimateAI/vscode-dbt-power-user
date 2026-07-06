@@ -1,7 +1,40 @@
 import useAppContext from "@modules/app/useAppContext";
 import { vscode } from "@modules/vscode";
 
-const BILLING_URL = "https://app.myaltimate.com/settings/credits?tab=plans";
+// Thresholds for the balance-based color state.
+const LOW = 10;
+const MEDIUM = 25;
+
+// Inline styles are used (instead of Tailwind) because this chip renders in the
+// Documentation Editor, Query, Insights and Lineage panels, and the Tailwind
+// globals are only imported by the Lineage view — so utility classes would not
+// apply in the other panels.
+const getColors = (
+  credits: number,
+): { color: string; background: string; border: string } => {
+  if (credits < LOW) {
+    // red
+    return {
+      color: "#f14c4c",
+      background: "rgba(241, 76, 76, 0.12)",
+      border: "rgba(241, 76, 76, 0.4)",
+    };
+  }
+  if (credits < MEDIUM) {
+    // yellow
+    return {
+      color: "#e2b93d",
+      background: "rgba(226, 185, 61, 0.12)",
+      border: "rgba(226, 185, 61, 0.4)",
+    };
+  }
+  // green
+  return {
+    color: "#4ec971",
+    background: "rgba(78, 201, 113, 0.12)",
+    border: "rgba(78, 201, 113, 0.4)",
+  };
+};
 
 const CreditsChip = (): JSX.Element | null => {
   const {
@@ -12,8 +45,12 @@ const CreditsChip = (): JSX.Element | null => {
     return null;
   }
 
+  const { color, background, border } = getColors(availableExecutions);
+
   const handleClick = () => {
-    vscode.postMessage({ command: "openURL", url: BILLING_URL });
+    // Surface the single, central out-of-credits popup ("Need more credits?")
+    // so users get the same "Let's talk" / "I'll buy credits" choice everywhere.
+    vscode.postMessage({ command: "showCreditsExhausted" });
   };
 
   return (
@@ -21,14 +58,38 @@ const CreditsChip = (): JSX.Element | null => {
       title="Manage credits"
       onClick={handleClick}
       style={{
-        cursor: "pointer",
-        fontSize: "11px",
-        opacity: 0.7,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        padding: "2px 8px",
+        borderRadius: 4,
+        border: `1px solid ${border}`,
+        background,
+        color,
+        fontSize: 11,
+        lineHeight: "16px",
+        fontWeight: 500,
         whiteSpace: "nowrap",
         userSelect: "none",
+        cursor: "pointer",
       }}
     >
-      {availableExecutions} credits left
+      <svg
+        width="11"
+        height="11"
+        viewBox="0 0 16 16"
+        fill="none"
+        aria-hidden="true"
+      >
+        <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.5" />
+        <path
+          d="M6 8h4M8 6v4"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+      </svg>
+      {availableExecutions} credits
     </div>
   );
 };
