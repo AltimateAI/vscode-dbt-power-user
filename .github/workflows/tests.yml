@@ -9,8 +9,10 @@ on:
 jobs:
   test:
     strategy:
+      fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
+        node-version: ["20", "22", "24"]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -19,7 +21,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: ${{ matrix.node-version }}
           cache: "npm"
           cache-dependency-path: |
             package-lock.json
@@ -65,14 +67,14 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ matrix.os }}
+          name: test-results-${{ matrix.os }}-node${{ matrix.node-version }}
           path: test-results/
 
       - name: Upload coverage results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-${{ matrix.os }}
+          name: coverage-${{ matrix.os }}-node${{ matrix.node-version }}
           path: |
             coverage/
             .nyc_output/
@@ -84,5 +86,5 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           directory: ./coverage/
           flags: unittests
-          name: codecov-${{ matrix.os }}
+          name: codecov-${{ matrix.os }}-node${{ matrix.node-version }}
           fail_ci_if_error: false
