@@ -41,9 +41,14 @@ export async function fetchAndCacheCredits(
   altimateRequest: AltimateRequest,
 ): Promise<CreditsInfo | null> {
   try {
-    const data = await altimateRequest.fetch<CreditsInfo>("payment/credits");
+    const data = await altimateRequest.fetch<
+      CreditsInfo & { total_available_executions?: number }
+    >("payment/credits");
     cachedCredits = {
-      available_executions: data.available_executions ?? 0,
+      // Backend (`GET /payment/credits`) returns `total_available_executions`.
+      // Fall back to `available_executions` for compatibility.
+      available_executions:
+        data.total_available_executions ?? data.available_executions ?? 0,
       total_executions: data.total_executions ?? 0,
       feedback_grant_eligible: data.feedback_grant_eligible ?? false,
       feedback_grant_claimed: data.feedback_grant_claimed ?? false,
