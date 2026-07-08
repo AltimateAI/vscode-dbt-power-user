@@ -8,11 +8,18 @@
   "mcpServers": {
     "playwright": {
       "command": "npx",
-      "args": ["@playwright/mcp@latest"]
+      "args": [
+        "@playwright/mcp@latest"
+      ]
     },
     "azure": {
       "command": "npx",
-      "args": ["-y", "@azure/mcp@latest", "server", "start"]
+      "args": [
+        "-y",
+        "@azure/mcp@latest",
+        "server",
+        "start"
+      ]
     }
   },
   "hooks": {
@@ -23,7 +30,7 @@
           {
             "type": "command",
             "command": "npx -y aireceipts-cli@latest hook pre-push",
-            "timeout": 10
+            "timeout": 60
           }
         ]
       }
