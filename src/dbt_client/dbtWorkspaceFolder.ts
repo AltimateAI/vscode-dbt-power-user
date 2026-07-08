@@ -36,6 +36,15 @@ import {
 // multi-root workspaces) from a real `findFiles` failure (telemetry-worthy).
 class NoProjectsFound extends Error {}
 
+// Directory names whose nested `dbt_project.yml` files belong to installed
+// packages or virtualenvs, not to standalone dbt projects. Mirrors the exclude
+// glob used by `discoverProjects`.
+const EXCLUDED_PROJECT_DIRS = new Set([
+  "dbt_packages",
+  "site-packages",
+  "dbt_internal_packages",
+]);
+
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
   readonly projectDiscoveryDiagnostics =
@@ -333,6 +342,24 @@ export class DBTWorkspaceFolder implements Disposable {
     const dirName = (uri: Uri) => Uri.file(path.dirname(uri.fsPath));
 
     watcher.onDidCreate((uri) => {
+      // Statically exclude package/venv directories, mirroring the initial
+      // discovery pass. `notInDBtPackages` below only catches files under an
+      // *already-initialized* project's package install path; during a
+      // project's initialization `dbt deps` writes each package's own
+      // `dbt_project.yml` before that path is known, so the watcher would
+      // otherwise register those packages as standalone projects.
+      const relToWorkspace = path.relative(
+        this.workspaceFolder.uri.fsPath,
+        uri.fsPath,
+      );
+      if (
+        relToWorkspace
+          .split(path.sep)
+          .some((segment) => EXCLUDED_PROJECT_DIRS.has(segment))
+      ) {
+        return;
+      }
+
       const allowListFolders = this.getAllowListFolders();
       if (
         existsSync(uri.fsPath) &&
