@@ -68,6 +68,7 @@ import {
   getFormattedDateTime,
 } from "../utils";
 import { SQLLineagePanel } from "../webview_provider/sqlLineagePanel";
+import { WhatsNewPanel } from "../webview_provider/whatsNewPanel";
 import { AltimateScan } from "./altimateScan";
 import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
 import { RunModel } from "./runModel";
@@ -106,6 +107,7 @@ export class VSCodeCommands implements Disposable {
     private cteProfilerDecorationProvider: CteProfilerDecorationProvider,
     private cteCodeLensProvider: CteCodeLensProvider,
     private telemetry: TelemetryService,
+    private whatsNewPanel: WhatsNewPanel,
   ) {
     this.disposables.push(
       this.cteProfilerService,
@@ -119,6 +121,9 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand("dbtPowerUser.installDbt", () =>
         this.walkthroughCommands.installDbt(),
+      ),
+      commands.registerCommand("dbtPowerUser.showWhatsNew", () =>
+        this.whatsNewPanel.show("manual"),
       ),
       commands.registerCommand("dbtPowerUser.runCurrentModel", () => {
         // `dbt run` on a singular test file is never meaningful; route it

@@ -1,0 +1,50 @@
+{
+  "product": "dbt-power-user",
+  "version": "1.43.0",
+  "generated_at": "2026-04-30T00:00:00Z",
+  "base_url": "https://www.altimate.ai/changelog",
+  "items": [
+    {
+      "title": "Altimate Code chat lives inside Power user for dbt",
+      "tag": "new",
+      "summary": "Execute, Explain, Optimize, Document, and Review on any SQL or YAML file.",
+      "anchor": "#1.43.0-altimate-code-chat-lives-inside-power-user-for-dbt"
+    },
+    {
+      "title": "RisingWave adapter support during onboarding",
+      "tag": "new",
+      "summary": "Installed and configured as a Postgres-compatible dialect — no manual setup.",
+      "anchor": "#1.43.0-risingwave-adapter-support-during-onboarding"
+    },
+    {
+      "title": "CTE Profiler — per-CTE timing and row counts in the editor",
+      "tag": "new",
+      "summary": "Per-CTE time and row counts, decorated inline. No Altimate API key required.",
+      "anchor": "#1.43.0-cte-profiler-per-cte-timing-and-row-counts"
+    },
+    {
+      "title": "Generate dbt unit tests from your manifest",
+      "tag": "new",
+      "summary": "Type-correct mock data — happy path, nulls, and boundaries — written into the model's schema.",
+      "anchor": "#1.43.0-generate-dbt-unit-tests-from-your-manifest"
+    },
+    {
+      "title": "Model hovers and Run/Test codelenses in schema files",
+      "tag": "improved",
+      "summary": "Columns, types, and Run / Test / Document inline in schema YAML files.",
+      "anchor": "#1.43.0-model-hovers-and-run-test-codelenses"
+    },
+    {
+      "title": "dbt-aware syntax highlighting for SQL+Jinja and YAML+Jinja",
+      "tag": "improved",
+      "summary": "Jinja blocks, refs, and sources highlighted distinctly from surrounding SQL and YAML.",
+      "anchor": "#1.43.0-dbt-aware-syntax-highlighting"
+    },
+    {
+      "title": "Compiled-SQL preview no longer flickers on save",
+      "tag": "fix",
+      "summary": "The preview pane holds its scroll position and content while a model recompiles.",
+      "anchor": "#1.43.0-compiled-sql-preview-flicker"
+    }
+  ]
+}
