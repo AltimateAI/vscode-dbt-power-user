@@ -47,15 +47,27 @@ const CreditsChip = (): JSX.Element | null => {
 
   const { color, background, border } = getColors(availableExecutions);
 
+  // Out of credits (0 or overage-negative) => clicking opens the out-of-credits
+  // popup. With credits remaining, the chip is just a status indicator and does
+  // not nag the user with the "you're out of credits" popup.
+  const isOut = availableExecutions <= 0;
+
+  const tooltip = isOut
+    ? "You're out of Altimate AI credits — click for options to get more"
+    : `${availableExecutions} Altimate AI credits remaining. Credits are spent by AI features (e.g. SQL visualization, documentation and test generation).`;
+
   const handleClick = () => {
-    // Surface the single, central out-of-credits popup ("Need more credits?")
-    // so users get the same "Let's talk" / "I'll buy credits" choice everywhere.
+    if (!isOut) {
+      return;
+    }
+    // Surface the central out-of-credits popup ("Need more credits?") only when
+    // the user actually has no credits left.
     vscode.postMessage({ command: "showCreditsExhausted" });
   };
 
   return (
     <div
-      title="Manage credits"
+      title={tooltip}
       onClick={handleClick}
       style={{
         display: "inline-flex",
@@ -73,7 +85,7 @@ const CreditsChip = (): JSX.Element | null => {
         fontWeight: 500,
         whiteSpace: "nowrap",
         userSelect: "none",
-        cursor: "pointer",
+        cursor: isOut ? "pointer" : "default",
       }}
     >
       <svg
