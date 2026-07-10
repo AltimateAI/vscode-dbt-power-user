@@ -6,18 +6,10 @@ async function main() {
     const extensionDevelopmentPath = path.resolve(__dirname, "../../../");
     const extensionTestsPath = path.resolve(__dirname, "./index");
 
-    // Open an empty fixture folder as the workspace so file-watcher tests get a
-    // real (recursive-capable) workspace folder. It contains no dbt_project.yml
-    // at launch, so the extension's workspaceContains activation does not fire.
-    const watcherFixture = path.resolve(
-      extensionDevelopmentPath,
-      "src/test/fixtures/dbt-packages-watcher",
-    );
-
     await runTests({
       extensionDevelopmentPath,
       extensionTestsPath,
-      launchArgs: ["--disable-extensions", watcherFixture],
+      launchArgs: ["--disable-extensions"],
       // Forward PATH and SQLFMT_PATH to the extension host process so
       // that sqlfmt installed in a virtualenv is discoverable.
       // macOS Electron apps often reset PATH to system defaults.
