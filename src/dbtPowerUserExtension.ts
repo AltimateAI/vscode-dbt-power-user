@@ -21,6 +21,7 @@ import { DbtPowerUserMcpServer } from "./mcp";
 import { DbtPowerUserActionsCenter } from "./quickpick";
 import { AltimateAuthService } from "./services/altimateAuthService";
 import {
+  clearCachedCredits,
   fetchAndCacheCredits,
   handleExecutionsExhausted,
   updateCachedAvailableExecutions,
@@ -207,8 +208,13 @@ export class DBTPowerUserExtension implements Disposable {
         this.altimateRequest.setExecutionsExhaustedListener(() =>
           handleExecutionsExhausted(),
         );
-      } catch {
-        // Listener registration must never block activation.
+      } catch (error) {
+        // Listener registration must never block activation; record it so a
+        // version-skew failure is observable instead of silently swallowed.
+        this.telemetry.sendTelemetryError(
+          "creditsListenerRegistrationFailed",
+          error,
+        );
       }
       // Ask to reload the window if the dbt integration changes
       const dbtIntegration = workspace
@@ -217,6 +223,18 @@ export class DBTPowerUserExtension implements Disposable {
       workspace.onDidChangeConfiguration((e) => {
         if (!e.affectsConfiguration("dbt")) {
           return;
+        }
+        // Credentials changed (sign-in / sign-out / instance switch): the initial
+        // activation fetch is gated on auth and never retried, so refresh here.
+        if (
+          e.affectsConfiguration("dbt.altimateAiKey") ||
+          e.affectsConfiguration("dbt.altimateInstanceName")
+        ) {
+          if (this.altimateAuthService.isAuthenticated()) {
+            void fetchAndCacheCredits(this.altimateRequest);
+          } else {
+            clearCachedCredits();
+          }
         }
         const newDbtIntegration = workspace
           .getConfiguration("dbt")

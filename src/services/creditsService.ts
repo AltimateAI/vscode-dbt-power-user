@@ -5,9 +5,13 @@ import { AltimateRequest } from "../altimate";
 export interface CreditsInfo {
   available_executions: number;
   total_executions: number;
-  feedback_grant_eligible: boolean;
-  feedback_grant_claimed: boolean;
-  feedback_grant_url: string;
+  // Grant fields are optional: they're only known after a real `payment/credits`
+  // fetch. The header-driven balance seed leaves them undefined ("unknown")
+  // rather than fabricating `false`, which would wrongly deny the grant offer to
+  // an eligible user.
+  feedback_grant_eligible?: boolean;
+  feedback_grant_claimed?: boolean;
+  feedback_grant_url?: string;
 }
 
 const BILLING_URL = "https://app.myaltimate.com/settings/credits?tab=plans";
@@ -70,17 +74,30 @@ export function updateCachedAvailableExecutions(remaining: number): void {
   if (cachedCredits) {
     cachedCredits.available_executions = remaining;
   } else {
-    // Cache may be empty if the initial fetch hasn't completed yet; seed it so
-    // header-driven and focus-driven updates still reflect in the panels.
+    // Cache may be empty if the initial fetch hasn't completed yet; seed the
+    // balance only and leave grant fields unknown (undefined) so a real fetch
+    // can fill them — never fabricate `feedback_grant_eligible: false`.
     cachedCredits = {
       available_executions: remaining,
       total_executions: 0,
-      feedback_grant_eligible: false,
-      feedback_grant_claimed: false,
-      feedback_grant_url: "",
     };
   }
   broadcastCredits(remaining);
+}
+
+/**
+ * Replace the cached credits with a full, freshly-fetched `CreditsInfo`
+ * (including grant eligibility) and broadcast the balance. Used by the panel
+ * visibility refetch so the real eligibility isn't discarded.
+ */
+export function setCachedCredits(info: CreditsInfo): void {
+  cachedCredits = info;
+  broadcastCredits(info.available_executions);
+}
+
+/** Clear the cached credits (e.g. on sign-out) so stale balances aren't shown. */
+export function clearCachedCredits(): void {
+  cachedCredits = null;
 }
 
 const CREDITS_TITLE = "Need more credits?";
@@ -115,12 +132,11 @@ export async function handleExecutionsExhausted(): Promise<void> {
     const status = creditsStatusLine(credits?.available_executions ?? 0);
     const detail = canTalk ? `${status} ${FEEDBACK_OFFER}` : status;
 
-    // Non-modal toast in the usual bottom-right position. The title and
-    // description are combined into the message (title on its own line) since
-    // corner notifications don't support a separate title field.
+    // Non-modal toast in the usual bottom-right position. Corner notifications
+    // collapse newlines, so the title and description are one well-formed line.
     const buttons = canTalk ? [LETS_TALK, BUY_CREDITS] : [BUY_CREDITS];
     const choice = await window.showInformationMessage(
-      `${CREDITS_TITLE}\n\n${detail}`,
+      `${CREDITS_TITLE} ${detail}`,
       ...buttons,
     );
 

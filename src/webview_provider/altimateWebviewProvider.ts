@@ -26,10 +26,10 @@ import {
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
 import {
+  fetchAndCacheCredits,
   getCachedCredits,
   handleExecutionsExhausted,
   registerCreditsBroadcaster,
-  updateCachedAvailableExecutions,
 } from "../services/creditsService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
@@ -572,24 +572,14 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     this._panel = panel;
     this.setupWebviewOptions(context);
     this.renderWebviewView(this._panel!.webview);
-    panel.onDidChangeVisibility(() => {
+    const visibilityListener = panel.onDidChangeVisibility(() => {
       if (panel.visible && this.altimateAuthService.isAuthenticated()) {
-        void this.altimateRequest
-          .fetch("payment/credits")
-          .then((data: any) => {
-            // Backend returns `total_available_executions`; keep
-            // `available_executions` as a fallback for compatibility.
-            const available =
-              data?.total_available_executions ?? data?.available_executions;
-            if (typeof available === "number") {
-              updateCachedAvailableExecutions(available);
-            }
-          })
-          .catch(() => {
-            // best-effort refresh, ignore failures
-          });
+        // Refetch the full CreditsInfo (balance + grant eligibility) so focusing
+        // a panel repopulates eligibility, not just the balance. Best-effort.
+        void fetchAndCacheCredits(this.altimateRequest);
       }
     });
+    this._disposables.push(visibilityListener);
   }
 
   private setupWebviewOptions(context: WebviewViewResolveContext) {

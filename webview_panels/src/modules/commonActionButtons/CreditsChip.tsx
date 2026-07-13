@@ -103,7 +103,7 @@ const CreditsChip = (): JSX.Element | null => {
           strokeLinecap="round"
         />
       </svg>
-      {availableExecutions} credits
+      {availableExecutions} credit{availableExecutions === 1 ? "" : "s"}
     </div>
   );
 };
