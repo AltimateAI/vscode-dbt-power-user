@@ -209,6 +209,16 @@ const SetupWizard = forwardRef<
     }
   };
 
+  const handleTryAltimateCode = useCallback(async () => {
+    try {
+      await executeRequestInSync("executeCommand", {
+        vscodeCommand: "altimate.openChat",
+      });
+    } catch (err) {
+      panelLogger.error("Error opening Altimate Code chat", err);
+    }
+  }, []);
+
   const handleNext = () => {
     setCurrentStep(findNextStep(currentStep));
   };
@@ -352,7 +362,13 @@ const SetupWizard = forwardRef<
                         : "Next"}
                 </Button>
               ) : (
-                <div />
+                <Button
+                  type="primary"
+                  size="large"
+                  onClick={handleTryAltimateCode}
+                >
+                  Try Altimate Code
+                </Button>
               )}
             </Stack>
           </Card>
