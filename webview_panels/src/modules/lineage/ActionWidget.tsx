@@ -1,4 +1,4 @@
-import { Button } from "@altimateai/ui-components/lineage";
+import { Button } from "@altimateai/ui-components/extension";
 import { FeedbackIcon } from "@assets/icons";
 import FeedbackButton from "@modules/commonActionButtons/FeedbackButton";
 import { sendTelemetryEvent } from "@modules/documentationEditor/components/telemetry";

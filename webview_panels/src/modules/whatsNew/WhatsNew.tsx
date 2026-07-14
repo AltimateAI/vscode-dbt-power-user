@@ -1,12 +1,12 @@
+import { Spinner } from "@altimateai/ui-components/extension";
+import "@altimateai/ui-components/styles.css";
 import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import { TelemetryEvents } from "@telemetryEvents";
-import { Spinner } from "@altimateai/ui-components/lego";
 import { useEffect, useMemo, useState } from "react";
-import "@altimateai/ui-components/styles.css";
 import classes from "./whatsNew.module.scss";
 
 interface WhatsNewItem {
@@ -27,7 +27,10 @@ interface WhatsNewManifest {
 // Fixed product-discovery links — Power user for dbt stays the active editor;
 // clicking opens the filtered website changelog in the browser.
 const PRODUCT_LINKS = [
-  { label: "Altimate Code", url: "https://www.altimate.ai/changelog#altimate-code" },
+  {
+    label: "Altimate Code",
+    url: "https://www.altimate.ai/changelog#altimate-code",
+  },
   { label: "Datamates", url: "https://www.altimate.ai/changelog#datamates" },
   { label: "Snowflake", url: "https://www.altimate.ai/changelog#snowflake" },
   { label: "Databricks", url: "https://www.altimate.ai/changelog#databricks" },
@@ -49,10 +52,7 @@ const openUrl = (url: string): void => {
   executeRequestInAsync("openURL", { url });
 };
 
-const track = (
-  eventName: string,
-  properties: Record<string, string>,
-): void => {
+const track = (eventName: string, properties: Record<string, string>): void => {
   executeRequestInAsync("sendTelemetryEvent", { eventName, properties });
 };
 
@@ -185,11 +185,7 @@ const WhatsNew = (): JSX.Element => {
 
         <main className={classes.entries}>
           {groups.map((group) => (
-            <section
-              key={group.tag}
-              id={group.tag}
-              className={classes.section}
-            >
+            <section key={group.tag} id={group.tag} className={classes.section}>
               <h2 className={classes.sectionTitle}>
                 {SECTION_LABEL[group.tag]}
               </h2>
