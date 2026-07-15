@@ -101,11 +101,18 @@ describe("DBTWorkspaceFolder config watcher: dbt_packages race", () => {
     jest.restoreAllMocks();
   });
 
+  // A parent project that is registered but still initializing: `dbt deps` is
+  // writing package files while `getPackageInstallPath()` is still undefined.
+  const parentMidInitialize = () => ({
+    getPackageInstallPath: () => undefined,
+    projectRoot: { fsPath: tmpRoot },
+  });
+
   it("does not register a dbt_project.yml under dbt_packages/ when the parent project's install path is not yet resolved", () => {
     const wf = buildWorkspaceFolder();
     // Parent project registered but mid-initialize: install path unknown.
     (wf as unknown as { dbtProjects: unknown[] }).dbtProjects = [
-      { getPackageInstallPath: () => undefined },
+      parentMidInitialize(),
     ];
     const registerSpy = jest
       .spyOn(
@@ -129,10 +136,45 @@ describe("DBTWorkspaceFolder config watcher: dbt_packages race", () => {
     expect(registerSpy).not.toHaveBeenCalled();
   });
 
+  it("does not register a package under a custom packages-install-path while the parent is initializing", () => {
+    // `packages-install-path` moves packages out of `dbt_packages`, so a
+    // directory-name list cannot recognise them. The parent's configured path
+    // is readable from `dbt_project.yml` before initialization finishes.
+    writeFileSync(
+      path.join(tmpRoot, "dbt_project.yml"),
+      "name: jaffle_shop\npackages-install-path: vendor\n",
+    );
+    mkdirSync(path.join(tmpRoot, "vendor", "dbt_utils"), { recursive: true });
+    writeFileSync(
+      path.join(tmpRoot, "vendor", "dbt_utils", "dbt_project.yml"),
+      "name: dbt_utils\n",
+    );
+
+    const wf = buildWorkspaceFolder();
+    (wf as unknown as { dbtProjects: unknown[] }).dbtProjects = [
+      parentMidInitialize(),
+    ];
+    const registerSpy = jest
+      .spyOn(
+        wf as unknown as {
+          registerDBTProject: (uri: unknown) => Promise<void>;
+        },
+        "registerDBTProject",
+      )
+      .mockResolvedValue(undefined);
+
+    expect(capturedOnCreate).toBeDefined();
+    capturedOnCreate!({
+      fsPath: path.join(tmpRoot, "vendor", "dbt_utils", "dbt_project.yml"),
+    });
+
+    expect(registerSpy).not.toHaveBeenCalled();
+  });
+
   it("still registers a genuinely separate nested project", () => {
     const wf = buildWorkspaceFolder();
     (wf as unknown as { dbtProjects: unknown[] }).dbtProjects = [
-      { getPackageInstallPath: () => undefined },
+      parentMidInitialize(),
     ];
     const registerSpy = jest
       .spyOn(
