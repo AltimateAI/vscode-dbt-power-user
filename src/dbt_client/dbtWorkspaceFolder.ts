@@ -167,9 +167,14 @@ export class DBTWorkspaceFolder implements Disposable {
       allowListFolders,
     );
 
+    // Resolve the registered projects' packages paths once, rather than per
+    // candidate inside the filter below.
+    const packagesInstallPaths = this.knownPackagesInstallPaths();
     const projectDirectories = dbtProjectFiles
       .filter((uri) => existsSync(uri.fsPath) && statSync(uri.fsPath).isFile())
-      .filter((uri) => !this.isInstalledPackage(uri.fsPath))
+      .filter(
+        (uri) => !this.isInstalledPackage(uri.fsPath, packagesInstallPaths),
+      )
       .filter((uri) => {
         return (
           allowListFolders.length === 0 ||
@@ -359,11 +364,11 @@ export class DBTWorkspaceFolder implements Disposable {
    * consumer applies it identically; this only supplies the packages paths of
    * the projects registered in this folder.
    */
-  private isInstalledPackage(fsPath: string): boolean {
-    const isPackage = isInsidePackagesPath(
-      fsPath,
-      this.knownPackagesInstallPaths(),
-    );
+  private isInstalledPackage(
+    fsPath: string,
+    packagesInstallPaths: string[] = this.knownPackagesInstallPaths(),
+  ): boolean {
+    const isPackage = isInsidePackagesPath(fsPath, packagesInstallPaths);
     if (isPackage) {
       this.dbtTerminal.info(
         "discoverProjects",
