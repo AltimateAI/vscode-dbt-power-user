@@ -1,7 +1,7 @@
 import { DBTTerminal } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
 import fetch from "node-fetch";
-import { ViewColumn, WebviewPanel, window, workspace } from "vscode";
+import { Uri, ViewColumn, WebviewPanel, window, workspace } from "vscode";
 import { AltimateRequest } from "../altimate";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { AltimateAuthService } from "../services/altimateAuthService";
@@ -93,9 +93,17 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
 
     const webviewPanel = window.createWebviewPanel(
       WhatsNewPanel.viewType,
-      "What's New · Power user for dbt",
+      "What's New · Power User for dbt",
       { viewColumn: ViewColumn.Active },
       { enableScripts: true, retainContextWhenHidden: true },
+    );
+    // Use the same logo as the Marketplace listing (package.json `icon`) so the
+    // tab reads as the Power User for dbt extension.
+    webviewPanel.iconPath = Uri.joinPath(
+      this.dbtProjectContainer.extensionUri,
+      "media",
+      "images",
+      "dbt.png",
     );
     this._panel = webviewPanel;
 
@@ -211,6 +219,11 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
       version,
     );
 
+    this.dbtTerminal.debug(
+      "whatsNew:fetchManifest",
+      `Fetching What's New manifest from ${url}`,
+    );
+
     try {
       const response = await fetch(url, {
         headers: { Accept: "application/json" },
@@ -222,18 +235,17 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
       this.dbtProjectContainer.setToGlobalState(MANIFEST_CACHE_KEY, manifest);
       return manifest;
     } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      this.dbtTerminal.warn(
+        "whatsNew:fetchManifest",
+        `Failed to fetch What's New manifest from ${url}: ${detail}`,
+      );
       // Offline / endpoint down: fall back to the last successfully fetched
       // manifest so the panel still renders something useful.
       const cached = this.dbtProjectContainer.getFromGlobalState(
         MANIFEST_CACHE_KEY,
       ) as WhatsNewManifest | undefined;
       if (cached) {
-        this.dbtTerminal.warn(
-          "whatsNew:fetchManifest",
-          `Failed to fetch What's New manifest; serving cached copy: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
         return cached;
       }
       throw error;

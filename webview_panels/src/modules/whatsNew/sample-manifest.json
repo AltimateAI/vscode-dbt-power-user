@@ -1,50 +1,79 @@
 {
   "product": "dbt-power-user",
   "version": "1.43.0",
-  "generated_at": "2026-04-30T00:00:00Z",
-  "base_url": "https://www.altimate.ai/changelog",
+  "generated_at": "2026-07-15T00:00:00Z",
+  "base_url": "https://altimate.ai/changelog",
   "items": [
     {
-      "title": "Altimate Code chat lives inside Power user for dbt",
+      "title": "Altimate Code chat lives inside Power User for dbt",
       "tag": "new",
+      "date": "2026-07-05",
+      "version": "1.43.0",
       "summary": "Execute, Explain, Optimize, Document, and Review on any SQL or YAML file.",
-      "anchor": "#1.43.0-altimate-code-chat-lives-inside-power-user-for-dbt"
+      "anchor": "#altimate-code-chat-lives-inside-power-user-for-dbt"
     },
     {
       "title": "RisingWave adapter support during onboarding",
       "tag": "new",
+      "date": "2026-07-05",
+      "version": "1.43.0",
       "summary": "Installed and configured as a Postgres-compatible dialect — no manual setup.",
-      "anchor": "#1.43.0-risingwave-adapter-support-during-onboarding"
+      "anchor": "#risingwave-adapter-support-during-onboarding"
     },
     {
       "title": "CTE Profiler — per-CTE timing and row counts in the editor",
       "tag": "new",
+      "date": "2026-07-05",
+      "version": "1.43.0",
       "summary": "Per-CTE time and row counts, decorated inline. No Altimate API key required.",
-      "anchor": "#1.43.0-cte-profiler-per-cte-timing-and-row-counts"
+      "anchor": "#cte-profiler-per-cte-timing-and-row-counts-in-the-editor"
     },
     {
       "title": "Generate dbt unit tests from your manifest",
       "tag": "new",
+      "date": "2026-07-05",
+      "version": "1.43.0",
       "summary": "Type-correct mock data — happy path, nulls, and boundaries — written into the model's schema.",
-      "anchor": "#1.43.0-generate-dbt-unit-tests-from-your-manifest"
+      "anchor": "#generate-dbt-unit-tests-from-your-manifest"
     },
     {
       "title": "Model hovers and Run/Test codelenses in schema files",
       "tag": "improved",
+      "date": "2026-07-05",
+      "version": "1.43.0",
       "summary": "Columns, types, and Run / Test / Document inline in schema YAML files.",
-      "anchor": "#1.43.0-model-hovers-and-run-test-codelenses"
+      "anchor": "#model-hovers-and-run-test-codelenses-in-schema-files"
     },
     {
       "title": "dbt-aware syntax highlighting for SQL+Jinja and YAML+Jinja",
       "tag": "improved",
+      "date": "2026-07-05",
+      "version": "1.43.0",
       "summary": "Jinja blocks, refs, and sources highlighted distinctly from surrounding SQL and YAML.",
-      "anchor": "#1.43.0-dbt-aware-syntax-highlighting"
+      "anchor": "#dbt-aware-syntax-highlighting-for-sql-jinja-and-yaml-jinja"
+    },
+    {
+      "title": "Datamate MCP server defaults to stdio transport",
+      "tag": "improved",
+      "date": "2026-07-05",
+      "summary": "The datamate MCP server now uses the stdio transport by default, so external MCP clients like Claude Code, Claude Desktop, and Cursor connect out of the box.",
+      "anchor": "#datamate-mcp-server-defaults-to-stdio-transport"
+    },
+    {
+      "title": "Column-level lineage drill-down, now local by default",
+      "tag": "beta",
+      "date": "2026-06-18",
+      "version": "1.42.0",
+      "summary": "Lineage resolves on your machine with no round trip, so drill-downs land faster and stay private. Opt in from the lineage panel.",
+      "anchor": "#column-level-lineage-drill-down-now-local-by-default"
     },
     {
       "title": "Compiled-SQL preview no longer flickers on save",
-      "tag": "fix",
-      "summary": "The preview pane holds its scroll position and content while a model recompiles.",
-      "anchor": "#1.43.0-compiled-sql-preview-flicker"
+      "tag": "fixed",
+      "date": "2026-06-18",
+      "version": "1.42.0",
+      "summary": "The preview pane keeps its scroll position and stops repainting when a model is saved.",
+      "anchor": "#compiled-sql-preview-no-longer-flickers-on-save"
     }
   ]
 }

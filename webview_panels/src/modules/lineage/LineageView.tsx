@@ -1,10 +1,10 @@
-import { TooltipProvider } from "@altimateai/ui-components/extension";
 import type { Table } from "@altimateai/ui-components/lineage";
 import {
   ApiHelper,
   CLL,
   CllEvents,
   Lineage,
+  TooltipProvider,
 } from "@altimateai/ui-components/lineage";
 import "@altimateai/ui-components/styles.css";
 import {

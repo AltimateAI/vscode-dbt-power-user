@@ -1,19 +1,51 @@
-import { Spinner } from "@altimateai/ui-components/extension";
-import "@altimateai/ui-components/styles.css";
 import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import { TelemetryEvents } from "@telemetryEvents";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import "./fonts.scss";
+import {
+  AltimateWordmark,
+  ArrowIcon,
+  ExternalArrowIcon,
+  FunnelIcon,
+  TagIcon,
+} from "./icons";
 import classes from "./whatsNew.module.scss";
+
+// Tag vocabulary is the changelog source's, not ours — see
+// altimate-website `src/data/changelog-taxonomy.js`. Keeping them identical
+// means a new source tag renders instead of silently collapsing into
+// "improved".
+const TAG_ORDER = ["new", "improved", "beta", "fixed"] as const;
+type Tag = (typeof TAG_ORDER)[number];
+
+const TAG_LABEL: Record<Tag, string> = {
+  new: "New",
+  improved: "Improved",
+  beta: "Beta",
+  fixed: "Fixed",
+};
+
+const TAG_COLOR: Record<Tag, string> = {
+  new: "var(--accent-success)",
+  improved: "var(--accent-teal)",
+  beta: "var(--accent-purple)",
+  fixed: "var(--text-dim)",
+};
 
 interface WhatsNewItem {
   title: string;
-  tag: "new" | "improved" | "fix";
+  tag: Tag;
   summary: string;
   anchor: string;
+  // YYYY-MM-DD — drives both the month grouping and the date stamp.
+  date: string;
+  // Optional until the changelog source carries a per-product version; the
+  // chip simply doesn't render until then.
+  version?: string;
 }
 
 interface WhatsNewManifest {
@@ -24,29 +56,42 @@ interface WhatsNewManifest {
   items: WhatsNewItem[];
 }
 
-// Fixed product-discovery links — Power user for dbt stays the active editor;
+interface MonthGroup {
+  key: string;
+  label: string;
+  entries: WhatsNewItem[];
+}
+
+// Fixed product-discovery links — Power User for dbt stays the active editor;
 // clicking opens the filtered website changelog in the browser.
 const PRODUCT_LINKS = [
   {
     label: "Altimate Code",
-    url: "https://www.altimate.ai/changelog#altimate-code",
+    url: "https://altimate.ai/products/altimate-code",
   },
-  { label: "Datamates", url: "https://www.altimate.ai/changelog#datamates" },
-  { label: "Snowflake", url: "https://www.altimate.ai/changelog#snowflake" },
-  { label: "Databricks", url: "https://www.altimate.ai/changelog#databricks" },
+  { label: "Datamates", url: "https://altimate.ai/datamates" },
+  { label: "Snowflake", url: "https://altimate.ai/altimate-on-snowflake" },
+  {
+    label: "Databricks",
+    url: "https://altimate.ai/use-cases/altimate-for-databricks",
+  },
 ];
 
-const TAG_ORDER: WhatsNewItem["tag"][] = ["new", "improved", "fix"];
-const SECTION_LABEL: Record<WhatsNewItem["tag"], string> = {
-  new: "New",
-  improved: "Improved",
-  fix: "Fixed",
-};
-const PILL_LABEL: Record<WhatsNewItem["tag"], string> = {
-  new: "New",
-  improved: "Improved",
-  fix: "Fix",
-};
+const FULL_CHANGELOG_URL = "https://altimate.ai/changelog";
+
+const monthKey = (iso: string): string => iso.slice(0, 7);
+
+const monthLabel = (iso: string): string =>
+  new Date(`${iso}T00:00:00`).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+
+const shortDate = (iso: string): string =>
+  new Date(`${iso}T00:00:00`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
 
 const openUrl = (url: string): void => {
   executeRequestInAsync("openURL", { url });
@@ -59,6 +104,8 @@ const track = (eventName: string, properties: Record<string, string>): void => {
 const WhatsNew = (): JSX.Element => {
   const [manifest, setManifest] = useState<WhatsNewManifest | null>(null);
   const [error, setError] = useState(false);
+  const [activeTags, setActiveTags] = useState<Tag[]>([]);
+  const [activeMonth, setActiveMonth] = useState<string | null>(null);
 
   useEffect(() => {
     executeRequestInSync("getWhatsNewManifest", {})
@@ -69,145 +116,346 @@ const WhatsNew = (): JSX.Element => {
       });
   }, []);
 
-  // Group items by tag, preserving manifest order (newest first) within a group.
-  const groups = useMemo(() => {
+  // Newest first — the month grouping below relies on this order.
+  const items = useMemo(() => {
     if (!manifest) {
       return [];
     }
-    return TAG_ORDER.map((tag) => ({
-      tag,
-      items: manifest.items.filter((item) => item.tag === tag),
-    })).filter((group) => group.items.length > 0);
+    return [...manifest.items].sort((a, b) => b.date.localeCompare(a.date));
+  }, [manifest]);
+
+  // Counts are over every item, not the filtered set, so the pills keep
+  // showing what's available while a filter is on.
+  const counts = useMemo(() => {
+    const out = {} as Record<Tag, number>;
+    for (const tag of TAG_ORDER) {
+      out[tag] = items.filter((item) => item.tag === tag).length;
+    }
+    return out;
+  }, [items]);
+
+  const groups = useMemo((): MonthGroup[] => {
+    const shown = activeTags.length
+      ? items.filter((item) => activeTags.includes(item.tag))
+      : items;
+    const out: MonthGroup[] = [];
+    const byKey: Record<string, MonthGroup> = {};
+    for (const item of shown) {
+      const key = monthKey(item.date);
+      if (!byKey[key]) {
+        byKey[key] = { key, label: monthLabel(item.date), entries: [] };
+        out.push(byKey[key]);
+      }
+      byKey[key].entries.push(item);
+    }
+    return out;
+  }, [items, activeTags]);
+
+  // Scrollspy: highlight the month whose section is currently in view.
+  useEffect(() => {
+    if (!groups.length) {
+      return;
+    }
+    setActiveMonth(groups[0].key);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const topmost = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort(
+            (a, b) => a.boundingClientRect.top - b.boundingClientRect.top,
+          )[0];
+        if (topmost) {
+          setActiveMonth(topmost.target.getAttribute("data-month-key"));
+        }
+      },
+      { rootMargin: "-90px 0px -70% 0px" },
+    );
+    for (const group of groups) {
+      const el = document.querySelector(`[data-month-key="${group.key}"]`);
+      if (el) {
+        observer.observe(el);
+      }
+    }
+    return () => observer.disconnect();
+  }, [groups]);
+
+  const toggleTag = useCallback((tag: Tag): void => {
+    setActiveTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+    );
+  }, []);
+
+  const onFullChangelog = useCallback((): void => {
+    track(TelemetryEvents["WhatsNew/FullChangelogClicked"], {
+      version: manifest?.version ?? "",
+    });
+    openUrl(manifest?.base_url ?? FULL_CHANGELOG_URL);
   }, [manifest]);
 
   if (error) {
     return (
-      <div className={classes.stateWrap}>
-        <p>Couldn&apos;t load What&apos;s New right now.</p>
-        <a
-          href="https://www.altimate.ai/changelog"
-          onClick={(e) => {
-            e.preventDefault();
-            openUrl("https://www.altimate.ai/changelog");
-          }}
-        >
-          Open the full changelog →
-        </a>
+      <div className={classes.page}>
+        <div className={classes.stateWrap}>
+          <p>Couldn&apos;t load What&apos;s New right now.</p>
+          <a
+            href={FULL_CHANGELOG_URL}
+            title={`Open ${FULL_CHANGELOG_URL} in your browser`}
+            onClick={(e) => {
+              e.preventDefault();
+              openUrl(FULL_CHANGELOG_URL);
+            }}
+          >
+            Open the full changelog →
+          </a>
+        </div>
       </div>
     );
   }
 
   if (!manifest) {
     return (
-      <div className={`${classes.stateWrap} al-tw-scope`}>
-        <Spinner />
+      <div className={classes.page}>
+        <div className={classes.stateWrap}>
+          <div className={classes.spinner} role="status" aria-label="Loading" />
+        </div>
       </div>
     );
   }
 
-  const onFullChangelog = (): void => {
-    track(TelemetryEvents["WhatsNew/FullChangelogClicked"], {
-      version: manifest.version,
-    });
-    openUrl(manifest.base_url);
-  };
-
-  const onItemClick = (item: WhatsNewItem): void => {
-    track(TelemetryEvents["WhatsNew/ChangelogItemClicked"], {
-      anchor: item.anchor,
-      version: manifest.version,
-      tag: item.tag,
-    });
-    openUrl(manifest.base_url + item.anchor);
-  };
+  const shownCount = groups.reduce((n, g) => n + g.entries.length, 0);
 
   return (
     <div className={classes.page}>
-      <header className={classes.header}>
-        <div className={classes.headerMain}>
-          <h1 className={classes.title}>In this update</h1>
-          <div className={classes.version}>
-            <span className={classes.product}>Power user for dbt</span>
-            <span className={classes.dot}>·</span>
-            <span>{manifest.version}</span>
-          </div>
+      <div className={classes.topbar}>
+        <a
+          className={classes.topbarLogo}
+          href="https://altimate.ai"
+          aria-label="Altimate AI"
+          title="Open altimate.ai in your browser"
+          onClick={(e) => {
+            e.preventDefault();
+            openUrl("https://altimate.ai");
+          }}
+        >
+          <AltimateWordmark />
+        </a>
+        <div className={classes.topbarLinks}>
           <a
-            className={classes.fullChangelog}
-            href={manifest.base_url}
+            className={classes.topbarLink}
+            href={FULL_CHANGELOG_URL}
+            title={`Open ${FULL_CHANGELOG_URL} in your browser`}
             onClick={(e) => {
               e.preventDefault();
               onFullChangelog();
             }}
           >
-            See full changelog →
+            Full changelog
+          </a>
+          <a
+            className={classes.topbarLink}
+            href="https://altimate.ai"
+            title="Open altimate.ai in your browser"
+            onClick={(e) => {
+              e.preventDefault();
+              openUrl("https://altimate.ai");
+            }}
+          >
+            altimate.ai
+          </a>
+        </div>
+      </div>
+
+      <header className={classes.header}>
+        <div className={classes.headerMain}>
+          <p className={classes.eyebrow}>Extension release notes</p>
+          <h1 className={classes.title}>What&apos;s New</h1>
+          <p className={classes.sub}>
+            Every shipped update to <strong>Power User for dbt</strong>
+            {manifest.version ? (
+              <> — you&apos;re on {manifest.version}.</>
+            ) : (
+              "."
+            )}
+          </p>
+          <a
+            className={classes.cta}
+            href={manifest.base_url}
+            title={`Open ${manifest.base_url} in your browser`}
+            onClick={(e) => {
+              e.preventDefault();
+              onFullChangelog();
+            }}
+          >
+            View full changelog
+            <ArrowIcon />
           </a>
         </div>
 
-        <aside className={classes.alsoFrom}>
-          <div className={classes.alsoFromLabel}>Also from Altimate AI</div>
-          {PRODUCT_LINKS.map((link) => (
-            <a
-              key={link.label}
-              className={classes.productLink}
-              href={link.url}
-              onClick={(e) => {
-                e.preventDefault();
-                openUrl(link.url);
-              }}
-            >
-              {link.label} <span className={classes.extArrow}>↗</span>
-            </a>
-          ))}
+        <aside className={classes.aside} aria-label="Also from Altimate AI">
+          <span className={classes.asideLegend}>Also from Altimate AI</span>
+          <nav className={classes.asideLinks}>
+            {PRODUCT_LINKS.map((link) => (
+              <a
+                key={link.label}
+                className={classes.asideLink}
+                href={link.url}
+                title={`Open ${link.url} in your browser`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  openUrl(link.url);
+                }}
+              >
+                {link.label}
+                <ExternalArrowIcon className={classes.asideArrow} />
+              </a>
+            ))}
+          </nav>
         </aside>
       </header>
 
-      <hr className={classes.divider} />
-
-      <div className={classes.body}>
-        <nav className={classes.contents}>
-          <div className={classes.contentsLabel}>Contents</div>
-          {groups.map((group) => (
-            <a
-              key={group.tag}
-              className={classes.contentsLink}
-              href={`#${group.tag}`}
-              onClick={(e) => {
-                e.preventDefault();
-                document
-                  .getElementById(group.tag)
-                  ?.scrollIntoView({ behavior: "smooth" });
-              }}
+      <div className={classes.toolbar}>
+        <div
+          className={classes.filters}
+          role="group"
+          aria-label="Filter by change type"
+        >
+          <span className={classes.filtersLabel}>
+            <FunnelIcon />
+            Filter by type
+          </span>
+          {TAG_ORDER.map((tag) => (
+            <button
+              key={tag}
+              className={classes.filter}
+              type="button"
+              data-active={activeTags.includes(tag)}
+              aria-pressed={activeTags.includes(tag)}
+              disabled={counts[tag] === 0}
+              onClick={() => toggleTag(tag)}
             >
-              {PILL_LABEL[group.tag]}
-            </a>
+              <span
+                className={classes.filterDot}
+                style={{ background: TAG_COLOR[tag] }}
+              />
+              {TAG_LABEL[tag]}
+              <span className={classes.filterCount}>{counts[tag]}</span>
+            </button>
           ))}
-        </nav>
+        </div>
+      </div>
 
-        <main className={classes.entries}>
+      <div className={classes.shell}>
+        <aside className={classes.timeline} aria-label="Changelog timeline">
+          <span className={classes.timelineLegend}>Timeline</span>
+          <nav className={classes.timelineNav}>
+            {groups.map((group) => (
+              <button
+                key={group.key}
+                className={classes.timelineLink}
+                type="button"
+                data-active={activeMonth === group.key}
+                onClick={() => {
+                  setActiveMonth(group.key);
+                  document
+                    .querySelector(`[data-month-key="${group.key}"]`)
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              >
+                {group.label}
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        <div className={classes.feed}>
+          <div className={classes.feedHead}>
+            <span className={classes.resultsCount}>
+              {shownCount === items.length
+                ? `${items.length} updates`
+                : `Showing ${shownCount} of ${items.length} updates`}
+            </span>
+          </div>
+
           {groups.map((group) => (
-            <section key={group.tag} id={group.tag} className={classes.section}>
-              <h2 className={classes.sectionTitle}>
-                {SECTION_LABEL[group.tag]}
-              </h2>
-              {group.items.map((item) => (
-                <div key={item.anchor} className={classes.entry}>
-                  <a
-                    className={classes.entryTitle}
-                    href={manifest.base_url + item.anchor}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onItemClick(item);
-                    }}
-                  >
-                    {item.title} <span className={classes.extArrow}>↗</span>
-                  </a>
-                  <p className={classes.entrySummary}>{item.summary}</p>
-                </div>
-              ))}
+            <section
+              key={group.key}
+              className={classes.month}
+              data-month-key={group.key}
+            >
+              <h2 className={classes.monthHead}>{group.label}</h2>
+              <ol className={classes.entries}>
+                {group.entries.map((item) => (
+                  <li key={item.anchor} className={classes.entry}>
+                    <span
+                      className={classes.entryDot}
+                      style={{ background: TAG_COLOR[item.tag] }}
+                    />
+                    <div className={classes.entryBody}>
+                      <div className={classes.entryBadges}>
+                        <span
+                          className={classes.tag}
+                          style={{ color: TAG_COLOR[item.tag] }}
+                        >
+                          <TagIcon tag={item.tag} />
+                          {TAG_LABEL[item.tag]}
+                        </span>
+                        {item.version ? (
+                          <span
+                            className={`${classes.chip} ${classes.chipVer}`}
+                          >
+                            v{item.version}
+                          </span>
+                        ) : null}
+                        <span className={classes.entryDate}>
+                          {shortDate(item.date)}
+                        </span>
+                      </div>
+                      {/*
+                        Deliberately not a link. `base_url + anchor` resolves to
+                        the entry on the public changelog, but that entry holds
+                        the same tag/date/title/description rendered here — so
+                        the click is a round trip to text the reader just read.
+                        The "View full changelog" CTA covers the case that does
+                        earn a trip out: other products and older releases.
+                        `anchor` stays as the stable key.
+                      */}
+                      <h3 className={classes.entryTitle}>{item.title}</h3>
+                      <p className={classes.entryDesc}>{item.summary}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
             </section>
           ))}
-        </main>
+
+          {shownCount === 0 ? (
+            <div className={classes.empty}>
+              <p>No updates match these filters.</p>
+              <button
+                type="button"
+                className={classes.emptyButton}
+                onClick={() => setActiveTags([])}
+              >
+                Clear filters
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
+
+      <footer className={classes.foot}>
+        Altimate AI ·{" "}
+        <a
+          href={FULL_CHANGELOG_URL}
+          title={`Open ${FULL_CHANGELOG_URL} in your browser`}
+          onClick={(e) => {
+            e.preventDefault();
+            onFullChangelog();
+          }}
+        >
+          See the full platform changelog →
+        </a>
+      </footer>
     </div>
   );
 };
