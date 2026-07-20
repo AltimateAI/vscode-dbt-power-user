@@ -1,5 +1,6 @@
 import { SparkleIcon } from "@assets/icons";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
+import CreditsChip from "@modules/commonActionButtons/CreditsChip";
 import FeedbackButton from "@modules/commonActionButtons/FeedbackButton";
 import { Button, Stack } from "@uicore";
 import { useEffect } from "react";
@@ -67,6 +68,7 @@ const QueryPanel = (): JSX.Element => {
               <ShowInTabButton />
             </>
           )}
+          <CreditsChip />
           <HelpButton />
           <FeedbackButton url="https://form.jotform.com/251106305895153" />
         </Stack>

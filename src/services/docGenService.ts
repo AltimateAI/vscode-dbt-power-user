@@ -1,6 +1,7 @@
 import path = require("path");
 import {
   DBTTerminal,
+  ExecutionsExhaustedException,
   NodeMetaData,
   RateLimitException,
   RESOURCE_TYPE_MODEL,
@@ -602,6 +603,11 @@ export class DocGenService {
             columns: columns.join(","),
           });
         } catch (error) {
+          if (error instanceof ExecutionsExhaustedException) {
+            // The central 402 handler already showed the out-of-credits popup;
+            // just stop the flow without a duplicate/generic error.
+            return;
+          }
           this.transmitError(panel);
           window.showErrorMessage(
             extendErrorWithSupportLinks(
@@ -702,6 +708,11 @@ export class DocGenService {
             },
           );
         } catch (error) {
+          if (error instanceof ExecutionsExhaustedException) {
+            // The central 402 handler already showed the out-of-credits popup;
+            // just stop the flow without a duplicate/generic error.
+            return;
+          }
           this.transmitError(panel);
           window.showErrorMessage(
             extendErrorWithSupportLinks(
