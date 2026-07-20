@@ -9,6 +9,7 @@ export interface AppStateProps {
   isComponentsApiInitialized: boolean;
   users: Record<number, User>;
   currentUser: User | null;
+  availableExecutions: number | null;
   tenantInfo: {
     frontendUrl: string | null;
     currency: string;

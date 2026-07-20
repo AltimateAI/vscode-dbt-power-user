@@ -28,7 +28,9 @@ import {
   DBT_PROJECT_FILE,
   DBTProjectDetection,
   DBTTerminal,
+  isInsidePackagesPath,
   readAndParseProjectConfig,
+  resolvePackagesInstallPath,
 } from "@altimateai/dbt-integration";
 
 // Sentinel for the empty-after-retries case in `retryWithBackoff`. Lets the
@@ -165,9 +167,14 @@ export class DBTWorkspaceFolder implements Disposable {
       allowListFolders,
     );
 
+    // Resolve the registered projects' packages paths once, rather than per
+    // candidate inside the filter below.
+    const packagesInstallPaths = this.knownPackagesInstallPaths();
     const projectDirectories = dbtProjectFiles
       .filter((uri) => existsSync(uri.fsPath) && statSync(uri.fsPath).isFile())
-      .filter((uri) => this.notInVenv(uri.fsPath))
+      .filter(
+        (uri) => !this.isInstalledPackage(uri.fsPath, packagesInstallPaths),
+      )
       .filter((uri) => {
         return (
           allowListFolders.length === 0 ||
@@ -337,11 +344,7 @@ export class DBTWorkspaceFolder implements Disposable {
       if (
         existsSync(uri.fsPath) &&
         statSync(uri.fsPath).isFile() &&
-        this.notInVenv(uri.fsPath) &&
-        this.notInDBtPackages(
-          uri.fsPath,
-          this.dbtProjects.map((project) => project.getPackageInstallPath()),
-        ) &&
+        !this.isInstalledPackage(uri.fsPath) &&
         (allowListFolders.length === 0 ||
           allowListFolders.some((folder) => uri.fsPath.startsWith(folder)))
       ) {
@@ -353,30 +356,41 @@ export class DBTWorkspaceFolder implements Disposable {
     return watcher;
   }
 
-  private notInVenv(path: string): boolean {
-    const notInVenv = !path.includes("site-packages");
-    if (!notInVenv) {
+  /**
+   * A `dbt_project.yml` belonging to an installed package or a virtualenv,
+   * rather than to a standalone project the user wants registered.
+   *
+   * The rule itself lives in `@altimateai/dbt-integration` so that every
+   * consumer applies it identically; this only supplies the packages paths of
+   * the projects registered in this folder.
+   */
+  private isInstalledPackage(
+    fsPath: string,
+    packagesInstallPaths: string[] = this.knownPackagesInstallPaths(),
+  ): boolean {
+    const isPackage = isInsidePackagesPath(fsPath, packagesInstallPaths);
+    if (isPackage) {
       this.dbtTerminal.info(
         "discoverProjects",
-        "foundProjectInVenv",
+        "foundProjectInPackagesPath",
         false,
-        path,
+        fsPath,
       );
     }
-    return notInVenv;
+    return isPackage;
   }
 
-  private notInDBtPackages(
-    uri: string,
-    packagesInstallPaths: (string | undefined)[],
-  ) {
-    for (const packagesInstallPath of packagesInstallPaths) {
-      if (packagesInstallPath) {
-        if (uri.startsWith(packagesInstallPath)) {
-          return false;
-        }
-      }
-    }
-    return true;
+  private knownPackagesInstallPaths(): string[] {
+    return this.dbtProjects.map((project) => {
+      // `getPackageInstallPath()` stays undefined until a project finishes
+      // initializing, and `dbt deps` writes each package's `dbt_project.yml`
+      // during that window — so a watcher event arriving mid-initialization
+      // must not depend on it. Reading the configured path back out of
+      // `dbt_project.yml` is synchronous and closes that gap.
+      return (
+        project.getPackageInstallPath() ??
+        resolvePackagesInstallPath(project.projectRoot.fsPath)
+      );
+    });
   }
 }
