@@ -377,7 +377,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           env.openExternal(Uri.parse(params.url as string));
           break;
         case "showCreditsExhausted":
-          void handleExecutionsExhausted();
+          void handleExecutionsExhausted(this.altimateRequest);
           break;
         case "validateCredentials":
           const isValid = this.altimateAuthService.handlePreviewFeatures();

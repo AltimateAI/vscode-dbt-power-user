@@ -206,7 +206,7 @@ export class DBTPowerUserExtension implements Disposable {
         // Single central handler: every 402 from any feature shows the same
         // out-of-credits popup.
         this.altimateRequest.setExecutionsExhaustedListener(() =>
-          handleExecutionsExhausted(),
+          handleExecutionsExhausted(this.altimateRequest),
         );
       } catch (error) {
         // Listener registration must never block activation; record it so a

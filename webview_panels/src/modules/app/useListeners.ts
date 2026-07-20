@@ -32,7 +32,10 @@ const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
         case "creditsUpdate":
           dispatch(
             setAvailableExecutions(
-              typeof args.availableExecutions === "number"
+              // `Number.isFinite` rejects NaN (which passes `typeof === "number"`
+              // and would render "NaN credits"); `typeof` stays to narrow the type.
+              typeof args.availableExecutions === "number" &&
+                Number.isFinite(args.availableExecutions)
                 ? args.availableExecutions
                 : null,
             ),

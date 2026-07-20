@@ -17,10 +17,12 @@ export interface CreditsInfo {
 const BILLING_URL = "https://app.myaltimate.com/settings/credits?tab=plans";
 
 let cachedCredits: CreditsInfo | null = null;
-const panelBroadcasters: Array<(available: number) => void> = [];
+// `null` broadcasts a cleared balance (e.g. on sign-out) so open panels hide the
+// chip instead of keeping a stale value.
+const panelBroadcasters: Array<(available: number | null) => void> = [];
 
 export function registerCreditsBroadcaster(
-  fn: (available: number) => void,
+  fn: (available: number | null) => void,
 ): () => void {
   panelBroadcasters.push(fn);
   return () => {
@@ -31,7 +33,7 @@ export function registerCreditsBroadcaster(
   };
 }
 
-function broadcastCredits(available: number): void {
+function broadcastCredits(available: number | null): void {
   for (const fn of panelBroadcasters) {
     try {
       fn(available);
@@ -85,19 +87,11 @@ export function updateCachedAvailableExecutions(remaining: number): void {
   broadcastCredits(remaining);
 }
 
-/**
- * Replace the cached credits with a full, freshly-fetched `CreditsInfo`
- * (including grant eligibility) and broadcast the balance. Used by the panel
- * visibility refetch so the real eligibility isn't discarded.
- */
-export function setCachedCredits(info: CreditsInfo): void {
-  cachedCredits = info;
-  broadcastCredits(info.available_executions);
-}
-
-/** Clear the cached credits (e.g. on sign-out) so stale balances aren't shown. */
+/** Clear the cached credits (e.g. on sign-out) and broadcast the cleared state
+ * so already-open panels hide the chip instead of showing a stale balance. */
 export function clearCachedCredits(): void {
   cachedCredits = null;
+  broadcastCredits(null);
 }
 
 const CREDITS_TITLE = "Need more credits?";
@@ -116,13 +110,21 @@ function creditsStatusLine(balance: number): string {
 // Guard so overlapping 402s (e.g. bulk generation) present a single popup.
 let isExhaustedPopupOpen = false;
 
-export async function handleExecutionsExhausted(): Promise<void> {
+export async function handleExecutionsExhausted(
+  altimateRequest?: AltimateRequest,
+): Promise<void> {
   if (isExhaustedPopupOpen) {
     return;
   }
   isExhaustedPopupOpen = true;
   try {
-    const credits = getCachedCredits();
+    let credits = getCachedCredits();
+    // If grant eligibility is unknown (activation fetch failed/raced), fetch once
+    // so an eligible user isn't shown the stripped "buy only" popup. Only on the
+    // unknown path, so the common case pays no extra round-trip.
+    if (credits?.feedback_grant_eligible === undefined && altimateRequest) {
+      credits = (await fetchAndCacheCredits(altimateRequest)) ?? credits;
+    }
     const canTalk = Boolean(
       credits?.feedback_grant_eligible && credits.feedback_grant_url,
     );
