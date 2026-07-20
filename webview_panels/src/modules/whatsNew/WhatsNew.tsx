@@ -93,6 +93,11 @@ const shortDate = (iso: string): string =>
     day: "numeric",
   });
 
+// The feed regularly carries a single entry for this product, so the count
+// line has to read "1 update", not "1 updates".
+const pluralize = (count: number, word: string): string =>
+  count === 1 ? word : `${word}s`;
+
 const openUrl = (url: string): void => {
   executeRequestInAsync("openURL", { url });
 };
@@ -371,8 +376,11 @@ const WhatsNew = (): JSX.Element => {
           <div className={classes.feedHead}>
             <span className={classes.resultsCount}>
               {shownCount === items.length
-                ? `${items.length} updates`
-                : `Showing ${shownCount} of ${items.length} updates`}
+                ? `${items.length} ${pluralize(items.length, "update")}`
+                : `Showing ${shownCount} of ${items.length} ${pluralize(
+                    items.length,
+                    "update",
+                  )}`}
             </span>
           </div>
 

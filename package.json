@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.61.7",
+  "version": "0.61.8",
   "engines": {
     "vscode": "^1.95.0",
     "node": ">=20.0.0"
@@ -136,7 +136,7 @@
           },
           "dbt.whatsNewManifestUrl": {
             "type": "string",
-            "description": "Override the What's New manifest URL (advanced). Leave empty to use the default endpoint. '{version}' is replaced with the extension version.",
+            "description": "Override the What's New changelog feed URL (advanced). Leave empty to use the public Altimate changelog RSS feed.",
             "default": ""
           },
           "dbt.disableQueryHistory": {

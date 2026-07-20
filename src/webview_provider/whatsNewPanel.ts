@@ -16,15 +16,27 @@ import {
   HandleCommandProps,
 } from "./altimateWebviewProvider";
 
-// A single curated changelog file is published by the Comm Center as an
-// IDE-specific manifest, filtered to dbt-power-user entries. The webview
-// renders directly from this shape; entry links resolve to `base_url + anchor`
-// on the website changelog.
+// The panel renders from the public changelog RSS feed, filtered to this
+// product's entries and mapped to the shape below.
+//
+// Tags mirror the changelog source's own vocabulary (altimate-website
+// `changelog-taxonomy.js` / the feed generator's VALID_TAGS), so a new tag
+// renders instead of silently collapsing into "improved".
+type WhatsNewTag = "new" | "improved" | "beta" | "fixed";
+
+const VALID_TAGS: readonly WhatsNewTag[] = ["new", "improved", "beta", "fixed"];
+const DEFAULT_TAG: WhatsNewTag = "improved";
+
 interface WhatsNewItem {
   title: string;
-  tag: "new" | "improved" | "fix";
+  tag: WhatsNewTag;
   summary: string;
   anchor: string;
+  // YYYY-MM-DD, derived from the feed's pubDate; drives month grouping.
+  date: string;
+  // Only present when the changelog entry declares a version for this
+  // product; the webview omits the version chip when it's absent.
+  version?: string;
 }
 
 interface WhatsNewManifest {
@@ -35,16 +47,87 @@ interface WhatsNewManifest {
   items: WhatsNewItem[];
 }
 
-// TODO: point at the Comm Center IDE-manifest endpoint once its URL and keying
-// (per-version file vs single feed) are finalized. `{version}` is replaced with
-// the running extension version. Until then, `dbt.whatsNewManifestUrl` can be
-// set to a reachable manifest for local/staging verification.
-const WHATS_NEW_MANIFEST_URL =
-  "https://www.altimate.ai/changelog/ide-manifest/dbt-power-user/{version}.json";
+// The public changelog RSS feed is the source of truth. Entries carry their
+// product as `<category>` and, when known, a per-product version as
+// `<altimate:version product="...">`, so the panel can scope itself to this
+// product. Overridable via `dbt.whatsNewManifestUrl` for local verification.
+const WHATS_NEW_FEED_URL = "https://altimate.ai/changelog.rss.xml";
+const CHANGELOG_BASE_URL = "https://altimate.ai/changelog";
+const PRODUCT_SLUG = "dbt-power-user";
 
 // globalState keys
 const LAST_SEEN_VERSION_KEY = "whatsNew.lastSeenVersion";
 const MANIFEST_CACHE_KEY = "whatsNew.cachedManifest";
+
+// ---------------------------------------------------------------------------
+// RSS parsing
+//
+// The feed is generated from a fixed template we control
+// (altimate-website `scripts/generate-changelog-rss.cjs`): flat <item> blocks,
+// no CDATA, no nested elements inside item children, and text escaped for
+// & < > " ' only. That makes targeted extraction sufficient and avoids adding
+// an XML parser dependency to the extension bundle. If the feed ever grows
+// nested or CDATA content, swap this for a real parser.
+// ---------------------------------------------------------------------------
+
+const decodeXml = (value: string): string =>
+  value
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    // &amp; last, so "&amp;lt;" decodes to "&lt;" and not "<"
+    .replace(/&amp;/g, "&");
+
+const firstTagText = (block: string, tag: string): string => {
+  const match = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`).exec(block);
+  return match ? decodeXml(match[1].trim()) : "";
+};
+
+/** Product slugs on the entry, from its `<category>` elements. */
+const itemProducts = (block: string): string[] =>
+  [...block.matchAll(/<category[^>]*>([\s\S]*?)<\/category>/g)].map((m) =>
+    decodeXml(m[1].trim()),
+  );
+
+/** `<altimate:version product="X">1.2.3</altimate:version>` for this product. */
+const itemVersion = (block: string, product: string): string | undefined => {
+  for (const m of block.matchAll(
+    /<altimate:version\s+product="([^"]*)"\s*>([\s\S]*?)<\/altimate:version>/g,
+  )) {
+    if (decodeXml(m[1]) === product) {
+      return decodeXml(m[2].trim()) || undefined;
+    }
+  }
+  return undefined;
+};
+
+/**
+ * The feed carries the tag only as a `[Label]` prefix on the title, so split
+ * it back out and leave the title clean.
+ */
+const splitTag = (rawTitle: string): { tag: WhatsNewTag; title: string } => {
+  const match = /^\[([^\]]+)\]\s*(.*)$/.exec(rawTitle);
+  if (!match) {
+    return { tag: DEFAULT_TAG, title: rawTitle };
+  }
+  const candidate = match[1].trim().toLowerCase() as WhatsNewTag;
+  return VALID_TAGS.includes(candidate)
+    ? { tag: candidate, title: match[2].trim() }
+    : { tag: DEFAULT_TAG, title: rawTitle };
+};
+
+/** RFC-822 pubDate -> YYYY-MM-DD (UTC), the shape the webview groups on. */
+const toIsoDate = (pubDate: string): string => {
+  const parsed = new Date(pubDate);
+  return isNaN(parsed.getTime()) ? "" : parsed.toISOString().slice(0, 10);
+};
+
+/** Anchor (`#slug`) from the entry's link/guid. */
+const toAnchor = (link: string): string => {
+  const hash = link.indexOf("#");
+  return hash >= 0 ? link.slice(hash) : "";
+};
 
 type WhatsNewTrigger = "auto" | "manual";
 
@@ -209,36 +292,74 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
     return manifest;
   }
 
+  /** Map the changelog feed to this product's entries, newest first. */
+  private parseFeed(xml: string, extensionVersion: string): WhatsNewManifest {
+    const items: WhatsNewItem[] = [];
+
+    for (const match of xml.matchAll(/<item>([\s\S]*?)<\/item>/g)) {
+      const block = match[1];
+      if (!itemProducts(block).includes(PRODUCT_SLUG)) {
+        continue; // another product's entry
+      }
+      const { tag, title } = splitTag(firstTagText(block, "title"));
+      const link = firstTagText(block, "link") || firstTagText(block, "guid");
+      const date = toIsoDate(firstTagText(block, "pubDate"));
+      if (!title || !date) {
+        continue; // malformed entry — skip rather than render a blank row
+      }
+      items.push({
+        title,
+        tag,
+        summary: firstTagText(block, "description"),
+        anchor: toAnchor(link),
+        date,
+        version: itemVersion(block, PRODUCT_SLUG),
+      });
+    }
+
+    items.sort((a, b) => b.date.localeCompare(a.date));
+
+    return {
+      product: PRODUCT_SLUG,
+      version: extensionVersion,
+      generated_at:
+        firstTagText(xml, "lastBuildDate") || new Date().toUTCString(),
+      base_url: CHANGELOG_BASE_URL,
+      items,
+    };
+  }
+
   private async fetchManifest(): Promise<WhatsNewManifest> {
     const version = this.dbtProjectContainer.extensionVersion;
-    const override = workspace
-      .getConfiguration("dbt")
-      .get<string>("whatsNewManifestUrl", "");
-    const url = (override || WHATS_NEW_MANIFEST_URL).replace(
-      "{version}",
-      version,
-    );
+    const url =
+      workspace
+        .getConfiguration("dbt")
+        .get<string>("whatsNewManifestUrl", "") || WHATS_NEW_FEED_URL;
 
     this.dbtTerminal.debug(
       "whatsNew:fetchManifest",
-      `Fetching What's New manifest from ${url}`,
+      `Fetching What's New feed from ${url}`,
     );
 
     try {
       const response = await fetch(url, {
-        headers: { Accept: "application/json" },
+        headers: { Accept: "application/rss+xml, application/xml, text/xml" },
       });
       if (!response.ok) {
-        throw new Error(`Manifest request failed with ${response.status}`);
+        throw new Error(`Feed request failed with ${response.status}`);
       }
-      const manifest = (await response.json()) as WhatsNewManifest;
+      const manifest = this.parseFeed(await response.text(), version);
+      this.dbtTerminal.debug(
+        "whatsNew:fetchManifest",
+        `Parsed ${manifest.items.length} ${PRODUCT_SLUG} entries from the feed`,
+      );
       this.dbtProjectContainer.setToGlobalState(MANIFEST_CACHE_KEY, manifest);
       return manifest;
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       this.dbtTerminal.warn(
         "whatsNew:fetchManifest",
-        `Failed to fetch What's New manifest from ${url}: ${detail}`,
+        `Failed to fetch What's New feed from ${url}: ${detail}`,
       );
       // Offline / endpoint down: fall back to the last successfully fetched
       // manifest so the panel still renders something useful.
