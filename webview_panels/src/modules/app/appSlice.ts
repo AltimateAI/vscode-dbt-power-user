@@ -6,6 +6,7 @@ export const initialState = {
   isComponentsApiInitialized: false,
   users: {},
   currentUser: null,
+  availableExecutions: null,
   tenantInfo: {
     frontendUrl: null,
     currency: "USD",
@@ -51,6 +52,9 @@ const appSlice = createSlice({
     ) => {
       state.currentUser = action.payload;
     },
+    setAvailableExecutions: (state, action: PayloadAction<number | null>) => {
+      state.availableExecutions = action.payload;
+    },
   },
 });
 
@@ -60,5 +64,6 @@ export const {
   setUsers,
   setCurrentUser,
   setTenantInfo,
+  setAvailableExecutions,
 } = appSlice.actions;
 export default appSlice;
