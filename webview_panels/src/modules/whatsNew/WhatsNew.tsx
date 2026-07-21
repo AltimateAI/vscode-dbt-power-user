@@ -4,7 +4,7 @@ import {
 } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import { TelemetryEvents } from "@telemetryEvents";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./fonts.scss";
 import {
   AltimateWordmark,
@@ -78,6 +78,7 @@ const PRODUCT_LINKS = [
 ];
 
 const FULL_CHANGELOG_URL = "https://altimate.ai/changelog";
+const ALTIMATE_SITE_URL = "https://altimate.ai";
 
 const monthKey = (iso: string): string => iso.slice(0, 7);
 
@@ -184,18 +185,85 @@ const WhatsNew = (): JSX.Element => {
     return () => observer.disconnect();
   }, [groups]);
 
-  const toggleTag = useCallback((tag: Tag): void => {
-    setActiveTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-    );
+  // Every event carries the running version so engagement can be read per
+  // release rather than as one undifferentiated pile.
+  const trackWithVersion = useCallback(
+    (eventName: string, properties: Record<string, string> = {}): void => {
+      track(eventName, { version: manifest?.version ?? "", ...properties });
+    },
+    [manifest],
+  );
+
+  // The ref is the synchronous source of truth for the toggle decision.
+  // Reading `activeTags` directly would go stale between two clicks landing in
+  // the same render (reporting "enabled" twice for an on/off pair), and
+  // deciding inside the state updater would double-fire under StrictMode,
+  // which invokes updaters twice.
+  const activeTagsRef = useRef<Tag[]>([]);
+
+  const toggleTag = useCallback(
+    (tag: Tag): void => {
+      const enabling = !activeTagsRef.current.includes(tag);
+      const next = enabling
+        ? [...activeTagsRef.current, tag]
+        : activeTagsRef.current.filter((t) => t !== tag);
+      activeTagsRef.current = next;
+      trackWithVersion(TelemetryEvents["WhatsNew/FilterToggled"], {
+        tag,
+        enabled: String(enabling),
+      });
+      setActiveTags(next);
+    },
+    [trackWithVersion],
+  );
+
+  // Reached only if a filter can ever select zero entries. Today it can't —
+  // pills with no entries are disabled, and filters union rather than
+  // intersect — so this is a fallback, not a tracked path.
+  const clearFilters = useCallback((): void => {
+    activeTagsRef.current = [];
+    setActiveTags([]);
   }, []);
 
-  const onFullChangelog = useCallback((): void => {
-    track(TelemetryEvents["WhatsNew/FullChangelogClicked"], {
-      version: manifest?.version ?? "",
-    });
-    openUrl(manifest?.base_url ?? FULL_CHANGELOG_URL);
-  }, [manifest]);
+  const onTimelineNavigate = useCallback(
+    (month: string): void => {
+      trackWithVersion(TelemetryEvents["WhatsNew/TimelineNavigated"], {
+        month,
+      });
+    },
+    [trackWithVersion],
+  );
+
+  const onProductLink = useCallback(
+    (product: string, url: string): void => {
+      trackWithVersion(TelemetryEvents["WhatsNew/ProductLinkClicked"], {
+        product,
+      });
+      openUrl(url);
+    },
+    [trackWithVersion],
+  );
+
+  const onSiteLink = useCallback(
+    (source: string): void => {
+      trackWithVersion(TelemetryEvents["WhatsNew/SiteLinkClicked"], { source });
+      openUrl(ALTIMATE_SITE_URL);
+    },
+    [trackWithVersion],
+  );
+
+  // `source` distinguishes the topbar link, the hero CTA, the footer link and
+  // the error state — they all lead to the same place, so without it we can't
+  // tell which one readers actually use.
+  const onFullChangelog = useCallback(
+    (source: string): void => {
+      trackWithVersion(TelemetryEvents["WhatsNew/FullChangelogClicked"], {
+        source,
+      });
+      openUrl(manifest?.base_url ?? FULL_CHANGELOG_URL);
+    },
+    [manifest, trackWithVersion],
+  );
 
   if (error) {
     return (
@@ -207,7 +275,7 @@ const WhatsNew = (): JSX.Element => {
             title={`Open ${FULL_CHANGELOG_URL} in your browser`}
             onClick={(e) => {
               e.preventDefault();
-              openUrl(FULL_CHANGELOG_URL);
+              onFullChangelog("error_state");
             }}
           >
             Open the full changelog →
@@ -239,7 +307,7 @@ const WhatsNew = (): JSX.Element => {
           title="Open altimate.ai in your browser"
           onClick={(e) => {
             e.preventDefault();
-            openUrl("https://altimate.ai");
+            onSiteLink("logo");
           }}
         >
           <AltimateWordmark />
@@ -251,7 +319,7 @@ const WhatsNew = (): JSX.Element => {
             title={`Open ${FULL_CHANGELOG_URL} in your browser`}
             onClick={(e) => {
               e.preventDefault();
-              onFullChangelog();
+              onFullChangelog("topbar");
             }}
           >
             Full changelog
@@ -262,7 +330,7 @@ const WhatsNew = (): JSX.Element => {
             title="Open altimate.ai in your browser"
             onClick={(e) => {
               e.preventDefault();
-              openUrl("https://altimate.ai");
+              onSiteLink("topbar");
             }}
           >
             altimate.ai
@@ -288,7 +356,7 @@ const WhatsNew = (): JSX.Element => {
             title={`Open ${manifest.base_url} in your browser`}
             onClick={(e) => {
               e.preventDefault();
-              onFullChangelog();
+              onFullChangelog("cta");
             }}
           >
             View full changelog
@@ -307,7 +375,7 @@ const WhatsNew = (): JSX.Element => {
                 title={`Open ${link.url} in your browser`}
                 onClick={(e) => {
                   e.preventDefault();
-                  openUrl(link.url);
+                  onProductLink(link.label, link.url);
                 }}
               >
                 {link.label}
@@ -360,6 +428,7 @@ const WhatsNew = (): JSX.Element => {
                 type="button"
                 data-active={activeMonth === group.key}
                 onClick={() => {
+                  onTimelineNavigate(group.key);
                   setActiveMonth(group.key);
                   document
                     .querySelector(`[data-month-key="${group.key}"]`)
@@ -442,7 +511,7 @@ const WhatsNew = (): JSX.Element => {
               <button
                 type="button"
                 className={classes.emptyButton}
-                onClick={() => setActiveTags([])}
+                onClick={clearFilters}
               >
                 Clear filters
               </button>
@@ -458,7 +527,7 @@ const WhatsNew = (): JSX.Element => {
           title={`Open ${FULL_CHANGELOG_URL} in your browser`}
           onClick={(e) => {
             e.preventDefault();
-            onFullChangelog();
+            onFullChangelog("footer");
           }}
         >
           See the full platform changelog →
