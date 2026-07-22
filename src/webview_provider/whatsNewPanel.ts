@@ -52,6 +52,9 @@ interface WhatsNewManifest {
 // `<altimate:version product="...">`, so the panel can scope itself to this
 // product.
 const WHATS_NEW_FEED_URL = "https://altimate.ai/changelog.rss.xml";
+// Bound the feed fetch so a stalled endpoint can't hang the panel — on timeout
+// we abort and fall back to the cached manifest.
+const FEED_FETCH_TIMEOUT_MS = 10_000;
 const CHANGELOG_BASE_URL = "https://altimate.ai/changelog";
 const PRODUCT_SLUG = "dbt-power-user";
 
@@ -338,9 +341,12 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
       `Fetching What's New feed from ${url}`,
     );
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FEED_FETCH_TIMEOUT_MS);
     try {
       const response = await fetch(url, {
         headers: { Accept: "application/rss+xml, application/xml, text/xml" },
+        signal: controller.signal,
       });
       if (!response.ok) {
         throw new Error(`Feed request failed with ${response.status}`);
@@ -367,6 +373,8 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
         return cached;
       }
       throw error;
+    } finally {
+      clearTimeout(timeout);
     }
   }
 }
