@@ -46,8 +46,6 @@ const QueryPanel = (): JSX.Element => {
           {viewType === QueryPanelViewType.DEFAULT && (
             <>
               <QueryLimit />
-              <NewNotebookButton />
-              <RunAdhocQueryButton />
               {hasData && (
                 <Button
                   color="primary"
@@ -61,11 +59,13 @@ const QueryPanel = (): JSX.Element => {
                     })
                   }
                 >
-                  Profile this query
+                  Profile Query
                 </Button>
               )}
-              <ClearResultsButton />
+              <NewNotebookButton />
+              <RunAdhocQueryButton />
               <ShowInTabButton />
+              <ClearResultsButton />
             </>
           )}
           <CreditsChip />

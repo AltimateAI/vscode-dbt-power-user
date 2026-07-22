@@ -29,8 +29,13 @@ const NewNotebookButton = (): JSX.Element | null => {
   return (
     <>
       <NewFeatureIndicator featureKey="new-notebook-button-clicked">
-        <Button outline onClick={handleClick}>
-          + New notebook
+        <Button
+          outline
+          onClick={handleClick}
+          title="New notebook"
+          aria-label="New notebook"
+        >
+          +N
         </Button>
       </NewFeatureIndicator>
     </>
