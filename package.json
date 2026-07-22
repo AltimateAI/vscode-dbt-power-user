@@ -134,11 +134,6 @@
             "description": "Show the What's New page automatically after the extension updates to a new minor or major version.",
             "default": true
           },
-          "dbt.whatsNewManifestUrl": {
-            "type": "string",
-            "description": "Override the What's New changelog feed URL (advanced). Leave empty to use the public Altimate changelog RSS feed.",
-            "default": ""
-          },
           "dbt.disableQueryHistory": {
             "type": "boolean",
             "description": "Disable Query history and bookmarks",

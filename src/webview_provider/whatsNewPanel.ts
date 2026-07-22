@@ -50,7 +50,7 @@ interface WhatsNewManifest {
 // The public changelog RSS feed is the source of truth. Entries carry their
 // product as `<category>` and, when known, a per-product version as
 // `<altimate:version product="...">`, so the panel can scope itself to this
-// product. Overridable via `dbt.whatsNewManifestUrl` for local verification.
+// product.
 const WHATS_NEW_FEED_URL = "https://altimate.ai/changelog.rss.xml";
 const CHANGELOG_BASE_URL = "https://altimate.ai/changelog";
 const PRODUCT_SLUG = "dbt-power-user";
@@ -331,10 +331,7 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
 
   private async fetchManifest(): Promise<WhatsNewManifest> {
     const version = this.dbtProjectContainer.extensionVersion;
-    const url =
-      workspace
-        .getConfiguration("dbt")
-        .get<string>("whatsNewManifestUrl", "") || WHATS_NEW_FEED_URL;
+    const url = WHATS_NEW_FEED_URL;
 
     this.dbtTerminal.debug(
       "whatsNew:fetchManifest",
