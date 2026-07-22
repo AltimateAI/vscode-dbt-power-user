@@ -69,7 +69,10 @@ const PRODUCT_LINKS = [
     label: "Altimate Code",
     url: "https://altimate.ai/products/altimate-code",
   },
-  { label: "Datamates", url: "https://altimate.ai/datamates" },
+  {
+    label: "Altimate MCP Server",
+    url: "https://help.altimate.ai/datamates/",
+  },
   { label: "Snowflake", url: "https://altimate.ai/altimate-on-snowflake" },
   {
     label: "Databricks",
