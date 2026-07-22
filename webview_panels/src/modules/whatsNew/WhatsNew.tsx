@@ -125,9 +125,11 @@ const WhatsNew = (): JSX.Element => {
       });
   }, []);
 
-  // Newest first — the month grouping below relies on this order.
+  // Newest first — the month grouping below relies on this order. `items` is
+  // checked rather than trusted: it arrives from the host, which may be
+  // serving a cached manifest written by an older build.
   const items = useMemo(() => {
-    if (!manifest) {
+    if (!manifest || !Array.isArray(manifest.items)) {
       return [];
     }
     return [...manifest.items].sort((a, b) => b.date.localeCompare(a.date));
@@ -160,27 +162,58 @@ const WhatsNew = (): JSX.Element => {
     return out;
   }, [items, activeTags]);
 
+  // Month sections, keyed by month. Populated by callback refs so the panel
+  // never reaches into the document to find its own nodes.
+  const sectionRefs = useRef(new Map<string, HTMLElement>());
+
   // Scrollspy: highlight the month whose section is currently in view.
   useEffect(() => {
     if (!groups.length) {
       return;
     }
     setActiveMonth(groups[0].key);
+
+    // The observer reports only sections whose intersection *changed*, so the
+    // set of visible months is accumulated across callbacks. Recomputing from
+    // `entries` alone would ignore months that were already on screen and
+    // leave the highlight stuck on a section that has scrolled away.
+    const visible = new Set<string>();
     const observer = new IntersectionObserver(
       (entries) => {
-        const topmost = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort(
-            (a, b) => a.boundingClientRect.top - b.boundingClientRect.top,
-          )[0];
-        if (topmost) {
-          setActiveMonth(topmost.target.getAttribute("data-month-key"));
+        for (const entry of entries) {
+          const key = entry.target.getAttribute("data-month-key");
+          if (!key) {
+            continue;
+          }
+          if (entry.isIntersecting) {
+            visible.add(key);
+          } else {
+            visible.delete(key);
+          }
+        }
+        // Rects are read live: the ones on `entries` are snapshots from when
+        // the callback was queued and go stale during a fast scroll.
+        let topKey: string | null = null;
+        let topOffset = Number.POSITIVE_INFINITY;
+        for (const key of visible) {
+          const el = sectionRefs.current.get(key);
+          if (!el) {
+            continue;
+          }
+          const top = el.getBoundingClientRect().top;
+          if (top < topOffset) {
+            topOffset = top;
+            topKey = key;
+          }
+        }
+        if (topKey) {
+          setActiveMonth(topKey);
         }
       },
       { rootMargin: "-90px 0px -70% 0px" },
     );
     for (const group of groups) {
-      const el = document.querySelector(`[data-month-key="${group.key}"]`);
+      const el = sectionRefs.current.get(group.key);
       if (el) {
         observer.observe(el);
       }
@@ -433,8 +466,8 @@ const WhatsNew = (): JSX.Element => {
                 onClick={() => {
                   onTimelineNavigate(group.key);
                   setActiveMonth(group.key);
-                  document
-                    .querySelector(`[data-month-key="${group.key}"]`)
+                  sectionRefs.current
+                    .get(group.key)
                     ?.scrollIntoView({ behavior: "smooth", block: "start" });
                 }}
               >
@@ -461,6 +494,13 @@ const WhatsNew = (): JSX.Element => {
               key={group.key}
               className={classes.month}
               data-month-key={group.key}
+              ref={(el) => {
+                if (el) {
+                  sectionRefs.current.set(group.key, el);
+                } else {
+                  sectionRefs.current.delete(group.key);
+                }
+              }}
             >
               <h2 className={classes.monthHead}>{group.label}</h2>
               <ol className={classes.entries}>

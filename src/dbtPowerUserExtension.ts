@@ -118,6 +118,7 @@ export class DBTPowerUserExtension implements Disposable {
       this.commentProviders,
       this.notebookProviders,
       this.mcpServer,
+      this.whatsNewPanel,
     );
   }
 
