@@ -141,8 +141,68 @@ jobs:
               });
             }
 
-  release-vsstudio-marketplace:
+  # Pre-publish gate: smoke-test the freshly-built VSIX in a fresh code-server
+  # container BEFORE we hand it to the marketplace. If install or activation
+  # fails here, release-vsstudio-marketplace is blocked because it `needs` us.
+  # Same script (docker-setup/vsix-smoke.sh) that runs daily post-publish from
+  # vsix-smoke.yml, and that Anas/Sai can run locally on their laptops.
+  release-smoke:
     needs: build
+    runs-on: ubuntu-latest
+    if: success() && startsWith(github.ref, 'refs/tags/')
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run common build steps
+        uses: ./.github/actions/common-build
+        with:
+          vsce-target: linux-x64
+      - name: Package linux-x64 VSIX
+        run: npx @vscode/vsce package --target linux-x64
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+      - name: Resolve previous published version from OpenVSX
+        id: prev
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, re, urllib.request
+          with urllib.request.urlopen(
+              "https://open-vsx.org/api/innoverio/vscode-dbt-power-user"
+          ) as r:
+              data = json.load(r)
+          numeric = [v for v in data.get("allVersions", {}) if re.match(r"^\d", v)]
+          # numeric[0] is the version currently on the marketplace — that's our
+          # baseline. We're testing an upgrade from there to the local VSIX.
+          baseline = numeric[0] if numeric else ""
+          print(f"baseline={baseline}")
+          PY
+      - name: Smoke test VSIX (upgrade from previous published → this local build)
+        env:
+          BASELINE: ${{ steps.prev.outputs.baseline }}
+        run: |
+          VSIX_FILE=$(ls *.vsix | head -1)
+          echo "Testing local VSIX: $VSIX_FILE (upgrade from baseline: ${BASELINE:-none})"
+          if [ -z "$VSIX_FILE" ]; then
+            echo "::error::No .vsix file produced by vsce package"
+            exit 1
+          fi
+          args=(--vsix-file "$VSIX_FILE")
+          if [ -n "$BASELINE" ]; then
+            args+=(--from-version "$BASELINE")
+          fi
+          bash docker-setup/vsix-smoke.sh "${args[@]}"
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-smoke-logs-${{ github.run_id }}
+          path: /tmp/vsix-smoke-build.log
+          retention-days: 14
+          if-no-files-found: ignore
+
+  release-vsstudio-marketplace:
+    needs: [build, release-smoke]
     runs-on: ubuntu-latest
     if: success() && startsWith( github.ref, 'refs/tags/')
     strategy:
