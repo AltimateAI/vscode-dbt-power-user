@@ -77,4 +77,5 @@ export enum TelemetryEvents {
   "AltimateCode/RunHistoryFixClick" = "AltimateCode/RunHistoryFixClick",
   "AltimateCode/TroubleshootCodeActionClick" = "AltimateCode/TroubleshootCodeActionClick",
   "DocumentationEditor/UnitTestGenerateClick" = "DocumentationEditor/UnitTestGenerateClick",
+  "QueryPanel/OptimizeWarehouseClick" = "QueryPanel/OptimizeWarehouseClick",
 }
