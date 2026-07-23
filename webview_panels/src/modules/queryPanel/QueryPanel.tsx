@@ -11,6 +11,7 @@ import { QueryPanelTitleTabState } from "./components/QueryPanelContents/types";
 import ClearResultsButton from "./components/clearResultsButton/ClearResultsButton";
 import HelpButton from "./components/help/HelpButton";
 import ShowInTabButton from "./components/openInTabButton/OpenInTabButton";
+import OptimizeWarehouseButton from "./components/optimizeWarehouseButton/OptimizeWarehouseButton";
 import QueryLimit from "./components/queryLimit/QueryLimit";
 import NewNotebookButton from "./components/runAdhocQueryButton/NewNotebook";
 import RunAdhocQueryButton from "./components/runAdhocQueryButton/RunAdhocQueryButton";
@@ -42,7 +43,7 @@ const QueryPanel = (): JSX.Element => {
         <Stack direction="column" style={{ flex: 1 }}>
           <QueryPanelTitle tabState={tabState} setTabState={changeTabState} />
         </Stack>
-        <Stack>
+        <Stack className={classes.toolbar}>
           {viewType === QueryPanelViewType.DEFAULT && (
             <>
               <QueryLimit />
@@ -62,6 +63,7 @@ const QueryPanel = (): JSX.Element => {
                   Profile Query
                 </Button>
               )}
+              <OptimizeWarehouseButton />
               <NewNotebookButton />
               <RunAdhocQueryButton />
               <ShowInTabButton />
