@@ -212,7 +212,7 @@ export class DBTPowerUserExtension implements Disposable {
         // Listener registration must never block activation; record it so a
         // version-skew failure is observable instead of silently swallowed.
         this.telemetry.sendTelemetryError(
-          "creditsListenerRegistrationFailed",
+          "creditsListenerRegistrationError",
           error,
         );
       }
