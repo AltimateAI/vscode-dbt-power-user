@@ -91,4 +91,5 @@ export enum TelemetryEvents {
   // Cross-promo: the "Also from Altimate AI" aside exists to drive discovery.
   "WhatsNew/ProductLinkClicked" = "whats_new_product_link_clicked",
   "WhatsNew/SiteLinkClicked" = "whats_new_site_link_clicked",
+  "QueryPanel/OptimizeWarehouseClick" = "QueryPanel/OptimizeWarehouseClick",
 }

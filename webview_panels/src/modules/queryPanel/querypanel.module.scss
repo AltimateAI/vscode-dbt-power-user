@@ -186,3 +186,24 @@
 .searchInput::-webkit-search-cancel-button {
   display: none;
 }
+
+// Action toolbar. The labelled buttons keep their text on a single line so they
+// match the rest of the row's height; the row wraps once it runs out of width so
+// the trailing controls stay reachable in a narrow panel instead of clipping.
+.toolbar {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  row-gap: 0.5rem;
+
+  :global(.btn) {
+    white-space: nowrap;
+  }
+
+  // Filled variants ship without a border while outline variants carry a 1px
+  // one, leaving the solid buttons 2px shorter than their neighbours. A
+  // transparent border squares the heights up without altering the fill.
+  :global(.btn-primary),
+  :global(.btn-success) {
+    border: 1px solid transparent;
+  }
+}
