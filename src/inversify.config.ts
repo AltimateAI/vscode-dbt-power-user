@@ -159,6 +159,7 @@ import { NewLineagePanel } from "./webview_provider/newLineagePanel";
 import { OnboardingPanel } from "./webview_provider/onboardingPanel";
 import { QueryResultPanel } from "./webview_provider/queryResultPanel";
 import { SQLLineagePanel } from "./webview_provider/sqlLineagePanel";
+import { WhatsNewPanel } from "./webview_provider/whatsNewPanel";
 
 export const container = new Container();
 
@@ -1622,6 +1623,7 @@ container
       context.container.get(CteProfilerDecorationProvider),
       context.container.get(CteCodeLensProvider),
       context.container.get(TelemetryService),
+      context.container.get(WhatsNewPanel),
     );
   })
   .inSingletonScope();
@@ -1852,6 +1854,23 @@ container
   })
   .inSingletonScope();
 
+container
+  .bind(WhatsNewPanel)
+  .toDynamicValue((context) => {
+    return new WhatsNewPanel(
+      context.container.get(DBTProjectContainer),
+      context.container.get(AltimateRequest),
+      context.container.get(TelemetryService),
+      context.container.get(SharedStateService),
+      context.container.get("DBTTerminal"),
+      context.container.get(QueryManifestService),
+      context.container.get(UsersService),
+      context.container.get(AltimateAuthService),
+      context.container.get(AltimateCodeChatService),
+    );
+  })
+  .inSingletonScope();
+
 // Bind DbtPowerUserActionsCenter
 container
   .bind(DbtPowerUserActionsCenter)
@@ -1899,6 +1918,7 @@ container
       context.container.get(DbtPowerUserMcpServer),
       context.container.get(AltimateRequest),
       context.container.get(AltimateAuthService),
+      context.container.get(WhatsNewPanel),
     );
   })
   .inSingletonScope();

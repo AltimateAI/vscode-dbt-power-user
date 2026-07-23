@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.62.1",
+  "version": "0.63.0",
   "engines": {
     "vscode": "^1.95.0",
     "node": ">=20.0.0"
@@ -127,6 +127,11 @@
           "dbt.enableCollaboration": {
             "type": "boolean",
             "description": "Enable dbt docs collaboration.",
+            "default": true
+          },
+          "dbt.showChangelogOnUpdate": {
+            "type": "boolean",
+            "description": "Show the What's New page automatically after the extension updates to a new minor or major version.",
             "default": true
           },
           "dbt.disableQueryHistory": {
@@ -421,6 +426,11 @@
       {
         "command": "dbtPowerUser.collectQueryResultsDebugInfo",
         "title": "Query Results Debug Info",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.showWhatsNew",
+        "title": "Show What's New",
         "category": "dbt Power User"
       },
       {

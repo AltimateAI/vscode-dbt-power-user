@@ -77,5 +77,19 @@ export enum TelemetryEvents {
   "AltimateCode/RunHistoryFixClick" = "AltimateCode/RunHistoryFixClick",
   "AltimateCode/TroubleshootCodeActionClick" = "AltimateCode/TroubleshootCodeActionClick",
   "DocumentationEditor/UnitTestGenerateClick" = "DocumentationEditor/UnitTestGenerateClick",
+  "WhatsNew/PageOpened" = "whats_new_page_opened",
+  // Carries a `source` so the three changelog links (topbar, hero CTA, footer,
+  // plus the error state) can be told apart.
+  "WhatsNew/FullChangelogClicked" = "full_changelog_clicked",
+  // Which change types readers actually care about. This is the per-item
+  // interest signal now that entries aren't links — the linked changelog entry
+  // only repeats what the panel already shows, so there was nothing to click
+  // through to.
+  "WhatsNew/FilterToggled" = "whats_new_filter_toggled",
+  // Whether the timeline rail earns the space it takes.
+  "WhatsNew/TimelineNavigated" = "whats_new_timeline_navigated",
+  // Cross-promo: the "Also from Altimate AI" aside exists to drive discovery.
+  "WhatsNew/ProductLinkClicked" = "whats_new_product_link_clicked",
+  "WhatsNew/SiteLinkClicked" = "whats_new_site_link_clicked",
   "QueryPanel/OptimizeWarehouseClick" = "QueryPanel/OptimizeWarehouseClick",
 }
