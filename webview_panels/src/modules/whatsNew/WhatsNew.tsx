@@ -311,6 +311,10 @@ const WhatsNew = (): JSX.Element => {
             title={`Open ${FULL_CHANGELOG_URL} in your browser`}
             onClick={(e) => {
               e.preventDefault();
+              // Also stop the click reaching VS Code's own webview anchor handler,
+              // which would open the URL a second time (once via our openURL, once
+              // via the host's native external-link handling).
+              e.stopPropagation();
               onFullChangelog("error_state");
             }}
           >
@@ -343,6 +347,10 @@ const WhatsNew = (): JSX.Element => {
           title="Open altimate.ai in your browser"
           onClick={(e) => {
             e.preventDefault();
+            // Also stop the click reaching VS Code's own webview anchor handler,
+            // which would open the URL a second time (once via our openURL, once
+            // via the host's native external-link handling).
+            e.stopPropagation();
             onSiteLink("logo");
           }}
         >
@@ -355,6 +363,10 @@ const WhatsNew = (): JSX.Element => {
             title={`Open ${FULL_CHANGELOG_URL} in your browser`}
             onClick={(e) => {
               e.preventDefault();
+              // Also stop the click reaching VS Code's own webview anchor handler,
+              // which would open the URL a second time (once via our openURL, once
+              // via the host's native external-link handling).
+              e.stopPropagation();
               onFullChangelog("topbar");
             }}
           >
@@ -366,6 +378,10 @@ const WhatsNew = (): JSX.Element => {
             title="Open altimate.ai in your browser"
             onClick={(e) => {
               e.preventDefault();
+              // Also stop the click reaching VS Code's own webview anchor handler,
+              // which would open the URL a second time (once via our openURL, once
+              // via the host's native external-link handling).
+              e.stopPropagation();
               onSiteLink("topbar");
             }}
           >
@@ -392,6 +408,10 @@ const WhatsNew = (): JSX.Element => {
             title={`Open ${manifest.base_url} in your browser`}
             onClick={(e) => {
               e.preventDefault();
+              // Also stop the click reaching VS Code's own webview anchor handler,
+              // which would open the URL a second time (once via our openURL, once
+              // via the host's native external-link handling).
+              e.stopPropagation();
               onFullChangelog("cta");
             }}
           >
@@ -411,6 +431,10 @@ const WhatsNew = (): JSX.Element => {
                 title={`Open ${link.url} in your browser`}
                 onClick={(e) => {
                   e.preventDefault();
+                  // Also stop the click reaching VS Code's own webview anchor handler,
+                  // which would open the URL a second time (once via our openURL, once
+                  // via the host's native external-link handling).
+                  e.stopPropagation();
                   onProductLink(link.label, link.url);
                 }}
               >
@@ -570,6 +594,10 @@ const WhatsNew = (): JSX.Element => {
           title={`Open ${FULL_CHANGELOG_URL} in your browser`}
           onClick={(e) => {
             e.preventDefault();
+            // Also stop the click reaching VS Code's own webview anchor handler,
+            // which would open the URL a second time (once via our openURL, once
+            // via the host's native external-link handling).
+            e.stopPropagation();
             onFullChangelog("footer");
           }}
         >
