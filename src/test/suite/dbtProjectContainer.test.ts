@@ -809,7 +809,7 @@ describe("DBTProjectContainer Tests", () => {
       );
     });
 
-    it("should handle executeSQL with untitled URI and no selected project", () => {
+    it("should fall back to the single workspace project when untitled URI has no selected project", () => {
       const mockContext = {
         workspaceState: {
           get: jest.fn(() => undefined),
@@ -822,16 +822,57 @@ describe("DBTProjectContainer Tests", () => {
       } as unknown as ExtensionContext;
       container.setContext(mockContext);
 
+      // Untitled docs don't map to a workspace folder, so findDBTProject
+      // returns undefined for the untitled URI itself. The single-project
+      // fallback should still run the query against the only project.
       mockDbtWorkspaceFolder.findDBTProject = jest.fn(() => undefined);
 
       const untitledUri = { scheme: "untitled", fsPath: "Untitled-1" } as Uri;
       const query = "SELECT * FROM table";
       const modelName = "test_model";
 
-      // Should not throw error
       container.executeSQL(untitledUri, query, modelName);
 
+      expect(mockDbtProject.executeSQLOnQueryPanel).toHaveBeenCalledWith(
+        query,
+        modelName,
+      );
+    });
+
+    it("should skip execution for untitled URI when workspace has multiple projects and none selected", () => {
+      const mockContext = {
+        workspaceState: {
+          get: jest.fn(() => undefined),
+          update: jest.fn(),
+        },
+        globalState: {
+          get: jest.fn(),
+          update: jest.fn(),
+        },
+      } as unknown as ExtensionContext;
+      container.setContext(mockContext);
+
+      const secondMockProject = {
+        ...mockDbtProject,
+        executeSQLOnQueryPanel: jest.fn(),
+      };
+      const secondWorkspaceFolder = {
+        ...mockDbtWorkspaceFolder,
+        findDBTProject: jest.fn(() => undefined),
+        getProjects: jest.fn(() => [secondMockProject]),
+      };
+      mockDbtWorkspaceFolder.findDBTProject = jest.fn(() => undefined);
+      container.dbtWorkspaceFolders = [
+        mockDbtWorkspaceFolder,
+        secondWorkspaceFolder,
+      ];
+
+      const untitledUri = { scheme: "untitled", fsPath: "Untitled-1" } as Uri;
+
+      container.executeSQL(untitledUri, "SELECT 1", "test_model");
+
       expect(mockDbtProject.executeSQLOnQueryPanel).not.toHaveBeenCalled();
+      expect(secondMockProject.executeSQLOnQueryPanel).not.toHaveBeenCalled();
     });
   });
 
