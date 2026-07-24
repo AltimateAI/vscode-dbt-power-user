@@ -4,7 +4,14 @@ import {
 } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import { TelemetryEvents } from "@telemetryEvents";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type MouseEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import "./fonts.scss";
 import {
   AltimateWordmark,
@@ -82,6 +89,23 @@ const PRODUCT_LINKS = [
 
 const FULL_CHANGELOG_URL = "https://altimate.ai/changelog";
 const ALTIMATE_SITE_URL = "https://altimate.ai";
+
+/**
+ * Click handler for a link that opens outside the editor.
+ *
+ * `preventDefault` stops the webview iframe navigating to the href, and
+ * `stopPropagation` stops the click reaching VS Code's own webview anchor
+ * handler, which would otherwise open the URL a second time — once through our
+ * `openURL` message, once through the host's native external-link handling.
+ * The href stays on the element so it remains a real, focusable link.
+ */
+const openExternal =
+  (open: () => void) =>
+  (e: MouseEvent<HTMLAnchorElement>): void => {
+    e.preventDefault();
+    e.stopPropagation();
+    open();
+  };
 
 const monthKey = (iso: string): string => iso.slice(0, 7);
 
@@ -309,14 +333,7 @@ const WhatsNew = (): JSX.Element => {
           <a
             href={FULL_CHANGELOG_URL}
             title={`Open ${FULL_CHANGELOG_URL} in your browser`}
-            onClick={(e) => {
-              e.preventDefault();
-              // Also stop the click reaching VS Code's own webview anchor handler,
-              // which would open the URL a second time (once via our openURL, once
-              // via the host's native external-link handling).
-              e.stopPropagation();
-              onFullChangelog("error_state");
-            }}
+            onClick={openExternal(() => onFullChangelog("error_state"))}
           >
             Open the full changelog →
           </a>
@@ -345,14 +362,7 @@ const WhatsNew = (): JSX.Element => {
           href="https://altimate.ai"
           aria-label="Altimate AI"
           title="Open altimate.ai in your browser"
-          onClick={(e) => {
-            e.preventDefault();
-            // Also stop the click reaching VS Code's own webview anchor handler,
-            // which would open the URL a second time (once via our openURL, once
-            // via the host's native external-link handling).
-            e.stopPropagation();
-            onSiteLink("logo");
-          }}
+          onClick={openExternal(() => onSiteLink("logo"))}
         >
           <AltimateWordmark />
         </a>
@@ -361,14 +371,7 @@ const WhatsNew = (): JSX.Element => {
             className={classes.topbarLink}
             href={FULL_CHANGELOG_URL}
             title={`Open ${FULL_CHANGELOG_URL} in your browser`}
-            onClick={(e) => {
-              e.preventDefault();
-              // Also stop the click reaching VS Code's own webview anchor handler,
-              // which would open the URL a second time (once via our openURL, once
-              // via the host's native external-link handling).
-              e.stopPropagation();
-              onFullChangelog("topbar");
-            }}
+            onClick={openExternal(() => onFullChangelog("topbar"))}
           >
             Full changelog
           </a>
@@ -376,14 +379,7 @@ const WhatsNew = (): JSX.Element => {
             className={classes.topbarLink}
             href="https://altimate.ai"
             title="Open altimate.ai in your browser"
-            onClick={(e) => {
-              e.preventDefault();
-              // Also stop the click reaching VS Code's own webview anchor handler,
-              // which would open the URL a second time (once via our openURL, once
-              // via the host's native external-link handling).
-              e.stopPropagation();
-              onSiteLink("topbar");
-            }}
+            onClick={openExternal(() => onSiteLink("topbar"))}
           >
             altimate.ai
           </a>
@@ -406,14 +402,7 @@ const WhatsNew = (): JSX.Element => {
             className={classes.cta}
             href={manifest.base_url}
             title={`Open ${manifest.base_url} in your browser`}
-            onClick={(e) => {
-              e.preventDefault();
-              // Also stop the click reaching VS Code's own webview anchor handler,
-              // which would open the URL a second time (once via our openURL, once
-              // via the host's native external-link handling).
-              e.stopPropagation();
-              onFullChangelog("cta");
-            }}
+            onClick={openExternal(() => onFullChangelog("cta"))}
           >
             View full changelog
             <ArrowIcon />
@@ -429,14 +418,7 @@ const WhatsNew = (): JSX.Element => {
                 className={classes.asideLink}
                 href={link.url}
                 title={`Open ${link.url} in your browser`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  // Also stop the click reaching VS Code's own webview anchor handler,
-                  // which would open the URL a second time (once via our openURL, once
-                  // via the host's native external-link handling).
-                  e.stopPropagation();
-                  onProductLink(link.label, link.url);
-                }}
+                onClick={openExternal(() => onProductLink(link.label, link.url))}
               >
                 {link.label}
                 <ExternalArrowIcon className={classes.asideArrow} />
@@ -592,14 +574,7 @@ const WhatsNew = (): JSX.Element => {
         <a
           href={FULL_CHANGELOG_URL}
           title={`Open ${FULL_CHANGELOG_URL} in your browser`}
-          onClick={(e) => {
-            e.preventDefault();
-            // Also stop the click reaching VS Code's own webview anchor handler,
-            // which would open the URL a second time (once via our openURL, once
-            // via the host's native external-link handling).
-            e.stopPropagation();
-            onFullChangelog("footer");
-          }}
+          onClick={openExternal(() => onFullChangelog("footer"))}
         >
           See the full platform changelog →
         </a>
