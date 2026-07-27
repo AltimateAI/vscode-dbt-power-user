@@ -1,4 +1,8 @@
-import { DBTTerminal, RunModelType } from "@altimateai/dbt-integration";
+import {
+  DBTTerminal,
+  ExecutionsExhaustedException,
+  RunModelType,
+} from "@altimateai/dbt-integration";
 import { DatapilotNotebookController, OpenNotebookRequest } from "@lib";
 import { existsSync, readFileSync } from "fs";
 import { inject } from "inversify";
@@ -68,6 +72,7 @@ import {
   getFormattedDateTime,
 } from "../utils";
 import { SQLLineagePanel } from "../webview_provider/sqlLineagePanel";
+import { WhatsNewPanel } from "../webview_provider/whatsNewPanel";
 import { AltimateScan } from "./altimateScan";
 import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
 import { RunModel } from "./runModel";
@@ -106,6 +111,7 @@ export class VSCodeCommands implements Disposable {
     private cteProfilerDecorationProvider: CteProfilerDecorationProvider,
     private cteCodeLensProvider: CteCodeLensProvider,
     private telemetry: TelemetryService,
+    private whatsNewPanel: WhatsNewPanel,
   ) {
     this.disposables.push(
       this.cteProfilerService,
@@ -119,6 +125,9 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand("dbtPowerUser.installDbt", () =>
         this.walkthroughCommands.installDbt(),
+      ),
+      commands.registerCommand("dbtPowerUser.showWhatsNew", () =>
+        this.whatsNewPanel.show("manual"),
       ),
       commands.registerCommand("dbtPowerUser.runCurrentModel", () => {
         // `dbt run` on a singular test file is never meaningful; route it
@@ -1056,6 +1065,10 @@ export class VSCodeCommands implements Disposable {
               );
               this.sqlLineagePanel.renderSqlVisualizer(panel, lineage);
             } catch (e) {
+              // The central 402 handler already showed the out-of-credits popup.
+              if (e instanceof ExecutionsExhaustedException) {
+                return;
+              }
               const errorMessage = (e as Error)?.message;
               this.dbtTerminal.error("sqlLineage", errorMessage, e, true);
               window.showErrorMessage(errorMessage);

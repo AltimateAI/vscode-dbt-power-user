@@ -4,6 +4,7 @@ import {
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
 import CommonActionButtons from "@modules/commonActionButtons/CommonActionButtons";
+import CreditsChip from "@modules/commonActionButtons/CreditsChip";
 import { EntityType } from "@modules/documentationEditor/state/entityType";
 import { panelLogger } from "@modules/logger";
 import { Stack } from "@uicore";
@@ -140,7 +141,8 @@ const DocumentationEditor = (): JSX.Element => {
     <div className={`${classes.documentationWrapper} ${classes.limitWidth}`}>
       <Stack className="mb-2 justify-content-between">
         <h2>Documentation Editor</h2>
-        <Stack>
+        <Stack className="align-items-center">
+          <CreditsChip />
           <SaveDocumentation />
           <BulkGenerateButton />
           <CommonActionButtons />

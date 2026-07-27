@@ -346,6 +346,25 @@ export class AltimateRequest {
     return this.altimateHttpClient.getAltimateUrl();
   }
 
+  /**
+   * Register a listener for the `X-Credits-Remaining` header the backend sets on
+   * every response. Enables live credit-balance updates with no extra API calls.
+   */
+  public setCreditsRemainingListener(
+    listener: (remaining: number) => void,
+  ): void {
+    this.altimateHttpClient.setCreditsRemainingListener(listener);
+  }
+
+  /**
+   * Register a listener invoked whenever any API call returns 402 (credits
+   * exhausted). Enables a single, consistent out-of-credits popup for the whole
+   * extension.
+   */
+  public setExecutionsExhaustedListener(listener: () => void): void {
+    this.altimateHttpClient.setExecutionsExhaustedListener(listener);
+  }
+
   private async internalFetch(url: string, init?: RequestInit) {
     return this.altimateHttpClient.internalFetch(url, init);
   }

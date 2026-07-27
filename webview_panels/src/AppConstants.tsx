@@ -4,6 +4,7 @@ import DocumentationProvider from "@modules/documentationEditor/DocumentationPro
 import LineageView from "@modules/lineage/LineageView";
 import Onboarding from "@modules/onboarding/Onboarding";
 import QueryPanelProvider from "@modules/queryPanel/QueryPanelProvider";
+import WhatsNew from "@modules/whatsNew/WhatsNew";
 import Home from "./modules/home/Home";
 import Insights from "./modules/insights/Insights";
 
@@ -27,4 +28,5 @@ export const AvailableRoutes = {
   "/query-panel": { component: <QueryPanelProvider /> },
   "/lineage": { component: <LineageView /> },
   "/onboarding": { component: <Onboarding /> },
+  "/whats-new": { component: <WhatsNew /> },
 };

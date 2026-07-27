@@ -25,6 +25,12 @@ import {
 } from "../dbt_client/event/manifestCacheChangedEvent";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
+import {
+  fetchAndCacheCredits,
+  getCachedCredits,
+  handleExecutionsExhausted,
+  registerCreditsBroadcaster,
+} from "../services/creditsService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
@@ -95,6 +101,15 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         t.onEvent(d as SharedStateEventEmitterProps),
       ),
     );
+
+    // Register credits broadcaster — updates this panel's chip whenever the balance changes
+    const unregister = registerCreditsBroadcaster((available) => {
+      this._panel?.webview?.postMessage({
+        command: "creditsUpdate",
+        args: { availableExecutions: available },
+      });
+    });
+    this._disposables.push({ dispose: unregister });
   }
 
   public isWebviewView(
@@ -205,6 +220,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
   protected onWebviewReady() {
     this.isWebviewReady = true;
+    this.sendCreditsToWebview();
+  }
+
+  private sendCreditsToWebview() {
+    const credits = getCachedCredits();
+    if (credits !== null) {
+      this._panel?.webview?.postMessage({
+        command: "creditsUpdate",
+        args: { availableExecutions: credits.available_executions },
+      });
+    }
   }
 
   private async handleWarningMessage(
@@ -349,6 +375,9 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             return;
           }
           env.openExternal(Uri.parse(params.url as string));
+          break;
+        case "showCreditsExhausted":
+          void handleExecutionsExhausted(this.altimateRequest);
           break;
         case "validateCredentials":
           const isValid = this.altimateAuthService.handlePreviewFeatures();
@@ -543,6 +572,14 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     this._panel = panel;
     this.setupWebviewOptions(context);
     this.renderWebviewView(this._panel!.webview);
+    const visibilityListener = panel.onDidChangeVisibility(() => {
+      if (panel.visible && this.altimateAuthService.isAuthenticated()) {
+        // Refetch the full CreditsInfo (balance + grant eligibility) so focusing
+        // a panel repopulates eligibility, not just the balance. Best-effort.
+        void fetchAndCacheCredits(this.altimateRequest);
+      }
+    });
+    this._disposables.push(visibilityListener);
   }
 
   private setupWebviewOptions(context: WebviewViewResolveContext) {
@@ -821,8 +858,13 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               Use a content security policy to only allow loading images from https or from our extension directory,
               and only allow scripts that have a specific nonce.
               Added unsafe-inline for css due to csp issue: https://github.com/JedWatson/react-select/issues/4631
+
+              font-src allows data: so panels can inline webfonts as base64.
+              Emitted font files don't reliably resolve through the
+              vscode-resource protocol, and the CDN is unreachable from a
+              webview, so a data URI is the only path that works offline.
               -->
-            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; worker-src blob:; font-src ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'unsafe-eval' 'nonce-${nonce}' https://*.vscode-resource.vscode-cdn.net; connect-src https://*.s3.amazonaws.com">
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; worker-src blob:; font-src ${webview.cspSource} data:; style-src 'unsafe-inline' ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'unsafe-eval' 'nonce-${nonce}' https://*.vscode-resource.vscode-cdn.net; connect-src https://*.s3.amazonaws.com">
             <title>VSCode DBT Power user extension</title>
             <link rel="stylesheet" type="text/css" href="${indexCss}">
             <link rel="stylesheet" type="text/css" href="${codiconsUri}">

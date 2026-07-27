@@ -1,5 +1,6 @@
 import { SparkleIcon } from "@assets/icons";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
+import CreditsChip from "@modules/commonActionButtons/CreditsChip";
 import FeedbackButton from "@modules/commonActionButtons/FeedbackButton";
 import { Button, Stack } from "@uicore";
 import { useEffect } from "react";
@@ -10,6 +11,7 @@ import { QueryPanelTitleTabState } from "./components/QueryPanelContents/types";
 import ClearResultsButton from "./components/clearResultsButton/ClearResultsButton";
 import HelpButton from "./components/help/HelpButton";
 import ShowInTabButton from "./components/openInTabButton/OpenInTabButton";
+import OptimizeWarehouseButton from "./components/optimizeWarehouseButton/OptimizeWarehouseButton";
 import QueryLimit from "./components/queryLimit/QueryLimit";
 import NewNotebookButton from "./components/runAdhocQueryButton/NewNotebook";
 import RunAdhocQueryButton from "./components/runAdhocQueryButton/RunAdhocQueryButton";
@@ -41,12 +43,10 @@ const QueryPanel = (): JSX.Element => {
         <Stack direction="column" style={{ flex: 1 }}>
           <QueryPanelTitle tabState={tabState} setTabState={changeTabState} />
         </Stack>
-        <Stack>
+        <Stack className={classes.toolbar}>
           {viewType === QueryPanelViewType.DEFAULT && (
             <>
               <QueryLimit />
-              <NewNotebookButton />
-              <RunAdhocQueryButton />
               {hasData && (
                 <Button
                   color="primary"
@@ -60,13 +60,17 @@ const QueryPanel = (): JSX.Element => {
                     })
                   }
                 >
-                  Profile this query
+                  Profile Query
                 </Button>
               )}
-              <ClearResultsButton />
+              <OptimizeWarehouseButton />
+              <NewNotebookButton />
+              <RunAdhocQueryButton />
               <ShowInTabButton />
+              <ClearResultsButton />
             </>
           )}
+          <CreditsChip />
           <HelpButton />
           <FeedbackButton url="https://form.jotform.com/251106305895153" />
         </Stack>

@@ -183,3 +183,7 @@ export const OpenNewIcon = (
 export const SparkleIcon = (
   props: HTMLAttributes<HTMLElement>,
 ): JSX.Element => <Icon icon="sparkle" {...props} />;
+
+export const ZapIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
+  <Icon icon="zap" {...props} />
+);
