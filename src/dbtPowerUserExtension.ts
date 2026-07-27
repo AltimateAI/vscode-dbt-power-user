@@ -7,6 +7,7 @@ import {
   window,
   workspace,
 } from "vscode";
+import { AltimateRequest } from "./altimate";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";
@@ -18,12 +19,20 @@ import { DocumentFormattingEditProviders } from "./document_formatting_edit_prov
 import { HoverProviders } from "./hover_provider";
 import { DbtPowerUserMcpServer } from "./mcp";
 import { DbtPowerUserActionsCenter } from "./quickpick";
+import { AltimateAuthService } from "./services/altimateAuthService";
+import {
+  clearCachedCredits,
+  fetchAndCacheCredits,
+  handleExecutionsExhausted,
+  updateCachedAvailableExecutions,
+} from "./services/creditsService";
 import { StatusBars } from "./statusbar";
 import { TelemetryService } from "./telemetry";
 import { TelemetryEvents } from "./telemetry/events";
 import { TreeviewProviders } from "./treeview_provider";
 import { ValidationProvider } from "./validation_provider";
 import { WebviewViewProviders } from "./webview_provider";
+import { WhatsNewPanel } from "./webview_provider/whatsNewPanel";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -87,6 +96,9 @@ export class DBTPowerUserExtension implements Disposable {
     private commentProviders: CommentProviders,
     private notebookProviders: NotebookProviders,
     private mcpServer: DbtPowerUserMcpServer,
+    private altimateRequest: AltimateRequest,
+    private altimateAuthService: AltimateAuthService,
+    private whatsNewPanel: WhatsNewPanel,
   ) {
     this.disposables.push(
       this.dbtProjectContainer,
@@ -106,6 +118,7 @@ export class DBTPowerUserExtension implements Disposable {
       this.commentProviders,
       this.notebookProviders,
       this.mcpServer,
+      this.whatsNewPanel,
     );
   }
 
@@ -177,9 +190,36 @@ export class DBTPowerUserExtension implements Disposable {
       await this.mcpServer.updateMcpExtensionApi();
       this.dbtProjectContainer.setContext(context);
       this.dbtProjectContainer.initializeWalkthrough();
+      this.whatsNewPanel.checkAndShowOnActivation();
       await this.dbtProjectContainer.detectDBT();
       await this.dbtProjectContainer.initializeDBTProjects();
       await this.statusBars.initialize();
+
+      // Fetch credits balance if user is authenticated (failures are silently ignored)
+      if (this.altimateAuthService.isAuthenticated()) {
+        void fetchAndCacheCredits(this.altimateRequest);
+      }
+      // Keep the cached credits balance live: the backend sets an
+      // `X-Credits-Remaining` header on every response, so each action updates
+      // the balance with no extra API calls. Guarded so listener registration
+      // can never interfere with activation.
+      try {
+        this.altimateRequest.setCreditsRemainingListener((remaining) =>
+          updateCachedAvailableExecutions(remaining),
+        );
+        // Single central handler: every 402 from any feature shows the same
+        // out-of-credits popup.
+        this.altimateRequest.setExecutionsExhaustedListener(() =>
+          handleExecutionsExhausted(this.altimateRequest),
+        );
+      } catch (error) {
+        // Listener registration must never block activation; record it so a
+        // version-skew failure is observable instead of silently swallowed.
+        this.telemetry.sendTelemetryError(
+          "creditsListenerRegistrationError",
+          error,
+        );
+      }
       // Ask to reload the window if the dbt integration changes
       const dbtIntegration = workspace
         .getConfiguration("dbt")
@@ -187,6 +227,18 @@ export class DBTPowerUserExtension implements Disposable {
       workspace.onDidChangeConfiguration((e) => {
         if (!e.affectsConfiguration("dbt")) {
           return;
+        }
+        // Credentials changed (sign-in / sign-out / instance switch): the initial
+        // activation fetch is gated on auth and never retried, so refresh here.
+        if (
+          e.affectsConfiguration("dbt.altimateAiKey") ||
+          e.affectsConfiguration("dbt.altimateInstanceName")
+        ) {
+          if (this.altimateAuthService.isAuthenticated()) {
+            void fetchAndCacheCredits(this.altimateRequest);
+          } else {
+            clearCachedCredits();
+          }
         }
         const newDbtIntegration = workspace
           .getConfiguration("dbt")

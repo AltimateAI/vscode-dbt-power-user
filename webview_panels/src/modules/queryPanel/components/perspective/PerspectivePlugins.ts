@@ -100,7 +100,7 @@ function makeClickEvent(
 class PerspectiveDatagridJSONViewerPlugin extends (customElements.get(
   "perspective-viewer-datagrid",
 ) as unknown as typeof HTMLPerspectiveViewerDatagridPluginElement) {
-  private readonly pluginName = "PerspectiveDatagridJSONViewerPlugin";
+  private readonly pluginName = "Slice and Dice";
   private view?: PerspectiveViewerView;
   private dirty?: boolean;
   private customInitialized?: boolean;
