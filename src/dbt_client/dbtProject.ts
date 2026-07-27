@@ -20,6 +20,7 @@ import {
   DeferConfig,
   extractOutputColumns,
   HealthcheckArgs,
+  isInlinePreviewCompilationError,
   isResourceHasDbColumns,
   isResourceNode,
   MANIFEST_FILE,
@@ -89,6 +90,15 @@ interface FileNameTemplateMap {
 interface JsonObj {
   [key: string]: string | number | undefined;
 }
+
+/**
+ * Appended to an inline preview's compile error. Names the command rather than
+ * its keybinding: the chord differs per platform and users can rebind it.
+ */
+const MODEL_PREVIEW_HINT =
+  "Hint: Execute SQL previews the editor contents as an anonymous query, so " +
+  "model.name, this, and model.config do not resolve to this model. " +
+  'To run it as the real model, use the "Execute dbt Model" command.';
 
 export class DBTProject implements Disposable {
   private _manifestCacheEvent?: ManifestCacheProjectAddedEvent;
@@ -1348,17 +1358,27 @@ export class DBTProject implements Disposable {
     );
   }
 
-  async executeSQLOnQueryPanel(query: string, modelName: string) {
+  async executeSQLOnQueryPanel(
+    query: string,
+    modelName: string,
+    couldRunAsModel = false,
+  ) {
     const limit = workspace
       .getConfiguration("dbt")
       .get<number>("queryLimit", 500);
-    return this.executeSQLWithLimitOnQueryPanel(query, modelName, limit);
+    return this.executeSQLWithLimitOnQueryPanel(
+      query,
+      modelName,
+      limit,
+      couldRunAsModel,
+    );
   }
 
   async executeSQLWithLimitOnQueryPanel(
     query: string,
     modelName: string,
     limit: number,
+    couldRunAsModel = false,
   ) {
     if (limit <= 0) {
       window.showErrorMessage("Please enter a positive number for query limit");
@@ -1368,18 +1388,72 @@ export class DBTProject implements Disposable {
       adapter: this.getAdapterType(),
       limit: limit.toString(),
     });
+    const execution = this.dbtProjectIntegration.executeSQLWithLimit(
+      query,
+      modelName,
+      limit,
+    );
     this.eventEmitterService.fire({
       command: "executeQuery",
       payload: {
         query,
-        fn: this.dbtProjectIntegration.executeSQLWithLimit(
-          query,
-          modelName,
-          limit,
-        ),
+        fn: this.canOfferModelPreview(modelName, couldRunAsModel)
+          ? this.withModelPreviewHint(execution)
+          : execution,
         projectName: this.getProjectName(),
       },
     });
+  }
+
+  /**
+   * Whether suggesting "Execute dbt Model" would actually help if this preview
+   * fails to compile. Requires a real node to select, and an integration that
+   * implements the command — Python-bridge mode throws NotImplementedError.
+   */
+  private canOfferModelPreview(
+    modelName: string,
+    couldRunAsModel: boolean,
+  ): boolean {
+    if (!couldRunAsModel) {
+      return false;
+    }
+    const integration = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+    if (integration === "core") {
+      return false;
+    }
+    return (
+      this._manifestCacheEvent?.nodeMetaMap.lookupByBaseName(modelName) !==
+      undefined
+    );
+  }
+
+  /**
+   * Inline previews compile the editor contents as an anonymous node, so Jinja
+   * reading the current node's identity resolves to a placeholder rather than
+   * this model. When that is what failed, point the user at the command that
+   * previews the file as its real node.
+   */
+  private async withModelPreviewHint(
+    execution: Promise<QueryExecution>,
+  ): Promise<QueryExecution> {
+    const queryExecution = await execution;
+    return new QueryExecution(
+      () => queryExecution.cancel(),
+      async () => {
+        try {
+          return await queryExecution.executeQuery();
+        } catch (error) {
+          if (!isInlinePreviewCompilationError(error)) {
+            throw error;
+          }
+          throw new Error(
+            `${(error as Error).message}\n\n${MODEL_PREVIEW_HINT}`,
+          );
+        }
+      },
+    );
   }
 
   async executeModelOnQueryPanel(modelName: string) {

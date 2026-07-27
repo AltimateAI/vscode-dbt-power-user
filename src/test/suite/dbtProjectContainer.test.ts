@@ -255,6 +255,7 @@ describe("DBTProjectContainer Tests", () => {
       expect(mockDbtProject.executeSQLOnQueryPanel).toHaveBeenCalledWith(
         query,
         modelName,
+        false,
       );
     });
 
@@ -806,6 +807,7 @@ describe("DBTProjectContainer Tests", () => {
       expect(mockDbtProject.executeSQLOnQueryPanel).toHaveBeenCalledWith(
         query,
         modelName,
+        false,
       );
     });
 

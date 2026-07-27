@@ -67,11 +67,20 @@ export class RunModel {
     if (query === undefined) {
       return;
     }
-    const modelPath = window.activeTextEditor?.document.uri;
-    if (modelPath) {
-      const modelName = path.basename(modelPath.fsPath, ".sql");
-      this.executeSQL(window.activeTextEditor!.document.uri, query, modelName);
+    const editor = window.activeTextEditor;
+    if (!editor) {
+      return;
     }
+    const modelPath = editor.document.uri;
+    const modelName = path.basename(modelPath.fsPath, ".sql");
+    // Only a saved, unedited, whole-file preview could have been run as the
+    // real model node instead. With a selection or unsaved edits, the editor
+    // contents are the point, so suggesting Execute dbt Model would be wrong.
+    const couldRunAsModel =
+      modelPath.scheme !== "untitled" &&
+      !editor.document.isDirty &&
+      editor.selection.isEmpty;
+    this.executeSQL(modelPath, query, modelName, couldRunAsModel);
   }
 
   async executeModelOnActiveWindow() {
@@ -187,8 +196,13 @@ export class RunModel {
     this.dbtProjectContainer.runModelTest(modelPath, modelName);
   }
 
-  async executeSQL(uri: Uri, query: string, modelName: string) {
-    this.dbtProjectContainer.executeSQL(uri, query, modelName);
+  async executeSQL(
+    uri: Uri,
+    query: string,
+    modelName: string,
+    couldRunAsModel = false,
+  ) {
+    this.dbtProjectContainer.executeSQL(uri, query, modelName, couldRunAsModel);
   }
 
   async executeModel(uri: Uri, modelName: string) {

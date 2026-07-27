@@ -239,7 +239,12 @@ export class DBTProjectContainer implements Disposable {
     this.getProjects().forEach((project) => project.initialize());
   }
 
-  executeSQL(uri: Uri, query: string, modelName: string): void {
+  executeSQL(
+    uri: Uri,
+    query: string,
+    modelName: string,
+    couldRunAsModel = false,
+  ): void {
     if (uri.scheme === "untitled") {
       const selectedProject = this.getFromWorkspaceState(
         "dbtPowerUser.projectSelected",
@@ -248,7 +253,11 @@ export class DBTProjectContainer implements Disposable {
         uri = selectedProject.uri;
       }
     }
-    this.findDBTProject(uri)?.executeSQLOnQueryPanel(query, modelName);
+    this.findDBTProject(uri)?.executeSQLOnQueryPanel(
+      query,
+      modelName,
+      couldRunAsModel,
+    );
   }
 
   executeModel(uri: Uri, modelName: string): void {
