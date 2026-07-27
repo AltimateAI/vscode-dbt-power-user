@@ -1,4 +1,4 @@
-You can preview the resulting data and SQL query from your code with the extension, export it as CSV and do further analysis.
+You can preview the resulting data and SQL query from your code with the extension, export it as CSV and do further analysis. You can also use [Altimate Code](../teammates/altimate-code.md) to explain your SQL or to profile a query for performance.
 
 ## Preview results, export and analyze
 
@@ -38,6 +38,18 @@ Query preview is limited to 500 rows by default, this can be configured in Setti
 You can also change table zoom level with 'scale' setting so you can see more columns in a single view or you can clear results by clicking “clear results” button.
 
 ![Query results settings](images/queryresultsSettings.png)
+
+## Explain with Altimate Code
+
+Open the "SQL" tab inside the "Query Results" bottom panel and click the "Explain with Altimate Code" button shown above the SQL. [Altimate Code](../teammates/altimate-code.md) opens in a chat and explains the code from the file you have open in the editor, or the part you have selected.
+
+![Explain with Altimate Code](images/explainWithAltimateCode.gif)
+
+## Profile this query
+
+Once a query returns results, a "Profile this query" button appears in the "Query Results" toolbar. Click it to start an [Altimate Code](../teammates/altimate-code.md) session that reviews your query for performance bottlenecks, data distribution issues and optimization opportunities.
+
+![Profile this query](images/profileThisQuery.gif)
 
 ## Compare Query Results
 
