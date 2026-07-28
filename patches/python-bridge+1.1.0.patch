@@ -1,0 +1,39 @@
+diff --git a/node_modules/python-bridge/index.js b/node_modules/python-bridge/index.js
+index c19811d..05e5172 100644
+--- a/node_modules/python-bridge/index.js
++++ b/node_modules/python-bridge/index.js
+@@ -25,3 +25,6 @@ function pythonBridge(opts) {
++    // `end` aliases `disconnect`; both must share one teardown attempt.
++    let disconnectPromise;
++
+     function sendPythonCommand(type, enqueue, self) {
+         function wrapper() {
+             self = self || wrapper;
+@@ -85,9 +88,24 @@ function pythonBridge(opts) {
+     python.isException = isPythonException;
+     python.disconnect = () => {
+         python.connected = false;
+-        return queue(() => {
+-            ps.disconnect();
+-        });
++        if (!disconnectPromise) {
++            disconnectPromise = queue(() => {
++                // Cancellation or child exit may have already closed IPC.
++                if (ps.connected) {
++                    try {
++                        ps.disconnect();
++                    } catch (error) {
++                        if (!error || ![
++                            'ERR_IPC_DISCONNECTED',
++                            'ERR_IPC_CHANNEL_CLOSED'
++                        ].includes(error.code)) {
++                            throw error;
++                        }
++                    }
++                }
++            });
++        }
++        return disconnectPromise;
+     };
+     python.end = python.disconnect;
+     python.kill = signal => {
