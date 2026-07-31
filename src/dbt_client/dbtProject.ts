@@ -20,6 +20,7 @@ import {
   DeferConfig,
   extractOutputColumns,
   HealthcheckArgs,
+  isInlinePreviewCompilationError,
   isResourceHasDbColumns,
   isResourceNode,
   MANIFEST_FILE,
@@ -84,6 +85,15 @@ import { PythonEnvironment } from "./pythonEnvironment";
 interface FileNameTemplateMap {
   [key: string]: string;
 }
+
+/**
+ * How a preview should reach dbt.
+ *
+ * `as-model` runs the saved node so its identity resolves; `inline` sends the
+ * editor contents as an anonymous query; `inline-then-offer` does the same but
+ * raises the saved-node alternative if the run fails for lack of identity.
+ */
+export type PreviewMode = "inline" | "as-model" | "inline-then-offer";
 
 interface JsonObj {
   [key: string]: string | number | undefined;
@@ -1347,35 +1357,163 @@ export class DBTProject implements Disposable {
     );
   }
 
-  async executeSQLOnQueryPanel(query: string, modelName: string) {
+  async executeSQLOnQueryPanel(
+    query: string,
+    modelName: string,
+    previewMode: PreviewMode = "inline",
+    uri?: Uri,
+  ) {
     const limit = workspace
       .getConfiguration("dbt")
       .get<number>("queryLimit", 500);
-    return this.executeSQLWithLimitOnQueryPanel(query, modelName, limit);
+    return this.executeSQLWithLimitOnQueryPanel(
+      query,
+      modelName,
+      limit,
+      previewMode,
+      uri,
+    );
   }
 
   async executeSQLWithLimitOnQueryPanel(
     query: string,
     modelName: string,
     limit: number,
+    previewMode: PreviewMode = "inline",
+    uri?: Uri,
   ) {
     if (limit <= 0) {
       window.showErrorMessage("Please enter a positive number for query limit");
       return;
     }
+
+    // A saved, unedited model file can run as the node it actually is. The SQL
+    // is identical to the buffer, so this only changes whether `model.name`,
+    // `this` and `model.config` resolve.
+    if (previewMode === "as-model" && this.canRunAsModel(modelName)) {
+      return this.executeModelWithLimitOnQueryPanel(modelName, limit);
+    }
+
     this.terminal.info("executeSQL", "Executed query: " + query, true, {
       adapter: this.getAdapterType(),
       limit: limit.toString(),
     });
+    const execution = this.dbtProjectIntegration.executeSQLWithLimit(
+      query,
+      modelName,
+      limit,
+    );
+    const offerModelRun =
+      previewMode === "inline-then-offer" && this.canRunAsModel(modelName);
     this.eventEmitterService.fire({
       command: "executeQuery",
       payload: {
         query,
-        fn: this.dbtProjectIntegration.executeSQLWithLimit(
-          query,
-          modelName,
-          limit,
-        ),
+        fn: offerModelRun
+          ? this.offerModelRunOnIdentityFailure(
+              execution,
+              modelName,
+              limit,
+              uri,
+            )
+          : execution,
+        projectName: this.getProjectName(),
+      },
+    });
+  }
+
+  /**
+   * Whether this preview could run as the real node instead: the file has to be
+   * a node we know about, and the active integration has to support supplying
+   * it as context. Ask the integration rather than testing the configured mode —
+   * which modes qualify is the library's concern.
+   */
+  private canRunAsModel(modelName: string): boolean {
+    if (!this.dbtProjectIntegration.supportsExecuteModel()) {
+      return false;
+    }
+    return (
+      this._manifestCacheEvent?.nodeMetaMap.lookupByBaseName(modelName) !==
+      undefined
+    );
+  }
+
+  /**
+   * With unsaved edits we run what is on screen, because that is nearly always
+   * what was meant. Only when the run fails for lack of node identity is the
+   * alternative worth raising — that failure is the one reliable signal that
+   * running the saved node would have behaved differently.
+   */
+  private async offerModelRunOnIdentityFailure(
+    execution: Promise<QueryExecution>,
+    modelName: string,
+    limit: number,
+    uri?: Uri,
+  ): Promise<QueryExecution> {
+    const queryExecution = await execution;
+    return new QueryExecution(
+      () => queryExecution.cancel(),
+      async () => {
+        try {
+          return await queryExecution.executeQuery();
+        } catch (error) {
+          if (isInlinePreviewCompilationError(error)) {
+            void this.promptToRunAsModel(modelName, limit, uri);
+          }
+          throw error;
+        }
+      },
+    );
+  }
+
+  private async promptToRunAsModel(
+    modelName: string,
+    limit: number,
+    uri?: Uri,
+  ) {
+    const runAsModel = "Save and run as model";
+    const choice = await window.showWarningMessage(
+      `'${modelName}' did not compile because previewing unsaved SQL runs it as an anonymous query, so model.name, this and model.config do not resolve. Saving lets it run as the real model.`,
+      runAsModel,
+    );
+    if (choice !== runAsModel) {
+      return;
+    }
+    if (uri) {
+      const document = workspace.textDocuments.find(
+        (candidate) => candidate.uri.toString() === uri.toString(),
+      );
+      if (document && !(await document.save())) {
+        window.showErrorMessage(`Could not save ${modelName}.`);
+        return;
+      }
+    }
+    await this.executeModelWithLimitOnQueryPanel(modelName, limit);
+  }
+
+  async executeModelOnQueryPanel(modelName: string) {
+    const limit = workspace
+      .getConfiguration("dbt")
+      .get<number>("queryLimit", 500);
+    return this.executeModelWithLimitOnQueryPanel(modelName, limit);
+  }
+
+  async executeModelWithLimitOnQueryPanel(modelName: string, limit: number) {
+    if (limit <= 0) {
+      window.showErrorMessage("Please enter a positive number for query limit");
+      return;
+    }
+    this.terminal.info(
+      "executeModel",
+      `Executed model: ${modelName} (limit ${limit})`,
+      true,
+      { adapter: this.getAdapterType(), limit: limit.toString() },
+    );
+    this.eventEmitterService.fire({
+      command: "executeQuery",
+      payload: {
+        query: `-- dbt show --select ${modelName} --limit ${limit}`,
+        fn: this.dbtProjectIntegration.executeModelWithLimit(modelName, limit),
         projectName: this.getProjectName(),
       },
     });
