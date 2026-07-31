@@ -59,6 +59,6 @@ You can export lineage view to a web page. Please check more details [here](../g
 
 <div style="position: relative; padding-bottom: 62.5%; height: 0;"><iframe src="https://www.loom.com/embed/24c9230c94854443a17d85de78f90ea8?sid=ba72566e-20e0-4ea2-a16a-55c8d5751c9e" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
-/// admonition | Column lineage requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai)
+/// admonition | Column lineage requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs)
     type: info
 ///

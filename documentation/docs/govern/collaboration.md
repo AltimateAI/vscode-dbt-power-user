@@ -103,6 +103,6 @@ You can also view the lineage from the list of all exported lineage views availa
 
 <iframe width="800" height="600" src="https://www.youtube.com/embed/pI1U94j-pOI?si=ckfDMYqeVgjBmg-7" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
-/// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai)
+/// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs)
     type: info
 ///

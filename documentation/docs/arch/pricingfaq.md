@@ -1,10 +1,10 @@
-The Power User for dbt extension is developed and maintained by [Altimate AI](https://www.altimate.ai). We are a software company based in the San Francisco Bay Area, and have many large enterprise companies as customers.
+The Power User for dbt extension is developed and maintained by [Altimate AI](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs). We are a software company based in the San Francisco Bay Area, and have many large enterprise companies as customers.
 
-### **Info about pricing plans is available on the [Pricing page](https://www.altimate.ai/pricing)**
+### **Info about pricing plans is available on the [Pricing page](https://www.altimate.ai/pricing?utm_source=dbt-power-user&utm_medium=docs)**
 
 ### 1. **Are you going to charge for current free features in the "power user for dbt" extension?**
 
-No. We have no plans to convert previously available free features into paid features. Newly developed features may be released with a credit quota for the free community plan. Please check the [pricing page](https://www.altimate.ai/pricing) for more details.
+No. We have no plans to convert previously available free features into paid features. Newly developed features may be released with a credit quota for the free community plan. Please check the [pricing page](https://www.altimate.ai/pricing?utm_source=dbt-power-user&utm_medium=docs) for more details.
 
 ### 2. **What exactly is credit for the feature?**
 
@@ -45,6 +45,6 @@ If the price of the monthly subscription is lower than the yearly subscription, 
 
 If you would like to make an immediate change to your subscription, make the change at a yearly plan level. It will be considered an upgrade and will be effective immediately.
 
-/// admonition | If you can't find your question here, please [contact us](https://www.altimate.ai/support) via Slack.
+/// admonition | If you can't find your question here, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=docs) via Slack.
     type: tip
 ///
