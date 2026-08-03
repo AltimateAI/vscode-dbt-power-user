@@ -119,7 +119,7 @@ For more in-depth diagnostics, use the developer tools in Visual Studio Code (VS
 
 ### Contact Support
 
-If issues still remain unresolved, please [contact us](https://www.altimate.ai/support) via Slack or chat for further assistance.
+If issues still remain unresolved, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=docs) via Slack or chat for further assistance.
 
 /// admonition | Feedback Widgets
     type: tip
@@ -127,6 +127,6 @@ If issues still remain unresolved, please [contact us](https://www.altimate.ai/s
 There are also feedback widgets in the extension embedded in various features, where you can directly provide feedback on the roadmap or any issues that you encountered.
 ///
 
-/// admonition | Still stuck? [contact us](https://www.altimate.ai/support) via Slack or chat
+/// admonition | Still stuck? [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=docs) via Slack or chat
     type: tip
 ///

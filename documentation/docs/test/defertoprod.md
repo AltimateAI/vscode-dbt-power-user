@@ -22,7 +22,7 @@ Choose the location of your local manifest file as shown in the image below:
 
 First, create the dbt integration in the Altimate AI SaaS instance by going to Settings -> Integrations from left side navigation menu. This is just to create a reference where you can upload respective manifest files to point to.
 
-/// admonition | If you would like to connect your on-premise storage for manifest file uploads, please [contact us](https://www.altimate.ai/support) via chat or Slack.
+/// admonition | If you would like to connect your on-premise storage for manifest file uploads, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=docs) via chat or Slack.
     type: info
 ///
 
@@ -56,6 +56,6 @@ Turn on favor-state if you need it. If it's turned on, the defer functionality w
 
 <div style="position: relative; padding-bottom: calc(88.35733099209834% + 42px); height: 0;"><iframe src="https://app.supademo.com/embed/cltlt0f7g1tk6cd1jy5qo12ym" allow="clipboard-write" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
-/// admonition | Using defer to prod with SaaS instance requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai) Local mode doesn't require an API key.
+/// admonition | Using defer to prod with SaaS instance requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs) Local mode doesn't require an API key.
     type: info
 ///
