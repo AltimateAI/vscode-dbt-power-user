@@ -10,6 +10,6 @@ In certain scenarios, they can assist you vs. doing work completely autonomously
 
 AI teammates are integrated in day to day work of data teams through Power User VSCode extension, Python package, and SaaS UI. Power User extension already has comprehensive AI functionality ranging from dbt model,test,docs generation to SQL query translation & explanation.
 
-/// admonition | For more info, please check [our website](https://www.altimate.ai)
+/// admonition | For more info, please check [our website](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs)
     type: tip
 ///

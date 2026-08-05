@@ -51,6 +51,6 @@ If code is available for a particular transformation, a small code icon is displ
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/JUuQM6Hxcwg?si=cT8KfuVBz-lm43WC&amp;start=116" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
-/// admonition | Using this feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai) Also, you need to perform the setup steps outlined on the [Setup UI page](setupui.md)
+/// admonition | Using this feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs) Also, you need to perform the setup steps outlined on the [Setup UI page](setupui.md)
     type: info
 ///

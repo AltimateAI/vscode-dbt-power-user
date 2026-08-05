@@ -74,21 +74,21 @@ interface MonthGroup {
 const PRODUCT_LINKS = [
   {
     label: "Altimate Code",
-    url: "https://altimate.ai/products/altimate-code",
+    url: "https://altimate.ai/products/altimate-code?utm_source=dbt-power-user&utm_medium=extension",
   },
   {
     label: "Altimate MCP Server",
     url: "https://help.altimate.ai/datamates/",
   },
-  { label: "Snowflake", url: "https://altimate.ai/altimate-on-snowflake" },
+  { label: "Snowflake", url: "https://altimate.ai/altimate-on-snowflake?utm_source=dbt-power-user&utm_medium=extension" },
   {
     label: "Databricks",
-    url: "https://altimate.ai/use-cases/altimate-for-databricks",
+    url: "https://altimate.ai/use-cases/altimate-for-databricks?utm_source=dbt-power-user&utm_medium=extension",
   },
 ];
 
-const FULL_CHANGELOG_URL = "https://altimate.ai/changelog";
-const ALTIMATE_SITE_URL = "https://altimate.ai";
+const FULL_CHANGELOG_URL = "https://altimate.ai/changelog?utm_source=dbt-power-user&utm_medium=extension";
+const ALTIMATE_SITE_URL = "https://altimate.ai?utm_source=dbt-power-user&utm_medium=extension";
 
 /**
  * Click handler for a link that opens outside the editor.
@@ -359,7 +359,7 @@ const WhatsNew = (): JSX.Element => {
       <div className={classes.topbar}>
         <a
           className={classes.topbarLogo}
-          href="https://altimate.ai"
+          href="https://altimate.ai?utm_source=dbt-power-user&utm_medium=extension"
           aria-label="Altimate AI"
           title="Open altimate.ai in your browser"
           onClick={openExternal(() => onSiteLink("logo"))}
@@ -377,7 +377,7 @@ const WhatsNew = (): JSX.Element => {
           </a>
           <a
             className={classes.topbarLink}
-            href="https://altimate.ai"
+            href="https://altimate.ai?utm_source=dbt-power-user&utm_medium=extension"
             title="Open altimate.ai in your browser"
             onClick={openExternal(() => onSiteLink("topbar"))}
           >

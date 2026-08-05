@@ -25,6 +25,7 @@ documentation
 test-fixtures
 monitoring
 .husky
+patches
 
 # Dev/CI config files not needed in the installed extension
 jest.config.js

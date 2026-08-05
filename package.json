@@ -5,7 +5,7 @@
   "icon": "media/images/dbt.png",
   "publisher": "innoverio",
   "license": "MIT",
-  "homepage": "https://www.altimate.ai/vscode",
+  "homepage": "https://www.altimate.ai/vscode?utm_source=dbt-power-user&utm_medium=marketplace",
   "repository": {
     "type": "git",
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user.git"
@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.64.0",
+  "version": "0.64.2",
   "engines": {
     "vscode": "^1.95.0",
     "node": ">=20.0.0"
@@ -1219,7 +1219,7 @@
     ]
   },
   "scripts": {
-    "postinstall": "node postInstall.js",
+    "postinstall": "patch-package --error-on-fail && node postInstall.js",
     "prepare": "husky",
     "vscode:prepublish": "npm run panel:webviews && rsbuild build && node prepareBuild.js",
     "build": "npm run panel:webviews && rsbuild build",
@@ -1314,7 +1314,7 @@
     "node-abort-controller": "^3.1.1",
     "node-fetch": "^3.3.2",
     "parse-diff": "^0.11.1",
-    "python-bridge": "^1.1.0",
+    "python-bridge": "1.1.0",
     "reflect-metadata": "^0.2.2",
     "semver": "^7.6.3",
     "which": "^6.0.1",

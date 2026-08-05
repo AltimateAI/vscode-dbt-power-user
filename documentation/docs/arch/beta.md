@@ -10,7 +10,7 @@
 
 dbt Cloud integration in Power User VSCode extension requires an API key. There are also multiple preview features in the extension including [generate dbt documentation](../document/generatedoc.md), [column lineage](../test/lineage.md), [query explanation](../develop/explanation.md), [generate dbt model from SQL](../develop/genmodelSQL.md) that are also enabled with an API key.
 
-/// details | You can get an API key for free by signing up at [www.altimate.ai](https://www.altimate.ai)
+/// details | You can get an API key for free by signing up at [www.altimate.ai](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs)
 
 <interactive demo to get an API key>
 
