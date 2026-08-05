@@ -24,12 +24,13 @@ interface TestableProject {
 }
 
 function createProject(opts: {
-  supportsExecuteModel: boolean;
+  canInjectNodeContextInSqlSnippetExecution: boolean;
   knownModels: string[];
 }): TestableProject {
   const project = Object.create(DBTProject.prototype) as TestableProject;
   (project as any).dbtProjectIntegration = {
-    supportsExecuteModel: () => opts.supportsExecuteModel,
+    canInjectNodeContextInSqlSnippetExecution: () =>
+      opts.canInjectNodeContextInSqlSnippetExecution,
   };
   (project as any)._manifestCacheEvent = {
     nodeMetaMap: {
@@ -59,7 +60,7 @@ describe("canRunAsModel", () => {
 
   it("allows it for a known model on a supporting integration", () => {
     const project = createProject({
-      supportsExecuteModel: true,
+      canInjectNodeContextInSqlSnippetExecution: true,
       knownModels: ["stg_orders"],
     });
 
@@ -69,7 +70,7 @@ describe("canRunAsModel", () => {
   it("refuses when the integration cannot supply the node as context", () => {
     // The Python bridge reports false; the extension must not test mode strings.
     const project = createProject({
-      supportsExecuteModel: false,
+      canInjectNodeContextInSqlSnippetExecution: false,
       knownModels: ["stg_orders"],
     });
 
@@ -78,7 +79,7 @@ describe("canRunAsModel", () => {
 
   it("refuses when the file is not a node in the manifest", () => {
     const project = createProject({
-      supportsExecuteModel: true,
+      canInjectNodeContextInSqlSnippetExecution: true,
       knownModels: ["stg_orders"],
     });
 
@@ -92,7 +93,10 @@ describe("offerModelRunOnIdentityFailure", () => {
   });
 
   const project = () =>
-    createProject({ supportsExecuteModel: true, knownModels: ["stg_orders"] });
+    createProject({
+      canInjectNodeContextInSqlSnippetExecution: true,
+      knownModels: ["stg_orders"],
+    });
 
   it("offers the saved-node run when the failure was about identity", async () => {
     const p = project();

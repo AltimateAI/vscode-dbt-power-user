@@ -1391,7 +1391,10 @@ export class DBTProject implements Disposable {
     // is identical to the buffer, so this only changes whether `model.name`,
     // `this` and `model.config` resolve.
     if (previewMode === "as-model" && this.canRunAsModel(modelName)) {
-      return this.executeModelWithLimitOnQueryPanel(modelName, limit);
+      return this.executeSqlWithNodeContextWithLimitOnQueryPanel(
+        modelName,
+        limit,
+      );
     }
 
     this.terminal.info("executeSQL", "Executed query: " + query, true, {
@@ -1429,7 +1432,9 @@ export class DBTProject implements Disposable {
    * which modes qualify is the library's concern.
    */
   private canRunAsModel(modelName: string): boolean {
-    if (!this.dbtProjectIntegration.supportsExecuteModel()) {
+    if (
+      !this.dbtProjectIntegration.canInjectNodeContextInSqlSnippetExecution()
+    ) {
       return false;
     }
     return (
@@ -1488,23 +1493,29 @@ export class DBTProject implements Disposable {
         return;
       }
     }
-    await this.executeModelWithLimitOnQueryPanel(modelName, limit);
+    await this.executeSqlWithNodeContextWithLimitOnQueryPanel(modelName, limit);
   }
 
-  async executeModelOnQueryPanel(modelName: string) {
+  async executeSqlWithNodeContextOnQueryPanel(modelName: string) {
     const limit = workspace
       .getConfiguration("dbt")
       .get<number>("queryLimit", 500);
-    return this.executeModelWithLimitOnQueryPanel(modelName, limit);
+    return this.executeSqlWithNodeContextWithLimitOnQueryPanel(
+      modelName,
+      limit,
+    );
   }
 
-  async executeModelWithLimitOnQueryPanel(modelName: string, limit: number) {
+  async executeSqlWithNodeContextWithLimitOnQueryPanel(
+    modelName: string,
+    limit: number,
+  ) {
     if (limit <= 0) {
       window.showErrorMessage("Please enter a positive number for query limit");
       return;
     }
     this.terminal.info(
-      "executeModel",
+      "executeSqlWithNodeContext",
       `Executed model: ${modelName} (limit ${limit})`,
       true,
       { adapter: this.getAdapterType(), limit: limit.toString() },
@@ -1513,7 +1524,10 @@ export class DBTProject implements Disposable {
       command: "executeQuery",
       payload: {
         query: `-- dbt show --select ${modelName} --limit ${limit}`,
-        fn: this.dbtProjectIntegration.executeModelWithLimit(modelName, limit),
+        fn: this.dbtProjectIntegration.executeSqlWithNodeContextWithLimit(
+          modelName,
+          limit,
+        ),
         projectName: this.getProjectName(),
       },
     });
