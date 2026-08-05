@@ -55,7 +55,7 @@ const WHATS_NEW_FEED_URL = "https://altimate.ai/changelog.rss.xml";
 // Bound the feed fetch so a stalled endpoint can't hang the panel — on timeout
 // we abort and fall back to the cached manifest.
 const FEED_FETCH_TIMEOUT_MS = 10_000;
-const CHANGELOG_BASE_URL = "https://altimate.ai/changelog";
+const CHANGELOG_BASE_URL = "https://altimate.ai/changelog?utm_source=dbt-power-user&utm_medium=extension";
 const PRODUCT_SLUG = "dbt-power-user";
 
 // globalState keys

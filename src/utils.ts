@@ -100,7 +100,7 @@ export function extendErrorWithSupportLinks(error: unknown): string {
   return (
     message +
     separator +
-    "If the issue persists, please [contact us](https://www.altimate.ai/support) via chat or Slack"
+    "If the issue persists, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=extension) via chat or Slack"
   );
 }
 

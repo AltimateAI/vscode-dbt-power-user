@@ -377,7 +377,7 @@ const SetupWizard = forwardRef<
             <p>
               Need help?{" "}
               <a
-                href="https://www.altimate.ai/support"
+                href="https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=extension"
                 target="_blank"
                 rel="noopener noreferrer"
               >

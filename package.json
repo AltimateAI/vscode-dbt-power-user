@@ -5,7 +5,7 @@
   "icon": "media/images/dbt.png",
   "publisher": "innoverio",
   "license": "MIT",
-  "homepage": "https://www.altimate.ai/vscode",
+  "homepage": "https://www.altimate.ai/vscode?utm_source=dbt-power-user&utm_medium=marketplace",
   "repository": {
     "type": "git",
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user.git"
@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.64.1",
+  "version": "0.64.2",
   "engines": {
     "vscode": "^1.95.0",
     "node": ">=20.0.0"

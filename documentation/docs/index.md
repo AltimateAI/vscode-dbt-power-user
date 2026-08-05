@@ -1,7 +1,7 @@
 # Accelerate dbt and SQL Development by 3x
 
 
-Welcome to the docs for [dbt Power User VSCode Extension](https://marketplace.visualstudio.com/items?itemName=innoverio.vscode-dbt-power-user), an [open sourced](https://github.com/AltimateAI/vscode-dbt-power-user) extension created by [Altimate AI](https://www.altimate.ai/).
+Welcome to the docs for [dbt Power User VSCode Extension](https://marketplace.visualstudio.com/items?itemName=innoverio.vscode-dbt-power-user), an [open sourced](https://github.com/AltimateAI/vscode-dbt-power-user) extension created by [Altimate AI](https://www.altimate.ai/?utm_source=dbt-power-user&utm_medium=docs).
 
 It offers various features across three important phases of dbt and SQL work - develop, test, and collaborate.
 
@@ -240,7 +240,7 @@ The dbt Power User Extension has great features out of the box. Add a free [Alti
 
 ## Support
 
-Power user extension and Datamates Platform is developed and maintained by [Altimate AI team](https://www.altimate.ai).
+Power user extension and Datamates Platform is developed and maintained by [Altimate AI team](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs).
 Please join the dbt Community Slack Channel [#tools-dbt-power-user](https://getdbt.slack.com/archives/C05KPDGRMDW) to meet with the community of users of the extension.
 
-If you run into issues, please [contact us](https://www.altimate.ai/support) via Slack or chat
+If you run into issues, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=docs) via Slack or chat

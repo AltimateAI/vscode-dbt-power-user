@@ -119,5 +119,5 @@ The extension will install directly from the file, bypassing the marketplace fet
 /// admonition | Still having issues?
     type: tip
 
-If neither workaround resolves the problem, please reach out on the [#tools-dbt-power-user](https://getdbt.slack.com/archives/C05KPDGRMDW) Slack channel or [contact support](https://www.altimate.ai/support).
+If neither workaround resolves the problem, please reach out on the [#tools-dbt-power-user](https://getdbt.slack.com/archives/C05KPDGRMDW) Slack channel or [contact support](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=docs).
 ///

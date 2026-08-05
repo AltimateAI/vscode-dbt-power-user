@@ -52,6 +52,6 @@ Query or bookmark code can be easily viewed by clicking on the query. Also, this
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/1TPAyE5EJ5Y?si=JQqP2cXIEu_AUvwU" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
-/// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai)
+/// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs)
     type: info
 ///
