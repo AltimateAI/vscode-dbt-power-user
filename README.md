@@ -4,7 +4,7 @@
 
 This [open source](https://github.com/AltimateAI/vscode-dbt-power-user) extension makes VSCode seamlessly work with [dbt™](https://www.getdbt.com/).
 
-If you need help with setting up the extension, please check the [documentation](https://docs.myaltimate.com/setup/installation/).
+If you need help with setting up the extension, please check the [documentation](https://help.altimate.ai/dbt-power-user/setup/installation/).
 For any issues or bugs, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=marketplace) via chat or Slack.
 
 **Features:**
@@ -31,65 +31,65 @@ The extension is supported for dbt™ versions above 1.0.
 
 ### <a id="autocomplete">Autocomplete model, macro, source names and click to go to definition</a>
 
-Auto-fill model names, macros, sources and docs. Click on model names, macros, sources to go to definitions. [(docs)](https://docs.myaltimate.com/develop/autocomplete/)
+Auto-fill model names, macros, sources and docs. Click on model names, macros, sources to go to definitions. [(docs)](https://help.altimate.ai/dbt-power-user/develop/autocomplete/)
 
 ![autocomplete](media/images/autocomplete.gif)
 
 ### <a id="querypreview">Preview query results and analyze</a>
 
-Generate dbt™ model / query results. Export as CSV or analyze results by creating graphs, filters, groups. [(docs)](https://docs.myaltimate.com/test/queryResults/)
+Generate dbt™ model / query results. Export as CSV or analyze results by creating graphs, filters, groups. [(docs)](https://help.altimate.ai/dbt-power-user/test/queryResults/)
 
 ![previewquery](media/images/previewquery.gif)
 
 ### <a id="lineage">Column lineage</a>
 
-View model lineage as well as column lineage with components like models, seeds, sources, exposures and info like model types, tests, documentation, linkage types. [(docs)](https://docs.myaltimate.com/test/lineage/)
+View model lineage as well as column lineage with components like models, seeds, sources, exposures and info like model types, tests, documentation, linkage types. [(docs)](https://help.altimate.ai/dbt-power-user/test/lineage/)
 
 ![lineage](media/images/lineage.gif)
 
 ### <a id="genmodel"> Generate dbt™ Models from source or SQL</a>
 
-Generate dbt™ models from sources defined in YAML. You can also convert existing SQL to a dbt™ model where references get populated automatically. [(docs)](https://docs.myaltimate.com/develop/clicktorun/)
+Generate dbt™ models from sources defined in YAML. You can also convert existing SQL to a dbt™ model where references get populated automatically. [(docs)](https://help.altimate.ai/dbt-power-user/develop/clicktorun/)
 
 ![genmodel](media/images/genmodel.gif)
 
 ### <a id="gendoc"> Generate documentation</a>
 
-Generate model and column descriptions automatically or write descriptions manually in the UI editor. Your descriptions are automatically formatted and saved in YAML files. [(docs)](https://docs.myaltimate.com/document/generatedoc/)
+Generate model and column descriptions automatically or write descriptions manually in the UI editor. Your descriptions are automatically formatted and saved in YAML files. [(docs)](https://help.altimate.ai/dbt-power-user/document/generatedoc/)
 
 ![gendoc](media/images/gendoc.gif)
 
 ### <a id="defertoprod">Defer to prod</a>
 
-Defer building your upstream models when you make changes in development by referencing production models. Here's [(more info)](https://docs.getdbt.com/blog/defer-to-prod) about the concept. This functionality can be used in dbt™ core with the extension. [(docs)](https://docs.myaltimate.com/test/defertoprod/)
+Defer building your upstream models when you make changes in development by referencing production models. Here's [(more info)](https://docs.getdbt.com/blog/defer-to-prod) about the concept. This functionality can be used in dbt™ core with the extension. [(docs)](https://help.altimate.ai/dbt-power-user/test/defertoprod/)
 
 ### <a id="clicktorun"> Click to run parent/child models and tests</a>
 
-Just click to do common button operations like executing tests, building or running parent / child models. [(docs)](https://docs.myaltimate.com/develop/clicktorun/)
+Just click to do common button operations like executing tests, building or running parent / child models. [(docs)](https://help.altimate.ai/dbt-power-user/develop/clicktorun/)
 
 ![autocomplete](media/images/runmodeltests.gif)
 
 ### <a id="queryexplanation"> Compiled query preview and explanation</a>
 
-Get live preview of compiled query as your write code. Also, generate explanations for dbt™ code written previously (by somebody else). [(docs)](https://docs.myaltimate.com/develop/explanation/)
+Get live preview of compiled query as your write code. Also, generate explanations for dbt™ code written previously (by somebody else). [(docs)](https://help.altimate.ai/dbt-power-user/develop/explanation/)
 
 ![explanation](media/images/explanation.gif)
 
 ### <a id="healthcheck"> Project health check</a>
 
-Identify issues in your dbt™ project like columns not present, models not materialized. [(docs)](https://docs.myaltimate.com/test/healthcheck/)
+Identify issues in your dbt™ project like columns not present, models not materialized. [(docs)](https://help.altimate.ai/dbt-power-user/govern/governance/)
 
 ![healthcheck](media/images/healthcheck.gif)
 
 ### <a id="validateSQL"> SQL validator</a>
 
-Validate SQL to identify issues like mistyped keywords, extra parentheses, columns no present in database [(docs)](https://docs.myaltimate.com/test/sqlvalidation/)
+Validate SQL to identify issues like mistyped keywords, extra parentheses, columns no present in database [(docs)](https://help.altimate.ai/dbt-power-user/test/sqlvalidation/)
 
 ![sql-validator](media/images/sqlValidation.gif)
 
 ### <a id="bqcost"> Big Query cost estimator</a>
 
-Estimate data that will be processed by dbt™ model in BigQuery [(docs)](https://docs.myaltimate.com/test/bigquerycost/)
+Estimate data that will be processed by dbt™ model in BigQuery [(docs)](https://help.altimate.ai/dbt-power-user/test/bigquerycost/)
 
 ![bqcostestimator](media/images/bqcostestimator.gif)
 
@@ -99,5 +99,5 @@ Estimate data that will be processed by dbt™ model in BigQuery [(docs)](https:
 
 ![dbt-log](media/images/dbt-log.gif)
 
-Please check [documentation](https://docs.myaltimate.com/arch/faq/) for additional info.
+Please check [documentation](https://help.altimate.ai/dbt-power-user/arch/faq/) for additional info.
 For any issues or bugs, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=marketplace) via chat or Slack.
