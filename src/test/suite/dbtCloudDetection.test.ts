@@ -24,6 +24,7 @@ describe("DBTCloudDetection Tests", () => {
 
     mockPythonEnvironment = {
       pythonPath: "/usr/bin/python3",
+      environmentVariables: {},
       getEnvironmentVariables: jest.fn().mockReturnValue({}),
     };
 
