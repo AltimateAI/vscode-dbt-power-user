@@ -98,7 +98,7 @@ mashumaro==3.14
     #   dbt-core
 more-itertools==10.8.0
     # via dbt-semantic-interfaces
-msgpack==1.1.2
+msgpack==1.2.1
     # via mashumaro
 networkx==3.6.1
     # via dbt-core
