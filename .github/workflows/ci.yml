@@ -41,6 +41,13 @@ jobs:
         env:
           VSCE_TARGET: ${{ matrix.vsce-target }}
           NODE_OPTIONS: --max-old-space-size=8192
+      - name: Upload VSIX
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-${{ matrix.vsce-target }}
+          path: "*.vsix"
+          retention-days: 14
       - name: Analyze bundle size
         id: analyze
         run: python3 .github/scripts/analyze-vsix.py
