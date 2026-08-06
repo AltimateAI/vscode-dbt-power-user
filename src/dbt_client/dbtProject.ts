@@ -1524,9 +1524,13 @@ export class DBTProject implements Disposable {
       command: "executeQuery",
       payload: {
         query: `-- dbt show --select ${modelName} --limit ${limit}`,
-        fn: this.dbtProjectIntegration.executeSqlWithNodeContextWithLimit(
+        fn: this.dbtProjectIntegration.executeSQLWithLimit(
+          "",
           modelName,
           limit,
+          {
+            useNodeContext: true,
+          },
         ),
         projectName: this.getProjectName(),
       },
