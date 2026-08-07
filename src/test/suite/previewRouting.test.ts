@@ -102,9 +102,7 @@ describe("offerModelRunOnIdentityFailure", () => {
     const p = project();
     const wrapped = await p.offerModelRunOnIdentityFailure(
       executionThatThrows(
-        new InlinePreviewError(
-          "Model 'inline_query' must start with stg_",
-        ),
+        new InlinePreviewError("Model 'inline_query' must start with stg_"),
       ),
       "stg_orders",
       500,
