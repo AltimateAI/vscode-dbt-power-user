@@ -20,7 +20,7 @@ import {
   DeferConfig,
   extractOutputColumns,
   HealthcheckArgs,
-  isInlinePreviewCompilationError,
+  isInlinePreviewError,
   isResourceHasDbColumns,
   isResourceNode,
   MANIFEST_FILE,
@@ -1462,7 +1462,7 @@ export class DBTProject implements Disposable {
         try {
           return await queryExecution.executeQuery();
         } catch (error) {
-          if (isInlinePreviewCompilationError(error)) {
+          if (isInlinePreviewError(error)) {
             void this.promptToRunAsModel(modelName, limit, uri);
           }
           throw error;
@@ -1477,8 +1477,11 @@ export class DBTProject implements Disposable {
     uri?: Uri,
   ) {
     const runAsModel = "Save and run as model";
+    // Offer the alternative; do not diagnose the failure. The marker says the
+    // failed run was an inline preview, not why it failed, so a preview that
+    // died on an unreachable warehouse reaches here too.
     const choice = await window.showWarningMessage(
-      `'${modelName}' did not compile because previewing unsaved SQL runs it as an anonymous query, so model.name, this and model.config do not resolve. Saving lets it run as the real model.`,
+      `Previewing '${modelName}' failed. Unsaved SQL is previewed as an anonymous query, so model.name, this and model.config do not resolve — saving lets it run as the real model.`,
       runAsModel,
     );
     if (choice !== runAsModel) {

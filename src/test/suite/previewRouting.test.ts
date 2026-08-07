@@ -1,5 +1,5 @@
 import {
-  InlinePreviewCompilationError,
+  InlinePreviewError,
   QueryExecution,
 } from "@altimateai/dbt-integration";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
@@ -102,7 +102,7 @@ describe("offerModelRunOnIdentityFailure", () => {
     const p = project();
     const wrapped = await p.offerModelRunOnIdentityFailure(
       executionThatThrows(
-        new InlinePreviewCompilationError(
+        new InlinePreviewError(
           "Model 'inline_query' must start with stg_",
         ),
       ),
