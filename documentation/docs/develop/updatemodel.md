@@ -1,7 +1,12 @@
+---
+title: Update dbt Models with AI — Power User for dbt
+description: "Use AI to update and refactor existing dbt models based on natural language instructions in Power User for dbt."
+---
+
 Updating or changing an existing dbt (or SQL) model using natural language is straightforward through Altimate Code.
 
 /// admonition | Requires the Datamates extension
-    type: info
+type: info
 
 The **Change with Altimate** action opens a chat session through the **[Datamates](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server)** extension. Make sure Datamates is installed and active before invoking it.
 ///
@@ -13,7 +18,7 @@ Open a `.sql` (or `.jinja-sql`) file. Optionally select the portion you want to 
 ![Right-click Altimate Code → Change](images/startAltimateCodeChange.png)
 
 /// admonition | Where to find it
-    type: tip
+type: tip
 
 The Altimate Code submenu shows four actions by default: **Explain**, **Optimize**, **Change**, and **Translate**. **Change with Altimate** is the third entry and only appears on `.sql` / `.jinja-sql` files.
 ///
@@ -33,9 +38,9 @@ Altimate Code shows an Accomplished summary listing every change it made (replac
 ![Apply changed code](images/accomplished_changes.png)
 
 /// admonition | Please provide feedback on the result using thumbs up / down buttons. Your feedback will help us tremendously to improve this functionality.
-    type: tip
+type: tip
 ///
 
-/// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs)
-    type: info
+/// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link)
+type: info
 ///

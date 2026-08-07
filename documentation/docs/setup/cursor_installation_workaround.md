@@ -1,16 +1,21 @@
+---
+title: Cursor Installation Workaround — Power User for dbt
+description: "Workaround for installing Power User for dbt in Cursor IDE when the standard marketplace install does not work."
+---
+
 # Cursor IDE: Installation Workaround
 
 /// admonition | Known Cursor Issue
-    type: warning
+type: warning
 
-Some Cursor IDE users experience the dbt Power User extension installation freezing for several minutes, followed by a **"Failed to fetch"** error dialog. This is a **known issue on Cursor's side** and has been reported and acknowledged by the Cursor team. See the [Cursor forum thread](https://forum.cursor.com/t/dbt-power-user-extension-installation-freezes-with-repeated-extensionquery-requests-and-failed-to-fetch-error/149385/4) for details.
+Some Cursor IDE users experience the Power User for dbt extension installation freezing for several minutes, followed by a **"Failed to fetch"** error dialog. This is a **known issue on Cursor's side** and has been reported and acknowledged by the Cursor team. See the [Cursor forum thread](https://forum.cursor.com/t/dbt-power-user-extension-installation-freezes-with-repeated-extensionquery-requests-and-failed-to-fetch-error/149385/4) for details.
 
 Until the Cursor team resolves this, please try the workarounds below.
 ///
 
 ## Problem
 
-When installing the dbt Power User extension in Cursor IDE:
+When installing the Power User for dbt extension in Cursor IDE:
 
 1. The installation **freezes for several minutes** with repeated `extensionQuery` requests.
 2. An error dialog appears with a **"Failed to fetch"** message.
@@ -24,50 +29,50 @@ This workaround tricks Cursor into recognizing the extension entry, then lets yo
 
 **Step 1.** Open the Cursor extensions metadata file at:
 
-| Platform | Path |
-|----------|------|
-| macOS / Linux | `~/.cursor/extensions/extensions.json` |
-| Windows | `%USERPROFILE%\.cursor\extensions\extensions.json` |
+| Platform      | Path                                               |
+| ------------- | -------------------------------------------------- |
+| macOS / Linux | `~/.cursor/extensions/extensions.json`             |
+| Windows       | `%USERPROFILE%\.cursor\extensions\extensions.json` |
 
 **Step 2.** Add the following JSON object to the array in that file:
 
 /// admonition | Update the paths
-    type: tip
+type: tip
 
 Replace `<YOUR_HOME_DIR>` with your actual home directory path (e.g. `/Users/jane`, `/home/jane`, or `C:/Users/jane`).
 ///
 
 ```json
 {
-    "identifier": {
-        "id": "innoverio.vscode-dbt-power-user"
-    },
-    "version": "0.59.1",
-    "location": {
-        "$mid": 1,
-        "fsPath": "<YOUR_HOME_DIR>/.cursor/extensions/innoverio.vscode-dbt-power-user-0.59.1-universal",
-        "path": "<YOUR_HOME_DIR>/.cursor/extensions/innoverio.vscode-dbt-power-user-0.59.1-universal",
-        "scheme": "file"
-    },
-    "relativeLocation": "innoverio.vscode-dbt-power-user-0.59.1-universal",
-    "metadata": {
-        "installedTimestamp": 1768889206275,
-        "pinned": false,
-        "source": "gallery",
-        "id": "4e4743d1-e423-44b9-88a4-d639da0996d1",
-        "publisherId": "4a9e9d34-3546-42a6-971d-5a640a726245",
-        "publisherDisplayName": "Altimate Inc.",
-        "targetPlatform": "universal",
-        "updated": false,
-        "private": false,
-        "isPreReleaseVersion": false,
-        "hasPreReleaseVersion": false
-    }
+  "identifier": {
+    "id": "innoverio.vscode-dbt-power-user"
+  },
+  "version": "0.59.1",
+  "location": {
+    "$mid": 1,
+    "fsPath": "<YOUR_HOME_DIR>/.cursor/extensions/innoverio.vscode-dbt-power-user-0.59.1-universal",
+    "path": "<YOUR_HOME_DIR>/.cursor/extensions/innoverio.vscode-dbt-power-user-0.59.1-universal",
+    "scheme": "file"
+  },
+  "relativeLocation": "innoverio.vscode-dbt-power-user-0.59.1-universal",
+  "metadata": {
+    "installedTimestamp": 1768889206275,
+    "pinned": false,
+    "source": "gallery",
+    "id": "4e4743d1-e423-44b9-88a4-d639da0996d1",
+    "publisherId": "4a9e9d34-3546-42a6-971d-5a640a726245",
+    "publisherDisplayName": "Altimate Inc.",
+    "targetPlatform": "universal",
+    "updated": false,
+    "private": false,
+    "isPreReleaseVersion": false,
+    "hasPreReleaseVersion": false
+  }
 }
 ```
 
 /// admonition | Validate your JSON
-    type: info
+type: info
 
 If `extensions.json` already has other entries, make sure to add a comma separator between objects so the JSON remains valid.
 ///
@@ -83,7 +88,7 @@ If `extensions.json` already has other entries, make sure to add a comma separat
 - Press `Cmd + Shift + P` (macOS) or `Ctrl + Shift + P` (Windows/Linux)
 - Type **"Developer: Reload Window"** and press Enter
 
-**Step 6.** Open the dbt Power User extension page. You will see an error that the extension files don't exist — this is expected:
+**Step 6.** Open the Power User for dbt extension page. You will see an error that the extension files don't exist — this is expected:
 
 ![Extension page showing error](images/cursor_workaround_step_2.png)
 
@@ -117,7 +122,7 @@ The extension will install directly from the file, bypassing the marketplace fet
 ---
 
 /// admonition | Still having issues?
-    type: tip
+type: tip
 
-If neither workaround resolves the problem, please reach out on the [#tools-dbt-power-user](https://getdbt.slack.com/archives/C05KPDGRMDW) Slack channel or [contact support](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=docs).
+If neither workaround resolves the problem, please reach out on the [#tools-dbt-power-user](https://getdbt.slack.com/archives/C05KPDGRMDW) Slack channel or [contact support](https://www.altimate.ai/support?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link).
 ///

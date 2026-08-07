@@ -1,246 +1,145 @@
-# Accelerate dbt and SQL Development by 3x
+---
+title: Power User for dbt
+description: "Power User for dbt is the best VS Code extension for dbt. Develop, test, document, and optimize dbt and SQL 3× faster."
+hide:
+  - toc
+---
 
+<div class="ak-eyebrow">Power User for dbt</div>
 
-Welcome to the docs for [dbt Power User VSCode Extension](https://marketplace.visualstudio.com/items?itemName=innoverio.vscode-dbt-power-user), an [open sourced](https://github.com/AltimateAI/vscode-dbt-power-user) extension created by [Altimate AI](https://www.altimate.ai/?utm_source=dbt-power-user&utm_medium=docs).
+# Best dbt extension for VS Code / Cursor.
 
-It offers various features across three important phases of dbt and SQL work - develop, test, and collaborate.
+<p class="ak-sub">
+Develop, test, document and optimize dbt and SQL <strong>3× faster</strong> with autocomplete, lineage, query preview, test and doc generation, and AI teammates.
+</p>
 
-<div class="html-in-md">
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accelerate dbt and SQL Development by 3x</title>
-    <style>
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 15px;
-            background: linear-gradient(145deg, var(--bg-secondary), var(--bg-primary));
-            border-radius: 20px;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: text;
-            box-shadow: 0 10px 30px var(--shadow-color);
-        }
-        .workflow {
-            display: flex;
-            flex-direction: column;
-            margin-bottom: 20px;
-        }
-        .steps {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            position: relative;
-            margin-bottom: 20px;
-        }
-        .step {
-            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-            font-size: 20px;
-            padding: 10px;
-            border-radius: 12px;
-            text-align: center;
-            z-index: 1;
-            width: 45%;
-            box-shadow: 0 4px 20px rgba(66, 133, 244, 0.3);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .step:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(66, 133, 244, 0.4);
-        }
-        .details {
-            display: flex;
-            justify-content: space-between;
-            gap: 20px;
-        }
-        .column {
-            width: 45%;
-            padding: 10px;
-            border-radius: 15px;
-            background: transparent;
-            position: relative; 
-            border: 1px solid var(--border-color);
-            box-shadow: 0 4px 15px var(--shadow-color);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .column:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-        }
-        ul {
-            /* padding-left: 20px;
-            margin: 0; */
-        }
-        li {
-            margin-bottom: 15px;
-            position: relative;
-            padding-left: 10px;
-        }
-        li:last-child {
-            margin-bottom: 0;
-        }
-        a {
-            color: var(--text-secondary);
-            text-decoration: none;
-            transition: color 0.3s ease;
-            position: relative;
-        }
-        a:hover {
-            color: var(--gradient-end);
-        }
-        a::after {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 2px;
-            bottom: -2px;
-            left: 0;
-            background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
-            transform: scaleX(0);
-            transform-origin: right;
-            transition: transform 0.3s ease;
-        }
-        a:hover::after {
-            transform: scaleX(1);
-            transform-origin: left;
-        }
-        .connecting-line {
-            width: 3px;
-            height: 20px;
-            background: linear-gradient(180deg, var(--gradient-start), var(--gradient-end));
-            margin: 0 auto;
-            box-shadow: 0 2px 8px rgba(66, 133, 244, 0.2);
-        }
-    </style>
-</head>
-<body>
-    <div class="container">        
-        <div class="workflow">
-            <div class="steps">
-                <div class="arrow"></div>
-                <div class="step">Develop</div>
-                <div class="step">Test</div>
-                <div class="step">Collaborate</div>
-            </div>
-        </div>
-        <div class="details">
-            <div class="column">
-                <ul>
-                    <li><a href="test/sqlvisualizer">SQL Visualizer</a></li>
-                    <li><a href="develop/explanation">Query Explanation</a></li>
-                    <li><a href="develop/genmodelsource">Auto-gen dbt from source</a></li>
-                    <li><a href="develop/genmodelSQL">Auto-gen dbt from SQL</a> </li>
-                    <li><a href="develop/autocomplete">Auto-complete code</a> </li>
-                    <li><a href="develop/clicktorun"> Click to Run Models</a></li>
-                    <li><a href="develop/translateSQL">Query Translation</a></li>
-                    <li><a href="develop/compiledCode">Compiled SQL preview</a></li>
-                </ul>
-            </div>
-            <div class="column">
-                <ul>
-                    <li><a href="test/queryResults">Preview query results and analysis</a></li>
-                    <li><a href="test/writetests">Tests Generation</a></li>
-                    <li><a href="test/lineage">Column lineage with code visibility</a></li>
-                    <li><a href="test/defertoprod">Defer to prod</a></li>
-                    <li><a href="test/sqlvalidation">SQL validation without execution</a></li>
-                </ul>
-            </div>
-            <div class="column">
-                <ul>
-                    <li><a href="govern/collaboration">Collaboration workflows</a></li>
-                    <li><a href="document/generatedoc">Documentation generation</a></li>
-                    <li><a href="govern/governance">Project governance in IDE, Git, CI/CD</a></li>
-                    <li><a href="discover/viewlineage">SaaS UI for dbt docs and lineage</a></li>
-                    <li><a href="govern/querybookmarks">Query history and Query bookmarks</a></li>
-                </ul>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
-
+<div class="ak-cta-row">
+  <a class="ak-btn ak-btn-primary" href="/setup/installation/">Install the extension</a>
+  <a class="ak-btn ak-btn-secondary" href="/setup/faq/">Read the FAQ</a>
 </div>
 
 ## Datamates with AI Teammates
 
-The Power User extension is part of the Datamates Platform. Datamates Platform offers the functionality to automate and accelerate the work of data teams in various areas
-of platform engineering, data engineering, and analytics engineering. Datamates Platform consists of many AI teammates to help data teams with their work. For example, there is a documentation generator teammate that's specifically developed to handle data documentation work.
+The Power User extension is part of the [Datamates Platform](/datamates/user-guide/home/). Datamates automates and accelerates data teams across platform engineering, data engineering, and analytics engineering through purpose-built AI teammates.
 
-These AI teammates are available as part of the power user extension to offer the functionality ranging from dbt models, docs, tests generation to SQL translation & explanation. AI teammates can be coached by you and personalized for your specific requirements. To learn more - please check this section on [coaching AI teammates](./teammates/coach.md).
+These teammates are available directly inside the extension, covering dbt model, doc, and test generation to SQL translation and explanation. They can be coached and personalized for your specific requirements. See [coaching AI teammates](./teammates/coach.md) to get started.
 
-<br>
-## Feature Comparison
+<div class="nt-cards nt-grid cols-3" markdown>
 
-The dbt Power User Extension has great features out of the box. Add a free [Altimate api key](setup/reqdConfig.md#enable-saas-features-by-adding-api-key) to unlock all the features in "With Altimate AI Key" below.
+<div class="nt-card" markdown>
+<div class="nt-card-content" markdown>
+<div class="ak-card-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+</div>
 
-<div class="html-in-md">
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feature Comparison</title>
-</head>
-<body>
-    <div class="container">        
-        <div class="workflow">
-            <div class="steps">
-                <div class="arrow"></div>
-                <div class="step">dbt Power Users Extension</div>
-                <div class="step">With Altimate AI Key</div>
-            </div>
-        </div>
-        <div class="details">
-            <div class="column">
-                <ul>
-                    <li><a href="test/sqlvisualizer">SQL Visualizer</a></li>
-                    <li><a href="test/lineage/#model-lineage">Data Lineage: Model Level </a></li>
-                    <li><a href="develop/genmodelsource">Auto-gen dbt from source</a></li>
-                    <li><a href="develop/autocomplete">Auto-complete code</a> </li>
-                    <li><a href="develop/clicktorun">Click to Run Models</a></li>
-                    <li><a href="develop/compiledCode">Compiled SQL preview</a></li>
-                    <li><a href="test/queryResults">Preview query results and analysis</a></li>
-                    <li><a href="test/defertoprod">Defer to prod</a></li>
-                    <li><a href="test/sqlvalidation">SQL validation without execution</a></li>
-                </ul>
-            </div>
-            <div class="column">
-                <ul>
-                    <li><a href="https://datamates-docs.myaltimate.com/user-guide/home/">Datamates</a></li> 
-                    <li><a href="test/lineage/#column-lineage">Data Lineage: Column Level </a></li>
-                    <li><a href="develop/explanation">Query Explanation AI</a></li>
-                    <li><a href="develop/translateSQL">Query Translation AI</a></li>
-                    <li><a href="develop/genmodelSQL">Auto-gen dbt from SQL</a> </li>
-                    <li><a href="test/writetests">Tests Generation AI</a></li>
-                    <li><a href="document/generatedoc">Documentation Generation AI</a></li>
-                    <li><a href="teammates/coach">Coach & Personalize AI Teammates</a></li>
-                    <li><a href="govern/collaboration#start-a-discussion">Code Collaboration</a></li>
-                    <li><a href="govern/collaboration#start-a-discussion_1">Documentation Collaboration</a></li>
-                    <li><a href="govern/collaboration#lineage-export-workflow">Data Lineage - Export</a></li>
-                    <li><a href="govern/collaboration#view-lineage-in-saas">Data Lineage - SaaS UI</a></li>
-                    <li><a href="govern/governance#configure-checks">Project Governance - VS Code </a></li>              
-                    <li><a href="govern/governance#available-via-extension-python-package">Project Governance - CI/CD </a></li>              
-                    <li><a href="govern/governance#saas-configuration-of-checks">Project Governance - SaaS UI</a></li>         
-                    <li><a href="discover/viewlineage">dbt Docs - SaaS UI (dbt core or cloud)</a></li>
-                    <li><a href="govern/querybookmarks">Query History</a></li>
-                    <li><a href="govern/querybookmarks">Query Bookmarks</a></li>
-                    <li><a href="govern/querybookmarks">Query Sharing</a></li>
-                    
-                </ul>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
+### [Setup](/setup/installation/)
+
+Install the extension and configure dbt Core, Cloud or Fusion.
+
+</div>
+</div>
+
+<div class="nt-card" markdown>
+<div class="nt-card-content" markdown>
+<div class="ak-card-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+</div>
+
+### [Develop](/develop/autocomplete/)
+
+Autocomplete, compiled SQL, model generation, optimize and translate.
+
+</div>
+</div>
+
+<div class="nt-card" markdown>
+<div class="nt-card-content" markdown>
+<div class="ak-card-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+</div>
+
+### [Test](/test/queryResults/)
+
+Query results, CTEs, the SQL visualizer, tests and column lineage.
+
+</div>
+</div>
+
+<div class="nt-card" markdown>
+<div class="nt-card-content" markdown>
+<div class="ak-card-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+</div>
+
+### [Document](/document/write/)
+
+Write and generate documentation, with doc-block support.
+
+</div>
+</div>
+
+<div class="nt-card" markdown>
+<div class="nt-card-content" markdown>
+<div class="ak-card-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+</div>
+
+### [Collaborate](/govern/governance/)
+
+Governance, notebooks, multi-project and query bookmarks.
+
+</div>
+</div>
+
+<div class="nt-card" markdown>
+<div class="nt-card-content" markdown>
+<div class="ak-card-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</div>
+
+### [Discover](/discover/setupui/)
+
+Browser-based docs and column lineage from the SaaS UI.
+
+</div>
+</div>
 
 </div>
 
+## Feature Comparison
+
+The extension works great out of the box. Add a free [Altimate API key](setup/reqdConfig.md#enable-saas-features-by-adding-api-key) to unlock the AI-powered features.
+
+| Power User for dbt Extension                             | With Altimate AI Key                                                                  |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| [SQL Visualizer](test/sqlvisualizer)                     | [Datamates Platform](/datamates/user-guide/home/)                                     |
+| [Data Lineage: Model Level](test/lineage/#model-lineage) | [Data Lineage: Column Level](test/lineage/#column-lineage)                            |
+| [Auto-gen dbt from source](develop/genmodelsource)       | [Query Explanation AI](develop/explanation)                                           |
+| [Auto-complete code](develop/autocomplete)               | [Query Translation AI](develop/translateSQL)                                          |
+| [Click to Run Models](develop/clicktorun)                | [Auto-gen dbt from SQL](develop/genmodelSQL)                                          |
+| [Compiled SQL preview](develop/compiledCode)             | [Tests Generation AI](test/writetests)                                                |
+| [Preview query results](test/queryResults)               | [Documentation Generation AI](document/generatedoc)                                   |
+| [Defer to prod](test/defertoprod)                        | [Coach & Personalize AI Teammates](teammates/coach)                                   |
+| [SQL validation without execution](test/sqlvalidation)   | [Code Collaboration](govern/collaboration#start-a-discussion)                         |
+| —                                                        | [Documentation Collaboration](govern/collaboration#start-a-discussion_1)              |
+| —                                                        | [Data Lineage Export](govern/collaboration#lineage-export-workflow)                   |
+| —                                                        | [Data Lineage SaaS UI](govern/collaboration#view-lineage-in-saas)                     |
+| —                                                        | [Project Governance: VS Code](govern/governance#configure-checks)                     |
+| —                                                        | [Project Governance: CI/CD](govern/governance#available-via-extension-python-package) |
+| —                                                        | [Project Governance: SaaS UI](govern/governance#saas-configuration-of-checks)         |
+| —                                                        | [dbt Docs SaaS UI](discover/viewlineage)                                              |
+| —                                                        | [Query History & Bookmarks](govern/querybookmarks)                                    |
+| —                                                        | [Query Sharing](govern/querybookmarks)                                                |
+
+## Other Altimate products
+
+- [Altimate Code](/code/) — The open-source data engineering harness.
+- [Altimate MCP](/datamates/) — A local-first MCP server for your data stack.
+- [Altimate Lite for Snowflake](/snowflake-native-app/) — More out of your Snowflake compute, without your data leaving your account.
+- [Altimate Platform](https://altimate.ai/platform?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) — Enterprise cost optimization for [Snowflake](https://altimate.ai/use-cases/altimate-for-snowflake?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) and [Databricks](https://altimate.ai/use-cases/altimate-for-databricks?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link).
+
 ## Support
 
-Power user extension and Datamates Platform is developed and maintained by [Altimate AI team](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs).
-Please join the dbt Community Slack Channel [#tools-dbt-power-user](https://getdbt.slack.com/archives/C05KPDGRMDW) to meet with the community of users of the extension.
+The extension and Datamates Platform are developed and maintained by [Altimate AI](https://www.altimate.ai?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link). Join the dbt Community Slack channel [#tools-dbt-power-user](https://getdbt.slack.com/archives/C05KPDGRMDW) to connect with other users.
 
-If you run into issues, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=docs) via Slack or chat
+If you run into issues, [contact us](https://www.altimate.ai/support?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) via Slack or chat.
