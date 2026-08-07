@@ -1,3 +1,10 @@
+---
+title: Query Bookmarks — Power User for dbt
+description: "Save and organize frequently used SQL queries as bookmarks for quick access in Power User for dbt."
+video_id: 1TPAyE5EJ5Y
+video_upload_date: "2026-06-11T00:00:00Z"
+---
+
 # Query History and Bookmarks
 
 Now, you can see the history of all the SQL queries or dbt models you ran. So, you can re-run them to view and compare results to see how your data has changed between code changes. You can also look at the compiled SQL code of queries that were run previously.
@@ -7,7 +14,7 @@ Queries from the query history can also be bookmarked and tagged. So, you can re
 Users can also share their query bookmarks with other users in your org-specific DataPilot SaaS instance. That way, you can have a shared repository of the most useful queries across the team.
 
 /// admonition | Your VSCode session stores only the last 10 queries in the query history, and this info is stored locally on your machine and not in the SaaS instance.
-    type: info
+type: info
 ///
 
 ## View Query History
@@ -22,8 +29,8 @@ If you hover over the query from the history, you can perform a few actions, lik
 
 ![Execute History](images/executeHistory.png)<br>
 
-/// admonition | In this way, you can [compare query results](https://docs.myaltimate.com/test/queryResults/#compare-query-results) between different runs of your query
-    type: info
+/// admonition | In this way, you can [compare query results](/test/queryResults/#compare-query-results) between different runs of your query
+type: info
 ///
 
 ## Add Bookmark
@@ -33,7 +40,7 @@ If you execute some query frequently, you can also bookmark that query by clicki
 ![Bookmark Query](images/addBookmark.png)<br>
 
 /// admonition | You can add tags to your queries for better organization. You can also search your bookmarks by text or by tags. Many users use tags to categorize queries based on a specific purpose or a project.
-    type: tip
+type: tip
 ///
 
 ## Share Bookmark
@@ -52,6 +59,6 @@ Query or bookmark code can be easily viewed by clicking on the query. Also, this
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/1TPAyE5EJ5Y?si=JQqP2cXIEu_AUvwU" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
-/// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs)
-    type: info
+/// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link)
+type: info
 ///

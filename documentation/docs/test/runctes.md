@@ -1,6 +1,11 @@
+---
+title: Run CTEs — Power User for dbt
+description: "Execute individual CTEs within a dbt model to inspect intermediate results without running the full model."
+---
+
 # Preview CTEs (Common Table Expressions)
 
-dbt Power User allows you to preview individual CTEs (Common Table Expressions) within your dbt models, making it easier to debug and understand complex queries by examining each component separately.
+Power User for dbt allows you to preview individual CTEs (Common Table Expressions) within your dbt models, making it easier to debug and understand complex queries by examining each component separately.
 
 <div style="position: relative; box-sizing: content-box; max-height: 80vh; max-height: 80svh; width: 100%; aspect-ratio: 1.5470008952551477; padding: 40px 0 40px 0;"><iframe src="https://app.supademo.com/embed/cmc2e5dnokjiqsn1rupca8l9o?embed_v=2" loading="lazy" title="Preview CTE Results using Power User for dbt Extension" allow="clipboard-write" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 

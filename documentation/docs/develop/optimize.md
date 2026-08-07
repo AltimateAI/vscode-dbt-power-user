@@ -1,5 +1,7 @@
 ---
 status: new
+title: Optimize SQL with Altimate Code — Power User for dbt
+description: "Get AI-powered SQL optimization suggestions including join order, predicate pushdown, and query restructuring."
 ---
 
 # Optimize SQL with Altimate Code
@@ -7,7 +9,7 @@ status: new
 Optimize with Altimate analyzes a SQL query (or selected snippet) and suggests rewrites for performance — join order, predicate pushdown, redundant scans, unnecessary `DISTINCT` / `ORDER BY`, and dialect-specific anti-patterns.
 
 /// admonition | Requires the Datamates extension
-    type: info
+type: info
 
 Altimate Code features (Explain, Optimize, Change, Translate, Review) open a chat session through the **[Datamates](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server)** extension. Make sure Datamates is installed and active before invoking these actions.
 ///
@@ -23,7 +25,7 @@ Open the right-click context menu on the file, expand the **Altimate Code** subm
 ![Right-click Altimate Code → Optimize](images/optimizeAltimateCodeRightClick.png)
 
 /// admonition | Where to find it
-    type: tip
+type: tip
 
 **Optimize with Altimate** is the second entry in the Altimate Code submenu (after Explain) and only appears on `.sql` / `.jinja-sql` files.
 ///
@@ -41,9 +43,9 @@ Altimate Code opens in a side panel and returns a rewritten query alongside an e
 ![Optimize result in Altimate Code](images/optimizeAltimateCodeResult.png)
 
 /// admonition | Please provide feedback on the suggestions using thumbs up / down buttons. Your feedback helps us improve this functionality.
-    type: tip
+type: tip
 ///
 
-/// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs)
-    type: info
+/// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link)
+type: info
 ///

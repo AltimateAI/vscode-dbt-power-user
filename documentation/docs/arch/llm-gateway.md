@@ -1,5 +1,7 @@
 ---
 status: new
+title: Altimate LLM Gateway — Power User for dbt
+description: "The Altimate LLM Gateway gives Power User for dbt dynamic model routing at 60–80% lower cost than direct LLM providers."
 ---
 
 # Altimate LLM Gateway
@@ -12,12 +14,12 @@ The gateway dynamically routes each request to the best model for the task acros
 
 ## Pricing
 
-| Plan | Price | Tokens/mo | $/M tokens | Overage (per 1M tokens) |
-|------|-------|-----------|------------|------------------------|
-| **Community** | $0/mo | 10M (one-time) | Free | BYOK only |
-| **Pro Tier 1** | $29/mo | 20M | $1.45 | $5/M tokens |
-| **Pro Tier 2** | $89/mo | 70M | $1.27 | $3/M tokens |
-| **Enterprise** | Custom | Custom | Custom | Negotiated |
+| Plan           | Price  | Tokens/mo      | $/M tokens | Overage (per 1M tokens) |
+| -------------- | ------ | -------------- | ---------- | ----------------------- |
+| **Community**  | $0/mo  | 10M (one-time) | Free       | BYOK only               |
+| **Pro Tier 1** | $29/mo | 20M            | $1.45      | $5/M tokens             |
+| **Pro Tier 2** | $89/mo | 70M            | $1.27      | $3/M tokens             |
+| **Enterprise** | Custom | Custom         | Custom     | Negotiated              |
 
 Tokens are counted as input + output combined. All tiers get access to all models — the upgrade incentive is volume, not capability.
 
@@ -25,24 +27,24 @@ Tokens are counted as input + output combined. All tiers get access to all model
 
 Buying 20M tokens directly from providers:
 
-| Model | Direct Cost (20M tokens) | With Altimate Pro Tier 1 | Savings |
-|-------|--------------------------|--------------------------|---------|
-| Sonnet 4.6 | ~$84 | **$29** | ~65% |
-| Opus 4.6 | ~$140 | **$29** | ~79% |
-| GPT-5.4 (short context) | ~$75 | **$29** | ~61% |
-| GPT-5.4 (long context) | ~$135 | **$29** | ~79% |
+| Model                   | Direct Cost (20M tokens) | With Altimate Pro Tier 1 | Savings |
+| ----------------------- | ------------------------ | ------------------------ | ------- |
+| Sonnet 4.6              | ~$84                     | **$29**                  | ~65%    |
+| Opus 4.6                | ~$140                    | **$29**                  | ~79%    |
+| GPT-5.4 (short context) | ~$75                     | **$29**                  | ~61%    |
+| GPT-5.4 (long context)  | ~$135                    | **$29**                  | ~79%    |
 
 With Altimate, you pay $29 flat regardless of which model handles your task. Buying the same 20M tokens directly from providers would cost $75-140 depending on the model — and you'd have to manage API keys, billing, and rate limits across multiple providers yourself.
 
 ## BYOK vs. Gateway
 
-| | BYOK (Bring Your Own Key) | Altimate LLM Gateway |
-|---|---|---|
-| **Cost** | Free and unlimited | Token-based pricing (10M tokens free) |
-| **API Keys** | You manage your own keys | No keys needed |
-| **Models** | Any model from your provider | Dynamic routing across best-in-class models |
-| **Data Path** | Direct to your provider — Altimate never sees it | Through Altimate — see [Security FAQ](faq.md#llm-ai-security) for data handling details |
-| **Best For** | Users with existing API keys or strict data residency requirements | Users who want simplicity and cost savings |
+|               | BYOK (Bring Your Own Key)                                          | Altimate LLM Gateway                                                                    |
+| ------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| **Cost**      | Free and unlimited                                                 | Token-based pricing (10M tokens free)                                                   |
+| **API Keys**  | You manage your own keys                                           | No keys needed                                                                          |
+| **Models**    | Any model from your provider                                       | Dynamic routing across best-in-class models                                             |
+| **Data Path** | Direct to your provider — Altimate never sees it                   | Through Altimate — see [Security FAQ](faq.md#llm-ai-security) for data handling details |
+| **Best For**  | Users with existing API keys or strict data residency requirements | Users who want simplicity and cost savings                                              |
 
 Both options are always available. You can use BYOK and the gateway side by side.
 
@@ -50,13 +52,13 @@ Both options are always available. You can use BYOK and the gateway side by side
 
 The gateway routes across the following models based on task complexity, context length, and quality requirements:
 
-| Model | Provider | Strengths |
-|-------|----------|-----------|
+| Model                 | Provider  | Strengths                                                   |
+| --------------------- | --------- | ----------------------------------------------------------- |
 | **Claude Sonnet 4.6** | Anthropic | Excellent price/performance for most data engineering tasks |
-| **Claude Opus 4.6** | Anthropic | Highest quality for complex reasoning and analysis |
-| **GPT-5.4** | OpenAI | Strong general-purpose capabilities |
-| **GPT-5.3** | OpenAI | Cost-effective for simpler tasks |
-| **GPT-5.4-mini** | OpenAI | Fast, lightweight tasks |
+| **Claude Opus 4.6**   | Anthropic | Highest quality for complex reasoning and analysis          |
+| **GPT-5.4**           | OpenAI    | Strong general-purpose capabilities                         |
+| **GPT-5.3**           | OpenAI    | Cost-effective for simpler tasks                            |
+| **GPT-5.4-mini**      | OpenAI    | Fast, lightweight tasks                                     |
 
 You don't choose the model — the gateway selects the optimal one for each request automatically.
 
@@ -77,15 +79,14 @@ The Altimate LLM Gateway is designed with enterprise security requirements in mi
 - AWS infrastructure in private VPC with network isolation
 - IAM-based RBAC with MFA enforcement for developer access
 
-
-/// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=docs) via chat or Slack.
-    type: tip
+/// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) via chat or Slack.
+type: tip
 ///
 
 ## Getting Started
 
 1. Install the [Datamates extension](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server) in your IDE
-2. Open the command palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) and select **Datamates: Open Altimate Code Chat**
+2. Open the command palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) and select **Altimate MCP: Open Altimate Code Chat**
 3. The Community plan with 10M free tokens is available immediately — no credit card required
 
-To upgrade or manage your plan, visit the [Altimate pricing page](https://www.altimate.ai/pricing?utm_source=dbt-power-user&utm_medium=docs).
+To upgrade or manage your plan, visit the [Altimate pricing page](https://www.altimate.ai/pricing?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link).

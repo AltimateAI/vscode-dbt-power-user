@@ -1,3 +1,8 @@
+---
+title: SQL Visualizer — Power User for dbt
+description: "Visualize the logical structure and execution plan of SQL queries inside VS Code with Power User for dbt."
+---
+
 # SQL Visualizer (Beta)
 
 The new SQL visualizer translates complex SQL queries into intuitive graphical representations. SQL visualizer functionality shows the SQL structure of your code and how different components of the code are connected.
@@ -12,7 +17,7 @@ The provided SQL query is visually broken down into nodes representing CTEs, joi
 - Simplified Debugging: Identify and correct errors quickly by visually tracing query logic.
 
 /// admonition | This functionality is still in beta. The functionality may change further to streamline the experience
-    type: info
+type: info
 ///
 
 ## Trigger the functionality

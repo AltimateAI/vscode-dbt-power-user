@@ -1,16 +1,21 @@
+---
+title: dbt Cloud Integration — Beta Features
+description: "Beta features for dbt Cloud integration in Power User for dbt, including the API key requirement and preview limitations."
+---
+
 /// admonition | Only use the following steps for "dbt Cloud" environments. If you have a dbt Core environment, use the [required config instructions for "dbt Core" environments](../setup/reqdConfig.md). If you have a dbt Fusion environment, use the [required config instructions for "dbt Fusion" environments](../setup/reqdConfigFusion.md).
-    type: warning
+type: warning
 ///
 
 /// admonition | dbt Cloud integration is available as beta functionality
-    type: tip
+type: tip
 ///
 
 ## Enable dbt Cloud Integration by adding an API key
 
 dbt Cloud integration in Power User VSCode extension requires an API key. There are also multiple preview features in the extension including [generate dbt documentation](../document/generatedoc.md), [column lineage](../test/lineage.md), [query explanation](../develop/explanation.md), [generate dbt model from SQL](../develop/genmodelSQL.md) that are also enabled with an API key.
 
-/// details | You can get an API key for free by signing up at [www.altimate.ai](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs)
+/// details | You can get an API key for free by signing up at [www.altimate.ai](https://www.altimate.ai?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link)
 
 <interactive demo to get an API key>
 
@@ -31,8 +36,8 @@ Go to the VSCode extension settings, and then add an API key and instance name.
 
 ## Use the setup wizard for configuration (recommended)
 
-/// admonition | Need to setup environment variables? Refer to this [section](https://docs.myaltimate.com/setup/optConfig/#environment-variables-setup)
-    type: warning
+/// admonition | Need to setup environment variables? Refer to this [section](/setup/optConfig/#environment-variables-setup)
+type: warning
 ///
 
 This method will save a bunch of time for you, and you can also validate your configuration. Setup wizard will help you in associating sql files with jinja-sql, selecting the right Python interpreter, make sure dbt dependencies are correctly installed etc. In the end, it will also validate your configuration.
@@ -48,7 +53,7 @@ You can start the setup wizard by clicking on dbt status icon in the bottom stat
 Click on the action button - "Select Python Interpreter" and choose your preferred python interpreter. Usually, choosing an interpreter that's recommended or mapped to your virtual environment software (e.g. venv) as per the list is a good idea. If you know the path of your Python environment, you can choose it from the list, or if the path is not present, you can enter it manually.
 
 /// admonition | If needed, please run 'where python' command on terminal to see if it shows path to Python interpreter that you are using.
-    type: tip
+type: tip
 ///
 
 **Install dbt**
@@ -61,7 +66,7 @@ Last step is clicking on button - "Validate Project" It will run a bunch of chec
 If there are some issues, it will tell you exactly what's wrong as well.
 
 /// admonition | If you still can't get the extension setup correctly, please check the [troubleshooting page](../troubleshooting.md)
-    type: tip
+type: tip
 ///
 
 ## Recorded Demo
@@ -86,7 +91,7 @@ A direct line of communication with our users is established with the authentica
 
 #### What if I don't want to use preview features or accidentally send data to Altimate?
 
-We understand the concern about using preview features and the risk of accidental data transmission. To address this, we have implemented stringent data security practices, which you can review in our [security FAQ](https://docs.myaltimate.com/arch/faq/). Our solutions have passed security reviews by several large organizations in the US, and we are open to undergoing similar reviews for your organization. Additionally, we are working on making some preview features available offline through our [open-source Python CLI package](https://github.com/AltimateAI/datapilot-cli).
+We understand the concern about using preview features and the risk of accidental data transmission. To address this, we have implemented stringent data security practices, which you can review in our [security FAQ](/arch/faq/). Our solutions have passed security reviews by several large organizations in the US, and we are open to undergoing similar reviews for your organization. Additionally, we are working on making some preview features available offline through our [open-source Python CLI package](https://github.com/AltimateAI/datapilot-cli).
 
 #### How are you addressing concerns about data transmission in preview features?
 

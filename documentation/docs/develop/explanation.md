@@ -1,7 +1,12 @@
+---
+title: Model Explanation — Power User for dbt
+description: "Get AI-generated explanations of any dbt model or SQL query in plain English with Power User for dbt."
+---
+
 Query explanation is invaluable to understanding a complex piece of dbt or SQL code (especially written by others!).
 
 /// admonition | Requires the Datamates extension
-    type: info
+type: info
 
 Altimate Code features (Explain, Optimize, Change, Translate, Review) open a chat session through the **[Datamates](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server)** extension. Make sure Datamates is installed and active before invoking these actions.
 ///
@@ -52,9 +57,9 @@ Altimate Code opens in a side-panel chat (powered by the Datamates extension). I
 </div>
 
 /// admonition | Please provide feedback on the generated explanations using thumbs up / down buttons. Your feedback will help us tremendously to improve this functionality.
-    type: tip
+type: tip
 ///
 
-/// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs)
-    type: info
+/// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link)
+type: info
 ///
