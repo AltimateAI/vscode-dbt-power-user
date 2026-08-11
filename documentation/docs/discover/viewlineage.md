@@ -1,8 +1,15 @@
+---
+title: Model & Column Lineage — Power User for dbt
+description: "Visualize model-level and column-level lineage for your dbt project in the DataPilot SaaS UI."
+video_id: JUuQM6Hxcwg
+video_upload_date: "2026-06-11T00:00:00Z"
+---
+
 In the DataPilot SaaS UI, you can see model level as well as column level lineage. You can also see the types of changes that occurred during the column lineage traversal
 e.g. column was unchanged or alias was used
 
 /// admonition | [Setups steps](./setupui.md) needed for the information to show in SaaS UI
-    type: warning
+type: warning
 ///
 
 ## View Model Level Lineage
@@ -16,7 +23,7 @@ Click on the "View Details" button and go to the Lineage tab. You can expand the
 ![View Lineage](images/viewLineage.png)<br>
 
 /// admonition | If you click on the specific model in the lineage view, the lineage graph for only that model will be highlighted, as shown in the image above.
-    type: tip
+type: tip
 ///
 
 ## View Column Level Lineage
@@ -51,6 +58,6 @@ If code is available for a particular transformation, a small code icon is displ
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/JUuQM6Hxcwg?si=cT8KfuVBz-lm43WC&amp;start=116" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
-/// admonition | Using this feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs) Also, you need to perform the setup steps outlined on the [Setup UI page](setupui.md)
-    type: info
+/// admonition | Using this feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) Also, you need to perform the setup steps outlined on the [Setup UI page](setupui.md)
+type: info
 ///

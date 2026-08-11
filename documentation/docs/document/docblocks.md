@@ -1,6 +1,11 @@
+---
+title: Doc Blocks — Power User for dbt
+description: "Create and manage dbt doc blocks for reusable model and column descriptions across your dbt project."
+---
+
 # Support for dbt Doc Blocks
 
-dbt Power User provides comprehensive support for dbt doc blocks, allowing you to create, manage, and reference documentation blocks throughout your dbt project.
+Power User for dbt provides comprehensive support for dbt doc blocks, allowing you to create, manage, and reference documentation blocks throughout your dbt project.
 
 <div style="position: relative; box-sizing: content-box; max-height: 80vh; max-height: 80svh; width: 100%; aspect-ratio: 1.5470008952551477; padding: 40px 0 40px 0;"><iframe src="https://app.supademo.com/embed/cmc2au66hkebpsn1r4gfbewnf?embed_v=2" loading="lazy" title="Use Doc Blocks in dbt with the Power User for dbt Extension" allow="clipboard-write" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 

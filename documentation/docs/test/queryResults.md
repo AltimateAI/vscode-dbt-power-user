@@ -1,3 +1,8 @@
+---
+title: Query Results Panel — Power User for dbt
+description: "View query results in a rich, filterable table panel inside VS Code with Power User for dbt."
+---
+
 You can preview the resulting data and SQL query from your code with the extension, export it as CSV and do further analysis. You can also use [Altimate Code](../teammates/altimate-code.md) to explain your SQL or to profile a query for performance.
 
 ## Preview results, export and analyze

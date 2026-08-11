@@ -1,7 +1,12 @@
+---
+title: Translate SQL Across Dialects — Power User for dbt
+description: "Translate SQL between warehouse dialects (Snowflake, BigQuery, Redshift, etc.) with one click in Power User for dbt."
+---
+
 You can translate SQL queries from one dialect to another using Altimate Code. For example, translate a query in Postgres SQL dialect to Snowflake SQL dialect.
 
 /// admonition | Requires the Datamates extension
-    type: info
+type: info
 
 The **Translate with Altimate** action opens a chat session through the **[Datamates](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server)** extension. Make sure Datamates is installed and active before invoking it.
 ///
@@ -21,7 +26,7 @@ Open the right-click context menu on the `.sql` file, expand the **Altimate Code
 ![Right-click Altimate Code → Translate](images/rightClickTranslate.png)
 
 /// admonition | Where to find it
-    type: tip
+type: tip
 
 The Altimate Code submenu shows four default actions: **Explain**, **Optimize**, **Change**, and **Translate**. **Translate with Altimate** is the fourth entry and only appears on `.sql` / `.jinja-sql` files.
 ///
@@ -32,14 +37,14 @@ A two-step quick pick appears in VS Code:
 
 1. **Translate SQL — Step 1 of 2** — pick the **source dialect** (the current dialect of the SQL in the file).
 
-    ![Translate source prompt](images/translateSourcePrompt.png)
+   ![Translate source prompt](images/translateSourcePrompt.png)
 
 2. **Translate SQL — Step 2 of 2** — pick the **target dialect** (the dialect you want to translate to). The adapter type of your current dbt project is bubbled to the top of the list and marked "current project" — you can pick it or choose any other dialect.
 
-    ![Translate target prompt](images/translateTargetPrompt.png)
+   ![Translate target prompt](images/translateTargetPrompt.png)
 
 /// admonition | Translation works on the whole file. Altimate Code will treat the entire file as the source query.
-    type: info
+type: info
 ///
 
 ### Step 4: Review the translated SQL and explanation

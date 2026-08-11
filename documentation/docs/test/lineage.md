@@ -1,3 +1,8 @@
+---
+title: Column Lineage — Power User for dbt
+description: "Trace column-level lineage through your dbt project to understand data flow and dependencies."
+---
+
 Lineage is available as model level lineage and column level lineage. You need to add an API key to view column level lineage. You can view model level lineage without an API key.
 
 ## Model lineage
@@ -35,17 +40,17 @@ You can adjust the lineage scope without re-opening it:
 ![Transformation Code](images/TranformationCode.png)
 
 /// admonition | Column lineage with code transformation is also available in SaaS UI. Please refer to the section on [SaaS Discovery UI](../discover/viewlineage.md)
-    type: tip
+type: tip
 ///
 
 ![Lineage SaaS](images/lineageSaaS.png)
 
 /// details | Following are a few limitations in the column level lineage
-    type: note
+type: note
 
 - Snapshots are not supported (coming soon)
 - Operators that may result in an incomplete lineage - Unnest - Lateral View Flatten - Json flatten to columns
-///
+  ///
 
 ## Export lineage
 
@@ -59,6 +64,6 @@ You can export lineage view to a web page. Please check more details [here](../g
 
 <div style="position: relative; padding-bottom: 62.5%; height: 0;"><iframe src="https://www.loom.com/embed/24c9230c94854443a17d85de78f90ea8?sid=ba72566e-20e0-4ea2-a16a-55c8d5751c9e" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
-/// admonition | Column lineage requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs)
-    type: info
+/// admonition | Column lineage requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link)
+type: info
 ///

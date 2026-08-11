@@ -1,7 +1,14 @@
+---
+title: View dbt Documentation — Power User for dbt
+description: "Browse and search your dbt project documentation directly inside VS Code with Power User for dbt."
+video_id: JUuQM6Hxcwg
+video_upload_date: "2026-06-11T00:00:00Z"
+---
+
 This page highlights functionality for searching and viewing documentation for your DBT Projects. Please go to Code -> dbt from the navigation menu on the left-hand side to view all your dbt models, seeds, and other components.
 
 /// admonition | [Setups steps](./setupui.md) needed for the information to show in SaaS UI
-    type: warning
+type: warning
 ///
 
 ## Search and Filter
@@ -25,6 +32,6 @@ In addition to schemas, you can also view the actual code and compiled code in t
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/JUuQM6Hxcwg?si=HAAU3UQWHQR7LssQ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
-/// admonition | Using this feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs) Also, you need to perform the setup steps outlined on the [Setup UI page](setupui.md)
-    type: info
+/// admonition | Using this feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) Also, you need to perform the setup steps outlined on the [Setup UI page](setupui.md)
+type: info
 ///

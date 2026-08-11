@@ -1,3 +1,8 @@
+---
+title: SQL Validation — Power User for dbt
+description: "Validate SQL syntax and semantics in real time while editing dbt models in VS Code with Power User for dbt."
+---
+
 Identify SQL issues like non-existent columns, keyword typos, extra parentheses easily
 
 Following SQL checks are available:
@@ -14,17 +19,17 @@ Every error popup raised by Validate SQL includes a **Fix with Altimate Code** b
 
 In addition to the SQL checks above, the four pre-execution paths that previously failed silently now each show a descriptive error popup with its own Fix button:
 
-| Path | What you'll see |
-|---|---|
-| dbt manifest not loaded | *dbt manifest not loaded. Run `dbt parse`…* |
-| Model not present in manifest | *Model `X` not found in manifest…* |
-| Parent graph entry missing | *Could not find model graph entry…* |
-| SQL compilation failed (broken `ref()` etc.) | *Unable to compile SQL for model `X`…* |
+| Path                                         | What you'll see                             |
+| -------------------------------------------- | ------------------------------------------- |
+| dbt manifest not loaded                      | _dbt manifest not loaded. Run `dbt parse`…_ |
+| Model not present in manifest                | _Model `X` not found in manifest…_          |
+| Parent graph entry missing                   | _Could not find model graph entry…_         |
+| SQL compilation failed (broken `ref()` etc.) | _Unable to compile SQL for model `X`…_      |
 
 After Validate SQL writes diagnostics to the Problems panel, an error notification with a **Fix this SQL** button also appears. The prompt sent to Altimate Code contains the compiled SQL plus the validation errors.
 
 /// admonition | See also: Problems panel quick fix
-    type: tip
+type: tip
 
 The Validate SQL errors that land in the Problems panel also get the **Fix with Altimate Code** quick-fix light-bulb and inline link covered in [Troubleshooting → Fix with Altimate Code (any error row)](../troubleshooting.md#fix-with-altimate-code-any-error-row).
 ///

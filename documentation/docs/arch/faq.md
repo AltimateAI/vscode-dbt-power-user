@@ -1,10 +1,15 @@
-The dbt Power User extension is developed and maintained by [Altimate AI](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs). We are a software company based in the San Francisco Bay Area and have many large enterprise companies as customers.
+---
+title: FAQ — Power User for dbt
+description: "Frequently asked questions about Power User for dbt: company info, SOC 2 certification, security measures, and TLS encryption."
+---
+
+The Power User for dbt extension is developed and maintained by [Altimate AI](https://www.altimate.ai?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link). We are a software company based in the San Francisco Bay Area and have many large enterprise companies as customers.
 We have done many security/governance reviews for these companies and we are SOC 2 Type 2 certified.
 
-Here is our [Privacy Policy](https://www.altimate.ai/privacy?utm_source=dbt-power-user&utm_medium=docs) and [Terms of Use](https://www.altimate.ai/terms?utm_source=dbt-power-user&utm_medium=docs).
+Here is our [Privacy Policy](https://www.altimate.ai/privacy?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) and [Terms of Use](https://www.altimate.ai/terms?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link).
 
-/// admonition | If you need us to do a security review with your IT / security teams, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=docs) via chat or Slack.
-    type: tip
+/// admonition | If you need us to do a security review with your IT / security teams, please [contact us](https://www.altimate.ai/support?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) via chat or Slack.
+type: tip
 ///
 
 ### **Security Measures & Protocols**
@@ -37,8 +42,8 @@ Users are authenticated with email and password combinations in the SaaS UI. In 
 
 Yes, at Altimate AI, we have a robust disaster recovery plan in place. Our data is backed up frequently to ensure minimal data loss. In the event of any system failure, our recovery processes are designed to restore services within an hour. This quick recovery time minimizes disruptions and ensures the continuity of our services for our users.
 
-/// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=docs) via chat or Slack.
-    type: tip
+/// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) via chat or Slack.
+type: tip
 ///
 
 ---
@@ -68,8 +73,8 @@ At Altimate AI, we maintain a strict policy of not retaining data related to the
 We do not store any actual customer data, we only store aggregate statistics and metadata. As a result, GDPR data deletion requests do not need to be propagated to us because we do not store such data.
 Our customers typically do not request or require DPAs. However, we're happy to provide a DPA or review a vendor DPA if your organization needs it.
 
-/// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=docs) via chat or Slack.
-    type: tip
+/// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) via chat or Slack.
+type: tip
 ///
 
 ### 5. **What is your cookie policy?**
@@ -95,8 +100,8 @@ We employ strict data isolation and access controls. The multi-tenant architectu
 
 Currently, we do not use client data for model training, so there's no opt-in or opt-out mechanism. If our policy were to change in the future, we would provide users with clear communication and choices regarding the use of their data.
 
-/// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=docs) via chat or Slack.
-    type: tip
+/// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) via chat or Slack.
+type: tip
 ///
 
 ---
@@ -129,18 +134,18 @@ You can opt out of all telemetry by reaching out to us via the Intercom chat bui
 
 ### 3. **What metadata does the Altimate LLM Gateway collect?**
 
-| Metadata | Purpose |
-|----------|---------|
-| Number of prompt tokens | Usage tracking and billing |
-| Number of completion tokens | Usage tracking and billing |
-| Latency | Performance monitoring |
-| Model used | Routing optimization |
-| Anonymous prompt categorization (sampled) | Model ranking and routing |
+| Metadata                                  | Purpose                    |
+| ----------------------------------------- | -------------------------- |
+| Number of prompt tokens                   | Usage tracking and billing |
+| Number of completion tokens               | Usage tracking and billing |
+| Latency                                   | Performance monitoring     |
+| Model used                                | Routing optimization       |
+| Anonymous prompt categorization (sampled) | Model ranking and routing  |
 
 Prompt categorization is stored completely anonymously — never linked to your account or user ID. You can opt out via the Intercom chat in the [Altimate dashboard](https://app.myaltimate.com).
 
-/// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=docs) via chat or Slack.
-    type: tip
+/// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) via chat or Slack.
+type: tip
 ///
 
 ---
@@ -185,12 +190,12 @@ The above model attributes will be referenced in the following feature descripti
 
 - **dbt manifest file** In the SaaS mode - when you configure "DataPilot dbt integration", manifest files are uploaded to the SaaS instance.
 
-/// admonition | If you would like to connect your on-premise storage for manifest file uploads, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=docs) via chat or Slack.
-    type: info
+/// admonition | If you would like to connect your on-premise storage for manifest file uploads, please [contact us](https://www.altimate.ai/support?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) via chat or Slack.
+type: info
 ///
 
 All of the details can be found in the code [here](https://github.com/AltimateAI/vscode-dbt-power-user/blob/master/src/altimate.ts). Please note that we only send meta-data, such as model schema and queries to the backend. We never send actual data to the backend and we do not store any of the meta-data.
 
-/// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=docs) via chat or Slack.
-    type: tip
+/// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) via chat or Slack.
+type: tip
 ///
