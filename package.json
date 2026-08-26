@@ -1300,6 +1300,7 @@
     "@jupyterlab/nbformat": "^4.2.4",
     "@jupyterlab/services": "^7.0.0",
     "@modelcontextprotocol/sdk": "^1.24.0",
+    "@nevware21/ts-utils": "^0.14.0",
     "@nteract/messaging": "^7.0.20",
     "@types/express": "^5.0.0",
     "@vscode/chat-extension-utils": "^0.0.0-alpha.5",
