@@ -240,15 +240,25 @@ export class DBTProjectContainer implements Disposable {
   }
 
   executeSQL(uri: Uri, query: string, modelName: string): void {
-    if (uri.scheme === "untitled") {
+    let project = this.findDBTProject(uri);
+    if (!project && uri.scheme === "untitled") {
+      // Untitled docs have no workspace association, so findDBTProject fails.
+      // Resolve to a project via (1) user's explicit pick from the codelens /
+      // status bar, then (2) the single project in the workspace — otherwise
+      // the user's Execute click silently does nothing.
       const selectedProject = this.getFromWorkspaceState(
         "dbtPowerUser.projectSelected",
       );
       if (selectedProject) {
-        uri = selectedProject.uri;
+        project = this.findDBTProject(selectedProject.uri);
+      } else {
+        const projects = this.getProjects();
+        if (projects.length === 1) {
+          project = projects[0];
+        }
       }
     }
-    this.findDBTProject(uri)?.executeSQLOnQueryPanel(query, modelName);
+    project?.executeSQLOnQueryPanel(query, modelName);
   }
 
   runModel(modelPath: Uri, type?: RunModelType) {
