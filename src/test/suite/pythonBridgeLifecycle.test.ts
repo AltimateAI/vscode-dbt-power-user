@@ -44,12 +44,14 @@ function createBridge(child: FakeChildProcess) {
     .mockReturnValue(child as unknown as ChildProcess);
 
   const createPythonBridge = (
-    jest.requireActual("python-bridge") as typeof import("python-bridge")
+    jest.requireActual(
+      "@altimateai/dbt-integration",
+    ) as typeof import("@altimateai/dbt-integration")
   ).pythonBridge;
   return createPythonBridge({ python: "python" });
 }
 
-describe("python-bridge lifecycle", () => {
+describe("python bridge lifecycle (vendored in @altimateai/dbt-integration)", () => {
   afterEach(() => {
     jest.restoreAllMocks();
     jest.resetModules();

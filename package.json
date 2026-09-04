@@ -1219,7 +1219,7 @@
     ]
   },
   "scripts": {
-    "postinstall": "patch-package --error-on-fail && node postInstall.js",
+    "postinstall": "node postInstall.js",
     "prepare": "husky",
     "vscode:prepublish": "npm run panel:webviews && rsbuild build && node prepareBuild.js",
     "build": "npm run panel:webviews && rsbuild build",
@@ -1277,7 +1277,6 @@
     "lint-staged": "^15.2.5",
     "mocha": "^11.7.5",
     "ovsx": "^0.10.11",
-    "patch-package": "^8.0.1",
     "prettier": "^3.3.3",
     "prettier-eslint": "^16.4.2",
     "prettier-plugin-organize-imports": "^3.2.4",
@@ -1314,7 +1313,6 @@
     "node-abort-controller": "^3.1.1",
     "node-fetch": "^3.3.2",
     "parse-diff": "^0.11.1",
-    "python-bridge": "1.1.0",
     "reflect-metadata": "^0.2.2",
     "semver": "^7.6.3",
     "which": "^6.0.1",

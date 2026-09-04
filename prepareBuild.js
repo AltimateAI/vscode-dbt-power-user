@@ -228,5 +228,44 @@ function deleteUnnecessaryAltimateCorePackages() {
   console.log("pruned altimate-core platform packages");
 }
 
+/**
+ * The Python bridge must be spawned hidden: the extension host has no console,
+ * so on Windows a bridge spawned without `windowsHide` gets its own visible
+ * console window (issue 2016). The flag lives in @altimateai/dbt-integration's
+ * vendored bridge and reaches users only through this bundle, so assert it on
+ * the built artifact instead of trusting the dependency graph. Exactly one
+ * bridge copy is required as well: a second copy breaks
+ * `instanceof PythonException` across the bundle.
+ */
+function assertPythonBridgeSpawnHidden() {
+  const bundlePath = path.join(extensionFolder, "dist", "extension.js");
+  const bundle = fs.readFileSync(bundlePath, "utf8");
+  const marker = "node_python_bridge.py";
+  const copies = bundle.split(marker).length - 1;
+  if (copies !== 1) {
+    throw new Error(
+      `Expected exactly one Python bridge in dist/extension.js, found ${copies}`,
+    );
+  }
+  const start = bundle.indexOf(marker);
+  const region = bundle.slice(start, start + 4000);
+  const ipc = region.search(/["']ipc["']/);
+  if (ipc === -1) {
+    throw new Error(
+      "Could not locate the Python bridge spawn options in dist/extension.js",
+    );
+  }
+  const options = region.slice(ipc, ipc + 120);
+  if (!/windowsHide:\s*(true|!0)/.test(options)) {
+    throw new Error(
+      `Python bridge spawn options lack windowsHide in dist/extension.js: ${options}`,
+    );
+  }
+  console.log(
+    "python bridge spawn is hidden (windowsHide) in dist/extension.js",
+  );
+}
+
 deleteUnnecessaryZeromqPrebuilts();
 deleteUnnecessaryAltimateCorePackages();
+assertPythonBridgeSpawnHidden();

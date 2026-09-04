@@ -27,6 +27,7 @@ import {
   NodeMetaData,
   ParsedManifest,
   ProjectHealthcheck,
+  PythonException,
   QueryExecution,
   QueryExecutionResult,
   RESOURCE_TYPE_MODEL,
@@ -39,7 +40,6 @@ import {
 } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
 import * as path from "path";
-import { PythonException } from "python-bridge";
 import {
   commands,
   Diagnostic,
