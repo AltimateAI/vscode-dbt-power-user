@@ -249,13 +249,21 @@ function assertPythonBridgeSpawnHidden() {
   }
   const start = bundle.indexOf(marker);
   const region = bundle.slice(start, start + 4000);
-  const ipc = region.search(/["']ipc["']/);
-  if (ipc === -1) {
+  // The spawn options are located by the channel's env key: the bridge talks
+  // newline-JSON over a plain fd-3 pipe named by NODE_CHANNEL_FD (the
+  // IPC-era anchor was the literal 'ipc' stdio entry).
+  const anchor = region.search(/NODE_CHANNEL_FD/);
+  if (anchor === -1) {
     throw new Error(
       "Could not locate the Python bridge spawn options in dist/extension.js",
     );
   }
-  const options = region.slice(ipc, ipc + 120);
+  const options = region.slice(anchor, anchor + 200);
+  if (!/stdio:\s*\[[^\]]*["']pipe["']\]/.test(options)) {
+    throw new Error(
+      `Python bridge spawn options lack the fd-3 "pipe" channel in dist/extension.js: ${options}`,
+    );
+  }
   if (!/windowsHide:\s*(true|!0)/.test(options)) {
     throw new Error(
       `Python bridge spawn options lack windowsHide in dist/extension.js: ${options}`,
