@@ -433,6 +433,13 @@ export class DBTProject implements Disposable {
     return this.dbtProjectIntegration.getPythonBridgeStatus();
   }
 
+  // Whether the integration finished initializing its execution state (for
+  // dbt-core: the Python-side `project` binding exists on the current
+  // bridge). Non-core integrations report ready.
+  isBridgeInitialized(): boolean {
+    return this.dbtProjectIntegration.isInitialized();
+  }
+
   getAllDiagnostic(): Diagnostic[] {
     const projectURI = Uri.file(
       path.join(this.projectRoot.fsPath, DBT_PROJECT_FILE),
