@@ -27,6 +27,7 @@ import {
   NodeMetaData,
   ParsedManifest,
   ProjectHealthcheck,
+  PythonException,
   QueryExecution,
   QueryExecutionResult,
   RESOURCE_TYPE_MODEL,
@@ -39,7 +40,6 @@ import {
 } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
 import * as path from "path";
-import { PythonException } from "python-bridge";
 import {
   commands,
   Diagnostic,
@@ -431,6 +431,13 @@ export class DBTProject implements Disposable {
 
   getPythonBridgeStatus() {
     return this.dbtProjectIntegration.getPythonBridgeStatus();
+  }
+
+  // Whether the integration finished initializing its execution state (for
+  // dbt-core: the Python-side `project` binding exists on the current
+  // bridge). Non-core integrations report ready.
+  isBridgeInitialized(): boolean {
+    return this.dbtProjectIntegration.isInitialized();
   }
 
   getAllDiagnostic(): Diagnostic[] {

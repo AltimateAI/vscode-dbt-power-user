@@ -81,6 +81,7 @@ export class AltimateScan {
   async getProblems() {
     this.telemetry.sendTelemetryEvent("altimateScan:Start");
     let totalProblems: number = 0;
+    let skippedProjects: number = 0;
     window.withProgress(
       {
         location: ProgressLocation.Notification,
@@ -90,6 +91,19 @@ export class AltimateScan {
       async () => {
         const projects = this.dbtProjectContainer.getProjects();
         for (const project of projects) {
+          // A project whose dbt integration never (re)initialized has no
+          // Python-side state to scan: every step would fail with a
+          // misleading error (historically `NameError: name 'project' is
+          // not defined`). Skip it — the init failure itself is already
+          // surfaced by diagnostics/the status bar.
+          if (!project.isBridgeInitialized()) {
+            skippedProjects += 1;
+            this.dbtTerminal.debug(
+              "altimateScan:getProblems",
+              `Skipping ${project.getProjectName()}: dbt project is not initialized`,
+            );
+            continue;
+          }
           try {
             const scanContext: ScanContext = new ScanContext(
               project,
@@ -109,6 +123,7 @@ export class AltimateScan {
         await commands.executeCommand("workbench.actions.view.problems");
         this.telemetry.sendTelemetryEvent("altimateScan:Done", {
           problemsFound: totalProblems.toString(),
+          projectsSkipped: skippedProjects.toString(),
         });
       },
     );

@@ -2,7 +2,7 @@
 Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 const u = require("vscode"),
   p = require("@extension"),
-  ie = require("python-bridge"),
+  ie = require("@altimateai/dbt-integration"),
   pe = require("fs"),
   ne = require("@jupyterlab/services");
 function L(o, e, t, n) {
