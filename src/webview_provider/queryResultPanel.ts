@@ -19,10 +19,10 @@ import {
   DBTTerminal,
   ExecuteSQLError,
   ExecuteSQLResult,
+  PythonException,
   QueryExecution,
 } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
-import { PythonException } from "python-bridge";
 import { AltimateRequest } from "../altimate";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { AltimateAuthService } from "../services/altimateAuthService";
