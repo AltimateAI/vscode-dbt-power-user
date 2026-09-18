@@ -1,0 +1,320 @@
+name: VSIX Smoke
+
+# Verifies the PUBLISHED dbt Power User VSIX installs and activates cleanly
+# in a fresh code-server container, AND that the upgrade path from the
+# previously-published version to the current latest works.
+#
+# Catches publish-time breakage that the Tests workflow (which runs against
+# source) cannot. The pre-release version of this check runs from ci.yml's
+# release-smoke job BEFORE vsce publish, so we can stop bad releases at the
+# door — this scheduled workflow is the safety-net post-publish.
+#
+# The actual logic lives in docker-setup/vsix-smoke.sh so Anas/Sai can run
+# the same check locally on their laptop:
+#   bash docker-setup/vsix-smoke.sh --from-version 0.61.4 --version 0.61.5
+#
+# Triggers:
+#   - schedule:    daily 06:00 UTC. Auto-resolves previous version and runs upgrade scenario.
+#   - workflow_dispatch: manual. Inputs override the auto-resolved versions.
+#   - release:     post-publish verification. Auto-resolves prev = old marketplace latest.
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to install (e.g. 0.61.5; default: latest published)"
+        type: string
+        default: ""
+      from_version:
+        description: "Baseline version for upgrade test (default: auto-resolve to previous published)"
+        type: string
+        default: ""
+      skip_upgrade:
+        description: "Skip the upgrade scenario; do fresh-install only"
+        type: boolean
+        default: false
+  release:
+    types: [published]
+  # Pre-merge gate: when a PR touches the docker setup or this workflow itself,
+  # run the same marketplace upgrade scenario against the PR head. Cheaper than
+  # waiting for the daily cron and catches regressions in the script before they
+  # land on master.
+  pull_request:
+    paths:
+      - "docker-setup/**"
+      - ".github/workflows/vsix-smoke.yml"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: vsix-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: VSIX install + activation
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx (layer cache)
+        # Third-party action — pinned to a commit SHA per CodeQL guidance.
+        # First-party actions/* in this workflow use tag refs to match repo convention.
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Resolve target and baseline versions
+        id: resolve
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          DISPATCH_VERSION: ${{ inputs.version }}
+          DISPATCH_FROM: ${{ inputs.from_version }}
+          SKIP_UPGRADE: ${{ inputs.skip_upgrade }}
+          GITHUB_OUTPUT: ${{ env.GITHUB_OUTPUT }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, urllib.request
+
+          release_tag    = os.environ.get("RELEASE_TAG", "")
+          user_version   = os.environ.get("DISPATCH_VERSION", "")
+          user_from      = os.environ.get("DISPATCH_FROM", "")
+          skip_upgrade   = os.environ.get("SKIP_UPGRADE", "") == "true"
+
+          # Resolve the target (the version we're testing the install + activation of)
+          if release_tag:
+              target = release_tag.lstrip("v")
+          elif user_version:
+              target = user_version
+          else:
+              target = "latest"
+
+          # Resolve the baseline (only matters if we're running the upgrade scenario)
+          if skip_upgrade:
+              baseline = ""
+          elif user_from:
+              baseline = user_from
+          else:
+              with urllib.request.urlopen(
+                  "https://open-vsx.org/api/innoverio/vscode-dbt-power-user"
+              ) as r:
+                  data = json.load(r)
+              # allVersions is latest-first; filter out channel aliases like "latest"/"pre-release"
+              numeric = [v for v in data.get("allVersions", {}) if re.match(r"^\d", v)]
+              # If we're testing a specific version, skip past it in the list
+              if target != "latest" and target in numeric:
+                  i = numeric.index(target)
+                  baseline = numeric[i + 1] if i + 1 < len(numeric) else ""
+              else:
+                  # "latest" or unknown: previous = numeric[1] (because [0] is current latest)
+                  baseline = numeric[1] if len(numeric) > 1 else ""
+
+          out = os.environ["GITHUB_OUTPUT"]
+          with open(out, "a") as f:
+              f.write(f"target={target}\n")
+              f.write(f"baseline={baseline}\n")
+          print(f"target={target}  baseline={baseline or '(skipped)'}")
+          PY
+
+      - name: Wait for marketplace propagation (post-publish only)
+        if: github.event_name == 'release'
+        run: |
+          echo "Sleeping 5 minutes so the marketplace has the new version before we ask for it"
+          sleep 300
+
+      - name: Run vsix-smoke.sh
+        env:
+          TARGET: ${{ steps.resolve.outputs.target }}
+          BASELINE: ${{ steps.resolve.outputs.baseline }}
+          VSIX_SMOKE_REPORT: /tmp/vsix-smoke-summary.md
+        run: |
+          args=()
+          if [ "$TARGET" != "latest" ]; then
+            args+=(--version "$TARGET")
+          fi
+          if [ -n "$BASELINE" ]; then
+            args+=(--from-version "$BASELINE")
+          fi
+          echo "Running: bash docker-setup/vsix-smoke.sh ${args[*]}"
+          bash docker-setup/vsix-smoke.sh "${args[@]}"
+
+      - name: Publish run report to job summary
+        if: always()
+        env:
+          TRIGGER: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          {
+            echo "## Source under test"
+            echo
+            echo "- **Trigger**: \`$TRIGGER\`"
+            echo "- **Ref**:     \`$REF\`"
+            echo "- **Commit**:  \`$SHA\`"
+            if [ -n "$PR" ]; then
+              echo "- **PR**:      [#$PR](https://github.com/${{ github.repository }}/pull/$PR)"
+            fi
+            echo "- **Workflow file**: [\`.github/workflows/vsix-smoke.yml\`](https://github.com/${{ github.repository }}/blob/$SHA/.github/workflows/vsix-smoke.yml)"
+            echo "- **Script**: [\`docker-setup/vsix-smoke.sh\`](https://github.com/${{ github.repository }}/blob/$SHA/docker-setup/vsix-smoke.sh)"
+            echo
+            if [ -s /tmp/vsix-smoke-summary.md ]; then
+              cat /tmp/vsix-smoke-summary.md
+            else
+              echo ":warning: smoke script did not produce \`/tmp/vsix-smoke-summary.md\` — likely failed before phase setup."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload evidence report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-smoke-evidence-${{ github.run_id }}
+          path: /tmp/vsix-smoke-summary.md
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-smoke-logs-${{ github.run_id }}
+          path: /tmp/vsix-smoke-build.log
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Open or update GitHub issue on scheduled failure
+        if: failure() && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const today = new Date().toISOString().split('T')[0];
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = `Scheduled \`vsix-smoke\` workflow failed on ${today}.\n\nRun: ${runUrl}`;
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'vsix-smoke',
+              per_page: 5,
+            });
+
+            if (issues.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues[0].number,
+                body,
+              });
+              core.info(`Commented on existing issue #${issues[0].number}`);
+            } else {
+              const { data: created } = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `vsix-smoke failed (${today})`,
+                body,
+                labels: ['vsix-smoke', 'bug'],
+              });
+              core.info(`Opened issue #${created.number}`);
+            }
+
+  # PR-time twin of ci.yml's release-smoke job: builds the linux-x64 VSIX
+  # from the PR head (i.e. the unreleased extension this PR would publish)
+  # and runs the upgrade scenario against the current marketplace baseline.
+  # Mirrors exactly what release-smoke does on tag push, so the PR check
+  # IS the pre-release gate, just verified before merge instead of at
+  # publish time. Only fires on pull_request.
+  pr-build-smoke:
+    name: PR-built VSIX install + activation
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Run common build steps
+        uses: ./.github/actions/common-build
+        with:
+          vsce-target: linux-x64
+      - name: Package linux-x64 VSIX from PR head
+        run: npx @vscode/vsce package --target linux-x64
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+      - name: Resolve marketplace baseline from OpenVSX
+        id: prev
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, re, urllib.request
+          with urllib.request.urlopen(
+              "https://open-vsx.org/api/innoverio/vscode-dbt-power-user"
+          ) as r:
+              data = json.load(r)
+          numeric = [v for v in data.get("allVersions", {}) if re.match(r"^\d", v)]
+          baseline = numeric[0] if numeric else ""
+          print(f"baseline={baseline}")
+          PY
+      - name: Smoke test PR-built VSIX (upgrade from marketplace baseline)
+        env:
+          BASELINE: ${{ steps.prev.outputs.baseline }}
+          VSIX_SMOKE_REPORT: /tmp/vsix-smoke-summary.md
+        run: |
+          VSIX_FILE=$(ls *.vsix | head -1)
+          if [ -z "$VSIX_FILE" ]; then
+            echo "::error::No .vsix file produced by vsce package"
+            exit 1
+          fi
+          echo "Testing PR-built VSIX: $VSIX_FILE"
+          echo "Upgrade baseline (from marketplace): ${BASELINE:-none}"
+          args=(--vsix-file "$VSIX_FILE")
+          if [ -n "$BASELINE" ]; then
+            args+=(--from-version "$BASELINE")
+          fi
+          bash docker-setup/vsix-smoke.sh "${args[@]}"
+      - name: Publish PR-built smoke report to job summary
+        if: always()
+        env:
+          TRIGGER: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          {
+            echo "## Source under test"
+            echo
+            echo "- **Trigger**: \`$TRIGGER\` — testing the VSIX **built from PR head** (unreleased)"
+            echo "- **Ref**:     \`$REF\`"
+            echo "- **Commit**:  \`$SHA\`"
+            if [ -n "$PR" ]; then
+              echo "- **PR**:      [#$PR](https://github.com/${{ github.repository }}/pull/$PR)"
+            fi
+            echo "- **VSIX**:    $(ls *.vsix 2>/dev/null | head -1 || echo '(no vsix produced)')"
+            echo "- **Workflow**: [\`.github/workflows/vsix-smoke.yml\`](https://github.com/${{ github.repository }}/blob/$SHA/.github/workflows/vsix-smoke.yml)"
+            echo "- **Script**:  [\`docker-setup/vsix-smoke.sh\`](https://github.com/${{ github.repository }}/blob/$SHA/docker-setup/vsix-smoke.sh)"
+            echo
+            if [ -s /tmp/vsix-smoke-summary.md ]; then
+              cat /tmp/vsix-smoke-summary.md
+            else
+              echo ":warning: smoke script did not produce \`/tmp/vsix-smoke-summary.md\`."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload PR-built evidence report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-smoke-pr-built-evidence-${{ github.run_id }}
+          path: /tmp/vsix-smoke-summary.md
+          retention-days: 30
+          if-no-files-found: ignore
+      - name: Upload PR-built VSIX as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-smoke-pr-built-vsix-${{ github.run_id }}
+          path: "*.vsix"
+          retention-days: 7
+          if-no-files-found: ignore
