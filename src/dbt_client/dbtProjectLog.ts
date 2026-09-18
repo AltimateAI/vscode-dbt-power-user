@@ -28,33 +28,43 @@ export class DBTProjectLog implements Disposable {
   }
 
   private onProjectConfigChanged(event: ProjectConfigChangedEvent) {
-    const projectRoot = event.project.projectRoot;
-    const projectName = event.project.getProjectName();
-    if (this.outputChannel === undefined) {
-      this.outputChannel = window.createOutputChannel(
-        `${projectName} dbt logs`,
-      );
-      this.readLogFileFromLastPosition(event);
+    try {
+      const projectRoot = event.project.projectRoot;
+      const projectName = event.project.getProjectName();
+      if (!projectRoot || !projectName) {
+        return;
+      }
+      if (this.outputChannel === undefined) {
+        this.outputChannel = window.createOutputChannel(
+          `${projectName} dbt logs`,
+        );
+        this.readLogFileFromLastPosition(event);
 
-      this.logFileWatcher = workspace.createFileSystemWatcher(
-        new RelativePattern(
-          projectRoot.path,
-          `${DBTProjectLog.LOG_PATH}/${DBTProjectLog.LOG_FILE}`,
-        ),
+        this.logFileWatcher = workspace.createFileSystemWatcher(
+          new RelativePattern(
+            projectRoot.path,
+            `${DBTProjectLog.LOG_PATH}/${DBTProjectLog.LOG_FILE}`,
+          ),
+        );
+        setupWatcherHandler(this.logFileWatcher, () =>
+          this.readLogFileFromLastPosition(event),
+        );
+        this.currentProjectName = projectName;
+      }
+      if (this.currentProjectName !== projectName) {
+        this.outputChannel.dispose();
+        this.outputChannel = window.createOutputChannel(
+          `${projectName} dbt logs`,
+        );
+        this.logPosition = 0;
+        this.readLogFileFromLastPosition(event);
+        this.currentProjectName = projectName;
+      }
+    } catch (error) {
+      console.error(
+        "Error handling project config change in log watcher",
+        error,
       );
-      setupWatcherHandler(this.logFileWatcher, () =>
-        this.readLogFileFromLastPosition(event),
-      );
-      this.currentProjectName = projectName;
-    }
-    if (this.currentProjectName !== projectName) {
-      this.outputChannel.dispose();
-      this.outputChannel = window.createOutputChannel(
-        `${projectName} dbt logs`,
-      );
-      this.logPosition = 0;
-      this.readLogFileFromLastPosition(event);
-      this.currentProjectName = projectName;
     }
   }
 

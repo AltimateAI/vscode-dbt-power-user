@@ -613,6 +613,45 @@ describe("DBTProject Test Suite", () => {
         "Received runResultsParsed event from dbtIntegrationAdapter",
       );
     });
+
+    it("should not crash when projectConfigChanged handler throws", () => {
+      mockProjectIntegration.getCloudVariantInfo = jest
+        .fn()
+        .mockImplementation(() => {
+          throw new Error("sourcePaths is not defined in project");
+        });
+
+      const onCall = mockProjectIntegration.on.mock.calls.find(
+        (call: any) =>
+          call[0] === DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED,
+      );
+
+      expect(() => onCall![1]()).not.toThrow();
+
+      expect(mockTerminal.error).toHaveBeenCalledWith(
+        "DBTProject",
+        "Error handling projectConfigChanged event",
+        expect.any(Error),
+        false,
+      );
+    });
+
+    it("should handle projectConfigChanged when project is not fully initialized", () => {
+      mockProjectIntegration.getCloudVariantInfo = jest
+        .fn()
+        .mockReturnValue(undefined);
+
+      const configChangedHandler = jest.fn();
+      dbtProject.onProjectConfigChanged(configChangedHandler);
+
+      const onCall = mockProjectIntegration.on.mock.calls.find(
+        (call: any) =>
+          call[0] === DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED,
+      );
+
+      expect(() => onCall![1]()).not.toThrow();
+      expect(configChangedHandler).toHaveBeenCalled();
+    });
   });
 
   describe("Diagnostics", () => {
