@@ -22,7 +22,7 @@ The hover only fires on the **value** of a column's `name:` field — not on the
 models:
   - name: stg_customers
     columns:
-      - name: customer_id # ← hover INSIDE these letters
+      - name: customer_id      # ← hover INSIDE these letters
         description: primary key
 ```
 
@@ -31,7 +31,7 @@ The popup shows `(column) customer_id` on top with a divider, then the two actio
 ![Hover popup on a column name: in schema.yml showing "Suggest description" and "Suggest tests"](images/hoverActionsYamlColumn.png)
 
 /// admonition | Requires `yaml` or `jinja-yaml` language
-type: info
+    type: info
 
 The file's language ID (bottom-right of the editor) must be `yaml` or `jinja-yaml`. If the file shows as "Plain Text" or another language the hover won't fire. The file also has to live inside a workspace the extension recognizes as a dbt project.
 ///
@@ -58,7 +58,7 @@ When it comes to generating documentation, the following settings are available:
 Existing documentation (whether generated or written manually) can be further updated using regeneration functionality with DataPilot.
 
 /// admonition | Save changes in YAML file
-type: tip
+    type: tip
 You can save the changes in the existing or a new YAML file with save button at the bottom of the panel.
 If you see any issues with the content that's saved in the YAML file, please check the [optional config section](../setup/optConfig.md/#column-name-setup-for-yaml-file-updates).
 ///
@@ -82,7 +82,7 @@ Select the checkboxes for right columns in models and click on the "Propagate do
 You can personalize and coach the Documentation Writer AI teammate.
 
 /// admonition | Personalize and Coach Documentation Writer AI
-type: tip
+    type: tip
 Please check more info about how to personalize and coach documentation writer AI teammate [here](../teammates/coach.md).
 If you would like to learn more about AI teammates, please check this [doc page](../teammates/introduction.md)
 ///
@@ -99,8 +99,8 @@ Here's a demo of generating model and column descriptions:
 
 <div style="position: relative; padding-bottom: calc(86.34704370179949% + 42px); height: 0;"><iframe src="https://app.supademo.com/embed/cm8oeopuq03drzh0i0yyvsxw7" allow="clipboard-write" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
-/// admonition | Document generation or propagation requires an API key. You can get it by signing up for free at [www.altimate.ai](https://wwww.altimate.ai)
-type: info
+/// admonition | Document generation or propagation requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai)
+    type: info
 ///
 
 ### Recorded Demo

@@ -20,7 +20,7 @@ Open it from the command palette:
 You can also launch it from the **Project Actions ✨** view in the Power User for dbt side panel, or by clicking the **dbt** status item in the bottom status bar and choosing "Setup Extension".
 
 /// admonition | Demo from an earlier UI
-type: warning
+    type: warning
 
 The recording below was captured before the status-bar "Setup Extension" wizard was replaced by the **Get Started with Power User for dbt** panel. The steps are the same — only the panel UI has changed.
 ///
@@ -37,7 +37,7 @@ If the extension is using the wrong Python interpreter (e.g. it sees a global Py
 The extension reads the active Python path directly from the shell and switches to it. This is the quickest fix for the most common "dbt not found" / "wrong dbt version" issues.
 
 /// admonition | Requires shell integration
-type: info
+    type: info
 
 The command needs VS Code's terminal shell integration to read the Python path from your shell. If no terminal is open or shell integration is not active, the extension will prompt you to open one.
 ///
@@ -52,7 +52,7 @@ Open the **Problems** tab (View → Problems, or `Cmd+Shift+M` / `Ctrl+Shift+M`)
 
 Every error row in the Problems panel carries a 💡 light-bulb button. Click it to open the **Quick Fix** dropdown and pick **Fix with Altimate Code** — this routes the error (file path, code, and message) to the Altimate Code chat panel, pre-filled and auto-sent.
 
-The light-bulb is registered by the bundled **Datamates** extension (`altimateai.vscode-altimate-mcp-server`), so it appears on errors from any source — TypeScript, Python, ESLint, dbt YAML, SQL, Power User for dbt itself.
+The light-bulb is registered by the bundled **Altimate Workspaces** extension (`altimateai.vscode-altimate-mcp-server`), so it appears on errors from any source — TypeScript, Python, ESLint, dbt YAML, SQL, Power User for dbt itself.
 
 ![Quick Fix dropdown on a Problems-panel row showing "Fix with Altimate Code"](images/troubleshootQuickFix.png)
 
@@ -69,7 +69,7 @@ For diagnostics created by the Power User for dbt extension itself, a clickable 
 Clicking the link opens the Altimate Code chat with the same pre-filled context. The first click shows VS Code's one-time **"Always Allow"** popup for the deep-link — accept it once and subsequent clicks are silent.
 
 /// admonition | Works in VS Code, Cursor, and Windsurf
-type: info
+    type: info
 
 The deep-link uses `vscode.env.uriScheme` to pick the host editor's scheme automatically, so the same flow opens the right chat in VS Code, Cursor, and Windsurf without manual configuration.
 ///
@@ -127,11 +127,11 @@ For more in-depth diagnostics, use the developer tools in Visual Studio Code (VS
 If issues still remain unresolved, please [contact us](https://www.altimate.ai/support?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) via Slack or chat for further assistance.
 
 /// admonition | Feedback Widgets
-type: tip
+    type: tip
 
 There are also feedback widgets in the extension embedded in various features, where you can directly provide feedback on the roadmap or any issues that you encountered.
 ///
 
 /// admonition | Still stuck? [contact us](https://www.altimate.ai/support?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) via Slack or chat
-type: tip
+    type: tip
 ///

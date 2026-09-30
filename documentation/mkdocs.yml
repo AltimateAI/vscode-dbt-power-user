@@ -48,6 +48,9 @@ theme:
     code: Roboto Mono
     logo: logo
 extra_css:
+  - assets/stylesheets/neoteroi-cards.css
+  - assets/stylesheets/extra.css
+  - assets/stylesheets/copy-page.css
 - stylesheets/extra.css
 markdown_extensions:
 - pymdownx.blocks.admonition
