@@ -8,11 +8,11 @@ description: "Use Altimate Code as an AI teammate inside Power User for dbt for 
 
 ## What is Altimate Code?
 
-[Altimate Code](/code/) is the open-source data engineering harness with 100+ deterministic tools for building, validating, optimizing, and shipping data products. It brings AI-powered data engineering directly into your IDE through the Datamates extension, or can be used standalone via CLI and TUI.
+[Altimate Code](https://help.altimate.ai/code/) is the open-source data engineering harness with 100+ deterministic tools for building, validating, optimizing, and shipping data products. It brings AI-powered data engineering directly into your IDE through the Altimate Workspaces extension, or can be used standalone via CLI and TUI.
 
 ## Getting Started in Your IDE
 
-### Install the Datamates Extension
+### Install the Altimate Workspaces extension
 
 - **VS Code** — [Microsoft Marketplace](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server)
 - **Cursor / other VS Code-compatible editors** — [Open VSX Registry](https://open-vsx.org/extension/altimateai/vscode-altimate-mcp-server)
@@ -20,8 +20,8 @@ description: "Use Altimate Code as an AI teammate inside Power User for dbt for 
 ### Open Altimate Code Chat
 
 1. Press `Cmd+Shift+P` (macOS) or `Ctrl+Shift+P` (Windows/Linux) to open the command palette
-2. Type `Altimate MCP`
-3. Select **Altimate MCP: Open Altimate Code Chat**
+2. Type `Altimate Workspaces`
+3. Select **Altimate Workspaces: Open Altimate Code Chat**
 
 This opens the Altimate Code chat panel where you can interact with agents and run data engineering tools.
 
@@ -31,11 +31,11 @@ This opens the Altimate Code chat panel where you can interact with agents and r
 
 Altimate Code provides three agent modes to match your workflow:
 
-| Mode        | Access Level    | Use Case                                                            |
-| ----------- | --------------- | ------------------------------------------------------------------- |
+| Mode | Access Level | Use Case |
+|------|-------------|----------|
 | **Builder** | Full read/write | Scaffolding dbt projects, writing models, generating tests and docs |
-| **Analyst** | Read-only       | Exploring schemas, running queries, analyzing lineage               |
-| **Plan**    | Minimal access  | Planning changes, reviewing impact before execution                 |
+| **Analyst** | Read-only | Exploring schemas, running queries, analyzing lineage |
+| **Plan** | Minimal access | Planning changes, reviewing impact before execution |
 
 ### 100+ Data Engineering Tools
 
@@ -54,20 +54,20 @@ Altimate Code is **#1 on ADE-Bench** — the industry benchmark for AI data engi
 
 ### ADE-Bench (DuckDB Local)
 
-| Tool                   | Model      | Score     | Pass Rate |
-| ---------------------- | ---------- | --------- | --------- |
-| **Altimate Code**      | Sonnet 4.6 | **32/43** | **74.4%** |
-| Cortex Code CLI        | Opus 4.6   | 28/43     | 65%       |
-| dbt Labs               | Sonnet 4.5 | ~25/43    | 59%       |
-| Claude Code (baseline) | Sonnet 4.6 | ~17/43    | 40%       |
+| Tool | Model | Score | Pass Rate |
+|------|-------|-------|-----------|
+| **Altimate Code** | Sonnet 4.6 | **32/43** | **74.4%** |
+| Cortex Code CLI | Opus 4.6 | 28/43 | 65% |
+| dbt Labs | Sonnet 4.5 | ~25/43 | 59% |
+| Claude Code (baseline) | Sonnet 4.6 | ~17/43 | 40% |
 
 ### Other Benchmarks
 
-| Benchmark                                | Result                                                                       |
-| ---------------------------------------- | ---------------------------------------------------------------------------- |
-| **SQL Anti-Pattern Detection**           | 100% accuracy across 1,077 queries, 19 categories. Zero false positives.     |
-| **Column-Level Lineage**                 | 100% edge match across 500 queries with complex joins, CTEs, and subqueries. |
-| **Snowflake Query Optimization (TPC-H)** | 16.8% average execution speedup (3.6x vs baseline).                          |
+| Benchmark | Result |
+|-----------|--------|
+| **SQL Anti-Pattern Detection** | 100% accuracy across 1,077 queries, 19 categories. Zero false positives. |
+| **Column-Level Lineage** | 100% edge match across 500 queries with complex joins, CTEs, and subqueries. |
+| **Snowflake Query Optimization (TPC-H)** | 16.8% average execution speedup (3.6x vs baseline). |
 
 [Full benchmark details →](https://www.altimate.sh/benchmarks)
 
@@ -82,13 +82,13 @@ Two options for powering the AI chat:
 
 Altimate Code can also be used outside the IDE:
 
-| Interface         | Description                                    |
-| ----------------- | ---------------------------------------------- |
-| **TUI**           | Interactive terminal UI — `altimate`           |
-| **CLI**           | Command-line for scripting — `altimate run`    |
-| **Web UI**        | Browser-based interface — `altimate web`       |
-| **CI/CD**         | Headless mode for pipelines — `altimate check` |
-| **GitHub/GitLab** | Automated PR review and issue triage           |
+| Interface | Description |
+|-----------|-------------|
+| **TUI** | Interactive terminal UI — `altimate` |
+| **CLI** | Command-line for scripting — `altimate run` |
+| **Web UI** | Browser-based interface — `altimate web` |
+| **CI/CD** | Headless mode for pipelines — `altimate check` |
+| **GitHub/GitLab** | Automated PR review and issue triage |
 
 Install standalone:
 
@@ -98,5 +98,5 @@ npm install -g altimate-code
 
 ## Full Documentation
 
-- **Altimate Code docs** — [Altimate Code section](/code/)
-- **Altimate MCP docs** — [Altimate MCP section](/datamates/)
+- **Altimate Code docs** — [Altimate Code section](https://help.altimate.ai/code/)
+- **Workspaces docs** — [Workspaces](https://help.altimate.ai/workspaces/)

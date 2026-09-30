@@ -18,9 +18,9 @@ Develop, test, document and optimize dbt and SQL <strong>3× faster</strong> wit
   <a class="ak-btn ak-btn-secondary" href="/setup/faq/">Read the FAQ</a>
 </div>
 
-## Datamates with AI Teammates
+## Workspaces with AI Teammates
 
-The Power User extension is part of the [Datamates Platform](/datamates/user-guide/home/). Datamates automates and accelerates data teams across platform engineering, data engineering, and analytics engineering through purpose-built AI teammates.
+The Power User extension is part of the [Workspaces Platform](https://help.altimate.ai/workspaces/user-guide/home/). Workspaces automate and accelerate data teams across platform engineering, data engineering, and analytics engineering through purpose-built AI teammates.
 
 These teammates are available directly inside the extension, covering dbt model, doc, and test generation to SQL translation and explanation. They can be coached and personalized for your specific requirements. See [coaching AI teammates](./teammates/coach.md) to get started.
 
@@ -110,36 +110,36 @@ Browser-based docs and column lineage from the SaaS UI.
 
 The extension works great out of the box. Add a free [Altimate API key](setup/reqdConfig.md#enable-saas-features-by-adding-api-key) to unlock the AI-powered features.
 
-| Power User for dbt Extension                             | With Altimate AI Key                                                                  |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| [SQL Visualizer](test/sqlvisualizer)                     | [Datamates Platform](/datamates/user-guide/home/)                                     |
-| [Data Lineage: Model Level](test/lineage/#model-lineage) | [Data Lineage: Column Level](test/lineage/#column-lineage)                            |
-| [Auto-gen dbt from source](develop/genmodelsource)       | [Query Explanation AI](develop/explanation)                                           |
-| [Auto-complete code](develop/autocomplete)               | [Query Translation AI](develop/translateSQL)                                          |
-| [Click to Run Models](develop/clicktorun)                | [Auto-gen dbt from SQL](develop/genmodelSQL)                                          |
-| [Compiled SQL preview](develop/compiledCode)             | [Tests Generation AI](test/writetests)                                                |
-| [Preview query results](test/queryResults)               | [Documentation Generation AI](document/generatedoc)                                   |
-| [Defer to prod](test/defertoprod)                        | [Coach & Personalize AI Teammates](teammates/coach)                                   |
-| [SQL validation without execution](test/sqlvalidation)   | [Code Collaboration](govern/collaboration#start-a-discussion)                         |
-| —                                                        | [Documentation Collaboration](govern/collaboration#start-a-discussion_1)              |
-| —                                                        | [Data Lineage Export](govern/collaboration#lineage-export-workflow)                   |
-| —                                                        | [Data Lineage SaaS UI](govern/collaboration#view-lineage-in-saas)                     |
-| —                                                        | [Project Governance: VS Code](govern/governance#configure-checks)                     |
-| —                                                        | [Project Governance: CI/CD](govern/governance#available-via-extension-python-package) |
-| —                                                        | [Project Governance: SaaS UI](govern/governance#saas-configuration-of-checks)         |
-| —                                                        | [dbt Docs SaaS UI](discover/viewlineage)                                              |
-| —                                                        | [Query History & Bookmarks](govern/querybookmarks)                                    |
-| —                                                        | [Query Sharing](govern/querybookmarks)                                                |
+| Power User for dbt Extension | With Altimate AI Key |
+|---|---|
+| [SQL Visualizer](test/sqlvisualizer) | [Workspaces Platform](https://help.altimate.ai/workspaces/user-guide/home/) |
+| [Data Lineage: Model Level](test/lineage/#model-lineage) | [Data Lineage: Column Level](test/lineage/#column-lineage) |
+| [Auto-gen dbt from source](develop/genmodelsource) | [Query Explanation AI](develop/explanation) |
+| [Auto-complete code](develop/autocomplete) | [Query Translation AI](develop/translateSQL) |
+| [Click to Run Models](develop/clicktorun) | [Auto-gen dbt from SQL](develop/genmodelSQL) |
+| [Compiled SQL preview](develop/compiledCode) | [Tests Generation AI](test/writetests) |
+| [Preview query results](test/queryResults) | [Documentation Generation AI](document/generatedoc) |
+| [Defer to prod](test/defertoprod) | [Coach & Personalize AI Teammates](teammates/coach) |
+| [SQL validation without execution](test/sqlvalidation) | [Code Collaboration](govern/collaboration#start-a-discussion) |
+| — | [Documentation Collaboration](govern/collaboration#start-a-discussion_1) |
+| — | [Data Lineage Export](govern/collaboration#lineage-export-workflow) |
+| — | [Data Lineage SaaS UI](govern/collaboration#view-lineage-in-saas) |
+| — | [Project Governance: VS Code](govern/governance#configure-checks) |
+| — | [Project Governance: CI/CD](govern/governance#available-via-extension-python-package) |
+| — | [Project Governance: SaaS UI](govern/governance#saas-configuration-of-checks) |
+| — | [dbt Docs SaaS UI](discover/viewlineage) |
+| — | [Query History & Bookmarks](govern/querybookmarks) |
+| — | [Query Sharing](govern/querybookmarks) |
 
 ## Other Altimate products
 
-- [Altimate Code](/code/) — The open-source data engineering harness.
-- [Altimate MCP](/datamates/) — A local-first MCP server for your data stack.
-- [Altimate Lite for Snowflake](/snowflake-native-app/) — More out of your Snowflake compute, without your data leaving your account.
+- [Altimate Code](https://help.altimate.ai/code/) — The open-source data engineering harness.
+- [Altimate Workspaces](https://help.altimate.ai/workspaces/) — Everything your AI agent needs, set up once, in any editor or MCP client.
+- [Altimate Lite for Snowflake](https://help.altimate.ai/snowflake-native-app/) — More out of your Snowflake compute, without your data leaving your account.
 - [Altimate Platform](https://altimate.ai/platform?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) — Enterprise cost optimization for [Snowflake](https://altimate.ai/use-cases/altimate-for-snowflake?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) and [Databricks](https://altimate.ai/use-cases/altimate-for-databricks?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link).
 
 ## Support
 
-The extension and Datamates Platform are developed and maintained by [Altimate AI](https://www.altimate.ai?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link). Join the dbt Community Slack channel [#tools-dbt-power-user](https://getdbt.slack.com/archives/C05KPDGRMDW) to connect with other users.
+The extension and Workspaces Platform are developed and maintained by [Altimate AI](https://www.altimate.ai?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link). Join the dbt Community Slack channel [#tools-dbt-power-user](https://getdbt.slack.com/archives/C05KPDGRMDW) to connect with other users.
 
 If you run into issues, [contact us](https://www.altimate.ai/support?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) via Slack or chat.
