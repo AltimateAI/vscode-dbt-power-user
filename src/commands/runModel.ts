@@ -1,7 +1,8 @@
 import path = require("path");
 import { RunModelType } from "@altimateai/dbt-integration";
-import { Uri, window } from "vscode";
+import { TextEditor, Uri, window } from "vscode";
 import { GenerateModelFromSourceParams } from "../code_lens_provider/sourceModelCreationCodeLensProvider";
+import { PreviewMode } from "../dbt_client/dbtProject";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { NodeTreeItem } from "../treeview_provider/modelTreeviewProvider";
 import { extendErrorWithSupportLinks } from "../utils";
@@ -67,11 +68,40 @@ export class RunModel {
     if (query === undefined) {
       return;
     }
-    const modelPath = window.activeTextEditor?.document.uri;
-    if (modelPath) {
-      const modelName = path.basename(modelPath.fsPath, ".sql");
-      this.executeSQL(window.activeTextEditor!.document.uri, query, modelName);
+    const editor = window.activeTextEditor;
+    if (!editor) {
+      return;
     }
+    const modelPath = editor.document.uri;
+    const modelName = path.basename(modelPath.fsPath, ".sql");
+    this.executeSQL(modelPath, query, modelName, this.previewModeFor(editor));
+  }
+
+  /**
+   * Decide how a preview should reach dbt.
+   *
+   * Previewing with `--inline` compiles the SQL as an anonymous node, so Jinja
+   * that reads the current node's identity resolves to a placeholder. Running
+   * the real node instead fixes that, but dbt reads the node from disk — so it
+   * is only equivalent when the editor holds nothing the file does not.
+   */
+  private previewModeFor(editor: TextEditor): PreviewMode {
+    // A selection means the fragment is the point, not the model.
+    if (!editor.selection.isEmpty) {
+      return "inline";
+    }
+    if (editor.document.uri.scheme === "untitled") {
+      return "inline";
+    }
+    // Saved and unedited: the buffer is byte-identical to disk, so running the
+    // node produces the same SQL and additionally resolves its identity.
+    if (!editor.document.isDirty) {
+      return "as-model";
+    }
+    // Unsaved edits: the editor and disk differ, and the edits are almost
+    // always what the user wants previewed. Run them, and only raise the
+    // alternative if the run fails for lack of node identity.
+    return "inline-then-offer";
   }
 
   runModelOnNodeTreeItem(type: RunModelType) {
@@ -165,8 +195,13 @@ export class RunModel {
     this.dbtProjectContainer.runModelTest(modelPath, modelName);
   }
 
-  async executeSQL(uri: Uri, query: string, modelName: string) {
-    this.dbtProjectContainer.executeSQL(uri, query, modelName);
+  async executeSQL(
+    uri: Uri,
+    query: string,
+    modelName: string,
+    previewMode: PreviewMode = "inline",
+  ) {
+    this.dbtProjectContainer.executeSQL(uri, query, modelName, previewMode);
   }
 
   showCompiledSQL(modelPath: Uri) {
