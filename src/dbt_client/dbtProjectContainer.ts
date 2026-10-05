@@ -489,17 +489,25 @@ export class DBTProjectContainer implements Disposable {
     return this.dbtWorkspaceFolders.find((folder) => folder.contains(uri));
   }
 
-  async checkIfAltimateDatapilotInstalled() {
-    const datapilotVersion =
+  async checkIfAltimateDatapilotInstalled(): Promise<{
+    isInstalled: boolean;
+    installedVersion: string;
+    requiredVersion?: string;
+  }> {
+    const installedVersion =
       await this.altimateDatapilot.checkIfAltimateDatapilotInstalled();
-    if (!valid(datapilotVersion)) {
-      return false;
+    if (!valid(installedVersion)) {
+      return { isInstalled: false, installedVersion };
     }
-    const { altimate_datapilot_version } =
+    const { altimate_datapilot_version: requiredVersion } =
       await this.altimate.getDatapilotVersion(this.extensionVersion);
     // Accept newer installs: pinning to the exact version downgrades users and can
     // leave stale compiled deps (e.g. sqlglotc) behind that break datapilot imports
-    return gte(datapilotVersion, altimate_datapilot_version);
+    return {
+      isInstalled: gte(installedVersion, requiredVersion),
+      installedVersion,
+      requiredVersion,
+    };
   }
 
   async installAltimateDatapilot() {
