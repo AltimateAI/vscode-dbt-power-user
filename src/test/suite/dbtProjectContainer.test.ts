@@ -463,6 +463,37 @@ describe("DBTProjectContainer Tests", () => {
       expect(result).toBe(true);
     });
 
+    it("should accept an installed Datapilot newer than the required version", async () => {
+      mockAltimateDatapilot.checkIfAltimateDatapilotInstalled.mockResolvedValueOnce(
+        "1.2.0",
+      );
+
+      const result = await container.checkIfAltimateDatapilotInstalled();
+
+      expect(result).toBe(true);
+    });
+
+    it("should reject an installed Datapilot older than the required version", async () => {
+      mockAltimateDatapilot.checkIfAltimateDatapilotInstalled.mockResolvedValueOnce(
+        "0.9.0",
+      );
+
+      const result = await container.checkIfAltimateDatapilotInstalled();
+
+      expect(result).toBe(false);
+    });
+
+    it("should report Datapilot as not installed when no version is found", async () => {
+      mockAltimateDatapilot.checkIfAltimateDatapilotInstalled.mockResolvedValueOnce(
+        "",
+      );
+
+      const result = await container.checkIfAltimateDatapilotInstalled();
+
+      expect(result).toBe(false);
+      expect(mockAltimateRequest.getDatapilotVersion).not.toHaveBeenCalled();
+    });
+
     it("should install Altimate Datapilot", async () => {
       await container.installAltimateDatapilot();
 

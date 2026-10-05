@@ -9,6 +9,7 @@ import {
 import * as fs from "fs";
 import { inject } from "inversify";
 import { basename } from "path";
+import { gte, valid } from "semver";
 import {
   commands,
   Disposable,
@@ -491,9 +492,14 @@ export class DBTProjectContainer implements Disposable {
   async checkIfAltimateDatapilotInstalled() {
     const datapilotVersion =
       await this.altimateDatapilot.checkIfAltimateDatapilotInstalled();
+    if (!valid(datapilotVersion)) {
+      return false;
+    }
     const { altimate_datapilot_version } =
       await this.altimate.getDatapilotVersion(this.extensionVersion);
-    return datapilotVersion === altimate_datapilot_version;
+    // Accept newer installs: pinning to the exact version downgrades users and can
+    // leave stale compiled deps (e.g. sqlglotc) behind that break datapilot imports
+    return gte(datapilotVersion, altimate_datapilot_version);
   }
 
   async installAltimateDatapilot() {
