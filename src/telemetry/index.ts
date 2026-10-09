@@ -140,6 +140,15 @@ export class TelemetryService implements vscode.Disposable {
     if (typeof code === "string" || typeof code === "number") {
       fields.error_code = String(code);
     }
+    // `errorClass` is the per-error verdict the throwing code assigned (the
+    // dbt-integration bridge marks dbt refusing the user's project as
+    // `dbt_project`, an interpreter that cannot import dbt as `python_env`,
+    // a warehouse refusal as `warehouse`). It tells triage whose failure this
+    // is without parsing a message the PII redactor may have masked.
+    const errorClass = (error as { errorClass?: unknown }).errorClass;
+    if (typeof errorClass === "string" && errorClass) {
+      fields.errorClass = errorClass;
+    }
     return fields;
   }
 
