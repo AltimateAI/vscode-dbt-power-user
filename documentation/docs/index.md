@@ -108,28 +108,31 @@ Browser-based docs and column lineage from the SaaS UI.
 
 ## Feature Comparison
 
-The extension works great out of the box. Add a free [Altimate API key](setup/reqdConfig.md#enable-saas-features-by-adding-api-key) to unlock the AI-powered features.
+The extension works great out of the box. Add a free [Altimate API key](setup/reqdConfig.md#enable-saas-features-by-adding-api-key) to unlock SaaS-backed features — governance, column lineage, collaboration, and the AI teammates — all under a single key.
 
-| Power User for dbt Extension | With Altimate AI Key |
-|---|---|
-| [SQL Visualizer](test/sqlvisualizer) | [Workspaces Platform](https://help.altimate.ai/workspaces/user-guide/home/) |
-| [Data Lineage: Model Level](test/lineage/#model-lineage) | [Data Lineage: Column Level](test/lineage/#column-lineage) |
-| [Auto-gen dbt from source](develop/genmodelsource) | [Query Explanation AI](develop/explanation) |
-| [Auto-complete code](develop/autocomplete) | [Query Translation AI](develop/translateSQL) |
-| [Click to Run Models](develop/clicktorun) | [Auto-gen dbt from SQL](develop/genmodelSQL) |
-| [Compiled SQL preview](develop/compiledCode) | [Tests Generation AI](test/writetests) |
-| [Preview query results](test/queryResults) | [Documentation Generation AI](document/generatedoc) |
-| [Defer to prod](test/defertoprod) | [Coach & Personalize AI Teammates](teammates/coach) |
-| [SQL validation without execution](test/sqlvalidation) | [Code Collaboration](govern/collaboration#start-a-discussion) |
-| — | [Documentation Collaboration](govern/collaboration#start-a-discussion_1) |
-| — | [Data Lineage Export](govern/collaboration#lineage-export-workflow) |
-| — | [Data Lineage SaaS UI](govern/collaboration#view-lineage-in-saas) |
-| — | [Project Governance: VS Code](govern/governance#configure-checks) |
-| — | [Project Governance: CI/CD](govern/governance#available-via-extension-python-package) |
-| — | [Project Governance: SaaS UI](govern/governance#saas-configuration-of-checks) |
-| — | [dbt Docs SaaS UI](discover/viewlineage) |
-| — | [Query History & Bookmarks](govern/querybookmarks) |
-| — | [Query Sharing](govern/querybookmarks) |
+Features are grouped by what each tier requires:
+
+- **Local-only** — nothing leaves your machine; no key needed.
+- **Free with Altimate key** — needs an Altimate API key but no AI credits.
+- **AI-powered** — uses AI.
+
+| Local-only (no key) | Free with Altimate key | AI-powered |
+|---|---|---|
+| [Autocomplete code](develop/autocomplete) | [Sign in with Altimate](setup/installation) | [Documentation Generation AI](document/generatedoc) |
+| [Compiled SQL preview](develop/compiledCode) | [User-level collaboration](govern/collaboration/#code-collaboration-workflow) | [Tests Generation AI](test/writetests) |
+| [Click to Run Models](develop/clicktorun) | [Defer to prod](test/defertoprod) | [Query Explanation AI](develop/explanation) |
+| [Run tests](test/runtests) | [Project Governance (VS Code)](govern/governance) | [Optimize SQL with Altimate](develop/optimize) |
+| [Auto-gen dbt from source](develop/genmodelSource) | [Project Governance (CI/CD)](govern/governance) | [Query Translation AI](develop/translateSQL) |
+| [Preview query results](test/queryResults) | [Project Governance (SaaS UI)](govern/governance) | [Auto-gen dbt from SQL](develop/genmodelSQL) |
+| [Run ad hoc query](test/adhocquery) | [SQL Visualizer](test/sqlvisualizer) | [Chat about model / column](test/lineage) |
+| [Download CSV / Copy as JSON](test/queryResults/#downloading-and-copying-query-results) | [Data Lineage: Column Level](test/lineage/#column-lineage) | [Coach & Personalize AI Teammates](teammates/coach) |
+| [SQL validation without execution](test/sqlvalidation) | [Data Lineage Export](govern/collaboration) | Add Governance checks in natural language |
+| [Data Lineage: Model Level](test/lineage/#model-lineage) | [Data Lineage SaaS UI](govern/collaboration) | [Altimate Code — anywhere it is used](teammates/altimate-code) |
+| [CTE Profiler](test/runctes) | [dbt Docs SaaS UI](discover/viewlineage) | — |
+| [BigQuery cost estimator](test/bigquerycost) | [Code Collaboration](govern/collaboration) | — |
+| [Query History tree](govern/querybookmarks/#execute-query-from-history) | [Documentation Collaboration](govern/collaboration) | — |
+| [Native dbt Docs viewer](discover/viewdocs/#native-dbt-docs-viewer-is-present-in-power-user-extension-as-well) | [Query History & Bookmarks](govern/querybookmarks) | — |
+| [Setup wizard, Diagnostics, utility commands](setup/installation) | [Query Sharing](govern/querybookmarks) | — |
 
 ## Other Altimate products
 
