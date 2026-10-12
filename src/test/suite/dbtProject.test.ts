@@ -71,6 +71,15 @@ jest.mock("@altimateai/dbt-integration", () => {
         REBUILD_MANIFEST_STATUS_CHANGE: "rebuildManifestStatusChange",
       },
 
+    // PythonException is exported by dbt-integration (vendored bridge)
+    PythonException: class PythonException extends Error {
+      exception: any;
+      constructor(message: string) {
+        super(message);
+        this.exception = { message };
+      }
+    },
+
     // Mock the error class but keep it extending Error
     NoCredentialsError: class NoCredentialsError extends Error {
       constructor(message?: string) {
@@ -80,17 +89,6 @@ jest.mock("@altimateai/dbt-integration", () => {
     },
   };
 });
-
-// Mock python-bridge
-jest.mock("python-bridge", () => ({
-  PythonException: class PythonException extends Error {
-    exception: any;
-    constructor(message: string) {
-      super(message);
-      this.exception = { message };
-    }
-  },
-}));
 
 // Mock vscode module
 jest.mock("vscode", () => {

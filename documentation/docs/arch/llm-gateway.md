@@ -1,5 +1,7 @@
 ---
 status: new
+title: Altimate LLM Gateway — Power User for dbt
+description: "The Altimate LLM Gateway gives Power User for dbt dynamic model routing at 60–80% lower cost than direct LLM providers."
 ---
 
 # Altimate LLM Gateway
@@ -78,14 +80,14 @@ The Altimate LLM Gateway is designed with enterprise security requirements in mi
 - IAM-based RBAC with MFA enforcement for developer access
 
 
-/// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=docs) via chat or Slack.
+/// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) via chat or Slack.
     type: tip
 ///
 
 ## Getting Started
 
-1. Install the [Datamates extension](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server) in your IDE
-2. Open the command palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) and select **Datamates: Open Altimate Code Chat**
+1. Install the [Altimate Workspaces extension](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server) in your IDE
+2. Open the command palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) and select **Altimate Workspaces: Open Altimate Code Chat**
 3. The Community plan with 10M free tokens is available immediately — no credit card required
 
-To upgrade or manage your plan, visit the [Altimate pricing page](https://www.altimate.ai/pricing?utm_source=dbt-power-user&utm_medium=docs).
+To upgrade or manage your plan, visit the [Altimate pricing page](https://www.altimate.ai/pricing?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link).

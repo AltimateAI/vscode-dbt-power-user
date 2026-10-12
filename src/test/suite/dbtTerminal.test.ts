@@ -1,6 +1,5 @@
-import { DBTTerminal } from "@altimateai/dbt-integration";
+import { DBTTerminal, PythonException } from "@altimateai/dbt-integration";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
-import { PythonException } from "python-bridge";
 import * as vscode from "vscode";
 import { VSCodeDBTTerminal } from "../../dbt_client/vscodeTerminal";
 

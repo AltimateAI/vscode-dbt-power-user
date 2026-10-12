@@ -1,3 +1,8 @@
+---
+title: Studio — Natural Language dbt Queries
+description: "Studio is a specialized AI agent in Power User for dbt for natural language data queries, lineage exploration, and performance analysis."
+---
+
 # Studio
 
 ## What is Studio?
@@ -47,12 +52,12 @@ Traditional AI approaches have critical limitations. These limitations are well 
 ## Extending Context
 
 Beyond the integrations already connected to your SaaS instance, Studio allows you to enrich your queries with additional context:
-![Studio Datamates and Knowledge Base](studio/images/Studio-context.png)
+![Studio workspace and Knowledge Base](studio/images/Studio-context.png)
 
 | Option               | Description                                                                                                                                                      |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Datamates**        | Select any [Datamate](https://datamates-docs.myaltimate.com/user-guide/home/) to widen the context based on tools                                                |
-| **Knowledge Bases**  | Connect organizational knowledge repositories from [Knowledge Hub](https://datamates-docs.myaltimate.com/user-guide/components/knowledgehub/) for deeper context |
+| **Datamates**        | Select any [workspace](https://help.altimate.ai/workspaces/user-guide/home/) (Studio still calls them datamates) to widen the context based on tools                                                |
+| **Knowledge Bases**  | Connect organizational knowledge repositories from [Knowledge Hub](https://help.altimate.ai/workspaces/user-guide/components/knowledgehub/) for deeper context |
 | **File Attachments** | Upload documents, queries, or data files directly into your conversation                                                                                         |
 
 This flexibility ensures you can ask questions across a broader tool set while providing the agent with the context it needs to deliver accurate, actionable insights.
@@ -66,7 +71,7 @@ When starting a conversation, users have multiple ways to provide context:
 | Option                  | Description                                                                    |
 | ----------------------- | ------------------------------------------------------------------------------ |
 | **Ask a question**      | Type your query directly in the chat input                                     |
-| **Add Datamate**        | Select a Datamate to access any tool specific information                      |
+| **Add Datamate**        | Select a workspace (Studio still calls it a datamate) to access its tools                      |
 | **Attach files**        | Upload files for analysis (via "+" menu)                                       |
 | **Knowledge Base**      | Access organizational knowledge repositories from Knowledge Hub (via "+" menu) |
 | **View Prompt Library** | Browse pre-built prompts for common tasks (via 'Select Prompt Library')        |

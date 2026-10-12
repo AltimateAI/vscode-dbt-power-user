@@ -1,10 +1,15 @@
+---
+title: Coach Teammate — Power User for dbt
+description: "The Coach teammate in Power User for dbt reviews your dbt code and teaches best practices as you work."
+---
+
 You can coach and personalize your AI teammates by giving instructions in the natural language.
 
 First, enable AI teammates functionality by going in settings -> teammates menu.
 ![enableTeammates](images/enableTeammates.png)<br>
 
 /// admonition | Unless you enable teammates in the SaaS instance, coaching and personalization outlined below won't work.
-    type: warning
+type: warning
 ///
 
 ## Documentation Writer

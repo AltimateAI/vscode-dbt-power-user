@@ -1,4 +1,9 @@
-/// admonition | We've released our [Datamates Extension](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server) - to give you the power to use AI TeamMates! [Click here](https://datamates-docs.myaltimate.com/) to learn more.
+---
+title: Install Power User for dbt — VS Code Extension
+description: "Install Power User for dbt from the VS Code Marketplace or via the Altimate Workspaces extension. Step-by-step guide."
+---
+
+/// admonition | The [Altimate Workspaces extension](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server) brings your workspace's integrations, knowledge, memory and skills to your editor's AI agent. [Learn more](https://help.altimate.ai/workspaces/).
 ///
 
 There are a few different ways in which extension can be installed.
@@ -25,7 +30,7 @@ Some Cursor users experience the extension installation freezing for several min
 
 ///
 
-/// admonition | Need to setup environment variables? Refer to this [section](https://docs.myaltimate.com/setup/optConfig/#environment-variables-setup)
+/// admonition | Need to setup environment variables? Refer to this [section](/setup/optConfig/#environment-variables-setup)
     type: warning
 ///
 

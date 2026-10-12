@@ -1,7 +1,6 @@
-import { DBTTerminal } from "@altimateai/dbt-integration";
+import { DBTTerminal, PythonException } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
 import { basename } from "path";
-import { PythonException } from "python-bridge";
 import {
   CancellationToken,
   commands,

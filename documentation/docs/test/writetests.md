@@ -1,3 +1,8 @@
+---
+title: Write dbt Tests with AI — Power User for dbt
+description: "Auto-generate dbt tests for your models using AI in Power User for dbt. Covers generic and custom test generation."
+---
+
 You can generate, view, edit and delete dbt tests in VS Code under the Documentation Editor section.
 
 /// details | Following are a few limitations
@@ -25,10 +30,10 @@ You can also generate test code for custom tests based on `dbt_utils` and `dbt_e
 
 In the Documentation Editor, click the **(+)** sign next to the **Tests:** label and choose **custom tests**. Altimate Code opens in a side panel, asks any clarifying questions it needs, and writes the test (using `dbt_utils` / `dbt_expectations` if installed, or a custom macro otherwise).
 
-/// admonition | Requires the Datamates extension
+/// admonition | Requires the Altimate Workspaces extension
     type: info
 
-Custom test generation runs through Altimate Code, which is powered by the **[Datamates](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server)** extension. Make sure Datamates is installed and active before invoking custom test generation.
+Custom test generation runs through Altimate Code, which is powered by the **[Altimate Workspaces](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server)** extension. Make sure Altimate Workspaces is installed and active before invoking custom test generation.
 ///
 
 /// admonition | Altimate Code may occasionally retry dbt commands before producing a successful test, and in rare cases may ignore installed packages or generate inaccurate code. Review the generated test before saving.

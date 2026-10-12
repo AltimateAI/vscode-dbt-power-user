@@ -1,6 +1,11 @@
+---
+title: Configuration Reference — Power User for dbt
+description: "Full configuration reference for Power User for dbt VS Code extension settings, API keys, and project options."
+---
+
 # Configuration Settings
 
-This page provides a comprehensive overview of all available configuration settings in the dbt Power User extension. The settings are organized by category for easy reference.
+This page provides a comprehensive overview of all available configuration settings in the Power User for dbt extension. The settings are organized by category for easy reference.
 
 ## Core Settings
 

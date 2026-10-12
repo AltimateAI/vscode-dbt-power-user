@@ -1,16 +1,18 @@
 ---
 status: new
+title: Altimate Code Teammate — Power User for dbt
+description: "Use Altimate Code as an AI teammate inside Power User for dbt for automated model building, testing, and review."
 ---
 
 # Altimate Code in IDE
 
 ## What is Altimate Code?
 
-[Altimate Code](https://docs.altimate.sh) is the open-source data engineering harness with 100+ deterministic tools for building, validating, optimizing, and shipping data products. It brings AI-powered data engineering directly into your IDE through the Datamates extension, or can be used standalone via CLI and TUI.
+[Altimate Code](https://help.altimate.ai/code/) is the open-source data engineering harness with 100+ deterministic tools for building, validating, optimizing, and shipping data products. It brings AI-powered data engineering directly into your IDE through the Altimate Workspaces extension, or can be used standalone via CLI and TUI.
 
 ## Getting Started in Your IDE
 
-### Install the Datamates Extension
+### Install the Altimate Workspaces extension
 
 - **VS Code** — [Microsoft Marketplace](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server)
 - **Cursor / other VS Code-compatible editors** — [Open VSX Registry](https://open-vsx.org/extension/altimateai/vscode-altimate-mcp-server)
@@ -18,8 +20,8 @@ status: new
 ### Open Altimate Code Chat
 
 1. Press `Cmd+Shift+P` (macOS) or `Ctrl+Shift+P` (Windows/Linux) to open the command palette
-2. Type `Datamates`
-3. Select **Datamates: Open Altimate Code Chat**
+2. Type `Altimate Workspaces`
+3. Select **Altimate Workspaces: Open Altimate Code Chat**
 
 This opens the Altimate Code chat panel where you can interact with agents and run data engineering tools.
 
@@ -96,5 +98,5 @@ npm install -g altimate-code
 
 ## Full Documentation
 
-- **Altimate Code docs** — [docs.altimate.sh](https://docs.altimate.sh)
-- **Datamates docs** — [datamates-docs.myaltimate.com](https://datamates-docs.myaltimate.com/)
+- **Altimate Code docs** — [Altimate Code section](https://help.altimate.ai/code/)
+- **Workspaces docs** — [Workspaces](https://help.altimate.ai/workspaces/)

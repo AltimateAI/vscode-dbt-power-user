@@ -19,10 +19,10 @@ import {
   DBTTerminal,
   ExecuteSQLError,
   ExecuteSQLResult,
+  PythonException,
   QueryExecution,
 } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
-import { PythonException } from "python-bridge";
 import { AltimateRequest } from "../altimate";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { AltimateAuthService } from "../services/altimateAuthService";
@@ -592,7 +592,20 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             break;
           }
           case InboundCommand.ExplainWithAltimate: {
-            await commands.executeCommand("dbtPowerUser.explainWithAltimate");
+            const { compiledSql, rawSql, fileName } = message as any;
+            const sql = compiledSql || rawSql;
+            const initialMessage =
+              `Explain the following SQL query:\n\n` +
+              `${fenceCodeBlock(sql, "sql")}`;
+            const title = fileName ? `Explain: ${fileName}` : "Explain query";
+            const opened = await this.altimateCodeChatService.openChat({
+              initialMessage,
+              title,
+              beside: true,
+            });
+            if (opened) {
+              this.telemetry.sendTelemetryEvent("ExplainQueryWithAltimate");
+            }
             break;
           }
           case InboundCommand.ProfileQueryWithAltimate: {

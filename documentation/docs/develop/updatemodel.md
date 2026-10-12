@@ -1,9 +1,14 @@
+---
+title: Update dbt Models with AI — Power User for dbt
+description: "Use AI to update and refactor existing dbt models based on natural language instructions in Power User for dbt."
+---
+
 Updating or changing an existing dbt (or SQL) model using natural language is straightforward through Altimate Code.
 
-/// admonition | Requires the Datamates extension
+/// admonition | Requires the Altimate Workspaces extension
     type: info
 
-The **Change with Altimate** action opens a chat session through the **[Datamates](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server)** extension. Make sure Datamates is installed and active before invoking it.
+The **Change with Altimate** action opens a chat session through the **[Altimate Workspaces](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server)** extension. Make sure Altimate Workspaces is installed and active before invoking it.
 ///
 
 ### Step 1: Trigger the operation
@@ -36,6 +41,6 @@ Altimate Code shows an Accomplished summary listing every change it made (replac
     type: tip
 ///
 
-/// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs)
+/// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link)
     type: info
 ///

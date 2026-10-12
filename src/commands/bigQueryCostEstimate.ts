@@ -1,6 +1,5 @@
-import { DBTTerminal } from "@altimateai/dbt-integration";
+import { DBTTerminal, PythonException } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
-import { PythonException } from "python-bridge";
 import { window } from "vscode";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";

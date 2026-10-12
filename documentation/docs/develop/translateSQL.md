@@ -1,9 +1,14 @@
+---
+title: Translate SQL Across Dialects — Power User for dbt
+description: "Translate SQL between warehouse dialects (Snowflake, BigQuery, Redshift, etc.) with one click in Power User for dbt."
+---
+
 You can translate SQL queries from one dialect to another using Altimate Code. For example, translate a query in Postgres SQL dialect to Snowflake SQL dialect.
 
-/// admonition | Requires the Datamates extension
+/// admonition | Requires the Altimate Workspaces extension
     type: info
 
-The **Translate with Altimate** action opens a chat session through the **[Datamates](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server)** extension. Make sure Datamates is installed and active before invoking it.
+The **Translate with Altimate** action opens a chat session through the **[Altimate Workspaces](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server)** extension. Make sure Altimate Workspaces is installed and active before invoking it.
 ///
 
 ### Supported SQL dialects

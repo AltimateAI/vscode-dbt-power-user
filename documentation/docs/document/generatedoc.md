@@ -1,3 +1,10 @@
+---
+title: Auto-Generate dbt Documentation
+description: "Bulk-generate dbt model and column documentation with AI in Power User for dbt. Set persona and length preferences."
+video_id: 8EuBDEuYZ2o
+video_upload_date: "2026-06-11T00:00:00Z"
+---
+
 Instead of writing documentation manually, you can generate the documentation!
 
 ### Single-column hover shortcut
@@ -92,7 +99,7 @@ Here's a demo of generating model and column descriptions:
 
 <div style="position: relative; padding-bottom: calc(86.34704370179949% + 42px); height: 0;"><iframe src="https://app.supademo.com/embed/cm8oeopuq03drzh0i0yyvsxw7" allow="clipboard-write" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
-/// admonition | Document generation or propagation requires an API key. You can get it by signing up for free at [www.altimate.ai](https://wwww.altimate.ai)
+/// admonition | Document generation or propagation requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai)
     type: info
 ///
 

@@ -1,3 +1,8 @@
+---
+title: dbt Fusion Configuration — Power User for dbt
+description: "Configure Power User for dbt to work with dbt Fusion for improved performance and cloud integration."
+---
+
 /// admonition | Only use the following steps for "dbt Fusion" environments. If you have a dbt Core environment, use the [required config instructions for "dbt Core" environments](./reqdConfig.md). If you have a dbt Cloud environment, use the [required config instructions for "dbt Cloud" environments](./reqdConfigCloud.md).
     type: warning
 ///
@@ -19,7 +24,7 @@ dbt Fusion is a command-line interface that provides enhanced dbt functionality 
 
 ## Use the setup wizard for configuration (recommended)
 
-/// admonition | Need to setup environment variables? Refer to this [section](https://docs.myaltimate.com/setup/optConfig/#environment-variables-setup)
+/// admonition | Need to setup environment variables? Refer to this [section](/setup/optConfig/#environment-variables-setup)
     type: warning
 ///
 
@@ -28,7 +33,7 @@ This method will save a bunch of time for you, and you can also validate your co
 You can start the setup wizard by clicking on the dbt status icon in the bottom status bar, and perform the following necessary steps:
 
 <div style="position: relative; box-sizing: content-box; max-height: 80vh; max-height: 80svh; width: 100%; aspect-ratio: 1.50; padding: 40px 0 40px 0;">
-  <iframe src="https://app.supademo.com/embed/cmnt1t4jz4hj3cr4j3knosm74?embed_v=2&utm_source=embed" loading="lazy" title="dbt Power User Setup guide-Fusion" allow="clipboard-write" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+  <iframe src="https://app.supademo.com/embed/cmnt1t4jz4hj3cr4j3knosm74?embed_v=2&utm_source=embed" loading="lazy" title="Power User for dbt Setup guide-Fusion" allow="clipboard-write" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
 **Here are the steps covered in the setup wizard**
 
@@ -51,7 +56,7 @@ The wizard will help you associate `*.sql` files with `jinja-sql` language mode 
 
 The last step is clicking the "Validate Project" button. It will run a bunch of checks to make sure your dbt Fusion environment and project are set up correctly. If there are issues, it will tell you exactly what's wrong.
 
-/// admonition | If you still can't get the extension setup correctly, please contact us via slack or chat through [support page](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=docs)
+/// admonition | If you still can't get the extension setup correctly, please contact us via slack or chat through [support page](https://www.altimate.ai/support?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link)
     type: tip
 ///
 
@@ -66,7 +71,7 @@ The last step is clicking the "Validate Project" button. It will run a bunch of 
 #### Automatic Installation via Extension
 
 1. Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
-2. Type "dbt Power User: Install dbt"
+2. Type "Power User for dbt: Install dbt"
 3. Select the command and choose "dbt Fusion" when prompted
 4. The extension will automatically download and install dbt Fusion for your platform
 
@@ -134,7 +139,7 @@ After configuration, check that:
 
 There are multiple features in the extension, including [generate dbt documentation](../document/generatedoc.md), [column lineage](../test/lineage.md), [query explanation](../develop/explanation.md), [generate dbt model from SQL](../develop/genmodelSQL.md) that require an API key.
 
-/// details | You can get an API key for free by signing up at [www.altimate.ai](https://www.altimate.ai?utm_source=dbt-power-user&utm_medium=docs)
+/// details | You can get an API key for free by signing up at [www.altimate.ai](https://www.altimate.ai?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link)
 
 <interactive demo to get an API key>
 
