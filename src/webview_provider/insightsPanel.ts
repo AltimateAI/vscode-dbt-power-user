@@ -484,11 +484,18 @@ export class InsightsPanel extends AltimateWebviewProvider {
       await this.altimateRequest.logDBTHealthcheckStartScan();
     } catch (e) {
       this.emitError(syncRequestId, (e as Error).message);
+      this.dbtTerminal.error(
+        "atimateDatapilotStartScan",
+        "Error while starting project governance scan",
+        e,
+      );
       return;
     }
-    let isInstalled = false;
+    let datapilotStatus: Awaited<
+      ReturnType<DBTProjectContainer["checkIfAltimateDatapilotInstalled"]>
+    >;
     try {
-      isInstalled =
+      datapilotStatus =
         await this.dbtProjectContainer.checkIfAltimateDatapilotInstalled();
     } catch (e) {
       this.emitError(
@@ -504,11 +511,16 @@ export class InsightsPanel extends AltimateWebviewProvider {
       );
       return;
     }
-    if (!isInstalled) {
+    if (!datapilotStatus.isInstalled) {
       const answer = await window.showInformationMessage(
         "Altimate datapilot cli is not detected. Install it?",
         PromptAnswer.YES,
       );
+      this.telemetry.sendTelemetryEvent("atimateDatapilotInstallPrompt", {
+        installedVersion: datapilotStatus.installedVersion,
+        requiredVersion: datapilotStatus.requiredVersion ?? "",
+        accepted: String(answer === PromptAnswer.YES),
+      });
       if (answer !== PromptAnswer.YES) {
         this.emitError(
           syncRequestId,
@@ -557,6 +569,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
         await this.dbtProjectContainer.executeAltimateDatapilotHealthcheck(
           args,
         );
+      this.telemetry.sendTelemetryEvent("performDatapilotHealthcheckSuccess");
       if (this._panel?.visible) {
         window.showInformationMessage("Healthcheck completed successfully.");
         this._panel!.webview.postMessage({

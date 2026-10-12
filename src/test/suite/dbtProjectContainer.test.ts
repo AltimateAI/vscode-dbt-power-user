@@ -460,7 +460,50 @@ describe("DBTProjectContainer Tests", () => {
       expect(mockAltimateRequest.getDatapilotVersion).toHaveBeenCalledWith(
         "1.0.0",
       );
-      expect(result).toBe(true);
+      expect(result).toEqual({
+        isInstalled: true,
+        installedVersion: "1.0.0",
+        requiredVersion: "1.0.0",
+      });
+    });
+
+    it("should accept an installed Datapilot newer than the required version", async () => {
+      mockAltimateDatapilot.checkIfAltimateDatapilotInstalled.mockResolvedValueOnce(
+        "1.2.0",
+      );
+
+      const result = await container.checkIfAltimateDatapilotInstalled();
+
+      expect(result).toEqual({
+        isInstalled: true,
+        installedVersion: "1.2.0",
+        requiredVersion: "1.0.0",
+      });
+    });
+
+    it("should reject an installed Datapilot older than the required version", async () => {
+      mockAltimateDatapilot.checkIfAltimateDatapilotInstalled.mockResolvedValueOnce(
+        "0.9.0",
+      );
+
+      const result = await container.checkIfAltimateDatapilotInstalled();
+
+      expect(result).toEqual({
+        isInstalled: false,
+        installedVersion: "0.9.0",
+        requiredVersion: "1.0.0",
+      });
+    });
+
+    it("should report Datapilot as not installed when no version is found", async () => {
+      mockAltimateDatapilot.checkIfAltimateDatapilotInstalled.mockResolvedValueOnce(
+        "",
+      );
+
+      const result = await container.checkIfAltimateDatapilotInstalled();
+
+      expect(result).toEqual({ isInstalled: false, installedVersion: "" });
+      expect(mockAltimateRequest.getDatapilotVersion).not.toHaveBeenCalled();
     });
 
     it("should install Altimate Datapilot", async () => {
