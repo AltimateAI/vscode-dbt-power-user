@@ -5,6 +5,9 @@ permissions:
   pull-requests: write
 jobs:
   check:
+    # aireceipts-cli@latest runs with a PR-write token and is not pinned or reviewed; factory-authored
+    # PRs (agent-written content) skip it. The factory cannot edit .github/**, so this holds for them.
+    if: ${{ !startsWith(github.head_ref, 'factory/') }}
     runs-on: ubuntu-latest
     steps:
       - run: npx -y aireceipts-cli@latest pr-check
