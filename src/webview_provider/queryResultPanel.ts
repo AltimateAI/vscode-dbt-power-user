@@ -40,7 +40,7 @@ import {
 } from "./altimateWebviewProvider";
 import {
   buildCappedRows,
-  MAX_QUERY_HISTORY_CHARS,
+  evictToBudget,
   totalPayloadChars,
 } from "./queryResultPayload";
 import path = require("path");
@@ -853,18 +853,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       );
       return;
     }
-    // Each entry carries the serialized size of its rows, so the history is
-    // never re-serialized to measure it. Keep the total under the cap.
-    while (
-      this._queryHistory.length > 0 &&
-      totalPayloadChars(this._queryHistory) > MAX_QUERY_HISTORY_CHARS
-    ) {
-      this._queryHistory.pop();
-      this.dbtTerminal.info(
-        "updateQueryHistory",
-        "Query history size exceeded 3MB, cleared oldest entry",
-      );
-    }
     this._queryHistory.unshift({
       rawSql: query,
       compiledSql: result.compiled_sql,
@@ -879,6 +867,16 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       payloadChars: result.payloadChars,
     });
     this._queryHistory = this._queryHistory.splice(0, 10);
+    // Each entry carries the serialized size of its rows, so the history is
+    // never re-serialized to measure it. Enforce the budget after the insert
+    // so it holds whatever the new result's size; the newest entry stays.
+    const evicted = evictToBudget(this._queryHistory);
+    if (evicted.length > 0) {
+      this.dbtTerminal.info(
+        "updateQueryHistory",
+        `Query history size exceeded 3MB, cleared ${evicted.length} oldest entries`,
+      );
+    }
   }
 
   /** Runs a query transmitting appropriate notifications to webview */

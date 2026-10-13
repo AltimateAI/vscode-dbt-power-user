@@ -65,3 +65,19 @@ export function totalPayloadChars(
   }
   return total;
 }
+
+/**
+ * Drops the oldest entries until the carried sizes fit `maxChars`. The
+ * newest entry (index 0) is never dropped, so a single oversized result is
+ * still kept. Returns the entries removed, oldest first.
+ */
+export function evictToBudget<T extends { payloadChars?: number }>(
+  entries: T[],
+  maxChars: number = MAX_QUERY_HISTORY_CHARS,
+): T[] {
+  const evicted: T[] = [];
+  while (entries.length > 1 && totalPayloadChars(entries) > maxChars) {
+    evicted.push(entries.pop() as T);
+  }
+  return evicted;
+}

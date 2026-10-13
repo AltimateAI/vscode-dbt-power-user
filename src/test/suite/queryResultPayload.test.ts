@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import {
   buildCappedRows,
+  evictToBudget,
   serializedLength,
   totalPayloadChars,
 } from "../../webview_provider/queryResultPayload";
@@ -60,5 +61,39 @@ describe("totalPayloadChars", () => {
     expect(
       totalPayloadChars([{ payloadChars: 10 }, {}, { payloadChars: 5 }]),
     ).toBe(15);
+  });
+});
+
+describe("evictToBudget", () => {
+  it("drops the oldest entries until the total fits, newest first kept", () => {
+    const entries = [
+      { id: "newest", payloadChars: 5 },
+      { id: "mid", payloadChars: 5 },
+      { id: "oldest", payloadChars: 5 },
+    ];
+
+    const evicted = evictToBudget(entries, 10);
+
+    expect(entries.map((e) => e.id)).toEqual(["newest", "mid"]);
+    expect(evicted.map((e) => e.id)).toEqual(["oldest"]);
+  });
+
+  it("never drops the newest entry, even when it alone exceeds the budget", () => {
+    const entries = [
+      { id: "newest", payloadChars: 50 },
+      { id: "older", payloadChars: 1 },
+    ];
+
+    const evicted = evictToBudget(entries, 10);
+
+    expect(entries.map((e) => e.id)).toEqual(["newest"]);
+    expect(evicted.map((e) => e.id)).toEqual(["older"]);
+  });
+
+  it("leaves a history within budget untouched", () => {
+    const entries = [{ payloadChars: 3 }, { payloadChars: 3 }];
+
+    expect(evictToBudget(entries, 10)).toEqual([]);
+    expect(entries).toHaveLength(2);
   });
 });
