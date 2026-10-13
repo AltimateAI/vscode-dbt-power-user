@@ -94,7 +94,8 @@ jobs:
   bundle-size-report:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    # !cancelled(): still report the targets that built when another matrix leg failed.
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
     permissions:
       pull-requests: write
       statuses: write  # "Bundle Size (<target>)" commit statuses
@@ -117,6 +118,8 @@ jobs:
           script: |
             // Artifacts come from the PR build: read them as data only.
             const fs = require('fs');
+            // Keep in sync with build.matrix: a fixed list, because code in the build job can upload
+            // extra artifacts and must not choose status names.
             const targets = ['darwin-arm64', 'linux-x64', 'win32-x64'];
             for (const target of targets) {
               const file = `bundle-report-${target}/bundle-status.txt`;
