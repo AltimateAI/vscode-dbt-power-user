@@ -1195,5 +1195,33 @@ describe("DBTProject Test Suite", () => {
         expect.anything(),
       );
     });
+
+    it("keeps the probe's answer when only closing the bridge fails", async () => {
+      // dbt-loom imported fine; the bridge then fails to close. The answer
+      // is "installed": the close failure is logged, nothing leaks.
+      const pythonBridge = mockExecutionInfrastructure.createPythonBridge();
+      (pythonBridge.ex as any).mockResolvedValue(undefined);
+      mockExecutionInfrastructure.createPythonBridge.mockReturnValueOnce(
+        pythonBridge as any,
+      );
+      mockExecutionInfrastructure.closePythonBridge.mockRejectedValueOnce(
+        new Error("close failed"),
+      );
+
+      const unhandled = await captureUnhandled(() => {
+        dbtProject = construct();
+      });
+
+      expect(unhandled).toEqual([]);
+      expect(mockTelemetry.setTelemetryCustomAttribute).toHaveBeenCalledWith(
+        "dbtLoomInstalled",
+        "true",
+      );
+      expect(mockTerminal.debug).toHaveBeenCalledWith(
+        "dbtProject:isDbtLoomInstalled",
+        expect.stringContaining("close"),
+        expect.anything(),
+      );
+    });
   });
 });
