@@ -27,11 +27,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
-      pull-requests: write
-      statuses: write
+      statuses: write  # "Bundle Size" commit status below; PR comments live in bundle-size-report
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Run common build steps
         uses: ./.github/actions/common-build
         with:
@@ -72,10 +73,15 @@ jobs:
       - name: Set commit status
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/github-script@v7
+        env:
+          # status_desc is produced by a script from the PR tree: pass it as data, never
+          # splice it into the JavaScript source.
+          STATUS_DESC: ${{ steps.report.outputs.status_desc }}
+          VSCE_TARGET_NAME: ${{ matrix.vsce-target }}
         with:
           script: |
-            const desc = '${{ steps.report.outputs.status_desc }}';
-            const target = '${{ matrix.vsce-target }}';
+            const desc = process.env.STATUS_DESC;
+            const target = process.env.VSCE_TARGET_NAME;
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,

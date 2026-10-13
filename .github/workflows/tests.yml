@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: ["*"]
 
+# Least privilege: this workflow runs PR code (npm ci, compile, tests) on every
+# push and PR; the token it holds must be read-only.
+permissions:
+  contents: read
+
 jobs:
   test:
     strategy:
@@ -17,6 +22,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -80,7 +87,8 @@ jobs:
             .nyc_output/
             *.lcov
       - name: Upload coverage to Codecov
-        if: always()
+        # factory-ci-hardening: CODECOV_TOKEN is not handed to factory-authored PRs.
+        if: always() && !startsWith(github.head_ref, 'factory/')
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
