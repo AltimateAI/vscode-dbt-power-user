@@ -81,6 +81,25 @@ describe("TelemetryService.sendTelemetryError forwards diagnostic fields", () =>
     return { properties, measurements: measurements ?? {} };
   };
 
+  it("forwards errorClass when the error object carries one", () => {
+    // The dbt-integration bridge sets `errorClass` on its PythonException so
+    // dbt refusing the user's project is told apart from a defect of ours.
+    const err = Object.assign(
+      new Error("Runtime Error\n  Could not find profile named 'default'"),
+      { errorClass: "dbt_project" },
+    );
+    telemetry.sendTelemetryError("pythonBridgeReinitError", err);
+    expect(captureCall().properties.errorClass).toBe("dbt_project");
+  });
+
+  it("emits no errorClass when the error object has none or it is not a string", () => {
+    telemetry.sendTelemetryError(
+      "pythonBridgeReinitError",
+      Object.assign(new Error("boom"), { errorClass: 42 }),
+    );
+    expect(captureCall().properties.errorClass).toBeUndefined();
+  });
+
   it("forwards error.name as a top-level property", () => {
     const err = new TypeError("Cannot destructure property 'returnResult'");
     telemetry.sendTelemetryError("unhandledRejectionError", err);
