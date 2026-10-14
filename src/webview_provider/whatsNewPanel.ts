@@ -193,6 +193,12 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
    * automatic trigger or by the user in the meantime.
    */
   private pending: Promise<WhatsNewManifest> | undefined;
+  /**
+   * Set once a page's request has taken `pending`. That page was opened by
+   * the user, and it stays theirs even if they close it before the fetch
+   * settles: the automatic open must not bring it back.
+   */
+  private pendingTaken = false;
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
@@ -323,6 +329,7 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
   private async showWhenFeedAvailable(): Promise<void> {
     const fetch = this.fetchManifest("auto");
     this.pending = fetch;
+    this.pendingTaken = false;
     let fetched = false;
     try {
       await fetch;
@@ -330,10 +337,11 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
     } catch {
       // fetchManifest has logged the failure and reported its reason.
     }
-    // The user may have opened the page while the fetch was in flight; its
-    // request shared the fetch, and the page they asked for is already in
-    // front. A failed fetch is never replayed to a later open either.
-    const openedMeanwhile = this._panel !== undefined;
+    // The user may have opened the page while the fetch was in flight: either
+    // its request already took the fetch (even if they have closed the page
+    // since), or the page is still loading and will take it. Nothing to open
+    // on top. A failed fetch is never replayed to a later open either.
+    const openedMeanwhile = this.pendingTaken || this._panel !== undefined;
     if (this.pending === fetch && (!fetched || openedMeanwhile)) {
       this.pending = undefined;
     }
@@ -397,6 +405,9 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
   ): Promise<void> {
     let manifest: WhatsNewManifest;
     const shared = this.pending;
+    if (shared) {
+      this.pendingTaken = true;
+    }
     try {
       manifest = await (shared ?? this.fetchManifest(this.currentTrigger));
     } catch (error) {

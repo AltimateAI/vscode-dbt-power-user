@@ -155,6 +155,22 @@ describe("WhatsNewPanel.checkAndShowOnActivation", () => {
     expect(h.pending()).toBeUndefined();
   });
 
+  it("a manual page closed before the shared fetch settles is not reopened", async () => {
+    const h = activationHarness({ deferred: true });
+    h.setLastSeen("0.62.1");
+
+    const activation = h.activateAs("0.63.0"); // fetch still in flight
+    const manual = h.openManually(); // the page's request takes the fetch
+    h.panel._panel = undefined; // the user closes the page before it settles
+    h.resolveFetch(h.manifest);
+    await Promise.all([activation, manual]);
+
+    // The user has had and dismissed the page; nothing comes back on its own.
+    expect(h.shown).toEqual([]);
+    expect(h.fetchManifest).toHaveBeenCalledTimes(1);
+    expect(h.pending()).toBeUndefined();
+  });
+
   it("a page that fails to open is logged, and activation still settles", async () => {
     const h = activationHarness();
     h.setLastSeen("0.62.1");
