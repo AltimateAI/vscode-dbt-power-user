@@ -190,7 +190,8 @@ export class DBTPowerUserExtension implements Disposable {
       await this.mcpServer.updateMcpExtensionApi();
       this.dbtProjectContainer.setContext(context);
       this.dbtProjectContainer.initializeWalkthrough();
-      this.whatsNewPanel.checkAndShowOnActivation();
+      // Settles once the open decision is made; it never rejects.
+      void this.whatsNewPanel.checkAndShowOnActivation();
       await this.dbtProjectContainer.detectDBT();
       await this.dbtProjectContainer.initializeDBTProjects();
       await this.statusBars.initialize();

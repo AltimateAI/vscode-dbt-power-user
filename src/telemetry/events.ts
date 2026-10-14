@@ -78,6 +78,11 @@ export enum TelemetryEvents {
   "AltimateCode/TroubleshootCodeActionClick" = "AltimateCode/TroubleshootCodeActionClick",
   "DocumentationEditor/UnitTestGenerateClick" = "DocumentationEditor/UnitTestGenerateClick",
   "WhatsNew/PageOpened" = "whats_new_page_opened",
+  // The changelog feed could not be fetched: `reason` is a class (http_403,
+  // timeout, dns, proxy, network, tls, other), `fallback` says whether a cached
+  // manifest stood in. Not an error event: it is the user's network, and an
+  // automatic open is skipped rather than shown broken.
+  "WhatsNew/FeedUnavailable" = "whats_new_feed_unavailable",
   // Carries a `source` so the three changelog links (topbar, hero CTA, footer,
   // plus the error state) can be told apart.
   "WhatsNew/FullChangelogClicked" = "full_changelog_clicked",

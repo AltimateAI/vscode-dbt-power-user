@@ -55,7 +55,8 @@ const WHATS_NEW_FEED_URL = "https://altimate.ai/changelog.rss.xml";
 // Bound the feed fetch so a stalled endpoint can't hang the panel — on timeout
 // we abort and fall back to the cached manifest.
 const FEED_FETCH_TIMEOUT_MS = 10_000;
-const CHANGELOG_BASE_URL = "https://altimate.ai/changelog?utm_source=dbt-power-user&utm_medium=extension";
+const CHANGELOG_BASE_URL =
+  "https://altimate.ai/changelog?utm_source=dbt-power-user&utm_medium=extension";
 const PRODUCT_SLUG = "dbt-power-user";
 
 // globalState keys
@@ -134,11 +135,60 @@ const toAnchor = (link: string): string => {
 
 type WhatsNewTrigger = "auto" | "manual";
 
+/**
+ * Why a feed fetch failed, as a small closed set for telemetry. The message
+ * itself stays out of the event: it is per-machine network detail (proxy
+ * hosts, DNS names) that cannot be acted on in aggregate, and the class is
+ * what tells a client-side problem (timeouts) from the user's network
+ * (blocked, offline, intercepted TLS).
+ */
+export const feedFailureReason = (error: unknown): string => {
+  const err = error as
+    | {
+        name?: string;
+        message?: string;
+        cause?: { code?: string; message?: string };
+      }
+    | undefined;
+  if (err?.name === "AbortError") {
+    return "timeout";
+  }
+  const text = [err?.message, err?.cause?.code, err?.cause?.message]
+    .filter(Boolean)
+    .join(" ");
+  const status = /Feed request failed with (\d{3})/.exec(text);
+  if (status) {
+    return `http_${status[1]}`;
+  }
+  if (/getaddrinfo|ENOTFOUND|EAI_AGAIN/i.test(text)) {
+    return "dns";
+  }
+  if (/certificate|CERT_|SELF_SIGNED|UNABLE_TO_VERIFY/i.test(text)) {
+    return "tls";
+  }
+  // VS Code's proxy layer ("Failed to establish a socket connection to
+  // proxies: PROXY host:port") and a proxy refusing the CONNECT tunnel
+  // ("tunneling socket could not be established, statusCode=407").
+  if (/\bprox(y|ies)\b|tunneling socket/i.test(text)) {
+    return "proxy";
+  }
+  if (
+    /ECONN|EHOSTUNREACH|ENETUNREACH|ETIMEDOUT|EPIPE|socket hang up|network socket|fetch failed/i.test(
+      text,
+    )
+  ) {
+    return "network";
+  }
+  return "other";
+};
+
 export class WhatsNewPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.WhatsNew";
   protected viewPath = "/whats-new";
   protected panelDescription = "What's New in dbt Power User";
   private currentTrigger: WhatsNewTrigger = "manual";
+  /** Manifest fetched before an automatic open, served to the page once. */
+  private preloaded: WhatsNewManifest | undefined;
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
@@ -171,6 +221,10 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
    */
   public show(trigger: WhatsNewTrigger): void {
     this.currentTrigger = trigger;
+    this.dbtTerminal.debug(
+      "whatsNew:show",
+      `Opening the What's New page (trigger=${trigger})`,
+    );
 
     if (this._panel) {
       (this._panel as WebviewPanel).reveal?.();
@@ -218,8 +272,10 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
    * Auto-open decision, run once on activation (mirrors initializeWalkthrough).
    * Opens only on a minor/major version bump; patch releases stay silent.
    * The current version is always persisted so users are not re-prompted.
+   * The returned promise settles once the open decision is final; it never
+   * rejects.
    */
-  public checkAndShowOnActivation(): void {
+  public async checkAndShowOnActivation(): Promise<void> {
     const current = this.dbtProjectContainer.extensionVersion;
     const lastSeen = this.dbtProjectContainer.getFromGlobalState(
       LAST_SEEN_VERSION_KEY,
@@ -240,8 +296,24 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
     }
 
     if (WhatsNewPanel.isMinorOrMajorUpgrade(lastSeen, current)) {
-      this.show("auto");
+      await this.showWhenFeedAvailable();
     }
+  }
+
+  /**
+   * An automatic open waits for the manifest: a user upgrading into the panel
+   * on a network that blocks the feed must not meet an error page as the first
+   * thing after the update. The fetched manifest is kept so the page does not
+   * fetch a second time once it loads.
+   */
+  private async showWhenFeedAvailable(): Promise<void> {
+    try {
+      this.preloaded = await this.fetchManifest("auto");
+    } catch {
+      // fetchManifest has logged the failure and reported its reason.
+      return;
+    }
+    this.show("auto");
   }
 
   private static parseVersion(
@@ -273,11 +345,7 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
     const { command, syncRequestId } = message;
     switch (command) {
       case "getWhatsNewManifest":
-        this.handleSyncRequestFromWebview(
-          syncRequestId,
-          () => this.getManifestForWebview(),
-          command,
-        );
+        void this.serveManifest(syncRequestId);
         break;
       default:
         super.handleCommand(message);
@@ -285,14 +353,47 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
     }
   }
 
-  private async getManifestForWebview(): Promise<WhatsNewManifest> {
-    const manifest = await this.fetchManifest();
+  /**
+   * Answers the page's manifest request. Handled here rather than through
+   * handleSyncRequestFromWebview because an unreachable feed is the network's
+   * condition, not a failure of ours: fetchManifest reports it as
+   * feed-unavailable, and the page renders its offline state from the failed
+   * response.
+   */
+  private async serveManifest(
+    syncRequestId: string | undefined,
+  ): Promise<void> {
+    let manifest: WhatsNewManifest;
+    const preloaded = this.preloaded !== undefined;
+    try {
+      manifest =
+        this.preloaded ?? (await this.fetchManifest(this.currentTrigger));
+    } catch (error) {
+      this.sendResponseToWebview({
+        command: "response",
+        syncRequestId,
+        error: error instanceof Error ? error.message : String(error),
+        status: false,
+      });
+      return;
+    } finally {
+      this.preloaded = undefined;
+    }
+    this.dbtTerminal.debug(
+      "whatsNew:serveManifest",
+      `Serving ${manifest.items.length} entries to the page (${preloaded ? "fetched before opening" : "fetched on request"})`,
+    );
     this.telemetry.sendTelemetryEvent(
       TelemetryEvents["WhatsNew/PageOpened"],
       { version: manifest.version, trigger: this.currentTrigger },
       { items_shown: manifest.items.length },
     );
-    return manifest;
+    this.sendResponseToWebview({
+      command: "response",
+      syncRequestId,
+      status: true,
+      data: manifest,
+    });
   }
 
   /** Map the changelog feed to this product's entries, newest first. */
@@ -332,7 +433,9 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
     };
   }
 
-  private async fetchManifest(): Promise<WhatsNewManifest> {
+  private async fetchManifest(
+    trigger: WhatsNewTrigger,
+  ): Promise<WhatsNewManifest> {
     const version = this.dbtProjectContainer.extensionVersion;
     const url = WHATS_NEW_FEED_URL;
 
@@ -360,15 +463,21 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
       return manifest;
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
-      this.dbtTerminal.warn(
-        "whatsNew:fetchManifest",
-        `Failed to fetch What's New feed from ${url}: ${detail}`,
-      );
-      // Offline / endpoint down: fall back to the last successfully fetched
-      // manifest so the panel still renders something useful.
+      const reason = feedFailureReason(error);
+      // Offline / blocked / endpoint down: fall back to the last successfully
+      // fetched manifest so the panel still renders something useful.
       const cached = this.dbtProjectContainer.getFromGlobalState(
         MANIFEST_CACHE_KEY,
       ) as WhatsNewManifest | undefined;
+      this.dbtTerminal.warn(
+        "whatsNew:fetchManifest",
+        `Failed to fetch What's New feed from ${url} (${reason}): ${detail}` +
+          (cached ? "; showing the cached manifest" : ""),
+      );
+      this.telemetry.sendTelemetryEvent(
+        TelemetryEvents["WhatsNew/FeedUnavailable"],
+        { reason, trigger, fallback: cached ? "cache" : "none" },
+      );
       if (cached) {
         return cached;
       }

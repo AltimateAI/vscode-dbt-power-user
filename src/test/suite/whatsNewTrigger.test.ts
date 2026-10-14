@@ -10,9 +10,12 @@ const LAST_SEEN_VERSION_KEY = "whatsNew.lastSeenVersion";
  * activation persists the current version whether or not the page opened, so
  * each manual reload consumes the trigger and the next attempt tests nothing.
  */
-const activationHarness = (opts: { enabled?: boolean } = {}) => {
+const activationHarness = (
+  opts: { enabled?: boolean; feedDown?: boolean } = {},
+) => {
   const store = new Map<string, unknown>();
   const shown: string[] = [];
+  const manifest = { product: "dbt-power-user", version: "x", items: [] };
 
   const container = {
     extensionVersion: "0.0.0",
@@ -27,9 +30,18 @@ const activationHarness = (opts: { enabled?: boolean } = {}) => {
   const panel = Object.create(WhatsNewPanel.prototype) as Record<
     string,
     unknown
-  > & { checkAndShowOnActivation: () => void };
+  > & { checkAndShowOnActivation: () => Promise<void> };
   panel.dbtProjectContainer = container;
   panel.show = (trigger: string) => shown.push(trigger);
+  // The automatic open waits for the feed; a failed fetch is already logged
+  // and reported inside fetchManifest, so here it only rejects.
+  const fetchManifest = jest.fn(async () => {
+    if (opts.feedDown) {
+      throw new Error("Feed request failed with 403");
+    }
+    return manifest;
+  });
+  panel.fetchManifest = fetchManifest;
 
   (workspace.getConfiguration as jest.Mock).mockReturnValue({
     get: (_key: string, fallback: boolean) => opts.enabled ?? fallback,
@@ -37,12 +49,15 @@ const activationHarness = (opts: { enabled?: boolean } = {}) => {
 
   return {
     shown,
+    manifest,
+    fetchManifest,
+    preloaded: () => panel.preloaded,
     lastSeen: () => store.get(LAST_SEEN_VERSION_KEY),
     setLastSeen: (v: string) => store.set(LAST_SEEN_VERSION_KEY, v),
     /** Simulate the extension activating while reporting `version`. */
-    activateAs: (version: string) => {
+    activateAs: async (version: string) => {
       container.extensionVersion = version;
-      panel.checkAndShowOnActivation();
+      await panel.checkAndShowOnActivation();
     },
   };
 };
@@ -52,56 +67,89 @@ describe("WhatsNewPanel.checkAndShowOnActivation", () => {
     jest.clearAllMocks();
   });
 
-  it("stays silent on a fresh install but records the version", () => {
+  it("stays silent on a fresh install but records the version", async () => {
     const h = activationHarness();
-    h.activateAs("0.62.1");
+    await h.activateAs("0.62.1");
     // A first-time user gets the setup walkthrough, not a changelog for
     // changes they were never around for.
     expect(h.shown).toEqual([]);
     expect(h.lastSeen()).toBe("0.62.1");
   });
 
-  it("opens once on a minor upgrade, then stays silent on reload", () => {
+  it("opens once on a minor upgrade, then stays silent on reload", async () => {
     const h = activationHarness();
     h.setLastSeen("0.62.1");
 
-    h.activateAs("0.63.0");
+    await h.activateAs("0.63.0");
     expect(h.shown).toEqual(["auto"]);
     expect(h.lastSeen()).toBe("0.63.0");
 
     // Reloading the window must not re-open the page.
-    h.activateAs("0.63.0");
+    await h.activateAs("0.63.0");
     expect(h.shown).toEqual(["auto"]);
   });
 
-  it("replays a realistic release sequence, opening only on minor bumps", () => {
+  it("keeps the page closed when the feed is unreachable and nothing is cached", async () => {
+    // Upgrading on a network that blocks the feed must not greet the user with
+    // an error page; the version is still recorded so the next upgrade is a
+    // fresh decision, not a backlog.
+    const h = activationHarness({ feedDown: true });
+    h.setLastSeen("0.62.1");
+
+    await h.activateAs("0.63.0");
+    expect(h.fetchManifest).toHaveBeenCalledWith("auto");
+    expect(h.shown).toEqual([]);
+    expect(h.preloaded()).toBeUndefined();
+    expect(h.lastSeen()).toBe("0.63.0");
+  });
+
+  it("fetches before opening and keeps the manifest for the page", async () => {
+    const h = activationHarness();
+    h.setLastSeen("0.62.1");
+
+    await h.activateAs("0.63.0");
+    expect(h.fetchManifest).toHaveBeenCalledTimes(1);
+    expect(h.shown).toEqual(["auto"]);
+    expect(h.preloaded()).toBe(h.manifest);
+  });
+
+  it("does not touch the feed when there is nothing to open", async () => {
+    const h = activationHarness();
+    h.setLastSeen("0.62.1");
+
+    await h.activateAs("0.62.2");
+    expect(h.fetchManifest).not.toHaveBeenCalled();
+    expect(h.shown).toEqual([]);
+  });
+
+  it("replays a realistic release sequence, opening only on minor bumps", async () => {
     const h = activationHarness();
     h.setLastSeen("0.62.1");
 
     for (const version of ["0.62.2", "0.62.3", "0.63.0", "0.63.1", "1.0.0"]) {
-      h.activateAs(version);
+      await h.activateAs(version);
     }
 
     expect(h.shown).toEqual(["auto", "auto"]);
     expect(h.lastSeen()).toBe("1.0.0");
   });
 
-  it("records the version even when suppressed, so no upgrade double-prompts", () => {
+  it("records the version even when suppressed, so no upgrade double-prompts", async () => {
     // The persist happens before the decision: a patch release consumes
     // nothing, but the stored version still advances.
     const h = activationHarness();
     h.setLastSeen("0.62.1");
 
-    h.activateAs("0.62.9");
+    await h.activateAs("0.62.9");
     expect(h.shown).toEqual([]);
     expect(h.lastSeen()).toBe("0.62.9");
   });
 
-  it("never opens when the user disabled the setting", () => {
+  it("never opens when the user disabled the setting", async () => {
     const h = activationHarness({ enabled: false });
     h.setLastSeen("0.62.1");
 
-    h.activateAs("0.63.0");
+    await h.activateAs("0.63.0");
     expect(h.shown).toEqual([]);
     // Still tracked, so re-enabling doesn't fire a stale backlog.
     expect(h.lastSeen()).toBe("0.63.0");
