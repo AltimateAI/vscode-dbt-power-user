@@ -173,12 +173,27 @@ export class DBTProject implements Disposable {
       .get<string>("dbtIntegration", "core");
 
     if (dbtIntegrationMode === "core") {
-      this.isDbtLoomInstalled().then((isInstalled) => {
-        this.telemetry.setTelemetryCustomAttribute(
-          "dbtLoomInstalled",
-          `${isInstalled}`,
-        );
-      });
+      this.isDbtLoomInstalled()
+        .then((isInstalled) => {
+          this.telemetry.setTelemetryCustomAttribute(
+            "dbtLoomInstalled",
+            `${isInstalled}`,
+          );
+        })
+        .catch((error) => {
+          // The probe answers "not installed" on any failure it can see;
+          // anything that still escapes must not become an unhandled
+          // rejection out of the constructor.
+          this.terminal.debug(
+            "dbtProject:isDbtLoomInstalled",
+            "dbt-loom probe failed; recording it as not installed",
+            error,
+          );
+          this.telemetry.setTelemetryCustomAttribute(
+            "dbtLoomInstalled",
+            "false",
+          );
+        });
     }
 
     // Create the integration adapter which will handle the integration selection internally
@@ -329,16 +344,35 @@ export class DBTProject implements Disposable {
   }
 
   private async isDbtLoomInstalled(): Promise<boolean> {
-    const dbtLoomThread = this.executionInfrastructure.createPythonBridge(
-      this.projectRoot.fsPath,
-    );
+    // Creating the bridge spawns the user's interpreter, and that spawn can
+    // fail outside `ex` (EBADARCH on a wrong-architecture binary, EPERM,
+    // ENOEXEC, a missing interpreter): keep it inside the probe's own try so
+    // every failure reads as "not installed".
+    let dbtLoomThread:
+      | ReturnType<DBTCommandExecutionInfrastructure["createPythonBridge"]>
+      | undefined;
     try {
+      dbtLoomThread = this.executionInfrastructure.createPythonBridge(
+        this.projectRoot.fsPath,
+      );
       await dbtLoomThread.ex`from dbt_loom import *`;
       return true;
     } catch (error) {
       return false;
     } finally {
-      await this.executionInfrastructure.closePythonBridge(dbtLoomThread);
+      if (dbtLoomThread !== undefined) {
+        try {
+          await this.executionInfrastructure.closePythonBridge(dbtLoomThread);
+        } catch (error) {
+          // A bridge whose process never started rejects its close with the
+          // spawn error; the probe's answer is already decided.
+          this.terminal.debug(
+            "dbtProject:isDbtLoomInstalled",
+            "Failed to close the dbt-loom probe bridge",
+            error,
+          );
+        }
+      }
     }
   }
 
