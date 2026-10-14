@@ -215,13 +215,13 @@ describe("WhatsNewPanel manifest path", () => {
       version: "0.66.0",
       items: [],
     };
-    h.panel.preloaded = preloaded;
+    h.panel.pending = Promise.resolve(preloaded);
 
     await h.panel.serveManifest("req-4");
 
     expect(fetchMock).not.toHaveBeenCalled();
     expect(h.responses[0]).toMatchObject({ status: true, data: preloaded });
-    expect(h.panel.preloaded).toBeUndefined();
+    expect(h.panel.pending).toBeUndefined();
   });
 
   it("a timed-out feed is classed as a timeout", async () => {

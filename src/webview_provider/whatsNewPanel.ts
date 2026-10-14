@@ -187,8 +187,12 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
   protected viewPath = "/whats-new";
   protected panelDescription = "What's New in dbt Power User";
   private currentTrigger: WhatsNewTrigger = "manual";
-  /** Manifest fetched before an automatic open, served to the page once. */
-  private preloaded: WhatsNewManifest | undefined;
+  /**
+   * The fetch started for an automatic open. The page's own request awaits
+   * it instead of fetching again, whether the page was opened by that
+   * automatic trigger or by the user in the meantime.
+   */
+  private pending: Promise<WhatsNewManifest> | undefined;
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
@@ -276,27 +280,37 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
    * rejects.
    */
   public async checkAndShowOnActivation(): Promise<void> {
-    const current = this.dbtProjectContainer.extensionVersion;
-    const lastSeen = this.dbtProjectContainer.getFromGlobalState(
-      LAST_SEEN_VERSION_KEY,
-    ) as string | undefined;
+    try {
+      const current = this.dbtProjectContainer.extensionVersion;
+      const lastSeen = this.dbtProjectContainer.getFromGlobalState(
+        LAST_SEEN_VERSION_KEY,
+      ) as string | undefined;
 
-    this.dbtProjectContainer.setToGlobalState(LAST_SEEN_VERSION_KEY, current);
+      this.dbtProjectContainer.setToGlobalState(LAST_SEEN_VERSION_KEY, current);
 
-    const enabled = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("showChangelogOnUpdate", true);
-    if (!enabled) {
-      return;
-    }
+      const enabled = workspace
+        .getConfiguration("dbt")
+        .get<boolean>("showChangelogOnUpdate", true);
+      if (!enabled) {
+        return;
+      }
 
-    // Fresh install: defer to the setup walkthrough rather than the changelog.
-    if (!lastSeen) {
-      return;
-    }
+      // Fresh install: defer to the setup walkthrough rather than the
+      // changelog.
+      if (!lastSeen) {
+        return;
+      }
 
-    if (WhatsNewPanel.isMinorOrMajorUpgrade(lastSeen, current)) {
-      await this.showWhenFeedAvailable();
+      if (WhatsNewPanel.isMinorOrMajorUpgrade(lastSeen, current)) {
+        await this.showWhenFeedAvailable();
+      }
+    } catch (error) {
+      // Nothing awaits this at activation; a failure here is ours to log.
+      this.dbtTerminal.error(
+        "whatsNew:checkAndShowOnActivation",
+        "What's New activation check failed",
+        error,
+      );
     }
   }
 
@@ -307,13 +321,31 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
    * fetch a second time once it loads.
    */
   private async showWhenFeedAvailable(): Promise<void> {
+    const fetch = this.fetchManifest("auto");
+    this.pending = fetch;
+    let fetched = false;
     try {
-      this.preloaded = await this.fetchManifest("auto");
+      await fetch;
+      fetched = true;
     } catch {
       // fetchManifest has logged the failure and reported its reason.
+    }
+    // The user may have opened the page while the fetch was in flight; its
+    // request shared the fetch, and the page they asked for is already in
+    // front. A failed fetch is never replayed to a later open either.
+    const openedMeanwhile = this._panel !== undefined;
+    if (this.pending === fetch && (!fetched || openedMeanwhile)) {
+      this.pending = undefined;
+    }
+    if (!fetched || openedMeanwhile) {
       return;
     }
-    this.show("auto");
+    try {
+      this.show("auto");
+    } catch (error) {
+      this.pending = undefined;
+      throw error;
+    }
   }
 
   private static parseVersion(
@@ -364,10 +396,9 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
     syncRequestId: string | undefined,
   ): Promise<void> {
     let manifest: WhatsNewManifest;
-    const preloaded = this.preloaded !== undefined;
+    const shared = this.pending;
     try {
-      manifest =
-        this.preloaded ?? (await this.fetchManifest(this.currentTrigger));
+      manifest = await (shared ?? this.fetchManifest(this.currentTrigger));
     } catch (error) {
       this.sendResponseToWebview({
         command: "response",
@@ -377,11 +408,13 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
       });
       return;
     } finally {
-      this.preloaded = undefined;
+      if (shared && this.pending === shared) {
+        this.pending = undefined;
+      }
     }
     this.dbtTerminal.debug(
       "whatsNew:serveManifest",
-      `Serving ${manifest.items.length} entries to the page (${preloaded ? "fetched before opening" : "fetched on request"})`,
+      `Serving ${manifest.items.length} entries to the page (${shared ? "fetched before opening" : "fetched on request"})`,
     );
     this.telemetry.sendTelemetryEvent(
       TelemetryEvents["WhatsNew/PageOpened"],

@@ -11,7 +11,7 @@ const LAST_SEEN_VERSION_KEY = "whatsNew.lastSeenVersion";
  * each manual reload consumes the trigger and the next attempt tests nothing.
  */
 const activationHarness = (
-  opts: { enabled?: boolean; feedDown?: boolean } = {},
+  opts: { enabled?: boolean; feedDown?: boolean; deferred?: boolean } = {},
 ) => {
   const store = new Map<string, unknown>();
   const shown: string[] = [];
@@ -30,16 +30,32 @@ const activationHarness = (
   const panel = Object.create(WhatsNewPanel.prototype) as Record<
     string,
     unknown
-  > & { checkAndShowOnActivation: () => Promise<void> };
+  > & {
+    checkAndShowOnActivation: () => Promise<void>;
+    serveManifest: (id: string) => Promise<void>;
+  };
   panel.dbtProjectContainer = container;
   panel.show = (trigger: string) => shown.push(trigger);
+  const dbtTerminal = { debug: jest.fn(), warn: jest.fn(), error: jest.fn() };
+  const responses: Record<string, unknown>[] = [];
+  panel.dbtTerminal = dbtTerminal;
+  panel.telemetry = { sendTelemetryEvent: jest.fn() };
+  panel.sendResponseToWebview = (r: Record<string, unknown>) => {
+    responses.push(r);
+  };
   // The automatic open waits for the feed; a failed fetch is already logged
   // and reported inside fetchManifest, so here it only rejects.
-  const fetchManifest = jest.fn(async () => {
+  let resolveFetch: (m: typeof manifest) => void = () => undefined;
+  const fetchManifest = jest.fn(() => {
     if (opts.feedDown) {
-      throw new Error("Feed request failed with 403");
+      return Promise.reject(new Error("Feed request failed with 403"));
     }
-    return manifest;
+    if (opts.deferred) {
+      return new Promise<typeof manifest>((resolve) => {
+        resolveFetch = resolve;
+      });
+    }
+    return Promise.resolve(manifest);
   });
   panel.fetchManifest = fetchManifest;
 
@@ -51,7 +67,17 @@ const activationHarness = (
     shown,
     manifest,
     fetchManifest,
-    preloaded: () => panel.preloaded,
+    pending: () => panel.pending as Promise<unknown> | undefined,
+    container,
+    panel,
+    dbtTerminal,
+    responses,
+    resolveFetch: (m: typeof manifest) => resolveFetch(m),
+    /** The user runs "Show What's New": the panel exists, the page asks. */
+    openManually: () => {
+      panel._panel = {};
+      return panel.serveManifest("req");
+    },
     lastSeen: () => store.get(LAST_SEEN_VERSION_KEY),
     setLastSeen: (v: string) => store.set(LAST_SEEN_VERSION_KEY, v),
     /** Simulate the extension activating while reporting `version`. */
@@ -99,7 +125,7 @@ describe("WhatsNewPanel.checkAndShowOnActivation", () => {
     await h.activateAs("0.63.0");
     expect(h.fetchManifest).toHaveBeenCalledWith("auto");
     expect(h.shown).toEqual([]);
-    expect(h.preloaded()).toBeUndefined();
+    expect(h.pending()).toBeUndefined();
     expect(h.lastSeen()).toBe("0.63.0");
   });
 
@@ -110,7 +136,50 @@ describe("WhatsNewPanel.checkAndShowOnActivation", () => {
     await h.activateAs("0.63.0");
     expect(h.fetchManifest).toHaveBeenCalledTimes(1);
     expect(h.shown).toEqual(["auto"]);
-    expect(h.preloaded()).toBe(h.manifest);
+    await expect(h.pending()).resolves.toBe(h.manifest);
+  });
+
+  it("a manual open while the activation fetch is in flight shares that fetch", async () => {
+    const h = activationHarness({ deferred: true });
+    h.setLastSeen("0.62.1");
+
+    const activation = h.activateAs("0.63.0"); // fetch still in flight
+    const manual = h.openManually(); // the user runs the command meanwhile
+    h.resolveFetch(h.manifest);
+    await Promise.all([activation, manual]);
+
+    expect(h.fetchManifest).toHaveBeenCalledTimes(1);
+    expect(h.responses[0]).toMatchObject({ status: true, data: h.manifest });
+    // The page the user opened is already in front; nothing to open on top.
+    expect(h.shown).toEqual([]);
+    expect(h.pending()).toBeUndefined();
+  });
+
+  it("a page that fails to open is logged, and activation still settles", async () => {
+    const h = activationHarness();
+    h.setLastSeen("0.62.1");
+    h.panel.show = () => {
+      throw new Error("no webview host");
+    };
+
+    await expect(h.activateAs("0.63.0")).resolves.toBeUndefined();
+    expect(h.dbtTerminal.error).toHaveBeenCalledWith(
+      "whatsNew:checkAndShowOnActivation",
+      expect.any(String),
+      expect.any(Error),
+    );
+    expect(h.pending()).toBeUndefined();
+  });
+
+  it("a failing state read is logged, and activation still settles", async () => {
+    const h = activationHarness();
+    h.container.getFromGlobalState = () => {
+      throw new Error("storage gone");
+    };
+
+    await expect(h.activateAs("0.63.0")).resolves.toBeUndefined();
+    expect(h.dbtTerminal.error).toHaveBeenCalledTimes(1);
+    expect(h.shown).toEqual([]);
   });
 
   it("does not touch the feed when there is nothing to open", async () => {
