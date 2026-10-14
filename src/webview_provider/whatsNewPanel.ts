@@ -199,6 +199,12 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
    * settles: the automatic open must not bring it back.
    */
   private pendingTaken = false;
+  /**
+   * Set when the user opens the page while the activation fetch is in
+   * flight. The automatic open then stands down whatever becomes of that
+   * page: its request takes the fetch, or they closed it before it loaded.
+   */
+  private userOpenedMeanwhile = false;
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
@@ -230,11 +236,7 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
    * Code's own Release Notes: a one-off webview in the center, not a sidebar.
    */
   public show(trigger: WhatsNewTrigger): void {
-    this.currentTrigger = trigger;
-    this.dbtTerminal.debug(
-      "whatsNew:show",
-      `Opening the What's New page (trigger=${trigger})`,
-    );
+    this.noteOpen(trigger);
 
     if (this._panel) {
       (this._panel as WebviewPanel).reveal?.();
@@ -257,14 +259,33 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
     );
     this._panel = webviewPanel;
 
-    webviewPanel.onDidDispose(() => {
-      this._panel = undefined;
-      this._webview = undefined;
-      this.isWebviewReady = false;
-    });
+    webviewPanel.onDidDispose(() => this.onPanelDisposed());
 
     this._webview = webviewPanel.webview;
     this.renderWebviewView();
+  }
+
+  /** The open decision's bookkeeping, separate from the webview plumbing. */
+  private noteOpen(trigger: WhatsNewTrigger): void {
+    this.currentTrigger = trigger;
+    if (trigger === "manual" && this.pending !== undefined) {
+      this.userOpenedMeanwhile = true;
+    }
+    this.dbtTerminal.debug(
+      "whatsNew:show",
+      `Opening the What's New page (trigger=${trigger})`,
+    );
+  }
+
+  private onPanelDisposed(): void {
+    this._panel = undefined;
+    this._webview = undefined;
+    this.isWebviewReady = false;
+    // A page closed before it asked for the manifest leaves nothing to serve
+    // it to; a later open fetches afresh rather than reading a stale one.
+    if (!this.pendingTaken) {
+      this.pending = undefined;
+    }
   }
 
   protected renderWebviewView(): void {
@@ -330,6 +351,7 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
     const fetch = this.fetchManifest("auto");
     this.pending = fetch;
     this.pendingTaken = false;
+    this.userOpenedMeanwhile = false;
     let fetched = false;
     try {
       await fetch;
@@ -337,15 +359,17 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
     } catch {
       // fetchManifest has logged the failure and reported its reason.
     }
-    // The user may have opened the page while the fetch was in flight: either
-    // its request already took the fetch (even if they have closed the page
-    // since), or the page is still loading and will take it. Nothing to open
-    // on top. A failed fetch is never replayed to a later open either.
-    const openedMeanwhile = this.pendingTaken || this._panel !== undefined;
-    if (this.pending === fetch && (!fetched || openedMeanwhile)) {
+    // A failed fetch is never replayed to a later open. A successful one is
+    // kept for the page that will ask for it: the one opened below, or one
+    // the user opened meanwhile that is still loading (a page that already
+    // took it has cleared it itself).
+    if (this.pending === fetch && !fetched) {
       this.pending = undefined;
     }
-    if (!fetched || openedMeanwhile) {
+    // The user opened the page while the fetch was in flight (whatever became
+    // of it since), or a page is open for another reason: nothing to open on
+    // top.
+    if (!fetched || this.userOpenedMeanwhile || this._panel !== undefined) {
       return;
     }
     try {

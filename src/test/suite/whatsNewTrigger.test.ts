@@ -33,6 +33,8 @@ const activationHarness = (
   > & {
     checkAndShowOnActivation: () => Promise<void>;
     serveManifest: (id: string) => Promise<void>;
+    noteOpen: (trigger: string) => void;
+    onPanelDisposed: () => void;
   };
   panel.dbtProjectContainer = container;
   panel.show = (trigger: string) => shown.push(trigger);
@@ -75,9 +77,19 @@ const activationHarness = (
     resolveFetch: (m: typeof manifest) => resolveFetch(m),
     /** The user runs "Show What's New": the panel exists, the page asks. */
     openManually: () => {
+      panel.noteOpen("manual");
       panel._panel = {};
       return panel.serveManifest("req");
     },
+    /** Same, but the page is still loading and has not asked yet. */
+    openManuallyPageLoading: () => {
+      panel.noteOpen("manual");
+      panel._panel = {};
+    },
+    /** The page's request, once its webview is up. */
+    pageRequests: () => panel.serveManifest("req"),
+    /** The user closes the page. */
+    closePage: () => panel.onPanelDisposed(),
     lastSeen: () => store.get(LAST_SEEN_VERSION_KEY),
     setLastSeen: (v: string) => store.set(LAST_SEEN_VERSION_KEY, v),
     /** Simulate the extension activating while reporting `version`. */
@@ -161,7 +173,7 @@ describe("WhatsNewPanel.checkAndShowOnActivation", () => {
 
     const activation = h.activateAs("0.63.0"); // fetch still in flight
     const manual = h.openManually(); // the page's request takes the fetch
-    h.panel._panel = undefined; // the user closes the page before it settles
+    h.closePage(); // the user closes the page before it settles
     h.resolveFetch(h.manifest);
     await Promise.all([activation, manual]);
 
@@ -169,6 +181,42 @@ describe("WhatsNewPanel.checkAndShowOnActivation", () => {
     expect(h.shown).toEqual([]);
     expect(h.fetchManifest).toHaveBeenCalledTimes(1);
     expect(h.pending()).toBeUndefined();
+  });
+
+  it("a manual page still loading when the fetch settles takes it afterwards", async () => {
+    const h = activationHarness({ deferred: true });
+    h.setLastSeen("0.62.1");
+
+    const activation = h.activateAs("0.63.0"); // fetch still in flight
+    h.openManuallyPageLoading(); // panel exists, webview not up yet
+    h.resolveFetch(h.manifest);
+    await activation;
+    expect(h.shown).toEqual([]); // the user's page is in front
+    await h.pageRequests();
+
+    expect(h.fetchManifest).toHaveBeenCalledTimes(1);
+    expect(h.responses[0]).toMatchObject({ status: true, data: h.manifest });
+    expect(h.pending()).toBeUndefined();
+  });
+
+  it("a manual page closed before it ever asked is neither reopened nor served stale", async () => {
+    const h = activationHarness({ deferred: true });
+    h.setLastSeen("0.62.1");
+
+    const activation = h.activateAs("0.63.0");
+    h.openManuallyPageLoading();
+    h.closePage(); // closed before the webview asked for anything
+    h.resolveFetch(h.manifest);
+    await activation;
+
+    expect(h.shown).toEqual([]);
+    expect(h.pending()).toBeUndefined();
+    // A later manual open fetches afresh.
+    const later = h.openManually();
+    h.resolveFetch(h.manifest);
+    await later;
+    expect(h.fetchManifest).toHaveBeenCalledTimes(2);
+    expect(h.responses[0]).toMatchObject({ status: true, data: h.manifest });
   });
 
   it("a page that fails to open is logged, and activation still settles", async () => {
