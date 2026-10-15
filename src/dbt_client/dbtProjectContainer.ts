@@ -240,7 +240,12 @@ export class DBTProjectContainer implements Disposable {
     this.getProjects().forEach((project) => project.initialize());
   }
 
-  executeSQL(uri: Uri, query: string, modelName: string): void {
+  executeSQL(
+    uri: Uri,
+    query: string,
+    modelName: string,
+    fullRefresh: boolean = false,
+  ): void {
     if (uri.scheme === "untitled") {
       const selectedProject = this.getFromWorkspaceState(
         "dbtPowerUser.projectSelected",
@@ -249,7 +254,11 @@ export class DBTProjectContainer implements Disposable {
         uri = selectedProject.uri;
       }
     }
-    this.findDBTProject(uri)?.executeSQLOnQueryPanel(query, modelName);
+    this.findDBTProject(uri)?.executeSQLOnQueryPanel(
+      query,
+      modelName,
+      fullRefresh,
+    );
   }
 
   runModel(modelPath: Uri, type?: RunModelType) {
@@ -284,9 +293,13 @@ export class DBTProjectContainer implements Disposable {
     });
   }
 
-  compileModel(modelPath: Uri, type?: RunModelType) {
+  compileModel(
+    modelPath: Uri,
+    type?: RunModelType,
+    fullRefresh: boolean = false,
+  ) {
     this.findDBTProject(modelPath)?.compileModel(
-      this.createModelParams(modelPath, type),
+      this.createModelParams(modelPath, type, fullRefresh),
     );
   }
 
@@ -416,7 +429,11 @@ export class DBTProjectContainer implements Disposable {
     }
   }
 
-  private createModelParams(modelPath: Uri, type?: RunModelType) {
+  private createModelParams(
+    modelPath: Uri,
+    type?: RunModelType,
+    fullRefresh: boolean = false,
+  ) {
     const modelName = basename(
       fs.realpathSync.native(modelPath.fsPath),
       ".sql",
@@ -433,7 +450,7 @@ export class DBTProjectContainer implements Disposable {
       type === RunModelType.BUILD_CHILDREN_PARENTS
         ? "+"
         : "";
-    return { plusOperatorLeft, modelName, plusOperatorRight };
+    return { plusOperatorLeft, modelName, plusOperatorRight, fullRefresh };
   }
 
   private async registerWorkspaceFolder(
