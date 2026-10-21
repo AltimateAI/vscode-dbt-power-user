@@ -52,7 +52,7 @@ describe("Extension Test Suite", () => {
       id: "innoverio.vscode-dbt-power-user",
       packageJSON: {
         name: "vscode-dbt-power-user",
-        displayName: "Power User for dbt™",
+        displayName: "Power User for dbt",
         contributes: {
           commands: [
             {

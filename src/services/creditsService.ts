@@ -96,7 +96,7 @@ export function clearCachedCredits(): void {
 
 const CREDITS_TITLE = "Need more credits?";
 const FEEDBACK_OFFER =
-  "We shape Power User for dbt™ around what users tell us — share how you use it on a 30-min call and we'll add 200 credits as thanks. No pitch, just learning.";
+  "We shape Power User for dbt around what users tell us — share how you use it on a 30-min call and we'll add 200 credits as thanks. No pitch, just learning.";
 const LETS_TALK = "Let's talk";
 const BUY_CREDITS = "I'll buy credits";
 

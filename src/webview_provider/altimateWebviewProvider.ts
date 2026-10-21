@@ -853,7 +853,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               webview, so a data URI is the only path that works offline.
               -->
             <meta http-equiv="Content-Security-Policy" content="default-src 'none'; worker-src blob:; font-src ${webview.cspSource} data:; style-src 'unsafe-inline' ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'unsafe-eval' 'nonce-${nonce}' https://*.vscode-resource.vscode-cdn.net; connect-src https://*.s3.amazonaws.com">
-            <title>Power User for dbt™</title>
+            <title>Power User for dbt</title>
             <link rel="stylesheet" type="text/css" href="${indexCss}">
             <link rel="stylesheet" type="text/css" href="${codiconsUri}">
           </head>

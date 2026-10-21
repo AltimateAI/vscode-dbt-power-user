@@ -6,7 +6,7 @@ export class DiagnosticsOutputChannel {
 
   constructor() {
     this.outputChannel = window.createOutputChannel(
-      "Power User for dbt™ - Diagnostics",
+      "Power User for dbt - Diagnostics",
       "log",
     );
   }

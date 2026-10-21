@@ -288,7 +288,7 @@ const TutorialsStep = (): JSX.Element => {
       <div className={classes.tutorialsHeader}>
         <h3>Explore Tutorials</h3>
         <p>
-          Learn about Power User for dbt™ features through these interactive
+          Learn about Power User for dbt features through these interactive
           tutorials. Click through the tabs to explore each feature. Click any
           image to expand it.
         </p>

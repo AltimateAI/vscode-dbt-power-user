@@ -353,7 +353,7 @@ export class ValidateSql {
           description,
           DiagnosticSeverity.Error,
         );
-        diagnostic.source = "Power User for dbt™";
+        diagnostic.source = "Power User for dbt";
         diagnostic.code = {
           value: "Fix with Altimate Code",
           target: Uri.parse(

@@ -522,7 +522,7 @@ export class DBTProject implements Disposable {
       data.message,
       this.mapSeverityToVSCode(data.severity),
     );
-    diagnostic.source = "Power User for dbt™";
+    diagnostic.source = "Power User for dbt";
     diagnostic.code = {
       value: "Fix with Altimate Code",
       target: Uri.parse(

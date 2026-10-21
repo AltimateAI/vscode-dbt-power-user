@@ -560,7 +560,7 @@ const PrerequisitesStep = forwardRef<
         <>
           <div className={classes.prerequisitesInfo}>
             <p>
-              Before you can use Power User for dbt™, we need to ensure the
+              Before you can use Power User for dbt, we need to ensure the
               following prerequisites are met:
             </p>
           </div>
@@ -644,7 +644,7 @@ const PrerequisitesStep = forwardRef<
                   className={classes.prerequisiteDescription}
                   style={{ marginBottom: "1rem" }}
                 >
-                  Choose how Power User for dbt™ connects to dbt. You can change
+                  Choose how Power User for dbt connects to dbt. You can change
                   this later in settings.
                 </p>
                 <Radio.Group

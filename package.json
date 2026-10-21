@@ -1,6 +1,6 @@
 {
   "name": "vscode-dbt-power-user",
-  "displayName": "Power User for dbt™",
+  "displayName": "Power User for dbt",
   "description": "Makes VS Code work seamlessly with dbt™ core and dbt™ cloud: auto-complete, preview, column lineage, AI docs generation, health checks, cost estimation etc",
   "icon": "media/images/power-user-icon.png",
   "publisher": "innoverio",
@@ -167,7 +167,7 @@
         }
       },
       {
-        "title": "Power User for dbt™",
+        "title": "Power User for dbt",
         "properties": {
           "dbt.unquotedCaseInsensitiveIdentifierRegex": {
             "type": "string",
@@ -331,9 +331,9 @@
       "activitybar": [
         {
           "id": "dbt_view",
-          "title": "Power User for dbt™",
+          "title": "Power User for dbt",
           "icon": "./media/images/altimate_mark.svg",
-          "contextualTitle": "Power User for dbt™"
+          "contextualTitle": "Power User for dbt"
         }
       ],
       "panel": [
@@ -426,38 +426,38 @@
       {
         "command": "dbtPowerUser.collectQueryResultsDebugInfo",
         "title": "Query Results Debug Info",
-        "category": "Power User for dbt™"
+        "category": "Power User for dbt"
       },
       {
         "command": "dbtPowerUser.showWhatsNew",
         "title": "Show What's New",
-        "category": "Power User for dbt™"
+        "category": "Power User for dbt"
       },
       {
         "command": "dbtPowerUser.resolveConversation",
         "title": "Resolve",
-        "category": "Power User for dbt™"
+        "category": "Power User for dbt"
       },
       {
         "command": "dbtPowerUser.createConversation",
         "title": "Publish",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "enablement": "!commentIsEmpty"
       },
       {
         "command": "dbtPowerUser.viewInDbtDocs",
         "title": "View in dbt docs",
-        "category": "Power User for dbt™"
+        "category": "Power User for dbt"
       },
       {
         "command": "dbtPowerUser.copyDbtDocsLink",
         "title": "Copy link",
-        "category": "Power User for dbt™"
+        "category": "Power User for dbt"
       },
       {
         "command": "dbtPowerUser.viewInDocEditor",
         "title": "View in documentation editor",
-        "category": "Power User for dbt™"
+        "category": "Power User for dbt"
       },
       {
         "command": "dbtPowerUser.createSqlFile",
@@ -472,27 +472,27 @@
         "command": "dbtPowerUser.replyToConversation",
         "title": "Reply",
         "enablement": "!commentIsEmpty",
-        "category": "Power User for dbt™"
+        "category": "Power User for dbt"
       },
       {
         "command": "dbtPowerUser.puQuickPick",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "title": "Quick Pick"
       },
       {
         "command": "dbtPowerUser.openInsights",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "title": "Open Insights Panel"
       },
       {
         "command": "dbtPowerUser.openOnboarding",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "title": "Get Started"
       },
       {
         "command": "dbtPowerUser.sqlQuickPick",
         "title": "SQL Actions",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": {
           "light": "./media/images/sql-action-light.svg",
           "dark": "./media/images/sql-action-dark.svg"
@@ -501,7 +501,7 @@
       {
         "command": "dbtPowerUser.runCurrentModel",
         "title": "Run dbt Model",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": {
           "light": "./media/images/run-light.svg",
           "dark": "./media/images/run-dark.svg"
@@ -510,41 +510,41 @@
       {
         "command": "dbtPowerUser.rerunFromHistory",
         "title": "Re-run Command",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": "$(debug-rerun)"
       },
       {
         "command": "dbtPowerUser.clearRunHistory",
         "title": "Clear Run History",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": "$(clear-all)"
       },
       {
         "command": "dbtPowerUser.profileCtes",
         "title": "Profile CTEs",
-        "category": "Power User for dbt™"
+        "category": "Power User for dbt"
       },
       {
         "command": "dbtPowerUser.cancelCteProfiling",
         "title": "Cancel CTE Profiling",
-        "category": "Power User for dbt™"
+        "category": "Power User for dbt"
       },
       {
         "command": "dbtPowerUser.clearProfileResults",
         "title": "Clear CTE Profile Results",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": "$(clear-all)"
       },
       {
         "command": "dbtPowerUser.toggleProfileDecorations",
         "title": "Toggle CTE Profile Decorations",
-        "category": "Power User for dbt™"
+        "category": "Power User for dbt"
       },
       {
         "command": "dbtPowerUser.sqlToModel",
         "title": "Convert to dbt Model",
         "shortTitle": "Convert to dbt Model",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": {
           "light": "./media/images/preview-dbt-light.svg",
           "dark": "./media/images/preview-dbt-dark.svg"
@@ -553,29 +553,29 @@
       {
         "command": "dbtPowerUser.validateSql",
         "title": "Validate SQL",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": "$(circuit-board)"
       },
       {
         "command": "dbtPowerUser.altimateScan",
         "title": "Project Healthcheck",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": "$(circuit-board)"
       },
       {
         "command": "dbtPowerUser.clearAltimateScanResults",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "title": "Clear Health Check Results"
       },
       {
         "command": "dbtPowerUser.bigqueryCostEstimate",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "title": "Estimate cost for BigQuery"
       },
       {
         "command": "dbtPowerUser.compileCurrentModel",
         "title": "Compile dbt Model",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": {
           "light": "./media/images/build_light.svg",
           "dark": "./media/images/build_dark.svg"
@@ -584,42 +584,42 @@
       {
         "command": "dbtPowerUser.sqlPreview",
         "title": "Compiled dbt Preview",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": "$(diff)"
       },
       {
         "command": "dbtPowerUser.runTest",
         "title": "Run Test",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": "$(pass)"
       },
       {
         "command": "dbtPowerUser.testCurrentModel",
         "title": "Test dbt Model",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": "$(pass)"
       },
       {
         "command": "dbtPowerUser.runChildrenModels",
         "title": "Run Downstream Models",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": "$(run-below)"
       },
       {
         "command": "dbtPowerUser.runParentModels",
         "title": "Run Upstream Models",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": "$(run-above)"
       },
       {
         "command": "dbtPowerUser.copyModelName",
         "title": "Copy model name to clipboard",
-        "category": "Power User for dbt™"
+        "category": "Power User for dbt"
       },
       {
         "command": "dbtPowerUser.showRunSQL",
         "title": "Open dbt target folder run SQL",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": {
           "light": "./media/images/file-code_light.svg",
           "dark": "./media/images/file-code_dark.svg"
@@ -628,7 +628,7 @@
       {
         "command": "dbtPowerUser.generateSchemaYML",
         "title": "Generate Documentation YML",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": {
           "light": "./media/images/file-code_light.svg",
           "dark": "./media/images/file-code_dark.svg"
@@ -637,7 +637,7 @@
       {
         "command": "dbtPowerUser.goToDocumentationEditor",
         "title": "Open Documentation Editor",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": {
           "light": "./media/images/file-code_light.svg",
           "dark": "./media/images/file-code_dark.svg"
@@ -646,7 +646,7 @@
       {
         "command": "dbtPowerUser.generateDBTDocs",
         "title": "Run Dbt Docs Generate",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": {
           "light": "./media/images/run-light.svg",
           "dark": "./media/images/run-dark.svg"
@@ -655,7 +655,7 @@
       {
         "command": "dbtPowerUser.showCompiledSQL",
         "title": "Open dbt target folder compiled SQL",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": {
           "light": "./media/images/file-code_light.svg",
           "dark": "./media/images/file-code_dark.svg"
@@ -664,13 +664,13 @@
       {
         "command": "dbtPowerUser.executeSQL",
         "title": "Execute dbt SQL",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": "$(play)"
       },
       {
         "command": "dbtPowerUser.buildCurrentModel",
         "title": "Build dbt Model",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": {
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
@@ -679,7 +679,7 @@
       {
         "command": "dbtPowerUser.buildChildrenModels",
         "title": "Build Downstream Models (model+)",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": {
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
@@ -688,7 +688,7 @@
       {
         "command": "dbtPowerUser.buildParentModels",
         "title": "Build Upstream Models (+model)",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": {
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
@@ -697,7 +697,7 @@
       {
         "command": "dbtPowerUser.buildChildrenParentModels",
         "title": "Build Upstream and Downstream Models (+model+)",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": {
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
@@ -706,7 +706,7 @@
       {
         "command": "dbtPowerUser.buildCurrentProject",
         "title": "Build dbt Project",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": {
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
@@ -715,42 +715,42 @@
       {
         "command": "dbtPowerUser.cleanCurrentProject",
         "title": "Clean dbt Project",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": "$(clear-all)"
       },
       {
         "command": "dbtPowerUser.printEnvVars",
         "title": "Print environment variables",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": "$(gist-secret)"
       },
       {
         "command": "dbtPowerUser.diagnostics",
         "title": "Collect diagnostics",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": "$(debug-console)"
       },
       {
         "command": "dbtPowerUser.detectPythonFromTerminal",
         "title": "Detect Python from terminal",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": "$(terminal)"
       },
       {
         "command": "dbtPowerUser.sqlLineage",
         "title": "Visualize SQL (Beta)",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": "$(eye)"
       },
       {
         "command": "dbtPowerUser.showDocumentation",
         "title": "Show documentation",
-        "category": "Power User for dbt™"
+        "category": "Power User for dbt"
       },
       {
         "command": "dbtPowerUser.showAltimateNotebooksQuickPick",
         "title": "Show Altimate Notebooks Quick Pick",
-        "category": "Power User for dbt™"
+        "category": "Power User for dbt"
       },
       {
         "command": "dbtPowerUser.showNotebookProfileQuery",
@@ -779,54 +779,54 @@
       },
       {
         "command": "dbtPowerUser.applyDeferConfig",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "title": "Apply defer configuration"
       },
       {
         "command": "dbtPowerUser.askAltimateAboutSelection",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "title": "Ask Altimate About Selection"
       },
       {
         "command": "dbtPowerUser.explainWithAltimate",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "title": "Explain with Altimate"
       },
       {
         "command": "dbtPowerUser.optimizeWithAltimate",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "title": "Optimize with Altimate"
       },
       {
         "command": "dbtPowerUser.changeWithAltimate",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "title": "Change with Altimate"
       },
       {
         "command": "dbtPowerUser.translateWithAltimate",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "title": "Translate with Altimate"
       },
       {
         "command": "dbtPowerUser.analyzeFileWithAltimate",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "title": "Analyze with Altimate"
       },
       {
         "command": "dbtPowerUser.reviewCodeWithAltimate",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "title": "Review with Altimate"
       },
       {
         "command": "dbtPowerUser.explainTestFailure",
         "title": "Explain why this test failed",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": "$(sparkle)"
       },
       {
         "command": "dbtPowerUser.fixRunFailure",
         "title": "Fix with Altimate Code",
-        "category": "Power User for dbt™",
+        "category": "Power User for dbt",
         "icon": "$(lightbulb)"
       }
     ],

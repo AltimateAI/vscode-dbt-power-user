@@ -27,7 +27,7 @@ import {
 export class OnboardingPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.Onboarding";
   protected viewPath = "/onboarding";
-  protected panelDescription = "Power User for dbt™ onboarding experience";
+  protected panelDescription = "Power User for dbt onboarding experience";
   private pendingStepNavigation: string | undefined;
 
   public constructor(
@@ -125,7 +125,7 @@ export class OnboardingPanel extends AltimateWebviewProvider {
         if (!this._panel) {
           const webviewPanel = window.createWebviewPanel(
             OnboardingPanel.viewType,
-            "Get Started with Power User for dbt™",
+            "Get Started with Power User for dbt",
             {
               viewColumn: ViewColumn.Active,
             },
