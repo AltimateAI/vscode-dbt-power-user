@@ -5,7 +5,7 @@ hide:
   - toc
 ---
 
-<div class="ak-eyebrow">Power User for dbt™</div>
+<div class="ak-eyebrow">Power User for dbt</div>
 
 # Best dbt extension for VS Code / Cursor.
 

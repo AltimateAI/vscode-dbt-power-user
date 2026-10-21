@@ -1,7 +1,7 @@
 {
   "name": "vscode-dbt-power-user",
   "displayName": "Power User for dbt",
-  "description": "Makes VS Code work seamlessly with dbt™ core and dbt™ cloud: auto-complete, preview, column lineage, AI docs generation, health checks, cost estimation etc",
+  "description": "Makes VS Code work seamlessly with dbt core and dbt cloud: auto-complete, preview, column lineage, AI docs generation, health checks, cost estimation etc",
   "icon": "media/images/power-user-icon.png",
   "publisher": "innoverio",
   "license": "MIT",
