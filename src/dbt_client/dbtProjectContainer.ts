@@ -132,7 +132,7 @@ export class DBTProjectContainer implements Disposable {
 
   async showWalkthrough() {
     const answer = await window.showInformationMessage(
-      `Thanks for installing dbt Power User. Do you need help setting up the extension?`,
+      `Thanks for installing Power User for dbt. Do you need help setting up the extension?`,
       PromptAnswer.YES,
       PromptAnswer.IGNORE,
     );

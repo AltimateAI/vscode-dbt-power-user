@@ -137,7 +137,7 @@ type WhatsNewTrigger = "auto" | "manual";
 export class WhatsNewPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.WhatsNew";
   protected viewPath = "/whats-new";
-  protected panelDescription = "What's New in dbt Power User";
+  protected panelDescription = "What's New in Power User for dbt";
   private currentTrigger: WhatsNewTrigger = "manual";
 
   public constructor(
@@ -189,7 +189,7 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
       this.dbtProjectContainer.extensionUri,
       "media",
       "images",
-      "dbt.png",
+      "power-user-icon.png",
     );
     this._panel = webviewPanel;
 

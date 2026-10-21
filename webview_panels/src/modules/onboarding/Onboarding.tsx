@@ -62,7 +62,7 @@ const Onboarding = (): JSX.Element => {
           Supercharge your dbt workflow with Power User for dbt!
         </h1>
 
-        <p className={classes.subtitle}>With dbt Power User, you can:</p>
+        <p className={classes.subtitle}>With Power User for dbt, you can:</p>
 
         <div className={classes.featuresGrid}>
           <Stack direction="row" className={classes.featureRow}>

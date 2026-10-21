@@ -1,4 +1,6 @@
-# vscode-dbt-power-user
+<img src="media/images/power-user-icon.png" alt="Power User for dbt" width="96" />
+
+# Power User for dbt™
 
 ![Last updated](https://img.shields.io/visual-studio-marketplace/last-updated/innoverio.vscode-dbt-power-user) ![Version](https://img.shields.io/visual-studio-marketplace/v/innoverio.vscode-dbt-power-user) ![Installs](https://img.shields.io/visual-studio-marketplace/i/innoverio.vscode-dbt-power-user) ![Build passing](https://github.com/innoverio/vscode-dbt-power-user/workflows/.github/workflows/ci.yml/badge.svg)
 
