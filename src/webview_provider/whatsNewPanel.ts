@@ -55,7 +55,8 @@ const WHATS_NEW_FEED_URL = "https://altimate.ai/changelog.rss.xml";
 // Bound the feed fetch so a stalled endpoint can't hang the panel — on timeout
 // we abort and fall back to the cached manifest.
 const FEED_FETCH_TIMEOUT_MS = 10_000;
-const CHANGELOG_BASE_URL = "https://altimate.ai/changelog?utm_source=dbt-power-user&utm_medium=extension";
+const CHANGELOG_BASE_URL =
+  "https://altimate.ai/changelog?utm_source=dbt-power-user&utm_medium=extension";
 const PRODUCT_SLUG = "dbt-power-user";
 
 // globalState keys
@@ -137,7 +138,7 @@ type WhatsNewTrigger = "auto" | "manual";
 export class WhatsNewPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.WhatsNew";
   protected viewPath = "/whats-new";
-  protected panelDescription = "What's New in dbt Power User";
+  protected panelDescription = "What's New in Power User for dbt™";
   private currentTrigger: WhatsNewTrigger = "manual";
 
   public constructor(
@@ -179,7 +180,7 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
 
     const webviewPanel = window.createWebviewPanel(
       WhatsNewPanel.viewType,
-      "What's New · Power User for dbt",
+      "What's New · Power User for dbt™",
       { viewColumn: ViewColumn.Active },
       { enableScripts: true, retainContextWhenHidden: true },
     );
@@ -189,7 +190,7 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
       this.dbtProjectContainer.extensionUri,
       "media",
       "images",
-      "dbt.png",
+      "power-user-icon.png",
     );
     this._panel = webviewPanel;
 

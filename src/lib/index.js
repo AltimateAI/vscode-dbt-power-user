@@ -15,7 +15,7 @@ function L(o, e, t, n) {
   else
     for (var i = o.length - 1; i >= 0; i--)
       (a = o[i]) && (s = (r < 3 ? a(s) : r > 3 ? a(e, t, s) : a(e, t)) || s);
-  return r > 3 && s && Object.defineProperty(e, t, s), s;
+  return (r > 3 && s && Object.defineProperty(e, t, s), s);
 }
 function $(o, e) {
   return function (t, n) {
@@ -86,10 +86,10 @@ class le {
 `),
           i.languageId,
         );
-        return (l.metadata = i.metadata), (l.outputs = i.outputs), l;
+        return ((l.metadata = i.metadata), (l.outputs = i.outputs), l);
       }),
       a = new u.NotebookData(s);
-    return (a.metadata = r.metadata), a;
+    return ((a.metadata = r.metadata), a);
   }
   async serializeNotebook(e, t) {
     const n = Z(e);
@@ -98,9 +98,9 @@ class le {
 }
 var I;
 (function (o) {
-  (o.error = "application/vnd.code.notebook.error"),
+  ((o.error = "application/vnd.code.notebook.error"),
     (o.stderr = "application/vnd.code.notebook.stderr"),
-    (o.stdout = "application/vnd.code.notebook.stdout");
+    (o.stdout = "application/vnd.code.notebook.stdout"));
 })(I || (I = {}));
 const ye = ["text/plain", "text/markdown", I.stderr, I.stdout],
   oe = [
@@ -144,8 +144,10 @@ function te(o) {
     case "display_data":
     case "execute_result":
     case "update_display_data": {
-      (e.executionCount = o.execution_count),
-        (e.metadata = o.metadata ? JSON.parse(JSON.stringify(o.metadata)) : {});
+      ((e.executionCount = o.execution_count),
+        (e.metadata = o.metadata
+          ? JSON.parse(JSON.stringify(o.metadata))
+          : {}));
       break;
     }
   }
@@ -162,7 +164,8 @@ function Y(o) {
 function we(o) {
   return o.sort((e, t) => {
     const n = (a, i) => (
-      a.endsWith(".*") && (a = a.substr(0, a.indexOf(".*"))), i.startsWith(a)
+      a.endsWith(".*") && (a = a.substr(0, a.indexOf(".*"))),
+      i.startsWith(a)
     );
     let r = oe.findIndex((a) => n(a, e.mime)),
       s = oe.findIndex((a) => n(a, t.mime));
@@ -235,7 +238,7 @@ function G(o) {
 }
 function _e(o) {
   let e = o;
-  do (o = e), (e = o.replace(/[^\n]\x08/gm, ""));
+  do ((o = e), (e = o.replace(/[^\n]\x08/gm, "")));
   while (e.length < o.length);
   return o;
 }
@@ -247,12 +250,11 @@ function Ee(o) {
 `,
     );
     o.search(/\r[^$]/g) > -1;
-
   ) {
     const e = o.match(/^(.*)\r+/m)[1];
     let t = o.match(/\r+(.*)$/m)[1];
-    (t = t + e.slice(t.length, e.length)),
-      (o = o.replace(/\r+.*$/m, "\r").replace(/^.*\r/m, t));
+    ((t = t + e.slice(t.length, e.length)),
+      (o = o.replace(/\r+.*$/m, "\r").replace(/^.*\r/m, t)));
   }
   return o;
 }
@@ -313,7 +315,7 @@ function Se(o) {
 }
 var ee;
 (function (o) {
-  (o.GeneratedThemeName = "ipython-theme"),
+  ((o.GeneratedThemeName = "ipython-theme"),
     (o.MatplotLibDefaultParams = "_VSCode_defaultMatplotlib_Params"),
     (o.MatplotLibFigureFormats = "_VSCode_matplotLib_FigureFormats"),
     (o.DefaultCodeCellMarker = "# %%"),
@@ -327,7 +329,7 @@ var ee;
     (o.REMOTE_URI = "https://remote/"),
     (o.REMOTE_URI_ID_PARAM = "id"),
     (o.REMOTE_URI_HANDLE_PARAM = "uriHandle"),
-    (o.REMOTE_URI_EXTENSION_ID_PARAM = "extensionId");
+    (o.REMOTE_URI_EXTENSION_ID_PARAM = "extensionId"));
 })(ee || (ee = {}));
 const z = "application/vnd.jupyter.widget-view+json";
 class Ie {
@@ -335,7 +337,7 @@ class Ie {
     return this._value;
   }
   constructor(e = null) {
-    Object.defineProperty(this, "scope", {
+    (Object.defineProperty(this, "scope", {
       enumerable: !0,
       configurable: !0,
       writable: !0,
@@ -378,17 +380,17 @@ class Ie {
         value: void 0,
       }),
       (this._promise = new Promise((t, n) => {
-        (this._resolve = t), (this._reject = n);
-      }));
+        ((this._resolve = t), (this._reject = n));
+      })));
   }
   resolve(e) {
-    (this._value = e),
+    ((this._value = e),
       this._resolve.apply(this.scope ? this.scope : this, arguments),
-      (this._resolved = !0);
+      (this._resolved = !0));
   }
   reject(e) {
-    this._reject.apply(this.scope ? this.scope : this, arguments),
-      (this._rejected = !0);
+    (this._reject.apply(this.scope ? this.scope : this, arguments),
+      (this._rejected = !0));
   }
   get promise() {
     return this._promise;
@@ -411,7 +413,7 @@ Object.defineProperty(j, "__esModule", { value: !0 });
 j.serialize = H = j.deserialize = void 0;
 function Pe(o) {
   let e;
-  return typeof o == "string" ? (e = JSON.parse(o)) : (e = xe(o)), e;
+  return (typeof o == "string" ? (e = JSON.parse(o)) : (e = xe(o)), e);
 }
 var H = (j.deserialize = Pe);
 function De(o) {
@@ -483,7 +485,7 @@ Re.join(__dirname, ".");
 function Le() {
   console.log("Trying to load zmq");
   const o = require("zeromq");
-  return (o.context.blocky = !1), console.info("ZMQ loaded."), o;
+  return ((o.context.blocky = !1), console.info("ZMQ loaded."), o);
 }
 function $e(o, e) {
   const t = o.transport === "tcp" ? ":" : "-",
@@ -546,18 +548,18 @@ function Fe(o) {
 }
 function We(o, e) {
   const t = o.header;
-  qe.forEach((n) => {
+  (qe.forEach((n) => {
     typeof t[n] != "string" && (t[n] = "");
   }),
     typeof o.channel != "string" && (o.channel = e),
     o.content || (o.content = {}),
     o.metadata || (o.metadata = {}),
-    o.channel === "iopub" && Fe(o);
+    o.channel === "iopub" && Fe(o));
 }
 console.log(We);
 class Be {
   constructor(e, t) {
-    Object.defineProperty(this, "connection", {
+    (Object.defineProperty(this, "connection", {
       enumerable: !0,
       configurable: !0,
       writable: !0,
@@ -629,7 +631,7 @@ class Be {
         writable: !0,
         value: !1,
       }),
-      (this.channels = this.generateChannels(this.connection));
+      (this.channels = this.generateChannels(this.connection)));
   }
   dispose() {
     this.closed || this.close();
@@ -643,10 +645,10 @@ class Be {
         console.error("Error during socket shutdown", n);
       }
     };
-    e(this.channels.control),
+    (e(this.channels.control),
       e(this.channels.iopub),
       e(this.channels.shell),
-      e(this.channels.stdin);
+      e(this.channels.stdin));
   }
   emit(e, ...t) {
     switch (e) {
@@ -749,10 +751,10 @@ class Be {
     if (!t) for (const s of this.sendHooks) await s(e);
     let n, r;
     try {
-      if (typeof e == "string") (n = H(e)), (r = n.channel);
+      if (typeof e == "string") ((n = H(e)), (r = n.channel));
       else throw new Error("Not supported");
     } catch {
-      (r = "shell"), (n = e);
+      ((r = "shell"), (n = e));
     }
     this.postToSocket(r, n);
   }
@@ -767,7 +769,7 @@ class Ue {
     return this._postMessageEmitter.event;
   }
   constructor(e, t, n, r) {
-    Object.defineProperty(this, "outputWidgetIds", {
+    (Object.defineProperty(this, "outputWidgetIds", {
       enumerable: !0,
       configurable: !0,
       writable: !0,
@@ -791,7 +793,7 @@ class Ue {
         writable: !0,
         value: new u.EventEmitter(),
       }),
-      (this.kernel = this.initializeKernel(e, t, n, r));
+      (this.kernel = this.initializeKernel(e, t, n, r)));
   }
   get rawKernel() {
     return this.kernel;
@@ -804,7 +806,7 @@ class Ue {
     const c =
         ((s = class extends Be {
           constructor() {
-            super(e.connection, i.serialize), (l = this);
+            (super(e.connection, i.serialize), (l = this));
           }
         }),
         me(s, "RawSocketWrapper"),
@@ -934,7 +936,7 @@ class M {
     return this._postMessageEmitter.event;
   }
   constructor(e, t, n, r) {
-    Object.defineProperty(this, "executionInfrastructure", {
+    (Object.defineProperty(this, "executionInfrastructure", {
       enumerable: !0,
       configurable: !0,
       writable: !0,
@@ -1050,18 +1052,20 @@ class M {
         this.commIdsMappedToParentWidgetModel,
         this.ownedRequestMsgIds,
         this.ownedCommIds,
-      );
+      ));
   }
   async isInitialized() {
     return new Promise((e) => {
       const t = setInterval(() => {
         var n, r;
-        this.dbtTerminal.debug(
+        (this.dbtTerminal.debug(
           "Notebookclient",
           "isInitialized",
           !!((n = this.kernel) != null && n.rawKernel),
         ),
-          (r = this.kernel) != null && r.rawKernel && (e(!0), clearInterval(t));
+          (r = this.kernel) != null &&
+            r.rawKernel &&
+            (e(!0), clearInterval(t)));
       }, 500);
     });
   }
@@ -1119,23 +1123,23 @@ class M {
           display_name: n.kernel_name,
           resources: {},
         });
-      (this.kernel = a),
+      ((this.kernel = a),
         this.disposables.push(
           a.postMessage((i) => this._postMessageEmitter.fire(i)),
         ),
         this.dbtTerminal.log(
           `Notebook Kernel started with PID: ${r} connection: ${JSON.stringify(n)}`,
         ),
-        this.getDependenciesVersion();
+        this.getDependenciesVersion());
     } catch (t) {
       let n = t.message;
-      t instanceof ie.PythonException && (n = t.exception.message),
+      (t instanceof ie.PythonException && (n = t.exception.message),
         this.dbtTerminal.error(
           p.TelemetryEvents["Notebook/KernelInitializationError"],
           n,
           t,
         ),
-        u.window.showErrorMessage(n);
+        u.window.showErrorMessage(n));
     }
     this.isInitializing = !1;
   }
@@ -1144,8 +1148,8 @@ class M {
     (t = this.kernel) == null || t.onKernelSocketResponse(e);
   }
   async storeContext(e) {
-    this.dbtTerminal.log(`storeContext: ${e}`),
-      await this.python.lock((t) => t`notebook_kernel.store_context(${e})`);
+    (this.dbtTerminal.log(`storeContext: ${e}`),
+      await this.python.lock((t) => t`notebook_kernel.store_context(${e})`));
   }
   async storeDataInKernel(e, t) {
     try {
@@ -1159,12 +1163,12 @@ class M {
       );
     } catch (n) {
       throw (
-        (this.dbtTerminal.error(
+        this.dbtTerminal.error(
           p.TelemetryEvents["Notebook/StoreDataInKernelError"],
           n.exception.message,
           n,
         ),
-        n)
+        n
       );
     }
   }
@@ -1173,13 +1177,13 @@ class M {
       this.dbtTerminal.log(`registerCommTarget already registered: ${e}`);
       return;
     }
-    this.registerdCommTargets.add(e),
-      this.dbtTerminal.log(`registerCommTarget registering: ${e}`);
+    (this.registerdCommTargets.add(e),
+      this.dbtTerminal.log(`registerCommTarget registering: ${e}`));
     const t = await this.getKernel();
     if (!t)
       throw (
-        (this.registerdCommTargets.delete(e),
-        new Error("Kernel not found for registering comm target"))
+        this.registerdCommTargets.delete(e),
+        new Error("Kernel not found for registering comm target")
       );
     return t.realKernel.registerCommTarget(e, (n, r) => {
       this.dbtTerminal.log(`registerCommTarget registered: ${e}`, n, r);
@@ -1257,8 +1261,8 @@ class M {
               });
           };
           const b = [];
-          h.done.finally(() => {
-            h.dispose(), r(b.filter((d) => !!d));
+          (h.done.finally(() => {
+            (h.dispose(), r(b.filter((d) => !!d)));
           }),
             (h.onStdin = (d) => {
               this.dbtTerminal.log("onStdin", d);
@@ -1294,7 +1298,7 @@ class M {
                               "NotebookUnknownIOPubMessage",
                               `Unknown message ${d.header.msg_type} : hasData=${"data" in d.content}`,
                             );
-            });
+            }));
         } catch (c) {
           s(c);
         }
@@ -1362,7 +1366,7 @@ class M {
       const a = e.data[z];
       if (a && "model_id" in a) {
         const i = M.modelIdsOwnedByCells.get(n) || new Set();
-        i.add(a.model_id), M.modelIdsOwnedByCells.set(n, i);
+        (i.add(a.model_id), M.modelIdsOwnedByCells.set(n, i));
       }
     }
     const r = J(e);
@@ -1485,7 +1489,7 @@ Object.defineProperty(M, "modelIdsOwnedByCells", {
 });
 exports.NotebookDependencies = class {
   constructor(e, t, n, r) {
-    Object.defineProperty(this, "dbtTerminal", {
+    (Object.defineProperty(this, "dbtTerminal", {
       enumerable: !0,
       configurable: !0,
       writable: !0,
@@ -1508,7 +1512,7 @@ exports.NotebookDependencies = class {
         configurable: !0,
         writable: !0,
         value: r,
-      });
+      }));
   }
   async checkPythonDependencies(e) {
     const t = [];
@@ -1530,7 +1534,7 @@ exports.NotebookDependencies = class {
     return e
       .map((n) => {
         try {
-          return t.findPackageVersion(n), null;
+          return (t.findPackageVersion(n), null);
         } catch {
           return n;
         }
@@ -1553,10 +1557,10 @@ exports.NotebookDependencies = class {
       )) !== "Install")
     )
       throw (
-        (this.telemetry.sendTelemetryEvent(
+        this.telemetry.sendTelemetryEvent(
           p.TelemetryEvents["Notebook/DependenciesInstallCancelled"],
         ),
-        new Error("User cancelled python package installation"))
+        new Error("User cancelled python package installation")
       );
     return (
       this.dbtTerminal.debug("Notebook", "installing required dependencies", n),
@@ -1595,13 +1599,13 @@ exports.NotebookDependencies = class {
               !0
             );
           } catch (s) {
-            this.telemetry.sendTelemetryError(
+            (this.telemetry.sendTelemetryError(
               p.TelemetryEvents["Notebook/DependenciesInstallError"],
               s,
             ),
               u.window.showErrorMessage(
                 p.extendErrorWithSupportLinks(s.message),
-              );
+              ));
           }
         },
       )
@@ -1627,10 +1631,10 @@ exports.NotebookDependencies = class {
       )) !== "Install")
     )
       throw (
-        (this.telemetry.sendTelemetryEvent(
+        this.telemetry.sendTelemetryEvent(
           p.TelemetryEvents["Notebook/DependenciesInstallCancelled"],
         ),
-        new Error("User cancelled dbt package installation"))
+        new Error("User cancelled dbt package installation")
       );
     return await u.window.withProgress(
       {
@@ -1641,9 +1645,9 @@ exports.NotebookDependencies = class {
       async () => {
         try {
           const a = r.map((l) => `${l.package}@${l.version}`);
-          this.dbtTerminal.debug("Notebook", "installing dbt packages", a),
+          (this.dbtTerminal.debug("Notebook", "installing dbt packages", a),
             await t.installDbtPackages(a),
-            await t.initialize();
+            await t.initialize());
           const i = this.checkDbtDependencies(
             e.map((l) => `${l.name}`),
             t,
@@ -1660,17 +1664,19 @@ exports.NotebookDependencies = class {
             !0
           );
         } catch (a) {
-          this.telemetry.sendTelemetryError(
+          (this.telemetry.sendTelemetryError(
             p.TelemetryEvents["Notebook/DependenciesInstallError"],
             a,
           ),
-            u.window.showErrorMessage(p.extendErrorWithSupportLinks(a.message));
+            u.window.showErrorMessage(
+              p.extendErrorWithSupportLinks(a.message),
+            ));
         }
       },
     );
   }
   async verifyAndInstallDependenciesIfNeeded(e, t) {
-    this.dbtTerminal.debug(
+    (this.dbtTerminal.debug(
       "NotebookDependencies",
       "verifying required dependencies",
       e,
@@ -1685,7 +1691,7 @@ exports.NotebookDependencies = class {
           e.filter((n) => n.type === "dbt"),
           t,
         ),
-      ]);
+      ]));
   }
   async getDependenciesVersion() {
     const e = ["-m", "jupyter", "--version"],
@@ -1796,12 +1802,12 @@ exports.NotebookDependencies = class {
         u.commands.executeCommand("workbench.action.reloadWindow");
     } catch (e) {
       throw (
-        (this.dbtTerminal.error(
+        this.dbtTerminal.error(
           p.TelemetryEvents["Notebook/DependenciesInstallError"],
           e.message,
           e,
         ),
-        e)
+        e
       );
     }
   }
@@ -1836,7 +1842,7 @@ exports.NotebookDependencies = L(
 );
 exports.ClientMapper = class {
   constructor(e, t, n) {
-    Object.defineProperty(this, "executionInfrastructure", {
+    (Object.defineProperty(this, "executionInfrastructure", {
       enumerable: !0,
       configurable: !0,
       writable: !0,
@@ -1859,7 +1865,7 @@ exports.ClientMapper = class {
         configurable: !0,
         writable: !0,
         value: new Map(),
-      });
+      }));
   }
   async initializeNotebookClient(e) {
     if (!this.clientMap.has(e.fsPath)) {
@@ -1908,7 +1914,7 @@ const Ve = ["python", "sql", "jinja-sql"],
   Ge = require("path");
 exports.DatapilotNotebookController = class {
   constructor(e, t, n, r, s, a) {
-    Object.defineProperty(this, "clientMapper", {
+    (Object.defineProperty(this, "clientMapper", {
       enumerable: !0,
       configurable: !0,
       writable: !0,
@@ -2009,7 +2015,7 @@ exports.DatapilotNotebookController = class {
       this.disposables.push(
         u.workspace.onDidChangeNotebookDocument((i) => {
           i.contentChanges.forEach(async (l) => {
-            l.addedCells &&
+            (l.addedCells &&
               (await this.updateCellId(i.notebook.getCells(), i.notebook)),
               l.removedCells &&
                 l.removedCells.forEach((c) => {
@@ -2021,7 +2027,7 @@ exports.DatapilotNotebookController = class {
                     fragment: c.document.uri.fragment,
                     languageId: c.document.languageId,
                   });
-                });
+                }));
           });
         }),
       ),
@@ -2040,7 +2046,7 @@ exports.DatapilotNotebookController = class {
         u.workspace.onDidCloseNotebookDocument(async (i) => {
           await this.onNotebookClose(i);
         }),
-      );
+      ));
   }
   async getNotebookByTemplate(e) {
     var n;
@@ -2058,16 +2064,16 @@ exports.DatapilotNotebookController = class {
               {
                 cell_type: u.NotebookCellKind.Markup,
                 source: [
-                  "### Welcome to your new dbt Power User Notebook!",
+                  "### Welcome to your new Power User for dbt™ Notebook!",
                   "> Note: Remember, you can delete any or all of these example cells to start fresh with your own work. Enjoy exploring and analyzing your data!",
                   "#### Documentation and Feedback",
-                  "For more detailed information on how to use this notebook and the dbt Power User extension, please refer to our documentation:",
-                  "[dbt Power User Documentation](https://docs.myaltimate.com/govern/notebooks/)",
+                  "For more detailed information on how to use this notebook and the Power User for dbt™ extension, please refer to our documentation:",
+                  "[Power User for dbt™ Documentation](https://docs.myaltimate.com/govern/notebooks/)",
                   "  ",
                   "We value your feedback! If you have any suggestions, encounter issues, or want to share your experience, please let us know:",
                   "[Share Feedback](https://docs.google.com/forms/d/e/1FAIpQLScwN3wRTAniQzvcO6Hn3jC0WtBoFE2NP4X_6qGQ09IZKZ3Ojw/viewform?usp=sf_link)",
                   "  ",
-                  "Happy analyzing with your new dbt Power User Notebook!",
+                  "Happy analyzing with your new Power User for dbt™ Notebook!",
                   "  ",
                   "This notebook allows you to combine Jinja SQL queries, Python code, and Markdown text. Let's explore each of these features.",
                   "##### 1. Jinja SQL Queries",
@@ -2199,7 +2205,7 @@ exports.DatapilotNotebookController = class {
           ".sql",
         ),
         l = u.window.activeTextEditor.document.getText();
-      (r.model = i), (r.query = l);
+      ((r.model = i), (r.query = l));
     }
     u.window.withProgress(
       {
@@ -2239,12 +2245,12 @@ exports.DatapilotNotebookController = class {
         } catch (l) {
           const c =
             l instanceof ie.PythonException ? l.exception.message : l.message;
-          this.dbtTerminal.error(
+          (this.dbtTerminal.error(
             `${p.TelemetryEvents["Notebook/LaunchError"]}`,
             c,
             l,
           ),
-            u.window.showErrorMessage(p.extendErrorWithSupportLinks(c));
+            u.window.showErrorMessage(p.extendErrorWithSupportLinks(c)));
         }
       },
     );
@@ -2281,19 +2287,19 @@ exports.DatapilotNotebookController = class {
       r.length > 0)
     ) {
       const s = new u.WorkspaceEdit();
-      s.set(t.uri, r), await u.workspace.applyEdit(s);
+      (s.set(t.uri, r), await u.workspace.applyEdit(s));
     }
   }
   async onNotebookClose(e) {
     if (e.notebookType !== A) return;
     const t = await this.clientMapper.getNotebookClient(e.uri);
-    t && t.dispose(),
+    (t && t.dispose(),
       this.dbtTerminal.debug(
         "Notebookcontroller",
         `notebook closed: ${e.uri.fsPath}`,
         e.isUntitled,
       ),
-      e.isUntitled && (await u.workspace.fs.delete(e.uri));
+      e.isUntitled && (await u.workspace.fs.delete(e.uri)));
   }
   async onDidChangeSelectedNotebooks({ notebook: e, selected: t }) {
     this.dbtTerminal.debug(
@@ -2307,14 +2313,14 @@ exports.DatapilotNotebookController = class {
   async onNotebookOpen(e) {
     var s;
     if (e.notebookType !== A) return;
-    this.controller.updateNotebookAffinity(
+    (this.controller.updateNotebookAffinity(
       e,
       u.NotebookControllerAffinity.Default,
     ),
       this.dbtTerminal.debug(
         "Notebookcontroller",
         `notebook open and controller associated: ${e.uri.fsPath}`,
-      );
+      ));
     const t = await this.clientMapper.initializeNotebookClient(e.uri),
       n = await t.getKernel();
     if (!(n != null && n.realKernel))
@@ -2329,11 +2335,11 @@ exports.DatapilotNotebookController = class {
     try {
       await this.waitForControllerAssociation(e);
     } catch {
-      this.dbtTerminal.warn(
+      (this.dbtTerminal.warn(
         "Notebookcontroller",
         `Controller association timeout for ${e.uri.fsPath}. Proceeding anyway.`,
       ),
-        this.associatedNotebooks.add(e.uri.toString());
+        this.associatedNotebooks.add(e.uri.toString()));
     }
     (s = e.metadata) != null &&
       s.autoRun &&
@@ -2434,7 +2440,7 @@ project_name="${e.getProjectName()}"
         case "jinja-sql":
         case "sql":
           {
-            this.dbtTerminal.debug(
+            (this.dbtTerminal.debug(
               "Notebook",
               "executing sql",
               e.document.getText(),
@@ -2442,7 +2448,7 @@ project_name="${e.getProjectName()}"
               this.telemetry.startTelemetryEvent(
                 p.TelemetryEvents["Notebook/Execute"],
                 { language: e.document.languageId },
-              );
+              ));
             const { metadata: c } = e;
             if ((c == null ? void 0 : c.execution_type) === "compile") {
               const m = await s.unsafeCompileQuery(e.document.getText());
@@ -2456,7 +2462,7 @@ project_name="${e.getProjectName()}"
               );
             } else {
               const m = await s.executeSQL(e.document.getText(), "", !0);
-              this._onNotebookCellEvent.fire({
+              (this._onNotebookCellEvent.fire({
                 cellId: e.metadata.cellId,
                 notebook: t.uri.fsPath,
                 result: m,
@@ -2471,7 +2477,7 @@ project_name="${e.getProjectName()}"
                     ),
                   ),
                   i.appendOutput(new u.NotebookCellOutput(l))),
-                await a.storeDataInKernel(e.metadata.cellId, m);
+                await a.storeDataInKernel(e.metadata.cellId, m));
             }
           }
           break;
@@ -2481,12 +2487,12 @@ project_name="${e.getProjectName()}"
           );
           break;
       }
-      this.telemetry.endTelemetryEvent(p.TelemetryEvents["Notebook/Execute"], {
+      (this.telemetry.endTelemetryEvent(p.TelemetryEvents["Notebook/Execute"], {
         language: e.document.languageId,
       }),
-        i.end(!0, Date.now());
+        i.end(!0, Date.now()));
     } catch (l) {
-      this.dbtTerminal.error(
+      (this.dbtTerminal.error(
         "Notebook",
         `Error executing cell: ${l.message}`,
         l,
@@ -2501,7 +2507,7 @@ project_name="${e.getProjectName()}"
           l,
           { language: e.document.languageId },
         ),
-        i == null || i.end(!1, Date.now());
+        i == null || i.end(!1, Date.now()));
     }
   }
 };
@@ -2547,7 +2553,7 @@ class He {
 const ae = require("path");
 exports.NotebookFileSystemProvider = class {
   constructor(e, t) {
-    Object.defineProperty(this, "dbtTerminal", {
+    (Object.defineProperty(this, "dbtTerminal", {
       enumerable: !0,
       configurable: !0,
       writable: !0,
@@ -2576,7 +2582,7 @@ exports.NotebookFileSystemProvider = class {
         configurable: !0,
         writable: !0,
         value: new Map(),
-      });
+      }));
   }
   watch(e, t) {
     return new u.Disposable(() => {});
@@ -2653,7 +2659,7 @@ exports.NotebookFileSystemProvider = class {
         !0
       );
     } catch (r) {
-      this.dbtTerminal.error(
+      (this.dbtTerminal.error(
         p.TelemetryEvents["Notebook/SaveError"],
         r.message,
         r,
@@ -2662,26 +2668,26 @@ exports.NotebookFileSystemProvider = class {
           p.extendErrorWithSupportLinks(
             `Failed to save notebook. Error: ${r.message}`,
           ),
-        );
+        ));
     }
     return !1;
   }
   async saveNotebook(e, t) {
     try {
       const n = Z(e, t);
-      this.dbtTerminal.log("saving notebook", t, n),
+      (this.dbtTerminal.log("saving notebook", t, n),
         await this.altimate.updateNotebook(e.metadata.id, {
           name: t,
           description: "",
           data: n,
           tags_list: [],
         }),
-        this.dbtTerminal.log("notebook saved", t, n);
+        this.dbtTerminal.log("notebook saved", t, n));
       const r = this.getFileNameFromUri(e.uri),
         s = this.notebookDataMap.get(r);
-      return s && ((s.data = Z(e, t, !0)), this.notebookDataMap.set(r, s)), n;
+      return (s && ((s.data = Z(e, t, !0)), this.notebookDataMap.set(r, s)), n);
     } catch (n) {
-      this.dbtTerminal.error(
+      (this.dbtTerminal.error(
         p.TelemetryEvents["Notebook/SaveError"],
         n.message,
         n,
@@ -2690,7 +2696,7 @@ exports.NotebookFileSystemProvider = class {
           p.extendErrorWithSupportLinks(
             `Failed to save notebook. Error: ${n.message}`,
           ),
-        );
+        ));
     }
   }
 };
@@ -2703,7 +2709,7 @@ exports.NotebookFileSystemProvider = L(
 );
 class Ye {
   constructor(e) {
-    Object.defineProperty(this, "notebookKernel", {
+    (Object.defineProperty(this, "notebookKernel", {
       enumerable: !0,
       configurable: !0,
       writable: !0,
@@ -2725,7 +2731,7 @@ class Ye {
         this.notebookKernel.onNotebookCellChangeEvent((t) => {
           this.onNotebookCellChanged(t);
         }),
-      );
+      ));
   }
   dispose() {
     for (; this.disposables.length; ) {
@@ -2809,7 +2815,7 @@ const Je = {
 };
 exports.NotebookProviders = class {
   constructor(e, t, n, r) {
-    Object.defineProperty(this, "notebookProvider", {
+    (Object.defineProperty(this, "notebookProvider", {
       enumerable: !0,
       configurable: !0,
       writable: !0,
@@ -2845,7 +2851,7 @@ exports.NotebookProviders = class {
             this.bindNotebookActions();
         }),
       ),
-      this.bindNotebookActions();
+      this.bindNotebookActions());
   }
   bindNotebookActions() {
     u.workspace.getConfiguration("dbt").get("enableNotebooks", !1) &&
@@ -2994,7 +3000,7 @@ const F = (o) => (o === "bigquery" ? "RAND" : "RANDOM"),
                 : S;
             }),
             E = { name: h, columns: w };
-          return y.length > 0 && (E.tests = y), E;
+          return (y.length > 0 && (E.tests = y), E);
         });
       t[r] = m;
     }
@@ -3002,7 +3008,7 @@ const F = (o) => (o === "bigquery" ? "RAND" : "RANDOM"),
   };
 class U {
   constructor(e, t) {
-    Object.defineProperty(this, "quote", {
+    (Object.defineProperty(this, "quote", {
       enumerable: !0,
       configurable: !0,
       writable: !0,
@@ -3023,7 +3029,7 @@ class U {
       (this.quote = (n, r) =>
         r ? `adapter.quote('${n}')` : `{{adapter.quote('${n}')}}`),
       (this.adapter = e),
-      (this.queryFn = t);
+      (this.queryFn = t));
   }
 }
 class et extends U {
@@ -3305,14 +3311,14 @@ UNION ALL
         else {
           let S = _ - r * g;
           const de = T + r * g;
-          S < 0 && (S = 0),
+          (S < 0 && (S = 0),
             (C = {
               "dbt_expectations.expect_column_value_lengths_to_be_between": {
                 min_value: Math.floor(S),
                 max_value: Math.ceil(de),
                 row_condition: `${this.quote(N)} is not null`,
               },
-            });
+            }));
         }
         return { name: N, tests: [C], ...i };
       }),

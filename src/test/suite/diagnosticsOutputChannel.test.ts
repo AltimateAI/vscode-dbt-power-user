@@ -32,7 +32,7 @@ describe("DiagnosticsOutputChannel Test Suite", () => {
 
   it("should create output channel with correct name", () => {
     expect(vscode.window.createOutputChannel).toHaveBeenCalledWith(
-      "dbt Power User - Diagnostics",
+      "Power User for dbt™ - Diagnostics",
       "log",
     );
   });

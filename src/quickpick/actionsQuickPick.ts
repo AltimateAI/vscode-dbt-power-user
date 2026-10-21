@@ -16,7 +16,7 @@ export class DbtPowerUserControlCenterAction {
         const dbtpuquickpick = window.createQuickPick<
           DbtPowerUserControlPanelItem | QuickPickItem
         >();
-        dbtpuquickpick.title = "dbt Power User Control Panel";
+        dbtpuquickpick.title = "Power User for dbt™ Control Panel";
         dbtpuquickpick.items = [
           new DbtPowerUserControlPanelItem(
             "Change dbt flavour",

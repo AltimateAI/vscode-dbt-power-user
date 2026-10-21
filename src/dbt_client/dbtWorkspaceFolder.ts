@@ -207,7 +207,7 @@ export class DBTWorkspaceFolder implements Disposable {
 
     if (filteredProjects.length > 20) {
       window.showWarningMessage(
-        `dbt Power User detected ${filteredProjects.length} projects in your workspace, this will negatively affect performance.`,
+        `Power User for dbt™ detected ${filteredProjects.length} projects in your workspace, this will negatively affect performance.`,
       );
     }
 
@@ -297,7 +297,7 @@ export class DBTWorkspaceFolder implements Disposable {
           new Range(0, 0, 999, 999),
           error.message,
         );
-        yamlDiagnostic.source = "dbt Power User";
+        yamlDiagnostic.source = "Power User for dbt™";
         yamlDiagnostic.code = {
           value: "Fix with Altimate Code",
           target: Uri.parse(

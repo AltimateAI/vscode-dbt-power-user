@@ -80,15 +80,20 @@ const PRODUCT_LINKS = [
     label: "Altimate MCP Server",
     url: "https://help.altimate.ai/datamates/",
   },
-  { label: "Snowflake", url: "https://altimate.ai/altimate-on-snowflake?utm_source=dbt-power-user&utm_medium=extension" },
+  {
+    label: "Snowflake",
+    url: "https://altimate.ai/altimate-on-snowflake?utm_source=dbt-power-user&utm_medium=extension",
+  },
   {
     label: "Databricks",
     url: "https://altimate.ai/use-cases/altimate-for-databricks?utm_source=dbt-power-user&utm_medium=extension",
   },
 ];
 
-const FULL_CHANGELOG_URL = "https://altimate.ai/changelog?utm_source=dbt-power-user&utm_medium=extension";
-const ALTIMATE_SITE_URL = "https://altimate.ai?utm_source=dbt-power-user&utm_medium=extension";
+const FULL_CHANGELOG_URL =
+  "https://altimate.ai/changelog?utm_source=dbt-power-user&utm_medium=extension";
+const ALTIMATE_SITE_URL =
+  "https://altimate.ai?utm_source=dbt-power-user&utm_medium=extension";
 
 /**
  * Click handler for a link that opens outside the editor.
@@ -391,7 +396,7 @@ const WhatsNew = (): JSX.Element => {
           <p className={classes.eyebrow}>Extension release notes</p>
           <h1 className={classes.title}>What&apos;s New</h1>
           <p className={classes.sub}>
-            Every shipped update to <strong>Power User for dbt</strong>
+            Every shipped update to <strong>Power User for dbt™</strong>
             {manifest.version ? (
               <> — you&apos;re on {manifest.version}.</>
             ) : (
@@ -418,7 +423,9 @@ const WhatsNew = (): JSX.Element => {
                 className={classes.asideLink}
                 href={link.url}
                 title={`Open ${link.url} in your browser`}
-                onClick={openExternal(() => onProductLink(link.label, link.url))}
+                onClick={openExternal(() =>
+                  onProductLink(link.label, link.url),
+                )}
               >
                 {link.label}
                 <ExternalArrowIcon className={classes.asideArrow} />
