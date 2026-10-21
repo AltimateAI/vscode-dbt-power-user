@@ -15,7 +15,7 @@ Open it from the command palette:
 
 - macOS: `Cmd + Shift + P`
 - Windows / Linux: `Ctrl + Shift + P`
-- Type `Get Started with Power User for dbt` and run it.
+- Type `Power User for dbt: Get Started` and run it.
 
 You can also launch it from the **Project Actions ✨** view in the Power User for dbt side panel, or by clicking the **dbt** status item in the bottom status bar and choosing "Setup Extension".
 
@@ -78,7 +78,7 @@ The deep-link uses `vscode.env.uriScheme` to pick the host editor's scheme autom
 
 ### Diagnostics command
 
-The diagnostics command in the VSCode Power User extension provides a comprehensive report that covers various aspects of the system and DBT project environment. Here is a summary of the diagnostics it generates:
+The diagnostics command in the Power User for dbt extension provides a comprehensive report that covers various aspects of the system and DBT project environment. Here is a summary of the diagnostics it generates:
 
 - **Environment Variables**: Lists all the environment variables which can help in understanding the system configuration and paths that might affect the DBT operations.
 
