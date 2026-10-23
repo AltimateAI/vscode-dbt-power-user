@@ -507,6 +507,51 @@ export class AltimateRequest {
     });
   }
 
+  // A stalled exchange fails instead of leaving the sign-in waiting.
+  private static readonly SOCIAL_EXCHANGE_TIMEOUT_MS = 15_000;
+
+  /**
+   * Exchange the one-time `login_token` the SaaS sign-in delivers to the
+   * editor for the user's `auth_token`, which is the extension's API key.
+   */
+  async exchangeSocialToken(baseUrl: string, instance: string, token: string) {
+    const response = await fetch(`${baseUrl}/auth/social/exchange`, {
+      method: "POST",
+      headers: { "x-tenant": instance, "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+      signal: AbortSignal.timeout(AltimateRequest.SOCIAL_EXCHANGE_TIMEOUT_MS),
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Sign-in token exchange failed with status ${response.status}`,
+      );
+    }
+    const user = (await response.json()) as {
+      auth_token?: string;
+      email?: string;
+    };
+    if (!user.auth_token) {
+      throw new Error("Sign-in token exchange did not return an auth token");
+    }
+    return { apiKey: user.auth_token, email: user.email };
+  }
+
+  /** Bind a dbt project to an Altimate Code workspace by remote and/or path. */
+  async bindProjectToWorkspace(
+    workspaceId: number,
+    repoRemote: string | undefined,
+    projectPath: string,
+  ) {
+    return this.fetch<unknown>("datamate-project-bindings/bind", {
+      method: "POST",
+      body: JSON.stringify({
+        datamate_id: workspaceId,
+        repo_remote: repoRemote ?? null,
+        project_path: projectPath,
+      }),
+    });
+  }
+
   async validateCredentials(instance: string, key: string, baseUrl?: string) {
     const url = `${baseUrl || this.getAltimateUrl()}/dbt/v3/validate-credentials`;
     try {

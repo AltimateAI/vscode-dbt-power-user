@@ -1,8 +1,16 @@
-import { DBTTerminal } from "@altimateai/dbt-integration";
+import {
+  DBTTerminal,
+  RESOURCE_TYPE_MODEL,
+  RESOURCE_TYPE_SEED,
+} from "@altimateai/dbt-integration";
+import { existsSync } from "fs";
 import { inject } from "inversify";
+import { homedir } from "os";
+import { join, sep } from "path";
 import {
   commands,
   ConfigurationTarget,
+  extensions,
   Uri,
   ViewColumn,
   WebviewPanel,
@@ -14,6 +22,7 @@ import { WalkthroughCommands } from "../commands/walkthroughCommands";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
+import { AltimateConnectService } from "../services/altimateConnectService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
@@ -42,6 +51,7 @@ export class OnboardingPanel extends AltimateWebviewProvider {
     protected walkthroughCommands: WalkthroughCommands,
     protected altimateAuthService: AltimateAuthService,
     altimateCodeChatService: AltimateCodeChatService,
+    protected altimateConnectService: AltimateConnectService,
   ) {
     super(
       dbtProjectContainer,
@@ -64,6 +74,27 @@ export class OnboardingPanel extends AltimateWebviewProvider {
 
     // Initialize Python environment and listen to changes
     this.initializePythonEnvironmentListener();
+
+    this._disposables.push(
+      altimateConnectService.onDidConnectAccount((account) =>
+        this.sendResponseToWebview({
+          command: "altimateAccountConnected",
+          payload: account,
+        }),
+      ),
+      altimateConnectService.onDidLinkWorkspace((link) =>
+        this.sendResponseToWebview({
+          command: "workspaceLinked",
+          payload: link,
+        }),
+      ),
+      altimateConnectService.onDidFailConnect((failure) =>
+        this.sendResponseToWebview({
+          command: "altimateConnectFailed",
+          payload: failure,
+        }),
+      ),
+    );
   }
 
   private async initializePythonEnvironmentListener() {
@@ -294,7 +325,10 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           this.sendResponseToWebview({
             command: "response",
             syncRequestId,
-            data: { success: true },
+            data: {
+              success: true,
+              summary: this.getProjectSummary(projectUri),
+            },
           });
         } catch (error) {
           this.dbtTerminal.error(
@@ -422,6 +456,11 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             command: "response",
             syncRequestId,
             data: {
+              projects: projects.map((p) => ({
+                name: p.getProjectName(),
+                projectRoot: p.projectRoot.fsPath,
+                adapter: p.getAdapterType(),
+              })),
               pythonInstalled: this.dbtProjectContainer.pythonInstalled,
               dbtInstalled: this.dbtProjectContainer.dbtInstalled,
               projectsFound: projectsFoundInWorkspace,
@@ -520,35 +559,30 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           });
         }
         break;
-      case "checkAltimateConfiguration":
-        // Check if Altimate is already configured
+      case "getAltimateState":
         try {
-          const config = workspace.getConfiguration("dbt");
-          const apiKey = config.get<string>("altimateAiKey");
-          const instanceName = config.get<string>("altimateInstanceName");
-          const dbtIntegrationType = config.get<string>(
-            "dbtIntegration",
-            "core",
-          );
-
-          const isConfigured = !!(apiKey && instanceName);
-          const altimateUrl = config.get<string>("altimateUrl", "");
-
+          const { projectRoot } = message as HandleCommandProps & {
+            projectRoot?: string;
+          };
           this.sendResponseToWebview({
             command: "response",
             syncRequestId,
             data: {
-              isConfigured,
-              dbtIntegrationType,
-              instanceName: instanceName || "",
-              apiKey: apiKey || "",
-              altimateUrl,
+              signedIn: this.altimateAuthService.isAuthenticated(),
+              instance: this.altimateRequest.getInstanceName() ?? "",
+              canLinkWorkspace: this.altimateConnectService.canLinkWorkspace(),
+              supportsBrowserSignIn:
+                this.altimateConnectService.supportsBrowserSignIn(),
+              appUrl: this.altimateConnectService.accountAppUrl(),
+              workspaceId: projectRoot
+                ? this.altimateConnectService.getLinkedWorkspaceId(projectRoot)
+                : undefined,
             },
           });
         } catch (error) {
           this.dbtTerminal.error(
-            "checkAltimateConfiguration",
-            "Error checking Altimate configuration",
+            "getAltimateState",
+            "Error reading the Altimate account state",
             error,
           );
           this.sendResponseToWebview({
@@ -558,84 +592,49 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           });
         }
         break;
-      case "saveAltimateKey":
-        // Save Altimate API key and instance name
+      case "startAltimateSignIn":
+      case "startWorkspaceLink":
+      case "openAltimateCode":
         try {
-          const { apiKey, instanceName, backendURL } =
-            message as HandleCommandProps & {
-              apiKey: string;
-              instanceName: string;
-              backendURL?: string;
-            };
-
-          // Validate credentials before saving
-          this.dbtTerminal.debug(
-            "saveAltimateKey",
-            "Validating credentials before saving",
-            { instanceName },
-          );
-
-          const validationResult =
-            await this.altimateRequest.validateCredentials(
-              instanceName,
-              apiKey,
-              backendURL,
-            );
-
-          if (!validationResult?.ok) {
-            const errorMessage =
-              validationResult?.error ||
-              validationResult?.detail ||
-              "Invalid credentials. Please check your API key and instance name.";
-            this.dbtTerminal.error(
-              "saveAltimateKey",
-              "Credential validation failed",
-              errorMessage,
-            );
-            this.sendResponseToWebview({
-              command: "response",
-              syncRequestId,
-              error: errorMessage,
-            });
-            return;
+          const { projectRoot, instance } = message as HandleCommandProps & {
+            projectRoot?: string;
+            instance?: string;
+          };
+          if (command === "startAltimateSignIn") {
+            await this.altimateConnectService.startSignIn(instance);
+          } else if (command === "startWorkspaceLink") {
+            if (!projectRoot) {
+              throw new Error("No project specified");
+            }
+            await this.altimateConnectService.startWorkspaceLink(projectRoot);
+          } else {
+            await this.altimateConnectService.openAltimateCode(projectRoot);
           }
-
-          this.dbtTerminal.debug(
-            "saveAltimateKey",
-            "Credentials validated successfully",
-          );
-
-          // Save at Global (user) level so the key applies across all workspaces.
-          // Save altimateUrl FIRST so the ValidationProvider (which fires on
-          // config change) uses the correct endpoint when it re-validates.
-          const dbtConfig = workspace.getConfiguration("dbt");
-          if (backendURL) {
-            await dbtConfig.update(
-              "altimateUrl",
-              backendURL,
-              ConfigurationTarget.Global,
-            );
-          }
-          await dbtConfig.update(
-            "altimateAiKey",
-            apiKey,
-            ConfigurationTarget.Global,
-          );
-          await dbtConfig.update(
-            "altimateInstanceName",
-            instanceName,
-            ConfigurationTarget.Global,
-          );
-
           this.sendResponseToWebview({
             command: "response",
             syncRequestId,
             data: { success: true },
           });
         } catch (error) {
+          this.dbtTerminal.error(command, `Error running ${command}`, error);
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "getPythonInterpreters":
+        try {
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: await this.getPythonInterpreters(),
+          });
+        } catch (error) {
           this.dbtTerminal.error(
-            "saveAltimateKey",
-            "Error saving Altimate API key",
+            "getPythonInterpreters",
+            "Error listing Python interpreters",
             error,
           );
           this.sendResponseToWebview({
@@ -644,6 +643,114 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             error: error instanceof Error ? error.message : String(error),
           });
         }
+        break;
+      case "setPythonInterpreter":
+        try {
+          const { pythonPath } = message as HandleCommandProps & {
+            pythonPath: string;
+          };
+          const pythonApi = await this.getPythonApi();
+          if (!pythonApi?.environments) {
+            throw new Error("The Python extension is not available");
+          }
+          // An interpreter picked here replaces one found by "Detect From
+          // Terminal", which would otherwise keep taking precedence.
+          const dbtConfig = workspace.getConfiguration("dbt");
+          if (dbtConfig.get<string>("dbtPythonPathOverride")) {
+            await dbtConfig.update(
+              "dbtPythonPathOverride",
+              undefined,
+              ConfigurationTarget.Workspace,
+            );
+          }
+          await pythonApi.environments.updateActiveEnvironmentPath(
+            pythonPath,
+            workspace.workspaceFolders?.[0],
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { success: true },
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "setPythonInterpreter",
+            "Error setting the Python interpreter",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "openProfilesYml":
+        try {
+          const { projectRoot } = message as HandleCommandProps & {
+            projectRoot?: string;
+          };
+          if (!projectRoot) {
+            throw new Error("No dbt project is selected");
+          }
+          // Resolve DBT_PROFILES_DIR the way dbt commands do: from the
+          // Python environment's variables, which include .env files.
+          const profilesDir =
+            this.dbtProjectContainer
+              .getPythonEnvironment()
+              .getEnvironmentVariables(
+                workspace.getWorkspaceFolder(Uri.file(projectRoot)),
+              ).DBT_PROFILES_DIR ??
+            (existsSync(join(projectRoot, "profiles.yml"))
+              ? projectRoot
+              : join(homedir(), ".dbt"));
+          const profilesPath = join(profilesDir, "profiles.yml");
+          if (!existsSync(profilesPath)) {
+            window.showWarningMessage(
+              `No profiles.yml at ${profilesPath}. Create it to configure the connection dbt uses.`,
+            );
+          } else {
+            await window.showTextDocument(Uri.file(profilesPath));
+          }
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { success: true },
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "openProfilesYml",
+            "Error opening profiles.yml",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "openAltimateSettings":
+        await commands.executeCommand(
+          "workbench.action.openSettings",
+          "dbt.altimate",
+        );
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId,
+          data: { success: true },
+        });
+        break;
+      case "showLogs":
+        await this.dbtTerminal.show(true);
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId,
+          data: { success: true },
+        });
+        break;
+      case "closeOnboarding":
+        (this._panel as WebviewPanel | undefined)?.dispose();
         break;
       case "openUrl":
         // Open URL in external browser
@@ -676,5 +783,82 @@ export class OnboardingPanel extends AltimateWebviewProvider {
         super.handleCommand(message);
         break;
     }
+  }
+
+  /** Model, seed and test counts from the project's parsed manifest. */
+  private getProjectSummary(projectUri: Uri) {
+    const event = this.queryManifestService.getEventByDocument(projectUri);
+    if (!event) {
+      return undefined;
+    }
+    const projectName = event.project.getProjectName();
+    const nodes = Array.from(event.nodeMetaMap.nodes()).filter(
+      (node) => node.package_name === projectName,
+    );
+    // Test ids are `test.<package>.<name>`; count only the project's own.
+    const tests = Array.from(event.testMetaMap.values()).filter((test) =>
+      test.unique_id.startsWith(`test.${projectName}.`),
+    );
+    return {
+      models: nodes.filter((n) => n.resource_type === RESOURCE_TYPE_MODEL)
+        .length,
+      seeds: nodes.filter((n) => n.resource_type === RESOURCE_TYPE_SEED).length,
+      tests: tests.length,
+    };
+  }
+
+  private async getPythonApi() {
+    const extension = extensions.getExtension("ms-python.python");
+    if (!extension) {
+      return undefined;
+    }
+    if (!extension.isActive) {
+      await extension.activate();
+    }
+    return extension.exports;
+  }
+
+  /** Interpreters the Python extension knows about. */
+  private async getPythonInterpreters() {
+    const pythonApi = await this.getPythonApi();
+    if (!pythonApi?.environments) {
+      return { interpreters: [] };
+    }
+    // Windows paths compare case-insensitively (drive letters differ).
+    const normalize = (path: string) =>
+      process.platform === "win32" ? path.toLowerCase() : path;
+    const workspacePaths = (workspace.workspaceFolders ?? []).map((folder) =>
+      normalize(folder.uri.fsPath + sep),
+    );
+    const interpreters = await Promise.all(
+      pythonApi.environments.known.map(
+        async (known: { path: string; id: string }) => {
+          // One environment that fails to resolve still lists by its path.
+          const env = await pythonApi.environments
+            .resolveEnvironment(known)
+            .catch(() => undefined);
+          const pythonPath: string = env?.executable?.uri?.fsPath ?? known.path;
+          const version = env?.version
+            ? `${env.version.major}.${env.version.minor}.${env.version.micro}`
+            : undefined;
+          const tool: string =
+            env?.tools?.[0]?.toLowerCase() ??
+            env?.environment?.type?.toLowerCase() ??
+            "system";
+          const inWorkspace = workspacePaths.some((root) =>
+            normalize(pythonPath).startsWith(root),
+          );
+          return {
+            path: pythonPath,
+            description: [
+              version ? `Python ${version}` : "Python",
+              inWorkspace ? `workspace ${tool}` : tool,
+            ].join(" · "),
+            recommended: inWorkspace,
+          };
+        },
+      ),
+    );
+    return { interpreters };
   }
 }
