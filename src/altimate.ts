@@ -507,6 +507,9 @@ export class AltimateRequest {
     });
   }
 
+  // A stalled exchange fails instead of leaving the sign-in waiting.
+  private static readonly SOCIAL_EXCHANGE_TIMEOUT_MS = 15_000;
+
   /**
    * Exchange the one-time `login_token` the SaaS sign-in delivers to the
    * editor for the user's `auth_token`, which is the extension's API key.
@@ -516,6 +519,7 @@ export class AltimateRequest {
       method: "POST",
       headers: { "x-tenant": instance, "Content-Type": "application/json" },
       body: JSON.stringify({ token }),
+      signal: AbortSignal.timeout(AltimateRequest.SOCIAL_EXCHANGE_TIMEOUT_MS),
     });
     if (!response.ok) {
       throw new Error(

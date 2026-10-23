@@ -46,6 +46,8 @@ interface AltimateState {
   signedIn: boolean;
   instance: string;
   canLinkWorkspace: boolean;
+  supportsBrowserSignIn: boolean;
+  appUrl?: string;
   workspaceId?: string;
 }
 
@@ -56,6 +58,8 @@ interface ExtensionMessage {
     email?: string;
     projectRoot?: string;
     workspaceId?: string;
+    flow?: "signIn" | "workspace";
+    message?: string;
   };
 }
 
@@ -92,6 +96,8 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
     });
     const [account, setAccount] = useState<AccountState>({ state: "idle" });
     const [canLinkWorkspace, setCanLinkWorkspace] = useState(true);
+    const [supportsBrowserSignIn, setSupportsBrowserSignIn] = useState(true);
+    const [appUrl, setAppUrl] = useState<string>();
     const [workspace, setWorkspace] = useState<WorkspaceState>({
       waiting: false,
       skipped: false,
@@ -107,16 +113,26 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
       navigateToStep: (stepId: string) => go(STEP_SCREENS[stepId] ?? "env"),
     }));
 
-    // Sign-in and workspace state are per project root.
+    const loadAltimateState = useCallback(async (projectRoot?: string) => {
+      const state = await request<AltimateState>("getAltimateState", {
+        projectRoot,
+      });
+      if (state) {
+        setCanLinkWorkspace(state.canLinkWorkspace);
+        setSupportsBrowserSignIn(state.supportsBrowserSignIn);
+        setAppUrl(state.appUrl);
+      }
+      return state;
+    }, []);
+
+    // Sign-in and workspace state are per project root; a different project
+    // starts its workspace step afresh.
     useEffect(() => {
       void (async () => {
-        const state = await request<AltimateState>("getAltimateState", {
-          projectRoot: project?.projectRoot,
-        });
+        const state = await loadAltimateState(project?.projectRoot);
         if (!state) {
           return;
         }
-        setCanLinkWorkspace(state.canLinkWorkspace);
         if (state.signedIn) {
           setAccount((prev) =>
             prev.state === "connected"
@@ -135,9 +151,13 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
               : prev,
           );
         }
-        setWorkspace((prev) => ({ ...prev, linkedId: state.workspaceId }));
+        setWorkspace({
+          waiting: false,
+          skipped: false,
+          linkedId: state.workspaceId,
+        });
       })();
-    }, [project?.projectRoot]);
+    }, [project?.projectRoot, loadAltimateState]);
 
     // The message listener outlives renders, so it reads the current project.
     const projectRootRef = useRef(project?.projectRoot);
@@ -152,9 +172,26 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
             instance: payload?.instance,
             email: payload?.email,
           });
-          void request<AltimateState>("getAltimateState").then((state) =>
-            setCanLinkWorkspace(!!state?.canLinkWorkspace),
-          );
+          void loadAltimateState(projectRootRef.current);
+        } else if (command === "altimateConnectFailed") {
+          // A failed or cancelled browser round trip ends the waiting state.
+          if (payload?.flow === "workspace") {
+            setWorkspace((prev) => ({
+              ...prev,
+              waiting: false,
+              error: payload.message,
+            }));
+          } else {
+            setAccount((prev) =>
+              prev.state === "waiting"
+                ? {
+                    state: "idle",
+                    instance: prev.signInTo,
+                    error: payload?.message,
+                  }
+                : prev,
+            );
+          }
         } else if (
           command === "workspaceLinked" &&
           payload?.projectRoot === projectRootRef.current
@@ -169,7 +206,7 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
       };
       window.addEventListener("message", handleMessage);
       return () => window.removeEventListener("message", handleMessage);
-    }, [go]);
+    }, [go, loadAltimateState]);
 
     const handleProjectChange = useCallback((next: Project | undefined) => {
       setProject(next);
@@ -186,14 +223,21 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
         return;
       }
       const { projectRoot } = project;
+      // A result for a project the user has since switched away from is dropped.
+      const stillCurrent = () => projectRootRef.current === projectRoot;
       setValidation({ state: "deps" });
       try {
         await executeRequestInSync("runDbtDeps", { projectRoot });
       } catch (err) {
-        setValidation({
-          state: "error",
-          error: `$ dbt deps · ${summarizeError(err)}`,
-        });
+        if (stillCurrent()) {
+          setValidation({
+            state: "error",
+            error: `$ dbt deps · ${summarizeError(err)}`,
+          });
+        }
+        return;
+      }
+      if (!stillCurrent()) {
         return;
       }
       setValidation({ state: "debug" });
@@ -201,13 +245,17 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
         const result = (await executeRequestInSync("validateProject", {
           projectRoot,
         })) as { summary?: ValidationState["summary"] };
-        setValidation({ state: "done", summary: result?.summary });
+        if (stillCurrent()) {
+          setValidation({ state: "done", summary: result?.summary });
+        }
       } catch (err) {
         panelLogger.error("onboarding: validation failed", err);
-        setValidation({
-          state: "error",
-          error: `$ dbt debug · ${summarizeError(err)}`,
-        });
+        if (stillCurrent()) {
+          setValidation({
+            state: "error",
+            error: `$ dbt debug · ${summarizeError(err)}`,
+          });
+        }
       }
     }, [project]);
 
@@ -225,11 +273,22 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
       }
     }, []);
 
+    /** Leave a sign-in that is waiting on the browser, to start a different one. */
+    const cancelSignIn = useCallback(
+      () =>
+        setAccount((prev) =>
+          prev.state === "waiting"
+            ? { state: "idle", instance: prev.signInTo }
+            : prev,
+        ),
+      [],
+    );
+
     const linkWorkspace = useCallback(() => {
       if (!project) {
         return;
       }
-      setWorkspace((prev) => ({ ...prev, waiting: true }));
+      setWorkspace((prev) => ({ ...prev, waiting: true, error: undefined }));
       void request("startWorkspaceLink", {
         projectRoot: project.projectRoot,
       }).then((started) => {
@@ -337,9 +396,8 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
           return {
             back: () => go("env"),
             hint: workspace.waiting ? "waiting for your browser" : undefined,
-            secondary: workspace.waiting
-              ? undefined
-              : { label: "Not now", onClick: skipWorkspace },
+            // Available while waiting too: the browser may never come back.
+            secondary: { label: "Not now", onClick: skipWorkspace },
             primary: (
               <Button
                 external
@@ -498,7 +556,23 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
                     validation={validation}
                     onValidate={() => void validate()}
                     account={account}
+                    appUrl={appUrl}
+                    supportsBrowserSignIn={supportsBrowserSignIn}
                     onCreateAccount={(instance) => void createAccount(instance)}
+                    onCancelSignIn={cancelSignIn}
+                    onRecheckAccount={() =>
+                      void loadAltimateState(project?.projectRoot).then(
+                        (state) => {
+                          if (state?.signedIn) {
+                            setAccount({
+                              state: "connected",
+                              instance: state.instance,
+                              existing: true,
+                            });
+                          }
+                        },
+                      )
+                    }
                   />
                 </div>
                 {screen === "workspace" && (

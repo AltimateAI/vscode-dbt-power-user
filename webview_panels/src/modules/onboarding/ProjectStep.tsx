@@ -173,7 +173,13 @@ interface ProjectStepProps {
   validation: ValidationState;
   onValidate: () => void;
   account: AccountState;
+  /** The signed-in instance's SaaS app. */
+  appUrl?: string;
+  /** False in editors the SaaS cannot redirect back to after sign-in. */
+  supportsBrowserSignIn: boolean;
   onCreateAccount: (instance?: string) => void;
+  onCancelSignIn: () => void;
+  onRecheckAccount: () => void;
 }
 
 const ProjectStep = ({
@@ -183,7 +189,11 @@ const ProjectStep = ({
   validation,
   onValidate,
   account,
+  appUrl,
+  supportsBrowserSignIn,
   onCreateAccount,
+  onCancelSignIn,
+  onRecheckAccount,
 }: ProjectStepProps): JSX.Element => {
   const [diagnostics, setDiagnostics] = useState<DiagnosticsStatus>();
   const [checking, setChecking] = useState(false);
@@ -219,9 +229,11 @@ const ProjectStep = ({
           status.projects.find((p) => p.projectRoot === project?.projectRoot) ??
             status.projects[0],
         );
+        return status;
       } catch (err) {
         panelLogger.error("onboarding: diagnostics failed", err);
         setChecksError(err instanceof Error ? err.message : String(err));
+        return undefined;
       } finally {
         setChecking(false);
       }
@@ -270,11 +282,9 @@ const ProjectStep = ({
     setInstallFailed(false);
     await request("installDbt", { integrationType: integration });
     setInstalling(false);
-    const status = await request<DiagnosticsStatus>("getDiagnosticsStatus");
-    if (status) {
-      setDiagnostics(status);
-      setInstallFailed(!status.dbtInstalled);
-    }
+    // A full recheck also picks up projects registered by the install.
+    const status = await runChecks(true);
+    setInstallFailed(!!status && !status.dbtInstalled);
   };
 
   const pythonPath = d?.pythonPath ?? "the selected interpreter";
@@ -439,7 +449,10 @@ const ProjectStep = ({
                 title: p.name,
                 desc: p.projectRoot,
                 selected: p.projectRoot === project?.projectRoot,
-                onPick: () => onProjectChange(p),
+                onPick: () => {
+                  setOpen(undefined);
+                  onProjectChange(p);
+                },
               }))}
             />
           </div>
@@ -464,10 +477,12 @@ const ProjectStep = ({
                   title: INTEGRATIONS[key][0],
                   desc: INTEGRATIONS[key][1],
                   selected: key === integration,
-                  onPick: () =>
+                  onPick: () => {
+                    setOpen(undefined);
                     void fixAndRecheck(
                       request("setDbtIntegration", { integrationType: key }),
-                    ),
+                    );
+                  },
                 }),
               )}
             />
@@ -698,7 +713,32 @@ const ProjectStep = ({
           validation.state === "done" ? "" : classes.accountRowLocked,
         ].join(" ")}
       >
-        {account.state === "idle" && (
+        {account.state === "idle" && !supportsBrowserSignIn && (
+          <div className={classes.accountCard}>
+            <img src={AltimateLogo} alt="Altimate" />
+            <div className={classes.accountText}>
+              <span className={classes.accountTitle}>
+                Add your Altimate API key
+              </span>
+              <span className={classes.accountDesc}>
+                This editor cannot receive a sign-in from the browser. Copy the
+                API key and instance name from Settings → API Keys in your
+                Altimate app into the extension settings.
+              </span>
+            </div>
+            <Button nav onClick={() => void request("openAltimateSettings")}>
+              Open Settings
+            </Button>
+            <button
+              type="button"
+              className={[classes.linkAction, classes.accountLink].join(" ")}
+              onClick={onRecheckAccount}
+            >
+              Check again
+            </button>
+          </div>
+        )}
+        {account.state === "idle" && supportsBrowserSignIn && (
           <div className={classes.accountCard}>
             <img src={AltimateLogo} alt="Altimate" />
             <div className={classes.accountText}>
@@ -727,7 +767,10 @@ const ProjectStep = ({
                 className={classes.signInForm}
                 onSubmit={(e) => {
                   e.preventDefault();
-                  onCreateAccount(instanceInput.trim());
+                  const instance = instanceInput.trim();
+                  if (instance) {
+                    onCreateAccount(instance);
+                  }
                 }}
               >
                 <input
@@ -785,6 +828,13 @@ const ProjectStep = ({
             >
               Open again
             </button>
+            <button
+              type="button"
+              className={[classes.mutedAction, classes.accountLink].join(" ")}
+              onClick={onCancelSignIn}
+            >
+              Use a different account
+            </button>
           </div>
         )}
         {account.state === "connected" && (
@@ -801,7 +851,7 @@ const ProjectStep = ({
               </span>
             </div>
             <ExternalLink
-              href="https://app.myaltimate.com"
+              href={appUrl ?? "https://app.myaltimate.com"}
               className={classes.accountLink}
             >
               Open Altimate

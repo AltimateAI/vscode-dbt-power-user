@@ -6,6 +6,8 @@ export interface WorkspaceState {
   waiting: boolean;
   skipped: boolean;
   linkedId?: string;
+  /** Why the last browser round trip did not link a workspace. */
+  error?: string;
 }
 
 const WORKSPACES_GUIDE = "https://help.altimate.ai/workspaces/user-guide/home/";
@@ -70,6 +72,12 @@ const WorkspaceStep = ({
             </div>
           ))}
         </div>
+        {state.error && (
+          <div className={classes.notice}>
+            <Icon name="alert-triangle" size={18} />
+            <span>{state.error}. Set up the workspace again, or skip it.</span>
+          </div>
+        )}
         {state.linkedId && (
           <div className={classes.notice}>
             <Icon name="circle-check" size={18} />

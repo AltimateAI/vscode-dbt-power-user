@@ -88,6 +88,12 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           payload: link,
         }),
       ),
+      altimateConnectService.onDidFailConnect((failure) =>
+        this.sendResponseToWebview({
+          command: "altimateConnectFailed",
+          payload: failure,
+        }),
+      ),
     );
   }
 
@@ -565,6 +571,9 @@ export class OnboardingPanel extends AltimateWebviewProvider {
               signedIn: this.altimateAuthService.isAuthenticated(),
               instance: this.altimateRequest.getInstanceName() ?? "",
               canLinkWorkspace: this.altimateConnectService.canLinkWorkspace(),
+              supportsBrowserSignIn:
+                this.altimateConnectService.supportsBrowserSignIn(),
+              appUrl: this.altimateConnectService.accountAppUrl(),
               workspaceId: projectRoot
                 ? this.altimateConnectService.getLinkedWorkspaceId(projectRoot)
                 : undefined,
@@ -644,7 +653,20 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           if (!pythonApi?.environments) {
             throw new Error("The Python extension is not available");
           }
-          await pythonApi.environments.updateActiveEnvironmentPath(pythonPath);
+          // An interpreter picked here replaces one found by "Detect From
+          // Terminal", which would otherwise keep taking precedence.
+          const dbtConfig = workspace.getConfiguration("dbt");
+          if (dbtConfig.get<string>("dbtPythonPathOverride")) {
+            await dbtConfig.update(
+              "dbtPythonPathOverride",
+              undefined,
+              ConfigurationTarget.Workspace,
+            );
+          }
+          await pythonApi.environments.updateActiveEnvironmentPath(
+            pythonPath,
+            workspace.workspaceFolders?.[0],
+          );
           this.sendResponseToWebview({
             command: "response",
             syncRequestId,
@@ -666,16 +688,30 @@ export class OnboardingPanel extends AltimateWebviewProvider {
       case "openProfilesYml":
         try {
           const { projectRoot } = message as HandleCommandProps & {
-            projectRoot: string;
+            projectRoot?: string;
           };
+          if (!projectRoot) {
+            throw new Error("No dbt project is selected");
+          }
+          // Resolve DBT_PROFILES_DIR the way dbt commands do: from the
+          // Python environment's variables, which include .env files.
           const profilesDir =
-            process.env.DBT_PROFILES_DIR ??
+            this.dbtProjectContainer
+              .getPythonEnvironment()
+              .getEnvironmentVariables(
+                workspace.getWorkspaceFolder(Uri.file(projectRoot)),
+              ).DBT_PROFILES_DIR ??
             (existsSync(join(projectRoot, "profiles.yml"))
               ? projectRoot
               : join(homedir(), ".dbt"));
-          await window.showTextDocument(
-            Uri.file(join(profilesDir, "profiles.yml")),
-          );
+          const profilesPath = join(profilesDir, "profiles.yml");
+          if (!existsSync(profilesPath)) {
+            window.showWarningMessage(
+              `No profiles.yml at ${profilesPath}. Create it to configure the connection dbt uses.`,
+            );
+          } else {
+            await window.showTextDocument(Uri.file(profilesPath));
+          }
           this.sendResponseToWebview({
             command: "response",
             syncRequestId,
@@ -693,6 +729,17 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             error: error instanceof Error ? error.message : String(error),
           });
         }
+        break;
+      case "openAltimateSettings":
+        await commands.executeCommand(
+          "workbench.action.openSettings",
+          "dbt.altimate",
+        );
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId,
+          data: { success: true },
+        });
         break;
       case "showLogs":
         await this.dbtTerminal.show(true);
@@ -748,11 +795,15 @@ export class OnboardingPanel extends AltimateWebviewProvider {
     const nodes = Array.from(event.nodeMetaMap.nodes()).filter(
       (node) => node.package_name === projectName,
     );
+    // Test ids are `test.<package>.<name>`; count only the project's own.
+    const tests = Array.from(event.testMetaMap.values()).filter((test) =>
+      test.unique_id.startsWith(`test.${projectName}.`),
+    );
     return {
       models: nodes.filter((n) => n.resource_type === RESOURCE_TYPE_MODEL)
         .length,
       seeds: nodes.filter((n) => n.resource_type === RESOURCE_TYPE_SEED).length,
-      tests: event.testMetaMap.size,
+      tests: tests.length,
     };
   }
 
@@ -773,13 +824,19 @@ export class OnboardingPanel extends AltimateWebviewProvider {
     if (!pythonApi?.environments) {
       return { interpreters: [] };
     }
-    const workspacePaths = (workspace.workspaceFolders ?? []).map(
-      (folder) => folder.uri.fsPath + sep,
+    // Windows paths compare case-insensitively (drive letters differ).
+    const normalize = (path: string) =>
+      process.platform === "win32" ? path.toLowerCase() : path;
+    const workspacePaths = (workspace.workspaceFolders ?? []).map((folder) =>
+      normalize(folder.uri.fsPath + sep),
     );
     const interpreters = await Promise.all(
       pythonApi.environments.known.map(
         async (known: { path: string; id: string }) => {
-          const env = await pythonApi.environments.resolveEnvironment(known);
+          // One environment that fails to resolve still lists by its path.
+          const env = await pythonApi.environments
+            .resolveEnvironment(known)
+            .catch(() => undefined);
           const pythonPath: string = env?.executable?.uri?.fsPath ?? known.path;
           const version = env?.version
             ? `${env.version.major}.${env.version.minor}.${env.version.micro}`
@@ -789,7 +846,7 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             env?.environment?.type?.toLowerCase() ??
             "system";
           const inWorkspace = workspacePaths.some((root) =>
-            pythonPath.startsWith(root),
+            normalize(pythonPath).startsWith(root),
           );
           return {
             path: pythonPath,

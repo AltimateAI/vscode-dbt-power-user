@@ -1,4 +1,11 @@
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import {
   commands,
   ConfigurationTarget,
@@ -420,4 +427,147 @@ describe("AltimateConnectService.openAltimateCode", () => {
       "altimateai.vscode-altimate-mcp-server",
     );
   });
+});
+
+describe("AltimateConnectService review fixes", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("accepts the callback of an earlier sign-in after Open again", async () => {
+    const h = harness();
+    await h.service.startSignIn();
+    const first = h.lastState();
+    await h.service.startSignIn();
+
+    await h.callback("/auth", {
+      state: first,
+      token: "one-time",
+      instance: "acme",
+    });
+
+    expect(h.altimateRequest.exchangeSocialToken).toHaveBeenCalled();
+  });
+
+  it("rejects an instance name that is not a tenant label", async () => {
+    const h = harness();
+    const failed = jest.fn();
+    h.service.onDidFailConnect(failed);
+    await h.service.startSignIn();
+
+    await h.callback("/auth", {
+      state: h.lastState(),
+      token: "one-time",
+      instance: "acme.evil/x",
+    });
+
+    expect(h.altimateRequest.exchangeSocialToken).not.toHaveBeenCalled();
+    expect(failed).toHaveBeenCalledWith(
+      expect.objectContaining({ flow: "signIn" }),
+    );
+  });
+
+  it("matches the workspace tenant without regard to case", async () => {
+    const h = harness({ instance: "Acme" });
+    await h.service.startWorkspaceLink(PROJECT_ROOT);
+
+    await h.callback("/workspace-bound", {
+      state: h.lastState(),
+      workspace_id: "42",
+      tenant: "acme",
+    });
+
+    expect(h.altimateRequest.bindProjectToWorkspace).toHaveBeenCalled();
+  });
+
+  it("tells the wizard when the workspace setup was cancelled", async () => {
+    const h = harness();
+    const failed = jest.fn();
+    h.service.onDidFailConnect(failed);
+    await h.service.startWorkspaceLink(PROJECT_ROOT);
+
+    await h.callback("/workspace-bound", {
+      state: h.lastState(),
+      error: "cancelled",
+    });
+
+    expect(h.altimateRequest.bindProjectToWorkspace).not.toHaveBeenCalled();
+    expect(failed).toHaveBeenCalledWith({
+      flow: "workspace",
+      message: "Workspace setup was cancelled",
+    });
+  });
+
+  it("forgets a project's workspace once signed in to another instance", async () => {
+    const h = harness();
+    await h.service.startWorkspaceLink(PROJECT_ROOT);
+    await h.callback("/workspace-bound", {
+      state: h.lastState(),
+      workspace_id: "42",
+      tenant: "acme",
+    });
+    expect(h.service.getLinkedWorkspaceId(PROJECT_ROOT)).toBe("42");
+
+    h.altimateRequest.getInstanceName.mockReturnValue("other");
+
+    expect(h.service.getLinkedWorkspaceId(PROJECT_ROOT)).toBeUndefined();
+  });
+
+  it("asks before replacing an existing sign-in from a setup link", async () => {
+    (window.showInformationMessage as jest.Mock).mockResolvedValue(
+      "Replace Sign-In" as never,
+    );
+    const h = harness({ instance: "current" });
+
+    await h.service.handleUri({
+      path: "/setup",
+      query: new URLSearchParams({
+        tenant: "acme",
+        token: "one-time",
+        apiUrl: "https://api.getaltimate.com",
+      }).toString(),
+    } as never);
+
+    expect(window.showInformationMessage).toHaveBeenCalledWith(
+      `Replace Power User for dbt's Altimate sign-in "current" with "acme"?`,
+      expect.objectContaining({
+        modal: true,
+        detail: expect.stringContaining("api.getaltimate.com"),
+      }),
+      "Replace Sign-In",
+    );
+    expect(h.altimateRequest.exchangeSocialToken).toHaveBeenCalled();
+  });
+
+  it.each([
+    ["https://api.myaltimate.com", "https://acme.app.myaltimate.com"],
+    ["https://api.getaltimate.com", "https://acme.app.getaltimate.com"],
+    ["http://localhost:5001", undefined],
+  ])("links %s accounts to %s", (altimateUrl, expected) => {
+    expect(harness({ altimateUrl }).service.accountAppUrl()).toBe(expected);
+  });
+
+  it("offers no browser sign-in or workspace in editors the SaaS cannot reach", () => {
+    const scheme = env.uriScheme;
+    (env as Record<string, unknown>).uriScheme = "vscodium";
+    const h = harness();
+
+    expect(h.service.supportsBrowserSignIn()).toBe(false);
+    expect(h.service.canLinkWorkspace()).toBe(false);
+
+    (env as Record<string, unknown>).uriScheme = scheme;
+  });
+});
+
+// The harness reconfigures shared vscode mocks; put them back for any suite
+// that runs after this one in the same module registry.
+afterAll(() => {
+  (workspace.getConfiguration as jest.Mock).mockReturnValue({
+    get: jest.fn(),
+    has: jest.fn(),
+    update: jest.fn(),
+  });
+  (extensions.getExtension as jest.Mock).mockReset();
+  (Uri.parse as jest.Mock).mockReset();
+  delete (env as Record<string, unknown>).openExternal;
 });

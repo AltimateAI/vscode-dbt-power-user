@@ -31,10 +31,20 @@ const ENTERPRISE_APP_HOST = "app.getaltimate.com";
 // served per instance at `<instance>.app.myaltimate.com`.
 const FREEMIUM_API_HOST = "api.myaltimate.com";
 const FREEMIUM_APP_HOST = "app.myaltimate.com";
-const WORKSPACE_HANDOFF_PAGE = "/workspaces/create-and-link";
 const APP_HOSTS = [FREEMIUM_APP_HOST, ENTERPRISE_APP_HOST];
+// The SaaS app that goes with each Altimate API host.
+const APP_HOST_BY_API_HOST: Record<string, string> = {
+  [FREEMIUM_API_HOST]: FREEMIUM_APP_HOST,
+  "api.getaltimate.com": ENTERPRISE_APP_HOST,
+};
+const WORKSPACE_HANDOFF_PAGE = "/workspaces/create-and-link";
 const TENANT_LABEL_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i;
 const WORKSPACE_LINKS_KEY = "altimateWorkspaceLinks";
+// The editors the SaaS will redirect back to.
+const SUPPORTED_URI_SCHEMES = ["vscode", "vscode-insiders", "cursor"];
+// How long a browser round trip may take before its `state` is dropped.
+const PENDING_TTL_MS = 15 * 60 * 1000;
+const GIT_TIMEOUT_MS = 5_000;
 
 export const AUTH_CALLBACK_PATH = "/auth";
 export const WORKSPACE_CALLBACK_PATH = "/workspace-bound";
@@ -51,6 +61,36 @@ export interface WorkspaceLink {
   workspaceId: string;
 }
 
+export interface ConnectFailure {
+  flow: "signIn" | "workspace";
+  message: string;
+}
+
+/** One-time `state` values for browser round trips, each expiring after a while. */
+class PendingStates<T> {
+  private entries = new Map<string, { value: T; expires: number }>();
+
+  add(value: T): string {
+    const state = randomBytes(16).toString("hex");
+    this.entries.set(state, { value, expires: Date.now() + PENDING_TTL_MS });
+    return state;
+  }
+
+  /** Remove `state` and return its value, if it was pending and unexpired. */
+  take(state: string | null): T | undefined {
+    if (!state) {
+      return undefined;
+    }
+    const entry = this.entries.get(state);
+    this.entries.delete(state);
+    return entry && entry.expires >= Date.now() ? entry.value : undefined;
+  }
+
+  clear() {
+    this.entries.clear();
+  }
+}
+
 /**
  * Connects the extension to an Altimate account and an Altimate Code
  * workspace through the SaaS browser handoffs. Each flow opens the browser
@@ -58,12 +98,16 @@ export interface WorkspaceLink {
  * handler, which this service verifies before trusting the payload.
  */
 export class AltimateConnectService implements Disposable {
-  private pendingSignInState?: string;
-  private pendingWorkspace?: { state: string; projectRoot: string };
+  // Several can be pending: "Open again" starts another round trip, and the
+  // user may finish in either browser tab.
+  private pendingSignIns = new PendingStates<true>();
+  private pendingWorkspaces = new PendingStates<string>();
   private readonly _onDidConnectAccount = new EventEmitter<AltimateAccount>();
   readonly onDidConnectAccount = this._onDidConnectAccount.event;
   private readonly _onDidLinkWorkspace = new EventEmitter<WorkspaceLink>();
   readonly onDidLinkWorkspace = this._onDidLinkWorkspace.event;
+  private readonly _onDidFailConnect = new EventEmitter<ConnectFailure>();
+  readonly onDidFailConnect = this._onDidFailConnect.event;
 
   constructor(
     private altimateRequest: AltimateRequest,
@@ -73,6 +117,11 @@ export class AltimateConnectService implements Disposable {
     private dbtTerminal: DBTTerminal,
   ) {}
 
+  /** Whether the SaaS can redirect back to this editor after a sign-in. */
+  supportsBrowserSignIn(): boolean {
+    return SUPPORTED_URI_SCHEMES.includes(env.uriScheme);
+  }
+
   /**
    * Open the SaaS sign-up page, or the login page of an existing instance,
    * which signs the editor in when it finishes.
@@ -81,10 +130,10 @@ export class AltimateConnectService implements Disposable {
     const url = instance
       ? new URL("/login", this.instanceAppUrl(instance))
       : new URL(SIGN_UP_URL);
-    this.pendingSignInState = randomBytes(16).toString("hex");
+    const state = this.pendingSignIns.add(true);
     url.searchParams.set("client", CONNECT_CLIENT);
     url.searchParams.set("redirect", this.callbackUri(AUTH_CALLBACK_PATH));
-    url.searchParams.set("state", this.pendingSignInState);
+    url.searchParams.set("state", state);
     this.telemetry.sendTelemetryEvent("onboardingSignInStarted", {
       mode: instance ? "login" : "signup",
     });
@@ -93,7 +142,26 @@ export class AltimateConnectService implements Disposable {
 
   /** Whether the workspace handoff is available for the signed-in account. */
   canLinkWorkspace(): boolean {
-    return this.workspaceWebUrl() !== undefined;
+    return this.supportsBrowserSignIn() && this.workspaceWebUrl() !== undefined;
+  }
+
+  /** The signed-in instance's SaaS app, when it is on a known deployment. */
+  accountAppUrl(): string | undefined {
+    const instance = this.altimateRequest.getInstanceName();
+    if (!instance || !TENANT_LABEL_RE.test(instance)) {
+      return undefined;
+    }
+    try {
+      const appHost =
+        APP_HOST_BY_API_HOST[
+          new URL(this.altimateRequest.getAltimateUrl()).host
+        ];
+      return appHost
+        ? `https://${instance.toLowerCase()}.${appHost}`
+        : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   /** Open the SaaS page that creates a workspace and links it to the project. */
@@ -103,8 +171,7 @@ export class AltimateConnectService implements Disposable {
       throw new Error("Workspaces are not available for this Altimate account");
     }
     const project = this.findProject(projectRoot);
-    const state = randomBytes(16).toString("hex");
-    this.pendingWorkspace = { state, projectRoot };
+    const state = this.pendingWorkspaces.add(projectRoot);
 
     const target = new URL(WORKSPACE_HANDOFF_PAGE, webUrl);
     target.searchParams.set("client", CONNECT_CLIENT);
@@ -127,8 +194,9 @@ export class AltimateConnectService implements Disposable {
     );
   }
 
+  /** The workspace linked to the project for the signed-in instance. */
   getLinkedWorkspaceId(projectRoot: string): string | undefined {
-    return this.getWorkspaceLinks()[projectRoot];
+    return this.getWorkspaceLinks()[this.linkKey(projectRoot)];
   }
 
   /** Open Altimate Code chat with the project's workspace selected. */
@@ -169,6 +237,7 @@ export class AltimateConnectService implements Disposable {
         await this.completeWorkspaceLink(params);
       }
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       this.dbtTerminal.error(
         "altimateConnect:handleUri",
         `Could not complete ${uri.path}`,
@@ -177,17 +246,18 @@ export class AltimateConnectService implements Disposable {
       this.telemetry.sendTelemetryError("onboardingConnectError", error, {
         path: uri.path,
       });
-      window.showErrorMessage(
-        `Could not connect to Altimate: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      this._onDidFailConnect.fire({
+        flow: uri.path === WORKSPACE_CALLBACK_PATH ? "workspace" : "signIn",
+        message,
+      });
+      window.showErrorMessage(`Could not connect to Altimate: ${message}`);
     }
   }
 
   private async completeSignIn(params: URLSearchParams) {
-    const state = params.get("state");
-    if (!state || state !== this.pendingSignInState) {
+    if (!this.pendingSignIns.take(params.get("state"))) {
       throw new Error(
-        "This sign-in link was not started from this window. Start sign-in again from the setup wizard.",
+        "This sign-in link was not started from this window, or it expired. Start sign-in again from the setup wizard.",
       );
     }
     const token = params.get("token");
@@ -196,10 +266,11 @@ export class AltimateConnectService implements Disposable {
     if (!token || !instance) {
       throw new Error("The sign-in link is missing the token or instance");
     }
+    this.assertInstanceName(instance);
     if (!this.isTrustedApiUrl(apiUrl)) {
       throw new Error(`Refusing to sign in against untrusted host ${apiUrl}`);
     }
-    this.pendingSignInState = undefined;
+    this.pendingSignIns.clear();
 
     const baseUrl = apiUrl.replace(/\/+$/, "");
     const { apiKey, email } = await this.altimateRequest.exchangeSocialToken(
@@ -215,7 +286,7 @@ export class AltimateConnectService implements Disposable {
   /**
    * Sign in from a SaaS "Open in VS Code" link, which carries a one-time
    * sign-in token, never the API key. The editor did not start this, so the
-   * user confirms the instance before it replaces the current credentials.
+   * user confirms the instance and backend before anything is replaced.
    */
   private async completeSetupLink(params: URLSearchParams) {
     const instance = params.get("tenant");
@@ -224,13 +295,22 @@ export class AltimateConnectService implements Disposable {
     if (!instance || !token || !apiUrl) {
       throw new Error("The setup link is missing the instance, token or URL");
     }
+    this.assertInstanceName(instance);
     if (!this.isTrustedApiUrl(apiUrl)) {
       throw new Error(`Refusing to sign in against untrusted host ${apiUrl}`);
     }
-    const signIn = "Sign In";
+    const current = this.altimateRequest.getInstanceName();
+    const replacing =
+      !!current && current.toLowerCase() !== instance.toLowerCase();
+    const signIn = replacing ? "Replace Sign-In" : "Sign In";
     const answer = await window.showInformationMessage(
-      `Sign Power User for dbt in to the Altimate instance "${instance}"?`,
-      { modal: true },
+      replacing
+        ? `Replace Power User for dbt's Altimate sign-in "${current}" with "${instance}"?`
+        : `Sign Power User for dbt in to the Altimate instance "${instance}"?`,
+      {
+        modal: true,
+        detail: `Backend: ${new URL(apiUrl).host}\nOnly continue if you opened this link from your own Altimate app.`,
+      },
       signIn,
     );
     if (answer !== signIn) {
@@ -242,10 +322,12 @@ export class AltimateConnectService implements Disposable {
       instance,
       token,
     );
-    // Altimate Code watches these settings and signs itself in from them.
     await this.saveCredentials(baseUrl, apiKey, instance);
     this.telemetry.sendTelemetryEvent("onboardingSetupLinkCompleted");
     this._onDidConnectAccount.fire({ instance, email });
+    window.showInformationMessage(
+      `Power User for dbt is signed in to ${instance}${email ? ` as ${email}` : ""}.`,
+    );
   }
 
   private async saveCredentials(
@@ -254,6 +336,7 @@ export class AltimateConnectService implements Disposable {
     instance: string,
   ) {
     // Save the URL first so validation triggered by the key change uses it.
+    // The Altimate extension reads these settings too.
     const dbtConfig = workspace.getConfiguration("dbt");
     await dbtConfig.update("altimateUrl", baseUrl, ConfigurationTarget.Global);
     await dbtConfig.update("altimateAiKey", apiKey, ConfigurationTarget.Global);
@@ -290,47 +373,62 @@ export class AltimateConnectService implements Disposable {
   }
 
   private async completeWorkspaceLink(params: URLSearchParams) {
-    const pending = this.pendingWorkspace;
-    const state = params.get("state");
-    if (!pending || !state || state !== pending.state) {
+    const projectRoot = this.pendingWorkspaces.take(params.get("state"));
+    if (!projectRoot) {
       throw new Error(
-        "This workspace link was not started from this window. Set up the workspace again from the setup wizard.",
+        "This workspace link was not started from this window, or it expired. Set up the workspace again from the setup wizard.",
       );
     }
-    if (params.get("error")) {
-      this.pendingWorkspace = undefined;
-      return;
+    const error = params.get("error");
+    if (error) {
+      throw new Error(
+        error === "cancelled"
+          ? "Workspace setup was cancelled"
+          : `Workspace setup failed: ${error}`,
+      );
     }
     const workspaceId = params.get("workspace_id");
     const tenant = params.get("tenant");
     if (!workspaceId || !/^\d+$/.test(workspaceId)) {
       throw new Error("The workspace link is missing a valid workspace id");
     }
-    if (tenant !== this.altimateRequest.getInstanceName()) {
+    if (
+      tenant?.toLowerCase() !==
+      this.altimateRequest.getInstanceName()?.toLowerCase()
+    ) {
       throw new Error(
         "The workspace belongs to a different Altimate instance than this editor is signed in to",
       );
     }
-    this.pendingWorkspace = undefined;
 
     await this.altimateRequest.bindProjectToWorkspace(
       Number(workspaceId),
-      await this.getGitRemote(pending.projectRoot),
-      pending.projectRoot,
+      await this.getGitRemote(projectRoot),
+      projectRoot,
     );
     this.dbtProjectContainer.setToWorkspaceState(WORKSPACE_LINKS_KEY, {
       ...this.getWorkspaceLinks(),
-      [pending.projectRoot]: workspaceId,
+      [this.linkKey(projectRoot)]: workspaceId,
     });
     this.telemetry.sendTelemetryEvent("onboardingWorkspaceLinked");
-    this._onDidLinkWorkspace.fire({
-      projectRoot: pending.projectRoot,
-      workspaceId,
-    });
+    this._onDidLinkWorkspace.fire({ projectRoot, workspaceId });
+  }
+
+  private assertInstanceName(instance: string) {
+    if (!TENANT_LABEL_RE.test(instance)) {
+      throw new Error(`"${instance}" is not a valid Altimate instance name`);
+    }
   }
 
   private callbackUri(path: string) {
     return `${env.uriScheme}://${EXTENSION_ID}${path}`;
+  }
+
+  // Links belong to an account: a project linked under one instance or
+  // backend is not linked under another.
+  private linkKey(projectRoot: string) {
+    const instance = this.altimateRequest.getInstanceName()?.toLowerCase();
+    return `${this.altimateRequest.getAltimateUrl()}|${instance}|${projectRoot}`;
   }
 
   private workspaceWebUrl(): URL | undefined {
@@ -403,7 +501,7 @@ export class AltimateConnectService implements Disposable {
       const { stdout } = await execFileAsync(
         "git",
         ["config", "--get", "remote.origin.url"],
-        { cwd },
+        { cwd, timeout: GIT_TIMEOUT_MS },
       );
       return stdout.trim() || undefined;
     } catch {
@@ -414,5 +512,6 @@ export class AltimateConnectService implements Disposable {
   dispose() {
     this._onDidConnectAccount.dispose();
     this._onDidLinkWorkspace.dispose();
+    this._onDidFailConnect.dispose();
   }
 }
