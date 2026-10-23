@@ -14,11 +14,10 @@ import ModelLineageGif from "@assets/tutorial-images/model-lineage.gif";
 import ProjectScanGif from "@assets/tutorial-images/project-scan.gif";
 import QueryExplanationGif from "@assets/tutorial-images/query-explanation.gif";
 import QueryResultsAndSQLGif from "@assets/tutorial-images/query-results-and-SQL.gif";
-import { Tabs } from "antd";
-import { useCallback, useState } from "react";
+import { useEffect, useRef } from "react";
+import { Icon } from "./icons";
 import classes from "./onboarding.module.scss";
 
-// Define the type for tutorial images
 interface TutorialImages {
   generateModelFromSource?: string;
   generateModelFromSQL?: string;
@@ -38,289 +37,279 @@ interface TutorialImages {
   projectScan?: string;
 }
 
-// Extend the window interface
 declare global {
   interface Window {
     tutorialImages?: TutorialImages;
   }
 }
 
-// Get tutorial images from window (provided by webview) or use imported fallbacks
-const tutorialImages: TutorialImages = window.tutorialImages ?? {};
+// Image URIs come from the webview host; the imports are build-time fallbacks.
+const images: TutorialImages = window.tutorialImages ?? {};
 
-interface TutorialItem {
-  id: string;
-  title: string;
-  content: JSX.Element;
+interface TutorialBlock {
+  text: string;
+  gifs: [string, string][];
+  note?: string;
+  bullets?: [string, string][];
 }
 
-const TUTORIALS: TutorialItem[] = [
-  {
-    id: "generate_models",
-    title: "Generate dbt models",
-    content: (
-      <div className={classes.tutorialContent}>
-        <h4>Start by generating a new dbt model from source files or SQL</h4>
-        <img
-          src={
-            tutorialImages.generateModelFromSource ?? GenerateModelFromSourceGif
-          }
-          alt="Generate a model from your source definition"
-          className={classes.tutorialImage}
-        />
-        <p>
-          <strong>Note:</strong> You can configure a file name template and
-          prefix in the extension settings
-        </p>
-        <h4>You can also convert existing SQL to dbt model</h4>
-        <img
-          src={tutorialImages.generateModelFromSQL ?? GenerateModelFromSQLGif}
-          alt="Generate a model from SQL"
-          className={classes.tutorialImage}
-        />
-      </div>
-    ),
-  },
-  {
-    id: "autocompletion",
-    title: "Auto-completion",
-    content: (
-      <div className={classes.tutorialContent}>
-        <h4>
-          The extension will help you write dbt code faster by auto-completing
-          model, macro and source names
-        </h4>
-        <img
-          src={tutorialImages.autocompleteModel ?? AutocompleteModelGif}
-          alt="Autocomplete model"
-          className={classes.tutorialImage}
-        />
-        <img
-          src={tutorialImages.autocompleteMacro ?? AutocompleteMacroGif}
-          alt="Autocomplete macro"
-          className={classes.tutorialImage}
-        />
-        <img
-          src={tutorialImages.autocompleteSource ?? AutocompleteSourceGif}
-          alt="Autocomplete source"
-          className={classes.tutorialImage}
-        />
-        <h4>
-          You can also see the preview or click on the definition to go to the
-          actual file
-        </h4>
-        <img
-          src={tutorialImages.definitionModel ?? DefinitionModelGif}
-          alt="Definition model"
-          className={classes.tutorialImage}
-        />
-        <img
-          src={tutorialImages.definitionMacro ?? DefinitionMacroGif}
-          alt="Definition macro"
-          className={classes.tutorialImage}
-        />
-      </div>
-    ),
-  },
-  {
-    id: "previews",
-    title: "Query results preview",
-    content: (
-      <div className={classes.tutorialContent}>
-        <h4>
-          While developing the model, see the results of the dbt model as well
-          as the actual SQL query in the query panel
-        </h4>
-        <img
-          src={tutorialImages.queryResultsAndSQL ?? QueryResultsAndSQLGif}
-          alt="Preview query results and SQL"
-          className={classes.tutorialImage}
-        />
-        <h4>
-          Analyze the results data with operations like &apos;split by&apos;,
-          &apos;group by&apos; as well as create different types of charts. You
-          can also export the data as CSV
-        </h4>
-        <img
-          src={tutorialImages.edaAndExport ?? EDAAndExportGif}
-          alt="Results data analysis and export"
-          className={classes.tutorialImage}
-        />
-        <h4>
-          Quickly understand complex dbt models (sometimes written by others) by
-          generating query explanations
-        </h4>
-        <img
-          src={tutorialImages.queryExplanation ?? QueryExplanationGif}
-          alt="Query explanation"
-          className={classes.tutorialImage}
-        />
-      </div>
-    ),
-  },
-  {
-    id: "dependants",
-    title: "Build and run models",
-    content: (
-      <div className={classes.tutorialContent}>
-        <h4>
-          After your model is ready, instead of typing commands, just click to
-          build and run parent / children models as well as tests
-        </h4>
-        <img
-          src={tutorialImages.graph ?? GraphGif}
-          alt="See the graph and execute parent or children models"
-          className={classes.tutorialImage}
-        />
-        <p>
-          <strong>Note:</strong> there is also a toolbar on the right section of
-          file, that can be used for performing many operations like build or
-          run models, query preview etc.
-        </p>
-      </div>
-    ),
-  },
-  {
-    id: "documentation",
-    title: "Documentation editor",
-    content: (
-      <div className={classes.tutorialContent}>
-        <h4>
-          Edit your dbt model and column descriptions in the Documentation
-          Editor
-        </h4>
-        <img
-          src={tutorialImages.docsEditor ?? DocsEditorGif}
-          alt="Edit and update your docs inline using the docs editor"
-          className={classes.tutorialImage}
-        />
-        <h4>
-          Generate descriptions for models and columns that include various
-          options like long, short, for business or make it funny! Documentation
-          editor will also save written description in YAML file with the
-          correct formatting
-        </h4>
-        <img
-          src={tutorialImages.docGenerationUsingAi ?? DocGenerationUsingAiGif}
-          alt="Generate descriptions for models and columns"
-          className={classes.tutorialImage}
-        />
-      </div>
-    ),
-  },
-  {
-    id: "lineage",
-    title: "Model and column lineage",
-    content: (
-      <div className={classes.tutorialContent}>
-        <h4>You can see the parent and children of the models</h4>
-        <img
-          src={tutorialImages.modelLineage ?? ModelLineageGif}
-          alt="See the parents and children of your model"
-          className={classes.tutorialImage}
-        />
-        <h4>
-          Explore column lineage to gauge the impact of your changes on other
-          models
-        </h4>
-        <img
-          src={tutorialImages.columnLineage ?? ColumnLineageGif}
-          alt="Column lineage"
-          className={classes.tutorialImage}
-        />
-      </div>
-    ),
-  },
-  {
-    id: "healthcheck",
-    title: "Project Health Check",
-    content: (
-      <div className={classes.tutorialContent}>
-        <h4>
-          Before you commit changes to production, scan your entire dbt project
-          to identify following issues:
-        </h4>
-        <ul>
-          <li>
-            <strong>Undocumented Models</strong> - Missing schema.yml files
-          </li>
-          <li>
-            <strong>Undocumented Columns</strong> - Columns missing in
-            schema.yml files
-          </li>
-          <li>
-            <strong>Extra Columns</strong> - Columns not present in model but
-            specified in schema.yml files
-          </li>
-          <li>
-            <strong>Seeds and Models Absent in the Database</strong>
-          </li>
-        </ul>
-        <img
-          src={tutorialImages.projectScan ?? ProjectScanGif}
-          alt="Project scan"
-          className={classes.tutorialImage}
-        />
-      </div>
-    ),
-  },
+const TUTORIALS: [string, TutorialBlock[]][] = [
+  [
+    "Generate models",
+    [
+      {
+        text: "Start by generating a new dbt model from source files or SQL",
+        gifs: [
+          [
+            images.generateModelFromSource ?? GenerateModelFromSourceGif,
+            "Generate a model from your source definition",
+          ],
+        ],
+        note: "You can configure a file name template and prefix in the extension settings",
+      },
+      {
+        text: "You can also convert existing SQL to a dbt model",
+        gifs: [
+          [
+            images.generateModelFromSQL ?? GenerateModelFromSQLGif,
+            "Generate a model from SQL",
+          ],
+        ],
+      },
+    ],
+  ],
+  [
+    "Autocomplete",
+    [
+      {
+        text: "Write dbt code faster with autocomplete for model, macro and source names",
+        gifs: [
+          [
+            images.autocompleteModel ?? AutocompleteModelGif,
+            "Autocomplete model",
+          ],
+          [
+            images.autocompleteMacro ?? AutocompleteMacroGif,
+            "Autocomplete macro",
+          ],
+          [
+            images.autocompleteSource ?? AutocompleteSourceGif,
+            "Autocomplete source",
+          ],
+        ],
+      },
+      {
+        text: "Hover for a preview, or click a definition to jump to the file",
+        gifs: [
+          [
+            images.definitionModel ?? DefinitionModelGif,
+            "Go to model definition",
+          ],
+          [
+            images.definitionMacro ?? DefinitionMacroGif,
+            "Go to macro definition",
+          ],
+        ],
+      },
+    ],
+  ],
+  [
+    "Query preview",
+    [
+      {
+        text: "See results and the compiled SQL in the query panel while you develop",
+        gifs: [
+          [
+            images.queryResultsAndSQL ?? QueryResultsAndSQLGif,
+            "Preview query results and SQL",
+          ],
+        ],
+      },
+      {
+        text: "Split by, group by, chart the results, or export as CSV",
+        gifs: [
+          [
+            images.edaAndExport ?? EDAAndExportGif,
+            "Results analysis and export",
+          ],
+        ],
+      },
+      {
+        text: "Understand complex models with a generated query explanation",
+        gifs: [
+          [images.queryExplanation ?? QueryExplanationGif, "Query explanation"],
+        ],
+      },
+    ],
+  ],
+  [
+    "Build and run",
+    [
+      {
+        text: "Click to build and run parent or child models and tests, no commands to type",
+        gifs: [
+          [
+            images.graph ?? GraphGif,
+            "Execute parent or children models from the graph",
+          ],
+        ],
+        note: "The toolbar on the right of each file also runs build, run, test and query preview",
+      },
+    ],
+  ],
+  [
+    "Docs editor",
+    [
+      {
+        text: "Edit model and column descriptions inline",
+        gifs: [[images.docsEditor ?? DocsEditorGif, "Documentation editor"]],
+      },
+      {
+        text: "Generate descriptions in the style you want. They are saved to YAML with correct formatting",
+        gifs: [
+          [
+            images.docGenerationUsingAi ?? DocGenerationUsingAiGif,
+            "Generate descriptions for models and columns",
+          ],
+        ],
+      },
+    ],
+  ],
+  [
+    "Lineage",
+    [
+      {
+        text: "See the parents and children of a model",
+        gifs: [[images.modelLineage ?? ModelLineageGif, "Model lineage"]],
+      },
+      {
+        text: "Explore column lineage to gauge the impact of a change",
+        gifs: [[images.columnLineage ?? ColumnLineageGif, "Column lineage"]],
+      },
+    ],
+  ],
+  [
+    "Health check",
+    [
+      {
+        text: "Scan the whole project before you commit to find:",
+        gifs: [[images.projectScan ?? ProjectScanGif, "Project scan"]],
+        bullets: [
+          ["Undocumented models", " - missing schema.yml files"],
+          ["Undocumented columns", " - columns missing in schema.yml"],
+          ["Extra columns", " - in schema.yml but not in the model"],
+          ["Seeds and models absent in the database", ""],
+        ],
+      },
+    ],
+  ],
 ];
 
-const TutorialsStep = (): JSX.Element => {
-  const [expandedImage, setExpandedImage] = useState<{
-    src: string;
-    alt: string;
-  } | null>(null);
+export const TUTORIAL_COUNT = TUTORIALS.length;
 
-  const handleImageClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName === "IMG") {
-        const img = target as HTMLImageElement;
-        setExpandedImage({ src: img.src, alt: img.alt });
-      }
-    },
-    [],
-  );
+const GIF_COLUMNS: Record<number, string> = {
+  2: classes.gifs2,
+  3: classes.gifs3,
+};
+
+interface TutorialsStepProps {
+  index: number;
+  onChange: (index: number) => void;
+}
+
+const TutorialsStep = ({
+  index,
+  onChange,
+}: TutorialsStepProps): JSX.Element => {
+  const tabsRef = useRef<HTMLDivElement>(null);
+
+  // Keep the active tab centred when the tab strip scrolls on narrow panels.
+  useEffect(() => {
+    const strip = tabsRef.current;
+    const tab = strip?.querySelector<HTMLElement>(`[data-tutorial="${index}"]`);
+    if (strip && tab) {
+      strip.scrollLeft =
+        tab.offsetLeft - (strip.clientWidth - tab.offsetWidth) / 2;
+    }
+  }, [index]);
 
   return (
-    <div className={classes.tutorialsContainer}>
-      <div className={classes.tutorialsHeader}>
-        <h3>Explore Tutorials</h3>
-        <p>
-          Learn about Power User for dbt features through these interactive
-          tutorials. Click through the tabs to explore each feature. Click any
-          image to expand it.
-        </p>
-      </div>
-
-      <div role="presentation" onClick={handleImageClick}>
-        <Tabs
-          defaultActiveKey="generate_models"
-          type="card"
-          tabPosition="left"
-          className={classes.tutorialsTabs}
-          items={TUTORIALS.map((tutorial) => ({
-            key: tutorial.id,
-            label: tutorial.title,
-            children: tutorial.content,
-          }))}
-        />
-      </div>
-
-      {expandedImage && (
-        <div
-          role="presentation"
-          className={classes.imageOverlay}
-          onClick={() => setExpandedImage(null)}
+    <div className={classes.tutorials}>
+      <div className={classes.tutorialTabs}>
+        <button
+          type="button"
+          className={classes.tutorialArrow}
+          disabled={index === 0}
+          onClick={() => onChange(index - 1)}
+          aria-label="Previous tutorial"
         >
-          <img
-            src={expandedImage.src}
-            alt={expandedImage.alt}
-            className={classes.imageOverlayImg}
-          />
+          <Icon name="chevron-left" size={18} />
+        </button>
+        <div className={classes.tutorialTabList} ref={tabsRef}>
+          {TUTORIALS.map(([title], i) => (
+            <button
+              key={title}
+              type="button"
+              data-tutorial={i}
+              className={[
+                classes.tutorialTab,
+                i === index ? classes.tutorialTabActive : "",
+              ].join(" ")}
+              onClick={() => onChange(i)}
+            >
+              {title}
+            </button>
+          ))}
         </div>
-      )}
+        <button
+          type="button"
+          className={classes.tutorialArrow}
+          disabled={index === TUTORIALS.length - 1}
+          onClick={() => onChange(index + 1)}
+          aria-label="Next tutorial"
+        >
+          <Icon name="chevron-right" size={18} />
+        </button>
+      </div>
+      <div className={classes.tutorialBlocks}>
+        {TUTORIALS[index][1].map((block) => (
+          <div key={block.text} className={classes.tutorialBlock}>
+            <p>{block.text}</p>
+            {block.bullets && (
+              <div className={classes.bullets}>
+                {block.bullets.map(([strong, rest]) => (
+                  <div key={strong}>
+                    <span>◈</span>
+                    <span>
+                      <strong>{strong}</strong>
+                      {rest}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div
+              className={[
+                classes.gifs,
+                GIF_COLUMNS[block.gifs.length] ?? "",
+              ].join(" ")}
+            >
+              {block.gifs.map(([src, alt]) => (
+                <figure key={alt} className={classes.figure}>
+                  <img src={src} alt={alt} loading="lazy" />
+                  <figcaption>{alt}</figcaption>
+                </figure>
+              ))}
+            </div>
+            {block.note && (
+              <div className={classes.note}>
+                <Icon name="info-circle" size={16} />
+                <span>{block.note}</span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

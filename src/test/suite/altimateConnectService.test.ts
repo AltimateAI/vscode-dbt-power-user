@@ -1,0 +1,423 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  commands,
+  ConfigurationTarget,
+  env,
+  extensions,
+  Uri,
+  window,
+  workspace,
+} from "vscode";
+import { AltimateConnectService } from "../../services/altimateConnectService";
+
+const PROJECT_ROOT = "/repo/jaffle_shop";
+
+/**
+ * Builds the service against fakes for its collaborators and records what it
+ * opens in the browser, so each browser round-trip can be replayed by feeding
+ * the callback URI back in.
+ */
+const harness = (opts: { altimateUrl?: string; instance?: string } = {}) => {
+  const opened: string[] = [];
+  const workspaceState = new Map<string, unknown>();
+  const settings: [string, unknown, unknown][] = [];
+
+  (env as Record<string, unknown>).openExternal = jest.fn(
+    async (uri: unknown) => {
+      opened.push(uri as string);
+      return true;
+    },
+  );
+  (Uri.parse as jest.Mock).mockImplementation((value: unknown) => value);
+  (workspace.getConfiguration as jest.Mock).mockReturnValue({
+    update: jest.fn(async (key: unknown, value: unknown, target: unknown) => {
+      settings.push([key as string, value, target]);
+    }),
+  });
+
+  const altimateRequest = {
+    getInstanceName: jest.fn(() => opts.instance ?? "acme"),
+    getAltimateUrl: jest.fn(
+      () => opts.altimateUrl ?? "https://api.myaltimate.com",
+    ),
+    exchangeSocialToken: jest.fn(async () => ({
+      apiKey: "key-123",
+      email: "dev@acme.com",
+    })),
+    bindProjectToWorkspace: jest.fn(async () => ({})),
+  };
+  const dbtProjectContainer = {
+    getProjects: () => [
+      {
+        projectRoot: { fsPath: PROJECT_ROOT },
+        getProjectName: () => "jaffle_shop",
+      },
+    ],
+    getFromWorkspaceState: (key: string) => workspaceState.get(key),
+    setToWorkspaceState: (key: string, value: unknown) =>
+      workspaceState.set(key, value),
+  };
+  const telemetry = {
+    sendTelemetryEvent: jest.fn(),
+    sendTelemetryError: jest.fn(),
+  };
+  const terminal = { error: jest.fn(), debug: jest.fn() };
+
+  const service = new AltimateConnectService(
+    altimateRequest as never,
+    dbtProjectContainer as never,
+    telemetry as never,
+    terminal as never,
+  );
+  const callback = (path: string, query: Record<string, string>) =>
+    service.handleUri({
+      path,
+      query: new URLSearchParams(query).toString(),
+    } as never);
+  const lastState = () =>
+    new URL(opened[opened.length - 1]).searchParams.get("state") ?? "";
+
+  return { service, opened, settings, altimateRequest, callback, lastState };
+};
+
+describe("AltimateConnectService sign-in", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("opens SaaS sign-up with a redirect back to this extension", async () => {
+    const h = harness();
+    await h.service.startSignIn();
+
+    const url = new URL(h.opened[0]);
+    expect(url.origin + url.pathname).toBe(
+      "https://app.myaltimate.com/register",
+    );
+    expect(url.searchParams.get("client")).toBe("power-user-for-dbt");
+    expect(url.searchParams.get("redirect")).toBe(
+      "vscode://innoverio.vscode-dbt-power-user/auth",
+    );
+    expect(h.lastState()).toMatch(/^[0-9a-f]{32}$/);
+  });
+
+  it("exchanges the token and saves the credentials", async () => {
+    const h = harness();
+    const connected = jest.fn();
+    h.service.onDidConnectAccount(connected);
+    await h.service.startSignIn();
+
+    await h.callback("/auth", {
+      state: h.lastState(),
+      token: "one-time",
+      instance: "acme",
+      url: "https://api.myaltimate.com/",
+    });
+
+    expect(h.altimateRequest.exchangeSocialToken).toHaveBeenCalledWith(
+      "https://api.myaltimate.com",
+      "acme",
+      "one-time",
+    );
+    // The URL goes first so validation triggered by the key uses it.
+    expect(h.settings).toEqual([
+      ["altimateUrl", "https://api.myaltimate.com", ConfigurationTarget.Global],
+      ["altimateAiKey", "key-123", ConfigurationTarget.Global],
+      ["altimateInstanceName", "acme", ConfigurationTarget.Global],
+    ]);
+    expect(connected).toHaveBeenCalledWith({
+      instance: "acme",
+      email: "dev@acme.com",
+    });
+  });
+
+  it("rejects a callback this window did not start", async () => {
+    const h = harness();
+    await h.service.startSignIn();
+
+    await h.callback("/auth", {
+      state: "forged",
+      token: "one-time",
+      instance: "acme",
+    });
+
+    expect(h.altimateRequest.exchangeSocialToken).not.toHaveBeenCalled();
+    expect(h.settings).toEqual([]);
+    expect(window.showErrorMessage).toHaveBeenCalled();
+  });
+
+  it("refuses to send the token to a non-Altimate host", async () => {
+    const h = harness();
+    await h.service.startSignIn();
+
+    await h.callback("/auth", {
+      state: h.lastState(),
+      token: "one-time",
+      instance: "acme",
+      url: "https://api.myaltimate.com.evil.example",
+    });
+
+    expect(h.altimateRequest.exchangeSocialToken).not.toHaveBeenCalled();
+  });
+
+  it("accepts the configured backend even off the allow-list", async () => {
+    const h = harness({ altimateUrl: "http://localhost:8000" });
+    await h.service.startSignIn();
+
+    await h.callback("/auth", {
+      state: h.lastState(),
+      token: "one-time",
+      instance: "acme",
+      url: "http://localhost:8000",
+    });
+
+    expect(h.altimateRequest.exchangeSocialToken).toHaveBeenCalled();
+  });
+});
+
+describe("AltimateConnectService instance sign-in", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it.each([
+    ["acme", "https://acme.app.getaltimate.com/login"],
+    ["acme.app.getaltimate.com", "https://acme.app.getaltimate.com/login"],
+    [
+      "https://Acme.app.getaltimate.com/settings/api-key",
+      "https://acme.app.getaltimate.com/login",
+    ],
+    ["acme.app.myaltimate.com", "https://acme.app.myaltimate.com/login"],
+  ])("opens the login page for %s", async (input, expected) => {
+    const h = harness();
+    await h.service.startSignIn(input);
+
+    const url = new URL(h.opened[0]);
+    expect(url.origin + url.pathname).toBe(expected);
+    expect(url.searchParams.get("client")).toBe("power-user-for-dbt");
+    expect(url.searchParams.get("redirect")).toBe(
+      "vscode://innoverio.vscode-dbt-power-user/auth",
+    );
+  });
+
+  it.each(["acme.evil.example", "https://app.getaltimate.com.evil.example"])(
+    "rejects %s, which is not an Altimate app",
+    async (input) => {
+      const h = harness();
+      await expect(h.service.startSignIn(input)).rejects.toThrow(
+        /not an Altimate URL/,
+      );
+      expect(h.opened).toEqual([]);
+    },
+  );
+});
+
+describe("AltimateConnectService setup link", () => {
+  const setupLink = (query: Record<string, string>) => ({
+    path: "/setup",
+    query: new URLSearchParams(query).toString(),
+  });
+  const ENTERPRISE = {
+    tenant: "acme",
+    token: "one-time",
+    apiUrl: "https://api.getaltimate.com",
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("exchanges the token and saves the credentials once the user confirms", async () => {
+    (window.showInformationMessage as jest.Mock).mockResolvedValue(
+      "Sign In" as never,
+    );
+    const h = harness();
+    const connected = jest.fn();
+    h.service.onDidConnectAccount(connected);
+
+    await h.service.handleUri(setupLink(ENTERPRISE) as never);
+
+    expect(h.altimateRequest.exchangeSocialToken).toHaveBeenCalledWith(
+      "https://api.getaltimate.com",
+      "acme",
+      "one-time",
+    );
+    // Altimate Code picks the key up from these settings itself.
+    expect(h.settings.map(([key, value]) => [key, value])).toEqual([
+      ["altimateUrl", "https://api.getaltimate.com"],
+      ["altimateAiKey", "key-123"],
+      ["altimateInstanceName", "acme"],
+    ]);
+    expect(connected).toHaveBeenCalledWith({
+      instance: "acme",
+      email: "dev@acme.com",
+    });
+  });
+
+  it("does not spend the token when the user declines", async () => {
+    (window.showInformationMessage as jest.Mock).mockResolvedValue(
+      undefined as never,
+    );
+    const h = harness();
+
+    await h.service.handleUri(setupLink(ENTERPRISE) as never);
+
+    expect(h.altimateRequest.exchangeSocialToken).not.toHaveBeenCalled();
+    expect(h.settings).toEqual([]);
+  });
+
+  it("ignores a link that carries the API key instead of a token", async () => {
+    const h = harness();
+
+    await h.service.handleUri(
+      setupLink({
+        tenant: "acme",
+        apiKey: "key-456",
+        apiUrl: "https://api.getaltimate.com",
+      }) as never,
+    );
+
+    expect(window.showInformationMessage).not.toHaveBeenCalled();
+    expect(h.settings).toEqual([]);
+    expect(window.showErrorMessage).toHaveBeenCalled();
+  });
+
+  it("refuses a link to a non-Altimate backend without asking", async () => {
+    const h = harness();
+
+    await h.service.handleUri(
+      setupLink({ ...ENTERPRISE, apiUrl: "https://evil.example" }) as never,
+    );
+
+    expect(window.showInformationMessage).not.toHaveBeenCalled();
+    expect(h.settings).toEqual([]);
+  });
+
+  it("saves nothing when the token was already used", async () => {
+    (window.showInformationMessage as jest.Mock).mockResolvedValue(
+      "Sign In" as never,
+    );
+    const h = harness();
+    h.altimateRequest.exchangeSocialToken.mockRejectedValue(
+      new Error("Sign-in token exchange failed with status 400") as never,
+    );
+
+    await h.service.handleUri(setupLink(ENTERPRISE) as never);
+
+    expect(h.settings).toEqual([]);
+    expect(window.showErrorMessage).toHaveBeenCalled();
+  });
+});
+
+describe("AltimateConnectService workspace link", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("is only offered for the freemium deployment", () => {
+    expect(harness().service.canLinkWorkspace()).toBe(true);
+    expect(
+      harness({
+        altimateUrl: "https://api.getaltimate.com",
+      }).service.canLinkWorkspace(),
+    ).toBe(false);
+  });
+
+  it("opens the tenant's create-and-link page with the project", async () => {
+    const h = harness();
+    await h.service.startWorkspaceLink(PROJECT_ROOT);
+
+    const url = new URL(h.opened[0]);
+    expect(url.origin + url.pathname).toBe(
+      "https://acme.app.myaltimate.com/workspaces/create-and-link",
+    );
+    expect(url.searchParams.get("redirect")).toBe(
+      "vscode://innoverio.vscode-dbt-power-user/workspace-bound",
+    );
+    const fragment = new URLSearchParams(url.hash.slice(1));
+    expect(fragment.get("project_name")).toBe("jaffle_shop");
+    expect(fragment.get("project_path")).toBe(PROJECT_ROOT);
+  });
+
+  it("binds and remembers the workspace returned for the project", async () => {
+    const h = harness();
+    const linked = jest.fn();
+    h.service.onDidLinkWorkspace(linked);
+    await h.service.startWorkspaceLink(PROJECT_ROOT);
+
+    await h.callback("/workspace-bound", {
+      state: h.lastState(),
+      workspace_id: "42",
+      tenant: "acme",
+    });
+
+    // The fake project path has no git remote.
+    expect(h.altimateRequest.bindProjectToWorkspace).toHaveBeenCalledWith(
+      42,
+      undefined,
+      PROJECT_ROOT,
+    );
+    expect(h.service.getLinkedWorkspaceId(PROJECT_ROOT)).toBe("42");
+    expect(linked).toHaveBeenCalledWith({
+      projectRoot: PROJECT_ROOT,
+      workspaceId: "42",
+    });
+  });
+
+  it("rejects a workspace from another instance", async () => {
+    const h = harness();
+    await h.service.startWorkspaceLink(PROJECT_ROOT);
+
+    await h.callback("/workspace-bound", {
+      state: h.lastState(),
+      workspace_id: "42",
+      tenant: "other",
+    });
+
+    expect(h.altimateRequest.bindProjectToWorkspace).not.toHaveBeenCalled();
+    expect(h.service.getLinkedWorkspaceId(PROJECT_ROOT)).toBeUndefined();
+  });
+});
+
+describe("AltimateConnectService.openAltimateCode", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (extensions.getExtension as jest.Mock).mockReturnValue({});
+  });
+
+  it("opens chat on the selected workspace when none is linked", async () => {
+    const h = harness();
+    await h.service.openAltimateCode(PROJECT_ROOT);
+
+    expect(commands.executeCommand).toHaveBeenCalledWith("altimate.openChat", {
+      showWorkspace: true,
+    });
+    expect(h.opened).toEqual([]);
+  });
+
+  it("selects the project's linked workspace through the chat link", async () => {
+    const h = harness();
+    await h.service.startWorkspaceLink(PROJECT_ROOT);
+    await h.callback("/workspace-bound", {
+      state: h.lastState(),
+      workspace_id: "42",
+      tenant: "acme",
+    });
+
+    await h.service.openAltimateCode(PROJECT_ROOT);
+
+    expect(h.opened[h.opened.length - 1]).toBe(
+      "vscode://altimateai.vscode-altimate-mcp-server/chat?workspaceId=42",
+    );
+  });
+
+  it("points to the marketplace when Altimate Code is not installed", async () => {
+    (extensions.getExtension as jest.Mock).mockReturnValue(undefined);
+    const h = harness();
+    await h.service.openAltimateCode(PROJECT_ROOT);
+
+    expect(commands.executeCommand).toHaveBeenCalledWith(
+      "workbench.extensions.search",
+      "altimateai.vscode-altimate-mcp-server",
+    );
+  });
+});
