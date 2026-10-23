@@ -172,7 +172,10 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
             instance: payload?.instance,
             email: payload?.email,
           });
-          void loadAltimateState(projectRootRef.current);
+          // Workspace links belong to an account, so re-read this project's.
+          void loadAltimateState(projectRootRef.current).then((state) =>
+            setWorkspace((prev) => ({ ...prev, linkedId: state?.workspaceId })),
+          );
         } else if (command === "altimateConnectFailed") {
           // A failed or cancelled browser round trip ends the waiting state.
           if (payload?.flow === "workspace") {
