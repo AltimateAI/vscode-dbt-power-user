@@ -1198,8 +1198,8 @@
       {
         "id": "jinja-sql",
         "icon": {
-          "light": "./media/images/altimate_file_icon.svg",
-          "dark": "./media/images/altimate_file_icon.svg"
+          "light": "./media/images/dbt_file_icon.svg",
+          "dark": "./media/images/dbt_file_icon.svg"
         }
       }
     ],
