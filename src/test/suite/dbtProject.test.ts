@@ -739,6 +739,27 @@ describe("DBTProject Test Suite", () => {
       expect(vscode.window.showErrorMessage).toHaveBeenCalled();
     });
 
+    it("shows the error when the integration can't generate docs", async () => {
+      mockProjectIntegration.generateDocs = jest
+        .fn<() => Promise<unknown>>()
+        .mockRejectedValue(
+          new Error("dbt fusion does not support docs generation"),
+        );
+
+      await dbtProject.generateDocs();
+
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        "Could not generate docs: dbt fusion does not support docs generation",
+      );
+      expect(mockTelemetry.sendTelemetryError).toHaveBeenCalledWith(
+        "generateDocsError",
+        expect.any(Error),
+      );
+      expect(mockTelemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+        "generateDocs",
+      );
+    });
+
     it("should validate SQL", async () => {
       const request = {
         sql: "SELECT * FROM table",
