@@ -15,7 +15,10 @@ import {
   window,
   workspace,
 } from "vscode";
-import { AltimateConnectService } from "../../services/altimateConnectService";
+import {
+  AltimateConnectService,
+  stripRemoteCredentials,
+} from "../../services/altimateConnectService";
 
 const PROJECT_ROOT = "/repo/jaffle_shop";
 
@@ -52,6 +55,7 @@ const harness = (opts: { altimateUrl?: string; instance?: string } = {}) => {
       email: "dev@acme.com",
     })),
     bindProjectToWorkspace: jest.fn(async () => ({})),
+    findProjectBinding: jest.fn(async (): Promise<unknown> => undefined),
   };
   const dbtProjectContainer = {
     getProjects: () => [
@@ -556,6 +560,124 @@ describe("AltimateConnectService review fixes", () => {
     expect(h.service.canLinkWorkspace()).toBe(false);
 
     (env as Record<string, unknown>).uriScheme = scheme;
+  });
+});
+
+describe("AltimateConnectService workspace bind failures", () => {
+  const SHARED = { datamate: { id: 7, name: "Shared" } };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it.each([
+    [
+      "https://dev:ghp_secret@github.com/acme/jaffle.git",
+      "https://github.com/acme/jaffle.git",
+    ],
+    ["http://token@git.acme.dev/jaffle", "http://git.acme.dev/jaffle"],
+    [
+      "https://github.com/acme/jaffle.git",
+      "https://github.com/acme/jaffle.git",
+    ],
+    ["git@github.com:acme/jaffle.git", "git@github.com:acme/jaffle.git"],
+    ["ssh://git@github.com/acme/jaffle", "ssh://git@github.com/acme/jaffle"],
+  ])("sends %s as %s", (remote, expected) => {
+    expect(stripRemoteCredentials(remote)).toBe(expected);
+  });
+
+  it("uses the workspace a project is already bound to without the browser", async () => {
+    const h = harness();
+    h.altimateRequest.findProjectBinding.mockResolvedValue(SHARED);
+    const linked = jest.fn();
+    h.service.onDidLinkWorkspace(linked);
+
+    await h.service.startWorkspaceLink(PROJECT_ROOT);
+
+    expect(h.opened).toEqual([]);
+    expect(linked).toHaveBeenCalledWith({
+      projectRoot: PROJECT_ROOT,
+      workspaceId: "7",
+    });
+  });
+
+  it("keeps the handoff open for a retry after a failed bind", async () => {
+    const h = harness();
+    h.altimateRequest.bindProjectToWorkspace.mockRejectedValueOnce(
+      new Error("server responded with 502") as never,
+    );
+    const failed = jest.fn();
+    h.service.onDidFailConnect(failed);
+    await h.service.startWorkspaceLink(PROJECT_ROOT);
+    const params = { state: h.lastState(), workspace_id: "42", tenant: "acme" };
+
+    await h.callback("/workspace-bound", params);
+    expect(failed).toHaveBeenCalledWith({
+      flow: "workspace",
+      message: "server responded with 502",
+    });
+
+    await h.callback("/workspace-bound", params);
+    expect(h.altimateRequest.bindProjectToWorkspace).toHaveBeenCalledTimes(2);
+    expect(h.service.getLinkedWorkspaceId(PROJECT_ROOT)).toBe("42");
+  });
+
+  it("offers the existing workspace when the project is bound elsewhere", async () => {
+    (window.showWarningMessage as jest.Mock).mockResolvedValue(
+      'Use "Shared"' as never,
+    );
+    const h = harness();
+    h.altimateRequest.bindProjectToWorkspace.mockRejectedValue(
+      new Error("server responded with 409") as never,
+    );
+    const failed = jest.fn();
+    h.service.onDidFailConnect(failed);
+    await h.service.startWorkspaceLink(PROJECT_ROOT);
+    // Bound by a teammate while the browser page was open.
+    h.altimateRequest.findProjectBinding.mockResolvedValue(SHARED);
+
+    await h.callback("/workspace-bound", {
+      state: h.lastState(),
+      workspace_id: "42",
+      tenant: "acme",
+    });
+
+    expect(failed).toHaveBeenCalledWith({
+      flow: "workspace",
+      message:
+        'This project is already linked to the workspace "Shared", so the new workspace was not linked.',
+    });
+    expect(h.service.getLinkedWorkspaceId(PROJECT_ROOT)).toBe("7");
+  });
+
+  it("rejects a callback after switching to another backend", async () => {
+    const h = harness();
+    await h.service.startWorkspaceLink(PROJECT_ROOT);
+    h.altimateRequest.getAltimateUrl.mockReturnValue(
+      "https://api.getaltimate.com",
+    );
+
+    await h.callback("/workspace-bound", {
+      state: h.lastState(),
+      workspace_id: "42",
+      tenant: "acme",
+    });
+
+    expect(h.altimateRequest.bindProjectToWorkspace).not.toHaveBeenCalled();
+  });
+
+  it("ignores a sign-in the user moved on from", async () => {
+    const h = harness();
+    await h.service.startSignIn();
+    h.service.cancelSignIn();
+
+    await h.callback("/auth", {
+      state: h.lastState(),
+      token: "one-time",
+      instance: "acme",
+    });
+
+    expect(h.altimateRequest.exchangeSocialToken).not.toHaveBeenCalled();
   });
 });
 

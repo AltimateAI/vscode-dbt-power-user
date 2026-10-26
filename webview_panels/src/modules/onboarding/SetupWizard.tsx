@@ -125,12 +125,18 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
       return state;
     }, []);
 
+    // The message listener outlives renders, so it reads the current project.
+    const projectRootRef = useRef(project?.projectRoot);
+    projectRootRef.current = project?.projectRoot;
+
     // Sign-in and workspace state are per project root; a different project
     // starts its workspace step afresh.
     useEffect(() => {
+      const projectRoot = project?.projectRoot;
       void (async () => {
-        const state = await loadAltimateState(project?.projectRoot);
-        if (!state) {
+        const state = await loadAltimateState(projectRoot);
+        // Drop a response for a project the user has since switched away from.
+        if (!state || projectRootRef.current !== projectRoot) {
           return;
         }
         if (state.signedIn) {
@@ -159,10 +165,6 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
       })();
     }, [project?.projectRoot, loadAltimateState]);
 
-    // The message listener outlives renders, so it reads the current project.
-    const projectRootRef = useRef(project?.projectRoot);
-    projectRootRef.current = project?.projectRoot;
-
     useEffect(() => {
       const handleMessage = (event: MessageEvent<ExtensionMessage>) => {
         const { command, payload } = event.data;
@@ -173,9 +175,15 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
             email: payload?.email,
           });
           // Workspace links belong to an account, so re-read this project's.
-          void loadAltimateState(projectRootRef.current).then((state) =>
-            setWorkspace((prev) => ({ ...prev, linkedId: state?.workspaceId })),
-          );
+          const projectRoot = projectRootRef.current;
+          void loadAltimateState(projectRoot).then((state) => {
+            if (projectRootRef.current === projectRoot) {
+              setWorkspace((prev) => ({
+                ...prev,
+                linkedId: state?.workspaceId,
+              }));
+            }
+          });
         } else if (command === "altimateConnectFailed") {
           // A failed or cancelled browser round trip ends the waiting state.
           if (payload?.flow === "workspace") {
@@ -277,15 +285,15 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
     }, []);
 
     /** Leave a sign-in that is waiting on the browser, to start a different one. */
-    const cancelSignIn = useCallback(
-      () =>
-        setAccount((prev) =>
-          prev.state === "waiting"
-            ? { state: "idle", instance: prev.signInTo }
-            : prev,
-        ),
-      [],
-    );
+    const cancelSignIn = useCallback(() => {
+      // The abandoned browser tab must not sign in after all.
+      void request("cancelAltimateSignIn");
+      setAccount((prev) =>
+        prev.state === "waiting"
+          ? { state: "idle", instance: prev.signInTo }
+          : prev,
+      );
+    }, []);
 
     const linkWorkspace = useCallback(() => {
       if (!project) {
@@ -542,58 +550,58 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
               {subtitle && <p className={classes.subtitle}>{subtitle}</p>}
             </div>
 
-            {screen === "tutorials" ? (
+            {screen === "tutorials" && (
               <TutorialsStep index={tutorial} onChange={setTutorial} />
-            ) : (
-              <div className={classes.panel}>
-                <div className={classes.panelHead}>
-                  <span className={classes.panelDot} />
-                  <span className={classes.panelLabel}>{panelLabel}</span>
-                </div>
-                {/* Kept mounted so checks and pickers survive step changes. */}
-                <div hidden={screen !== "env"}>
-                  <ProjectStep
-                    project={project}
-                    onProjectChange={handleProjectChange}
-                    onChecksChanged={resetValidation}
-                    validation={validation}
-                    onValidate={() => void validate()}
-                    account={account}
-                    appUrl={appUrl}
-                    supportsBrowserSignIn={supportsBrowserSignIn}
-                    onCreateAccount={(instance) => void createAccount(instance)}
-                    onCancelSignIn={cancelSignIn}
-                    onRecheckAccount={() =>
-                      void loadAltimateState(project?.projectRoot).then(
-                        (state) => {
-                          if (state?.signedIn) {
-                            setAccount({
-                              state: "connected",
-                              instance: state.instance,
-                              existing: true,
-                            });
-                          }
-                        },
-                      )
-                    }
-                  />
-                </div>
-                {screen === "workspace" && (
-                  <WorkspaceStep
-                    projectName={projectName}
-                    state={workspace}
-                    canLinkWorkspace={canLinkWorkspace}
-                    onOpenAgain={linkWorkspace}
-                  />
-                )}
-                {screen === "code" && (
-                  <GetStartedStep
-                    workspaceSkipped={!workspaceLinked && canLinkWorkspace}
-                    onSetUpWorkspace={() => go("workspace")}
-                  />
-                )}
-              </div>
             )}
+            {/* Hidden, not unmounted, on Tutorials so validation survives. */}
+            <div className={classes.panel} hidden={screen === "tutorials"}>
+              <div className={classes.panelHead}>
+                <span className={classes.panelDot} />
+                <span className={classes.panelLabel}>{panelLabel}</span>
+              </div>
+              {/* Kept mounted so checks and pickers survive step changes. */}
+              <div hidden={screen !== "env"}>
+                <ProjectStep
+                  project={project}
+                  onProjectChange={handleProjectChange}
+                  onChecksChanged={resetValidation}
+                  validation={validation}
+                  onValidate={() => void validate()}
+                  account={account}
+                  appUrl={appUrl}
+                  supportsBrowserSignIn={supportsBrowserSignIn}
+                  onCreateAccount={(instance) => void createAccount(instance)}
+                  onCancelSignIn={cancelSignIn}
+                  onRecheckAccount={() =>
+                    void loadAltimateState(project?.projectRoot).then(
+                      (state) => {
+                        if (state?.signedIn) {
+                          setAccount({
+                            state: "connected",
+                            instance: state.instance,
+                            existing: true,
+                          });
+                        }
+                      },
+                    )
+                  }
+                />
+              </div>
+              {screen === "workspace" && (
+                <WorkspaceStep
+                  projectName={projectName}
+                  state={workspace}
+                  canLinkWorkspace={canLinkWorkspace}
+                  onOpenAgain={linkWorkspace}
+                />
+              )}
+              {screen === "code" && (
+                <GetStartedStep
+                  workspaceSkipped={!workspaceLinked && canLinkWorkspace}
+                  onSetUpWorkspace={() => go("workspace")}
+                />
+              )}
+            </div>
           </div>
         </div>
 

@@ -4,6 +4,7 @@ import {
   DBTConfiguration,
   DBTTerminal,
   NodeMetaData,
+  NotFoundError,
   SourceMetaData,
 } from "@altimateai/dbt-integration";
 import { NotebookItem, NotebookSchema, PreconfiguredNotebookItem } from "@lib";
@@ -12,6 +13,11 @@ import type { RequestInit } from "node-fetch";
 import * as vscode from "vscode";
 
 export class UserInputError extends Error {}
+
+/** A dbt project's link to an Altimate Code workspace. */
+export interface ProjectBinding {
+  datamate: { id: number; name: string };
+}
 
 export interface ColumnLineage {
   source: { uniqueId: string; column_name: string };
@@ -550,6 +556,34 @@ export class AltimateRequest {
         project_path: projectPath,
       }),
     });
+  }
+
+  /**
+   * The workspace a dbt project is already bound to, looked up by remote and
+   * then by path, or `undefined` when it is bound to none the user can see.
+   */
+  async findProjectBinding(
+    repoRemote: string | undefined,
+    projectPath: string,
+  ): Promise<ProjectBinding | undefined> {
+    const lookups: [string, Record<string, string>][] = [
+      ["by-path", { project_path: projectPath }],
+    ];
+    if (repoRemote) {
+      lookups.unshift(["by-remote", { repo_remote: repoRemote }]);
+    }
+    for (const [by, params] of lookups) {
+      try {
+        return await this.fetch<ProjectBinding>(
+          `datamate-project-bindings/${by}${this.getQueryString(params)}`,
+        );
+      } catch (error) {
+        if (!(error instanceof NotFoundError)) {
+          throw error;
+        }
+      }
+    }
+    return undefined;
   }
 
   async validateCredentials(instance: string, key: string, baseUrl?: string) {

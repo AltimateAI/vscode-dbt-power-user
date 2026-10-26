@@ -281,9 +281,11 @@ const ProjectStep = ({
     setInstalling(true);
     setInstallFailed(false);
     await request("installDbt", { integrationType: integration });
-    setInstalling(false);
-    // A full recheck also picks up projects registered by the install.
+    // Still installing until the recheck lands, so the stale "not installed"
+    // result doesn't offer Install again. A full recheck also picks up
+    // projects registered by the install.
     const status = await runChecks(true);
+    setInstalling(false);
     setInstallFailed(!!status && !status.dbtInstalled);
   };
 
@@ -761,7 +763,8 @@ const ProjectStep = ({
                 </span>
               </div>
               <span className={classes.accountDesc}>
-                Enter your instance name or the address you log in at.
+                Enter your instance name or the address you log in at. On the
+                free plan, use the full address, like acme.app.myaltimate.com.
               </span>
               <form
                 className={classes.signInForm}

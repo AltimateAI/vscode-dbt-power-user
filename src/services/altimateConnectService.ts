@@ -14,7 +14,7 @@ import {
   window,
   workspace,
 } from "vscode";
-import { AltimateRequest } from "../altimate";
+import { AltimateRequest, ProjectBinding } from "../altimate";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
 
@@ -61,9 +61,24 @@ export interface WorkspaceLink {
   workspaceId: string;
 }
 
+/** A workspace handoff in the browser, for the account that started it. */
+interface PendingWorkspace {
+  projectRoot: string;
+  altimateUrl: string;
+  instance: string;
+}
+
 export interface ConnectFailure {
   flow: "signIn" | "workspace";
   message: string;
+}
+
+/**
+ * Drop a username or token from an HTTP(S) git remote, which would otherwise
+ * travel through the browser handoff. SSH remotes carry none.
+ */
+export function stripRemoteCredentials(remote: string): string {
+  return remote.replace(/^(https?:\/\/)[^/]*@/i, "$1");
 }
 
 /** One-time `state` values for browser round trips, each expiring after a while. */
@@ -76,14 +91,23 @@ class PendingStates<T> {
     return state;
   }
 
+  /** The value of `state`, if it is pending and unexpired. */
+  get(state: string | null): T | undefined {
+    const entry = state ? this.entries.get(state) : undefined;
+    return entry && entry.expires >= Date.now() ? entry.value : undefined;
+  }
+
   /** Remove `state` and return its value, if it was pending and unexpired. */
   take(state: string | null): T | undefined {
-    if (!state) {
-      return undefined;
+    const value = this.get(state);
+    this.delete(state);
+    return value;
+  }
+
+  delete(state: string | null) {
+    if (state) {
+      this.entries.delete(state);
     }
-    const entry = this.entries.get(state);
-    this.entries.delete(state);
-    return entry && entry.expires >= Date.now() ? entry.value : undefined;
   }
 
   clear() {
@@ -101,7 +125,9 @@ export class AltimateConnectService implements Disposable {
   // Several can be pending: "Open again" starts another round trip, and the
   // user may finish in either browser tab.
   private pendingSignIns = new PendingStates<true>();
-  private pendingWorkspaces = new PendingStates<string>();
+  private pendingWorkspaces = new PendingStates<PendingWorkspace>();
+  // Workspace states whose bind is in flight, so a repeated callback waits its turn.
+  private bindingStates = new Set<string>();
   private readonly _onDidConnectAccount = new EventEmitter<AltimateAccount>();
   readonly onDidConnectAccount = this._onDidConnectAccount.event;
   private readonly _onDidLinkWorkspace = new EventEmitter<WorkspaceLink>();
@@ -140,6 +166,11 @@ export class AltimateConnectService implements Disposable {
     await env.openExternal(Uri.parse(url.toString(), true));
   }
 
+  /** Drop sign-ins waiting on the browser, so an abandoned tab can't finish one. */
+  cancelSignIn() {
+    this.pendingSignIns.clear();
+  }
+
   /** Whether the workspace handoff is available for the signed-in account. */
   canLinkWorkspace(): boolean {
     return this.supportsBrowserSignIn() && this.workspaceWebUrl() !== undefined;
@@ -171,7 +202,21 @@ export class AltimateConnectService implements Disposable {
       throw new Error("Workspaces are not available for this Altimate account");
     }
     const project = this.findProject(projectRoot);
-    const state = this.pendingWorkspaces.add(projectRoot);
+    const remote = await this.getGitRemote(projectRoot);
+    // A project already bound, by a teammate or an earlier setup, uses that
+    // workspace rather than creating one the bind would then reject.
+    const existing = await this.findBinding(remote, projectRoot);
+    if (existing) {
+      this.recordWorkspaceLink(projectRoot, String(existing.datamate.id));
+      window.showInformationMessage(
+        `${project.getProjectName()} is already linked to the workspace "${existing.datamate.name}".`,
+      );
+      return;
+    }
+    const state = this.pendingWorkspaces.add({
+      projectRoot,
+      ...this.currentAccount(),
+    });
 
     const target = new URL(WORKSPACE_HANDOFF_PAGE, webUrl);
     target.searchParams.set("client", CONNECT_CLIENT);
@@ -184,7 +229,6 @@ export class AltimateConnectService implements Disposable {
     const fragment = new URLSearchParams();
     fragment.set("project_name", project.getProjectName());
     fragment.set("project_path", projectRoot);
-    const remote = await this.getGitRemote(projectRoot);
     if (remote) {
       fragment.set("project_remote", remote);
     }
@@ -366,19 +410,66 @@ export class AltimateConnectService implements Disposable {
     const [label, ...rest] = host.split(".");
     if (!TENANT_LABEL_RE.test(label) || !APP_HOSTS.includes(rest.join("."))) {
       throw new Error(
-        `"${input}" is not an Altimate URL. Use your instance's address, like acme.${ENTERPRISE_APP_HOST}`,
+        `"${input}" is not an Altimate URL. Use your instance's address, like acme.${ENTERPRISE_APP_HOST} or acme.${FREEMIUM_APP_HOST}`,
       );
     }
     return new URL(`https://${host}`);
   }
 
   private async completeWorkspaceLink(params: URLSearchParams) {
-    const projectRoot = this.pendingWorkspaces.take(params.get("state"));
-    if (!projectRoot) {
+    // The state stays pending until the bind succeeds or can't, so the SaaS
+    // page's "Return to your editor" can retry a failed one.
+    const state = params.get("state");
+    const pending = this.pendingWorkspaces.get(state);
+    if (!state || !pending) {
       throw new Error(
         "This workspace link was not started from this window, or it expired. Set up the workspace again from the setup wizard.",
       );
     }
+    if (this.bindingStates.has(state)) {
+      return;
+    }
+    let workspaceId: string;
+    try {
+      workspaceId = this.assertWorkspaceCallback(params, pending);
+    } catch (error) {
+      this.pendingWorkspaces.delete(state);
+      throw error;
+    }
+
+    const { projectRoot } = pending;
+    const remote = await this.getGitRemote(projectRoot);
+    this.bindingStates.add(state);
+    try {
+      await this.altimateRequest.bindProjectToWorkspace(
+        Number(workspaceId),
+        remote,
+        projectRoot,
+      );
+    } catch (error) {
+      // A project bound to another workspace is refused; any other failure
+      // may pass, so it is left to retry.
+      const existing = await this.findBinding(remote, projectRoot);
+      if (!existing) {
+        throw error;
+      }
+      this.pendingWorkspaces.delete(state);
+      if (String(existing.datamate.id) !== workspaceId) {
+        await this.offerExistingWorkspace(projectRoot, existing);
+        return;
+      }
+    } finally {
+      this.bindingStates.delete(state);
+    }
+    this.pendingWorkspaces.delete(state);
+    this.recordWorkspaceLink(projectRoot, workspaceId);
+  }
+
+  /** The callback's workspace id, unless the bind should not act on it. */
+  private assertWorkspaceCallback(
+    params: URLSearchParams,
+    pending: PendingWorkspace,
+  ): string {
     const error = params.get("error");
     if (error) {
       throw new Error(
@@ -388,30 +479,70 @@ export class AltimateConnectService implements Disposable {
       );
     }
     const workspaceId = params.get("workspace_id");
-    const tenant = params.get("tenant");
     if (!workspaceId || !/^\d+$/.test(workspaceId)) {
       throw new Error("The workspace link is missing a valid workspace id");
     }
+    const account = this.currentAccount();
     if (
-      tenant?.toLowerCase() !==
-      this.altimateRequest.getInstanceName()?.toLowerCase()
+      account.altimateUrl !== pending.altimateUrl ||
+      account.instance !== pending.instance
     ) {
+      throw new Error(
+        "The Altimate sign-in changed after workspace setup started. Set up the workspace again from the setup wizard.",
+      );
+    }
+    if (params.get("tenant")?.toLowerCase() !== account.instance) {
       throw new Error(
         "The workspace belongs to a different Altimate instance than this editor is signed in to",
       );
     }
+    return workspaceId;
+  }
 
-    await this.altimateRequest.bindProjectToWorkspace(
-      Number(workspaceId),
-      await this.getGitRemote(projectRoot),
-      projectRoot,
-    );
+  /** Tell the user the project is bound elsewhere, and offer that workspace. */
+  private async offerExistingWorkspace(
+    projectRoot: string,
+    existing: ProjectBinding,
+  ) {
+    const message = `This project is already linked to the workspace "${existing.datamate.name}", so the new workspace was not linked.`;
+    this._onDidFailConnect.fire({ flow: "workspace", message });
+    const use = `Use "${existing.datamate.name}"`;
+    if ((await window.showWarningMessage(message, use)) === use) {
+      this.recordWorkspaceLink(projectRoot, String(existing.datamate.id));
+    }
+  }
+
+  private recordWorkspaceLink(projectRoot: string, workspaceId: string) {
     this.dbtProjectContainer.setToWorkspaceState(WORKSPACE_LINKS_KEY, {
       ...this.getWorkspaceLinks(),
       [this.linkKey(projectRoot)]: workspaceId,
     });
     this.telemetry.sendTelemetryEvent("onboardingWorkspaceLinked");
     this._onDidLinkWorkspace.fire({ projectRoot, workspaceId });
+  }
+
+  /** The project's existing binding; a failed lookup counts as none. */
+  private async findBinding(
+    remote: string | undefined,
+    projectRoot: string,
+  ): Promise<ProjectBinding | undefined> {
+    try {
+      return await this.altimateRequest.findProjectBinding(remote, projectRoot);
+    } catch (error) {
+      this.dbtTerminal.debug(
+        "altimateConnect:findBinding",
+        "Could not look up the project's workspace binding",
+        error,
+      );
+      return undefined;
+    }
+  }
+
+  private currentAccount() {
+    return {
+      altimateUrl: this.altimateRequest.getAltimateUrl(),
+      instance: this.altimateRequest.getInstanceName()?.toLowerCase() ?? "",
+    };
   }
 
   private assertInstanceName(instance: string) {
@@ -503,7 +634,7 @@ export class AltimateConnectService implements Disposable {
         ["config", "--get", "remote.origin.url"],
         { cwd, timeout: GIT_TIMEOUT_MS },
       );
-      return stdout.trim() || undefined;
+      return stripRemoteCredentials(stdout.trim()) || undefined;
     } catch {
       return undefined;
     }

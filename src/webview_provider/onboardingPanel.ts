@@ -592,6 +592,14 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           });
         }
         break;
+      case "cancelAltimateSignIn":
+        this.altimateConnectService.cancelSignIn();
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId,
+          data: { success: true },
+        });
+        break;
       case "startAltimateSignIn":
       case "startWorkspaceLink":
       case "openAltimateCode":
@@ -655,17 +663,28 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           }
           // An interpreter picked here replaces one found by "Detect From
           // Terminal", which would otherwise keep taking precedence.
-          const dbtConfig = workspace.getConfiguration("dbt");
-          if (dbtConfig.get<string>("dbtPythonPathOverride")) {
+          const folder = workspace.workspaceFolders?.[0];
+          const dbtConfig = workspace.getConfiguration("dbt", folder);
+          const override = dbtConfig.inspect<string>("dbtPythonPathOverride");
+          if (override?.workspaceFolderValue) {
             await dbtConfig.update(
               "dbtPythonPathOverride",
               undefined,
+              ConfigurationTarget.WorkspaceFolder,
+            );
+          }
+          // A User-level override would still win, so this workspace is
+          // pinned to the pick instead of changing the user's other ones.
+          if (override?.workspaceValue || override?.globalValue) {
+            await dbtConfig.update(
+              "dbtPythonPathOverride",
+              override.globalValue ? pythonPath : undefined,
               ConfigurationTarget.Workspace,
             );
           }
           await pythonApi.environments.updateActiveEnvironmentPath(
             pythonPath,
-            workspace.workspaceFolders?.[0],
+            folder,
           );
           this.sendResponseToWebview({
             command: "response",
