@@ -27,6 +27,7 @@ const harness = (nodes: unknown[] = []) => {
   const postMessage: AnyMock = jest.fn();
   const dispose: AnyMock = jest.fn();
   const globalState = new Map<string, unknown>();
+  const workspaceState = new Map<string, unknown>();
   const openAltimateCode: AnyMock = jest.fn(async () => undefined);
   const editor = { document: { uri: "doc" } };
 
@@ -38,9 +39,11 @@ const harness = (nodes: unknown[] = []) => {
   Object.assign(panel, {
     _panel: { webview: { postMessage }, dispose },
     dbtProjectContainer: {
-      getFromGlobalState: (key: string) => globalState.get(key),
       setToGlobalState: (key: string, value: unknown) =>
         globalState.set(key, value),
+      getFromWorkspaceState: (key: string) => workspaceState.get(key),
+      setToWorkspaceState: (key: string, value: unknown) =>
+        workspaceState.set(key, value),
     },
     queryManifestService: {
       getEventByDocument: () => ({
@@ -64,6 +67,7 @@ const harness = (nodes: unknown[] = []) => {
     handle,
     lastBody,
     globalState,
+    workspaceState,
     dispose,
     openAltimateCode,
     editor,
@@ -121,7 +125,7 @@ describe("OnboardingPanel Get Started", () => {
     expect(commands.executeCommand).not.toHaveBeenCalledWith(
       "workbench.action.moveEditorToRightGroup",
     );
-    expect(h.globalState.get("onboarding.state")).toEqual({
+    expect(h.workspaceState.get("onboarding.state")).toEqual({
       finished: true,
       resume: false,
     });
@@ -174,12 +178,12 @@ describe("OnboardingPanel Get Started", () => {
     });
 
     expect(h.dispose).not.toHaveBeenCalled();
-    expect(h.globalState.get("onboarding.state")).toBeUndefined();
+    expect(h.workspaceState.get("onboarding.state")).toBeUndefined();
   });
 
   it("merges saved progress into what is already kept", async () => {
     const h = harness();
-    h.globalState.set("onboarding.state", { resume: true });
+    h.workspaceState.set("onboarding.state", { resume: true });
 
     await h.handle("saveOnboardingState", {
       state: { screen: "workspace", projectRoot: PROJECT_ROOT },
@@ -200,14 +204,14 @@ describe("OnboardingPanel Get Started", () => {
       get: jest.fn(() => "core"),
       update,
     });
-    h.globalState.set("onboarding.state", {
+    h.workspaceState.set("onboarding.state", {
       screen: "connect",
       validation: { models: 5, seeds: 3, tests: 20 },
     });
 
     await h.handle("setDbtIntegration", { integrationType: "fusion" });
 
-    expect(h.globalState.get("onboarding.state")).toEqual({
+    expect(h.workspaceState.get("onboarding.state")).toEqual({
       screen: "connect",
       validation: null,
       resume: true,

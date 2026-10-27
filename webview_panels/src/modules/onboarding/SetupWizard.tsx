@@ -195,6 +195,10 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
         if (!state || projectRootRef.current !== projectRoot) {
           return;
         }
+        if (!state.signedIn) {
+          // A step restored from the last session needs the account too.
+          setScreen("connect");
+        }
         if (state.signedIn) {
           setAccount((prev) =>
             prev.state === "connected"

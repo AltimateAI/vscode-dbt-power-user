@@ -875,12 +875,12 @@ export class OnboardingPanel extends AltimateWebviewProvider {
 
   private getOnboardingState(): OnboardingState {
     return (
-      this.dbtProjectContainer.getFromGlobalState(ONBOARDING_STATE_KEY) ?? {}
+      this.dbtProjectContainer.getFromWorkspaceState(ONBOARDING_STATE_KEY) ?? {}
     );
   }
 
   private saveOnboardingState(state: OnboardingState) {
-    this.dbtProjectContainer.setToGlobalState(ONBOARDING_STATE_KEY, {
+    this.dbtProjectContainer.setToWorkspaceState(ONBOARDING_STATE_KEY, {
       ...this.getOnboardingState(),
       ...state,
     });

@@ -698,7 +698,12 @@ describe("DBTProjectContainer Tests", () => {
       container.setContext(mockContext);
     });
 
-    const setUp = (state: Record<string, unknown>, hidden = false) => {
+    let workspaceState: { get: jest.Mock<any>; update: jest.Mock<any> };
+    const setUp = (
+      state: Record<string, unknown>,
+      hidden = false,
+      onboarding?: Record<string, unknown>,
+    ) => {
       (workspace.getConfiguration as any) = jest.fn(() => ({
         get: jest.fn((key: string, defaultValue?: any) =>
           key === "hideWalkthrough" ? hidden : defaultValue,
@@ -708,8 +713,14 @@ describe("DBTProjectContainer Tests", () => {
         get: jest.fn((key: string) => state[key]),
         update: jest.fn(),
       };
+      workspaceState = {
+        get: jest.fn((key: string) =>
+          key === "onboarding.state" ? onboarding : undefined,
+        ),
+        update: jest.fn(),
+      };
       container.setContext({
-        workspaceState: { get: jest.fn(), update: jest.fn() },
+        workspaceState,
         globalState,
       } as unknown as ExtensionContext);
       (commands.executeCommand as jest.Mock).mockClear();
@@ -751,7 +762,7 @@ describe("DBTProjectContainer Tests", () => {
       withProject(true);
       setUp({}, true);
       await container.initializeWalkthrough();
-      setUp({ "onboarding.state": { finished: true } });
+      setUp({}, false, { finished: true });
       await container.initializeWalkthrough();
 
       expect(commands.executeCommand).not.toHaveBeenCalledWith(
@@ -760,9 +771,9 @@ describe("DBTProjectContainer Tests", () => {
     });
 
     it("reopens Get Started after the reload an integration change causes", async () => {
-      const globalState = setUp({
-        showSetupWalkthrough: false,
-        "onboarding.state": { screen: "connect", resume: true },
+      setUp({ showSetupWalkthrough: false }, false, {
+        screen: "connect",
+        resume: true,
       });
 
       await container.initializeWalkthrough();
@@ -770,7 +781,7 @@ describe("DBTProjectContainer Tests", () => {
       expect(commands.executeCommand).toHaveBeenCalledWith(
         "dbtPowerUser.openOnboarding",
       );
-      expect(globalState.update).toHaveBeenCalledWith("onboarding.state", {
+      expect(workspaceState.update).toHaveBeenCalledWith("onboarding.state", {
         screen: "connect",
         resume: false,
       });

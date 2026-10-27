@@ -31,7 +31,11 @@ import {
   RebuildManifestCombinedStatusChange,
 } from "./event/manifestCacheChangedEvent";
 
-/** Get Started progress, kept so the page reopens where the user left it. */
+/**
+ * Get Started progress for this workspace, kept so the page reopens where
+ * the user left it. Whether it opens on first run at all is the global
+ * `showSetupWalkthrough`.
+ */
 export const ONBOARDING_STATE_KEY = "onboarding.state";
 
 export interface OnboardingState {
@@ -139,12 +143,12 @@ export class DBTProjectContainer implements Disposable {
   }
 
   async initializeWalkthrough() {
-    const onboarding = this.getFromGlobalState(ONBOARDING_STATE_KEY) as
+    const onboarding = this.getFromWorkspaceState(ONBOARDING_STATE_KEY) as
       | OnboardingState
       | undefined;
     // Changing the integration type reloads the window mid-flow.
     if (onboarding?.resume) {
-      this.setToGlobalState(ONBOARDING_STATE_KEY, {
+      this.setToWorkspaceState(ONBOARDING_STATE_KEY, {
         ...onboarding,
         resume: false,
       });
