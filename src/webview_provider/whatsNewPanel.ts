@@ -445,6 +445,7 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
     } finally {
       if (shared && this.pending === shared) {
         this.pending = undefined;
+        this.pendingTaken = false;
       }
     }
     this.dbtTerminal.debug(
@@ -453,7 +454,12 @@ export class WhatsNewPanel extends AltimateWebviewProvider {
     );
     this.telemetry.sendTelemetryEvent(
       TelemetryEvents["WhatsNew/PageOpened"],
-      { version: manifest.version, trigger: this.currentTrigger },
+      // The running version, not the manifest's: a cached manifest carries
+      // the version it was fetched under.
+      {
+        version: this.dbtProjectContainer.extensionVersion,
+        trigger: this.currentTrigger,
+      },
       { items_shown: manifest.items.length },
     );
     this.sendResponseToWebview({

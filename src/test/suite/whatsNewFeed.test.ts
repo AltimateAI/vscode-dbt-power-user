@@ -181,7 +181,7 @@ describe("WhatsNewPanel manifest path", () => {
     expect(String(h.dbtTerminal.warn.mock.calls[0][1])).toContain("(http_403)");
   });
 
-  it("falls back to the cached manifest when the network is down, and says so", async () => {
+  it("falls back to the cached manifest when the network is down, and reports the running version", async () => {
     networkDown();
     const h = manifestHarness({ trigger: "auto" });
     const cached = {
@@ -200,7 +200,7 @@ describe("WhatsNewPanel manifest path", () => {
     );
     expect(h.telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
       "whats_new_page_opened",
-      { version: "0.65.0", trigger: "auto" },
+      { version: "0.66.0", trigger: "auto" },
       { items_shown: 1 },
     );
     expect(String(h.dbtTerminal.warn.mock.calls[0][1])).toContain(
@@ -222,6 +222,7 @@ describe("WhatsNewPanel manifest path", () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(h.responses[0]).toMatchObject({ status: true, data: preloaded });
     expect(h.panel.pending).toBeUndefined();
+    expect(h.panel.pendingTaken).toBe(false);
   });
 
   it("a timed-out feed is classed as a timeout", async () => {
