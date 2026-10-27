@@ -1100,6 +1100,52 @@ export class DBTProject implements Disposable {
     );
   }
 
+  /**
+   * Whether the compiled SQL could be produced from the real node instead of
+   * from the editor text. Only asks whether we know the node.
+   *
+   * Compiling a node outright is something every integration already does, the
+   * Python bridge included — it goes through `compile_node(get_ref_node(...))`,
+   * which resolves the node's identity correctly. So there is no capability to
+   * test here, only whether this file is a node at all.
+   */
+  private canCompileAsModel(modelName: string): boolean {
+    return (
+      this._manifestCacheEvent?.nodeMetaMap.lookupByBaseName(modelName) !==
+      undefined
+    );
+  }
+
+  /**
+   * Compile for the Compiled SQL preview.
+   *
+   * Compiling the real node is what makes `model.name`, `model.primary_key`,
+   * `this` and `model.config` resolve; compiling the editor text as an
+   * anonymous query leaves them pointing at a placeholder. But the node is read
+   * from disk, so the two are only interchangeable while the buffer holds
+   * nothing the file does not.
+   *
+   * So the buffer decides, not a preference: with unsaved edits we keep
+   * compiling what is on screen, because showing compiled output for a
+   * different version of the file would quietly answer a question the user did
+   * not ask. With no unsaved edits the node form is strictly better — same SQL,
+   * real identity.
+   *
+   * Guards match `unsafeCompileQuery`, which this replaces at the preview call
+   * site, so routing is the only thing that changes.
+   */
+  async compileQueryForPreview(
+    query: string,
+    modelName: string,
+    hasUnsavedEdits: boolean,
+  ): Promise<string> {
+    this.throwIfNotAuthenticated();
+    if (!hasUnsavedEdits && this.canCompileAsModel(modelName)) {
+      return this.dbtProjectIntegration.unsafeCompileNode(modelName);
+    }
+    return this.dbtProjectIntegration.unsafeCompileQuery(query, modelName);
+  }
+
   async getColumnsOfModel(modelName: string) {
     this.throwIfNotAuthenticated();
     const result =

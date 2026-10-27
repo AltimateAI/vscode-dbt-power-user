@@ -134,7 +134,14 @@ export class SqlPreviewContentProvider
       }
       this.telemetry.sendTelemetryEvent("requestCompilation");
       await project.refreshProjectConfig();
-      return await project.unsafeCompileQuery(query, modelName);
+      // A saved file compiles as the node it actually is, so identity-dependent
+      // Jinja resolves. An edited buffer still compiles as written — see
+      // `compileQueryForPreview`.
+      return await project.compileQueryForPreview(
+        query,
+        modelName,
+        document?.isDirty === true,
+      );
     } catch (error: any) {
       const errorMessage = (error as Error).message;
       window.showErrorMessage(`Error while compiling: ${errorMessage}`);
