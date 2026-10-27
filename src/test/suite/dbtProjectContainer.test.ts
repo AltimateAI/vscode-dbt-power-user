@@ -698,93 +698,82 @@ describe("DBTProjectContainer Tests", () => {
       container.setContext(mockContext);
     });
 
-    it("should show walkthrough when user accepts", async () => {
-      (window.showInformationMessage as any) = jest.fn(() =>
-        Promise.resolve("Yes"),
-      );
+    const setUp = (state: Record<string, unknown>, hidden = false) => {
+      (workspace.getConfiguration as any) = jest.fn(() => ({
+        get: jest.fn((key: string, defaultValue?: any) =>
+          key === "hideWalkthrough" ? hidden : defaultValue,
+        ),
+      }));
+      const globalState = {
+        get: jest.fn((key: string) => state[key]),
+        update: jest.fn(),
+      };
+      container.setContext({
+        workspaceState: { get: jest.fn(), update: jest.fn() },
+        globalState,
+      } as unknown as ExtensionContext);
+      (commands.executeCommand as jest.Mock).mockClear();
+      return globalState;
+    };
+    const withProject = (found: boolean) =>
+      ((workspace as any).findFiles = jest.fn(async () =>
+        found ? [Uri.file("/repo/dbt_project.yml")] : [],
+      ));
 
-      await container.showWalkthrough();
+    it("opens Get Started on first run in a dbt project", async () => {
+      const globalState = setUp({});
+      withProject(true);
 
-      expect(commands.executeCommand).toHaveBeenCalledWith(
-        "setContext",
-        "dbtPowerUser.showSetupWalkthrough",
-        false,
-      );
+      await container.initializeWalkthrough();
+
       expect(commands.executeCommand).toHaveBeenCalledWith(
         "dbtPowerUser.openOnboarding",
       );
+      expect(globalState.update).toHaveBeenCalledWith(
+        "showSetupWalkthrough",
+        false,
+      );
     });
 
-    it("should not show walkthrough when user ignores", async () => {
-      (window.showInformationMessage as any) = jest.fn(() =>
-        Promise.resolve("Ignore"),
-      );
+    it("waits for a dbt project before opening Get Started", async () => {
+      const globalState = setUp({});
+      withProject(false);
 
-      await container.showWalkthrough();
+      await container.initializeWalkthrough();
+
+      expect(commands.executeCommand).not.toHaveBeenCalledWith(
+        "dbtPowerUser.openOnboarding",
+      );
+      expect(globalState.update).not.toHaveBeenCalled();
+    });
+
+    it("skips Get Started when hidden in settings or already finished", async () => {
+      withProject(true);
+      setUp({}, true);
+      await container.initializeWalkthrough();
+      setUp({ "onboarding.state": { finished: true } });
+      await container.initializeWalkthrough();
 
       expect(commands.executeCommand).not.toHaveBeenCalledWith(
         "dbtPowerUser.openOnboarding",
       );
     });
 
-    it("should skip walkthrough when hidden in settings", async () => {
-      const mockConfig = {
-        get: jest.fn((key: string, defaultValue?: any) => {
-          if (key === "hideWalkthrough") {
-            return true;
-          }
-          return defaultValue;
-        }),
-      };
-      (workspace.getConfiguration as any) = jest.fn(() => mockConfig);
-
-      const mockContext = {
-        workspaceState: {
-          get: jest.fn(),
-          update: jest.fn(),
-        },
-        globalState: {
-          get: jest.fn(() => true),
-          update: jest.fn(),
-        },
-      } as unknown as ExtensionContext;
-      container.setContext(mockContext);
-      (window.showInformationMessage as any) = jest.fn();
+    it("reopens Get Started after the reload an integration change causes", async () => {
+      const globalState = setUp({
+        showSetupWalkthrough: false,
+        "onboarding.state": { screen: "connect", resume: true },
+      });
 
       await container.initializeWalkthrough();
 
-      expect(window.showInformationMessage).not.toHaveBeenCalled();
-    });
-
-    it("should trigger walkthrough when not hidden and state undefined", async () => {
-      const mockConfig = {
-        get: jest.fn((key: string, defaultValue?: any) => {
-          if (key === "hideWalkthrough") {
-            return false;
-          }
-          return defaultValue;
-        }),
-      };
-      (workspace.getConfiguration as any) = jest.fn(() => mockConfig);
-
-      const mockContext = {
-        workspaceState: {
-          get: jest.fn(),
-          update: jest.fn(),
-        },
-        globalState: {
-          get: jest.fn(() => undefined),
-          update: jest.fn(),
-        },
-      } as unknown as ExtensionContext;
-      container.setContext(mockContext);
-      (window.showInformationMessage as any) = jest.fn(() =>
-        Promise.resolve("Ignore"),
+      expect(commands.executeCommand).toHaveBeenCalledWith(
+        "dbtPowerUser.openOnboarding",
       );
-
-      await container.initializeWalkthrough();
-
-      expect(window.showInformationMessage).toHaveBeenCalled();
+      expect(globalState.update).toHaveBeenCalledWith("onboarding.state", {
+        screen: "connect",
+        resume: false,
+      });
     });
   });
 

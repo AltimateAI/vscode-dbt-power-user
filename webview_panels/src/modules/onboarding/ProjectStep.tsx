@@ -213,8 +213,11 @@ const ProjectStep = ({
   }, [account.state, account.instance]);
 
   const runChecks = useCallback(
-    async (silent = false) => {
-      onChecksChanged();
+    async (silent = false, keepValidation = false) => {
+      // Anything a check can change invalidates the last validation.
+      if (!keepValidation) {
+        onChecksChanged();
+      }
       if (!silent) {
         setChecking(true);
       }
@@ -246,11 +249,15 @@ const ProjectStep = ({
   runChecksRef.current = runChecks;
 
   useEffect(() => {
-    void runChecksRef.current();
+    // The first checks keep a validation restored from the last session.
+    void runChecksRef.current(false, true);
     // Interpreter changes land after dbt detection finishes in the extension.
     const handleMessage = (event: MessageEvent<{ command?: string }>) => {
       if (event.data.command === "pythonEnvironmentChanged") {
         void runChecksRef.current(true);
+      } else if (event.data.command === "projectsChanged") {
+        // A reparse leaves a project's validation standing.
+        void runChecksRef.current(true, true);
       }
     };
     window.addEventListener("message", handleMessage);
@@ -412,7 +419,7 @@ const ProjectStep = ({
             : projectStatus === "error"
               ? "no dbt_project.yml in any open folder"
               : projects.length > 1
-                ? `${projects.length} projects found · ${project?.name} selected`
+                ? `${project?.name} · ${projects.length} projects in this workspace`
                 : project
                   ? `${project.name} · dbt_project.yml`
                   : "dbt_project.yml found · loading the project"
@@ -462,7 +469,7 @@ const ProjectStep = ({
       </CheckRow>
 
       <CheckRow
-        title="dbt integration type"
+        title="How you run dbt"
         status={busy ? "checking" : "ok"}
         detail={`${integrationLabel} · ${integrationDesc}`}
         action={{
@@ -602,7 +609,7 @@ const ProjectStep = ({
       </CheckRow>
 
       <CheckRow
-        title="dbt installation"
+        title="dbt"
         status={dbtStatus}
         blocked={dbtBlocked && !busy}
         detail={busy && !installing ? "checking…" : dbtDetail()}
@@ -623,14 +630,14 @@ const ProjectStep = ({
       />
 
       <CheckRow
-        title="File associations"
+        title="File types"
         status={filesStatus}
         detail={
           busy
             ? "checking…"
             : filesStatus === "ok"
-              ? "*.sql → jinja-sql · *.yml → jinja-yaml"
-              : "*.sql and *.yml are not associated with jinja · highlighting and autocomplete will be off"
+              ? ".sql and .yml files open as dbt files"
+              : ".sql and .yml files don't open as dbt files · highlighting and autocomplete will be off"
         }
         fixes={
           filesStatus === "error" && (
@@ -640,7 +647,7 @@ const ProjectStep = ({
                 void fixAndRecheck(request("configureFileAssociations"))
               }
             >
-              Configure
+              Turn On
             </Button>
           )
         }
@@ -682,7 +689,7 @@ const ProjectStep = ({
                 className={classes.linkAction}
                 onClick={() => void request("showLogs")}
               >
-                View Logs
+                Open Output
               </button>
             </div>
           )}
@@ -748,8 +755,8 @@ const ProjectStep = ({
                 Set up your Altimate account
               </span>
               <span className={classes.accountDesc}>
-                Ask, fix, review and generate docs in Power User and in your
-                terminal. 10M free tokens, no credit card.
+                Unlocks Altimate Code, an AI agent for data work that runs
+                locally on your machine. Free, no credit card.
               </span>
             </div>
             <Button nav external onClick={() => onCreateAccount()}>

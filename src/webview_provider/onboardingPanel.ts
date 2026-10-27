@@ -6,7 +6,7 @@ import {
 import { existsSync } from "fs";
 import { inject } from "inversify";
 import { homedir } from "os";
-import { join, sep } from "path";
+import { basename, join, sep } from "path";
 import {
   commands,
   ConfigurationTarget,
@@ -19,7 +19,11 @@ import {
 } from "vscode";
 import { AltimateRequest } from "../altimate";
 import { WalkthroughCommands } from "../commands/walkthroughCommands";
-import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import {
+  DBTProjectContainer,
+  ONBOARDING_STATE_KEY,
+  OnboardingState,
+} from "../dbt_client/dbtProjectContainer";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
 import { AltimateConnectService } from "../services/altimateConnectService";
@@ -104,6 +108,10 @@ export class OnboardingPanel extends AltimateWebviewProvider {
       // By this point dbtInstalled, pythonPath, and pythonVersion are all
       // up to date, so the webview gets fresh data when it refreshes.
       this._disposables.push(
+        // Get Started can open before the projects finish loading.
+        this.dbtProjectContainer.onManifestChanged(() =>
+          this.sendResponseToWebview({ command: "projectsChanged" }),
+        ),
         this.dbtProjectContainer.onDBTInstallationVerification((event) => {
           if (event.inProgress) {
             return;
@@ -499,6 +507,11 @@ export class OnboardingPanel extends AltimateWebviewProvider {
 
           // Set the dbt integration configuration
           const config = workspace.getConfiguration("dbt");
+          // A new integration reloads the window, so reopen Get Started after
+          // it; the validation was for the old integration.
+          if (config.get("dbtIntegration", "core") !== integrationType) {
+            this.saveOnboardingState({ resume: true, validation: null });
+          }
           await config.update(
             "dbtIntegration",
             integrationType,
@@ -602,7 +615,6 @@ export class OnboardingPanel extends AltimateWebviewProvider {
         break;
       case "startAltimateSignIn":
       case "startWorkspaceLink":
-      case "openAltimateCode":
         try {
           const { projectRoot, instance } = message as HandleCommandProps & {
             projectRoot?: string;
@@ -610,13 +622,11 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           };
           if (command === "startAltimateSignIn") {
             await this.altimateConnectService.startSignIn(instance);
-          } else if (command === "startWorkspaceLink") {
+          } else {
             if (!projectRoot) {
               throw new Error("No project specified");
             }
             await this.altimateConnectService.startWorkspaceLink(projectRoot);
-          } else {
-            await this.altimateConnectService.openAltimateCode(projectRoot);
           }
           this.sendResponseToWebview({
             command: "response",
@@ -768,8 +778,67 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           data: { success: true },
         });
         break;
-      case "closeOnboarding":
-        (this._panel as WebviewPanel | undefined)?.dispose();
+      case "getOnboardingState":
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId,
+          data: this.getOnboardingState(),
+        });
+        break;
+      case "saveOnboardingState": {
+        const { state } = message as HandleCommandProps & {
+          state: OnboardingState;
+        };
+        this.saveOnboardingState(state);
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId,
+          data: { success: true },
+        });
+        break;
+      }
+      case "getFirstModel": {
+        const { projectRoot } = message as HandleCommandProps & {
+          projectRoot?: string;
+        };
+        const model = projectRoot
+          ? this.findFirstModel(projectRoot)
+          : undefined;
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId,
+          data: model ? { fileName: basename(model) } : null,
+        });
+        break;
+      }
+      case "openFirstModel":
+        try {
+          const { projectRoot, action } = message as HandleCommandProps & {
+            projectRoot: string;
+            action: "chat" | "lineage" | "preview";
+          };
+          await this.openFirstModel(projectRoot, action);
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { success: true },
+          });
+          this.finishOnboarding();
+        } catch (error) {
+          this.dbtTerminal.error(
+            "openFirstModel",
+            "Error opening a model from onboarding",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "finishOnboarding":
+        this.finishOnboarding();
         break;
       case "openUrl":
         // Open URL in external browser
@@ -801,6 +870,86 @@ export class OnboardingPanel extends AltimateWebviewProvider {
       default:
         super.handleCommand(message);
         break;
+    }
+  }
+
+  private getOnboardingState(): OnboardingState {
+    return (
+      this.dbtProjectContainer.getFromGlobalState(ONBOARDING_STATE_KEY) ?? {}
+    );
+  }
+
+  private saveOnboardingState(state: OnboardingState) {
+    this.dbtProjectContainer.setToGlobalState(ONBOARDING_STATE_KEY, {
+      ...this.getOnboardingState(),
+      ...state,
+    });
+  }
+
+  /** Mark Get Started done, so it no longer opens by itself, and close it. */
+  private finishOnboarding() {
+    this.saveOnboardingState({ finished: true, resume: false });
+    this.dbtProjectContainer.setToGlobalState("showSetupWalkthrough", false);
+    (this._panel as WebviewPanel | undefined)?.dispose();
+  }
+
+  /** The project's `customers` model, or else its first SQL model by path. */
+  private findFirstModel(projectRoot: string): string | undefined {
+    const event = this.queryManifestService.getEventByDocument(
+      Uri.file(projectRoot),
+    );
+    if (!event) {
+      return undefined;
+    }
+    const projectName = event.project.getProjectName();
+    const paths = Array.from(event.nodeMetaMap.nodes())
+      .filter(
+        (node) =>
+          node.resource_type === RESOURCE_TYPE_MODEL &&
+          node.package_name === projectName &&
+          node.path?.endsWith(".sql"),
+      )
+      .map((node) => node.path as string)
+      .sort();
+    return paths.find((p) => basename(p) === "customers.sql") ?? paths[0];
+  }
+
+  /**
+   * Open the project's first model on the left, with Altimate Code chat
+   * beside it or the model's lineage or query preview.
+   */
+  private async openFirstModel(
+    projectRoot: string,
+    action: "chat" | "lineage" | "preview",
+  ) {
+    const model = this.findFirstModel(projectRoot);
+    if (!model) {
+      throw new Error("This project has no SQL models to open");
+    }
+    const editor = await window.showTextDocument(Uri.file(model), {
+      viewColumn: ViewColumn.One,
+    });
+    if (action === "chat") {
+      await this.altimateConnectService.openAltimateCode(projectRoot, {
+        beside: true,
+      });
+      // Altimate Code reveals an open chat tab where it is, ignoring
+      // `beside`, so split it out when it landed in the model's group.
+      if (window.tabGroups.all.length < 2) {
+        await commands.executeCommand(
+          "workbench.action.moveEditorToRightGroup",
+        );
+        await window.showTextDocument(editor.document, {
+          viewColumn: ViewColumn.One,
+          preserveFocus: true,
+        });
+      }
+    } else {
+      await commands.executeCommand(
+        action === "lineage"
+          ? "dbtPowerUser.sqlLineage"
+          : "dbtPowerUser.executeSQL",
+      );
     }
   }
 

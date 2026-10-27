@@ -243,8 +243,14 @@ export class AltimateConnectService implements Disposable {
     return this.getWorkspaceLinks()[this.linkKey(projectRoot)];
   }
 
-  /** Open Altimate Code chat with the project's workspace selected. */
-  async openAltimateCode(projectRoot?: string): Promise<void> {
+  /**
+   * Open Altimate Code chat with the project's linked workspace selected,
+   * beside the active editor when asked.
+   */
+  async openAltimateCode(
+    projectRoot?: string,
+    options: { beside?: boolean } = {},
+  ): Promise<void> {
     if (!extensions.getExtension(ALTIMATE_CODE_EXTENSION_ID)) {
       await commands.executeCommand(
         "workbench.extensions.search",
@@ -252,22 +258,13 @@ export class AltimateConnectService implements Disposable {
       );
       return;
     }
-    const workspaceId = projectRoot
-      ? this.getLinkedWorkspaceId(projectRoot)
-      : undefined;
-    if (!workspaceId) {
-      await commands.executeCommand("altimate.openChat", {
-        showWorkspace: true,
-      });
-      return;
-    }
-    // Only Altimate Code's `/chat` link selects a workspace before opening.
-    await env.openExternal(
-      Uri.parse(
-        `${env.uriScheme}://${ALTIMATE_CODE_EXTENSION_ID}/chat?workspaceId=${encodeURIComponent(workspaceId)}`,
-        true,
-      ),
-    );
+    await commands.executeCommand("altimate.openChat", {
+      showWorkspace: true,
+      workspaceId: projectRoot
+        ? this.getLinkedWorkspaceId(projectRoot)
+        : undefined,
+      beside: options.beside,
+    });
   }
 
   async handleUri(uri: Uri): Promise<void> {

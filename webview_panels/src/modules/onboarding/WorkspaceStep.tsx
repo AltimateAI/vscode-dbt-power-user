@@ -1,6 +1,6 @@
-import { Icon, IconName } from "./icons";
+import AltimateLogo from "@assets/icons/altimate-logo.svg";
+import { Icon } from "./icons";
 import classes from "./onboarding.module.scss";
-import { Button } from "./ui";
 
 export interface WorkspaceState {
   waiting: boolean;
@@ -10,23 +10,22 @@ export interface WorkspaceState {
   error?: string;
 }
 
-const WORKSPACES_GUIDE = "https://help.altimate.ai/workspaces/user-guide/home/";
-
-const blocks = (projectName: string): [IconName, string, string][] => [
+const PARTS: [string, string][] = [
   [
-    "stack-2",
-    "Context, once",
-    "Integrations, skills like /convert-to-dbt, knowledge such as a migration checklist, and memory that learns as you work",
+    "Connections",
+    "Your warehouse and dbt setup, connected once and reused everywhere.",
   ],
   [
-    "users",
-    "Shared with your team",
-    `Everyone on ${projectName} gets the same setup, in Power User and in the CLI`,
+    "Skills",
+    "Your conventions and best practices, so work is built, tested and reviewed your way.",
   ],
   [
-    "switch-horizontal",
-    "One per project",
-    "Each workspace has its own integrations, skills, knowledge and people",
+    "Knowledge",
+    "Definitions, docs and decisions that count as the source of truth.",
+  ],
+  [
+    "Memory",
+    "What it learns from working with you, kept so results get more precise over time.",
   ],
 ];
 
@@ -43,67 +42,72 @@ const WorkspaceStep = ({
   canLinkWorkspace,
   onOpenAgain,
 }: WorkspaceStepProps): JSX.Element => (
-  <div className={classes.stepBody}>
-    {state.waiting ? (
-      <div className={classes.waiting}>
-        <span className={[classes.spinner, classes.spinnerLg].join(" ")} />
-        <div className={classes.waitingTitle}>Finish in your browser</div>
-        <div className={classes.waitingText}>
-          This page updates when the workspace is linked to {projectName}.
+  <div>
+    {PARTS.map(([title, text]) => (
+      <div key={title} className={classes.featureRow}>
+        <span
+          className={[classes.featureSquare, classes.featureSquareGreen].join(
+            " ",
+          )}
+        />
+        <div className={classes.featureBody}>
+          <span className={classes.featureTitle}>{title}</span>
+          <span className={classes.featureText}>{text}</span>
         </div>
-        <button
-          type="button"
-          className={[classes.linkAction, classes.accountLink].join(" ")}
-          onClick={onOpenAgain}
-        >
-          Open again
-        </button>
       </div>
-    ) : (
-      <>
-        <div className={classes.wsBlocks}>
-          {blocks(projectName).map(([icon, title, desc]) => (
-            <div key={title} className={classes.wsBlock}>
-              <Icon name={icon} size={22} />
-              <div className={classes.tileText}>
-                <span className={classes.wsBlockTitle}>{title}</span>
-                <span className={classes.wsBlockDesc}>{desc}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-        {state.error && (
-          <div className={classes.notice}>
-            <Icon name="alert-triangle" size={18} />
-            <span>{state.error}. Set up the workspace again, or skip it.</span>
-          </div>
+    ))}
+    <div className={classes.readyBody}>
+      <div
+        className={[
+          classes.workspaceCard,
+          state.linkedId ? classes.accountCardOk : "",
+        ].join(" ")}
+      >
+        {state.waiting ? (
+          <span className={[classes.spinner, classes.spinnerLg].join(" ")} />
+        ) : state.linkedId ? (
+          <Icon name="circle-check" size={22} className={classes.statusOk} />
+        ) : (
+          <img src={AltimateLogo} alt="" />
         )}
-        {state.linkedId && (
-          <div className={classes.notice}>
-            <Icon name="circle-check" size={18} />
-            <span>
-              {projectName} is linked to a workspace. Continue to start using
-              it.
+        <div className={classes.accountText}>
+          <span className={classes.accountTitle}>
+            {state.linkedId
+              ? `${projectName} is linked to a workspace`
+              : state.waiting
+                ? "Finish in your browser"
+                : canLinkWorkspace
+                  ? `Create a workspace for ${projectName}`
+                  : "Workspaces are not available here yet"}
+          </span>
+          <span className={classes.accountDesc}>
+            {state.linkedId
+              ? "Altimate Code uses its context for this project, in the editor and the CLI."
+              : state.waiting
+                ? `This page updates when the workspace is linked to ${projectName}.`
+                : canLinkWorkspace
+                  ? `Build a workspace for ${projectName}: add your conventions, best practices and definitions so the AI follows your organization's context. Opens in your browser. You can also do this later from the Altimate panel.`
+                  : "Creating one here needs a free-plan Altimate instance, in VS Code or Cursor. You can continue without one."}
+          </span>
+          {state.error && !state.waiting && (
+            <span
+              className={[classes.checkDetail, classes.detailError].join(" ")}
+            >
+              {state.error}. Create the workspace again, or skip it.
             </span>
-          </div>
+          )}
+        </div>
+        {state.waiting && (
+          <button
+            type="button"
+            className={[classes.linkAction, classes.accountLink].join(" ")}
+            onClick={onOpenAgain}
+          >
+            Open again
+          </button>
         )}
-        {!canLinkWorkspace && (
-          <p className={classes.unavailable}>
-            Workspaces are not available for this Altimate instance yet. You can
-            continue without one.
-          </p>
-        )}
-        <Button
-          variant="secondary"
-          external
-          className={classes.guideButton}
-          href={WORKSPACES_GUIDE}
-        >
-          <Icon name="book" size={17} />
-          Workspaces Guide
-        </Button>
-      </>
-    )}
+      </div>
+    </div>
   </div>
 );
 

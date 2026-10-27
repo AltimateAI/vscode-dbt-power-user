@@ -24,23 +24,6 @@
   --fg-muted: rgba(255, 255, 255, 0.62);
   --fg-label: rgba(255, 255, 255, 0.45);
   --fg-faint: rgba(255, 255, 255, 0.3);
-  --grad-cta:
-    radial-gradient(
-      ellipse at 8% 6%,
-      rgba(240, 112, 48, 0.14) 0%,
-      transparent 55%
-    ),
-    radial-gradient(
-      ellipse at 92% 94%,
-      rgba(0, 255, 136, 0.12) 0%,
-      transparent 55%
-    ),
-    radial-gradient(
-      ellipse at 50% 50%,
-      rgba(155, 89, 182, 0.14) 0%,
-      transparent 60%
-    ),
-    #09090b;
   --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.5);
   --sw-hair: rgba(255, 255, 255, 0.15);
   --sw-hair2: rgba(255, 255, 255, 0.2);
@@ -131,7 +114,6 @@
     --color-teal: #00796b;
     --color-red: #c0273a;
     --color-amber: #a15c07;
-    --grad-cta: none;
     --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.08);
     --sw-hair: rgba(0, 0, 0, 0.15);
     --sw-hair2: rgba(0, 0, 0, 0.25);
@@ -194,6 +176,15 @@
 
 .btnPrimary {
   background: var(--color-blue);
+  color: var(--btn-primary-fg);
+  &:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
+}
+
+// Reserved for the final step's activation button.
+.btnOrange {
+  background: var(--color-orange);
   color: var(--btn-primary-fg);
   &:hover:not(:disabled) {
     filter: brightness(1.08);
@@ -279,151 +270,92 @@
   animation: blink 1s step-end infinite;
 }
 
-.mono {
-  font-family: var(--font-code);
+// ── Navbar ───────────────────────────────────────────────────────────
+.navbar {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-line-soft);
+  background: var(--sw-header);
 }
 
-// ── Splash ───────────────────────────────────────────────────────────
-.splash {
-  flex: 1;
+.navInner {
+  max-width: 1240px;
+  margin: 0 auto;
+  min-height: 56px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: var(--pad);
-  background: var(--grad-cta);
-}
-
-.splashInner {
-  width: 100%;
-  max-width: 840px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: var(--gap-lg);
-}
-
-.splashHead {
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-  align-items: center;
+  gap: 16px;
+  padding: 10px var(--pad);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  padding-right: 16px;
+  border-right: 1px solid var(--color-line);
 
   svg {
-    height: 32px;
+    height: 22px;
     width: auto;
   }
 }
 
 .brandName {
-  font-family: var(--font-display);
-  font-size: 16px;
-  letter-spacing: 0.015em;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 15px;
   color: var(--fg-heading);
   white-space: nowrap;
 }
 
-.hero {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: var(--hero);
-  line-height: 1.25;
-  letter-spacing: 0.015em;
-  color: var(--fg-heading);
-  text-wrap: balance;
-}
+.navStep {
+  font-family: var(--font-code);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg-label);
+  white-space: nowrap;
 
-.lead {
-  margin: 0;
-  font-size: var(--body);
-  line-height: 1.6;
-  color: var(--fg-support);
-  max-width: 560px;
-  text-wrap: pretty;
-}
-
-.tileGrid {
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  text-align: left;
-
-  @media (max-width: 819px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  @media (max-width: 479px) {
-    grid-template-columns: minmax(0, 1fr);
+  @media (max-width: 559px) {
+    display: none;
   }
 }
 
-.tile {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 20px;
-  background: var(--color-quiet);
-  border: 1px solid var(--color-line-soft);
-  border-radius: 8px;
-  min-width: 0;
-}
-
-.tileTop {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-}
-
-.tileIcon {
-  width: 40px;
-  height: 40px;
+.navBy {
+  margin-left: auto;
   display: flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  background: rgba(240, 112, 48, 0.1);
-  border: 1px solid rgba(240, 112, 48, 0.25);
-  color: var(--color-orange);
+  gap: 8px;
+  font-size: 12px;
+  color: var(--fg-label);
+  white-space: nowrap;
+
+  img {
+    height: 15px;
+    width: auto;
+  }
 }
 
-.tileText {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.tileTitle {
+.navByName {
   font-size: 15px;
   font-weight: 600;
   color: var(--fg-heading);
 }
 
-.tileDesc {
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--fg-muted);
-}
-
 // ── Flow layout ──────────────────────────────────────────────────────
+// The steps sit in a sidebar; narrower panels show them as a bar above.
 .flow {
   flex: 1;
   width: 100%;
-  max-width: 1120px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: var(--pad-top) var(--pad) 48px;
+  padding: 24px var(--pad) 48px;
   display: grid;
-  grid-template-columns: 216px minmax(0, 1fr);
-  gap: 56px;
+  grid-template-columns: 244px minmax(0, 1fr);
+  gap: 32px;
   align-items: start;
 
-  @media (max-width: 759px) {
+  @media (max-width: 959px) {
     grid-template-columns: minmax(0, 1fr);
     gap: 24px;
   }
@@ -431,28 +363,31 @@
 
 .rail {
   position: sticky;
-  top: var(--pad-top);
+  top: 24px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+  padding: 8px;
   min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-quiet);
 
-  @media (max-width: 759px) {
+  @media (max-width: 959px) {
     position: static;
     flex-direction: row;
-    gap: 20px;
+    padding: 0;
+    gap: 0;
+    overflow: hidden;
   }
 }
 
 .railItem {
-  display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
+  position: relative;
+  display: flex;
+  align-items: center;
   gap: 12px;
-  align-items: start;
-  padding: 10px 10px 10px 0;
-  flex-shrink: 0;
+  padding: 10px 12px;
   border-radius: 6px;
   background: none;
   border: 0;
@@ -460,34 +395,58 @@
   font-family: inherit;
   cursor: default;
 
-  @media (max-width: 759px) {
-    padding: 0;
+  // The connector between step numbers.
+  &:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    left: 24px;
+    top: calc(100% - 8px);
+    height: 20px;
+    border-left: 1px solid var(--color-line);
+  }
+
+  @media (max-width: 959px) {
+    flex: 1;
+    min-width: 0;
+    border-radius: 0;
+    border-bottom: 2px solid var(--color-line);
+
+    &::after {
+      display: none;
+    }
+  }
+}
+
+.railItemCurrent {
+  background: rgba(240, 112, 48, 0.08);
+  box-shadow: inset 2px 0 0 var(--color-orange);
+
+  @media (max-width: 959px) {
+    box-shadow: none;
+    border-bottom-color: var(--color-orange);
   }
 }
 
 .railItemClickable {
   cursor: pointer;
-  @media (min-width: 760px) {
-    &:hover {
-      background: var(--color-quiet);
-    }
+  &:hover {
+    background: var(--color-line-soft);
   }
 }
 
 .railNum {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--sw-hair2);
+  border-radius: 4px;
+  background: var(--color-canvas);
   font-family: var(--font-code);
   font-size: 11px;
   color: var(--fg-faint);
-}
-
-.railNumReachable {
-  color: var(--fg-body);
 }
 
 .railNumDone {
@@ -497,50 +456,25 @@
 
 .railNumCurrent {
   border-color: var(--color-orange);
-  background: rgba(240, 112, 48, 0.1);
   color: var(--color-orange);
-}
-
-.railText {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-  padding-top: 4px;
 }
 
 .railLabel {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--fg-faint);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .railLabelReachable {
-  color: var(--fg-body);
+  color: var(--fg-support);
 }
 
 .railLabelCurrent {
+  font-weight: 600;
   color: var(--fg-heading);
-}
-
-.railDetail {
-  font-family: var(--font-code);
-  font-size: 11px;
-  line-height: 1.5;
-  color: var(--fg-faint);
-
-  @media (max-width: 759px) {
-    display: none;
-  }
-}
-
-.railDetailCurrent {
-  color: var(--fg-muted);
-}
-
-.railDetailDone {
-  color: var(--color-teal);
 }
 
 .content {
@@ -555,14 +489,6 @@
   flex-direction: column;
   gap: 14px;
   max-width: 720px;
-}
-
-.eyebrow {
-  font-family: var(--font-code);
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--color-orange);
 }
 
 .wordmark {
@@ -995,285 +921,147 @@
   font-size: 14px;
 }
 
-// ── Step 2 · Workspace ───────────────────────────────────────────────
-.stepBody {
-  padding: var(--card-pad);
+// ── Steps 2 to 4 ─────────────────────────────────────────────────────
+.introHead {
   display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.wsBlocks {
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid var(--color-line-soft);
-}
-
-.wsBlock {
-  display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 16px;
-  align-items: start;
-  padding: 18px 0;
+  flex-wrap: wrap;
+  padding: 20px var(--card-pad);
   border-bottom: 1px solid var(--color-line-soft);
-  color: var(--color-green);
-
-  svg {
-    margin-top: 1px;
-  }
 }
 
-.wsBlockTitle {
-  font-family: var(--font-display);
-  font-size: var(--row-title);
-  letter-spacing: 0.015em;
+.introBrand {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.introLead {
+  font-size: 14px;
+  color: var(--fg-support);
+}
+
+.statusChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-code);
+  font-size: 12px;
+  color: var(--color-green);
+  white-space: nowrap;
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.featureRow {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  gap: 18px;
+  padding: 20px var(--card-pad);
+  border-bottom: 1px solid var(--color-line-soft);
+}
+
+.featureSquare {
+  width: 10px;
+  height: 10px;
+  margin-top: 6px;
+  background: var(--color-orange);
+}
+
+.featureSquareGreen {
+  background: var(--color-green);
+}
+
+.featureBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.featureTitle {
+  font-size: 15px;
+  font-weight: 600;
   color: var(--fg-heading);
 }
 
-.wsBlockDesc {
+.featureText {
   font-size: 14px;
   line-height: 1.55;
   color: var(--fg-support);
 }
 
-.guideButton {
-  align-self: flex-start;
+.featureExample {
+  font-family: var(--font-code);
+  font-size: 12px;
+  color: var(--color-teal);
 }
 
-.waiting {
+.statusRow {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 14px;
-  padding: 36px 8px;
-}
-
-.waitingTitle {
-  font-family: var(--font-display);
-  font-size: 18px;
-  letter-spacing: 0.015em;
-  color: var(--fg-heading);
-}
-
-.waitingText {
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--fg-muted);
-  max-width: 360px;
-}
-
-.unavailable {
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--fg-support);
-}
-
-// ── Step 3 · Get Started ─────────────────────────────────────────────
-.stepBodyTight {
-  gap: 20px;
-}
-
-.moreLink {
-  align-self: flex-start;
-  margin-top: -8px;
-  font-size: 14px;
-}
-
-.notice {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border: 1px solid var(--color-line);
-  background: var(--sw-card-off);
-  border-radius: 6px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--fg-support);
-  flex-wrap: wrap;
-
-  > svg {
-    color: var(--fg-label);
-    flex-shrink: 0;
-  }
-
-  > span {
-    flex: 1;
-    min-width: 200px;
-  }
-}
-
-// ── Tutorials ────────────────────────────────────────────────────────
-.tutorials {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.tutorialTabs {
-  display: flex;
-  align-items: stretch;
-  gap: 4px;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px var(--card-pad);
   border-bottom: 1px solid var(--color-line-soft);
-}
 
-.tutorialTabList {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  scrollbar-width: none;
-
-  @media (max-width: 639px) {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scroll-behavior: smooth;
+  .statusChip {
+    margin-left: auto;
+    padding-top: 2px;
   }
 }
 
-.tutorialArrow {
-  display: none;
+.readyBody {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px var(--card-pad) var(--card-pad);
+}
+
+.workspaceCard {
+  display: flex;
   align-items: center;
-  padding: 0 6px;
-  color: var(--fg-muted);
-  background: none;
-  border: 0;
-  cursor: pointer;
-  flex-shrink: 0;
-
-  &:disabled {
-    color: var(--sw-hair);
-    cursor: default;
-  }
-
-  @media (max-width: 639px) {
-    display: flex;
-  }
-}
-
-.tutorialTab {
-  padding: 10px 14px;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--fg-label);
-  background: none;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-
-  &:hover {
-    color: var(--fg-heading);
-  }
-}
-
-.tutorialTabActive {
-  color: var(--fg-heading);
-  border-bottom-color: var(--color-orange);
-}
-
-.tutorialBlocks {
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
-}
-
-.tutorialBlock {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-
-  p {
-    margin: 0;
-    font-size: var(--body);
-    line-height: 1.6;
-    color: var(--fg-support);
-    text-wrap: pretty;
-  }
-}
-
-.bullets {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-left: 4px;
-
-  div {
-    display: flex;
-    gap: 10px;
-    font-size: 14px;
-    line-height: 1.5;
-    color: var(--fg-support);
-  }
-
-  span:first-child {
-    color: var(--color-orange);
-  }
-
-  strong {
-    color: var(--fg-heading);
-    font-weight: 600;
-  }
-}
-
-.gifs {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 14px;
-}
-
-.gifs2 {
-  @media (min-width: 640px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-.gifs3 {
-  @media (min-width: 640px) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-.figure {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
+  gap: var(--gap);
+  padding: 20px 22px;
+  border: 1px solid rgba(74, 144, 255, 0.5);
+  background: rgba(74, 144, 255, 0.05);
+  border-radius: 8px;
+  flex-wrap: wrap;
 
   img {
-    width: 100%;
-    height: auto;
-    display: block;
-    border: 1px solid var(--color-line);
-    border-radius: 6px;
-    background: var(--sw-card-off);
-  }
-
-  figcaption {
-    font-family: var(--font-code);
-    font-size: 11px;
-    letter-spacing: 0.06em;
-    color: var(--fg-label);
+    height: 28px;
+    width: auto;
+    flex-shrink: 0;
   }
 }
 
-.note {
+.tryCard {
   display: flex;
-  gap: 10px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--fg-muted);
+  align-items: center;
+  gap: var(--gap);
+  padding: 20px 22px;
+  border: 1px solid rgba(240, 112, 48, 0.55);
+  background: rgba(240, 112, 48, 0.06);
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
 
-  svg {
-    color: var(--fg-label);
-    flex-shrink: 0;
-    margin-top: 1px;
+.inlineLink {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--color-orange);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--color-orange-bright);
   }
 }
 
@@ -1288,8 +1076,10 @@
   border-top: 1px solid var(--color-line-soft);
 }
 
+// Matches `.flow`, so Back lines up with the sidebar and the buttons with
+// the panel's right edge.
 .ctaInner {
-  max-width: 1120px;
+  max-width: 1240px;
   margin: 0 auto;
   min-height: 64px;
   display: flex;
@@ -1315,6 +1105,11 @@
 .hint {
   font-family: var(--font-code);
   font-size: 12px;
+  line-height: 1;
   color: var(--fg-label);
-  white-space: nowrap;
+  text-align: right;
+}
+
+.hintOk {
+  color: var(--color-green);
 }

@@ -405,7 +405,7 @@ describe("AltimateConnectService.openAltimateCode", () => {
     expect(h.opened).toEqual([]);
   });
 
-  it("selects the project's linked workspace through the chat link", async () => {
+  it("opens chat beside the editor on the project's linked workspace", async () => {
     const h = harness();
     await h.service.startWorkspaceLink(PROJECT_ROOT);
     await h.callback("/workspace-bound", {
@@ -414,11 +414,13 @@ describe("AltimateConnectService.openAltimateCode", () => {
       tenant: "acme",
     });
 
-    await h.service.openAltimateCode(PROJECT_ROOT);
+    await h.service.openAltimateCode(PROJECT_ROOT, { beside: true });
 
-    expect(h.opened[h.opened.length - 1]).toBe(
-      "vscode://altimateai.vscode-altimate-mcp-server/chat?workspaceId=42",
-    );
+    expect(commands.executeCommand).toHaveBeenCalledWith("altimate.openChat", {
+      showWorkspace: true,
+      workspaceId: "42",
+      beside: true,
+    });
   });
 
   it("points to the marketplace when Altimate Code is not installed", async () => {

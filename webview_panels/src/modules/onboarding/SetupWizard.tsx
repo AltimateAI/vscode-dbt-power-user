@@ -1,8 +1,6 @@
-import AltimateCodeWordmark from "@assets/icons/altimate-code-wordmark.svg?react";
-import {
-  executeRequestInAsync,
-  executeRequestInSync,
-} from "@modules/app/requestExecutor";
+import AltimateLogo from "@assets/icons/altimate-logo.svg";
+import AltimateMark from "@assets/icons/altimate-mark.svg?react";
+import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import {
   forwardRef,
@@ -13,34 +11,60 @@ import {
   useState,
 } from "react";
 import { request } from "./api";
-import GetStartedStep from "./GetStartedStep";
 import { Icon } from "./icons";
+import MeetCodeStep from "./MeetCodeStep";
 import classes from "./onboarding.module.scss";
 import ProjectStep, {
   AccountState,
   Project,
   ValidationState,
 } from "./ProjectStep";
-import TutorialsStep, { TUTORIAL_COUNT } from "./TutorialsStep";
+import ReadyStep from "./ReadyStep";
 import { Button } from "./ui";
 import WorkspaceStep, { WorkspaceState } from "./WorkspaceStep";
 
-type Screen = "env" | "workspace" | "code" | "tutorials";
+type Screen = "connect" | "code" | "workspace" | "ready";
 
-const ORDER: Screen[] = ["env", "workspace", "code", "tutorials"];
+const ORDER: Screen[] = ["connect", "code", "workspace", "ready"];
+
+const STEP_LABELS: Record<Screen, string> = {
+  connect: "Connect your project",
+  code: "Meet Altimate Code",
+  workspace: "Set up a workspace",
+  ready: "Start working",
+};
+
+const PANEL_LABELS: Record<Screen, string> = {
+  connect: "Project",
+  code: "Altimate Code",
+  workspace: "Workspace",
+  ready: "Start working",
+};
 
 /** Step ids from `dbtPowerUser.openOnboarding` callers, old and new. */
 const STEP_SCREENS: Record<string, Screen> = {
-  dbt: "env",
-  prerequisites: "env",
-  validation: "env",
-  altimate: "env",
-  altimateKey: "env",
-  workspace: "workspace",
+  dbt: "connect",
+  prerequisites: "connect",
+  validation: "connect",
+  altimate: "connect",
+  altimateKey: "connect",
+  connect: "connect",
   code: "code",
-  finish: "tutorials",
-  tutorials: "tutorials",
+  workspace: "workspace",
+  finish: "ready",
+  tutorials: "ready",
+  ready: "ready",
 };
+
+type Summary = NonNullable<ValidationState["summary"]>;
+
+/** What the extension keeps of this page, so it reopens where it was left. */
+export interface SavedState {
+  screen?: Screen;
+  projectRoot?: string;
+  validation?: Summary | null;
+  workspaceSkipped?: boolean;
+}
 
 interface AltimateState {
   signedIn: boolean;
@@ -82,36 +106,72 @@ export interface SetupWizardHandle {
 
 interface SetupWizardProps {
   initialStep?: string;
-  onExit: () => void;
+  saved: SavedState;
 }
 
 const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
-  ({ initialStep, onExit }, ref) => {
+  ({ initialStep, saved }, ref) => {
+    // A restored step past the first needs the validation it was reached with.
     const [screen, setScreen] = useState<Screen>(
-      STEP_SCREENS[initialStep ?? ""] ?? "env",
+      STEP_SCREENS[initialStep ?? ""] ??
+        (saved.validation ? saved.screen : undefined) ??
+        "connect",
     );
-    const [project, setProject] = useState<Project>();
-    const [validation, setValidation] = useState<ValidationState>({
-      state: "idle",
-    });
+    // The restored root lets the first checks keep the project, and with it
+    // the restored validation.
+    const [project, setProject] = useState<Project | undefined>(
+      saved.projectRoot
+        ? { projectRoot: saved.projectRoot, name: "", adapter: "" }
+        : undefined,
+    );
+    const [validation, setValidation] = useState<ValidationState>(
+      saved.validation
+        ? { state: "done", summary: saved.validation }
+        : { state: "idle" },
+    );
     const [account, setAccount] = useState<AccountState>({ state: "idle" });
     const [canLinkWorkspace, setCanLinkWorkspace] = useState(true);
     const [supportsBrowserSignIn, setSupportsBrowserSignIn] = useState(true);
     const [appUrl, setAppUrl] = useState<string>();
     const [workspace, setWorkspace] = useState<WorkspaceState>({
       waiting: false,
-      skipped: false,
+      skipped: !!saved.workspaceSkipped,
     });
-    const [tutorial, setTutorial] = useState(0);
+
+    // The furthest step reached, which stays reachable from the sidebar.
+    const [furthest, setFurthest] = useState(ORDER.indexOf(screen));
 
     const go = useCallback((next: Screen) => {
       setScreen(next);
+      setFurthest((prev) => Math.max(prev, ORDER.indexOf(next)));
       window.scrollTo(0, 0);
     }, []);
 
     useImperativeHandle(ref, () => ({
-      navigateToStep: (stepId: string) => go(STEP_SCREENS[stepId] ?? "env"),
+      navigateToStep: (stepId: string) => go(STEP_SCREENS[stepId] ?? "connect"),
     }));
+
+    // The message listener outlives renders, so it reads the current project.
+    const projectRootRef = useRef(project?.projectRoot);
+    projectRootRef.current = project?.projectRoot;
+
+    useEffect(() => {
+      void request("saveOnboardingState", {
+        state: {
+          screen,
+          projectRoot: project?.projectRoot,
+          validation:
+            validation.state === "done" ? (validation.summary ?? null) : null,
+          workspaceSkipped: workspace.skipped,
+        },
+      });
+    }, [
+      screen,
+      project?.projectRoot,
+      validation.state,
+      validation.summary,
+      workspace.skipped,
+    ]);
 
     const loadAltimateState = useCallback(async (projectRoot?: string) => {
       const state = await request<AltimateState>("getAltimateState", {
@@ -124,10 +184,6 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
       }
       return state;
     }, []);
-
-    // The message listener outlives renders, so it reads the current project.
-    const projectRootRef = useRef(project?.projectRoot);
-    projectRootRef.current = project?.projectRoot;
 
     // Sign-in and workspace state are per project root; a different project
     // starts its workspace step afresh.
@@ -157,11 +213,11 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
               : prev,
           );
         }
-        setWorkspace({
+        setWorkspace((prev) => ({
           waiting: false,
-          skipped: false,
+          skipped: prev.skipped,
           linkedId: state.workspaceId,
-        });
+        }));
       })();
     }, [project?.projectRoot, loadAltimateState]);
 
@@ -212,7 +268,7 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
             skipped: false,
             linkedId: payload?.workspaceId,
           });
-          go("code");
+          go("ready");
         }
       };
       window.addEventListener("message", handleMessage);
@@ -220,8 +276,10 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
     }, [go, loadAltimateState]);
 
     const handleProjectChange = useCallback((next: Project | undefined) => {
+      if (next?.projectRoot !== projectRootRef.current) {
+        setValidation({ state: "idle" });
+      }
       setProject(next);
-      setValidation({ state: "idle" });
     }, []);
 
     const resetValidation = useCallback(
@@ -311,161 +369,111 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
 
     const skipWorkspace = useCallback(() => {
       setWorkspace((prev) => ({ ...prev, waiting: false, skipped: true }));
-      go("code");
+      go("ready");
     }, [go]);
 
-    const projectName = project?.name ?? "your project";
+    // A project restored from the last session has no name until checks run.
+    const projectName = project?.name ? project.name : "your project";
     const validated = validation.state === "done";
     const signedIn = account.state === "connected";
     const projectDone = validated && signedIn;
     const workspaceLinked = !!workspace.linkedId;
-    const pastWorkspace = ORDER.indexOf(screen) > ORDER.indexOf("workspace");
+    const index = ORDER.indexOf(screen);
 
-    const steps = [
-      {
-        label: "Project",
-        screen: "env" as Screen,
-        done: projectDone,
-        reachable: true,
-        detail: projectDone
-          ? `${projectName} · validated · signed in`
-          : validated
-            ? "create an account to finish"
-            : "dbt, Python, account",
-      },
-      {
-        label: "Workspace",
-        screen: "workspace" as Screen,
-        done: workspaceLinked,
-        reachable: projectDone,
-        detail: workspaceLinked
-          ? `${projectName} · linked`
-          : pastWorkspace && workspace.skipped
-            ? "skipped · set up any time"
-            : "shared context for the team",
-      },
-      {
-        label: "Get Started",
-        screen: "code" as Screen,
-        done: projectDone && pastWorkspace,
-        reachable: projectDone && (pastWorkspace || workspace.skipped),
-        detail:
-          projectDone && pastWorkspace
-            ? "Setup complete"
-            : "AI features turn on",
-      },
-    ];
+    const done: Record<Screen, boolean> = {
+      connect: projectDone,
+      code: projectDone && furthest > 1,
+      workspace:
+        projectDone && (workspaceLinked || workspace.skipped || furthest > 2),
+      ready: false,
+    };
+    // Past the first step, a step is reachable once it has been reached;
+    // Meet Altimate Code is reachable as soon as the project is done.
+    const reachable = (i: number) =>
+      i === 0 || (projectDone && i <= Math.max(furthest, 1));
 
-    const header: Record<Screen, [string, string | undefined, string]> = {
-      env: ["Set up your dbt project", undefined, "Step 1 of 3 · Project"],
-      workspace: [
-        "Give Altimate Code a workspace",
-        `A workspace is shared context for ${projectName}: integrations, skills, knowledge and memory. Set it up once and every session, in the editor or the CLI, and every teammate starts with full context.`,
-        "Step 2 of 3 · Workspace",
+    const header: Record<Screen, [string, string]> = {
+      connect: [
+        "Connect your dbt project",
+        validated
+          ? signedIn
+            ? `${projectName} is ready, and your Altimate account is connected.`
+            : `${projectName} is ready. Last thing: create your free Altimate account.`
+          : "Check your setup, validate the project, then connect your Altimate account.",
       ],
       code: [
-        "You're all set!",
-        `Power User is set up for ${projectName}, with AI features switched on. Open any model to start, or take a short tour first.`,
-        "Step 3 of 3 · Get Started",
+        "Meet Altimate Code",
+        "Altimate Code is an AI agent specialized for data-native workflows. It works locally and sits between any LLM and your entire data stack.",
       ],
-      tutorials: [
-        "Learn Power User in a few minutes",
-        "Short clips of each feature. Pick a topic, or step through them in order.",
-        "",
+      workspace: [
+        "Set up a workspace",
+        "A workspace teaches the AI how your organization works: your data setup, skills, knowledge and best practices, so it follows them every time.",
+      ],
+      ready: [
+        "You're ready",
+        `Everything is set up for ${projectName}. Here is where things stand.`,
       ],
     };
-    const [title, subtitle, panelLabel] = header[screen];
+    const [title, subtitle] = header[screen];
 
-    const lastTutorial = tutorial === TUTORIAL_COUNT - 1;
-    // Tutorials can be opened directly, before setup is done.
-    const leaveTutorials = () => go(projectDone ? "code" : "env");
     const renderCta = () => {
       switch (screen) {
-        case "env":
+        case "connect":
           return {
-            back: onExit,
             hint: projectDone
-              ? undefined
+              ? "Ready"
               : !validated
-                ? "validate the project to continue"
+                ? "Validate the project to continue"
                 : account.state === "waiting"
-                  ? "waiting for your browser"
-                  : "create an account to continue",
+                  ? "Waiting for your browser"
+                  : "Create an account to continue",
+            hintOk: projectDone,
             primary: (
-              <Button disabled={!projectDone} onClick={() => go("workspace")}>
+              <Button disabled={!projectDone} onClick={() => go("code")}>
                 Continue
               </Button>
             ),
           };
+        case "code":
+          return {
+            hint: account.instance
+              ? `Connected · instance ${account.instance}`
+              : "Connected",
+            hintOk: true,
+            primary: <Button onClick={() => go("workspace")}>Continue</Button>,
+          };
         case "workspace":
           if (workspaceLinked || !canLinkWorkspace) {
             return {
-              back: () => go("env"),
-              primary: <Button onClick={() => go("code")}>Continue</Button>,
+              primary: <Button onClick={() => go("ready")}>Continue</Button>,
             };
           }
           return {
-            back: () => go("env"),
-            hint: workspace.waiting ? "waiting for your browser" : undefined,
+            hint: workspace.waiting
+              ? "Waiting for your browser"
+              : "Opens Altimate in your browser",
             // Available while waiting too: the browser may never come back.
-            secondary: { label: "Not now", onClick: skipWorkspace },
+            secondary: (
+              <Button variant="secondary" onClick={skipWorkspace}>
+                Skip for now
+              </Button>
+            ),
             primary: (
               <Button
                 external
                 disabled={workspace.waiting}
                 onClick={linkWorkspace}
               >
-                Set Up Your Workspace
+                Create Workspace
               </Button>
             ),
           };
-        case "code":
+        case "ready":
           return {
-            back: () => go("workspace"),
-            secondary: {
-              label: "Tutorials",
-              onClick: () => {
-                setTutorial(0);
-                go("tutorials");
-              },
-            },
+            hint: "Reopen this page any time from the dbt item in the status bar",
             primary: (
-              <>
-                <Button
-                  variant="secondary"
-                  onClick={() =>
-                    void request("openAltimateCode", {
-                      projectRoot: project?.projectRoot,
-                    })
-                  }
-                >
-                  Open Altimate Code
-                </Button>
-                <Button
-                  onClick={() => executeRequestInAsync("closeOnboarding", {})}
-                >
-                  Get Started
-                </Button>
-              </>
-            ),
-          };
-        case "tutorials":
-          return {
-            back: leaveTutorials,
-            secondary:
-              tutorial > 0
-                ? {
-                    label: "Previous",
-                    onClick: () => setTutorial(tutorial - 1),
-                  }
-                : undefined,
-            primary: (
-              <Button
-                onClick={() =>
-                  lastTutorial ? leaveTutorials() : setTutorial(tutorial + 1)
-                }
-              >
-                {lastTutorial ? "Done" : "Next"}
+              <Button onClick={() => void request("finishOnboarding")}>
+                Finish
               </Button>
             ),
           };
@@ -475,92 +483,84 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
 
     return (
       <>
+        <header className={classes.navbar}>
+          <div className={classes.navInner}>
+            <div className={classes.brand}>
+              <AltimateMark />
+              <span className={classes.brandName}>Power User for dbt</span>
+            </div>
+            <span className={classes.navStep}>
+              Getting started · step {index + 1} of {ORDER.length}
+            </span>
+            <span className={classes.navBy}>
+              by
+              <img src={AltimateLogo} alt="" />
+              <span className={classes.navByName}>Altimate AI</span>
+            </span>
+          </div>
+        </header>
+
         <div className={classes.flow}>
-          <div className={classes.rail}>
-            {steps.map((step, index) => {
-              const current = screen === step.screen;
-              const clickable = step.reachable && !current;
+          <nav className={classes.rail}>
+            {ORDER.map((step, i) => {
+              const current = screen === step;
+              const clickable = reachable(i) && !current;
               return (
                 <button
-                  key={step.label}
+                  key={step}
                   type="button"
                   className={[
                     classes.railItem,
+                    current ? classes.railItemCurrent : "",
                     clickable ? classes.railItemClickable : "",
                   ].join(" ")}
-                  onClick={clickable ? () => go(step.screen) : undefined}
+                  aria-current={current ? "step" : undefined}
+                  onClick={clickable ? () => go(step) : undefined}
                 >
                   <span
                     className={[
                       classes.railNum,
-                      step.reachable ? classes.railNumReachable : "",
-                      step.done ? classes.railNumDone : "",
+                      done[step] && !current ? classes.railNumDone : "",
                       current ? classes.railNumCurrent : "",
                     ].join(" ")}
                   >
-                    {step.done ? (
-                      <Icon
-                        name="check"
-                        size={15}
-                        className={classes.statusOk}
-                      />
+                    {done[step] && !current ? (
+                      <Icon name="check" size={13} />
                     ) : (
-                      String(index + 1).padStart(2, "0")
+                      String(i + 1).padStart(2, "0")
                     )}
                   </span>
-                  <span className={classes.railText}>
-                    <span
-                      className={[
-                        classes.railLabel,
-                        step.reachable || step.done
-                          ? classes.railLabelReachable
-                          : "",
-                        current ? classes.railLabelCurrent : "",
-                      ].join(" ")}
-                    >
-                      {step.label}
-                    </span>
-                    <span
-                      className={[
-                        classes.railDetail,
-                        current ? classes.railDetailCurrent : "",
-                        step.done ? classes.railDetailDone : "",
-                      ].join(" ")}
-                    >
-                      {step.detail}
-                    </span>
+                  <span
+                    className={[
+                      classes.railLabel,
+                      current || done[step] || reachable(i)
+                        ? classes.railLabelReachable
+                        : "",
+                      current ? classes.railLabelCurrent : "",
+                    ].join(" ")}
+                  >
+                    {STEP_LABELS[step]}
                   </span>
                 </button>
               );
             })}
-          </div>
+          </nav>
 
           <div className={classes.content}>
             <div className={classes.header}>
-              {screen === "tutorials" && (
-                <div className={classes.eyebrow}>Tutorials</div>
-              )}
-              {screen === "workspace" && (
-                <AltimateCodeWordmark
-                  aria-label="Altimate Code"
-                  className={classes.wordmark}
-                />
-              )}
               <h1 className={classes.title}>{title}</h1>
-              {subtitle && <p className={classes.subtitle}>{subtitle}</p>}
+              <p className={classes.subtitle}>{subtitle}</p>
             </div>
 
-            {screen === "tutorials" && (
-              <TutorialsStep index={tutorial} onChange={setTutorial} />
-            )}
-            {/* Hidden, not unmounted, on Tutorials so validation survives. */}
-            <div className={classes.panel} hidden={screen === "tutorials"}>
+            <div className={classes.panel}>
               <div className={classes.panelHead}>
                 <span className={classes.panelDot} />
-                <span className={classes.panelLabel}>{panelLabel}</span>
+                <span className={classes.panelLabel}>
+                  {PANEL_LABELS[screen]}
+                </span>
               </div>
               {/* Kept mounted so checks and pickers survive step changes. */}
-              <div hidden={screen !== "env"}>
+              <div hidden={screen !== "connect"}>
                 <ProjectStep
                   project={project}
                   onProjectChange={handleProjectChange}
@@ -587,6 +587,7 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
                   }
                 />
               </div>
+              {screen === "code" && <MeetCodeStep />}
               {screen === "workspace" && (
                 <WorkspaceStep
                   projectName={projectName}
@@ -595,9 +596,12 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
                   onOpenAgain={linkWorkspace}
                 />
               )}
-              {screen === "code" && (
-                <GetStartedStep
-                  workspaceSkipped={!workspaceLinked && canLinkWorkspace}
+              {screen === "ready" && project && (
+                <ReadyStep
+                  project={project}
+                  instance={account.instance}
+                  workspaceLinked={workspaceLinked}
+                  canLinkWorkspace={canLinkWorkspace}
                   onSetUpWorkspace={() => go("workspace")}
                 />
               )}
@@ -607,24 +611,29 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
 
         <div className={classes.ctaBar}>
           <div className={classes.ctaInner}>
-            <button
-              type="button"
-              className={[classes.mutedAction, classes.ctaLink].join(" ")}
-              onClick={cta.back}
-            >
-              ← Back
-            </button>
+            {index > 0 ? (
+              <button
+                type="button"
+                className={[classes.mutedAction, classes.ctaLink].join(" ")}
+                onClick={() => go(ORDER[index - 1])}
+              >
+                ← Back
+              </button>
+            ) : (
+              <span />
+            )}
             <div className={classes.ctaRight}>
-              {cta.hint && <span className={classes.hint}>{cta.hint}</span>}
-              {cta.secondary && (
-                <button
-                  type="button"
-                  className={[classes.mutedAction, classes.ctaLink].join(" ")}
-                  onClick={cta.secondary.onClick}
+              {cta.hint && (
+                <span
+                  className={[
+                    classes.hint,
+                    cta.hintOk ? classes.hintOk : "",
+                  ].join(" ")}
                 >
-                  {cta.secondary.label}
-                </button>
+                  {cta.hint}
+                </span>
               )}
+              {cta.secondary}
               {cta.primary}
             </div>
           </div>
