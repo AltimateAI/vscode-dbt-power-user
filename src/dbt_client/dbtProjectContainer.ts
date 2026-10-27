@@ -148,6 +148,18 @@ export class DBTProjectContainer implements Disposable {
   }
 
   async initializeWalkthrough() {
+    // resume an onboarding flow that was interrupted (e.g. by a window reload)
+    const onboardingState = this.getFromGlobalState("onboarding.state") as
+      | { finished?: boolean; step?: number }
+      | undefined;
+    if (onboardingState && !onboardingState.finished && onboardingState.step) {
+      this.dbtTerminal.debug(
+        "dbtProjectContainer:resumeOnboarding",
+        "resuming onboarding at step " + onboardingState.step,
+      );
+      commands.executeCommand("dbtPowerUser.openOnboarding");
+      return;
+    }
     // show setup walkthrough if needed
     const isWalkthroughDisabledFromSettings = workspace
       .getConfiguration("dbt")

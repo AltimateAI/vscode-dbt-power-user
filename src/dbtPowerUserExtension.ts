@@ -8,6 +8,7 @@ import {
   workspace,
 } from "vscode";
 import { AltimateRequest } from "./altimate";
+import { handleAltimateAuthCallback } from "./altimateAuthCallback";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";
@@ -168,6 +169,13 @@ export class DBTPowerUserExtension implements Disposable {
       context.subscriptions.push(
         window.registerUriHandler({
           handleUri(uri: Uri): void {
+            if (uri.path === "/auth-callback") {
+              void handleAltimateAuthCallback(uri, {
+                globalState: context.globalState,
+                telemetry,
+              });
+              return;
+            }
             if (uri.path === "/troubleshoot") {
               const params = new URLSearchParams(uri.query);
               const errorMessage = params.get("error") ?? "";

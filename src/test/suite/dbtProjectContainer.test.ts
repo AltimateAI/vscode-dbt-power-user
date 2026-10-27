@@ -786,6 +786,64 @@ describe("DBTProjectContainer Tests", () => {
 
       expect(window.showInformationMessage).toHaveBeenCalled();
     });
+
+    it("should resume an unfinished onboarding flow instead of showing the toast", async () => {
+      const mockConfig = {
+        get: jest.fn((_key: string, defaultValue?: any) => defaultValue),
+      };
+      (workspace.getConfiguration as any) = jest.fn(() => mockConfig);
+      const mockContext = {
+        workspaceState: { get: jest.fn(), update: jest.fn() },
+        globalState: {
+          get: jest.fn((key: string) =>
+            key === "onboarding.state"
+              ? { step: 3, validated: true, finished: false }
+              : undefined,
+          ),
+          update: jest.fn(),
+        },
+      } as unknown as ExtensionContext;
+      container.setContext(mockContext);
+      (window.showInformationMessage as any) = jest.fn();
+
+      await container.initializeWalkthrough();
+
+      expect(commands.executeCommand).toHaveBeenCalledWith(
+        "dbtPowerUser.openOnboarding",
+      );
+      expect(window.showInformationMessage).not.toHaveBeenCalled();
+    });
+
+    it("should not resume a finished onboarding flow", async () => {
+      const mockConfig = {
+        get: jest.fn((_key: string, defaultValue?: any) => defaultValue),
+      };
+      (workspace.getConfiguration as any) = jest.fn(() => mockConfig);
+      const mockContext = {
+        workspaceState: { get: jest.fn(), update: jest.fn() },
+        globalState: {
+          get: jest.fn((key: string) => {
+            if (key === "onboarding.state") {
+              return { step: 4, finished: true };
+            }
+            if (key === "showSetupWalkthrough") {
+              return false;
+            }
+            return undefined;
+          }),
+          update: jest.fn(),
+        },
+      } as unknown as ExtensionContext;
+      container.setContext(mockContext);
+      (window.showInformationMessage as any) = jest.fn();
+
+      await container.initializeWalkthrough();
+
+      expect(commands.executeCommand).not.toHaveBeenCalledWith(
+        "dbtPowerUser.openOnboarding",
+      );
+      expect(window.showInformationMessage).not.toHaveBeenCalled();
+    });
   });
 
   describe("Project Registration Events", () => {
