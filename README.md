@@ -7,22 +7,24 @@
 This [open source](https://github.com/AltimateAI/vscode-dbt-power-user) extension makes VSCode seamlessly work with [dbt™](https://www.getdbt.com/).
 
 If you need help with setting up the extension, please check the [documentation](https://docs.myaltimate.com/setup/installation/).
+
+**Getting started:** the first time the extension finds a dbt™ project it opens a four-step Get Started page: connect your project (checks Python, dbt™ and your warehouse connection), meet Altimate Code, set up a workspace, and start working on one of your own models. Signing up from the page creates your free Altimate account and connects it to VS Code automatically. Reopen the page any time from the dbt™ item in the status bar or the command `Power User for dbt: Get Started`.
 For any issues or bugs, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=marketplace) via chat or Slack.
 
 **Features:**
 
-| Feature                                                     | Details                                                                                                                                 |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| [Auto-complete dbt™ code](#autocomplete)                   | Auto-fill model names, macros, sources and docs. Click on model names, macros, sources to go to definitions.                            |
+| Feature                                                     | Details                                                                                                                                |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| [Auto-complete dbt™ code](#autocomplete)                    | Auto-fill model names, macros, sources and docs. Click on model names, macros, sources to go to definitions.                           |
 | [Preview Query results and Analyze](#querypreview)          | Generate dbt™ model / query results. Export as CSV or analyze results by creating graphs, filters, groups                              |
-| [Column lineage](#lineage)                                  | Model lineage as well as column lineage                                                                                                 |
-| [Generate dbt™ Models](#genmodel)                          | from source files or convert SQL to dbt™ Model (docs)                                                                                  |
-| [Generate documentation](#gendoc)                           | Generate model and column descriptions or write in the UI editor. Save formatted text in YAML files.                                    |
-| [Defer to prod](#defertoprod)                               | Build your model in development without building (by defering) your upstream models                                                     |
+| [Column lineage](#lineage)                                  | Model lineage as well as column lineage                                                                                                |
+| [Generate dbt™ Models](#genmodel)                           | from source files or convert SQL to dbt™ Model (docs)                                                                                  |
+| [Generate documentation](#gendoc)                           | Generate model and column descriptions or write in the UI editor. Save formatted text in YAML files.                                   |
+| [Defer to prod](#defertoprod)                               | Build your model in development without building (by defering) your upstream models                                                    |
 | [Click to run parent / child models and tests](#clicktorun) | Just click to do common dbt™ operations like running tests, parent / child models or previewing data.                                  |
 | [Compiled query preview and explanation](#queryexplanation) | Get live preview of compiled query as your write code. Also, generate explanations for dbt™ code written previously (by somebody else) |
 | [Project health check](#healthcheck)                        | Identify issues in your dbt™ project like columns not present, models not materialized                                                 |
-| [SQL validator](#validateSQL)                               | Identify issues in SQL like typos in keywords, missing or extra parentheses, non-existent columns                                       |
+| [SQL validator](#validateSQL)                               | Identify issues in SQL like typos in keywords, missing or extra parentheses, non-existent columns                                      |
 | [Big Query cost estimator](#bqcost)                         | Estimate data that will be processed by dbt™ model in BigQuery                                                                         |
 | [Other features](#otherfeatures)                            | dbt™ logs viewer (force tailing)                                                                                                       |
 

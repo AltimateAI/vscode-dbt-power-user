@@ -1,8 +1,14 @@
 import { DBTTerminal } from "@altimateai/dbt-integration";
+import { randomBytes } from "crypto";
+import * as fs from "fs";
 import { inject } from "inversify";
+import * as path from "path";
 import {
   commands,
   ConfigurationTarget,
+  Disposable,
+  env,
+  RelativePattern,
   Uri,
   ViewColumn,
   WebviewPanel,
@@ -29,6 +35,14 @@ export class OnboardingPanel extends AltimateWebviewProvider {
   protected viewPath = "/onboarding";
   protected panelDescription = "Power User for dbt onboarding experience";
   private pendingStepNavigation: string | undefined;
+  private accountPoll: NodeJS.Timeout | undefined;
+  private accountConfigListener: Disposable | undefined;
+  private static readonly ONBOARDING_STATE_KEY = "onboarding.state";
+  private static readonly REGISTER_URL = "https://app.myaltimate.com/register";
+  private static readonly CONNECT_CLIENT = "vscode-dbt-power-user";
+  private static readonly CONNECT_REDIRECT =
+    "vscode://innoverio.vscode-dbt-power-user/auth-callback";
+  private static readonly CONNECT_STATE_KEY = "onboarding.connectState";
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
@@ -190,18 +204,6 @@ export class OnboardingPanel extends AltimateWebviewProvider {
     const { command, syncRequestId } = message;
 
     switch (command) {
-      case "openSetupWizard":
-        // Trigger the VSCode walkthrough
-        await commands.executeCommand(
-          "workbench.action.openWalkthrough",
-          "innoverio.vscode-dbt-power-user#initialSetup",
-        );
-        this.sendResponseToWebview({
-          command: "response",
-          syncRequestId,
-          data: { success: true },
-        });
-        break;
       case "getProjects":
         // Get available dbt projects
         try {
@@ -210,7 +212,7 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             command: "response",
             syncRequestId,
             data: projects.map((p) => ({
-              label: p.getProjectName(),
+              label: this.displayName(p),
               projectRoot: p.projectRoot.fsPath,
             })),
           });
@@ -380,13 +382,20 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           const pythonEnvironment =
             this.dbtProjectContainer.getPythonEnvironment();
 
-          // Get dbt version from any project that has it defined
+          // Get dbt version and adapter from any project that has them
           let dbtVersion: string | undefined;
+          let adapterType: string | undefined;
           for (const project of projects) {
             try {
               const version = project.getDBTVersion();
               if (version) {
                 dbtVersion = version.join(".");
+              }
+              const adapter = project.getAdapterType();
+              if (adapter && adapter !== "unknown") {
+                adapterType = adapter;
+              }
+              if (dbtVersion) {
                 break;
               }
             } catch (error) {
@@ -417,6 +426,15 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             excludePattern,
           );
           const projectsFoundInWorkspace = dbtProjectFiles.length > 0;
+          let projectName: string | undefined;
+          let projectRoot: string | undefined;
+          if (projects.length) {
+            projectName = this.displayName(projects[0]);
+            projectRoot = projects[0].projectRoot.fsPath;
+          } else if (dbtProjectFiles.length) {
+            projectRoot = path.dirname(dbtProjectFiles[0].fsPath);
+            projectName = this.readProjectNameFromYml(projectRoot);
+          }
 
           this.sendResponseToWebview({
             command: "response",
@@ -429,8 +447,13 @@ export class OnboardingPanel extends AltimateWebviewProvider {
               workspaceCount: dbtWorkspaces.length,
               dbtIntegrationMode,
               pythonPath: pythonEnvironment.pythonPath,
-              pythonVersion: pythonEnvironment.pythonVersion,
+              pythonVersion: this.formatVersion(
+                pythonEnvironment.pythonVersion,
+              ),
               dbtVersion,
+              adapterType,
+              projectName,
+              projectRoot,
               fileAssociationsConfigured,
             },
           });
@@ -672,9 +695,436 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           });
         }
         break;
+      case "getOnboardingState":
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId,
+          data:
+            this.dbtProjectContainer.getFromGlobalState(
+              OnboardingPanel.ONBOARDING_STATE_KEY,
+            ) ?? null,
+        });
+        break;
+      case "saveOnboardingState":
+        try {
+          const { state } = message as HandleCommandProps & {
+            state: Record<string, unknown>;
+          };
+          this.dbtProjectContainer.setToGlobalState(
+            OnboardingPanel.ONBOARDING_STATE_KEY,
+            state,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { success: true },
+          });
+        } catch (error) {
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "getAccountStatus":
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId,
+          data: this.getAccountStatus(),
+        });
+        break;
+      case "startAccountSetup":
+        try {
+          await env.openExternal(Uri.parse(await this.buildConnectUrl()));
+          this.startAccountPolling();
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { started: true },
+          });
+        } catch (error) {
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "getProjectSummary":
+        try {
+          const { projectRoot } = message as HandleCommandProps & {
+            projectRoot: string;
+          };
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { summary: await this.summarizeProject(projectRoot) },
+          });
+        } catch (error) {
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { summary: "" },
+          });
+        }
+        break;
+      case "openWorkspaceCreation":
+        try {
+          const { projectName } = message as HandleCommandProps & {
+            projectName?: string;
+          };
+          const instance = workspace
+            .getConfiguration("dbt")
+            .get<string>("altimateInstanceName", "");
+          const base = instance
+            ? `https://${instance}.app.myaltimate.com`
+            : "https://app.myaltimate.com";
+          const url = `${base}/datamates?source=extension&project=${encodeURIComponent(
+            projectName ?? "",
+          )}`;
+          await env.openExternal(Uri.parse(url));
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { success: true, url },
+          });
+        } catch (error) {
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "showOutput":
+        await this.dbtTerminal.show(true);
+        this.sendResponseToWebview({
+          command: "response",
+          syncRequestId,
+          data: { success: true },
+        });
+        break;
+      case "getFirstModel":
+        try {
+          const { projectRoot } = message as HandleCommandProps & {
+            projectRoot?: string;
+          };
+          const model = await this.findFirstModel(projectRoot);
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: model
+              ? { name: model.name, fileName: path.basename(model.uri.fsPath) }
+              : null,
+          });
+        } catch (error) {
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "openFirstModel":
+        try {
+          const { projectRoot, action } = message as HandleCommandProps & {
+            projectRoot?: string;
+            action?: "explain" | "lineage" | "preview" | "open";
+          };
+          const opened = await this.openFirstModel(
+            projectRoot,
+            action ?? "open",
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { opened },
+          });
+          if (opened && action && action !== "open") {
+            this.markFinished();
+          }
+        } catch (error) {
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "finishOnboarding":
+        try {
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { success: true },
+          });
+          this.markFinished();
+        } catch (error) {
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
       default:
         super.handleCommand(message);
         break;
     }
+  }
+
+  private readProjectNameFromYml(projectRoot: string): string | undefined {
+    try {
+      const yml = fs.readFileSync(
+        path.join(projectRoot, "dbt_project.yml"),
+        "utf8",
+      );
+      const m = yml.match(/^name:\s*['"]?([A-Za-z0-9_-]+)['"]?/m);
+      return m?.[1];
+    } catch (e) {
+      return undefined;
+    }
+  }
+
+  private displayName(project: {
+    getProjectName: () => string;
+    projectRoot: Uri;
+  }): string {
+    const name = project.getProjectName();
+    if (!name || name.startsWith("unknown_")) {
+      return (
+        this.readProjectNameFromYml(project.projectRoot.fsPath) ??
+        path.basename(project.projectRoot.fsPath)
+      );
+    }
+    return name;
+  }
+
+  private formatVersion(version: unknown): string | undefined {
+    if (!version) {
+      return undefined;
+    }
+    if (typeof version === "string") {
+      const m = version.match(/^\d+(\.\d+){0,2}/);
+      return m ? m[0] : version;
+    }
+    if (Array.isArray(version)) {
+      return version
+        .filter((v) => typeof v === "number" || typeof v === "string")
+        .slice(0, 3)
+        .join(".");
+    }
+    if (typeof version === "object") {
+      const v = version as Record<string, unknown>;
+      const parts = [v.major, v.minor, v.micro ?? v.patch].filter(
+        (x) => typeof x === "number" || typeof x === "string",
+      );
+      return parts.length ? parts.join(".") : undefined;
+    }
+    return String(version);
+  }
+
+  private getAccountStatus() {
+    const config = workspace.getConfiguration("dbt");
+    const apiKey = config.get<string>("altimateAiKey", "");
+    const instanceName = config.get<string>("altimateInstanceName", "");
+    const connected = !!(apiKey && instanceName);
+    return {
+      connected,
+      instanceName: connected ? instanceName : undefined,
+      maskedKey: connected
+        ? `${apiKey.slice(0, 4)}••••${apiKey.slice(-4)}`
+        : undefined,
+    };
+  }
+
+  /**
+   * Sign-up URL in SaaS "client-connect" mode: after Google sign-up or
+   * email sign-in the web app redirects to CONNECT_REDIRECT with a one-time
+   * login token, which the URI handler exchanges for the API key. `state`
+   * is a per-attempt nonce so a stray callback cannot bind another session.
+   */
+  private async buildConnectUrl(): Promise<string> {
+    const state = randomBytes(16).toString("hex");
+    await this.dbtProjectContainer.setToGlobalState(
+      OnboardingPanel.CONNECT_STATE_KEY,
+      state,
+    );
+    const params = new URLSearchParams({
+      source: "extension",
+      client: OnboardingPanel.CONNECT_CLIENT,
+      redirect: OnboardingPanel.CONNECT_REDIRECT,
+      state,
+    });
+    return `${OnboardingPanel.REGISTER_URL}?${params.toString()}`;
+  }
+
+  private startAccountPolling() {
+    this.stopAccountPolling();
+    const notify = () => {
+      const status = this.getAccountStatus();
+      if (status.connected) {
+        this.stopAccountPolling();
+        this.sendResponseToWebview({
+          command: "accountConnected",
+          payload: status,
+        });
+        window.showInformationMessage(
+          `Altimate account connected (instance ${status.instanceName}).`,
+        );
+      }
+    };
+    this.accountConfigListener = workspace.onDidChangeConfiguration((e) => {
+      if (
+        e.affectsConfiguration("dbt.altimateAiKey") ||
+        e.affectsConfiguration("dbt.altimateInstanceName")
+      ) {
+        notify();
+      }
+    });
+    const startedAt = Date.now();
+    this.accountPoll = setInterval(() => {
+      if (Date.now() - startedAt > 15 * 60 * 1000) {
+        this.stopAccountPolling();
+        return;
+      }
+      notify();
+    }, 2000);
+  }
+
+  private stopAccountPolling() {
+    if (this.accountPoll) {
+      clearInterval(this.accountPoll);
+      this.accountPoll = undefined;
+    }
+    this.accountConfigListener?.dispose();
+    this.accountConfigListener = undefined;
+  }
+
+  private async summarizeProject(projectRoot: string): Promise<string> {
+    const project = this.dbtProjectContainer
+      .getProjects()
+      .find((p) => p.projectRoot.fsPath === projectRoot);
+    const parts: string[] = [];
+    if (project) {
+      try {
+        const modelPaths = project.getModelPaths() ?? [];
+        let models = 0;
+        for (const dir of modelPaths) {
+          const files = await workspace.findFiles(
+            new RelativePattern(dir, "**/*.sql"),
+            "**/{target,dbt_packages}/**",
+          );
+          models += files.length;
+        }
+        if (models) {
+          parts.push(`${models} models`);
+        }
+      } catch (e) {
+        // best effort
+      }
+      const adapter = project.getAdapterType();
+      if (adapter && adapter !== "unknown") {
+        parts.push(adapter);
+      }
+    }
+    parts.push("passed", "warehouse connection works");
+    return parts.join(" · ");
+  }
+
+  private async findFirstModel(
+    projectRoot?: string,
+  ): Promise<{ uri: Uri; name: string } | undefined> {
+    const projects = this.dbtProjectContainer.getProjects();
+    const project =
+      projects.find((p) => p.projectRoot.fsPath === projectRoot) ?? projects[0];
+    if (!project) {
+      return undefined;
+    }
+    const modelPaths = project.getModelPaths() ?? [
+      path.join(project.projectRoot.fsPath, "models"),
+    ];
+    for (const dir of modelPaths) {
+      const files = await workspace.findFiles(
+        new RelativePattern(dir, "**/*.sql"),
+        "**/{target,dbt_packages}/**",
+        50,
+      );
+      if (files.length) {
+        const preferred =
+          files.find((f) => /customers\.sql$/.test(f.fsPath)) ??
+          files.sort((a, b) => a.fsPath.localeCompare(b.fsPath))[0];
+        return {
+          uri: preferred,
+          name: path.basename(preferred.fsPath, ".sql"),
+        };
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Activation step: open the user's own model and run one follow-up so the
+   * first thing they see is the extension working on their project.
+   */
+  private async openFirstModel(
+    projectRoot: string | undefined,
+    action: "explain" | "lineage" | "preview" | "open",
+  ): Promise<boolean> {
+    const model = await this.findFirstModel(projectRoot);
+    if (!model) {
+      return false;
+    }
+    const doc = await workspace.openTextDocument(model.uri);
+    await window.showTextDocument(doc, { viewColumn: ViewColumn.One });
+    try {
+      if (action === "explain") {
+        // Open the chat beside the model without sending anything; the first
+        // question is the user's to ask.
+        await commands.executeCommand("altimate.openChat", {
+          beside: true,
+          title: "Altimate Code",
+        });
+        // The chat extension sometimes lands in the model's editor group
+        // (for example when it reuses an open chat tab). Force a true split:
+        // if there is still a single group, move the chat to a new group on
+        // the right and keep the model visible on the left.
+        if (window.tabGroups.all.length < 2) {
+          await commands.executeCommand(
+            "workbench.action.moveEditorToRightGroup",
+          );
+          await window.showTextDocument(doc, {
+            viewColumn: ViewColumn.One,
+            preserveFocus: true,
+          });
+        }
+      } else if (action === "lineage") {
+        await commands.executeCommand("dbtPowerUser.sqlLineage");
+      } else if (action === "preview") {
+        await commands.executeCommand("dbtPowerUser.executeSQL");
+      }
+    } catch (e) {
+      this.dbtTerminal.debug(
+        "onboarding:openFirstModel",
+        "follow-up command failed",
+        e,
+      );
+    }
+    return true;
+  }
+
+  private markFinished() {
+    const prev =
+      (this.dbtProjectContainer.getFromGlobalState(
+        OnboardingPanel.ONBOARDING_STATE_KEY,
+      ) as Record<string, unknown> | undefined) ?? {};
+    this.dbtProjectContainer.setToGlobalState(
+      OnboardingPanel.ONBOARDING_STATE_KEY,
+      { ...prev, finished: true },
+    );
+    this.dbtProjectContainer.setToGlobalState("showSetupWalkthrough", false);
+    this.stopAccountPolling();
+    (this._panel as WebviewPanel | undefined)?.dispose();
   }
 }

@@ -22,6 +22,7 @@ export default defineConfig({
   ],
   build: {
     cssCodeSplit: false,
+    assetsInlineLimit: 65536,
     rollupOptions: {
       input: "./src/main.tsx",
       output: {
