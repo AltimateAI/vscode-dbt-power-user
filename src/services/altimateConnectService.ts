@@ -258,11 +258,14 @@ export class AltimateConnectService implements Disposable {
       );
       return;
     }
+    const workspaceId = projectRoot
+      ? this.getLinkedWorkspaceId(projectRoot)
+      : undefined;
+    // `showWorkspace` also opens the Workspaces panel, so only ask for it
+    // when there is a workspace to show.
     await commands.executeCommand("altimate.openChat", {
-      showWorkspace: true,
-      workspaceId: projectRoot
-        ? this.getLinkedWorkspaceId(projectRoot)
-        : undefined,
+      showWorkspace: !!workspaceId,
+      workspaceId,
       beside: options.beside,
     });
   }

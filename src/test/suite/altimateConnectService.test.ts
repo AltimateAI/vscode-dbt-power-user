@@ -395,12 +395,12 @@ describe("AltimateConnectService.openAltimateCode", () => {
     (extensions.getExtension as jest.Mock).mockReturnValue({});
   });
 
-  it("opens chat on the selected workspace when none is linked", async () => {
+  it("opens plain chat when no workspace is linked", async () => {
     const h = harness();
     await h.service.openAltimateCode(PROJECT_ROOT);
 
     expect(commands.executeCommand).toHaveBeenCalledWith("altimate.openChat", {
-      showWorkspace: true,
+      showWorkspace: false,
     });
     expect(h.opened).toEqual([]);
   });
