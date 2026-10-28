@@ -110,7 +110,13 @@ export class DBTProject implements Disposable {
    * that moment is not described by it yet.
    */
   private manifestBuiltFromFilesAsOf?: number;
-  private manifestRebuildStartedAt?: number;
+  /**
+   * When each rebuild that has started and not yet ended started, oldest
+   * first. Rebuilds overlap: the adapter announces a start before the parse
+   * behind it waits for the project lock, so one field would hand a rebuild
+   * the start time of a later one and call its manifest newer than it is.
+   */
+  private readonly manifestRebuildStartTimes: number[] = [];
   readonly projectRoot: Uri;
   private dbtProjectIntegration: DBTProjectIntegrationAdapter;
 
@@ -239,9 +245,7 @@ export class DBTProject implements Disposable {
           "DBTProject",
           `Received rebuildManifestStatusChange event: inProgress=${status.inProgress}`,
         );
-        if (status.inProgress) {
-          this.manifestRebuildStartedAt = Date.now();
-        }
+        this.noteRebuildStatus(status.inProgress);
         const event: RebuildManifestStatusChange = {
           project: this,
           inProgress: status.inProgress,
@@ -274,12 +278,7 @@ export class DBTProject implements Disposable {
           modelDepthMap: parsedManifest.modelDepthMap,
         };
         this._manifestCacheEvent = manifestCacheEvent;
-        // A parse reaches here either at the end of a rebuild or because
-        // something rewrote `target/manifest.json`. Only the rebuild's own
-        // start time says which version of the files this parse read; without
-        // one, the parse itself is the later bound.
-        this.manifestBuiltFromFilesAsOf =
-          this.manifestRebuildStartedAt ?? Date.now();
+        this.stampManifestFreshness();
         this._onManifestChanged.fire({ added: [manifestCacheEvent] });
       },
     );
@@ -1149,6 +1148,39 @@ export class DBTProject implements Disposable {
       }
     }
     return undefined;
+  }
+
+  /**
+   * Keeps the list of running rebuilds. The adapter emits the end status from
+   * a `finally`, so every start it announces is followed by exactly one end,
+   * and the list holds only rebuilds still running.
+   */
+  private noteRebuildStatus(inProgress: boolean): void {
+    if (inProgress) {
+      this.manifestRebuildStartTimes.push(Date.now());
+    } else {
+      this.manifestRebuildStartTimes.shift();
+    }
+  }
+
+  /**
+   * Records which version of the project files the manifest just parsed can
+   * describe.
+   *
+   * A parse arrives either at the end of a rebuild or because something
+   * rewrote `target/manifest.json`, and the event does not say which rebuild
+   * it belongs to. The oldest rebuild still running is the one it cannot have
+   * started before — and under the project lock, the one whose turn it is — so
+   * that start time is the bound. A parse with no rebuild running is a
+   * manifest rewritten in place, by a `dbt compile` among other things: it
+   * read no version of the files that a rebuild has not already accounted
+   * for, so it leaves the bound where it is rather than moving it to now.
+   */
+  private stampManifestFreshness(): void {
+    const oldestRunning = this.manifestRebuildStartTimes[0];
+    if (oldestRunning !== undefined) {
+      this.manifestBuiltFromFilesAsOf = oldestRunning;
+    }
   }
 
   /**

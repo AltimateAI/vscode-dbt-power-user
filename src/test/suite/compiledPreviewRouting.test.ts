@@ -3,6 +3,7 @@ import { tmpdir } from "os";
 import * as path from "path";
 
 import {
+  afterEach,
   beforeAll,
   beforeEach,
   describe,
@@ -103,6 +104,9 @@ interface ProjectInternals {
     };
   };
   manifestBuiltFromFilesAsOf?: number;
+  manifestRebuildStartTimes: number[];
+  noteRebuildStatus: (inProgress: boolean) => void;
+  stampManifestFreshness: () => void;
   terminal: { debug: (name: string, message: string) => void };
   throwIfNotAuthenticated: () => void;
   getProjectName: () => string;
@@ -143,6 +147,7 @@ function createProject(
         },
       };
   project.manifestBuiltFromFilesAsOf = MANIFEST_BUILT_AT;
+  project.manifestRebuildStartTimes = [];
   project.terminal = { debug: () => undefined };
   project.throwIfNotAuthenticated = () => undefined;
   project.getProjectName = () => PROJECT_NAME;
@@ -257,6 +262,105 @@ describe("previewCanUseNode", () => {
     project.manifestBuiltFromFilesAsOf = undefined;
 
     expect(canUseNodeFor(project, FILES.model, "orders")).toBe(false);
+  });
+});
+
+/**
+ * Which version of the files the manifest in hand was built from is read off
+ * two events: a rebuild's start, and a parse. Neither says which rebuild it
+ * belongs to, and rebuilds overlap — the adapter announces a start before the
+ * rebuild behind it waits for the project lock, so a save landing in that gap
+ * starts a second rebuild while the first is still parsing. Driven here
+ * through exactly what the two handlers do, on a clock the test moves.
+ */
+describe("what the manifest was built from, across overlapping rebuilds", () => {
+  /** A save that lands after the first rebuild started reading the files. */
+  const SAVED_BETWEEN_REBUILDS = 5_000;
+  const FIRST_REBUILD_STARTED = 1_000;
+  const SECOND_REBUILD_STARTED = 5_500;
+
+  let now = FIRST_REBUILD_STARTED;
+  let clock: ReturnType<typeof jest.spyOn>;
+
+  const at = (time: number) => {
+    now = time;
+  };
+
+  beforeEach(() => {
+    now = FIRST_REBUILD_STARTED;
+    clock = jest.spyOn(Date, "now").mockImplementation(() => now);
+  });
+
+  afterEach(() => {
+    clock.mockRestore();
+  });
+
+  /** A project that has parsed a manifest but not yet stamped one. */
+  const projectAwaitingFirstStamp = () => {
+    const { project } = createProject();
+    project.manifestBuiltFromFilesAsOf = undefined;
+    return project;
+  };
+
+  const canUseNodeAfter = (project: PreviewProject, savedAt: number) =>
+    project.previewCanUseNode(filePath(FILES.model), "orders", savedAt, false);
+
+  it("does not credit the first rebuild's manifest with the save that started the second", () => {
+    const project = projectAwaitingFirstStamp();
+
+    at(FIRST_REBUILD_STARTED);
+    project.noteRebuildStatus(true);
+    at(SECOND_REBUILD_STARTED);
+    project.noteRebuildStatus(true);
+    // The first rebuild had the lock, so its parse is the one that lands now,
+    // and it read the files as they were at its own start.
+    project.stampManifestFreshness();
+
+    expect(canUseNodeAfter(project, SAVED_BETWEEN_REBUILDS)).toBe(false);
+
+    project.noteRebuildStatus(false);
+    project.stampManifestFreshness();
+
+    expect(canUseNodeAfter(project, SAVED_BETWEEN_REBUILDS)).toBe(true);
+  });
+
+  it("refuses the node until a rebuild's own parse has said what it read", () => {
+    const project = projectAwaitingFirstStamp();
+
+    at(9_000);
+    project.stampManifestFreshness();
+
+    expect(canUseNodeAfter(project, SAVED_BETWEEN_REBUILDS)).toBe(false);
+  });
+
+  it("does not move forward for a manifest rewritten in place", () => {
+    const project = projectAwaitingFirstStamp();
+
+    at(FIRST_REBUILD_STARTED);
+    project.noteRebuildStatus(true);
+    project.stampManifestFreshness();
+    project.noteRebuildStatus(false);
+    // What a `dbt compile` does to `target/manifest.json`, and what the node
+    // compile this routing asks for therefore does: a parse with no rebuild
+    // behind it. Taking that for a newer manifest is what sets the preview
+    // compiling in a circle.
+    at(9_000);
+    project.stampManifestFreshness();
+
+    expect(canUseNodeAfter(project, SAVED_BETWEEN_REBUILDS)).toBe(false);
+  });
+
+  it("leaves no start time behind for a rebuild that ended without parsing", () => {
+    const project = projectAwaitingFirstStamp();
+
+    at(FIRST_REBUILD_STARTED);
+    project.noteRebuildStatus(true);
+    project.noteRebuildStatus(false);
+    at(SECOND_REBUILD_STARTED);
+    project.noteRebuildStatus(true);
+    project.stampManifestFreshness();
+
+    expect(canUseNodeAfter(project, SAVED_BETWEEN_REBUILDS)).toBe(true);
   });
 });
 
