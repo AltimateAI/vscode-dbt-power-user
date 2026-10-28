@@ -392,12 +392,9 @@ describe("the preview provider, when the manifest changes", () => {
   let canUseNode: boolean;
   let nodeCompileFails: boolean;
   let previewFile: string;
-  /** Resolves when the stub compile has been entered. */
-  let compileEntered: Promise<void>;
-  let announceCompileEntered: () => void;
-  /** Held open by the test that needs a save to land mid-compile. */
-  let compileMayFinish: Promise<void>;
-  let letCompileFinish: () => void;
+  /** Compiles held open, so a test can interleave saves and completions. */
+  let held: { savedAt: number; finish: () => void }[];
+  let holdCompiles: boolean;
 
   const asUri = (file: string) =>
     ({
@@ -406,13 +403,34 @@ describe("the preview provider, when the manifest changes", () => {
       with: () => ({ toString: () => `file:${file}` }),
     }) as unknown as Uri;
 
+  /** Lets queued microtasks run until `count` compiles are waiting. */
+  const untilHeld = async (count: number) => {
+    for (let tick = 0; tick < 100 && held.length < count; tick++) {
+      await Promise.resolve();
+    }
+    expect(held).toHaveLength(count);
+  };
+
+  const saveNow = (offsetMs: number) => {
+    const at = new Date(Date.now() + offsetMs);
+    utimesSync(previewFile, at, at);
+  };
+
   const createProvider = () => {
     const project = {
       refreshProjectConfig: async () => undefined,
       previewCanUseNode: () => canUseNode,
-      compileQueryForPreview: async () => {
-        announceCompileEntered();
-        await compileMayFinish;
+      compileQueryForPreview: async (
+        _query: string,
+        _modelName: string,
+        _file: string,
+        savedAt: number,
+      ) => {
+        if (holdCompiles) {
+          await new Promise<void>((resolve) => {
+            held.push({ savedAt, finish: resolve });
+          });
+        }
         return {
           compiledSql:
             canUseNode && !nodeCompileFails
@@ -440,11 +458,8 @@ describe("the preview provider, when the manifest changes", () => {
     previewFile = filePath(FILES.model);
     canUseNode = false;
     nodeCompileFails = false;
-    compileEntered = new Promise((resolve) => {
-      announceCompileEntered = resolve;
-    });
-    compileMayFinish = Promise.resolve();
-    letCompileFinish = () => undefined;
+    held = [];
+    holdCompiles = false;
   });
 
   it("re-requests a preview the node can now answer, once", async () => {
@@ -464,8 +479,7 @@ describe("the preview provider, when the manifest changes", () => {
 
     canUseNode = true;
     manifestChanged.fire({});
-    const laterSave = new Date(Date.now() + 5000);
-    utimesSync(previewFile, laterSave, laterSave);
+    saveNow(5_000);
     manifestChanged.fire({});
 
     expect(refreshed).toHaveLength(2);
@@ -511,22 +525,48 @@ describe("the preview provider, when the manifest changes", () => {
   it("re-requests a version saved while an earlier compile was still running", async () => {
     // The version recorded as having had the node asked for has to be the one
     // the routing decided on, not whatever is on disk when the compile
-    // returns. Otherwise a save that lands mid-compile is recorded as already
+    // returns. Otherwise a save landing mid-compile is recorded as already
     // tried, and that version's preview never catches up.
     canUseNode = true;
-    compileMayFinish = new Promise((resolve) => {
-      letCompileFinish = resolve;
-    });
+    holdCompiles = true;
     const { provider, refreshed } = createProvider();
     const compiling = provider.provideTextDocumentContent(asUri(previewFile));
-    await compileEntered;
-    const savedDuringTheCompile = new Date(Date.now() + 5000);
-    utimesSync(previewFile, savedDuringTheCompile, savedDuringTheCompile);
-    letCompileFinish();
+    await untilHeld(1);
+    saveNow(5_000);
+    held[0].finish();
     await compiling;
 
     manifestChanged.fire({});
 
     expect(refreshed).toEqual([`query-preview:${previewFile}`]);
+  });
+
+  it("does not let an older compile take back a newer version's record", async () => {
+    // Two requests overlap: one from an edit, one from a manifest change. If
+    // the older one's completion overwrites the newer one's record, the newer
+    // version is requested a second time with nobody having saved in between.
+    canUseNode = true;
+    holdCompiles = true;
+    const { provider, refreshed } = createProvider();
+    const forFirstVersion = provider.provideTextDocumentContent(
+      asUri(previewFile),
+    );
+    await untilHeld(1);
+
+    saveNow(5_000);
+    const forSecondVersion = provider.provideTextDocumentContent(
+      asUri(previewFile),
+    );
+    await untilHeld(2);
+    expect(held[1].savedAt).toBeGreaterThan(held[0].savedAt);
+
+    held[1].finish();
+    await forSecondVersion;
+    held[0].finish();
+    await forFirstVersion;
+
+    manifestChanged.fire({});
+
+    expect(refreshed).toEqual([]);
   });
 });

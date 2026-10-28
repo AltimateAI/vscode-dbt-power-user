@@ -168,6 +168,31 @@ export class SqlPreviewContentProvider
   }
 
   /**
+   * Records what a finished compile establishes about one version of the file:
+   * whether its node was asked for.
+   *
+   * Only the newest version a compile has reached counts. Requests overlap —
+   * an edit and a manifest change can each have one in flight — and a compile
+   * that started before a later one must not take back what the later one
+   * recorded, or that version is requested a second time.
+   */
+  private recordNodeTried(
+    uriString: string,
+    savedAt: number,
+    nodeTried: boolean,
+  ): void {
+    const recorded = this.nodeTriedForVersion.get(uriString);
+    if (recorded !== undefined && recorded > savedAt) {
+      return;
+    }
+    if (nodeTried) {
+      this.nodeTriedForVersion.set(uriString, savedAt);
+    } else {
+      this.nodeTriedForVersion.delete(uriString);
+    }
+  }
+
+  /**
    * When the file was last written. A file that cannot be stat-ed counts as
    * written later than any manifest could have been built, which is what keeps
    * the preview on the editor text for it.
@@ -209,9 +234,10 @@ export class SqlPreviewContentProvider
       // A file the manifest already describes compiles as the node it actually
       // is, so identity-dependent Jinja resolves. Anything else still compiles
       // as written — see `previewCanUseNode`.
+      //
       // One reading of when the file was written, for both the routing and the
-      // record of it. A save during the compile must not be recorded as a
-      // version whose node was asked for, or that version never catches up.
+      // record of it: a save landing during the compile must not be recorded
+      // as a version whose node was asked for, or it never catches up.
       const savedAt = this.savedAt(fsPath);
       const { compiledSql, nodeTried } = await project.compileQueryForPreview(
         query,
@@ -220,11 +246,7 @@ export class SqlPreviewContentProvider
         savedAt,
         document?.isDirty === true,
       );
-      if (nodeTried) {
-        this.nodeTriedForVersion.set(uriString, savedAt);
-      } else {
-        this.nodeTriedForVersion.delete(uriString);
-      }
+      this.recordNodeTried(uriString, savedAt, nodeTried);
       return compiledSql;
     } catch (error: any) {
       const errorMessage = (error as Error).message;
