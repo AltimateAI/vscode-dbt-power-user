@@ -526,12 +526,17 @@ describe("AltimateConnectService setup link", () => {
     expect(window.showErrorMessage).toHaveBeenCalled();
   });
 
-  it("refuses a link to a non-Altimate backend without asking", async () => {
+  it.each([
+    "https://evil.example",
+    "https://docs.myaltimate.com",
+    "https://www.altimate.ai",
+    "https://evilmyaltimate.com",
+    "http://api.getaltimate.com",
+    "https://api.getaltimate.com:8443",
+  ])("refuses a link to %s without asking", async (apiUrl) => {
     const h = harness();
 
-    await h.service.handleUri(
-      setupLink({ ...ENTERPRISE, apiUrl: "https://evil.example" }) as never,
-    );
+    await h.service.handleUri(setupLink({ ...ENTERPRISE, apiUrl }) as never);
 
     expect(window.showInformationMessage).not.toHaveBeenCalled();
     expect(h.settings).toEqual([]);
@@ -847,6 +852,20 @@ describe("AltimateConnectService workspace bind failures", () => {
 
     await h.callback("/workspace-bound", params);
     expect(h.altimateRequest.bindProjectToWorkspace).toHaveBeenCalledTimes(2);
+    expect(h.service.getLinkedWorkspaceId(PROJECT_ROOT)).toBe("42");
+  });
+
+  it("binds once when the same callback arrives twice at once", async () => {
+    const h = harness();
+    await h.service.startWorkspaceLink(PROJECT_ROOT);
+    const params = { state: h.lastState(), workspace_id: "42", tenant: "acme" };
+
+    await Promise.all([
+      h.callback("/workspace-bound", params),
+      h.callback("/workspace-bound", params),
+    ]);
+
+    expect(h.altimateRequest.bindProjectToWorkspace).toHaveBeenCalledTimes(1);
     expect(h.service.getLinkedWorkspaceId(PROJECT_ROOT)).toBe("42");
   });
 

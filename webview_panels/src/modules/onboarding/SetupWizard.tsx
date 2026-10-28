@@ -159,9 +159,18 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
       window.scrollTo(0, 0);
     }, []);
 
+    // The extension can ask for any step; one not reached yet stays out of
+    // reach, as it does in the sidebar.
+    const reachableRef = useRef<(i: number) => boolean>(() => true);
     useImperativeHandle(ref, () => ({
-      navigateToStep: (stepId: string) =>
-        go(STEP_SCREENS[stepId] ?? "connect", "extension"),
+      navigateToStep: (stepId: string) => {
+        const target = ORDER.indexOf(STEP_SCREENS[stepId] ?? "connect");
+        let i = target;
+        while (i > 0 && !reachableRef.current(i)) {
+          i--;
+        }
+        go(ORDER[i], "extension");
+      },
     }));
 
     // The message listener outlives renders, so it reads the current project.
@@ -418,12 +427,15 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
         }
         track("onboardingWorkspaceAction", { action });
         setWorkspace((prev) => ({ ...prev, waiting: true, error: undefined }));
-        void request("startWorkspaceLink", {
+        executeRequestInSync("startWorkspaceLink", {
           projectRoot: project.projectRoot,
-        }).then((started) => {
-          if (!started) {
-            setWorkspace((prev) => ({ ...prev, waiting: false }));
-          }
+        }).catch((err: unknown) => {
+          panelLogger.error("onboarding: startWorkspaceLink failed", err);
+          setWorkspace((prev) => ({
+            ...prev,
+            waiting: false,
+            error: err instanceof Error ? err.message : String(err),
+          }));
         });
       },
       [project],
@@ -454,6 +466,7 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
     // Meet Altimate Code is reachable as soon as the project is done.
     const reachable = (i: number) =>
       i === 0 || (projectDone && i <= Math.max(furthest, 1));
+    reachableRef.current = reachable;
 
     const header: Record<Screen, [string, string]> = {
       connect: [

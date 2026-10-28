@@ -135,7 +135,7 @@ export class AltimateConnectService implements Disposable {
   // user may finish in either browser tab.
   private pendingSignIns = new PendingStates<"login" | "signup">();
   private pendingWorkspaces = new PendingStates<PendingWorkspace>();
-  // Workspace states whose bind is in flight, so a repeated callback waits its turn.
+  // Workspace states whose bind is in flight; a repeated callback is ignored.
   private bindingStates = new Set<string>();
   private readonly _onDidConnectAccount = new EventEmitter<AltimateAccount>();
   readonly onDidConnectAccount = this._onDidConnectAccount.event;
@@ -529,9 +529,11 @@ export class AltimateConnectService implements Disposable {
     }
 
     const { projectRoot } = pending;
-    const remote = await this.getGitRemote(projectRoot);
+    // Claimed before the first await, so a second click cannot also bind.
     this.bindingStates.add(state);
+    let remote: string | undefined;
     try {
+      remote = await this.getGitRemote(projectRoot);
       await this.altimateRequest.bindProjectToWorkspace(
         Number(workspaceId),
         remote,
@@ -672,8 +674,9 @@ export class AltimateConnectService implements Disposable {
   }
 
   /**
-   * The one-time token is posted to the callback-supplied API URL, so only
-   * HTTPS Altimate hosts or the configured backend are accepted.
+   * The one-time token is posted to the callback-supplied API URL, so only the
+   * Altimate API hosts (the `dbt.altimateUrl` options) or the configured
+   * backend are accepted.
    */
   private isTrustedApiUrl(raw: string): boolean {
     let url: URL;
@@ -691,14 +694,12 @@ export class AltimateConnectService implements Disposable {
         return true;
       }
     } catch {
-      // Fall through to the host allow-list.
+      // Fall through to the Altimate API hosts.
     }
-    const host = url.hostname;
     return (
       url.protocol === "https:" &&
-      ["myaltimate.com", "getaltimate.com", "altimate.ai"].some(
-        (domain) => host === domain || host.endsWith(`.${domain}`),
-      )
+      !url.port &&
+      [FREEMIUM_API_HOST, ENTERPRISE_API_HOST].includes(url.hostname)
     );
   }
 
