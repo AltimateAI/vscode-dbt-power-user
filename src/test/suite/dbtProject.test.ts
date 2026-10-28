@@ -100,7 +100,10 @@ jest.mock("vscode", () => {
 jest.mock("../../utils", () => {
   return {
     getProjectRelativePath: jest.fn(() => "test-project"),
-    extendErrorWithSupportLinks: jest.fn((error: any) => error),
+    // The real helper: the docs tests assert its support-link suffix.
+    extendErrorWithSupportLinks:
+      jest.requireActual<typeof import("../../utils")>("../../utils")
+        .extendErrorWithSupportLinks,
     getColumnNameByCase: jest.fn((name: string) => name),
   };
 });
