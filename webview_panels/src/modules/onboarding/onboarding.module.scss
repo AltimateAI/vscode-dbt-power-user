@@ -831,38 +831,40 @@
   }
 }
 
-.accountSignIn {
-  flex-basis: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(240, 112, 48, 0.2);
-}
-
-.accountSignInHead {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.enterpriseTag {
-  font-family: var(--font-code);
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-blue);
-  border: 1px solid var(--color-blue);
-  padding: 3px 7px;
-  border-radius: 3px;
-  white-space: nowrap;
-}
-
 .signInForm {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.textInput.planSelect {
+  flex: 0 0 auto;
+  min-width: 200px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.accountActions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.metaLink {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--fg-heading);
+  cursor: pointer;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 .textInput {

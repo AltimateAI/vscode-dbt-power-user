@@ -30,12 +30,13 @@ const ENTERPRISE_APP_HOST = "app.getaltimate.com";
 // Workspaces are only offered on the freemium deployment, whose SaaS app is
 // served per instance at `<instance>.app.myaltimate.com`.
 const FREEMIUM_API_HOST = "api.myaltimate.com";
+const ENTERPRISE_API_HOST = "api.getaltimate.com";
 const FREEMIUM_APP_HOST = "app.myaltimate.com";
 const APP_HOSTS = [FREEMIUM_APP_HOST, ENTERPRISE_APP_HOST];
 // The SaaS app that goes with each Altimate API host.
 const APP_HOST_BY_API_HOST: Record<string, string> = {
   [FREEMIUM_API_HOST]: FREEMIUM_APP_HOST,
-  "api.getaltimate.com": ENTERPRISE_APP_HOST,
+  [ENTERPRISE_API_HOST]: ENTERPRISE_APP_HOST,
 };
 const WORKSPACE_HANDOFF_PAGE = "/workspaces/create-and-link";
 const TENANT_LABEL_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i;
@@ -50,6 +51,9 @@ export const AUTH_CALLBACK_PATH = "/auth";
 export const WORKSPACE_CALLBACK_PATH = "/workspace-bound";
 /** The SaaS "Open in VS Code" buttons, which carry a one-time sign-in token. */
 export const SETUP_CALLBACK_PATH = "/setup";
+
+/** The Altimate deployment an account is on. */
+export type AltimatePlan = "free" | "enterprise";
 
 export interface AltimateAccount {
   instance: string;
@@ -166,6 +170,42 @@ export class AltimateConnectService implements Disposable {
     await env.openExternal(Uri.parse(url.toString(), true));
   }
 
+  /**
+   * Sign in with an instance and API key typed into the wizard, on the plan the
+   * user picked. Settings are saved only once that backend accepts the key.
+   */
+  async connectWithApiKey(
+    input: string,
+    apiKey: string,
+    plan: AltimatePlan,
+  ): Promise<AltimateAccount> {
+    const key = apiKey.trim();
+    if (!key) {
+      throw new Error("Enter your API key");
+    }
+    const { instance, apiUrl } = this.apiUrlForInstance(input, plan);
+    const result = await this.altimateRequest.validateCredentials(
+      instance,
+      key,
+      apiUrl,
+    );
+    if (!result?.ok) {
+      const message = result?.error ?? result?.detail ?? "Invalid credentials";
+      // Anything but a rejected key is a connection problem; name the host.
+      throw new Error(
+        message.startsWith("Invalid credentials")
+          ? message
+          : `Could not reach ${new URL(apiUrl).host}: ${message}`,
+      );
+    }
+    this.pendingSignIns.clear();
+    await this.saveCredentials(apiUrl, key, instance);
+    this.telemetry.sendTelemetryEvent("onboardingApiKeyConnected", { plan });
+    const account = { instance };
+    this._onDidConnectAccount.fire(account);
+    return account;
+  }
+
   /** Drop sign-ins waiting on the browser, so an abandoned tab can't finish one. */
   cancelSignIn() {
     this.pendingSignIns.clear();
@@ -174,25 +214,6 @@ export class AltimateConnectService implements Disposable {
   /** Whether the workspace handoff is available for the signed-in account. */
   canLinkWorkspace(): boolean {
     return this.supportsBrowserSignIn() && this.workspaceWebUrl() !== undefined;
-  }
-
-  /** The signed-in instance's SaaS app, when it is on a known deployment. */
-  accountAppUrl(): string | undefined {
-    const instance = this.altimateRequest.getInstanceName();
-    if (!instance || !TENANT_LABEL_RE.test(instance)) {
-      return undefined;
-    }
-    try {
-      const appHost =
-        APP_HOST_BY_API_HOST[
-          new URL(this.altimateRequest.getAltimateUrl()).host
-        ];
-      return appHost
-        ? `https://${instance.toLowerCase()}.${appHost}`
-        : undefined;
-    } catch {
-      return undefined;
-    }
   }
 
   /** Open the SaaS page that creates a workspace and links it to the project. */
@@ -414,6 +435,30 @@ export class AltimateConnectService implements Disposable {
       );
     }
     return new URL(`https://${host}`);
+  }
+
+  /** The instance and the API host of the chosen plan, from what the user typed. */
+  private apiUrlForInstance(
+    input: string,
+    plan: AltimatePlan,
+  ): { instance: string; apiUrl: string } {
+    const planApiHost =
+      plan === "enterprise" ? ENTERPRISE_API_HOST : FREEMIUM_API_HOST;
+    const value = input.trim().toLowerCase();
+    let instance = value;
+    if (!TENANT_LABEL_RE.test(value)) {
+      const [label, ...rest] = this.instanceAppUrl(value).hostname.split(".");
+      if (rest.join(".") !== APP_HOST_BY_API_HOST[planApiHost]) {
+        throw new Error(
+          plan === "enterprise"
+            ? `${value} is not an Enterprise address. Choose Community, Pro or Team, or enter just the instance name.`
+            : `${value} is not a Community, Pro or Team address. Choose Enterprise, or enter just the instance name.`,
+        );
+      }
+      instance = label;
+    }
+    // The picked plan decides, so a stale `dbt.altimateUrl` can't redirect it.
+    return { instance, apiUrl: `https://${planApiHost}` };
   }
 
   private async completeWorkspaceLink(params: URLSearchParams) {

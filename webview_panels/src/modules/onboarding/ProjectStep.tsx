@@ -7,6 +7,17 @@ import { Icon } from "./icons";
 import classes from "./onboarding.module.scss";
 import { Button, CheckStatus, ExternalLink, StatusIcon } from "./ui";
 
+const SIGN_UP_URL = "https://app.myaltimate.com/register";
+
+/** The Altimate deployment an account is on. */
+export type AltimatePlan = "free" | "enterprise";
+
+/** Community, Pro and Team share the app.myaltimate.com deployment. */
+const PLANS: [AltimatePlan, string][] = [
+  ["free", "Community, Pro or Team plan"],
+  ["enterprise", "Enterprise"],
+];
+
 export interface Project {
   name: string;
   projectRoot: string;
@@ -27,6 +38,8 @@ export interface AccountState {
   /** Why the last sign-in could not start. */
   error?: string;
   email?: string;
+  /** The last characters of the saved API key. */
+  keyHint?: string;
   /** Signed in before this wizard run, rather than through it. */
   existing?: boolean;
 }
@@ -173,13 +186,16 @@ interface ProjectStepProps {
   validation: ValidationState;
   onValidate: () => void;
   account: AccountState;
-  /** The signed-in instance's SaaS app. */
-  appUrl?: string;
   /** False in editors the SaaS cannot redirect back to after sign-in. */
   supportsBrowserSignIn: boolean;
   onCreateAccount: (instance?: string) => void;
   onCancelSignIn: () => void;
-  onRecheckAccount: () => void;
+  /** Resolves to the error when the key is not accepted. */
+  onConnectWithKey: (
+    instance: string,
+    apiKey: string,
+    plan: AltimatePlan,
+  ) => Promise<string | undefined>;
 }
 
 const ProjectStep = ({
@@ -189,11 +205,10 @@ const ProjectStep = ({
   validation,
   onValidate,
   account,
-  appUrl,
   supportsBrowserSignIn,
   onCreateAccount,
   onCancelSignIn,
-  onRecheckAccount,
+  onConnectWithKey,
 }: ProjectStepProps): JSX.Element => {
   const [diagnostics, setDiagnostics] = useState<DiagnosticsStatus>();
   const [checking, setChecking] = useState(false);
@@ -204,6 +219,48 @@ const ProjectStep = ({
   const [installing, setInstalling] = useState(false);
   const [installFailed, setInstallFailed] = useState(false);
   const [instanceInput, setInstanceInput] = useState("");
+  const [keyInput, setKeyInput] = useState("");
+  const [showKeyForm, setShowKeyForm] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [keyError, setKeyError] = useState<string>();
+  const [plan, setPlan] = useState<AltimatePlan>("free");
+  // Editors the browser cannot sign in to only offer the key form.
+  const keyForm = showKeyForm || !supportsBrowserSignIn;
+
+  const closeKeyForm = () => {
+    setShowKeyForm(false);
+    setInstanceInput("");
+    setKeyInput("");
+    setKeyError(undefined);
+    setPlan("free");
+  };
+
+  /** Enterprise instances can also sign in on their login page. */
+  const signInWithBrowser = () => {
+    const instance = instanceInput.trim();
+    if (!instance) {
+      setKeyError("Enter your instance name");
+      return;
+    }
+    onCreateAccount(instance);
+  };
+
+  const connect = async () => {
+    const instance = instanceInput.trim();
+    const apiKey = keyInput.trim();
+    if (!instance || !apiKey || connecting) {
+      return;
+    }
+    setConnecting(true);
+    setKeyError(undefined);
+    const error = await onConnectWithKey(instance, apiKey, plan);
+    setConnecting(false);
+    if (error) {
+      setKeyError(error);
+    } else {
+      setKeyInput("");
+    }
+  };
 
   // An instance from settings or a failed attempt pre-fills sign-in.
   useEffect(() => {
@@ -722,32 +779,7 @@ const ProjectStep = ({
           validation.state === "done" ? "" : classes.accountRowLocked,
         ].join(" ")}
       >
-        {account.state === "idle" && !supportsBrowserSignIn && (
-          <div className={classes.accountCard}>
-            <img src={AltimateLogo} alt="Altimate" />
-            <div className={classes.accountText}>
-              <span className={classes.accountTitle}>
-                Add your Altimate API key
-              </span>
-              <span className={classes.accountDesc}>
-                This editor cannot receive a sign-in from the browser. Copy the
-                API key and instance name from Settings → API Keys in your
-                Altimate app into the extension settings.
-              </span>
-            </div>
-            <Button nav onClick={() => void request("openAltimateSettings")}>
-              Open Settings
-            </Button>
-            <button
-              type="button"
-              className={[classes.linkAction, classes.accountLink].join(" ")}
-              onClick={onRecheckAccount}
-            >
-              Check again
-            </button>
-          </div>
-        )}
-        {account.state === "idle" && supportsBrowserSignIn && (
+        {account.state === "idle" && (
           <div className={classes.accountCard}>
             <img src={AltimateLogo} alt="Altimate" />
             <div className={classes.accountText}>
@@ -756,64 +788,140 @@ const ProjectStep = ({
               </span>
               <span className={classes.accountDesc}>
                 Unlocks Altimate Code, an AI agent for data work that runs
-                locally on your machine. Free, no credit card.
+                locally on your machine. No data is shared. Free, no credit
+                card.
               </span>
-            </div>
-            <Button nav external onClick={() => onCreateAccount()}>
-              Create Altimate Account
-            </Button>
-            <div className={classes.accountSignIn}>
-              <div className={classes.accountSignInHead}>
-                <span className={classes.enterpriseTag}>Enterprise</span>
-                <span className={classes.accountTitle}>
-                  Already have an Altimate account? Sign in to your instance
-                </span>
-              </div>
-              <span className={classes.accountDesc}>
-                Enter your instance name or the address you log in at. On the
-                free plan, use the full address, like acme.app.myaltimate.com.
-              </span>
-              <form
-                className={classes.signInForm}
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const instance = instanceInput.trim();
-                  if (instance) {
-                    onCreateAccount(instance);
-                  }
-                }}
-              >
-                <input
-                  className={classes.textInput}
-                  value={instanceInput}
-                  onChange={(e) => setInstanceInput(e.target.value)}
-                  placeholder="acme or acme.app.getaltimate.com"
-                  aria-label="Instance name or URL"
-                />
-                <Button
-                  nav
-                  variant="secondary"
-                  external
-                  disabled={!instanceInput.trim()}
-                  onClick={() => onCreateAccount(instanceInput.trim())}
+              {keyForm ? (
+                <form
+                  className={classes.signInForm}
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void connect();
+                  }}
                 >
-                  Sign In
-                </Button>
-              </form>
-              {account.error && (
+                  <input
+                    className={classes.textInput}
+                    value={instanceInput}
+                    onChange={(e) => setInstanceInput(e.target.value)}
+                    placeholder="Instance name"
+                    aria-label="Instance name"
+                    autoComplete="off"
+                  />
+                  <input
+                    className={classes.textInput}
+                    type="password"
+                    value={keyInput}
+                    onChange={(e) => setKeyInput(e.target.value)}
+                    placeholder="API key"
+                    aria-label="API key"
+                    autoComplete="off"
+                  />
+                  <select
+                    className={[classes.textInput, classes.planSelect].join(
+                      " ",
+                    )}
+                    value={plan}
+                    onChange={(e) => {
+                      setPlan(e.target.value as AltimatePlan);
+                      setKeyError(undefined);
+                    }}
+                    aria-label="Altimate plan"
+                  >
+                    {PLANS.map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                  {/* Submits on Enter; the visible Connect button sits beside the card text. */}
+                  <button type="submit" hidden />
+                </form>
+              ) : null}
+              {(keyError ?? account.error) && (
                 <span
                   className={[classes.checkDetail, classes.detailError].join(
                     " ",
                   )}
                 >
-                  {account.error}
+                  {keyError ?? account.error}
                 </span>
               )}
               <span className={classes.accountMeta}>
-                Or open Settings → API Keys in your Altimate app and click Open
-                in VS Code.
+                {keyForm ? (
+                  <>
+                    Find both in your Altimate app under Settings → API Keys.
+                    {plan === "enterprise" && supportsBrowserSignIn && (
+                      <>
+                        {" "}
+                        Or{" "}
+                        <button
+                          type="button"
+                          className={classes.metaLink}
+                          onClick={signInWithBrowser}
+                        >
+                          sign in with your browser
+                        </button>
+                      </>
+                    )}
+                    {plan === "free" && !supportsBrowserSignIn && (
+                      <>
+                        {" "}
+                        No account yet?{" "}
+                        <a
+                          className={classes.metaLink}
+                          href={SIGN_UP_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Create one
+                        </a>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    Community, Pro or Team · opens in your browser.
+                    <br />
+                    Enterprise, or have an API key?{" "}
+                    <button
+                      type="button"
+                      className={classes.metaLink}
+                      onClick={() => setShowKeyForm(true)}
+                    >
+                      Enter your details
+                    </button>
+                  </>
+                )}
               </span>
             </div>
+            {keyForm ? (
+              <div className={classes.accountActions}>
+                <Button
+                  nav
+                  disabled={
+                    connecting || !instanceInput.trim() || !keyInput.trim()
+                  }
+                  onClick={() => void connect()}
+                >
+                  {connecting ? "Connecting…" : "Connect"}
+                </Button>
+                {supportsBrowserSignIn && (
+                  <button
+                    type="button"
+                    className={[classes.mutedAction, classes.accountLink].join(
+                      " ",
+                    )}
+                    onClick={closeKeyForm}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            ) : (
+              <Button nav external onClick={() => onCreateAccount()}>
+                Continue with Altimate
+              </Button>
+            )}
           </div>
         )}
         {account.state === "waiting" && (
@@ -857,15 +965,22 @@ const ProjectStep = ({
                 {account.existing ? "Signed in to Altimate" : "Account created"}
               </span>
               <span className={classes.accountMeta}>
-                {account.email ?? account.instance}
+                {[
+                  account.email,
+                  account.instance && `instance ${account.instance}`,
+                  account.keyHint && `key ••••${account.keyHint}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
               </span>
             </div>
-            <ExternalLink
-              href={appUrl ?? "https://app.myaltimate.com"}
-              className={classes.accountLink}
+            <button
+              type="button"
+              className={[classes.linkAction, classes.accountLink].join(" ")}
+              onClick={() => void request("openAltimateSettings")}
             >
-              Open Altimate
-            </ExternalLink>
+              Manage
+            </button>
           </div>
         )}
       </div>

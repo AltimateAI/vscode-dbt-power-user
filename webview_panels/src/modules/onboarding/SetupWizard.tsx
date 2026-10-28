@@ -16,6 +16,7 @@ import MeetCodeStep from "./MeetCodeStep";
 import classes from "./onboarding.module.scss";
 import ProjectStep, {
   AccountState,
+  AltimatePlan,
   Project,
   ValidationState,
 } from "./ProjectStep";
@@ -69,9 +70,9 @@ export interface SavedState {
 interface AltimateState {
   signedIn: boolean;
   instance: string;
+  keyHint?: string;
   canLinkWorkspace: boolean;
   supportsBrowserSignIn: boolean;
-  appUrl?: string;
   workspaceId?: string;
 }
 
@@ -132,7 +133,6 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
     const [account, setAccount] = useState<AccountState>({ state: "idle" });
     const [canLinkWorkspace, setCanLinkWorkspace] = useState(true);
     const [supportsBrowserSignIn, setSupportsBrowserSignIn] = useState(true);
-    const [appUrl, setAppUrl] = useState<string>();
     const [workspace, setWorkspace] = useState<WorkspaceState>({
       waiting: false,
       skipped: !!saved.workspaceSkipped,
@@ -180,7 +180,6 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
       if (state) {
         setCanLinkWorkspace(state.canLinkWorkspace);
         setSupportsBrowserSignIn(state.supportsBrowserSignIn);
-        setAppUrl(state.appUrl);
       }
       return state;
     }, []);
@@ -206,6 +205,7 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
               : {
                   state: "connected",
                   instance: state.instance,
+                  keyHint: state.keyHint,
                   existing: true,
                 },
           );
@@ -237,6 +237,11 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
           // Workspace links belong to an account, so re-read this project's.
           const projectRoot = projectRootRef.current;
           void loadAltimateState(projectRoot).then((state) => {
+            setAccount((prev) =>
+              prev.state === "connected"
+                ? { ...prev, keyHint: state?.keyHint }
+                : prev,
+            );
             if (projectRootRef.current === projectRoot) {
               setWorkspace((prev) => ({
                 ...prev,
@@ -346,6 +351,23 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
       }
     }, []);
 
+    /** Sign in with an instance and API key; resolves to the error, if any. */
+    const connectWithKey = useCallback(
+      async (instance: string, apiKey: string, plan: AltimatePlan) => {
+        try {
+          await executeRequestInSync("connectAltimateApiKey", {
+            instance,
+            apiKey,
+            plan,
+          });
+          return undefined;
+        } catch (err) {
+          return err instanceof Error ? err.message : String(err);
+        }
+      },
+      [],
+    );
+
     /** Leave a sign-in that is waiting on the browser, to start a different one. */
     const cancelSignIn = useCallback(() => {
       // The abandoned browser tab must not sign in after all.
@@ -402,7 +424,7 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
         validated
           ? signedIn
             ? `${projectName} is ready, and your Altimate account is connected.`
-            : `${projectName} is ready. Last thing: create your free Altimate account.`
+            : `${projectName} is ready. Last thing: connect your Altimate account.`
           : "Check your setup, validate the project, then connect your Altimate account.",
       ],
       code: [
@@ -430,7 +452,7 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
                 ? "Validate the project to continue"
                 : account.state === "waiting"
                   ? "Waiting for your browser"
-                  : "Create an account to continue",
+                  : "Connect your Altimate account to continue",
             hintOk: projectDone,
             primary: (
               <Button disabled={!projectDone} onClick={() => go("code")}>
@@ -572,23 +594,10 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
                   validation={validation}
                   onValidate={() => void validate()}
                   account={account}
-                  appUrl={appUrl}
                   supportsBrowserSignIn={supportsBrowserSignIn}
                   onCreateAccount={(instance) => void createAccount(instance)}
                   onCancelSignIn={cancelSignIn}
-                  onRecheckAccount={() =>
-                    void loadAltimateState(project?.projectRoot).then(
-                      (state) => {
-                        if (state?.signedIn) {
-                          setAccount({
-                            state: "connected",
-                            instance: state.instance,
-                            existing: true,
-                          });
-                        }
-                      },
-                    )
-                  }
+                  onConnectWithKey={connectWithKey}
                 />
               </div>
               {screen === "code" && <MeetCodeStep />}
@@ -597,6 +606,7 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
                   projectName={projectName}
                   state={workspace}
                   canLinkWorkspace={canLinkWorkspace}
+                  supportsBrowserSignIn={supportsBrowserSignIn}
                   onOpenAgain={linkWorkspace}
                 />
               )}

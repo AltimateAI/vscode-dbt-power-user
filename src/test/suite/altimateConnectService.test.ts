@@ -56,6 +56,11 @@ const harness = (opts: { altimateUrl?: string; instance?: string } = {}) => {
     })),
     bindProjectToWorkspace: jest.fn(async () => ({})),
     findProjectBinding: jest.fn(async (): Promise<unknown> => undefined),
+    validateCredentials: jest.fn(
+      async (..._args: unknown[]): Promise<Record<string, unknown>> => ({
+        ok: true,
+      }),
+    ),
   };
   const dbtProjectContainer = {
     getProjects: () => [
@@ -220,6 +225,128 @@ describe("AltimateConnectService instance sign-in", () => {
       expect(h.opened).toEqual([]);
     },
   );
+});
+
+describe("AltimateConnectService API key sign-in", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("saves a free-plan key once the free-plan backend accepts it", async () => {
+    const h = harness();
+    const connected = jest.fn();
+    h.service.onDidConnectAccount(connected);
+
+    await h.service.connectWithApiKey(" Acme ", " key-abc ", "free");
+
+    expect(h.altimateRequest.validateCredentials).toHaveBeenCalledTimes(1);
+    expect(h.altimateRequest.validateCredentials).toHaveBeenCalledWith(
+      "acme",
+      "key-abc",
+      "https://api.myaltimate.com",
+    );
+    expect(h.settings).toEqual([
+      ["altimateUrl", "https://api.myaltimate.com", ConfigurationTarget.Global],
+      ["altimateAiKey", "key-abc", ConfigurationTarget.Global],
+      ["altimateInstanceName", "acme", ConfigurationTarget.Global],
+    ]);
+    expect(connected).toHaveBeenCalledWith({ instance: "acme" });
+  });
+
+  it("checks an enterprise key only on the enterprise backend", async () => {
+    const h = harness();
+
+    await h.service.connectWithApiKey("acme", "key-abc", "enterprise");
+
+    expect(h.altimateRequest.validateCredentials).toHaveBeenCalledTimes(1);
+    expect(h.altimateRequest.validateCredentials).toHaveBeenCalledWith(
+      "acme",
+      "key-abc",
+      "https://api.getaltimate.com",
+    );
+    expect(h.settings[0]).toEqual([
+      "altimateUrl",
+      "https://api.getaltimate.com",
+      ConfigurationTarget.Global,
+    ]);
+  });
+
+  it("takes the instance from an address on the chosen plan", async () => {
+    const h = harness();
+
+    await h.service.connectWithApiKey(
+      "https://sandbox.app.myaltimate.com/settings",
+      "key-abc",
+      "free",
+    );
+
+    expect(h.altimateRequest.validateCredentials).toHaveBeenCalledWith(
+      "sandbox",
+      "key-abc",
+      "https://api.myaltimate.com",
+    );
+  });
+
+  it("rejects an address from the other plan", async () => {
+    const h = harness();
+
+    await expect(
+      h.service.connectWithApiKey(
+        "acme.app.myaltimate.com",
+        "key-abc",
+        "enterprise",
+      ),
+    ).rejects.toThrow("is not an Enterprise address");
+    expect(h.altimateRequest.validateCredentials).not.toHaveBeenCalled();
+  });
+
+  it("uses the picked plan's backend over a configured one", async () => {
+    const h = harness({ altimateUrl: "http://host.docker.internal:5001" });
+
+    await h.service.connectWithApiKey("sandbox", "key-abc", "free");
+
+    expect(h.altimateRequest.validateCredentials).toHaveBeenCalledWith(
+      "sandbox",
+      "key-abc",
+      "https://api.myaltimate.com",
+    );
+  });
+
+  it("names the host when the backend cannot be reached", async () => {
+    const h = harness();
+    h.altimateRequest.validateCredentials.mockResolvedValue({
+      error: "fetch failed",
+    });
+
+    await expect(
+      h.service.connectWithApiKey("sandbox", "key-abc", "free"),
+    ).rejects.toThrow("Could not reach api.myaltimate.com: fetch failed");
+    expect(h.settings).toEqual([]);
+  });
+
+  it("saves nothing and reports the error for a rejected key", async () => {
+    const h = harness();
+    h.altimateRequest.validateCredentials.mockResolvedValue({
+      error:
+        "Invalid credentials. Please check your API key and instance name.",
+    });
+
+    await expect(
+      h.service.connectWithApiKey("acme", "bad", "free"),
+    ).rejects.toThrow(
+      "Invalid credentials. Please check your API key and instance name.",
+    );
+    expect(h.settings).toEqual([]);
+  });
+
+  it("refuses an address that is not an Altimate app", async () => {
+    const h = harness();
+
+    await expect(
+      h.service.connectWithApiKey("acme.evil.com", "key-abc", "free"),
+    ).rejects.toThrow("is not an Altimate URL");
+    expect(h.altimateRequest.validateCredentials).not.toHaveBeenCalled();
+  });
 });
 
 describe("AltimateConnectService setup link", () => {
@@ -543,14 +670,6 @@ describe("AltimateConnectService review fixes", () => {
       "Replace Sign-In",
     );
     expect(h.altimateRequest.exchangeSocialToken).toHaveBeenCalled();
-  });
-
-  it.each([
-    ["https://api.myaltimate.com", "https://acme.app.myaltimate.com"],
-    ["https://api.getaltimate.com", "https://acme.app.getaltimate.com"],
-    ["http://localhost:5001", undefined],
-  ])("links %s accounts to %s", (altimateUrl, expected) => {
-    expect(harness({ altimateUrl }).service.accountAppUrl()).toBe(expected);
   });
 
   it("offers no browser sign-in or workspace in editors the SaaS cannot reach", () => {

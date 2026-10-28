@@ -26,7 +26,10 @@ import {
 } from "../dbt_client/dbtProjectContainer";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
-import { AltimateConnectService } from "../services/altimateConnectService";
+import {
+  AltimateConnectService,
+  AltimatePlan,
+} from "../services/altimateConnectService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
@@ -583,10 +586,11 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             data: {
               signedIn: this.altimateAuthService.isAuthenticated(),
               instance: this.altimateRequest.getInstanceName() ?? "",
+              // Only the last characters, to tell keys apart.
+              keyHint: this.altimateRequest.getAIKey()?.slice(-4),
               canLinkWorkspace: this.altimateConnectService.canLinkWorkspace(),
               supportsBrowserSignIn:
                 this.altimateConnectService.supportsBrowserSignIn(),
-              appUrl: this.altimateConnectService.accountAppUrl(),
               workspaceId: projectRoot
                 ? this.altimateConnectService.getLinkedWorkspaceId(projectRoot)
                 : undefined,
@@ -612,6 +616,36 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           syncRequestId,
           data: { success: true },
         });
+        break;
+      case "connectAltimateApiKey":
+        try {
+          const { instance, apiKey, plan } = message as HandleCommandProps & {
+            instance: string;
+            apiKey: string;
+            plan: AltimatePlan;
+          };
+          const account = await this.altimateConnectService.connectWithApiKey(
+            instance,
+            apiKey,
+            plan,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: account,
+          });
+        } catch (error) {
+          this.dbtTerminal.debug(
+            "connectAltimateApiKey",
+            "Could not connect with the API key",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
         break;
       case "startAltimateSignIn":
       case "startWorkspaceLink":

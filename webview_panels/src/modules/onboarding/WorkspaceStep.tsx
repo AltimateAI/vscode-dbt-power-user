@@ -33,6 +33,8 @@ interface WorkspaceStepProps {
   projectName: string;
   state: WorkspaceState;
   canLinkWorkspace: boolean;
+  /** False in editors the SaaS cannot redirect back to, like code-server. */
+  supportsBrowserSignIn: boolean;
   onOpenAgain: () => void;
 }
 
@@ -40,6 +42,7 @@ const WorkspaceStep = ({
   projectName,
   state,
   canLinkWorkspace,
+  supportsBrowserSignIn,
   onOpenAgain,
 }: WorkspaceStepProps): JSX.Element => (
   <div>
@@ -78,7 +81,9 @@ const WorkspaceStep = ({
                 ? "Finish in your browser"
                 : canLinkWorkspace
                   ? `Create a workspace for ${projectName}`
-                  : "Workspaces are not available here yet"}
+                  : supportsBrowserSignIn
+                    ? "Workspaces are not available here yet"
+                    : "Create workspaces from VS Code or Cursor"}
           </span>
           <span className={classes.accountDesc}>
             {state.linkedId
@@ -87,7 +92,9 @@ const WorkspaceStep = ({
                 ? `This page updates when the workspace is linked to ${projectName}.`
                 : canLinkWorkspace
                   ? `Build a workspace for ${projectName}: add your conventions, best practices and definitions so the AI follows your organization's context. Opens in your browser. You can also do this later from the Altimate panel.`
-                  : "Creating one here needs a free-plan Altimate instance, in VS Code or Cursor. You can continue without one."}
+                  : supportsBrowserSignIn
+                    ? "Creating one here needs a free-plan Altimate instance. You can continue without one."
+                    : "This editor runs in the browser, so it cannot receive the workspace link back from Altimate. Create it from desktop VS Code or Cursor, or continue without one."}
           </span>
           {state.error && !state.waiting && (
             <span
