@@ -1218,14 +1218,18 @@ export class DBTProject implements Disposable {
 
   /**
    * Compile for the Compiled SQL preview: from the real node where that is
-   * sound, from the editor text otherwise. The caller is told which it got,
-   * because a preview built from the editor text goes stale the moment the
-   * node becomes usable for that file.
+   * sound, from the editor text otherwise.
    *
    * A node compile that throws falls back to the editor text too. That is what
    * the preview did before this routing existed, so a node the check accepts
    * but dbt still declines to resolve costs an extra compile rather than an
    * error that yesterday's preview did not produce.
+   *
+   * `nodeTried` says whether the node was asked, not whether it answered: a
+   * preview that got this far has had the node's best attempt at this version
+   * of the file, and no later manifest can improve on it. The caller needs
+   * that rather than the source of the SQL, because a preview it re-requests
+   * on a manifest change compiles, and a compile is another manifest change.
    *
    * Guards match `unsafeCompileQuery`, which this replaces at the preview call
    * site, so routing is the only thing that changes.
@@ -1235,14 +1239,19 @@ export class DBTProject implements Disposable {
     modelName: string,
     filePath: string,
     hasUnsavedEdits: boolean,
-  ): Promise<{ compiledSql: string; fromNode: boolean }> {
+  ): Promise<{ compiledSql: string; nodeTried: boolean }> {
     this.throwIfNotAuthenticated();
-    if (this.previewCanUseNode(filePath, modelName, hasUnsavedEdits)) {
+    const nodeTried = this.previewCanUseNode(
+      filePath,
+      modelName,
+      hasUnsavedEdits,
+    );
+    if (nodeTried) {
       try {
         return {
           compiledSql:
             await this.dbtProjectIntegration.unsafeCompileNode(modelName),
-          fromNode: true,
+          nodeTried,
         };
       } catch (error) {
         this.terminal.debug(
@@ -1257,7 +1266,7 @@ export class DBTProject implements Disposable {
         query,
         modelName,
       ),
-      fromNode: false,
+      nodeTried,
     };
   }
 

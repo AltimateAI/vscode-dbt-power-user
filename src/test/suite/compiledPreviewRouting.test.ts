@@ -93,7 +93,7 @@ interface PreviewProject {
     modelName: string,
     file: string,
     hasUnsavedEdits: boolean,
-  ): Promise<{ compiledSql: string; fromNode: boolean }>;
+  ): Promise<{ compiledSql: string; nodeTried: boolean }>;
 }
 
 /** The parts of `DBTProject` this routing reads, and nothing else. */
@@ -288,7 +288,7 @@ describe("compileQueryForPreview", () => {
 
     expect(compiled).toEqual({
       compiledSql: "compiled from the node",
-      fromNode: true,
+      nodeTried: true,
     });
     expect(unsafeCompileNode).toHaveBeenCalledWith("orders");
     expect(unsafeCompileQuery).not.toHaveBeenCalled();
@@ -306,15 +306,18 @@ describe("compileQueryForPreview", () => {
 
     expect(compiled).toEqual({
       compiledSql: "compiled from the buffer",
-      fromNode: false,
+      nodeTried: false,
     });
     expect(unsafeCompileQuery).toHaveBeenCalledWith(SQL, "orders");
     expect(unsafeCompileNode).not.toHaveBeenCalled();
   });
 
-  it("falls back to the editor text when the node compile throws", async () => {
+  it("falls back to the editor text when the node compile throws, and still counts the node as tried", async () => {
     // Whatever the check lets through that dbt still declines to resolve costs
     // an extra compile rather than an error the preview did not produce before.
+    // The node was asked, though, and no later manifest improves on its
+    // answer — re-requesting the preview for that would compile again, and a
+    // compile is another manifest change.
     const { project, unsafeCompileNode, unsafeCompileQuery } = createProject({
       nodeCompileFails: true,
     });
@@ -328,7 +331,7 @@ describe("compileQueryForPreview", () => {
 
     expect(compiled).toEqual({
       compiledSql: "compiled from the buffer",
-      fromNode: false,
+      nodeTried: true,
     });
     expect(unsafeCompileNode).toHaveBeenCalledWith("orders");
     expect(unsafeCompileQuery).toHaveBeenCalledWith(SQL, "orders");
@@ -350,7 +353,7 @@ describe("compileQueryForPreview", () => {
       false,
     );
 
-    expect(compiled.fromNode).toBe(true);
+    expect(compiled.nodeTried).toBe(true);
     expect(unsafeCompileNode).toHaveBeenCalledWith("orders");
   });
 });
@@ -393,7 +396,7 @@ describe("hasUnsavedEdits, as the preview provider derives it", () => {
 describe("the preview provider, when the manifest changes", () => {
   const manifestChanged = new EventEmitter<ManifestCacheChangedEvent>();
   let canUseNode: boolean;
-  let fromNode: boolean;
+  let nodeCompileFails: boolean;
   let previewFile: string;
 
   const asUri = (file: string) =>
@@ -408,10 +411,11 @@ describe("the preview provider, when the manifest changes", () => {
       refreshProjectConfig: async () => undefined,
       previewCanUseNode: () => canUseNode,
       compileQueryForPreview: async () => ({
-        compiledSql: fromNode
-          ? "compiled from the node"
-          : "compiled from the buffer",
-        fromNode,
+        compiledSql:
+          canUseNode && !nodeCompileFails
+            ? "compiled from the node"
+            : "compiled from the buffer",
+        nodeTried: canUseNode,
       }),
     };
     const container = {
@@ -431,7 +435,7 @@ describe("the preview provider, when the manifest changes", () => {
   beforeEach(() => {
     previewFile = filePath(FILES.model);
     canUseNode = false;
-    fromNode = false;
+    nodeCompileFails = false;
   });
 
   it("re-requests a preview the node can now answer, once", async () => {
@@ -439,7 +443,6 @@ describe("the preview provider, when the manifest changes", () => {
     await provider.provideTextDocumentContent(asUri(previewFile));
 
     canUseNode = true;
-    fromNode = true;
     manifestChanged.fire({});
     manifestChanged.fire({});
 
@@ -451,7 +454,6 @@ describe("the preview provider, when the manifest changes", () => {
     await provider.provideTextDocumentContent(asUri(previewFile));
 
     canUseNode = true;
-    fromNode = true;
     manifestChanged.fire({});
     const laterSave = new Date(Date.now() + 5000);
     utimesSync(previewFile, laterSave, laterSave);
@@ -462,7 +464,6 @@ describe("the preview provider, when the manifest changes", () => {
 
   it("leaves a preview already built from the node alone", async () => {
     canUseNode = true;
-    fromNode = true;
     const { provider, refreshed } = createProvider();
     await provider.provideTextDocumentContent(asUri(previewFile));
 
@@ -476,6 +477,28 @@ describe("the preview provider, when the manifest changes", () => {
     await provider.provideTextDocumentContent(asUri(previewFile));
 
     manifestChanged.fire({});
+
+    expect(refreshed).toEqual([]);
+  });
+
+  it("stops after one try at a node whose compile throws", async () => {
+    // The fallback is itself a `dbt compile` on the command-line integrations,
+    // so it rewrites `target/manifest.json` and arrives back here. A node that
+    // keeps throwing for a file nobody has saved since would otherwise be
+    // re-requested for as long as the preview stays open.
+    canUseNode = true;
+    nodeCompileFails = true;
+    const { provider, refreshed } = createProvider();
+    await provider.provideTextDocumentContent(asUri(previewFile));
+
+    for (
+      let compileWroteTheManifest = 0;
+      compileWroteTheManifest < 4;
+      compileWroteTheManifest++
+    ) {
+      manifestChanged.fire({});
+      await provider.provideTextDocumentContent(asUri(previewFile));
+    }
 
     expect(refreshed).toEqual([]);
   });

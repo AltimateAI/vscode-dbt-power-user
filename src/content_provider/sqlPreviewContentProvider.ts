@@ -25,11 +25,12 @@ export class SqlPreviewContentProvider
   private subscriptions: Disposable[] = [];
   private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
   /**
-   * For each preview already served from its model's node, the modification
-   * time the file had then. A preview missing from here is showing editor
-   * text, so it is the one a fresh manifest can improve.
+   * For each preview whose model's node has already been asked about the
+   * version of the file now on disk, that file's modification time. A preview
+   * missing from here is showing editor text the node was never asked for, so
+   * it is the one a fresh manifest can improve.
    */
-  private nodeServedForMtime: Map<string, number> = new Map();
+  private nodeTriedForMtime: Map<string, number> = new Map();
 
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -91,7 +92,7 @@ export class SqlPreviewContentProvider
         for (const [uriString] of this.compilationDocs.entries()) {
           if (!visiblePreviewUris.has(uriString)) {
             this.compilationDocs.delete(uriString);
-            this.nodeServedForMtime.delete(uriString);
+            this.nodeTriedForMtime.delete(uriString);
             const timer = this.debounceTimers.get(uriString);
             if (timer) {
               clearTimeout(timer);
@@ -157,13 +158,13 @@ export class SqlPreviewContentProvider
           continue;
         }
         const savedAt = statSync(fsPath).mtimeMs;
-        if (this.nodeServedForMtime.get(uriString) === savedAt) {
+        if (this.nodeTriedForMtime.get(uriString) === savedAt) {
           continue;
         }
         // Claimed before the request, not after it: the compile it leads to
         // rewrites `target/manifest.json` on the command-line integrations,
         // and that is another manifest change arriving here.
-        this.nodeServedForMtime.set(uriString, savedAt);
+        this.nodeTriedForMtime.set(uriString, savedAt);
         this._onDidChange.fire(previewUri);
       } catch (error) {
         // A preview whose file has gone is dropped when its editor closes.
@@ -200,16 +201,16 @@ export class SqlPreviewContentProvider
       // A file the manifest already describes compiles as the node it actually
       // is, so identity-dependent Jinja resolves. Anything else still compiles
       // as written — see `previewCanUseNode`.
-      const { compiledSql, fromNode } = await project.compileQueryForPreview(
+      const { compiledSql, nodeTried } = await project.compileQueryForPreview(
         query,
         modelName,
         fsPath,
         document?.isDirty === true,
       );
-      if (fromNode) {
-        this.nodeServedForMtime.set(uriString, statSync(fsPath).mtimeMs);
+      if (nodeTried) {
+        this.nodeTriedForMtime.set(uriString, statSync(fsPath).mtimeMs);
       } else {
-        this.nodeServedForMtime.delete(uriString);
+        this.nodeTriedForMtime.delete(uriString);
       }
       return compiledSql;
     } catch (error: any) {
