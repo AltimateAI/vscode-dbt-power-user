@@ -1206,20 +1206,17 @@ export class DBTProject implements Disposable {
   }
 
   /**
-   * Compile for the Compiled SQL preview: from the real node where that is
-   * sound, from the editor text otherwise.
+   * Compile for the Compiled SQL preview: from the real node when the caller's
+   * `previewCanUseNode` said so, from the editor text otherwise.
    *
    * A node compile that throws falls back to the editor text too. That is what
    * the preview did before this routing existed, so a node the check accepts
    * but dbt still declines to resolve costs an extra compile rather than an
    * error that yesterday's preview did not produce.
    *
-   * `nodeTried` says whether the node was asked, not whether it answered: a
-   * preview that got this far has had the node's best attempt at the version
-   * of the file `savedAt` names, and no later manifest can improve on it. The
-   * caller needs that rather than the source of the SQL, because a preview it
-   * re-requests on a manifest change compiles, and a compile is another
-   * manifest change.
+   * The caller decides rather than being told afterwards, because it has to
+   * record what it asked for at the moment it asks: preview requests overlap,
+   * and the one that comes back last is not the one that went out last.
    *
    * Guards match `unsafeCompileQuery`, which this replaces at the preview call
    * site, so routing is the only thing that changes.
@@ -1227,24 +1224,12 @@ export class DBTProject implements Disposable {
   async compileQueryForPreview(
     query: string,
     modelName: string,
-    filePath: string,
-    savedAt: number,
-    hasUnsavedEdits: boolean,
-  ): Promise<{ compiledSql: string; nodeTried: boolean }> {
+    useNode: boolean,
+  ): Promise<string> {
     this.throwIfNotAuthenticated();
-    const nodeTried = this.previewCanUseNode(
-      filePath,
-      modelName,
-      savedAt,
-      hasUnsavedEdits,
-    );
-    if (nodeTried) {
+    if (useNode) {
       try {
-        return {
-          compiledSql:
-            await this.dbtProjectIntegration.unsafeCompileNode(modelName),
-          nodeTried,
-        };
+        return await this.dbtProjectIntegration.unsafeCompileNode(modelName);
       } catch (error) {
         this.terminal.debug(
           "DBTProject",
@@ -1253,13 +1238,7 @@ export class DBTProject implements Disposable {
         );
       }
     }
-    return {
-      compiledSql: await this.dbtProjectIntegration.unsafeCompileQuery(
-        query,
-        modelName,
-      ),
-      nodeTried,
-    };
+    return this.dbtProjectIntegration.unsafeCompileQuery(query, modelName);
   }
 
   async getColumnsOfModel(modelName: string) {

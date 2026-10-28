@@ -25,12 +25,13 @@ export class SqlPreviewContentProvider
   private subscriptions: Disposable[] = [];
   private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
   /**
-   * For each preview, the version of its file — as a modification time — whose
-   * node has already been asked for. A preview missing from here is showing
-   * editor text the node was never asked for, so it is the one a fresh
+   * For each preview, what its latest request was made against: the version of
+   * the file, as a modification time, and whether the node could answer for
+   * it. A preview whose latest request did not use the node is the one a fresh
    * manifest can improve.
    */
-  private nodeTriedForVersion: Map<string, number> = new Map();
+  private requested: Map<string, { savedAt: number; usedNode: boolean }> =
+    new Map();
 
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -92,7 +93,7 @@ export class SqlPreviewContentProvider
         for (const [uriString] of this.compilationDocs.entries()) {
           if (!visiblePreviewUris.has(uriString)) {
             this.compilationDocs.delete(uriString);
-            this.nodeTriedForVersion.delete(uriString);
+            this.requested.delete(uriString);
             const timer = this.debounceTimers.get(uriString);
             if (timer) {
               clearTimeout(timer);
@@ -146,7 +147,8 @@ export class SqlPreviewContentProvider
     for (const [uriString, previewUri] of this.compilationDocs.entries()) {
       const fsPath = decodeURI(previewUri.fsPath);
       const savedAt = this.savedAt(fsPath);
-      if (this.nodeTriedForVersion.get(uriString) === savedAt) {
+      const requested = this.requested.get(uriString);
+      if (requested?.savedAt === savedAt && requested.usedNode) {
         continue;
       }
       const project = this.dbtProjectContainer.findDBTProject(Uri.file(fsPath));
@@ -159,37 +161,33 @@ export class SqlPreviewContentProvider
       if (canUseNode !== true) {
         continue;
       }
-      // Claimed before the request, not after it: the compile it leads to
-      // rewrites `target/manifest.json` on the command-line integrations, and
-      // that is another manifest change arriving here.
-      this.nodeTriedForVersion.set(uriString, savedAt);
+      // Recorded before the request goes out, not after: the compile it leads
+      // to rewrites `target/manifest.json` on the command-line integrations,
+      // and that is another manifest change arriving here.
+      this.recordRequest(uriString, savedAt, true);
       this._onDidChange.fire(previewUri);
     }
   }
 
   /**
-   * Records what a finished compile establishes about one version of the file:
-   * whether its node was asked for.
+   * Notes what a request now going out was made against.
    *
-   * Only the newest version a compile has reached counts. Requests overlap —
-   * an edit and a manifest change can each have one in flight — and a compile
-   * that started before a later one must not take back what the later one
-   * recorded, or that version is requested a second time.
+   * Written when the request is made rather than when it comes back, because
+   * requests overlap — an edit and a manifest change can each have one in
+   * flight — and the one that returns last is not the one that asked last. A
+   * request made for an older version of the file says nothing about a newer
+   * one, so it leaves the newer one's record alone.
    */
-  private recordNodeTried(
+  private recordRequest(
     uriString: string,
     savedAt: number,
-    nodeTried: boolean,
+    usedNode: boolean,
   ): void {
-    const recorded = this.nodeTriedForVersion.get(uriString);
-    if (recorded !== undefined && recorded > savedAt) {
+    const recorded = this.requested.get(uriString);
+    if (recorded !== undefined && recorded.savedAt > savedAt) {
       return;
     }
-    if (nodeTried) {
-      this.nodeTriedForVersion.set(uriString, savedAt);
-    } else {
-      this.nodeTriedForVersion.delete(uriString);
-    }
+    this.requested.set(uriString, { savedAt, usedNode });
   }
 
   /**
@@ -235,19 +233,18 @@ export class SqlPreviewContentProvider
       // is, so identity-dependent Jinja resolves. Anything else still compiles
       // as written — see `previewCanUseNode`.
       //
-      // One reading of when the file was written, for both the routing and the
+      // One reading of when the file was written, for the routing and for the
       // record of it: a save landing during the compile must not be recorded
-      // as a version whose node was asked for, or it never catches up.
+      // as a version the node was asked about, or it never catches up.
       const savedAt = this.savedAt(fsPath);
-      const { compiledSql, nodeTried } = await project.compileQueryForPreview(
-        query,
-        modelName,
+      const useNode = project.previewCanUseNode(
         fsPath,
+        modelName,
         savedAt,
         document?.isDirty === true,
       );
-      this.recordNodeTried(uriString, savedAt, nodeTried);
-      return compiledSql;
+      this.recordRequest(uriString, savedAt, useNode);
+      return await project.compileQueryForPreview(query, modelName, useNode);
     } catch (error: any) {
       const errorMessage = (error as Error).message;
       window.showErrorMessage(`Error while compiling: ${errorMessage}`);

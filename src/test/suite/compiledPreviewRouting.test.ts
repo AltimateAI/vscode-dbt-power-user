@@ -86,10 +86,8 @@ interface PreviewProject {
   compileQueryForPreview(
     query: string,
     modelName: string,
-    file: string,
-    savedAt: number,
-    hasUnsavedEdits: boolean,
-  ): Promise<{ compiledSql: string; nodeTried: boolean }>;
+    useNode: boolean,
+  ): Promise<string>;
 }
 
 /** The parts of `DBTProject` this routing reads, and nothing else. */
@@ -282,56 +280,36 @@ describe("compileQueryForPreview", () => {
     jest.clearAllMocks();
   });
 
-  const compile = (
-    project: PreviewProject,
-    file: string,
-    modelName: string,
-    opts: { savedAt?: number } = {},
-  ) =>
-    project.compileQueryForPreview(
-      SQL,
-      modelName,
-      filePath(file),
-      opts.savedAt ?? SAVED_BEFORE_THAT,
-      false,
-    );
-
-  it("compiles the real node, and says the node was asked", async () => {
+  it("compiles the real node when the caller says it can answer", async () => {
     const { project, unsafeCompileNode, unsafeCompileQuery } = createProject();
 
-    expect(await compile(project, FILES.model, "orders")).toEqual({
-      compiledSql: "compiled from the node",
-      nodeTried: true,
-    });
+    expect(await project.compileQueryForPreview(SQL, "orders", true)).toBe(
+      "compiled from the node",
+    );
     expect(unsafeCompileNode).toHaveBeenCalledWith("orders");
     expect(unsafeCompileQuery).not.toHaveBeenCalled();
   });
 
-  it("compiles the editor text when the node cannot answer for this file", async () => {
+  it("compiles the editor text when the node cannot answer", async () => {
     const { project, unsafeCompileNode, unsafeCompileQuery } = createProject();
 
-    expect(await compile(project, FILES.analysis, "orders")).toEqual({
-      compiledSql: "compiled from the buffer",
-      nodeTried: false,
-    });
+    expect(await project.compileQueryForPreview(SQL, "orders", false)).toBe(
+      "compiled from the buffer",
+    );
     expect(unsafeCompileQuery).toHaveBeenCalledWith(SQL, "orders");
     expect(unsafeCompileNode).not.toHaveBeenCalled();
   });
 
-  it("falls back to the editor text when the node compile throws, and still counts the node as asked", async () => {
+  it("falls back to the editor text when the node compile throws", async () => {
     // Whatever the check lets through that dbt still declines to resolve costs
     // an extra compile rather than an error the preview did not produce before.
-    // The node was asked, though, and no later manifest improves on its
-    // answer — re-requesting the preview for that would compile again, and a
-    // compile is another manifest change.
     const { project, unsafeCompileNode, unsafeCompileQuery } = createProject({
       nodeCompileFails: true,
     });
 
-    expect(await compile(project, FILES.model, "orders")).toEqual({
-      compiledSql: "compiled from the buffer",
-      nodeTried: true,
-    });
+    expect(await project.compileQueryForPreview(SQL, "orders", true)).toBe(
+      "compiled from the buffer",
+    );
     expect(unsafeCompileNode).toHaveBeenCalledWith("orders");
     expect(unsafeCompileQuery).toHaveBeenCalledWith(SQL, "orders");
   });
@@ -345,9 +323,9 @@ describe("compileQueryForPreview", () => {
       canInjectNodeContextInSqlSnippetExecution: false,
     });
 
-    const compiled = await compile(project, FILES.model, "orders");
-
-    expect(compiled.nodeTried).toBe(true);
+    expect(await project.compileQueryForPreview(SQL, "orders", true)).toBe(
+      "compiled from the node",
+    );
     expect(unsafeCompileNode).toHaveBeenCalledWith("orders");
   });
 });
@@ -392,9 +370,11 @@ describe("the preview provider, when the manifest changes", () => {
   let canUseNode: boolean;
   let nodeCompileFails: boolean;
   let previewFile: string;
-  /** Compiles held open, so a test can interleave saves and completions. */
-  let held: { savedAt: number; finish: () => void }[];
+  /** Requests held open, so a test can interleave them. */
+  let heldCompiles: { useNode: boolean; finish: () => void }[];
+  let heldStarts: (() => void)[];
   let holdCompiles: boolean;
+  let holdStarts: boolean;
 
   const asUri = (file: string) =>
     ({
@@ -403,41 +383,49 @@ describe("the preview provider, when the manifest changes", () => {
       with: () => ({ toString: () => `file:${file}` }),
     }) as unknown as Uri;
 
-  /** Lets queued microtasks run until `count` compiles are waiting. */
-  const untilHeld = async (count: number) => {
+  /** Lets queued microtasks run until `held` has `count` entries. */
+  const untilHeld = async (held: unknown[], count: number) => {
     for (let tick = 0; tick < 100 && held.length < count; tick++) {
       await Promise.resolve();
     }
     expect(held).toHaveLength(count);
   };
 
-  const saveNow = (offsetMs: number) => {
-    const at = new Date(Date.now() + offsetMs);
+  /**
+   * Writes the file with a modification time later than every save before it,
+   * including those in earlier tests — `Date.now()` is too coarse to separate
+   * two of these on its own.
+   */
+  let lastSaveAt = Date.now();
+  const saveNow = () => {
+    lastSaveAt += 60_000;
+    const at = new Date(lastSaveAt);
     utimesSync(previewFile, at, at);
   };
 
   const createProvider = () => {
     const project = {
-      refreshProjectConfig: async () => undefined,
+      refreshProjectConfig: async () => {
+        if (holdStarts) {
+          await new Promise<void>((resolve) => {
+            heldStarts.push(resolve);
+          });
+        }
+      },
       previewCanUseNode: () => canUseNode,
       compileQueryForPreview: async (
         _query: string,
         _modelName: string,
-        _file: string,
-        savedAt: number,
+        useNode: boolean,
       ) => {
         if (holdCompiles) {
           await new Promise<void>((resolve) => {
-            held.push({ savedAt, finish: resolve });
+            heldCompiles.push({ useNode, finish: resolve });
           });
         }
-        return {
-          compiledSql:
-            canUseNode && !nodeCompileFails
-              ? "compiled from the node"
-              : "compiled from the buffer",
-          nodeTried: canUseNode,
-        };
+        return useNode && !nodeCompileFails
+          ? "compiled from the node"
+          : "compiled from the buffer";
       },
     };
     const container = {
@@ -458,8 +446,10 @@ describe("the preview provider, when the manifest changes", () => {
     previewFile = filePath(FILES.model);
     canUseNode = false;
     nodeCompileFails = false;
-    held = [];
+    heldCompiles = [];
+    heldStarts = [];
     holdCompiles = false;
+    holdStarts = false;
   });
 
   it("re-requests a preview the node can now answer, once", async () => {
@@ -479,7 +469,7 @@ describe("the preview provider, when the manifest changes", () => {
 
     canUseNode = true;
     manifestChanged.fire({});
-    saveNow(5_000);
+    saveNow();
     manifestChanged.fire({});
 
     expect(refreshed).toHaveLength(2);
@@ -522,51 +512,79 @@ describe("the preview provider, when the manifest changes", () => {
     expect(refreshed).toEqual([]);
   });
 
-  it("re-requests a version saved while an earlier compile was still running", async () => {
-    // The version recorded as having had the node asked for has to be the one
-    // the routing decided on, not whatever is on disk when the compile
-    // returns. Otherwise a save landing mid-compile is recorded as already
-    // tried, and that version's preview never catches up.
-    canUseNode = true;
+  it("does not let a slower editor-text request erase the node request that overtook it", async () => {
+    // The editor-text request goes out before the rebuild lands and is still
+    // running when the manifest arrives and the node request for the same
+    // saved version goes out. If the slower one's completion spoke for that
+    // version, the node request would be made a second time with nobody
+    // having saved in between.
     holdCompiles = true;
     const { provider, refreshed } = createProvider();
-    const compiling = provider.provideTextDocumentContent(asUri(previewFile));
-    await untilHeld(1);
-    saveNow(5_000);
-    held[0].finish();
-    await compiling;
+    const forEditorText = provider.provideTextDocumentContent(
+      asUri(previewFile),
+    );
+    await untilHeld(heldCompiles, 1);
 
+    canUseNode = true;
     manifestChanged.fire({});
+    const forTheNode = provider.provideTextDocumentContent(asUri(previewFile));
+    await untilHeld(heldCompiles, 2);
 
+    heldCompiles[0].finish();
+    await forEditorText;
+    manifestChanged.fire({});
+    heldCompiles[1].finish();
+    await forTheNode;
+
+    expect(heldCompiles.map((compile) => compile.useNode)).toEqual([
+      false,
+      true,
+    ]);
     expect(refreshed).toEqual([`query-preview:${previewFile}`]);
   });
 
-  it("does not let an older compile take back a newer version's record", async () => {
-    // Two requests overlap: one from an edit, one from a manifest change. If
-    // the older one's completion overwrites the newer one's record, the newer
-    // version is requested a second time with nobody having saved in between.
+  it("does not let a request for an older version speak for a newer one", async () => {
+    // Two requests in flight, and the one that started first is the last to
+    // reach the point where it records what it asked for.
+    holdStarts = true;
     canUseNode = true;
-    holdCompiles = true;
     const { provider, refreshed } = createProvider();
     const forFirstVersion = provider.provideTextDocumentContent(
       asUri(previewFile),
     );
-    await untilHeld(1);
+    await untilHeld(heldStarts, 1);
 
-    saveNow(5_000);
+    saveNow();
     const forSecondVersion = provider.provideTextDocumentContent(
       asUri(previewFile),
     );
-    await untilHeld(2);
-    expect(held[1].savedAt).toBeGreaterThan(held[0].savedAt);
+    await untilHeld(heldStarts, 2);
 
-    held[1].finish();
+    heldStarts[1]();
     await forSecondVersion;
-    held[0].finish();
+    heldStarts[0]();
     await forFirstVersion;
 
     manifestChanged.fire({});
 
     expect(refreshed).toEqual([]);
+  });
+
+  it("re-requests a version saved while an earlier request was still running", async () => {
+    // The version a request speaks for is the one its routing decided on, not
+    // whatever is on disk by the time it returns. Otherwise a save landing
+    // mid-compile counts as already asked about, and never catches up.
+    canUseNode = true;
+    holdCompiles = true;
+    const { provider, refreshed } = createProvider();
+    const compiling = provider.provideTextDocumentContent(asUri(previewFile));
+    await untilHeld(heldCompiles, 1);
+    saveNow();
+    heldCompiles[0].finish();
+    await compiling;
+
+    manifestChanged.fire({});
+
+    expect(refreshed).toEqual([`query-preview:${previewFile}`]);
   });
 });
