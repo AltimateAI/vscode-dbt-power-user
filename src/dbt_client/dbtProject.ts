@@ -630,15 +630,23 @@ export class DBTProject implements Disposable {
     try {
       await this.dbtProjectIntegration.initialize();
     } catch (error) {
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "An unexpected error occured while initializing the dbt project at " +
-            this.projectRoot +
-            ": " +
-            error +
-            ".",
-        ),
-      );
+      // dbt-integration's `PythonInterpreterNotFound`: the interpreter doesn't exist.
+      const interpreterPath = (
+        error as { interpreterPath?: unknown } | undefined
+      )?.interpreterPath;
+      if (typeof interpreterPath === "string") {
+        void this.PythonEnvironment.showInterpreterNotFound(interpreterPath);
+      } else {
+        window.showErrorMessage(
+          extendErrorWithSupportLinks(
+            "An unexpected error occured while initializing the dbt project at " +
+              this.projectRoot +
+              ": " +
+              error +
+              ".",
+          ),
+        );
+      }
     }
 
     // ensure all watchers are cleaned up
