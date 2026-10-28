@@ -650,12 +650,14 @@ export class OnboardingPanel extends AltimateWebviewProvider {
       case "startAltimateSignIn":
       case "startWorkspaceLink":
         try {
-          const { projectRoot, instance } = message as HandleCommandProps & {
-            projectRoot?: string;
-            instance?: string;
-          };
+          const { projectRoot, instance, plan } =
+            message as HandleCommandProps & {
+              projectRoot?: string;
+              instance?: string;
+              plan?: AltimatePlan;
+            };
           if (command === "startAltimateSignIn") {
-            await this.altimateConnectService.startSignIn(instance);
+            await this.altimateConnectService.startSignIn(instance, plan);
           } else {
             if (!projectRoot) {
               throw new Error("No project specified");

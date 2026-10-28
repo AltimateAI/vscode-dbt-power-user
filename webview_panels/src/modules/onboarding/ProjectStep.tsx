@@ -188,7 +188,8 @@ interface ProjectStepProps {
   account: AccountState;
   /** False in editors the SaaS cannot redirect back to after sign-in. */
   supportsBrowserSignIn: boolean;
-  onCreateAccount: (instance?: string) => void;
+  onCreateAccount: (instance?: string, plan?: AltimatePlan) => void;
+  onDismissAccountError: () => void;
   onCancelSignIn: () => void;
   /** Resolves to the error when the key is not accepted. */
   onConnectWithKey: (
@@ -207,6 +208,7 @@ const ProjectStep = ({
   account,
   supportsBrowserSignIn,
   onCreateAccount,
+  onDismissAccountError,
   onCancelSignIn,
   onConnectWithKey,
 }: ProjectStepProps): JSX.Element => {
@@ -231,8 +233,8 @@ const ProjectStep = ({
     setShowKeyForm(false);
     setInstanceInput("");
     setKeyInput("");
-    setKeyError(undefined);
     setPlan("free");
+    clearErrors();
   };
 
   /** Enterprise instances can also sign in on their login page. */
@@ -242,7 +244,13 @@ const ProjectStep = ({
       setKeyError("Enter your instance name");
       return;
     }
-    onCreateAccount(instance);
+    onCreateAccount(instance, plan);
+  };
+
+  /** Errors from an earlier attempt go once the user changes the form. */
+  const clearErrors = () => {
+    setKeyError(undefined);
+    onDismissAccountError();
   };
 
   const connect = async () => {
@@ -802,7 +810,10 @@ const ProjectStep = ({
                   <input
                     className={classes.textInput}
                     value={instanceInput}
-                    onChange={(e) => setInstanceInput(e.target.value)}
+                    onChange={(e) => {
+                      setInstanceInput(e.target.value);
+                      clearErrors();
+                    }}
                     placeholder="Instance name"
                     aria-label="Instance name"
                     autoComplete="off"
@@ -811,7 +822,10 @@ const ProjectStep = ({
                     className={classes.textInput}
                     type="password"
                     value={keyInput}
-                    onChange={(e) => setKeyInput(e.target.value)}
+                    onChange={(e) => {
+                      setKeyInput(e.target.value);
+                      clearErrors();
+                    }}
                     placeholder="API key"
                     aria-label="API key"
                     autoComplete="off"
@@ -823,7 +837,7 @@ const ProjectStep = ({
                     value={plan}
                     onChange={(e) => {
                       setPlan(e.target.value as AltimatePlan);
-                      setKeyError(undefined);
+                      clearErrors();
                     }}
                     aria-label="Altimate plan"
                   >

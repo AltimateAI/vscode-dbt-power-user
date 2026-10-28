@@ -93,7 +93,7 @@ const WorkspaceStep = ({
                 : canLinkWorkspace
                   ? `Build a workspace for ${projectName}: add your conventions, best practices and definitions so the AI follows your organization's context. Opens in your browser. You can also do this later from the Altimate panel.`
                   : supportsBrowserSignIn
-                    ? "Creating one here needs a free-plan Altimate instance. You can continue without one."
+                    ? "Creating one here needs a Community, Pro or Team instance. You can continue without one."
                     : "This editor runs in the browser, so it cannot receive the workspace link back from Altimate. Create it from desktop VS Code or Cursor, or continue without one."}
           </span>
           {state.error && !state.waiting && (

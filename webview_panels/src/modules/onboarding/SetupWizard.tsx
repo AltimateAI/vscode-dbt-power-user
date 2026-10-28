@@ -338,18 +338,30 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
     }, [project]);
 
     /** Sign up, or sign in to an existing instance when one is given. */
-    const createAccount = useCallback(async (instance?: string) => {
-      setAccount({ state: "waiting", signInTo: instance });
-      try {
-        await executeRequestInSync("startAltimateSignIn", { instance });
-      } catch (err) {
-        setAccount({
-          state: "idle",
-          instance,
-          error: err instanceof Error ? err.message : String(err),
-        });
-      }
-    }, []);
+    const createAccount = useCallback(
+      async (instance?: string, plan?: AltimatePlan) => {
+        setAccount({ state: "waiting", signInTo: instance });
+        try {
+          await executeRequestInSync("startAltimateSignIn", { instance, plan });
+        } catch (err) {
+          setAccount({
+            state: "idle",
+            instance,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      },
+      [],
+    );
+
+    /** Drop a browser sign-in error once the user changes the form. */
+    const dismissAccountError = useCallback(
+      () =>
+        setAccount((prev) =>
+          prev.error ? { ...prev, error: undefined } : prev,
+        ),
+      [],
+    );
 
     /** Sign in with an instance and API key; resolves to the error, if any. */
     const connectWithKey = useCallback(
@@ -595,7 +607,10 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
                   onValidate={() => void validate()}
                   account={account}
                   supportsBrowserSignIn={supportsBrowserSignIn}
-                  onCreateAccount={(instance) => void createAccount(instance)}
+                  onCreateAccount={(instance, plan) =>
+                    void createAccount(instance, plan)
+                  }
+                  onDismissAccountError={dismissAccountError}
                   onCancelSignIn={cancelSignIn}
                   onConnectWithKey={connectWithKey}
                 />

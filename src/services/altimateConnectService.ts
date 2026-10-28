@@ -43,6 +43,8 @@ const TENANT_LABEL_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i;
 const WORKSPACE_LINKS_KEY = "altimateWorkspaceLinks";
 // The editors the SaaS will redirect back to.
 const SUPPORTED_URI_SCHEMES = ["vscode", "vscode-insiders", "cursor"];
+// How long the wizard waits for the backend to check an API key.
+const KEY_CHECK_TIMEOUT_MS = 15_000;
 // How long a browser round trip may take before its `state` is dropped.
 const PENDING_TTL_MS = 15 * 60 * 1000;
 const GIT_TIMEOUT_MS = 5_000;
@@ -156,7 +158,11 @@ export class AltimateConnectService implements Disposable {
    * Open the SaaS sign-up page, or the login page of an existing instance,
    * which signs the editor in when it finishes.
    */
-  async startSignIn(instance?: string): Promise<void> {
+  async startSignIn(instance?: string, plan?: AltimatePlan): Promise<void> {
+    if (instance && plan) {
+      // Rejects an address from the other plan, as the key form does.
+      this.apiUrlForInstance(instance, plan);
+    }
     const url = instance
       ? new URL("/login", this.instanceAppUrl(instance))
       : new URL(SIGN_UP_URL);
@@ -188,6 +194,7 @@ export class AltimateConnectService implements Disposable {
       instance,
       key,
       apiUrl,
+      KEY_CHECK_TIMEOUT_MS,
     );
     if (!result?.ok) {
       const message = result?.error ?? result?.detail ?? "Invalid credentials";

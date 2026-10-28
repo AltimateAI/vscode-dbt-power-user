@@ -586,11 +586,17 @@ export class AltimateRequest {
     return undefined;
   }
 
-  async validateCredentials(instance: string, key: string, baseUrl?: string) {
+  async validateCredentials(
+    instance: string,
+    key: string,
+    baseUrl?: string,
+    timeoutMs?: number,
+  ) {
     const url = `${baseUrl || this.getAltimateUrl()}/dbt/v3/validate-credentials`;
     try {
       const response = await fetch(url, {
         method: "GET",
+        signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined,
         headers: {
           "x-tenant": instance,
           Authorization: "Bearer " + key,

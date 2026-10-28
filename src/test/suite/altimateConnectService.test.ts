@@ -244,6 +244,7 @@ describe("AltimateConnectService API key sign-in", () => {
       "acme",
       "key-abc",
       "https://api.myaltimate.com",
+      15_000,
     );
     expect(h.settings).toEqual([
       ["altimateUrl", "https://api.myaltimate.com", ConfigurationTarget.Global],
@@ -263,6 +264,7 @@ describe("AltimateConnectService API key sign-in", () => {
       "acme",
       "key-abc",
       "https://api.getaltimate.com",
+      15_000,
     );
     expect(h.settings[0]).toEqual([
       "altimateUrl",
@@ -284,6 +286,26 @@ describe("AltimateConnectService API key sign-in", () => {
       "sandbox",
       "key-abc",
       "https://api.myaltimate.com",
+      15_000,
+    );
+  });
+
+  it("rejects an address from the other plan in browser sign-in", async () => {
+    const h = harness();
+
+    await expect(
+      h.service.startSignIn("acme.app.myaltimate.com", "enterprise"),
+    ).rejects.toThrow("is not an Enterprise address");
+    expect(h.opened).toEqual([]);
+  });
+
+  it("opens an enterprise instance's login page for browser sign-in", async () => {
+    const h = harness();
+
+    await h.service.startSignIn("acme", "enterprise");
+
+    expect(new URL(h.opened[0]).origin).toBe(
+      "https://acme.app.getaltimate.com",
     );
   });
 
@@ -309,6 +331,7 @@ describe("AltimateConnectService API key sign-in", () => {
       "sandbox",
       "key-abc",
       "https://api.myaltimate.com",
+      15_000,
     );
   });
 
