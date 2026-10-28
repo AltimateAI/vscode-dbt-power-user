@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, utimesSync, writeFileSync } from "fs";
+import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import * as path from "path";
 
@@ -10,7 +10,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import { EventEmitter, Uri } from "vscode";
+import { EventEmitter, Uri, workspace } from "vscode";
 
 import { SqlPreviewContentProvider } from "../../content_provider/sqlPreviewContentProvider";
 import { DBTProject } from "../../dbt_client/dbtProject";
@@ -196,21 +196,6 @@ describe("previewCanUseNode", () => {
         filePath(FILES.model),
         "orders",
         SAVED_AFTER_THAT,
-        false,
-      ),
-    ).toBe(false);
-  });
-
-  it("refuses a file whose write time the caller could not read", () => {
-    // The provider hands in `Infinity` for a file it cannot stat, which no
-    // manifest can have been built after.
-    const { project } = createProject();
-
-    expect(
-      project.previewCanUseNode(
-        filePath(FILES.model),
-        "orders",
-        Infinity,
         false,
       ),
     ).toBe(false);
@@ -403,6 +388,25 @@ describe("the preview provider, when the manifest changes", () => {
     utimesSync(previewFile, at, at);
   };
 
+  /** The mock's open documents, which the real API declares readonly. */
+  const openDocuments = workspace.textDocuments as unknown as {
+    uri: { toString: () => string };
+    getText: () => string;
+    isDirty: boolean;
+  }[];
+
+  /**
+   * Puts the file in an editor, so the request reads the buffer rather than
+   * the file — which is the only way it gets past a file that is not there.
+   */
+  const openTheFile = () => {
+    openDocuments.push({
+      uri: { toString: () => `file:${previewFile}` },
+      getText: () => SQL,
+      isDirty: false,
+    });
+  };
+
   const createProvider = () => {
     const project = {
       refreshProjectConfig: async () => {
@@ -450,6 +454,7 @@ describe("the preview provider, when the manifest changes", () => {
     heldStarts = [];
     holdCompiles = false;
     holdStarts = false;
+    openDocuments.length = 0;
   });
 
   it("re-requests a preview the node can now answer, once", async () => {
@@ -568,6 +573,26 @@ describe("the preview provider, when the manifest changes", () => {
     manifestChanged.fire({});
 
     expect(refreshed).toEqual([]);
+  });
+
+  it("asks again for a file that was missing when the last request went out", async () => {
+    // A save that deletes and recreates the file can leave a request reading
+    // the buffer with no version to name. Standing in a sentinel version
+    // instead would outrank every real one, and nothing could ever record the
+    // version that followed — so every manifest change would ask again, and
+    // on the command-line integrations each of those writes a manifest.
+    openTheFile();
+    rmSync(previewFile);
+    const { provider, refreshed } = createProvider();
+    await provider.provideTextDocumentContent(asUri(previewFile));
+
+    writeFileSync(previewFile, SQL);
+    saveNow();
+    canUseNode = true;
+    manifestChanged.fire({});
+    manifestChanged.fire({});
+
+    expect(refreshed).toEqual([`query-preview:${previewFile}`]);
   });
 
   it("re-requests a version saved while an earlier request was still running", async () => {

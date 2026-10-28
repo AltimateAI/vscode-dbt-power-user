@@ -147,6 +147,9 @@ export class SqlPreviewContentProvider
     for (const [uriString, previewUri] of this.compilationDocs.entries()) {
       const fsPath = decodeURI(previewUri.fsPath);
       const savedAt = this.savedAt(fsPath);
+      if (savedAt === undefined) {
+        continue;
+      }
       const requested = this.requested.get(uriString);
       if (requested?.savedAt === savedAt && requested.usedNode) {
         continue;
@@ -191,15 +194,16 @@ export class SqlPreviewContentProvider
   }
 
   /**
-   * When the file was last written. A file that cannot be stat-ed counts as
-   * written later than any manifest could have been built, which is what keeps
-   * the preview on the editor text for it.
+   * When the file was last written, or undefined for a file no version can be
+   * read from. The preview answers for that one with the editor text and
+   * records nothing about it, rather than standing in a sentinel that the
+   * ordering in `recordRequest` would then never be able to replace.
    */
-  private savedAt(fsPath: string): number {
+  private savedAt(fsPath: string): number | undefined {
     try {
       return statSync(fsPath).mtimeMs;
     } catch (error) {
-      return Infinity;
+      return undefined;
     }
   }
 
@@ -237,13 +241,17 @@ export class SqlPreviewContentProvider
       // record of it: a save landing during the compile must not be recorded
       // as a version the node was asked about, or it never catches up.
       const savedAt = this.savedAt(fsPath);
-      const useNode = project.previewCanUseNode(
-        fsPath,
-        modelName,
-        savedAt,
-        document?.isDirty === true,
-      );
-      this.recordRequest(uriString, savedAt, useNode);
+      const useNode =
+        savedAt !== undefined &&
+        project.previewCanUseNode(
+          fsPath,
+          modelName,
+          savedAt,
+          document?.isDirty === true,
+        );
+      if (savedAt !== undefined) {
+        this.recordRequest(uriString, savedAt, useNode);
+      }
       return await project.compileQueryForPreview(query, modelName, useNode);
     } catch (error: any) {
       const errorMessage = (error as Error).message;
