@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { request } from "./api";
+import { request, track } from "./api";
 import classes from "./onboarding.module.scss";
 import { Project } from "./ProjectStep";
 import { StatusIcon } from "./ui";
@@ -161,11 +161,25 @@ const ReadyStep = ({
         </div>
         <span className={classes.accountMeta}>
           Want to look around first?{" "}
-          <a href={TUTORIALS_URL} target="_blank" rel="noopener noreferrer">
+          <a
+            href={TUTORIALS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() =>
+              track("onboardingHelpLinkOpened", { link: "tutorials" })
+            }
+          >
             Tutorials
           </a>{" "}
           ·{" "}
-          <a href={DOCS_URL} target="_blank" rel="noopener noreferrer">
+          <a
+            href={DOCS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() =>
+              track("onboardingHelpLinkOpened", { link: "helpDocs" })
+            }
+          >
             Help docs
           </a>
         </span>

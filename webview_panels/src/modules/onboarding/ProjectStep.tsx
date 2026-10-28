@@ -2,7 +2,7 @@ import AltimateLogo from "@assets/icons/altimate-logo.svg";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import { request, runCommand } from "./api";
+import { request, runCommand, track } from "./api";
 import { Icon } from "./icons";
 import classes from "./onboarding.module.scss";
 import { Button, CheckStatus, ExternalLink, StatusIcon } from "./ui";
@@ -17,6 +17,16 @@ const PLANS: [AltimatePlan, string][] = [
   ["free", "Community, Pro or Team plan"],
   ["enterprise", "Enterprise"],
 ];
+
+/** A coarse reason for a failed Connect, without the message itself. */
+const connectFailureReason = (error: string): string =>
+  error.startsWith("Invalid credentials")
+    ? "invalidKey"
+    : error.startsWith("Could not reach")
+      ? "unreachable"
+      : / address\. Choose /.test(error)
+        ? "otherPlanAddress"
+        : "other";
 
 export interface Project {
   name: string;
@@ -244,6 +254,7 @@ const ProjectStep = ({
       setKeyError("Enter your instance name");
       return;
     }
+    track("onboardingAccountAction", { action: "browserSignIn", plan });
     onCreateAccount(instance, plan);
   };
 
@@ -261,9 +272,15 @@ const ProjectStep = ({
     }
     setConnecting(true);
     setKeyError(undefined);
+    track("onboardingAccountAction", { action: "connect", plan });
     const error = await onConnectWithKey(instance, apiKey, plan);
     setConnecting(false);
     if (error) {
+      track("onboardingAccountAction", {
+        action: "connectFailed",
+        plan,
+        reason: connectFailureReason(error),
+      });
       setKeyError(error);
     } else {
       setKeyInput("");
@@ -350,6 +367,7 @@ const ProjectStep = ({
   const [integrationLabel, integrationDesc, integrationDocs] =
     INTEGRATIONS[integration] ?? INTEGRATIONS.core;
   const installDbt = async () => {
+    track("onboardingCheckChanged", { check: "dbt", integration });
     setInstalling(true);
     setInstallFailed(false);
     await request("installDbt", { integrationType: integration });
@@ -525,6 +543,7 @@ const ProjectStep = ({
                 selected: p.projectRoot === project?.projectRoot,
                 onPick: () => {
                   setOpen(undefined);
+                  track("onboardingCheckChanged", { check: "project" });
                   onProjectChange(p);
                 },
               }))}
@@ -553,6 +572,10 @@ const ProjectStep = ({
                   selected: key === integration,
                   onPick: () => {
                     setOpen(undefined);
+                    track("onboardingCheckChanged", {
+                      check: "integration",
+                      integration: key,
+                    });
                     void fixAndRecheck(
                       request("setDbtIntegration", { integrationType: key }),
                     );
@@ -582,20 +605,28 @@ const ProjectStep = ({
             <>
               <Button
                 nav
-                onClick={() =>
-                  void fixAndRecheck(runCommand("python.setInterpreter"))
-                }
+                onClick={() => {
+                  track("onboardingCheckChanged", {
+                    check: "python",
+                    via: "path",
+                  });
+                  void fixAndRecheck(runCommand("python.setInterpreter"));
+                }}
               >
                 Select Interpreter
               </Button>
               <Button
                 nav
                 variant="secondary"
-                onClick={() =>
+                onClick={() => {
+                  track("onboardingCheckChanged", {
+                    check: "python",
+                    via: "terminal",
+                  });
                   void fixAndRecheck(
                     runCommand("dbtPowerUser.detectPythonFromTerminal"),
-                  )
-                }
+                  );
+                }}
               >
                 Detect From Terminal
               </Button>
@@ -634,6 +665,10 @@ const ProjectStep = ({
                 selected: i.path === d?.pythonPath,
                 onPick: () => {
                   setOpen(undefined);
+                  track("onboardingCheckChanged", {
+                    check: "python",
+                    via: "list",
+                  });
                   void fixAndRecheck(
                     request("setPythonInterpreter", { pythonPath: i.path }),
                   );
@@ -649,9 +684,13 @@ const ProjectStep = ({
               <button
                 type="button"
                 className={classes.linkAction}
-                onClick={() =>
-                  void fixAndRecheck(runCommand("python.setInterpreter"))
-                }
+                onClick={() => {
+                  track("onboardingCheckChanged", {
+                    check: "python",
+                    via: "path",
+                  });
+                  void fixAndRecheck(runCommand("python.setInterpreter"));
+                }}
               >
                 <Icon name="folder" size={15} />
                 Enter interpreter path…
@@ -659,11 +698,15 @@ const ProjectStep = ({
               <button
                 type="button"
                 className={classes.mutedAction}
-                onClick={() =>
+                onClick={() => {
+                  track("onboardingCheckChanged", {
+                    check: "python",
+                    via: "terminal",
+                  });
                   void fixAndRecheck(
                     runCommand("dbtPowerUser.detectPythonFromTerminal"),
-                  )
-                }
+                  );
+                }}
               >
                 <Icon name="terminal-2" size={15} />
                 Detect From Terminal
@@ -708,9 +751,10 @@ const ProjectStep = ({
           filesStatus === "error" && (
             <Button
               nav
-              onClick={() =>
-                void fixAndRecheck(request("configureFileAssociations"))
-              }
+              onClick={() => {
+                track("onboardingCheckChanged", { check: "fileTypes" });
+                void fixAndRecheck(request("configureFileAssociations"));
+              }}
             >
               Turn On
             </Button>
@@ -735,24 +779,36 @@ const ProjectStep = ({
           </span>
           {validation.state === "error" && (
             <div className={classes.checkFixes}>
-              <Button nav onClick={onValidate}>
+              <Button
+                nav
+                onClick={() => {
+                  track("onboardingValidationAction", { action: "retry" });
+                  onValidate();
+                }}
+              >
                 Retry
               </Button>
               <Button
                 nav
                 variant="secondary"
-                onClick={() =>
+                onClick={() => {
+                  track("onboardingValidationAction", {
+                    action: "openProfiles",
+                  });
                   void request("openProfilesYml", {
                     projectRoot: project?.projectRoot,
-                  })
-                }
+                  });
+                }}
               >
                 Open profiles.yml
               </Button>
               <button
                 type="button"
                 className={classes.linkAction}
-                onClick={() => void request("showLogs")}
+                onClick={() => {
+                  track("onboardingValidationAction", { action: "openOutput" });
+                  void request("showLogs");
+                }}
               >
                 Open Output
               </button>
@@ -764,7 +820,10 @@ const ProjectStep = ({
             nav
             variant="secondary"
             disabled={!allOk}
-            onClick={onValidate}
+            onClick={() => {
+              track("onboardingValidationAction", { action: "validate" });
+              onValidate();
+            }}
           >
             Validate Project
           </Button>
@@ -773,7 +832,10 @@ const ProjectStep = ({
           <button
             type="button"
             className={classes.mutedAction}
-            onClick={() => void runChecks()}
+            onClick={() => {
+              track("onboardingValidationAction", { action: "recheck" });
+              void runChecks();
+            }}
           >
             <Icon name="refresh" size={15} />
             Recheck
@@ -900,7 +962,12 @@ const ProjectStep = ({
                     <button
                       type="button"
                       className={classes.metaLink}
-                      onClick={() => setShowKeyForm(true)}
+                      onClick={() => {
+                        track("onboardingAccountAction", {
+                          action: "enterDetails",
+                        });
+                        setShowKeyForm(true);
+                      }}
                     >
                       Enter your details
                     </button>
@@ -925,14 +992,26 @@ const ProjectStep = ({
                     className={[classes.mutedAction, classes.accountLink].join(
                       " ",
                     )}
-                    onClick={closeKeyForm}
+                    onClick={() => {
+                      track("onboardingAccountAction", { action: "cancel" });
+                      closeKeyForm();
+                    }}
                   >
                     Cancel
                   </button>
                 )}
               </div>
             ) : (
-              <Button nav external onClick={() => onCreateAccount()}>
+              <Button
+                nav
+                external
+                onClick={() => {
+                  track("onboardingAccountAction", {
+                    action: "continueWithAltimate",
+                  });
+                  onCreateAccount();
+                }}
+              >
                 Continue with Altimate
               </Button>
             )}
@@ -956,14 +1035,22 @@ const ProjectStep = ({
             <button
               type="button"
               className={[classes.linkAction, classes.accountLink].join(" ")}
-              onClick={() => onCreateAccount(account.signInTo)}
+              onClick={() => {
+                track("onboardingAccountAction", { action: "openAgain" });
+                onCreateAccount(account.signInTo);
+              }}
             >
               Open again
             </button>
             <button
               type="button"
               className={[classes.mutedAction, classes.accountLink].join(" ")}
-              onClick={onCancelSignIn}
+              onClick={() => {
+                track("onboardingAccountAction", {
+                  action: "useDifferentAccount",
+                });
+                onCancelSignIn();
+              }}
             >
               Use a different account
             </button>
@@ -991,7 +1078,10 @@ const ProjectStep = ({
             <button
               type="button"
               className={[classes.linkAction, classes.accountLink].join(" ")}
-              onClick={() => void request("openAltimateSettings")}
+              onClick={() => {
+                track("onboardingAccountAction", { action: "manage" });
+                void request("openAltimateSettings");
+              }}
             >
               Manage
             </button>

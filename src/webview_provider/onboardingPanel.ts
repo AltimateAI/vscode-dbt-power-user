@@ -45,6 +45,8 @@ export class OnboardingPanel extends AltimateWebviewProvider {
   protected viewPath = "/onboarding";
   protected panelDescription = "Power User for dbt onboarding experience";
   private pendingStepNavigation: string | undefined;
+  // Set while Get Started closes because it finished, not because it was left.
+  private finishing = false;
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
@@ -145,7 +147,13 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           "rendering onboarding view",
           payload,
         );
-        const initialStep = (payload as { initialStep?: string })?.initialStep;
+        const { initialStep, source } =
+          (payload as { initialStep?: string; source?: string }) ?? {};
+        this.telemetry.sendTelemetryEvent("onboardingOpened", {
+          source: source ?? "command",
+          screen: this.getOnboardingState().screen ?? "connect",
+          alreadyOpen: String(!!this._panel),
+        });
 
         // If panel already exists and is ready, just navigate to the step
         if (this._panel && this.isWebviewReady && initialStep) {
@@ -177,6 +185,12 @@ export class OnboardingPanel extends AltimateWebviewProvider {
 
           // Clear the panel reference when it's disposed
           webviewPanel.onDidDispose(() => {
+            if (!this.finishing) {
+              this.telemetry.sendTelemetryEvent("onboardingClosed", {
+                screen: this.getOnboardingState().screen ?? "connect",
+              });
+            }
+            this.finishing = false;
             this._panel = undefined;
             this._webview = undefined;
             this.isWebviewReady = false;
@@ -854,12 +868,15 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             action: "chat" | "lineage" | "preview";
           };
           await this.openFirstModel(projectRoot, action);
+          this.telemetry.sendTelemetryEvent("onboardingFirstModelOpened", {
+            action,
+          });
           this.sendResponseToWebview({
             command: "response",
             syncRequestId,
             data: { success: true },
           });
-          this.finishOnboarding();
+          this.finishOnboarding("openModel");
         } catch (error) {
           this.dbtTerminal.error(
             "openFirstModel",
@@ -874,7 +891,7 @@ export class OnboardingPanel extends AltimateWebviewProvider {
         }
         break;
       case "finishOnboarding":
-        this.finishOnboarding();
+        this.finishOnboarding("finish");
         break;
       case "openUrl":
         // Open URL in external browser
@@ -923,7 +940,9 @@ export class OnboardingPanel extends AltimateWebviewProvider {
   }
 
   /** Mark Get Started done, so it no longer opens by itself, and close it. */
-  private finishOnboarding() {
+  private finishOnboarding(via: "finish" | "openModel") {
+    this.telemetry.sendTelemetryEvent("onboardingFinished", { via });
+    this.finishing = !!this._panel;
     this.saveOnboardingState({ finished: true, resume: false });
     this.dbtProjectContainer.setToGlobalState("showSetupWalkthrough", false);
     (this._panel as WebviewPanel | undefined)?.dispose();

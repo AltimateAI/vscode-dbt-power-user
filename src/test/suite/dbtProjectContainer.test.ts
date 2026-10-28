@@ -739,6 +739,8 @@ describe("DBTProjectContainer Tests", () => {
 
       expect(commands.executeCommand).toHaveBeenCalledWith(
         "dbtPowerUser.openOnboarding",
+        undefined,
+        "firstRun",
       );
       expect(globalState.update).toHaveBeenCalledWith(
         "showSetupWalkthrough",
@@ -754,6 +756,8 @@ describe("DBTProjectContainer Tests", () => {
 
       expect(commands.executeCommand).not.toHaveBeenCalledWith(
         "dbtPowerUser.openOnboarding",
+        undefined,
+        "firstRun",
       );
       expect(globalState.update).not.toHaveBeenCalled();
     });
@@ -767,6 +771,8 @@ describe("DBTProjectContainer Tests", () => {
 
       expect(commands.executeCommand).not.toHaveBeenCalledWith(
         "dbtPowerUser.openOnboarding",
+        undefined,
+        "firstRun",
       );
     });
 
@@ -780,6 +786,8 @@ describe("DBTProjectContainer Tests", () => {
 
       expect(commands.executeCommand).toHaveBeenCalledWith(
         "dbtPowerUser.openOnboarding",
+        undefined,
+        "resume",
       );
       expect(workspaceState.update).toHaveBeenCalledWith("onboarding.state", {
         screen: "connect",

@@ -152,7 +152,11 @@ export class DBTProjectContainer implements Disposable {
         ...onboarding,
         resume: false,
       });
-      commands.executeCommand("dbtPowerUser.openOnboarding");
+      commands.executeCommand(
+        "dbtPowerUser.openOnboarding",
+        undefined,
+        "resume",
+      );
       return;
     }
     const isWalkthroughDisabledFromSettings = workspace
@@ -187,7 +191,11 @@ export class DBTProjectContainer implements Disposable {
       false,
     );
     this.setToGlobalState("showSetupWalkthrough", false);
-    commands.executeCommand("dbtPowerUser.openOnboarding");
+    commands.executeCommand(
+      "dbtPowerUser.openOnboarding",
+      undefined,
+      "firstRun",
+    );
   }
 
   get extensionUri() {

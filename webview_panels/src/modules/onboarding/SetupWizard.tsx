@@ -10,7 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { request } from "./api";
+import { request, track } from "./api";
 import { Icon } from "./icons";
 import MeetCodeStep from "./MeetCodeStep";
 import classes from "./onboarding.module.scss";
@@ -60,6 +60,16 @@ const STEP_SCREENS: Record<string, Screen> = {
 type Summary = NonNullable<ValidationState["summary"]>;
 
 /** What the extension keeps of this page, so it reopens where it was left. */
+/** How the user reached a step, for telemetry. */
+type StepVia =
+  | "continue"
+  | "back"
+  | "sidebar"
+  | "skip"
+  | "workspaceLinked"
+  | "readyStep"
+  | "extension";
+
 export interface SavedState {
   screen?: Screen;
   projectRoot?: string;
@@ -141,14 +151,16 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
     // The furthest step reached, which stays reachable from the sidebar.
     const [furthest, setFurthest] = useState(ORDER.indexOf(screen));
 
-    const go = useCallback((next: Screen) => {
+    const go = useCallback((next: Screen, via: StepVia) => {
+      track("onboardingStepViewed", { screen: next, via });
       setScreen(next);
       setFurthest((prev) => Math.max(prev, ORDER.indexOf(next)));
       window.scrollTo(0, 0);
     }, []);
 
     useImperativeHandle(ref, () => ({
-      navigateToStep: (stepId: string) => go(STEP_SCREENS[stepId] ?? "connect"),
+      navigateToStep: (stepId: string) =>
+        go(STEP_SCREENS[stepId] ?? "connect", "extension"),
     }));
 
     // The message listener outlives renders, so it reads the current project.
@@ -277,7 +289,7 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
             skipped: false,
             linkedId: payload?.workspaceId,
           });
-          go("ready");
+          go("ready", "workspaceLinked");
         }
       };
       window.addEventListener("message", handleMessage);
@@ -307,6 +319,7 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
       try {
         await executeRequestInSync("runDbtDeps", { projectRoot });
       } catch (err) {
+        track("onboardingValidation", { result: "failed", stage: "deps" });
         if (stillCurrent()) {
           setValidation({
             state: "error",
@@ -323,11 +336,13 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
         const result = (await executeRequestInSync("validateProject", {
           projectRoot,
         })) as { summary?: ValidationState["summary"] };
+        track("onboardingValidation", { result: "passed" });
         if (stillCurrent()) {
           setValidation({ state: "done", summary: result?.summary });
         }
       } catch (err) {
         panelLogger.error("onboarding: validation failed", err);
+        track("onboardingValidation", { result: "failed", stage: "debug" });
         if (stillCurrent()) {
           setValidation({
             state: "error",
@@ -391,23 +406,28 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
       );
     }, []);
 
-    const linkWorkspace = useCallback(() => {
-      if (!project) {
-        return;
-      }
-      setWorkspace((prev) => ({ ...prev, waiting: true, error: undefined }));
-      void request("startWorkspaceLink", {
-        projectRoot: project.projectRoot,
-      }).then((started) => {
-        if (!started) {
-          setWorkspace((prev) => ({ ...prev, waiting: false }));
+    const linkWorkspace = useCallback(
+      (action: "create" | "openAgain") => {
+        if (!project) {
+          return;
         }
-      });
-    }, [project]);
+        track("onboardingWorkspaceAction", { action });
+        setWorkspace((prev) => ({ ...prev, waiting: true, error: undefined }));
+        void request("startWorkspaceLink", {
+          projectRoot: project.projectRoot,
+        }).then((started) => {
+          if (!started) {
+            setWorkspace((prev) => ({ ...prev, waiting: false }));
+          }
+        });
+      },
+      [project],
+    );
 
     const skipWorkspace = useCallback(() => {
+      track("onboardingWorkspaceAction", { action: "skip" });
       setWorkspace((prev) => ({ ...prev, waiting: false, skipped: true }));
-      go("ready");
+      go("ready", "skip");
     }, [go]);
 
     // A project restored from the last session has no name until checks run.
@@ -467,7 +487,10 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
                   : "Connect your Altimate account to continue",
             hintOk: projectDone,
             primary: (
-              <Button disabled={!projectDone} onClick={() => go("code")}>
+              <Button
+                disabled={!projectDone}
+                onClick={() => go("code", "continue")}
+              >
                 Continue
               </Button>
             ),
@@ -478,12 +501,20 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
               ? `Connected · instance ${account.instance}`
               : "Connected",
             hintOk: true,
-            primary: <Button onClick={() => go("workspace")}>Continue</Button>,
+            primary: (
+              <Button onClick={() => go("workspace", "continue")}>
+                Continue
+              </Button>
+            ),
           };
         case "workspace":
           if (workspaceLinked || !canLinkWorkspace) {
             return {
-              primary: <Button onClick={() => go("ready")}>Continue</Button>,
+              primary: (
+                <Button onClick={() => go("ready", "continue")}>
+                  Continue
+                </Button>
+              ),
             };
           }
           return {
@@ -500,7 +531,7 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
               <Button
                 external
                 disabled={workspace.waiting}
-                onClick={linkWorkspace}
+                onClick={() => linkWorkspace("create")}
               >
                 Create Workspace
               </Button>
@@ -553,7 +584,7 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
                     clickable ? classes.railItemClickable : "",
                   ].join(" ")}
                   aria-current={current ? "step" : undefined}
-                  onClick={clickable ? () => go(step) : undefined}
+                  onClick={clickable ? () => go(step, "sidebar") : undefined}
                 >
                   <span
                     className={[
@@ -622,7 +653,7 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
                   state={workspace}
                   canLinkWorkspace={canLinkWorkspace}
                   supportsBrowserSignIn={supportsBrowserSignIn}
-                  onOpenAgain={linkWorkspace}
+                  onOpenAgain={() => linkWorkspace("openAgain")}
                 />
               )}
               {screen === "ready" && project && (
@@ -631,7 +662,7 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
                   instance={account.instance}
                   workspaceLinked={workspaceLinked}
                   canLinkWorkspace={canLinkWorkspace}
-                  onSetUpWorkspace={() => go("workspace")}
+                  onSetUpWorkspace={() => go("workspace", "readyStep")}
                 />
               )}
             </div>
@@ -644,7 +675,7 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
               <button
                 type="button"
                 className={[classes.mutedAction, classes.ctaLink].join(" ")}
-                onClick={() => go(ORDER[index - 1])}
+                onClick={() => go(ORDER[index - 1], "back")}
               >
                 ← Back
               </button>

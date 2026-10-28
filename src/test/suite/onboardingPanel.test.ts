@@ -29,6 +29,7 @@ const harness = (nodes: unknown[] = []) => {
   const globalState = new Map<string, unknown>();
   const workspaceState = new Map<string, unknown>();
   const openAltimateCode: AnyMock = jest.fn(async () => undefined);
+  const sendTelemetryEvent: AnyMock = jest.fn();
   const editor = { document: { uri: "doc" } };
 
   (window as any).showTextDocument = jest.fn(async () => editor);
@@ -52,6 +53,7 @@ const harness = (nodes: unknown[] = []) => {
       }),
     },
     altimateConnectService: { openAltimateCode },
+    telemetry: { sendTelemetryEvent },
     dbtTerminal: { debug: jest.fn(), error: jest.fn() },
   });
 
@@ -71,6 +73,8 @@ const harness = (nodes: unknown[] = []) => {
     dispose,
     openAltimateCode,
     editor,
+    panel,
+    sendTelemetryEvent,
   };
 };
 
@@ -131,6 +135,46 @@ describe("OnboardingPanel Get Started", () => {
     });
     expect(h.globalState.get("showSetupWalkthrough")).toBe(false);
     expect(h.dispose).toHaveBeenCalled();
+  });
+
+  it("records the model action and how Get Started finished", async () => {
+    const h = harness([
+      model("customers", `${PROJECT_ROOT}/models/customers.sql`),
+    ]);
+
+    await h.handle("openFirstModel", {
+      projectRoot: PROJECT_ROOT,
+      action: "chat",
+    });
+    await h.handle("finishOnboarding");
+
+    expect(h.sendTelemetryEvent).toHaveBeenCalledWith(
+      "onboardingFirstModelOpened",
+      { action: "chat" },
+    );
+    expect(h.sendTelemetryEvent).toHaveBeenCalledWith("onboardingFinished", {
+      via: "openModel",
+    });
+    expect(h.sendTelemetryEvent).toHaveBeenCalledWith("onboardingFinished", {
+      via: "finish",
+    });
+  });
+
+  it("records how Get Started opened and on which step", async () => {
+    const h = harness();
+    h.workspaceState.set("onboarding.state", { screen: "workspace" });
+    Object.assign(h.panel, { _panel: { reveal: jest.fn() } });
+
+    await (h.panel as any).onEvent({
+      command: "onboarding:render",
+      payload: { source: "resume" },
+    });
+
+    expect(h.sendTelemetryEvent).toHaveBeenCalledWith("onboardingOpened", {
+      source: "resume",
+      screen: "workspace",
+      alreadyOpen: "true",
+    });
   });
 
   it("splits the chat out when it opened in the model's group", async () => {
