@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync } from "fs";
+import { existsSync, statSync, writeFileSync } from "fs";
 
 import {
   Catalog,
@@ -89,8 +89,28 @@ interface JsonObj {
   [key: string]: string | number | undefined;
 }
 
+/**
+ * `NodeMetaData.path` is the project root joined with the node's relative
+ * path, which makes it comparable to a document path once both are normalized
+ * — case included, on the platform where case does not distinguish files.
+ */
+const isSameFile = (left: string, right: string) => {
+  const a = path.normalize(left);
+  const b = path.normalize(right);
+  return process.platform === "win32"
+    ? a.toLowerCase() === b.toLowerCase()
+    : a === b;
+};
+
 export class DBTProject implements Disposable {
   private _manifestCacheEvent?: ManifestCacheProjectAddedEvent;
+  /**
+   * When the manifest currently in `_manifestCacheEvent` started being built.
+   * A rebuild reads the project files as it starts, so a file written after
+   * that moment is not described by it yet.
+   */
+  private manifestBuiltFromFilesAsOf?: number;
+  private manifestRebuildStartedAt?: number;
   readonly projectRoot: Uri;
   private dbtProjectIntegration: DBTProjectIntegrationAdapter;
 
@@ -219,6 +239,9 @@ export class DBTProject implements Disposable {
           "DBTProject",
           `Received rebuildManifestStatusChange event: inProgress=${status.inProgress}`,
         );
+        if (status.inProgress) {
+          this.manifestRebuildStartedAt = Date.now();
+        }
         const event: RebuildManifestStatusChange = {
           project: this,
           inProgress: status.inProgress,
@@ -251,6 +274,12 @@ export class DBTProject implements Disposable {
           modelDepthMap: parsedManifest.modelDepthMap,
         };
         this._manifestCacheEvent = manifestCacheEvent;
+        // A parse reaches here either at the end of a rebuild or because
+        // something rewrote `target/manifest.json`. Only the rebuild's own
+        // start time says which version of the files this parse read; without
+        // one, the parse itself is the later bound.
+        this.manifestBuiltFromFilesAsOf =
+          this.manifestRebuildStartedAt ?? Date.now();
         this._onManifestChanged.fire({ added: [manifestCacheEvent] });
       },
     );
@@ -1101,35 +1130,102 @@ export class DBTProject implements Disposable {
   }
 
   /**
-   * Whether the compiled SQL could be produced from the real node instead of
-   * from the editor text. Only asks whether we know the node.
+   * The manifest node that this file is, or undefined for a file the manifest
+   * does not describe.
    *
-   * Compiling a node outright is something every integration already does, the
-   * Python bridge included — it goes through `compile_node(get_ref_node(...))`,
-   * which resolves the node's identity correctly. So there is no capability to
-   * test here, only whether this file is a node at all.
+   * Matched on the node's own path rather than on the file name, because file
+   * names collide: `models/orders.sql`, `analyses/orders.sql` and a package's
+   * `models/orders.sql` are three nodes with one base name, and a lookup by
+   * name can only hand back one of them.
    */
-  private canCompileAsModel(modelName: string): boolean {
-    return (
-      this._manifestCacheEvent?.nodeMetaMap.lookupByBaseName(modelName) !==
-      undefined
-    );
+  private findNodeForFile(filePath: string): NodeMetaData | undefined {
+    const nodes = this._manifestCacheEvent?.nodeMetaMap.nodes();
+    if (nodes === undefined) {
+      return undefined;
+    }
+    for (const node of nodes) {
+      if (node.path !== undefined && isSameFile(node.path, filePath)) {
+        return node;
+      }
+    }
+    return undefined;
   }
 
   /**
-   * Compile for the Compiled SQL preview.
+   * Whether the manifest already describes this file as it is now on disk.
    *
-   * Compiling the real node is what makes `model.name`, `model.primary_key`,
-   * `this` and `model.config` resolve; compiling the editor text as an
-   * anonymous query leaves them pointing at a placeholder. But the node is read
-   * from disk, so the two are only interchangeable while the buffer holds
-   * nothing the file does not.
+   * A node carries the code that the last parse read, so between a save and
+   * the rebuild it sets off the node is still the previous version of the file.
+   */
+  private manifestDescribesSavedFile(filePath: string): boolean {
+    if (this.manifestBuiltFromFilesAsOf === undefined) {
+      return false;
+    }
+    try {
+      return statSync(filePath).mtimeMs < this.manifestBuiltFromFilesAsOf;
+    } catch (error) {
+      // A file that cannot be stat-ed is a file we cannot vouch for.
+      return false;
+    }
+  }
+
+  /**
+   * Whether the Compiled SQL preview for this file can come from the real node
+   * rather than from the editor text.
    *
-   * So the buffer decides, not a preference: with unsaved edits we keep
-   * compiling what is on screen, because showing compiled output for a
-   * different version of the file would quietly answer a question the user did
-   * not ask. With no unsaved edits the node form is strictly better — same SQL,
-   * real identity.
+   * Compiling the node is what makes `model.name`, `model.primary_key`, `this`
+   * and `model.config` resolve; the editor text compiles as an anonymous query
+   * and leaves them on a placeholder. The node is not the text, though, so
+   * three things have to hold, and each of them has a way of being false that
+   * the editor text does not:
+   *
+   * - The buffer holds nothing the file does not. Otherwise the preview would
+   *   answer a question about a version of the file nobody is looking at.
+   * - The manifest describes the file as saved. Between a save and its rebuild
+   *   the node is the version before it, which would put the previous save's
+   *   SQL on screen — or old SQL where the new version's parse error belongs.
+   * - The name this file would be compiled under resolves back to this same
+   *   node. `unsafeCompileNode` resolves a bare ref name in the root project
+   *   with no version: `resolve_ref(name, version=None, package=None)` on the
+   *   Python bridge, `--select <name>` on the command-line integrations. dbt
+   *   composes a node's id as `<resource_type>.<package>.<name>`, appending
+   *   `.v<version>` for a versioned model, so comparing the node's id with the
+   *   id that name would carry is the whole test. A versioned model, an
+   *   analysis, a seed, a snapshot, and a package model whose name the root
+   *   project also uses each fail it — and each of them compiled correctly as
+   *   editor text.
+   *
+   * Public because a preview built from the editor text has to be re-requested
+   * once this turns true for it.
+   */
+  previewCanUseNode(
+    filePath: string,
+    modelName: string,
+    hasUnsavedEdits: boolean,
+  ): boolean {
+    if (hasUnsavedEdits) {
+      return false;
+    }
+    const node = this.findNodeForFile(filePath);
+    if (
+      node?.unique_id !==
+      `${RESOURCE_TYPE_MODEL}.${this.getProjectName()}.${modelName}`
+    ) {
+      return false;
+    }
+    return this.manifestDescribesSavedFile(filePath);
+  }
+
+  /**
+   * Compile for the Compiled SQL preview: from the real node where that is
+   * sound, from the editor text otherwise. The caller is told which it got,
+   * because a preview built from the editor text goes stale the moment the
+   * node becomes usable for that file.
+   *
+   * A node compile that throws falls back to the editor text too. That is what
+   * the preview did before this routing existed, so a node the check accepts
+   * but dbt still declines to resolve costs an extra compile rather than an
+   * error that yesterday's preview did not produce.
    *
    * Guards match `unsafeCompileQuery`, which this replaces at the preview call
    * site, so routing is the only thing that changes.
@@ -1137,13 +1233,32 @@ export class DBTProject implements Disposable {
   async compileQueryForPreview(
     query: string,
     modelName: string,
+    filePath: string,
     hasUnsavedEdits: boolean,
-  ): Promise<string> {
+  ): Promise<{ compiledSql: string; fromNode: boolean }> {
     this.throwIfNotAuthenticated();
-    if (!hasUnsavedEdits && this.canCompileAsModel(modelName)) {
-      return this.dbtProjectIntegration.unsafeCompileNode(modelName);
+    if (this.previewCanUseNode(filePath, modelName, hasUnsavedEdits)) {
+      try {
+        return {
+          compiledSql:
+            await this.dbtProjectIntegration.unsafeCompileNode(modelName),
+          fromNode: true,
+        };
+      } catch (error) {
+        this.terminal.debug(
+          "DBTProject",
+          `Compiling ${modelName} as a node failed, compiling the editor text instead`,
+          error,
+        );
+      }
     }
-    return this.dbtProjectIntegration.unsafeCompileQuery(query, modelName);
+    return {
+      compiledSql: await this.dbtProjectIntegration.unsafeCompileQuery(
+        query,
+        modelName,
+      ),
+      fromNode: false,
+    };
   }
 
   async getColumnsOfModel(modelName: string) {

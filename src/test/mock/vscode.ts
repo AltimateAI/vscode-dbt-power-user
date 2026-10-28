@@ -145,7 +145,11 @@ export const window = {
   onDidChangeActiveTextEditor: jest
     .fn()
     .mockReturnValue({ dispose: jest.fn() }),
+  onDidChangeVisibleTextEditors: jest
+    .fn()
+    .mockReturnValue({ dispose: jest.fn() }),
   activeTextEditor: undefined as any,
+  visibleTextEditors: [] as any[],
   createOutputChannel: jest.fn().mockReturnValue({
     append: jest.fn(),
     appendLine: jest.fn(),
@@ -172,6 +176,8 @@ export const workspace = {
     update: jest.fn(),
   }),
   workspaceFolders: [],
+  textDocuments: [] as any[],
+  onDidChangeTextDocument: jest.fn().mockReturnValue({ dispose: jest.fn() }),
   getWorkspaceFolder: jest.fn((uri: typeof Uri) => {
     if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
       return workspace.workspaceFolders[0];
