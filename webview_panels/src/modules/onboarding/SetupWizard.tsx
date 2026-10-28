@@ -91,6 +91,7 @@ interface ExtensionMessage {
   payload?: {
     instance?: string;
     email?: string;
+    existing?: boolean;
     projectRoot?: string;
     workspaceId?: string;
     flow?: "signIn" | "workspace";
@@ -245,6 +246,7 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
             state: "connected",
             instance: payload?.instance,
             email: payload?.email,
+            existing: payload?.existing,
           });
           // Workspace links belong to an account, so re-read this project's.
           const projectRoot = projectRootRef.current;
@@ -298,7 +300,10 @@ const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
 
     const handleProjectChange = useCallback((next: Project | undefined) => {
       if (next?.projectRoot !== projectRootRef.current) {
+        // Later steps need this project validated, including a restored one.
         setValidation({ state: "idle" });
+        setScreen("connect");
+        setFurthest(0);
       }
       setProject(next);
     }, []);

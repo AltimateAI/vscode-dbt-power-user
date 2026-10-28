@@ -197,7 +197,7 @@ describe("OnboardingPanel Get Started", () => {
     );
   });
 
-  it("runs lineage on the model instead of opening chat", async () => {
+  it("shows the model's lineage instead of opening chat", async () => {
     const h = harness([
       model("customers", `${PROJECT_ROOT}/models/customers.sql`),
     ]);
@@ -208,7 +208,7 @@ describe("OnboardingPanel Get Started", () => {
     });
 
     expect(commands.executeCommand).toHaveBeenCalledWith(
-      "dbtPowerUser.sqlLineage",
+      "dbtPowerUser.Lineage.focus",
     );
     expect(h.openAltimateCode).not.toHaveBeenCalled();
   });

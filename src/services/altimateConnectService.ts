@@ -39,7 +39,8 @@ const APP_HOST_BY_API_HOST: Record<string, string> = {
   [ENTERPRISE_API_HOST]: ENTERPRISE_APP_HOST,
 };
 const WORKSPACE_HANDOFF_PAGE = "/workspaces/create-and-link";
-const TENANT_LABEL_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i;
+// The backend's tenant names, as `dbt.altimateInstanceName` is validated.
+const TENANT_NAME_RE = /^[a-z_][a-z0-9_-]*$/i;
 const WORKSPACE_LINKS_KEY = "altimateWorkspaceLinks";
 // The editors the SaaS will redirect back to.
 const SUPPORTED_URI_SCHEMES = ["vscode", "vscode-insiders", "cursor"];
@@ -60,6 +61,8 @@ export type AltimatePlan = "free" | "enterprise";
 export interface AltimateAccount {
   instance: string;
   email?: string;
+  /** False only when the user went through sign-up. */
+  existing: boolean;
 }
 
 export interface WorkspaceLink {
@@ -130,7 +133,7 @@ class PendingStates<T> {
 export class AltimateConnectService implements Disposable {
   // Several can be pending: "Open again" starts another round trip, and the
   // user may finish in either browser tab.
-  private pendingSignIns = new PendingStates<true>();
+  private pendingSignIns = new PendingStates<"login" | "signup">();
   private pendingWorkspaces = new PendingStates<PendingWorkspace>();
   // Workspace states whose bind is in flight, so a repeated callback waits its turn.
   private bindingStates = new Set<string>();
@@ -166,13 +169,12 @@ export class AltimateConnectService implements Disposable {
     const url = instance
       ? new URL("/login", this.instanceAppUrl(instance))
       : new URL(SIGN_UP_URL);
-    const state = this.pendingSignIns.add(true);
+    const mode = instance ? "login" : "signup";
+    const state = this.pendingSignIns.add(mode);
     url.searchParams.set("client", CONNECT_CLIENT);
     url.searchParams.set("redirect", this.callbackUri(AUTH_CALLBACK_PATH));
     url.searchParams.set("state", state);
-    this.telemetry.sendTelemetryEvent("onboardingSignInStarted", {
-      mode: instance ? "login" : "signup",
-    });
+    this.telemetry.sendTelemetryEvent("onboardingSignInStarted", { mode });
     await env.openExternal(Uri.parse(url.toString(), true));
   }
 
@@ -208,7 +210,7 @@ export class AltimateConnectService implements Disposable {
     this.pendingSignIns.clear();
     await this.saveCredentials(apiUrl, key, instance);
     this.telemetry.sendTelemetryEvent("onboardingApiKeyConnected", { plan });
-    const account = { instance };
+    const account = { instance, existing: true };
     this._onDidConnectAccount.fire(account);
     return account;
   }
@@ -327,7 +329,8 @@ export class AltimateConnectService implements Disposable {
   }
 
   private async completeSignIn(params: URLSearchParams) {
-    if (!this.pendingSignIns.take(params.get("state"))) {
+    const mode = this.pendingSignIns.take(params.get("state"));
+    if (!mode) {
       throw new Error(
         "This sign-in link was not started from this window, or it expired. Start sign-in again from the setup wizard.",
       );
@@ -352,7 +355,11 @@ export class AltimateConnectService implements Disposable {
     );
     await this.saveCredentials(baseUrl, apiKey, instance);
     this.telemetry.sendTelemetryEvent("onboardingSignInCompleted");
-    this._onDidConnectAccount.fire({ instance, email });
+    this._onDidConnectAccount.fire({
+      instance,
+      email,
+      existing: mode === "login",
+    });
   }
 
   /**
@@ -396,7 +403,7 @@ export class AltimateConnectService implements Disposable {
     );
     await this.saveCredentials(baseUrl, apiKey, instance);
     this.telemetry.sendTelemetryEvent("onboardingSetupLinkCompleted");
-    this._onDidConnectAccount.fire({ instance, email });
+    this._onDidConnectAccount.fire({ instance, email, existing: true });
     window.showInformationMessage(
       `Power User for dbt is signed in to ${instance}${email ? ` as ${email}` : ""}.`,
     );
@@ -417,6 +424,38 @@ export class AltimateConnectService implements Disposable {
       instance,
       ConfigurationTarget.Global,
     );
+    void this.offerToClearWorkspaceOverrides({
+      altimateUrl: baseUrl,
+      altimateAiKey: apiKey,
+      altimateInstanceName: instance,
+    });
+  }
+
+  /**
+   * Workspace settings win over the user settings just saved, and Altimate Code
+   * reads the same effective values, so a different one there keeps the
+   * extension on its old backend or key.
+   */
+  private async offerToClearWorkspaceOverrides(saved: Record<string, string>) {
+    const dbtConfig = workspace.getConfiguration("dbt");
+    const overridden = Object.keys(saved).filter((key) => {
+      const value = dbtConfig.inspect<string>(key)?.workspaceValue;
+      return value !== undefined && value !== saved[key];
+    });
+    if (!overridden.length) {
+      return;
+    }
+    const clear = "Clear Workspace Settings";
+    const answer = await window.showWarningMessage(
+      `This workspace's settings override the Altimate sign-in you just saved: ${overridden.map((key) => `dbt.${key}`).join(", ")}. Power User for dbt and Altimate Code will keep using them.`,
+      clear,
+    );
+    if (answer !== clear) {
+      return;
+    }
+    for (const key of overridden) {
+      await dbtConfig.update(key, undefined, ConfigurationTarget.Workspace);
+    }
   }
 
   /**
@@ -425,7 +464,7 @@ export class AltimateConnectService implements Disposable {
    */
   private instanceAppUrl(input: string): URL {
     const value = input.trim().toLowerCase();
-    if (TENANT_LABEL_RE.test(value)) {
+    if (TENANT_NAME_RE.test(value)) {
       return new URL(`https://${value}.${ENTERPRISE_APP_HOST}`);
     }
     let host: string;
@@ -436,7 +475,7 @@ export class AltimateConnectService implements Disposable {
       throw new Error(`"${input}" is not an instance name or Altimate URL`);
     }
     const [label, ...rest] = host.split(".");
-    if (!TENANT_LABEL_RE.test(label) || !APP_HOSTS.includes(rest.join("."))) {
+    if (!TENANT_NAME_RE.test(label) || !APP_HOSTS.includes(rest.join("."))) {
       throw new Error(
         `"${input}" is not an Altimate URL. Use your instance's address, like acme.${ENTERPRISE_APP_HOST} or acme.${FREEMIUM_APP_HOST}`,
       );
@@ -453,7 +492,7 @@ export class AltimateConnectService implements Disposable {
       plan === "enterprise" ? ENTERPRISE_API_HOST : FREEMIUM_API_HOST;
     const value = input.trim().toLowerCase();
     let instance = value;
-    if (!TENANT_LABEL_RE.test(value)) {
+    if (!TENANT_NAME_RE.test(value)) {
       const [label, ...rest] = this.instanceAppUrl(value).hostname.split(".");
       if (rest.join(".") !== APP_HOST_BY_API_HOST[planApiHost]) {
         throw new Error(
@@ -598,7 +637,7 @@ export class AltimateConnectService implements Disposable {
   }
 
   private assertInstanceName(instance: string) {
-    if (!TENANT_LABEL_RE.test(instance)) {
+    if (!TENANT_NAME_RE.test(instance)) {
       throw new Error(`"${instance}" is not a valid Altimate instance name`);
     }
   }
@@ -616,7 +655,7 @@ export class AltimateConnectService implements Disposable {
 
   private workspaceWebUrl(): URL | undefined {
     const instance = this.altimateRequest.getInstanceName();
-    if (!instance || !TENANT_LABEL_RE.test(instance)) {
+    if (!instance || !TENANT_NAME_RE.test(instance)) {
       return undefined;
     }
     try {

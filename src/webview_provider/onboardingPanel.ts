@@ -999,12 +999,11 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           preserveFocus: true,
         });
       }
+    } else if (action === "lineage") {
+      // The Lineage panel follows the active model.
+      await commands.executeCommand("dbtPowerUser.Lineage.focus");
     } else {
-      await commands.executeCommand(
-        action === "lineage"
-          ? "dbtPowerUser.sqlLineage"
-          : "dbtPowerUser.executeSQL",
-      );
+      await commands.executeCommand("dbtPowerUser.executeSQL");
     }
   }
 

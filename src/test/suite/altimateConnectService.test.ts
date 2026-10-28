@@ -27,7 +27,13 @@ const PROJECT_ROOT = "/repo/jaffle_shop";
  * opens in the browser, so each browser round-trip can be replayed by feeding
  * the callback URI back in.
  */
-const harness = (opts: { altimateUrl?: string; instance?: string } = {}) => {
+const harness = (
+  opts: {
+    altimateUrl?: string;
+    instance?: string;
+    workspaceSettings?: Record<string, string>;
+  } = {},
+) => {
   const opened: string[] = [];
   const workspaceState = new Map<string, unknown>();
   const settings: [string, unknown, unknown][] = [];
@@ -43,6 +49,9 @@ const harness = (opts: { altimateUrl?: string; instance?: string } = {}) => {
     update: jest.fn(async (key: unknown, value: unknown, target: unknown) => {
       settings.push([key as string, value, target]);
     }),
+    inspect: jest.fn((key: unknown) => ({
+      workspaceValue: opts.workspaceSettings?.[key as string],
+    })),
   });
 
   const altimateRequest = {
@@ -140,10 +149,30 @@ describe("AltimateConnectService sign-in", () => {
       ["altimateAiKey", "key-123", ConfigurationTarget.Global],
       ["altimateInstanceName", "acme", ConfigurationTarget.Global],
     ]);
+    // Started from sign-up, so the account is new.
     expect(connected).toHaveBeenCalledWith({
       instance: "acme",
       email: "dev@acme.com",
+      existing: false,
     });
+  });
+
+  it("reports an account signed in from the login page as existing", async () => {
+    const h = harness();
+    const connected = jest.fn();
+    h.service.onDidConnectAccount(connected);
+    await h.service.startSignIn("acme");
+
+    await h.callback("/auth", {
+      state: h.lastState(),
+      token: "one-time",
+      instance: "acme",
+      url: "https://api.getaltimate.com",
+    });
+
+    expect(connected).toHaveBeenCalledWith(
+      expect.objectContaining({ instance: "acme", existing: true }),
+    );
   });
 
   it("rejects a callback this window did not start", async () => {
@@ -251,7 +280,10 @@ describe("AltimateConnectService API key sign-in", () => {
       ["altimateAiKey", "key-abc", ConfigurationTarget.Global],
       ["altimateInstanceName", "acme", ConfigurationTarget.Global],
     ]);
-    expect(connected).toHaveBeenCalledWith({ instance: "acme" });
+    expect(connected).toHaveBeenCalledWith({
+      instance: "acme",
+      existing: true,
+    });
   });
 
   it("checks an enterprise key only on the enterprise backend", async () => {
@@ -362,6 +394,57 @@ describe("AltimateConnectService API key sign-in", () => {
     expect(h.settings).toEqual([]);
   });
 
+  it.each([
+    ["acme_corp", "acme_corp"],
+    ["acme_corp.app.myaltimate.com", "acme_corp"],
+  ])("accepts the tenant name in %s", async (input, instance) => {
+    const h = harness();
+
+    await h.service.connectWithApiKey(input, "key-abc", "free");
+
+    expect(h.altimateRequest.validateCredentials).toHaveBeenCalledWith(
+      instance,
+      "key-abc",
+      "https://api.myaltimate.com",
+      15_000,
+    );
+  });
+
+  it("offers to clear a workspace setting that overrides the saved sign-in", async () => {
+    (window.showWarningMessage as jest.Mock).mockResolvedValue(
+      "Clear Workspace Settings" as never,
+    );
+    const h = harness({
+      workspaceSettings: {
+        altimateUrl: "https://api.getaltimate.com",
+        altimateInstanceName: "acme",
+      },
+    });
+
+    await h.service.connectWithApiKey("acme", "key-abc", "free");
+    await new Promise(process.nextTick);
+
+    // The instance matches what was saved, so only the URL is reported.
+    expect(window.showWarningMessage).toHaveBeenCalledWith(
+      expect.stringContaining("dbt.altimateUrl."),
+      "Clear Workspace Settings",
+    );
+    expect(h.settings).toContainEqual([
+      "altimateUrl",
+      undefined,
+      ConfigurationTarget.Workspace,
+    ]);
+  });
+
+  it("does not warn when no workspace setting overrides the sign-in", async () => {
+    const h = harness();
+
+    await h.service.connectWithApiKey("acme", "key-abc", "free");
+    await new Promise(process.nextTick);
+
+    expect(window.showWarningMessage).not.toHaveBeenCalled();
+  });
+
   it("refuses an address that is not an Altimate app", async () => {
     const h = harness();
 
@@ -411,6 +494,7 @@ describe("AltimateConnectService setup link", () => {
     expect(connected).toHaveBeenCalledWith({
       instance: "acme",
       email: "dev@acme.com",
+      existing: true,
     });
   });
 
