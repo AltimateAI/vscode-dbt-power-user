@@ -1,10 +1,4 @@
-import {
-  mkdirSync,
-  mkdtempSync,
-  statSync,
-  utimesSync,
-  writeFileSync,
-} from "fs";
+import { mkdirSync, mkdtempSync, utimesSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import * as path from "path";
 
@@ -31,8 +25,8 @@ import type { TelemetryService } from "../../telemetry";
  * but the node is neither the buffer nor, between a save and the rebuild it
  * sets off, the file. And `unsafeCompileNode` resolves a bare ref name, which
  * is not every node a file can be. So the routing is a set of conditions on
- * this file, tested here against a project tree whose nodes deliberately all
- * share one base name.
+ * this file, tested here against a project whose nodes deliberately all share
+ * one base name.
  */
 
 const PROJECT_NAME = "jaffle";
@@ -55,12 +49,20 @@ const NODES: { unique_id: string; file: string }[] = [
   { unique_id: "model.pkg.orders", file: FILES.packageModel },
 ];
 
+/**
+ * The two moments the routing compares. The caller reads when the file was
+ * written and hands that in, so they are plain numbers here.
+ */
+const MANIFEST_BUILT_AT = 1_000_000;
+const SAVED_BEFORE_THAT = MANIFEST_BUILT_AT - 1_000;
+const SAVED_AFTER_THAT = MANIFEST_BUILT_AT + 1_000;
+
+const SQL = "select 1 as id";
+
 let projectRoot: string;
 
 /** An absolute path inside the project tree written by `beforeAll`. */
 const filePath = (relativePath: string) => path.join(projectRoot, relativePath);
-
-const SQL = "select 1 as id";
 
 beforeAll(() => {
   projectRoot = path.join(
@@ -74,24 +76,18 @@ beforeAll(() => {
   }
 });
 
-/** The last moment at which every file in the tree had been written. */
-const allFilesWrittenBy = () =>
-  Math.max(
-    ...Object.values(FILES).map(
-      (relativePath) => statSync(filePath(relativePath)).mtimeMs,
-    ),
-  ) + 1;
-
 interface PreviewProject {
   previewCanUseNode(
     file: string,
     modelName: string,
+    savedAt: number,
     hasUnsavedEdits: boolean,
   ): boolean;
   compileQueryForPreview(
     query: string,
     modelName: string,
     file: string,
+    savedAt: number,
     hasUnsavedEdits: boolean,
   ): Promise<{ compiledSql: string; nodeTried: boolean }>;
 }
@@ -116,8 +112,6 @@ interface ProjectInternals {
 
 function createProject(
   opts: {
-    /** When the manifest in hand started being built. */
-    manifestBuiltFromFilesAsOf?: number;
     nodeCompileFails?: boolean;
     /** The execute path's capability, which this routing must ignore. */
     canInjectNodeContextInSqlSnippetExecution?: boolean;
@@ -150,21 +144,31 @@ function createProject(
             })),
         },
       };
-  project.manifestBuiltFromFilesAsOf =
-    opts.manifestBuiltFromFilesAsOf ?? allFilesWrittenBy();
+  project.manifestBuiltFromFilesAsOf = MANIFEST_BUILT_AT;
   project.terminal = { debug: () => undefined };
   project.throwIfNotAuthenticated = () => undefined;
   project.getProjectName = () => PROJECT_NAME;
   return { project, unsafeCompileNode, unsafeCompileQuery };
 }
 
+/** `previewCanUseNode` for a file saved before the manifest was built. */
+const canUseNodeFor = (
+  project: PreviewProject,
+  file: string,
+  modelName: string,
+) =>
+  project.previewCanUseNode(
+    filePath(file),
+    modelName,
+    SAVED_BEFORE_THAT,
+    false,
+  );
+
 describe("previewCanUseNode", () => {
   it("takes the node for a saved root-project model the manifest describes", () => {
     const { project } = createProject();
 
-    expect(
-      project.previewCanUseNode(filePath(FILES.model), "orders", false),
-    ).toBe(true);
+    expect(canUseNodeFor(project, FILES.model, "orders")).toBe(true);
   });
 
   it("refuses while the buffer holds unsaved edits", () => {
@@ -173,22 +177,44 @@ describe("previewCanUseNode", () => {
     const { project } = createProject();
 
     expect(
-      project.previewCanUseNode(filePath(FILES.model), "orders", true),
+      project.previewCanUseNode(
+        filePath(FILES.model),
+        "orders",
+        SAVED_BEFORE_THAT,
+        true,
+      ),
     ).toBe(false);
   });
 
   it("refuses right after a save, before the rebuild lands", () => {
-    // The save clears the dirty flag immediately but the rebuild it triggers
-    // is debounced and then takes seconds. A node compiled in between is the
+    // The save clears the dirty flag at once, but the rebuild it sets off is
+    // debounced and then takes seconds. A node compiled in between is the
     // previous version of the file, so the preview would show the SQL of the
     // save before this one — or old SQL where a new parse error belongs.
-    const { project } = createProject({
-      manifestBuiltFromFilesAsOf:
-        statSync(filePath(FILES.model)).mtimeMs - 1000,
-    });
+    const { project } = createProject();
 
     expect(
-      project.previewCanUseNode(filePath(FILES.model), "orders", false),
+      project.previewCanUseNode(
+        filePath(FILES.model),
+        "orders",
+        SAVED_AFTER_THAT,
+        false,
+      ),
+    ).toBe(false);
+  });
+
+  it("refuses a file whose write time the caller could not read", () => {
+    // The provider hands in `Infinity` for a file it cannot stat, which no
+    // manifest can have been built after.
+    const { project } = createProject();
+
+    expect(
+      project.previewCanUseNode(
+        filePath(FILES.model),
+        "orders",
+        Infinity,
+        false,
+      ),
     ).toBe(false);
   });
 
@@ -197,30 +223,22 @@ describe("previewCanUseNode", () => {
     // resolves nothing — the preview would error where editor text compiled.
     const { project } = createProject();
 
-    expect(
-      project.previewCanUseNode(
-        filePath(FILES.versionedModel),
-        "orders_v2",
-        false,
-      ),
-    ).toBe(false);
+    expect(canUseNodeFor(project, FILES.versionedModel, "orders_v2")).toBe(
+      false,
+    );
   });
 
   it("refuses an analysis", () => {
     // `resolve_ref` does not return analyses.
     const { project } = createProject();
 
-    expect(
-      project.previewCanUseNode(filePath(FILES.analysis), "orders", false),
-    ).toBe(false);
+    expect(canUseNodeFor(project, FILES.analysis, "orders")).toBe(false);
   });
 
   it("refuses a snapshot", () => {
     const { project } = createProject();
 
-    expect(
-      project.previewCanUseNode(filePath(FILES.snapshot), "orders", false),
-    ).toBe(false);
+    expect(canUseNodeFor(project, FILES.snapshot, "orders")).toBe(false);
   });
 
   it("refuses a package model whose name the root project also uses", () => {
@@ -228,46 +246,34 @@ describe("previewCanUseNode", () => {
     // would silently show a different model's SQL.
     const { project } = createProject();
 
-    expect(
-      project.previewCanUseNode(filePath(FILES.packageModel), "orders", false),
-    ).toBe(false);
+    expect(canUseNodeFor(project, FILES.packageModel, "orders")).toBe(false);
   });
 
   it("refuses a file the manifest does not describe", () => {
     const { project } = createProject();
 
-    expect(
-      project.previewCanUseNode(filePath(FILES.notANode), "scratch", false),
-    ).toBe(false);
-  });
-
-  it("refuses every file until a manifest has been parsed", () => {
-    const { project } = createProject({ withoutManifest: true });
-
-    expect(
-      project.previewCanUseNode(filePath(FILES.model), "orders", false),
-    ).toBe(false);
-  });
-
-  it("refuses every file until a manifest has been built from them", () => {
-    const { project } = createProject();
-    project.manifestBuiltFromFilesAsOf = undefined;
-
-    expect(
-      project.previewCanUseNode(filePath(FILES.model), "orders", false),
-    ).toBe(false);
+    expect(canUseNodeFor(project, FILES.notANode, "scratch")).toBe(false);
   });
 
   it("refuses a file that is not there", () => {
     const { project } = createProject();
 
     expect(
-      project.previewCanUseNode(
-        filePath("models/deleted.sql"),
-        "deleted",
-        false,
-      ),
+      canUseNodeFor(project, path.join("models", "deleted.sql"), "deleted"),
     ).toBe(false);
+  });
+
+  it("refuses every file until a manifest has been parsed", () => {
+    const { project } = createProject({ withoutManifest: true });
+
+    expect(canUseNodeFor(project, FILES.model, "orders")).toBe(false);
+  });
+
+  it("refuses every file until a manifest has been built from them", () => {
+    const { project } = createProject();
+    project.manifestBuiltFromFilesAsOf = undefined;
+
+    expect(canUseNodeFor(project, FILES.model, "orders")).toBe(false);
   });
 });
 
@@ -276,17 +282,24 @@ describe("compileQueryForPreview", () => {
     jest.clearAllMocks();
   });
 
-  it("compiles the real node, and says that is where the SQL came from", async () => {
-    const { project, unsafeCompileNode, unsafeCompileQuery } = createProject();
-
-    const compiled = await project.compileQueryForPreview(
+  const compile = (
+    project: PreviewProject,
+    file: string,
+    modelName: string,
+    opts: { savedAt?: number } = {},
+  ) =>
+    project.compileQueryForPreview(
       SQL,
-      "orders",
-      filePath(FILES.model),
+      modelName,
+      filePath(file),
+      opts.savedAt ?? SAVED_BEFORE_THAT,
       false,
     );
 
-    expect(compiled).toEqual({
+  it("compiles the real node, and says the node was asked", async () => {
+    const { project, unsafeCompileNode, unsafeCompileQuery } = createProject();
+
+    expect(await compile(project, FILES.model, "orders")).toEqual({
       compiledSql: "compiled from the node",
       nodeTried: true,
     });
@@ -297,14 +310,7 @@ describe("compileQueryForPreview", () => {
   it("compiles the editor text when the node cannot answer for this file", async () => {
     const { project, unsafeCompileNode, unsafeCompileQuery } = createProject();
 
-    const compiled = await project.compileQueryForPreview(
-      SQL,
-      "orders",
-      filePath(FILES.analysis),
-      false,
-    );
-
-    expect(compiled).toEqual({
+    expect(await compile(project, FILES.analysis, "orders")).toEqual({
       compiledSql: "compiled from the buffer",
       nodeTried: false,
     });
@@ -312,7 +318,7 @@ describe("compileQueryForPreview", () => {
     expect(unsafeCompileNode).not.toHaveBeenCalled();
   });
 
-  it("falls back to the editor text when the node compile throws, and still counts the node as tried", async () => {
+  it("falls back to the editor text when the node compile throws, and still counts the node as asked", async () => {
     // Whatever the check lets through that dbt still declines to resolve costs
     // an extra compile rather than an error the preview did not produce before.
     // The node was asked, though, and no later manifest improves on its
@@ -322,14 +328,7 @@ describe("compileQueryForPreview", () => {
       nodeCompileFails: true,
     });
 
-    const compiled = await project.compileQueryForPreview(
-      SQL,
-      "orders",
-      filePath(FILES.model),
-      false,
-    );
-
-    expect(compiled).toEqual({
+    expect(await compile(project, FILES.model, "orders")).toEqual({
       compiledSql: "compiled from the buffer",
       nodeTried: true,
     });
@@ -346,12 +345,7 @@ describe("compileQueryForPreview", () => {
       canInjectNodeContextInSqlSnippetExecution: false,
     });
 
-    const compiled = await project.compileQueryForPreview(
-      SQL,
-      "orders",
-      filePath(FILES.model),
-      false,
-    );
+    const compiled = await compile(project, FILES.model, "orders");
 
     expect(compiled.nodeTried).toBe(true);
     expect(unsafeCompileNode).toHaveBeenCalledWith("orders");
@@ -359,7 +353,7 @@ describe("compileQueryForPreview", () => {
 });
 
 /**
- * The provider decides `hasUnsavedEdits` from the open document, mirroring how
+ * The provider derives `hasUnsavedEdits` from the open document, mirroring how
  * it already decides whether to read the buffer or the file. Characterized the
  * same way as `sqlPreviewCommandGuard.test.ts` rather than standing up the
  * VS Code host.
@@ -398,6 +392,12 @@ describe("the preview provider, when the manifest changes", () => {
   let canUseNode: boolean;
   let nodeCompileFails: boolean;
   let previewFile: string;
+  /** Resolves when the stub compile has been entered. */
+  let compileEntered: Promise<void>;
+  let announceCompileEntered: () => void;
+  /** Held open by the test that needs a save to land mid-compile. */
+  let compileMayFinish: Promise<void>;
+  let letCompileFinish: () => void;
 
   const asUri = (file: string) =>
     ({
@@ -410,13 +410,17 @@ describe("the preview provider, when the manifest changes", () => {
     const project = {
       refreshProjectConfig: async () => undefined,
       previewCanUseNode: () => canUseNode,
-      compileQueryForPreview: async () => ({
-        compiledSql:
-          canUseNode && !nodeCompileFails
-            ? "compiled from the node"
-            : "compiled from the buffer",
-        nodeTried: canUseNode,
-      }),
+      compileQueryForPreview: async () => {
+        announceCompileEntered();
+        await compileMayFinish;
+        return {
+          compiledSql:
+            canUseNode && !nodeCompileFails
+              ? "compiled from the node"
+              : "compiled from the buffer",
+          nodeTried: canUseNode,
+        };
+      },
     };
     const container = {
       onManifestChanged: manifestChanged.event,
@@ -436,6 +440,11 @@ describe("the preview provider, when the manifest changes", () => {
     previewFile = filePath(FILES.model);
     canUseNode = false;
     nodeCompileFails = false;
+    compileEntered = new Promise((resolve) => {
+      announceCompileEntered = resolve;
+    });
+    compileMayFinish = Promise.resolve();
+    letCompileFinish = () => undefined;
   });
 
   it("re-requests a preview the node can now answer, once", async () => {
@@ -491,15 +500,33 @@ describe("the preview provider, when the manifest changes", () => {
     const { provider, refreshed } = createProvider();
     await provider.provideTextDocumentContent(asUri(previewFile));
 
-    for (
-      let compileWroteTheManifest = 0;
-      compileWroteTheManifest < 4;
-      compileWroteTheManifest++
-    ) {
+    for (let manifestWrite = 0; manifestWrite < 4; manifestWrite++) {
       manifestChanged.fire({});
       await provider.provideTextDocumentContent(asUri(previewFile));
     }
 
     expect(refreshed).toEqual([]);
+  });
+
+  it("re-requests a version saved while an earlier compile was still running", async () => {
+    // The version recorded as having had the node asked for has to be the one
+    // the routing decided on, not whatever is on disk when the compile
+    // returns. Otherwise a save that lands mid-compile is recorded as already
+    // tried, and that version's preview never catches up.
+    canUseNode = true;
+    compileMayFinish = new Promise((resolve) => {
+      letCompileFinish = resolve;
+    });
+    const { provider, refreshed } = createProvider();
+    const compiling = provider.provideTextDocumentContent(asUri(previewFile));
+    await compileEntered;
+    const savedDuringTheCompile = new Date(Date.now() + 5000);
+    utimesSync(previewFile, savedDuringTheCompile, savedDuringTheCompile);
+    letCompileFinish();
+    await compiling;
+
+    manifestChanged.fire({});
+
+    expect(refreshed).toEqual([`query-preview:${previewFile}`]);
   });
 });

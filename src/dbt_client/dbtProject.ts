@@ -1,4 +1,4 @@
-import { existsSync, statSync, writeFileSync } from "fs";
+import { existsSync, writeFileSync } from "fs";
 
 import {
   Catalog,
@@ -1152,24 +1152,6 @@ export class DBTProject implements Disposable {
   }
 
   /**
-   * Whether the manifest already describes this file as it is now on disk.
-   *
-   * A node carries the code that the last parse read, so between a save and
-   * the rebuild it sets off the node is still the previous version of the file.
-   */
-  private manifestDescribesSavedFile(filePath: string): boolean {
-    if (this.manifestBuiltFromFilesAsOf === undefined) {
-      return false;
-    }
-    try {
-      return statSync(filePath).mtimeMs < this.manifestBuiltFromFilesAsOf;
-    } catch (error) {
-      // A file that cannot be stat-ed is a file we cannot vouch for.
-      return false;
-    }
-  }
-
-  /**
    * Whether the Compiled SQL preview for this file can come from the real node
    * rather than from the editor text.
    *
@@ -1181,9 +1163,11 @@ export class DBTProject implements Disposable {
    *
    * - The buffer holds nothing the file does not. Otherwise the preview would
    *   answer a question about a version of the file nobody is looking at.
-   * - The manifest describes the file as saved. Between a save and its rebuild
-   *   the node is the version before it, which would put the previous save's
-   *   SQL on screen — or old SQL where the new version's parse error belongs.
+   * - The manifest was built after the file was written, `savedAt`. A node
+   *   carries the code the last parse read, so between a save and the rebuild
+   *   it sets off the node is the version before it: that would put the
+   *   previous save's SQL on screen, or old SQL where the new version's parse
+   *   error belongs.
    * - The name this file would be compiled under resolves back to this same
    *   node. `unsafeCompileNode` resolves a bare ref name in the root project
    *   with no version: `resolve_ref(name, version=None, package=None)` on the
@@ -1195,15 +1179,20 @@ export class DBTProject implements Disposable {
    *   project also uses each fail it — and each of them compiled correctly as
    *   editor text.
    *
+   * `savedAt` is the caller's reading of when the file was written, rather
+   * than one taken here, so that the version this answers for is the version
+   * the caller can record having asked about.
+   *
    * Public because a preview built from the editor text has to be re-requested
    * once this turns true for it.
    */
   previewCanUseNode(
     filePath: string,
     modelName: string,
+    savedAt: number,
     hasUnsavedEdits: boolean,
   ): boolean {
-    if (hasUnsavedEdits) {
+    if (hasUnsavedEdits || this.manifestBuiltFromFilesAsOf === undefined) {
       return false;
     }
     const node = this.findNodeForFile(filePath);
@@ -1213,7 +1202,7 @@ export class DBTProject implements Disposable {
     ) {
       return false;
     }
-    return this.manifestDescribesSavedFile(filePath);
+    return savedAt < this.manifestBuiltFromFilesAsOf;
   }
 
   /**
@@ -1226,10 +1215,11 @@ export class DBTProject implements Disposable {
    * error that yesterday's preview did not produce.
    *
    * `nodeTried` says whether the node was asked, not whether it answered: a
-   * preview that got this far has had the node's best attempt at this version
-   * of the file, and no later manifest can improve on it. The caller needs
-   * that rather than the source of the SQL, because a preview it re-requests
-   * on a manifest change compiles, and a compile is another manifest change.
+   * preview that got this far has had the node's best attempt at the version
+   * of the file `savedAt` names, and no later manifest can improve on it. The
+   * caller needs that rather than the source of the SQL, because a preview it
+   * re-requests on a manifest change compiles, and a compile is another
+   * manifest change.
    *
    * Guards match `unsafeCompileQuery`, which this replaces at the preview call
    * site, so routing is the only thing that changes.
@@ -1238,12 +1228,14 @@ export class DBTProject implements Disposable {
     query: string,
     modelName: string,
     filePath: string,
+    savedAt: number,
     hasUnsavedEdits: boolean,
   ): Promise<{ compiledSql: string; nodeTried: boolean }> {
     this.throwIfNotAuthenticated();
     const nodeTried = this.previewCanUseNode(
       filePath,
       modelName,
+      savedAt,
       hasUnsavedEdits,
     );
     if (nodeTried) {

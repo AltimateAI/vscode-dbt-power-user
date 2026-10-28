@@ -25,12 +25,12 @@ export class SqlPreviewContentProvider
   private subscriptions: Disposable[] = [];
   private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
   /**
-   * For each preview whose model's node has already been asked about the
-   * version of the file now on disk, that file's modification time. A preview
-   * missing from here is showing editor text the node was never asked for, so
-   * it is the one a fresh manifest can improve.
+   * For each preview, the version of its file — as a modification time — whose
+   * node has already been asked for. A preview missing from here is showing
+   * editor text the node was never asked for, so it is the one a fresh
+   * manifest can improve.
    */
-  private nodeTriedForMtime: Map<string, number> = new Map();
+  private nodeTriedForVersion: Map<string, number> = new Map();
 
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -92,7 +92,7 @@ export class SqlPreviewContentProvider
         for (const [uriString] of this.compilationDocs.entries()) {
           if (!visiblePreviewUris.has(uriString)) {
             this.compilationDocs.delete(uriString);
-            this.nodeTriedForMtime.delete(uriString);
+            this.nodeTriedForVersion.delete(uriString);
             const timer = this.debounceTimers.get(uriString);
             if (timer) {
               clearTimeout(timer);
@@ -144,31 +144,39 @@ export class SqlPreviewContentProvider
    */
   private refreshPreviewsTheNodeCanNowAnswer(): void {
     for (const [uriString, previewUri] of this.compilationDocs.entries()) {
-      try {
-        const fsPath = decodeURI(previewUri.fsPath);
-        const project = this.dbtProjectContainer.findDBTProject(
-          Uri.file(fsPath),
-        );
-        const canUseNode = project?.previewCanUseNode(
-          fsPath,
-          path.basename(fsPath, ".sql"),
-          this.findOpenDocument(previewUri)?.isDirty === true,
-        );
-        if (canUseNode !== true) {
-          continue;
-        }
-        const savedAt = statSync(fsPath).mtimeMs;
-        if (this.nodeTriedForMtime.get(uriString) === savedAt) {
-          continue;
-        }
-        // Claimed before the request, not after it: the compile it leads to
-        // rewrites `target/manifest.json` on the command-line integrations,
-        // and that is another manifest change arriving here.
-        this.nodeTriedForMtime.set(uriString, savedAt);
-        this._onDidChange.fire(previewUri);
-      } catch (error) {
-        // A preview whose file has gone is dropped when its editor closes.
+      const fsPath = decodeURI(previewUri.fsPath);
+      const savedAt = this.savedAt(fsPath);
+      if (this.nodeTriedForVersion.get(uriString) === savedAt) {
+        continue;
       }
+      const project = this.dbtProjectContainer.findDBTProject(Uri.file(fsPath));
+      const canUseNode = project?.previewCanUseNode(
+        fsPath,
+        path.basename(fsPath, ".sql"),
+        savedAt,
+        this.findOpenDocument(previewUri)?.isDirty === true,
+      );
+      if (canUseNode !== true) {
+        continue;
+      }
+      // Claimed before the request, not after it: the compile it leads to
+      // rewrites `target/manifest.json` on the command-line integrations, and
+      // that is another manifest change arriving here.
+      this.nodeTriedForVersion.set(uriString, savedAt);
+      this._onDidChange.fire(previewUri);
+    }
+  }
+
+  /**
+   * When the file was last written. A file that cannot be stat-ed counts as
+   * written later than any manifest could have been built, which is what keeps
+   * the preview on the editor text for it.
+   */
+  private savedAt(fsPath: string): number {
+    try {
+      return statSync(fsPath).mtimeMs;
+    } catch (error) {
+      return Infinity;
     }
   }
 
@@ -201,16 +209,21 @@ export class SqlPreviewContentProvider
       // A file the manifest already describes compiles as the node it actually
       // is, so identity-dependent Jinja resolves. Anything else still compiles
       // as written — see `previewCanUseNode`.
+      // One reading of when the file was written, for both the routing and the
+      // record of it. A save during the compile must not be recorded as a
+      // version whose node was asked for, or that version never catches up.
+      const savedAt = this.savedAt(fsPath);
       const { compiledSql, nodeTried } = await project.compileQueryForPreview(
         query,
         modelName,
         fsPath,
+        savedAt,
         document?.isDirty === true,
       );
       if (nodeTried) {
-        this.nodeTriedForMtime.set(uriString, statSync(fsPath).mtimeMs);
+        this.nodeTriedForVersion.set(uriString, savedAt);
       } else {
-        this.nodeTriedForMtime.delete(uriString);
+        this.nodeTriedForVersion.delete(uriString);
       }
       return compiledSql;
     } catch (error: any) {
