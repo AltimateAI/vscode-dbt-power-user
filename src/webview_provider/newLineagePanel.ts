@@ -841,7 +841,8 @@ export class NewLineagePanel
     try {
       return this.queryManifestService.getProject()?.getBlockingDiagnostic();
     } catch (err) {
-      return { message: (err as Error).message, category: "unknown" };
+      const message = err instanceof Error ? err.message : String(err);
+      return { message, category: "unknown" };
     }
   }
 

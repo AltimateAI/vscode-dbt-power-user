@@ -787,6 +787,24 @@ describe("NewLineagePanel — lineage telemetry", () => {
     );
   });
 
+  it("lists the error kinds seen before the graph in sorted order", () => {
+    blocking = {
+      message:
+        "dbt configuration is invalid : Runtime Error Could not find profile named 'analytics'",
+      category: "project-config",
+    };
+    panel.eventMapChanged(new Map());
+    blocking = { message: DBT_NOT_FOUND, category: "project-config" };
+    panel.eventMapChanged(new Map());
+    blocking = undefined;
+    event = loadedEvent(12);
+    panel.eventMapChanged(new Map());
+
+    expect((rendered()[0][1] as any).errorKindsBefore).toBe(
+      "dbt_not_found,profile",
+    );
+  });
+
   it("marks a graph drawn while an error still stands as stale", () => {
     blocking = { message: MISSING_REF, category: "manifest-rebuild" };
     event = loadedEvent(3);
@@ -802,15 +820,41 @@ describe("NewLineagePanel — lineage telemetry", () => {
     expect(rendered()).toHaveLength(0);
   });
 
+  it("reports a non-Error thrown while reading the diagnostics", () => {
+    (panel as any).queryManifestService.getProject = jest.fn(() => ({
+      getBlockingDiagnostic: () => {
+        // The value under test is a thrown non-Error.
+        // eslint-disable-next-line no-throw-literal
+        throw "diagnostics unavailable";
+      },
+    }));
+
+    expect(() => panel.eventMapChanged(new Map())).not.toThrow();
+    expect(lineageErrors()[0][2]).toEqual({
+      message: "diagnostics unavailable",
+      errorKind: "other",
+      diagnosticCategory: "unknown",
+    });
+  });
+
   it("still renders when reporting the graph fails", () => {
     event = loadedEvent(1);
-    event.event.nodeMetaMap.nodes = () => {
+    const nodes = jest.fn(() => {
       throw new Error("boom");
-    };
+    });
+    event.event.nodeMetaMap.nodes = nodes;
 
     expect(() => panel.eventMapChanged(new Map())).not.toThrow();
     expect((panel as any)._panel.webview.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({ command: "render" }),
     );
+    // The report ran and its failure went to the debug log.
+    expect(nodes).toHaveBeenCalled();
+    expect((panel as any).dbtTerminal.debug).toHaveBeenCalledWith(
+      "Lineage:reportLineageRendered",
+      "Could not report the rendered graph",
+      expect.any(Error),
+    );
+    expect(rendered()).toHaveLength(0);
   });
 });

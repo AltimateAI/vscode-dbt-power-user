@@ -1,6 +1,9 @@
 // Classifies the errors the lineage panel shows, for telemetry. The first
 // matching rule wins, so the order matters: a packages error raised while dbt
-// parses the project is "packages", not "project".
+// parses the project is "packages", not "project". dbt names the failing model,
+// file and variable in its messages, so the exact dbt phrases come first and
+// the profile rule matches whole phrases: a model named `user_profile` or an
+// env var named `PACKAGES_ROOT` doesn't decide the kind.
 export type LineageErrorKind =
   | "integration"
   | "dbt_not_found"
@@ -25,6 +28,11 @@ const RULES: [LineageErrorKind, string[]][] = [
       "unable to parse dbt cloud cli response",
       "writablemanifest",
     ],
+  ],
+  ["env_var", ["env var required"]],
+  [
+    "missing_reference",
+    ["depends on a node named", "depends on a source named", "depends on doc"],
   ],
   [
     "dbt_not_found",
@@ -56,11 +64,21 @@ const RULES: [LineageErrorKind, string[]][] = [
       "unclosed",
     ],
   ],
-  ["env_var", ["env var required"]],
-  ["profile", ["profile", "credential", "does not have a target named"]],
   [
-    "missing_reference",
-    ["depends on a node named", "depends on a source named", "depends on doc"],
+    "profile",
+    [
+      "profile named",
+      "no profile was specified",
+      "profiles.yml",
+      "does not have a target named",
+      "credentials in profile",
+      "not specified in profile",
+      // dbt Cloud, Databricks and AWS credential lookups.
+      "credentials file",
+      "development credentials",
+      "default credentials",
+      "locate credentials",
+    ],
   ],
   [
     "project",

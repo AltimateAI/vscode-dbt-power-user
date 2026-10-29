@@ -59,6 +59,38 @@ describe("classifyLineageError", () => {
       "profile",
     ],
     [
+      "dbt configuration is invalid : Runtime Error dbt cannot run because no profile was specified for this dbt project.",
+      "profile",
+    ],
+    [
+      'dbt configuration is invalid : Runtime Error Credentials in profile "analytics", target "dev" invalid: Runtime Error Must specify schema',
+      "profile",
+    ],
+    [
+      "There is a problem in your dbt project. Compilation failed: Runtime Error Outputs not specified in profile 'analytics'",
+      "profile",
+    ],
+    [
+      "There is a problem in your dbt project. Compilation failed: Runtime Error dbt encountered an error while trying to read your profiles.yml file.",
+      "profile",
+    ],
+    [
+      "Encountered an error: dbt Cloud wasn't able to set up your development connection. Please double check that you've properly configured your project connection and development credentials.",
+      "profile",
+    ],
+    [
+      "Encountered an error loading configuration: dbt_cloud.yml credentials file for dbt Cloud not found.",
+      "profile",
+    ],
+    [
+      "dbt configuration is invalid : default auth: cannot configure default credentials",
+      "profile",
+    ],
+    [
+      "dbt configuration is invalid : Runtime Error Unable to locate credentials",
+      "profile",
+    ],
+    [
       "There is a problem in your dbt project. Compilation failed: Compilation Error Model 'model.shop.orders' (models/orders.sql) depends on a node named 'stg_orderz' which was not found",
       "missing_reference",
     ],
@@ -80,6 +112,32 @@ describe("classifyLineageError", () => {
     ],
     ["dbt_project.yml is invalid : bad indentation", "project"],
     ["<REDACTED: Generic Secret>", "other"],
+    // dbt names the failing model, file or variable in the message; a name
+    // that contains another rule's pattern doesn't change the kind.
+    [
+      "There is a problem in your dbt project. Compilation failed: Compilation Error Model 'model.shop.user_profile' (models/user_profile.sql) depends on a node named 'stg_orderz' which was not found",
+      "missing_reference",
+    ],
+    [
+      "There is a problem in your dbt project. Compilation failed: Compilation Error Model 'model.shop.tickets_unclosed' (models/tickets_unclosed.sql) depends on a node named 'stg_tickets' which was not found",
+      "missing_reference",
+    ],
+    [
+      "There is a problem in your dbt project. Compilation failed: Compilation Error in model customer_profile (models/customer_profile.sql) 'dict object' has no attribute 'id'",
+      "project",
+    ],
+    [
+      'There is a problem in your dbt project. Compilation failed: Compilation Error dbt found two models with the name "user_credentials".',
+      "project",
+    ],
+    [
+      'There is a problem in your dbt project. Compilation failed: Parsing Error Error reading shop: models/schema.yml - Runtime Error Syntax error near line 12 description: "one row per main profile change"',
+      "project",
+    ],
+    [
+      "dbt configuration is invalid : Parsing Error Env var required but not provided: 'DBT_PACKAGES_ROOT'",
+      "env_var",
+    ],
   ];
 
   it.each(cases)("classifies %j as %s", (message, kind) => {
