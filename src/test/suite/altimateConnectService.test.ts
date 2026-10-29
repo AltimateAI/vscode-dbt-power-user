@@ -11,6 +11,7 @@ import {
   ConfigurationTarget,
   env,
   extensions,
+  UIKind,
   Uri,
   window,
   workspace,
@@ -793,6 +794,48 @@ describe("AltimateConnectService review fixes", () => {
     expect(h.service.canLinkWorkspace()).toBe(false);
 
     (env as Record<string, unknown>).uriScheme = scheme;
+  });
+
+  it("sends a web editor's callback link as the redirect", async () => {
+    const scheme = env.uriScheme;
+    const e = env as Record<string, unknown>;
+    e.uriScheme = "code-oss";
+    e.uiKind = UIKind.Web;
+    const external = (path: string) =>
+      `https://code.acme.dev/callback?vscode-reqid=1&vscode-scheme=code-oss&vscode-authority=innoverio.vscode-dbt-power-user&vscode-path=${encodeURIComponent(path)}`;
+    const desktop = (env.asExternalUri as jest.Mock).getMockImplementation();
+    // code-server returns the callback's query inside the path.
+    (env.asExternalUri as jest.Mock).mockImplementation(
+      async (uri: unknown) => ({
+        scheme: "https",
+        authority: "code.acme.dev",
+        path: external(new URL(uri as string).pathname).slice(
+          "https://code.acme.dev".length,
+        ),
+        query: "",
+      }),
+    );
+    try {
+      const h = harness();
+      expect(h.service.supportsBrowserSignIn()).toBe(true);
+
+      await h.service.startSignIn();
+      expect(new URL(h.opened[0]).searchParams.get("redirect")).toBe(
+        external("/auth"),
+      );
+      expect(env.asExternalUri).toHaveBeenCalledWith(
+        "code-oss://innoverio.vscode-dbt-power-user/auth",
+      );
+
+      await h.service.startWorkspaceLink(PROJECT_ROOT);
+      expect(new URL(h.opened[1]).searchParams.get("redirect")).toBe(
+        external("/workspace-bound"),
+      );
+    } finally {
+      e.uriScheme = scheme;
+      e.uiKind = UIKind.Desktop;
+      (env.asExternalUri as jest.Mock).mockImplementation(desktop!);
+    }
   });
 });
 

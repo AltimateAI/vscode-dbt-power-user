@@ -130,7 +130,27 @@ export const extensions = {
   all: [],
 };
 
-export const env = { uriScheme: "vscode" };
+export const uriParts = (value: string) => {
+  const url = new URL(value);
+  return {
+    scheme: url.protocol.slice(0, -1),
+    authority: url.host,
+    path: url.pathname,
+    query: url.search.slice(1),
+  };
+};
+
+export enum UIKind {
+  Desktop = 1,
+  Web = 2,
+}
+
+export const env = {
+  uriScheme: "vscode",
+  uiKind: UIKind.Desktop,
+  // A desktop editor resolves its own URI unchanged.
+  asExternalUri: jest.fn(async (uri: unknown) => uriParts(String(uri))),
+};
 
 export const ConfigurationTarget = {
   Global: 1,
