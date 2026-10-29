@@ -602,9 +602,10 @@ export class OnboardingPanel extends AltimateWebviewProvider {
               instance: this.altimateRequest.getInstanceName() ?? "",
               // Only the last characters, to tell keys apart.
               keyHint: this.altimateRequest.getAIKey()?.slice(-4),
-              canLinkWorkspace: this.altimateConnectService.canLinkWorkspace(),
+              canLinkWorkspace:
+                await this.altimateConnectService.canLinkWorkspace(),
               supportsBrowserSignIn:
-                this.altimateConnectService.supportsBrowserSignIn(),
+                await this.altimateConnectService.supportsBrowserSignIn(),
               workspaceId: projectRoot
                 ? this.altimateConnectService.getLinkedWorkspaceId(projectRoot)
                 : undefined,
