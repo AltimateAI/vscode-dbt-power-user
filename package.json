@@ -582,6 +582,11 @@
         }
       },
       {
+        "command": "dbtPowerUser.compileCurrentModelFullRefresh",
+        "title": "Compile dbt Model (Full Refresh)",
+        "category": "dbt Power User"
+      },
+      {
         "command": "dbtPowerUser.sqlPreview",
         "title": "Compiled dbt Preview",
         "category": "Power User for dbt",
@@ -666,6 +671,11 @@
         "title": "Execute dbt SQL",
         "category": "Power User for dbt",
         "icon": "$(play)"
+      },
+      {
+        "command": "dbtPowerUser.executeSQLFullRefresh",
+        "title": "Execute dbt SQL (Full Refresh)",
+        "category": "dbt Power User"
       },
       {
         "command": "dbtPowerUser.buildCurrentModel",

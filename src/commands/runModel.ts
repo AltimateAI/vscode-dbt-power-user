@@ -33,12 +33,12 @@ export class RunModel {
     this.runDBTModelTest(fullPath);
   }
 
-  compileModelOnActiveWindow() {
+  compileModelOnActiveWindow(fullRefresh: boolean = false) {
     if (!window.activeTextEditor) {
       return;
     }
     const fullPath = window.activeTextEditor.document.uri;
-    this.compileDBTModel(fullPath);
+    this.compileDBTModel(fullPath, undefined, fullRefresh);
   }
 
   compileQueryOnActiveWindow() {
@@ -62,7 +62,7 @@ export class RunModel {
     );
   }
 
-  executeQueryOnActiveWindow() {
+  executeQueryOnActiveWindow(fullRefresh: boolean = false) {
     const query = this.getQuery();
     if (query === undefined) {
       return;
@@ -70,7 +70,12 @@ export class RunModel {
     const modelPath = window.activeTextEditor?.document.uri;
     if (modelPath) {
       const modelName = path.basename(modelPath.fsPath, ".sql");
-      this.executeSQL(window.activeTextEditor!.document.uri, query, modelName);
+      this.executeSQL(
+        window.activeTextEditor!.document.uri,
+        query,
+        modelName,
+        fullRefresh,
+      );
     }
   }
 
@@ -144,8 +149,12 @@ export class RunModel {
     this.dbtProjectContainer.buildModel(modelPath, type);
   }
 
-  compileDBTModel(modelPath: Uri, type?: RunModelType) {
-    this.dbtProjectContainer.compileModel(modelPath, type);
+  compileDBTModel(
+    modelPath: Uri,
+    type?: RunModelType,
+    fullRefresh: boolean = false,
+  ) {
+    this.dbtProjectContainer.compileModel(modelPath, type, fullRefresh);
   }
 
   generateDBTDocs(modelPath: Uri, type?: RunModelType) {
@@ -165,8 +174,13 @@ export class RunModel {
     this.dbtProjectContainer.runModelTest(modelPath, modelName);
   }
 
-  async executeSQL(uri: Uri, query: string, modelName: string) {
-    this.dbtProjectContainer.executeSQL(uri, query, modelName);
+  async executeSQL(
+    uri: Uri,
+    query: string,
+    modelName: string,
+    fullRefresh: boolean = false,
+  ) {
+    this.dbtProjectContainer.executeSQL(uri, query, modelName, fullRefresh);
   }
 
   showCompiledSQL(modelPath: Uri) {
