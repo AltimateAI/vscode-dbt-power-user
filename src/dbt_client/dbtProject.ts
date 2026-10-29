@@ -89,8 +89,34 @@ interface JsonObj {
   [key: string]: string | number | undefined;
 }
 
+/**
+ * `NodeMetaData.path` is the project root joined with the node's relative
+ * path, which makes it comparable to a document path once both are normalized
+ * — case included, on the platform where case does not distinguish files.
+ */
+const isSameFile = (left: string, right: string) => {
+  const a = path.normalize(left);
+  const b = path.normalize(right);
+  return process.platform === "win32"
+    ? a.toLowerCase() === b.toLowerCase()
+    : a === b;
+};
+
 export class DBTProject implements Disposable {
   private _manifestCacheEvent?: ManifestCacheProjectAddedEvent;
+  /**
+   * When the manifest currently in `_manifestCacheEvent` started being built.
+   * A rebuild reads the project files as it starts, so a file written after
+   * that moment is not described by it yet.
+   */
+  private manifestBuiltFromFilesAsOf?: number;
+  /**
+   * When each rebuild that has started and not yet ended started, oldest
+   * first. Rebuilds overlap: the adapter announces a start before the parse
+   * behind it waits for the project lock, so one field would hand a rebuild
+   * the start time of a later one and call its manifest newer than it is.
+   */
+  private readonly manifestRebuildStartTimes: number[] = [];
   readonly projectRoot: Uri;
   private dbtProjectIntegration: DBTProjectIntegrationAdapter;
 
@@ -219,6 +245,7 @@ export class DBTProject implements Disposable {
           "DBTProject",
           `Received rebuildManifestStatusChange event: inProgress=${status.inProgress}`,
         );
+        this.noteRebuildStatus(status.inProgress);
         const event: RebuildManifestStatusChange = {
           project: this,
           inProgress: status.inProgress,
@@ -251,6 +278,7 @@ export class DBTProject implements Disposable {
           modelDepthMap: parsedManifest.modelDepthMap,
         };
         this._manifestCacheEvent = manifestCacheEvent;
+        this.stampManifestFreshness();
         this._onManifestChanged.fire({ added: [manifestCacheEvent] });
       },
     );
@@ -1125,6 +1153,151 @@ export class DBTProject implements Disposable {
       query,
       originalModelName,
     );
+  }
+
+  /**
+   * The manifest node that this file is, or undefined for a file the manifest
+   * does not describe.
+   *
+   * Matched on the node's own path rather than on the file name, because file
+   * names collide: `models/orders.sql`, `analyses/orders.sql` and a package's
+   * `models/orders.sql` are three nodes with one base name, and a lookup by
+   * name can only hand back one of them.
+   */
+  private findNodeForFile(filePath: string): NodeMetaData | undefined {
+    const nodes = this._manifestCacheEvent?.nodeMetaMap.nodes();
+    if (nodes === undefined) {
+      return undefined;
+    }
+    for (const node of nodes) {
+      if (node.path !== undefined && isSameFile(node.path, filePath)) {
+        return node;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Keeps the list of running rebuilds. The adapter emits the end status from
+   * a `finally`, so every start it announces is followed by exactly one end,
+   * and the list holds only rebuilds still running.
+   */
+  private noteRebuildStatus(inProgress: boolean): void {
+    if (inProgress) {
+      this.manifestRebuildStartTimes.push(Date.now());
+    } else {
+      this.manifestRebuildStartTimes.shift();
+    }
+  }
+
+  /**
+   * Records which version of the project files the manifest just parsed can
+   * describe.
+   *
+   * A parse arrives either at the end of a rebuild or because something
+   * rewrote `target/manifest.json`, and the event does not say which rebuild
+   * it belongs to. The oldest rebuild still running is the one it cannot have
+   * started before — and under the project lock, the one whose turn it is — so
+   * that start time is the bound. A parse with no rebuild running is a
+   * manifest rewritten in place, by a `dbt compile` among other things: it
+   * read no version of the files that a rebuild has not already accounted
+   * for, so it leaves the bound where it is rather than moving it to now.
+   */
+  private stampManifestFreshness(): void {
+    const oldestRunning = this.manifestRebuildStartTimes[0];
+    if (oldestRunning !== undefined) {
+      this.manifestBuiltFromFilesAsOf = oldestRunning;
+    }
+  }
+
+  /**
+   * Whether the Compiled SQL preview for this file can come from the real node
+   * rather than from the editor text.
+   *
+   * Compiling the node is what makes `model.name`, `model.primary_key`, `this`
+   * and `model.config` resolve; the editor text compiles as an anonymous query
+   * and leaves them on a placeholder. The node is not the text, though, so
+   * three things have to hold, and each of them has a way of being false that
+   * the editor text does not:
+   *
+   * - The buffer holds nothing the file does not. Otherwise the preview would
+   *   answer a question about a version of the file nobody is looking at.
+   * - The manifest was built after the file was written, `savedAt`. A node
+   *   carries the code the last parse read, so between a save and the rebuild
+   *   it sets off the node is the version before it: that would put the
+   *   previous save's SQL on screen, or old SQL where the new version's parse
+   *   error belongs.
+   * - The name this file would be compiled under resolves back to this same
+   *   node. `unsafeCompileNode` resolves a bare ref name in the root project
+   *   with no version: `resolve_ref(name, version=None, package=None)` on the
+   *   Python bridge, `--select <name>` on the command-line integrations. dbt
+   *   composes a node's id as `<resource_type>.<package>.<name>`, appending
+   *   `.v<version>` for a versioned model, so comparing the node's id with the
+   *   id that name would carry is the whole test. A versioned model, an
+   *   analysis, a seed, a snapshot, and a package model whose name the root
+   *   project also uses each fail it — and each of them compiled correctly as
+   *   editor text.
+   *
+   * `savedAt` is the caller's reading of when the file was written, rather
+   * than one taken here, so that the version this answers for is the version
+   * the caller can record having asked about.
+   *
+   * Public because a preview built from the editor text has to be re-requested
+   * once this turns true for it.
+   */
+  previewCanUseNode(
+    filePath: string,
+    modelName: string,
+    savedAt: number,
+    hasUnsavedEdits: boolean,
+  ): boolean {
+    if (hasUnsavedEdits || this.manifestBuiltFromFilesAsOf === undefined) {
+      return false;
+    }
+    const node = this.findNodeForFile(filePath);
+    if (
+      node?.unique_id !==
+      `${RESOURCE_TYPE_MODEL}.${this.getProjectName()}.${modelName}`
+    ) {
+      return false;
+    }
+    return savedAt < this.manifestBuiltFromFilesAsOf;
+  }
+
+  /**
+   * Compile for the Compiled SQL preview: from the real node when the caller's
+   * `previewCanUseNode` said so, from the editor text otherwise.
+   *
+   * A node compile that throws falls back to the editor text too. That is what
+   * the preview did before this routing existed, so a node the check accepts
+   * but dbt still declines to resolve costs an extra compile rather than an
+   * error that yesterday's preview did not produce.
+   *
+   * The caller decides rather than being told afterwards, because it has to
+   * record what it asked for at the moment it asks: preview requests overlap,
+   * and the one that comes back last is not the one that went out last.
+   *
+   * Guards match `unsafeCompileQuery`, which this replaces at the preview call
+   * site, so routing is the only thing that changes.
+   */
+  async compileQueryForPreview(
+    query: string,
+    modelName: string,
+    useNode: boolean,
+  ): Promise<string> {
+    this.throwIfNotAuthenticated();
+    if (useNode) {
+      try {
+        return await this.dbtProjectIntegration.unsafeCompileNode(modelName);
+      } catch (error) {
+        this.terminal.debug(
+          "DBTProject",
+          `Compiling ${modelName} as a node failed, compiling the editor text instead`,
+          error,
+        );
+      }
+    }
+    return this.dbtProjectIntegration.unsafeCompileQuery(query, modelName);
   }
 
   async getColumnsOfModel(modelName: string) {
