@@ -564,10 +564,10 @@ describe("AltimateConnectService workspace link", () => {
     jest.clearAllMocks();
   });
 
-  it("is only offered for the freemium deployment", () => {
-    expect(harness().service.canLinkWorkspace()).toBe(true);
+  it("is only offered for the freemium deployment", async () => {
+    expect(await harness().service.canLinkWorkspace()).toBe(true);
     expect(
-      harness({
+      await harness({
         altimateUrl: "https://api.getaltimate.com",
       }).service.canLinkWorkspace(),
     ).toBe(false);
@@ -785,57 +785,145 @@ describe("AltimateConnectService review fixes", () => {
     expect(h.altimateRequest.exchangeSocialToken).toHaveBeenCalled();
   });
 
-  it("offers no browser sign-in or workspace in editors the SaaS cannot reach", () => {
+  it("offers no browser sign-in or workspace in editors the SaaS cannot reach", async () => {
     const scheme = env.uriScheme;
     (env as Record<string, unknown>).uriScheme = "vscodium";
     const h = harness();
 
-    expect(h.service.supportsBrowserSignIn()).toBe(false);
-    expect(h.service.canLinkWorkspace()).toBe(false);
+    expect(await h.service.supportsBrowserSignIn()).toBe(false);
+    expect(await h.service.canLinkWorkspace()).toBe(false);
 
     (env as Record<string, unknown>).uriScheme = scheme;
   });
+});
 
-  it("sends a web editor's callback link as the redirect", async () => {
-    const scheme = env.uriScheme;
+describe("AltimateConnectService in a web editor", () => {
+  const callback = (origin: string, path: string) =>
+    `${origin}/callback?vscode-reqid=1&vscode-scheme=code-oss&vscode-authority=innoverio.vscode-dbt-power-user&vscode-path=${encodeURIComponent(path)}`;
+  const pathOf = (uri: unknown) => new URL(uri as string).pathname;
+
+  // Runs `body` as a web editor whose `asExternalUri` returns `resolve(uri)`.
+  const inWebEditor = async (
+    resolve: (uri: unknown) => unknown,
+    body: () => Promise<void>,
+  ) => {
     const e = env as Record<string, unknown>;
+    const scheme = e.uriScheme;
+    const desktop = (env.asExternalUri as jest.Mock).getMockImplementation();
     e.uriScheme = "code-oss";
     e.uiKind = UIKind.Web;
-    const external = (path: string) =>
-      `https://code.acme.dev/callback?vscode-reqid=1&vscode-scheme=code-oss&vscode-authority=innoverio.vscode-dbt-power-user&vscode-path=${encodeURIComponent(path)}`;
-    const desktop = (env.asExternalUri as jest.Mock).getMockImplementation();
-    // code-server returns the callback's query inside the path.
-    (env.asExternalUri as jest.Mock).mockImplementation(
-      async (uri: unknown) => ({
-        scheme: "https",
-        authority: "code.acme.dev",
-        path: external(new URL(uri as string).pathname).slice(
-          "https://code.acme.dev".length,
-        ),
-        query: "",
-      }),
+    (env.asExternalUri as jest.Mock).mockImplementation(async (uri: unknown) =>
+      resolve(uri),
     );
     try {
-      const h = harness();
-      expect(h.service.supportsBrowserSignIn()).toBe(true);
-
-      await h.service.startSignIn();
-      expect(new URL(h.opened[0]).searchParams.get("redirect")).toBe(
-        external("/auth"),
-      );
-      expect(env.asExternalUri).toHaveBeenCalledWith(
-        "code-oss://innoverio.vscode-dbt-power-user/auth",
-      );
-
-      await h.service.startWorkspaceLink(PROJECT_ROOT);
-      expect(new URL(h.opened[1]).searchParams.get("redirect")).toBe(
-        external("/workspace-bound"),
-      );
+      await body();
     } finally {
       e.uriScheme = scheme;
       e.uiKind = UIKind.Desktop;
       (env.asExternalUri as jest.Mock).mockImplementation(desktop!);
     }
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("sends code-server's callback link, whose query comes inside the path", async () => {
+    const origin = "https://code.acme.dev";
+    await inWebEditor(
+      (uri) => ({
+        scheme: "https",
+        authority: "code.acme.dev",
+        path: callback(origin, pathOf(uri)).slice(origin.length),
+        query: "",
+      }),
+      async () => {
+        const h = harness();
+        expect(await h.service.supportsBrowserSignIn()).toBe(true);
+
+        await h.service.startSignIn();
+        expect(new URL(h.opened[0]).searchParams.get("redirect")).toBe(
+          callback(origin, "/auth"),
+        );
+        expect(env.asExternalUri).toHaveBeenCalledWith(
+          "code-oss://innoverio.vscode-dbt-power-user/auth",
+        );
+
+        await h.service.startWorkspaceLink(PROJECT_ROOT);
+        expect(new URL(h.opened[1]).searchParams.get("redirect")).toBe(
+          callback(origin, "/workspace-bound"),
+        );
+      },
+    );
+  });
+
+  it("sends a callback link whose query comes separately", async () => {
+    const origin = "https://ideal-space.github.dev";
+    await inWebEditor(
+      (uri) => ({
+        scheme: "https",
+        authority: "ideal-space.github.dev",
+        path: "/callback",
+        query: new URL(callback(origin, pathOf(uri))).search.slice(1),
+      }),
+      async () => {
+        const h = harness();
+
+        await h.service.startSignIn();
+
+        expect(new URL(h.opened[0]).searchParams.get("redirect")).toBe(
+          callback(origin, "/auth"),
+        );
+      },
+    );
+  });
+
+  it.each([
+    ["plain http on a LAN address", "http://192.168.1.10:8080"],
+    ["plain http on a hostname", "http://code.lan:8080"],
+  ])("keeps the key form for %s", async (_label, origin) => {
+    await inWebEditor(
+      (uri) => ({
+        scheme: "http",
+        authority: new URL(origin).host,
+        path: "/callback",
+        query: new URL(callback(origin, pathOf(uri))).search.slice(1),
+      }),
+      async () => {
+        const h = harness();
+        expect(await h.service.supportsBrowserSignIn()).toBe(false);
+        expect(await h.service.canLinkWorkspace()).toBe(false);
+      },
+    );
+  });
+
+  it("keeps the key form when the editor has no callback route", async () => {
+    // Without a callback provider, the URI comes back unchanged.
+    await inWebEditor(
+      (uri) => ({
+        scheme: "code-oss",
+        authority: "innoverio.vscode-dbt-power-user",
+        path: pathOf(uri),
+        query: "",
+      }),
+      async () => {
+        expect(await harness().service.supportsBrowserSignIn()).toBe(false);
+      },
+    );
+  });
+
+  it("accepts plain http only on a loopback host", async () => {
+    await inWebEditor(
+      (uri) => ({
+        scheme: "http",
+        authority: "localhost:3001",
+        path: `/stable-abc${callback("", pathOf(uri))}`,
+        query: "",
+      }),
+      async () => {
+        expect(await harness().service.supportsBrowserSignIn()).toBe(true);
+      },
+    );
   });
 });
 
