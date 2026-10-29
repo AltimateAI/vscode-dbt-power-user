@@ -923,10 +923,37 @@ export class DBTProject implements Disposable {
 
     const docsGenerateCommand =
       this.dbtCommandFactory.createDocsGenerateCommand();
-    const command =
-      await this.getCurrentProjectIntegration().generateDocs(
-        docsGenerateCommand,
+    let command;
+    try {
+      command =
+        await this.getCurrentProjectIntegration().generateDocs(
+          docsGenerateCommand,
+        );
+    } catch (error) {
+      // The caller doesn't await this, so a rejection here would never be shown.
+      const message = error instanceof Error ? error.message : String(error);
+      const dbtIntegrationMode = workspace
+        .getConfiguration("dbt")
+        .get<string>("dbtIntegration", "core");
+      if (dbtIntegrationMode === "fusion") {
+        // The dbt Fusion integration rejects docs generation unconditionally:
+        // this is a known limitation, not a failure.
+        window.showErrorMessage(
+          "Could not generate docs: " +
+            message +
+            ". To generate docs, set dbt.dbtIntegration to core or cloud.",
+        );
+        this.telemetry.sendTelemetryEvent("generateDocsUnsupported");
+        return;
+      }
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Could not generate docs: " + message + ".",
+        ),
       );
+      this.telemetry.sendTelemetryError("generateDocsError", error);
+      return;
+    }
     this.telemetry.sendTelemetryEvent("generateDocs");
     if (command) {
       this.addCommandToQueue("all", command);

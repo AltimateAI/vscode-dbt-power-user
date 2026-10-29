@@ -100,7 +100,10 @@ jest.mock("vscode", () => {
 jest.mock("../../utils", () => {
   return {
     getProjectRelativePath: jest.fn(() => "test-project"),
-    extendErrorWithSupportLinks: jest.fn((error: any) => error),
+    // The real helper: the docs tests assert its support-link suffix.
+    extendErrorWithSupportLinks:
+      jest.requireActual<typeof import("../../utils")>("../../utils")
+        .extendErrorWithSupportLinks,
     getColumnNameByCase: jest.fn((name: string) => name),
   };
 });
@@ -737,6 +740,75 @@ describe("DBTProject Test Suite", () => {
       expect(result).toContain("Detailed error information:");
       // Check that error message was shown to user
       expect(vscode.window.showErrorMessage).toHaveBeenCalled();
+    });
+
+    const SUPPORT_LINK =
+      " If the issue persists, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=extension) via chat or Slack";
+
+    it("reports Fusion's unsupported docs generation as its own event", async () => {
+      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+        get: jest.fn((key: string) =>
+          key === "dbtIntegration" ? "fusion" : undefined,
+        ),
+      });
+      mockProjectIntegration.generateDocs = jest
+        .fn<() => Promise<unknown>>()
+        .mockRejectedValue(
+          new Error("dbt fusion does not support docs generation"),
+        );
+
+      await dbtProject.generateDocs();
+
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        "Could not generate docs: dbt fusion does not support docs generation." +
+          " To generate docs, set dbt.dbtIntegration to core or cloud.",
+      );
+      expect(mockTelemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "generateDocsUnsupported",
+      );
+      expect(mockTelemetry.sendTelemetryError).not.toHaveBeenCalled();
+      expect(mockTelemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+        "generateDocs",
+      );
+    });
+
+    it("reports other docs generation failures as errors", async () => {
+      const error = new Error("dbt docs generate failed");
+      mockProjectIntegration.generateDocs = jest
+        .fn<() => Promise<unknown>>()
+        .mockRejectedValue(error);
+
+      await dbtProject.generateDocs();
+
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        "Could not generate docs: dbt docs generate failed." + SUPPORT_LINK,
+      );
+      expect(mockTelemetry.sendTelemetryError).toHaveBeenCalledWith(
+        "generateDocsError",
+        error,
+      );
+      expect(mockTelemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+        "generateDocsUnsupported",
+      );
+      expect(mockTelemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+        "generateDocs",
+      );
+    });
+
+    it("shows the reason when docs generation rejects with a non-Error", async () => {
+      mockProjectIntegration.generateDocs = jest
+        .fn<() => Promise<unknown>>()
+        .mockRejectedValue("dbt exited with code 2");
+
+      await dbtProject.generateDocs();
+
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        "Could not generate docs: dbt exited with code 2." + SUPPORT_LINK,
+      );
+      expect(mockTelemetry.sendTelemetryError).toHaveBeenCalledWith(
+        "generateDocsError",
+        "dbt exited with code 2",
+      );
     });
 
     it("should validate SQL", async () => {

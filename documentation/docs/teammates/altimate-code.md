@@ -76,7 +76,7 @@ Altimate Code is **#1 on ADE-Bench** — the industry benchmark for AI data engi
 Two options for powering the AI chat:
 
 - **BYOK (Bring Your Own Key)** — Free and unlimited. Use any of 35+ supported providers (Anthropic, OpenAI, AWS Bedrock, Azure OpenAI, Google, Ollama, and more)
-- **[Altimate LLM Gateway](../arch/llm-gateway.md)** — Managed LLM access with dynamic routing across Sonnet 4.6, Opus 4.6, GPT-5.4, GPT-5.3, and more. 10M tokens free to get started — no API keys to manage
+- **[Altimate LLM Gateway](../arch/llm-gateway.md)** — Managed LLM access with dynamic routing across Sonnet 4.6, Opus 4.6, GPT-5.4, GPT-5.3, and more. 1M tokens free to get started — no API keys to manage
 
 ## Standalone Usage
 
