@@ -1946,6 +1946,18 @@ export class DBTProject implements Disposable {
   }
 
   throwDiagnosticsErrorIfAvailable() {
+    const diagnostic = this.getBlockingDiagnostic();
+    if (diagnostic) {
+      throw new Error(diagnostic.message);
+    }
+  }
+
+  /**
+   * The first error that stops this project from working, with the category of
+   * diagnostics it came from (`project-config` for the configuration check,
+   * `manifest-rebuild` for a parse, `python-bridge` for the bridge, ...).
+   */
+  getBlockingDiagnostic(): { message: string; category: string } | undefined {
     // Check integration diagnostics
     const integrationDiagnostics =
       this.getCurrentProjectIntegration().getDiagnostics();
@@ -1956,28 +1968,29 @@ export class DBTProject implements Disposable {
 
     for (const diagnostic of allIntegrationDiagnostics) {
       if (diagnostic.severity === "error") {
-        throw new Error(diagnostic.message);
+        return { message: diagnostic.message, category: diagnostic.category };
       }
     }
 
     // Check VSCode diagnostic collections
-    const vscodeCollections: DiagnosticCollection[] = [
-      this.projectHealth,
-      this.pythonBridgeDiagnostics,
-      this.rebuildManifestDiagnostics,
-      this.projectConfigDiagnostics,
+    const vscodeCollections: [DiagnosticCollection, string][] = [
+      [this.projectHealth, "project-health"],
+      [this.pythonBridgeDiagnostics, "python-bridge"],
+      [this.rebuildManifestDiagnostics, "manifest-rebuild"],
+      [this.projectConfigDiagnostics, "project-config"],
     ];
 
-    for (const diagnosticCollection of vscodeCollections) {
+    for (const [diagnosticCollection, category] of vscodeCollections) {
       for (const [_, diagnostics] of diagnosticCollection) {
         const error = diagnostics.find(
           (diagnostic) => diagnostic.severity === DiagnosticSeverity.Error,
         );
         if (error) {
-          throw new Error(error.message);
+          return { message: error.message, category };
         }
       }
     }
+    return undefined;
   }
 
   private retrieveDeferConfigFromSettings(): DeferConfig | undefined {

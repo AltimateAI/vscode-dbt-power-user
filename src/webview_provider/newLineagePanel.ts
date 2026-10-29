@@ -41,6 +41,7 @@ import { extendErrorWithSupportLinks } from "../utils";
 import { ValidationProvider } from "../validation_provider";
 import { AltimateWebviewProvider } from "./altimateWebviewProvider";
 import { LineagePanelView } from "./lineagePanel";
+import { classifyLineageError, nodeCountBucket } from "./lineageTelemetry";
 
 // A source table resolved to the dbt unique_id key the lineage should root at
 // (`source.<pkg>.<source>.<table>`).
@@ -82,6 +83,11 @@ export class NewLineagePanel
   // active file. Used to avoid redundant re-renders on every cursor move; the
   // panel only re-roots when the cursor moves onto a different source table.
   private lastRenderedSourceKey: string | undefined;
+  // Telemetry is per window session: one error event per error kind, and one
+  // lineageRendered for the first graph, with the kinds shown before it.
+  private reportedErrorKinds = new Set<string>();
+  private firstErrorAt: number | undefined;
+  private renderReported = false;
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
@@ -189,10 +195,50 @@ export class NewLineagePanel
     if (!this._panel) {
       return;
     }
+    const startingNode = this.getStartingNode(resolvedSource);
     this._panel.webview.postMessage({
       command: "render",
-      args: this.getStartingNode(resolvedSource),
+      args: startingNode,
     });
+    if (startingNode?.node) {
+      this.reportLineageRendered();
+    }
+  }
+
+  // The panel draws while hidden too (the webview is retained), so this counts
+  // the first graph of the session whether or not the user was looking.
+  private reportLineageRendered() {
+    if (this.renderReported) {
+      return;
+    }
+    this.renderReported = true;
+    // The graph is already drawn; a failure here must not reach the caller.
+    try {
+      const event = this.queryManifestService.getEventByCurrentProject()?.event;
+      const nodeCount = event ? [...event.nodeMetaMap.nodes()].length : 0;
+      const properties: { [key: string]: string } = {
+        nodeCountBucket: nodeCountBucket(nodeCount),
+        // An error still stands, so the graph comes from the last good parse.
+        staleManifest: String(this.findBlockingDiagnostic() !== undefined),
+        errorKindsBefore:
+          [...this.reportedErrorKinds].sort().join(",") || "none",
+      };
+      const measurements =
+        this.firstErrorAt !== undefined
+          ? { msSinceFirstError: Date.now() - this.firstErrorAt }
+          : undefined;
+      this.telemetry.sendTelemetryEvent(
+        "lineageRendered",
+        properties,
+        measurements,
+      );
+    } catch (error) {
+      this.dbtTerminal.debug(
+        "Lineage:reportLineageRendered",
+        "Could not report the rendered graph",
+        error,
+      );
+    }
   }
 
   async handleCommand(message: {
@@ -780,20 +826,50 @@ export class NewLineagePanel
   private getMissingLineageMessage() {
     const message =
       "A valid dbt file (model, seed etc.) needs to be open and active in the editor area above to view lineage";
-    try {
-      this.queryManifestService
-        .getProject()
-        ?.throwDiagnosticsErrorIfAvailable();
-    } catch (err) {
-      this.dbtTerminal.error(
-        "Lineage:getMissingLineageMessage",
-        (err as Error).message,
-        err,
-      );
-      return { message: (err as Error).message, type: "error" };
+    const blocking = this.findBlockingDiagnostic();
+    if (blocking) {
+      this.reportLineageError(blocking.message, blocking.category);
+      return { message: blocking.message, type: "error" };
     }
 
     return { message, type: "warning" };
+  }
+
+  private findBlockingDiagnostic():
+    | { message: string; category: string }
+    | undefined {
+    try {
+      return this.queryManifestService.getProject()?.getBlockingDiagnostic();
+    } catch (err) {
+      return { message: (err as Error).message, category: "unknown" };
+    }
+  }
+
+  // The output channel logs every render; telemetry gets the first render of
+  // each error kind in the session.
+  private reportLineageError(message: string, category: string) {
+    const err = new Error(message);
+    const sendTelemetry = false;
+    this.dbtTerminal.error(
+      "Lineage:getMissingLineageMessage",
+      message,
+      err,
+      sendTelemetry,
+    );
+    const errorKind = classifyLineageError(message);
+    if (this.reportedErrorKinds.has(errorKind)) {
+      return;
+    }
+    this.reportedErrorKinds.add(errorKind);
+    this.firstErrorAt ??= Date.now();
+    // The event keeps the name it had when the terminal sent it, so existing
+    // queries and the triage digest still find it.
+    // eslint-disable-next-line no-restricted-syntax
+    this.telemetry.sendTelemetryError("Lineage:getMissingLineageMessage", err, {
+      message,
+      errorKind,
+      diagnosticCategory: category,
+    });
   }
 
   private getStartingNode(resolvedSource?: ResolvedSourceTable):
