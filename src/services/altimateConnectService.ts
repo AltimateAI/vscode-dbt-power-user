@@ -46,6 +46,8 @@ const WORKSPACE_LINKS_KEY = "altimateWorkspaceLinks";
 // The desktop editors the SaaS will redirect back to. Web editors are reached
 // through their own callback link instead (see `callbackUri`).
 const SUPPORTED_URI_SCHEMES = ["vscode", "vscode-insiders", "cursor"];
+// Hosts the SaaS accepts a plain-http web-editor callback on.
+const LOOPBACK_HOSTS = ["localhost", "127.0.0.1", "[::1]"];
 // How long the wizard waits for the backend to check an API key.
 const KEY_CHECK_TIMEOUT_MS = 15_000;
 // How long a browser round trip may take before its `state` is dropped.
@@ -154,11 +156,30 @@ export class AltimateConnectService implements Disposable {
     private dbtTerminal: DBTTerminal,
   ) {}
 
-  /** Whether the SaaS can redirect back to this editor after a sign-in. */
-  supportsBrowserSignIn(): boolean {
-    return (
-      SUPPORTED_URI_SCHEMES.includes(env.uriScheme) || env.uiKind === UIKind.Web
-    );
+  /**
+   * Whether the SaaS can redirect back to this editor after a sign-in. A web
+   * editor qualifies only when its callback link is one the SaaS accepts:
+   * https, or http on a loopback host, ending in `/callback`. A self-hosted
+   * code-server on a plain-http LAN address keeps the key form.
+   */
+  async supportsBrowserSignIn(): Promise<boolean> {
+    if (SUPPORTED_URI_SCHEMES.includes(env.uriScheme)) {
+      return true;
+    }
+    if (env.uiKind !== UIKind.Web) {
+      return false;
+    }
+    try {
+      const url = new URL(await this.callbackUri(AUTH_CALLBACK_PATH));
+      return (
+        (url.protocol === "https:" ||
+          (url.protocol === "http:" &&
+            LOOPBACK_HOSTS.includes(url.hostname))) &&
+        url.pathname.endsWith("/callback")
+      );
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -228,8 +249,11 @@ export class AltimateConnectService implements Disposable {
   }
 
   /** Whether the workspace handoff is available for the signed-in account. */
-  canLinkWorkspace(): boolean {
-    return this.supportsBrowserSignIn() && this.workspaceWebUrl() !== undefined;
+  async canLinkWorkspace(): Promise<boolean> {
+    return (
+      this.workspaceWebUrl() !== undefined &&
+      (await this.supportsBrowserSignIn())
+    );
   }
 
   /** Open the SaaS page that creates a workspace and links it to the project. */
@@ -666,12 +690,18 @@ export class AltimateConnectService implements Disposable {
   }
 
   /**
-   * Open a SaaS page exactly as built. A `Uri` would decode the query and
-   * write it back with `&` and `=` unescaped, splitting an encoded web-editor
-   * `redirect` into separate params; `openExternal` passes a string through
-   * unchanged.
+   * Open a SaaS page exactly as built. A `Uri` decodes the query and writes it
+   * back with `&` and `=` unescaped, which splits a web editor's encoded
+   * `redirect` (`…/callback?vscode-reqid=…&…`) into separate params. Desktop
+   * redirects (`vscode://…/auth`) carry no query, so they keep the `Uri`.
    */
   private async openInBrowser(url: string) {
+    if (env.uiKind !== UIKind.Web) {
+      await env.openExternal(Uri.parse(url, true));
+      return;
+    }
+    // The extension host's `openUri` accepts a string and the workbench opens
+    // that string as given (`$openUri` prefers it over the parsed `Uri`).
     await env.openExternal(url as unknown as Uri);
   }
 
