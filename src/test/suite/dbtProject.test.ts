@@ -198,6 +198,7 @@ describe("DBTProject Test Suite", () => {
     // Mock PythonEnvironment
     mockPythonEnvironment = {
       initialize: jest.fn(() => Promise.resolve()),
+      showInterpreterNotFound: jest.fn(() => Promise.resolve()),
       onPythonEnvironmentChanged: jest.fn().mockReturnValue({
         dispose: jest.fn(),
       }),
@@ -420,6 +421,63 @@ describe("DBTProject Test Suite", () => {
       await dbtProject.initialize();
 
       expect(mockProjectIntegration.initialize).toHaveBeenCalled();
+    });
+
+    function makeProject() {
+      return new DBTProject(
+        mockPythonEnvironment,
+        dbtProjectLogFactory as any,
+        mockCommandFactory,
+        mockTerminal,
+        mockSharedStateService,
+        mockTelemetry,
+        mockExecutionInfrastructure,
+        jest.fn().mockReturnValue(mockProjectIntegration) as any,
+        mockAltimate,
+        mockValidationProvider,
+        mockAltimateAuthService,
+        mockRunHistoryService,
+        vscode.Uri.file("/test/project"),
+        {},
+        mockManifestChangedEmitter,
+      );
+    }
+
+    it("names a missing Python interpreter instead of reporting an unexpected error", async () => {
+      // dbt-integration's PythonInterpreterNotFound.
+      const notFound = Object.assign(
+        new Error(
+          "Python bridge could not start: the Python interpreter /gone/.venv/bin/python was not found. It may have been moved or deleted.",
+        ),
+        { interpreterPath: "/gone/.venv/bin/python", errorClass: "python_env" },
+      );
+      mockProjectIntegration.initialize.mockRejectedValueOnce(notFound);
+      dbtProject = makeProject();
+
+      await dbtProject.initialize();
+
+      expect(
+        mockPythonEnvironment.showInterpreterNotFound,
+      ).toHaveBeenCalledWith("/gone/.venv/bin/python");
+      expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+    });
+
+    it("still reports any other initialization failure", async () => {
+      mockProjectIntegration.initialize.mockRejectedValueOnce(
+        new Error("Python bridge could not start: spawn python EACCES"),
+      );
+      dbtProject = makeProject();
+
+      await dbtProject.initialize();
+
+      expect(
+        mockPythonEnvironment.showInterpreterNotFound,
+      ).not.toHaveBeenCalled();
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "An unexpected error occured while initializing the dbt project at",
+        ),
+      );
     });
   });
 
