@@ -95,6 +95,19 @@ interface FileNameTemplateMap {
  */
 export type PreviewMode = "inline" | "as-model" | "inline-then-offer";
 
+/**
+ * A run of the saved node behind a previewed file: which node to select, the
+ * SQL that node was built from, and the file it came from so the prompt can
+ * save it.
+ */
+interface NodeRunRequest {
+  modelName: string;
+  limit: number;
+  nodeSelector: string;
+  modelSql: string;
+  uri?: Uri;
+}
+
 interface JsonObj {
   [key: string]: string | number | undefined;
 }
@@ -1631,11 +1644,15 @@ export class DBTProject implements Disposable {
     // A saved, unedited model file can run as the node it actually is. The SQL
     // is identical to the buffer, so this only changes whether `model.name`,
     // `this` and `model.config` resolve.
-    if (previewMode === "as-model" && this.canRunAsModel(modelName)) {
-      return this.executeSqlWithNodeContextWithLimitOnQueryPanel(
+    const nodeSelector = this.nodeRunSelector(uri?.fsPath);
+    if (previewMode === "as-model" && nodeSelector !== undefined) {
+      return this.executeSqlWithNodeContextWithLimitOnQueryPanel({
         modelName,
         limit,
-      );
+        nodeSelector,
+        modelSql: query,
+        uri,
+      });
     }
 
     this.terminal.info("executeSQL", "Executed query: " + query, true, {
@@ -1647,41 +1664,74 @@ export class DBTProject implements Disposable {
       modelName,
       limit,
     );
-    const offerModelRun =
-      previewMode === "inline-then-offer" && this.canRunAsModel(modelName);
     this.eventEmitterService.fire({
       command: "executeQuery",
       payload: {
         query,
-        fn: offerModelRun
-          ? this.offerModelRunOnIdentityFailure(
-              execution,
-              modelName,
-              limit,
-              uri,
-            )
-          : execution,
+        fn:
+          previewMode === "inline-then-offer" && nodeSelector !== undefined
+            ? this.offerModelRunOnIdentityFailure(execution, {
+                modelName,
+                limit,
+                nodeSelector,
+                modelSql: query,
+                uri,
+              })
+            : execution,
         projectName: this.getProjectName(),
       },
     });
   }
 
   /**
-   * Whether this preview could run as the real node instead: the file has to be
-   * a node we know about, and the active integration has to support supplying
-   * it as context. Ask the integration rather than testing the configured mode —
-   * which modes qualify is the library's concern.
+   * What selects only the node this file is, or undefined when this preview
+   * cannot run as a node at all.
+   *
+   * The file's own path decides which node it is — a base name does not, as the
+   * preview routing already found (#2114): a package model and the root
+   * project's can share one.
+   *
+   * The selector then has to name that node and nothing else, and a bare name
+   * does not. Measured on the five-file collision fixture with dbt-core
+   * 1.11.15: `dbt show --select orders` previews three nodes (the root model,
+   * a package's model, and an analysis of the same name) and the integration
+   * reports whichever dbt emitted first; on dbt-fusion 2.0.0-preview.175 the
+   * same selector previews nothing at all. `--select orders` also covers every
+   * version of a versioned model.
+   *
+   * `package:<package>,resource_type:model,<name>[.v<version>]` previews
+   * exactly one node on both: `package:` separates a package's model from the
+   * root project's, `resource_type:model` drops an analysis or snapshot of the
+   * same name, and the name carries the version because dbt composes a node's
+   * id as `<resource type>.<package>.<name>` with `.v<version>` appended. The
+   * commas are dbt's intersection operator.
+   *
+   * Ask the integration whether it can supply node context rather than testing
+   * the configured mode — which modes qualify is the library's concern.
    */
-  private canRunAsModel(modelName: string): boolean {
+  private nodeRunSelector(filePath: string | undefined): string | undefined {
     if (
+      filePath === undefined ||
       !this.dbtProjectIntegration.canInjectNodeContextInSqlSnippetExecution()
     ) {
-      return false;
+      return undefined;
     }
-    return (
-      this._manifestCacheEvent?.nodeMetaMap.lookupByBaseName(modelName) !==
-      undefined
-    );
+    const node = this.findNodeForFile(filePath);
+    if (node === undefined) {
+      return undefined;
+    }
+    const idPrefix = `${RESOURCE_TYPE_MODEL}.${node.package_name}.`;
+    if (!node.unique_id.startsWith(idPrefix)) {
+      // An analysis, a seed, a snapshot: `dbt show --select` will not run it as
+      // a model, so the editor text is the only preview there is.
+      return undefined;
+    }
+    const nameWithVersion = node.unique_id.slice(idPrefix.length);
+    return [
+      `package:${node.package_name}`,
+      `resource_type:${RESOURCE_TYPE_MODEL}`,
+      nameWithVersion,
+    ].join(",");
   }
 
   /**
@@ -1692,9 +1742,7 @@ export class DBTProject implements Disposable {
    */
   private async offerModelRunOnIdentityFailure(
     execution: Promise<QueryExecution>,
-    modelName: string,
-    limit: number,
-    uri?: Uri,
+    nodeRun: NodeRunRequest,
   ): Promise<QueryExecution> {
     const queryExecution = await execution;
     return new QueryExecution(
@@ -1704,7 +1752,7 @@ export class DBTProject implements Disposable {
           return await queryExecution.executeQuery();
         } catch (error) {
           if (isInlinePreviewError(error)) {
-            void this.promptToRunAsModel(modelName, limit, uri);
+            void this.promptToRunAsModel(nodeRun);
           }
           throw error;
         }
@@ -1712,11 +1760,8 @@ export class DBTProject implements Disposable {
     );
   }
 
-  private async promptToRunAsModel(
-    modelName: string,
-    limit: number,
-    uri?: Uri,
-  ) {
+  private async promptToRunAsModel(nodeRun: NodeRunRequest) {
+    const { modelName, uri } = nodeRun;
     const runAsModel = "Save and run as model";
     // Offer the alternative; do not diagnose the failure. The marker says the
     // failed run was an inline preview, not why it failed, so a preview that
@@ -1737,43 +1782,42 @@ export class DBTProject implements Disposable {
         return;
       }
     }
-    await this.executeSqlWithNodeContextWithLimitOnQueryPanel(modelName, limit);
+    await this.executeSqlWithNodeContextWithLimitOnQueryPanel(nodeRun);
   }
 
-  async executeSqlWithNodeContextOnQueryPanel(modelName: string) {
-    const limit = workspace
-      .getConfiguration("dbt")
-      .get<number>("queryLimit", 500);
-    return this.executeSqlWithNodeContextWithLimitOnQueryPanel(
-      modelName,
-      limit,
-    );
-  }
-
+  /**
+   * Run the saved node and show its result.
+   *
+   * `modelSql` is not what dbt runs — it reads the node from disk — but it is
+   * the SQL the node was built from, so the library reports it as the run's SQL
+   * and the panel has something to show when the CLI logs no compiled SQL, or
+   * when the run fails.
+   */
   async executeSqlWithNodeContextWithLimitOnQueryPanel(
-    modelName: string,
-    limit: number,
+    nodeRun: NodeRunRequest,
   ) {
+    const { modelName, limit, nodeSelector, modelSql } = nodeRun;
     if (limit <= 0) {
       window.showErrorMessage("Please enter a positive number for query limit");
       return;
     }
     this.terminal.info(
       "executeSqlWithNodeContext",
-      `Executed model: ${modelName} (limit ${limit})`,
+      `Executed model: ${modelName} as ${nodeSelector} (limit ${limit})`,
       true,
       { adapter: this.getAdapterType(), limit: limit.toString() },
     );
     this.eventEmitterService.fire({
       command: "executeQuery",
       payload: {
-        query: `-- dbt show --select ${modelName} --limit ${limit}`,
+        query: `-- dbt show --select ${nodeSelector} --limit ${limit}`,
         fn: this.dbtProjectIntegration.executeSQLWithLimit(
-          "",
+          modelSql,
           modelName,
           limit,
           {
             useNodeContext: true,
+            nodeSelector,
           },
         ),
         projectName: this.getProjectName(),
