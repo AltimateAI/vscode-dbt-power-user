@@ -631,3 +631,230 @@ describe("NewLineagePanel — source YAML rooting", () => {
     expect((panel as any).dbtLineageService.createTable).not.toHaveBeenCalled();
   });
 });
+
+describe("NewLineagePanel — lineage telemetry", () => {
+  let panel: NewLineagePanel;
+  let blocking: { message: string; category: string } | undefined;
+  let event: any;
+  let sendTelemetryEvent: jest.Mock;
+  let sendTelemetryError: jest.Mock;
+
+  const DBT_NOT_FOUND =
+    "dbt configuration is invalid : dbt not found. Please install dbt to use this extension.";
+  const MISSING_REF =
+    "There is a problem in your dbt project. Compilation failed: Compilation Error Model 'orders' depends on a node named 'stg_orderz' which was not found";
+
+  // A loaded project whose node map has the open model and `size` nodes.
+  const loadedEvent = (size: number) => ({
+    event: {
+      nodeMetaMap: {
+        lookupByBaseName: jest
+          .fn()
+          .mockReturnValue({ unique_id: "model.p.orders" }),
+        nodes: () =>
+          Array.from({ length: size }, (_, i) => ({
+            unique_id: `model.p.m${i}`,
+          })),
+      },
+      functionMetaMap: new Map(),
+    },
+  });
+
+  const rendered = () =>
+    sendTelemetryEvent.mock.calls.filter(
+      (call) => call[0] === "lineageRendered",
+    );
+  const lineageErrors = () =>
+    sendTelemetryError.mock.calls.filter(
+      (call) => call[0] === "Lineage:getMissingLineageMessage",
+    );
+
+  beforeEach(() => {
+    blocking = undefined;
+    event = undefined;
+    sendTelemetryEvent = jest.fn();
+    sendTelemetryError = jest.fn();
+    panel = Object.create(NewLineagePanel.prototype);
+    // The constructor's field initializers, which Object.create skips.
+    Object.assign(panel as any, {
+      reportedErrorKinds: new Set<string>(),
+      firstErrorAt: undefined,
+      renderReported: false,
+    });
+    // A retained webview that isn't visible: the panel still renders into it.
+    (panel as any)._panel = {
+      visible: false,
+      webview: { postMessage: jest.fn() },
+    };
+    (panel as any).telemetry = { sendTelemetryEvent, sendTelemetryError };
+    (panel as any).queryManifestService = {
+      getEventByCurrentProject: jest.fn(() => event),
+      getProject: jest.fn(() => ({
+        getBlockingDiagnostic: () => blocking,
+      })),
+    };
+    (panel as any).altimate = { enabled: jest.fn().mockReturnValue(false) };
+    (panel as any).validationProvider = {
+      isAuthenticated: jest.fn().mockReturnValue(false),
+    };
+    (panel as any).dbtTerminal = {
+      info: jest.fn(),
+      debug: jest.fn(),
+      error: jest.fn(),
+    };
+    (panel as any).dbtLineageService = {
+      createTable: jest.fn(() => ({ table: "model.p.orders" })),
+    };
+    (window as any).activeTextEditor = {
+      document: {
+        fileName: "/ws/models/orders.sql",
+        uri: { path: "/ws/models/orders.sql" },
+      },
+    };
+  });
+
+  afterEach(() => {
+    (window as any).activeTextEditor = undefined;
+  });
+
+  it("sends one error event for an error the panel re-renders many times", () => {
+    blocking = { message: DBT_NOT_FOUND, category: "project-config" };
+    for (let i = 0; i < 5; i++) {
+      panel.eventMapChanged(new Map());
+    }
+
+    expect(lineageErrors()).toHaveLength(1);
+    expect(lineageErrors()[0][2]).toEqual({
+      message: DBT_NOT_FOUND,
+      errorKind: "dbt_not_found",
+      diagnosticCategory: "project-config",
+    });
+    // The output channel still logs every render, without telemetry.
+    expect((panel as any).dbtTerminal.error).toHaveBeenCalledTimes(5);
+    for (const call of (panel as any).dbtTerminal.error.mock.calls) {
+      expect(call[3]).toBe(false);
+    }
+  });
+
+  it("sends one error event per error kind", () => {
+    blocking = { message: DBT_NOT_FOUND, category: "project-config" };
+    panel.eventMapChanged(new Map());
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    panel.eventMapChanged(new Map());
+    panel.eventMapChanged(new Map());
+
+    expect(lineageErrors().map((call) => (call[2] as any).errorKind)).toEqual([
+      "dbt_not_found",
+      "missing_reference",
+    ]);
+  });
+
+  it("sends exactly one lineageRendered for a session's graphs, rendered while hidden", () => {
+    event = loadedEvent(150);
+    for (let i = 0; i < 3; i++) {
+      panel.eventMapChanged(new Map());
+    }
+
+    expect(rendered()).toHaveLength(1);
+    expect(rendered()[0][1]).toEqual({
+      nodeCountBucket: "100-499",
+      staleManifest: "false",
+      errorKindsBefore: "none",
+    });
+    expect(rendered()[0][2]).toBeUndefined();
+    expect(lineageErrors()).toHaveLength(0);
+  });
+
+  it("records a startup failure the session recovered from", () => {
+    // The project failed its first check: no manifest, an error in the panel.
+    blocking = { message: DBT_NOT_FOUND, category: "project-config" };
+    panel.eventMapChanged(new Map());
+    expect(rendered()).toHaveLength(0);
+
+    // The user fixed it; the project parsed and the graph rendered.
+    blocking = undefined;
+    event = loadedEvent(12);
+    panel.eventMapChanged(new Map());
+
+    expect(rendered()).toHaveLength(1);
+    expect(rendered()[0][1]).toEqual({
+      nodeCountBucket: "1-99",
+      staleManifest: "false",
+      errorKindsBefore: "dbt_not_found",
+    });
+    expect((rendered()[0][2] as any).msSinceFirstError).toBeGreaterThanOrEqual(
+      0,
+    );
+  });
+
+  it("lists the error kinds seen before the graph in sorted order", () => {
+    blocking = {
+      message:
+        "dbt configuration is invalid : Runtime Error Could not find profile named 'analytics'",
+      category: "project-config",
+    };
+    panel.eventMapChanged(new Map());
+    blocking = { message: DBT_NOT_FOUND, category: "project-config" };
+    panel.eventMapChanged(new Map());
+    blocking = undefined;
+    event = loadedEvent(12);
+    panel.eventMapChanged(new Map());
+
+    expect((rendered()[0][1] as any).errorKindsBefore).toBe(
+      "dbt_not_found,profile",
+    );
+  });
+
+  it("marks a graph drawn while an error still stands as stale", () => {
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    event = loadedEvent(3);
+    panel.eventMapChanged(new Map());
+
+    expect(rendered()).toHaveLength(1);
+    expect((rendered()[0][1] as any).staleManifest).toBe("true");
+  });
+
+  it("sends no lineageRendered when the panel has no graph to draw", () => {
+    panel.eventMapChanged(new Map());
+
+    expect(rendered()).toHaveLength(0);
+  });
+
+  it("reports a non-Error thrown while reading the diagnostics", () => {
+    (panel as any).queryManifestService.getProject = jest.fn(() => ({
+      getBlockingDiagnostic: () => {
+        // The value under test is a thrown non-Error.
+        // eslint-disable-next-line no-throw-literal
+        throw "diagnostics unavailable";
+      },
+    }));
+
+    expect(() => panel.eventMapChanged(new Map())).not.toThrow();
+    expect(lineageErrors()[0][2]).toEqual({
+      message: "diagnostics unavailable",
+      errorKind: "other",
+      diagnosticCategory: "unknown",
+    });
+  });
+
+  it("still renders when reporting the graph fails", () => {
+    event = loadedEvent(1);
+    const nodes = jest.fn(() => {
+      throw new Error("boom");
+    });
+    event.event.nodeMetaMap.nodes = nodes;
+
+    expect(() => panel.eventMapChanged(new Map())).not.toThrow();
+    expect((panel as any)._panel.webview.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ command: "render" }),
+    );
+    // The report ran and its failure went to the debug log.
+    expect(nodes).toHaveBeenCalled();
+    expect((panel as any).dbtTerminal.debug).toHaveBeenCalledWith(
+      "Lineage:reportLineageRendered",
+      "Could not report the rendered graph",
+      expect.any(Error),
+    );
+    expect(rendered()).toHaveLength(0);
+  });
+});
