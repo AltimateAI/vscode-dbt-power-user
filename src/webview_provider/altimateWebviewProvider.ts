@@ -623,17 +623,6 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         ),
       ),
     );
-    const SpinnerUrl = webview.asWebviewUri(
-      Uri.file(
-        path.join(
-          extensionUri.fsPath,
-          "webview_panels",
-          "dist",
-          "assets",
-          "spinner.gif",
-        ),
-      ),
-    );
     const LineageGif = webview.asWebviewUri(
       Uri.file(
         path.join(
@@ -864,7 +853,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               webview, so a data URI is the only path that works offline.
               -->
             <meta http-equiv="Content-Security-Policy" content="default-src 'none'; worker-src blob:; font-src ${webview.cspSource} data:; style-src 'unsafe-inline' ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'unsafe-eval' 'nonce-${nonce}' https://*.vscode-resource.vscode-cdn.net; connect-src https://*.s3.amazonaws.com">
-            <title>VSCode DBT Power user extension</title>
+            <title>Power User for dbt</title>
             <link rel="stylesheet" type="text/css" href="${indexCss}">
             <link rel="stylesheet" type="text/css" href="${codiconsUri}">
           </head>
@@ -875,7 +864,6 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             <div id="modal"></div>
             <script nonce="${nonce}" >
               window.viewPath = "${this.viewPath}";
-              var spinnerUrl = "${SpinnerUrl}"
               var lineageGif = "${LineageGif}"
               window.altimateCodeBannerUrl = "${AltimateCodeBannerUrl}";
               window.tutorialImages = {

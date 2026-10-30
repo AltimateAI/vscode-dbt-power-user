@@ -99,8 +99,34 @@ interface JsonObj {
   [key: string]: string | number | undefined;
 }
 
+/**
+ * `NodeMetaData.path` is the project root joined with the node's relative
+ * path, which makes it comparable to a document path once both are normalized
+ * — case included, on the platform where case does not distinguish files.
+ */
+const isSameFile = (left: string, right: string) => {
+  const a = path.normalize(left);
+  const b = path.normalize(right);
+  return process.platform === "win32"
+    ? a.toLowerCase() === b.toLowerCase()
+    : a === b;
+};
+
 export class DBTProject implements Disposable {
   private _manifestCacheEvent?: ManifestCacheProjectAddedEvent;
+  /**
+   * When the manifest currently in `_manifestCacheEvent` started being built.
+   * A rebuild reads the project files as it starts, so a file written after
+   * that moment is not described by it yet.
+   */
+  private manifestBuiltFromFilesAsOf?: number;
+  /**
+   * When each rebuild that has started and not yet ended started, oldest
+   * first. Rebuilds overlap: the adapter announces a start before the parse
+   * behind it waits for the project lock, so one field would hand a rebuild
+   * the start time of a later one and call its manifest newer than it is.
+   */
+  private readonly manifestRebuildStartTimes: number[] = [];
   readonly projectRoot: Uri;
   private dbtProjectIntegration: DBTProjectIntegrationAdapter;
 
@@ -183,12 +209,27 @@ export class DBTProject implements Disposable {
       .get<string>("dbtIntegration", "core");
 
     if (dbtIntegrationMode === "core") {
-      this.isDbtLoomInstalled().then((isInstalled) => {
-        this.telemetry.setTelemetryCustomAttribute(
-          "dbtLoomInstalled",
-          `${isInstalled}`,
-        );
-      });
+      this.isDbtLoomInstalled()
+        .then((isInstalled) => {
+          this.telemetry.setTelemetryCustomAttribute(
+            "dbtLoomInstalled",
+            `${isInstalled}`,
+          );
+        })
+        .catch((error) => {
+          // The probe answers "not installed" on any failure it can see;
+          // anything that still escapes must not become an unhandled
+          // rejection out of the constructor.
+          this.terminal.debug(
+            "dbtProject:isDbtLoomInstalled",
+            "dbt-loom probe failed; recording it as not installed",
+            error,
+          );
+          this.telemetry.setTelemetryCustomAttribute(
+            "dbtLoomInstalled",
+            "false",
+          );
+        });
     }
 
     // Create the integration adapter which will handle the integration selection internally
@@ -229,6 +270,7 @@ export class DBTProject implements Disposable {
           "DBTProject",
           `Received rebuildManifestStatusChange event: inProgress=${status.inProgress}`,
         );
+        this.noteRebuildStatus(status.inProgress);
         const event: RebuildManifestStatusChange = {
           project: this,
           inProgress: status.inProgress,
@@ -261,6 +303,7 @@ export class DBTProject implements Disposable {
           modelDepthMap: parsedManifest.modelDepthMap,
         };
         this._manifestCacheEvent = manifestCacheEvent;
+        this.stampManifestFreshness();
         this._onManifestChanged.fire({ added: [manifestCacheEvent] });
       },
     );
@@ -339,16 +382,35 @@ export class DBTProject implements Disposable {
   }
 
   private async isDbtLoomInstalled(): Promise<boolean> {
-    const dbtLoomThread = this.executionInfrastructure.createPythonBridge(
-      this.projectRoot.fsPath,
-    );
+    // Creating the bridge spawns the user's interpreter, and that spawn can
+    // fail outside `ex` (EBADARCH on a wrong-architecture binary, EPERM,
+    // ENOEXEC, a missing interpreter): keep it inside the probe's own try so
+    // every failure reads as "not installed".
+    let dbtLoomThread:
+      | ReturnType<DBTCommandExecutionInfrastructure["createPythonBridge"]>
+      | undefined;
     try {
+      dbtLoomThread = this.executionInfrastructure.createPythonBridge(
+        this.projectRoot.fsPath,
+      );
       await dbtLoomThread.ex`from dbt_loom import *`;
       return true;
     } catch (error) {
       return false;
     } finally {
-      await this.executionInfrastructure.closePythonBridge(dbtLoomThread);
+      if (dbtLoomThread !== undefined) {
+        try {
+          await this.executionInfrastructure.closePythonBridge(dbtLoomThread);
+        } catch (error) {
+          // A bridge whose process never started rejects its close with the
+          // spawn error; the probe's answer is already decided.
+          this.terminal.debug(
+            "dbtProject:isDbtLoomInstalled",
+            "Failed to close the dbt-loom probe bridge",
+            error,
+          );
+        }
+      }
     }
   }
 
@@ -532,7 +594,7 @@ export class DBTProject implements Disposable {
       data.message,
       this.mapSeverityToVSCode(data.severity),
     );
-    diagnostic.source = "dbt Power User";
+    diagnostic.source = "Power User for dbt";
     diagnostic.code = {
       value: "Fix with Altimate Code",
       target: Uri.parse(
@@ -933,10 +995,37 @@ export class DBTProject implements Disposable {
 
     const docsGenerateCommand =
       this.dbtCommandFactory.createDocsGenerateCommand();
-    const command =
-      await this.getCurrentProjectIntegration().generateDocs(
-        docsGenerateCommand,
+    let command;
+    try {
+      command =
+        await this.getCurrentProjectIntegration().generateDocs(
+          docsGenerateCommand,
+        );
+    } catch (error) {
+      // The caller doesn't await this, so a rejection here would never be shown.
+      const message = error instanceof Error ? error.message : String(error);
+      const dbtIntegrationMode = workspace
+        .getConfiguration("dbt")
+        .get<string>("dbtIntegration", "core");
+      if (dbtIntegrationMode === "fusion") {
+        // The dbt Fusion integration rejects docs generation unconditionally:
+        // this is a known limitation, not a failure.
+        window.showErrorMessage(
+          "Could not generate docs: " +
+            message +
+            ". To generate docs, set dbt.dbtIntegration to core or cloud.",
+        );
+        this.telemetry.sendTelemetryEvent("generateDocsUnsupported");
+        return;
+      }
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Could not generate docs: " + message + ".",
+        ),
       );
+      this.telemetry.sendTelemetryError("generateDocsError", error);
+      return;
+    }
     this.telemetry.sendTelemetryEvent("generateDocs");
     if (command) {
       this.addCommandToQueue("all", command);
@@ -1108,6 +1197,151 @@ export class DBTProject implements Disposable {
       query,
       originalModelName,
     );
+  }
+
+  /**
+   * The manifest node that this file is, or undefined for a file the manifest
+   * does not describe.
+   *
+   * Matched on the node's own path rather than on the file name, because file
+   * names collide: `models/orders.sql`, `analyses/orders.sql` and a package's
+   * `models/orders.sql` are three nodes with one base name, and a lookup by
+   * name can only hand back one of them.
+   */
+  private findNodeForFile(filePath: string): NodeMetaData | undefined {
+    const nodes = this._manifestCacheEvent?.nodeMetaMap.nodes();
+    if (nodes === undefined) {
+      return undefined;
+    }
+    for (const node of nodes) {
+      if (node.path !== undefined && isSameFile(node.path, filePath)) {
+        return node;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Keeps the list of running rebuilds. The adapter emits the end status from
+   * a `finally`, so every start it announces is followed by exactly one end,
+   * and the list holds only rebuilds still running.
+   */
+  private noteRebuildStatus(inProgress: boolean): void {
+    if (inProgress) {
+      this.manifestRebuildStartTimes.push(Date.now());
+    } else {
+      this.manifestRebuildStartTimes.shift();
+    }
+  }
+
+  /**
+   * Records which version of the project files the manifest just parsed can
+   * describe.
+   *
+   * A parse arrives either at the end of a rebuild or because something
+   * rewrote `target/manifest.json`, and the event does not say which rebuild
+   * it belongs to. The oldest rebuild still running is the one it cannot have
+   * started before — and under the project lock, the one whose turn it is — so
+   * that start time is the bound. A parse with no rebuild running is a
+   * manifest rewritten in place, by a `dbt compile` among other things: it
+   * read no version of the files that a rebuild has not already accounted
+   * for, so it leaves the bound where it is rather than moving it to now.
+   */
+  private stampManifestFreshness(): void {
+    const oldestRunning = this.manifestRebuildStartTimes[0];
+    if (oldestRunning !== undefined) {
+      this.manifestBuiltFromFilesAsOf = oldestRunning;
+    }
+  }
+
+  /**
+   * Whether the Compiled SQL preview for this file can come from the real node
+   * rather than from the editor text.
+   *
+   * Compiling the node is what makes `model.name`, `model.primary_key`, `this`
+   * and `model.config` resolve; the editor text compiles as an anonymous query
+   * and leaves them on a placeholder. The node is not the text, though, so
+   * three things have to hold, and each of them has a way of being false that
+   * the editor text does not:
+   *
+   * - The buffer holds nothing the file does not. Otherwise the preview would
+   *   answer a question about a version of the file nobody is looking at.
+   * - The manifest was built after the file was written, `savedAt`. A node
+   *   carries the code the last parse read, so between a save and the rebuild
+   *   it sets off the node is the version before it: that would put the
+   *   previous save's SQL on screen, or old SQL where the new version's parse
+   *   error belongs.
+   * - The name this file would be compiled under resolves back to this same
+   *   node. `unsafeCompileNode` resolves a bare ref name in the root project
+   *   with no version: `resolve_ref(name, version=None, package=None)` on the
+   *   Python bridge, `--select <name>` on the command-line integrations. dbt
+   *   composes a node's id as `<resource_type>.<package>.<name>`, appending
+   *   `.v<version>` for a versioned model, so comparing the node's id with the
+   *   id that name would carry is the whole test. A versioned model, an
+   *   analysis, a seed, a snapshot, and a package model whose name the root
+   *   project also uses each fail it — and each of them compiled correctly as
+   *   editor text.
+   *
+   * `savedAt` is the caller's reading of when the file was written, rather
+   * than one taken here, so that the version this answers for is the version
+   * the caller can record having asked about.
+   *
+   * Public because a preview built from the editor text has to be re-requested
+   * once this turns true for it.
+   */
+  previewCanUseNode(
+    filePath: string,
+    modelName: string,
+    savedAt: number,
+    hasUnsavedEdits: boolean,
+  ): boolean {
+    if (hasUnsavedEdits || this.manifestBuiltFromFilesAsOf === undefined) {
+      return false;
+    }
+    const node = this.findNodeForFile(filePath);
+    if (
+      node?.unique_id !==
+      `${RESOURCE_TYPE_MODEL}.${this.getProjectName()}.${modelName}`
+    ) {
+      return false;
+    }
+    return savedAt < this.manifestBuiltFromFilesAsOf;
+  }
+
+  /**
+   * Compile for the Compiled SQL preview: from the real node when the caller's
+   * `previewCanUseNode` said so, from the editor text otherwise.
+   *
+   * A node compile that throws falls back to the editor text too. That is what
+   * the preview did before this routing existed, so a node the check accepts
+   * but dbt still declines to resolve costs an extra compile rather than an
+   * error that yesterday's preview did not produce.
+   *
+   * The caller decides rather than being told afterwards, because it has to
+   * record what it asked for at the moment it asks: preview requests overlap,
+   * and the one that comes back last is not the one that went out last.
+   *
+   * Guards match `unsafeCompileQuery`, which this replaces at the preview call
+   * site, so routing is the only thing that changes.
+   */
+  async compileQueryForPreview(
+    query: string,
+    modelName: string,
+    useNode: boolean,
+  ): Promise<string> {
+    this.throwIfNotAuthenticated();
+    if (useNode) {
+      try {
+        return await this.dbtProjectIntegration.unsafeCompileNode(modelName);
+      } catch (error) {
+        this.terminal.debug(
+          "DBTProject",
+          `Compiling ${modelName} as a node failed, compiling the editor text instead`,
+          error,
+        );
+      }
+    }
+    return this.dbtProjectIntegration.unsafeCompileQuery(query, modelName);
   }
 
   async getColumnsOfModel(modelName: string) {
@@ -1905,6 +2139,18 @@ export class DBTProject implements Disposable {
   }
 
   throwDiagnosticsErrorIfAvailable() {
+    const diagnostic = this.getBlockingDiagnostic();
+    if (diagnostic) {
+      throw new Error(diagnostic.message);
+    }
+  }
+
+  /**
+   * The first error that stops this project from working, with the category of
+   * diagnostics it came from (`project-config` for the configuration check,
+   * `manifest-rebuild` for a parse, `python-bridge` for the bridge, ...).
+   */
+  getBlockingDiagnostic(): { message: string; category: string } | undefined {
     // Check integration diagnostics
     const integrationDiagnostics =
       this.getCurrentProjectIntegration().getDiagnostics();
@@ -1915,28 +2161,29 @@ export class DBTProject implements Disposable {
 
     for (const diagnostic of allIntegrationDiagnostics) {
       if (diagnostic.severity === "error") {
-        throw new Error(diagnostic.message);
+        return { message: diagnostic.message, category: diagnostic.category };
       }
     }
 
     // Check VSCode diagnostic collections
-    const vscodeCollections: DiagnosticCollection[] = [
-      this.projectHealth,
-      this.pythonBridgeDiagnostics,
-      this.rebuildManifestDiagnostics,
-      this.projectConfigDiagnostics,
+    const vscodeCollections: [DiagnosticCollection, string][] = [
+      [this.projectHealth, "project-health"],
+      [this.pythonBridgeDiagnostics, "python-bridge"],
+      [this.rebuildManifestDiagnostics, "manifest-rebuild"],
+      [this.projectConfigDiagnostics, "project-config"],
     ];
 
-    for (const diagnosticCollection of vscodeCollections) {
+    for (const [diagnosticCollection, category] of vscodeCollections) {
       for (const [_, diagnostics] of diagnosticCollection) {
         const error = diagnostics.find(
           (diagnostic) => diagnostic.severity === DiagnosticSeverity.Error,
         );
         if (error) {
-          throw new Error(error.message);
+          return { message: error.message, category };
         }
       }
     }
+    return undefined;
   }
 
   private retrieveDeferConfigFromSettings(): DeferConfig | undefined {

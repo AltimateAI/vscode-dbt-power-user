@@ -25,13 +25,15 @@ jobs:
           - os: windows-latest
             vsce-target: win32-x64
     runs-on: ${{ matrix.os }}
+    # Runs PR code (build, package): read-only token. Statuses and comments are posted by
+    # bundle-size-report, which never checks out or runs PR code.
     permissions:
       contents: read
-      pull-requests: write
-      statuses: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Run common build steps
         uses: ./.github/actions/common-build
         with:
@@ -69,28 +71,21 @@ jobs:
         run: python3 .github/scripts/generate-bundle-report.py
         env:
           VSCE_TARGET: ${{ matrix.vsce-target }}
-      - name: Set commit status
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const desc = '${{ steps.report.outputs.status_desc }}';
-            const target = '${{ matrix.vsce-target }}';
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.payload.pull_request.head.sha,
-              state: 'success',
-              description: desc,
-              context: `Bundle Size (${target})`,
-              target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-            });
+      - name: Record status description
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          # Produced from the PR tree: written as data for bundle-size-report.
+          STATUS_DESC: ${{ steps.report.outputs.status_desc }}
+        run: printf '%s' "$STATUS_DESC" > bundle-status.txt
       - name: Upload report
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: bundle-report-${{ matrix.vsce-target }}
-          path: bundle-report.md
+          path: |
+            bundle-report.md
+            bundle-status.txt
           retention-days: 1
       - name: Job summary
         shell: bash
@@ -99,9 +94,11 @@ jobs:
   bundle-size-report:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    # !cancelled(): still report the targets that built when another matrix leg failed.
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
     permissions:
       pull-requests: write
+      statuses: write  # "Bundle Size (<target>)" commit statuses
     steps:
       - name: Download all reports
         uses: actions/download-artifact@v4
@@ -115,6 +112,29 @@ jobs:
             cat "$dir/bundle-report.md" >> combined-report.md
             echo "" >> combined-report.md
           done
+      - name: Set commit statuses
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Artifacts come from the PR build: read them as data only.
+            const fs = require('fs');
+            // Keep in sync with build.matrix: a fixed list, because code in the build job can upload
+            // extra artifacts and must not choose status names.
+            const targets = ['darwin-arm64', 'linux-x64', 'win32-x64'];
+            for (const target of targets) {
+              const file = `bundle-report-${target}/bundle-status.txt`;
+              if (!fs.existsSync(file)) continue;
+              const desc = fs.readFileSync(file, 'utf8').replace(/[\r\n]+/g, ' ').slice(0, 140);
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: context.payload.pull_request.head.sha,
+                state: 'success',
+                description: desc,
+                context: `Bundle Size (${target})`,
+                target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              });
+            }
       - name: Post PR comment
         uses: actions/github-script@v7
         with:

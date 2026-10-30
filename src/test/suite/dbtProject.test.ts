@@ -100,7 +100,10 @@ jest.mock("vscode", () => {
 jest.mock("../../utils", () => {
   return {
     getProjectRelativePath: jest.fn(() => "test-project"),
-    extendErrorWithSupportLinks: jest.fn((error: any) => error),
+    // The real helper: the docs tests assert its support-link suffix.
+    extendErrorWithSupportLinks:
+      jest.requireActual<typeof import("../../utils")>("../../utils")
+        .extendErrorWithSupportLinks,
     getColumnNameByCase: jest.fn((name: string) => name),
   };
 });
@@ -739,6 +742,75 @@ describe("DBTProject Test Suite", () => {
       expect(vscode.window.showErrorMessage).toHaveBeenCalled();
     });
 
+    const SUPPORT_LINK =
+      " If the issue persists, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=extension) via chat or Slack";
+
+    it("reports Fusion's unsupported docs generation as its own event", async () => {
+      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+        get: jest.fn((key: string) =>
+          key === "dbtIntegration" ? "fusion" : undefined,
+        ),
+      });
+      mockProjectIntegration.generateDocs = jest
+        .fn<() => Promise<unknown>>()
+        .mockRejectedValue(
+          new Error("dbt fusion does not support docs generation"),
+        );
+
+      await dbtProject.generateDocs();
+
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        "Could not generate docs: dbt fusion does not support docs generation." +
+          " To generate docs, set dbt.dbtIntegration to core or cloud.",
+      );
+      expect(mockTelemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "generateDocsUnsupported",
+      );
+      expect(mockTelemetry.sendTelemetryError).not.toHaveBeenCalled();
+      expect(mockTelemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+        "generateDocs",
+      );
+    });
+
+    it("reports other docs generation failures as errors", async () => {
+      const error = new Error("dbt docs generate failed");
+      mockProjectIntegration.generateDocs = jest
+        .fn<() => Promise<unknown>>()
+        .mockRejectedValue(error);
+
+      await dbtProject.generateDocs();
+
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        "Could not generate docs: dbt docs generate failed." + SUPPORT_LINK,
+      );
+      expect(mockTelemetry.sendTelemetryError).toHaveBeenCalledWith(
+        "generateDocsError",
+        error,
+      );
+      expect(mockTelemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+        "generateDocsUnsupported",
+      );
+      expect(mockTelemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+        "generateDocs",
+      );
+    });
+
+    it("shows the reason when docs generation rejects with a non-Error", async () => {
+      mockProjectIntegration.generateDocs = jest
+        .fn<() => Promise<unknown>>()
+        .mockRejectedValue("dbt exited with code 2");
+
+      await dbtProject.generateDocs();
+
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        "Could not generate docs: dbt exited with code 2." + SUPPORT_LINK,
+      );
+      expect(mockTelemetry.sendTelemetryError).toHaveBeenCalledWith(
+        "generateDocsError",
+        "dbt exited with code 2",
+      );
+    });
+
     it("should validate SQL", async () => {
       const request = {
         sql: "SELECT * FROM table",
@@ -1107,6 +1179,120 @@ describe("DBTProject Test Suite", () => {
       expect(mockTelemetry.setTelemetryCustomAttribute).toHaveBeenCalledWith(
         "dbtLoomInstalled",
         "true",
+      );
+    });
+
+    // Spawning the probe's interpreter can fail outside `ex` (EBADARCH on a
+    // wrong-architecture binary, EPERM, ENOEXEC): the constructor must record
+    // "not installed" and must not leak an unhandled rejection.
+    const construct = () =>
+      new DBTProject(
+        mockPythonEnvironment,
+        dbtProjectLogFactory as any,
+        mockCommandFactory,
+        mockTerminal,
+        mockSharedStateService,
+        mockTelemetry,
+        mockExecutionInfrastructure,
+        jest.fn().mockReturnValue(mockProjectIntegration) as any,
+        mockAltimate,
+        mockValidationProvider,
+        mockAltimateAuthService,
+        mockRunHistoryService,
+        vscode.Uri.file("/test/project"),
+        {},
+        mockManifestChangedEmitter,
+      );
+
+    const captureUnhandled = async (run: () => void) => {
+      const unhandled: unknown[] = [];
+      const onUnhandled = (reason: unknown) => {
+        unhandled.push(reason);
+      };
+      process.on("unhandledRejection", onUnhandled);
+      try {
+        run();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      } finally {
+        process.off("unhandledRejection", onUnhandled);
+      }
+      return unhandled;
+    };
+
+    it("records dbt loom as not installed when the probe bridge cannot be spawned", async () => {
+      mockExecutionInfrastructure.createPythonBridge.mockImplementationOnce(
+        () => {
+          throw Object.assign(new Error("spawn Unknown system error -86"), {
+            code: "Unknown system error -86",
+          });
+        },
+      );
+
+      const unhandled = await captureUnhandled(() => {
+        dbtProject = construct();
+      });
+
+      expect(unhandled).toEqual([]);
+      expect(mockTelemetry.setTelemetryCustomAttribute).toHaveBeenCalledWith(
+        "dbtLoomInstalled",
+        "false",
+      );
+      expect(
+        mockExecutionInfrastructure.closePythonBridge,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("records dbt loom as not installed when the probe bridge fails and cannot be closed", async () => {
+      const pythonBridge = mockExecutionInfrastructure.createPythonBridge();
+      (pythonBridge.ex as any).mockRejectedValue(new Error("spawn EPERM"));
+      mockExecutionInfrastructure.createPythonBridge.mockReturnValueOnce(
+        pythonBridge as any,
+      );
+      mockExecutionInfrastructure.closePythonBridge.mockRejectedValueOnce(
+        new Error("spawn EPERM"),
+      );
+
+      const unhandled = await captureUnhandled(() => {
+        dbtProject = construct();
+      });
+
+      expect(unhandled).toEqual([]);
+      expect(mockTelemetry.setTelemetryCustomAttribute).toHaveBeenCalledWith(
+        "dbtLoomInstalled",
+        "false",
+      );
+      expect(mockTerminal.debug).toHaveBeenCalledWith(
+        "dbtProject:isDbtLoomInstalled",
+        expect.stringContaining("close"),
+        expect.anything(),
+      );
+    });
+
+    it("keeps the probe's answer when only closing the bridge fails", async () => {
+      // dbt-loom imported fine; the bridge then fails to close. The answer
+      // is "installed": the close failure is logged, nothing leaks.
+      const pythonBridge = mockExecutionInfrastructure.createPythonBridge();
+      (pythonBridge.ex as any).mockResolvedValue(undefined);
+      mockExecutionInfrastructure.createPythonBridge.mockReturnValueOnce(
+        pythonBridge as any,
+      );
+      mockExecutionInfrastructure.closePythonBridge.mockRejectedValueOnce(
+        new Error("close failed"),
+      );
+
+      const unhandled = await captureUnhandled(() => {
+        dbtProject = construct();
+      });
+
+      expect(unhandled).toEqual([]);
+      expect(mockTelemetry.setTelemetryCustomAttribute).toHaveBeenCalledWith(
+        "dbtLoomInstalled",
+        "true",
+      );
+      expect(mockTerminal.debug).toHaveBeenCalledWith(
+        "dbtProject:isDbtLoomInstalled",
+        expect.stringContaining("close"),
+        expect.anything(),
       );
     });
   });

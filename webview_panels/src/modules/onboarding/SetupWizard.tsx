@@ -65,7 +65,7 @@ const SETUP_STEPS: WizardStep[] = [
     id: "finish",
     title: "Tutorials",
     description:
-      "Explore the tutorials below to learn about dbt Power User's features.",
+      "Explore the tutorials below to learn about Power User for dbt's features.",
   },
 ];
 
@@ -262,9 +262,9 @@ const SetupWizard = forwardRef<
 
   return (
     <div className={classes.wizardContainer}>
-      <h1 className={classes.wizardTitle}>Setup dbt Power User</h1>
+      <h1 className={classes.wizardTitle}>Setup Power User for dbt</h1>
       <p className={classes.wizardSubtitle}>
-        Follow these steps to configure dbt Power User for your project
+        Follow these steps to configure Power User for dbt for your project
       </p>
 
       <div className={classes.wizardContent}>

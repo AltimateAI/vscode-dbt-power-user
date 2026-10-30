@@ -65,7 +65,7 @@ const InstallDbtStep = ({
       <div className={classes.installDbtInfo}>
         <p>
           Choose your dbt integration type and install dbt to enable all
-          features of dbt Power User:
+          features of Power User for dbt:
         </p>
       </div>
 
