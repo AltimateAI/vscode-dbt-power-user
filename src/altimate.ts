@@ -4,6 +4,7 @@ import {
   DBTConfiguration,
   DBTTerminal,
   NodeMetaData,
+  NotFoundError,
   SourceMetaData,
 } from "@altimateai/dbt-integration";
 import { NotebookItem, NotebookSchema, PreconfiguredNotebookItem } from "@lib";
@@ -12,6 +13,11 @@ import type { RequestInit } from "node-fetch";
 import * as vscode from "vscode";
 
 export class UserInputError extends Error {}
+
+/** A dbt project's link to an Altimate Code workspace. */
+export interface ProjectBinding {
+  datamate: { id: number; name: string };
+}
 
 export interface ColumnLineage {
   source: { uniqueId: string; column_name: string };
@@ -507,11 +513,90 @@ export class AltimateRequest {
     });
   }
 
-  async validateCredentials(instance: string, key: string, baseUrl?: string) {
+  // A stalled exchange fails instead of leaving the sign-in waiting.
+  private static readonly SOCIAL_EXCHANGE_TIMEOUT_MS = 15_000;
+
+  /**
+   * Exchange the one-time `login_token` the SaaS sign-in delivers to the
+   * editor for the user's `auth_token`, which is the extension's API key.
+   */
+  async exchangeSocialToken(baseUrl: string, instance: string, token: string) {
+    const response = await fetch(`${baseUrl}/auth/social/exchange`, {
+      method: "POST",
+      headers: { "x-tenant": instance, "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+      signal: AbortSignal.timeout(AltimateRequest.SOCIAL_EXCHANGE_TIMEOUT_MS),
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Sign-in token exchange failed with status ${response.status}`,
+      );
+    }
+    const user = (await response.json()) as {
+      auth_token?: string;
+      email?: string;
+    };
+    if (!user.auth_token) {
+      throw new Error("Sign-in token exchange did not return an auth token");
+    }
+    return { apiKey: user.auth_token, email: user.email };
+  }
+
+  /** Bind a dbt project to an Altimate Code workspace by remote and/or path. */
+  async bindProjectToWorkspace(
+    workspaceId: number,
+    repoRemote: string | undefined,
+    projectPath: string,
+  ) {
+    return this.fetch<unknown>("datamate-project-bindings/bind", {
+      method: "POST",
+      body: JSON.stringify({
+        datamate_id: workspaceId,
+        repo_remote: repoRemote ?? null,
+        project_path: projectPath,
+      }),
+    });
+  }
+
+  /**
+   * The workspace a dbt project is already bound to, looked up by remote and
+   * then by path, or `undefined` when it is bound to none the user can see.
+   */
+  async findProjectBinding(
+    repoRemote: string | undefined,
+    projectPath: string,
+  ): Promise<ProjectBinding | undefined> {
+    const lookups: [string, Record<string, string>][] = [
+      ["by-path", { project_path: projectPath }],
+    ];
+    if (repoRemote) {
+      lookups.unshift(["by-remote", { repo_remote: repoRemote }]);
+    }
+    for (const [by, params] of lookups) {
+      try {
+        return await this.fetch<ProjectBinding>(
+          `datamate-project-bindings/${by}${this.getQueryString(params)}`,
+        );
+      } catch (error) {
+        if (!(error instanceof NotFoundError)) {
+          throw error;
+        }
+      }
+    }
+    return undefined;
+  }
+
+  async validateCredentials(
+    instance: string,
+    key: string,
+    baseUrl?: string,
+    timeoutMs?: number,
+  ) {
     const url = `${baseUrl || this.getAltimateUrl()}/dbt/v3/validate-credentials`;
     try {
       const response = await fetch(url, {
         method: "GET",
+        signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined,
         headers: {
           "x-tenant": instance,
           Authorization: "Bearer " + key,

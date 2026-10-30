@@ -1,7 +1,7 @@
+import AltimateLogo from "@assets/icons/altimate-logo.svg";
+import AltimateMark from "@assets/icons/altimate-mark.svg?react";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
-import { Stack } from "@uicore";
-import { Button, Card, Steps } from "antd";
 import {
   forwardRef,
   useCallback,
@@ -9,387 +9,717 @@ import {
   useImperativeHandle,
   useRef,
   useState,
-  useSyncExternalStore,
 } from "react";
-import AltimateSetupStep from "./AltimateSetupStep";
+import { request, track } from "./api";
+import { Icon } from "./icons";
+import MeetCodeStep from "./MeetCodeStep";
 import classes from "./onboarding.module.scss";
-import PrerequisitesStep, {
-  PrerequisitesStepHandle,
-} from "./PrerequisitesStep";
-import TutorialsStep from "./TutorialsStep";
+import ProjectStep, {
+  AccountState,
+  AltimatePlan,
+  Project,
+  ValidationState,
+} from "./ProjectStep";
+import ReadyStep from "./ReadyStep";
+import { Button } from "./ui";
+import WorkspaceStep, { WorkspaceState } from "./WorkspaceStep";
 
-interface WizardStep {
-  id: string;
-  title: string;
-  description: string;
-  isParent?: boolean;
-  parentId?: string;
-  action?: {
-    label: string;
-    command: string;
+type Screen = "connect" | "code" | "workspace" | "ready";
+
+const ORDER: Screen[] = ["connect", "code", "workspace", "ready"];
+
+const STEP_LABELS: Record<Screen, string> = {
+  connect: "Connect your project",
+  code: "Meet Altimate Code",
+  workspace: "Set up a workspace",
+  ready: "Start working",
+};
+
+const PANEL_LABELS: Record<Screen, string> = {
+  connect: "Project",
+  code: "Altimate Code",
+  workspace: "Workspace",
+  ready: "Start working",
+};
+
+/** Step ids from `dbtPowerUser.openOnboarding` callers, old and new. */
+const STEP_SCREENS: Record<string, Screen> = {
+  dbt: "connect",
+  prerequisites: "connect",
+  validation: "connect",
+  altimate: "connect",
+  altimateKey: "connect",
+  connect: "connect",
+  code: "code",
+  workspace: "workspace",
+  finish: "ready",
+  tutorials: "ready",
+  ready: "ready",
+};
+
+type Summary = NonNullable<ValidationState["summary"]>;
+
+/** What the extension keeps of this page, so it reopens where it was left. */
+/** How the user reached a step, for telemetry. */
+type StepVia =
+  | "continue"
+  | "back"
+  | "sidebar"
+  | "skip"
+  | "workspaceLinked"
+  | "readyStep"
+  | "extension";
+
+export interface SavedState {
+  screen?: Screen;
+  projectRoot?: string;
+  validation?: Summary | null;
+  workspaceSkipped?: boolean;
+}
+
+interface AltimateState {
+  signedIn: boolean;
+  instance: string;
+  keyHint?: string;
+  canLinkWorkspace: boolean;
+  supportsBrowserSignIn: boolean;
+  workspaceId?: string;
+}
+
+interface ExtensionMessage {
+  command: string;
+  payload?: {
+    instance?: string;
+    email?: string;
+    existing?: boolean;
+    projectRoot?: string;
+    workspaceId?: string;
+    flow?: "signIn" | "workspace";
+    message?: string;
   };
 }
 
-const SETUP_STEPS: WizardStep[] = [
-  {
-    id: "dbt",
-    title: "Setup dbt",
-    description: "Configure your dbt environment",
-    isParent: true,
-  },
-  {
-    id: "prerequisites",
-    title: "Setup Prerequisites",
-    description: "Check environment",
-    parentId: "dbt",
-  },
-  {
-    id: "validation",
-    title: "Validate Setup",
-    description: "Configure and validate project",
-    parentId: "dbt",
-  },
-  {
-    id: "altimate",
-    title: "Setup Altimate AI",
-    description: "Connect to Altimate AI for advanced features",
-    isParent: true,
-  },
-  {
-    id: "altimateKey",
-    title: "Configure API Key",
-    description: "Connect to Altimate AI",
-    parentId: "altimate",
-  },
-  {
-    id: "finish",
-    title: "Tutorials",
-    description:
-      "Explore the tutorials below to learn about Power User for dbt's features.",
-  },
-];
-
-/** Find the next navigable (non-parent) step index */
-const findNextStep = (fromIndex: number): number => {
-  for (let i = fromIndex + 1; i < SETUP_STEPS.length; i++) {
-    if (!SETUP_STEPS[i].isParent) return i;
-  }
-  return fromIndex;
+/** Pull the first error line, and the one after it, out of dbt output. */
+const summarizeError = (err: unknown): string => {
+  const text = err instanceof Error ? err.message : String(err);
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const index = lines.findIndex((line) => /error/i.test(line));
+  const picked =
+    index === -1 ? lines.slice(0, 1) : lines.slice(index, index + 2);
+  return picked.join(" ").slice(0, 240);
 };
 
-/** Find the previous navigable (non-parent) step index */
-const findPreviousStep = (fromIndex: number): number => {
-  for (let i = fromIndex - 1; i >= 0; i--) {
-    if (!SETUP_STEPS[i].isParent) return i;
-  }
-  return fromIndex;
-};
-
-/** Get the first child index for a parent step */
-const getFirstChildIndex = (parentId: string): number => {
-  const idx = SETUP_STEPS.findIndex((s) => s.parentId === parentId);
-  return idx !== -1 ? idx : 0;
-};
-
-/** Determine status for a step based on currentStep */
-const getStepStatus = (
-  step: WizardStep,
-  index: number,
-  currentStep: number,
-): "finish" | "process" | "wait" => {
-  if (step.isParent) {
-    const childIndices = SETUP_STEPS.map((s, i) =>
-      s.parentId === step.id ? i : -1,
-    ).filter((i) => i !== -1);
-    const firstChild = Math.min(...childIndices);
-    const lastChild = Math.max(...childIndices);
-    if (currentStep > lastChild) return "finish";
-    if (currentStep >= firstChild) return "process";
-    return "wait";
-  }
-  if (index < currentStep) return "finish";
-  if (index === currentStep) return "process";
-  return "wait";
-};
-
-const NARROW_QUERY = "(max-width: 700px)";
-const subscribe = (cb: () => void) => {
-  const mql = window.matchMedia(NARROW_QUERY);
-  mql.addEventListener("change", cb);
-  return () => mql.removeEventListener("change", cb);
-};
-const getSnapshot = () => window.matchMedia(NARROW_QUERY).matches;
+export interface SetupWizardHandle {
+  navigateToStep: (stepId: string) => void;
+}
 
 interface SetupWizardProps {
   initialStep?: string;
+  saved: SavedState;
 }
 
-const SetupWizard = forwardRef<
-  { navigateToStep: (stepId: string) => void },
-  SetupWizardProps
->(({ initialStep }, ref) => {
-  const isNarrow = useSyncExternalStore(subscribe, getSnapshot);
-
-  const getInitialStepIndex = () => {
-    if (initialStep) {
-      const index = SETUP_STEPS.findIndex((step) => step.id === initialStep);
-      if (index !== -1) {
-        // If pointing at a parent, jump to its first child
-        if (SETUP_STEPS[index].isParent) {
-          return getFirstChildIndex(SETUP_STEPS[index].id);
-        }
-        return index;
-      }
-    }
-    // Default to first navigable step
-    return findNextStep(-1);
-  };
-
-  const [currentStep, setCurrentStep] = useState(getInitialStepIndex());
-  const [stepReady, setStepReady] = useState(false);
-  const [stepLoading, setStepLoading] = useState(false);
-  const stepRef = useRef<PrerequisitesStepHandle>(null);
-
-  useEffect(() => {
-    if (initialStep) {
-      const index = SETUP_STEPS.findIndex((step) => step.id === initialStep);
-      if (index !== -1) {
-        if (SETUP_STEPS[index].isParent) {
-          setCurrentStep(getFirstChildIndex(SETUP_STEPS[index].id));
-        } else {
-          setCurrentStep(index);
-        }
-      }
-    }
-  }, [initialStep]);
-
-  useImperativeHandle(ref, () => ({
-    navigateToStep: (stepId: string) => {
-      const index = SETUP_STEPS.findIndex((step) => step.id === stepId);
-      if (index !== -1) {
-        if (SETUP_STEPS[index].isParent) {
-          setCurrentStep(getFirstChildIndex(SETUP_STEPS[index].id));
-        } else {
-          setCurrentStep(index);
-        }
-      }
-    },
-  }));
-
-  // Reset readiness when step changes
-  useEffect(() => {
-    const needsReadinessCheck = ["prerequisites", "altimateKey"].includes(
-      SETUP_STEPS[currentStep]?.id ?? "",
+const SetupWizard = forwardRef<SetupWizardHandle, SetupWizardProps>(
+  ({ initialStep, saved }, ref) => {
+    // A restored step past the first needs the validation it was reached with.
+    const [screen, setScreen] = useState<Screen>(
+      STEP_SCREENS[initialStep ?? ""] ??
+        (saved.validation ? saved.screen : undefined) ??
+        "connect",
     );
-    setStepReady(!needsReadinessCheck);
-    setStepLoading(false);
-  }, [currentStep]);
+    // The restored root lets the first checks keep the project, and with it
+    // the restored validation.
+    const [project, setProject] = useState<Project | undefined>(
+      saved.projectRoot
+        ? { projectRoot: saved.projectRoot, name: "", adapter: "" }
+        : undefined,
+    );
+    const [validation, setValidation] = useState<ValidationState>(
+      saved.validation
+        ? { state: "done", summary: saved.validation }
+        : { state: "idle" },
+    );
+    const [account, setAccount] = useState<AccountState>({ state: "idle" });
+    const [canLinkWorkspace, setCanLinkWorkspace] = useState(true);
+    const [supportsBrowserSignIn, setSupportsBrowserSignIn] = useState(true);
+    const [workspace, setWorkspace] = useState<WorkspaceState>({
+      waiting: false,
+      skipped: !!saved.workspaceSkipped,
+    });
 
-  const handleReadyChange = useCallback((ready: boolean, loading?: boolean) => {
-    setStepReady(ready);
-    setStepLoading(loading ?? false);
-  }, []);
+    // The furthest step reached, which stays reachable from the sidebar.
+    const [furthest, setFurthest] = useState(ORDER.indexOf(screen));
 
-  const handleStepAction = async (step: WizardStep) => {
-    try {
-      if (step.action) {
-        if (step.action.command === "openDocumentation") {
-          window.open(
-            "https://docs.myaltimate.com/setup/reqdConfig/",
-            "_blank",
+    const go = useCallback((next: Screen, via: StepVia) => {
+      track("onboardingStepViewed", { screen: next, via });
+      setScreen(next);
+      setFurthest((prev) => Math.max(prev, ORDER.indexOf(next)));
+      window.scrollTo(0, 0);
+    }, []);
+
+    // The extension can ask for any step; one not reached yet stays out of
+    // reach, as it does in the sidebar.
+    const reachableRef = useRef<(i: number) => boolean>(() => true);
+    useImperativeHandle(ref, () => ({
+      navigateToStep: (stepId: string) => {
+        const target = ORDER.indexOf(STEP_SCREENS[stepId] ?? "connect");
+        let i = target;
+        while (i > 0 && !reachableRef.current(i)) {
+          i--;
+        }
+        go(ORDER[i], "extension");
+      },
+    }));
+
+    // The message listener outlives renders, so it reads the current project.
+    const projectRootRef = useRef(project?.projectRoot);
+    projectRootRef.current = project?.projectRoot;
+
+    useEffect(() => {
+      void request("saveOnboardingState", {
+        state: {
+          screen,
+          projectRoot: project?.projectRoot,
+          validation:
+            validation.state === "done" ? (validation.summary ?? null) : null,
+          workspaceSkipped: workspace.skipped,
+        },
+      });
+    }, [
+      screen,
+      project?.projectRoot,
+      validation.state,
+      validation.summary,
+      workspace.skipped,
+    ]);
+
+    const loadAltimateState = useCallback(async (projectRoot?: string) => {
+      const state = await request<AltimateState>("getAltimateState", {
+        projectRoot,
+      });
+      if (state) {
+        setCanLinkWorkspace(state.canLinkWorkspace);
+        setSupportsBrowserSignIn(state.supportsBrowserSignIn);
+      }
+      return state;
+    }, []);
+
+    // Sign-in and workspace state are per project root; a different project
+    // starts its workspace step afresh.
+    useEffect(() => {
+      const projectRoot = project?.projectRoot;
+      void (async () => {
+        const state = await loadAltimateState(projectRoot);
+        // Drop a response for a project the user has since switched away from.
+        if (!state || projectRootRef.current !== projectRoot) {
+          return;
+        }
+        if (!state.signedIn) {
+          // A step restored from the last session needs the account too.
+          setScreen("connect");
+        }
+        if (state.signedIn) {
+          setAccount((prev) =>
+            prev.state === "connected"
+              ? prev
+              : {
+                  state: "connected",
+                  instance: state.instance,
+                  keyHint: state.keyHint,
+                  existing: true,
+                },
           );
-        } else {
-          await executeRequestInSync("executeCommand", {
-            vscodeCommand: step.action.command,
+        } else if (state.instance) {
+          // Pre-fill sign-in with an instance an admin may have configured.
+          setAccount((prev) =>
+            prev.state === "idle"
+              ? { ...prev, instance: state.instance }
+              : prev,
+          );
+        }
+        setWorkspace((prev) => ({
+          waiting: false,
+          skipped: prev.skipped,
+          linkedId: state.workspaceId,
+        }));
+      })();
+    }, [project?.projectRoot, loadAltimateState]);
+
+    useEffect(() => {
+      const handleMessage = (event: MessageEvent<ExtensionMessage>) => {
+        const { command, payload } = event.data;
+        if (command === "altimateAccountConnected") {
+          setAccount({
+            state: "connected",
+            instance: payload?.instance,
+            email: payload?.email,
+            existing: payload?.existing,
+          });
+          // Workspace links belong to an account, so re-read this project's.
+          const projectRoot = projectRootRef.current;
+          void loadAltimateState(projectRoot).then((state) => {
+            setAccount((prev) =>
+              prev.state === "connected"
+                ? { ...prev, keyHint: state?.keyHint }
+                : prev,
+            );
+            if (projectRootRef.current === projectRoot) {
+              setWorkspace((prev) => ({
+                ...prev,
+                linkedId: state?.workspaceId,
+              }));
+            }
+          });
+        } else if (command === "altimateConnectFailed") {
+          // A failed or cancelled browser round trip ends the waiting state.
+          if (payload?.flow === "workspace") {
+            setWorkspace((prev) => ({
+              ...prev,
+              waiting: false,
+              error: payload.message,
+            }));
+          } else {
+            setAccount((prev) =>
+              prev.state === "waiting"
+                ? {
+                    state: "idle",
+                    instance: prev.signInTo,
+                    error: payload?.message,
+                  }
+                : prev,
+            );
+          }
+        } else if (
+          command === "workspaceLinked" &&
+          payload?.projectRoot === projectRootRef.current
+        ) {
+          setWorkspace({
+            waiting: false,
+            skipped: false,
+            linkedId: payload?.workspaceId,
+          });
+          go("ready", "workspaceLinked");
+        }
+      };
+      window.addEventListener("message", handleMessage);
+      return () => window.removeEventListener("message", handleMessage);
+    }, [go, loadAltimateState]);
+
+    const handleProjectChange = useCallback((next: Project | undefined) => {
+      if (next?.projectRoot !== projectRootRef.current) {
+        // Later steps need this project validated, including a restored one.
+        setValidation({ state: "idle" });
+        setScreen("connect");
+        setFurthest(0);
+      }
+      setProject(next);
+    }, []);
+
+    const resetValidation = useCallback(
+      () => setValidation({ state: "idle" }),
+      [],
+    );
+
+    const validate = useCallback(async () => {
+      if (!project) {
+        return;
+      }
+      const { projectRoot } = project;
+      // A result for a project the user has since switched away from is dropped.
+      const stillCurrent = () => projectRootRef.current === projectRoot;
+      setValidation({ state: "deps" });
+      try {
+        await executeRequestInSync("runDbtDeps", { projectRoot });
+      } catch (err) {
+        track("onboardingValidation", { result: "failed", stage: "deps" });
+        if (stillCurrent()) {
+          setValidation({
+            state: "error",
+            error: `$ dbt deps · ${summarizeError(err)}`,
+          });
+        }
+        return;
+      }
+      if (!stillCurrent()) {
+        return;
+      }
+      setValidation({ state: "debug" });
+      try {
+        const result = (await executeRequestInSync("validateProject", {
+          projectRoot,
+        })) as { summary?: ValidationState["summary"] };
+        track("onboardingValidation", { result: "passed" });
+        if (stillCurrent()) {
+          setValidation({ state: "done", summary: result?.summary });
+        }
+      } catch (err) {
+        panelLogger.error("onboarding: validation failed", err);
+        track("onboardingValidation", { result: "failed", stage: "debug" });
+        if (stillCurrent()) {
+          setValidation({
+            state: "error",
+            error: `$ dbt debug · ${summarizeError(err)}`,
           });
         }
       }
-    } catch (err) {
-      panelLogger.error(`Error executing step action for ${step.id}`, err);
-    }
-  };
+    }, [project]);
 
-  const handleTryAltimateCode = useCallback(async () => {
-    try {
-      await executeRequestInSync("executeCommand", {
-        vscodeCommand: "altimate.openChat",
-      });
-    } catch (err) {
-      panelLogger.error("Error opening Altimate Code chat", err);
-    }
-  }, []);
+    /** Sign up, or sign in to an existing instance when one is given. */
+    const createAccount = useCallback(
+      async (instance?: string, plan?: AltimatePlan) => {
+        setAccount({ state: "waiting", signInTo: instance });
+        try {
+          await executeRequestInSync("startAltimateSignIn", { instance, plan });
+        } catch (err) {
+          setAccount({
+            state: "idle",
+            instance,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      },
+      [],
+    );
 
-  const handleNext = () => {
-    setCurrentStep(findNextStep(currentStep));
-  };
+    /** Drop a browser sign-in error once the user changes the form. */
+    const dismissAccountError = useCallback(
+      () =>
+        setAccount((prev) =>
+          prev.error ? { ...prev, error: undefined } : prev,
+        ),
+      [],
+    );
 
-  const handlePrevious = () => {
-    setCurrentStep(findPreviousStep(currentStep));
-  };
+    /** Sign in with an instance and API key; resolves to the error, if any. */
+    const connectWithKey = useCallback(
+      async (instance: string, apiKey: string, plan: AltimatePlan) => {
+        try {
+          await executeRequestInSync("connectAltimateApiKey", {
+            instance,
+            apiKey,
+            plan,
+          });
+          return undefined;
+        } catch (err) {
+          return err instanceof Error ? err.message : String(err);
+        }
+      },
+      [],
+    );
 
-  const handleNextClick = () => {
-    if (stepRef.current) {
-      stepRef.current.triggerNext();
-    } else {
-      handleNext();
-    }
-  };
+    /** Leave a sign-in that is waiting on the browser, to start a different one. */
+    const cancelSignIn = useCallback(() => {
+      // The abandoned browser tab must not sign in after all.
+      void request("cancelAltimateSignIn");
+      setAccount((prev) =>
+        prev.state === "waiting"
+          ? { state: "idle", instance: prev.signInTo }
+          : prev,
+      );
+    }, []);
 
-  const currentStepData = SETUP_STEPS[currentStep];
+    const linkWorkspace = useCallback(
+      (action: "create" | "openAgain") => {
+        if (!project) {
+          return;
+        }
+        track("onboardingWorkspaceAction", { action });
+        setWorkspace((prev) => ({ ...prev, waiting: true, error: undefined }));
+        executeRequestInSync("startWorkspaceLink", {
+          projectRoot: project.projectRoot,
+        }).catch((err: unknown) => {
+          panelLogger.error("onboarding: startWorkspaceLink failed", err);
+          setWorkspace((prev) => ({
+            ...prev,
+            waiting: false,
+            error: err instanceof Error ? err.message : String(err),
+          }));
+        });
+      },
+      [project],
+    );
 
-  // Determine which parent group is active so we can hide inactive substeps
-  const activeParentId = currentStepData.isParent
-    ? currentStepData.id
-    : currentStepData.parentId;
+    const skipWorkspace = useCallback(() => {
+      track("onboardingWorkspaceAction", { action: "skip" });
+      setWorkspace((prev) => ({ ...prev, waiting: false, skipped: true }));
+      go("ready", "skip");
+    }, [go]);
 
-  // Only show: top-level steps (parents + standalone) and children of the active parent
-  const visibleSteps = SETUP_STEPS.map((step, index) => ({
-    step,
-    originalIndex: index,
-  })).filter(({ step }) => !step.parentId || step.parentId === activeParentId);
+    // A project restored from the last session has no name until checks run.
+    const projectName = project?.name ? project.name : "your project";
+    const validated = validation.state === "done";
+    const signedIn = account.state === "connected";
+    const projectDone = validated && signedIn;
+    const workspaceLinked = !!workspace.linkedId;
+    const index = ORDER.indexOf(screen);
 
-  const currentVisibleIndex = visibleSteps.findIndex(
-    ({ originalIndex }) => originalIndex === currentStep,
-  );
+    const done: Record<Screen, boolean> = {
+      connect: projectDone,
+      code: projectDone && furthest > 1,
+      workspace:
+        projectDone && (workspaceLinked || workspace.skipped || furthest > 2),
+      ready: false,
+    };
+    // Past the first step, a step is reachable once it has been reached;
+    // Meet Altimate Code is reachable as soon as the project is done.
+    const reachable = (i: number) =>
+      i === 0 || (projectDone && i <= Math.max(furthest, 1));
+    reachableRef.current = reachable;
 
-  // Count only navigable steps for the step counter
-  const navigableSteps = SETUP_STEPS.filter((s) => !s.isParent);
-  const currentNavigableIndex = navigableSteps.findIndex(
-    (s) => s.id === currentStepData.id,
-  );
-  const isFirstNavigable = currentNavigableIndex === 0;
-  const isLastNavigable = currentNavigableIndex === navigableSteps.length - 1;
+    const header: Record<Screen, [string, string]> = {
+      connect: [
+        "Connect your dbt project",
+        validated
+          ? signedIn
+            ? `${projectName} is ready, and your Altimate account is connected.`
+            : `${projectName} is ready. Last thing: connect your Altimate account.`
+          : "Check your setup, validate the project, then connect your Altimate account.",
+      ],
+      code: [
+        "Meet Altimate Code",
+        "Altimate Code is an AI agent specialized for data-native workflows. It works locally and sits between any LLM and your entire data stack.",
+      ],
+      workspace: [
+        "Set up a workspace",
+        "A workspace teaches the AI how your organization works: your data setup, skills, knowledge and best practices, so it follows them every time.",
+      ],
+      ready: [
+        "You're ready",
+        `Everything is set up for ${projectName}. Here is where things stand.`,
+      ],
+    };
+    const [title, subtitle] = header[screen];
 
-  return (
-    <div className={classes.wizardContainer}>
-      <h1 className={classes.wizardTitle}>Setup Power User for dbt</h1>
-      <p className={classes.wizardSubtitle}>
-        Follow these steps to configure Power User for dbt for your project
-      </p>
-
-      <div className={classes.wizardContent}>
-        <div className={classes.wizardSidebar}>
-          <Steps
-            current={currentVisibleIndex}
-            direction={isNarrow ? "horizontal" : "vertical"}
-            onChange={(visibleIndex) => {
-              const target = visibleSteps[visibleIndex];
-              if (target) {
-                const { step, originalIndex } = target;
-                if (step.isParent) {
-                  setCurrentStep(getFirstChildIndex(step.id));
-                } else {
-                  setCurrentStep(originalIndex);
-                }
-              }
-            }}
-            items={visibleSteps.map(({ step, originalIndex }) => ({
-              title: step.title,
-              className: step.parentId ? classes.substep : classes.parentStep,
-              status: getStepStatus(step, originalIndex, currentStep),
-              disabled: false,
-            }))}
-            className={classes.wizardSteps}
-          />
-        </div>
-
-        <div className={classes.wizardMain}>
-          <Card className={classes.stepCard}>
-            <h2>{currentStepData.title}</h2>
-            <p className={classes.stepDescription}>
-              {currentStepData.description}
-            </p>
-
-            <Stack direction="row" className={classes.stepActions}>
-              {currentStepData.id === "prerequisites" && (
-                <PrerequisitesStep
-                  ref={stepRef}
-                  phase="prerequisites"
-                  onComplete={handleNext}
-                  onReadyChange={handleReadyChange}
-                />
-              )}
-              {currentStepData.id === "validation" && (
-                <PrerequisitesStep
-                  ref={stepRef}
-                  phase="validation"
-                  onComplete={handleNext}
-                  onReadyChange={handleReadyChange}
-                />
-              )}
-              {currentStepData.id === "altimateKey" && (
-                <AltimateSetupStep
-                  phase="key"
-                  onComplete={handleNext}
-                  onReadyChange={handleReadyChange}
-                />
-              )}
-              {currentStepData.id === "finish" && <TutorialsStep />}
-              {currentStepData.action && (
-                <Button
-                  type="primary"
-                  size="large"
-                  onClick={() => handleStepAction(currentStepData)}
-                >
-                  {currentStepData.action.label}
-                </Button>
-              )}
-            </Stack>
-
-            <Stack direction="row" className={classes.wizardNavigation}>
-              {!isFirstNavigable ? (
-                <Button onClick={handlePrevious} size="large">
-                  Back
-                </Button>
-              ) : (
-                <div />
-              )}
-              <div />
-              {!isLastNavigable ? (
-                <Button
-                  type="primary"
-                  onClick={handleNextClick}
-                  disabled={!stepReady}
-                  loading={stepLoading}
-                  size="large"
-                >
-                  {currentStepData.id === "prerequisites"
-                    ? "Validate Setup"
-                    : currentStepData.id === "altimateKey"
-                      ? "Tutorials"
-                      : currentStepData.id === "validation"
-                        ? "Setup Altimate AI"
-                        : "Next"}
-                </Button>
-              ) : (
-                <Button
-                  type="primary"
-                  size="large"
-                  onClick={handleTryAltimateCode}
-                >
-                  Try Altimate Code
-                </Button>
-              )}
-            </Stack>
-          </Card>
-
-          <div className={classes.wizardFooter}>
-            <p>
-              Need help?{" "}
-              <a
-                href="https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=extension"
-                target="_blank"
-                rel="noopener noreferrer"
+    const renderCta = () => {
+      switch (screen) {
+        case "connect":
+          return {
+            hint: projectDone
+              ? "Ready"
+              : !validated
+                ? "Validate the project to continue"
+                : account.state === "waiting"
+                  ? "Waiting for your browser"
+                  : "Connect your Altimate account to continue",
+            hintOk: projectDone,
+            primary: (
+              <Button
+                disabled={!projectDone}
+                onClick={() => go("code", "continue")}
               >
-                Contact our support team
-              </a>
-            </p>
+                Continue
+              </Button>
+            ),
+          };
+        case "code":
+          return {
+            hint: account.instance
+              ? `Connected · instance ${account.instance}`
+              : "Connected",
+            hintOk: true,
+            primary: (
+              <Button onClick={() => go("workspace", "continue")}>
+                Continue
+              </Button>
+            ),
+          };
+        case "workspace":
+          if (workspaceLinked || !canLinkWorkspace) {
+            return {
+              primary: (
+                <Button onClick={() => go("ready", "continue")}>
+                  Continue
+                </Button>
+              ),
+            };
+          }
+          return {
+            hint: workspace.waiting
+              ? "Waiting for your browser"
+              : "Opens Altimate in your browser",
+            // Available while waiting too: the browser may never come back.
+            secondary: (
+              <Button variant="secondary" onClick={skipWorkspace}>
+                Skip for now
+              </Button>
+            ),
+            primary: (
+              <Button
+                external
+                disabled={workspace.waiting}
+                onClick={() => linkWorkspace("create")}
+              >
+                Create Workspace
+              </Button>
+            ),
+          };
+        case "ready":
+          return {
+            hint: "Reopen this page any time from the dbt item in the status bar",
+            primary: (
+              <Button onClick={() => void request("finishOnboarding")}>
+                Finish
+              </Button>
+            ),
+          };
+      }
+    };
+    const cta = renderCta();
+
+    return (
+      <>
+        <header className={classes.navbar}>
+          <div className={classes.navInner}>
+            <div className={classes.brand}>
+              <AltimateMark />
+              <span className={classes.brandName}>Power User for dbt</span>
+            </div>
+            <span className={classes.navStep}>
+              Getting started · step {index + 1} of {ORDER.length}
+            </span>
+            <span className={classes.navBy}>
+              by
+              <img src={AltimateLogo} alt="" />
+              <span className={classes.navByName}>Altimate AI</span>
+            </span>
+          </div>
+        </header>
+
+        <div className={classes.flow}>
+          <nav className={classes.rail}>
+            {ORDER.map((step, i) => {
+              const current = screen === step;
+              const clickable = reachable(i) && !current;
+              return (
+                <button
+                  key={step}
+                  type="button"
+                  className={[
+                    classes.railItem,
+                    current ? classes.railItemCurrent : "",
+                    clickable ? classes.railItemClickable : "",
+                  ].join(" ")}
+                  aria-current={current ? "step" : undefined}
+                  onClick={clickable ? () => go(step, "sidebar") : undefined}
+                >
+                  <span
+                    className={[
+                      classes.railNum,
+                      done[step] && !current ? classes.railNumDone : "",
+                      current ? classes.railNumCurrent : "",
+                    ].join(" ")}
+                  >
+                    {done[step] && !current ? (
+                      <Icon name="check" size={13} />
+                    ) : (
+                      String(i + 1).padStart(2, "0")
+                    )}
+                  </span>
+                  <span
+                    className={[
+                      classes.railLabel,
+                      current || done[step] || reachable(i)
+                        ? classes.railLabelReachable
+                        : "",
+                      current ? classes.railLabelCurrent : "",
+                    ].join(" ")}
+                  >
+                    {STEP_LABELS[step]}
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className={classes.content}>
+            <div className={classes.header}>
+              <h1 className={classes.title}>{title}</h1>
+              <p className={classes.subtitle}>{subtitle}</p>
+            </div>
+
+            <div className={classes.panel}>
+              <div className={classes.panelHead}>
+                <span className={classes.panelDot} />
+                <span className={classes.panelLabel}>
+                  {PANEL_LABELS[screen]}
+                </span>
+              </div>
+              {/* Kept mounted so checks and pickers survive step changes. */}
+              <div hidden={screen !== "connect"}>
+                <ProjectStep
+                  project={project}
+                  onProjectChange={handleProjectChange}
+                  onChecksChanged={resetValidation}
+                  validation={validation}
+                  onValidate={() => void validate()}
+                  account={account}
+                  supportsBrowserSignIn={supportsBrowserSignIn}
+                  onCreateAccount={(instance, plan) =>
+                    void createAccount(instance, plan)
+                  }
+                  onDismissAccountError={dismissAccountError}
+                  onCancelSignIn={cancelSignIn}
+                  onConnectWithKey={connectWithKey}
+                />
+              </div>
+              {screen === "code" && <MeetCodeStep />}
+              {screen === "workspace" && (
+                <WorkspaceStep
+                  projectName={projectName}
+                  state={workspace}
+                  canLinkWorkspace={canLinkWorkspace}
+                  supportsBrowserSignIn={supportsBrowserSignIn}
+                  onOpenAgain={() => linkWorkspace("openAgain")}
+                />
+              )}
+              {screen === "ready" && project && (
+                <ReadyStep
+                  project={project}
+                  instance={account.instance}
+                  workspaceLinked={workspaceLinked}
+                  canLinkWorkspace={canLinkWorkspace}
+                  onSetUpWorkspace={() => go("workspace", "readyStep")}
+                />
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-});
+
+        <div className={classes.ctaBar}>
+          <div className={classes.ctaInner}>
+            {index > 0 ? (
+              <button
+                type="button"
+                className={[classes.mutedAction, classes.ctaLink].join(" ")}
+                onClick={() => go(ORDER[index - 1], "back")}
+              >
+                ← Back
+              </button>
+            ) : (
+              <span />
+            )}
+            <div className={classes.ctaRight}>
+              {cta.hint && (
+                <span
+                  className={[
+                    classes.hint,
+                    cta.hintOk ? classes.hintOk : "",
+                  ].join(" ")}
+                >
+                  {cta.hint}
+                </span>
+              )}
+              {cta.secondary}
+              {cta.primary}
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  },
+);
 
 SetupWizard.displayName = "SetupWizard";
 
