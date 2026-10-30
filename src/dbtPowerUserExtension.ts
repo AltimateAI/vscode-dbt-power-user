@@ -133,6 +133,16 @@ export class DBTPowerUserExtension implements Disposable {
 
   async activate(context: ExtensionContext): Promise<void> {
     try {
+      // The webview view providers are registered when the container builds
+      // them, before `activate` runs, so VS Code can resolve a view it is
+      // restoring (the lineage view after a window reload) at any point from
+      // here on. Those providers read `extensionUri` off the project
+      // container, which dereferences the context set here: it has to be set
+      // before the first `await` below yields to the event loop, or a restore
+      // that lands during that await throws
+      // "Cannot read properties of undefined (reading 'extensionUri')".
+      this.dbtProjectContainer.setContext(context);
+
       // VS Code's `@vscode/extension-telemetry` library auto-emits an
       // `unhandlederror` event for uncaught promise rejections, but it only
       // captures `name`/`message`/`stack` (baseTelemetrySender.sendErrorData)
@@ -188,7 +198,6 @@ export class DBTPowerUserExtension implements Disposable {
       );
 
       await this.mcpServer.updateMcpExtensionApi();
-      this.dbtProjectContainer.setContext(context);
       this.dbtProjectContainer.initializeWalkthrough();
       // Settles once the open decision is made; it never rejects.
       void this.whatsNewPanel.checkAndShowOnActivation();
