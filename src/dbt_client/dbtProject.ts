@@ -20,6 +20,7 @@ import {
   DeferConfig,
   extractOutputColumns,
   HealthcheckArgs,
+  isInlinePreviewError,
   isResourceHasDbColumns,
   isResourceNode,
   MANIFEST_FILE,
@@ -83,6 +84,28 @@ import { PythonEnvironment } from "./pythonEnvironment";
 
 interface FileNameTemplateMap {
   [key: string]: string;
+}
+
+/**
+ * How a preview should reach dbt.
+ *
+ * `as-model` runs the saved node so its identity resolves; `inline` sends the
+ * editor contents as an anonymous query; `inline-then-offer` does the same but
+ * raises the saved-node alternative if the run fails for lack of identity.
+ */
+export type PreviewMode = "inline" | "as-model" | "inline-then-offer";
+
+/**
+ * A run of the saved node behind a previewed file: which node to select, the
+ * SQL that node was built from, and the file it came from so the prompt can
+ * save it.
+ */
+interface NodeRunRequest {
+  modelName: string;
+  limit: number;
+  nodeSelector: string;
+  modelSql: string;
+  uri?: Uri;
 }
 
 interface JsonObj {
@@ -1588,34 +1611,214 @@ export class DBTProject implements Disposable {
     );
   }
 
-  async executeSQLOnQueryPanel(query: string, modelName: string) {
+  async executeSQLOnQueryPanel(
+    query: string,
+    modelName: string,
+    previewMode: PreviewMode = "inline",
+    uri?: Uri,
+  ) {
     const limit = workspace
       .getConfiguration("dbt")
       .get<number>("queryLimit", 500);
-    return this.executeSQLWithLimitOnQueryPanel(query, modelName, limit);
+    return this.executeSQLWithLimitOnQueryPanel(
+      query,
+      modelName,
+      limit,
+      previewMode,
+      uri,
+    );
   }
 
   async executeSQLWithLimitOnQueryPanel(
     query: string,
     modelName: string,
     limit: number,
+    previewMode: PreviewMode = "inline",
+    uri?: Uri,
   ) {
     if (limit <= 0) {
       window.showErrorMessage("Please enter a positive number for query limit");
       return;
     }
+
+    // A saved, unedited model file can run as the node it actually is. The SQL
+    // is identical to the buffer, so this only changes whether `model.name`,
+    // `this` and `model.config` resolve.
+    const nodeSelector = this.nodeRunSelector(uri?.fsPath);
+    if (previewMode === "as-model" && nodeSelector !== undefined) {
+      return this.executeSqlWithNodeContextWithLimitOnQueryPanel({
+        modelName,
+        limit,
+        nodeSelector,
+        modelSql: query,
+        uri,
+      });
+    }
+
     this.terminal.info("executeSQL", "Executed query: " + query, true, {
       adapter: this.getAdapterType(),
       limit: limit.toString(),
     });
+    const execution = this.dbtProjectIntegration.executeSQLWithLimit(
+      query,
+      modelName,
+      limit,
+    );
     this.eventEmitterService.fire({
       command: "executeQuery",
       payload: {
         query,
+        fn:
+          previewMode === "inline-then-offer" && nodeSelector !== undefined
+            ? this.offerModelRunOnIdentityFailure(execution, {
+                modelName,
+                limit,
+                nodeSelector,
+                modelSql: query,
+                uri,
+              })
+            : execution,
+        projectName: this.getProjectName(),
+      },
+    });
+  }
+
+  /**
+   * What selects only the node this file is, or undefined when this preview
+   * cannot run as a node at all.
+   *
+   * The file's own path decides which node it is — a base name does not, as the
+   * preview routing already found (#2114): a package model and the root
+   * project's can share one.
+   *
+   * The selector then has to name that node and nothing else, and a bare name
+   * does not. Measured on the five-file collision fixture with dbt-core
+   * 1.11.15: `dbt show --select orders` previews three nodes (the root model,
+   * a package's model, and an analysis of the same name) and the integration
+   * reports whichever dbt emitted first; on dbt-fusion 2.0.0-preview.175 the
+   * same selector previews nothing at all. `--select orders` also covers every
+   * version of a versioned model.
+   *
+   * `package:<package>,resource_type:model,<name>[.v<version>]` previews
+   * exactly one node on both: `package:` separates a package's model from the
+   * root project's, `resource_type:model` drops an analysis or snapshot of the
+   * same name, and the name carries the version because dbt composes a node's
+   * id as `<resource type>.<package>.<name>` with `.v<version>` appended. The
+   * commas are dbt's intersection operator.
+   *
+   * Ask the integration whether it can supply node context rather than testing
+   * the configured mode — which modes qualify is the library's concern.
+   */
+  private nodeRunSelector(filePath: string | undefined): string | undefined {
+    if (
+      filePath === undefined ||
+      !this.dbtProjectIntegration.canInjectNodeContextInSqlSnippetExecution()
+    ) {
+      return undefined;
+    }
+    const node = this.findNodeForFile(filePath);
+    if (node === undefined) {
+      return undefined;
+    }
+    const idPrefix = `${RESOURCE_TYPE_MODEL}.${node.package_name}.`;
+    if (!node.unique_id.startsWith(idPrefix)) {
+      // An analysis, a seed, a snapshot: `dbt show --select` will not run it as
+      // a model, so the editor text is the only preview there is.
+      return undefined;
+    }
+    const nameWithVersion = node.unique_id.slice(idPrefix.length);
+    return [
+      `package:${node.package_name}`,
+      `resource_type:${RESOURCE_TYPE_MODEL}`,
+      nameWithVersion,
+    ].join(",");
+  }
+
+  /**
+   * With unsaved edits we run what is on screen, because that is nearly always
+   * what was meant. Only when the run fails for lack of node identity is the
+   * alternative worth raising — that failure is the one reliable signal that
+   * running the saved node would have behaved differently.
+   */
+  private async offerModelRunOnIdentityFailure(
+    execution: Promise<QueryExecution>,
+    nodeRun: NodeRunRequest,
+  ): Promise<QueryExecution> {
+    const queryExecution = await execution;
+    return new QueryExecution(
+      () => queryExecution.cancel(),
+      async () => {
+        try {
+          return await queryExecution.executeQuery();
+        } catch (error) {
+          if (isInlinePreviewError(error)) {
+            void this.promptToRunAsModel(nodeRun);
+          }
+          throw error;
+        }
+      },
+    );
+  }
+
+  private async promptToRunAsModel(nodeRun: NodeRunRequest) {
+    const { modelName, uri } = nodeRun;
+    const runAsModel = "Save and run as model";
+    // Offer the alternative; do not diagnose the failure. The marker says the
+    // failed run was an inline preview, not why it failed, so a preview that
+    // died on an unreachable warehouse reaches here too.
+    const choice = await window.showWarningMessage(
+      `Previewing '${modelName}' failed. Unsaved SQL is previewed as an anonymous query, so model.name, this and model.config do not resolve — saving lets it run as the real model.`,
+      runAsModel,
+    );
+    if (choice !== runAsModel) {
+      return;
+    }
+    if (uri) {
+      const document = workspace.textDocuments.find(
+        (candidate) => candidate.uri.toString() === uri.toString(),
+      );
+      if (document && !(await document.save())) {
+        window.showErrorMessage(`Could not save ${modelName}.`);
+        return;
+      }
+    }
+    await this.executeSqlWithNodeContextWithLimitOnQueryPanel(nodeRun);
+  }
+
+  /**
+   * Run the saved node and show its result.
+   *
+   * `modelSql` is not what dbt runs — it reads the node from disk — but it is
+   * the SQL the node was built from, so the library reports it as the run's SQL
+   * and the panel has something to show when the CLI logs no compiled SQL, or
+   * when the run fails.
+   */
+  async executeSqlWithNodeContextWithLimitOnQueryPanel(
+    nodeRun: NodeRunRequest,
+  ) {
+    const { modelName, limit, nodeSelector, modelSql } = nodeRun;
+    if (limit <= 0) {
+      window.showErrorMessage("Please enter a positive number for query limit");
+      return;
+    }
+    this.terminal.info(
+      "executeSqlWithNodeContext",
+      `Executed model: ${modelName} as ${nodeSelector} (limit ${limit})`,
+      true,
+      { adapter: this.getAdapterType(), limit: limit.toString() },
+    );
+    this.eventEmitterService.fire({
+      command: "executeQuery",
+      payload: {
+        query: `-- dbt show --select ${nodeSelector} --limit ${limit}`,
         fn: this.dbtProjectIntegration.executeSQLWithLimit(
-          query,
+          modelSql,
           modelName,
           limit,
+          {
+            useNodeContext: true,
+            nodeSelector,
+          },
         ),
         projectName: this.getProjectName(),
       },
