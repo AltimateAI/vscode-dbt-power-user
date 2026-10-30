@@ -1181,5 +1181,119 @@ describe("DBTProject Test Suite", () => {
         "true",
       );
     });
+
+    // Spawning the probe's interpreter can fail outside `ex` (EBADARCH on a
+    // wrong-architecture binary, EPERM, ENOEXEC): the constructor must record
+    // "not installed" and must not leak an unhandled rejection.
+    const construct = () =>
+      new DBTProject(
+        mockPythonEnvironment,
+        dbtProjectLogFactory as any,
+        mockCommandFactory,
+        mockTerminal,
+        mockSharedStateService,
+        mockTelemetry,
+        mockExecutionInfrastructure,
+        jest.fn().mockReturnValue(mockProjectIntegration) as any,
+        mockAltimate,
+        mockValidationProvider,
+        mockAltimateAuthService,
+        mockRunHistoryService,
+        vscode.Uri.file("/test/project"),
+        {},
+        mockManifestChangedEmitter,
+      );
+
+    const captureUnhandled = async (run: () => void) => {
+      const unhandled: unknown[] = [];
+      const onUnhandled = (reason: unknown) => {
+        unhandled.push(reason);
+      };
+      process.on("unhandledRejection", onUnhandled);
+      try {
+        run();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      } finally {
+        process.off("unhandledRejection", onUnhandled);
+      }
+      return unhandled;
+    };
+
+    it("records dbt loom as not installed when the probe bridge cannot be spawned", async () => {
+      mockExecutionInfrastructure.createPythonBridge.mockImplementationOnce(
+        () => {
+          throw Object.assign(new Error("spawn Unknown system error -86"), {
+            code: "Unknown system error -86",
+          });
+        },
+      );
+
+      const unhandled = await captureUnhandled(() => {
+        dbtProject = construct();
+      });
+
+      expect(unhandled).toEqual([]);
+      expect(mockTelemetry.setTelemetryCustomAttribute).toHaveBeenCalledWith(
+        "dbtLoomInstalled",
+        "false",
+      );
+      expect(
+        mockExecutionInfrastructure.closePythonBridge,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("records dbt loom as not installed when the probe bridge fails and cannot be closed", async () => {
+      const pythonBridge = mockExecutionInfrastructure.createPythonBridge();
+      (pythonBridge.ex as any).mockRejectedValue(new Error("spawn EPERM"));
+      mockExecutionInfrastructure.createPythonBridge.mockReturnValueOnce(
+        pythonBridge as any,
+      );
+      mockExecutionInfrastructure.closePythonBridge.mockRejectedValueOnce(
+        new Error("spawn EPERM"),
+      );
+
+      const unhandled = await captureUnhandled(() => {
+        dbtProject = construct();
+      });
+
+      expect(unhandled).toEqual([]);
+      expect(mockTelemetry.setTelemetryCustomAttribute).toHaveBeenCalledWith(
+        "dbtLoomInstalled",
+        "false",
+      );
+      expect(mockTerminal.debug).toHaveBeenCalledWith(
+        "dbtProject:isDbtLoomInstalled",
+        expect.stringContaining("close"),
+        expect.anything(),
+      );
+    });
+
+    it("keeps the probe's answer when only closing the bridge fails", async () => {
+      // dbt-loom imported fine; the bridge then fails to close. The answer
+      // is "installed": the close failure is logged, nothing leaks.
+      const pythonBridge = mockExecutionInfrastructure.createPythonBridge();
+      (pythonBridge.ex as any).mockResolvedValue(undefined);
+      mockExecutionInfrastructure.createPythonBridge.mockReturnValueOnce(
+        pythonBridge as any,
+      );
+      mockExecutionInfrastructure.closePythonBridge.mockRejectedValueOnce(
+        new Error("close failed"),
+      );
+
+      const unhandled = await captureUnhandled(() => {
+        dbtProject = construct();
+      });
+
+      expect(unhandled).toEqual([]);
+      expect(mockTelemetry.setTelemetryCustomAttribute).toHaveBeenCalledWith(
+        "dbtLoomInstalled",
+        "true",
+      );
+      expect(mockTerminal.debug).toHaveBeenCalledWith(
+        "dbtProject:isDbtLoomInstalled",
+        expect.stringContaining("close"),
+        expect.anything(),
+      );
+    });
   });
 });
