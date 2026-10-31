@@ -173,6 +173,7 @@ describe("DBTProject Test Suite", () => {
       sendTelemetryEvent: jest.fn(),
       sendTelemetryError: jest.fn(),
       setTelemetryCustomAttribute: jest.fn(),
+      deleteTelemetryCustomAttribute: jest.fn(),
       startTelemetryEvent: jest.fn(),
       endTelemetryEvent: jest.fn(),
       dispose: jest.fn(),
@@ -1294,6 +1295,165 @@ describe("DBTProject Test Suite", () => {
         expect.stringContaining("close"),
         expect.anything(),
       );
+    });
+  });
+
+  describe("dbt setup telemetry", () => {
+    const useMode = (mode: string) => {
+      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+        get: jest.fn((key: string) => {
+          if (key === "dbtIntegration") {
+            return mode;
+          }
+          if (key === "deferConfigPerProject") {
+            return {};
+          }
+          return undefined;
+        }),
+        has: jest.fn(),
+        update: jest.fn(),
+      });
+    };
+
+    const construct = () =>
+      new DBTProject(
+        mockPythonEnvironment,
+        dbtProjectLogFactory as any,
+        mockCommandFactory,
+        mockTerminal,
+        mockSharedStateService,
+        mockTelemetry,
+        mockExecutionInfrastructure,
+        jest.fn().mockReturnValue(mockProjectIntegration) as any,
+        mockAltimate,
+        mockValidationProvider,
+        mockAltimateAuthService,
+        mockRunHistoryService,
+        vscode.Uri.file("/test/project"),
+        {},
+        mockManifestChangedEmitter,
+      );
+
+    const emit = (event: string, ...args: unknown[]) => {
+      const onCall = mockProjectIntegration.on.mock.calls.find(
+        (call: any) => call[0] === event,
+      );
+      onCall![1](...args);
+    };
+
+    // The value each setup property was last set to, and the properties
+    // removed since.
+    const stamped = () => {
+      const values: Record<string, string> = {};
+      for (const [key, value] of mockTelemetry.setTelemetryCustomAttribute.mock
+        .calls as [string, string][]) {
+        values[key] = value;
+      }
+      return values;
+    };
+    const removed = () =>
+      mockTelemetry.deleteTelemetryCustomAttribute.mock.calls.map(
+        (call) => call[0],
+      );
+
+    beforeEach(() => {
+      mockProjectIntegration.getCloudVariantInfo = jest.fn(() => null);
+      mockProjectIntegration.getAdapterType = jest.fn(() => "snowflake");
+      mockProjectIntegration.getVersion = jest.fn(() => [1, 12, 6]);
+    });
+
+    it("stamps the dbt-core version and adapter of a core project", () => {
+      useMode("core");
+      dbtProject = construct();
+
+      emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
+
+      expect(stamped()).toMatchObject({
+        dbtVersion: "1.12.6",
+        dbtVersionMinor: "1.12",
+        dbtAdapter: "snowflake",
+      });
+      expect(stamped()).not.toHaveProperty("dbtFusionVersion");
+      expect(removed()).toContain("dbtFusionVersion");
+    });
+
+    it("stamps the version again after a parse", () => {
+      useMode("corecommand");
+      mockProjectIntegration.getVersion = jest.fn(() => [1, 10, 2]);
+      dbtProject = construct();
+
+      emit(DBTProjectIntegrationAdapterEvents.MANIFEST_PARSED, {});
+
+      expect(stamped()).toMatchObject({
+        dbtVersion: "1.10.2",
+        dbtVersionMinor: "1.10",
+        dbtAdapter: "snowflake",
+      });
+    });
+
+    it("stamps unknown for a Fusion project that reports 0.0.0", () => {
+      useMode("fusion");
+      mockProjectIntegration.getVersion = jest.fn(() => [0, 0, 0]);
+      dbtProject = construct();
+
+      emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
+
+      expect(stamped()).toMatchObject({
+        dbtVersion: "unknown",
+        dbtVersionMinor: "unknown",
+        dbtFusionVersion: "unknown",
+        dbtAdapter: "snowflake",
+      });
+      expect(removed()).not.toContain("dbtFusionVersion");
+    });
+
+    it("stamps the Fusion version a Fusion project reports", () => {
+      useMode("fusion");
+      mockProjectIntegration.getVersion = jest.fn(() => [2, 0, 9]);
+      mockProjectIntegration.getAdapterType = jest.fn(() => "bigquery");
+      dbtProject = construct();
+
+      emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
+
+      expect(stamped()).toMatchObject({
+        dbtVersion: "2.0.9",
+        dbtVersionMinor: "2.0",
+        dbtFusionVersion: "2.0.9",
+        dbtAdapter: "bigquery",
+      });
+    });
+
+    it("stamps unknown when the integration cannot report the version or adapter", () => {
+      useMode("core");
+      mockProjectIntegration.getVersion = jest.fn(() => {
+        throw new Error("bridge not ready");
+      });
+      mockProjectIntegration.getAdapterType = jest.fn(() => undefined);
+      dbtProject = construct();
+
+      expect(() =>
+        emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED),
+      ).not.toThrow();
+
+      expect(stamped()).toMatchObject({
+        dbtVersion: "unknown",
+        dbtVersionMinor: "unknown",
+        dbtAdapter: "unknown",
+      });
+    });
+
+    it("does not let a telemetry failure stop a parse from being delivered", () => {
+      useMode("core");
+      dbtProject = construct();
+      // Once: the dbt-loom probe sets an attribute later, outside this test.
+      mockTelemetry.setTelemetryCustomAttribute.mockImplementationOnce(() => {
+        throw new Error("telemetry down");
+      });
+
+      expect(() =>
+        emit(DBTProjectIntegrationAdapterEvents.MANIFEST_PARSED, {}),
+      ).not.toThrow();
+      expect(mockManifestChangedEmitter.fire).toHaveBeenCalled();
     });
   });
 });

@@ -63,6 +63,7 @@ import { AltimateAuthService } from "../services/altimateAuthService";
 import { RunHistoryService } from "../services/runHistoryService";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
+import { dbtEnvironmentProperties } from "../telemetry/dbtEnvironment";
 import { TelemetryEvents } from "../telemetry/events";
 import {
   extendErrorWithSupportLinks,
@@ -249,6 +250,7 @@ export class DBTProject implements Disposable {
         );
         const event = new ProjectConfigChangedEvent(this);
         this.stampCloudVariantOnTelemetry();
+        this.stampDbtEnvironmentOnTelemetry();
         this._onProjectConfigChanged.fire(event);
       },
     );
@@ -294,6 +296,7 @@ export class DBTProject implements Disposable {
         };
         this._manifestCacheEvent = manifestCacheEvent;
         this.stampManifestFreshness();
+        this.stampDbtEnvironmentOnTelemetry();
         this._onManifestChanged.fire({ added: [manifestCacheEvent] });
       },
     );
@@ -414,6 +417,38 @@ export class DBTProject implements Disposable {
       "dbtCloudRawVersion",
       info?.rawDbtVersion ?? "",
     );
+  }
+
+  /**
+   * Stamps the detected dbt version, its `major.minor`, the adapter and, in
+   * fusion mode, the Fusion version on every later event. Runs when the
+   * project config is read and after each parse, when the integration has
+   * read the version. Never throws: a value it cannot read is `unknown`.
+   */
+  private stampDbtEnvironmentOnTelemetry(): void {
+    try {
+      const mode = workspace
+        .getConfiguration("dbt")
+        .get<string>("dbtIntegration", "core");
+      const properties = dbtEnvironmentProperties(
+        mode,
+        () => this.getDBTVersion(),
+        () => this.dbtProjectIntegration.getAdapterType(),
+      );
+      for (const [key, value] of Object.entries(properties)) {
+        if (value === undefined) {
+          this.telemetry.deleteTelemetryCustomAttribute(key);
+        } else {
+          this.telemetry.setTelemetryCustomAttribute(key, value);
+        }
+      }
+    } catch (error) {
+      this.terminal.debug(
+        "dbtProject:stampDbtEnvironmentOnTelemetry",
+        "Could not stamp the dbt setup on telemetry",
+        error,
+      );
+    }
   }
 
   private invalidateCacheUsingUniqueIds(uniqueIds: string[]) {
