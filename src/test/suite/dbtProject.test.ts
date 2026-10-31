@@ -281,6 +281,7 @@ describe("DBTProject Test Suite", () => {
       initialize: jest.fn(),
       parseManifest: jest.fn(),
       rebuildManifest: jest.fn(),
+      reparseProject: jest.fn(),
       createDbtCommand: jest.fn(),
       runDbtCommand: jest.fn(),
       dispose: jest.fn(),
@@ -443,6 +444,23 @@ describe("DBTProject Test Suite", () => {
         {},
         mockManifestChangedEmitter,
       );
+    });
+
+    it("re-parses through the adapter and settles when it has", async () => {
+      let finish!: () => void;
+      mockProjectIntegration.reparseProject.mockReturnValue(
+        new Promise<void>((resolve) => (finish = resolve)),
+      );
+      let settled = false;
+      const reparsing = dbtProject.reparseProject().then(() => {
+        settled = true;
+      });
+      await Promise.resolve();
+      expect(mockProjectIntegration.reparseProject).toHaveBeenCalledTimes(1);
+      expect(settled).toBe(false);
+      finish();
+      await reparsing;
+      expect(settled).toBe(true);
     });
 
     it("should get project name", () => {

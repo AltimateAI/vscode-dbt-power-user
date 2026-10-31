@@ -719,6 +719,12 @@
         "icon": "$(clear-all)"
       },
       {
+        "command": "dbtPowerUser.reparseProject",
+        "title": "Re-parse project",
+        "category": "Power User for dbt",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "dbtPowerUser.printEnvVars",
         "title": "Print environment variables",
         "category": "Power User for dbt",
