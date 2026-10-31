@@ -1,4 +1,5 @@
 import { NotebookProviders } from "@lib";
+import * as path from "path";
 import {
   commands,
   Disposable,
@@ -14,6 +15,8 @@ import { VSCodeCommands } from "./commands";
 import { CommentProviders } from "./comment_provider";
 import { ContentProviders } from "./content_provider";
 import { DBTProjectContainer } from "./dbt_client/dbtProjectContainer";
+import { readConfiguredDbtIntegration } from "./dbt_client/integrationMode";
+import { IntegrationModeService } from "./dbt_client/integrationModeService";
 import { DefinitionProviders } from "./definition_provider";
 import { DocumentFormattingEditProviders } from "./document_formatting_edit_provider";
 import { HoverProviders } from "./hover_provider";
@@ -99,6 +102,7 @@ export class DBTPowerUserExtension implements Disposable {
     private altimateRequest: AltimateRequest,
     private altimateAuthService: AltimateAuthService,
     private whatsNewPanel: WhatsNewPanel,
+    private integrationModeService: IntegrationModeService,
   ) {
     this.disposables.push(
       this.dbtProjectContainer,
@@ -201,8 +205,40 @@ export class DBTPowerUserExtension implements Disposable {
       this.dbtProjectContainer.initializeWalkthrough();
       // Settles once the open decision is made; it never rejects.
       void this.whatsNewPanel.checkAndShowOnActivation();
+      try {
+        // Before detection: the mode decides which dbt is looked for.
+        await this.integrationModeService.resolve(context.workspaceState);
+      } catch (error) {
+        this.telemetry.sendTelemetryError("dbtIntegrationModeError", error);
+      }
       await this.dbtProjectContainer.detectDBT();
       await this.dbtProjectContainer.initializeDBTProjects();
+      const notifyAutoSwitch = (roots: Uri[]) =>
+        void this.integrationModeService
+          .notifyProjects(
+            roots.map((root) => ({
+              root: root.fsPath,
+              name: path.basename(root.fsPath),
+            })),
+          )
+          .catch((error) =>
+            this.telemetry.sendTelemetryError(
+              "dbtIntegrationAutoSwitchNoticeError",
+              error,
+            ),
+          );
+      notifyAutoSwitch(
+        this.dbtProjectContainer
+          .getProjects()
+          .map((project) => project.projectRoot),
+      );
+      context.subscriptions.push(
+        this.dbtProjectContainer.onProjectRegisteredUnregistered((event) => {
+          if (event.registered) {
+            notifyAutoSwitch([event.root]);
+          }
+        }),
+      );
       await this.statusBars.initialize();
 
       // Fetch credits balance if user is authenticated (failures are silently ignored)
@@ -231,9 +267,6 @@ export class DBTPowerUserExtension implements Disposable {
         );
       }
       // Ask to reload the window if the dbt integration changes
-      const dbtIntegration = workspace
-        .getConfiguration("dbt")
-        .get<string>("dbtIntegration", "core");
       workspace.onDidChangeConfiguration((e) => {
         if (!e.affectsConfiguration("dbt")) {
           return;
@@ -250,12 +283,12 @@ export class DBTPowerUserExtension implements Disposable {
             clearCachedCredits();
           }
         }
-        const newDbtIntegration = workspace
-          .getConfiguration("dbt")
-          .get<string>("dbtIntegration", "core");
         if (
-          dbtIntegration !== newDbtIntegration &&
-          ["core", "cloud", "corecommand", "fusion"].includes(newDbtIntegration)
+          e.affectsConfiguration("dbt.dbtIntegration") &&
+          ["core", "cloud", "corecommand", "fusion"].includes(
+            readConfiguredDbtIntegration().value,
+          ) &&
+          this.integrationModeService.needsReload()
         ) {
           commands.executeCommand("workbench.action.reloadWindow");
         }

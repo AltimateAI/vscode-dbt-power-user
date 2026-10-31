@@ -32,6 +32,7 @@ import {
   readAndParseProjectConfig,
   resolvePackagesInstallPath,
 } from "@altimateai/dbt-integration";
+import { getDbtIntegrationMode } from "./integrationMode";
 
 // Sentinel for the empty-after-retries case in `retryWithBackoff`. Lets the
 // caller distinguish "this folder has no dbt project" (silent, expected for
@@ -196,9 +197,7 @@ export class DBTWorkspaceFolder implements Disposable {
       { numProjects: projectDirectories.length },
     );
 
-    const dbtIntegrationMode = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
+    const dbtIntegrationMode = getDbtIntegrationMode();
 
     const filteredProjects =
       await this.dbtProjectDetectionFactory().discoverProjects(

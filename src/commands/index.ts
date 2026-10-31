@@ -42,6 +42,7 @@ import { CteProfilerService } from "../cte_profiler/cteProfilerService";
 import { DBTClient } from "../dbt_client";
 import { DBTProject } from "../dbt_client/dbtProject";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { getDbtIntegrationMode } from "../dbt_client/integrationMode";
 import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
 import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
@@ -781,9 +782,7 @@ export class VSCodeCommands implements Disposable {
           this.diagnosticsOutputChannel.logNewLine();
 
           // Printing extension and setup info
-          const dbtIntegrationMode = workspace
-            .getConfiguration("dbt")
-            .get<string>("dbtIntegration", "core");
+          const dbtIntegrationMode = getDbtIntegrationMode();
           const allowListFolders = workspace
             .getConfiguration("dbt")
             .get<string[]>("allowListFolders", []);
@@ -1429,9 +1428,7 @@ export class VSCodeCommands implements Disposable {
       );
     }
 
-    const dbtIntegrationMode = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
+    const dbtIntegrationMode = getDbtIntegrationMode();
     if (dbtIntegrationMode === "fusion") {
       this.diagnosticsOutputChannel.logLine(
         "Python bridge is not used in fusion mode",

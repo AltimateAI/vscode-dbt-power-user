@@ -12,6 +12,7 @@ import {
 import { AltimateRequest } from "../altimate";
 import { WalkthroughCommands } from "../commands/walkthroughCommands";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { getDbtIntegrationMode } from "../dbt_client/integrationMode";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
 import { QueryManifestService } from "../services/queryManifestService";
@@ -374,9 +375,7 @@ export class OnboardingPanel extends AltimateWebviewProvider {
         try {
           const projects = this.dbtProjectContainer.getProjects();
           const dbtWorkspaces = this.dbtProjectContainer.dbtWorkspaceFolders;
-          const dbtIntegrationMode = workspace
-            .getConfiguration("dbt")
-            .get<string>("dbtIntegration", "core");
+          const dbtIntegrationMode = getDbtIntegrationMode();
           const pythonEnvironment =
             this.dbtProjectContainer.getPythonEnvironment();
 
@@ -526,10 +525,7 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           const config = workspace.getConfiguration("dbt");
           const apiKey = config.get<string>("altimateAiKey");
           const instanceName = config.get<string>("altimateInstanceName");
-          const dbtIntegrationType = config.get<string>(
-            "dbtIntegration",
-            "core",
-          );
+          const dbtIntegrationType = getDbtIntegrationMode();
 
           const isConfigured = !!(apiKey && instanceName);
           const altimateUrl = config.get<string>("altimateUrl", "");

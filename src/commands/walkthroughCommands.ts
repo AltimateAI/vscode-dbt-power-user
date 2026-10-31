@@ -14,6 +14,7 @@ import {
   workspace,
 } from "vscode";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { getDbtIntegrationMode } from "../dbt_client/integrationMode";
 import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { TelemetryService } from "../telemetry";
@@ -53,11 +54,7 @@ export class WalkthroughCommands {
       return;
     }
     let debugCommand = "dbt debug";
-    if (
-      workspace
-        .getConfiguration("dbt")
-        .get<string>("dbtIntegration", "core") === "cloud"
-    ) {
+    if (getDbtIntegrationMode() === "cloud") {
       debugCommand = "dbt environment show";
     }
     if (!skipConfirmation) {
@@ -144,9 +141,7 @@ export class WalkthroughCommands {
   }
 
   async installDbt(): Promise<void> {
-    const dbtIntegration = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
+    const dbtIntegration = getDbtIntegrationMode();
     switch (dbtIntegration) {
       case "core":
         return this.installDbtCore();

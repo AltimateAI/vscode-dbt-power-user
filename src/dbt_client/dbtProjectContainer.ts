@@ -56,6 +56,8 @@ export class DBTProjectContainer implements Disposable {
   private _onProjectRegisteredUnregistered =
     new EventEmitter<ProjectRegisteredUnregisteredEvent>();
   public readonly onManifestChanged = this._onManifestChanged.event;
+  public readonly onProjectRegisteredUnregistered =
+    this._onProjectRegisteredUnregistered.event;
   private disposables: Disposable[] = [
     this._onManifestChanged,
     this._onProjectRegisteredUnregistered,

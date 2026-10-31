@@ -124,6 +124,12 @@ export class TextEdit {
   }
 }
 
+export enum ConfigurationTarget {
+  Global = 1,
+  Workspace = 2,
+  WorkspaceFolder = 3,
+}
+
 // Mock VSCode API
 export const extensions = {
   getExtension: jest.fn(),
