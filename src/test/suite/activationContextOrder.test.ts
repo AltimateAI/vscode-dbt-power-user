@@ -58,6 +58,7 @@ describe("activate hands the context to the project container before its first a
       stub(),
       stub(),
       stub(),
+      stub(),
     );
     const context = { subscriptions: [] } as never;
 
