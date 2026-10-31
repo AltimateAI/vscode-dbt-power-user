@@ -6,6 +6,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { runInNewContext } from "vm";
 import * as vscode from "vscode";
 import { TelemetryService, __TELEMETRY_INTERNALS__ } from "../../telemetry";
 import { dbtVersionLabels } from "../../telemetry/dbtEnvironment";
@@ -575,7 +576,29 @@ describe("TelemetryService stamps the dbt setup and Fusion failure classes", () 
     ],
     [
       "dbtFusionCannotParseProjectCommandExecuteError",
+      { code: "ENOENT", message: "spawn dbt ENOENT" },
+      "binary_missing",
+    ],
+    [
+      "dbtFusionCannotParseProjectCommandExecuteError",
+      { message: 'Command not found: "dbt".' },
+      "binary_missing",
+    ],
+    [
+      "dbtFusionCannotParseProjectCommandExecuteError",
+      runInNewContext(
+        'Object.assign(new Error("spawn dbt ENOENT"), { code: "ENOENT" })',
+      ),
+      "binary_missing",
+    ],
+    [
+      "dbtFusionCannotParseProjectCommandExecuteError",
       new Error("Error occurred during process execution: EACCES"),
+      "parse_command_failed",
+    ],
+    [
+      "dbtFusionCannotParseProjectCommandExecuteError",
+      "Command not found",
       "parse_command_failed",
     ],
     [

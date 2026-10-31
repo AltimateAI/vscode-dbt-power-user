@@ -97,17 +97,24 @@ const FUSION_FAILURE_EVENTS: Record<string, FusionFailureClass> = {
 // The command runner rejects a spawn that fails with ENOENT with this message.
 const COMMAND_NOT_FOUND_PREFIX = "Command not found";
 
+// Reads the fields of any error-like object, not only a local `Error`: an
+// error from another context, or a plain rejection value, carries them too.
 function isCommandNotFound(error: unknown): boolean {
-  if (!(error instanceof Error)) {
+  if (typeof error !== "object" || error === null) {
     return false;
   }
-  if ((error as { code?: unknown }).code === "ENOENT") {
-    return true;
+  try {
+    const { code, message } = error as { code?: unknown; message?: unknown };
+    if (code === "ENOENT") {
+      return true;
+    }
+    return (
+      typeof message === "string" &&
+      message.startsWith(COMMAND_NOT_FOUND_PREFIX)
+    );
+  } catch {
+    return false;
   }
-  return (
-    typeof error.message === "string" &&
-    error.message.startsWith(COMMAND_NOT_FOUND_PREFIX)
-  );
 }
 
 /**
