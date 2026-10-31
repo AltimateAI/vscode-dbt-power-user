@@ -17,6 +17,7 @@ import {
   env,
   extensions,
   languages,
+  NotebookDocument,
   ProgressLocation,
   Range,
   TextEditor,
@@ -37,6 +38,11 @@ import {
   ConversationProvider,
 } from "../comment_provider/conversationProvider";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
+import {
+  isFusionMode,
+  showCoreOnlyMessage,
+  stampBlockedByFusion,
+} from "../coreOnlyFeature";
 import { CteProfilerDecorationProvider } from "../cte_profiler/cteProfilerDecorationProvider";
 import { CteProfilerService } from "../cte_profiler/cteProfilerService";
 import { DBTClient } from "../dbt_client";
@@ -80,6 +86,13 @@ import { RunTest } from "./runTest";
 import { SqlToModel } from "./sqlToModel";
 import { ValidateSql } from "./validateSql";
 import { WalkthroughCommands } from "./walkthroughCommands";
+
+// The notebook runs on a Python kernel and has no dbt Fusion form.
+export const NOTEBOOK_CORE_ONLY_MESSAGE =
+  "Altimate notebooks need dbt Core mode with Python dbt-core, so they are not available in dbt Fusion mode.";
+
+// `contributes.notebooks` type in package.json
+const DATAPILOT_NOTEBOOK_TYPE = "datapilot-notebook";
 
 export class VSCodeCommands implements Disposable {
   private disposables: Disposable[] = [];
@@ -890,9 +903,11 @@ export class VSCodeCommands implements Disposable {
       }),
       commands.registerCommand(
         "dbtPowerUser.createAltimateNotebook",
-        async (args: OpenNotebookRequest | undefined) => {
-          this.notebookController.createNotebook(args);
-        },
+        (args: OpenNotebookRequest | undefined) =>
+          this.createAltimateNotebook(args),
+      ),
+      workspace.onDidOpenNotebookDocument((notebook) =>
+        this.onNotebookOpened(notebook),
       ),
       commands.registerCommand(
         "dbtPowerUser.openTargetSelector",
@@ -1696,6 +1711,26 @@ export class VSCodeCommands implements Disposable {
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash).toString(36).substring(0, 6);
+  }
+
+  // Every notebook entry point (commands, quick pick, editor menus, the
+  // Actions and query panels) runs this command.
+  async createAltimateNotebook(args: OpenNotebookRequest | undefined) {
+    if (isFusionMode()) {
+      stampBlockedByFusion(this.telemetry, TelemetryEvents["Notebook/Launch"]);
+      await showCoreOnlyMessage(NOTEBOOK_CORE_ONLY_MESSAGE);
+      return;
+    }
+    this.notebookController.createNotebook(args);
+  }
+
+  // A notebook opened another way (a restored tab, a .notebook file).
+  onNotebookOpened(notebook: NotebookDocument) {
+    if (notebook.notebookType !== DATAPILOT_NOTEBOOK_TYPE || !isFusionMode()) {
+      return;
+    }
+    stampBlockedByFusion(this.telemetry, TelemetryEvents["Notebook/Launch"]);
+    void showCoreOnlyMessage(NOTEBOOK_CORE_ONLY_MESSAGE);
   }
 
   dispose() {

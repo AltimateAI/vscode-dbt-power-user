@@ -1,4 +1,4 @@
-import { workspace } from "vscode";
+import { env, Uri, window, workspace } from "vscode";
 import { TelemetryService } from "./telemetry";
 
 // Some features run on Python (a Jupyter kernel, the datapilot package) and
@@ -23,5 +23,14 @@ export const stampBlockedByFusion = (
     telemetry.sendTelemetryEvent(eventName, { blockedByMode: "fusion" });
   } catch {
     // fail-safe: the user still gets the message
+  }
+};
+
+export const LEARN_MORE = "Learn more";
+
+export const showCoreOnlyMessage = async (message: string): Promise<void> => {
+  const answer = await window.showWarningMessage(message, LEARN_MORE);
+  if (answer === LEARN_MORE) {
+    await env.openExternal(Uri.parse(CORE_MODE_DOCS_URL));
   }
 };
