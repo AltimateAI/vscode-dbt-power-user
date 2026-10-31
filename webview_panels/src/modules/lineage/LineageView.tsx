@@ -27,12 +27,6 @@ import {
 } from "./types";
 import { useGraphBelowToolbar } from "./useGraphBelowToolbar";
 
-// Where the stale-graph banner sits: a strip across the top of the panel,
-// above the graph's toolbar ("top"), or under the toolbar ("underToolbar").
-// Either way the graph starts below both.
-type BannerPlacement = "top" | "underToolbar";
-const BANNER_PLACEMENT = "top" as BannerPlacement;
-
 const LineageView = (): JSX.Element | null => {
   const {
     state: { theme, isComponentsApiInitialized },
@@ -174,16 +168,11 @@ const LineageView = (): JSX.Element | null => {
     return null;
   }
 
-  const bannerElement = shownBanner ? (
-    <LineageBanner banner={shownBanner} />
-  ) : null;
-  const offset =
-    belowToolbar === undefined ? undefined : { marginTop: belowToolbar };
-
   return (
     <TooltipProvider>
       <div className={styles.lineageView}>
-        {BANNER_PLACEMENT === "top" ? bannerElement : null}
+        {/* A strip across the top of the panel, above the graph's toolbar. */}
+        {shownBanner ? <LineageBanner banner={shownBanner} /> : null}
         <div className={styles.graphArea}>
           <ActionWidget
             missingLineageMessage={missingLineageMessage}
@@ -196,12 +185,13 @@ const LineageView = (): JSX.Element | null => {
               <DemoButton />
             </div>
           )}
-          {BANNER_PLACEMENT === "underToolbar" && bannerElement ? (
-            <div style={offset}>{bannerElement}</div>
-          ) : null}
           <div
             className={`${styles.lineageWrap} al-tw-scope`}
-            style={BANNER_PLACEMENT === "top" ? offset : undefined}
+            style={
+              belowToolbar === undefined
+                ? undefined
+                : { marginTop: belowToolbar }
+            }
           >
             <Lineage
               ref={lineageRef}
