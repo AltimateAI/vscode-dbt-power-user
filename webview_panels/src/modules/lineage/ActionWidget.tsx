@@ -34,10 +34,12 @@ const ActionWidget = ({
   missingLineageMessage,
   aiEnabled,
   lineageType,
+  className,
 }: {
   missingLineageMessage?: MissingLineageMessage;
   aiEnabled: boolean;
   lineageType: "sql" | "dynamic";
+  className?: string;
 }): JSX.Element => {
   if (lineageType === "sql") {
     return (
@@ -47,7 +49,7 @@ const ActionWidget = ({
     );
   }
   return (
-    <div className={styles.actionWidget}>
+    <div className={[styles.actionWidget, className].filter(Boolean).join(" ")}>
       <MissingLineageMessageComponent
         missingLineageMessage={missingLineageMessage}
       />

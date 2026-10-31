@@ -1,0 +1,169 @@
+// The banner over an out-of-date graph. Colours come from the VS Code theme
+// (--vscode-*), so they follow light, dark and high-contrast themes.
+
+// A strip across the panel; the toolbar and the graph sit below it.
+.banner {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px 12px;
+  padding: 8px 16px 8px 13px;
+  border-bottom: 1px solid
+    var(--vscode-widget-border, var(--vscode-panel-border, transparent));
+  // Colour from the severity class.
+  border-left-style: solid;
+  border-left-width: 3px;
+  background: var(--vscode-editorWidget-background);
+  color: var(--vscode-foreground);
+}
+
+.warning {
+  border-left-color: var(--vscode-editorWarning-foreground);
+  .icon {
+    color: var(--vscode-editorWarning-foreground);
+  }
+}
+
+// The icon and the text; below about 420px for them, the buttons move under.
+.bannerMessage {
+  display: flex;
+  flex: 1 1 420px;
+  gap: 8px;
+  min-width: 0;
+}
+
+.icon {
+  flex: none;
+  margin-top: 2px;
+}
+
+.bannerText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bannerTitle {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.detail {
+  margin: 0;
+  line-height: 1.45;
+  color: var(--vscode-descriptionForeground);
+  overflow-wrap: anywhere;
+}
+
+.dbtMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+
+  // A cut message has no bottom padding, so the cut falls between lines.
+  pre.dbtMessageCut {
+    padding-bottom: 0;
+  }
+
+  pre {
+    width: 100%;
+    margin: 0;
+    padding: 6px 8px;
+    border-radius: 3px;
+    background: var(--vscode-textCodeBlock-background);
+    color: var(--vscode-foreground);
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: var(--vscode-editor-font-size, 12px);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    overflow: hidden;
+  }
+}
+
+// About six lines of dbt's message before "Show more".
+.dbtMessageCapped {
+  max-height: calc(6 * 1.5em + 6px);
+}
+
+// The default bottom panel is about 260px tall: three lines there.
+@media (max-height: 320px) {
+  .dbtMessageCapped {
+    max-height: calc(3 * 1.5em + 6px);
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+%button {
+  max-width: 100%;
+  padding: 4px 12px;
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: var(--vscode-font-size, 13px);
+  line-height: 18px;
+  text-align: center;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: 2px;
+  }
+}
+
+.primaryButton {
+  @extend %button;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  &:hover {
+    background: var(--vscode-button-hoverBackground);
+  }
+}
+
+.secondaryButton {
+  @extend %button;
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  &:hover {
+    background: var(--vscode-button-secondaryHoverBackground);
+  }
+}
+
+.linkButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--vscode-textLink-foreground);
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--vscode-textLink-activeForeground);
+    text-decoration: underline;
+  }
+}
+
+// While the banner shows, the toolbar wraps instead of running off the left
+// edge of a narrow panel, so the graph can start below all of it.
+.wrappingToolbar {
+  max-width: calc(100% - 32px);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}

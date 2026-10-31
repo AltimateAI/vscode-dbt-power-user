@@ -1,4 +1,4 @@
-import type { Table } from "@altimateai/ui-components/lineage";
+import type { LineageRef, Table } from "@altimateai/ui-components/lineage";
 import {
   ApiHelper,
   CLL,
@@ -13,12 +13,25 @@ import {
 } from "@modules/app/requestExecutor";
 import useAppContext from "@modules/app/useAppContext";
 import { panelLogger } from "@modules/logger";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ActionWidget from "./ActionWidget";
 import DemoButton from "./components/demo/DemoButton";
 import styles from "./lineage.module.scss";
+import LineageBanner from "./LineageBanner";
+import bannerStyles from "./lineageBanner.module.scss";
 import "./tailwind-globals.css";
-import { MissingLineageMessage, StaticLineageProps } from "./types";
+import {
+  LineageBanner as LineageBannerState,
+  MissingLineageMessage,
+  StaticLineageProps,
+} from "./types";
+import { useGraphBelowToolbar } from "./useGraphBelowToolbar";
+
+// Where the stale-graph banner sits: a strip across the top of the panel,
+// above the graph's toolbar ("top"), or under the toolbar ("underToolbar").
+// Either way the graph starts below both.
+type BannerPlacement = "top" | "underToolbar";
+const BANNER_PLACEMENT = "top" as BannerPlacement;
 
 const LineageView = (): JSX.Element | null => {
   const {
@@ -35,6 +48,8 @@ const LineageView = (): JSX.Element | null => {
   const [missingLineageMessage, setMissingLineageMessage] = useState<
     MissingLineageMessage | undefined
   >();
+  const [banner, setBanner] = useState<LineageBannerState | undefined>();
+  const lineageRef = useRef<LineageRef>(null);
 
   useEffect(() => {
     if (!isComponentsApiInitialized) {
@@ -88,9 +103,11 @@ const LineageView = (): JSX.Element | null => {
       node?: Table;
       aiEnabled: boolean;
       missingLineageMessage?: MissingLineageMessage;
+      lineageBanner?: LineageBannerState;
     } & StaticLineageProps,
   ) => {
     setMissingLineageMessage(data.missingLineageMessage);
+    setBanner(data.lineageBanner);
     const event = new CustomEvent("renderStartNode", {
       detail: {
         ...data,
@@ -112,6 +129,10 @@ const LineageView = (): JSX.Element | null => {
   useEffect(() => {
     const commandMap = {
       render,
+      // The banner changed while the graph stays as drawn.
+      lineageBanner: (data: { banner?: LineageBannerState }) => {
+        setBanner(data.banner);
+      },
       columnLineage: (data: { event: CllEvents }) => {
         columnLineage(data);
       },
@@ -140,37 +161,61 @@ const LineageView = (): JSX.Element | null => {
     executeRequestInAsync("init", {});
   }, []);
 
+  const lineageType = renderNode?.details ? "sql" : "dynamic";
+  const shownBanner = lineageType === "dynamic" ? banner : undefined;
+  // The toolbar is only in the page once the API helper is set up.
+  const belowToolbar = useGraphBelowToolbar(
+    shownBanner !== undefined && isApiHelperInitialized,
+    // The lineage fits the graph to its pane on every rerender.
+    () => lineageRef.current?.rerender(),
+  );
+
   if (!isApiHelperInitialized || !renderNode) {
     return null;
   }
 
-  const lineageType = renderNode.details ? "sql" : "dynamic";
+  const bannerElement = shownBanner ? (
+    <LineageBanner banner={shownBanner} />
+  ) : null;
+  const offset =
+    belowToolbar === undefined ? undefined : { marginTop: belowToolbar };
 
   return (
     <TooltipProvider>
       <div className={styles.lineageView}>
-        <ActionWidget
-          missingLineageMessage={missingLineageMessage}
-          aiEnabled={renderNode.aiEnabled}
-          lineageType={lineageType}
-        />
-        {lineageType === "sql" ? null : (
-          <div className="bottom-right-container">
-            <DemoButton />
-          </div>
-        )}
-        <div className={`${styles.lineageWrap} al-tw-scope`}>
-          <Lineage
-            theme={theme}
-            dynamicLineage={renderNode}
+        {BANNER_PLACEMENT === "top" ? bannerElement : null}
+        <div className={styles.graphArea}>
+          <ActionWidget
+            missingLineageMessage={missingLineageMessage}
+            aiEnabled={renderNode.aiEnabled}
             lineageType={lineageType}
-            sqlLineage={
-              lineageType === "sql"
-                ? (renderNode as StaticLineageProps)
-                : undefined
-            }
-            allowSyncColumnsWithDB
+            className={shownBanner ? bannerStyles.wrappingToolbar : undefined}
           />
+          {lineageType === "sql" ? null : (
+            <div className="bottom-right-container">
+              <DemoButton />
+            </div>
+          )}
+          {BANNER_PLACEMENT === "underToolbar" && bannerElement ? (
+            <div style={offset}>{bannerElement}</div>
+          ) : null}
+          <div
+            className={`${styles.lineageWrap} al-tw-scope`}
+            style={BANNER_PLACEMENT === "top" ? offset : undefined}
+          >
+            <Lineage
+              ref={lineageRef}
+              theme={theme}
+              dynamicLineage={renderNode}
+              lineageType={lineageType}
+              sqlLineage={
+                lineageType === "sql"
+                  ? (renderNode as StaticLineageProps)
+                  : undefined
+              }
+              allowSyncColumnsWithDB
+            />
+          </div>
         </div>
       </div>
     </TooltipProvider>

@@ -29,6 +29,15 @@ export interface ManifestCacheProjectAddedEvent {
   functionMetaMap: FunctionMetaMap;
   semanticModelMetaMap: SemanticModelMetaMap;
   modelDepthMap: Map<string, number>;
+  // Set when the manifest was read from disk after the project check failed,
+  // so it is what dbt last wrote, not a parse from this session.
+  staleManifest?: StaleManifest;
+}
+
+export interface StaleManifest {
+  manifestPath: string;
+  // The file's modification time, in ms since the epoch.
+  writtenAt: number;
 }
 
 export interface ManifestCacheProjectRemovedEvent {
