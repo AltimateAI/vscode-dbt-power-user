@@ -159,7 +159,8 @@ function rebuildPanel(p: DBTProject) {
   >;
   return Object.fromEntries(
     [...entries].map(([file, list]) => [
-      path.relative(projectRoot, file),
+      // `/`-separated on every platform, so the expectations read the same on Windows.
+      path.relative(projectRoot, file).split(path.sep).join("/"),
       list.map((d) => [
         d.message,
         d.range.start.line,
@@ -199,6 +200,33 @@ describe("parse diagnostics in the Problems panel", () => {
         ["missing ref", 10, 18, 10, 999],
         ["second", 3, 0, 3, 999],
       ],
+    });
+  });
+
+  it("accepts `/` separators in an absolute path, as a Windows path may carry them", () => {
+    // On Windows this is `C:/.../models/orders.sql`.
+    const forwardSlashed = [
+      ...projectRoot.split(path.sep),
+      "models",
+      "orders.sql",
+    ].join("/");
+    const p = projectWith([
+      diagnostic(forwardSlashed, "slashes", {
+        startLine: 1,
+        startColumn: 2,
+        endLine: 1,
+        endColumn: 999,
+      }),
+    ]);
+    const entries = (p.rebuildManifestDiagnostics as any).entries as Map<
+      string,
+      any[]
+    >;
+    expect([...entries.keys()]).toEqual([
+      path.join(projectRoot, "models", "orders.sql"),
+    ]);
+    expect(rebuildPanel(p)).toEqual({
+      "models/orders.sql": [["slashes", 1, 2, 1, 999]],
     });
   });
 
