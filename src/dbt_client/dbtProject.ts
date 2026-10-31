@@ -1096,6 +1096,14 @@ export class DBTProject implements Disposable {
     const { sql, dialect, models } = request;
     this.throwDiagnosticsErrorIfAvailable();
     this.throwIfNotAuthenticated();
+    const dbtIntegrationMode = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+    if (dbtIntegrationMode === "fusion") {
+      // altimate-core validates without Python, and a dbt Fusion setup may
+      // have no Python with dbt at all: no bridge to start.
+      return await validateSQL(sql, dialect, models);
+    }
     const sqlValidationThread = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
