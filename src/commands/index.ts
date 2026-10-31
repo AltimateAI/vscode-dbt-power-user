@@ -75,6 +75,7 @@ import { SQLLineagePanel } from "../webview_provider/sqlLineagePanel";
 import { WhatsNewPanel } from "../webview_provider/whatsNewPanel";
 import { AltimateScan } from "./altimateScan";
 import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
+import { dbtSetupDiagnostics } from "./diagnosticsSetup";
 import { RunModel } from "./runModel";
 import { RunTest } from "./runTest";
 import { SqlToModel } from "./sqlToModel";
@@ -198,7 +199,8 @@ export class VSCodeCommands implements Disposable {
                 cl.command?.command === "dbtPowerUser.profileCtes",
             );
             ctes = profileLens?.command?.arguments?.[1] as
-              CteInfo[] | undefined;
+              | CteInfo[]
+              | undefined;
 
             if (!ctes || ctes.length === 0) {
               window.showInformationMessage(
@@ -737,7 +739,9 @@ export class VSCodeCommands implements Disposable {
               "Printing all python paths...",
               "* Please remove any sensitive information before sending it to us",
             ],
-            this.pythonEnvironment.allPythonPaths.map(({ path }) => path),
+            this.pythonEnvironment.pythonExtensionAvailable
+              ? this.pythonEnvironment.allPythonPaths.map(({ path }) => path)
+              : ["The Python extension is not installed"],
           );
           this.diagnosticsOutputChannel.logNewLine();
 
@@ -785,7 +789,7 @@ export class VSCodeCommands implements Disposable {
             .get<string[]>("allowListFolders", []);
           const apiConnectivity = await this.altimate.checkApiConnectivity();
           this.diagnosticsOutputChannel.logBlock([
-            `Python Path=${this.pythonEnvironment.pythonPath}`,
+            `Python Path=${this.pythonEnvironment.pythonPath || "none"}`,
             `VSCode version=${version}`,
             `Extension version=${
               extensions.getExtension("innoverio.vscode-dbt-power-user")
@@ -801,22 +805,22 @@ export class VSCodeCommands implements Disposable {
           ]);
           this.diagnosticsOutputChannel.logNewLine();
 
-          if (!this.dbtClient.pythonInstalled) {
-            this.diagnosticsOutputChannel.logLine("Python is not installed");
-            this.diagnosticsOutputChannel.logLine(
-              "Can't proceed further without fixing python installation",
-            );
+          const setup = await dbtSetupDiagnostics({
+            dbtIntegrationMode,
+            pythonPath: this.pythonEnvironment.pythonPath,
+            pythonExtensionAvailable:
+              this.pythonEnvironment.pythonExtensionAvailable,
+            pythonInstalled: this.dbtClient.pythonInstalled,
+            dbtInstalled: this.dbtClient.dbtInstalled,
+            env: this.pythonEnvironment.getEnvironmentVariables(),
+            cwd: getFirstWorkspacePath(),
+          });
+          setup.lines.forEach((line) =>
+            this.diagnosticsOutputChannel.logLine(line),
+          );
+          if (!setup.proceed) {
             return;
           }
-          this.diagnosticsOutputChannel.logLine("Python is installed");
-          if (!this.dbtClient.dbtInstalled) {
-            this.diagnosticsOutputChannel.logLine("DBT is not installed");
-            this.diagnosticsOutputChannel.logLine(
-              "Can't proceed further without fixing dbt installation",
-            );
-            return;
-          }
-          this.diagnosticsOutputChannel.logLine("DBT is installed");
           const dbtWorkspaces = this.dbtProjectContainer.dbtWorkspaceFolders;
           this.diagnosticsOutputChannel.logLine(
             `Number of workspaces=${dbtWorkspaces.length}`,
@@ -1425,7 +1429,14 @@ export class VSCodeCommands implements Disposable {
       );
     }
 
-    if (!project.getPythonBridgeStatus()) {
+    const dbtIntegrationMode = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+    if (dbtIntegrationMode === "fusion") {
+      this.diagnosticsOutputChannel.logLine(
+        "Python bridge is not used in fusion mode",
+      );
+    } else if (!project.getPythonBridgeStatus()) {
       this.diagnosticsOutputChannel.logLine("Python bridge is not connected");
     } else {
       this.diagnosticsOutputChannel.logLine("Python bridge is connected");
