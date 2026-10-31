@@ -32,8 +32,18 @@ html.lineageBody {
       display: flex;
       flex-direction: column;
 
+      // The graph and the toolbar floating over it, under the banner.
+      .graphArea {
+        position: relative;
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
       .lineageWrap {
         flex: 1;
+        min-height: 0;
       }
 
       .menu_card {
