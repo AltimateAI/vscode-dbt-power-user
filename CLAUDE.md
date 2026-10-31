@@ -26,16 +26,19 @@ The extension follows a **dependency injection pattern** using Inversify contain
 The extension operates across multiple processes:
 
 1. **Main Extension Process** (Node.js/TypeScript)
+
    - VSCode API integration
    - File system operations
    - dbt CLI interactions
 
 2. **Webview Panels** (React/TypeScript)
+
    - Modern React-based UI components
    - Located in `webview_panels/` directory
    - Built with Vite, uses Antd for UI components
 
 3. **Python Bridge Integration**
+
    - dbt core/cloud integration via Python scripts
    - Key files: `dbt_core_integration.py`, `dbt_cloud_integration.py`
    - Jupyter kernel for notebook functionality
