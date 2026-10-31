@@ -20,6 +20,11 @@ import {
   workspace,
 } from "vscode";
 import { AltimateRequest, DBTCoreIntegration } from "../altimate";
+import {
+  CORE_MODE_DOCS_URL,
+  isFusionMode,
+  stampBlockedByFusion,
+} from "../coreOnlyFeature";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
@@ -53,6 +58,10 @@ type SelectFilesProps = {
 enum PromptAnswer {
   YES = "Install altimate datapilot cli",
 }
+
+// The healthcheck runs the Python datapilot package and has no dbt Fusion form.
+export const HEALTHCHECK_CORE_ONLY_MESSAGE =
+  "The project healthcheck needs dbt Core mode with Python dbt-core, so it is not available in dbt Fusion mode.";
 
 export class InsightsPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.Insights";
@@ -479,6 +488,23 @@ export class InsightsPanel extends AltimateWebviewProvider {
     syncRequestId: string | undefined,
     args: DataPilotHealtCheckParams,
   ) {
+    if (isFusionMode()) {
+      stampBlockedByFusion(this.telemetry, "performDatapilotHealthcheck");
+      this._panel?.webview.postMessage({
+        command: "response",
+        args: {
+          syncRequestId,
+          body: {
+            coreOnly: {
+              message: HEALTHCHECK_CORE_ONLY_MESSAGE,
+              learnMoreUrl: CORE_MODE_DOCS_URL,
+            },
+          },
+          status: true,
+        },
+      });
+      return;
+    }
     try {
       this.validationProvider.throwIfNotAuthenticated();
       await this.altimateRequest.logDBTHealthcheckStartScan();
