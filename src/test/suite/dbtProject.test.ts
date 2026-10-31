@@ -17,6 +17,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import childProcess from "child_process";
 import { EventEmitter } from "events";
 import * as path from "path";
 import * as vscode from "vscode";
@@ -825,6 +826,47 @@ describe("DBTProject Test Suite", () => {
 
       expect(mockExecutionInfrastructure.createPythonBridge).toHaveBeenCalled();
       expect(mockExecutionInfrastructure.closePythonBridge).toHaveBeenCalled();
+    });
+
+    it("validates SQL in dbt Fusion mode without starting a Python bridge", async () => {
+      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+        get: jest.fn((key: string) =>
+          key === "dbtIntegration" ? "fusion" : undefined,
+        ),
+      });
+      // Only the bridges this validation starts count.
+      mockExecutionInfrastructure.createPythonBridge.mockClear();
+      mockExecutionInfrastructure.closePythonBridge.mockClear();
+      const spawn = jest.spyOn(childProcess, "spawn");
+      const models = [
+        {
+          name: "customers",
+          schema: "main",
+          columns: { id: { name: "id", data_type: "INTEGER" } },
+        },
+      ];
+
+      // altimate-core validates without Python. Jest can't load its native
+      // module, so here the library reports that instead; either way no
+      // bridge is asked for.
+      const outcome = await dbtProject
+        .validateSql({
+          sql: "SELECT id FROM customers",
+          dialect: "duckdb",
+          models,
+        })
+        .catch((error: Error) => error);
+
+      expect(
+        mockExecutionInfrastructure.createPythonBridge,
+      ).not.toHaveBeenCalled();
+      expect(
+        mockExecutionInfrastructure.closePythonBridge,
+      ).not.toHaveBeenCalled();
+      expect(spawn).not.toHaveBeenCalled();
+      if (outcome instanceof Error) {
+        expect(outcome.message).toContain("no Python bridge was provided");
+      }
     });
   });
 
