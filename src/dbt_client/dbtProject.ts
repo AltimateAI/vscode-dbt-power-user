@@ -578,8 +578,8 @@ export class DBTProject implements Disposable {
       new Range(
         data.range?.startLine || 0,
         data.range?.startColumn || 0,
-        data.range?.endLine || 999,
-        data.range?.endColumn || 999,
+        data.range?.endLine ?? 999,
+        data.range?.endColumn ?? 999,
       ),
       data.message,
       this.mapSeverityToVSCode(data.severity),
@@ -592,6 +592,18 @@ export class DBTProject implements Disposable {
       ),
     };
     return diagnostic;
+  }
+
+  /**
+   * The file a diagnostic names, resolved against the project root, or
+   * dbt_project.yml when it names none or the file doesn't exist.
+   */
+  private diagnosticFileUri(data: DBTDiagnosticData, projectURI: Uri): Uri {
+    if (!data.filePath) {
+      return projectURI;
+    }
+    const filePath = path.resolve(this.projectRoot.fsPath, data.filePath);
+    return existsSync(filePath) ? Uri.file(filePath) : projectURI;
   }
 
   updateDiagnosticsInProblemsPanel(): void {
@@ -609,12 +621,16 @@ export class DBTProject implements Disposable {
       ),
     );
 
-    this.rebuildManifestDiagnostics.set(
-      projectURI,
-      integrationDiagnostics.rebuildManifestDiagnostics.map((data) =>
-        this.convertDiagnosticDataToVSCode(data),
-      ),
-    );
+    // dbt Fusion reports the file and line of each parse error and warning.
+    const rebuildDiagnosticsByFile = new Map<string, [Uri, Diagnostic[]]>();
+    for (const data of integrationDiagnostics.rebuildManifestDiagnostics) {
+      const uri = this.diagnosticFileUri(data, projectURI);
+      const entry = rebuildDiagnosticsByFile.get(uri.fsPath) ?? [uri, []];
+      entry[1].push(this.convertDiagnosticDataToVSCode(data));
+      rebuildDiagnosticsByFile.set(uri.fsPath, entry);
+    }
+    this.rebuildManifestDiagnostics.clear();
+    this.rebuildManifestDiagnostics.set([...rebuildDiagnosticsByFile.values()]);
 
     this.projectConfigDiagnostics.set(
       projectURI,
