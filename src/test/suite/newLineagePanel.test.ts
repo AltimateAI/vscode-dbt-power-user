@@ -1016,6 +1016,30 @@ describe("NewLineagePanel — stale-graph banner", () => {
     expect(posted("render")).toHaveLength(1);
   });
 
+  it("shows no banner when the diagnostic lookup fails, and still renders the graph", () => {
+    const failure = new Error("diagnostics unavailable");
+    (panel as any).queryManifestService.getProject = jest.fn(() => ({
+      projectRoot: { fsPath: "/ws" },
+      getBlockingDiagnostic: () => {
+        throw failure;
+      },
+      getManifestPath: () => "/ws/target/manifest.json",
+    }));
+    event = graphEvent();
+    panel.eventMapChanged(new Map());
+    panel.changedDiagnostics();
+
+    const [render] = posted("render");
+    expect(render.args.node).toBeDefined();
+    expect(render.args.lineageBanner).toBeUndefined();
+    expect(posted("lineageBanner")).toHaveLength(0);
+    expect((panel as any).dbtTerminal.debug).toHaveBeenCalledWith(
+      "Lineage:getStaleGraphBanner",
+      "Could not build the stale-graph banner",
+      failure,
+    );
+  });
+
   it("sends no banner while no graph is drawn", () => {
     blocking = { message: MISSING_REF, category: "manifest-rebuild" };
     panel.eventMapChanged(new Map());

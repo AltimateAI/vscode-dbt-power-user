@@ -904,7 +904,11 @@ export class NewLineagePanel
 
   private getStaleGraphBanner(): StaleGraphBanner | undefined {
     try {
-      const blocking = this.findBlockingDiagnostic();
+      // Not findBlockingDiagnostic(): it turns a failed lookup into an error to
+      // show, and a failed lookup says nothing about the manifest.
+      const blocking = this.queryManifestService
+        .getProject()
+        ?.getBlockingDiagnostic();
       // Diagnostics change often; read the manifest's date only when needed.
       if (!this.graphDrawn || !blocking) {
         return undefined;
