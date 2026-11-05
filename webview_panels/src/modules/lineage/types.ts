@@ -22,8 +22,9 @@ export type LineageBannerActionId = "openFile" | "showProblems" | "tryAgain";
 export interface LineageBannerAction {
   id: LineageBannerActionId;
   label: string;
-  // The file to open and its line.
-  args?: { path: string; line?: number };
+  // The file to open and its line, and its dbt package when it isn't the
+  // root project's.
+  args?: { path: string; line?: number; package?: string };
 }
 
 export interface LineageBanner {

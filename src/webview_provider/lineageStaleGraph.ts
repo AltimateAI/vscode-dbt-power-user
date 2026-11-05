@@ -11,7 +11,9 @@ export type StaleGraphActionId = "openFile" | "showProblems" | "tryAgain";
 export interface StaleGraphAction {
   id: StaleGraphActionId;
   label: string;
-  args?: { path: string; line?: number };
+  // The file to open and its line. `package` names the dbt package the file
+  // belongs to, when dbt's message says it isn't the root project.
+  args?: { path: string; line?: number; package?: string };
 }
 
 export interface StaleGraphBanner {
@@ -43,6 +45,8 @@ export interface StaleGraphInput {
     // When the manifest file was written (ms since the epoch).
     writtenAt?: number;
   };
+  // The root project's name, to tell its files from a package's.
+  projectName?: string;
   // The re-parse command is registered.
   canReparse: boolean;
   now: number;
@@ -70,10 +74,18 @@ export function staleGraphBanner(
 
   const actions: StaleGraphAction[] = [];
   if (error.file) {
+    const inPackage =
+      error.package !== undefined &&
+      input.projectName !== undefined &&
+      error.package !== input.projectName;
     actions.push({
       id: "openFile",
       label: `Open ${path.posix.basename(error.file)}`,
-      args: { path: error.file, line: error.line },
+      args: {
+        path: error.file,
+        line: error.line,
+        ...(inPackage ? { package: error.package } : {}),
+      },
     });
   }
   actions.push({ id: "showProblems", label: "Show all problems" });
@@ -107,6 +119,9 @@ const SUMMARY_MAX = 200;
 // orders (models/marts/orders.sql)".
 const FILE_IN_PARENS = /\(([^()\s]+\.(?:sql|py|yml|yaml|csv|md))\)/;
 const LINE_NUMBER = /\bline (\d+)\b/i;
+// A node's unique id names its package: "Model 'model.dbt_utils.my_model'".
+const NODE_PACKAGE =
+  /'(?:model|seed|snapshot|test|analysis|source|macro|exposure|metric|semantic_model|unit_test)\.([A-Za-z0-9_]+)\./;
 
 export function summarizeDbtError(raw: string): {
   // dbt's message without the extension's prefix.
@@ -115,6 +130,8 @@ export function summarizeDbtError(raw: string): {
   summary: string;
   file?: string;
   line?: number;
+  // The package of the node dbt's message names, when it names one.
+  package?: string;
 } {
   let message = raw.trim();
   for (const prefix of MESSAGE_PREFIXES) {
@@ -144,6 +161,7 @@ export function summarizeDbtError(raw: string): {
     summary,
     file,
     line: line !== undefined ? Number(line) : undefined,
+    package: NODE_PACKAGE.exec(message)?.[1],
   };
 }
 
@@ -203,4 +221,41 @@ export function manifestAgeBucket(
     return "7d-30d";
   }
   return "30d+";
+}
+
+// The file "Open <file>" opens. dbt gives a path relative to the project the
+// node belongs to: the root project, or a package under the packages install
+// directory. A named package is looked up by its dbt_project.yml name or its
+// directory. With no package named, the root project's file wins, and a file
+// it doesn't have is opened from the one package that has it. Undefined when
+// the file can't be placed.
+export function locateErrorFile(
+  file: string,
+  packageName: string | undefined,
+  projectRoot: string,
+  packages: { dir: string; name?: string }[],
+  exists: (filePath: string) => boolean,
+): string | undefined {
+  if (path.isAbsolute(file)) {
+    return file;
+  }
+  if (packageName === undefined) {
+    const inRoot = path.join(projectRoot, file);
+    if (exists(inRoot)) {
+      return inRoot;
+    }
+  }
+  const found = packages
+    .filter(
+      (pkg) =>
+        packageName === undefined ||
+        pkg.name === packageName ||
+        path.basename(pkg.dir) === packageName,
+    )
+    .map((pkg) => path.join(pkg.dir, file))
+    .filter(exists);
+  if (packageName !== undefined) {
+    return found[0];
+  }
+  return found.length === 1 ? found[0] : undefined;
 }

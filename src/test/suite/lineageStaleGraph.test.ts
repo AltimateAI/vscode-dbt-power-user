@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import {
   describeWrittenAt,
+  locateErrorFile,
   manifestAgeBucket,
   staleGraphBanner,
   StaleGraphInput,
@@ -127,7 +128,131 @@ describe("staleGraphBanner", () => {
   });
 });
 
+describe("staleGraphBanner's Open action", () => {
+  const base: StaleGraphInput = {
+    graphDrawn: true,
+    blocking: { message: MISSING_REF },
+    manifest: { readFromDisk: false },
+    canReparse: false,
+    now: NOW,
+  };
+  const openArgs = (input: StaleGraphInput) =>
+    staleGraphBanner(input)?.actions.find((action) => action.id === "openFile")
+      ?.args;
+
+  it("names the package when dbt's node isn't the root project's", () => {
+    expect(openArgs({ ...base, projectName: "my_project" })).toEqual({
+      path: "models/marts/orders.sql",
+      line: undefined,
+      package: "jaffle_shop",
+    });
+  });
+
+  it("names no package for the root project's node, or when the project's name is unknown", () => {
+    expect(openArgs({ ...base, projectName: "jaffle_shop" })).toEqual({
+      path: "models/marts/orders.sql",
+      line: undefined,
+    });
+    expect(openArgs(base)).toEqual({
+      path: "models/marts/orders.sql",
+      line: undefined,
+    });
+  });
+});
+
+describe("locateErrorFile", () => {
+  const packages = [
+    { dir: "/ws/dbt_packages/dbt_utils", name: "dbt_utils" },
+    { dir: "/ws/dbt_packages/audit-helper-0.9", name: "audit_helper" },
+  ];
+  const existing =
+    (...files: string[]) =>
+    (filePath: string) =>
+      files.includes(filePath);
+
+  it("opens the root project's file when no package is named", () => {
+    expect(
+      locateErrorFile(
+        "models/x.sql",
+        undefined,
+        "/ws",
+        packages,
+        existing("/ws/models/x.sql", "/ws/dbt_packages/dbt_utils/models/x.sql"),
+      ),
+    ).toBe("/ws/models/x.sql");
+  });
+
+  it("opens the named package's file, found by its dbt_project.yml name or its directory", () => {
+    const exists = existing(
+      "/ws/models/x.sql",
+      "/ws/dbt_packages/dbt_utils/models/x.sql",
+      "/ws/dbt_packages/audit-helper-0.9/models/x.sql",
+    );
+    expect(
+      locateErrorFile("models/x.sql", "dbt_utils", "/ws", packages, exists),
+    ).toBe("/ws/dbt_packages/dbt_utils/models/x.sql");
+    expect(
+      locateErrorFile("models/x.sql", "audit_helper", "/ws", packages, exists),
+    ).toBe("/ws/dbt_packages/audit-helper-0.9/models/x.sql");
+    expect(
+      locateErrorFile(
+        "models/x.sql",
+        "dbt_utils",
+        "/ws",
+        [{ dir: "/ws/dbt_packages/dbt_utils" }],
+        exists,
+      ),
+    ).toBe("/ws/dbt_packages/dbt_utils/models/x.sql");
+  });
+
+  it("falls back to the one package that has a file the root project doesn't", () => {
+    expect(
+      locateErrorFile(
+        "models/x.sql",
+        undefined,
+        "/ws",
+        packages,
+        existing("/ws/dbt_packages/dbt_utils/models/x.sql"),
+      ),
+    ).toBe("/ws/dbt_packages/dbt_utils/models/x.sql");
+  });
+
+  it("can't place a file no package has, or that two packages have", () => {
+    expect(
+      locateErrorFile("models/x.sql", "dbt_utils", "/ws", packages, existing()),
+    ).toBeUndefined();
+    expect(
+      locateErrorFile(
+        "models/x.sql",
+        undefined,
+        "/ws",
+        packages,
+        existing(
+          "/ws/dbt_packages/dbt_utils/models/x.sql",
+          "/ws/dbt_packages/audit-helper-0.9/models/x.sql",
+        ),
+      ),
+    ).toBeUndefined();
+  });
+
+  it("keeps an absolute path as it is", () => {
+    expect(
+      locateErrorFile("/abs/x.sql", undefined, "/ws", packages, existing()),
+    ).toBe("/abs/x.sql");
+  });
+});
+
 describe("summarizeDbtError", () => {
+  it("takes the package from the node dbt names, when it names one", () => {
+    expect(summarizeDbtError(MISSING_REF).package).toBe("jaffle_shop");
+    expect(
+      summarizeDbtError(
+        "Compilation Error in macro my_macro (macros/x.sql)\n  'macro.dbt_utils.star' takes no argument 'foo'",
+      ).package,
+    ).toBe("dbt_utils");
+    expect(summarizeDbtError(PROFILE).package).toBeUndefined();
+  });
+
   it.each([
     [
       MISSING_REF,

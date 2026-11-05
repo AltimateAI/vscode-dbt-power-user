@@ -928,6 +928,7 @@ describe("NewLineagePanel — stale-graph banner", () => {
       getEventByCurrentProject: jest.fn(() => event),
       getProject: jest.fn(() => ({
         projectRoot: { fsPath: "/ws" },
+        getProjectName: () => "jaffle_shop",
         getBlockingDiagnostic: () => blocking,
         getManifestPath: () => "/ws/target/manifest.json",
       })),
@@ -953,6 +954,9 @@ describe("NewLineagePanel — stale-graph banner", () => {
 
   afterEach(() => {
     (window as any).activeTextEditor = undefined;
+    clearTimeout((panel as any).diagnosticsTimer);
+    clearInterval((panel as any).ageTimer);
+    jest.useRealTimers();
   });
 
   it("renders a graph drawn under a standing error with the banner", () => {
@@ -995,13 +999,16 @@ describe("NewLineagePanel — stale-graph banner", () => {
   });
 
   it("updates only the banner when the diagnostics change, and only when it changes", () => {
+    jest.useFakeTimers();
     event = graphEvent();
     panel.eventMapChanged(new Map());
 
     // A mid-session break: the banner appears over the drawn graph.
     blocking = { message: MISSING_REF, category: "manifest-rebuild" };
     panel.changedDiagnostics();
+    jest.advanceTimersByTime(250);
     panel.changedDiagnostics();
+    jest.advanceTimersByTime(250);
     expect(posted("lineageBanner")).toHaveLength(1);
     expect(posted("lineageBanner")[0].args.banner.id).toBe(
       "stale-graph-midsession",
@@ -1010,6 +1017,7 @@ describe("NewLineagePanel — stale-graph banner", () => {
     // The fix: the banner clears.
     blocking = undefined;
     panel.changedDiagnostics();
+    jest.advanceTimersByTime(250);
     expect(posted("lineageBanner")).toHaveLength(2);
     expect(posted("lineageBanner")[1].args.banner).toBeUndefined();
     // The graph was never re-rendered for it.
@@ -1025,9 +1033,11 @@ describe("NewLineagePanel — stale-graph banner", () => {
       },
       getManifestPath: () => "/ws/target/manifest.json",
     }));
+    jest.useFakeTimers();
     event = graphEvent();
     panel.eventMapChanged(new Map());
     panel.changedDiagnostics();
+    jest.advanceTimersByTime(250);
 
     const [render] = posted("render");
     expect(render.args.node).toBeDefined();
@@ -1047,6 +1057,74 @@ describe("NewLineagePanel — stale-graph banner", () => {
 
     expect(posted("render")[0].args.lineageBanner).toBeUndefined();
     expect(posted("lineageBanner")).toHaveLength(0);
+  });
+
+  it("skips diagnostics changes on files outside the drawn project", () => {
+    jest.useFakeTimers();
+    event = graphEvent();
+    panel.eventMapChanged(new Map());
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    const build = jest.spyOn(panel as any, "getStaleGraphBanner");
+
+    panel.changedDiagnostics([
+      Uri.file("/other/app.ts"),
+      Uri.file("/ws-sibling/x.sql"),
+    ]);
+    jest.advanceTimersByTime(1000);
+    expect(build).not.toHaveBeenCalled();
+    expect(posted("lineageBanner")).toHaveLength(0);
+
+    panel.changedDiagnostics([Uri.file("/ws/dbt_project.yml")]);
+    jest.advanceTimersByTime(250);
+    expect(build).toHaveBeenCalledTimes(1);
+    expect(posted("lineageBanner")).toHaveLength(1);
+  });
+
+  it("builds the banner once for a burst of diagnostics changes", () => {
+    jest.useFakeTimers();
+    event = graphEvent();
+    panel.eventMapChanged(new Map());
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    const build = jest.spyOn(panel as any, "getStaleGraphBanner");
+
+    for (let i = 0; i < 5; i++) {
+      panel.changedDiagnostics([Uri.file("/ws/models/orders.sql")]);
+      jest.advanceTimersByTime(100);
+    }
+    expect(build).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(150);
+    expect(build).toHaveBeenCalledTimes(1);
+    expect(posted("lineageBanner")).toHaveLength(1);
+  });
+
+  it("keeps the banner's age current while it shows, and stops when it clears", () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(2026, 10, 5, 12, 0, 0));
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    event = graphEvent();
+    event.event.staleManifest = {
+      manifestPath: "/ws/target/manifest.json",
+      writtenAt: Date.now() - 30 * 1000,
+    };
+    panel.eventMapChanged(new Map());
+    expect(posted("render")[0].args.lineageBanner.age).toBe(
+      "manifest written less than a minute ago",
+    );
+
+    jest.advanceTimersByTime(60 * 1000);
+    expect(posted("lineageBanner").map((m) => m.args.banner.age)).toEqual([
+      "manifest written 1 minute ago",
+    ]);
+    // The same text a minute later in the hour isn't posted again.
+    jest.advanceTimersByTime(60 * 1000);
+    expect(posted("lineageBanner")).toHaveLength(2);
+
+    blocking = undefined;
+    jest.advanceTimersByTime(60 * 1000);
+    expect(posted("lineageBanner")[2].args.banner).toBeUndefined();
+    expect((panel as any).ageTimer).toBeUndefined();
+    jest.advanceTimersByTime(10 * 60 * 1000);
+    expect(posted("lineageBanner")).toHaveLength(3);
   });
 
   it("offers Try again once the re-parse command is registered", async () => {
@@ -1075,9 +1153,9 @@ describe("NewLineagePanel — stale-graph banner", () => {
   it("runs the banner's buttons", async () => {
     const showTextDocument = jest.fn();
     (window as any).showTextDocument = showTextDocument;
-    (Uri as any).joinPath = jest.fn((base: any, rel: string) => ({
-      fsPath: `${base.fsPath}/${rel}`,
-    }));
+    (panel as any).fileExists = (filePath: string) =>
+      filePath === "/ws/models/marts/orders.sql";
+    (panel as any).listPackages = () => [];
     const executeCommand = commands.executeCommand as jest.Mock;
     executeCommand.mockClear();
 
@@ -1107,6 +1185,49 @@ describe("NewLineagePanel — stale-graph banner", () => {
       [REPARSE_PROJECT_COMMAND, { fsPath: "/ws" }],
     ]);
     delete (window as any).showTextDocument;
-    delete (Uri as any).joinPath;
+  });
+
+  it("opens a file from the package dbt names, and says so when it can't place one", async () => {
+    const showTextDocument = jest.fn();
+    const showErrorMessage = jest.fn();
+    (window as any).showTextDocument = showTextDocument;
+    (window as any).showErrorMessage = showErrorMessage;
+    // Both the root project and the package have models/x.sql.
+    (panel as any).fileExists = (filePath: string) =>
+      ["/ws/models/x.sql", "/ws/dbt_packages/dbt_utils/models/x.sql"].includes(
+        filePath,
+      );
+    (panel as any).listPackages = () => [
+      { dir: "/ws/dbt_packages/dbt_utils", name: "dbt_utils" },
+      { dir: "/ws/dbt_packages/audit_helper", name: "audit_helper" },
+    ];
+
+    await panel.handleCommand({
+      command: "lineageBannerAction",
+      args: {
+        action: "openFile",
+        params: { path: "models/x.sql", package: "dbt_utils" },
+      },
+    });
+    expect(showTextDocument).toHaveBeenCalledWith(
+      { fsPath: "/ws/dbt_packages/dbt_utils/models/x.sql" },
+      expect.anything(),
+    );
+
+    await panel.handleCommand({
+      command: "lineageBannerAction",
+      args: {
+        action: "openFile",
+        params: { path: "models/y.sql", package: "audit_helper" },
+      },
+    });
+    expect(showTextDocument).toHaveBeenCalledTimes(1);
+    expect(showErrorMessage).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "models/y.sql wasn't found in the package audit_helper",
+      ),
+    );
+    delete (window as any).showTextDocument;
+    delete (window as any).showErrorMessage;
   });
 });
