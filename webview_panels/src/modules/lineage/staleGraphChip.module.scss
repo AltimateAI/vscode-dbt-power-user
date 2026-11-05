@@ -1,0 +1,204 @@
+// The "Out of date" chip over an out-of-date graph, and its popover. Colours
+// come from the VS Code theme (--vscode-*), so they follow light, dark and
+// high-contrast themes.
+
+// Floats over the graph at the panel's left edge, like the toolbar on the
+// right; StaleGraphChip sets its top. Above the graph's own panels (the zoom
+// controls and the Legend), so the open popover covers them.
+.root {
+  position: absolute;
+  left: 16px;
+  z-index: 10;
+  max-width: calc(100% - 32px);
+}
+
+.warning {
+  --notice-color: var(--vscode-editorWarning-foreground);
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  height: 28px;
+  padding: 0 8px 0 10px;
+  border: 1px solid var(--notice-color);
+  border-radius: 14px;
+  background: var(--vscode-editorWidget-background);
+  box-shadow: 0 1px 4px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.3));
+  color: var(--vscode-foreground);
+  font-family: inherit;
+  font-size: var(--vscode-font-size, 13px);
+  line-height: 18px;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    background: var(
+      --vscode-toolbar-hoverBackground,
+      var(--vscode-editorWidget-background)
+    );
+  }
+
+  &:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: 2px;
+  }
+}
+
+.icon {
+  flex: none;
+  color: var(--notice-color);
+}
+
+.chevron {
+  flex: none;
+}
+
+.chipLabel {
+  flex: none;
+  font-weight: 600;
+}
+
+// The age gives way first on a narrow panel.
+.chipAge {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--vscode-descriptionForeground);
+}
+
+// Opens under the chip, over the graph; scrolls when the panel is short.
+.popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px 12px 11px;
+  border: 1px solid
+    var(--vscode-widget-border, var(--vscode-panel-border, transparent));
+  border-left: 3px solid var(--notice-color);
+  border-radius: 4px;
+  background: var(--vscode-editorWidget-background);
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.3));
+  color: var(--vscode-foreground);
+  overflow-y: auto;
+}
+
+.title {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.detail {
+  margin: 0;
+  line-height: 1.45;
+  color: var(--vscode-descriptionForeground);
+  overflow-wrap: anywhere;
+}
+
+.dbtMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+
+  // A cut message has no bottom padding, so the cut falls between lines.
+  pre.dbtMessageCut {
+    padding-bottom: 0;
+  }
+
+  pre {
+    width: 100%;
+    margin: 0;
+    padding: 6px 8px;
+    border-radius: 3px;
+    background: var(--vscode-textCodeBlock-background);
+    color: var(--vscode-foreground);
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: var(--vscode-editor-font-size, 12px);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    overflow: hidden;
+  }
+}
+
+// About six lines of dbt's message before "Show more".
+.dbtMessageCapped {
+  max-height: calc(6 * 1.5em + 6px);
+}
+
+// The default bottom panel is about 260px tall: three lines there.
+@media (max-height: 320px) {
+  .dbtMessageCapped {
+    max-height: calc(3 * 1.5em + 6px);
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+%button {
+  max-width: 100%;
+  padding: 4px 12px;
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: var(--vscode-font-size, 13px);
+  line-height: 18px;
+  text-align: center;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: 2px;
+  }
+}
+
+.primaryButton {
+  @extend %button;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  &:hover {
+    background: var(--vscode-button-hoverBackground);
+  }
+}
+
+.secondaryButton {
+  @extend %button;
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  &:hover {
+    background: var(--vscode-button-secondaryHoverBackground);
+  }
+}
+
+.linkButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--vscode-textLink-foreground);
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--vscode-textLink-activeForeground);
+    text-decoration: underline;
+  }
+}

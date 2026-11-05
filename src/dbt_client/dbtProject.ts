@@ -76,6 +76,7 @@ import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
   RebuildManifestStatusChange,
+  StaleManifest,
 } from "./event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 import { RunResultsEvent } from "./event/runResultsEvent";
@@ -291,6 +292,11 @@ export class DBTProject implements Disposable {
           functionMetaMap: parsedManifest.functionMetaMap,
           semanticModelMetaMap: parsedManifest.semanticModelMetaMap,
           modelDepthMap: parsedManifest.modelDepthMap,
+          // `stale` is set by @altimateai/dbt-integration releases that read the
+          // manifest on disk after a failed project check; older ones omit it.
+          staleManifest: (
+            parsedManifest as ParsedManifest & { stale?: StaleManifest }
+          ).stale,
         };
         this._manifestCacheEvent = manifestCacheEvent;
         this.stampManifestFreshness();
