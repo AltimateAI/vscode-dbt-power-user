@@ -110,9 +110,11 @@
   gap: 2px;
   min-width: 0;
 
-  // A cut message has no bottom padding, so the cut falls between lines.
+  // A cut message loses its bottom padding and its box shrinks by as much, so
+  // it still shows the cap's lines and the cut falls between two lines.
   pre.dbtMessageCut {
     padding-bottom: 0;
+    max-height: calc(var(--dbt-message-lines) * 1.5em + 6px);
   }
 
   pre {
@@ -131,15 +133,18 @@
   }
 }
 
-// About six lines of dbt's message before "Show more".
+// Six lines of dbt's message before "Show more". The box is border-box (the
+// webview's global sizing), so its height adds the 6px top and bottom padding
+// to the lines.
 .dbtMessageCapped {
-  max-height: calc(6 * 1.5em + 6px);
+  --dbt-message-lines: 6;
+  max-height: calc(var(--dbt-message-lines) * 1.5em + 12px);
 }
 
 // The default bottom panel is about 260px tall: three lines there.
 @media (max-height: 320px) {
   .dbtMessageCapped {
-    max-height: calc(3 * 1.5em + 6px);
+    --dbt-message-lines: 3;
   }
 }
 
