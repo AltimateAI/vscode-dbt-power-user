@@ -1131,6 +1131,36 @@ describe("NewLineagePanel — stale-graph banner", () => {
     expect(posted("lineageBanner")).toHaveLength(3);
   });
 
+  it("keeps following the drawn graph's project after the last editor closes", () => {
+    jest.useFakeTimers();
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    event = graphEvent();
+    event.event.staleManifest = {
+      manifestPath: "/ws/target/manifest.json",
+      writtenAt: Date.now() - 2 * 60 * 60 * 1000,
+    };
+    panel.eventMapChanged(new Map());
+    expect(posted("render")[0].args.lineageBanner.id).toBe(
+      "stale-graph-startup",
+    );
+
+    // No editor: the active-editor lookups find no project or event.
+    const service = (panel as any).queryManifestService;
+    service.getProject = jest.fn(() => undefined);
+    service.getEventByCurrentProject = jest.fn(() => undefined);
+
+    // The minute refresh keeps the same notice up.
+    jest.advanceTimersByTime(60 * 1000);
+    expect(posted("lineageBanner")).toHaveLength(0);
+
+    // The error is fixed outside an editor: the notice still clears.
+    blocking = undefined;
+    panel.changedDiagnostics([Uri.file("/ws/dbt_project.yml")]);
+    jest.advanceTimersByTime(250);
+    expect(posted("lineageBanner")).toHaveLength(1);
+    expect(posted("lineageBanner")[0].args.banner).toBeUndefined();
+  });
+
   it("offers Try again once the re-parse command is registered", async () => {
     blocking = { message: MISSING_REF, category: "manifest-rebuild" };
     event = graphEvent();

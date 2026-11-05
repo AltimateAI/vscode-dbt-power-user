@@ -113,6 +113,12 @@ export class NewLineagePanel
   private graphDrawn = false;
   private postedBanner: string | undefined;
   private reparseAvailable = false;
+  // The project and manifest event the drawn graph came from. The banner
+  // follows them, not the active editor, which can close or move to a file
+  // outside the project while the graph stays drawn.
+  private drawnFrom:
+    | { project: DBTProject; event?: ManifestCacheProjectAddedEvent }
+    | undefined;
   // Coalesces bursts of diagnostics changes into one banner update.
   private diagnosticsTimer: ReturnType<typeof setTimeout> | undefined;
   // While a banner shows, it's rebuilt every minute so its age stays current.
@@ -218,7 +224,7 @@ export class NewLineagePanel
   }
 
   private touchesProject(uris: readonly Uri[]): boolean {
-    const root = this.queryManifestService.getProject()?.projectRoot.fsPath;
+    const root = this.drawnFrom?.project.projectRoot.fsPath;
     if (root === undefined) {
       return false;
     }
@@ -301,6 +307,14 @@ export class NewLineagePanel
     }
     const startingNode = this.getStartingNode(resolvedSource);
     this.graphDrawn = startingNode?.node !== undefined;
+    const project = this.queryManifestService.getProject();
+    this.drawnFrom =
+      this.graphDrawn && project
+        ? {
+            project,
+            event: this.queryManifestService.getEventByCurrentProject()?.event,
+          }
+        : undefined;
     const lineageBanner = this.graphDrawn
       ? this.getStaleGraphBanner()
       : undefined;
@@ -957,7 +971,7 @@ export class NewLineagePanel
     try {
       // Not findBlockingDiagnostic(): it turns a failed lookup into an error to
       // show, and a failed lookup says nothing about the manifest.
-      const project = this.queryManifestService.getProject();
+      const project = this.drawnFrom?.project;
       const blocking = project?.getBlockingDiagnostic();
       // Diagnostics change often; read the manifest's date only when needed.
       if (!this.graphDrawn || !blocking) {
@@ -984,10 +998,8 @@ export class NewLineagePanel
 
   // Where the drawn manifest came from and when it was written.
   private getManifestInfo(): StaleGraphInput["manifest"] {
-    const project = this.queryManifestService.getProject();
-    const fromDisk =
-      this.queryManifestService.getEventByCurrentProject()?.event
-        ?.staleManifest;
+    const project = this.drawnFrom?.project;
+    const fromDisk = this.drawnFrom?.event?.staleManifest;
     let manifestPath = fromDisk?.manifestPath ?? project?.getManifestPath();
     if (manifestPath && project && !path.isAbsolute(manifestPath)) {
       manifestPath = path.join(project.projectRoot.fsPath, manifestPath);
@@ -1021,7 +1033,8 @@ export class NewLineagePanel
     try {
       switch (action) {
         case "openFile": {
-          const project = this.queryManifestService.getProject();
+          const project =
+            this.drawnFrom?.project ?? this.queryManifestService.getProject();
           const file = String(params?.path);
           const located = project
             ? locateErrorFile(
@@ -1051,7 +1064,8 @@ export class NewLineagePanel
         case "tryAgain":
           await commands.executeCommand(
             REPARSE_PROJECT_COMMAND,
-            this.queryManifestService.getProject()?.projectRoot,
+            (this.drawnFrom?.project ?? this.queryManifestService.getProject())
+              ?.projectRoot,
           );
           return;
       }
