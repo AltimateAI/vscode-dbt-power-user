@@ -132,6 +132,12 @@ export const extensions = {
 
 export const env = { uriScheme: "vscode" };
 
+export const ConfigurationTarget = {
+  Global: 1,
+  Workspace: 2,
+  WorkspaceFolder: 3,
+};
+
 export const commands = {
   registerCommand: jest.fn().mockReturnValue({ dispose: jest.fn() }),
   getCommands: jest.fn().mockReturnValue(Promise.resolve([])),

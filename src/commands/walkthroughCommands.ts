@@ -88,11 +88,14 @@ export class WalkthroughCommands {
         `Error when validating ${projectContext.label}`,
         err,
       );
-      window.showErrorMessage(
-        "Error running dbt debug for project " +
-          projectContext.label +
-          ". Please check the output tab for more details.",
-      );
+      // Callers that skip the confirmation show the error themselves.
+      if (!skipConfirmation) {
+        window.showErrorMessage(
+          "Error running dbt debug for project " +
+            projectContext.label +
+            ". Please check the output tab for more details.",
+        );
+      }
       throw err;
     }
   }
@@ -134,11 +137,13 @@ export class WalkthroughCommands {
         err,
       );
       this.telemetry.sendTelemetryError("installDepsError", err);
-      window.showErrorMessage(
-        "Error installing dbt dependencies for project " +
-          projectContext.label +
-          ". Please check the output tab for more details.",
-      );
+      if (!skipConfirmation) {
+        window.showErrorMessage(
+          "Error installing dbt dependencies for project " +
+            projectContext.label +
+            ". Please check the output tab for more details.",
+        );
+      }
       throw err;
     }
   }

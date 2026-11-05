@@ -36,7 +36,8 @@
     "dbt power user"
   ],
   "activationEvents": [
-    "workspaceContains:**/dbt_project.yml"
+    "workspaceContains:**/dbt_project.yml",
+    "onUri"
   ],
   "main": "./dist/extension",
   "contributes": {
