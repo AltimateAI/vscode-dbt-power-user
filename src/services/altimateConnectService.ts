@@ -10,6 +10,7 @@ import {
   env,
   EventEmitter,
   extensions,
+  UIKind,
   Uri,
   window,
   workspace,
@@ -42,8 +43,11 @@ const WORKSPACE_HANDOFF_PAGE = "/workspaces/create-and-link";
 // The backend's tenant names, as `dbt.altimateInstanceName` is validated.
 const TENANT_NAME_RE = /^[a-z_][a-z0-9_-]*$/i;
 const WORKSPACE_LINKS_KEY = "altimateWorkspaceLinks";
-// The editors the SaaS will redirect back to.
+// The desktop editors the SaaS will redirect back to. Web editors are reached
+// through their own callback link instead (see `callbackUri`).
 const SUPPORTED_URI_SCHEMES = ["vscode", "vscode-insiders", "cursor"];
+// Hosts the SaaS accepts a plain-http web-editor callback on.
+const LOOPBACK_HOSTS = ["localhost", "127.0.0.1", "[::1]"];
 // How long the wizard waits for the backend to check an API key.
 const KEY_CHECK_TIMEOUT_MS = 15_000;
 // How long a browser round trip may take before its `state` is dropped.
@@ -152,9 +156,30 @@ export class AltimateConnectService implements Disposable {
     private dbtTerminal: DBTTerminal,
   ) {}
 
-  /** Whether the SaaS can redirect back to this editor after a sign-in. */
-  supportsBrowserSignIn(): boolean {
-    return SUPPORTED_URI_SCHEMES.includes(env.uriScheme);
+  /**
+   * Whether the SaaS can redirect back to this editor after a sign-in. A web
+   * editor qualifies only when its callback link is one the SaaS accepts:
+   * https, or http on a loopback host, ending in `/callback`. A self-hosted
+   * code-server on a plain-http LAN address keeps the key form.
+   */
+  async supportsBrowserSignIn(): Promise<boolean> {
+    if (SUPPORTED_URI_SCHEMES.includes(env.uriScheme)) {
+      return true;
+    }
+    if (env.uiKind !== UIKind.Web) {
+      return false;
+    }
+    try {
+      const url = new URL(await this.callbackUri(AUTH_CALLBACK_PATH));
+      return (
+        (url.protocol === "https:" ||
+          (url.protocol === "http:" &&
+            LOOPBACK_HOSTS.includes(url.hostname))) &&
+        url.pathname.endsWith("/callback")
+      );
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -172,10 +197,13 @@ export class AltimateConnectService implements Disposable {
     const mode = instance ? "login" : "signup";
     const state = this.pendingSignIns.add(mode);
     url.searchParams.set("client", CONNECT_CLIENT);
-    url.searchParams.set("redirect", this.callbackUri(AUTH_CALLBACK_PATH));
+    url.searchParams.set(
+      "redirect",
+      await this.callbackUri(AUTH_CALLBACK_PATH),
+    );
     url.searchParams.set("state", state);
     this.telemetry.sendTelemetryEvent("onboardingSignInStarted", { mode });
-    await env.openExternal(Uri.parse(url.toString(), true));
+    await this.openInBrowser(url.toString());
   }
 
   /**
@@ -221,8 +249,11 @@ export class AltimateConnectService implements Disposable {
   }
 
   /** Whether the workspace handoff is available for the signed-in account. */
-  canLinkWorkspace(): boolean {
-    return this.supportsBrowserSignIn() && this.workspaceWebUrl() !== undefined;
+  async canLinkWorkspace(): Promise<boolean> {
+    return (
+      this.workspaceWebUrl() !== undefined &&
+      (await this.supportsBrowserSignIn())
+    );
   }
 
   /** Open the SaaS page that creates a workspace and links it to the project. */
@@ -252,7 +283,7 @@ export class AltimateConnectService implements Disposable {
     target.searchParams.set("client", CONNECT_CLIENT);
     target.searchParams.set(
       "redirect",
-      this.callbackUri(WORKSPACE_CALLBACK_PATH),
+      await this.callbackUri(WORKSPACE_CALLBACK_PATH),
     );
     target.searchParams.set("state", state);
     // Project details go in the fragment so they stay out of server logs.
@@ -263,9 +294,7 @@ export class AltimateConnectService implements Disposable {
       fragment.set("project_remote", remote);
     }
     this.telemetry.sendTelemetryEvent("onboardingWorkspaceLinkStarted");
-    await env.openExternal(
-      Uri.parse(`${target.toString()}#${fragment.toString()}`, true),
-    );
+    await this.openInBrowser(`${target.toString()}#${fragment.toString()}`);
   }
 
   /** The workspace linked to the project for the signed-in instance. */
@@ -644,8 +673,36 @@ export class AltimateConnectService implements Disposable {
     }
   }
 
-  private callbackUri(path: string) {
-    return `${env.uriScheme}://${EXTENSION_ID}${path}`;
+  /**
+   * Where the SaaS sends the user back to. A desktop editor keeps its own
+   * `vscode://` link. A web editor (code-server, Codespaces, vscode.dev)
+   * returns an https `/callback?vscode-reqid=…` link that its open tab is
+   * waiting for, so each round trip asks for a fresh one.
+   */
+  private async callbackUri(path: string): Promise<string> {
+    const uri = await env.asExternalUri(
+      Uri.parse(`${env.uriScheme}://${EXTENSION_ID}${path}`),
+    );
+    // Joined by hand: code-server returns the callback's query inside the
+    // path, which `toString()` would escape into `callback%3Fvscode-reqid…`.
+    const query = uri.query ? `?${uri.query}` : "";
+    return `${uri.scheme}://${uri.authority}${uri.path}${query}`;
+  }
+
+  /**
+   * Open a SaaS page exactly as built. A `Uri` decodes the query and writes it
+   * back with `&` and `=` unescaped, which splits a web editor's encoded
+   * `redirect` (`…/callback?vscode-reqid=…&…`) into separate params. Desktop
+   * redirects (`vscode://…/auth`) carry no query, so they keep the `Uri`.
+   */
+  private async openInBrowser(url: string) {
+    if (env.uiKind !== UIKind.Web) {
+      await env.openExternal(Uri.parse(url, true));
+      return;
+    }
+    // The extension host's `openUri` accepts a string and the workbench opens
+    // that string as given (`$openUri` prefers it over the parsed `Uri`).
+    await env.openExternal(url as unknown as Uri);
   }
 
   // Links belong to an account: a project linked under one instance or
