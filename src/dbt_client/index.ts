@@ -10,6 +10,16 @@ enum PythonInterpreterPromptAnswer {
   DETECT = "Detect from terminal",
 }
 
+const INSTALL_PYTHON_EXTENSION = "Install Python extension";
+const RELOAD_WINDOW = "Reload window";
+const INSTALL_DBT_FUSION = "Install dbt Fusion";
+const TROUBLESHOOT = "Troubleshoot";
+
+/** dbt Core and its command-line mode run through a Python interpreter; dbt Fusion and the dbt Cloud CLI don't. */
+export function integrationNeedsPython(dbtIntegrationMode: string): boolean {
+  return dbtIntegrationMode === "core" || dbtIntegrationMode === "corecommand";
+}
+
 export class DBTClient implements Disposable {
   private _onDBTInstallationVerificationEvent =
     new EventEmitter<DBTInstallationVerificationEvent>();
@@ -79,6 +89,22 @@ export class DBTClient implements Disposable {
   }
 
   async showErrorIfDbtOrPythonNotInstalled() {
+    const dbtIntegrationMode = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+    if (!integrationNeedsPython(dbtIntegrationMode)) {
+      return this.showErrorIfDbtIsNotInstalled();
+    }
+    if (
+      !this.pythonEnvironment.pythonExtensionAvailable &&
+      !this._pythonInstalled
+    ) {
+      if (!this.shownError) {
+        this.shownError = true;
+        await this.promptToInstallPythonExtension();
+      }
+      return false;
+    }
     if (!this._pythonInstalled) {
       if (!this.shownError) {
         // We don't want to flood the user with errors
@@ -112,6 +138,42 @@ export class DBTClient implements Disposable {
     return this.showErrorIfDbtIsNotInstalled();
   }
 
+  private async promptToInstallPythonExtension() {
+    const answer = await window.showErrorMessage(
+      "dbt Core runs through the Python extension, which is not installed. Install it, or switch dbt.dbtIntegration to fusion to use dbt Fusion without Python.",
+      INSTALL_PYTHON_EXTENSION,
+      TROUBLESHOOT,
+    );
+    if (answer === INSTALL_PYTHON_EXTENSION) {
+      await commands.executeCommand(
+        "workbench.extensions.installExtension",
+        "ms-python.python",
+      );
+      const reload = await window.showInformationMessage(
+        "The Python extension is installed. Reload the window to use it with dbt Core.",
+        RELOAD_WINDOW,
+      );
+      if (reload === RELOAD_WINDOW) {
+        commands.executeCommand("workbench.action.reloadWindow");
+      }
+    } else if (answer === TROUBLESHOOT) {
+      commands.executeCommand("dbtPowerUser.openSetupWalkthrough");
+    }
+  }
+
+  private async showDbtFusionNotFound() {
+    const answer = await window.showErrorMessage(
+      "dbt Fusion was not found: no dbt that reports version 2.x next to the Python interpreter, in ~/.local/bin, or on PATH.",
+      INSTALL_DBT_FUSION,
+      TROUBLESHOOT,
+    );
+    if (answer === INSTALL_DBT_FUSION) {
+      commands.executeCommand("dbtPowerUser.installDbt");
+    } else if (answer === TROUBLESHOOT) {
+      commands.executeCommand("dbtPowerUser.openSetupWalkthrough");
+    }
+  }
+
   private async executeInstallDbtCommand(message: string, option: string) {
     const answer = await window.showErrorMessage(
       message,
@@ -138,10 +200,7 @@ export class DBTClient implements Disposable {
           .get<string>("dbtIntegration", "core");
         switch (dbtIntegrationMode) {
           case "fusion":
-            await this.executeInstallDbtCommand(
-              "Please ensure dbt fusion cli is installed.",
-              "Install dbt fusion",
-            );
+            await this.showDbtFusionNotFound();
             break;
           case "core":
             await this.executeInstallDbtCommand(

@@ -170,8 +170,11 @@ npm run panel:webviews  # Build React components
 **Required Extensions**:
 
 - `samuelcolvin.jinjahtml` - Jinja templating support
-- `ms-python.python` - Python environment integration
 - `altimateai.vscode-altimate-mcp-server` - MCP server
+
+**Optional Extensions**:
+
+- `ms-python.python` - Python environment integration. dbt Core (`core`, `corecommand`) needs it and prompts to install it; dbt Fusion and the dbt Cloud CLI run without it
 
 ### 2. Major Technical Dependencies
 
