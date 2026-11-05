@@ -6,11 +6,15 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import * as path from "path";
 import { commands, Uri, window, workspace } from "vscode";
 import {
   NewLineagePanel,
   REPARSE_PROJECT_COMMAND,
 } from "../../webview_provider/newLineagePanel";
+
+// A POSIX test path as the platform writes it ("\\ws\\..." on Windows).
+const native = (posixPath: string) => path.join(posixPath);
 
 describe("NewLineagePanel", () => {
   let panel: NewLineagePanel;
@@ -1154,7 +1158,7 @@ describe("NewLineagePanel — stale-graph banner", () => {
     const showTextDocument = jest.fn();
     (window as any).showTextDocument = showTextDocument;
     (panel as any).fileExists = (filePath: string) =>
-      filePath === "/ws/models/marts/orders.sql";
+      filePath === native("/ws/models/marts/orders.sql");
     (panel as any).listPackages = () => [];
     const executeCommand = commands.executeCommand as jest.Mock;
     executeCommand.mockClear();
@@ -1176,7 +1180,7 @@ describe("NewLineagePanel — stale-graph banner", () => {
     });
 
     expect(showTextDocument).toHaveBeenCalledWith(
-      { fsPath: "/ws/models/marts/orders.sql" },
+      { fsPath: native("/ws/models/marts/orders.sql") },
       expect.objectContaining({ selection: expect.anything() }),
     );
     expect(executeCommand.mock.calls).toEqual([
@@ -1194,9 +1198,10 @@ describe("NewLineagePanel — stale-graph banner", () => {
     (window as any).showErrorMessage = showErrorMessage;
     // Both the root project and the package have models/x.sql.
     (panel as any).fileExists = (filePath: string) =>
-      ["/ws/models/x.sql", "/ws/dbt_packages/dbt_utils/models/x.sql"].includes(
-        filePath,
-      );
+      [
+        native("/ws/models/x.sql"),
+        native("/ws/dbt_packages/dbt_utils/models/x.sql"),
+      ].includes(filePath);
     (panel as any).listPackages = () => [
       { dir: "/ws/dbt_packages/dbt_utils", name: "dbt_utils" },
       { dir: "/ws/dbt_packages/audit_helper", name: "audit_helper" },
@@ -1210,7 +1215,7 @@ describe("NewLineagePanel — stale-graph banner", () => {
       },
     });
     expect(showTextDocument).toHaveBeenCalledWith(
-      { fsPath: "/ws/dbt_packages/dbt_utils/models/x.sql" },
+      { fsPath: native("/ws/dbt_packages/dbt_utils/models/x.sql") },
       expect.anything(),
     );
 

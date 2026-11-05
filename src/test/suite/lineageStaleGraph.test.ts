@@ -1,4 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
+import * as path from "path";
 import {
   describeWrittenAt,
   locateErrorFile,
@@ -19,6 +20,9 @@ const MISSING_REF =
   "There is a problem in your dbt project. Compilation failed: Compilation Error in model orders (models/marts/orders.sql)\n  Model 'model.jaffle_shop.orders' (models/marts/orders.sql) depends on a node named 'stg_orderz' which was not found";
 const PROFILE =
   "dbt configuration is invalid : Runtime Error\n  Could not find profile named 'jaffle_shop'";
+
+// A POSIX test path as the platform writes it ("\\ws\\..." on Windows).
+const native = (posixPath: string) => path.join(posixPath);
 
 describe("staleGraphBanner", () => {
   const input = (
@@ -177,23 +181,26 @@ describe("locateErrorFile", () => {
         undefined,
         "/ws",
         packages,
-        existing("/ws/models/x.sql", "/ws/dbt_packages/dbt_utils/models/x.sql"),
+        existing(
+          native("/ws/models/x.sql"),
+          native("/ws/dbt_packages/dbt_utils/models/x.sql"),
+        ),
       ),
-    ).toBe("/ws/models/x.sql");
+    ).toBe(native("/ws/models/x.sql"));
   });
 
   it("opens the named package's file, found by its dbt_project.yml name or its directory", () => {
     const exists = existing(
-      "/ws/models/x.sql",
-      "/ws/dbt_packages/dbt_utils/models/x.sql",
-      "/ws/dbt_packages/audit-helper-0.9/models/x.sql",
+      native("/ws/models/x.sql"),
+      native("/ws/dbt_packages/dbt_utils/models/x.sql"),
+      native("/ws/dbt_packages/audit-helper-0.9/models/x.sql"),
     );
     expect(
       locateErrorFile("models/x.sql", "dbt_utils", "/ws", packages, exists),
-    ).toBe("/ws/dbt_packages/dbt_utils/models/x.sql");
+    ).toBe(native("/ws/dbt_packages/dbt_utils/models/x.sql"));
     expect(
       locateErrorFile("models/x.sql", "audit_helper", "/ws", packages, exists),
-    ).toBe("/ws/dbt_packages/audit-helper-0.9/models/x.sql");
+    ).toBe(native("/ws/dbt_packages/audit-helper-0.9/models/x.sql"));
     expect(
       locateErrorFile(
         "models/x.sql",
@@ -202,7 +209,7 @@ describe("locateErrorFile", () => {
         [{ dir: "/ws/dbt_packages/dbt_utils" }],
         exists,
       ),
-    ).toBe("/ws/dbt_packages/dbt_utils/models/x.sql");
+    ).toBe(native("/ws/dbt_packages/dbt_utils/models/x.sql"));
   });
 
   it("falls back to the one package that has a file the root project doesn't", () => {
@@ -212,9 +219,9 @@ describe("locateErrorFile", () => {
         undefined,
         "/ws",
         packages,
-        existing("/ws/dbt_packages/dbt_utils/models/x.sql"),
+        existing(native("/ws/dbt_packages/dbt_utils/models/x.sql")),
       ),
-    ).toBe("/ws/dbt_packages/dbt_utils/models/x.sql");
+    ).toBe(native("/ws/dbt_packages/dbt_utils/models/x.sql"));
   });
 
   it("can't place a file no package has, or that two packages have", () => {
@@ -228,8 +235,8 @@ describe("locateErrorFile", () => {
         "/ws",
         packages,
         existing(
-          "/ws/dbt_packages/dbt_utils/models/x.sql",
-          "/ws/dbt_packages/audit-helper-0.9/models/x.sql",
+          native("/ws/dbt_packages/dbt_utils/models/x.sql"),
+          native("/ws/dbt_packages/audit-helper-0.9/models/x.sql"),
         ),
       ),
     ).toBeUndefined();
