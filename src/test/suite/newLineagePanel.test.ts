@@ -1161,6 +1161,42 @@ describe("NewLineagePanel — stale-graph banner", () => {
     expect(posted("lineageBanner")[0].args.banner).toBeUndefined();
   });
 
+  it("stops the banner's timers and posts nothing once the view is disposed", () => {
+    jest.useFakeTimers();
+    (panel as any)._disposables = [];
+    const base = Object.getPrototypeOf(NewLineagePanel.prototype);
+    const resolve = jest
+      .spyOn(base, "resolveWebviewView")
+      .mockImplementation(() => undefined);
+    let disposeView: () => void = () => {};
+    panel.resolveWebviewView(
+      {
+        onDidDispose: (listener: () => void) => {
+          disposeView = listener;
+          return { dispose: () => {} };
+        },
+      } as any,
+      {} as any,
+      {} as any,
+    );
+
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    event = graphEvent();
+    event.event.staleManifest = {
+      manifestPath: "/ws/target/manifest.json",
+      writtenAt: Date.now() - 30 * 1000,
+    };
+    panel.eventMapChanged(new Map());
+    expect((panel as any).ageTimer).toBeDefined();
+
+    disposeView();
+    expect((panel as any).ageTimer).toBeUndefined();
+    panel.changedDiagnostics([Uri.file("/ws/dbt_project.yml")]);
+    jest.advanceTimersByTime(10 * 60 * 1000);
+    expect(posted("lineageBanner")).toHaveLength(0);
+    resolve.mockRestore();
+  });
+
   it("offers Try again once the re-parse command is registered", async () => {
     blocking = { message: MISSING_REF, category: "manifest-rebuild" };
     event = graphEvent();

@@ -25,6 +25,8 @@ import {
   TextEditor,
   Uri,
   Webview,
+  WebviewView,
+  WebviewViewResolveContext,
   window,
   workspace,
 } from "vscode";
@@ -197,6 +199,28 @@ export class NewLineagePanel
   eventMapChanged(eventMap: Map<string, ManifestCacheProjectAddedEvent>): void {
     this.eventMap = eventMap;
     this.renderStartingNode();
+  }
+
+  resolveWebviewView(
+    panel: WebviewView,
+    context: WebviewViewResolveContext<unknown>,
+    token: CancellationToken,
+  ): void | Thenable<void> {
+    const resolved = super.resolveWebviewView(panel, context, token);
+    // A view the user hides is disposed. Its banner timers stop, and nothing
+    // is posted to it until a new view resolves and renders again.
+    this._disposables.push(panel.onDidDispose(() => this.forgetDrawnGraph()));
+    return resolved;
+  }
+
+  private forgetDrawnGraph() {
+    clearTimeout(this.diagnosticsTimer);
+    this.diagnosticsTimer = undefined;
+    clearInterval(this.ageTimer);
+    this.ageTimer = undefined;
+    this.graphDrawn = false;
+    this.drawnFrom = undefined;
+    this.postedBanner = undefined;
   }
 
   protected onWebviewReady() {
