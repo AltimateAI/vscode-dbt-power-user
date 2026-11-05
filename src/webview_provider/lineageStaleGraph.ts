@@ -1,8 +1,9 @@
 import * as path from "path";
 
-// The banner the lineage panel shows over a graph drawn while an error stops
+// The notice the lineage panel shows over a graph drawn while an error stops
 // the project from parsing: the graph is then the last manifest that parsed,
-// not the project as it is now. Mirrors
+// not the project as it is now. The panel shows it as an "Out of date" chip
+// in the toolbar row that opens a popover with the rest. Mirrors
 // webview_panels/src/modules/lineage/types.ts.
 
 export type StaleGraphActionId = "openFile" | "showProblems" | "tryAgain";
@@ -18,6 +19,9 @@ export interface StaleGraphBanner {
   // parsed in this session. "midsession": an earlier parse in this session.
   id: "stale-graph-startup" | "stale-graph-midsession";
   severity: "warning";
+  // The chip's text after "Out of date": "last parse 2 hours ago", or
+  // undefined when the manifest can't be dated.
+  age?: string;
   title: string;
   detail: string;
   // dbt's message, verbatim.
@@ -80,6 +84,7 @@ export function staleGraphBanner(
   return {
     id: fromDisk ? "stale-graph-startup" : "stale-graph-midsession",
     severity: "warning",
+    age: when && (fromDisk ? `manifest written ${when}` : `last parse ${when}`),
     title,
     detail,
     dbtMessage: error.message,

@@ -29,6 +29,8 @@ export interface LineageBannerAction {
 export interface LineageBanner {
   id: "stale-graph-startup" | "stale-graph-midsession";
   severity: "warning";
+  // The chip's text after "Out of date", e.g. "last parse 2 hours ago".
+  age?: string;
   title: string;
   // The error, in one line.
   detail: string;

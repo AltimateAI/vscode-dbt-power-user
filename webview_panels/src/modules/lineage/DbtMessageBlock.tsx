@@ -1,9 +1,9 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import styles from "./lineageBanner.module.scss";
+import styles from "./staleGraphChip.module.scss";
 
 // dbt's own message, verbatim, in a monospace block that wraps. Long messages
 // are capped at about six lines with "Show more". `collapsed` starts the block
-// hidden behind a "Show dbt's message" toggle (the banner's compact form).
+// hidden behind a "Show dbt's message" toggle.
 const DbtMessageBlock = ({
   message,
   collapsed = false,

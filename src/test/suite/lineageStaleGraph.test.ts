@@ -59,6 +59,7 @@ describe("staleGraphBanner", () => {
     expect(staleGraphBanner(input(true, MISSING_REF, false))).toEqual({
       id: "stale-graph-midsession",
       severity: "warning",
+      age: "last parse 2 hours ago",
       title: "This graph is from the last successful parse, 2 hours ago.",
       detail:
         "Your project has an error in models/marts/orders.sql: Model 'model.jaffle_shop.orders' (models/marts/orders.sql) depends on a node named 'stg_orderz' which was not found",
@@ -85,6 +86,7 @@ describe("staleGraphBanner", () => {
         writtenAt: new Date(2026, 9, 30, 16, 40).getTime(),
       },
     });
+    expect(banner?.age).toBe("manifest written yesterday at 16:40");
     expect(banner?.title).toBe(
       "This graph is from target/manifest.json, written yesterday at 16:40.",
     );
@@ -114,11 +116,13 @@ describe("staleGraphBanner", () => {
       ...base,
       manifest: { readFromDisk: false },
     });
+    expect(banner?.age).toBeUndefined();
     expect(banner?.title).toBe("This graph is from the last successful parse.");
     const startup = staleGraphBanner({
       ...base,
       manifest: { readFromDisk: true },
     });
+    expect(startup?.age).toBeUndefined();
     expect(startup?.title).toBe("This graph is from the manifest on disk.");
   });
 });
