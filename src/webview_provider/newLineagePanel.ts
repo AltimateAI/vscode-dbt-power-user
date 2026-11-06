@@ -3,6 +3,7 @@ import {
   ExposureMetaData,
   FunctionMetaData,
   NodeMetaData,
+  PythonException,
   Ref,
   RelationshipParser,
   RESOURCE_TYPE_FUNCTION,
@@ -477,14 +478,22 @@ export class NewLineagePanel
           args: { id, syncRequestId, body, status: !!body },
         });
       } catch (error) {
+        // A Python error's message is its whole traceback; dbt's own message
+        // (such as "the dbt project is not initialized") is the last line.
+        // When that is empty (a bare `assert`), the traceback names the error.
+        const message =
+          error instanceof PythonException
+            ? error.exception?.message || error.message
+            : (error as Error).message;
         window.showErrorMessage(
-          extendErrorWithSupportLinks(
-            "Unable to generate lineage: " + (error as Error).message,
-          ),
+          extendErrorWithSupportLinks("Unable to generate lineage: " + message),
         );
+        // The webview matches a reply to its request by `syncRequestId`.
+        // Without it the column trace never ends, and neither does the
+        // "Retrieving column level lineage" notification.
         this._panel?.webview.postMessage({
           command: "response",
-          args: { id, error, status: false },
+          args: { id, syncRequestId, error: message, status: false },
         });
         this.telemetry.sendTelemetryError("columnLineageUnknownError", {
           params,
@@ -1005,7 +1014,7 @@ export class NewLineagePanel
         graphDrawn: this.graphDrawn,
         blocking,
         manifest: this.getManifestInfo(),
-        projectName: project?.getProjectName(),
+        projectName: this.rootProjectName(project),
         canReparse: this.reparseAvailable,
         now: Date.now(),
       });
@@ -1120,17 +1129,30 @@ export class NewLineagePanel
         .filter((entry) => entry.isDirectory())
         .map((entry) => {
           const dir = path.join(root, entry.name);
-          try {
-            const yml = readFileSync(path.join(dir, "dbt_project.yml"), "utf8");
-            const name = /^name:\s*["']?([A-Za-z0-9_]+)/m.exec(yml)?.[1];
-            return { dir, name };
-          } catch {
-            return { dir };
-          }
+          return { dir, name: this.readProjectName(dir) };
         });
     } catch {
       return [];
     }
+  }
+
+  private readProjectName(dir: string): string | undefined {
+    try {
+      const yml = readFileSync(path.join(dir, "dbt_project.yml"), "utf8");
+      return /^name:\s*["']?([A-Za-z0-9_]+)/m.exec(yml)?.[1];
+    } catch {
+      return undefined;
+    }
+  }
+
+  // The project's name in dbt_project.yml. The integration only learns it once
+  // the project initializes, which a project that fails at startup never does.
+  private rootProjectName(project?: DBTProject): string | undefined {
+    return (
+      project &&
+      (this.readProjectName(project.projectRoot.fsPath) ??
+        project.getProjectName())
+    );
   }
 
   private findBlockingDiagnostic():

@@ -732,6 +732,13 @@ export class DBTProject implements Disposable {
     this.dbtProjectIntegration.rebuildManifest();
   }
 
+  /** Re-parse now: restart dbt's Python process so it sees the current
+   * environment, then initialize, refresh the config and rebuild the manifest.
+   * Settles when done; failures land in diagnostics. */
+  async reparseProject(): Promise<void> {
+    await this.dbtProjectIntegration.reparseProject();
+  }
+
   private async onPythonEnvironmentChanged() {
     this.terminal.debug(
       "DbtProject",
