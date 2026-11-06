@@ -1,9 +1,10 @@
-import { readFileSync } from "fs";
+import { readFileSync, statSync } from "fs";
 import {
   Disposable,
   Event,
   EventEmitter,
   ProgressLocation,
+  TextDocument,
   TextDocumentChangeEvent,
   TextDocumentContentProvider,
   Uri,
@@ -23,6 +24,14 @@ export class SqlPreviewContentProvider
   private compilationDocs = new Map<string, Uri>();
   private subscriptions: Disposable[] = [];
   private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
+  /**
+   * For each preview, what its latest request was made against: the version of
+   * the file, as a modification time, and whether the node could answer for
+   * it. A preview whose latest request did not use the node is the one a fresh
+   * manifest can improve.
+   */
+  private requested: Map<string, { savedAt: number; usedNode: boolean }> =
+    new Map();
 
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -55,6 +64,17 @@ export class SqlPreviewContentProvider
       }),
     );
 
+    // A preview that fell back to the editor text because the manifest had not
+    // caught up with the file is out of date as soon as it has: the node is
+    // available now and carries the identity the editor text cannot. Nothing
+    // else re-requests the preview, so without this a save leaves the
+    // placeholder identity on screen until the next keystroke.
+    this.subscriptions.push(
+      this.dbtProjectContainer.onManifestChanged(() =>
+        this.refreshPreviewsTheNodeCanNowAnswer(),
+      ),
+    );
+
     // Clean up when editors are closed, not when text documents are closed
     // This prevents premature cleanup during document lifecycle events
     this.subscriptions.push(
@@ -73,6 +93,7 @@ export class SqlPreviewContentProvider
         for (const [uriString] of this.compilationDocs.entries()) {
           if (!visiblePreviewUris.has(uriString)) {
             this.compilationDocs.delete(uriString);
+            this.requested.delete(uriString);
             const timer = this.debounceTimers.get(uriString);
             if (timer) {
               clearTimeout(timer);
@@ -113,16 +134,94 @@ export class SqlPreviewContentProvider
     );
   }
 
+  /**
+   * Re-request every preview that was built from editor text and whose model's
+   * node has since become usable.
+   *
+   * Only a preview whose content would change is re-requested, and only once
+   * per saved version of its file, so a compile that rewrites
+   * `target/manifest.json` — which is what `dbt compile` does on the
+   * command-line integrations — cannot drive this round in a circle.
+   */
+  private refreshPreviewsTheNodeCanNowAnswer(): void {
+    for (const [uriString, previewUri] of this.compilationDocs.entries()) {
+      const fsPath = decodeURI(previewUri.fsPath);
+      const savedAt = this.savedAt(fsPath);
+      if (savedAt === undefined) {
+        continue;
+      }
+      const requested = this.requested.get(uriString);
+      if (requested?.savedAt === savedAt && requested.usedNode) {
+        continue;
+      }
+      const project = this.dbtProjectContainer.findDBTProject(Uri.file(fsPath));
+      const canUseNode = project?.previewCanUseNode(
+        fsPath,
+        path.basename(fsPath, ".sql"),
+        savedAt,
+        this.findOpenDocument(previewUri)?.isDirty === true,
+      );
+      if (canUseNode !== true) {
+        continue;
+      }
+      // Recorded before the request goes out, not after: the compile it leads
+      // to rewrites `target/manifest.json` on the command-line integrations,
+      // and that is another manifest change arriving here.
+      this.recordRequest(uriString, savedAt, true);
+      this._onDidChange.fire(previewUri);
+    }
+  }
+
+  /**
+   * Notes what a request now going out was made against.
+   *
+   * Written when the request is made rather than when it comes back, because
+   * requests overlap — an edit and a manifest change can each have one in
+   * flight — and the one that returns last is not the one that asked last. A
+   * request made for an older version of the file says nothing about a newer
+   * one, so it leaves the newer one's record alone.
+   */
+  private recordRequest(
+    uriString: string,
+    savedAt: number,
+    usedNode: boolean,
+  ): void {
+    const recorded = this.requested.get(uriString);
+    if (recorded !== undefined && recorded.savedAt > savedAt) {
+      return;
+    }
+    this.requested.set(uriString, { savedAt, usedNode });
+  }
+
+  /**
+   * When the file was last written, or undefined for a file no version can be
+   * read from. The preview answers for that one with the editor text and
+   * records nothing about it, rather than standing in a sentinel that the
+   * ordering in `recordRequest` would then never be able to replace.
+   */
+  private savedAt(fsPath: string): number | undefined {
+    try {
+      return statSync(fsPath).mtimeMs;
+    } catch (error) {
+      return undefined;
+    }
+  }
+
+  private findOpenDocument(previewUri: Uri): TextDocument | undefined {
+    const actualFileUri = previewUri.with({ scheme: "file" });
+    return workspace.textDocuments.find(
+      (doc) => doc.uri.toString() === actualFileUri.toString(),
+    );
+  }
+
   private async requestCompilation(uri: Uri) {
+    const uriString = uri.toString();
     try {
       const fsPath = decodeURI(uri.fsPath);
       const modelName = path.basename(fsPath, ".sql");
 
       // Read from the active document if available, otherwise fall back to file
-      const actualFileUri = uri.with({ scheme: "file" });
-      const document = workspace.textDocuments.find(
-        (doc) => doc.uri.toString() === actualFileUri.toString(),
-      );
+      const document = this.findOpenDocument(uri);
       const query = document
         ? document.getText()
         : readFileSync(fsPath, "utf8");
@@ -134,7 +233,26 @@ export class SqlPreviewContentProvider
       }
       this.telemetry.sendTelemetryEvent("requestCompilation");
       await project.refreshProjectConfig();
-      return await project.unsafeCompileQuery(query, modelName);
+      // A file the manifest already describes compiles as the node it actually
+      // is, so identity-dependent Jinja resolves. Anything else still compiles
+      // as written — see `previewCanUseNode`.
+      //
+      // One reading of when the file was written, for the routing and for the
+      // record of it: a save landing during the compile must not be recorded
+      // as a version the node was asked about, or it never catches up.
+      const savedAt = this.savedAt(fsPath);
+      const useNode =
+        savedAt !== undefined &&
+        project.previewCanUseNode(
+          fsPath,
+          modelName,
+          savedAt,
+          document?.isDirty === true,
+        );
+      if (savedAt !== undefined) {
+        this.recordRequest(uriString, savedAt, useNode);
+      }
+      return await project.compileQueryForPreview(query, modelName, useNode);
     } catch (error: any) {
       const errorMessage = (error as Error).message;
       window.showErrorMessage(`Error while compiling: ${errorMessage}`);

@@ -48,22 +48,19 @@ export class SourceModelCreationCodeLensProvider implements CodeLensProvider {
       document.getText(),
     )) {
       if (token.type === "document" && CST.isCollection(token.value)) {
-        for (const i in token.value.items) {
-          const item = token.value.items[i];
+        for (const item of token.value.items) {
           if (
             CST.isScalar(item.key) &&
             item.key.source === "sources" &&
             CST.isCollection(item.value)
           ) {
             // inside sources
-            for (const j in item.value.items) {
+            for (const source of item.value.items) {
               // inside a source
               currentTables = [];
-              const source = item.value.items[j];
               if (CST.isCollection(source.value)) {
                 //
-                for (const k in source.value.items) {
-                  const sourceProperty = source.value.items[k];
+                for (const sourceProperty of source.value.items) {
                   if (
                     CST.isScalar(sourceProperty.key) &&
                     CST.isScalar(sourceProperty.value)
@@ -87,12 +84,10 @@ export class SourceModelCreationCodeLensProvider implements CodeLensProvider {
                     let tableName: string | undefined = undefined;
                     let tableIdentifier: string | undefined = undefined;
                     let position: Position | undefined = undefined;
-                    for (const l in sourceProperty.value.items) {
-                      const table = sourceProperty.value.items[l];
+                    for (const table of sourceProperty.value.items) {
                       if (CST.isCollection(table.value)) {
-                        for (const m in table.value.items) {
+                        for (const tableProperty of table.value.items) {
                           position = lineCounter.linePos(table.value.offset);
-                          const tableProperty = table.value.items[m];
                           if (
                             CST.isScalar(tableProperty.value) &&
                             CST.isScalar(tableProperty.key)
@@ -121,9 +116,11 @@ export class SourceModelCreationCodeLensProvider implements CodeLensProvider {
                 }
               }
 
-              // add all tables
-              for (const i in currentTables) {
-                const table = currentTables[i];
+              // add all tables. `for...of`, not `for...in`: another extension in
+              // the same extension host can add an enumerable property to
+              // Array.prototype, and `for...in` over an array visits it too —
+              // the entry is then not a table and `.pos.line` throws.
+              for (const table of currentTables) {
                 const params: GenerateModelFromSourceParams = {
                   currentDoc: document.uri,
                   sourceName: currentSource!,

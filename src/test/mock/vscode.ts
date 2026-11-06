@@ -130,7 +130,33 @@ export const extensions = {
   all: [],
 };
 
-export const env = { uriScheme: "vscode" };
+export const uriParts = (value: string) => {
+  const url = new URL(value);
+  return {
+    scheme: url.protocol.slice(0, -1),
+    authority: url.host,
+    path: url.pathname,
+    query: url.search.slice(1),
+  };
+};
+
+export enum UIKind {
+  Desktop = 1,
+  Web = 2,
+}
+
+export const env = {
+  uriScheme: "vscode",
+  uiKind: UIKind.Desktop,
+  // A desktop editor resolves its own URI unchanged.
+  asExternalUri: jest.fn(async (uri: unknown) => uriParts(String(uri))),
+};
+
+export const ConfigurationTarget = {
+  Global: 1,
+  Workspace: 2,
+  WorkspaceFolder: 3,
+};
 
 export const commands = {
   registerCommand: jest.fn().mockReturnValue({ dispose: jest.fn() }),
@@ -145,7 +171,11 @@ export const window = {
   onDidChangeActiveTextEditor: jest
     .fn()
     .mockReturnValue({ dispose: jest.fn() }),
+  onDidChangeVisibleTextEditors: jest
+    .fn()
+    .mockReturnValue({ dispose: jest.fn() }),
   activeTextEditor: undefined as any,
+  visibleTextEditors: [] as any[],
   createOutputChannel: jest.fn().mockReturnValue({
     append: jest.fn(),
     appendLine: jest.fn(),
@@ -172,6 +202,8 @@ export const workspace = {
     update: jest.fn(),
   }),
   workspaceFolders: [],
+  textDocuments: [] as any[],
+  onDidChangeTextDocument: jest.fn().mockReturnValue({ dispose: jest.fn() }),
   getWorkspaceFolder: jest.fn((uri: typeof Uri) => {
     if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
       return workspace.workspaceFolders[0];

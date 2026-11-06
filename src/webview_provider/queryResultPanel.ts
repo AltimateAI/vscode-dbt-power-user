@@ -32,16 +32,17 @@ import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
-import {
-  extendErrorWithSupportLinks,
-  getFormattedDateTime,
-  getStringSizeInMb,
-} from "../utils";
+import { extendErrorWithSupportLinks, getFormattedDateTime } from "../utils";
 import {
   AltimateWebviewProvider,
   SendMessageProps,
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
+import {
+  buildCappedRows,
+  evictToBudget,
+  totalPayloadChars,
+} from "./queryResultPayload";
 import path = require("path");
 
 interface JsonObj {
@@ -146,6 +147,8 @@ interface QueryHistory {
   columnNames: string[];
   columnTypes: string[];
   modelName: string;
+  /** Serialized size of `data`, counted when the result was built. */
+  payloadChars?: number;
 }
 
 // Pick a backtick fence long enough to survive any backtick sequence inside the
@@ -635,7 +638,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             const data = {
               ...message,
               historyItems: this._queryHistory.length,
-              historySize: JSON.stringify(this._queryHistory).length,
+              historySize: totalPayloadChars(this._queryHistory),
             };
             this.dbtTerminal.debug(
               "CollectQueryResultsDebugInfo",
@@ -793,23 +796,33 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   /** A wrapper for {@link transmitData} which converts server
    * results interface ({@link ExecuteSQLResult}) to what the webview expects */
   private async transmitDataWrapper(result: ExecuteSQLResult, query: string) {
-    const rows: JsonObj[] = new Array(result.table.rows.length);
-    // Convert compressed array format to dict[] - optimized version
-    for (let i = 0; i < result.table.rows.length; i++) {
-      const row: JsonObj = {};
-      const currentRow = result.table.rows[i];
-      for (let j = 0; j < currentRow.length; j++) {
-        row[result.table.column_names[j]] = currentRow[j] as any;
-      }
-      rows[i] = row;
+    // Rows are serialized one at a time while they are built and capped by
+    // their serialized size: one JSON.stringify over the whole result (what
+    // VS Code does when the message is posted) hit V8's string-length limit
+    // on wide results (RangeError: Invalid string length).
+    const { rows, chars, droppedRows } = buildCappedRows<JsonObj>(
+      result.table.column_names,
+      result.table.rows,
+    );
+    if (droppedRows > 0) {
+      const shown = rows.length;
+      const total = shown + droppedRows;
+      this.dbtTerminal.warn(
+        "queryResultPanel:transmitDataWrapper",
+        `Query result capped at ${shown} of ${total} rows (${Math.round(chars / 1024 / 1024)} MB serialized)`,
+      );
+      window.showWarningMessage(
+        `Showing ${shown} of ${total} rows: the result is too large for the results panel. Narrow the query or add a LIMIT to see the rest.`,
+      );
     }
-    return await this.transmitData(
+    const transmitted = await this.transmitData(
       result.table.column_names,
       result.table.column_types,
       rows,
       query,
       result.compiled_sql,
     );
+    return { ...transmitted, payloadChars: chars };
   }
 
   private updateQueryHistory(
@@ -819,6 +832,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       rows: JsonObj[];
       raw_sql: string;
       compiled_sql: string;
+      payloadChars: number;
     },
     projectName: string,
     query: string,
@@ -839,17 +853,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       );
       return;
     }
-    const queryHistoryCurrentSize = getStringSizeInMb(
-      JSON.stringify(this._queryHistory),
-    );
-    // if current history size > 3MB, remove the oldest entry
-    if (queryHistoryCurrentSize > 3) {
-      this._queryHistory.pop();
-      this.dbtTerminal.info(
-        "updateQueryHistory",
-        "Query history size exceeded 3MB, cleared oldest entry",
-      );
-    }
     this._queryHistory.unshift({
       rawSql: query,
       compiledSql: result.compiled_sql,
@@ -861,8 +864,19 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       columnNames: result.columnNames,
       columnTypes: result.columnTypes,
       modelName,
+      payloadChars: result.payloadChars,
     });
     this._queryHistory = this._queryHistory.splice(0, 10);
+    // Each entry carries the serialized size of its rows, so the history is
+    // never re-serialized to measure it. Enforce the budget after the insert
+    // so it holds whatever the new result's size; the newest entry stays.
+    const evicted = evictToBudget(this._queryHistory);
+    if (evicted.length > 0) {
+      this.dbtTerminal.info(
+        "updateQueryHistory",
+        `Query history size exceeded 3MB, cleared ${evicted.length} oldest entries`,
+      );
+    }
   }
 
   /** Runs a query transmitting appropriate notifications to webview */

@@ -21,6 +21,12 @@ import { DbtPowerUserMcpServer } from "./mcp";
 import { DbtPowerUserActionsCenter } from "./quickpick";
 import { AltimateAuthService } from "./services/altimateAuthService";
 import {
+  AltimateConnectService,
+  AUTH_CALLBACK_PATH,
+  SETUP_CALLBACK_PATH,
+  WORKSPACE_CALLBACK_PATH,
+} from "./services/altimateConnectService";
+import {
   clearCachedCredits,
   fetchAndCacheCredits,
   handleExecutionsExhausted,
@@ -99,6 +105,7 @@ export class DBTPowerUserExtension implements Disposable {
     private altimateRequest: AltimateRequest,
     private altimateAuthService: AltimateAuthService,
     private whatsNewPanel: WhatsNewPanel,
+    private altimateConnectService: AltimateConnectService,
   ) {
     this.disposables.push(
       this.dbtProjectContainer,
@@ -119,6 +126,7 @@ export class DBTPowerUserExtension implements Disposable {
       this.notebookProviders,
       this.mcpServer,
       this.whatsNewPanel,
+      this.altimateConnectService,
     );
   }
 
@@ -133,6 +141,16 @@ export class DBTPowerUserExtension implements Disposable {
 
   async activate(context: ExtensionContext): Promise<void> {
     try {
+      // The webview view providers are registered when the container builds
+      // them, before `activate` runs, so VS Code can resolve a view it is
+      // restoring (the lineage view after a window reload) at any point from
+      // here on. Those providers read `extensionUri` off the project
+      // container, which dereferences the context set here: it has to be set
+      // before the first `await` below yields to the event loop, or a restore
+      // that lands during that await throws
+      // "Cannot read properties of undefined (reading 'extensionUri')".
+      this.dbtProjectContainer.setContext(context);
+
       // VS Code's `@vscode/extension-telemetry` library auto-emits an
       // `unhandlederror` event for uncaught promise rejections, but it only
       // captures `name`/`message`/`stack` (baseTelemetrySender.sendErrorData)
@@ -165,10 +183,17 @@ export class DBTPowerUserExtension implements Disposable {
       });
 
       const telemetry = this.telemetry;
+      const altimateConnectService = this.altimateConnectService;
       context.subscriptions.push(
         window.registerUriHandler({
           handleUri(uri: Uri): void {
-            if (uri.path === "/troubleshoot") {
+            if (
+              uri.path === AUTH_CALLBACK_PATH ||
+              uri.path === SETUP_CALLBACK_PATH ||
+              uri.path === WORKSPACE_CALLBACK_PATH
+            ) {
+              void altimateConnectService.handleUri(uri);
+            } else if (uri.path === "/troubleshoot") {
               const params = new URLSearchParams(uri.query);
               const errorMessage = params.get("error") ?? "";
               const source = params.get("source") ?? "dbt";
@@ -188,7 +213,6 @@ export class DBTPowerUserExtension implements Disposable {
       );
 
       await this.mcpServer.updateMcpExtensionApi();
-      this.dbtProjectContainer.setContext(context);
       this.dbtProjectContainer.initializeWalkthrough();
       // Settles once the open decision is made; it never rejects.
       void this.whatsNewPanel.checkAndShowOnActivation();
