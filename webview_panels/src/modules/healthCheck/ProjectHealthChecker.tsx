@@ -1,4 +1,5 @@
 import {
+  Alert,
   Card,
   CardTitle,
   CardBody,
@@ -9,7 +10,10 @@ import {
   Input,
   Label,
 } from "@uicore";
-import { executeRequestInSync } from "../app/requestExecutor";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "../app/requestExecutor";
 import classes from "./healthcheck.module.scss";
 import {
   Dispatch,
@@ -374,18 +378,26 @@ const ProjectHealthcheckInput = ({
   );
 };
 
+interface CoreOnlyNotice {
+  message: string;
+  learnMoreUrl: string;
+}
+
 const ProjectHealthChecker = (): JSX.Element => {
   const [projectHealthcheck, setProjectHealthcheck] =
     useState<ProjectHealthcheck | null>(null);
+  const [coreOnly, setCoreOnly] = useState<CoreOnlyNotice | null>(null);
   const handleHealthCheck = async (args: AltimateConfigProps) => {
     const result = (await executeRequestInSync(
       "altimateScan",
       args as unknown as Record<string, unknown>,
     )) as {
-      projectHealthcheck: ProjectHealthcheck;
+      projectHealthcheck?: ProjectHealthcheck;
+      coreOnly?: CoreOnlyNotice;
     };
     panelLogger.log("projectHealthcheck:", result.projectHealthcheck);
-    setProjectHealthcheck(result.projectHealthcheck);
+    setCoreOnly(result.coreOnly ?? null);
+    setProjectHealthcheck(result.projectHealthcheck ?? null);
   };
   return (
     <>
@@ -394,6 +406,22 @@ const ProjectHealthChecker = (): JSX.Element => {
           handleHealthCheck={handleHealthCheck}
           handleClearProblems={() => setProjectHealthcheck(null)}
         />
+        {coreOnly && (
+          <Alert color="warning" className="p-2 mb-0">
+            {coreOnly.message}{" "}
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                executeRequestInAsync("openURL", {
+                  url: coreOnly.learnMoreUrl,
+                });
+              }}
+            >
+              Learn more
+            </a>
+          </Alert>
+        )}
         {projectHealthcheck && (
           <IssueList projectHealthcheck={projectHealthcheck} />
         )}
