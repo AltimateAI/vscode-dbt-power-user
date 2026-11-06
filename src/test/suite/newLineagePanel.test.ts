@@ -1318,6 +1318,8 @@ describe("NewLineagePanel — state card", () => {
   let project: any;
 
   const PROFILE = "Runtime Error\n  Could not find profile named 'jaffle_shop'";
+  // Native: on Windows the lookup resolves it to the current drive.
+  const PROFILES_FILE = path.resolve("/ws/conf", "profiles.yml");
   const MISSING_REF =
     "Compilation Error in model orders (models/orders.sql)\n  depends on a node named 'stg_orderz' which was not found";
 
@@ -1390,8 +1392,7 @@ describe("NewLineagePanel — state card", () => {
     expect(args.lineageCard).toMatchObject({
       kind: "profile-not-found",
       title: "dbt can't find the profile 'jaffle_shop'",
-      detail:
-        "dbt_project.yml uses the profile 'jaffle_shop', but it isn't in /ws/conf/profiles.yml.",
+      detail: `dbt_project.yml uses the profile 'jaffle_shop', but it isn't in ${PROFILES_FILE}.`,
     });
   });
 
@@ -1724,7 +1725,7 @@ describe("NewLineagePanel — state card", () => {
       });
       await press("revealFile", { path: "models/a copy.sql" });
       expect(commands.executeCommand).toHaveBeenCalledWith("revealInExplorer", {
-        fsPath: "/ws/models/a copy.sql",
+        fsPath: path.join("/ws", "models/a copy.sql"),
       });
     });
 
@@ -1733,7 +1734,7 @@ describe("NewLineagePanel — state card", () => {
       (panel as any).fileExists = () => true;
       await press("openProfiles");
       const opened = (window.showTextDocument as jest.Mock).mock.calls[0][0];
-      expect((opened as Uri).fsPath).toBe("/ws/conf/profiles.yml");
+      expect((opened as Uri).fsPath).toBe(PROFILES_FILE);
     });
 
     it("says where it looked when that file doesn't exist", async () => {
@@ -1743,7 +1744,7 @@ describe("NewLineagePanel — state card", () => {
       await press("openProfiles");
       expect(window.showTextDocument).not.toHaveBeenCalled();
       expect(window.showErrorMessage).toHaveBeenCalledWith(
-        expect.stringContaining("/ws/conf/profiles.yml wasn't found"),
+        expect.stringContaining(`${PROFILES_FILE} wasn't found`),
       );
     });
   });

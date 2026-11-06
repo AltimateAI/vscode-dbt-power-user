@@ -1,4 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
+import * as path from "path";
 import {
   ENV_VAR_DOCS_URL,
   lineageCard,
@@ -275,39 +276,39 @@ describe("lineageCard", () => {
 
 describe("resolveProfilesPath", () => {
   const none = () => false;
+  // Native paths: on Windows these resolve to the current drive.
+  const ws = path.resolve("/ws");
+  const home = path.resolve("/home/me");
 
   it("uses an absolute DBT_PROFILES_DIR", () => {
-    expect(resolveProfilesPath("/ws", "/etc/dbt", "/home/me", none)).toBe(
-      "/etc/dbt/profiles.yml",
+    const dir = path.resolve("/etc/dbt");
+    expect(resolveProfilesPath(ws, dir, home, none)).toBe(
+      path.join(dir, "profiles.yml"),
     );
   });
 
   it("resolves a relative DBT_PROFILES_DIR against the project", () => {
-    expect(resolveProfilesPath("/ws", "conf", "/home/me", none)).toBe(
-      "/ws/conf/profiles.yml",
+    expect(resolveProfilesPath(ws, "conf", home, none)).toBe(
+      path.join(ws, "conf", "profiles.yml"),
     );
   });
 
   it("expands ~ in DBT_PROFILES_DIR", () => {
-    expect(resolveProfilesPath("/ws", "~/dbt", "/home/me", none)).toBe(
-      "/home/me/dbt/profiles.yml",
+    expect(resolveProfilesPath(ws, "~/dbt", home, none)).toBe(
+      path.join(home, "dbt", "profiles.yml"),
     );
   });
 
   it("prefers the project's own profiles.yml over ~/.dbt", () => {
+    const own = path.join(ws, "profiles.yml");
     expect(
-      resolveProfilesPath(
-        "/ws",
-        undefined,
-        "/home/me",
-        (file) => file === "/ws/profiles.yml",
-      ),
-    ).toBe("/ws/profiles.yml");
+      resolveProfilesPath(ws, undefined, home, (file) => file === own),
+    ).toBe(own);
   });
 
   it("falls back to ~/.dbt", () => {
-    expect(resolveProfilesPath("/ws", undefined, "/home/me", none)).toBe(
-      "/home/me/.dbt/profiles.yml",
+    expect(resolveProfilesPath(ws, undefined, home, none)).toBe(
+      path.join(home, ".dbt", "profiles.yml"),
     );
   });
 });
