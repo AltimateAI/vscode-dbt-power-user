@@ -236,6 +236,46 @@ describe("NewLineagePanel", () => {
       expect(shown).toContain(`Unable to generate lineage: ${dbtMessage}`);
       expect(shown).not.toContain("Traceback");
     });
+
+    it("falls back to the traceback when Python's message is empty", async () => {
+      // A bare `assert` in Python: str(e) is "", so only the traceback names it.
+      const failure = new PythonException({
+        format: [
+          "Traceback (most recent call last):\n",
+          '  File "node_python_bridge.py", line 114, in <module>\n',
+          "AssertionError\n",
+        ],
+        exception: {
+          message: "",
+          args: [],
+          type: { name: "AssertionError", module: "builtins" },
+          format: ["AssertionError\n"],
+        },
+      });
+      (panel as any).dbtLineageService.getConnectedColumns.mockRejectedValue(
+        failure,
+      );
+
+      await (panel as any).handleCommand({
+        command: "getConnectedColumns",
+        args: { params: { targets: [["model.p.customers", "customer_id"]] } },
+        syncRequestId: "cll-3",
+      });
+
+      expect(mockPostMessage).toHaveBeenCalledWith({
+        command: "response",
+        args: {
+          id: "cll-3",
+          syncRequestId: "cll-3",
+          error: failure.message,
+          status: false,
+        },
+      });
+      const calls = (window.showErrorMessage as jest.Mock).mock.calls;
+      const shown = calls[calls.length - 1][0] as string;
+      expect(shown).toContain("Unable to generate lineage: Traceback");
+      expect(shown).toContain("AssertionError");
+    });
   });
 
   describe("getStartingNode — telemetry noise on non-dbt files", () => {

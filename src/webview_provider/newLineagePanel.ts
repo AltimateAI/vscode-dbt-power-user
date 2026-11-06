@@ -480,9 +480,10 @@ export class NewLineagePanel
       } catch (error) {
         // A Python error's message is its whole traceback; dbt's own message
         // (such as "the dbt project is not initialized") is the last line.
+        // When that is empty (a bare `assert`), the traceback names the error.
         const message =
           error instanceof PythonException
-            ? (error.exception?.message ?? error.message)
+            ? error.exception?.message || error.message
             : (error as Error).message;
         window.showErrorMessage(
           extendErrorWithSupportLinks("Unable to generate lineage: " + message),
