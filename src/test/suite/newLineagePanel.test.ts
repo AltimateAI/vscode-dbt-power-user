@@ -6,8 +6,15 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import { window, workspace } from "vscode";
-import { NewLineagePanel } from "../../webview_provider/newLineagePanel";
+import * as path from "path";
+import { commands, Uri, window, workspace } from "vscode";
+import {
+  NewLineagePanel,
+  REPARSE_PROJECT_COMMAND,
+} from "../../webview_provider/newLineagePanel";
+
+// A POSIX test path as the platform writes it ("\\ws\\..." on Windows).
+const native = (posixPath: string) => path.join(posixPath);
 
 describe("NewLineagePanel", () => {
   let panel: NewLineagePanel;
@@ -690,7 +697,10 @@ describe("NewLineagePanel — lineage telemetry", () => {
     (panel as any).queryManifestService = {
       getEventByCurrentProject: jest.fn(() => event),
       getProject: jest.fn(() => ({
+        projectRoot: { fsPath: "/ws" },
         getBlockingDiagnostic: () => blocking,
+        // No manifest file on disk in these tests.
+        getManifestPath: () => "/ws/target/manifest.json",
       })),
     };
     (panel as any).altimate = { enabled: jest.fn().mockReturnValue(false) };
@@ -759,6 +769,7 @@ describe("NewLineagePanel — lineage telemetry", () => {
     expect(rendered()[0][1]).toEqual({
       nodeCountBucket: "100-499",
       staleManifest: "false",
+      manifestAgeBucket: "none",
       errorKindsBefore: "none",
     });
     expect(rendered()[0][2]).toBeUndefined();
@@ -780,6 +791,7 @@ describe("NewLineagePanel — lineage telemetry", () => {
     expect(rendered()[0][1]).toEqual({
       nodeCountBucket: "1-99",
       staleManifest: "false",
+      manifestAgeBucket: "none",
       errorKindsBefore: "dbt_not_found",
     });
     expect((rendered()[0][2] as any).msSinceFirstError).toBeGreaterThanOrEqual(
@@ -812,6 +824,20 @@ describe("NewLineagePanel — lineage telemetry", () => {
 
     expect(rendered()).toHaveLength(1);
     expect((rendered()[0][1] as any).staleManifest).toBe("true");
+    // There is no manifest file to date it by.
+    expect((rendered()[0][1] as any).manifestAgeBucket).toBe("unknown");
+  });
+
+  it("buckets the age of a stale manifest read from disk", () => {
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    event = loadedEvent(3);
+    event.event.staleManifest = {
+      manifestPath: "/ws/target/manifest.json",
+      writtenAt: Date.now() - 3 * 24 * 60 * 60 * 1000,
+    };
+    panel.eventMapChanged(new Map());
+
+    expect((rendered()[0][1] as any).manifestAgeBucket).toBe("1d-7d");
   });
 
   it("sends no lineageRendered when the panel has no graph to draw", () => {
@@ -856,5 +882,423 @@ describe("NewLineagePanel — lineage telemetry", () => {
       expect.any(Error),
     );
     expect(rendered()).toHaveLength(0);
+  });
+});
+
+describe("NewLineagePanel — stale-graph banner", () => {
+  let panel: NewLineagePanel;
+  let blocking: { message: string; category: string } | undefined;
+  let event: any;
+  let postMessage: jest.Mock;
+
+  const MISSING_REF =
+    "There is a problem in your dbt project. Compilation failed: Compilation Error in model orders (models/marts/orders.sql)\n  Model 'model.jaffle_shop.orders' (models/marts/orders.sql) depends on a node named 'stg_orderz' which was not found";
+
+  const graphEvent = () => ({
+    event: {
+      nodeMetaMap: {
+        lookupByBaseName: jest
+          .fn()
+          .mockReturnValue({ unique_id: "model.p.orders" }),
+        nodes: () => [],
+      },
+      functionMetaMap: new Map(),
+    },
+  });
+
+  const posted = (command: string) =>
+    postMessage.mock.calls
+      .map((call) => call[0] as { command: string; args: any })
+      .filter((message) => message.command === command);
+
+  beforeEach(() => {
+    blocking = undefined;
+    event = undefined;
+    postMessage = jest.fn();
+    panel = Object.create(NewLineagePanel.prototype);
+    Object.assign(panel as any, {
+      reportedErrorKinds: new Set<string>(),
+      renderReported: false,
+      graphDrawn: false,
+      postedBanner: undefined,
+      reparseAvailable: false,
+    });
+    (panel as any)._panel = { visible: true, webview: { postMessage } };
+    (panel as any).telemetry = {
+      sendTelemetryEvent: jest.fn(),
+      sendTelemetryError: jest.fn(),
+    };
+    (panel as any).queryManifestService = {
+      getEventByCurrentProject: jest.fn(() => event),
+      getProject: jest.fn(() => ({
+        projectRoot: { fsPath: "/ws" },
+        getProjectName: () => "jaffle_shop",
+        getBlockingDiagnostic: () => blocking,
+        getManifestPath: () => "/ws/target/manifest.json",
+      })),
+    };
+    (panel as any).validationProvider = {
+      isAuthenticated: jest.fn().mockReturnValue(false),
+    };
+    (panel as any).dbtTerminal = {
+      info: jest.fn(),
+      debug: jest.fn(),
+      error: jest.fn(),
+    };
+    (panel as any).dbtLineageService = {
+      createTable: jest.fn(() => ({ table: "model.p.orders" })),
+    };
+    (window as any).activeTextEditor = {
+      document: {
+        fileName: "/ws/models/orders.sql",
+        uri: { path: "/ws/models/orders.sql" },
+      },
+    };
+  });
+
+  afterEach(() => {
+    (window as any).activeTextEditor = undefined;
+    clearTimeout((panel as any).diagnosticsTimer);
+    clearInterval((panel as any).ageTimer);
+    jest.useRealTimers();
+  });
+
+  it("renders a graph drawn under a standing error with the banner", () => {
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    event = graphEvent();
+    panel.eventMapChanged(new Map());
+
+    const [render] = posted("render");
+    expect(render.args.node).toBeDefined();
+    expect(render.args.lineageBanner).toMatchObject({
+      id: "stale-graph-midsession",
+      title: "This graph is from the last successful parse.",
+    });
+  });
+
+  it("marks a manifest read from disk at startup with its file", () => {
+    blocking = {
+      message:
+        "dbt configuration is invalid : Runtime Error\n  Could not find profile named 'jaffle_shop'",
+      category: "project-config",
+    };
+    event = graphEvent();
+    event.event.staleManifest = {
+      manifestPath: "/ws/target/manifest.json",
+      writtenAt: Date.now() - 5 * 60 * 1000,
+    };
+    panel.eventMapChanged(new Map());
+
+    expect(posted("render")[0].args.lineageBanner).toMatchObject({
+      id: "stale-graph-startup",
+      title: "This graph is from target/manifest.json, written 5 minutes ago.",
+    });
+  });
+
+  it("renders a fresh graph without the banner", () => {
+    event = graphEvent();
+    panel.eventMapChanged(new Map());
+
+    expect(posted("render")[0].args.lineageBanner).toBeUndefined();
+  });
+
+  it("updates only the banner when the diagnostics change, and only when it changes", () => {
+    jest.useFakeTimers();
+    event = graphEvent();
+    panel.eventMapChanged(new Map());
+
+    // A mid-session break: the banner appears over the drawn graph.
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    panel.changedDiagnostics();
+    jest.advanceTimersByTime(250);
+    panel.changedDiagnostics();
+    jest.advanceTimersByTime(250);
+    expect(posted("lineageBanner")).toHaveLength(1);
+    expect(posted("lineageBanner")[0].args.banner.id).toBe(
+      "stale-graph-midsession",
+    );
+
+    // The fix: the banner clears.
+    blocking = undefined;
+    panel.changedDiagnostics();
+    jest.advanceTimersByTime(250);
+    expect(posted("lineageBanner")).toHaveLength(2);
+    expect(posted("lineageBanner")[1].args.banner).toBeUndefined();
+    // The graph was never re-rendered for it.
+    expect(posted("render")).toHaveLength(1);
+  });
+
+  it("shows no banner when the diagnostic lookup fails, and still renders the graph", () => {
+    const failure = new Error("diagnostics unavailable");
+    (panel as any).queryManifestService.getProject = jest.fn(() => ({
+      projectRoot: { fsPath: "/ws" },
+      getBlockingDiagnostic: () => {
+        throw failure;
+      },
+      getManifestPath: () => "/ws/target/manifest.json",
+    }));
+    jest.useFakeTimers();
+    event = graphEvent();
+    panel.eventMapChanged(new Map());
+    panel.changedDiagnostics();
+    jest.advanceTimersByTime(250);
+
+    const [render] = posted("render");
+    expect(render.args.node).toBeDefined();
+    expect(render.args.lineageBanner).toBeUndefined();
+    expect(posted("lineageBanner")).toHaveLength(0);
+    expect((panel as any).dbtTerminal.debug).toHaveBeenCalledWith(
+      "Lineage:getStaleGraphBanner",
+      "Could not build the stale-graph banner",
+      failure,
+    );
+  });
+
+  it("sends no banner while no graph is drawn", () => {
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    panel.eventMapChanged(new Map());
+    panel.changedDiagnostics();
+
+    expect(posted("render")[0].args.lineageBanner).toBeUndefined();
+    expect(posted("lineageBanner")).toHaveLength(0);
+  });
+
+  it("skips diagnostics changes on files outside the drawn project", () => {
+    jest.useFakeTimers();
+    event = graphEvent();
+    panel.eventMapChanged(new Map());
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    const build = jest.spyOn(panel as any, "getStaleGraphBanner");
+
+    panel.changedDiagnostics([
+      Uri.file("/other/app.ts"),
+      Uri.file("/ws-sibling/x.sql"),
+    ]);
+    jest.advanceTimersByTime(1000);
+    expect(build).not.toHaveBeenCalled();
+    expect(posted("lineageBanner")).toHaveLength(0);
+
+    panel.changedDiagnostics([Uri.file("/ws/dbt_project.yml")]);
+    jest.advanceTimersByTime(250);
+    expect(build).toHaveBeenCalledTimes(1);
+    expect(posted("lineageBanner")).toHaveLength(1);
+  });
+
+  it("builds the banner once for a burst of diagnostics changes", () => {
+    jest.useFakeTimers();
+    event = graphEvent();
+    panel.eventMapChanged(new Map());
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    const build = jest.spyOn(panel as any, "getStaleGraphBanner");
+
+    for (let i = 0; i < 5; i++) {
+      panel.changedDiagnostics([Uri.file("/ws/models/orders.sql")]);
+      jest.advanceTimersByTime(100);
+    }
+    expect(build).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(150);
+    expect(build).toHaveBeenCalledTimes(1);
+    expect(posted("lineageBanner")).toHaveLength(1);
+  });
+
+  it("keeps the banner's age current while it shows, and stops when it clears", () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(2026, 10, 5, 12, 0, 0));
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    event = graphEvent();
+    event.event.staleManifest = {
+      manifestPath: "/ws/target/manifest.json",
+      writtenAt: Date.now() - 30 * 1000,
+    };
+    panel.eventMapChanged(new Map());
+    expect(posted("render")[0].args.lineageBanner.age).toBe(
+      "manifest written less than a minute ago",
+    );
+
+    jest.advanceTimersByTime(60 * 1000);
+    expect(posted("lineageBanner").map((m) => m.args.banner.age)).toEqual([
+      "manifest written 1 minute ago",
+    ]);
+    // The same text a minute later in the hour isn't posted again.
+    jest.advanceTimersByTime(60 * 1000);
+    expect(posted("lineageBanner")).toHaveLength(2);
+
+    blocking = undefined;
+    jest.advanceTimersByTime(60 * 1000);
+    expect(posted("lineageBanner")[2].args.banner).toBeUndefined();
+    expect((panel as any).ageTimer).toBeUndefined();
+    jest.advanceTimersByTime(10 * 60 * 1000);
+    expect(posted("lineageBanner")).toHaveLength(3);
+  });
+
+  it("keeps following the drawn graph's project after the last editor closes", () => {
+    jest.useFakeTimers();
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    event = graphEvent();
+    event.event.staleManifest = {
+      manifestPath: "/ws/target/manifest.json",
+      writtenAt: Date.now() - 2 * 60 * 60 * 1000,
+    };
+    panel.eventMapChanged(new Map());
+    expect(posted("render")[0].args.lineageBanner.id).toBe(
+      "stale-graph-startup",
+    );
+
+    // No editor: the active-editor lookups find no project or event.
+    const service = (panel as any).queryManifestService;
+    service.getProject = jest.fn(() => undefined);
+    service.getEventByCurrentProject = jest.fn(() => undefined);
+
+    // The minute refresh keeps the same notice up.
+    jest.advanceTimersByTime(60 * 1000);
+    expect(posted("lineageBanner")).toHaveLength(0);
+
+    // The error is fixed outside an editor: the notice still clears.
+    blocking = undefined;
+    panel.changedDiagnostics([Uri.file("/ws/dbt_project.yml")]);
+    jest.advanceTimersByTime(250);
+    expect(posted("lineageBanner")).toHaveLength(1);
+    expect(posted("lineageBanner")[0].args.banner).toBeUndefined();
+  });
+
+  it("stops the banner's timers and posts nothing once the view is disposed", () => {
+    jest.useFakeTimers();
+    (panel as any)._disposables = [];
+    const base = Object.getPrototypeOf(NewLineagePanel.prototype);
+    const resolve = jest
+      .spyOn(base, "resolveWebviewView")
+      .mockImplementation(() => undefined);
+    let disposeView: () => void = () => {};
+    panel.resolveWebviewView(
+      {
+        onDidDispose: (listener: () => void) => {
+          disposeView = listener;
+          return { dispose: () => {} };
+        },
+      } as any,
+      {} as any,
+      {} as any,
+    );
+
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    event = graphEvent();
+    event.event.staleManifest = {
+      manifestPath: "/ws/target/manifest.json",
+      writtenAt: Date.now() - 30 * 1000,
+    };
+    panel.eventMapChanged(new Map());
+    expect((panel as any).ageTimer).toBeDefined();
+
+    disposeView();
+    expect((panel as any).ageTimer).toBeUndefined();
+    panel.changedDiagnostics([Uri.file("/ws/dbt_project.yml")]);
+    jest.advanceTimersByTime(10 * 60 * 1000);
+    expect(posted("lineageBanner")).toHaveLength(0);
+    resolve.mockRestore();
+  });
+
+  it("offers Try again once the re-parse command is registered", async () => {
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    event = graphEvent();
+    panel.eventMapChanged(new Map());
+    const ids = (banner: any) => banner.actions.map((action: any) => action.id);
+    expect(ids(posted("render")[0].args.lineageBanner)).toEqual([
+      "openFile",
+      "showProblems",
+    ]);
+
+    (commands.getCommands as jest.Mock).mockReturnValueOnce(
+      Promise.resolve(["other.command", REPARSE_PROJECT_COMMAND]),
+    );
+    (panel as any).checkReparseAvailable();
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(ids(posted("lineageBanner")[0].args.banner)).toEqual([
+      "openFile",
+      "showProblems",
+      "tryAgain",
+    ]);
+  });
+
+  it("runs the banner's buttons", async () => {
+    const showTextDocument = jest.fn();
+    (window as any).showTextDocument = showTextDocument;
+    (panel as any).fileExists = (filePath: string) =>
+      filePath === native("/ws/models/marts/orders.sql");
+    (panel as any).listPackages = () => [];
+    const executeCommand = commands.executeCommand as jest.Mock;
+    executeCommand.mockClear();
+
+    await panel.handleCommand({
+      command: "lineageBannerAction",
+      args: {
+        action: "openFile",
+        params: { path: "models/marts/orders.sql", line: 14 },
+      },
+    });
+    await panel.handleCommand({
+      command: "lineageBannerAction",
+      args: { action: "showProblems" },
+    });
+    await panel.handleCommand({
+      command: "lineageBannerAction",
+      args: { action: "tryAgain" },
+    });
+
+    expect(showTextDocument).toHaveBeenCalledWith(
+      { fsPath: native("/ws/models/marts/orders.sql") },
+      expect.objectContaining({ selection: expect.anything() }),
+    );
+    expect(executeCommand.mock.calls).toEqual([
+      ["workbench.action.problems.focus"],
+      // The project the graph belongs to, not whichever one is active.
+      [REPARSE_PROJECT_COMMAND, { fsPath: "/ws" }],
+    ]);
+    delete (window as any).showTextDocument;
+  });
+
+  it("opens a file from the package dbt names, and says so when it can't place one", async () => {
+    const showTextDocument = jest.fn();
+    const showErrorMessage = jest.fn();
+    (window as any).showTextDocument = showTextDocument;
+    (window as any).showErrorMessage = showErrorMessage;
+    // Both the root project and the package have models/x.sql.
+    (panel as any).fileExists = (filePath: string) =>
+      [
+        native("/ws/models/x.sql"),
+        native("/ws/dbt_packages/dbt_utils/models/x.sql"),
+      ].includes(filePath);
+    (panel as any).listPackages = () => [
+      { dir: "/ws/dbt_packages/dbt_utils", name: "dbt_utils" },
+      { dir: "/ws/dbt_packages/audit_helper", name: "audit_helper" },
+    ];
+
+    await panel.handleCommand({
+      command: "lineageBannerAction",
+      args: {
+        action: "openFile",
+        params: { path: "models/x.sql", package: "dbt_utils" },
+      },
+    });
+    expect(showTextDocument).toHaveBeenCalledWith(
+      { fsPath: native("/ws/dbt_packages/dbt_utils/models/x.sql") },
+      expect.anything(),
+    );
+
+    await panel.handleCommand({
+      command: "lineageBannerAction",
+      args: {
+        action: "openFile",
+        params: { path: "models/y.sql", package: "audit_helper" },
+      },
+    });
+    expect(showTextDocument).toHaveBeenCalledTimes(1);
+    expect(showErrorMessage).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "models/y.sql wasn't found in the package audit_helper",
+      ),
+    );
+    delete (window as any).showTextDocument;
+    delete (window as any).showErrorMessage;
   });
 });

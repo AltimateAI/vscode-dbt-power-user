@@ -11,6 +11,7 @@ import {
   SourceTable,
   Table,
 } from "@altimateai/dbt-integration";
+import { existsSync, readdirSync, readFileSync, statSync } from "fs";
 import { inject } from "inversify";
 import * as path from "path";
 import {
@@ -19,9 +20,13 @@ import {
   ColorThemeKind,
   commands,
   ProgressLocation,
+  Range,
   TextDocument,
   TextEditor,
+  Uri,
   Webview,
+  WebviewView,
+  WebviewViewResolveContext,
   window,
   workspace,
 } from "vscode";
@@ -41,7 +46,24 @@ import { extendErrorWithSupportLinks } from "../utils";
 import { ValidationProvider } from "../validation_provider";
 import { AltimateWebviewProvider } from "./altimateWebviewProvider";
 import { LineagePanelView } from "./lineagePanel";
+import {
+  locateErrorFile,
+  manifestAgeBucket,
+  StaleGraphActionId,
+  StaleGraphBanner,
+  staleGraphBanner,
+  StaleGraphInput,
+} from "./lineageStaleGraph";
 import { classifyLineageError, nodeCountBucket } from "./lineageTelemetry";
+
+// How long diagnostics changes must settle before the banner is rebuilt, and
+// how often a shown banner is rebuilt to keep its age current, in ms.
+const DIAGNOSTICS_SETTLE_MS = 250;
+const AGE_REFRESH_MS = 60 * 1000;
+
+// The banner's "Try again" runs this; the button is hidden while it isn't
+// registered.
+export const REPARSE_PROJECT_COMMAND = "dbtPowerUser.reparseProject";
 
 // A source table resolved to the dbt unique_id key the lineage should root at
 // (`source.<pkg>.<source>.<table>`).
@@ -88,6 +110,21 @@ export class NewLineagePanel
   private reportedErrorKinds = new Set<string>();
   private firstErrorAt: number | undefined;
   private renderReported = false;
+  // The stale-graph banner as last sent, and whether a graph was drawn with
+  // it, so a diagnostics change only posts when the banner changes.
+  private graphDrawn = false;
+  private postedBanner: string | undefined;
+  private reparseAvailable = false;
+  // The project and manifest event the drawn graph came from. The banner
+  // follows them, not the active editor, which can close or move to a file
+  // outside the project while the graph stays drawn.
+  private drawnFrom:
+    | { project: DBTProject; event?: ManifestCacheProjectAddedEvent }
+    | undefined;
+  // Coalesces bursts of diagnostics changes into one banner update.
+  private diagnosticsTimer: ReturnType<typeof setTimeout> | undefined;
+  // While a banner shows, it's rebuilt every minute so its age stays current.
+  private ageTimer: ReturnType<typeof setInterval> | undefined;
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
@@ -164,9 +201,106 @@ export class NewLineagePanel
     this.renderStartingNode();
   }
 
+  resolveWebviewView(
+    panel: WebviewView,
+    context: WebviewViewResolveContext<unknown>,
+    token: CancellationToken,
+  ): void | Thenable<void> {
+    const resolved = super.resolveWebviewView(panel, context, token);
+    // A view the user hides is disposed. Its banner timers stop, and nothing
+    // is posted to it until a new view resolves and renders again.
+    this._disposables.push(panel.onDidDispose(() => this.forgetDrawnGraph()));
+    return resolved;
+  }
+
+  private forgetDrawnGraph() {
+    clearTimeout(this.diagnosticsTimer);
+    this.diagnosticsTimer = undefined;
+    clearInterval(this.ageTimer);
+    this.ageTimer = undefined;
+    this.graphDrawn = false;
+    this.drawnFrom = undefined;
+    this.postedBanner = undefined;
+  }
+
   protected onWebviewReady() {
     super.onWebviewReady();
     this.renderStartingNode();
+    this.checkReparseAvailable();
+  }
+
+  // The diagnostics behind the stale-graph banner changed. The graph stays as
+  // it is (a render would rebuild it); only the banner is updated. Changes on
+  // files outside the drawn project (another language's diagnostics as the
+  // user types) are skipped, and a burst is handled once, after it settles.
+  public changedDiagnostics(uris?: readonly Uri[]) {
+    if (!this._panel || !this.graphDrawn) {
+      return;
+    }
+    if (uris !== undefined && !this.touchesProject(uris)) {
+      return;
+    }
+    clearTimeout(this.diagnosticsTimer);
+    this.diagnosticsTimer = setTimeout(() => {
+      this.diagnosticsTimer = undefined;
+      this.refreshBanner();
+    }, DIAGNOSTICS_SETTLE_MS);
+  }
+
+  private touchesProject(uris: readonly Uri[]): boolean {
+    const root = this.drawnFrom?.project.projectRoot.fsPath;
+    if (root === undefined) {
+      return false;
+    }
+    return uris.some((uri) => {
+      const relative = path.relative(root, uri.fsPath);
+      return !relative.startsWith("..") && !path.isAbsolute(relative);
+    });
+  }
+
+  private refreshBanner() {
+    if (!this._panel || !this.graphDrawn) {
+      return;
+    }
+    this.postBanner(this.getStaleGraphBanner());
+  }
+
+  // Keeps a minute timer running exactly while a banner shows.
+  private syncAgeTimer(banner: StaleGraphBanner | undefined) {
+    if (banner && this.ageTimer === undefined) {
+      this.ageTimer = setInterval(() => this.refreshBanner(), AGE_REFRESH_MS);
+      // The timer alone never keeps the extension host busy.
+      this.ageTimer.unref?.();
+    } else if (!banner && this.ageTimer !== undefined) {
+      clearInterval(this.ageTimer);
+      this.ageTimer = undefined;
+    }
+  }
+
+  private checkReparseAvailable() {
+    commands.getCommands(true).then(
+      (ids) => {
+        const available = ids.includes(REPARSE_PROJECT_COMMAND);
+        if (available !== this.reparseAvailable) {
+          this.reparseAvailable = available;
+          this.refreshBanner();
+        }
+      },
+      () => {},
+    );
+  }
+
+  private postBanner(banner: StaleGraphBanner | undefined) {
+    this.syncAgeTimer(banner);
+    const serialized = JSON.stringify(banner ?? null);
+    if (serialized === this.postedBanner) {
+      return;
+    }
+    this.postedBanner = serialized;
+    this._panel?.webview.postMessage({
+      command: "lineageBanner",
+      args: { banner },
+    });
   }
 
   changedActiveColorTheme() {
@@ -196,9 +330,23 @@ export class NewLineagePanel
       return;
     }
     const startingNode = this.getStartingNode(resolvedSource);
+    this.graphDrawn = startingNode?.node !== undefined;
+    const project = this.queryManifestService.getProject();
+    this.drawnFrom =
+      this.graphDrawn && project
+        ? {
+            project,
+            event: this.queryManifestService.getEventByCurrentProject()?.event,
+          }
+        : undefined;
+    const lineageBanner = this.graphDrawn
+      ? this.getStaleGraphBanner()
+      : undefined;
+    this.postedBanner = JSON.stringify(lineageBanner ?? null);
+    this.syncAgeTimer(lineageBanner);
     this._panel.webview.postMessage({
       command: "render",
-      args: startingNode,
+      args: { ...startingNode, lineageBanner },
     });
     if (startingNode?.node) {
       this.reportLineageRendered();
@@ -216,10 +364,14 @@ export class NewLineagePanel
     try {
       const event = this.queryManifestService.getEventByCurrentProject()?.event;
       const nodeCount = event ? [...event.nodeMetaMap.nodes()].length : 0;
+      // An error still stands, so the graph comes from the last good parse.
+      const stale = this.findBlockingDiagnostic() !== undefined;
       const properties: { [key: string]: string } = {
         nodeCountBucket: nodeCountBucket(nodeCount),
-        // An error still stands, so the graph comes from the last good parse.
-        staleManifest: String(this.findBlockingDiagnostic() !== undefined),
+        staleManifest: String(stale),
+        manifestAgeBucket: stale
+          ? manifestAgeBucket(this.getManifestInfo().writtenAt, Date.now())
+          : "none",
         errorKindsBefore:
           [...this.reportedErrorKinds].sort().join(",") || "none",
       };
@@ -251,6 +403,10 @@ export class NewLineagePanel
 
     if (command === "openProblemsTab") {
       commands.executeCommand("workbench.action.problems.focus");
+      return;
+    }
+    if (command === "lineageBannerAction") {
+      await this.runBannerAction(args.action, args.params);
       return;
     }
     if (command === "upstreamTables") {
@@ -833,6 +989,148 @@ export class NewLineagePanel
     }
 
     return { message, type: "warning" };
+  }
+
+  private getStaleGraphBanner(): StaleGraphBanner | undefined {
+    try {
+      // Not findBlockingDiagnostic(): it turns a failed lookup into an error to
+      // show, and a failed lookup says nothing about the manifest.
+      const project = this.drawnFrom?.project;
+      const blocking = project?.getBlockingDiagnostic();
+      // Diagnostics change often; read the manifest's date only when needed.
+      if (!this.graphDrawn || !blocking) {
+        return undefined;
+      }
+      return staleGraphBanner({
+        graphDrawn: this.graphDrawn,
+        blocking,
+        manifest: this.getManifestInfo(),
+        projectName: project?.getProjectName(),
+        canReparse: this.reparseAvailable,
+        now: Date.now(),
+      });
+    } catch (error) {
+      // The graph is drawn either way; the banner is extra.
+      this.dbtTerminal.debug(
+        "Lineage:getStaleGraphBanner",
+        "Could not build the stale-graph banner",
+        error,
+      );
+      return undefined;
+    }
+  }
+
+  // Where the drawn manifest came from and when it was written.
+  private getManifestInfo(): StaleGraphInput["manifest"] {
+    const project = this.drawnFrom?.project;
+    const fromDisk = this.drawnFrom?.event?.staleManifest;
+    let manifestPath = fromDisk?.manifestPath ?? project?.getManifestPath();
+    if (manifestPath && project && !path.isAbsolute(manifestPath)) {
+      manifestPath = path.join(project.projectRoot.fsPath, manifestPath);
+    }
+    let writtenAt = fromDisk?.writtenAt;
+    if (writtenAt === undefined && manifestPath) {
+      try {
+        writtenAt = statSync(manifestPath).mtimeMs;
+      } catch {
+        // No file to date the graph by; the banner leaves the age out.
+      }
+    }
+    const relative =
+      manifestPath && project
+        ? path.relative(project.projectRoot.fsPath, manifestPath)
+        : undefined;
+    return {
+      readFromDisk: fromDisk !== undefined,
+      path:
+        relative && !relative.startsWith("..") && !path.isAbsolute(relative)
+          ? relative.split(path.sep).join("/")
+          : manifestPath,
+      writtenAt,
+    };
+  }
+
+  private async runBannerAction(
+    action: StaleGraphActionId,
+    params?: { path?: string; line?: number; package?: string },
+  ) {
+    try {
+      switch (action) {
+        case "openFile": {
+          const project =
+            this.drawnFrom?.project ?? this.queryManifestService.getProject();
+          const file = String(params?.path);
+          const located = project
+            ? locateErrorFile(
+                file,
+                params?.package,
+                project.projectRoot.fsPath,
+                this.listPackages(project),
+                (filePath) => this.fileExists(filePath),
+              )
+            : file;
+          if (located === undefined) {
+            throw new Error(
+              params?.package
+                ? `${file} wasn't found in the package ${params.package}`
+                : `${file} wasn't found in the project or its packages`,
+            );
+          }
+          const line = Math.max((params?.line ?? 1) - 1, 0);
+          await window.showTextDocument(Uri.file(located), {
+            selection: new Range(line, 0, line, 0),
+          });
+          return;
+        }
+        case "showProblems":
+          await commands.executeCommand("workbench.action.problems.focus");
+          return;
+        case "tryAgain":
+          await commands.executeCommand(
+            REPARSE_PROJECT_COMMAND,
+            (this.drawnFrom?.project ?? this.queryManifestService.getProject())
+              ?.projectRoot,
+          );
+          return;
+      }
+    } catch (error) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Could not run the lineage action: " + (error as Error).message,
+        ),
+      );
+    }
+  }
+
+  private fileExists(filePath: string): boolean {
+    return existsSync(filePath);
+  }
+
+  // The installed packages, each with the name from its dbt_project.yml.
+  private listPackages(project: DBTProject): { dir: string; name?: string }[] {
+    const installPath = project.getPackageInstallPath();
+    if (!installPath) {
+      return [];
+    }
+    const root = path.isAbsolute(installPath)
+      ? installPath
+      : path.join(project.projectRoot.fsPath, installPath);
+    try {
+      return readdirSync(root, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => {
+          const dir = path.join(root, entry.name);
+          try {
+            const yml = readFileSync(path.join(dir, "dbt_project.yml"), "utf8");
+            const name = /^name:\s*["']?([A-Za-z0-9_]+)/m.exec(yml)?.[1];
+            return { dir, name };
+          } catch {
+            return { dir };
+          }
+        });
+    } catch {
+      return [];
+    }
   }
 
   private findBlockingDiagnostic():
