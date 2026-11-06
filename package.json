@@ -720,6 +720,12 @@
         "icon": "$(clear-all)"
       },
       {
+        "command": "dbtPowerUser.reparseProject",
+        "title": "Re-parse project",
+        "category": "Power User for dbt",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "dbtPowerUser.printEnvVars",
         "title": "Print environment variables",
         "category": "Power User for dbt",
@@ -1295,7 +1301,7 @@
     "altimateai.vscode-altimate-mcp-server"
   ],
   "dependencies": {
-    "@altimateai/dbt-integration": "^0.3.16",
+    "@altimateai/dbt-integration": "^0.3.17",
     "@jupyterlab/coreutils": "^6.2.4",
     "@jupyterlab/nbformat": "^4.2.4",
     "@jupyterlab/services": "^7.0.0",
