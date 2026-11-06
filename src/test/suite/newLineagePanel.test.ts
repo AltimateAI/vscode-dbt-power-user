@@ -6,6 +6,8 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import { commands, Uri, window, workspace } from "vscode";
 import {
@@ -1255,6 +1257,60 @@ describe("NewLineagePanel — stale-graph banner", () => {
       [REPARSE_PROJECT_COMMAND, { fsPath: "/ws" }],
     ]);
     delete (window as any).showTextDocument;
+  });
+
+  describe("a project that failed at startup", () => {
+    const message = (node: string) =>
+      `dbt configuration is invalid : Compilation Error\n  Model '${node}' (models/orders.sql) depends on a node named 'x' which was not found`;
+    let root: string;
+
+    const openAction = () =>
+      posted("render")[0].args.lineageBanner.actions.find(
+        (action: { id: string }) => action.id === "openFile",
+      );
+
+    beforeEach(() => {
+      root = fs.mkdtempSync(path.join(os.tmpdir(), "stale-graph-"));
+      fs.writeFileSync(
+        path.join(root, "dbt_project.yml"),
+        "name: 'jaffle_shop'\n",
+      );
+      (panel as any).queryManifestService.getProject = jest.fn(() => ({
+        projectRoot: { fsPath: root },
+        // The integration's placeholder until the project initializes.
+        getProjectName: () => "unknown_1234",
+        getBlockingDiagnostic: () => blocking,
+        getManifestPath: () => path.join(root, "target", "manifest.json"),
+      }));
+      event = graphEvent();
+    });
+
+    afterEach(() => {
+      fs.rmSync(root, { recursive: true, force: true });
+    });
+
+    it("takes a file of the root project as the root project's", () => {
+      blocking = {
+        message: message("model.jaffle_shop.orders"),
+        category: "project-config",
+      };
+      panel.eventMapChanged(new Map());
+
+      expect(openAction().args).toEqual({
+        path: "models/orders.sql",
+        line: undefined,
+      });
+    });
+
+    it("still names the package for a file of a package", () => {
+      blocking = {
+        message: message("model.dbt_utils.orders"),
+        category: "project-config",
+      };
+      panel.eventMapChanged(new Map());
+
+      expect(openAction().args.package).toBe("dbt_utils");
+    });
   });
 
   it("opens a file from the package dbt names, and says so when it can't place one", async () => {

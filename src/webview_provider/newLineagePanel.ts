@@ -1005,7 +1005,7 @@ export class NewLineagePanel
         graphDrawn: this.graphDrawn,
         blocking,
         manifest: this.getManifestInfo(),
-        projectName: project?.getProjectName(),
+        projectName: this.rootProjectName(project),
         canReparse: this.reparseAvailable,
         now: Date.now(),
       });
@@ -1120,17 +1120,30 @@ export class NewLineagePanel
         .filter((entry) => entry.isDirectory())
         .map((entry) => {
           const dir = path.join(root, entry.name);
-          try {
-            const yml = readFileSync(path.join(dir, "dbt_project.yml"), "utf8");
-            const name = /^name:\s*["']?([A-Za-z0-9_]+)/m.exec(yml)?.[1];
-            return { dir, name };
-          } catch {
-            return { dir };
-          }
+          return { dir, name: this.readProjectName(dir) };
         });
     } catch {
       return [];
     }
+  }
+
+  private readProjectName(dir: string): string | undefined {
+    try {
+      const yml = readFileSync(path.join(dir, "dbt_project.yml"), "utf8");
+      return /^name:\s*["']?([A-Za-z0-9_]+)/m.exec(yml)?.[1];
+    } catch {
+      return undefined;
+    }
+  }
+
+  // The project's name in dbt_project.yml. The integration only learns it once
+  // the project initializes, which a project that fails at startup never does.
+  private rootProjectName(project?: DBTProject): string | undefined {
+    return (
+      project &&
+      (this.readProjectName(project.projectRoot.fsPath) ??
+        project.getProjectName())
+    );
   }
 
   private findBlockingDiagnostic():
