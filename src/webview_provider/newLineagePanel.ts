@@ -3,6 +3,7 @@ import {
   ExposureMetaData,
   FunctionMetaData,
   NodeMetaData,
+  PythonException,
   Ref,
   RelationshipParser,
   RESOURCE_TYPE_FUNCTION,
@@ -540,14 +541,22 @@ export class NewLineagePanel
           args: { id, syncRequestId, body, status: !!body },
         });
       } catch (error) {
+        // A Python error's message is its whole traceback; dbt's own message
+        // (such as "the dbt project is not initialized") is the last line.
+        // When that is empty (a bare `assert`), the traceback names the error.
+        const message =
+          error instanceof PythonException
+            ? error.exception?.message || error.message
+            : (error as Error).message;
         window.showErrorMessage(
-          extendErrorWithSupportLinks(
-            "Unable to generate lineage: " + (error as Error).message,
-          ),
+          extendErrorWithSupportLinks("Unable to generate lineage: " + message),
         );
+        // The webview matches a reply to its request by `syncRequestId`.
+        // Without it the column trace never ends, and neither does the
+        // "Retrieving column level lineage" notification.
         this._panel?.webview.postMessage({
           command: "response",
-          args: { id, error, status: false },
+          args: { id, syncRequestId, error: message, status: false },
         });
         this.telemetry.sendTelemetryError("columnLineageUnknownError", {
           params,

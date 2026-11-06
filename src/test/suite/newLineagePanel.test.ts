@@ -1,3 +1,4 @@
+import { PythonException } from "@altimateai/dbt-integration";
 import {
   afterEach,
   beforeEach,
@@ -160,6 +161,122 @@ describe("NewLineagePanel", () => {
           }),
         }),
       );
+    });
+  });
+
+  describe("getConnectedColumns — a trace that fails", () => {
+    const reason =
+      "dbt project is not initialized: Could not find profile named 'jaffle_shop_duckdb'";
+
+    beforeEach(() => {
+      (panel as any).dbtLineageService = {
+        getConnectedColumns: jest
+          .fn<any>()
+          .mockRejectedValue(new Error(reason)),
+      };
+      (panel as any).telemetry = { sendTelemetryError: jest.fn() };
+    });
+
+    it("answers the webview's request with the reason, so the trace ends", async () => {
+      await (panel as any).handleCommand({
+        command: "getConnectedColumns",
+        args: { params: { targets: [["model.p.customers", "customer_id"]] } },
+        syncRequestId: "cll-1",
+      });
+
+      // The webview settles a request only when the reply carries its id.
+      expect(mockPostMessage).toHaveBeenCalledWith({
+        command: "response",
+        args: {
+          id: "cll-1",
+          syncRequestId: "cll-1",
+          error: reason,
+          status: false,
+        },
+      });
+      expect(window.showErrorMessage).toHaveBeenCalledWith(
+        expect.stringContaining(`Unable to generate lineage: ${reason}`),
+      );
+    });
+
+    it("says dbt's message, not the Python traceback", async () => {
+      const dbtMessage =
+        "Cannot resolve model reference: the dbt project is not initialized.";
+      (panel as any).dbtLineageService.getConnectedColumns.mockRejectedValue(
+        new PythonException({
+          format: [
+            "Traceback (most recent call last):\n",
+            '  File "node_python_bridge.py", line 114, in <module>\n',
+            `Exception: ${dbtMessage}\n`,
+          ],
+          exception: {
+            message: dbtMessage,
+            args: [dbtMessage],
+            type: { name: "Exception", module: "builtins" },
+            format: [`Exception: ${dbtMessage}\n`],
+          },
+        }),
+      );
+
+      await (panel as any).handleCommand({
+        command: "getConnectedColumns",
+        args: { params: { targets: [["model.p.customers", "customer_id"]] } },
+        syncRequestId: "cll-2",
+      });
+
+      expect(mockPostMessage).toHaveBeenCalledWith({
+        command: "response",
+        args: {
+          id: "cll-2",
+          syncRequestId: "cll-2",
+          error: dbtMessage,
+          status: false,
+        },
+      });
+      const calls = (window.showErrorMessage as jest.Mock).mock.calls;
+      const shown = calls[calls.length - 1][0] as string;
+      expect(shown).toContain(`Unable to generate lineage: ${dbtMessage}`);
+      expect(shown).not.toContain("Traceback");
+    });
+
+    it("falls back to the traceback when Python's message is empty", async () => {
+      // A bare `assert` in Python: str(e) is "", so only the traceback names it.
+      const failure = new PythonException({
+        format: [
+          "Traceback (most recent call last):\n",
+          '  File "node_python_bridge.py", line 114, in <module>\n',
+          "AssertionError\n",
+        ],
+        exception: {
+          message: "",
+          args: [],
+          type: { name: "AssertionError", module: "builtins" },
+          format: ["AssertionError\n"],
+        },
+      });
+      (panel as any).dbtLineageService.getConnectedColumns.mockRejectedValue(
+        failure,
+      );
+
+      await (panel as any).handleCommand({
+        command: "getConnectedColumns",
+        args: { params: { targets: [["model.p.customers", "customer_id"]] } },
+        syncRequestId: "cll-3",
+      });
+
+      expect(mockPostMessage).toHaveBeenCalledWith({
+        command: "response",
+        args: {
+          id: "cll-3",
+          syncRequestId: "cll-3",
+          error: failure.message,
+          status: false,
+        },
+      });
+      const calls = (window.showErrorMessage as jest.Mock).mock.calls;
+      const shown = calls[calls.length - 1][0] as string;
+      expect(shown).toContain("Unable to generate lineage: Traceback");
+      expect(shown).toContain("AssertionError");
     });
   });
 
@@ -1262,6 +1379,60 @@ describe("NewLineagePanel — stale-graph banner", () => {
       [REPARSE_PROJECT_COMMAND, { fsPath: "/ws" }],
     ]);
     delete (window as any).showTextDocument;
+  });
+
+  describe("a project that failed at startup", () => {
+    const message = (node: string) =>
+      `dbt configuration is invalid : Compilation Error\n  Model '${node}' (models/orders.sql) depends on a node named 'x' which was not found`;
+    let root: string;
+
+    const openAction = () =>
+      posted("render")[0].args.lineageBanner.actions.find(
+        (action: { id: string }) => action.id === "openFile",
+      );
+
+    beforeEach(() => {
+      root = fs.mkdtempSync(path.join(os.tmpdir(), "stale-graph-"));
+      fs.writeFileSync(
+        path.join(root, "dbt_project.yml"),
+        "name: 'jaffle_shop'\n",
+      );
+      (panel as any).queryManifestService.getProject = jest.fn(() => ({
+        projectRoot: { fsPath: root },
+        // The integration's placeholder until the project initializes.
+        getProjectName: () => "unknown_1234",
+        getBlockingDiagnostic: () => blocking,
+        getManifestPath: () => path.join(root, "target", "manifest.json"),
+      }));
+      event = graphEvent();
+    });
+
+    afterEach(() => {
+      fs.rmSync(root, { recursive: true, force: true });
+    });
+
+    it("takes a file of the root project as the root project's", () => {
+      blocking = {
+        message: message("model.jaffle_shop.orders"),
+        category: "project-config",
+      };
+      panel.eventMapChanged(new Map());
+
+      expect(openAction().args).toEqual({
+        path: "models/orders.sql",
+        line: undefined,
+      });
+    });
+
+    it("still names the package for a file of a package", () => {
+      blocking = {
+        message: message("model.dbt_utils.orders"),
+        category: "project-config",
+      };
+      panel.eventMapChanged(new Map());
+
+      expect(openAction().args.package).toBe("dbt_utils");
+    });
   });
 
   it("opens a file from the package dbt names, and says so when it can't place one", async () => {
