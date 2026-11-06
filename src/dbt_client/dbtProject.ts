@@ -2000,6 +2000,16 @@ export class DBTProject implements Disposable {
     }
   }
 
+  /** The interpreter dbt runs in, when the Python extension has one. */
+  getPythonPath(): string | undefined {
+    return this.PythonEnvironment.pythonPath;
+  }
+
+  /** DBT_PROFILES_DIR as dbt's Python process sees it. */
+  getProfilesDirEnv(): string | undefined {
+    return this.PythonEnvironment.environmentVariables.DBT_PROFILES_DIR;
+  }
+
   /**
    * The first error that stops this project from working, with the category of
    * diagnostics it came from (`project-config` for the configuration check,
