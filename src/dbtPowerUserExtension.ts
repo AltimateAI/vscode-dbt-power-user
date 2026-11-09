@@ -21,6 +21,12 @@ import { DbtPowerUserMcpServer } from "./mcp";
 import { DbtPowerUserActionsCenter } from "./quickpick";
 import { AltimateAuthService } from "./services/altimateAuthService";
 import {
+  AltimateConnectService,
+  AUTH_CALLBACK_PATH,
+  SETUP_CALLBACK_PATH,
+  WORKSPACE_CALLBACK_PATH,
+} from "./services/altimateConnectService";
+import {
   clearCachedCredits,
   fetchAndCacheCredits,
   handleExecutionsExhausted,
@@ -99,6 +105,7 @@ export class DBTPowerUserExtension implements Disposable {
     private altimateRequest: AltimateRequest,
     private altimateAuthService: AltimateAuthService,
     private whatsNewPanel: WhatsNewPanel,
+    private altimateConnectService: AltimateConnectService,
   ) {
     this.disposables.push(
       this.dbtProjectContainer,
@@ -119,6 +126,7 @@ export class DBTPowerUserExtension implements Disposable {
       this.notebookProviders,
       this.mcpServer,
       this.whatsNewPanel,
+      this.altimateConnectService,
     );
   }
 
@@ -175,10 +183,17 @@ export class DBTPowerUserExtension implements Disposable {
       });
 
       const telemetry = this.telemetry;
+      const altimateConnectService = this.altimateConnectService;
       context.subscriptions.push(
         window.registerUriHandler({
           handleUri(uri: Uri): void {
-            if (uri.path === "/troubleshoot") {
+            if (
+              uri.path === AUTH_CALLBACK_PATH ||
+              uri.path === SETUP_CALLBACK_PATH ||
+              uri.path === WORKSPACE_CALLBACK_PATH
+            ) {
+              void altimateConnectService.handleUri(uri);
+            } else if (uri.path === "/troubleshoot") {
               const params = new URLSearchParams(uri.query);
               const errorMessage = params.get("error") ?? "";
               const source = params.get("source") ?? "dbt";

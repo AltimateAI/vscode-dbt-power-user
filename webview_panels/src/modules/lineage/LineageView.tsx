@@ -17,8 +17,13 @@ import { useEffect, useState } from "react";
 import ActionWidget from "./ActionWidget";
 import DemoButton from "./components/demo/DemoButton";
 import styles from "./lineage.module.scss";
+import StaleGraphChip from "./StaleGraphChip";
 import "./tailwind-globals.css";
-import { MissingLineageMessage, StaticLineageProps } from "./types";
+import {
+  LineageBanner as LineageBannerState,
+  MissingLineageMessage,
+  StaticLineageProps,
+} from "./types";
 
 const LineageView = (): JSX.Element | null => {
   const {
@@ -35,6 +40,7 @@ const LineageView = (): JSX.Element | null => {
   const [missingLineageMessage, setMissingLineageMessage] = useState<
     MissingLineageMessage | undefined
   >();
+  const [banner, setBanner] = useState<LineageBannerState | undefined>();
 
   useEffect(() => {
     if (!isComponentsApiInitialized) {
@@ -88,9 +94,11 @@ const LineageView = (): JSX.Element | null => {
       node?: Table;
       aiEnabled: boolean;
       missingLineageMessage?: MissingLineageMessage;
+      lineageBanner?: LineageBannerState;
     } & StaticLineageProps,
   ) => {
     setMissingLineageMessage(data.missingLineageMessage);
+    setBanner(data.lineageBanner);
     const event = new CustomEvent("renderStartNode", {
       detail: {
         ...data,
@@ -112,6 +120,10 @@ const LineageView = (): JSX.Element | null => {
   useEffect(() => {
     const commandMap = {
       render,
+      // The out-of-date notice changed while the graph stays as drawn.
+      lineageBanner: (data: { banner?: LineageBannerState }) => {
+        setBanner(data.banner);
+      },
       columnLineage: (data: { event: CllEvents }) => {
         columnLineage(data);
       },
@@ -154,6 +166,10 @@ const LineageView = (): JSX.Element | null => {
           aiEnabled={renderNode.aiEnabled}
           lineageType={lineageType}
         />
+        {/* Beside the toolbar, over the graph; the graph keeps the panel. */}
+        {lineageType === "dynamic" && banner ? (
+          <StaleGraphChip banner={banner} />
+        ) : null}
         {lineageType === "sql" ? null : (
           <div className="bottom-right-container">
             <DemoButton />
