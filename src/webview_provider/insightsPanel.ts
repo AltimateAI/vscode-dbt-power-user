@@ -66,7 +66,7 @@ const HEALTHCHECK_NEEDS = "The project healthcheck needs";
 // datapilot validates the manifest against the dbt 1.x schema, which rejects
 // the manifests dbt Fusion writes.
 export const HEALTHCHECK_FUSION_MESSAGE =
-  "The project healthcheck is not available in dbt Fusion mode yet. It runs altimate-datapilot-cli, and the current datapilot release cannot read the dbt 2.x manifests that dbt Fusion writes.";
+  "The project healthcheck isn't available in dbt Fusion mode yet: altimate-datapilot-cli can't read the manifests dbt Fusion writes in the versions we've tested.";
 
 export class InsightsPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.Insights";
@@ -504,6 +504,21 @@ export class InsightsPanel extends AltimateWebviewProvider {
     syncRequestId: string | undefined,
     args: DataPilotHealtCheckParams,
   ) {
+    // dbt Fusion first: the healthcheck cannot run there even with Python.
+    if (
+      this.dbtProjectContainer
+        .getProjects()
+        .find((p) => p.projectRoot.fsPath === args.projectRoot)
+        ?.isFusionIntegration()
+    ) {
+      stampBlocked(
+        this.telemetry,
+        "performDatapilotHealthcheck",
+        "fusionManifest",
+      );
+      this.postHealthcheckNotice(syncRequestId, HEALTHCHECK_FUSION_MESSAGE);
+      return;
+    }
     const missingPython = findMissingPython(
       this.dbtProjectContainer.getPythonEnvironment(),
     );
@@ -518,20 +533,6 @@ export class InsightsPanel extends AltimateWebviewProvider {
         missingPythonMessage(HEALTHCHECK_NEEDS, missingPython),
       );
       void promptForPython(HEALTHCHECK_NEEDS, missingPython);
-      return;
-    }
-    if (
-      this.dbtProjectContainer
-        .getProjects()
-        .find((p) => p.projectRoot.fsPath === args.projectRoot)
-        ?.isFusionIntegration()
-    ) {
-      stampBlocked(
-        this.telemetry,
-        "performDatapilotHealthcheck",
-        "fusionManifest",
-      );
-      this.postHealthcheckNotice(syncRequestId, HEALTHCHECK_FUSION_MESSAGE);
       return;
     }
     try {
