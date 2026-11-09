@@ -904,12 +904,51 @@ describe("DBTProject Test Suite", () => {
       expect(mockExecutionInfrastructure.closePythonBridge).toHaveBeenCalled();
     });
 
-    it("validates SQL in dbt Fusion mode without starting a Python bridge", async () => {
+    const fusionProject = () => {
       (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
-        get: jest.fn((key: string) =>
-          key === "dbtIntegration" ? "fusion" : undefined,
+        get: jest.fn((key: string, fallback?: unknown) =>
+          key === "dbtIntegration" ? "fusion" : fallback,
         ),
       });
+      const projectUri = vscode.Uri.file("/test/project");
+      return new DBTProject(
+        mockPythonEnvironment,
+        dbtProjectLogFactory as any,
+        mockCommandFactory,
+        mockTerminal,
+        mockSharedStateService,
+        mockTelemetry,
+        mockExecutionInfrastructure,
+        jest.fn().mockReturnValue(mockProjectIntegration) as any,
+        mockAltimate,
+        mockValidationProvider,
+        mockAltimateAuthService,
+        mockRunHistoryService,
+        projectUri,
+        {},
+        mockManifestChangedEmitter,
+      );
+    };
+
+    it("keeps the mode it was created with when the setting changes afterwards", async () => {
+      const project = fusionProject();
+      // The window can be switched to another mode without the setting changing.
+      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+        get: jest.fn((key: string) =>
+          key === "dbtIntegration" ? "core" : undefined,
+        ),
+      });
+      mockExecutionInfrastructure.createPythonBridge.mockClear();
+      await project
+        .validateSql({ sql: "SELECT 1", dialect: "duckdb", models: [] })
+        .catch(() => undefined);
+      expect(
+        mockExecutionInfrastructure.createPythonBridge,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("validates SQL in dbt Fusion mode without starting a Python bridge", async () => {
+      dbtProject = fusionProject();
       // Only the bridges this validation starts count.
       mockExecutionInfrastructure.createPythonBridge.mockClear();
       mockExecutionInfrastructure.closePythonBridge.mockClear();
