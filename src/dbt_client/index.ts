@@ -15,8 +15,13 @@ const INSTALL_DBT_FUSION = "Install dbt Fusion";
 const TROUBLESHOOT = "Troubleshoot";
 
 /** dbt Core and its command-line mode run through a Python interpreter; dbt Fusion and the dbt Cloud CLI don't. */
+/**
+ * Every mode but dbt Fusion runs dbt from the selected Python interpreter:
+ * dbt Core through the bridge or its console script, the dbt Cloud CLI from
+ * the interpreter's environment. Fusion is a native binary.
+ */
 export function integrationNeedsPython(dbtIntegrationMode: string): boolean {
-  return dbtIntegrationMode === "core" || dbtIntegrationMode === "corecommand";
+  return dbtIntegrationMode !== "fusion";
 }
 
 export class DBTClient implements Disposable {
@@ -150,7 +155,7 @@ export class DBTClient implements Disposable {
 
   private async promptToInstallPythonExtension() {
     const answer = await window.showErrorMessage(
-      "dbt Core runs through the Python extension, which is not installed. Install it, or switch dbt.dbtIntegration to fusion to use dbt Fusion without Python.",
+      "dbt Core and the dbt Cloud CLI run through the Python extension, which is not installed. Install it, or switch dbt.dbtIntegration to fusion to use dbt Fusion without Python.",
       INSTALL_PYTHON_EXTENSION,
       TROUBLESHOOT,
     );

@@ -133,6 +133,23 @@ describe("DBTClient without the Python extension", () => {
     expect(window.showErrorMessage).not.toHaveBeenCalled();
   });
 
+  // The dbt Cloud CLI runs from the interpreter's environment, as on master.
+  it("offers to install the Python extension in cloud mode too", async () => {
+    useSettings({ dbtIntegration: "cloud" });
+    (window.showErrorMessage as jest.Mock).mockReturnValueOnce(
+      Promise.resolve("Install Python extension"),
+    );
+    await client(false);
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(messages()).toEqual([
+      expect.stringContaining("Python extension, which is not installed"),
+    ]);
+    expect(commands.executeCommand).toHaveBeenCalledWith(
+      "workbench.extensions.installExtension",
+      "ms-python.python",
+    );
+  });
+
   it("offers to install the Python extension in core mode", async () => {
     useSettings({ dbtIntegration: "core" });
     (window.showErrorMessage as jest.Mock).mockReturnValueOnce(
@@ -205,6 +222,22 @@ describe("dbtSetupDiagnostics", () => {
       lines: [
         "The Python extension is not installed",
         "Can't proceed further: dbt core mode needs the Python extension",
+      ],
+      proceed: false,
+    });
+    expect(findBinary).not.toHaveBeenCalled();
+  });
+
+  it("stops in cloud mode without the Python extension, like core", async () => {
+    const findBinary = jest.fn(() => Promise.resolve(undefined));
+    const report = await dbtSetupDiagnostics(
+      { ...base, dbtIntegrationMode: "cloud", dbtInstalled: false },
+      findBinary,
+    );
+    expect(report).toEqual({
+      lines: [
+        "The Python extension is not installed",
+        "Can't proceed further: dbt cloud mode needs the Python extension",
       ],
       proceed: false,
     });
