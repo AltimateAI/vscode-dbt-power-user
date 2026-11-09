@@ -239,7 +239,7 @@ describe("InsightsPanel healthcheck gates", () => {
     expect(lastBody()).toEqual({
       notice: {
         message:
-          "The project healthcheck is not available in dbt Fusion mode yet. It runs altimate-datapilot-cli, and the current datapilot release cannot read the dbt 2.x manifests that dbt Fusion writes.",
+          "The project healthcheck isn't available in dbt Fusion mode yet: altimate-datapilot-cli can't read the manifests dbt Fusion writes in the versions we've tested.",
       },
     });
     expect(sendTelemetryEvent).toHaveBeenCalledWith(
@@ -247,6 +247,24 @@ describe("InsightsPanel healthcheck gates", () => {
       { blockedBy: "fusionManifest" },
     );
     expect(window.showErrorMessage).not.toHaveBeenCalled();
+    expectHealthcheckNotStarted();
+  });
+
+  it("tells a dbt Fusion user first, without asking for Python", async () => {
+    isFusionIntegration.mockReturnValue(true);
+    pythonEnvironment.pythonPath = "";
+
+    await scan();
+
+    expect(lastBody().notice.message).toContain(
+      "isn't available in dbt Fusion mode yet",
+    );
+    expect(window.showErrorMessage).not.toHaveBeenCalled();
+    expect(sendTelemetryEvent).toHaveBeenCalledTimes(1);
+    expect(sendTelemetryEvent).toHaveBeenCalledWith(
+      "performDatapilotHealthcheck",
+      { blockedBy: "fusionManifest" },
+    );
     expectHealthcheckNotStarted();
   });
 
@@ -259,7 +277,7 @@ describe("InsightsPanel healthcheck gates", () => {
     await expect(scan()).resolves.toBeUndefined();
 
     expect(postMessage).toHaveBeenCalledTimes(1);
-    expect(lastBody().notice.message).toContain("dbt 2.x manifests");
+    expect(lastBody().notice.message).toContain("dbt Fusion mode");
   });
 
   it("runs the healthcheck with an interpreter outside dbt Fusion", async () => {
