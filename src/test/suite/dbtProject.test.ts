@@ -510,12 +510,22 @@ describe("DBTProject Test Suite", () => {
 
       it("starts the integration when dbt.dbtPythonPathOverride names an interpreter", async () => {
         withMode("cloud");
-        noExtension("/venv/bin/python");
+        noExtension(process.execPath);
         dbtProject = makeProject();
 
         await dbtProject.initialize();
 
         expect(mockProjectIntegration.initialize).toHaveBeenCalled();
+      });
+
+      it("doesn't start the integration when dbt.dbtPythonPathOverride names a missing interpreter", async () => {
+        withMode("cloud");
+        noExtension("/gone/.venv/bin/python");
+        dbtProject = makeProject();
+
+        await dbtProject.initialize();
+
+        expect(mockProjectIntegration.initialize).not.toHaveBeenCalled();
       });
     });
 

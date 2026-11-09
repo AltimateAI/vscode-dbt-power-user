@@ -100,10 +100,15 @@ describe("PythonEnvironment without the Python extension", () => {
 });
 
 describe("DBTClient without the Python extension", () => {
+  let detections = 0;
   async function client(dbtInstalled: boolean) {
+    detections = 0;
     const env = new PythonEnvironment(terminal());
     const dbtClient = new DBTClient(env, () => ({
-      detectDBT: () => Promise.resolve(dbtInstalled),
+      detectDBT: () => {
+        detections++;
+        return Promise.resolve(dbtInstalled);
+      },
     }));
     await dbtClient.detectDBT();
     return dbtClient;
@@ -129,6 +134,7 @@ describe("DBTClient without the Python extension", () => {
   it("shows nothing in fusion mode when dbt Fusion is installed", async () => {
     useSettings({ dbtIntegration: "fusion" });
     const dbtClient = await client(true);
+    expect(detections).toBe(1);
     expect(dbtClient.dbtInstalled).toBe(true);
     expect(window.showErrorMessage).not.toHaveBeenCalled();
   });
@@ -191,10 +197,33 @@ describe("DBTClient without the Python extension", () => {
     expect(messages()).toHaveLength(1);
   });
 
-  it("still detects the dbt Cloud CLI when dbt.dbtPythonPathOverride names an interpreter", async () => {
+  it.each(["cloud", "core"])(
+    "still detects dbt in %s mode when dbt.dbtPythonPathOverride names an interpreter",
+    async (dbtIntegration) => {
+      useSettings({
+        dbtIntegration,
+        dbtPythonPathOverride: process.execPath,
+      });
+      const detectDBT = jest.fn(() => Promise.resolve(true));
+      const dbtClient = new DBTClient(
+        new PythonEnvironment(terminal()),
+        () => ({
+          detectDBT,
+        }),
+      );
+      await dbtClient.detectDBT();
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(detectDBT).toHaveBeenCalled();
+      expect(dbtClient.dbtInstalled).toBe(true);
+      expect(window.showErrorMessage).not.toHaveBeenCalled();
+    },
+  );
+
+  it("doesn't detect the dbt Cloud CLI when dbt.dbtPythonPathOverride names a missing interpreter", async () => {
     useSettings({
       dbtIntegration: "cloud",
-      dbtPythonPathOverride: process.execPath,
+      dbtPythonPathOverride: "/gone/.venv/bin/python",
     });
     const detectDBT = jest.fn(() => Promise.resolve(true));
     const dbtClient = new DBTClient(new PythonEnvironment(terminal()), () => ({
@@ -203,9 +232,11 @@ describe("DBTClient without the Python extension", () => {
     await dbtClient.detectDBT();
     await new Promise((resolve) => setImmediate(resolve));
 
-    expect(detectDBT).toHaveBeenCalled();
-    expect(dbtClient.dbtInstalled).toBe(true);
-    expect(window.showErrorMessage).not.toHaveBeenCalled();
+    expect(detectDBT).not.toHaveBeenCalled();
+    expect(dbtClient.dbtInstalled).toBe(false);
+    expect(messages()).toEqual([
+      expect.stringContaining("Python extension, which is not installed"),
+    ]);
   });
 
   it("offers to install the Python extension in core mode", async () => {

@@ -25,20 +25,21 @@ export function integrationNeedsPython(dbtIntegrationMode: string): boolean {
 }
 
 /**
- * The mode runs dbt through Python, and nothing can supply an interpreter:
- * the Python extension, which selects it, is missing and
- * `dbt.dbtPythonPathOverride` is unset. Until the extension is installed, dbt
- * is reported as not installed and projects don't start their integration,
- * as before the extension could activate without the Python extension.
+ * The mode runs dbt through Python, and there is no interpreter: the Python
+ * extension, which selects it, is missing and `dbt.dbtPythonPathOverride`
+ * names no interpreter that exists. Until the extension is installed, dbt is
+ * reported as not installed and projects don't start their integration, as
+ * before the extension could activate without the Python extension.
  */
 export function awaitingPythonExtension(
   dbtIntegrationMode: string,
   pythonEnvironment: PythonEnvironment,
 ): boolean {
+  const pythonPath = pythonEnvironment.pythonPath;
   return (
     integrationNeedsPython(dbtIntegrationMode) &&
     !pythonEnvironment.pythonExtensionAvailable &&
-    !pythonEnvironment.pythonPath
+    !(pythonPath && existsSync(pythonPath))
   );
 }
 
@@ -94,10 +95,7 @@ export class DBTClient implements Disposable {
     this._pythonInstalled = this.pythonPathExists();
     // The dbt Cloud CLI is found on PATH without an interpreter, but every
     // command then needs one: don't report it until the extension is there.
-    this._dbtInstalled = awaitingPythonExtension(
-      this.dbtIntegrationMode(),
-      this.pythonEnvironment,
-    )
+    this._dbtInstalled = this.pythonExtensionMissing()
       ? false
       : await this.dbtDetectionFactory().detectDBT();
     // Refresh cached Python version — by this point the Python extension
@@ -123,15 +121,10 @@ export class DBTClient implements Disposable {
       .get<string>("dbtIntegration", "core");
   }
 
-  /**
-   * The mode runs dbt through Python, and there is no interpreter because the
-   * Python extension, which selects it, is missing.
-   */
   private pythonExtensionMissing(): boolean {
-    return (
-      integrationNeedsPython(this.dbtIntegrationMode()) &&
-      !this.pythonEnvironment.pythonExtensionAvailable &&
-      !this._pythonInstalled
+    return awaitingPythonExtension(
+      this.dbtIntegrationMode(),
+      this.pythonEnvironment,
     );
   }
 
