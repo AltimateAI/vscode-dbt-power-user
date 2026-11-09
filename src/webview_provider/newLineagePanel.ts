@@ -1014,7 +1014,7 @@ export class NewLineagePanel
         graphDrawn: this.graphDrawn,
         blocking,
         manifest: this.getManifestInfo(),
-        projectName: this.rootProjectName(project),
+        projectName: this.rootProjectName(project, blocking.category),
         canReparse: this.reparseAvailable,
         now: Date.now(),
       });
@@ -1145,18 +1145,27 @@ export class NewLineagePanel
     }
   }
 
-  // The root project's name as dbt's errors use it. The integration learns it
-  // when the project's config loads and keeps it while dbt rejects a later
-  // change to dbt_project.yml, as it keeps that rebuild's errors. Until the
-  // first load it has only an "unknown_" placeholder, so read dbt_project.yml.
-  private rootProjectName(project?: DBTProject): string | undefined {
+  // The root project's name as the blocking error uses it. A config-check
+  // error comes from dbt_project.yml as it is now. Any other error comes from
+  // the config the integration last loaded, whose name it keeps while dbt
+  // rejects later changes; before that first load it has only an "unknown_"
+  // placeholder. With no name from either, files count as the root project's.
+  private rootProjectName(
+    project: DBTProject | undefined,
+    category: string | undefined,
+  ): string | undefined {
     if (!project) {
       return undefined;
     }
-    const name = project.getProjectName();
-    return name.startsWith("unknown_")
-      ? this.readProjectName(project.projectRoot.fsPath)
-      : name;
+    const name: unknown = project.getProjectName();
+    const loaded =
+      typeof name === "string" && !name.startsWith("unknown_")
+        ? name
+        : undefined;
+    if (loaded !== undefined && category !== "project-config") {
+      return loaded;
+    }
+    return this.readProjectName(project.projectRoot.fsPath) ?? loaded;
   }
 
   private findBlockingDiagnostic():
