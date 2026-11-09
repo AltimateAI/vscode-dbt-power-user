@@ -129,6 +129,16 @@ export class SqlFmtAvailabilityNotifier implements Disposable {
   // execution via factory, bare-verb success telemetry, `*Error` failure
   // telemetry, error toast on failure.
   private async installSqlFmt(): Promise<void> {
+    // No interpreter to run pip with: dbt Fusion without the Python extension,
+    // or no interpreter selected. Spawning "" fails with a Node argument error.
+    if (!this.pythonEnvironment.pythonPath) {
+      await this.pythonEnvironment.promptForInterpreter(
+        this.pythonEnvironment.pythonExtensionAvailable
+          ? "Installing sqlfmt needs a Python interpreter, and none is selected. Select one to install sqlfmt into it."
+          : "Installing sqlfmt needs a Python interpreter, and the Python extension, which selects one, is not installed. Install it, or set dbt.dbtPythonPathOverride to an interpreter.",
+      );
+      return;
+    }
     const telemetryProps = {
       platform: process.platform,
       pythonPath: this.pythonEnvironment.pythonPath ?? "unknown",

@@ -137,12 +137,23 @@ export class PythonEnvironment {
       }
       return;
     }
-    // "Select Python interpreter" runs the Python extension's picker
-    // (`python.setInterpreter`); without the extension that command does not
-    // exist, so offer the extension, or the override setting, instead.
+    await this.promptForInterpreter(
+      this._pythonExtensionAvailable
+        ? `The selected Python interpreter ${interpreterPath} was not found. It may have been moved or deleted. Select another interpreter to use dbt.`
+        : `The Python interpreter ${interpreterPath} was not found, and the Python extension, which selects interpreters, is not installed. Install it, or set dbt.dbtPythonPathOverride to an interpreter that exists.`,
+    );
+  }
+
+  /**
+   * Shows `message` with the ways to get an interpreter. With the Python
+   * extension: its picker, or detection from the terminal. Without it the
+   * picker (`python.setInterpreter`) does not exist, so: install the
+   * extension, or open `dbt.dbtPythonPathOverride`.
+   */
+  async promptForInterpreter(message: string): Promise<void> {
     if (!this._pythonExtensionAvailable) {
       const answer = await window.showErrorMessage(
-        `The Python interpreter ${interpreterPath} was not found, and the Python extension, which selects interpreters, is not installed. Install it, or set dbt.dbtPythonPathOverride to an interpreter that exists.`,
+        message,
         PythonInterpreterPromptAnswer.INSTALL,
         PythonInterpreterPromptAnswer.OPEN_SETTING,
       );
@@ -167,7 +178,7 @@ export class PythonEnvironment {
       return;
     }
     const answer = await window.showErrorMessage(
-      `The selected Python interpreter ${interpreterPath} was not found. It may have been moved or deleted. Select another interpreter to use dbt.`,
+      message,
       PythonInterpreterPromptAnswer.SELECT,
       PythonInterpreterPromptAnswer.DETECT,
     );
