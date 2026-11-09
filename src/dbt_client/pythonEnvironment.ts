@@ -19,6 +19,8 @@ export enum PythonInterpreterPromptAnswer {
   SELECT = "Select Python interpreter",
   DETECT = "Detect from terminal",
   OPEN_SETTING = "Open setting",
+  INSTALL = "Install Python extension",
+  RELOAD = "Reload window",
 }
 
 type EnvFrom = "process" | "integrated" | "dotenv";
@@ -135,8 +137,38 @@ export class PythonEnvironment {
       }
       return;
     }
+    await this.promptForInterpreter(
+      this._pythonExtensionAvailable
+        ? `The selected Python interpreter ${interpreterPath} was not found. It may have been moved or deleted. Select another interpreter to use dbt.`
+        : `The Python interpreter ${interpreterPath} was not found, and the Python extension, which selects interpreters, is not installed. Install it, or set dbt.dbtPythonPathOverride to an interpreter that exists.`,
+    );
+  }
+
+  /**
+   * Shows `message` with the ways to get an interpreter. With the Python
+   * extension: its picker, or detection from the terminal. Without it the
+   * picker (`python.setInterpreter`) does not exist, so: install the
+   * extension, or open `dbt.dbtPythonPathOverride`.
+   */
+  async promptForInterpreter(message: string): Promise<void> {
+    if (!this._pythonExtensionAvailable) {
+      const answer = await window.showErrorMessage(
+        message,
+        PythonInterpreterPromptAnswer.INSTALL,
+        PythonInterpreterPromptAnswer.OPEN_SETTING,
+      );
+      if (answer === PythonInterpreterPromptAnswer.INSTALL) {
+        await this.installPythonExtension();
+      } else if (answer === PythonInterpreterPromptAnswer.OPEN_SETTING) {
+        commands.executeCommand(
+          "workbench.action.openSettings",
+          "dbt.dbtPythonPathOverride",
+        );
+      }
+      return;
+    }
     const answer = await window.showErrorMessage(
-      `The selected Python interpreter ${interpreterPath} was not found. It may have been moved or deleted. Select another interpreter to use dbt.`,
+      message,
       PythonInterpreterPromptAnswer.SELECT,
       PythonInterpreterPromptAnswer.DETECT,
     );
@@ -144,6 +176,24 @@ export class PythonEnvironment {
       commands.executeCommand("python.setInterpreter");
     } else if (answer === PythonInterpreterPromptAnswer.DETECT) {
       commands.executeCommand("dbtPowerUser.detectPythonFromTerminal");
+    }
+  }
+
+  /**
+   * Installs the Python extension, then offers to reload the window: the
+   * extension is only picked up on activation.
+   */
+  async installPythonExtension(): Promise<void> {
+    await commands.executeCommand(
+      "workbench.extensions.installExtension",
+      "ms-python.python",
+    );
+    const reload = await window.showInformationMessage(
+      "The Python extension is installed. Reload the window to select an interpreter.",
+      PythonInterpreterPromptAnswer.RELOAD,
+    );
+    if (reload === PythonInterpreterPromptAnswer.RELOAD) {
+      commands.executeCommand("workbench.action.reloadWindow");
     }
   }
 

@@ -580,6 +580,10 @@
   border-bottom: 1px solid var(--color-line-soft);
 }
 
+.check[hidden] {
+  display: none;
+}
+
 .checkBlocked {
   opacity: 0.5;
 }

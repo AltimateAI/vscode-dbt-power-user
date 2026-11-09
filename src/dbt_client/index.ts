@@ -16,8 +16,32 @@ const INSTALL_DBT_FUSION = "Install dbt Fusion";
 const TROUBLESHOOT = "Troubleshoot";
 
 /** dbt Core and its command-line mode run through a Python interpreter; dbt Fusion and the dbt Cloud CLI don't. */
+/**
+ * Every mode but dbt Fusion runs dbt from the selected Python interpreter:
+ * dbt Core through the bridge or its console script, the dbt Cloud CLI from
+ * the interpreter's environment. Fusion is a native binary.
+ */
 export function integrationNeedsPython(dbtIntegrationMode: string): boolean {
-  return dbtIntegrationMode === "core" || dbtIntegrationMode === "corecommand";
+  return dbtIntegrationMode !== "fusion";
+}
+
+/**
+ * The mode runs dbt through Python, and there is no interpreter: the Python
+ * extension, which selects it, is missing and `dbt.dbtPythonPathOverride`
+ * names no interpreter that exists. Until the extension is installed, dbt is
+ * reported as not installed and projects don't start their integration, as
+ * before the extension could activate without the Python extension.
+ */
+export function awaitingPythonExtension(
+  dbtIntegrationMode: string,
+  pythonEnvironment: PythonEnvironment,
+): boolean {
+  const pythonPath = pythonEnvironment.pythonPath;
+  return (
+    integrationNeedsPython(dbtIntegrationMode) &&
+    !pythonEnvironment.pythonExtensionAvailable &&
+    !(pythonPath && existsSync(pythonPath))
+  );
 }
 
 export class DBTClient implements Disposable {
@@ -70,7 +94,11 @@ export class DBTClient implements Disposable {
     this.shownError = false;
     this._dbtInstalled = undefined;
     this._pythonInstalled = this.pythonPathExists();
-    this._dbtInstalled = await this.dbtDetectionFactory().detectDBT();
+    // The dbt Cloud CLI is found on PATH without an interpreter, but every
+    // command then needs one: don't report it until the extension is there.
+    this._dbtInstalled = this.pythonExtensionMissing()
+      ? false
+      : await this.dbtDetectionFactory().detectDBT();
     // Refresh cached Python version — by this point the Python extension
     // has settled after an interpreter change
     await this.pythonEnvironment.refreshPythonVersion();
@@ -88,19 +116,27 @@ export class DBTClient implements Disposable {
     }
   }
 
+  private pythonExtensionMissing(): boolean {
+    return awaitingPythonExtension(
+      getDbtIntegrationMode(),
+      this.pythonEnvironment,
+    );
+  }
+
+  private async promptToInstallPythonExtensionOnce() {
+    if (!this.shownError) {
+      this.shownError = true;
+      await this.promptToInstallPythonExtension();
+    }
+  }
+
   async showErrorIfDbtOrPythonNotInstalled() {
     const dbtIntegrationMode = getDbtIntegrationMode();
     if (!integrationNeedsPython(dbtIntegrationMode)) {
       return this.showErrorIfDbtIsNotInstalled();
     }
-    if (
-      !this.pythonEnvironment.pythonExtensionAvailable &&
-      !this._pythonInstalled
-    ) {
-      if (!this.shownError) {
-        this.shownError = true;
-        await this.promptToInstallPythonExtension();
-      }
+    if (this.pythonExtensionMissing()) {
+      await this.promptToInstallPythonExtensionOnce();
       return false;
     }
     if (!this._pythonInstalled) {
@@ -149,7 +185,7 @@ export class DBTClient implements Disposable {
 
   private async promptToInstallPythonExtension() {
     const answer = await window.showErrorMessage(
-      "dbt Core runs through the Python extension, which is not installed. Install it, or switch dbt.dbtIntegration to fusion to use dbt Fusion without Python.",
+      "dbt Core and the dbt Cloud CLI run through the Python extension, which is not installed. Install it, or switch dbt.dbtIntegration to fusion to use dbt Fusion without Python.",
       INSTALL_PYTHON_EXTENSION,
       TROUBLESHOOT,
     );
