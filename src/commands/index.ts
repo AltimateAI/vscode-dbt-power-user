@@ -6,6 +6,7 @@ import {
 import { DatapilotNotebookController, OpenNotebookRequest } from "@lib";
 import { existsSync, readFileSync } from "fs";
 import { inject } from "inversify";
+import { basename } from "path";
 import {
   CancellationTokenSource,
   CodeLens,
@@ -198,7 +199,8 @@ export class VSCodeCommands implements Disposable {
                 cl.command?.command === "dbtPowerUser.profileCtes",
             );
             ctes = profileLens?.command?.arguments?.[1] as
-              CteInfo[] | undefined;
+              | CteInfo[]
+              | undefined;
 
             if (!ctes || ctes.length === 0) {
               window.showInformationMessage(
@@ -445,6 +447,35 @@ export class VSCodeCommands implements Disposable {
 
         dbtProject.buildProject();
       }),
+      // Takes the project's root when the caller knows it (a lineage card's
+      // "Try again"); otherwise the active editor's project, or asks.
+      commands.registerCommand(
+        "dbtPowerUser.reparseProject",
+        async (projectRoot?: Uri) => {
+          const project = projectRoot
+            ? this.dbtProjectContainer.findDBTProject(projectRoot)
+            : await this.queryManifestService.getOrPickProjectFromWorkspace();
+          if (!project) {
+            this.dbtTerminal.debug(
+              "reparseProject",
+              "No dbt project to re-parse",
+              projectRoot?.fsPath,
+            );
+            return;
+          }
+          this.dbtTerminal.debug(
+            "reparseProject",
+            `Re-parsing the project at ${project.projectRoot.fsPath}`,
+          );
+          await window.withProgress(
+            {
+              location: ProgressLocation.Notification,
+              title: `Re-parsing ${basename(project.projectRoot.fsPath)}`,
+            },
+            () => project.reparseProject(),
+          );
+        },
+      ),
       commands.registerCommand("dbtPowerUser.cleanCurrentProject", () => {
         if (!window.activeTextEditor) {
           return;
@@ -524,7 +555,10 @@ export class VSCodeCommands implements Disposable {
         async () => {
           this.eventEmitterService.eventEmitter.fire({
             command: "onboarding:render",
-            payload: { initialStep: "prerequisites" },
+            payload: {
+              initialStep: "prerequisites",
+              source: "setupWalkthrough",
+            },
           });
         },
       ),
@@ -533,7 +567,7 @@ export class VSCodeCommands implements Disposable {
         async () => {
           this.eventEmitterService.eventEmitter.fire({
             command: "onboarding:render",
-            payload: { initialStep: "finish" },
+            payload: { initialStep: "finish", source: "tutorials" },
           });
         },
       ),
