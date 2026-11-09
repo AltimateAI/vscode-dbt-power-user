@@ -128,8 +128,10 @@ export function lineageCardKind(message: string): LineageCardKind {
 const ADAPTER_MISSING = /could not find adapter type ([\w-]+)/i;
 const PROFILE_NAME = /could not find profile named '([^']+)'/i;
 const ENV_VAR_NAME = /env var required but not provided: '([^']+)'/i;
+// dbt names the file that declares the packages: packages.yml or
+// dependencies.yml.
 const PACKAGE_COUNTS =
-  /found (\d+) package\(s\) specified in packages\.yml, but only (\d+) package\(s\) installed/i;
+  /found (\d+) package\(s\) specified in (packages|dependencies)\.yml, but only (\d+) package\(s\) installed/i;
 // Unlike a file dbt names in an error, this one has a space in its name.
 const FILE_WITH_SPACE = /\(([^()]+ [^()]*\.(?:sql|py|yml|yaml|csv))\)/;
 
@@ -243,14 +245,15 @@ export function lineageCard(input: LineageCardInput): LineageCard {
     }
     case "packages": {
       const counts = PACKAGE_COUNTS.exec(error.message);
+      const file = `${counts?.[2].toLowerCase() ?? "packages"}.yml`;
       const listed = counts && Number(counts[1]);
-      const installed = counts && Number(counts[2]);
+      const installed = counts && Number(counts[3]);
       return {
         ...copy(
           "This project's packages aren't installed",
           counts
-            ? `packages.yml lists ${listed} ${listed === 1 ? "package" : "packages"} and ${installed} ${installed === 1 ? "is" : "are"} installed.`
-            : "Run dbt deps to install what packages.yml lists.",
+            ? `${file} lists ${listed} ${listed === 1 ? "package" : "packages"} and ${installed} ${installed === 1 ? "is" : "are"} installed.`
+            : `Run dbt deps to install what ${file} lists.`,
           [],
         ),
         // Installing packages re-checks the project, so there's no Try again.
@@ -258,8 +261,8 @@ export function lineageCard(input: LineageCardInput): LineageCard {
           { id: "runDeps", label: "Run dbt deps" },
           {
             id: "openFile",
-            label: "Open packages.yml",
-            args: { path: "packages.yml" },
+            label: `Open ${file}`,
+            args: { path: file },
           },
         ],
       };

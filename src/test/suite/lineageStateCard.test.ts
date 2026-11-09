@@ -222,6 +222,21 @@ describe("lineageCard", () => {
     ]);
   });
 
+  it("opens dependencies.yml when dbt says the packages are declared there", () => {
+    const result = card(
+      `dbt found 2 package(s) specified in dependencies.yml, but only 0 package(s) installed in dbt_packages. Run "dbt deps" to install package dependencies.`,
+    );
+    expect(result.kind).toBe("packages");
+    expect(result.detail).toBe(
+      "dependencies.yml lists 2 packages and 0 are installed.",
+    );
+    expect(result.actions[1]).toEqual({
+      id: "openFile",
+      label: "Open dependencies.yml",
+      args: { path: "dependencies.yml" },
+    });
+  });
+
   it("says plainly that dbt Cloud is busy, without promising a retry", () => {
     const result = card("Session occupied by another command");
     expect(result.severity).toBe("info");

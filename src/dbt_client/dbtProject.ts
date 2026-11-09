@@ -2012,9 +2012,11 @@ export class DBTProject implements Disposable {
     return this.PythonEnvironment.pythonPath;
   }
 
-  /** DBT_PROFILES_DIR as dbt's Python process sees it. */
+  /** DBT_PROFILES_DIR as dbt's Python process for this project sees it. */
   getProfilesDirEnv(): string | undefined {
-    return this.PythonEnvironment.environmentVariables.DBT_PROFILES_DIR;
+    return this.PythonEnvironment.getEnvironmentVariables(
+      workspace.getWorkspaceFolder(this.projectRoot),
+    ).DBT_PROFILES_DIR;
   }
 
   /**
