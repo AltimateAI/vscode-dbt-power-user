@@ -90,17 +90,17 @@ export class IntegrationModeService {
     if (!configured.explicit) {
       await this.pythonEnvironment.initialize();
       const env = this.pythonEnvironment.getEnvironmentVariables();
+      // The selected interpreter, or `dbt.dbtPythonPathOverride` without the
+      // Python extension; empty when there is no interpreter at all.
+      const pythonPath = this.pythonEnvironment.pythonPath || undefined;
       binary = await this.probes.findBinary({
-        pythonPath: this.pythonEnvironment.pythonPath || undefined,
+        pythonPath,
         cwd: workspace.workspaceFolders?.[0]?.uri.fsPath,
         env,
       });
       if (binary) {
-        if (this.pythonEnvironment.pythonExtensionAvailable) {
-          pythonDbtCore = await this.probes.probeDbtCore(
-            this.pythonEnvironment.pythonPath || undefined,
-            env,
-          );
+        if (pythonPath) {
+          pythonDbtCore = await this.probes.probeDbtCore(pythonPath, env);
         }
         dbtLoom =
           Boolean(env.DBT_LOOM_CONFIG_PATH) ||

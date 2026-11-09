@@ -99,6 +99,8 @@ function service({
   binary = V2 as typeof V2 | null,
   dbtCore = { importable: false } as { importable: boolean; version?: string },
   pythonExtensionAvailable = true,
+  // An override interpreter; without one, the extension's when it is there.
+  pythonPath = undefined as string | undefined,
   env = { PATH: "/usr/bin" } as Record<string, string>,
 } = {}) {
   const telemetry = {
@@ -110,7 +112,8 @@ function service({
   const svc = new IntegrationModeService(
     {
       initialize: () => Promise.resolve(),
-      pythonPath: pythonExtensionAvailable ? "/venv/bin/python" : "",
+      pythonPath:
+        pythonPath ?? (pythonExtensionAvailable ? "/venv/bin/python" : ""),
       pythonExtensionAvailable,
       getEnvironmentVariables: () => env,
     } as never,
@@ -299,12 +302,30 @@ describe("IntegrationModeService.resolve", () => {
     });
   });
 
-  it("does not probe for dbt Core without the Python extension, and switches", async () => {
+  it("does not probe for dbt Core without the Python extension or an override, and switches", async () => {
     const { svc, probeDbtCore } = service({ pythonExtensionAvailable: false });
     await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
       "fusion",
     );
     expect(probeDbtCore).not.toHaveBeenCalled();
+  });
+
+  it("probes the override interpreter without the Python extension, and keeps core", async () => {
+    const { svc, probeDbtCore } = service({
+      pythonExtensionAvailable: false,
+      pythonPath: "/opt/dbt-env/bin/python",
+      dbtCore: { importable: true, version: "1.10.4" },
+    });
+    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe("core");
+    expect(probeDbtCore).toHaveBeenCalledTimes(1);
+    expect(probeDbtCore).toHaveBeenCalledWith("/opt/dbt-env/bin/python", {
+      PATH: "/usr/bin",
+    });
+    expect(svc.autoSwitched).toBeUndefined();
+    await svc.notifySwitchHeld();
+    expect(shown()[0][0]).toContain(
+      "keeps dbt Core mode because the interpreter has dbt-core.",
+    );
   });
 
   it("keeps the default when no dbt 2.x binary is found", async () => {
