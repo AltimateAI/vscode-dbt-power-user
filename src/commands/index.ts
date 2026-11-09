@@ -18,7 +18,6 @@ import {
   env,
   extensions,
   languages,
-  NotebookDocument,
   ProgressLocation,
   Range,
   TextEditor,
@@ -39,17 +38,18 @@ import {
   ConversationProvider,
 } from "../comment_provider/conversationProvider";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
-import {
-  isFusionMode,
-  showCoreOnlyMessage,
-  stampBlockedByFusion,
-} from "../coreOnlyFeature";
 import { CteProfilerDecorationProvider } from "../cte_profiler/cteProfilerDecorationProvider";
 import { CteProfilerService } from "../cte_profiler/cteProfilerService";
 import { DBTClient } from "../dbt_client";
 import { DBTProject } from "../dbt_client/dbtProject";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
+import { NOTEBOOK_NEEDS } from "../pythonGatedClientMapper";
+import {
+  findMissingPython,
+  promptForPython,
+  stampBlocked,
+} from "../pythonRequiredFeature";
 import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
@@ -87,13 +87,6 @@ import { RunTest } from "./runTest";
 import { SqlToModel } from "./sqlToModel";
 import { ValidateSql } from "./validateSql";
 import { WalkthroughCommands } from "./walkthroughCommands";
-
-// The notebook runs on a Python kernel and has no dbt Fusion form.
-export const NOTEBOOK_CORE_ONLY_MESSAGE =
-  "Altimate notebooks need dbt Core mode with Python dbt-core, so they are not available in dbt Fusion mode.";
-
-// `contributes.notebooks` type in package.json
-const DATAPILOT_NOTEBOOK_TYPE = "datapilot-notebook";
 
 export class VSCodeCommands implements Disposable {
   private disposables: Disposable[] = [];
@@ -940,9 +933,6 @@ export class VSCodeCommands implements Disposable {
         (args: OpenNotebookRequest | undefined) =>
           this.createAltimateNotebook(args),
       ),
-      workspace.onDidOpenNotebookDocument((notebook) =>
-        this.onNotebookOpened(notebook),
-      ),
       commands.registerCommand(
         "dbtPowerUser.openTargetSelector",
         async (
@@ -1748,23 +1738,17 @@ export class VSCodeCommands implements Disposable {
   }
 
   // Every notebook entry point (commands, quick pick, editor menus, the
-  // Actions and query panels) runs this command.
+  // Actions and query panels) runs this command. Without Python it asks for
+  // an interpreter before creating a notebook that could not run. Notebooks
+  // opened another way are gated in `PythonGatedClientMapper`.
   async createAltimateNotebook(args: OpenNotebookRequest | undefined) {
-    if (isFusionMode()) {
-      stampBlockedByFusion(this.telemetry, TelemetryEvents["Notebook/Launch"]);
-      await showCoreOnlyMessage(NOTEBOOK_CORE_ONLY_MESSAGE);
+    const missing = findMissingPython(this.pythonEnvironment);
+    if (missing) {
+      stampBlocked(this.telemetry, TelemetryEvents["Notebook/Launch"], missing);
+      await promptForPython(NOTEBOOK_NEEDS, missing);
       return;
     }
     this.notebookController.createNotebook(args);
-  }
-
-  // A notebook opened another way (a restored tab, a .notebook file).
-  onNotebookOpened(notebook: NotebookDocument) {
-    if (notebook.notebookType !== DATAPILOT_NOTEBOOK_TYPE || !isFusionMode()) {
-      return;
-    }
-    stampBlockedByFusion(this.telemetry, TelemetryEvents["Notebook/Launch"]);
-    void showCoreOnlyMessage(NOTEBOOK_CORE_ONLY_MESSAGE);
   }
 
   dispose() {
