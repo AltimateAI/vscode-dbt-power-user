@@ -933,18 +933,25 @@ describe("DBTProject Test Suite", () => {
     it("keeps the mode it was created with when the setting changes afterwards", async () => {
       const project = fusionProject();
       // The window can be switched to another mode without the setting changing.
+      // `cloud` would also demand authentication, which a Fusion project must not.
       (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
-        get: jest.fn((key: string) =>
-          key === "dbtIntegration" ? "core" : undefined,
+        get: jest.fn((key: string, fallback?: unknown) =>
+          key === "dbtIntegration" ? "cloud" : fallback,
         ),
       });
+      (mockValidationProvider as any).throwIfNotAuthenticated = jest.fn(() => {
+        throw new Error("not authenticated");
+      });
       mockExecutionInfrastructure.createPythonBridge.mockClear();
-      await project
+      const outcome = await project
         .validateSql({ sql: "SELECT 1", dialect: "duckdb", models: [] })
-        .catch(() => undefined);
+        .catch((error: Error) => error);
       expect(
         mockExecutionInfrastructure.createPythonBridge,
       ).not.toHaveBeenCalled();
+      if (outcome instanceof Error) {
+        expect(outcome.message).not.toContain("not authenticated");
+      }
     });
 
     it("validates SQL in dbt Fusion mode without starting a Python bridge", async () => {

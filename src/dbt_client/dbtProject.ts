@@ -964,10 +964,8 @@ export class DBTProject implements Disposable {
   }
 
   private requiresAuthentication(): boolean {
-    const dbtIntegrationMode = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
-    return dbtIntegrationMode === "cloud";
+    // The mode this project was created in (see `dbtIntegrationMode`).
+    return this.dbtIntegrationMode === "cloud";
   }
 
   throwIfNotAuthenticated() {
