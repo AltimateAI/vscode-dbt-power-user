@@ -1145,14 +1145,18 @@ export class NewLineagePanel
     }
   }
 
-  // The project's name in dbt_project.yml. The integration only learns it once
-  // the project initializes, which a project that fails at startup never does.
+  // The root project's name as dbt's errors use it. The integration learns it
+  // when the project's config loads and keeps it while dbt rejects a later
+  // change to dbt_project.yml, as it keeps that rebuild's errors. Until the
+  // first load it has only an "unknown_" placeholder, so read dbt_project.yml.
   private rootProjectName(project?: DBTProject): string | undefined {
-    return (
-      project &&
-      (this.readProjectName(project.projectRoot.fsPath) ??
-        project.getProjectName())
-    );
+    if (!project) {
+      return undefined;
+    }
+    const name = project.getProjectName();
+    return name.startsWith("unknown_")
+      ? this.readProjectName(project.projectRoot.fsPath)
+      : name;
   }
 
   private findBlockingDiagnostic():

@@ -1376,7 +1376,7 @@ describe("NewLineagePanel — stale-graph banner", () => {
     delete (window as any).showTextDocument;
   });
 
-  describe("a project that failed at startup", () => {
+  describe("the root project's name", () => {
     const message = (node: string) =>
       `dbt configuration is invalid : Compilation Error\n  Model '${node}' (models/orders.sql) depends on a node named 'x' which was not found`;
     let root: string;
@@ -1386,19 +1386,22 @@ describe("NewLineagePanel — stale-graph banner", () => {
         (action: { id: string }) => action.id === "openFile",
       );
 
-    beforeEach(() => {
-      root = fs.mkdtempSync(path.join(os.tmpdir(), "stale-graph-"));
+    // The name in dbt_project.yml and the name the integration reports.
+    const useProject = (fileName: string, integrationName: string) => {
       fs.writeFileSync(
         path.join(root, "dbt_project.yml"),
-        "name: 'jaffle_shop'\n",
+        `name: '${fileName}'\n`,
       );
       (panel as any).queryManifestService.getProject = jest.fn(() => ({
         projectRoot: { fsPath: root },
-        // The integration's placeholder until the project initializes.
-        getProjectName: () => "unknown_1234",
+        getProjectName: () => integrationName,
         getBlockingDiagnostic: () => blocking,
         getManifestPath: () => path.join(root, "target", "manifest.json"),
       }));
+    };
+
+    beforeEach(() => {
+      root = fs.mkdtempSync(path.join(os.tmpdir(), "stale-graph-"));
       event = graphEvent();
     });
 
@@ -1406,27 +1409,72 @@ describe("NewLineagePanel — stale-graph banner", () => {
       fs.rmSync(root, { recursive: true, force: true });
     });
 
-    it("takes a file of the root project as the root project's", () => {
-      blocking = {
-        message: message("model.jaffle_shop.orders"),
-        category: "project-config",
-      };
-      panel.eventMapChanged(new Map());
+    describe("a project that failed at startup", () => {
+      // The integration's placeholder until the project initializes.
+      beforeEach(() => useProject("jaffle_shop", "unknown_1234"));
 
-      expect(openAction().args).toEqual({
-        path: "models/orders.sql",
-        line: undefined,
+      it("takes a file of the root project as the root project's", () => {
+        blocking = {
+          message: message("model.jaffle_shop.orders"),
+          category: "project-config",
+        };
+        panel.eventMapChanged(new Map());
+
+        expect(openAction().args).toEqual({
+          path: "models/orders.sql",
+          line: undefined,
+        });
+      });
+
+      it("still names the package for a file of a package", () => {
+        blocking = {
+          message: message("model.dbt_utils.orders"),
+          category: "project-config",
+        };
+        panel.eventMapChanged(new Map());
+
+        expect(openAction().args.package).toBe("dbt_utils");
       });
     });
 
-    it("still names the package for a file of a package", () => {
-      blocking = {
-        message: message("model.dbt_utils.orders"),
-        category: "project-config",
-      };
-      panel.eventMapChanged(new Map());
+    describe("a project renamed in a config dbt rejected", () => {
+      // dbt keeps the old name, and the last rebuild's errors use it.
+      beforeEach(() => useProject("renamed_shop", "jaffle_shop"));
 
-      expect(openAction().args.package).toBe("dbt_utils");
+      it("takes a file under the old name as the root project's", () => {
+        blocking = {
+          message: message("model.jaffle_shop.orders"),
+          category: "project-config",
+        };
+        panel.eventMapChanged(new Map());
+
+        expect(openAction().args).toEqual({
+          path: "models/orders.sql",
+          line: undefined,
+        });
+      });
+
+      it("still names the package for a file of a package", () => {
+        blocking = {
+          message: message("model.dbt_utils.orders"),
+          category: "project-config",
+        };
+        panel.eventMapChanged(new Map());
+
+        expect(openAction().args.package).toBe("dbt_utils");
+      });
+
+      it("doesn't read dbt_project.yml for the name", () => {
+        const read = jest.spyOn(panel as any, "readProjectName");
+        blocking = {
+          message: message("model.jaffle_shop.orders"),
+          category: "project-config",
+        };
+        panel.eventMapChanged(new Map());
+
+        expect(openAction()).toBeDefined();
+        expect(read).not.toHaveBeenCalled();
+      });
     });
   });
 
