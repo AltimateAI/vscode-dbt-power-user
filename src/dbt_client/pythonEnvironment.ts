@@ -19,6 +19,8 @@ export enum PythonInterpreterPromptAnswer {
   SELECT = "Select Python interpreter",
   DETECT = "Detect from terminal",
   OPEN_SETTING = "Open setting",
+  INSTALL = "Install Python extension",
+  RELOAD = "Reload window",
 }
 
 type EnvFrom = "process" | "integrated" | "dotenv";
@@ -128,6 +130,35 @@ export class PythonEnvironment {
         PythonInterpreterPromptAnswer.OPEN_SETTING,
       );
       if (answer === PythonInterpreterPromptAnswer.OPEN_SETTING) {
+        commands.executeCommand(
+          "workbench.action.openSettings",
+          "dbt.dbtPythonPathOverride",
+        );
+      }
+      return;
+    }
+    // "Select Python interpreter" runs the Python extension's picker
+    // (`python.setInterpreter`); without the extension that command does not
+    // exist, so offer the extension, or the override setting, instead.
+    if (!this._pythonExtensionAvailable) {
+      const answer = await window.showErrorMessage(
+        `The Python interpreter ${interpreterPath} was not found, and the Python extension, which selects interpreters, is not installed. Install it, or set dbt.dbtPythonPathOverride to an interpreter that exists.`,
+        PythonInterpreterPromptAnswer.INSTALL,
+        PythonInterpreterPromptAnswer.OPEN_SETTING,
+      );
+      if (answer === PythonInterpreterPromptAnswer.INSTALL) {
+        await commands.executeCommand(
+          "workbench.extensions.installExtension",
+          "ms-python.python",
+        );
+        const reload = await window.showInformationMessage(
+          "The Python extension is installed. Reload the window to select an interpreter.",
+          PythonInterpreterPromptAnswer.RELOAD,
+        );
+        if (reload === PythonInterpreterPromptAnswer.RELOAD) {
+          commands.executeCommand("workbench.action.reloadWindow");
+        }
+      } else if (answer === PythonInterpreterPromptAnswer.OPEN_SETTING) {
         commands.executeCommand(
           "workbench.action.openSettings",
           "dbt.dbtPythonPathOverride",
