@@ -89,6 +89,32 @@ export class DBTClient implements Disposable {
     );
     if (!this._dbtInstalled) {
       this.showErrorIfDbtOrPythonNotInstalled();
+    } else if (this.pythonExtensionMissing()) {
+      // The dbt Cloud CLI can be detected without an interpreter, but every
+      // command then needs one, so the prompt can't wait for a failed detection.
+      this.promptToInstallPythonExtensionOnce();
+    }
+  }
+
+  /**
+   * The mode runs dbt through Python, and there is no interpreter because the
+   * Python extension, which selects it, is missing.
+   */
+  private pythonExtensionMissing(): boolean {
+    const dbtIntegrationMode = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+    return (
+      integrationNeedsPython(dbtIntegrationMode) &&
+      !this.pythonEnvironment.pythonExtensionAvailable &&
+      !this._pythonInstalled
+    );
+  }
+
+  private async promptToInstallPythonExtensionOnce() {
+    if (!this.shownError) {
+      this.shownError = true;
+      await this.promptToInstallPythonExtension();
     }
   }
 
@@ -99,14 +125,8 @@ export class DBTClient implements Disposable {
     if (!integrationNeedsPython(dbtIntegrationMode)) {
       return this.showErrorIfDbtIsNotInstalled();
     }
-    if (
-      !this.pythonEnvironment.pythonExtensionAvailable &&
-      !this._pythonInstalled
-    ) {
-      if (!this.shownError) {
-        this.shownError = true;
-        await this.promptToInstallPythonExtension();
-      }
+    if (this.pythonExtensionMissing()) {
+      await this.promptToInstallPythonExtensionOnce();
       return false;
     }
     if (!this._pythonInstalled) {

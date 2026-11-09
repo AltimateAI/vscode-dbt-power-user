@@ -150,6 +150,28 @@ describe("DBTClient without the Python extension", () => {
     );
   });
 
+  // The dbt Cloud CLI is found on PATH without an interpreter, but every
+  // command then needs one: the prompt can't wait for a failed detection.
+  it("offers to install the Python extension once in cloud mode when the dbt Cloud CLI is found", async () => {
+    useSettings({ dbtIntegration: "cloud" });
+    const dbtClient = await client(true);
+    expect(dbtClient.dbtInstalled).toBe(true);
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(messages()).toEqual([
+      expect.stringContaining("Python extension, which is not installed"),
+    ]);
+    // A command's own check afterwards doesn't prompt again.
+    await expect(dbtClient.showErrorIfDbtOrPythonNotInstalled()).resolves.toBe(
+      false,
+    );
+    expect(messages()).toHaveLength(1);
+    expect(window.showErrorMessage).toHaveBeenCalledWith(
+      expect.any(String),
+      "Install Python extension",
+      "Troubleshoot",
+    );
+  });
+
   it("offers to install the Python extension in core mode", async () => {
     useSettings({ dbtIntegration: "core" });
     (window.showErrorMessage as jest.Mock).mockReturnValueOnce(
