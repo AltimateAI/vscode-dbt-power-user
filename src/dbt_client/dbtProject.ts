@@ -12,6 +12,7 @@ import {
   DBTCommandExecutionInfrastructure,
   DBTCommandFactory,
   DBTDiagnosticData,
+  DBTFusionCommandProjectIntegration,
   DBTNode,
   DBTProjectIntegration,
   DBTProjectIntegrationAdapter,
@@ -499,6 +500,16 @@ export class DBTProject implements Disposable {
 
   getPythonBridgeStatus() {
     return this.dbtProjectIntegration.getPythonBridgeStatus();
+  }
+
+  // Whether dbt Fusion runs this project, read from the integration the
+  // adapter created rather than from the setting, which a runtime mode switch
+  // does not write.
+  isFusionIntegration(): boolean {
+    return (
+      this.getCurrentProjectIntegration() instanceof
+      DBTFusionCommandProjectIntegration
+    );
   }
 
   // Whether the integration finished initializing its execution state (for

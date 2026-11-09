@@ -6,7 +6,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import { window, workspace } from "vscode";
+import { extensions, window } from "vscode";
 import { InsightsPanel } from "../../webview_provider/insightsPanel";
 
 describe("InsightsPanel project governance telemetry", () => {
@@ -48,6 +48,8 @@ describe("InsightsPanel project governance telemetry", () => {
     (panel as any).dbtProjectContainer = {
       checkIfAltimateDatapilotInstalled,
       executeAltimateDatapilotHealthcheck,
+      getPythonEnvironment: () => ({ pythonPath: "/usr/bin/python3" }),
+      getProjects: () => [],
     };
     (panel as any).telemetry = { sendTelemetryEvent };
     (panel as any).dbtTerminal = {
@@ -119,7 +121,7 @@ describe("InsightsPanel project governance telemetry", () => {
   });
 });
 
-describe("InsightsPanel healthcheck in dbt Fusion mode", () => {
+describe("InsightsPanel healthcheck gates", () => {
   let panel: InsightsPanel;
   let sendTelemetryEvent: jest.Mock;
   let postMessage: jest.Mock;
@@ -127,13 +129,8 @@ describe("InsightsPanel healthcheck in dbt Fusion mode", () => {
   let checkIfAltimateDatapilotInstalled: jest.Mock<any>;
   let executeAltimateDatapilotHealthcheck: jest.Mock<any>;
   let logDBTHealthcheckStartScan: jest.Mock<any>;
-  let getConfiguration: jest.SpiedFunction<typeof workspace.getConfiguration>;
-
-  const setMode = (mode: string) =>
-    getConfiguration.mockReturnValue({
-      get: (key: string, fallback?: unknown) =>
-        key === "dbtIntegration" ? mode : fallback,
-    } as any);
+  let pythonEnvironment: { pythonPath: string };
+  let isFusionIntegration: jest.Mock<any>;
 
   const scan = () =>
     (panel as any).altimateScan("sync-7", {
@@ -141,9 +138,23 @@ describe("InsightsPanel healthcheck in dbt Fusion mode", () => {
       configType: "All",
     });
 
+  const lastBody = () => {
+    const calls = postMessage.mock.calls;
+    return (calls[calls.length - 1]?.[0] as any)?.args?.body;
+  };
+
+  const expectHealthcheckNotStarted = () => {
+    expect(throwIfNotAuthenticated).not.toHaveBeenCalled();
+    expect(logDBTHealthcheckStartScan).not.toHaveBeenCalled();
+    expect(checkIfAltimateDatapilotInstalled).not.toHaveBeenCalled();
+    expect(executeAltimateDatapilotHealthcheck).not.toHaveBeenCalled();
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    getConfiguration = jest.spyOn(workspace, "getConfiguration");
+    (extensions.getExtension as jest.Mock).mockReturnValue({
+      id: "ms-python.python",
+    });
     sendTelemetryEvent = jest.fn();
     postMessage = jest.fn();
     throwIfNotAuthenticated = jest.fn();
@@ -156,6 +167,8 @@ describe("InsightsPanel healthcheck in dbt Fusion mode", () => {
     );
     executeAltimateDatapilotHealthcheck = jest.fn(() => Promise.resolve({}));
     logDBTHealthcheckStartScan = jest.fn(() => Promise.resolve());
+    pythonEnvironment = { pythonPath: "/usr/bin/python3" };
+    isFusionIntegration = jest.fn(() => false);
 
     panel = Object.create(InsightsPanel.prototype);
     (panel as any)._panel = { visible: true, webview: { postMessage } };
@@ -164,56 +177,81 @@ describe("InsightsPanel healthcheck in dbt Fusion mode", () => {
     (panel as any).dbtProjectContainer = {
       checkIfAltimateDatapilotInstalled,
       executeAltimateDatapilotHealthcheck,
+      getPythonEnvironment: () => pythonEnvironment,
+      getProjects: () => [
+        { projectRoot: { fsPath: "/project" }, isFusionIntegration },
+      ],
     };
     (panel as any).telemetry = { sendTelemetryEvent };
     (panel as any).dbtTerminal = { error: jest.fn(), debug: jest.fn() };
   });
 
   afterEach(() => {
-    getConfiguration.mockRestore();
+    (extensions.getExtension as jest.Mock).mockReset();
   });
 
-  it("answers the panel with the core-only notice and never starts the Python healthcheck", async () => {
-    setMode("fusion");
+  it("asks for an interpreter and does not start the healthcheck without one", async () => {
+    pythonEnvironment.pythonPath = "";
 
     await scan();
 
-    expect(postMessage).toHaveBeenCalledWith({
-      command: "response",
-      args: {
-        syncRequestId: "sync-7",
-        body: {
-          coreOnly: {
-            message:
-              "The project healthcheck needs dbt Core mode with Python dbt-core, so it is not available in dbt Fusion mode.",
-            learnMoreUrl:
-              "https://docs.myaltimate.com/setup/reqdConfig/?utm_source=dbt-power-user&utm_medium=extension",
-          },
-        },
-        status: true,
+    expect(lastBody()).toEqual({
+      notice: {
+        message:
+          "The project healthcheck needs a Python interpreter. Select one to continue.",
       },
     });
-    expect(throwIfNotAuthenticated).not.toHaveBeenCalled();
-    expect(logDBTHealthcheckStartScan).not.toHaveBeenCalled();
-    expect(checkIfAltimateDatapilotInstalled).not.toHaveBeenCalled();
-    expect(executeAltimateDatapilotHealthcheck).not.toHaveBeenCalled();
-    expect(window.showErrorMessage).not.toHaveBeenCalled();
+    expect(window.showErrorMessage).toHaveBeenCalledWith(
+      "The project healthcheck needs a Python interpreter. Select one to continue.",
+      "Select Python interpreter",
+      "Detect from terminal",
+    );
+    expect(sendTelemetryEvent).toHaveBeenCalledWith(
+      "performDatapilotHealthcheck",
+      { blockedBy: "noPythonInterpreter" },
+    );
+    expectHealthcheckNotStarted();
   });
 
-  it("stamps the blocked attempt on the healthcheck event", async () => {
-    setMode("fusion");
+  it("offers the Python extension when it is not installed", async () => {
+    pythonEnvironment.pythonPath = "";
+    (extensions.getExtension as jest.Mock).mockReturnValue(undefined);
 
     await scan();
 
-    expect(sendTelemetryEvent).toHaveBeenCalledTimes(1);
+    expect(window.showErrorMessage).toHaveBeenCalledWith(
+      "The project healthcheck needs a Python interpreter. The Python extension, which selects one, is not installed.",
+      "Install Python extension",
+      "Open setting",
+    );
     expect(sendTelemetryEvent).toHaveBeenCalledWith(
       "performDatapilotHealthcheck",
-      { blockedByMode: "fusion" },
+      { blockedBy: "noPythonExtension" },
     );
+    expectHealthcheckNotStarted();
   });
 
-  it("still shows the notice when telemetry throws", async () => {
-    setMode("fusion");
+  it("says datapilot cannot read dbt Fusion manifests and stops, with Python present", async () => {
+    isFusionIntegration.mockReturnValue(true);
+
+    await scan();
+
+    expect(lastBody()).toEqual({
+      notice: {
+        message:
+          "The project healthcheck is not available in dbt Fusion mode yet. It runs altimate-datapilot-cli, and the current datapilot release cannot read the dbt 2.x manifests that dbt Fusion writes.",
+      },
+    });
+    expect(sendTelemetryEvent).toHaveBeenCalledWith(
+      "performDatapilotHealthcheck",
+      { blockedBy: "fusionManifest" },
+    );
+    expect(window.showErrorMessage).not.toHaveBeenCalled();
+    expectHealthcheckNotStarted();
+  });
+
+  it("still answers the panel when telemetry throws", async () => {
+    isFusionIntegration.mockReturnValue(true);
     sendTelemetryEvent.mockImplementation(() => {
       throw new Error("telemetry down");
     });
@@ -221,36 +259,20 @@ describe("InsightsPanel healthcheck in dbt Fusion mode", () => {
     await expect(scan()).resolves.toBeUndefined();
 
     expect(postMessage).toHaveBeenCalledTimes(1);
-    expect(
-      (postMessage.mock.calls[0][0] as any).args.body.coreOnly.message,
-    ).toContain("needs dbt Core mode");
-    expect(executeAltimateDatapilotHealthcheck).not.toHaveBeenCalled();
+    expect(lastBody().notice.message).toContain("dbt 2.x manifests");
   });
 
-  it.each(["core", "corecommand", "cloud"])(
-    "runs the Python healthcheck unchanged in %s mode",
-    async (mode) => {
-      setMode(mode);
+  it("runs the healthcheck with an interpreter outside dbt Fusion", async () => {
+    await scan();
 
-      await scan();
-
-      expect(throwIfNotAuthenticated).toHaveBeenCalled();
-      expect(executeAltimateDatapilotHealthcheck).toHaveBeenCalledWith({
-        projectRoot: "/project",
-        configType: "All",
-      });
-      expect(sendTelemetryEvent).toHaveBeenCalledWith(
-        "performDatapilotHealthcheck",
-        {
-          args: JSON.stringify({ projectRoot: "/project", configType: "All" }),
-        },
-      );
-      for (const call of sendTelemetryEvent.mock.calls) {
-        expect(JSON.stringify(call)).not.toContain("blockedByMode");
-      }
-      const calls = postMessage.mock.calls;
-      const body = (calls[calls.length - 1]?.[0] as any)?.args?.body;
-      expect(body).toEqual({ projectHealthcheck: {} });
-    },
-  );
+    expect(throwIfNotAuthenticated).toHaveBeenCalled();
+    expect(executeAltimateDatapilotHealthcheck).toHaveBeenCalledWith({
+      projectRoot: "/project",
+      configType: "All",
+    });
+    for (const call of sendTelemetryEvent.mock.calls) {
+      expect(JSON.stringify(call)).not.toContain("blockedBy");
+    }
+    expect(lastBody()).toEqual({ projectHealthcheck: {} });
+  });
 });
