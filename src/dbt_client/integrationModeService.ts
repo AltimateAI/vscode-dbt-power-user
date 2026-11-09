@@ -6,6 +6,8 @@ import {
   probePythonDbtCore,
   PythonDbtCore,
 } from "@altimateai/dbt-integration";
+import { existsSync } from "fs";
+import * as path from "path";
 import {
   commands,
   ConfigurationTarget,
@@ -19,19 +21,28 @@ import {
   getDbtIntegrationMode,
   readConfiguredDbtIntegration,
   setEffectiveDbtIntegrationMode,
+  SwitchHeldReason,
 } from "./integrationMode";
 import { PythonEnvironment } from "./pythonEnvironment";
 
 /** workspaceState key: the project roots already told about the switch. */
 export const AUTO_SWITCH_NOTIFIED_KEY = "dbtPowerUser.fusionAutoSwitchNotified";
+/** workspaceState key: the workspace was told why it was not switched. */
+export const SWITCH_HELD_NOTIFIED_KEY = "dbtPowerUser.fusionSwitchHeldNotified";
 
-const SWITCH_BACK = "Switch back to dbt Core";
 const OPEN_SETTINGS = "Open setting";
+const USE_FUSION = "Use dbt Fusion";
+const DISMISS = "Dismiss";
+const DBT_LOOM_CONFIG = "dbt_loom.config.yml";
 
 export interface AutoSwitch {
   from: string;
   binary: DbtV2Binary;
-  pythonDbtCore: PythonDbtCore;
+}
+
+export interface SwitchHeld {
+  reason: SwitchHeldReason;
+  binary: DbtV2Binary;
 }
 
 export interface IntegrationModeProbes {
@@ -44,12 +55,14 @@ export interface IntegrationModeProbes {
 /**
  * Decides, once per window and before dbt is detected, which integration
  * mode runs: an explicit `dbt.dbtIntegration` always; with the default, dbt
- * Fusion when a dbt 2.x binary is on the project's path. Tells each project
- * about an automatic switch once, and offers to switch back to dbt Core when
- * dbt Core imports in the selected interpreter.
+ * Fusion when a dbt 2.x binary is on the project's path and the project
+ * cannot run in dbt Core mode (no dbt-core in the selected interpreter, no
+ * dbt-loom config). Tells each project about an automatic switch once, and
+ * the workspace once why a found binary did not switch it.
  */
 export class IntegrationModeService {
   private autoSwitch?: AutoSwitch;
+  private switchHeld?: SwitchHeld;
   private resolvedExplicit = false;
   private workspaceState?: Memento;
 
@@ -72,27 +85,58 @@ export class IntegrationModeService {
     const configured = readConfiguredDbtIntegration();
     this.resolvedExplicit = configured.explicit;
     let binary: DbtV2Binary | undefined;
+    let pythonDbtCore: PythonDbtCore = { importable: false };
+    let dbtLoom = false;
     if (!configured.explicit) {
       await this.pythonEnvironment.initialize();
+      const env = this.pythonEnvironment.getEnvironmentVariables();
       binary = await this.probes.findBinary({
         pythonPath: this.pythonEnvironment.pythonPath || undefined,
         cwd: workspace.workspaceFolders?.[0]?.uri.fsPath,
-        env: this.pythonEnvironment.getEnvironmentVariables(),
+        env,
       });
+      if (binary) {
+        if (this.pythonEnvironment.pythonExtensionAvailable) {
+          pythonDbtCore = await this.probes.probeDbtCore(
+            this.pythonEnvironment.pythonPath || undefined,
+            env,
+          );
+        }
+        dbtLoom =
+          Boolean(env.DBT_LOOM_CONFIG_PATH) ||
+          (workspace.workspaceFolders ?? []).some((folder) =>
+            existsSync(path.join(folder.uri.fsPath, DBT_LOOM_CONFIG)),
+          );
+      }
     }
-    const { mode, autoSwitched } = decideDbtIntegrationMode(
+    const { mode, autoSwitched, heldBack } = decideDbtIntegrationMode(
       configured,
-      binary !== undefined,
+      {
+        dbtV2Found: binary !== undefined,
+        pythonDbtCore: pythonDbtCore.importable,
+        dbtLoom,
+      },
     );
     setEffectiveDbtIntegrationMode(mode);
+    if (heldBack && binary) {
+      this.switchHeld = { reason: heldBack, binary };
+      const cause =
+        heldBack === "dbtCore"
+          ? "dbt-core imports in the selected interpreter"
+          : "a dbt-loom config is present";
+      this.terminal.info(
+        "dbtIntegrationSwitchHeld",
+        `${binary.path} is dbt ${binary.version.join(".")}, but ${cause}: keeping ${mode}`,
+        false,
+      );
+      this.telemetry.sendTelemetryEvent("dbtIntegrationSwitchHeld", {
+        reason: heldBack,
+        binaryVersion: binary.version.join("."),
+        binaryLocation: binary.location,
+      });
+    }
     if (autoSwitched && binary) {
-      const pythonDbtCore = this.pythonEnvironment.pythonExtensionAvailable
-        ? await this.probes.probeDbtCore(
-            this.pythonEnvironment.pythonPath || undefined,
-            this.pythonEnvironment.getEnvironmentVariables(),
-          )
-        : { importable: false };
-      this.autoSwitch = { from: configured.value, binary, pythonDbtCore };
+      this.autoSwitch = { from: configured.value, binary };
       this.terminal.info(
         "dbtIntegrationAutoSwitched",
         `dbt.dbtIntegration is not set and ${binary.path} is dbt ${binary.version.join(".")}: using dbt Fusion`,
@@ -107,8 +151,6 @@ export class IntegrationModeService {
         to: mode,
         binaryVersion: binary.version.join("."),
         binaryLocation: binary.location,
-        pythonDbtCoreAvailable: `${pythonDbtCore.importable}`,
-        pythonDbtCoreVersion: pythonDbtCore.version ?? "",
       });
     }
     return mode;
@@ -158,20 +200,12 @@ export class IntegrationModeService {
       `Telling ${names} about the switch to dbt Fusion`,
     );
     const version = autoSwitch.binary.version.join(".");
-    const canSwitchBack = autoSwitch.pythonDbtCore.importable;
-    const message =
+    const answer = await window.showInformationMessage(
       `Power User for dbt is using dbt Fusion for ${names}: the dbt on your path is dbt ${version}, ` +
-      "which needs dbt Fusion mode. " +
-      (canSwitchBack
-        ? `dbt Core ${autoSwitch.pythonDbtCore.version} is also installed in the selected Python environment.`
-        : "Set dbt.dbtIntegration to choose a mode yourself.");
-    const actions = canSwitchBack
-      ? [SWITCH_BACK, OPEN_SETTINGS]
-      : [OPEN_SETTINGS];
-    const answer = await window.showInformationMessage(message, ...actions);
-    if (answer === SWITCH_BACK) {
-      await this.switchBack();
-    } else if (answer === OPEN_SETTINGS) {
+        "which needs dbt Fusion mode. Set dbt.dbtIntegration to choose a mode yourself.",
+      OPEN_SETTINGS,
+    );
+    if (answer === OPEN_SETTINGS) {
       commands.executeCommand(
         "workbench.action.openSettings",
         "dbt.dbtIntegration",
@@ -180,16 +214,37 @@ export class IntegrationModeService {
   }
 
   /**
-   * Back to dbt Core for this workspace: writes `dbt.dbtIntegration: core`
-   * to the workspace settings, which makes it explicit, so the window
-   * reloads in core mode and is never switched automatically again.
+   * Tells the workspace once why a found dbt 2.x binary did not switch it,
+   * with a way to dbt Fusion. No-op unless the switch was held back.
    */
-  async switchBack(): Promise<void> {
-    this.telemetry.sendTelemetryEvent("dbtIntegrationSwitchBack", {
-      binaryVersion: this.autoSwitch?.binary.version.join(".") ?? "",
-    });
-    await workspace
-      .getConfiguration("dbt")
-      .update("dbtIntegration", "core", ConfigurationTarget.Workspace);
+  async notifySwitchHeld(): Promise<void> {
+    const held = this.switchHeld;
+    if (
+      !held ||
+      !this.workspaceState ||
+      this.workspaceState.get<boolean>(SWITCH_HELD_NOTIFIED_KEY, false)
+    ) {
+      return;
+    }
+    await this.workspaceState.update(SWITCH_HELD_NOTIFIED_KEY, true);
+    const because =
+      held.reason === "dbtCore"
+        ? "the interpreter has dbt-core"
+        : "a dbt-loom config is present";
+    const answer = await window.showInformationMessage(
+      `dbt Fusion ${held.binary.version.join(".")} was found at ${held.binary.path}, but this window keeps dbt Core mode because ${because}.`,
+      USE_FUSION,
+      DISMISS,
+    );
+    if (answer === USE_FUSION) {
+      this.telemetry.sendTelemetryEvent("dbtIntegrationUseFusion", {
+        reason: held.reason,
+        binaryVersion: held.binary.version.join("."),
+      });
+      // Explicit from here on, so the window reloads in fusion mode.
+      await workspace
+        .getConfiguration("dbt")
+        .update("dbtIntegration", "fusion", ConfigurationTarget.Workspace);
+    }
   }
 }

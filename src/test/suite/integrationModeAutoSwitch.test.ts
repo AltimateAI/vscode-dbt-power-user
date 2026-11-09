@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
-import { ConfigurationTarget, window, workspace } from "vscode";
+import { mkdtempSync, rmSync, writeFileSync } from "fs";
+import { tmpdir } from "os";
+import * as path from "path";
+import { ConfigurationTarget, Uri, window, workspace } from "vscode";
 import {
   decideDbtIntegrationMode,
   getDbtIntegrationMode,
@@ -9,13 +12,17 @@ import {
 import {
   AUTO_SWITCH_NOTIFIED_KEY,
   IntegrationModeService,
+  SWITCH_HELD_NOTIFIED_KEY,
 } from "../../dbt_client/integrationModeService";
 import { VSCodeDBTConfiguration } from "../../dbt_client/vscodeConfiguration";
 
 /**
  * A dbt 2.x binary on the project's path switches a window whose
  * `dbt.dbtIntegration` is left at its default to dbt Fusion, with one
- * notification per project; an explicit setting is never switched.
+ * notification per project, unless the project can run in dbt Core mode:
+ * dbt-core imports in the selected interpreter, or a dbt-loom config is
+ * present. Then the window keeps its mode and the workspace is told once,
+ * with a way to dbt Fusion. An explicit setting is never switched.
  *
  * Before, the mode was always the setting's value: a core-mode window with
  * only a dbt 2.x binary ran the Python bridge, which failed on `import dbt`.
@@ -58,6 +65,7 @@ beforeEach(() => {
 
 afterEach(() => {
   setEffectiveDbtIntegrationMode(undefined);
+  (workspace as { workspaceFolders: unknown }).workspaceFolders = [];
   (workspace.getConfiguration as jest.Mock).mockReset();
   (workspace.getConfiguration as jest.Mock).mockReturnValue({
     get: jest.fn(),
@@ -91,6 +99,7 @@ function service({
   binary = V2 as typeof V2 | null,
   dbtCore = { importable: false } as { importable: boolean; version?: string },
   pythonExtensionAvailable = true,
+  env = { PATH: "/usr/bin" } as Record<string, string>,
 } = {}) {
   const telemetry = {
     sendTelemetryEvent: jest.fn(),
@@ -103,7 +112,7 @@ function service({
       initialize: () => Promise.resolve(),
       pythonPath: pythonExtensionAvailable ? "/venv/bin/python" : "",
       pythonExtensionAvailable,
-      getEnvironmentVariables: () => ({ PATH: "/usr/bin" }),
+      getEnvironmentVariables: () => env,
     } as never,
     telemetry as never,
     { info: jest.fn(), debug: jest.fn() } as never,
@@ -137,24 +146,60 @@ describe("readConfiguredDbtIntegration", () => {
 });
 
 describe("decideDbtIntegrationMode", () => {
+  const onlyV2 = { dbtV2Found: true, pythonDbtCore: false, dbtLoom: false };
   it.each([
-    [{ value: "core", explicit: false }, true, "fusion", true],
-    [{ value: "core", explicit: false }, false, "core", false],
-    [{ value: "core", explicit: true }, true, "core", false],
-    [{ value: "corecommand", explicit: true }, true, "corecommand", false],
-    [{ value: "cloud", explicit: true }, true, "cloud", false],
-    [{ value: "fusion", explicit: true }, false, "fusion", false],
-  ])("%j with a dbt 2.x binary %s runs %s", (configured, found, mode, auto) => {
-    expect(decideDbtIntegrationMode(configured, found)).toEqual({
+    [{ value: "core", explicit: false }, onlyV2, "fusion", true],
+    [
+      { value: "core", explicit: false },
+      { ...onlyV2, dbtV2Found: false },
+      "core",
+      false,
+    ],
+    [{ value: "core", explicit: true }, onlyV2, "core", false],
+    [{ value: "corecommand", explicit: true }, onlyV2, "corecommand", false],
+    [{ value: "cloud", explicit: true }, onlyV2, "cloud", false],
+    [
+      { value: "fusion", explicit: true },
+      { ...onlyV2, dbtV2Found: false },
+      "fusion",
+      false,
+    ],
+  ])("%j with %j runs %s", (configured, facts, mode, auto) => {
+    expect(decideDbtIntegrationMode(configured, facts)).toEqual({
       mode,
       autoSwitched: auto,
     });
   });
+
+  it.each([
+    [{ pythonDbtCore: true }, "dbtCore"],
+    [{ dbtLoom: true }, "dbtLoom"],
+    [{ pythonDbtCore: true, dbtLoom: true }, "dbtCore"],
+  ])(
+    "keeps the default when the project can run in dbt Core mode: %j",
+    (facts, reason) => {
+      expect(
+        decideDbtIntegrationMode(
+          { value: "core", explicit: false },
+          { ...onlyV2, ...facts },
+        ),
+      ).toEqual({ mode: "core", autoSwitched: false, heldBack: reason });
+    },
+  );
+
+  it("never holds back an explicit setting", () => {
+    expect(
+      decideDbtIntegrationMode(
+        { value: "core", explicit: true },
+        { ...onlyV2, pythonDbtCore: true },
+      ),
+    ).toEqual({ mode: "core", autoSwitched: false });
+  });
 });
 
 describe("IntegrationModeService.resolve", () => {
-  it("switches a default window to fusion when a dbt 2.x binary is found", async () => {
-    const { svc, telemetry, findBinary } = service();
+  it("switches a default window to fusion when only a dbt 2.x binary is found", async () => {
+    const { svc, telemetry, findBinary, probeDbtCore } = service();
     await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
       "fusion",
     );
@@ -162,6 +207,9 @@ describe("IntegrationModeService.resolve", () => {
       pythonPath: "/venv/bin/python",
       cwd: undefined,
       env: { PATH: "/usr/bin" },
+    });
+    expect(probeDbtCore).toHaveBeenCalledWith("/venv/bin/python", {
+      PATH: "/usr/bin",
     });
     expect(getDbtIntegrationMode()).toBe("fusion");
     expect(new VSCodeDBTConfiguration().getDbtIntegration()).toBe("fusion");
@@ -172,8 +220,6 @@ describe("IntegrationModeService.resolve", () => {
         to: "fusion",
         binaryVersion: "2.0.9",
         binaryLocation: "installer",
-        pythonDbtCoreAvailable: "false",
-        pythonDbtCoreVersion: "",
       },
     );
     expect(telemetry.setTelemetryCustomAttribute).toHaveBeenCalledWith(
@@ -182,31 +228,90 @@ describe("IntegrationModeService.resolve", () => {
     );
   });
 
-  it("stamps whether dbt Core imports too", async () => {
+  it("keeps core when dbt-core imports in the selected interpreter", async () => {
     const { svc, telemetry } = service({
       dbtCore: { importable: true, version: "1.12.6" },
     });
-    await svc.resolve(new FakeMemento() as never);
+    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe("core");
+    expect(getDbtIntegrationMode()).toBe("core");
+    expect(svc.autoSwitched).toBeUndefined();
     expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationSwitchHeld",
+      {
+        reason: "dbtCore",
+        binaryVersion: "2.0.9",
+        binaryLocation: "installer",
+      },
+    );
+    expect(telemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
       "dbtIntegrationAutoSwitched",
-      expect.objectContaining({
-        pythonDbtCoreAvailable: "true",
-        pythonDbtCoreVersion: "1.12.6",
-      }),
+      expect.anything(),
     );
   });
 
-  it("does not probe for dbt Core without the Python extension", async () => {
+  describe("with a dbt-loom config", () => {
+    let dir: string;
+    beforeEach(() => {
+      dir = mkdtempSync(path.join(tmpdir(), "dbt-loom-"));
+    });
+    afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+    it("keeps core when dbt_loom.config.yml is in a workspace folder", async () => {
+      writeFileSync(path.join(dir, "dbt_loom.config.yml"), "manifests: []\n");
+      (workspace as { workspaceFolders: unknown }).workspaceFolders = [
+        { uri: Uri.file(path.join(dir, "..")), name: "parent", index: 0 },
+        { uri: Uri.file(dir), name: "loom", index: 1 },
+      ];
+      const { svc, telemetry } = service();
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "core",
+      );
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        expect.objectContaining({ reason: "dbtLoom" }),
+      );
+    });
+
+    it("keeps core when DBT_LOOM_CONFIG_PATH is set in the environment", async () => {
+      (workspace as { workspaceFolders: unknown }).workspaceFolders = [
+        { uri: Uri.file(dir), name: "plain", index: 0 },
+      ];
+      const { svc, telemetry } = service({
+        env: { PATH: "/usr/bin", DBT_LOOM_CONFIG_PATH: "/etc/loom.yml" },
+      });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "core",
+      );
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        expect.objectContaining({ reason: "dbtLoom" }),
+      );
+    });
+
+    it("switches when the folder has no dbt-loom config", async () => {
+      (workspace as { workspaceFolders: unknown }).workspaceFolders = [
+        { uri: Uri.file(dir), name: "plain", index: 0 },
+      ];
+      const { svc } = service();
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "fusion",
+      );
+    });
+  });
+
+  it("does not probe for dbt Core without the Python extension, and switches", async () => {
     const { svc, probeDbtCore } = service({ pythonExtensionAvailable: false });
-    await svc.resolve(new FakeMemento() as never);
+    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+      "fusion",
+    );
     expect(probeDbtCore).not.toHaveBeenCalled();
-    expect(svc.autoSwitched?.pythonDbtCore).toEqual({ importable: false });
   });
 
   it("keeps the default when no dbt 2.x binary is found", async () => {
-    const { svc, telemetry } = service({ binary: null });
+    const { svc, telemetry, probeDbtCore } = service({ binary: null });
     await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe("core");
     expect(svc.autoSwitched).toBeUndefined();
+    expect(probeDbtCore).not.toHaveBeenCalled();
     expect(telemetry.sendTelemetryEvent).not.toHaveBeenCalled();
   });
 
@@ -238,29 +343,6 @@ describe("IntegrationModeService.notifyProjects", () => {
     expect(actions).toEqual(["Open setting"]);
   });
 
-  it("offers to switch back when dbt Core imports, and writes core to the workspace", async () => {
-    const { svc, telemetry } = service({
-      dbtCore: { importable: true, version: "1.12.6" },
-    });
-    await svc.resolve(new FakeMemento() as never);
-    (window.showInformationMessage as jest.Mock).mockReturnValueOnce(
-      Promise.resolve("Switch back to dbt Core"),
-    );
-    await svc.notifyProjects([jaffle]);
-    const [message, ...actions] = shown()[0];
-    expect(message).toContain("dbt Core 1.12.6 is also installed");
-    expect(actions).toEqual(["Switch back to dbt Core", "Open setting"]);
-    expect(update).toHaveBeenCalledWith(
-      "dbtIntegration",
-      "core",
-      ConfigurationTarget.Workspace,
-    );
-    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
-      "dbtIntegrationSwitchBack",
-      { binaryVersion: "2.0.9" },
-    );
-  });
-
   it("tells each project once, across rebuilds and reloads", async () => {
     const memento = new FakeMemento();
     const first = service().svc;
@@ -290,6 +372,81 @@ describe("IntegrationModeService.notifyProjects", () => {
     await svc.resolve(new FakeMemento() as never);
     await svc.notifyProjects([jaffle]);
     expect(shown()).toHaveLength(0);
+  });
+});
+
+describe("IntegrationModeService.notifySwitchHeld", () => {
+  const withDbtCore = { dbtCore: { importable: true, version: "1.12.6" } };
+
+  it("tells the workspace once why it kept dbt Core mode, across reloads", async () => {
+    const memento = new FakeMemento();
+    const first = service(withDbtCore).svc;
+    await first.resolve(memento as never);
+    await first.notifySwitchHeld();
+    await first.notifySwitchHeld();
+    expect(shown()).toEqual([
+      [
+        "dbt Fusion 2.0.9 was found at /home/user/.local/bin/dbt, but this window keeps dbt Core mode because the interpreter has dbt-core.",
+        "Use dbt Fusion",
+        "Dismiss",
+      ],
+    ]);
+    expect(memento.get(SWITCH_HELD_NOTIFIED_KEY)).toBe(true);
+
+    const second = service(withDbtCore).svc;
+    await second.resolve(memento as never);
+    await second.notifySwitchHeld();
+    expect(shown()).toHaveLength(1);
+    // Projects are not told about a switch that did not happen.
+    await second.notifyProjects([{ root: "/projects/jaffle", name: "jaffle" }]);
+    expect(shown()).toHaveLength(1);
+  });
+
+  it("names the dbt-loom config as the reason", async () => {
+    const { svc } = service({
+      env: { DBT_LOOM_CONFIG_PATH: "/etc/loom.yml" },
+    });
+    await svc.resolve(new FakeMemento() as never);
+    await svc.notifySwitchHeld();
+    expect(shown()[0][0]).toContain(
+      "keeps dbt Core mode because a dbt-loom config is present.",
+    );
+  });
+
+  it("writes fusion to the workspace settings on Use dbt Fusion", async () => {
+    const { svc, telemetry } = service(withDbtCore);
+    await svc.resolve(new FakeMemento() as never);
+    (window.showInformationMessage as jest.Mock).mockReturnValueOnce(
+      Promise.resolve("Use dbt Fusion"),
+    );
+    await svc.notifySwitchHeld();
+    expect(update).toHaveBeenCalledWith(
+      "dbtIntegration",
+      "fusion",
+      ConfigurationTarget.Workspace,
+    );
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationUseFusion",
+      { reason: "dbtCore", binaryVersion: "2.0.9" },
+    );
+    // The setting is now explicit and differs from the running mode.
+    useSetting({ workspaceValue: "fusion" });
+    expect(svc.needsReload()).toBe(true);
+  });
+
+  it("writes nothing on Dismiss, and shows nothing after a switch", async () => {
+    const held = service(withDbtCore).svc;
+    await held.resolve(new FakeMemento() as never);
+    (window.showInformationMessage as jest.Mock).mockReturnValueOnce(
+      Promise.resolve("Dismiss"),
+    );
+    await held.notifySwitchHeld();
+    expect(update).not.toHaveBeenCalled();
+
+    const switched = service().svc;
+    await switched.resolve(new FakeMemento() as never);
+    await switched.notifySwitchHeld();
+    expect(shown()).toHaveLength(1);
   });
 });
 

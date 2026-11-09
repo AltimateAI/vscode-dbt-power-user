@@ -223,6 +223,14 @@ export class DBTPowerUserExtension implements Disposable {
       try {
         // Before detection: the mode decides which dbt is looked for.
         await this.integrationModeService.resolve(context.workspaceState);
+        void this.integrationModeService
+          .notifySwitchHeld()
+          .catch((error) =>
+            this.telemetry.sendTelemetryError(
+              "dbtIntegrationSwitchHeldNoticeError",
+              error,
+            ),
+          );
       } catch (error) {
         this.telemetry.sendTelemetryError("dbtIntegrationModeError", error);
       }
