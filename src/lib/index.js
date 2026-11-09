@@ -554,27 +554,9 @@ function We(o, e) {
     o.metadata || (o.metadata = {}),
     o.channel === "iopub" && Fe(o);
 }
-const jupyterWireProtocol = require("@nteract/messaging/lib/wire-protocol");
-// `DBTProject.executeSQL` returns a query handle; the notebook renders rows
-// as objects keyed by column, with the SQL that produced them.
-async function notebookQueryRows(execution, rawSql) {
-  const result = await execution.executeQuery();
-  const { column_names, column_types, rows } = result.table;
-  return {
-    columnNames: column_names,
-    columnTypes: column_types,
-    data: rows.map((row) =>
-      Object.fromEntries(row.map((value, j) => [column_names[j], value])),
-    ),
-    raw_sql: rawSql,
-    compiled_sql: result.compiled_sql,
-  };
-}
+console.log(We);
 class Be {
   constructor(e, t) {
-    // @jupyterlab/services 7 checks the socket's wire protocol on open; ""
-    // means none was negotiated. Without it the kernel is marked dead.
-    this.protocol = "";
     Object.defineProperty(this, "connection", {
       enumerable: !0,
       configurable: !0,
@@ -721,32 +703,29 @@ class Be {
   }
   generateChannels(e) {
     const t = Le(),
-      n = x(),
-      r = {
-        iopub: this.generateChannel(
-          e,
-          "iopub",
-          () =>
-            new t.Subscriber({ maxMessageSize: -1, receiveHighWaterMark: 0 }),
-        ),
-        shell: this.generateChannel(
-          e,
-          "shell",
-          () => new t.Dealer({ routingId: n, maxMessageSize: -1 }),
-        ),
-        control: this.generateChannel(
-          e,
-          "control",
-          () => new t.Dealer({ routingId: n, maxMessageSize: -1 }),
-        ),
-        stdin: this.generateChannel(
-          e,
-          "stdin",
-          () => new t.Dealer({ routingId: n, maxMessageSize: -1 }),
-        ),
-      };
-    // A ZeroMQ subscriber receives nothing until it subscribes.
-    return (r.iopub.subscribe(), r);
+      n = x();
+    return {
+      iopub: this.generateChannel(
+        e,
+        "iopub",
+        () => new t.Subscriber({ maxMessageSize: -1, receiveHighWaterMark: 0 }),
+      ),
+      shell: this.generateChannel(
+        e,
+        "shell",
+        () => new t.Dealer({ routingId: n, maxMessageSize: -1 }),
+      ),
+      control: this.generateChannel(
+        e,
+        "control",
+        () => new t.Dealer({ routingId: n, maxMessageSize: -1 }),
+      ),
+      stdin: this.generateChannel(
+        e,
+        "stdin",
+        () => new t.Dealer({ routingId: n, maxMessageSize: -1 }),
+      ),
+    };
   }
   onIncomingMessage(e, t) {
     this.msgChain = this.msgChain
@@ -756,24 +735,8 @@ class Be {
       });
   }
   async handleIncomingMessage(e, t) {
-    if (this.closed) {
-      return;
-    }
-    // Kernel messages arrive as signed Jupyter wire-protocol frames.
-    const n = jupyterWireProtocol.decode(
-      t,
-      this.connection.key,
-      this.connection.signature_scheme,
-    );
-    n.channel = e;
-    if (this.receiveHooks.length) {
-      const r = this.serialize(n);
-      for (const s of this.receiveHooks) {
-        await s(r);
-      }
-    }
-    We(n, e);
-    this.emit("message", n);
+    for (const n of this.receiveHooks) await n(t);
+    this.emit("message", t);
   }
   sendMessage(e, t) {
     this.sendChain = this.sendChain
@@ -783,25 +746,19 @@ class Be {
       });
   }
   async handleOutgoingMessage(e, t) {
-    const n = typeof e === "string" ? H(e) : e;
-    if (!t) {
-      for (const s of this.sendHooks) {
-        await s(this.serialize(n));
-      }
+    if (!t) for (const s of this.sendHooks) await s(e);
+    let n, r;
+    try {
+      if (typeof e == "string") (n = H(e)), (r = n.channel);
+      else throw new Error("Not supported");
+    } catch {
+      (r = "shell"), (n = e);
     }
-    // The kernel reads signed Jupyter wire-protocol frames, not websocket JSON.
-    this.postToSocket(
-      n.channel || "shell",
-      jupyterWireProtocol.encode(
-        n,
-        this.connection.key,
-        this.connection.signature_scheme,
-      ),
-    );
+    this.postToSocket(r, n);
   }
   postToSocket(e, t) {
     const n = this.channels[e];
-    n && n.send(t);
+    n && n.send(this.serialize(t));
   }
 }
 let X;
@@ -2498,10 +2455,7 @@ project_name="${e.getProjectName()}"
                 ]),
               );
             } else {
-              const m = await notebookQueryRows(
-                await s.executeSQL(e.document.getText(), ""),
-                e.document.getText(),
-              );
+              const m = await s.executeSQL(e.document.getText(), "", !0);
               this._onNotebookCellEvent.fire({
                 cellId: e.metadata.cellId,
                 notebook: t.uri.fsPath,
