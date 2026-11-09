@@ -63,6 +63,7 @@ import { VSCodeDBTConfiguration } from "./dbt_client/vscodeConfiguration";
 import { VSCodeDBTTerminal } from "./dbt_client/vscodeTerminal";
 import { AltimateAuthService } from "./services/altimateAuthService";
 import { AltimateCodeChatService } from "./services/altimateCodeChatService";
+import { AltimateConnectService } from "./services/altimateConnectService";
 import { ConversationService } from "./services/conversationService";
 import { DbtLineageService } from "./services/dbtLineageService";
 import { DbtTestService } from "./services/dbtTestService";
@@ -1850,6 +1851,18 @@ container
   .inSingletonScope();
 
 container
+  .bind(AltimateConnectService)
+  .toDynamicValue((context) => {
+    return new AltimateConnectService(
+      context.container.get(AltimateRequest),
+      context.container.get(DBTProjectContainer),
+      context.container.get(TelemetryService),
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
+container
   .bind(OnboardingPanel)
   .toDynamicValue((context) => {
     return new OnboardingPanel(
@@ -1863,6 +1876,7 @@ container
       context.container.get(WalkthroughCommands),
       context.container.get(AltimateAuthService),
       context.container.get(AltimateCodeChatService),
+      context.container.get(AltimateConnectService),
     );
   })
   .inSingletonScope();
@@ -1932,6 +1946,7 @@ container
       context.container.get(AltimateRequest),
       context.container.get(AltimateAuthService),
       context.container.get(WhatsNewPanel),
+      context.container.get(AltimateConnectService),
       context.container.get(IntegrationModeService),
     );
   })
