@@ -151,25 +151,61 @@ describe("DBTClient without the Python extension", () => {
   });
 
   // The dbt Cloud CLI is found on PATH without an interpreter, but every
-  // command then needs one: the prompt can't wait for a failed detection.
-  it("offers to install the Python extension once in cloud mode when the dbt Cloud CLI is found", async () => {
+  // command then needs one: until the extension is there dbt is not
+  // installed, without running the detection.
+  it("reports dbt as not installed in cloud mode without the Python extension, and prompts once", async () => {
     useSettings({ dbtIntegration: "cloud" });
-    const dbtClient = await client(true);
-    expect(dbtClient.dbtInstalled).toBe(true);
+    const detectDBT = jest.fn(() => Promise.resolve(true));
+    const installed = jest.fn();
+    const dbtClient = new DBTClient(new PythonEnvironment(terminal()), () => ({
+      detectDBT,
+    }));
+    dbtClient.onDBTInstallationVerification(installed);
+    await dbtClient.detectDBT();
     await new Promise((resolve) => setImmediate(resolve));
+
+    expect(detectDBT).not.toHaveBeenCalled();
+    expect(dbtClient.dbtInstalled).toBe(false);
+    // The status bar reads this event: "dbt cloud is not installed".
+    expect(installed).toHaveBeenLastCalledWith({
+      inProgress: false,
+      installed: false,
+    });
+    expect(commands.executeCommand).toHaveBeenCalledWith(
+      "setContext",
+      "dbtPowerUser.dbtInstalled",
+      false,
+    );
     expect(messages()).toEqual([
       expect.stringContaining("Python extension, which is not installed"),
     ]);
-    // A command's own check afterwards doesn't prompt again.
-    await expect(dbtClient.showErrorIfDbtOrPythonNotInstalled()).resolves.toBe(
-      false,
-    );
-    expect(messages()).toHaveLength(1);
     expect(window.showErrorMessage).toHaveBeenCalledWith(
       expect.any(String),
       "Install Python extension",
       "Troubleshoot",
     );
+    // A command's own check afterwards doesn't prompt again.
+    await expect(dbtClient.showErrorIfDbtOrPythonNotInstalled()).resolves.toBe(
+      false,
+    );
+    expect(messages()).toHaveLength(1);
+  });
+
+  it("still detects the dbt Cloud CLI when dbt.dbtPythonPathOverride names an interpreter", async () => {
+    useSettings({
+      dbtIntegration: "cloud",
+      dbtPythonPathOverride: process.execPath,
+    });
+    const detectDBT = jest.fn(() => Promise.resolve(true));
+    const dbtClient = new DBTClient(new PythonEnvironment(terminal()), () => ({
+      detectDBT,
+    }));
+    await dbtClient.detectDBT();
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(detectDBT).toHaveBeenCalled();
+    expect(dbtClient.dbtInstalled).toBe(true);
+    expect(window.showErrorMessage).not.toHaveBeenCalled();
   });
 
   it("offers to install the Python extension in core mode", async () => {

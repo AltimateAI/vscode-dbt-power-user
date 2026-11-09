@@ -24,6 +24,24 @@ export function integrationNeedsPython(dbtIntegrationMode: string): boolean {
   return dbtIntegrationMode !== "fusion";
 }
 
+/**
+ * The mode runs dbt through Python, and nothing can supply an interpreter:
+ * the Python extension, which selects it, is missing and
+ * `dbt.dbtPythonPathOverride` is unset. Until the extension is installed, dbt
+ * is reported as not installed and projects don't start their integration,
+ * as before the extension could activate without the Python extension.
+ */
+export function awaitingPythonExtension(
+  dbtIntegrationMode: string,
+  pythonEnvironment: PythonEnvironment,
+): boolean {
+  return (
+    integrationNeedsPython(dbtIntegrationMode) &&
+    !pythonEnvironment.pythonExtensionAvailable &&
+    !pythonEnvironment.pythonPath
+  );
+}
+
 export class DBTClient implements Disposable {
   private _onDBTInstallationVerificationEvent =
     new EventEmitter<DBTInstallationVerificationEvent>();
@@ -74,7 +92,14 @@ export class DBTClient implements Disposable {
     this.shownError = false;
     this._dbtInstalled = undefined;
     this._pythonInstalled = this.pythonPathExists();
-    this._dbtInstalled = await this.dbtDetectionFactory().detectDBT();
+    // The dbt Cloud CLI is found on PATH without an interpreter, but every
+    // command then needs one: don't report it until the extension is there.
+    this._dbtInstalled = awaitingPythonExtension(
+      this.dbtIntegrationMode(),
+      this.pythonEnvironment,
+    )
+      ? false
+      : await this.dbtDetectionFactory().detectDBT();
     // Refresh cached Python version — by this point the Python extension
     // has settled after an interpreter change
     await this.pythonEnvironment.refreshPythonVersion();
@@ -89,11 +114,13 @@ export class DBTClient implements Disposable {
     );
     if (!this._dbtInstalled) {
       this.showErrorIfDbtOrPythonNotInstalled();
-    } else if (this.pythonExtensionMissing()) {
-      // The dbt Cloud CLI can be detected without an interpreter, but every
-      // command then needs one, so the prompt can't wait for a failed detection.
-      this.promptToInstallPythonExtensionOnce();
     }
+  }
+
+  private dbtIntegrationMode(): string {
+    return workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
   }
 
   /**
@@ -101,11 +128,8 @@ export class DBTClient implements Disposable {
    * Python extension, which selects it, is missing.
    */
   private pythonExtensionMissing(): boolean {
-    const dbtIntegrationMode = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
     return (
-      integrationNeedsPython(dbtIntegrationMode) &&
+      integrationNeedsPython(this.dbtIntegrationMode()) &&
       !this.pythonEnvironment.pythonExtensionAvailable &&
       !this._pythonInstalled
     );

@@ -58,6 +58,7 @@ import {
   window,
   workspace,
 } from "vscode";
+import { awaitingPythonExtension } from ".";
 import { AltimateRequest, ModelNode } from "../altimate";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { RunHistoryService } from "../services/runHistoryService";
@@ -695,6 +696,32 @@ export class DBTProject implements Disposable {
     // Create command queue for this project
     this.createQueue("all");
 
+    await this.initializeIntegration();
+
+    // ensure all watchers are cleaned up
+    if (this.dbtProjectLog) {
+      this.disposables.push(this.dbtProjectLog);
+    }
+
+    this.terminal.debug(
+      "DbtProject",
+      `Initialized dbt project ${this.getProjectName()} at ${this.projectRoot}`,
+    );
+  }
+
+  private async initializeIntegration(): Promise<void> {
+    const dbtIntegrationMode = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+    // The installation check is prompting for the Python extension; starting
+    // the integration now only fails on the missing interpreter.
+    if (awaitingPythonExtension(dbtIntegrationMode, this.PythonEnvironment)) {
+      this.terminal.debug(
+        "DbtProject",
+        `Not initializing the ${dbtIntegrationMode} integration of the dbt project at ${this.projectRoot} until the Python extension is installed`,
+      );
+      return;
+    }
     try {
       await this.dbtProjectIntegration.initialize();
     } catch (error) {
@@ -716,16 +743,6 @@ export class DBTProject implements Disposable {
         );
       }
     }
-
-    // ensure all watchers are cleaned up
-    if (this.dbtProjectLog) {
-      this.disposables.push(this.dbtProjectLog);
-    }
-
-    this.terminal.debug(
-      "DbtProject",
-      `Initialized dbt project ${this.getProjectName()} at ${this.projectRoot}`,
-    );
   }
 
   async rebuildManifest(): Promise<void> {
