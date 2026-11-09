@@ -20,12 +20,13 @@ import {
   workspace,
 } from "vscode";
 import { AltimateRequest, DBTCoreIntegration } from "../altimate";
-import {
-  CORE_MODE_DOCS_URL,
-  isFusionMode,
-  stampBlockedByFusion,
-} from "../coreOnlyFeature";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import {
+  findMissingPython,
+  missingPythonMessage,
+  promptForPython,
+  stampBlocked,
+} from "../pythonRequiredFeature";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
 import { QueryManifestService } from "../services/queryManifestService";
@@ -59,9 +60,13 @@ enum PromptAnswer {
   YES = "Install altimate datapilot cli",
 }
 
-// The healthcheck runs the Python datapilot package and has no dbt Fusion form.
-export const HEALTHCHECK_CORE_ONLY_MESSAGE =
-  "The project healthcheck needs dbt Core mode with Python dbt-core, so it is not available in dbt Fusion mode.";
+// The healthcheck runs the Python datapilot package, in every dbt mode.
+const HEALTHCHECK_NEEDS = "The project healthcheck needs";
+
+// datapilot validates the manifest against the dbt 1.x schema, which rejects
+// the manifests dbt Fusion writes.
+export const HEALTHCHECK_FUSION_MESSAGE =
+  "The project healthcheck is not available in dbt Fusion mode yet. It runs altimate-datapilot-cli, and the current datapilot release cannot read the dbt 2.x manifests that dbt Fusion writes.";
 
 export class InsightsPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.Insights";
@@ -476,6 +481,17 @@ export class InsightsPanel extends AltimateWebviewProvider {
     });
   }
 
+  // Answers the panel with why the healthcheck did not run.
+  private postHealthcheckNotice(
+    syncRequestId: string | undefined,
+    message: string,
+  ) {
+    this._panel?.webview.postMessage({
+      command: "response",
+      args: { syncRequestId, body: { notice: { message } }, status: true },
+    });
+  }
+
   private emitError(syncRequestId: string | undefined, errorMsg: string) {
     window.showErrorMessage(errorMsg);
     this._panel!.webview.postMessage({
@@ -488,21 +504,34 @@ export class InsightsPanel extends AltimateWebviewProvider {
     syncRequestId: string | undefined,
     args: DataPilotHealtCheckParams,
   ) {
-    if (isFusionMode()) {
-      stampBlockedByFusion(this.telemetry, "performDatapilotHealthcheck");
-      this._panel?.webview.postMessage({
-        command: "response",
-        args: {
-          syncRequestId,
-          body: {
-            coreOnly: {
-              message: HEALTHCHECK_CORE_ONLY_MESSAGE,
-              learnMoreUrl: CORE_MODE_DOCS_URL,
-            },
-          },
-          status: true,
-        },
-      });
+    const missingPython = findMissingPython(
+      this.dbtProjectContainer.getPythonEnvironment(),
+    );
+    if (missingPython) {
+      stampBlocked(
+        this.telemetry,
+        "performDatapilotHealthcheck",
+        missingPython,
+      );
+      this.postHealthcheckNotice(
+        syncRequestId,
+        missingPythonMessage(HEALTHCHECK_NEEDS, missingPython),
+      );
+      void promptForPython(HEALTHCHECK_NEEDS, missingPython);
+      return;
+    }
+    if (
+      this.dbtProjectContainer
+        .getProjects()
+        .find((p) => p.projectRoot.fsPath === args.projectRoot)
+        ?.isFusionIntegration()
+    ) {
+      stampBlocked(
+        this.telemetry,
+        "performDatapilotHealthcheck",
+        "fusionManifest",
+      );
+      this.postHealthcheckNotice(syncRequestId, HEALTHCHECK_FUSION_MESSAGE);
       return;
     }
     try {
