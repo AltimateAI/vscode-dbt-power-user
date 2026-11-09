@@ -77,6 +77,7 @@ import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
   RebuildManifestStatusChange,
+  StaleManifest,
 } from "./event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 import { RunResultsEvent } from "./event/runResultsEvent";
@@ -293,6 +294,11 @@ export class DBTProject implements Disposable {
           functionMetaMap: parsedManifest.functionMetaMap,
           semanticModelMetaMap: parsedManifest.semanticModelMetaMap,
           modelDepthMap: parsedManifest.modelDepthMap,
+          // `stale` is set by @altimateai/dbt-integration releases that read the
+          // manifest on disk after a failed project check; older ones omit it.
+          staleManifest: (
+            parsedManifest as ParsedManifest & { stale?: StaleManifest }
+          ).stale,
         };
         this._manifestCacheEvent = manifestCacheEvent;
         this.stampManifestFreshness();
@@ -727,15 +733,23 @@ export class DBTProject implements Disposable {
     try {
       await this.dbtProjectIntegration.initialize();
     } catch (error) {
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "An unexpected error occured while initializing the dbt project at " +
-            this.projectRoot +
-            ": " +
-            error +
-            ".",
-        ),
-      );
+      // dbt-integration's `PythonInterpreterNotFound`: the interpreter doesn't exist.
+      const interpreterPath = (
+        error as { interpreterPath?: unknown } | undefined
+      )?.interpreterPath;
+      if (typeof interpreterPath === "string") {
+        void this.PythonEnvironment.showInterpreterNotFound(interpreterPath);
+      } else {
+        window.showErrorMessage(
+          extendErrorWithSupportLinks(
+            "An unexpected error occured while initializing the dbt project at " +
+              this.projectRoot +
+              ": " +
+              error +
+              ".",
+          ),
+        );
+      }
     }
 
     // ensure all watchers are cleaned up
@@ -751,6 +765,13 @@ export class DBTProject implements Disposable {
 
   async rebuildManifest(): Promise<void> {
     this.dbtProjectIntegration.rebuildManifest();
+  }
+
+  /** Re-parse now: restart dbt's Python process so it sees the current
+   * environment, then initialize, refresh the config and rebuild the manifest.
+   * Settles when done; failures land in diagnostics. */
+  async reparseProject(): Promise<void> {
+    await this.dbtProjectIntegration.reparseProject();
   }
 
   private async onPythonEnvironmentChanged() {
