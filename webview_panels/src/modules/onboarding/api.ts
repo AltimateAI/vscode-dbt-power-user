@@ -34,5 +34,7 @@ export const track = (
 ): void =>
   executeRequestInAsync("sendTelemetryEvent", { eventName, properties });
 
-export const runCommand = (vscodeCommand: string): Promise<unknown> =>
-  request("executeCommand", { vscodeCommand });
+export const runCommand = (
+  vscodeCommand: string,
+  ...args: unknown[]
+): Promise<unknown> => request("executeCommand", { vscodeCommand, args });

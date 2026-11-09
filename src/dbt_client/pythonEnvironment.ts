@@ -158,17 +158,7 @@ export class PythonEnvironment {
         PythonInterpreterPromptAnswer.OPEN_SETTING,
       );
       if (answer === PythonInterpreterPromptAnswer.INSTALL) {
-        await commands.executeCommand(
-          "workbench.extensions.installExtension",
-          "ms-python.python",
-        );
-        const reload = await window.showInformationMessage(
-          "The Python extension is installed. Reload the window to select an interpreter.",
-          PythonInterpreterPromptAnswer.RELOAD,
-        );
-        if (reload === PythonInterpreterPromptAnswer.RELOAD) {
-          commands.executeCommand("workbench.action.reloadWindow");
-        }
+        await this.installPythonExtension();
       } else if (answer === PythonInterpreterPromptAnswer.OPEN_SETTING) {
         commands.executeCommand(
           "workbench.action.openSettings",
@@ -186,6 +176,24 @@ export class PythonEnvironment {
       commands.executeCommand("python.setInterpreter");
     } else if (answer === PythonInterpreterPromptAnswer.DETECT) {
       commands.executeCommand("dbtPowerUser.detectPythonFromTerminal");
+    }
+  }
+
+  /**
+   * Installs the Python extension, then offers to reload the window: the
+   * extension is only picked up on activation.
+   */
+  async installPythonExtension(): Promise<void> {
+    await commands.executeCommand(
+      "workbench.extensions.installExtension",
+      "ms-python.python",
+    );
+    const reload = await window.showInformationMessage(
+      "The Python extension is installed. Reload the window to select an interpreter.",
+      PythonInterpreterPromptAnswer.RELOAD,
+    );
+    if (reload === PythonInterpreterPromptAnswer.RELOAD) {
+      commands.executeCommand("workbench.action.reloadWindow");
     }
   }
 

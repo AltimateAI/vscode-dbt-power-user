@@ -267,3 +267,92 @@ describe("OnboardingPanel Get Started", () => {
     );
   });
 });
+
+/**
+ * The project step without the Python extension: its interpreter picker
+ * (`python.setInterpreter`) does not exist, so the step offers to install the
+ * extension or open `dbt.dbtPythonPathOverride`, and dbt Fusion needs neither.
+ */
+describe("OnboardingPanel project step without the Python extension", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const withPythonEnvironment = (
+    h: ReturnType<typeof harness>,
+    pythonEnvironment: Record<string, unknown>,
+  ) => {
+    Object.assign((h.panel as any).dbtProjectContainer, {
+      getProjects: () => [],
+      dbtWorkspaceFolders: [],
+      pythonInstalled: false,
+      dbtInstalled: true,
+      getPythonEnvironment: () => pythonEnvironment,
+    });
+  };
+
+  it("reports whether the Python extension is available", async () => {
+    const h = harness();
+    withPythonEnvironment(h, {
+      pythonPath: "",
+      pythonVersion: undefined,
+      pythonExtensionAvailable: false,
+    });
+    (workspace.getConfiguration as AnyMock).mockReturnValue({
+      get: jest.fn((key: string, fallback?: unknown) =>
+        key === "dbtIntegration" ? "fusion" : fallback,
+      ),
+    });
+    (workspace as any).findFiles = jest.fn(async () => [
+      { fsPath: `${PROJECT_ROOT}/dbt_project.yml` },
+    ]);
+
+    await h.handle("getDiagnosticsStatus");
+
+    expect(h.lastBody()).toMatchObject({
+      dbtIntegrationMode: "fusion",
+      pythonInstalled: false,
+      pythonExtensionAvailable: false,
+      dbtInstalled: true,
+      projectsFound: true,
+    });
+  });
+
+  it("installs the Python extension and offers a reload", async () => {
+    const h = harness();
+    const { PythonEnvironment } =
+      await import("../../dbt_client/pythonEnvironment");
+    withPythonEnvironment(
+      h,
+      new PythonEnvironment({ debug: jest.fn() } as any) as any,
+    );
+    (window.showInformationMessage as AnyMock).mockReturnValueOnce(
+      Promise.resolve("Reload window"),
+    );
+
+    await h.handle("installPythonExtension");
+
+    expect(commands.executeCommand).toHaveBeenCalledWith(
+      "workbench.extensions.installExtension",
+      "ms-python.python",
+    );
+    expect(commands.executeCommand).toHaveBeenCalledWith(
+      "workbench.action.reloadWindow",
+    );
+    expect(h.lastBody()).toEqual({ success: true });
+  });
+
+  it("passes arguments through to the command it runs", async () => {
+    const h = harness();
+
+    await h.handle("executeCommand", {
+      vscodeCommand: "workbench.action.openSettings",
+      args: ["dbt.dbtPythonPathOverride"],
+    });
+
+    expect(commands.executeCommand).toHaveBeenCalledWith(
+      "workbench.action.openSettings",
+      "dbt.dbtPythonPathOverride",
+    );
+  });
+});
