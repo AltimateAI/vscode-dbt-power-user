@@ -1381,9 +1381,10 @@ describe("NewLineagePanel — stale-graph banner", () => {
     delete (window as any).showTextDocument;
   });
 
-  describe("a project that failed at startup", () => {
-    const message = (node: string) =>
-      `dbt configuration is invalid : Compilation Error\n  Model '${node}' (models/orders.sql) depends on a node named 'x' which was not found`;
+  describe("the root project's name", () => {
+    // dbt's error naming a node, from the config check or from a rebuild.
+    const message = (category: string, node: string) =>
+      `${category === "project-config" ? "dbt configuration is invalid :" : "There is a problem in your dbt project. Compilation failed:"} Compilation Error\n  Model '${node}' (models/orders.sql) depends on a node named 'x' which was not found`;
     let root: string;
 
     const openAction = () =>
@@ -1391,19 +1392,33 @@ describe("NewLineagePanel — stale-graph banner", () => {
         (action: { id: string }) => action.id === "openFile",
       );
 
-    beforeEach(() => {
-      root = fs.mkdtempSync(path.join(os.tmpdir(), "stale-graph-"));
+    // The name in dbt_project.yml (undefined: no `name:` line) and the name
+    // the integration reports.
+    const useProject = (
+      fileName: string | undefined,
+      integrationName: unknown,
+    ) => {
       fs.writeFileSync(
         path.join(root, "dbt_project.yml"),
-        "name: 'jaffle_shop'\n",
+        fileName === undefined ? "version: '1.0'\n" : `name: '${fileName}'\n`,
       );
       (panel as any).queryManifestService.getProject = jest.fn(() => ({
         projectRoot: { fsPath: root },
-        // The integration's placeholder until the project initializes.
-        getProjectName: () => "unknown_1234",
+        getProjectName: () => integrationName,
         getBlockingDiagnostic: () => blocking,
         getManifestPath: () => path.join(root, "target", "manifest.json"),
       }));
+    };
+
+    const failWith = (category: string, node: string) => {
+      blocking = { message: message(category, node), category };
+      panel.eventMapChanged(new Map());
+    };
+
+    const rootFile = { path: "models/orders.sql", line: undefined };
+
+    beforeEach(() => {
+      root = fs.mkdtempSync(path.join(os.tmpdir(), "stale-graph-"));
       event = graphEvent();
     });
 
@@ -1411,27 +1426,70 @@ describe("NewLineagePanel — stale-graph banner", () => {
       fs.rmSync(root, { recursive: true, force: true });
     });
 
-    it("takes a file of the root project as the root project's", () => {
-      blocking = {
-        message: message("model.jaffle_shop.orders"),
-        category: "project-config",
-      };
-      panel.eventMapChanged(new Map());
+    describe("a project that failed at startup", () => {
+      // The integration's placeholder until the project initializes.
+      beforeEach(() => useProject("jaffle_shop", "unknown_1234"));
 
-      expect(openAction().args).toEqual({
-        path: "models/orders.sql",
-        line: undefined,
+      it("takes a file of the root project as the root project's", () => {
+        failWith("project-config", "model.jaffle_shop.orders");
+
+        expect(openAction().args).toEqual(rootFile);
+      });
+
+      it("still names the package for a file of a package", () => {
+        failWith("project-config", "model.dbt_utils.orders");
+
+        expect(openAction().args.package).toBe("dbt_utils");
       });
     });
 
-    it("still names the package for a file of a package", () => {
-      blocking = {
-        message: message("model.dbt_utils.orders"),
-        category: "project-config",
-      };
-      panel.eventMapChanged(new Map());
+    describe("a project renamed in a config dbt rejected", () => {
+      // dbt keeps the old name, and the last rebuild's error uses it.
+      beforeEach(() => useProject("renamed_shop", "jaffle_shop"));
 
-      expect(openAction().args.package).toBe("dbt_utils");
+      it("takes a file under the old name as the root project's", () => {
+        failWith("manifest-rebuild", "model.jaffle_shop.orders");
+
+        expect(openAction().args).toEqual(rootFile);
+      });
+
+      it("still names the package for a file of a package", () => {
+        failWith("manifest-rebuild", "model.dbt_utils.orders");
+
+        expect(openAction().args.package).toBe("dbt_utils");
+      });
+
+      it("doesn't read dbt_project.yml for the name", () => {
+        const read = jest.spyOn(panel as any, "readProjectName");
+        failWith("manifest-rebuild", "model.jaffle_shop.orders");
+
+        expect(openAction()).toBeDefined();
+        expect(read).not.toHaveBeenCalled();
+      });
+
+      it("takes the new name when the config check fails on the renamed project", () => {
+        // The check read the new name, then failed on a node of the project.
+        failWith("project-config", "model.renamed_shop.orders");
+
+        expect(openAction().args).toEqual(rootFile);
+      });
+    });
+
+    describe("with no name to compare", () => {
+      it("still shows the banner when the integration has no name", () => {
+        // Fusion reads the name from dbt_project.yml, which may have none.
+        useProject(undefined, undefined);
+        failWith("manifest-rebuild", "model.jaffle_shop.orders");
+
+        expect(openAction().args).toEqual(rootFile);
+      });
+
+      it("takes a file as the root project's before the first load", () => {
+        useProject(undefined, "unknown_1234");
+        failWith("project-config", "model.dbt_utils.orders");
+
+        expect(openAction().args).toEqual(rootFile);
+      });
     });
   });
 
@@ -1630,6 +1688,25 @@ describe("NewLineagePanel — state card", () => {
       expect(renders()[0].args.lineageCard.actions[0].args.package).toBe(
         "dbt_utils",
       );
+    });
+
+    it("is the root project's when the config check names a project renamed since the last load", () => {
+      fs.writeFileSync(
+        path.join(root, "dbt_project.yml"),
+        "name: 'renamed_shop'\n",
+      );
+      // dbt keeps the name from the config it last loaded.
+      project.getProjectName = () => "jaffle_shop";
+      blocking = {
+        message: `dbt configuration is invalid : ${message("model.renamed_shop.orders")}`,
+        category: "project-config",
+      };
+      (panel as any).renderStartingNode();
+
+      expect(renders()[0].args.lineageCard.actions[0].args).toEqual({
+        path: "models/orders.sql",
+        line: undefined,
+      });
     });
   });
 

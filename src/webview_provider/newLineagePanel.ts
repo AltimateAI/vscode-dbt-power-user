@@ -1068,7 +1068,7 @@ export class NewLineagePanel
     }
     this.reportLineageError(blocking.message, blocking.category);
     const card = this.buildCard(
-      blocking.message,
+      blocking,
       this.queryManifestService.getProject(),
     );
     if (!this.reportedCardKinds.has(card.kind)) {
@@ -1080,10 +1080,15 @@ export class NewLineagePanel
     return { lineageCard: card };
   }
 
-  private buildCard(message: string, project?: DBTProject): LineageCard {
+  private buildCard(
+    blocking: { message: string; category: string },
+    project?: DBTProject,
+  ): LineageCard {
     return lineageCard({
-      message,
-      projectName: this.safely(() => this.rootProjectName(project)),
+      message: blocking.message,
+      projectName: this.safely(() =>
+        this.rootProjectName(project, blocking.category),
+      ),
       pythonPath: this.safely(() => project?.getPythonPath()),
       profilesPath: this.safely(() => this.profilesPath(project)),
       canReparse: this.reparseAvailable,
@@ -1137,7 +1142,7 @@ export class NewLineagePanel
     const projects = this.dbtProjectContainer.getProjects();
     for (const project of projects) {
       const blocking = this.safely(() => project.getBlockingDiagnostic());
-      const card = blocking && this.buildCard(blocking.message, project);
+      const card = blocking && this.buildCard(blocking, project);
       if (card && needsSetupToast(card)) {
         this.setupToastShown = true;
         this.telemetry.sendTelemetryEvent("lineageSetupToastShown", {
@@ -1188,7 +1193,7 @@ export class NewLineagePanel
         graphDrawn: this.graphDrawn,
         blocking,
         manifest: this.getManifestInfo(),
-        projectName: this.rootProjectName(project),
+        projectName: this.rootProjectName(project, blocking.category),
         canReparse: this.reparseAvailable,
         now: Date.now(),
       });
@@ -1363,14 +1368,27 @@ export class NewLineagePanel
     }
   }
 
-  // The project's name in dbt_project.yml. The integration only learns it once
-  // the project initializes, which a project that fails at startup never does.
-  private rootProjectName(project?: DBTProject): string | undefined {
-    return (
-      project &&
-      (this.readProjectName(project.projectRoot.fsPath) ??
-        project.getProjectName())
-    );
+  // The root project's name as the blocking error uses it. A config-check
+  // error comes from dbt_project.yml as it is now. Any other error comes from
+  // the config the integration last loaded, whose name it keeps while dbt
+  // rejects later changes; before that first load it has only an "unknown_"
+  // placeholder. With no name from either, files count as the root project's.
+  private rootProjectName(
+    project: DBTProject | undefined,
+    category: string | undefined,
+  ): string | undefined {
+    if (!project) {
+      return undefined;
+    }
+    const name: unknown = project.getProjectName();
+    const loaded =
+      typeof name === "string" && !name.startsWith("unknown_")
+        ? name
+        : undefined;
+    if (loaded !== undefined && category !== "project-config") {
+      return loaded;
+    }
+    return this.readProjectName(project.projectRoot.fsPath) ?? loaded;
   }
 
   private findBlockingDiagnostic():
