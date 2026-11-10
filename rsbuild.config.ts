@@ -72,6 +72,13 @@ const copyAssetsPlugin: RsbuildPlugin = {
           path.join(DIST, "node_modules/zeromq"),
           { recursive: true },
         );
+        // zeromq loads its native addon through cmake-ts at runtime, and the
+        // VSIX ships no node_modules outside dist.
+        cpSync(
+          path.resolve(__dirname, "node_modules/cmake-ts"),
+          path.join(DIST, "node_modules/cmake-ts"),
+          { recursive: true },
+        );
       } catch (e) {
         console.warn(`Skipping zeromq: ${(e as Error).message}`);
       }
