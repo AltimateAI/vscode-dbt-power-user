@@ -43,6 +43,16 @@ jobs:
         env:
           VSCE_TARGET: ${{ matrix.vsce-target }}
           NODE_OPTIONS: --max-old-space-size=8192
+      # The VSIX ships only dist's node_modules, so load zeromq from the unpacked VSIX,
+      # outside the checkout, to catch a runtime dependency the build didn't copy.
+      - name: Load zeromq from the packaged VSIX
+        shell: bash
+        run: |
+          dir="$RUNNER_TEMP/vsix-check"
+          rm -rf "$dir" && mkdir -p "$dir"
+          unzip -q ./*.vsix -d "$dir"
+          cd "$RUNNER_TEMP"
+          node -e 'const z = require(process.argv[1]); new z.Dealer().close(); console.log("zeromq loads from the VSIX, libzmq " + z.version);' "$dir/extension/dist/node_modules/zeromq"
       - name: Upload VSIX
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
