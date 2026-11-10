@@ -189,6 +189,26 @@ describe("lineageCard", () => {
     expect(result.actions[0].id).toBe("openProfiles");
   });
 
+  it("points a project with no profile at dbt_project.yml", () => {
+    const result = card(
+      `${CONFIG_PREFIX}Runtime Error\n  dbt cannot run because no profile was specified for this dbt project.\n  To specify a profile for this project, add a line like the this to\n  your dbt_project.yml file:\n\n  profile: [profile name]\n\n  Here, [profile name] should be replaced with a profile name\n  defined in your profiles.yml file. You can find profiles.yml here:\n\n  /home/me/.dbt/profiles.yml`,
+    );
+    expect(result.kind).toBe("profile-invalid");
+    expect(result.title).toBe("dbt_project.yml doesn't name a profile");
+    expect(result.detail).toBe(
+      "Add a profile: line to dbt_project.yml with the name of a profile in /home/me/.dbt/profiles.yml.",
+    );
+    expect(result.actions).toEqual([
+      {
+        id: "openFile",
+        label: "Open dbt_project.yml",
+        args: { path: "dbt_project.yml" },
+      },
+      { id: "openProfiles", label: "Open profiles.yml" },
+      { id: "tryAgain", label: "Try again" },
+    ]);
+  });
+
   it("says the profile reads a secret variable and the project reads the rest", () => {
     expect(
       card("Env var required but not provided: 'DBT_ENV_SECRET_PASSWORD'")
@@ -229,6 +249,36 @@ describe("lineageCard", () => {
     expect(result.kind).toBe("packages");
     expect(result.detail).toBe(
       "dependencies.yml lists 2 packages and 0 are installed.",
+    );
+    expect(result.actions[1]).toEqual({
+      id: "openFile",
+      label: "Open dependencies.yml",
+      args: { path: "dependencies.yml" },
+    });
+  });
+
+  it("counts packages in dbt 1.12's wording", () => {
+    const result = card(
+      `dbt expects 2 package(s) based on packages specified in dependencies.yml, but found only 0 package(s) installed in dbt_packages. Following packages were not found: dbt-labs/dbt_utils, dbt-labs/codegen. Run "dbt deps" to install package dependencies.`,
+    );
+    expect(result.kind).toBe("packages");
+    expect(result.detail).toBe(
+      "dependencies.yml lists 2 packages and 0 are installed.",
+    );
+    expect(result.actions[1]).toEqual({
+      id: "openFile",
+      label: "Open dependencies.yml",
+      args: { path: "dependencies.yml" },
+    });
+  });
+
+  it("opens the file dbt names even when it can't read the counts", () => {
+    const result = card(
+      `dbt needs the packages specified in dependencies.yml installed in dbt_packages. Run "dbt deps" to install package dependencies.`,
+    );
+    expect(result.kind).toBe("packages");
+    expect(result.detail).toBe(
+      "Run dbt deps to install what dependencies.yml lists.",
     );
     expect(result.actions[1]).toEqual({
       id: "openFile",

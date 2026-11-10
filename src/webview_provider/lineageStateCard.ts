@@ -130,8 +130,14 @@ const PROFILE_NAME = /could not find profile named '([^']+)'/i;
 const ENV_VAR_NAME = /env var required but not provided: '([^']+)'/i;
 // dbt names the file that declares the packages: packages.yml or
 // dependencies.yml.
+const PACKAGES_FILE = /specified in (packages|dependencies)\.yml/i;
+// How many packages are listed and installed, in dbt 1.11's wording ("dbt found
+// 2 package(s) specified in packages.yml, but only 0 package(s) installed") and
+// dbt 1.12's ("dbt expects 2 package(s) based on packages specified in
+// packages.yml, but found only 0 package(s) installed").
 const PACKAGE_COUNTS =
-  /found (\d+) package\(s\) specified in (packages|dependencies)\.yml, but only (\d+) package\(s\) installed/i;
+  /(?:found|expects) (\d+) package\(s\) (?:based on packages )?specified in (?:packages|dependencies)\.yml, but (?:found )?only (\d+) package\(s\) installed/i;
+const NO_PROFILE = /no profile was specified/i;
 // Unlike a file dbt names in an error, this one has a space in its name.
 const FILE_WITH_SPACE = /\(([^()]+ [^()]*\.(?:sql|py|yml|yaml|csv))\)/;
 
@@ -226,6 +232,21 @@ export function lineageCard(input: LineageCardInput): LineageCard {
       );
     }
     case "profile-invalid":
+      // dbt's own message says to add the line to dbt_project.yml.
+      if (NO_PROFILE.test(error.message)) {
+        return copy(
+          "dbt_project.yml doesn't name a profile",
+          `Add a profile: line to dbt_project.yml with the name of a profile in ${profiles}.`,
+          [
+            {
+              id: "openFile",
+              label: "Open dbt_project.yml",
+              args: { path: "dbt_project.yml" },
+            },
+            OPEN_PROFILES,
+          ],
+        );
+      }
       return copy(
         "dbt can't use this project's profile",
         `Check the profile in ${profiles}.`,
@@ -245,9 +266,10 @@ export function lineageCard(input: LineageCardInput): LineageCard {
     }
     case "packages": {
       const counts = PACKAGE_COUNTS.exec(error.message);
-      const file = `${counts?.[2].toLowerCase() ?? "packages"}.yml`;
+      const declared = PACKAGES_FILE.exec(error.message)?.[1].toLowerCase();
+      const file = `${declared ?? "packages"}.yml`;
       const listed = counts && Number(counts[1]);
-      const installed = counts && Number(counts[3]);
+      const installed = counts && Number(counts[2]);
       return {
         ...copy(
           "This project's packages aren't installed",
