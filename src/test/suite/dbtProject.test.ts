@@ -522,6 +522,30 @@ describe("DBTProject Test Suite", () => {
       expect(settled).toBe(true);
     });
 
+    it("reads DBT_PROFILES_DIR from the project's own workspace folder", () => {
+      // dbt's process gets the variables of the project's folder, which
+      // include that folder's .env file.
+      const folder = {
+        uri: vscode.Uri.file("/test"),
+        name: "test",
+        index: 1,
+      };
+      jest
+        .mocked(vscode.workspace.getWorkspaceFolder)
+        .mockReturnValueOnce(folder);
+      mockPythonEnvironment.getEnvironmentVariables = jest.fn(
+        (workspaceFolder?: vscode.WorkspaceFolder) => ({
+          DBT_PROFILES_DIR:
+            workspaceFolder === folder ? "/test/conf" : "/first/conf",
+        }),
+      );
+
+      expect(dbtProject.getProfilesDirEnv()).toBe("/test/conf");
+      expect(vscode.workspace.getWorkspaceFolder).toHaveBeenCalledWith(
+        dbtProject.projectRoot,
+      );
+    });
+
     it("should get project name", () => {
       expect(dbtProject.getProjectName()).toBe("test-project");
       expect(mockProjectIntegration.getProjectName).toHaveBeenCalled();

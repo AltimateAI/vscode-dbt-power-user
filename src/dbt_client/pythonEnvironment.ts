@@ -33,6 +33,8 @@ interface PythonExecutionDetails {
 
 export class PythonEnvironment {
   private executionDetails?: PythonExecutionDetails;
+  // The activation in progress, shared by everyone who waits for it.
+  private initialization?: Promise<void>;
   private disposables: Disposable[] = [];
   public allPythonPaths: { path: string; pathType: string }[] = [];
   public isPython3: boolean = true;
@@ -190,12 +192,26 @@ export class PythonEnvironment {
     return this.executionDetails!.onDidChangeExecutionDetails;
   }
 
+  /**
+   * Activates the Python extension and reads the interpreter from it, once.
+   * Callers that arrive while that is running (the dbt installation check and
+   * the Get Started wizard both start during activation) wait for the same
+   * activation instead of starting another one.
+   */
   async initialize(): Promise<void> {
     if (this.executionDetails !== undefined) {
       return;
     }
-
-    this.executionDetails = await this.activatePythonExtension();
+    if (this.initialization === undefined) {
+      this.initialization = this.activatePythonExtension()
+        .then((details) => {
+          this.executionDetails = details;
+        })
+        .finally(() => {
+          this.initialization = undefined;
+        });
+    }
+    await this.initialization;
   }
 
   getResolvedConfigValue(key: string, workspaceFolder?: WorkspaceFolder) {

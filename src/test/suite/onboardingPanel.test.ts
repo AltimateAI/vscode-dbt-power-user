@@ -267,3 +267,71 @@ describe("OnboardingPanel Get Started", () => {
     );
   });
 });
+
+/**
+ * On first run Get Started opens during activation, and its setup check runs
+ * before the Python extension has activated. The check must wait for the
+ * Python environment instead of reporting an error for something still
+ * starting.
+ */
+describe("OnboardingPanel getDiagnosticsStatus before the Python environment is ready", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (workspace.getConfiguration as AnyMock).mockReturnValue({
+      get: jest.fn((_key: string, fallback?: unknown) => fallback),
+      has: jest.fn(),
+      update: jest.fn(),
+    });
+    (workspace as any).findFiles = jest.fn(async () => []);
+  });
+
+  const environmentActivatingLater = () => {
+    const env = {
+      ready: false,
+      initialize: jest.fn(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        env.ready = true;
+      }),
+      get pythonPath(): string {
+        if (!env.ready) {
+          throw new Error(
+            "executionDetails is undefined, cannot retrieve environment variables",
+          );
+        }
+        return "/venv/bin/python";
+      },
+      pythonVersion: "3.12.1",
+    };
+    return env;
+  };
+
+  const run = async () => {
+    const h = harness();
+    const env = environmentActivatingLater();
+    Object.assign((h.panel as any).dbtProjectContainer, {
+      getProjects: () => [],
+      dbtWorkspaceFolders: [],
+      pythonInstalled: false,
+      dbtInstalled: false,
+      getPythonEnvironment: () => env,
+    });
+    await h.handle("getDiagnosticsStatus");
+    await new Promise((resolve) => setImmediate(resolve));
+    const calls = (h.panel as any)._panel.webview.postMessage.mock.calls;
+    const response = calls[calls.length - 1][0] as {
+      args: { body?: Record<string, unknown>; error?: string };
+    };
+    return { env, response };
+  };
+
+  it("waits for the Python environment and reports its interpreter", async () => {
+    const { env, response } = await run();
+    expect(env.initialize).toHaveBeenCalled();
+    expect(response.args.error).toBeUndefined();
+    expect(response.args.body).toMatchObject({
+      pythonPath: "/venv/bin/python",
+      pythonVersion: "3.12.1",
+      dbtIntegrationMode: "core",
+    });
+  });
+});

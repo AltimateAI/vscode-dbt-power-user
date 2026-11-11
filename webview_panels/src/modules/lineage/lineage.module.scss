@@ -48,6 +48,20 @@ html.lineageBody {
       }
 
       .action-widget {
+        // While the card shows: above it, and with only the tools that don't
+        // act on a graph.
+        &.no-graph-tools {
+          z-index: 11;
+
+          :global(#expand-container),
+          :global(#export-container),
+          :global(#refs-container),
+          :global(#settings-container),
+          :global(#reset-container) {
+            display: none;
+          }
+        }
+
         position: absolute;
         top: 16px;
         right: 16px;
