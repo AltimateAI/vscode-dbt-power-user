@@ -44,7 +44,9 @@ jobs:
           VSCE_TARGET: ${{ matrix.vsce-target }}
           NODE_OPTIONS: --max-old-space-size=8192
       # The VSIX ships only dist's node_modules, so load zeromq from the unpacked VSIX,
-      # outside the checkout, to catch a runtime dependency the build didn't copy.
+      # outside the checkout, to catch a runtime dependency the build didn't copy. Node
+      # also searches every parent directory's node_modules, so fail when any module
+      # zeromq loads comes from outside the VSIX.
       - name: Load zeromq from the packaged VSIX
         shell: bash
         run: |
@@ -52,7 +54,21 @@ jobs:
           rm -rf "$dir" && mkdir -p "$dir"
           unzip -q ./*.vsix -d "$dir"
           cd "$RUNNER_TEMP"
-          node -e 'const z = require(process.argv[1]); new z.Dealer().close(); console.log("zeromq loads from the VSIX, libzmq " + z.version);' "$dir/extension/dist/node_modules/zeromq"
+          node -e '
+            const path = require("path");
+            const root = path.resolve(process.argv[1]);
+            const z = require(path.join(root, "extension/dist/node_modules/zeromq"));
+            new z.Dealer().close();
+            const outside = Object.keys(require.cache).filter((file) => {
+              const rel = path.relative(root, file);
+              return rel.startsWith("..") || path.isAbsolute(rel);
+            });
+            if (outside.length > 0) {
+              console.error("zeromq loaded modules from outside the VSIX: " + outside.join(", "));
+              process.exit(1);
+            }
+            console.log("zeromq loads from the VSIX, libzmq " + z.version);
+          ' "$dir"
       - name: Upload VSIX
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
