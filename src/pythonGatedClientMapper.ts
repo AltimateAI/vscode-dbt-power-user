@@ -37,6 +37,16 @@ export class PythonGatedClientMapper extends ClientMapper {
   async initializeNotebookClient(
     notebookUri: Uri,
   ): Promise<NotebookKernelClient> {
+    // A notebook restored on window reload opens while the extension is still
+    // activating, before the Python extension has answered. Reading the
+    // interpreter then throws, so wait for the environment rather than report
+    // a working interpreter as missing. A failed initialization falls through:
+    // `findMissingPython` then names the missing extension or interpreter.
+    try {
+      await this.pythonEnvironment.initialize();
+    } catch {
+      // handled by findMissingPython below
+    }
     const missing = findMissingPython(this.pythonEnvironment);
     if (missing) {
       stampBlocked(this.telemetry, TelemetryEvents["Notebook/Launch"], missing);

@@ -155,7 +155,7 @@ describe("PythonGatedClientMapper on the notebook library", () => {
       { createPythonBridge },
       { validateAndInstallNotebookDependencies },
       terminal,
-      { pythonPath },
+      { pythonPath, initialize: jest.fn(() => Promise.resolve()) },
       { sendTelemetryEvent },
     );
 
@@ -226,6 +226,36 @@ describe("PythonGatedClientMapper on the notebook library", () => {
     );
     expect(createPythonBridge).toHaveBeenCalledWith("/project");
     expect(validateAndInstallNotebookDependencies).toHaveBeenCalled();
+    expect(sendTelemetryEvent).not.toHaveBeenCalled();
+  });
+
+  it("waits for the Python environment before deciding, as a restored notebook opens during activation", async () => {
+    // Before `initialize()` resolves, reading the interpreter throws.
+    let ready = false;
+    const pythonEnvironment = {
+      initialize: jest.fn(async () => {
+        ready = true;
+      }),
+      get pythonPath(): string {
+        if (!ready) {
+          throw new Error("executionDetails is undefined");
+        }
+        return "/venv/bin/python";
+      },
+    };
+    const mapper = new PythonGatedClientMapper(
+      { createPythonBridge },
+      { validateAndInstallNotebookDependencies },
+      terminal,
+      pythonEnvironment,
+      { sendTelemetryEvent },
+    );
+
+    expect(await settle(mapper.initializeNotebookClient(notebookUri))).toBe(
+      "opened",
+    );
+    expect(pythonEnvironment.initialize).toHaveBeenCalledTimes(1);
+    expect(createPythonBridge).toHaveBeenCalledWith("/project");
     expect(sendTelemetryEvent).not.toHaveBeenCalled();
   });
 });

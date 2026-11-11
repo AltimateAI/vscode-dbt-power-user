@@ -973,9 +973,15 @@ describe("DBTProject Test Suite", () => {
       expect(
         mockExecutionInfrastructure.createPythonBridge,
       ).not.toHaveBeenCalled();
-      if (outcome instanceof Error) {
-        expect(outcome.message).not.toContain("not authenticated");
-      }
+      expect(
+        (mockValidationProvider as any).throwIfNotAuthenticated,
+      ).not.toHaveBeenCalled();
+      // The real library ran and failed only on the missing native module.
+      expect(outcome).toBeInstanceOf(Error);
+      expect((outcome as Error).message).not.toContain("not authenticated");
+      expect((outcome as Error).message).toContain(
+        "no Python bridge was provided",
+      );
     });
 
     it("validates SQL in dbt Fusion mode without starting a Python bridge", async () => {
@@ -1010,9 +1016,13 @@ describe("DBTProject Test Suite", () => {
         mockExecutionInfrastructure.closePythonBridge,
       ).not.toHaveBeenCalled();
       expect(spawn).not.toHaveBeenCalled();
-      if (outcome instanceof Error) {
-        expect(outcome.message).toContain("no Python bridge was provided");
-      }
+      // The real library ran (the module mock does not replace it here) and,
+      // with no native altimate-core under jest, reports that it was given no
+      // bridge: the Fusion call shape, seen from the library's side.
+      expect(outcome).toBeInstanceOf(Error);
+      expect((outcome as Error).message).toContain(
+        "no Python bridge was provided",
+      );
     });
   });
 

@@ -385,6 +385,7 @@ const ProjectHealthChecker = (): JSX.Element => {
     useState<ProjectHealthcheck | null>(null);
   const [notice, setNotice] = useState<HealthcheckNotice | null>(null);
   const handleHealthCheck = async (args: AltimateConfigProps) => {
+    setNotice(null);
     const result = (await executeRequestInSync(
       "altimateScan",
       args as unknown as Record<string, unknown>,
@@ -401,7 +402,10 @@ const ProjectHealthChecker = (): JSX.Element => {
       <Stack direction="column">
         <ProjectHealthcheckInput
           handleHealthCheck={handleHealthCheck}
-          handleClearProblems={() => setProjectHealthcheck(null)}
+          handleClearProblems={() => {
+            setProjectHealthcheck(null);
+            setNotice(null);
+          }}
         />
         {notice && (
           <Alert color="warning" className="p-2 mb-0">
