@@ -40,7 +40,7 @@ export function dbtVersionLabels(version: unknown): DbtVersionLabels {
   return { full: parts.join("."), minor: `${major}.${minor}` };
 }
 
-export function dbtAdapterLabel(adapter: unknown): string {
+function dbtAdapterLabel(adapter: unknown): string {
   if (typeof adapter !== "string") {
     return DBT_ENVIRONMENT_UNKNOWN;
   }
@@ -122,7 +122,7 @@ function isCommandNotFound(error: unknown): boolean {
  * other event. A parse command that failed because the binary is missing is
  * its own class.
  */
-export function fusionFailureClass(
+function fusionFailureClass(
   eventName: string,
   error?: unknown,
 ): FusionFailureClass | undefined {
