@@ -438,6 +438,16 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             .get<string>("dbtIntegration", "core");
           const pythonEnvironment =
             this.dbtProjectContainer.getPythonEnvironment();
+          // On first run Get Started opens during activation, before the Python
+          // extension has answered. Reading the interpreter then throws, so wait
+          // for the environment instead of reporting an error for something
+          // that is still starting.
+          const waitStart = Date.now();
+          await pythonEnvironment.initialize();
+          this.dbtTerminal.debug(
+            "getDiagnosticsStatus",
+            `Python environment ready after waiting ${Date.now() - waitStart} ms`,
+          );
 
           // Get dbt version from any project that has it defined
           let dbtVersion: string | undefined;
