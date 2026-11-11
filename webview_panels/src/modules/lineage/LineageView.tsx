@@ -17,10 +17,12 @@ import { useEffect, useState } from "react";
 import ActionWidget from "./ActionWidget";
 import DemoButton from "./components/demo/DemoButton";
 import styles from "./lineage.module.scss";
+import LineageStateCard from "./LineageStateCard";
 import StaleGraphChip from "./StaleGraphChip";
 import "./tailwind-globals.css";
 import {
   LineageBanner as LineageBannerState,
+  LineageCard,
   MissingLineageMessage,
   StaticLineageProps,
 } from "./types";
@@ -41,6 +43,7 @@ const LineageView = (): JSX.Element | null => {
     MissingLineageMessage | undefined
   >();
   const [banner, setBanner] = useState<LineageBannerState | undefined>();
+  const [card, setCard] = useState<LineageCard | undefined>();
 
   useEffect(() => {
     if (!isComponentsApiInitialized) {
@@ -95,10 +98,12 @@ const LineageView = (): JSX.Element | null => {
       aiEnabled: boolean;
       missingLineageMessage?: MissingLineageMessage;
       lineageBanner?: LineageBannerState;
+      lineageCard?: LineageCard;
     } & StaticLineageProps,
   ) => {
     setMissingLineageMessage(data.missingLineageMessage);
     setBanner(data.lineageBanner);
+    setCard(data.lineageCard);
     const event = new CustomEvent("renderStartNode", {
       detail: {
         ...data,
@@ -165,17 +170,19 @@ const LineageView = (): JSX.Element | null => {
           missingLineageMessage={missingLineageMessage}
           aiEnabled={renderNode.aiEnabled}
           lineageType={lineageType}
+          showGraphTools={!card}
         />
         {/* Beside the toolbar, over the graph; the graph keeps the panel. */}
         {lineageType === "dynamic" && banner ? (
           <StaleGraphChip banner={banner} />
         ) : null}
-        {lineageType === "sql" ? null : (
+        {lineageType === "sql" || card ? null : (
           <div className="bottom-right-container">
             <DemoButton />
           </div>
         )}
         <div className={`${styles.lineageWrap} al-tw-scope`}>
+          {card ? <LineageStateCard card={card} /> : null}
           <Lineage
             theme={theme}
             dynamicLineage={renderNode}
