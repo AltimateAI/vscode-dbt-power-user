@@ -73,20 +73,9 @@ export function staleGraphBanner(
     : `dbt can't parse the project right now: ${error.summary}`;
 
   const actions: StaleGraphAction[] = [];
-  if (error.file) {
-    const inPackage =
-      error.package !== undefined &&
-      input.projectName !== undefined &&
-      error.package !== input.projectName;
-    actions.push({
-      id: "openFile",
-      label: `Open ${path.posix.basename(error.file)}`,
-      args: {
-        path: error.file,
-        line: error.line,
-        ...(inPackage ? { package: error.package } : {}),
-      },
-    });
+  const open = openFileAction(error, input.projectName);
+  if (open) {
+    actions.push(open);
   }
   actions.push({ id: "showProblems", label: "Show all problems" });
   if (input.canReparse) {
@@ -162,6 +151,29 @@ export function summarizeDbtError(raw: string): {
     file,
     line: line !== undefined ? Number(line) : undefined,
     package: NODE_PACKAGE.exec(message)?.[1],
+  };
+}
+
+// "Open <file>" for the file dbt's message names, if it names one.
+export function openFileAction(
+  error: ReturnType<typeof summarizeDbtError>,
+  projectName: string | undefined,
+): StaleGraphAction | undefined {
+  if (!error.file) {
+    return undefined;
+  }
+  const inPackage =
+    error.package !== undefined &&
+    projectName !== undefined &&
+    error.package !== projectName;
+  return {
+    id: "openFile",
+    label: `Open ${path.posix.basename(error.file)}`,
+    args: {
+      path: error.file,
+      line: error.line,
+      ...(inPackage ? { package: error.package } : {}),
+    },
   };
 }
 

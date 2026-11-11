@@ -34,10 +34,13 @@ const ActionWidget = ({
   missingLineageMessage,
   aiEnabled,
   lineageType,
+  showGraphTools,
 }: {
   missingLineageMessage?: MissingLineageMessage;
   aiEnabled: boolean;
   lineageType: "sql" | "dynamic";
+  // Depth, Export, Settings and Reset act on a graph; the card has none.
+  showGraphTools: boolean;
 }): JSX.Element => {
   if (lineageType === "sql") {
     return (
@@ -47,7 +50,9 @@ const ActionWidget = ({
     );
   }
   return (
-    <div className={styles.actionWidget}>
+    <div
+      className={`${styles.actionWidget} ${showGraphTools ? "" : styles.noGraphTools}`}
+    >
       <MissingLineageMessageComponent
         missingLineageMessage={missingLineageMessage}
       />

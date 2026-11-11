@@ -156,6 +156,7 @@ export const env = {
   uiKind: UIKind.Desktop,
   // A desktop editor resolves its own URI unchanged.
   asExternalUri: jest.fn(async (uri: unknown) => uriParts(String(uri))),
+  openExternal: jest.fn(async () => true),
 };
 
 export const commands = {

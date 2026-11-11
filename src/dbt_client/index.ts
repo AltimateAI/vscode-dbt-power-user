@@ -15,7 +15,6 @@ const RELOAD_WINDOW = "Reload window";
 const INSTALL_DBT_FUSION = "Install dbt Fusion";
 const TROUBLESHOOT = "Troubleshoot";
 
-/** dbt Core and its command-line mode run through a Python interpreter; dbt Fusion and the dbt Cloud CLI don't. */
 /**
  * Every mode but dbt Fusion runs dbt from the selected Python interpreter:
  * dbt Core through the bridge or its console script, the dbt Cloud CLI from
