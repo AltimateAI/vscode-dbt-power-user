@@ -12,6 +12,7 @@ import {
   DBTCommandExecutionInfrastructure,
   DBTCommandFactory,
   DBTDiagnosticData,
+  DBTFusionCommandProjectIntegration,
   DBTNode,
   DBTProjectIntegration,
   DBTProjectIntegrationAdapter,
@@ -121,6 +122,10 @@ export class DBTProject implements Disposable {
   private readonly manifestRebuildStartTimes: number[] = [];
   readonly projectRoot: Uri;
   private dbtProjectIntegration: DBTProjectIntegrationAdapter;
+  // The mode this project was created in. Read once: the window's mode can be
+  // switched at runtime without the setting changing, and the integration this
+  // project holds is the one created for that mode.
+  private readonly dbtIntegrationMode: string;
 
   private _onProjectConfigChanged =
     new EventEmitter<ProjectConfigChangedEvent>();
@@ -199,6 +204,7 @@ export class DBTProject implements Disposable {
     const dbtIntegrationMode = workspace
       .getConfiguration("dbt")
       .get<string>("dbtIntegration", "core");
+    this.dbtIntegrationMode = dbtIntegrationMode;
 
     if (dbtIntegrationMode === "core") {
       this.isDbtLoomInstalled()
@@ -534,6 +540,16 @@ export class DBTProject implements Disposable {
 
   getPythonBridgeStatus() {
     return this.dbtProjectIntegration.getPythonBridgeStatus();
+  }
+
+  // Whether dbt Fusion runs this project, read from the integration the
+  // adapter created rather than from the setting, which a runtime mode switch
+  // does not write.
+  isFusionIntegration(): boolean {
+    return (
+      this.getCurrentProjectIntegration() instanceof
+      DBTFusionCommandProjectIntegration
+    );
   }
 
   // Whether the integration finished initializing its execution state (for
@@ -1010,10 +1026,8 @@ export class DBTProject implements Disposable {
   }
 
   private requiresAuthentication(): boolean {
-    const dbtIntegrationMode = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
-    return dbtIntegrationMode === "cloud";
+    // The mode this project was created in (see `dbtIntegrationMode`).
+    return this.dbtIntegrationMode === "cloud";
   }
 
   throwIfNotAuthenticated() {
@@ -1168,6 +1182,11 @@ export class DBTProject implements Disposable {
     const { sql, dialect, models } = request;
     this.throwDiagnosticsErrorIfAvailable();
     this.throwIfNotAuthenticated();
+    if (this.dbtIntegrationMode === "fusion") {
+      // altimate-core validates without Python, and a dbt Fusion setup may
+      // have no Python with dbt at all: no bridge to start.
+      return await validateSQL(sql, dialect, models);
+    }
     const sqlValidationThread = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );

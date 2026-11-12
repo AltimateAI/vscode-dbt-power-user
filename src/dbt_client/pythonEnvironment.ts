@@ -18,6 +18,8 @@ export enum PythonInterpreterPromptAnswer {
   SELECT = "Select Python interpreter",
   DETECT = "Detect from terminal",
   OPEN_SETTING = "Open setting",
+  INSTALL = "Install Python extension",
+  RELOAD = "Reload window",
 }
 
 type EnvFrom = "process" | "integrated" | "dotenv";

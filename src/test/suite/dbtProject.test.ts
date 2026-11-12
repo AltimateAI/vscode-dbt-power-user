@@ -17,6 +17,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import childProcess from "child_process";
 import { EventEmitter } from "events";
 import * as path from "path";
 import * as vscode from "vscode";
@@ -926,6 +927,103 @@ describe("DBTProject Test Suite", () => {
 
       expect(mockExecutionInfrastructure.createPythonBridge).toHaveBeenCalled();
       expect(mockExecutionInfrastructure.closePythonBridge).toHaveBeenCalled();
+    });
+
+    const fusionProject = () => {
+      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+        get: jest.fn((key: string, fallback?: unknown) =>
+          key === "dbtIntegration" ? "fusion" : fallback,
+        ),
+      });
+      const projectUri = vscode.Uri.file("/test/project");
+      return new DBTProject(
+        mockPythonEnvironment,
+        dbtProjectLogFactory as any,
+        mockCommandFactory,
+        mockTerminal,
+        mockSharedStateService,
+        mockTelemetry,
+        mockExecutionInfrastructure,
+        jest.fn().mockReturnValue(mockProjectIntegration) as any,
+        mockAltimate,
+        mockValidationProvider,
+        mockAltimateAuthService,
+        mockRunHistoryService,
+        projectUri,
+        {},
+        mockManifestChangedEmitter,
+      );
+    };
+
+    it("keeps the mode it was created with when the setting changes afterwards", async () => {
+      const project = fusionProject();
+      // The window can be switched to another mode without the setting changing.
+      // `cloud` would also demand authentication, which a Fusion project must not.
+      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+        get: jest.fn((key: string, fallback?: unknown) =>
+          key === "dbtIntegration" ? "cloud" : fallback,
+        ),
+      });
+      (mockValidationProvider as any).throwIfNotAuthenticated = jest.fn(() => {
+        throw new Error("not authenticated");
+      });
+      mockExecutionInfrastructure.createPythonBridge.mockClear();
+      const outcome = await project
+        .validateSql({ sql: "SELECT 1", dialect: "duckdb", models: [] })
+        .catch((error: Error) => error);
+      expect(
+        mockExecutionInfrastructure.createPythonBridge,
+      ).not.toHaveBeenCalled();
+      expect(
+        (mockValidationProvider as any).throwIfNotAuthenticated,
+      ).not.toHaveBeenCalled();
+      // The real library ran and failed only on the missing native module.
+      expect(outcome).toBeInstanceOf(Error);
+      expect((outcome as Error).message).not.toContain("not authenticated");
+      expect((outcome as Error).message).toContain(
+        "no Python bridge was provided",
+      );
+    });
+
+    it("validates SQL in dbt Fusion mode without starting a Python bridge", async () => {
+      dbtProject = fusionProject();
+      // Only the bridges this validation starts count.
+      mockExecutionInfrastructure.createPythonBridge.mockClear();
+      mockExecutionInfrastructure.closePythonBridge.mockClear();
+      const spawn = jest.spyOn(childProcess, "spawn");
+      const models = [
+        {
+          name: "customers",
+          schema: "main",
+          columns: { id: { name: "id", data_type: "INTEGER" } },
+        },
+      ];
+
+      // altimate-core validates without Python. Jest can't load its native
+      // module, so here the library reports that instead; either way no
+      // bridge is asked for.
+      const outcome = await dbtProject
+        .validateSql({
+          sql: "SELECT id FROM customers",
+          dialect: "duckdb",
+          models,
+        })
+        .catch((error: Error) => error);
+
+      expect(
+        mockExecutionInfrastructure.createPythonBridge,
+      ).not.toHaveBeenCalled();
+      expect(
+        mockExecutionInfrastructure.closePythonBridge,
+      ).not.toHaveBeenCalled();
+      expect(spawn).not.toHaveBeenCalled();
+      // The real library ran (the module mock does not replace it here) and,
+      // with no native altimate-core under jest, reports that it was given no
+      // bridge: the Fusion call shape, seen from the library's side.
+      expect(outcome).toBeInstanceOf(Error);
+      expect((outcome as Error).message).toContain(
+        "no Python bridge was provided",
+      );
     });
   });
 
