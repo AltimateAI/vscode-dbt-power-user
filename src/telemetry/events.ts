@@ -100,3 +100,47 @@ export enum TelemetryEvents {
   "WhatsNew/SiteLinkClicked" = "whats_new_site_link_clicked",
   "QueryPanel/OptimizeWarehouseClick" = "QueryPanel/OptimizeWarehouseClick",
 }
+
+// Properties that describe the user's dbt setup. `DBTProject` sets them as
+// custom attributes once its integration reports them, so every event sent
+// after that carries them, routine and error events alike. Each value is a
+// string, and anything not detected is `DBT_ENVIRONMENT_UNKNOWN`. The
+// integration mode itself is already on every event as `dbtIntegrationMode`.
+export enum DbtEnvironmentTelemetryProperty {
+  // The detected dbt version, `major.minor.patch`: dbt-core's in core and
+  // corecommand mode, the dbt Cloud CLI's in cloud mode, the Fusion binary's
+  // in fusion mode.
+  DbtVersion = "dbtVersion",
+  // `major.minor` of the same version, so queries can group without parsing.
+  DbtVersionMinor = "dbtVersionMinor",
+  // The adapter type of the project's target, for example `snowflake`.
+  DbtAdapter = "dbtAdapter",
+  // The Fusion binary's version, `major.minor.patch`. Set in fusion mode only.
+  DbtFusionVersion = "dbtFusionVersion",
+}
+
+// The value of a dbt setup property that could not be detected, including a
+// version reported as 0.0.0.
+export const DBT_ENVIRONMENT_UNKNOWN = "unknown";
+
+// Property on the known dbt Fusion failure events that names the failure, so
+// the failures can be counted without matching message text. Events that are
+// not a known Fusion failure do not carry it.
+export const FUSION_FAILURE_CLASS_PROPERTY = "fusionFailureClass";
+
+export enum FusionFailureClass {
+  // The Fusion binary could not be started: "Command not found".
+  BinaryMissing = "binary_missing",
+  // `dbt parse` failed to run for another reason.
+  ParseCommandFailed = "parse_command_failed",
+  // `dbt debug` failed, so the target and adapter are unknown.
+  InitializeTargetFailed = "initialize_target_failed",
+  // Fusion ran and reported errors in the user's project.
+  ProjectParseError = "project_parse_error",
+  // Fusion's parse output could not be read as JSON.
+  ParseOutputUnreadable = "parse_output_unreadable",
+  // The project name could not be read from `dbt_project.yml`.
+  ProjectNameUnreadable = "project_name_unreadable",
+  // The user asked for docs generation, which Fusion does not support.
+  DocsUnsupported = "docs_unsupported",
+}
