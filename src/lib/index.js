@@ -1926,6 +1926,9 @@ exports.ClientMapper = class {
     }
     return this.clientMap.get(e.fsPath);
   }
+  hasNotebookClient(e) {
+    return this.clientMap.has(e.fsPath);
+  }
   getNotebookClient(e) {
     if (!this.clientMap.has(e.fsPath))
       throw new Error("Notebook client not initialized");
@@ -2076,7 +2079,15 @@ exports.DatapilotNotebookController = class {
       ),
       this.disposables.push(
         u.workspace.onDidOpenNotebookDocument(async (i) => {
-          await this.onNotebookOpen(i);
+          try {
+            await this.onNotebookOpen(i);
+          } catch (e) {
+            this.dbtTerminal.error(
+              "Notebookcontroller",
+              `notebook open failed: ${e instanceof Error ? e.message : String(e)}`,
+              e,
+            );
+          }
         }),
       ),
       this.disposables.push(
@@ -2329,7 +2340,9 @@ exports.DatapilotNotebookController = class {
   }
   async onNotebookClose(e) {
     if (e.notebookType !== A) return;
-    const t = await this.clientMapper.getNotebookClient(e.uri);
+    const t = this.clientMapper.hasNotebookClient(e.uri)
+      ? await this.clientMapper.getNotebookClient(e.uri)
+      : void 0;
     t && t.dispose(),
       this.dbtTerminal.debug(
         "Notebookcontroller",

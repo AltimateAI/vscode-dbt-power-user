@@ -13,7 +13,7 @@ import {
 } from "@modules/app/requestExecutor";
 import useAppContext from "@modules/app/useAppContext";
 import { panelLogger } from "@modules/logger";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ActionWidget from "./ActionWidget";
 import DemoButton from "./components/demo/DemoButton";
 import styles from "./lineage.module.scss";
@@ -44,6 +44,14 @@ const LineageView = (): JSX.Element | null => {
   >();
   const [banner, setBanner] = useState<LineageBannerState | undefined>();
   const [card, setCard] = useState<LineageCard | undefined>();
+  // A graph drawn earlier stays mounted under the card; while the card covers
+  // it, keyboard focus and screen readers skip it.
+  const graphLayer = useCallback(
+    (el: HTMLDivElement | null) => {
+      el?.toggleAttribute("inert", card !== undefined);
+    },
+    [card],
+  );
 
   useEffect(() => {
     if (!isComponentsApiInitialized) {
@@ -183,17 +191,20 @@ const LineageView = (): JSX.Element | null => {
         )}
         <div className={`${styles.lineageWrap} al-tw-scope`}>
           {card ? <LineageStateCard card={card} /> : null}
-          <Lineage
-            theme={theme}
-            dynamicLineage={renderNode}
-            lineageType={lineageType}
-            sqlLineage={
-              lineageType === "sql"
-                ? (renderNode as StaticLineageProps)
-                : undefined
-            }
-            allowSyncColumnsWithDB
-          />
+          {/* No box of its own, so the graph's layout doesn't change. */}
+          <div ref={graphLayer} style={{ display: "contents" }}>
+            <Lineage
+              theme={theme}
+              dynamicLineage={renderNode}
+              lineageType={lineageType}
+              sqlLineage={
+                lineageType === "sql"
+                  ? (renderNode as StaticLineageProps)
+                  : undefined
+              }
+              allowSyncColumnsWithDB
+            />
+          </div>
         </div>
       </div>
     </TooltipProvider>
