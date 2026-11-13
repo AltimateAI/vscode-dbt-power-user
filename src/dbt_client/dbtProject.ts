@@ -1084,12 +1084,12 @@ export class DBTProject implements Disposable {
         .getConfiguration("dbt")
         .get<string>("dbtIntegration", "core");
       if (dbtIntegrationMode === "fusion") {
-        // The dbt Fusion integration rejects docs generation unconditionally:
-        // this is a known limitation, not a failure.
+        // The dbt Fusion integration rejects docs generation on binaries
+        // older than dbt Fusion 2.0.9: a known limitation, not a failure.
         window.showErrorMessage(
           "Could not generate docs: " +
             message +
-            ". To generate docs, set dbt.dbtIntegration to core or cloud.",
+            ". To generate docs, update dbt Fusion to 2.0.9 or newer, or set dbt.dbtIntegration to core or cloud.",
         );
         this.telemetry.sendTelemetryEvent("generateDocsUnsupported");
         return;
