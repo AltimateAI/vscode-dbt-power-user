@@ -336,7 +336,9 @@ export class WalkthroughCommands {
     const telemetryProps = {
       adapter: adapter.label,
       packageName,
-      dbtVersion: packageVersion,
+      // The version the user picked to install; `dbtVersion` is the detected
+      // version every event carries once a project reports it.
+      requestedDbtVersion: packageVersion,
       platform,
       pythonPath: this.pythonEnvironment.pythonPath ?? "unknown",
       pythonVersion: this.pythonEnvironment.pythonVersion ?? "unknown",

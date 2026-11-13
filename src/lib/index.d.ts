@@ -217,6 +217,7 @@ declare class ClientMapper {
     dbtTerminal: DBTTerminal,
   );
   initializeNotebookClient(notebookUri: Uri): Promise<NotebookKernelClient>;
+  hasNotebookClient(notebookUri: Uri): boolean;
   getNotebookClient(notebookUri: Uri): Promise<NotebookKernelClient>;
 }
 

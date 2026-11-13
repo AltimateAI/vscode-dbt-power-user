@@ -66,14 +66,32 @@ const copyAssetsPlugin: RsbuildPlugin = {
       }
 
       console.log("copying notebook modules");
+      let zeromqCopied = false;
       try {
         cpSync(
           path.resolve(__dirname, "node_modules/zeromq"),
           path.join(DIST, "node_modules/zeromq"),
           { recursive: true },
         );
+        zeromqCopied = true;
       } catch (e) {
         console.warn(`Skipping zeromq: ${(e as Error).message}`);
+      }
+      // zeromq loads its native addon through cmake-ts at runtime, and the
+      // VSIX ships no node_modules outside dist, so a zeromq without it
+      // can't load. Abort the build, as for the required assets above.
+      if (zeromqCopied) {
+        const from = path.resolve(__dirname, "node_modules/cmake-ts");
+        const to = path.join(DIST, "node_modules/cmake-ts");
+        try {
+          cpSync(from, to, { recursive: true });
+        } catch (error) {
+          throw new Error(
+            `Required asset missing: failed to copy ${from} -> ${to}: ${
+              (error as Error).message
+            }`,
+          );
+        }
       }
 
       try {

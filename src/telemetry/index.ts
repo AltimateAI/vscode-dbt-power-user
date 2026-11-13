@@ -1,6 +1,7 @@
 import TelemetryReporter from "@vscode/extension-telemetry";
 import { createHash } from "crypto";
 import * as vscode from "vscode";
+import { fusionFailureClassProperties } from "./dbtEnvironment";
 
 const POWER_USER_EXTENSION_MARKER = "innoverio.vscode-dbt-power-user";
 
@@ -17,6 +18,10 @@ export class TelemetryService implements vscode.Disposable {
 
   setTelemetryCustomAttribute(key: string, value: string) {
     this.customAttributes[key] = value;
+  }
+
+  deleteTelemetryCustomAttribute(key: string) {
+    delete this.customAttributes[key];
   }
 
   startTelemetryEvent(
@@ -79,6 +84,7 @@ export class TelemetryService implements vscode.Disposable {
           .get<boolean>("isLocalMode", false)
           ? "true"
           : "false",
+        ...fusionFailureClassProperties(eventName),
         ...this.customAttributes,
       },
       measurements,
@@ -115,6 +121,7 @@ export class TelemetryService implements vscode.Disposable {
         stack: sanitizeForTelemetry(rawStack),
         ...this.extractErrorFields(error),
         ...structured.properties,
+        ...fusionFailureClassProperties(eventName, error),
         ...this.customAttributes,
       },
       {

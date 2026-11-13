@@ -44,6 +44,12 @@ import { DBTClient } from "../dbt_client";
 import { DBTProject } from "../dbt_client/dbtProject";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
+import { NOTEBOOK_NEEDS } from "../pythonGatedClientMapper";
+import {
+  findMissingPython,
+  promptForPython,
+  stampBlocked,
+} from "../pythonRequiredFeature";
 import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
@@ -927,9 +933,8 @@ export class VSCodeCommands implements Disposable {
       }),
       commands.registerCommand(
         "dbtPowerUser.createAltimateNotebook",
-        async (args: OpenNotebookRequest | undefined) => {
-          this.notebookController.createNotebook(args);
-        },
+        (args: OpenNotebookRequest | undefined) =>
+          this.createAltimateNotebook(args),
       ),
       commands.registerCommand(
         "dbtPowerUser.openTargetSelector",
@@ -1740,6 +1745,20 @@ export class VSCodeCommands implements Disposable {
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash).toString(36).substring(0, 6);
+  }
+
+  // Every notebook entry point (commands, quick pick, editor menus, the
+  // Actions and query panels) runs this command. Without Python it asks for
+  // an interpreter before creating a notebook that could not run. Notebooks
+  // opened another way are gated in `PythonGatedClientMapper`.
+  async createAltimateNotebook(args: OpenNotebookRequest | undefined) {
+    const missing = findMissingPython(this.pythonEnvironment);
+    if (missing) {
+      stampBlocked(this.telemetry, TelemetryEvents["Notebook/Launch"], missing);
+      await promptForPython(NOTEBOOK_NEEDS, missing);
+      return;
+    }
+    this.notebookController.createNotebook(args);
   }
 
   dispose() {

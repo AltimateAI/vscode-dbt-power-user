@@ -12,6 +12,7 @@ import {
   DBTCommandExecutionInfrastructure,
   DBTCommandFactory,
   DBTDiagnosticData,
+  DBTFusionCommandProjectIntegration,
   DBTNode,
   DBTProjectIntegration,
   DBTProjectIntegrationAdapter,
@@ -64,6 +65,7 @@ import { AltimateAuthService } from "../services/altimateAuthService";
 import { RunHistoryService } from "../services/runHistoryService";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
+import { dbtEnvironmentProperties } from "../telemetry/dbtEnvironment";
 import { TelemetryEvents } from "../telemetry/events";
 import {
   extendErrorWithSupportLinks,
@@ -121,6 +123,10 @@ export class DBTProject implements Disposable {
   private readonly manifestRebuildStartTimes: number[] = [];
   readonly projectRoot: Uri;
   private dbtProjectIntegration: DBTProjectIntegrationAdapter;
+  // The mode this project was created in. Read once: the window's mode can be
+  // switched at runtime without the setting changing, and the integration this
+  // project holds is the one created for that mode.
+  private readonly dbtIntegrationMode: string;
 
   private _onProjectConfigChanged =
     new EventEmitter<ProjectConfigChangedEvent>();
@@ -199,6 +205,7 @@ export class DBTProject implements Disposable {
     const dbtIntegrationMode = workspace
       .getConfiguration("dbt")
       .get<string>("dbtIntegration", "core");
+    this.dbtIntegrationMode = dbtIntegrationMode;
 
     if (dbtIntegrationMode === "core") {
       this.isDbtLoomInstalled()
@@ -251,6 +258,7 @@ export class DBTProject implements Disposable {
         );
         const event = new ProjectConfigChangedEvent(this);
         this.stampCloudVariantOnTelemetry();
+        this.stampDbtEnvironmentOnTelemetry();
         this._onProjectConfigChanged.fire(event);
       },
     );
@@ -301,6 +309,7 @@ export class DBTProject implements Disposable {
         };
         this._manifestCacheEvent = manifestCacheEvent;
         this.stampManifestFreshness();
+        this.stampDbtEnvironmentOnTelemetry();
         this._onManifestChanged.fire({ added: [manifestCacheEvent] });
       },
     );
@@ -423,6 +432,38 @@ export class DBTProject implements Disposable {
     );
   }
 
+  /**
+   * Stamps the detected dbt version, its `major.minor`, the adapter and, in
+   * fusion mode, the Fusion version on every later event. Runs when the
+   * project config is read and after each parse, when the integration has
+   * read the version. Never throws: a value it cannot read is `unknown`.
+   */
+  private stampDbtEnvironmentOnTelemetry(): void {
+    try {
+      const mode = workspace
+        .getConfiguration("dbt")
+        .get<string>("dbtIntegration", "core");
+      const properties = dbtEnvironmentProperties(
+        mode,
+        () => this.getDBTVersion(),
+        () => this.dbtProjectIntegration.getAdapterType(),
+      );
+      for (const [key, value] of Object.entries(properties)) {
+        if (value === undefined) {
+          this.telemetry.deleteTelemetryCustomAttribute(key);
+        } else {
+          this.telemetry.setTelemetryCustomAttribute(key, value);
+        }
+      }
+    } catch (error) {
+      this.terminal.debug(
+        "dbtProject:stampDbtEnvironmentOnTelemetry",
+        "Could not stamp the dbt setup on telemetry",
+        error,
+      );
+    }
+  }
+
   private invalidateCacheUsingUniqueIds(uniqueIds: string[]) {
     for (const uniqueId of uniqueIds) {
       if (uniqueId in this.dbSchemaCache) {
@@ -500,6 +541,16 @@ export class DBTProject implements Disposable {
 
   getPythonBridgeStatus() {
     return this.dbtProjectIntegration.getPythonBridgeStatus();
+  }
+
+  // Whether dbt Fusion runs this project, read from the integration the
+  // adapter created rather than from the setting, which a runtime mode switch
+  // does not write.
+  isFusionIntegration(): boolean {
+    return (
+      this.getCurrentProjectIntegration() instanceof
+      DBTFusionCommandProjectIntegration
+    );
   }
 
   // Whether the integration finished initializing its execution state (for
@@ -585,8 +636,8 @@ export class DBTProject implements Disposable {
       new Range(
         data.range?.startLine || 0,
         data.range?.startColumn || 0,
-        data.range?.endLine || 999,
-        data.range?.endColumn || 999,
+        data.range?.endLine ?? 999,
+        data.range?.endColumn ?? 999,
       ),
       data.message,
       this.mapSeverityToVSCode(data.severity),
@@ -599,6 +650,18 @@ export class DBTProject implements Disposable {
       ),
     };
     return diagnostic;
+  }
+
+  /**
+   * The file a diagnostic names, resolved against the project root, or
+   * dbt_project.yml when it names none or the file doesn't exist.
+   */
+  private diagnosticFileUri(data: DBTDiagnosticData, projectURI: Uri): Uri {
+    if (!data.filePath) {
+      return projectURI;
+    }
+    const filePath = path.resolve(this.projectRoot.fsPath, data.filePath);
+    return existsSync(filePath) ? Uri.file(filePath) : projectURI;
   }
 
   updateDiagnosticsInProblemsPanel(): void {
@@ -616,12 +679,16 @@ export class DBTProject implements Disposable {
       ),
     );
 
-    this.rebuildManifestDiagnostics.set(
-      projectURI,
-      integrationDiagnostics.rebuildManifestDiagnostics.map((data) =>
-        this.convertDiagnosticDataToVSCode(data),
-      ),
-    );
+    // dbt Fusion reports the file and line of each parse error and warning.
+    const rebuildDiagnosticsByFile = new Map<string, [Uri, Diagnostic[]]>();
+    for (const data of integrationDiagnostics.rebuildManifestDiagnostics) {
+      const uri = this.diagnosticFileUri(data, projectURI);
+      const entry = rebuildDiagnosticsByFile.get(uri.fsPath) ?? [uri, []];
+      entry[1].push(this.convertDiagnosticDataToVSCode(data));
+      rebuildDiagnosticsByFile.set(uri.fsPath, entry);
+    }
+    this.rebuildManifestDiagnostics.clear();
+    this.rebuildManifestDiagnostics.set([...rebuildDiagnosticsByFile.values()]);
 
     this.projectConfigDiagnostics.set(
       projectURI,
@@ -976,10 +1043,8 @@ export class DBTProject implements Disposable {
   }
 
   private requiresAuthentication(): boolean {
-    const dbtIntegrationMode = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
-    return dbtIntegrationMode === "cloud";
+    // The mode this project was created in (see `dbtIntegrationMode`).
+    return this.dbtIntegrationMode === "cloud";
   }
 
   throwIfNotAuthenticated() {
@@ -1134,6 +1199,11 @@ export class DBTProject implements Disposable {
     const { sql, dialect, models } = request;
     this.throwDiagnosticsErrorIfAvailable();
     this.throwIfNotAuthenticated();
+    if (this.dbtIntegrationMode === "fusion") {
+      // altimate-core validates without Python, and a dbt Fusion setup may
+      // have no Python with dbt at all: no bridge to start.
+      return await validateSQL(sql, dialect, models);
+    }
     const sqlValidationThread = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );

@@ -61,6 +61,7 @@ import {
 } from "./dbt_client/runtimePythonEnvironmentProvider";
 import { VSCodeDBTConfiguration } from "./dbt_client/vscodeConfiguration";
 import { VSCodeDBTTerminal } from "./dbt_client/vscodeTerminal";
+import { PythonGatedClientMapper } from "./pythonGatedClientMapper";
 import { AltimateAuthService } from "./services/altimateAuthService";
 import { AltimateCodeChatService } from "./services/altimateCodeChatService";
 import { AltimateConnectService } from "./services/altimateConnectService";
@@ -1311,10 +1312,12 @@ container
 container
   .bind<any>("ClientMapper")
   .toDynamicValue((context) => {
-    return new LibNamespace.ClientMapper(
+    return new PythonGatedClientMapper(
       context.container.get(DBTCommandExecutionInfrastructure),
       context.container.get("NotebookDependencies"),
       context.container.get("DBTTerminal"),
+      context.container.get(PythonEnvironment),
+      context.container.get(TelemetryService),
     );
   })
   .inSingletonScope();

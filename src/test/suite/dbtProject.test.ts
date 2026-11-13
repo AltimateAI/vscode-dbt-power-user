@@ -17,6 +17,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import childProcess from "child_process";
 import { EventEmitter } from "events";
 import * as path from "path";
 import * as vscode from "vscode";
@@ -173,6 +174,7 @@ describe("DBTProject Test Suite", () => {
       sendTelemetryEvent: jest.fn(),
       sendTelemetryError: jest.fn(),
       setTelemetryCustomAttribute: jest.fn(),
+      deleteTelemetryCustomAttribute: jest.fn(),
       startTelemetryEvent: jest.fn(),
       endTelemetryEvent: jest.fn(),
       dispose: jest.fn(),
@@ -992,6 +994,103 @@ describe("DBTProject Test Suite", () => {
       expect(mockExecutionInfrastructure.createPythonBridge).toHaveBeenCalled();
       expect(mockExecutionInfrastructure.closePythonBridge).toHaveBeenCalled();
     });
+
+    const fusionProject = () => {
+      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+        get: jest.fn((key: string, fallback?: unknown) =>
+          key === "dbtIntegration" ? "fusion" : fallback,
+        ),
+      });
+      const projectUri = vscode.Uri.file("/test/project");
+      return new DBTProject(
+        mockPythonEnvironment,
+        dbtProjectLogFactory as any,
+        mockCommandFactory,
+        mockTerminal,
+        mockSharedStateService,
+        mockTelemetry,
+        mockExecutionInfrastructure,
+        jest.fn().mockReturnValue(mockProjectIntegration) as any,
+        mockAltimate,
+        mockValidationProvider,
+        mockAltimateAuthService,
+        mockRunHistoryService,
+        projectUri,
+        {},
+        mockManifestChangedEmitter,
+      );
+    };
+
+    it("keeps the mode it was created with when the setting changes afterwards", async () => {
+      const project = fusionProject();
+      // The window can be switched to another mode without the setting changing.
+      // `cloud` would also demand authentication, which a Fusion project must not.
+      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+        get: jest.fn((key: string, fallback?: unknown) =>
+          key === "dbtIntegration" ? "cloud" : fallback,
+        ),
+      });
+      (mockValidationProvider as any).throwIfNotAuthenticated = jest.fn(() => {
+        throw new Error("not authenticated");
+      });
+      mockExecutionInfrastructure.createPythonBridge.mockClear();
+      const outcome = await project
+        .validateSql({ sql: "SELECT 1", dialect: "duckdb", models: [] })
+        .catch((error: Error) => error);
+      expect(
+        mockExecutionInfrastructure.createPythonBridge,
+      ).not.toHaveBeenCalled();
+      expect(
+        (mockValidationProvider as any).throwIfNotAuthenticated,
+      ).not.toHaveBeenCalled();
+      // The real library ran and failed only on the missing native module.
+      expect(outcome).toBeInstanceOf(Error);
+      expect((outcome as Error).message).not.toContain("not authenticated");
+      expect((outcome as Error).message).toContain(
+        "no Python bridge was provided",
+      );
+    });
+
+    it("validates SQL in dbt Fusion mode without starting a Python bridge", async () => {
+      dbtProject = fusionProject();
+      // Only the bridges this validation starts count.
+      mockExecutionInfrastructure.createPythonBridge.mockClear();
+      mockExecutionInfrastructure.closePythonBridge.mockClear();
+      const spawn = jest.spyOn(childProcess, "spawn");
+      const models = [
+        {
+          name: "customers",
+          schema: "main",
+          columns: { id: { name: "id", data_type: "INTEGER" } },
+        },
+      ];
+
+      // altimate-core validates without Python. Jest can't load its native
+      // module, so here the library reports that instead; either way no
+      // bridge is asked for.
+      const outcome = await dbtProject
+        .validateSql({
+          sql: "SELECT id FROM customers",
+          dialect: "duckdb",
+          models,
+        })
+        .catch((error: Error) => error);
+
+      expect(
+        mockExecutionInfrastructure.createPythonBridge,
+      ).not.toHaveBeenCalled();
+      expect(
+        mockExecutionInfrastructure.closePythonBridge,
+      ).not.toHaveBeenCalled();
+      expect(spawn).not.toHaveBeenCalled();
+      // The real library ran (the module mock does not replace it here) and,
+      // with no native altimate-core under jest, reports that it was given no
+      // bridge: the Fusion call shape, seen from the library's side.
+      expect(outcome).toBeInstanceOf(Error);
+      expect((outcome as Error).message).toContain(
+        "no Python bridge was provided",
+      );
+    });
   });
 
   describe("Query Execution", () => {
@@ -1460,6 +1559,165 @@ describe("DBTProject Test Suite", () => {
         expect.stringContaining("close"),
         expect.anything(),
       );
+    });
+  });
+
+  describe("dbt setup telemetry", () => {
+    const useMode = (mode: string) => {
+      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+        get: jest.fn((key: string) => {
+          if (key === "dbtIntegration") {
+            return mode;
+          }
+          if (key === "deferConfigPerProject") {
+            return {};
+          }
+          return undefined;
+        }),
+        has: jest.fn(),
+        update: jest.fn(),
+      });
+    };
+
+    const construct = () =>
+      new DBTProject(
+        mockPythonEnvironment,
+        dbtProjectLogFactory as any,
+        mockCommandFactory,
+        mockTerminal,
+        mockSharedStateService,
+        mockTelemetry,
+        mockExecutionInfrastructure,
+        jest.fn().mockReturnValue(mockProjectIntegration) as any,
+        mockAltimate,
+        mockValidationProvider,
+        mockAltimateAuthService,
+        mockRunHistoryService,
+        vscode.Uri.file("/test/project"),
+        {},
+        mockManifestChangedEmitter,
+      );
+
+    const emit = (event: string, ...args: unknown[]) => {
+      const onCall = mockProjectIntegration.on.mock.calls.find(
+        (call: any) => call[0] === event,
+      );
+      onCall![1](...args);
+    };
+
+    // The value each setup property was last set to, and the properties
+    // removed since.
+    const stamped = () => {
+      const values: Record<string, string> = {};
+      for (const [key, value] of mockTelemetry.setTelemetryCustomAttribute.mock
+        .calls as [string, string][]) {
+        values[key] = value;
+      }
+      return values;
+    };
+    const removed = () =>
+      mockTelemetry.deleteTelemetryCustomAttribute.mock.calls.map(
+        (call) => call[0],
+      );
+
+    beforeEach(() => {
+      mockProjectIntegration.getCloudVariantInfo = jest.fn(() => null);
+      mockProjectIntegration.getAdapterType = jest.fn(() => "snowflake");
+      mockProjectIntegration.getVersion = jest.fn(() => [1, 12, 6]);
+    });
+
+    it("stamps the dbt-core version and adapter of a core project", () => {
+      useMode("core");
+      dbtProject = construct();
+
+      emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
+
+      expect(stamped()).toMatchObject({
+        dbtVersion: "1.12.6",
+        dbtVersionMinor: "1.12",
+        dbtAdapter: "snowflake",
+      });
+      expect(stamped()).not.toHaveProperty("dbtFusionVersion");
+      expect(removed()).toContain("dbtFusionVersion");
+    });
+
+    it("stamps the version again after a parse", () => {
+      useMode("corecommand");
+      mockProjectIntegration.getVersion = jest.fn(() => [1, 10, 2]);
+      dbtProject = construct();
+
+      emit(DBTProjectIntegrationAdapterEvents.MANIFEST_PARSED, {});
+
+      expect(stamped()).toMatchObject({
+        dbtVersion: "1.10.2",
+        dbtVersionMinor: "1.10",
+        dbtAdapter: "snowflake",
+      });
+    });
+
+    it("stamps unknown for a Fusion project that reports 0.0.0", () => {
+      useMode("fusion");
+      mockProjectIntegration.getVersion = jest.fn(() => [0, 0, 0]);
+      dbtProject = construct();
+
+      emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
+
+      expect(stamped()).toMatchObject({
+        dbtVersion: "unknown",
+        dbtVersionMinor: "unknown",
+        dbtFusionVersion: "unknown",
+        dbtAdapter: "snowflake",
+      });
+      expect(removed()).not.toContain("dbtFusionVersion");
+    });
+
+    it("stamps the Fusion version a Fusion project reports", () => {
+      useMode("fusion");
+      mockProjectIntegration.getVersion = jest.fn(() => [2, 0, 9]);
+      mockProjectIntegration.getAdapterType = jest.fn(() => "bigquery");
+      dbtProject = construct();
+
+      emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
+
+      expect(stamped()).toMatchObject({
+        dbtVersion: "2.0.9",
+        dbtVersionMinor: "2.0",
+        dbtFusionVersion: "2.0.9",
+        dbtAdapter: "bigquery",
+      });
+    });
+
+    it("stamps unknown when the integration cannot report the version or adapter", () => {
+      useMode("core");
+      mockProjectIntegration.getVersion = jest.fn(() => {
+        throw new Error("bridge not ready");
+      });
+      mockProjectIntegration.getAdapterType = jest.fn(() => undefined);
+      dbtProject = construct();
+
+      expect(() =>
+        emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED),
+      ).not.toThrow();
+
+      expect(stamped()).toMatchObject({
+        dbtVersion: "unknown",
+        dbtVersionMinor: "unknown",
+        dbtAdapter: "unknown",
+      });
+    });
+
+    it("does not let a telemetry failure stop a parse from being delivered", () => {
+      useMode("core");
+      dbtProject = construct();
+      // Once: the dbt-loom probe sets an attribute later, outside this test.
+      mockTelemetry.setTelemetryCustomAttribute.mockImplementationOnce(() => {
+        throw new Error("telemetry down");
+      });
+
+      expect(() =>
+        emit(DBTProjectIntegrationAdapterEvents.MANIFEST_PARSED, {}),
+      ).not.toThrow();
+      expect(mockManifestChangedEmitter.fire).toHaveBeenCalled();
     });
   });
 });
