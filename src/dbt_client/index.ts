@@ -186,7 +186,7 @@ export class DBTClient implements Disposable {
     // Name the runner for the mode in use: dbt Core (core and corecommand)
     // keeps its wording; cloud mode names the dbt Cloud CLI.
     const runner =
-      this.dbtIntegrationMode() === "cloud"
+      getDbtIntegrationMode() === "cloud"
         ? "The dbt Cloud CLI runs"
         : "dbt Core runs";
     const answer = await window.showErrorMessage(
