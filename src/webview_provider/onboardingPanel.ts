@@ -403,13 +403,15 @@ export class OnboardingPanel extends AltimateWebviewProvider {
       case "executeCommand":
         // Execute VSCode commands from the wizard
         try {
-          const commandToExecute = (
-            message as HandleCommandProps & { vscodeCommand?: string }
-          ).vscodeCommand;
+          const { vscodeCommand: commandToExecute, args = [] } =
+            message as HandleCommandProps & {
+              vscodeCommand?: string;
+              args?: unknown[];
+            };
           if (!commandToExecute) {
             throw new Error("No VSCode command specified in message");
           }
-          await commands.executeCommand(commandToExecute);
+          await commands.executeCommand(commandToExecute, ...args);
           this.sendResponseToWebview({
             command: "response",
             syncRequestId,
@@ -504,6 +506,10 @@ export class OnboardingPanel extends AltimateWebviewProvider {
               dbtIntegrationMode,
               pythonPath: pythonEnvironment.pythonPath,
               pythonVersion: pythonEnvironment.pythonVersion,
+              // Without it there is no interpreter picker
+              // (`python.setInterpreter`).
+              pythonExtensionAvailable:
+                pythonEnvironment.pythonExtensionAvailable,
               dbtVersion,
               fileAssociationsConfigured,
             },
@@ -714,6 +720,29 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           this.dbtTerminal.error(
             "getPythonInterpreters",
             "Error listing Python interpreters",
+            error,
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      case "installPythonExtension":
+        try {
+          await this.dbtProjectContainer
+            .getPythonEnvironment()
+            .installPythonExtension();
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { success: true },
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "installPythonExtension",
+            "Error installing the Python extension",
             error,
           );
           this.sendResponseToWebview({

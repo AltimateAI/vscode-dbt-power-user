@@ -1,0 +1,461 @@
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
+import { commands, extensions, window, workspace } from "vscode";
+import { dbtSetupDiagnostics } from "../../commands/diagnosticsSetup";
+import {
+  awaitingPythonExtension,
+  DBTClient,
+  interpreterExists,
+} from "../../dbt_client";
+import { PythonEnvironment } from "../../dbt_client/pythonEnvironment";
+
+/**
+ * Power User for dbt works without the Python extension in the modes that
+ * don't run dbt through Python (fusion, cloud).
+ *
+ * Before, the Python extension was a hard extension dependency,
+ * `PythonEnvironment.initialize` dereferenced it unconditionally, a missing
+ * dbt Fusion was reported as a missing Python interpreter, and the
+ * diagnostics command stopped at "Python is not installed" in every mode.
+ */
+
+type Settings = Record<string, unknown>;
+
+function useSettings(settings: Settings) {
+  (workspace.getConfiguration as jest.Mock).mockImplementation(() => ({
+    get: (key: string, fallback?: unknown) =>
+      key in settings ? settings[key] : fallback,
+    has: jest.fn(),
+    update: jest.fn(),
+    inspect: jest.fn(),
+  }));
+}
+
+const terminal = () =>
+  ({
+    debug: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    info: jest.fn(),
+    log: jest.fn(),
+  }) as any;
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  (extensions.getExtension as jest.Mock).mockReturnValue(undefined);
+  useSettings({});
+});
+
+afterEach(() => {
+  (workspace.getConfiguration as jest.Mock).mockReset();
+  (workspace.getConfiguration as jest.Mock).mockReturnValue({
+    get: jest.fn(),
+    has: jest.fn(),
+    update: jest.fn(),
+  });
+});
+
+describe("package.json", () => {
+  it("does not require the Python extension", () => {
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(__dirname, "../../../package.json"), "utf8"),
+    );
+    expect(manifest.extensionDependencies).not.toContain("ms-python.python");
+    expect(manifest.extensionPack ?? []).not.toContain("ms-python.python");
+  });
+});
+
+describe("PythonEnvironment without the Python extension", () => {
+  it("initializes with no interpreter and the process environment", async () => {
+    const env = new PythonEnvironment(terminal());
+    await expect(env.initialize()).resolves.toBeUndefined();
+    expect(env.pythonExtensionAvailable).toBe(false);
+    expect(env.pythonPath).toBe("");
+    expect(env.allPythonPaths).toEqual([]);
+    // Windows spells the variable `Path`; Node's `process.env` resolves the
+    // name case-insensitively, a copied plain object does not.
+    const pathKey =
+      Object.keys(process.env).find((key) => key.toUpperCase() === "PATH") ??
+      "PATH";
+    expect(env.getEnvironmentVariables()[pathKey]).toBe(process.env[pathKey]);
+    const subscription = env.onPythonEnvironmentChanged(() => {});
+    expect(typeof subscription.dispose).toBe("function");
+  });
+
+  it("uses dbt.dbtPythonPathOverride when one is set", async () => {
+    useSettings({ dbtPythonPathOverride: process.execPath });
+    const env = new PythonEnvironment(terminal());
+    await env.initialize();
+    expect(env.pythonPath).toBe(process.execPath);
+  });
+
+  it("merges terminal.integrated.env into the environment", async () => {
+    useSettings({ "integrated.env": { linux: { FUSION_TEST_VAR: "on" } } });
+    const env = new PythonEnvironment(terminal());
+    await env.initialize();
+    expect(env.getEnvironmentVariables().FUSION_TEST_VAR).toBe("on");
+  });
+
+  it("continues without the Python extension when it fails to activate", async () => {
+    (extensions.getExtension as jest.Mock).mockReturnValue({
+      isActive: false,
+      activate: jest.fn(() => Promise.reject(new Error("activation failed"))),
+    });
+    const env = new PythonEnvironment(terminal());
+    await expect(env.initialize()).resolves.toBeUndefined();
+    expect(env.pythonExtensionAvailable).toBe(false);
+  });
+});
+
+describe("interpreter commands without the Python extension", () => {
+  let bin: string;
+  let savedPath: string | undefined;
+  beforeEach(() => {
+    bin = fs.mkdtempSync(path.join(os.tmpdir(), "pu-interp-"));
+    fs.writeFileSync(path.join(bin, "py-on-path"), "#!/bin/sh\n", {
+      mode: 0o755,
+    });
+    savedPath = process.env.PATH;
+    process.env.PATH = bin + path.delimiter + (savedPath ?? "");
+  });
+  afterEach(() => {
+    process.env.PATH = savedPath;
+    fs.rmSync(bin, { recursive: true, force: true });
+  });
+
+  it("finds a bare command on PATH and an absolute path on disk, nothing else", () => {
+    expect(interpreterExists("py-on-path")).toBe(true);
+    expect(interpreterExists(path.join(bin, "py-on-path"))).toBe(true);
+    expect(interpreterExists("py-not-on-path")).toBe(false);
+    expect(interpreterExists(path.join(bin, "gone"))).toBe(false);
+    expect(interpreterExists("")).toBe(false);
+    expect(interpreterExists(undefined)).toBe(false);
+  });
+
+  it("reads `Path` as the search path on Windows only", () => {
+    expect(interpreterExists("py-on-path", { PATH: bin })).toBe(true);
+    expect(interpreterExists("py-on-path", { Path: bin })).toBe(
+      process.platform === "win32",
+    );
+    expect(interpreterExists("py-on-path", { OTHER: bin })).toBe(false);
+  });
+
+  it("doesn't hold core mode for a dbt.dbtPythonPathOverride command found on PATH", async () => {
+    useSettings({ dbtPythonPathOverride: "py-on-path" });
+    const env = new PythonEnvironment(terminal());
+    await env.initialize();
+    expect(env.pythonPath).toBe("py-on-path");
+    expect(awaitingPythonExtension("core", env)).toBe(false);
+    expect(awaitingPythonExtension("cloud", env)).toBe(false);
+  });
+
+  it("finds an override command on the PATH of terminal.integrated.env, not only the process PATH", async () => {
+    const termBin = fs.mkdtempSync(path.join(os.tmpdir(), "pu-term-"));
+    fs.writeFileSync(path.join(termBin, "py-term-only"), "#!/bin/sh\n", {
+      mode: 0o755,
+    });
+    try {
+      useSettings({
+        dbtPythonPathOverride: "py-term-only",
+        "integrated.env": {
+          linux: { PATH: termBin + path.delimiter + (process.env.PATH ?? "") },
+        },
+      });
+      const env = new PythonEnvironment(terminal());
+      await env.initialize();
+      expect(interpreterExists("py-term-only")).toBe(false);
+      expect(
+        interpreterExists("py-term-only", env.getEnvironmentVariables()),
+      ).toBe(true);
+      expect(awaitingPythonExtension("core", env)).toBe(false);
+    } finally {
+      fs.rmSync(termBin, { recursive: true, force: true });
+    }
+  });
+
+  it("holds core mode for an override command that isn't on PATH", async () => {
+    useSettings({ dbtPythonPathOverride: "py-not-on-path" });
+    const env = new PythonEnvironment(terminal());
+    await env.initialize();
+    expect(awaitingPythonExtension("core", env)).toBe(true);
+    expect(awaitingPythonExtension("fusion", env)).toBe(false);
+  });
+
+  it("re-runs detection when dbt.dbtPythonPathOverride changes", async () => {
+    const env = new PythonEnvironment(terminal());
+    await env.initialize();
+    const calls = (workspace.onDidChangeConfiguration as jest.Mock).mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    const listener = calls[calls.length - 1][0] as (event: {
+      affectsConfiguration: (section: string) => boolean;
+    }) => void;
+    const changed = jest.fn();
+    env.onPythonEnvironmentChanged(changed);
+    listener({ affectsConfiguration: () => false });
+    expect(changed).not.toHaveBeenCalled();
+    listener({
+      affectsConfiguration: (section) =>
+        section === "dbt.dbtPythonPathOverride",
+    });
+    expect(changed).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("DBTClient without the Python extension", () => {
+  let detections = 0;
+  async function client(dbtInstalled: boolean) {
+    detections = 0;
+    const env = new PythonEnvironment(terminal());
+    const dbtClient = new DBTClient(env, () => ({
+      detectDBT: () => {
+        detections++;
+        return Promise.resolve(dbtInstalled);
+      },
+    }));
+    await dbtClient.detectDBT();
+    return dbtClient;
+  }
+
+  const messages = () =>
+    (window.showErrorMessage as jest.Mock).mock.calls.map((call) => call[0]);
+
+  it("reports a missing dbt Fusion, not a missing interpreter, in fusion mode", async () => {
+    useSettings({ dbtIntegration: "fusion" });
+    await client(false);
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(messages()).toEqual([
+      expect.stringContaining("dbt Fusion was not found"),
+    ]);
+    expect(window.showErrorMessage).toHaveBeenCalledWith(
+      expect.any(String),
+      "Install dbt Fusion",
+      "Troubleshoot",
+    );
+  });
+
+  it("shows nothing in fusion mode when dbt Fusion is installed", async () => {
+    useSettings({ dbtIntegration: "fusion" });
+    const dbtClient = await client(true);
+    expect(detections).toBe(1);
+    expect(dbtClient.dbtInstalled).toBe(true);
+    expect(window.showErrorMessage).not.toHaveBeenCalled();
+  });
+
+  // The dbt Cloud CLI runs from the interpreter's environment, as on master.
+  it("offers to install the Python extension in cloud mode too", async () => {
+    useSettings({ dbtIntegration: "cloud" });
+    (window.showErrorMessage as jest.Mock).mockReturnValueOnce(
+      Promise.resolve("Install Python extension"),
+    );
+    await client(false);
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(messages()).toEqual([
+      expect.stringMatching(
+        /^The dbt Cloud CLI runs through the Python extension, which is not installed\./,
+      ),
+    ]);
+    expect(commands.executeCommand).toHaveBeenCalledWith(
+      "workbench.extensions.installExtension",
+      "ms-python.python",
+    );
+  });
+
+  // The dbt Cloud CLI is found on PATH without an interpreter, but every
+  // command then needs one: until the extension is there dbt is not
+  // installed, without running the detection.
+  it("reports dbt as not installed in cloud mode without the Python extension, and prompts once", async () => {
+    useSettings({ dbtIntegration: "cloud" });
+    const detectDBT = jest.fn(() => Promise.resolve(true));
+    const installed = jest.fn();
+    const dbtClient = new DBTClient(new PythonEnvironment(terminal()), () => ({
+      detectDBT,
+    }));
+    dbtClient.onDBTInstallationVerification(installed);
+    await dbtClient.detectDBT();
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(detectDBT).not.toHaveBeenCalled();
+    expect(dbtClient.dbtInstalled).toBe(false);
+    // The status bar reads this event: "dbt cloud is not installed".
+    expect(installed).toHaveBeenLastCalledWith({
+      inProgress: false,
+      installed: false,
+    });
+    expect(commands.executeCommand).toHaveBeenCalledWith(
+      "setContext",
+      "dbtPowerUser.dbtInstalled",
+      false,
+    );
+    expect(messages()).toEqual([
+      expect.stringContaining("Python extension, which is not installed"),
+    ]);
+    expect(window.showErrorMessage).toHaveBeenCalledWith(
+      expect.any(String),
+      "Install Python extension",
+      "Troubleshoot",
+    );
+    // A command's own check afterwards doesn't prompt again.
+    await expect(dbtClient.showErrorIfDbtOrPythonNotInstalled()).resolves.toBe(
+      false,
+    );
+    expect(messages()).toHaveLength(1);
+  });
+
+  it.each(["cloud", "core"])(
+    "still detects dbt in %s mode when dbt.dbtPythonPathOverride names an interpreter",
+    async (dbtIntegration) => {
+      useSettings({
+        dbtIntegration,
+        dbtPythonPathOverride: process.execPath,
+      });
+      const detectDBT = jest.fn(() => Promise.resolve(true));
+      const dbtClient = new DBTClient(
+        new PythonEnvironment(terminal()),
+        () => ({
+          detectDBT,
+        }),
+      );
+      await dbtClient.detectDBT();
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(detectDBT).toHaveBeenCalled();
+      expect(dbtClient.dbtInstalled).toBe(true);
+      expect(window.showErrorMessage).not.toHaveBeenCalled();
+    },
+  );
+
+  it("doesn't detect the dbt Cloud CLI when dbt.dbtPythonPathOverride names a missing interpreter", async () => {
+    useSettings({
+      dbtIntegration: "cloud",
+      dbtPythonPathOverride: "/gone/.venv/bin/python",
+    });
+    const detectDBT = jest.fn(() => Promise.resolve(true));
+    const dbtClient = new DBTClient(new PythonEnvironment(terminal()), () => ({
+      detectDBT,
+    }));
+    await dbtClient.detectDBT();
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(detectDBT).not.toHaveBeenCalled();
+    expect(dbtClient.dbtInstalled).toBe(false);
+    expect(messages()).toEqual([
+      expect.stringContaining("Python extension, which is not installed"),
+    ]);
+  });
+
+  it("offers to install the Python extension in core mode", async () => {
+    useSettings({ dbtIntegration: "core" });
+    (window.showErrorMessage as jest.Mock).mockReturnValueOnce(
+      Promise.resolve("Install Python extension"),
+    );
+    await client(false);
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(messages()).toEqual([
+      expect.stringMatching(
+        /^dbt Core runs through the Python extension, which is not installed\./,
+      ),
+    ]);
+    expect(commands.executeCommand).toHaveBeenCalledWith(
+      "workbench.extensions.installExtension",
+      "ms-python.python",
+    );
+  });
+});
+
+describe("dbtSetupDiagnostics", () => {
+  const base = {
+    pythonPath: "",
+    pythonExtensionAvailable: false,
+    pythonInstalled: false,
+    env: {},
+    cwd: "/projects/jaffle",
+  };
+
+  it("reports the dbt Fusion binary and version without Python", async () => {
+    const findBinary = jest.fn(() =>
+      Promise.resolve({
+        path: "/home/user/.local/bin/dbt",
+        version: [2, 0, 9],
+        location: "installer" as const,
+      }),
+    );
+    const report = await dbtSetupDiagnostics(
+      { ...base, dbtIntegrationMode: "fusion", dbtInstalled: true },
+      findBinary,
+    );
+    expect(report).toEqual({
+      lines: [
+        "dbt Fusion binary=/home/user/.local/bin/dbt",
+        "dbt Fusion version=2.0.9",
+        "Python is not needed in fusion mode",
+        "DBT is installed",
+      ],
+      proceed: true,
+    });
+    expect(findBinary).toHaveBeenCalledWith(
+      expect.objectContaining({ cwd: "/projects/jaffle", skipScripts: false }),
+    );
+  });
+
+  it("says dbt Fusion was not found", async () => {
+    const report = await dbtSetupDiagnostics(
+      { ...base, dbtIntegrationMode: "fusion", dbtInstalled: false },
+      () => Promise.resolve(undefined),
+    );
+    expect(report.proceed).toBe(false);
+    expect(report.lines[0]).toMatch(/^dbt Fusion binary=not found/);
+    expect(report.lines).not.toContain("Python is not installed");
+  });
+
+  it("stops in core mode without the Python extension", async () => {
+    const findBinary = jest.fn(() => Promise.resolve(undefined));
+    const report = await dbtSetupDiagnostics(
+      { ...base, dbtIntegrationMode: "core", dbtInstalled: false },
+      findBinary,
+    );
+    expect(report).toEqual({
+      lines: [
+        "The Python extension is not installed",
+        "Can't proceed further: dbt core mode needs the Python extension",
+      ],
+      proceed: false,
+    });
+    expect(findBinary).not.toHaveBeenCalled();
+  });
+
+  it("stops in cloud mode without the Python extension, like core", async () => {
+    const findBinary = jest.fn(() => Promise.resolve(undefined));
+    const report = await dbtSetupDiagnostics(
+      { ...base, dbtIntegrationMode: "cloud", dbtInstalled: false },
+      findBinary,
+    );
+    expect(report).toEqual({
+      lines: [
+        "The Python extension is not installed",
+        "Can't proceed further: dbt cloud mode needs the Python extension",
+      ],
+      proceed: false,
+    });
+    expect(findBinary).not.toHaveBeenCalled();
+  });
+
+  it("keeps today's lines in core mode with Python", async () => {
+    const report = await dbtSetupDiagnostics(
+      {
+        ...base,
+        pythonPath: "/venv/bin/python",
+        pythonExtensionAvailable: true,
+        pythonInstalled: true,
+        dbtIntegrationMode: "core",
+        dbtInstalled: true,
+      },
+      () => Promise.resolve(undefined),
+    );
+    expect(report).toEqual({
+      lines: ["Python is installed", "DBT is installed"],
+      proceed: true,
+    });
+  });
+});

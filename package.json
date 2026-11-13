@@ -1297,7 +1297,6 @@
   },
   "extensionDependencies": [
     "samuelcolvin.jinjahtml",
-    "ms-python.python",
     "altimateai.vscode-altimate-mcp-server"
   ],
   "dependencies": {

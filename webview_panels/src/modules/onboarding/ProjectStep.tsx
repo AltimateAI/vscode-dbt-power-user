@@ -62,6 +62,8 @@ interface DiagnosticsStatus {
   dbtIntegrationMode: string;
   pythonPath?: string;
   pythonVersion?: string;
+  /** Without it there is no interpreter picker (`python.setInterpreter`). */
+  pythonExtensionAvailable?: boolean;
   dbtVersion?: string;
   fileAssociationsConfigured: boolean;
 }
@@ -114,6 +116,8 @@ interface CheckRowProps {
   title: string;
   status: CheckStatus;
   blocked?: boolean;
+  /** Not a prerequisite in this setup. */
+  hidden?: boolean;
   detail: string;
   fixes?: ReactNode;
   action?: { label: string; onClick: () => void };
@@ -124,6 +128,7 @@ const CheckRow = ({
   title,
   status,
   blocked,
+  hidden,
   detail,
   fixes,
   action,
@@ -131,6 +136,7 @@ const CheckRow = ({
 }: CheckRowProps) => (
   <div
     className={[classes.check, blocked ? classes.checkBlocked : ""].join(" ")}
+    hidden={hidden}
   >
     <div className={classes.checkMain}>
       <StatusIcon status={status} />
@@ -357,6 +363,9 @@ const ProjectStep = ({
     }
   };
 
+  const openPythonPathSetting = () =>
+    runCommand("workbench.action.openSettings", "dbt.dbtPythonPathOverride");
+
   const fixAndRecheck = async (action: Promise<unknown>) => {
     await action;
     await runChecks();
@@ -392,6 +401,9 @@ const ProjectStep = ({
     busy ? "checking" : ok ? "ok" : "error";
 
   const projectStatus = statusOf(!!d?.projectsFound);
+  // dbt Fusion is a native binary: no interpreter row, nothing waits on one.
+  const pythonNeeded = integration !== "fusion";
+  const pythonExtension = d?.pythonExtensionAvailable !== false;
   const pythonBlocked = !busy && projectStatus !== "ok";
   const pythonStatus: CheckStatus = busy
     ? "checking"
@@ -402,7 +414,8 @@ const ProjectStep = ({
         : !d.dbtInstalled
           ? "warning"
           : "ok";
-  const dbtBlocked = pythonBlocked || pythonStatus === "error";
+  const dbtBlocked =
+    pythonBlocked || (pythonNeeded && pythonStatus === "error");
   const dbtStatus: CheckStatus = installing
     ? "checking"
     : busy
@@ -414,13 +427,18 @@ const ProjectStep = ({
           : "error";
   const filesStatus = statusOf(!!d?.fileAssociationsConfigured);
   const allOk =
-    [projectStatus, pythonStatus, dbtStatus, filesStatus].every(
-      (s) => s === "ok",
-    ) && !!project;
+    [
+      projectStatus,
+      ...(pythonNeeded ? [pythonStatus] : []),
+      dbtStatus,
+      filesStatus,
+    ].every((s) => s === "ok") && !!project;
 
   const dbtDetail = () => {
     if (installing) {
-      return `installing ${integrationLabel} into ${pythonPath}`;
+      return pythonNeeded
+        ? `installing ${integrationLabel} into ${pythonPath}`
+        : `installing ${integrationLabel}`;
     }
     if (dbtBlocked) {
       return pythonBlocked
@@ -441,7 +459,9 @@ const ProjectStep = ({
     }
     return installFailed
       ? "the install did not finish · see the notification for details"
-      : `dbt is not installed for ${pythonPath}`;
+      : pythonNeeded
+        ? `dbt is not installed for ${pythonPath}`
+        : "dbt Fusion was not found on PATH or in ~/.local/bin";
   };
 
   const debugCommand =
@@ -588,6 +608,7 @@ const ProjectStep = ({
       </CheckRow>
 
       <CheckRow
+        hidden={!pythonNeeded}
         title="Python interpreter"
         status={pythonStatus}
         blocked={pythonBlocked}
@@ -597,11 +618,42 @@ const ProjectStep = ({
             : pythonBlocked
               ? "needs a dbt project first"
               : pythonStatus === "error"
-                ? "no interpreter selected for this workspace"
+                ? pythonExtension
+                  ? "no interpreter selected for this workspace"
+                  : "the Python extension, which selects the interpreter, is not installed"
                 : `${pythonPath}${pythonVersion}${pythonStatus === "warning" ? " · dbt not installed here" : ""}`
         }
         fixes={
-          pythonStatus === "error" && (
+          pythonStatus === "error" &&
+          (!pythonExtension ? (
+            <>
+              <Button
+                nav
+                onClick={() => {
+                  track("onboardingCheckChanged", {
+                    check: "python",
+                    via: "installExtension",
+                  });
+                  void fixAndRecheck(request("installPythonExtension"));
+                }}
+              >
+                Install Python Extension
+              </Button>
+              <Button
+                nav
+                variant="secondary"
+                onClick={() => {
+                  track("onboardingCheckChanged", {
+                    check: "python",
+                    via: "setting",
+                  });
+                  void fixAndRecheck(openPythonPathSetting());
+                }}
+              >
+                Set Interpreter Path
+              </Button>
+            </>
+          ) : (
             <>
               <Button
                 nav
@@ -631,14 +683,20 @@ const ProjectStep = ({
                 Detect From Terminal
               </Button>
             </>
-          )
+          ))
         }
         action={
           pythonStatus === "ok" || pythonStatus === "warning"
-            ? {
-                label: open === "python" ? "Done" : "Change",
-                onClick: () => toggle("python"),
-              }
+            ? pythonExtension
+              ? {
+                  label: open === "python" ? "Done" : "Change",
+                  onClick: () => toggle("python"),
+                }
+              : {
+                  // The interpreter comes from dbt.dbtPythonPathOverride.
+                  label: "Change",
+                  onClick: () => void fixAndRecheck(openPythonPathSetting()),
+                }
             : undefined
         }
       >

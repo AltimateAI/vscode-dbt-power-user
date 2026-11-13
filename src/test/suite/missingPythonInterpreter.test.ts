@@ -22,11 +22,12 @@ function setOverride(value: string) {
   });
 }
 
-function makeEnvironment(): PythonEnvironment {
+function makeEnvironment(pythonExtensionAvailable = true): PythonEnvironment {
   const env = new PythonEnvironment({
     debug: jest.fn(),
     warn: jest.fn(),
   } as any);
+  (env as any)._pythonExtensionAvailable = pythonExtensionAvailable;
   (env as any).executionDetails = {
     getPythonPath: () => MISSING,
     getEnvVars: () => ({ vars: {}, sources: {} }),
@@ -104,6 +105,58 @@ describe("PythonEnvironment.showInterpreterNotFound", () => {
   });
 });
 
+describe("PythonEnvironment.showInterpreterNotFound without the Python extension", () => {
+  beforeEach(() => setOverride(""));
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  // Both callers end here: DBTClient's installation check and
+  // DBTProject.initialize's PythonInterpreterNotFound handler.
+  it("offers the Python extension, never its interpreter picker", async () => {
+    (window.showErrorMessage as jest.Mock).mockReturnValueOnce(
+      Promise.resolve("Install Python extension"),
+    );
+    (window.showInformationMessage as jest.Mock).mockReturnValueOnce(
+      Promise.resolve(undefined),
+    );
+    await makeEnvironment(false).showInterpreterNotFound(MISSING);
+    expect(window.showErrorMessage).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "Python extension, which selects interpreters, is not installed",
+      ),
+      "Install Python extension",
+      "Open setting",
+    );
+    expect(window.showErrorMessage).not.toHaveBeenCalledWith(
+      expect.anything(),
+      "Select Python interpreter",
+      expect.anything(),
+    );
+    expect(commands.executeCommand).toHaveBeenCalledWith(
+      "workbench.extensions.installExtension",
+      "ms-python.python",
+    );
+    expect(commands.executeCommand).not.toHaveBeenCalledWith(
+      "python.setInterpreter",
+    );
+  });
+
+  it("opens the override setting on Open setting", async () => {
+    (window.showErrorMessage as jest.Mock).mockReturnValueOnce(
+      Promise.resolve("Open setting"),
+    );
+    await makeEnvironment(false).showInterpreterNotFound(MISSING);
+    expect(commands.executeCommand).toHaveBeenCalledWith(
+      "workbench.action.openSettings",
+      "dbt.dbtPythonPathOverride",
+    );
+    expect(commands.executeCommand).not.toHaveBeenCalledWith(
+      "python.setInterpreter",
+    );
+  });
+});
+
 describe("DBTClient when the Python interpreter is missing", () => {
   afterEach(() => {
     jest.clearAllMocks();
@@ -113,6 +166,8 @@ describe("DBTClient when the Python interpreter is missing", () => {
     const pythonEnvironment = {
       pythonPath,
       isPython3: true,
+      // The Python extension is installed; only the interpreter is missing.
+      pythonExtensionAvailable: true,
       showInterpreterNotFound: jest.fn(() => Promise.resolve()),
     };
     const client = new DBTClient(pythonEnvironment as any, jest.fn() as any);

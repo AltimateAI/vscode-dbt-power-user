@@ -199,6 +199,8 @@ describe("DBTProject Test Suite", () => {
 
     // Mock PythonEnvironment
     mockPythonEnvironment = {
+      pythonExtensionAvailable: true,
+      pythonPath: "/usr/bin/python3",
       initialize: jest.fn(() => Promise.resolve()),
       showInterpreterNotFound: jest.fn(() => Promise.resolve()),
       onPythonEnvironmentChanged: jest.fn().mockReturnValue({
@@ -463,6 +465,100 @@ describe("DBTProject Test Suite", () => {
         mockPythonEnvironment.showInterpreterNotFound,
       ).toHaveBeenCalledWith("/gone/.venv/bin/python");
       expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+    });
+
+    describe("without the Python extension", () => {
+      const getConfiguration = vscode.workspace.getConfiguration as jest.Mock;
+      const defaultConfiguration = getConfiguration.getMockImplementation();
+      afterEach(() => {
+        getConfiguration.mockImplementation(defaultConfiguration!);
+      });
+
+      const withMode = (dbtIntegration: string) =>
+        (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+          get: jest.fn((key: string, fallback?: unknown) =>
+            key === "dbtIntegration" ? dbtIntegration : fallback,
+          ),
+        });
+      const noExtension = (pythonPath = "") =>
+        Object.assign(mockPythonEnvironment, {
+          pythonExtensionAvailable: false,
+          pythonPath,
+        });
+
+      it("waits for the Python environment before deciding whether to hold the integration", async () => {
+        withMode("core");
+        let ready = false;
+        Object.defineProperty(mockPythonEnvironment, "pythonPath", {
+          configurable: true,
+          get: () => {
+            if (!ready) {
+              throw new Error(
+                "executionDetails is undefined, cannot retrieve environment variables",
+              );
+            }
+            return process.execPath;
+          },
+        });
+        Object.assign(mockPythonEnvironment, {
+          pythonExtensionAvailable: false,
+          initialize: jest.fn(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 5));
+            ready = true;
+          }),
+        });
+        dbtProject = makeProject();
+
+        await dbtProject.initialize();
+
+        expect(mockPythonEnvironment.initialize).toHaveBeenCalled();
+        expect(mockProjectIntegration.initialize).toHaveBeenCalled();
+        expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+      });
+
+      // The installation check prompts for the extension; the integration
+      // would only fail on the missing interpreter (and the dbt Cloud CLI
+      // check marks dbt_project.yml with it).
+      it("doesn't start the integration in cloud mode with no interpreter", async () => {
+        withMode("cloud");
+        noExtension();
+        dbtProject = makeProject();
+
+        await dbtProject.initialize();
+
+        expect(mockProjectIntegration.initialize).not.toHaveBeenCalled();
+        expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+      });
+
+      it("starts the integration in fusion mode", async () => {
+        withMode("fusion");
+        noExtension();
+        dbtProject = makeProject();
+
+        await dbtProject.initialize();
+
+        expect(mockProjectIntegration.initialize).toHaveBeenCalled();
+      });
+
+      it("starts the integration when dbt.dbtPythonPathOverride names an interpreter", async () => {
+        withMode("cloud");
+        noExtension(process.execPath);
+        dbtProject = makeProject();
+
+        await dbtProject.initialize();
+
+        expect(mockProjectIntegration.initialize).toHaveBeenCalled();
+      });
+
+      it("doesn't start the integration when dbt.dbtPythonPathOverride names a missing interpreter", async () => {
+        withMode("cloud");
+        noExtension("/gone/.venv/bin/python");
+        dbtProject = makeProject();
+
+        await dbtProject.initialize();
+
+        expect(mockProjectIntegration.initialize).not.toHaveBeenCalled();
+      });
     });
 
     it("still reports any other initialization failure", async () => {
