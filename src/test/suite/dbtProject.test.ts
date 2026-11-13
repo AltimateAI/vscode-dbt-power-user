@@ -863,7 +863,7 @@ describe("DBTProject Test Suite", () => {
 
       expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
         "Could not generate docs: dbt fusion does not support docs generation." +
-          " To generate docs, set dbt.dbtIntegration to core or cloud.",
+          " To generate docs, update dbt Fusion to 2.0.9 or newer, or set dbt.dbtIntegration to core or cloud.",
       );
       expect(mockTelemetry.sendTelemetryEvent).toHaveBeenCalledWith(
         "generateDocsUnsupported",
