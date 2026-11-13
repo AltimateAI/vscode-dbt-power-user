@@ -780,6 +780,10 @@ export class DBTProject implements Disposable {
     const dbtIntegrationMode = workspace
       .getConfiguration("dbt")
       .get<string>("dbtIntegration", "core");
+    // A project can be registered while the Python extension is still
+    // activating; the check below reads the interpreter, which is not known
+    // until then. `initialize` is idempotent.
+    await this.PythonEnvironment.initialize();
     // The installation check is prompting for the Python extension; starting
     // the integration now only fails on the missing interpreter.
     if (awaitingPythonExtension(dbtIntegrationMode, this.PythonEnvironment)) {

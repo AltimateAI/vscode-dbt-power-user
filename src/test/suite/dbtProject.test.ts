@@ -486,6 +486,36 @@ describe("DBTProject Test Suite", () => {
           pythonPath,
         });
 
+      it("waits for the Python environment before deciding whether to hold the integration", async () => {
+        withMode("core");
+        let ready = false;
+        Object.defineProperty(mockPythonEnvironment, "pythonPath", {
+          configurable: true,
+          get: () => {
+            if (!ready) {
+              throw new Error(
+                "executionDetails is undefined, cannot retrieve environment variables",
+              );
+            }
+            return process.execPath;
+          },
+        });
+        Object.assign(mockPythonEnvironment, {
+          pythonExtensionAvailable: false,
+          initialize: jest.fn(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 5));
+            ready = true;
+          }),
+        });
+        dbtProject = makeProject();
+
+        await dbtProject.initialize();
+
+        expect(mockPythonEnvironment.initialize).toHaveBeenCalled();
+        expect(mockProjectIntegration.initialize).toHaveBeenCalled();
+        expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+      });
+
       // The installation check prompts for the extension; the integration
       // would only fail on the missing interpreter (and the dbt Cloud CLI
       // check marks dbt_project.yml with it).
