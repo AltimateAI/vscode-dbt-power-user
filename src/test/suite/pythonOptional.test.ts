@@ -69,7 +69,12 @@ describe("PythonEnvironment without the Python extension", () => {
     expect(env.pythonExtensionAvailable).toBe(false);
     expect(env.pythonPath).toBe("");
     expect(env.allPythonPaths).toEqual([]);
-    expect(env.getEnvironmentVariables().PATH).toBe(process.env.PATH);
+    // Windows spells the variable `Path`; Node's `process.env` resolves the
+    // name case-insensitively, a copied plain object does not.
+    const pathKey =
+      Object.keys(process.env).find((key) => key.toUpperCase() === "PATH") ??
+      "PATH";
+    expect(env.getEnvironmentVariables()[pathKey]).toBe(process.env[pathKey]);
     const subscription = env.onPythonEnvironmentChanged(() => {});
     expect(typeof subscription.dispose).toBe("function");
   });
