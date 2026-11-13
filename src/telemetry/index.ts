@@ -1,6 +1,7 @@
 import TelemetryReporter from "@vscode/extension-telemetry";
 import { createHash } from "crypto";
 import * as vscode from "vscode";
+import { getDbtIntegrationMode } from "../dbt_client/integrationMode";
 import { fusionFailureClassProperties } from "./dbtEnvironment";
 
 const POWER_USER_EXTENSION_MARKER = "innoverio.vscode-dbt-power-user";
@@ -76,9 +77,7 @@ export class TelemetryService implements vscode.Disposable {
         instanceName: vscode.workspace
           .getConfiguration("dbt")
           .get<string>("altimateInstanceName"),
-        dbtIntegrationMode: vscode.workspace
-          .getConfiguration("dbt")
-          .get<string>("dbtIntegration", "core"),
+        dbtIntegrationMode: getDbtIntegrationMode(),
         localMode: vscode.workspace
           .getConfiguration("dbt")
           .get<boolean>("isLocalMode", false)
@@ -110,9 +109,7 @@ export class TelemetryService implements vscode.Disposable {
         instanceName: vscode.workspace
           .getConfiguration("dbt")
           .get<string>("altimateInstanceName"),
-        dbtIntegrationMode: vscode.workspace
-          .getConfiguration("dbt")
-          .get<string>("dbtIntegration", "core"),
+        dbtIntegrationMode: getDbtIntegrationMode(),
         localMode: vscode.workspace
           .getConfiguration("dbt")
           .get<boolean>("isLocalMode", false)

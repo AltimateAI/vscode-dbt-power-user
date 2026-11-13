@@ -83,6 +83,7 @@ import {
 } from "./event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 import { RunResultsEvent } from "./event/runResultsEvent";
+import { getDbtIntegrationMode } from "./integrationMode";
 import { PythonEnvironment } from "./pythonEnvironment";
 
 interface FileNameTemplateMap {
@@ -202,9 +203,7 @@ export class DBTProject implements Disposable {
     this.dbtProjectLog = this.dbtProjectLogFactory(this.onProjectConfigChanged);
 
     // Check if dbt loom is installed for telemetry (only for core integration)
-    const dbtIntegrationMode = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
+    const dbtIntegrationMode = getDbtIntegrationMode();
     this.dbtIntegrationMode = dbtIntegrationMode;
 
     if (dbtIntegrationMode === "core") {
@@ -777,9 +776,7 @@ export class DBTProject implements Disposable {
   }
 
   private async initializeIntegration(): Promise<void> {
-    const dbtIntegrationMode = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
+    const dbtIntegrationMode = getDbtIntegrationMode();
     // A project can be registered while the Python extension is still
     // activating; the check below reads the interpreter, which is not known
     // until then. `initialize` is idempotent.
@@ -1009,9 +1006,7 @@ export class DBTProject implements Disposable {
 
   private validateIntegrationPrerequisites(): boolean {
     // Validate different prerequisites based on integration type
-    const dbtIntegrationMode = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
+    const dbtIntegrationMode = getDbtIntegrationMode();
 
     switch (dbtIntegrationMode) {
       case "cloud":
@@ -1101,9 +1096,7 @@ export class DBTProject implements Disposable {
     } catch (error) {
       // The caller doesn't await this, so a rejection here would never be shown.
       const message = error instanceof Error ? error.message : String(error);
-      const dbtIntegrationMode = workspace
-        .getConfiguration("dbt")
-        .get<string>("dbtIntegration", "core");
+      const dbtIntegrationMode = getDbtIntegrationMode();
       if (dbtIntegrationMode === "fusion") {
         // The dbt Fusion integration rejects docs generation unconditionally:
         // this is a known limitation, not a failure.

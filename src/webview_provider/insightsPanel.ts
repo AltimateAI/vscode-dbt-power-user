@@ -21,6 +21,7 @@ import {
 } from "vscode";
 import { AltimateRequest, DBTCoreIntegration } from "../altimate";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { getDbtIntegrationMode } from "../dbt_client/integrationMode";
 import {
   findMissingPython,
   missingPythonMessage,
@@ -112,9 +113,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
           if (this._panel) {
             const currentProject = await this.getCurrentProject();
 
-            const dbtIntegrationMode = workspace
-              .getConfiguration("dbt")
-              .get<string>("dbtIntegration", "core");
+            const dbtIntegrationMode = getDbtIntegrationMode();
 
             const projectPath = this.getCurrentProject();
             if (!projectPath) {
@@ -765,9 +764,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
           projectRoot,
         );
 
-        const dbtIntegrationMode = workspace
-          .getConfiguration("dbt")
-          .get<string>("dbtIntegration", "core");
+        const dbtIntegrationMode = getDbtIntegrationMode();
 
         this.sendResponseToWebview({
           command: "response",

@@ -5,6 +5,7 @@ import {
 import { injectable } from "inversify";
 import { workspace } from "vscode";
 import { getFirstWorkspacePath, resolveSettingsVariables } from "../utils";
+import { getDbtIntegrationMode } from "./integrationMode";
 
 @injectable()
 export class VSCodeDBTConfiguration implements DBTConfiguration {
@@ -18,12 +19,7 @@ export class VSCodeDBTConfiguration implements DBTConfiguration {
   }
 
   getDbtIntegration(): string {
-    return workspace
-      .getConfiguration("dbt")
-      .get<string>(
-        "dbtIntegration",
-        DEFAULT_CONFIGURATION_VALUES.dbtIntegration,
-      );
+    return getDbtIntegrationMode();
   }
 
   getRunModelCommandAdditionalParams(): string[] {

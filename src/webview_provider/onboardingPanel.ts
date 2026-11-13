@@ -24,6 +24,7 @@ import {
   ONBOARDING_STATE_KEY,
   OnboardingState,
 } from "../dbt_client/dbtProjectContainer";
+import { getDbtIntegrationMode } from "../dbt_client/integrationMode";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
 import {
@@ -435,9 +436,7 @@ export class OnboardingPanel extends AltimateWebviewProvider {
         try {
           const projects = this.dbtProjectContainer.getProjects();
           const dbtWorkspaces = this.dbtProjectContainer.dbtWorkspaceFolders;
-          const dbtIntegrationMode = workspace
-            .getConfiguration("dbt")
-            .get<string>("dbtIntegration", "core");
+          const dbtIntegrationMode = getDbtIntegrationMode();
           const pythonEnvironment =
             this.dbtProjectContainer.getPythonEnvironment();
           // On first run Get Started opens during activation, before the Python
@@ -542,7 +541,7 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           const config = workspace.getConfiguration("dbt");
           // A new integration reloads the window, so reopen Get Started after
           // it; the validation was for the old integration.
-          if (config.get("dbtIntegration", "core") !== integrationType) {
+          if (getDbtIntegrationMode() !== integrationType) {
             this.saveOnboardingState({ resume: true, validation: null });
           }
           await config.update(

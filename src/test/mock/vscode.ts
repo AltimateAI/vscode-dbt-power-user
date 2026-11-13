@@ -124,6 +124,12 @@ export class TextEdit {
   }
 }
 
+export enum ConfigurationTarget {
+  Global = 1,
+  Workspace = 2,
+  WorkspaceFolder = 3,
+}
+
 // Mock VSCode API
 export const extensions = {
   getExtension: jest.fn(),
@@ -151,12 +157,6 @@ export const env = {
   // A desktop editor resolves its own URI unchanged.
   asExternalUri: jest.fn(async (uri: unknown) => uriParts(String(uri))),
   openExternal: jest.fn(async () => true),
-};
-
-export const ConfigurationTarget = {
-  Global: 1,
-  Workspace: 2,
-  WorkspaceFolder: 3,
 };
 
 export const commands = {
