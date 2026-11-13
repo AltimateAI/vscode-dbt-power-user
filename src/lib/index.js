@@ -2552,9 +2552,11 @@ project_name="${e.getProjectName()}"
           );
           break;
       }
-      this.telemetry.endTelemetryEvent(p.TelemetryEvents["Notebook/Execute"], {
-        language: e.document.languageId,
-      }),
+      this.telemetry.endTelemetryEvent(
+        p.TelemetryEvents["Notebook/Execute"],
+        void 0,
+        { language: e.document.languageId },
+      ),
         i.end(!kernelError, Date.now());
     } catch (l) {
       this.dbtTerminal.error(
