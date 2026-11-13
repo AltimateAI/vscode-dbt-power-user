@@ -143,6 +143,30 @@ describe("interpreter commands without the Python extension", () => {
     expect(awaitingPythonExtension("cloud", env)).toBe(false);
   });
 
+  it("finds an override command on the PATH of terminal.integrated.env, not only the process PATH", async () => {
+    const termBin = fs.mkdtempSync(path.join(os.tmpdir(), "pu-term-"));
+    fs.writeFileSync(path.join(termBin, "py-term-only"), "#!/bin/sh\n", {
+      mode: 0o755,
+    });
+    try {
+      useSettings({
+        dbtPythonPathOverride: "py-term-only",
+        "integrated.env": {
+          linux: { PATH: termBin + path.delimiter + (process.env.PATH ?? "") },
+        },
+      });
+      const env = new PythonEnvironment(terminal());
+      await env.initialize();
+      expect(interpreterExists("py-term-only")).toBe(false);
+      expect(
+        interpreterExists("py-term-only", env.getEnvironmentVariables()),
+      ).toBe(true);
+      expect(awaitingPythonExtension("core", env)).toBe(false);
+    } finally {
+      fs.rmSync(termBin, { recursive: true, force: true });
+    }
+  });
+
   it("holds core mode for an override command that isn't on PATH", async () => {
     useSettings({ dbtPythonPathOverride: "py-not-on-path" });
     const env = new PythonEnvironment(terminal());

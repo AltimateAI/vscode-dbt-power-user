@@ -37,18 +37,36 @@ export function awaitingPythonExtension(
   return (
     integrationNeedsPython(dbtIntegrationMode) &&
     !pythonEnvironment.pythonExtensionAvailable &&
-    !interpreterExists(pythonEnvironment.pythonPath)
+    !interpreterExists(
+      pythonEnvironment.pythonPath,
+      environmentOf(pythonEnvironment),
+    )
   );
 }
 
 /**
+ * The environment dbt runs with: the process environment merged with
+ * `terminal.integrated.env`. Before the environment is initialized, the
+ * process environment.
+ */
+function environmentOf(
+  pythonEnvironment: PythonEnvironment,
+): Record<string, string | undefined> {
+  try {
+    return pythonEnvironment.getEnvironmentVariables();
+  } catch {
+    return process.env;
+  }
+}
+
+/**
  * Whether `pythonPath` names an interpreter that exists: a path on disk, or a
- * bare command such as `python3` found on PATH (`dbt.dbtPythonPathOverride`
- * accepts both).
+ * bare command such as `python3` found on the PATH of `env`, the environment
+ * the interpreter runs with (`dbt.dbtPythonPathOverride` accepts both).
  */
 export function interpreterExists(
   pythonPath: string | undefined,
-  env: NodeJS.ProcessEnv = process.env,
+  env: Record<string, string | undefined> = process.env,
 ): boolean {
   if (!pythonPath) {
     return false;
@@ -56,11 +74,14 @@ export function interpreterExists(
   if (/[\\/]/.test(pythonPath)) {
     return existsSync(pythonPath);
   }
+  // Windows spells the variables `Path` and `PATHEXT` in any case.
+  const variable = (name: string) =>
+    env[Object.keys(env).find((key) => key.toUpperCase() === name) ?? name];
   const extensions =
     process.platform === "win32"
-      ? ["", ...(env.PATHEXT ?? ".EXE;.CMD;.BAT").split(";")]
+      ? ["", ...(variable("PATHEXT") ?? ".EXE;.CMD;.BAT").split(";")]
       : [""];
-  return (env.PATH ?? "")
+  return (variable("PATH") ?? "")
     .split(delimiter)
     .filter(Boolean)
     .some((dir) =>
@@ -316,6 +337,9 @@ export class DBTClient implements Disposable {
   }
 
   private pythonPathExists() {
-    return interpreterExists(this.pythonEnvironment.pythonPath);
+    return interpreterExists(
+      this.pythonEnvironment.pythonPath,
+      environmentOf(this.pythonEnvironment),
+    );
   }
 }
