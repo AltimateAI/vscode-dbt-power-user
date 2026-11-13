@@ -552,11 +552,22 @@ export class PythonEnvironment {
    */
   private executionDetailsWithoutPythonExtension(): PythonExecutionDetails {
     this._pythonExtensionAvailable = false;
-    const neverChanges = new EventEmitter<Uri | undefined>();
-    this.disposables.push(neverChanges);
+    // Without the extension, `dbt.dbtPythonPathOverride` is the one way to
+    // get an interpreter: a change to it re-runs detection and starts the
+    // projects held for the missing interpreter, as a change of interpreter
+    // in the extension would.
+    const overrideChanges = new EventEmitter<Uri | undefined>();
+    this.disposables.push(
+      overrideChanges,
+      workspace.onDidChangeConfiguration((event) => {
+        if (event.affectsConfiguration("dbt.dbtPythonPathOverride")) {
+          overrideChanges.fire(undefined);
+        }
+      }),
+    );
     return (this.executionDetails = {
       getPythonPath: () => "",
-      onDidChangeExecutionDetails: neverChanges.event,
+      onDidChangeExecutionDetails: overrideChanges.event,
       getEnvVars: (workspaceFolder?: WorkspaceFolder) =>
         this.collectEnvVars(workspaceFolder),
     });

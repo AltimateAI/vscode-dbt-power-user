@@ -1,9 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
-import { readFileSync } from "fs";
+import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import { commands, extensions, window, workspace } from "vscode";
 import { dbtSetupDiagnostics } from "../../commands/diagnosticsSetup";
-import { DBTClient } from "../../dbt_client";
+import {
+  awaitingPythonExtension,
+  DBTClient,
+  interpreterExists,
+} from "../../dbt_client";
 import { PythonEnvironment } from "../../dbt_client/pythonEnvironment";
 
 /**
@@ -55,7 +60,7 @@ afterEach(() => {
 describe("package.json", () => {
   it("does not require the Python extension", () => {
     const manifest = JSON.parse(
-      readFileSync(path.join(__dirname, "../../../package.json"), "utf8"),
+      fs.readFileSync(path.join(__dirname, "../../../package.json"), "utf8"),
     );
     expect(manifest.extensionDependencies).not.toContain("ms-python.python");
     expect(manifest.extensionPack ?? []).not.toContain("ms-python.python");
@@ -101,6 +106,68 @@ describe("PythonEnvironment without the Python extension", () => {
     const env = new PythonEnvironment(terminal());
     await expect(env.initialize()).resolves.toBeUndefined();
     expect(env.pythonExtensionAvailable).toBe(false);
+  });
+});
+
+describe("interpreter commands without the Python extension", () => {
+  let bin: string;
+  let savedPath: string | undefined;
+  beforeEach(() => {
+    bin = fs.mkdtempSync(path.join(os.tmpdir(), "pu-interp-"));
+    fs.writeFileSync(path.join(bin, "py-on-path"), "#!/bin/sh\n", {
+      mode: 0o755,
+    });
+    savedPath = process.env.PATH;
+    process.env.PATH = bin + path.delimiter + (savedPath ?? "");
+  });
+  afterEach(() => {
+    process.env.PATH = savedPath;
+    fs.rmSync(bin, { recursive: true, force: true });
+  });
+
+  it("finds a bare command on PATH and an absolute path on disk, nothing else", () => {
+    expect(interpreterExists("py-on-path")).toBe(true);
+    expect(interpreterExists(path.join(bin, "py-on-path"))).toBe(true);
+    expect(interpreterExists("py-not-on-path")).toBe(false);
+    expect(interpreterExists(path.join(bin, "gone"))).toBe(false);
+    expect(interpreterExists("")).toBe(false);
+    expect(interpreterExists(undefined)).toBe(false);
+  });
+
+  it("doesn't hold core mode for a dbt.dbtPythonPathOverride command found on PATH", async () => {
+    useSettings({ dbtPythonPathOverride: "py-on-path" });
+    const env = new PythonEnvironment(terminal());
+    await env.initialize();
+    expect(env.pythonPath).toBe("py-on-path");
+    expect(awaitingPythonExtension("core", env)).toBe(false);
+    expect(awaitingPythonExtension("cloud", env)).toBe(false);
+  });
+
+  it("holds core mode for an override command that isn't on PATH", async () => {
+    useSettings({ dbtPythonPathOverride: "py-not-on-path" });
+    const env = new PythonEnvironment(terminal());
+    await env.initialize();
+    expect(awaitingPythonExtension("core", env)).toBe(true);
+    expect(awaitingPythonExtension("fusion", env)).toBe(false);
+  });
+
+  it("re-runs detection when dbt.dbtPythonPathOverride changes", async () => {
+    const env = new PythonEnvironment(terminal());
+    await env.initialize();
+    const calls = (workspace.onDidChangeConfiguration as jest.Mock).mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    const listener = calls[calls.length - 1][0] as (event: {
+      affectsConfiguration: (section: string) => boolean;
+    }) => void;
+    const changed = jest.fn();
+    env.onPythonEnvironmentChanged(changed);
+    listener({ affectsConfiguration: () => false });
+    expect(changed).not.toHaveBeenCalled();
+    listener({
+      affectsConfiguration: (section) =>
+        section === "dbt.dbtPythonPathOverride",
+    });
+    expect(changed).toHaveBeenCalledTimes(1);
   });
 });
 

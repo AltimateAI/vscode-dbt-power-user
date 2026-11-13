@@ -1,7 +1,7 @@
 import { DBTDetection } from "@altimateai/dbt-integration";
 import { existsSync } from "fs";
 import { inject } from "inversify";
-import { isAbsolute } from "path";
+import { delimiter, isAbsolute, join } from "path";
 import { commands, Disposable, EventEmitter, window } from "vscode";
 import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
 import { getDbtIntegrationMode } from "./integrationMode";
@@ -35,12 +35,40 @@ export function awaitingPythonExtension(
   dbtIntegrationMode: string,
   pythonEnvironment: PythonEnvironment,
 ): boolean {
-  const pythonPath = pythonEnvironment.pythonPath;
   return (
     integrationNeedsPython(dbtIntegrationMode) &&
     !pythonEnvironment.pythonExtensionAvailable &&
-    !(pythonPath && existsSync(pythonPath))
+    !interpreterExists(pythonEnvironment.pythonPath)
   );
+}
+
+/**
+ * Whether `pythonPath` names an interpreter that exists: a path on disk, or a
+ * bare command such as `python3` found on PATH (`dbt.dbtPythonPathOverride`
+ * accepts both).
+ */
+export function interpreterExists(
+  pythonPath: string | undefined,
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  if (!pythonPath) {
+    return false;
+  }
+  if (/[\\/]/.test(pythonPath)) {
+    return existsSync(pythonPath);
+  }
+  const extensions =
+    process.platform === "win32"
+      ? ["", ...(env.PATHEXT ?? ".EXE;.CMD;.BAT").split(";")]
+      : [""];
+  return (env.PATH ?? "")
+    .split(delimiter)
+    .filter(Boolean)
+    .some((dir) =>
+      extensions.some((extension) =>
+        existsSync(join(dir, pythonPath + extension)),
+      ),
+    );
 }
 
 export class DBTClient implements Disposable {
@@ -279,9 +307,6 @@ export class DBTClient implements Disposable {
   }
 
   private pythonPathExists() {
-    return (
-      this.pythonEnvironment.pythonPath !== undefined &&
-      existsSync(this.pythonEnvironment.pythonPath)
-    );
+    return interpreterExists(this.pythonEnvironment.pythonPath);
   }
 }
