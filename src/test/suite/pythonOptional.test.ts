@@ -134,6 +134,14 @@ describe("interpreter commands without the Python extension", () => {
     expect(interpreterExists(undefined)).toBe(false);
   });
 
+  it("reads `Path` as the search path on Windows only", () => {
+    expect(interpreterExists("py-on-path", { PATH: bin })).toBe(true);
+    expect(interpreterExists("py-on-path", { Path: bin })).toBe(
+      process.platform === "win32",
+    );
+    expect(interpreterExists("py-on-path", { OTHER: bin })).toBe(false);
+  });
+
   it("doesn't hold core mode for a dbt.dbtPythonPathOverride command found on PATH", async () => {
     useSettings({ dbtPythonPathOverride: "py-on-path" });
     const env = new PythonEnvironment(terminal());

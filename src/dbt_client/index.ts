@@ -74,18 +74,19 @@ export function interpreterExists(
   if (/[\\/]/.test(pythonPath)) {
     return existsSync(pythonPath);
   }
-  // Windows spells the variables `Path` and `PATHEXT` in any case, and the
-  // merged environment can carry a process `Path` next to a `PATH` set in
-  // `terminal.integrated.env`: search every spelling.
+  // Windows reads environment names in any case (`Path`, `PATHEXT`), and the
+  // merged environment there can carry a process `Path` next to a `PATH` set
+  // in `terminal.integrated.env`: search every spelling. Elsewhere names are
+  // case-sensitive and only `PATH` is the search path.
+  const isWindows = process.platform === "win32";
   const values = (name: string) =>
     Object.keys(env)
-      .filter((key) => key.toUpperCase() === name)
+      .filter((key) => (isWindows ? key.toUpperCase() === name : key === name))
       .map((key) => env[key] ?? "")
       .join(delimiter);
-  const extensions =
-    process.platform === "win32"
-      ? ["", ...(values("PATHEXT") || ".EXE;.CMD;.BAT").split(";")]
-      : [""];
+  const extensions = isWindows
+    ? ["", ...(values("PATHEXT") || ".EXE;.CMD;.BAT").split(";")]
+    : [""];
   return values("PATH")
     .split(delimiter)
     .filter(Boolean)
