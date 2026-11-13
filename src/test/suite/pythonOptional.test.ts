@@ -153,7 +153,9 @@ describe("DBTClient without the Python extension", () => {
     await client(false);
     await new Promise((resolve) => setImmediate(resolve));
     expect(messages()).toEqual([
-      expect.stringContaining("Python extension, which is not installed"),
+      expect.stringMatching(
+        /^The dbt Cloud CLI runs through the Python extension, which is not installed\./,
+      ),
     ]);
     expect(commands.executeCommand).toHaveBeenCalledWith(
       "workbench.extensions.installExtension",
@@ -252,7 +254,9 @@ describe("DBTClient without the Python extension", () => {
     await client(false);
     await new Promise((resolve) => setImmediate(resolve));
     expect(messages()).toEqual([
-      expect.stringContaining("Python extension, which is not installed"),
+      expect.stringMatching(
+        /^dbt Core runs through the Python extension, which is not installed\./,
+      ),
     ]);
     expect(commands.executeCommand).toHaveBeenCalledWith(
       "workbench.extensions.installExtension",

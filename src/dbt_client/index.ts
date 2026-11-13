@@ -190,8 +190,14 @@ export class DBTClient implements Disposable {
   }
 
   private async promptToInstallPythonExtension() {
+    // Name the runner for the mode in use: dbt Core (core and corecommand)
+    // keeps its wording; cloud mode names the dbt Cloud CLI.
+    const runner =
+      this.dbtIntegrationMode() === "cloud"
+        ? "The dbt Cloud CLI runs"
+        : "dbt Core runs";
     const answer = await window.showErrorMessage(
-      "dbt Core and the dbt Cloud CLI run through the Python extension, which is not installed. Install it, or switch dbt.dbtIntegration to fusion to use dbt Fusion without Python.",
+      `${runner} through the Python extension, which is not installed. Install it, or switch dbt.dbtIntegration to fusion to use dbt Fusion without Python.`,
       INSTALL_PYTHON_EXTENSION,
       TROUBLESHOOT,
     );
