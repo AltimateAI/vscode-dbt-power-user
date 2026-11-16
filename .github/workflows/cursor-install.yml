@@ -1,0 +1,249 @@
+name: Cursor install
+
+# Checks that Power User installs in Cursor the way users install it: from Cursor's gallery (a mirror
+# of Open VSX), with its extension dependencies, on fresh profiles. Informational only: it posts no
+# notifications and is not a required check; failures show here in Actions.
+#
+# - cli: `cursor --install-extension` on Linux, macOS and Windows, for the latest Cursor and an older 2.x.
+# - ui: clicks Install in Cursor's Extensions view (Playwright + Electron) and waits for activation.
+# - mirror-lag: what Cursor's gallery serves per target, against Open VSX.
+#
+# On pull requests that touch packaging, it installs the VSIX built from the PR (Linux only, to keep
+# macOS minutes down); dependencies still come from the gallery. When the PR changes this workflow or
+# its scripts, the full gallery matrix runs too.
+
+on:
+  schedule:
+    - cron: "23 4 * * *"
+  workflow_dispatch:
+  release:
+    types: [published]
+  pull_request:
+    branches: [master]
+    paths:
+      - package.json
+      - .vscodeignore
+      - prepareBuild.js
+      - postInstall.js
+      - rsbuild.config.ts
+      - .github/workflows/cursor-install.yml
+      - .github/cursor-install/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cursor-install-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Older Cursor kept in the matrix: 2.6.20 (VS Code 1.105.1). OLD_CURSOR_COMMIT is the id in its
+  # downloads.cursor.com/production/<id>/... installer URLs.
+  OLD_CURSOR_VERSION: "2.6.20"
+  OLD_CURSOR_COMMIT: "b29eb4ee5f9f6d1cb2afbc09070198d3ea6ad76f"
+  PLAYWRIGHT_CORE_VERSION: "1.48.2"
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      cli: ${{ steps.plan.outputs.cli }}
+      ui: ${{ steps.plan.outputs.ui }}
+      build-vsix: ${{ steps.plan.outputs.build-vsix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - id: plan
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          gallery=true
+          vsix=false
+          if [ "$EVENT" = "pull_request" ]; then
+            vsix=true
+            # The merge commit's first parent is the base branch.
+            if ! git diff --name-only HEAD^1 HEAD | grep -qE '^\.github/(workflows/cursor-install\.yml|cursor-install/)'; then
+              gallery=false
+            fi
+          fi
+          node - "$gallery" "$vsix" >> "$GITHUB_OUTPUT" <<'EOF'
+          const [gallery, vsix] = process.argv.slice(2).map((v) => v === "true");
+          const oses = ["ubuntu-latest", "macos-latest", "windows-latest"];
+          const cli = [];
+          const ui = [];
+          if (gallery) {
+            for (const os of oses) {
+              cli.push({ os, cursor: "latest", source: "gallery" });
+              cli.push({ os, cursor: "old", source: "gallery" });
+              ui.push({ os, cursor: "latest", source: "gallery" });
+            }
+            ui.push({ os: "ubuntu-latest", cursor: "old", source: "gallery" });
+          }
+          if (vsix) {
+            cli.push({ os: "ubuntu-latest", cursor: "latest", source: "vsix" });
+            ui.push({ os: "ubuntu-latest", cursor: "latest", source: "vsix" });
+          }
+          console.log(`cli=${JSON.stringify({ include: cli })}`);
+          console.log(`ui=${JSON.stringify({ include: ui })}`);
+          console.log(`build-vsix=${vsix}`);
+          EOF
+          cat "$GITHUB_OUTPUT"
+
+  build-vsix:
+    needs: plan
+    if: needs.plan.outputs.build-vsix == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/common-build
+        with:
+          vsce-target: linux-x64
+      - name: Package VSIX
+        run: npx @vscode/vsce package --target linux-x64 --out power-user-pr.vsix
+        env:
+          VSCE_TARGET: linux-x64
+          NODE_OPTIONS: --max-old-space-size=8192
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cursor-install-vsix
+          path: power-user-pr.vsix
+          retention-days: 3
+
+  cli:
+    needs: [plan, build-vsix]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.build-vsix.result != 'failure' }}
+    name: cli (${{ matrix.os }}, Cursor ${{ matrix.cursor }}, ${{ matrix.source }})
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.cli) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/cursor-install
+            package.json
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - if: matrix.source == 'vsix'
+        uses: actions/download-artifact@v4
+        with:
+          name: cursor-install-vsix
+          path: ${{ runner.temp }}/vsix
+      - name: Download Cursor
+        shell: bash
+        run: |
+          if [ "${{ matrix.cursor }}" = "old" ]; then
+            node .github/cursor-install/fetch-cursor.mjs --version "$OLD_CURSOR_VERSION" --commit "$OLD_CURSOR_COMMIT" --out "$RUNNER_TEMP/cursor"
+          else
+            node .github/cursor-install/fetch-cursor.mjs --version latest --out "$RUNNER_TEMP/cursor"
+          fi
+      - name: Install Power User with the Cursor CLI
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          extra=()
+          if [ "${{ matrix.source }}" = "vsix" ]; then extra=(--vsix "$RUNNER_TEMP/vsix/power-user-pr.vsix"); fi
+          node .github/cursor-install/cli-install.mjs --cursor "$RUNNER_TEMP/cursor/cursor.json" \
+            --work "$RUNNER_TEMP/cli-run" --max-seconds 60 --timeout-seconds 600 "${extra[@]}"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.os }}-${{ matrix.cursor }}-${{ matrix.source }}
+          path: |
+            ${{ runner.temp }}/cli-run/cli-output.log
+            ${{ runner.temp }}/cli-run/result.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  ui:
+    needs: [plan, build-vsix]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.build-vsix.result != 'failure' }}
+    name: ui (${{ matrix.os }}, Cursor ${{ matrix.cursor }}, ${{ matrix.source }})
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.ui) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    # Cursor before 3.11 never starts this install: it re-queries the gallery in a loop (see
+    # ui-install.mjs). The older-Cursor leg records that without turning the run red.
+    continue-on-error: ${{ matrix.cursor == 'old' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/cursor-install
+            package.json
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - if: matrix.source == 'vsix'
+        uses: actions/download-artifact@v4
+        with:
+          name: cursor-install-vsix
+          path: ${{ runner.temp }}/vsix
+      - name: Install Playwright (Electron driver only, no browsers)
+        shell: bash
+        run: npm install --prefix "$RUNNER_TEMP/pw" --no-save --no-package-lock "playwright-core@$PLAYWRIGHT_CORE_VERSION"
+      - if: runner.os == 'Linux'
+        name: Install xvfb
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+      - name: Download Cursor
+        shell: bash
+        run: |
+          if [ "${{ matrix.cursor }}" = "old" ]; then
+            node .github/cursor-install/fetch-cursor.mjs --version "$OLD_CURSOR_VERSION" --commit "$OLD_CURSOR_COMMIT" --out "$RUNNER_TEMP/cursor"
+          else
+            node .github/cursor-install/fetch-cursor.mjs --version latest --out "$RUNNER_TEMP/cursor"
+          fi
+      - name: Install Power User from Cursor's Extensions view
+        shell: bash
+        run: |
+          export PLAYWRIGHT_CORE="$RUNNER_TEMP/pw/node_modules/playwright-core"
+          extra=()
+          if [ "${{ matrix.source }}" = "vsix" ]; then extra=(--vsix "$RUNNER_TEMP/vsix/power-user-pr.vsix"); fi
+          run=(node .github/cursor-install/ui-install.mjs --cursor "$RUNNER_TEMP/cursor/cursor.json" \
+            --work "$RUNNER_TEMP/ui-run" --timeout-seconds 900 "${extra[@]}")
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run --auto-servernum -s "-screen 0 1600x1000x24" "${run[@]}"
+          else
+            "${run[@]}"
+          fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-${{ matrix.os }}-${{ matrix.cursor }}-${{ matrix.source }}
+          path: |
+            ${{ runner.temp }}/ui-run/screenshots
+            ${{ runner.temp }}/ui-run/events.log
+            ${{ runner.temp }}/ui-run/extensionquery.log
+            ${{ runner.temp }}/ui-run/result.json
+            ${{ runner.temp }}/ui-run/user-data/logs
+          retention-days: 7
+          if-no-files-found: ignore
+
+  mirror-lag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/cursor-install
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node .github/cursor-install/mirror-lag.mjs
