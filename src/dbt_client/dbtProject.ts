@@ -1734,8 +1734,10 @@ export class DBTProject implements Disposable {
 
     // A saved, unedited model file can run as the node it actually is. The SQL
     // is identical to the buffer, so this only changes whether `model.name`,
-    // `this` and `model.config` resolve.
-    const nodeSelector = this.nodeRunSelector(uri?.fsPath);
+    // `this` and `model.config` resolve. A plain inline preview never needs
+    // the node, so it skips the manifest lookup.
+    const nodeSelector =
+      previewMode === "inline" ? undefined : this.nodeRunSelector(uri?.fsPath);
     if (previewMode === "as-model" && nodeSelector !== undefined) {
       return this.executeSqlWithNodeContextWithLimitOnQueryPanel({
         modelName,
