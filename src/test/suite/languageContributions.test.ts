@@ -27,7 +27,7 @@ const listSourceFiles = (dir: string): string[] =>
     if (entry.isDirectory()) {
       return entry.name === "test" ? [] : listSourceFiles(fullPath);
     }
-    return /\.tsx?$/.test(entry.name) ? [fullPath] : [];
+    return /\.(tsx?|js)$/.test(entry.name) ? [fullPath] : [];
   });
 
 const JINJA_LANGUAGES = [
