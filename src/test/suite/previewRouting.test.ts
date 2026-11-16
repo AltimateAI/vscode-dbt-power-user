@@ -2,8 +2,16 @@ import {
   InlinePreviewError,
   QueryExecution,
 } from "@altimateai/dbt-integration";
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 
+import { window, workspace } from "vscode";
 import { DBTProject } from "../../dbt_client/dbtProject";
 
 /**
@@ -234,5 +242,99 @@ describe("offerModelRunOnIdentityFailure", () => {
 
     await expect(wrapped.executeQuery()).resolves.toBe(result);
     expect(p.promptToRunAsModel).not.toHaveBeenCalled();
+  });
+});
+
+describe("promptToRunAsModel", () => {
+  const RUN_AS_MODEL = "Save and run as model";
+  const PROMPT_NODES = [
+    {
+      unique_id: "model.jaffle_shop.orders",
+      path: "models/orders.sql",
+      package_name: "jaffle_shop",
+    },
+  ];
+  const nodeRun = {
+    modelName: "orders",
+    limit: 500,
+    nodeSelector: "package:jaffle_shop,resource_type:model,orders",
+    modelSql: "select 1",
+    uri: {
+      fsPath: "/p/models/orders.sql",
+      toString: () => "file:///p/models/orders.sql",
+    },
+  };
+  function promptingProject() {
+    const p = createProject({
+      canInjectNodeContextInSqlSnippetExecution: true,
+      nodes: PROMPT_NODES,
+    }) as any;
+    delete p.promptToRunAsModel; // the real method
+    p.executeSqlWithNodeContextWithLimitOnQueryPanel = jest.fn(
+      async () => undefined,
+    );
+    (window.showWarningMessage as jest.Mock).mockReturnValue(
+      Promise.resolve(RUN_AS_MODEL) as never,
+    );
+    return p;
+  }
+  afterEach(() => {
+    (workspace as any).textDocuments = [];
+    (window.showWarningMessage as jest.Mock).mockReset();
+    (window.showWarningMessage as jest.Mock).mockReturnValue(
+      Promise.resolve() as never,
+    );
+  });
+
+  it("saves the open document, then runs the saved node", async () => {
+    const p = promptingProject();
+    const save = jest.fn(async () => true);
+    (workspace as any).textDocuments = [{ uri: nodeRun.uri, save }];
+    await p.promptToRunAsModel(nodeRun);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(
+      p.executeSqlWithNodeContextWithLimitOnQueryPanel,
+    ).toHaveBeenCalledWith(nodeRun);
+    expect(window.showErrorMessage).not.toHaveBeenCalled();
+  });
+
+  it("stops with a message when the document was closed before the choice", async () => {
+    const p = promptingProject();
+    (workspace as any).textDocuments = [];
+    await p.promptToRunAsModel(nodeRun);
+    expect(
+      p.executeSqlWithNodeContextWithLimitOnQueryPanel,
+    ).not.toHaveBeenCalled();
+    expect(window.showErrorMessage).toHaveBeenCalledWith(
+      expect.stringContaining("is no longer open, so nothing was saved or run"),
+    );
+  });
+
+  it("stops with a message when the save fails", async () => {
+    const p = promptingProject();
+    (workspace as any).textDocuments = [
+      { uri: nodeRun.uri, save: jest.fn(async () => false) },
+    ];
+    await p.promptToRunAsModel(nodeRun);
+    expect(
+      p.executeSqlWithNodeContextWithLimitOnQueryPanel,
+    ).not.toHaveBeenCalled();
+    expect(window.showErrorMessage).toHaveBeenCalledWith(
+      expect.stringContaining("Could not save"),
+    );
+  });
+
+  it("runs nothing when the offer is dismissed", async () => {
+    const p = promptingProject();
+    (window.showWarningMessage as jest.Mock).mockReturnValue(
+      Promise.resolve(undefined) as never,
+    );
+    (workspace as any).textDocuments = [
+      { uri: nodeRun.uri, save: jest.fn(async () => true) },
+    ];
+    await p.promptToRunAsModel(nodeRun);
+    expect(
+      p.executeSqlWithNodeContextWithLimitOnQueryPanel,
+    ).not.toHaveBeenCalled();
   });
 });

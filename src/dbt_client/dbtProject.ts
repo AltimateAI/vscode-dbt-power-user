@@ -1868,7 +1868,16 @@ export class DBTProject implements Disposable {
       const document = workspace.textDocuments.find(
         (candidate) => candidate.uri.toString() === uri.toString(),
       );
-      if (document && !(await document.save())) {
+      // The warning is not modal: the editor can be closed, its edits
+      // discarded, before the choice is made. Running the saved file then
+      // would run SQL the user never saw saved.
+      if (!document) {
+        window.showErrorMessage(
+          `${modelName} is no longer open, so nothing was saved or run. Open it, save, and run it again.`,
+        );
+        return;
+      }
+      if (!(await document.save())) {
         window.showErrorMessage(`Could not save ${modelName}.`);
         return;
       }
