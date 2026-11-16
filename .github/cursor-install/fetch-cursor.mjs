@@ -23,28 +23,41 @@ const apiPlatform = {
   win32: "win32-x64-user",
 }[process.platform];
 
-async function resolveDownload() {
-  if (requested === "latest") {
-    const res = await fetchRetry(
-      `https://cursor.com/api/download?platform=${apiPlatform}&releaseTrack=latest`,
-    );
-    const info = await res.json();
-    const url = process.platform === "linux" ? info.debUrl : info.downloadUrl;
-    if (!url)
-      throw new Error(
-        `Cursor download API returned no installer for ${apiPlatform}`,
-      );
-    return { url, version: info.version, commit: info.commitSha };
-  }
-  if (!args.commit)
-    throw new Error("--commit is required with a pinned --version");
-  const base = `https://downloads.cursor.com/production/${args.commit}`;
-  const url = {
-    linux: `${base}/linux/x64/deb/amd64/deb/cursor_${requested}_amd64.deb`,
+// Installer URLs by version and the id in downloads.cursor.com/production/<id>/... paths.
+function installerUrl(version, id) {
+  const base = `https://downloads.cursor.com/production/${id}`;
+  return {
+    linux: `${base}/linux/x64/deb/amd64/deb/cursor_${version}_amd64.deb`,
     darwin: `${base}/darwin/arm64/Cursor-darwin-arm64.dmg`,
-    win32: `${base}/win32/x64/user-setup/CursorUserSetup-x64-${requested}.exe`,
+    win32: `${base}/win32/x64/user-setup/CursorUserSetup-x64-${version}.exe`,
   }[process.platform];
-  return { url, version: requested, commit: args.commit };
+}
+
+async function resolveDownload() {
+  if (requested !== "latest") {
+    if (!args.commit)
+      throw new Error("--commit is required with a pinned --version");
+    return {
+      url: installerUrl(requested, args.commit),
+      version: requested,
+      commit: args.commit,
+    };
+  }
+  // The "latest" answer carries the AppImage/dmg/exe URL but no .deb URL; build the .deb URL from its id.
+  const res = await fetchRetry(
+    `https://cursor.com/api/download?platform=${apiPlatform}&releaseTrack=latest`,
+  );
+  const info = await res.json();
+  const id = info.downloadUrl?.match(/\/production\/([0-9a-f]+)\//)?.[1];
+  if (!info.version || !id)
+    throw new Error(
+      `Cursor download API gave no usable build: ${JSON.stringify(info)}`,
+    );
+  return {
+    url: installerUrl(info.version, id),
+    version: info.version,
+    commit: id,
+  };
 }
 
 async function download(url, file) {

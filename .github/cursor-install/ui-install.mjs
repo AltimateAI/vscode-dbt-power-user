@@ -307,55 +307,57 @@ async function handleDialog(win) {
   throw harness("dialog", `unexpected dialog: ${text.slice(0, 300)}`);
 }
 
+// What the shared process has logged about the install so far.
+function installState() {
+  const lines = logs().shared.split("\n");
+  return {
+    done: lines.some(
+      (l) =>
+        /installed successfully/i.test(l) &&
+        l.toLowerCase().includes(extensionId),
+    ),
+    error: lines.find((l) => /\[error\].*(install|download|extract)/i.test(l)),
+    started: lines.some((l) => /Installing (the )?extension:/i.test(l)),
+  };
+}
+
+// Cursor never started installing: a gallery re-query loop is Cursor's problem, anything else the harness's.
+function notStartedError(clickedAt) {
+  const sent = queries.filter((q) => q.at >= clickedAt).length;
+  if (sent > 50) {
+    return installError(
+      "install-start",
+      `Cursor sent ${sent} gallery queries after the click without starting the install (the extensionquery loop)`,
+    );
+  }
+  return harness(
+    "install-start",
+    `${startTimeoutMs / 1000} s after clicking Install, Cursor had not started installing and no dialog was visible`,
+  );
+}
+
 async function waitForInstall(win, clickedAt) {
-  const deadline = clickedAt + timeoutMs;
-  let started;
-  while (Date.now() < deadline) {
+  let started = false;
+  while (Date.now() < clickedAt + timeoutMs) {
     await handleDialog(win);
-    const { shared } = logs();
-    const okLine = shared
-      .split("\n")
-      .find(
-        (l) =>
-          /installed successfully/i.test(l) &&
-          l.toLowerCase().includes(extensionId),
-      );
-    if (okLine) return;
-    const failure = shared
-      .split("\n")
-      .find((l) => /\[error\].*(install|download|extract)/i.test(l));
-    if (failure)
+    const state = installState();
+    if (state.done) return;
+    if (state.error) {
       throw installError(
         "install",
-        `Cursor logged an install error: ${failure.slice(0, 300)}`,
+        `Cursor logged an install error: ${state.error.slice(0, 300)}`,
       );
-    if (
-      !started &&
-      /Installing extension:|Installing the extension:/i.test(shared)
-    ) {
-      started = Date.now();
+    }
+    if (state.started && !started)
       note("Cursor started installing (shared process)");
-    }
-    if (!started && Date.now() - clickedAt > startTimeoutMs) {
-      const storm = queries.filter((q) => q.at >= clickedAt).length;
-      if (storm > 50) {
-        throw installError(
-          "install-start",
-          `Cursor sent ${storm} gallery queries after the click without starting the install (the extensionquery loop)`,
-        );
-      }
-      throw harness(
-        "install-start",
-        `${startTimeoutMs / 1000} s after clicking Install, Cursor had not started installing and no dialog was visible`,
-      );
-    }
+    started = state.started;
+    if (!started && Date.now() - clickedAt > startTimeoutMs)
+      throw notStartedError(clickedAt);
     await new Promise((r) => setTimeout(r, 500));
   }
-  throw (started ? installError : harness)(
+  throw installError(
     "install",
-    started
-      ? `install started but did not finish within ${timeoutMs / 1000} s`
-      : "Cursor never started installing",
+    `install started but did not finish within ${timeoutMs / 1000} s`,
   );
 }
 
@@ -408,6 +410,42 @@ async function probeSearch(win, text) {
   };
 }
 
+// Cursor can open more than one window (macOS opens an Agents window too): use the one with a workbench.
+async function findWorkbenchWindow(app, ms) {
+  await app.firstWindow({ timeout: ms });
+  return until(
+    async () => {
+      for (const page of app.windows()) {
+        if (
+          await page
+            .locator(".monaco-workbench")
+            .count()
+            .catch(() => 0)
+        )
+          return page;
+      }
+      return undefined;
+    },
+    ms,
+    1000,
+  );
+}
+
+// Closing can hang when a window is stuck; kill the process tree after a grace period.
+async function closeApp(app) {
+  const closed = await Promise.race([
+    app.close().then(
+      () => true,
+      () => false,
+    ),
+    new Promise((r) => setTimeout(() => r(false), 20000)),
+  ]);
+  if (!closed) {
+    note("Cursor did not close within 20 s; killing it");
+    app.process().kill("SIGKILL");
+  }
+}
+
 // Every gallery query the window sends, with its search criteria, to spot a re-query loop.
 const queries = [];
 function watchQueries(page) {
@@ -456,15 +494,27 @@ try {
       env,
       timeout: 180000,
     });
-    win = await app.firstWindow({ timeout: 180000 });
-    watchQueries(win);
-    await win.waitForSelector(".monaco-workbench", { timeout: 180000 });
+    win = await findWorkbenchWindow(app, 180000);
   } catch (error) {
     throw harness(
       "launch",
-      `Cursor did not open a workbench window: ${error.message.split("\n")[0]}`,
+      `Cursor did not start: ${error.message.split("\n")[0]}`,
     );
   }
+  if (!win) {
+    for (const [i, page] of app.windows().entries())
+      await shot(page, `00-window-${i}`);
+    throw harness(
+      "launch",
+      `no window with a workbench after 180 s (windows: ${
+        app
+          .windows()
+          .map((p) => p.url())
+          .join(", ") || "none"
+      })`,
+    );
+  }
+  watchQueries(win);
   note("workbench is up");
   await win.waitForTimeout(8000);
   await handleDialog(win);
@@ -501,7 +551,7 @@ try {
   note(`${kind} failure at ${step}: ${error.message}`);
   if (win) await shot(win, "99-failure");
 } finally {
-  if (app) await app.close().catch(() => undefined);
+  if (app) await closeApp(app);
 }
 
 const { dir: logDir } = logs();
