@@ -148,8 +148,8 @@ describe("Jinja language contributions", () => {
       expect(grammarFile.patterns).toEqual([{ include: baseScope }]);
       const selectors = Object.keys(grammarFile.injections);
       expect(selectors).toHaveLength(1);
-      expect(selectors[0]).toMatch(
-        new RegExp(`^L:${grammarFile.scopeName.replace(/\./g, "\\.")} - `),
+      expect(selectors[0].startsWith(`L:${grammarFile.scopeName} - `)).toBe(
+        true,
       );
       expect(grammarFile.injections[selectors[0]].patterns).toEqual([
         { include: "source.yaml.jinja" },
