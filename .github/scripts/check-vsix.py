@@ -44,6 +44,43 @@ MANIFEST = ZEROMQ_BUILD + "manifest.json"
 CMAKE_TS_LOADER = NODE_MODULES + "cmake-ts/build/loader.js"
 
 
+def check_unneeded_files(names):
+    errors = []
+    gifs = [n for n in names if re.match(r"extension/media/images/.*\.gif$", n)]
+    if gifs:
+        errors.append(f"ships {len(gifs)} README GIFs, e.g. {gifs[0]}")
+    maps = [n for n in names if n.startswith(NODE_MODULES) and n.endswith(".map")]
+    if maps:
+        errors.append(f"ships {len(maps)} source maps, e.g. {maps[0]}")
+    prebuilds = [n for n in names if n.startswith(ZEROMQ + "prebuilds/")]
+    if prebuilds:
+        errors.append(f"ships zeromq prebuilds/, e.g. {prebuilds[0]}")
+    if CMAKE_TS_LOADER not in names:
+        errors.append(f"missing {CMAKE_TS_LOADER}")
+    return errors
+
+
+def check_zeromq_addons(z, addons, target):
+    """The manifest must list exactly the addons shipped, all for the target."""
+    if MANIFEST not in z.namelist():
+        return [f"missing {MANIFEST}"]
+    errors = []
+    listed = set()
+    for key, addon_path in json.loads(z.read(MANIFEST)).items():
+        config = json.loads(key)
+        runtime = (config["os"], config["arch"], config["libc"])
+        if runtime != ZEROMQ_RUNTIME[target]:
+            errors.append(f"manifest lists another platform's addon: {addon_path}")
+        listed.add(ZEROMQ_BUILD + addon_path.replace("\\", "/"))
+    if not listed:
+        errors.append(f"manifest lists no zeromq addon for {target}")
+    for path in sorted(listed - addons):
+        errors.append(f"manifest lists an addon the VSIX doesn't ship: {path}")
+    for path in sorted(addons - listed):
+        errors.append(f"ships a zeromq addon the manifest doesn't list: {path}")
+    return errors
+
+
 def check(vsix, target):
     errors = []
     size_mib = os.path.getsize(vsix) / MIB
@@ -53,39 +90,9 @@ def check(vsix, target):
 
     z = zipfile.ZipFile(vsix)
     names = z.namelist()
-
-    gifs = [n for n in names if re.match(r"extension/media/images/.*\.gif$", n)]
-    if gifs:
-        errors.append(f"ships {len(gifs)} README GIFs, e.g. {gifs[0]}")
-    maps = [n for n in names if n.startswith(NODE_MODULES) and n.endswith(".map")]
-    if maps:
-        errors.append(f"ships {len(maps)} source maps, e.g. {maps[0]}")
-
-    prebuilds = [n for n in names if n.startswith(ZEROMQ + "prebuilds/")]
-    if prebuilds:
-        errors.append(f"ships zeromq prebuilds/, e.g. {prebuilds[0]}")
-
     addons = {n for n in names if n.startswith(ZEROMQ_BUILD) and n.endswith(".node")}
-    if MANIFEST not in names:
-        errors.append(f"missing {MANIFEST}")
-    else:
-        runtime = ZEROMQ_RUNTIME[target]
-        listed = set()
-        for key, addon_path in json.loads(z.read(MANIFEST)).items():
-            config = json.loads(key)
-            if (config["os"], config["arch"], config["libc"]) != runtime:
-                errors.append(f"manifest lists another platform's addon: {addon_path}")
-            listed.add(ZEROMQ_BUILD + addon_path.replace("\\", "/"))
-        if not listed:
-            errors.append(f"manifest lists no zeromq addon for {target}")
-        for path in sorted(listed - addons):
-            errors.append(f"manifest lists an addon the VSIX doesn't ship: {path}")
-        for path in sorted(addons - listed):
-            errors.append(f"ships a zeromq addon the manifest doesn't list: {path}")
-
-    if CMAKE_TS_LOADER not in names:
-        errors.append(f"missing {CMAKE_TS_LOADER}")
-
+    errors += check_unneeded_files(names)
+    errors += check_zeromq_addons(z, addons, target)
     return size_mib, budget, sorted(addons), errors
 
 

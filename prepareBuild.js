@@ -104,6 +104,21 @@ function pruneZeromqAddons(zeromqDir, vsceTarget) {
   );
 }
 
+/** Delete every file below `dir` except `keep` (paths relative to `dir`). */
+function keepOnly(dir, keep) {
+  const kept = new Set(keep.map((file) => path.join(dir, file)));
+  for (const file of listFiles(dir)) {
+    if (!kept.has(file)) {
+      fs.rmSync(file);
+    }
+  }
+  removeEmptyDirs(dir);
+  const missing = [...kept].filter((file) => !fs.existsSync(file));
+  if (missing.length > 0) {
+    throw new Error(`Required asset missing: ${missing.join(", ")}`);
+  }
+}
+
 /**
  * Strip zeromq and cmake-ts down to what loads at runtime: zeromq's lib/ and
  * entry points plus its target addon, and cmake-ts' build/loader.js. Sources,
@@ -133,28 +148,12 @@ function pruneZeromq() {
   ]) {
     fs.rmSync(path.join(zeromqDir, entry), { recursive: true, force: true });
   }
-  for (const file of listFiles(zeromqDir)) {
-    if (file.endsWith(".d.ts")) {
-      fs.rmSync(file);
-    }
-  }
+  listFiles(zeromqDir)
+    .filter((file) => file.endsWith(".d.ts"))
+    .forEach((file) => fs.rmSync(file));
   removeEmptyDirs(zeromqDir);
 
-  const cmakeTsKeep = new Set(
-    ["package.json", path.join("build", "loader.js")].map((file) =>
-      path.join(cmakeTsDir, file),
-    ),
-  );
-  for (const file of listFiles(cmakeTsDir)) {
-    if (!cmakeTsKeep.has(file)) {
-      fs.rmSync(file);
-    }
-  }
-  removeEmptyDirs(cmakeTsDir);
-  const missing = [...cmakeTsKeep].filter((file) => !fs.existsSync(file));
-  if (missing.length > 0) {
-    throw new Error(`Required asset missing: ${missing.join(", ")}`);
-  }
+  keepOnly(cmakeTsDir, ["package.json", path.join("build", "loader.js")]);
 
   const vsceTarget = getVsceTarget();
   if (!vsceTarget) {
