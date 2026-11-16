@@ -59,7 +59,9 @@ function createProject(opts: {
     nodeMetaMap: { nodes: () => opts.nodes },
   };
   (project as any).projectRoot = { fsPath: "/w/jaffle_shop" };
-  (project as any).getProjectName = () => "jaffle_shop";
+  // The selector must not depend on the project's name: at preview time it can
+  // still read `unknown_<id>` (seen in the E2E), so location decides.
+  (project as any).getProjectName = () => "unknown_79898443";
   (project as any).getPackageInstallPath = () => "/w/jaffle_shop/dbt_packages";
   project.promptToRunAsModel = jest.fn(() => Promise.resolve());
   return project;
@@ -142,7 +144,9 @@ describe("nodeRunSelector", () => {
     [
       "a package's",
       `${ROOT}dbt_packages/pkg/models/orders.sql`,
-      "package:pkg,resource_type:model,path:models/orders.sql,orders",
+      // dbt-core reads a package node's `path:` relative to the package, dbt
+      // Fusion from the root project: a union names both, each engine matches one.
+      "package:pkg,resource_type:model,path:models/orders.sql,orders package:pkg,resource_type:model,path:dbt_packages/pkg/models/orders.sql,orders",
     ],
   ])(
     "selects %s model when two of that name exist, by the file previewed",

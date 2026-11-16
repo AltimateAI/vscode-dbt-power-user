@@ -1822,34 +1822,54 @@ export class DBTProject implements Disposable {
     // as a path prefix: `orders` also selects the models in a `models/orders/`
     // folder, and a model named after its project selects every model in it.
     // The node's own file path narrows the intersection to the one node.
-    const originalFilePath = this.nodeOriginalFilePath(node);
-    return [
-      `package:${node.package_name}`,
-      `resource_type:${RESOURCE_TYPE_MODEL}`,
-      ...(originalFilePath ? [`path:${originalFilePath}`] : []),
-      nameWithVersion,
-    ].join(",");
+    const intersection = (filePath?: string) =>
+      [
+        `package:${node.package_name}`,
+        `resource_type:${RESOURCE_TYPE_MODEL}`,
+        ...(filePath ? [`path:${filePath}`] : []),
+        nameWithVersion,
+      ].join(",");
+    const filePaths = this.nodeFilePathsForSelection(node);
+    // A space is dbt's union: each engine matches one of a package node's two
+    // path forms, and the intersection with the name keeps it to the one node.
+    return filePaths.length === 0
+      ? intersection()
+      : filePaths.map(intersection).join(" ");
   }
 
   /**
-   * The node's file path as dbt's `path:` selector takes it: relative to the
-   * node's own project (the root project, or the package's directory under the
-   * packages install path), with forward slashes.
+   * The node's file path as dbt's `path:` selector reads it, with forward
+   * slashes. For a node of the root project that is the path from the project
+   * root. For a package's node the engines differ: dbt-core compares with the
+   * node's `original_file_path`, which is relative to the package, dbt Fusion
+   * with the path from the root project; both are returned, the package's
+   * form first. Empty when the file is not under the project.
    */
-  private nodeOriginalFilePath(node: NodeMetaData): string | undefined {
+  private nodeFilePathsForSelection(node: NodeMetaData): string[] {
     if (!node.path) {
-      return undefined;
+      return [];
+    }
+    const posix = (p: string) => p.split(path.sep).join("/");
+    const under = (base: string) => {
+      const relative = path.relative(base, node.path!);
+      return relative &&
+        !relative.startsWith("..") &&
+        !path.isAbsolute(relative)
+        ? relative
+        : undefined;
+    };
+    const fromRoot = under(this.projectRoot.fsPath);
+    if (fromRoot === undefined) {
+      return [];
     }
     const packagesInstallPath = this.getPackageInstallPath();
-    const base =
-      node.package_name !== this.getProjectName() && packagesInstallPath
-        ? path.join(packagesInstallPath, node.package_name)
-        : this.projectRoot.fsPath;
-    const relative = path.relative(base, node.path);
-    if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
-      return undefined;
+    const inPackages = packagesInstallPath && under(packagesInstallPath);
+    if (inPackages) {
+      // Drop the package's own directory: what follows is the package-relative path.
+      const [, ...rest] = inPackages.split(path.sep);
+      return [posix(rest.join(path.sep)), posix(fromRoot)];
     }
-    return relative.split(path.sep).join("/");
+    return [posix(fromRoot)];
   }
 
   /**
