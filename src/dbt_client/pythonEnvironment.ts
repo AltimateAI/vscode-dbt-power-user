@@ -96,8 +96,9 @@ export class PythonEnvironment {
   private ignoredOverridesReported = new Set<string>();
   // Fires once a change of interpreter has been resolved, fallback included.
   private readonly interpreterChanges = new EventEmitter<Uri | undefined>();
-  // Changes are resolved in order, so the last one wins.
+  // Changes are resolved in order, and only the latest is announced.
   private interpreterChangeResolved: Promise<void> = Promise.resolve();
+  private interpreterChangeCount = 0;
 
   constructor(
     @inject("DBTTerminal")
@@ -343,10 +344,17 @@ export class PythonEnvironment {
     await this.initialization;
   }
 
+  /** A change that arrives while an earlier one is still resolving supersedes
+   * it: listeners hear once, after the latest selection is resolved. */
   private interpreterChanged(resource: Uri | undefined): void {
+    const change = ++this.interpreterChangeCount;
     this.interpreterChangeResolved = this.interpreterChangeResolved
       .then(() => this.resolveInterpreter())
-      .then(() => this.interpreterChanges.fire(resource))
+      .then(() => {
+        if (change === this.interpreterChangeCount) {
+          this.interpreterChanges.fire(resource);
+        }
+      })
       .catch((error) =>
         this.dbtTerminal.debug(
           "pythonEnvironment:interpreterChanged",
@@ -375,7 +383,12 @@ export class PythonEnvironment {
       ) {
         return;
       }
-      this.fallback = await this.findFallback(missing);
+      const fallback = await this.findFallback(missing);
+      // The selection changed while probing: the queued change resolves it.
+      if (this.missingSelectedInterpreter() !== missing) {
+        return;
+      }
+      this.fallback = fallback;
       this.reportFallbackOutcome(this.fallback);
       if (this.fallback) {
         void this.showFallbackNotice(this.fallback);
@@ -429,65 +442,82 @@ export class PythonEnvironment {
    * In order: the Python extension's default interpreter, a virtual
    * environment in a dbt project, then at a workspace root, an environment
    * the Python extension knows inside the workspace, and `python3`, then
-   * `python`, on the PATH. Interpreters inside the workspace are run only
-   * when the workspace is trusted.
+   * `python`, on the PATH. An interpreter inside the workspace, wherever it
+   * was named, is run only when the workspace is trusted.
    */
   private async fallbackCandidates(
     missing: string,
   ): Promise<{ command: string; source: FallbackSource }[]> {
-    const candidates: { command: string; source: FallbackSource }[] = [];
-    const add = (command: string, source: FallbackSource) => {
-      if (
+    const folders = (workspace.workspaceFolders ?? []).map(
+      (folder) => folder.uri.fsPath,
+    );
+    const defaultInterpreter = this.defaultInterpreterPath();
+    const candidates: { command: string; source: FallbackSource }[] = [
+      ...(defaultInterpreter
+        ? [
+            {
+              command: defaultInterpreter,
+              source: "defaultInterpreterPath" as const,
+            },
+          ]
+        : []),
+      ...(workspace.isTrusted ? await this.workspaceCandidates(folders) : []),
+      { command: "python3", source: "path" },
+      { command: "python", source: "path" },
+    ];
+    return candidates.filter(
+      ({ command }, index) =>
         command !== missing &&
-        !candidates.some((candidate) => candidate.command === command)
-      ) {
-        candidates.push({ command, source });
-      }
-    };
-    const defaultInterpreter = this.substituteSettingsVariables(
+        candidates.findIndex((other) => other.command === command) === index &&
+        (workspace.isTrusted ||
+          !folders.some((folder) => isInside(command, folder))),
+    );
+  }
+
+  /** `python.defaultInterpreterPath`, when it names an interpreter file that exists. */
+  private defaultInterpreterPath(): string | undefined {
+    const value = this.substituteSettingsVariables(
       workspace
         .getConfiguration("python")
         .get<string>("defaultInterpreterPath", ""),
       this.getEnvironmentVariables(),
     );
-    if (
-      defaultInterpreter &&
-      isInterpreterPath(defaultInterpreter) &&
-      existsSync(defaultInterpreter)
-    ) {
-      add(defaultInterpreter, "defaultInterpreterPath");
-    }
-    if (workspace.isTrusted) {
-      const folders = (workspace.workspaceFolders ?? []).map(
-        (folder) => folder.uri.fsPath,
+    return value && isInterpreterPath(value) && existsSync(value)
+      ? value
+      : undefined;
+  }
+
+  /** Virtual environments in dbt projects, then at the workspace roots, then
+   * the environments the Python extension knows inside the workspace. */
+  private async workspaceCandidates(
+    folders: string[],
+  ): Promise<{ command: string; source: FallbackSource }[]> {
+    const projectFiles = await workspace.findFiles(
+      "**/dbt_project.yml",
+      "**/{dbt_packages,node_modules,.venv,venv,env}/**",
+      20,
+    );
+    const inProjects = projectFiles.flatMap((projectFile) =>
+      venvInterpreters(dirname(projectFile.fsPath)),
+    );
+    const atRoots = folders.flatMap((folder) => venvInterpreters(folder));
+    const known = this.allPythonPaths
+      .map(({ path }) => path)
+      .filter(
+        (path) =>
+          folders.some((folder) => isInside(path, folder)) && existsSync(path),
       );
-      const projectFiles = await workspace.findFiles(
-        "**/dbt_project.yml",
-        "**/{dbt_packages,node_modules,.venv,venv,env}/**",
-        20,
-      );
-      for (const projectFile of projectFiles) {
-        venvInterpreters(dirname(projectFile.fsPath)).forEach((interpreter) =>
-          add(interpreter, "projectVenv"),
-        );
-      }
-      for (const folder of folders) {
-        venvInterpreters(folder).forEach((interpreter) =>
-          add(interpreter, "workspaceVenv"),
-        );
-      }
-      for (const { path } of this.allPythonPaths) {
-        if (
-          folders.some((folder) => isInside(path, folder)) &&
-          existsSync(path)
-        ) {
-          add(path, "known");
-        }
-      }
-    }
-    add("python3", "path");
-    add("python", "path");
-    return candidates;
+    return [
+      ...inProjects.map((command) => ({
+        command,
+        source: "projectVenv" as const,
+      })),
+      ...atRoots.map((command) => ({
+        command,
+        source: "workspaceVenv" as const,
+      })),
+      ...known.map((command) => ({ command, source: "known" as const })),
+    ];
   }
 
   /** The interpreter's own path and dbt version, if it can import dbt. */

@@ -233,6 +233,37 @@ describe("PythonEnvironment falls back from a missing interpreter", () => {
     expect(env.pythonPath).toBe(missing);
   });
 
+  it("does not run a default interpreter inside an untrusted workspace", async () => {
+    const inside = interpreterFile("tools", "python");
+    setConfig({ defaultInterpreterPath: inside });
+    mockWorkspace.isTrusted = false;
+    interpreters({ [inside]: { executable: inside, dbt: "1.9.0" } });
+    const { env } = makeEnvironment(missing);
+
+    await env.initialize();
+
+    expect(probedCommands()).not.toContain(inside);
+    expect(env.pythonPath).toBe(missing);
+  });
+
+  it("uses a default interpreter outside an untrusted workspace", async () => {
+    const elsewhere = mkdtempSync(join(tmpdir(), "user-python-"));
+    try {
+      const outside = join(elsewhere, "python");
+      writeFileSync(outside, "");
+      setConfig({ defaultInterpreterPath: outside });
+      mockWorkspace.isTrusted = false;
+      interpreters({ [outside]: { executable: outside, dbt: "1.9.0" } });
+      const { env } = makeEnvironment(missing);
+
+      await env.initialize();
+
+      expect(env.pythonPath).toBe(outside);
+    } finally {
+      rmSync(elsewhere, { recursive: true, force: true });
+    }
+  });
+
   it("uses an environment the Python extension knows in the workspace", async () => {
     const known = interpreterFile("envs", "dbt", "bin", "python");
     const outside = join(tmpdir(), "elsewhere", "bin", "python");
@@ -414,6 +445,45 @@ describe("a change of interpreter", () => {
     await flush();
 
     expect(seen).toEqual([executable]);
+  });
+
+  it("announces only the latest of changes that arrive while probing", async () => {
+    const { env, select } = makeEnvironment(venvPython(".venv"));
+    await env.initialize();
+    const executable = interpreterFile("usr", "bin", "python3");
+    // Probes answer only when released, so a second change lands mid-probe.
+    const held: (() => void)[] = [];
+    execFileMock.mockImplementation((...args: unknown[]) => {
+      const [command, , , callback] = args as [
+        string,
+        string[],
+        unknown,
+        (error: Error | null, stdout: string, stderr: string) => void,
+      ];
+      held.push(() =>
+        command === "python3"
+          ? callback(null, `${executable}\n1.11.2\n`, "")
+          : callback(new Error(`spawn ${command} ENOENT`), "", ""),
+      );
+      return {};
+    });
+    const seen: string[] = [];
+    env.onPythonEnvironmentChanged(() => seen.push(env.pythonPath));
+    const another = join(root, "another-deleted", "bin", "python");
+
+    select(missing);
+    await flush();
+    select(another);
+    await flush();
+    while (held.length > 0) {
+      held.shift()!();
+      await flush();
+    }
+    await flush();
+
+    expect(seen).toEqual([executable]);
+    expect(showInformationMessage).toHaveBeenCalledTimes(1);
+    expect(String(showInformationMessage.mock.calls[0][0])).toContain(another);
   });
 });
 
