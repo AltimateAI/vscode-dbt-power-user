@@ -277,6 +277,17 @@ describe("offerModelRunOnIdentityFailure", () => {
   });
 });
 
+/** The open documents the offer looks through; only what `promptToRunAsModel` reads. */
+type OpenDocument = {
+  uri: { fsPath: string; toString(): string };
+  save: () => Promise<boolean>;
+  getText?: () => string;
+};
+const setOpenDocuments = (documents: OpenDocument[]) => {
+  (workspace as unknown as { textDocuments: OpenDocument[] }).textDocuments =
+    documents;
+};
+
 describe("promptToRunAsModel", () => {
   const RUN_AS_MODEL = "Save and run as model";
   const PROMPT_NODES = [
@@ -311,7 +322,7 @@ describe("promptToRunAsModel", () => {
     return p;
   }
   afterEach(() => {
-    (workspace as any).textDocuments = [];
+    setOpenDocuments([]);
     (window.showWarningMessage as jest.Mock).mockReset();
     (window.showWarningMessage as jest.Mock).mockReturnValue(
       Promise.resolve() as never,
@@ -321,9 +332,9 @@ describe("promptToRunAsModel", () => {
   it("saves the open document, then runs the saved node", async () => {
     const p = promptingProject();
     const save = jest.fn(async () => true);
-    (workspace as any).textDocuments = [
+    setOpenDocuments([
       { uri: nodeRun.uri, save, getText: () => nodeRun.modelSql },
-    ];
+    ]);
     await p.promptToRunAsModel(nodeRun);
     expect(save).toHaveBeenCalledTimes(1);
     expect(
@@ -338,9 +349,9 @@ describe("promptToRunAsModel", () => {
     // and its history entry get that text (Codex round 3 on 270c5d04).
     const p = promptingProject();
     const save = jest.fn(async () => true);
-    (workspace as any).textDocuments = [
+    setOpenDocuments([
       { uri: nodeRun.uri, save, getText: () => "select 2 as id" },
-    ];
+    ]);
     await p.promptToRunAsModel({ ...nodeRun, modelSql: "select 1 as id" });
     expect(
       p.executeSqlWithNodeContextWithLimitOnQueryPanel,
@@ -349,7 +360,7 @@ describe("promptToRunAsModel", () => {
 
   it("stops with a message when the document was closed before the choice", async () => {
     const p = promptingProject();
-    (workspace as any).textDocuments = [];
+    setOpenDocuments([]);
     await p.promptToRunAsModel(nodeRun);
     expect(
       p.executeSqlWithNodeContextWithLimitOnQueryPanel,
@@ -361,9 +372,7 @@ describe("promptToRunAsModel", () => {
 
   it("stops with a message when the save fails", async () => {
     const p = promptingProject();
-    (workspace as any).textDocuments = [
-      { uri: nodeRun.uri, save: jest.fn(async () => false) },
-    ];
+    setOpenDocuments([{ uri: nodeRun.uri, save: jest.fn(async () => false) }]);
     await p.promptToRunAsModel(nodeRun);
     expect(
       p.executeSqlWithNodeContextWithLimitOnQueryPanel,
@@ -378,9 +387,7 @@ describe("promptToRunAsModel", () => {
     (window.showWarningMessage as jest.Mock).mockReturnValue(
       Promise.resolve(undefined) as never,
     );
-    (workspace as any).textDocuments = [
-      { uri: nodeRun.uri, save: jest.fn(async () => true) },
-    ];
+    setOpenDocuments([{ uri: nodeRun.uri, save: jest.fn(async () => true) }]);
     await p.promptToRunAsModel(nodeRun);
     expect(
       p.executeSqlWithNodeContextWithLimitOnQueryPanel,
@@ -477,6 +484,7 @@ describe("executeSQLWithLimitOnQueryPanel routes by preview mode", () => {
       Promise.resolve(),
     );
     p.offerModelRunOnIdentityFailure = jest.fn(() => "wrapped");
+    p.findNodeForFile = jest.fn(p.findNodeForFile.bind(p));
     const uri = filePath ? { fsPath: filePath } : undefined;
     await p.executeSQLWithLimitOnQueryPanel(
       "select 1",
@@ -526,6 +534,11 @@ describe("executeSQLWithLimitOnQueryPanel routes by preview mode", () => {
     expect(
       p.executeSqlWithNodeContextWithLimitOnQueryPanel,
     ).not.toHaveBeenCalled();
+  });
+
+  it("inline never looks the node up: a selection preview pays no manifest scan", async () => {
+    const { p } = await routed("inline", "/w/jaffle_shop/models/orders.sql");
+    expect(p.findNodeForFile).not.toHaveBeenCalled();
   });
 
   it("inline runs the editor text with no offer, node or not", async () => {
