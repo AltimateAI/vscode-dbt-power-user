@@ -57,8 +57,6 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 2
-      - name: Test the older-Cursor verdict
-        run: node --test .github/cursor-install/loop-guard.test.mjs
       - id: plan
         shell: bash
         env:
@@ -257,6 +255,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Test the scripts' pure parts
+        working-directory: .github/cursor-install
+        run: node --test
       - run: node .github/cursor-install/trust-walk.mjs --package package.json
 
   mirror-lag:

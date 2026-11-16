@@ -54,8 +54,13 @@ async function getExtensions(ids) {
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`gallery query failed: HTTP ${res.status}`);
-  const json = await res.json();
-  return (json.results?.[0]?.extensions || []).map((e) => ({
+  const text = await res.text();
+  const json = JSON.parse(text);
+  // An outage answer ({"code":"unavailable",…}) has no results: never let it end the walk as a pass.
+  if (!Array.isArray(json.results)) {
+    throw new Error(`gallery returned no results array: ${text.slice(0, 200)}`);
+  }
+  return (json.results[0]?.extensions || []).map((e) => ({
     id: `${e.publisher.publisherName}.${e.extensionName}`.toLowerCase(),
     next: [
       ...property(e.versions[0], "ExtensionDependencies"),
