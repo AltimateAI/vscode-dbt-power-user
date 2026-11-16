@@ -26,6 +26,7 @@ import { loopGuardVerdict } from "./loop-guard.mjs";
 import {
   annotate,
   cursorGalleryVersions,
+  activationState,
   dirSize,
   escapeRegExp,
   log,
@@ -396,33 +397,22 @@ async function waitForInstall(win, clickedAt) {
   );
 }
 
+// Waits for Power User's own activation-success line, up to 120 s; returns its activation time (ms).
 async function waitForActivation() {
-  const id = escapeRegExp(PU_ID);
-  const ok = new RegExp(
-    `(activated success|_doActivateExtension)[^\\n]*${id}|${id}[^\\n]*activated`,
-    "i",
-  );
-  const bad = new RegExp(`Activating extension '?${id}'? failed[^\\n]*`, "i");
   const result = await until(
-    () => {
-      const { exthost } = logs();
-      if (bad.test(exthost)) return { failed: exthost.match(bad)[0] };
-      return ok.test(exthost) ? { ok: true } : undefined;
-    },
+    () => activationState(logs().exthost, PU_ID),
     120000,
     1000,
   );
-  if (!result)
+  if (!result) {
     throw installError(
       "activate",
-      "Power User installed but did not activate within 120 s",
+      "Power User installed but didn't log activation success within 120 s",
     );
+  }
   if (result.failed)
     throw installError("activate", result.failed.slice(0, 300));
-  // `_doActivateExtension` is logged when activation starts: give activate() time to fail.
-  await new Promise((r) => setTimeout(r, 5000));
-  const late = logs().exthost.match(bad);
-  if (late) throw installError("activate", late[0].slice(0, 300));
+  return result.ms;
 }
 
 async function probeSearch(win, text) {
@@ -541,6 +531,7 @@ const watchdog = setTimeout(
 );
 watchdog.unref();
 let outcome = { ok: false };
+let activationMs;
 try {
   const launchArgs = [
     "--user-data-dir",
@@ -616,12 +607,12 @@ try {
     note(`installed after ${installSeconds.toFixed(1)} s`);
     await shot(win, "03-installed");
     if (extensionId === PU_ID) {
-      await waitForActivation();
-      note("Power User activated");
+      activationMs = await waitForActivation();
+      note(`Power User activated (${activationMs} ms)`);
     }
     await win.waitForTimeout(3000);
     await shot(win, "04-activated");
-    outcome = { ok: true, installSeconds };
+    outcome = { ok: true, installSeconds, activationMs };
   }
 } catch (error) {
   const kind = error.kind || "HARNESS";
@@ -687,7 +678,11 @@ summary(
     "",
     `Cursor ${cursor.version} (VS Code ${cursor.vscodeVersion}).`,
     outcome.ok && outcome.installSeconds !== undefined
-      ? `Install took **${outcome.installSeconds.toFixed(1)} s** from the click; Power User activated.`
+      ? `Install took **${outcome.installSeconds.toFixed(1)} s** from the click.${
+          outcome.activationMs !== undefined
+            ? ` Power User activated (activate() took ${outcome.activationMs} ms).`
+            : ""
+        }`
       : "",
     outcome.probe ? `Search probe: ${JSON.stringify(outcome.probe)}` : "",
     outcome.expectedLoop

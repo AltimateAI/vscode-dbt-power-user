@@ -142,6 +142,24 @@ export function escapeRegExp(text) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+// What an extension-host log says about one extension's activation. Cursor (2.6.20 and 3.x alike) logs
+// "Extension activated success: <id> — <n>ms (…)" once activate() has resolved; a failed activate()
+// logs "Activating extension '<id>' failed". The start line (_doActivateExtension) never counts.
+export function activationState(log, extensionId) {
+  const id = escapeRegExp(extensionId);
+  const failed = log.match(
+    new RegExp(`Activating extension '?${id}'? failed[^\\n]*`, "i"),
+  );
+  if (failed) return { failed: failed[0] };
+  const ok = log.match(
+    new RegExp(
+      `Extension activated success: ${id}(?![\\w.-])[^\\n]*?(\\d+)ms`,
+      "i",
+    ),
+  );
+  return ok ? { ok: true, ms: Number(ok[1]) } : undefined;
+}
+
 export function compareVersions(a, b) {
   const pa = String(a)
     .split(/[.-]/)
