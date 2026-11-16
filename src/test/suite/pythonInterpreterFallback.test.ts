@@ -280,6 +280,17 @@ describe("PythonEnvironment falls back from a missing interpreter", () => {
     expect(probedCommands()).not.toContain(outside);
   });
 
+  it("treats a folder whose name starts with .. as inside the workspace", async () => {
+    const known = interpreterFile("..tools", "bin", "python");
+    interpreters({ [known]: { executable: known, dbt: "1.9.0" } });
+    const { env } = makeEnvironment(missing);
+    env.allPythonPaths = [{ path: known, pathType: "venv" }];
+
+    await env.initialize();
+
+    expect(env.pythonPath).toBe(known);
+  });
+
   it("uses python3 on the PATH, by the interpreter it reports", async () => {
     const executable = interpreterFile("usr", "bin", "python3.11");
     interpreters({ python3: { executable, dbt: "1.11.2" } });
@@ -383,6 +394,44 @@ describe("the fallback notice", () => {
       await noticeAnswered("Keep using it");
 
     expect(updateActiveEnvironmentPath).toHaveBeenCalledWith(executable);
+  });
+
+  it("logs a failed Keep using it instead of rejecting", async () => {
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => unhandled.push(reason);
+    process.on("unhandledRejection", onUnhandled);
+    try {
+      const executable = interpreterFile("usr", "bin", "python3");
+      interpreters({ python3: { executable, dbt: "1.11.2" } });
+      (extensions.getExtension as jest.Mock).mockReturnValue({
+        isActive: true,
+        exports: {
+          environments: {
+            updateActiveEnvironmentPath: jest.fn(async () => {
+              throw new Error("could not set the interpreter");
+            }),
+          },
+        },
+      });
+      showInformationMessage.mockReturnValueOnce(
+        Promise.resolve("Keep using it"),
+      );
+      const { env } = makeEnvironment(missing);
+
+      await env.initialize();
+      await flush();
+      await flush();
+
+      expect(unhandled).toEqual([]);
+      expect(
+        terminal.debug.mock.calls.some(
+          (call) => call[0] === "pythonEnvironment:showFallbackNotice",
+        ),
+      ).toBe(true);
+      expect(env.pythonPath).toBe(executable);
+    } finally {
+      process.off("unhandledRejection", onUnhandled);
+    }
   });
 
   it("opens the Python extension's picker on Select another", async () => {

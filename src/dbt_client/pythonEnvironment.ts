@@ -63,7 +63,8 @@ function venvInterpreters(directory: string): string[] {
 
 function isInside(path: string, directory: string): boolean {
   const rest = relative(directory, path);
-  return rest !== "" && !rest.startsWith("..") && !isAbsolute(rest);
+  // A leading `..` segment, not a name that starts with `..` (`..tools`).
+  return rest !== "" && !/^\.\.(?:[\\/]|$)/.test(rest) && !isAbsolute(rest);
 }
 
 type EnvFrom = "process" | "integrated" | "dotenv";
@@ -391,7 +392,14 @@ export class PythonEnvironment {
       this.fallback = fallback;
       this.reportFallbackOutcome(this.fallback);
       if (this.fallback) {
-        void this.showFallbackNotice(this.fallback);
+        // Not awaited: the notice waits on the user.
+        this.showFallbackNotice(this.fallback).catch((error) =>
+          this.dbtTerminal.debug(
+            "pythonEnvironment:showFallbackNotice",
+            "Could not show the fallback notice or apply its answer",
+            error,
+          ),
+        );
       }
     } catch (error) {
       this.fallback = undefined;
