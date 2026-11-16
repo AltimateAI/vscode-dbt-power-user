@@ -3,6 +3,7 @@ import { existsSync } from "fs";
 import { inject } from "inversify";
 import { isAbsolute } from "path";
 import {
+  commands,
   Disposable,
   Event,
   extensions,
@@ -12,6 +13,14 @@ import {
   workspace,
   WorkspaceFolder,
 } from "vscode";
+
+export enum PythonInterpreterPromptAnswer {
+  SELECT = "Select Python interpreter",
+  DETECT = "Detect from terminal",
+  OPEN_SETTING = "Open setting",
+  INSTALL = "Install Python extension",
+  RELOAD = "Reload window",
+}
 
 type EnvFrom = "process" | "integrated" | "dotenv";
 interface EnvVarsResult {
@@ -26,10 +35,15 @@ interface PythonExecutionDetails {
 
 export class PythonEnvironment {
   private executionDetails?: PythonExecutionDetails;
+  // The activation in progress, shared by everyone who waits for it.
+  private initialization?: Promise<void>;
   private disposables: Disposable[] = [];
   public allPythonPaths: { path: string; pathType: string }[] = [];
   public isPython3: boolean = true;
   private _pythonVersion?: string;
+  // Interpreters already reported missing this session: every dbt project in the
+  // workspace fails on the same one, and the user should see one prompt.
+  private reportedMissingInterpreters = new Set<string>();
 
   constructor(
     @inject("DBTTerminal")
@@ -94,6 +108,47 @@ export class PythonEnvironment {
     return (isAbsolute(value) || /[\\/]/.test(value)) && existsSync(value);
   }
 
+  /**
+   * Tells the user the interpreter doesn't exist (a deleted or moved virtual
+   * environment, or a command that isn't on the PATH) and offers a way to pick
+   * another, once per interpreter. Picking one fires `onPythonEnvironmentChanged`,
+   * which re-initializes the projects.
+   */
+  async showInterpreterNotFound(interpreterPath: string): Promise<void> {
+    if (this.reportedMissingInterpreters.has(interpreterPath)) {
+      return;
+    }
+    this.reportedMissingInterpreters.add(interpreterPath);
+    // An override wins over the Python extension's selection, so only editing
+    // the setting helps.
+    if (
+      this.executionDetails !== undefined &&
+      this.getResolvedConfigValue("dbtPythonPathOverride") === interpreterPath
+    ) {
+      const answer = await window.showErrorMessage(
+        `The Python interpreter ${interpreterPath} set in dbt.dbtPythonPathOverride was not found. Change the setting to an interpreter that exists.`,
+        PythonInterpreterPromptAnswer.OPEN_SETTING,
+      );
+      if (answer === PythonInterpreterPromptAnswer.OPEN_SETTING) {
+        commands.executeCommand(
+          "workbench.action.openSettings",
+          "dbt.dbtPythonPathOverride",
+        );
+      }
+      return;
+    }
+    const answer = await window.showErrorMessage(
+      `The selected Python interpreter ${interpreterPath} was not found. It may have been moved or deleted. Select another interpreter to use dbt.`,
+      PythonInterpreterPromptAnswer.SELECT,
+      PythonInterpreterPromptAnswer.DETECT,
+    );
+    if (answer === PythonInterpreterPromptAnswer.SELECT) {
+      commands.executeCommand("python.setInterpreter");
+    } else if (answer === PythonInterpreterPromptAnswer.DETECT) {
+      commands.executeCommand("dbtPowerUser.detectPythonFromTerminal");
+    }
+  }
+
   public get pythonVersion(): string | undefined {
     return this._pythonVersion;
   }
@@ -139,12 +194,26 @@ export class PythonEnvironment {
     return this.executionDetails!.onDidChangeExecutionDetails;
   }
 
+  /**
+   * Activates the Python extension and reads the interpreter from it, once.
+   * Callers that arrive while that is running (the dbt installation check and
+   * the Get Started wizard both start during activation) wait for the same
+   * activation instead of starting another one.
+   */
   async initialize(): Promise<void> {
     if (this.executionDetails !== undefined) {
       return;
     }
-
-    this.executionDetails = await this.activatePythonExtension();
+    if (this.initialization === undefined) {
+      this.initialization = this.activatePythonExtension()
+        .then((details) => {
+          this.executionDetails = details;
+        })
+        .finally(() => {
+          this.initialization = undefined;
+        });
+    }
+    await this.initialization;
   }
 
   getResolvedConfigValue(key: string, workspaceFolder?: WorkspaceFolder) {

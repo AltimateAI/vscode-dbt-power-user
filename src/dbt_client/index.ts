@@ -1,14 +1,13 @@
 import { DBTDetection } from "@altimateai/dbt-integration";
 import { existsSync } from "fs";
 import { inject } from "inversify";
+import { isAbsolute } from "path";
 import { commands, Disposable, EventEmitter, window, workspace } from "vscode";
 import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
-import { PythonEnvironment } from "./pythonEnvironment";
-
-enum PythonInterpreterPromptAnswer {
-  SELECT = "Select Python interpreter",
-  DETECT = "Detect from terminal",
-}
+import {
+  PythonEnvironment,
+  PythonInterpreterPromptAnswer,
+} from "./pythonEnvironment";
 
 export class DBTClient implements Disposable {
   private _onDBTInstallationVerificationEvent =
@@ -83,6 +82,17 @@ export class DBTClient implements Disposable {
       if (!this.shownError) {
         // We don't want to flood the user with errors
         this.shownError = true;
+        // A path that no longer exists, typically a deleted or moved virtual
+        // environment. A bare command such as `python` is left to the general
+        // message: it may be on the PATH.
+        const pythonPath = this.pythonEnvironment.pythonPath;
+        if (
+          pythonPath &&
+          (isAbsolute(pythonPath) || /[\\/]/.test(pythonPath))
+        ) {
+          await this.pythonEnvironment.showInterpreterNotFound(pythonPath);
+          return false;
+        }
         const answer = await window.showErrorMessage(
           "No Python interpreter is selected or Python is not installed",
           PythonInterpreterPromptAnswer.SELECT,

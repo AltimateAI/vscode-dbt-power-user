@@ -31,9 +31,21 @@ import {
   RebuildManifestCombinedStatusChange,
 } from "./event/manifestCacheChangedEvent";
 
-enum PromptAnswer {
-  YES = "Yes",
-  IGNORE = "Ignore",
+/**
+ * Get Started progress for this workspace, kept so the page reopens where
+ * the user left it. Whether it opens on first run at all is the global
+ * `showSetupWalkthrough`.
+ */
+export const ONBOARDING_STATE_KEY = "onboarding.state";
+
+export interface OnboardingState {
+  screen?: string;
+  projectRoot?: string;
+  validation?: { models: number; seeds: number; tests: number } | null;
+  workspaceSkipped?: boolean;
+  /** Reopen the page on the next activation, after a window reload. */
+  resume?: boolean;
+  finished?: boolean;
 }
 
 export interface ProjectRegisteredUnregisteredEvent {
@@ -130,25 +142,23 @@ export class DBTProjectContainer implements Disposable {
     this._onDBTProjectsInitializationEvent.fire({});
   }
 
-  async showWalkthrough() {
-    const answer = await window.showInformationMessage(
-      `Thanks for installing Power User for dbt. Do you need help setting up the extension?`,
-      PromptAnswer.YES,
-      PromptAnswer.IGNORE,
-    );
-    commands.executeCommand(
-      "setContext",
-      "dbtPowerUser.showSetupWalkthrough",
-      false,
-    );
-    if (answer === PromptAnswer.YES) {
-      commands.executeCommand("dbtPowerUser.openOnboarding");
-    }
-    this.setToGlobalState("showSetupWalkthrough", false);
-  }
-
   async initializeWalkthrough() {
-    // show setup walkthrough if needed
+    const onboarding = this.getFromWorkspaceState(ONBOARDING_STATE_KEY) as
+      | OnboardingState
+      | undefined;
+    // Changing the integration type reloads the window mid-flow.
+    if (onboarding?.resume) {
+      this.setToWorkspaceState(ONBOARDING_STATE_KEY, {
+        ...onboarding,
+        resume: false,
+      });
+      commands.executeCommand(
+        "dbtPowerUser.openOnboarding",
+        undefined,
+        "resume",
+      );
+      return;
+    }
     const isWalkthroughDisabledFromSettings = workspace
       .getConfiguration("dbt")
       .get("hideWalkthrough", false);
@@ -156,16 +166,36 @@ export class DBTProjectContainer implements Disposable {
       "showSetupWalkthrough",
     );
     if (
-      !isWalkthroughDisabledFromSettings &&
-      (showSetupWalkthrough === undefined || showSetupWalkthrough === true)
+      isWalkthroughDisabledFromSettings ||
+      showSetupWalkthrough === false ||
+      onboarding?.finished
     ) {
-      this.dbtTerminal.debug(
-        "dbtProjectContainer:setupWalkthroughDisplayed",
-        "showing SetupWalkthrough: value of showSetupWalkthrough is" +
-          showSetupWalkthrough,
-      );
-      this.showWalkthrough();
+      return;
     }
+    // First run opens Get Started once a workspace with a dbt project is open.
+    const projectFiles = await workspace.findFiles(
+      "**/dbt_project.yml",
+      "**/{node_modules,dbt_packages,dbt_modules}/**",
+      1,
+    );
+    if (projectFiles.length === 0) {
+      return;
+    }
+    this.dbtTerminal.debug(
+      "dbtProjectContainer:setupWalkthroughDisplayed",
+      "opening Get Started on first run",
+    );
+    commands.executeCommand(
+      "setContext",
+      "dbtPowerUser.showSetupWalkthrough",
+      false,
+    );
+    this.setToGlobalState("showSetupWalkthrough", false);
+    commands.executeCommand(
+      "dbtPowerUser.openOnboarding",
+      undefined,
+      "firstRun",
+    );
   }
 
   get extensionUri() {

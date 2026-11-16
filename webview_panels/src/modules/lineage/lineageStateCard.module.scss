@@ -1,0 +1,86 @@
+// The card the lineage panel shows when no graph can be drawn. Colours come
+// from the VS Code theme (--vscode-*), so they follow light, dark and
+// high-contrast themes.
+
+// The toolbar floats over the top-right of the canvas: 16px from the top, about
+// 40px tall. Under this width the centred card (640px at most) reaches it.
+$toolbar-clearance: 64px;
+$card-meets-toolbar: 920px;
+
+// Above the graph's own controls, such as the Legend; the toolbar stays above it
+// (.no-graph-tools in lineage.module.scss).
+.canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  padding: 16px;
+  overflow: auto;
+  background: var(--vscode-panel-background, var(--vscode-editor-background));
+  color: var(--vscode-foreground);
+}
+
+@media (max-width: $card-meets-toolbar) {
+  .canvas {
+    padding-top: $toolbar-clearance;
+  }
+}
+
+.card {
+  // margin: auto centres the card, and unlike align-items: center it never
+  // pushes the top out of reach when the card is taller than the canvas.
+  margin: auto;
+  width: 100%;
+  min-width: 0;
+  max-width: 640px;
+  padding: 12px 16px;
+  border: 1px solid
+    var(--vscode-widget-border, var(--vscode-panel-border, transparent));
+  border-left-width: 3px;
+  border-radius: 4px;
+  background: var(--vscode-editorWidget-background);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.title {
+  margin: 0;
+  font-size: calc(var(--vscode-font-size, 13px) + 2px);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--vscode-foreground);
+  overflow-wrap: anywhere;
+}
+
+.detail {
+  margin: 0;
+  line-height: 1.45;
+  color: var(--vscode-descriptionForeground);
+  overflow-wrap: anywhere;
+}
+
+.icon {
+  flex: none;
+  margin-top: 2px;
+}
+
+.error {
+  border-left-color: var(--vscode-editorError-foreground);
+  .icon {
+    color: var(--vscode-editorError-foreground);
+  }
+}
+
+.info {
+  border-left-color: var(--vscode-editorInfo-foreground);
+  .icon {
+    color: var(--vscode-editorInfo-foreground);
+  }
+}
