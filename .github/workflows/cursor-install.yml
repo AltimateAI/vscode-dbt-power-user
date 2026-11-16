@@ -6,6 +6,8 @@ name: Cursor install
 #
 # - cli: `cursor --install-extension` on Linux, macOS and Windows, for the latest Cursor and an older 2.x.
 # - ui: clicks Install in Cursor's Extensions view (Playwright + Electron) and waits for activation.
+# - trust-walk: replays the dependency walk Cursor before 3.11 runs before installing, for this
+#   checkout's package.json; fails when it would loop.
 # - mirror-lag: what Cursor's gallery serves per target, against Open VSX.
 #
 # On pull requests that touch packaging, it installs the VSIX built from the PR (Linux only, to keep
@@ -237,6 +239,23 @@ jobs:
             ${{ runner.temp }}/ui-run/user-data/logs
           retention-days: 7
           if-no-files-found: ignore
+
+  trust-walk:
+    # Replays older Cursor's pre-install dependency walk for this checkout's package.json (no Cursor).
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/cursor-install
+            package.json
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node .github/cursor-install/trust-walk.mjs --package package.json
 
   mirror-lag:
     runs-on: ubuntu-latest
