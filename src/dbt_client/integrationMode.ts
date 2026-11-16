@@ -49,14 +49,22 @@ const AUTO_SWITCHABLE = ["core", "corecommand"];
 export interface DbtIntegrationFacts {
   /** A dbt 2.x binary is on the project's path. */
   dbtV2Found: boolean;
-  /** dbt-core imports in the selected Python interpreter. */
-  pythonDbtCore: boolean;
+  /**
+   * dbt-core imports in the selected Python interpreter; "unknown" when the
+   * probe did not answer in time.
+   */
+  pythonDbtCore: boolean | "unknown";
   /** A dbt-loom config is present, which only dbt Core mode reads. */
   dbtLoom: boolean;
 }
 
 /** Why a dbt 2.x binary did not switch the window to dbt Fusion. */
-export type SwitchHeldReason = "dbtCore" | "dbtLoom";
+/**
+ * Why a found dbt 2.x binary did not switch the window: dbt-core imports in
+ * the interpreter, a dbt-loom config is present, or the dbt-core probe did not
+ * answer in time (unknown counts as "may have dbt-core", so the window is held).
+ */
+export type SwitchHeldReason = "dbtCore" | "dbtLoom" | "dbtCoreUnknown";
 
 /**
  * The mode to run in: an explicit setting always; otherwise dbt Fusion when
@@ -75,12 +83,16 @@ export function decideDbtIntegrationMode(
   ) {
     return { mode: configured.value, autoSwitched: false };
   }
-  if (facts.pythonDbtCore || facts.dbtLoom) {
-    return {
-      mode: configured.value,
-      autoSwitched: false,
-      heldBack: facts.pythonDbtCore ? "dbtCore" : "dbtLoom",
-    };
+  const heldBack: SwitchHeldReason | undefined =
+    facts.pythonDbtCore === true
+      ? "dbtCore"
+      : facts.dbtLoom
+        ? "dbtLoom"
+        : facts.pythonDbtCore === "unknown"
+          ? "dbtCoreUnknown"
+          : undefined;
+  if (heldBack) {
+    return { mode: configured.value, autoSwitched: false, heldBack };
   }
   return { mode: "fusion", autoSwitched: true };
 }
