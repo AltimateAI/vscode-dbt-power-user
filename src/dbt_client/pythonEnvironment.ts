@@ -337,6 +337,9 @@ export class PythonEnvironment {
             ),
           );
           await this.resolveInterpreter();
+          // A change that arrived while resolving is part of the start: wait
+          // for it too, so callers never read an unresolved selection.
+          await this.interpreterChangeResolved;
         })
         .finally(() => {
           this.initialization = undefined;

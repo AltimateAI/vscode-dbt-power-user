@@ -97,6 +97,33 @@ function probedCommands(): string[] {
   return execFileMock.mock.calls.map((call) => String(call[0]));
 }
 
+/** Probes that answer only when `release` runs: `python3` imports dbt as
+ * `executable`, anything else fails to spawn. A change can land mid-probe. */
+function holdProbes(executable: string) {
+  const held: (() => void)[] = [];
+  execFileMock.mockImplementation((...args: unknown[]) => {
+    const [command, , , callback] = args as [
+      string,
+      string[],
+      unknown,
+      (error: Error | null, stdout: string, stderr: string) => void,
+    ];
+    held.push(() =>
+      command === "python3"
+        ? callback(null, `${executable}\n1.11.2\n`, "")
+        : callback(new Error(`spawn ${command} ENOENT`), "", ""),
+    );
+    return {};
+  });
+  return async function release() {
+    while (held.length > 0) {
+      held.shift()!();
+      await flush();
+    }
+    await flush();
+  };
+}
+
 function setConfig(values: Record<string, unknown>) {
   (workspace.getConfiguration as jest.Mock).mockImplementation(() => ({
     get: jest.fn((key: string, fallback?: unknown) =>
@@ -500,22 +527,7 @@ describe("a change of interpreter", () => {
     const { env, select } = makeEnvironment(venvPython(".venv"));
     await env.initialize();
     const executable = interpreterFile("usr", "bin", "python3");
-    // Probes answer only when released, so a second change lands mid-probe.
-    const held: (() => void)[] = [];
-    execFileMock.mockImplementation((...args: unknown[]) => {
-      const [command, , , callback] = args as [
-        string,
-        string[],
-        unknown,
-        (error: Error | null, stdout: string, stderr: string) => void,
-      ];
-      held.push(() =>
-        command === "python3"
-          ? callback(null, `${executable}\n1.11.2\n`, "")
-          : callback(new Error(`spawn ${command} ENOENT`), "", ""),
-      );
-      return {};
-    });
+    const release = holdProbes(executable);
     const seen: string[] = [];
     env.onPythonEnvironmentChanged(() => seen.push(env.pythonPath));
     const another = join(root, "another-deleted", "bin", "python");
@@ -524,15 +536,27 @@ describe("a change of interpreter", () => {
     await flush();
     select(another);
     await flush();
-    while (held.length > 0) {
-      held.shift()!();
-      await flush();
-    }
-    await flush();
+    await release();
 
     expect(seen).toEqual([executable]);
     expect(showInformationMessage).toHaveBeenCalledTimes(1);
     expect(String(showInformationMessage.mock.calls[0][0])).toContain(another);
+  });
+
+  it("is waited for by initialize when it arrives during the startup probe", async () => {
+    const executable = interpreterFile("usr", "bin", "python3");
+    const release = holdProbes(executable);
+    const { env, select } = makeEnvironment(missing);
+    // What `pythonPath` returns at the moment `initialize()` settles.
+    const atInitialized = env.initialize().then(() => env.pythonPath);
+    await flush();
+
+    select(join(root, "another-deleted", "bin", "python"));
+    await flush();
+    await release();
+
+    expect(await atInitialized).toBe(executable);
+    expect(showInformationMessage).toHaveBeenCalledTimes(1);
   });
 });
 
