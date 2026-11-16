@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Jinja Markdown",
+  "scopeName": "text.html.markdown.jinja",
+  "comment": "Markdown with Jinja. The Jinja rules come from source.yaml.jinja, which holds only Jinja patterns.",
+  "patterns": [
+    {
+      "include": "text.html.markdown"
+    }
+  ],
+  "injections": {
+    "L:text.html.markdown.jinja - comment.block.jinja - meta.statement.jinja - meta.expression.jinja": {
+      "patterns": [
+        {
+          "include": "source.yaml.jinja"
+        }
+      ]
+    }
+  }
+}
