@@ -90,7 +90,10 @@ export class RunModel {
     if (!editor.selection.isEmpty) {
       return "inline";
     }
-    if (editor.document.uri.scheme === "untitled") {
+    // Only a file on disk can be run as its node: an untitled buffer has no
+    // node, and a read-only `git:` document (the HEAD side of a diff) shows
+    // text that is not what is on disk.
+    if (editor.document.uri.scheme !== "file") {
       return "inline";
     }
     // Saved and unedited: the buffer is byte-identical to disk, so running the

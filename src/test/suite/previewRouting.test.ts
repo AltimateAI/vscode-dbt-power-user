@@ -58,7 +58,10 @@ function createProject(opts: {
   (project as any)._manifestCacheEvent = {
     nodeMetaMap: { nodes: () => opts.nodes },
   };
-  project.promptToRunAsModel = jest.fn();
+  (project as any).projectRoot = { fsPath: "/w/jaffle_shop" };
+  (project as any).getProjectName = () => "jaffle_shop";
+  (project as any).getPackageInstallPath = () => "/w/jaffle_shop/dbt_packages";
+  project.promptToRunAsModel = jest.fn(() => Promise.resolve());
   return project;
 }
 
@@ -116,7 +119,9 @@ describe("nodeRunSelector", () => {
   it("names a model by its package, resource type and name", () => {
     expect(
       project().nodeRunSelector(`${ROOT}models/staging/stg_orders.sql`),
-    ).toBe("package:jaffle_shop,resource_type:model,stg_orders");
+    ).toBe(
+      "package:jaffle_shop,resource_type:model,path:models/staging/stg_orders.sql,stg_orders",
+    );
   });
 
   it("names a versioned model by its version, not by its file name", () => {
@@ -124,7 +129,7 @@ describe("nodeRunSelector", () => {
     // matches the file name; the node is `widgets` version 2, and the id dbt
     // composes for it is what selects that one version on both engines.
     expect(project().nodeRunSelector(`${ROOT}models/widgets_v2.sql`)).toBe(
-      "package:jaffle_shop,resource_type:model,widgets.v2",
+      "package:jaffle_shop,resource_type:model,path:models/widgets_v2.sql,widgets.v2",
     );
   });
 
@@ -132,12 +137,12 @@ describe("nodeRunSelector", () => {
     [
       "the root project's",
       `${ROOT}models/orders.sql`,
-      "package:jaffle_shop,resource_type:model,orders",
+      "package:jaffle_shop,resource_type:model,path:models/orders.sql,orders",
     ],
     [
       "a package's",
       `${ROOT}dbt_packages/pkg/models/orders.sql`,
-      "package:pkg,resource_type:model,orders",
+      "package:pkg,resource_type:model,path:models/orders.sql,orders",
     ],
   ])(
     "selects %s model when two of that name exist, by the file previewed",
@@ -147,6 +152,29 @@ describe("nodeRunSelector", () => {
       expect(project().nodeRunSelector(filePath)).toBe(expected);
     },
   );
+
+  it("qualifies the node by its own path, so a folder of the same name is not selected", () => {
+    // dbt-core matches a bare name as a prefix of the fqn without the package:
+    // `orders` also selects models under `models/orders/`. The path term keeps
+    // the intersection to the one file.
+    const p = createProject({
+      canInjectNodeContextInSqlSnippetExecution: true,
+      nodes: [
+        ...NODES,
+        {
+          unique_id: "model.jaffle_shop.by_status",
+          path: `${ROOT}models/orders/by_status.sql`,
+          package_name: "jaffle_shop",
+        },
+      ],
+    });
+    expect(p.nodeRunSelector(`${ROOT}models/orders.sql`)).toBe(
+      "package:jaffle_shop,resource_type:model,path:models/orders.sql,orders",
+    );
+    expect(p.nodeRunSelector(`${ROOT}models/orders/by_status.sql`)).toBe(
+      "package:jaffle_shop,resource_type:model,path:models/orders/by_status.sql,by_status",
+    );
+  });
 
   it("refuses an analysis, which dbt show will not run as a model", () => {
     expect(project().nodeRunSelector(`${ROOT}analysis/orders.sql`)).toBe(
@@ -336,5 +364,70 @@ describe("promptToRunAsModel", () => {
     expect(
       p.executeSqlWithNodeContextWithLimitOnQueryPanel,
     ).not.toHaveBeenCalled();
+  });
+});
+
+describe("executeSqlWithNodeContextWithLimitOnQueryPanel", () => {
+  it("hands the panel the model's SQL, not a comment, so history replays the model", async () => {
+    const p = createProject({
+      canInjectNodeContextInSqlSnippetExecution: true,
+      nodes: [],
+    }) as any;
+    const fired: any[] = [];
+    p.eventEmitterService = { fire: (e: unknown) => fired.push(e) };
+    p.terminal = { info: jest.fn(), debug: jest.fn(), error: jest.fn() };
+    p.getAdapterType = () => "duckdb";
+    p.dbtProjectIntegration.executeSQLWithLimit = jest.fn(() =>
+      Promise.resolve("execution"),
+    );
+    await p.executeSqlWithNodeContextWithLimitOnQueryPanel({
+      modelName: "orders",
+      limit: 500,
+      nodeSelector:
+        "package:jaffle_shop,resource_type:model,path:models/orders.sql,orders",
+      modelSql: "select * from {{ ref('stg_orders') }}",
+    });
+    expect(fired).toHaveLength(1);
+    expect(fired[0].command).toBe("executeQuery");
+    expect(fired[0].payload.query).toBe(
+      "select * from {{ ref('stg_orders') }}",
+    );
+    expect(p.dbtProjectIntegration.executeSQLWithLimit).toHaveBeenCalledWith(
+      "select * from {{ ref('stg_orders') }}",
+      "orders",
+      500,
+      {
+        useNodeContext: true,
+        nodeSelector:
+          "package:jaffle_shop,resource_type:model,path:models/orders.sql,orders",
+      },
+    );
+  });
+});
+
+describe("offerModelRunOnIdentityFailure when the offer itself fails", () => {
+  it("reports a failed save or prompt instead of dropping it", async () => {
+    const p = createProject({
+      canInjectNodeContextInSqlSnippetExecution: true,
+      nodes: [],
+    });
+    p.promptToRunAsModel.mockImplementation(() =>
+      Promise.reject(new Error("disk full")),
+    );
+    const wrapped = await p.offerModelRunOnIdentityFailure(
+      executionThatThrows(new InlinePreviewError("inline failed", "select 1")),
+      {
+        modelName: "orders",
+        limit: 500,
+        nodeSelector:
+          "package:jaffle_shop,resource_type:model,path:models/orders.sql,orders",
+        modelSql: "select 1",
+      },
+    );
+    await expect(wrapped.executeQuery()).rejects.toThrow("inline failed");
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(window.showErrorMessage).toHaveBeenCalledWith(
+      expect.stringContaining("Could not run orders as a model: disk full"),
+    );
   });
 });

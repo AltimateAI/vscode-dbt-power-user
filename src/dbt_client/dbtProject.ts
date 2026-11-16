@@ -1818,11 +1818,38 @@ export class DBTProject implements Disposable {
       return undefined;
     }
     const nameWithVersion = node.unique_id.slice(idPrefix.length);
+    // dbt-core matches a bare name against the fqn without the package too,
+    // as a path prefix: `orders` also selects the models in a `models/orders/`
+    // folder, and a model named after its project selects every model in it.
+    // The node's own file path narrows the intersection to the one node.
+    const originalFilePath = this.nodeOriginalFilePath(node);
     return [
       `package:${node.package_name}`,
       `resource_type:${RESOURCE_TYPE_MODEL}`,
+      ...(originalFilePath ? [`path:${originalFilePath}`] : []),
       nameWithVersion,
     ].join(",");
+  }
+
+  /**
+   * The node's file path as dbt's `path:` selector takes it: relative to the
+   * node's own project (the root project, or the package's directory under the
+   * packages install path), with forward slashes.
+   */
+  private nodeOriginalFilePath(node: NodeMetaData): string | undefined {
+    if (!node.path) {
+      return undefined;
+    }
+    const packagesInstallPath = this.getPackageInstallPath();
+    const base =
+      node.package_name !== this.getProjectName() && packagesInstallPath
+        ? path.join(packagesInstallPath, node.package_name)
+        : this.projectRoot.fsPath;
+    const relative = path.relative(base, node.path);
+    if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
+      return undefined;
+    }
+    return relative.split(path.sep).join("/");
   }
 
   /**
@@ -1843,7 +1870,16 @@ export class DBTProject implements Disposable {
           return await queryExecution.executeQuery();
         } catch (error) {
           if (isInlinePreviewError(error)) {
-            void this.promptToRunAsModel(nodeRun);
+            // Not awaited: the inline failure is reported below either way.
+            this.promptToRunAsModel(nodeRun).catch((promptError: unknown) => {
+              window.showErrorMessage(
+                `Could not run ${nodeRun.modelName} as a model: ${
+                  promptError instanceof Error
+                    ? promptError.message
+                    : String(promptError)
+                }`,
+              );
+            });
           }
           throw error;
         }
@@ -1910,7 +1946,9 @@ export class DBTProject implements Disposable {
     this.eventEmitterService.fire({
       command: "executeQuery",
       payload: {
-        query: `-- dbt show --select ${nodeSelector} --limit ${limit}`,
+        // The panel stores this as the history entry's SQL and replays it
+        // inline; the model's SQL is what a replay, and the entry, should show.
+        query: modelSql,
         fn: this.dbtProjectIntegration.executeSQLWithLimit(
           modelSql,
           modelName,
