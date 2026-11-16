@@ -2,6 +2,10 @@
 // it activates. Drives the Cursor app with Playwright's Electron support in a fresh, isolated profile.
 //
 //   node ui-install.mjs --cursor <dir>/cursor.json --work <dir> [--vsix <file>] [--timeout-seconds 600]
+// --loop-guard (older Cursor): decide the outcome from what the gallery's Power User depends on. While it
+// depends on ms-python.python the extensionquery loop is expected and passes with a warning; once it no
+// longer does, a loop fails the job. Harness failures fail either way.
+//
 // Diagnostics: --probe-search <text> types a marketplace search and reports whether Cursor queried the
 // gallery; --extension-id/--display-name install another extension from a recommendation.
 //
@@ -20,6 +24,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import {
   annotate,
+  cursorGalleryVersions,
   dirSize,
   escapeRegExp,
   log,
@@ -29,6 +34,7 @@ import {
   PU_ID,
   readIfExists,
   readJson,
+  resolveForTarget,
   summary,
   vsceTarget,
 } from "./lib.mjs";
@@ -106,10 +112,11 @@ const note = (msg) => {
 };
 
 class StepError extends Error {
-  constructor(kind, step, message) {
+  constructor(kind, step, message, loop = false) {
     super(message);
     this.kind = kind;
     this.step = step;
+    this.loop = loop;
   }
 }
 const harness = (step, msg) => new StepError("HARNESS", step, msg);
@@ -335,9 +342,11 @@ function installState() {
 function notStartedError(clickedAt) {
   const sent = queries.filter((q) => q.at >= clickedAt).length;
   if (sent > 50) {
-    return installError(
+    return new StepError(
+      "INSTALL",
       "install-start",
       `Cursor sent ${sent} gallery queries after the click without starting the install (the extensionquery loop)`,
+      true,
     );
   }
   return harness(
@@ -461,6 +470,35 @@ async function closeApp(app) {
   }
 }
 
+// Older Cursor loops on Power User only while the gallery's release depends on ms-python.python.
+async function applyLoopGuard(result) {
+  const pick = resolveForTarget(await cursorGalleryVersions(PU_ID), target);
+  const expectLoop = Boolean(pick?.dependencies.includes("ms-python.python"));
+  const release = `the gallery's Power User ${pick?.version} (${target})`;
+  if (result.loop && expectLoop) {
+    annotate(
+      "warning",
+      label,
+      `Expected: ${result.message}; ${release} still depends on ms-python.python.`,
+    );
+    return { ...result, ok: true, expectedLoop: true };
+  }
+  if (result.loop) {
+    return {
+      ...result,
+      message: `${result.message}, although ${release} no longer depends on ms-python.python`,
+    };
+  }
+  if (result.ok && expectLoop) {
+    annotate(
+      "warning",
+      label,
+      `Installed although ${release} depends on ms-python.python; the loop was expected.`,
+    );
+  }
+  return result;
+}
+
 // Every gallery query the window sends, with its search criteria, to spot a re-query loop.
 const queries = [];
 function watchQueries(page) {
@@ -578,13 +616,21 @@ try {
 } catch (error) {
   const kind = error.kind || "HARNESS";
   const step = error.step || "unexpected";
-  outcome = { ok: false, kind, step, message: error.message };
+  outcome = {
+    ok: false,
+    kind,
+    step,
+    message: error.message,
+    loop: Boolean(error.loop),
+  };
   note(`${kind} failure at ${step}: ${error.message}`);
   if (win) await shot(win, "99-failure");
 } finally {
   if (app) await closeApp(app);
 }
 
+if (args["loop-guard"] && !vsix && !probe)
+  outcome = await applyLoopGuard(outcome);
 const { dir: logDir } = logs();
 const extensions = fs.existsSync(path.join(dirs.extensions, "extensions.json"))
   ? readJson(path.join(dirs.extensions, "extensions.json")).map(
@@ -634,6 +680,9 @@ summary(
       ? `Install took **${outcome.installSeconds.toFixed(1)} s** from the click; Power User activated.`
       : "",
     outcome.probe ? `Search probe: ${JSON.stringify(outcome.probe)}` : "",
+    outcome.expectedLoop
+      ? `**Expected loop** (the gallery's Power User still depends on ms-python.python): ${outcome.message}`
+      : "",
     outcome.ok
       ? ""
       : `**${outcome.kind} failure** at step \`${outcome.step}\`: ${outcome.message}`,

@@ -87,6 +87,14 @@ export async function cursorGalleryVersions(extensionId) {
     target: v.targetPlatform || "universal",
     lastUpdated: v.lastUpdated,
     assetUri: v.assetUri,
+    dependencies: (
+      v.properties?.find(
+        (p) => p.key === "Microsoft.VisualStudio.Code.ExtensionDependencies",
+      )?.value || ""
+    )
+      .split(",")
+      .map((d) => d.trim().toLowerCase())
+      .filter(Boolean),
   }));
 }
 

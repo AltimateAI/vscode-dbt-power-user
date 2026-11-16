@@ -176,9 +176,6 @@ jobs:
       matrix: ${{ fromJSON(needs.plan.outputs.ui) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
-    # Cursor before 3.11 never starts this install: it re-queries the gallery in a loop (see
-    # ui-install.mjs). The older-Cursor leg records that without turning the run red.
-    continue-on-error: ${{ matrix.cursor == 'old' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -218,6 +215,9 @@ jobs:
           export PLAYWRIGHT_CORE="$RUNNER_TEMP/pw/node_modules/playwright-core"
           extra=()
           if [ "${{ matrix.source }}" = "vsix" ]; then extra=(--vsix "$RUNNER_TEMP/vsix/power-user-pr.vsix"); fi
+          # Cursor before 3.11 loops on the gallery install while Power User depends on ms-python.python
+          # (see ui-install.mjs): on the older Cursor that loop is expected until a release drops it.
+          if [ "${{ matrix.cursor }}" = "old" ]; then extra+=(--loop-guard); fi
           run=(node .github/cursor-install/ui-install.mjs --cursor "$RUNNER_TEMP/cursor/cursor.json" \
             --work "$RUNNER_TEMP/ui-run" --timeout-seconds 900 "${extra[@]}")
           if [ "$RUNNER_OS" = "Linux" ]; then
