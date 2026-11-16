@@ -1332,7 +1332,6 @@
     "webpack": "^5.106.2"
   },
   "extensionDependencies": [
-    "ms-python.python",
     "altimateai.vscode-altimate-mcp-server"
   ],
   "dependencies": {

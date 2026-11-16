@@ -6,6 +6,7 @@ import {
   commands,
   Disposable,
   Event,
+  EventEmitter,
   extensions,
   Terminal,
   Uri,
@@ -41,6 +42,7 @@ export class PythonEnvironment {
   public allPythonPaths: { path: string; pathType: string }[] = [];
   public isPython3: boolean = true;
   private _pythonVersion?: string;
+  private _pythonExtensionAvailable = false;
   // Interpreters already reported missing this session: every dbt project in the
   // workspace fails on the same one, and the user should see one prompt.
   private reportedMissingInterpreters = new Set<string>();
@@ -137,8 +139,38 @@ export class PythonEnvironment {
       }
       return;
     }
+    await this.promptForInterpreter(
+      this._pythonExtensionAvailable
+        ? `The selected Python interpreter ${interpreterPath} was not found. It may have been moved or deleted. Select another interpreter to use dbt.`
+        : `The Python interpreter ${interpreterPath} was not found, and the Python extension, which selects interpreters, is not installed. Install it, or set dbt.dbtPythonPathOverride to an interpreter that exists.`,
+    );
+  }
+
+  /**
+   * Shows `message` with the ways to get an interpreter. With the Python
+   * extension: its picker, or detection from the terminal. Without it the
+   * picker (`python.setInterpreter`) does not exist, so: install the
+   * extension, or open `dbt.dbtPythonPathOverride`.
+   */
+  async promptForInterpreter(message: string): Promise<void> {
+    if (!this._pythonExtensionAvailable) {
+      const answer = await window.showErrorMessage(
+        message,
+        PythonInterpreterPromptAnswer.INSTALL,
+        PythonInterpreterPromptAnswer.OPEN_SETTING,
+      );
+      if (answer === PythonInterpreterPromptAnswer.INSTALL) {
+        await this.installPythonExtension();
+      } else if (answer === PythonInterpreterPromptAnswer.OPEN_SETTING) {
+        commands.executeCommand(
+          "workbench.action.openSettings",
+          "dbt.dbtPythonPathOverride",
+        );
+      }
+      return;
+    }
     const answer = await window.showErrorMessage(
-      `The selected Python interpreter ${interpreterPath} was not found. It may have been moved or deleted. Select another interpreter to use dbt.`,
+      message,
       PythonInterpreterPromptAnswer.SELECT,
       PythonInterpreterPromptAnswer.DETECT,
     );
@@ -149,8 +181,35 @@ export class PythonEnvironment {
     }
   }
 
+  /**
+   * Installs the Python extension, then offers to reload the window: the
+   * extension is only picked up on activation.
+   */
+  async installPythonExtension(): Promise<void> {
+    await commands.executeCommand(
+      "workbench.extensions.installExtension",
+      "ms-python.python",
+    );
+    const reload = await window.showInformationMessage(
+      "The Python extension is installed. Reload the window to select an interpreter.",
+      PythonInterpreterPromptAnswer.RELOAD,
+    );
+    if (reload === PythonInterpreterPromptAnswer.RELOAD) {
+      commands.executeCommand("workbench.action.reloadWindow");
+    }
+  }
+
   public get pythonVersion(): string | undefined {
     return this._pythonVersion;
+  }
+
+  /**
+   * Whether the Python extension is installed and active. Without it there
+   * is no interpreter unless `dbt.dbtPythonPathOverride` names one; dbt
+   * Fusion and the dbt Cloud CLI don't need one.
+   */
+  public get pythonExtensionAvailable(): boolean {
+    return this._pythonExtensionAvailable;
   }
 
   /** Re-fetch the Python version from the Python extension (call after interpreter change) */
@@ -415,12 +474,29 @@ export class PythonEnvironment {
   }
 
   private async activatePythonExtension(): Promise<PythonExecutionDetails> {
-    const extension = extensions.getExtension("ms-python.python")!;
-
-    if (!extension.isActive) {
-      await extension.activate();
+    const extension = extensions.getExtension("ms-python.python");
+    if (!extension) {
+      this.dbtTerminal.debug(
+        "pythonEnvironment:activatePythonExtension",
+        "The Python extension is not installed; continuing without it",
+      );
+      return this.executionDetailsWithoutPythonExtension();
     }
-    await extension.exports.ready;
+    try {
+      if (!extension.isActive) {
+        await extension.activate();
+      }
+      await extension.exports.ready;
+    } catch (error) {
+      this.dbtTerminal.warn(
+        "pythonEnvironment:activatePythonExtension",
+        "The Python extension failed to activate; continuing without it",
+        true,
+        error,
+      );
+      return this.executionDetailsWithoutPythonExtension();
+    }
+    this._pythonExtensionAvailable = true;
 
     const api = extension.exports;
     this.allPythonPaths = await api.environment.getEnvironmentPaths();
@@ -464,88 +540,125 @@ export class PythonEnvironment {
         }
       },
       onDidChangeExecutionDetails: api.settings.onDidChangeExecutionDetails,
-      // There are 3 places from where we can get environments variables:
-      // 1. process env    2. integrated terminal env    3. dot env file(we can get this from python extension)
-      // Collecting env vars from all 3 places and merging them into one in the above order
-      // While merging, also tagging the places from where the env var has come.
-      getEnvVars: (workspaceFolder?: WorkspaceFolder) => {
-        const envVars: EnvironmentVariables = {};
-        const sources: Record<string, EnvFrom> = {};
-        for (const key in process.env) {
-          envVars[key] = process.env[key];
-          sources[key] = "process";
-        }
-        try {
-          const integratedEnv:
-            | Record<string, Record<string, string>>
-            | undefined = workspace
-            .getConfiguration("terminal")
-            .get("integrated.env");
-          if (integratedEnv) {
-            // parse vs code environment variables
-            for (const prop in integratedEnv) {
-              // Ignore any settings not supported by the terminal
-              // We don't know which os is used in terminal unfortunately, so we just merge all of them.
-              if (!["osx", "windows", "linux"].includes(prop)) {
-                this.dbtTerminal.debug(
-                  "pythonEnvironment:envVars",
-                  "Loading env vars from config.terminal.integrated.env",
-                  "Ignoring invalid property " + prop,
-                );
-                continue;
-              }
-              this.dbtTerminal.debug(
-                "pythonEnvironment:envVars",
-                "Loading env vars from config.terminal.integrated.env",
-                "Merging from " + prop,
-                Object.keys(integratedEnv[prop]),
-              );
-              for (const key in integratedEnv[prop]) {
-                envVars[key] = this.substituteSettingsVariables(
-                  integratedEnv[prop][key],
-                  process.env,
-                  workspaceFolder,
-                  sources,
-                );
-                sources[key] = "integrated";
-              }
-            }
-          }
-          if (api.environments) {
-            const workspacePath =
-              workspaceFolder || workspace.workspaceFolders?.[0];
-            if (workspacePath) {
-              this.dbtTerminal.debug(
-                "pythonEnvironment:envVars",
-                `workspacePath:${workspacePath.uri.fsPath}`,
-              );
-              const workspaceEnv =
-                api.environments.getEnvironmentVariables(workspacePath);
-              this.dbtTerminal.debug(
-                "pythonEnvironment:envVars",
-                `workspaceEnv:${Object.keys(workspaceEnv)}`,
-              );
-              for (const key in workspaceEnv) {
-                // env var from python extension also includes env var from process env
-                // therefore only merging those env var, which are not present in process env
-                // or whose value differ from process env
-                if (!(key in envVars) || workspaceEnv[key] !== envVars[key]) {
-                  envVars[key] = workspaceEnv[key];
-                  sources[key] = "dotenv";
-                }
-              }
-            }
-          }
-        } catch (e: any) {
-          this.dbtTerminal.error(
-            "getEnvVarsError",
-            "Could not call environment api",
-            e,
-          );
-        }
-
-        return { vars: envVars, sources };
-      },
+      getEnvVars: (workspaceFolder?: WorkspaceFolder) =>
+        this.collectEnvVars(workspaceFolder, api),
     });
+  }
+
+  /**
+   * Execution details when the Python extension is missing: the override
+   * interpreter if one is set, otherwise none (an empty path), and the
+   * process and integrated-terminal environment.
+   */
+  private executionDetailsWithoutPythonExtension(): PythonExecutionDetails {
+    this._pythonExtensionAvailable = false;
+    // Without the extension, `dbt.dbtPythonPathOverride` is the one way to
+    // get an interpreter: a change to it re-runs detection and starts the
+    // projects held for the missing interpreter, as a change of interpreter
+    // in the extension would.
+    const overrideChanges = new EventEmitter<Uri | undefined>();
+    this.disposables.push(
+      overrideChanges,
+      workspace.onDidChangeConfiguration((event) => {
+        if (event.affectsConfiguration("dbt.dbtPythonPathOverride")) {
+          overrideChanges.fire(undefined);
+        }
+      }),
+    );
+    return (this.executionDetails = {
+      getPythonPath: () => "",
+      onDidChangeExecutionDetails: overrideChanges.event,
+      getEnvVars: (workspaceFolder?: WorkspaceFolder) =>
+        this.collectEnvVars(workspaceFolder),
+    });
+  }
+
+  // There are 3 places from where we can get environments variables:
+  // 1. process env    2. integrated terminal env    3. dot env file (from the Python extension, when it is installed)
+  // Collecting env vars from all 3 places and merging them into one in the above order
+  // While merging, also tagging the places from where the env var has come.
+  private collectEnvVars(
+    workspaceFolder: WorkspaceFolder | undefined,
+    api?: {
+      environments?: {
+        getEnvironmentVariables: (
+          folder: WorkspaceFolder,
+        ) => Record<string, string | undefined>;
+      };
+    },
+  ): EnvVarsResult {
+    const envVars: EnvironmentVariables = {};
+    const sources: Record<string, EnvFrom> = {};
+    for (const key in process.env) {
+      envVars[key] = process.env[key];
+      sources[key] = "process";
+    }
+    try {
+      const integratedEnv: Record<string, Record<string, string>> | undefined =
+        workspace.getConfiguration("terminal").get("integrated.env");
+      if (integratedEnv) {
+        // parse vs code environment variables
+        for (const prop in integratedEnv) {
+          // Ignore any settings not supported by the terminal
+          // We don't know which os is used in terminal unfortunately, so we just merge all of them.
+          if (!["osx", "windows", "linux"].includes(prop)) {
+            this.dbtTerminal.debug(
+              "pythonEnvironment:envVars",
+              "Loading env vars from config.terminal.integrated.env",
+              "Ignoring invalid property " + prop,
+            );
+            continue;
+          }
+          this.dbtTerminal.debug(
+            "pythonEnvironment:envVars",
+            "Loading env vars from config.terminal.integrated.env",
+            "Merging from " + prop,
+            Object.keys(integratedEnv[prop]),
+          );
+          for (const key in integratedEnv[prop]) {
+            envVars[key] = this.substituteSettingsVariables(
+              integratedEnv[prop][key],
+              process.env,
+              workspaceFolder,
+              sources,
+            );
+            sources[key] = "integrated";
+          }
+        }
+      }
+      if (api?.environments) {
+        const workspacePath =
+          workspaceFolder || workspace.workspaceFolders?.[0];
+        if (workspacePath) {
+          this.dbtTerminal.debug(
+            "pythonEnvironment:envVars",
+            `workspacePath:${workspacePath.uri.fsPath}`,
+          );
+          const workspaceEnv =
+            api.environments.getEnvironmentVariables(workspacePath);
+          this.dbtTerminal.debug(
+            "pythonEnvironment:envVars",
+            `workspaceEnv:${Object.keys(workspaceEnv)}`,
+          );
+          for (const key in workspaceEnv) {
+            // env var from python extension also includes env var from process env
+            // therefore only merging those env var, which are not present in process env
+            // or whose value differ from process env
+            if (!(key in envVars) || workspaceEnv[key] !== envVars[key]) {
+              envVars[key] = workspaceEnv[key];
+              sources[key] = "dotenv";
+            }
+          }
+        }
+      }
+    } catch (e: any) {
+      this.dbtTerminal.error(
+        "getEnvVarsError",
+        "Could not call environment api",
+        e,
+      );
+    }
+
+    return { vars: envVars, sources };
   }
 }
