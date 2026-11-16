@@ -22,6 +22,7 @@
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { loopGuardVerdict } from "./loop-guard.mjs";
 import {
   annotate,
   cursorGalleryVersions,
@@ -470,33 +471,23 @@ async function closeApp(app) {
   }
 }
 
-// Older Cursor loops on Power User only while the gallery's release depends on ms-python.python.
+// --loop-guard: the verdict comes from loop-guard.mjs; a gallery that can't be read is a harness failure.
 async function applyLoopGuard(result) {
-  const pick = resolveForTarget(await cursorGalleryVersions(PU_ID), target);
-  const expectLoop = Boolean(pick?.dependencies.includes("ms-python.python"));
-  const release = `the gallery's Power User ${pick?.version} (${target})`;
-  if (result.loop && expectLoop) {
-    annotate(
-      "warning",
-      label,
-      `Expected: ${result.message}; ${release} still depends on ms-python.python.`,
-    );
-    return { ...result, ok: true, expectedLoop: true };
-  }
-  if (result.loop) {
+  let pick;
+  try {
+    pick = resolveForTarget(await cursorGalleryVersions(PU_ID), target);
+  } catch (error) {
     return {
       ...result,
-      message: `${result.message}, although ${release} no longer depends on ms-python.python`,
+      ok: false,
+      kind: "HARNESS",
+      step: "loop-guard",
+      message: `loop guard couldn't read the gallery's Power User: ${error.message}`,
     };
   }
-  if (result.ok && expectLoop) {
-    annotate(
-      "warning",
-      label,
-      `Installed although ${release} depends on ms-python.python; the loop was expected.`,
-    );
-  }
-  return result;
+  const verdict = loopGuardVerdict(result, pick, target);
+  if (verdict.warning) annotate("warning", label, verdict.warning);
+  return verdict;
 }
 
 // Every gallery query the window sends, with its search criteria, to spot a re-query loop.

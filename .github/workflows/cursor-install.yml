@@ -57,6 +57,8 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 2
+      - name: Test the older-Cursor verdict
+        run: node --test .github/cursor-install/loop-guard.test.mjs
       - id: plan
         shell: bash
         env:
