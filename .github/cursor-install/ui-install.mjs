@@ -21,6 +21,7 @@ import path from "node:path";
 import {
   annotate,
   dirSize,
+  escapeRegExp,
   log,
   mb,
   newestLogDir,
@@ -232,9 +233,7 @@ async function runCommand(win, title) {
 }
 
 async function startGalleryInstall(win) {
-  const exactName = new RegExp(
-    `^\\s*${displayName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`,
-  );
+  const exactName = new RegExp(`^\\s*${escapeRegExp(displayName)}\\s*$`);
   const row = win
     .locator(".extensions-viewlet .monaco-list-row")
     .filter({ has: win.locator(".name", { hasText: exactName }) })
@@ -373,7 +372,7 @@ async function waitForInstall(win, clickedAt) {
 }
 
 async function waitForActivation() {
-  const id = PU_ID.replace(/\./g, "\\.");
+  const id = escapeRegExp(PU_ID);
   const ok = new RegExp(
     `(activated success|_doActivateExtension)[^\\n]*${id}|${id}[^\\n]*activated`,
     "i",

@@ -117,6 +117,10 @@ export async function remoteSize(url) {
   return res.status === 200 && length ? Number(length) : undefined;
 }
 
+export function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export function compareVersions(a, b) {
   const pa = String(a)
     .split(/[.-]/)
