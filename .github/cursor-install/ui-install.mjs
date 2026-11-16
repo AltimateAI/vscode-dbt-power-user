@@ -123,13 +123,25 @@ class StepError extends Error {
 const harness = (step, msg) => new StepError("HARNESS", step, msg);
 const installError = (step, msg) => new StepError("INSTALL", step, msg);
 
+// One log file from every window of the session (window1, window2, …), in window order: the
+// workbench we drive is not always window1.
+function windowLogs(dir, file) {
+  if (!dir || !fs.existsSync(dir)) return "";
+  return fs
+    .readdirSync(dir)
+    .filter((name) => /^window\d+$/.test(name))
+    .sort((a, b) => Number(a.slice(6)) - Number(b.slice(6)))
+    .map((name) => readIfExists(path.join(dir, name, file)))
+    .join("\n");
+}
+
 function logs() {
   const dir = newestLogDir(dirs.userData);
   return {
     dir,
     shared: readIfExists(dir && path.join(dir, "sharedprocess.log")),
-    exthost: readIfExists(dir && path.join(dir, "window1/exthost/exthost.log")),
-    network: readIfExists(dir && path.join(dir, "window1/network.log")),
+    exthost: windowLogs(dir, "exthost/exthost.log"),
+    network: windowLogs(dir, "network.log"),
   };
 }
 
@@ -407,6 +419,10 @@ async function waitForActivation() {
     );
   if (result.failed)
     throw installError("activate", result.failed.slice(0, 300));
+  // `_doActivateExtension` is logged when activation starts: give activate() time to fail.
+  await new Promise((r) => setTimeout(r, 5000));
+  const late = logs().exthost.match(bad);
+  if (late) throw installError("activate", late[0].slice(0, 300));
 }
 
 async function probeSearch(win, text) {
