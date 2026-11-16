@@ -19,6 +19,7 @@ import {
   WorkspaceFolder,
 } from "vscode";
 import { TelemetryService } from "../telemetry";
+import { PROJECT_EXCLUDE_PATTERN } from "./dbtWorkspaceFolder";
 import {
   decideDbtIntegrationMode,
   getDbtIntegrationMode,
@@ -37,9 +38,6 @@ const OPEN_SETTINGS = "Open setting";
 const USE_FUSION = "Use dbt Fusion";
 const DISMISS = "Dismiss";
 const DBT_LOOM_CONFIG = "dbt_loom.config.yml";
-/** Where dbt projects are not looked for, as `discoverProjects` excludes them. */
-const PROJECT_EXCLUDES =
-  "**/{dbt_packages,site-packages,dbt_internal_packages}";
 /**
  * How long the dbt-core probe may take before its answer counts as unknown.
  * A slow first `import dbt.version` (a cold virus scan of a large venv) must
@@ -84,7 +82,7 @@ export interface IntegrationModeProbes {
 const findProjectFiles = (folder: WorkspaceFolder) =>
   workspace.findFiles(
     new RelativePattern(folder, `**/${DBT_PROJECT_FILE}`),
-    new RelativePattern(folder, PROJECT_EXCLUDES),
+    new RelativePattern(folder, PROJECT_EXCLUDE_PATTERN),
   );
 
 /**

@@ -102,7 +102,8 @@ function service({
     | { importable: boolean; version?: string }
     | "never",
   pythonExtensionAvailable = true,
-  projectFiles = [] as string[],
+  // dbt_project.yml files per workspace folder root, as discovery would list them.
+  projectFiles = {} as Record<string, string[]>,
   probeTimeoutMs = undefined as number | undefined,
   // An override interpreter; without one, the extension's when it is there.
   pythonPath = undefined as string | undefined,
@@ -118,8 +119,10 @@ function service({
       ? new Promise<{ importable: boolean }>(() => undefined)
       : Promise.resolve(dbtCore),
   );
-  const findProjectFiles = jest.fn(() =>
-    Promise.resolve(projectFiles.map((file) => Uri.file(file))),
+  const findProjectFiles = jest.fn((folder: { uri: { fsPath: string } }) =>
+    Promise.resolve(
+      (projectFiles[folder.uri.fsPath] ?? []).map((file) => Uri.file(file)),
+    ),
   );
   const svc = new IntegrationModeService(
     {
@@ -337,12 +340,50 @@ describe("IntegrationModeService.resolve", () => {
         { uri: Uri.file(dir), name: "repo", index: 0 },
       ];
       const { svc, telemetry, findProjectFiles } = service({
-        projectFiles: [path.join(nested, "dbt_project.yml")],
+        projectFiles: { [dir]: [path.join(nested, "dbt_project.yml")] },
       });
       await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
         "core",
       );
       expect(findProjectFiles).toHaveBeenCalledTimes(1);
+      expect(findProjectFiles).toHaveBeenCalledWith(
+        expect.objectContaining({
+          uri: expect.objectContaining({ fsPath: dir }),
+        }),
+      );
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        expect.objectContaining({ reason: "dbtLoom" }),
+      );
+    });
+
+    it("looks under every workspace folder: a nested config in the second one holds the switch", async () => {
+      const first = path.join(dir, "first");
+      const second = path.join(dir, "second");
+      const nested = path.join(second, "analytics");
+      mkdirSync(first);
+      mkdirSync(nested, { recursive: true });
+      writeFileSync(
+        path.join(nested, "dbt_loom.config.yml"),
+        "manifests: []\n",
+      );
+      (workspace as { workspaceFolders: unknown }).workspaceFolders = [
+        { uri: Uri.file(first), name: "first", index: 0 },
+        { uri: Uri.file(second), name: "second", index: 1 },
+      ];
+      const { svc, telemetry, findProjectFiles } = service({
+        projectFiles: {
+          [first]: [path.join(first, "dbt_project.yml")],
+          [second]: [path.join(nested, "dbt_project.yml")],
+        },
+      });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "core",
+      );
+      expect(findProjectFiles.mock.calls.map((c) => c[0].uri.fsPath)).toEqual([
+        first,
+        second,
+      ]);
       expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
         "dbtIntegrationSwitchHeld",
         expect.objectContaining({ reason: "dbtLoom" }),

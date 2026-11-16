@@ -58,7 +58,6 @@ export interface DbtIntegrationFacts {
   dbtLoom: boolean;
 }
 
-/** Why a dbt 2.x binary did not switch the window to dbt Fusion. */
 /**
  * Why a found dbt 2.x binary did not switch the window: dbt-core imports in
  * the interpreter, a dbt-loom config is present, or the dbt-core probe did not
