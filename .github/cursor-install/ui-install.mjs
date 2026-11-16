@@ -124,12 +124,23 @@ function logs() {
   };
 }
 
+// Resolves to `fallback` if the promise hasn't settled in `ms` (a hung renderer never answers).
+function withTimeout(promise, ms, fallback) {
+  return Promise.race([
+    promise.catch(() => fallback),
+    new Promise((r) => setTimeout(() => r(fallback), ms)),
+  ]);
+}
+
 async function shot(win, name) {
-  try {
-    await win.screenshot({ path: path.join(dirs.shots, `${name}.png`) });
-  } catch {
-    // The window may already be gone; screenshots are best effort.
-  }
+  // Best effort: the window may be gone or hung.
+  await withTimeout(
+    win.screenshot({
+      path: path.join(dirs.shots, `${name}.png`),
+      timeout: 15000,
+    }),
+    20000,
+  );
 }
 
 async function until(fn, ms, every = 500) {
@@ -413,14 +424,19 @@ async function probeSearch(win, text) {
 // Cursor can open more than one window (macOS opens an Agents window too): use the one with a workbench.
 async function findWorkbenchWindow(app, ms) {
   await app.firstWindow({ timeout: ms });
+  let reported = 0;
   return until(
     async () => {
-      for (const page of app.windows()) {
+      const pages = app.windows();
+      if (pages.length !== reported) {
+        reported = pages.length;
+        note(
+          `windows: ${pages.map((p) => p.url().split("/").pop()).join(", ")}`,
+        );
+      }
+      for (const page of pages) {
         if (
-          await page
-            .locator(".monaco-workbench")
-            .count()
-            .catch(() => 0)
+          await withTimeout(page.locator(".monaco-workbench").count(), 5000, 0)
         )
           return page;
       }
@@ -465,6 +481,18 @@ function watchQueries(page) {
 
 let app;
 let win;
+// Last resort: never let a stuck Cursor hold the job until its timeout.
+const watchdog = setTimeout(
+  () => {
+    console.log(
+      `::error title=${label}::HARNESS: the run did not finish in time; killing Cursor`,
+    );
+    app?.process().kill("SIGKILL");
+    process.exit(1);
+  },
+  timeoutMs + 10 * 60000,
+);
+watchdog.unref();
 let outcome = { ok: false };
 try {
   const launchArgs = [
@@ -487,6 +515,7 @@ try {
   const env = { ...process.env, DONT_PROMPT_WSL_INSTALL: "1" };
   if (process.platform !== "win32") env.HOME = dirs.home;
   delete env.ELECTRON_RUN_AS_NODE;
+  note(`launching ${cursor.exe}`);
   try {
     app = await _electron.launch({
       executablePath: cursor.exe,

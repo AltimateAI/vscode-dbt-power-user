@@ -211,6 +211,9 @@ jobs:
           fi
       - name: Install Power User from Cursor's Extensions view
         shell: bash
+        env:
+          # Playwright's launch and connection steps on macOS, where Cursor has been slow to show a window.
+          DEBUG: ${{ runner.os == 'macOS' && 'pw:browser*' || '' }}
         run: |
           export PLAYWRIGHT_CORE="$RUNNER_TEMP/pw/node_modules/playwright-core"
           extra=()
