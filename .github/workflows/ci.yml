@@ -24,13 +24,12 @@ jobs:
             vsce-target: linux-x64
           - os: windows-latest
             vsce-target: win32-x64
-          # Packaged on Linux, as the release jobs do. The runner can't load these
-          # targets' addons, so they get the content and size check only.
+          - os: ubuntu-24.04-arm
+            vsce-target: linux-arm64
+          # Packaged on Linux, as the release jobs do. The runner can't load its
+          # addons, so it gets the content and size check only.
           - os: ubuntu-latest
             vsce-target: darwin-x64
-            cross: true
-          - os: ubuntu-latest
-            vsce-target: linux-arm64
             cross: true
     runs-on: ${{ matrix.os }}
     # Runs PR code (build, package): read-only token. Statuses and comments are posted by

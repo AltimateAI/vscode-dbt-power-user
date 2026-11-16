@@ -5,8 +5,8 @@ Usage: check-vsix.py <vsix> <vsce-target>
 Checks the packaged zip only, so it also covers targets the runner can't load:
   - the VSIX is within the target's size budget;
   - no README GIFs (media/images/*.gif) and no source maps under dist/node_modules;
-  - zeromq ships no prebuilds/, only the target's addons under build/, and a
-    build/manifest.json that lists exactly the addons shipped;
+  - zeromq ships no prebuilds/, only the addons of ZEROMQ_RUNTIMES[target]
+    under build/, and a build/manifest.json that lists exactly those;
   - cmake-ts ships its runtime loader.
 """
 
@@ -24,17 +24,19 @@ BUDGET_MIB = {
     "darwin-arm64": 35,
     "darwin-x64": 37,
     "linux-arm64": 37,
-    "linux-x64": 38,
-    "win32-x64": 37,
+    "linux-x64": 39,
+    "win32-x64": 38,
 }
 
-# vsce target -> (os, arch, libc), in the terms of zeromq's build/manifest.json.
-ZEROMQ_RUNTIME = {
-    "darwin-arm64": ("darwin", "arm64", "libc"),
-    "darwin-x64": ("darwin", "x64", "libc"),
-    "linux-arm64": ("linux", "arm64", "glibc"),
-    "linux-x64": ("linux", "x64", "glibc"),
-    "win32-x64": ("win32", "x64", "msvc"),
+# vsce target -> the zeromq addon runtimes it ships, as (os, arch, libc) in the
+# terms of zeromq's build/manifest.json. Windows on Arm and Alpine have no VSIX
+# of their own, so the win32-x64 and linux VSIXes also carry their addons.
+ZEROMQ_RUNTIMES = {
+    "darwin-arm64": {("darwin", "arm64", "libc")},
+    "darwin-x64": {("darwin", "x64", "libc")},
+    "linux-arm64": {("linux", "arm64", "glibc"), ("linux", "arm64", "musl")},
+    "linux-x64": {("linux", "x64", "glibc"), ("linux", "x64", "musl")},
+    "win32-x64": {("win32", "x64", "msvc"), ("win32", "arm64", "msvc")},
 }
 
 NODE_MODULES = "extension/dist/node_modules/"
@@ -61,19 +63,21 @@ def check_unneeded_files(names):
 
 
 def check_zeromq_addons(z, addons, target):
-    """The manifest must list exactly the addons shipped, all for the target."""
+    """The manifest must list exactly the addons shipped, for the target's runtimes."""
     if MANIFEST not in z.namelist():
         return [f"missing {MANIFEST}"]
     errors = []
     listed = set()
+    found = set()
     for key, addon_path in json.loads(z.read(MANIFEST)).items():
         config = json.loads(key)
         runtime = (config["os"], config["arch"], config["libc"])
-        if runtime != ZEROMQ_RUNTIME[target]:
+        found.add(runtime)
+        if runtime not in ZEROMQ_RUNTIMES[target]:
             errors.append(f"manifest lists another platform's addon: {addon_path}")
         listed.add(ZEROMQ_BUILD + addon_path.replace("\\", "/"))
-    if not listed:
-        errors.append(f"manifest lists no zeromq addon for {target}")
+    for runtime in sorted(ZEROMQ_RUNTIMES[target] - found):
+        errors.append(f"manifest lists no zeromq addon for {'/'.join(runtime)}")
     for path in sorted(listed - addons):
         errors.append(f"manifest lists an addon the VSIX doesn't ship: {path}")
     for path in sorted(addons - listed):

@@ -32,10 +32,21 @@ function removeEmptyDirs(dir) {
 }
 
 /**
- * The zeromq addon runtime a VS Code target needs, in the terms of the
- * `build/manifest.json` that zeromq's cmake-ts loader filters on.
+ * Platforms with no VSIX of their own, whose users install the nearest one by
+ * hand: Windows on Arm takes the win32-x64 VSIX, and Alpine the linux VSIX of
+ * its arch. Those VSIXes also ship these addons, so notebooks load there too.
  */
-function getZeromqRuntime(vsceTarget) {
+const ZEROMQ_EXTRA_RUNTIMES = {
+  "win32-x64": ["win32/arm64/msvc"],
+  "linux-x64": ["linux/x64/musl"],
+  "linux-arm64": ["linux/arm64/musl"],
+};
+
+/**
+ * The zeromq addon runtimes a VS Code target ships, as "os/arch/libc" in the
+ * terms of the `build/manifest.json` that zeromq's cmake-ts loader filters on.
+ */
+function getZeromqRuntimes(vsceTarget) {
   const match = /^(win32|linux|alpine|darwin)-(x64|arm64|armhf|ia32)$/.exec(
     vsceTarget,
   );
@@ -43,17 +54,19 @@ function getZeromqRuntime(vsceTarget) {
     throw new Error(`Unsupported VSCE_TARGET '${vsceTarget}' for zeromq`);
   }
   const [, platform, arch] = match;
-  return {
-    os: platform === "alpine" ? "linux" : platform,
-    arch: arch === "armhf" ? "arm" : arch,
-    libc: { win32: "msvc", linux: "glibc", alpine: "musl", darwin: "libc" }[
-      platform
-    ],
-  };
+  const os = platform === "alpine" ? "linux" : platform;
+  const libc = {
+    win32: "msvc",
+    linux: "glibc",
+    alpine: "musl",
+    darwin: "libc",
+  }[platform];
+  const runtime = `${os}/${arch === "armhf" ? "arm" : arch}/${libc}`;
+  return [runtime, ...(ZEROMQ_EXTRA_RUNTIMES[vsceTarget] || [])];
 }
 
 /**
- * Keep only the zeromq addons the target can load. zeromq loads its addon
+ * Keep only the zeromq addons the target ships. zeromq loads its addon
  * through cmake-ts `loadAddon(build/)`, which reads build/manifest.json, keeps
  * the entries matching the running os, arch and libc, and tries them from the
  * newest ABI down. The manifest is rewritten to list only the addons kept, so
@@ -63,17 +76,16 @@ function pruneZeromqAddons(zeromqDir, vsceTarget) {
   const buildDir = path.join(zeromqDir, "build");
   const manifestPath = path.join(buildDir, "manifest.json");
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-  const runtime = getZeromqRuntime(vsceTarget);
+  const runtimes = getZeromqRuntimes(vsceTarget);
 
   const kept = {};
+  const found = new Set();
   for (const [key, addonPath] of Object.entries(manifest)) {
     const config = JSON.parse(key);
-    if (
-      config.os === runtime.os &&
-      config.arch === runtime.arch &&
-      config.libc === runtime.libc
-    ) {
+    const runtime = `${config.os}/${config.arch}/${config.libc}`;
+    if (runtimes.includes(runtime)) {
       kept[key] = addonPath;
+      found.add(runtime);
     }
   }
   // Windows entries use backslashes; packaging may run on Linux.
@@ -82,12 +94,14 @@ function pruneZeromqAddons(zeromqDir, vsceTarget) {
       path.resolve(buildDir, addonPath.replace(/\\/g, "/")),
     ),
   );
+  const absent = runtimes.filter((runtime) => !found.has(runtime));
   const missing = [...keptFiles].filter((file) => !fs.existsSync(file));
-  if (keptFiles.size === 0 || missing.length > 0) {
+  if (absent.length > 0 || missing.length > 0) {
     throw new Error(
-      `No zeromq addon for VSCE_TARGET '${vsceTarget}' (${JSON.stringify(
-        runtime,
-      )}) in ${buildDir}${missing.length ? `: missing ${missing.join(", ")}` : ""}`,
+      `Missing zeromq addons for VSCE_TARGET '${vsceTarget}' in ${buildDir}: ${[
+        ...absent,
+        ...missing,
+      ].join(", ")}`,
     );
   }
 
