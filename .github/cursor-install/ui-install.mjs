@@ -512,6 +512,9 @@ try {
       "--disable-gpu",
       "--password-store=basic",
     );
+  // macOS: reading the keychain at startup raises a native prompt that freezes Cursor's main process.
+  if (process.platform === "darwin")
+    launchArgs.unshift("--use-mock-keychain", "--use-inmemory-secretstorage");
   const env = { ...process.env, DONT_PROMPT_WSL_INSTALL: "1" };
   if (process.platform !== "win32") env.HOME = dirs.home;
   delete env.ELECTRON_RUN_AS_NODE;
