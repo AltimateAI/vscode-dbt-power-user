@@ -144,9 +144,10 @@ describe("nodeRunSelector", () => {
     [
       "a package's",
       `${ROOT}dbt_packages/pkg/models/orders.sql`,
-      // dbt-core reads a package node's `path:` relative to the package, dbt
-      // Fusion from the root project: a union names both, each engine matches one.
-      "package:pkg,resource_type:model,path:models/orders.sql,orders package:pkg,resource_type:model,path:dbt_packages/pkg/models/orders.sql,orders",
+      // No `path:` for a package's node: dbt-core globs the path from the root
+      // project and compares it with the package-relative original_file_path,
+      // so neither form selects the node unless the root has the same file.
+      "package:pkg,resource_type:model,orders",
     ],
   ])(
     "selects %s model when two of that name exist, by the file previewed",

@@ -1796,9 +1796,8 @@ export class DBTProject implements Disposable {
    * snapshot of the same name, `path:` keeps a folder or project of the same
    * name out, and the name carries the version because dbt composes a node's
    * id as `<resource type>.<package>.<name>` with `.v<version>` appended. The
-   * commas are dbt's intersection operator; a space is its union, used for a
-   * package's node because the engines read its `path:` from different roots
-   * (see `nodeFilePathsForSelection`).
+   * commas are dbt's intersection operator. A package's node gets no `path:`
+   * term (see `nodeFilePathForSelection`): `package:` and the name identify it.
    *
    * Ask the integration whether it can supply node context rather than testing
    * the configured mode — which modes qualify is the library's concern.
@@ -1825,34 +1824,30 @@ export class DBTProject implements Disposable {
     // as a path prefix: `orders` also selects the models in a `models/orders/`
     // folder, and a model named after its project selects every model in it.
     // The node's own file path narrows the intersection to the one node.
-    const intersection = (filePath?: string) =>
-      [
-        `package:${node.package_name}`,
-        `resource_type:${RESOURCE_TYPE_MODEL}`,
-        ...(filePath ? [`path:${filePath}`] : []),
-        nameWithVersion,
-      ].join(",");
-    const filePaths = this.nodeFilePathsForSelection(node);
-    // A space is dbt's union: each engine matches one of a package node's two
-    // path forms, and the intersection with the name keeps it to the one node.
-    return filePaths.length === 0
-      ? intersection()
-      : filePaths.map(intersection).join(" ");
+    const pathTerm = this.nodeFilePathForSelection(node);
+    return [
+      `package:${node.package_name}`,
+      `resource_type:${RESOURCE_TYPE_MODEL}`,
+      ...(pathTerm ? [`path:${pathTerm}`] : []),
+      nameWithVersion,
+    ].join(",");
   }
 
   /**
-   * The node's file path as dbt's `path:` selector reads it, with forward
-   * slashes. For a node of the root project that is the path from the project
-   * root. For a package's node the engines differ: dbt-core compares with the
-   * node's `original_file_path`, which is relative to the package, dbt Fusion
-   * with the path from the root project; both are returned, the package's
-   * form first. Empty when the file is not under the project.
+   * The `path:` term for a node of the root project: its file relative to the
+   * project root, with forward slashes. Undefined for a package's node: dbt-core
+   * globs `path:` from the root project and compares the result with the node's
+   * package-relative `original_file_path`, so no form of the path selects a
+   * package node unless the root project happens to have a file at the same
+   * relative path (`test-fixtures/preview-node-base-name-collisions`, dbt-core
+   * 1.11.15; Fusion 2.0.9 and 2.0.11 take the root-relative form, but one
+   * selector serves both engines). Inside a package, `package:` and the name
+   * are left to identify the node.
    */
-  private nodeFilePathsForSelection(node: NodeMetaData): string[] {
+  private nodeFilePathForSelection(node: NodeMetaData): string | undefined {
     if (!node.path) {
-      return [];
+      return undefined;
     }
-    const posix = (p: string) => p.split(path.sep).join("/");
     const under = (base: string) => {
       const relative = path.relative(base, node.path!);
       return relative &&
@@ -1861,18 +1856,12 @@ export class DBTProject implements Disposable {
         ? relative
         : undefined;
     };
-    const fromRoot = under(this.projectRoot.fsPath);
-    if (fromRoot === undefined) {
-      return [];
-    }
     const packagesInstallPath = this.getPackageInstallPath();
-    const inPackages = packagesInstallPath && under(packagesInstallPath);
-    if (inPackages) {
-      // Drop the package's own directory: what follows is the package-relative path.
-      const [, ...rest] = inPackages.split(path.sep);
-      return [posix(rest.join(path.sep)), posix(fromRoot)];
+    if (packagesInstallPath && under(packagesInstallPath)) {
+      return undefined;
     }
-    return [posix(fromRoot)];
+    const fromRoot = under(this.projectRoot.fsPath);
+    return fromRoot?.split(path.sep).join("/");
   }
 
   /**
