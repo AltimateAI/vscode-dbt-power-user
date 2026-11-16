@@ -8,18 +8,83 @@ import * as path from "path";
  * extension. These tests pin those contributions in package.json.
  */
 
+type LanguageContribution = {
+  id: string;
+  aliases?: string[];
+  configuration?: string;
+  extensions?: string[];
+  filenames?: string[];
+  filenamePatterns?: string[];
+};
+type GrammarContribution = {
+  language?: string;
+  scopeName: string;
+  path: string;
+  injectTo?: string[];
+};
+type SnippetContribution = { language: string; path: string };
+type PackageJson = {
+  extensionDependencies: string[];
+  contributes: {
+    languages: LanguageContribution[];
+    grammars: GrammarContribution[];
+    snippets: SnippetContribution[];
+  };
+};
+type LanguageConfiguration = {
+  comments: { lineComment?: string; blockComment?: [string, string] };
+  brackets: [string, string][];
+  autoClosingPairs: { open: string; close: string; notIn?: string[] }[];
+  surroundingPairs: [string, string][];
+  folding?: { offSide?: boolean; markers?: { start: string; end: string } };
+  indentationRules?: {
+    increaseIndentPattern: string;
+    decreaseIndentPattern: string;
+  };
+};
+type GrammarFile = {
+  scopeName: string;
+  patterns: { include?: string }[];
+  injections?: Record<string, { patterns: { include?: string }[] }>;
+};
+
 const repoRoot = path.resolve(__dirname, "../../..");
-const readJson = (relativePath: string): any =>
+const readJson = (relativePath: string): unknown =>
   JSON.parse(fs.readFileSync(path.join(repoRoot, relativePath), "utf-8"));
+// The files read here are the subject under test: the assertions check their
+// shape, so this is the one place the parsed JSON is given a type.
+const readJsonAs = <T>(relativePath: string): T => readJson(relativePath) as T;
 
-const packageJson = readJson("package.json");
-const contributes = packageJson.contributes;
-const languages: any[] = contributes.languages;
-const grammars: any[] = contributes.grammars;
+const packageJson = readJsonAs<PackageJson>("package.json");
+const { contributes } = packageJson;
+const { languages, grammars } = contributes;
 
-const languageById = (id: string) => languages.find((l) => l.id === id);
-const grammarForLanguage = (id: string) =>
+const languageById = (id: string): LanguageContribution | undefined =>
+  languages.find((l) => l.id === id);
+const grammarForLanguage = (id: string): GrammarContribution | undefined =>
   grammars.find((g) => g.language === id);
+
+const requireLanguage = (id: string): LanguageContribution => {
+  const language = languageById(id);
+  if (!language) {
+    throw new Error(`language ${id} is not contributed`);
+  }
+  return language;
+};
+const requireGrammar = (id: string): GrammarContribution => {
+  const grammar = grammarForLanguage(id);
+  if (!grammar) {
+    throw new Error(`no grammar is contributed for ${id}`);
+  }
+  return grammar;
+};
+const configurationOf = (id: string): LanguageConfiguration => {
+  const { configuration } = requireLanguage(id);
+  if (!configuration) {
+    throw new Error(`language ${id} has no configuration`);
+  }
+  return readJsonAs<LanguageConfiguration>(configuration);
+};
 
 const listSourceFiles = (dir: string): string[] =>
   fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -62,28 +127,25 @@ describe("Jinja language contributions", () => {
     "$id",
     ({ id, alias, scopeName, lineComment }) => {
       it("is contributed with a display alias", () => {
-        const language = languageById(id);
-        expect(language).toBeDefined();
-        expect(language.aliases[0]).toBe(alias);
+        expect(languageById(id)?.aliases?.[0]).toBe(alias);
       });
 
       it("does not claim file extensions or file names", () => {
-        const language = languageById(id);
+        const language = requireLanguage(id);
         expect(language.extensions).toBeUndefined();
         expect(language.filenames).toBeUndefined();
         expect(language.filenamePatterns).toBeUndefined();
       });
 
       it("has a grammar whose file exists and declares the same scope", () => {
-        const grammar = grammarForLanguage(id);
-        expect(grammar).toBeDefined();
+        const grammar = requireGrammar(id);
         expect(grammar.scopeName).toBe(scopeName);
-        const grammarFile = readJson(grammar.path);
+        const grammarFile = readJsonAs<GrammarFile>(grammar.path);
         expect(grammarFile.scopeName).toBe(scopeName);
       });
 
       it("has a language configuration with comments and Jinja brackets", () => {
-        const config = readJson(languageById(id).configuration);
+        const config = configurationOf(id);
         expect(config.comments.lineComment).toBe(lineComment);
         expect(config.comments.blockComment ?? ["{#", "#}"]).toEqual([
           "{#",
@@ -103,7 +165,7 @@ describe("Jinja language contributions", () => {
       });
 
       it("compiles every regular expression in its language configuration", () => {
-        const config = readJson(languageById(id).configuration);
+        const config = configurationOf(id);
         const patterns = [
           config.folding?.markers?.start,
           config.folding?.markers?.end,
@@ -118,7 +180,7 @@ describe("Jinja language contributions", () => {
   );
 
   it("gives jinja-sql both a line comment and a Jinja block comment", () => {
-    const config = readJson(languageById("jinja-sql").configuration);
+    const config = configurationOf("jinja-sql");
     expect(config.comments).toEqual({
       lineComment: "--",
       blockComment: ["{#", "#}"],
@@ -126,9 +188,10 @@ describe("Jinja language contributions", () => {
   });
 
   it("folds Jinja blocks in jinja-sql but not one-line blocks", () => {
-    const config = readJson(languageById("jinja-sql").configuration);
-    const start = new RegExp(config.folding.markers.start);
-    const end = new RegExp(config.folding.markers.end);
+    const markers = configurationOf("jinja-sql").folding?.markers;
+    expect(markers).toBeDefined();
+    const start = new RegExp(markers?.start ?? "");
+    const end = new RegExp(markers?.end ?? "");
     expect(start.test("{% if is_incremental() %}")).toBe(true);
     expect(start.test("  {%- for col in cols -%}")).toBe(true);
     expect(start.test("{% macro my_macro(x) %}")).toBe(true);
@@ -144,14 +207,15 @@ describe("Jinja language contributions", () => {
   ])(
     "%s includes the %s grammar and injects the Jinja rules everywhere",
     (id, baseScope) => {
-      const grammarFile = readJson(grammarForLanguage(id).path);
+      const grammarFile = readJsonAs<GrammarFile>(requireGrammar(id).path);
       expect(grammarFile.patterns).toEqual([{ include: baseScope }]);
-      const selectors = Object.keys(grammarFile.injections);
+      const injections = grammarFile.injections ?? {};
+      const selectors = Object.keys(injections);
       expect(selectors).toHaveLength(1);
       expect(selectors[0].startsWith(`L:${grammarFile.scopeName} - `)).toBe(
         true,
       );
-      expect(grammarFile.injections[selectors[0]].patterns).toEqual([
+      expect(injections[selectors[0]].patterns).toEqual([
         { include: "source.yaml.jinja" },
       ]);
     },
@@ -159,10 +223,12 @@ describe("Jinja language contributions", () => {
 
   it("contributes the Jinja-only grammar the injections include", () => {
     const jinjaOnly = grammars.find((g) => g.scopeName === "source.yaml.jinja");
-    expect(jinjaOnly).toBeDefined();
+    if (!jinjaOnly) {
+      throw new Error("source.yaml.jinja is not contributed");
+    }
     expect(jinjaOnly.language).toBeUndefined();
-    const grammarFile = readJson(jinjaOnly.path);
-    expect(grammarFile.patterns.map((p: any) => p.include)).toEqual([
+    const grammarFile = readJsonAs<GrammarFile>(jinjaOnly.path);
+    expect(grammarFile.patterns.map((p) => p.include)).toEqual([
       "#jinja-comment",
       "#jinja-statement",
       "#jinja-expression",
