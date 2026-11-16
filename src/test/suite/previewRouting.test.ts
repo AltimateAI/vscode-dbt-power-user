@@ -321,13 +321,30 @@ describe("promptToRunAsModel", () => {
   it("saves the open document, then runs the saved node", async () => {
     const p = promptingProject();
     const save = jest.fn(async () => true);
-    (workspace as any).textDocuments = [{ uri: nodeRun.uri, save }];
+    (workspace as any).textDocuments = [
+      { uri: nodeRun.uri, save, getText: () => nodeRun.modelSql },
+    ];
     await p.promptToRunAsModel(nodeRun);
     expect(save).toHaveBeenCalledTimes(1);
     expect(
       p.executeSqlWithNodeContextWithLimitOnQueryPanel,
     ).toHaveBeenCalledWith(nodeRun);
     expect(window.showErrorMessage).not.toHaveBeenCalled();
+  });
+
+  it("shows the SQL that was saved, not the SQL the failed preview ran", async () => {
+    // The warning is not modal: the buffer can change between the failed
+    // inline run and the choice. The node runs what was saved, so the panel
+    // and its history entry get that text (Codex round 3 on 270c5d04).
+    const p = promptingProject();
+    const save = jest.fn(async () => true);
+    (workspace as any).textDocuments = [
+      { uri: nodeRun.uri, save, getText: () => "select 2 as id" },
+    ];
+    await p.promptToRunAsModel({ ...nodeRun, modelSql: "select 1 as id" });
+    expect(
+      p.executeSqlWithNodeContextWithLimitOnQueryPanel,
+    ).toHaveBeenCalledWith({ ...nodeRun, modelSql: "select 2 as id" });
   });
 
   it("stops with a message when the document was closed before the choice", async () => {

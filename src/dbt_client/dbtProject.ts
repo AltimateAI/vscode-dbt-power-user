@@ -1938,6 +1938,9 @@ export class DBTProject implements Disposable {
         window.showErrorMessage(`Could not save ${modelName}.`);
         return;
       }
+      // The buffer may have changed again while the offer was pending; what
+      // was just saved is what the node runs, so that is the SQL to show.
+      nodeRun = { ...nodeRun, modelSql: document.getText() };
     }
     await this.executeSqlWithNodeContextWithLimitOnQueryPanel(nodeRun);
   }
