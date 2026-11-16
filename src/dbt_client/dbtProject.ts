@@ -1782,20 +1782,21 @@ export class DBTProject implements Disposable {
    * preview routing already found (#2114): a package model and the root
    * project's can share one.
    *
-   * The selector then has to name that node and nothing else, and a bare name
-   * does not. Measured on the five-file collision fixture with dbt-core
-   * 1.11.15: `dbt show --select orders` previews three nodes (the root model,
-   * a package's model, and an analysis of the same name) and the integration
-   * reports whichever dbt emitted first; on dbt-fusion 2.0.0-preview.175 the
-   * same selector previews nothing at all. `--select orders` also covers every
-   * version of a versioned model.
-   *
-   * `package:<package>,resource_type:model,<name>[.v<version>]` previews
-   * exactly one node on both: `package:` separates a package's model from the
-   * root project's, `resource_type:model` drops an analysis or snapshot of the
-   * same name, and the name carries the version because dbt composes a node's
+   * The selector then has to name that node and nothing else. Measured on
+   * `test-fixtures/preview-node-base-name-collisions` with dbt-core 1.11.15 and
+   * dbt Fusion 2.0.9 / 2.0.11: a bare `orders` previews the root model, a
+   * package's model, an analysis and the models under `models/orders/` on
+   * dbt-core (it matches the fqn without the package, as a path prefix), and
+   * nothing on Fusion; a model named after its project selects every model in
+   * it. `package:<package>,resource_type:model,path:<file>,<name>[.v<version>]`
+   * previews exactly one node on both: `package:` separates a package's model
+   * from the root project's, `resource_type:model` drops an analysis or
+   * snapshot of the same name, `path:` keeps a folder or project of the same
+   * name out, and the name carries the version because dbt composes a node's
    * id as `<resource type>.<package>.<name>` with `.v<version>` appended. The
-   * commas are dbt's intersection operator.
+   * commas are dbt's intersection operator; a space is its union, used for a
+   * package's node because the engines read its `path:` from different roots
+   * (see `nodeFilePathsForSelection`).
    *
    * Ask the integration whether it can supply node context rather than testing
    * the configured mode — which modes qualify is the library's concern.

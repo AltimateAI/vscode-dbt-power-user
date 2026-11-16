@@ -12,7 +12,7 @@ import {
 } from "@jest/globals";
 
 import { window, workspace } from "vscode";
-import { DBTProject } from "../../dbt_client/dbtProject";
+import { DBTProject, type PreviewMode } from "../../dbt_client/dbtProject";
 
 /**
  * Previewing with `--inline` compiles the SQL as an anonymous node, so Jinja
@@ -433,5 +433,94 @@ describe("offerModelRunOnIdentityFailure when the offer itself fails", () => {
     expect(window.showErrorMessage).toHaveBeenCalledWith(
       expect.stringContaining("Could not run orders as a model: disk full"),
     );
+  });
+});
+
+describe("executeSQLWithLimitOnQueryPanel routes by preview mode", () => {
+  const SELECTOR =
+    "package:jaffle_shop,resource_type:model,path:models/orders.sql,orders";
+  const routed = async (previewMode: PreviewMode, filePath?: string) => {
+    const p = createProject({
+      canInjectNodeContextInSqlSnippetExecution: true,
+      nodes: [
+        {
+          unique_id: "model.jaffle_shop.orders",
+          path: "/w/jaffle_shop/models/orders.sql",
+          package_name: "jaffle_shop",
+        },
+      ],
+    }) as any;
+    const fired: any[] = [];
+    p.eventEmitterService = { fire: (e: unknown) => fired.push(e) };
+    p.terminal = { info: jest.fn(), debug: jest.fn(), error: jest.fn() };
+    p.getAdapterType = () => "duckdb";
+    const inline = Symbol("inline execution");
+    p.dbtProjectIntegration.executeSQLWithLimit = jest.fn(() => inline);
+    p.executeSqlWithNodeContextWithLimitOnQueryPanel = jest.fn(() =>
+      Promise.resolve(),
+    );
+    p.offerModelRunOnIdentityFailure = jest.fn(() => "wrapped");
+    const uri = filePath ? { fsPath: filePath } : undefined;
+    await p.executeSQLWithLimitOnQueryPanel(
+      "select 1",
+      "orders",
+      500,
+      previewMode,
+      uri,
+    );
+    return { p, fired, inline };
+  };
+
+  it("as-model with a node runs the node, not the editor text", async () => {
+    const { p, fired } = await routed(
+      "as-model",
+      "/w/jaffle_shop/models/orders.sql",
+    );
+    expect(
+      p.executeSqlWithNodeContextWithLimitOnQueryPanel,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ nodeSelector: SELECTOR, modelSql: "select 1" }),
+    );
+    expect(fired).toHaveLength(0);
+  });
+
+  it("as-model without a node falls back to the plain inline run", async () => {
+    const { p, fired, inline } = await routed(
+      "as-model",
+      "/w/jaffle_shop/models/other.sql",
+    );
+    expect(
+      p.executeSqlWithNodeContextWithLimitOnQueryPanel,
+    ).not.toHaveBeenCalled();
+    expect(fired[0].payload.fn).toBe(inline);
+    expect(p.offerModelRunOnIdentityFailure).not.toHaveBeenCalled();
+  });
+
+  it("inline-then-offer wraps the inline run with the offer", async () => {
+    const { p, fired } = await routed(
+      "inline-then-offer",
+      "/w/jaffle_shop/models/orders.sql",
+    );
+    expect(p.offerModelRunOnIdentityFailure).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ nodeSelector: SELECTOR }),
+    );
+    expect(fired[0].payload.fn).toBe("wrapped");
+    expect(
+      p.executeSqlWithNodeContextWithLimitOnQueryPanel,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("inline runs the editor text with no offer, node or not", async () => {
+    const { p, fired, inline } = await routed(
+      "inline",
+      "/w/jaffle_shop/models/orders.sql",
+    );
+    expect(fired[0].payload.fn).toBe(inline);
+    expect(fired[0].payload.query).toBe("select 1");
+    expect(p.offerModelRunOnIdentityFailure).not.toHaveBeenCalled();
+    expect(
+      p.executeSqlWithNodeContextWithLimitOnQueryPanel,
+    ).not.toHaveBeenCalled();
   });
 });
