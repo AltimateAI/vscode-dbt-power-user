@@ -46,7 +46,7 @@ import {
 import * as LibNamespace from "@lib";
 import { NotebookKernelClient } from "@lib";
 import { Container, interfaces } from "inversify";
-import { Event, EventEmitter, Uri, workspace, WorkspaceFolder } from "vscode";
+import { Event, EventEmitter, Uri, WorkspaceFolder } from "vscode";
 import { AltimateRequest } from "./altimate";
 import { DBTProject } from "./dbt_client/dbtProject";
 import { ProjectRegisteredUnregisteredEvent } from "./dbt_client/dbtProjectContainer";
@@ -131,6 +131,8 @@ import { ContentProviders } from "./content_provider";
 import { SqlPreviewContentProvider } from "./content_provider/sqlPreviewContentProvider";
 import { CteProfilerDecorationProvider } from "./cte_profiler/cteProfilerDecorationProvider";
 import { CteProfilerService } from "./cte_profiler/cteProfilerService";
+import { getDbtIntegrationMode } from "./dbt_client/integrationMode";
+import { IntegrationModeService } from "./dbt_client/integrationModeService";
 import { DBTPowerUserExtension } from "./dbtPowerUserExtension";
 import { DocumentFormattingEditProviders } from "./document_formatting_edit_provider";
 import { DbtDocumentFormattingEditProvider } from "./document_formatting_edit_provider/dbtDocumentFormattingEditProvider";
@@ -491,9 +493,7 @@ container
   .toFactory<DBTDetection, []>((context: interfaces.Context) => {
     return () => {
       const { container } = context;
-      const dbtIntegrationMode = workspace
-        .getConfiguration("dbt")
-        .get<string>("dbtIntegration", "core");
+      const dbtIntegrationMode = getDbtIntegrationMode();
 
       switch (dbtIntegrationMode) {
         case "cloud":
@@ -511,9 +511,7 @@ container
   .toFactory<DBTProjectDetection, []>((context: interfaces.Context) => {
     return () => {
       const { container } = context;
-      const dbtIntegrationMode = workspace
-        .getConfiguration("dbt")
-        .get<string>("dbtIntegration", "core");
+      const dbtIntegrationMode = getDbtIntegrationMode();
 
       switch (dbtIntegrationMode) {
         case "cloud":
@@ -1017,6 +1015,17 @@ container
       context.container.get(AltimateRequest),
       context.container.get(SharedStateService),
       context.container.get(AltimateAuthService),
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind(IntegrationModeService)
+  .toDynamicValue((context) => {
+    return new IntegrationModeService(
+      context.container.get(PythonEnvironment),
+      context.container.get(TelemetryService),
+      context.container.get("DBTTerminal"),
     );
   })
   .inSingletonScope();
@@ -1941,6 +1950,7 @@ container
       context.container.get(AltimateAuthService),
       context.container.get(WhatsNewPanel),
       context.container.get(AltimateConnectService),
+      context.container.get(IntegrationModeService),
     );
   })
   .inSingletonScope();

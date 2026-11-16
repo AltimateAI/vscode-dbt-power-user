@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from "@jest/globals";
-import { window } from "vscode";
+import { window, workspace } from "vscode";
 import { DBTPowerUserExtension } from "../../dbtPowerUserExtension";
 
 jest.mock("vscode", () => jest.requireActual("../mock/vscode"));
@@ -59,6 +59,7 @@ describe("activate hands the context to the project container before its first a
       stub(),
       stub(),
       stub(),
+      stub(),
     );
     const context = { subscriptions: [] } as never;
 
@@ -67,5 +68,67 @@ describe("activate hands the context to the project container before its first a
     expect(updateMcpExtensionApi).toHaveBeenCalledTimes(1);
     expect(setContext).toHaveBeenCalledWith(context);
     expect(container.initializeWalkthrough).not.toHaveBeenCalled();
+  });
+});
+
+describe("activate listens for dbt.dbtIntegration before the held-switch notice", () => {
+  const stub = () => ({ dispose: jest.fn() }) as never;
+
+  it("has registered the configuration listener when notifySwitchHeld runs", async () => {
+    (window as unknown as Record<string, unknown>).registerUriHandler = jest.fn(
+      () => ({ dispose: () => undefined }),
+    );
+    const onDidChangeConfiguration =
+      workspace.onDidChangeConfiguration as unknown as jest.Mock;
+    onDidChangeConfiguration.mockClear();
+    let listenerAtNotice: boolean | undefined;
+    const integrationModeService = {
+      resolve: jest.fn(() => Promise.resolve("core")),
+      notifySwitchHeld: jest.fn(() => {
+        listenerAtNotice = onDidChangeConfiguration.mock.calls.length > 0;
+        return Promise.resolve();
+      }),
+    };
+    const container = {
+      setContext: jest.fn(),
+      initializeWalkthrough: jest.fn(),
+      // Detection never settles: the rest of activate never runs.
+      detectDBT: jest.fn(() => new Promise<void>(() => undefined)),
+      initializeDBTProjects: jest.fn(),
+      dispose: jest.fn(),
+    };
+    const mcpServer = {
+      updateMcpExtensionApi: jest.fn(() => Promise.resolve()),
+      dispose: jest.fn(),
+    };
+    const telemetry = {
+      sendTelemetryError: jest.fn(),
+      sendTelemetryEvent: jest.fn(),
+      dispose: jest.fn(),
+    };
+    const whatsNewPanel = {
+      checkAndShowOnActivation: jest.fn(() => Promise.resolve()),
+      dispose: jest.fn(),
+    };
+    const args: unknown[] = [container];
+    for (let i = 1; i < 22; i++) {
+      args.push(stub());
+    }
+    args[11] = telemetry;
+    args[16] = mcpServer;
+    args[19] = whatsNewPanel;
+    args[21] = integrationModeService;
+    const extension = new (DBTPowerUserExtension as unknown as new (
+      ...a: unknown[]
+    ) => DBTPowerUserExtension)(...args);
+
+    void extension.activate({
+      subscriptions: [],
+      workspaceState: {},
+    } as never);
+    await new Promise((r) => setImmediate(r));
+
+    expect(integrationModeService.notifySwitchHeld).toHaveBeenCalledTimes(1);
+    expect(listenerAtNotice).toBe(true);
   });
 });
