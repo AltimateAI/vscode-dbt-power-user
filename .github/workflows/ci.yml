@@ -24,6 +24,14 @@ jobs:
             vsce-target: linux-x64
           - os: windows-latest
             vsce-target: win32-x64
+          # Packaged on Linux, as the release jobs do. The runner can't load these
+          # targets' addons, so they get the content and size check only.
+          - os: ubuntu-latest
+            vsce-target: darwin-x64
+            cross: true
+          - os: ubuntu-latest
+            vsce-target: linux-arm64
+            cross: true
     runs-on: ${{ matrix.os }}
     # Runs PR code (build, package): read-only token. Statuses and comments are posted by
     # bundle-size-report, which never checks out or runs PR code.
@@ -48,6 +56,7 @@ jobs:
       # also searches every parent directory's node_modules, so fail when any module
       # zeromq loads comes from outside the VSIX.
       - name: Load zeromq from the packaged VSIX
+        if: ${{ !matrix.cross }}
         shell: bash
         run: |
           dir="$RUNNER_TEMP/vsix-check"
@@ -116,6 +125,10 @@ jobs:
       - name: Job summary
         shell: bash
         run: cat bundle-report.md >> "$GITHUB_STEP_SUMMARY"
+      # Last, so the uploaded VSIX and the size report are there when it fails.
+      - name: Check VSIX size and contents
+        shell: bash
+        run: python3 .github/scripts/check-vsix.py ./*.vsix ${{ matrix.vsce-target }}
 
   bundle-size-report:
     needs: build
@@ -146,7 +159,7 @@ jobs:
             const fs = require('fs');
             // Keep in sync with build.matrix: a fixed list, because code in the build job can upload
             // extra artifacts and must not choose status names.
-            const targets = ['darwin-arm64', 'linux-x64', 'win32-x64'];
+            const targets = ['darwin-arm64', 'linux-x64', 'win32-x64', 'darwin-x64', 'linux-arm64'];
             for (const target of targets) {
               const file = `bundle-report-${target}/bundle-status.txt`;
               if (!fs.existsSync(file)) continue;
