@@ -327,7 +327,10 @@ async function handleDialog(win) {
 
 // What the shared process has logged about the install so far.
 function installState() {
-  const lines = logs().shared.split("\n");
+  const dir = newestLogDir(dirs.userData);
+  const lines = readIfExists(dir && path.join(dir, "sharedprocess.log")).split(
+    "\n",
+  );
   return {
     done: lines.some(
       (l) =>

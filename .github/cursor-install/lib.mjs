@@ -24,10 +24,23 @@ export function log(...parts) {
   console.log(`[${new Date().toISOString()}]`, ...parts);
 }
 
-// GitHub annotations and job summary; plain stdout when not on Actions.
+// GitHub workflow-command escaping: data escapes %, CR and LF; properties also escape : and ,.
+export function escapeData(text) {
+  return String(text)
+    .replace(/%/g, "%25")
+    .replace(/\r/g, "%0D")
+    .replace(/\n/g, "%0A");
+}
+
+export function escapeProperty(text) {
+  return escapeData(text).replace(/:/g, "%3A").replace(/,/g, "%2C");
+}
+
+// A GitHub annotation (a workflow command on stdout).
 export function annotate(level, title, message) {
-  const clean = String(message).replace(/\r?\n/g, "%0A");
-  console.log(`::${level} title=${title}::${clean}`);
+  console.log(
+    `::${level} title=${escapeProperty(title)}::${escapeData(message)}`,
+  );
 }
 
 export function summary(markdown) {

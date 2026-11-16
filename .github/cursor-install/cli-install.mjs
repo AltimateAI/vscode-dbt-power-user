@@ -150,13 +150,18 @@ if (pu && pu.version !== expected)
   fail(`installed Power User ${pu.version}, expected ${expected}`);
 
 // Cursor's gallery has served an older MCP server for a moment; say so when it happens.
+// Informational only: a gallery error here is a warning, never a failure.
 const mcp = byId.get(MCP_ID);
-const mcpLatest =
-  mcp && resolveForTarget(await cursorGalleryVersions(MCP_ID), target);
-if (mcp && mcpLatest && compareVersions(mcp.version, mcpLatest.version) < 0) {
-  warn(
-    `installed ${MCP_ID} ${mcp.version}, but Cursor's gallery now lists ${mcpLatest.version} for ${target}`,
-  );
+try {
+  const mcpLatest =
+    mcp && resolveForTarget(await cursorGalleryVersions(MCP_ID), target);
+  if (mcp && mcpLatest && compareVersions(mcp.version, mcpLatest.version) < 0) {
+    warn(
+      `installed ${MCP_ID} ${mcp.version}, but Cursor's gallery now lists ${mcpLatest.version} for ${target}`,
+    );
+  }
+} catch (error) {
+  warn(`could not check ${MCP_ID} against Cursor's gallery: ${error.message}`);
 }
 
 // Bytes: the size of each VSIX Cursor downloaded (from the gallery), plus the unpacked size on disk.

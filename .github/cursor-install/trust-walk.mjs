@@ -60,7 +60,13 @@ async function getExtensions(ids) {
   if (!Array.isArray(json.results)) {
     throw new Error(`gallery returned no results array: ${text.slice(0, 200)}`);
   }
-  return (json.results[0]?.extensions || []).map((e) => ({
+  const extensions = json.results[0]?.extensions;
+  if (!Array.isArray(extensions)) {
+    throw new Error(
+      `gallery answered without extensions: ${text.slice(0, 200)}`,
+    );
+  }
+  return extensions.map((e) => ({
     id: `${e.publisher.publisherName}.${e.extensionName}`.toLowerCase(),
     next: [
       ...property(e.versions[0], "ExtensionDependencies"),
