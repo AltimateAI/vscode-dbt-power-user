@@ -439,9 +439,7 @@ export class DBTProject implements Disposable {
    */
   private stampDbtEnvironmentOnTelemetry(): void {
     try {
-      const mode = workspace
-        .getConfiguration("dbt")
-        .get<string>("dbtIntegration", "core");
+      const mode = getDbtIntegrationMode();
       const properties = dbtEnvironmentProperties(
         mode,
         () => this.getDBTVersion(),

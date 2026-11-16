@@ -231,6 +231,22 @@ describe("IntegrationModeService.resolve", () => {
     );
   });
 
+  it("keeps an explicit setting made while the probes run", async () => {
+    const { svc, telemetry, findBinary } = service();
+    findBinary.mockImplementation(() => {
+      useSetting({ workspaceValue: "core" });
+      return Promise.resolve(V2);
+    });
+    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe("core");
+    expect(getDbtIntegrationMode()).toBe("core");
+    expect(svc.autoSwitched).toBeUndefined();
+    expect(telemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+      "dbtIntegrationAutoSwitched",
+      expect.anything(),
+    );
+    expect(svc.needsReload()).toBe(false);
+  });
+
   it("keeps core when dbt-core imports in the selected interpreter", async () => {
     const { svc, telemetry } = service({
       dbtCore: { importable: true, version: "1.12.6" },

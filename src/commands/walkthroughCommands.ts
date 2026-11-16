@@ -145,8 +145,9 @@ export class WalkthroughCommands {
     }
   }
 
-  async installDbt(): Promise<void> {
-    const dbtIntegration = getDbtIntegrationMode();
+  async installDbt(
+    dbtIntegration: string = getDbtIntegrationMode(),
+  ): Promise<void> {
     switch (dbtIntegration) {
       case "core":
         return this.installDbtCore();

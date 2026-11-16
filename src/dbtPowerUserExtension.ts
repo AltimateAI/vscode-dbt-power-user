@@ -220,6 +220,33 @@ export class DBTPowerUserExtension implements Disposable {
       this.dbtProjectContainer.initializeWalkthrough();
       // Settles once the open decision is made; it never rejects.
       void this.whatsNewPanel.checkAndShowOnActivation();
+      // Ask to reload the window if the dbt integration changes
+      workspace.onDidChangeConfiguration((e) => {
+        if (!e.affectsConfiguration("dbt")) {
+          return;
+        }
+        // Credentials changed (sign-in / sign-out / instance switch): the initial
+        // activation fetch is gated on auth and never retried, so refresh here.
+        if (
+          e.affectsConfiguration("dbt.altimateAiKey") ||
+          e.affectsConfiguration("dbt.altimateInstanceName")
+        ) {
+          if (this.altimateAuthService.isAuthenticated()) {
+            void fetchAndCacheCredits(this.altimateRequest);
+          } else {
+            clearCachedCredits();
+          }
+        }
+        if (
+          e.affectsConfiguration("dbt.dbtIntegration") &&
+          ["core", "cloud", "corecommand", "fusion"].includes(
+            readConfiguredDbtIntegration().value,
+          ) &&
+          this.integrationModeService.needsReload()
+        ) {
+          commands.executeCommand("workbench.action.reloadWindow");
+        }
+      });
       try {
         // Before detection: the mode decides which dbt is looked for.
         await this.integrationModeService.resolve(context.workspaceState);
@@ -289,33 +316,6 @@ export class DBTPowerUserExtension implements Disposable {
           error,
         );
       }
-      // Ask to reload the window if the dbt integration changes
-      workspace.onDidChangeConfiguration((e) => {
-        if (!e.affectsConfiguration("dbt")) {
-          return;
-        }
-        // Credentials changed (sign-in / sign-out / instance switch): the initial
-        // activation fetch is gated on auth and never retried, so refresh here.
-        if (
-          e.affectsConfiguration("dbt.altimateAiKey") ||
-          e.affectsConfiguration("dbt.altimateInstanceName")
-        ) {
-          if (this.altimateAuthService.isAuthenticated()) {
-            void fetchAndCacheCredits(this.altimateRequest);
-          } else {
-            clearCachedCredits();
-          }
-        }
-        if (
-          e.affectsConfiguration("dbt.dbtIntegration") &&
-          ["core", "cloud", "corecommand", "fusion"].includes(
-            readConfiguredDbtIntegration().value,
-          ) &&
-          this.integrationModeService.needsReload()
-        ) {
-          commands.executeCommand("workbench.action.reloadWindow");
-        }
-      });
     } catch (error) {
       this.telemetry.sendTelemetryError("extensionActivationError", error);
     }

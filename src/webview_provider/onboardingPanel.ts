@@ -385,7 +385,7 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           await config.update("dbtIntegration", integrationType, true);
 
           // Call the installDbt command
-          await this.walkthroughCommands.installDbt();
+          await this.walkthroughCommands.installDbt(integrationType);
 
           this.sendResponseToWebview({
             command: "response",
@@ -436,7 +436,6 @@ export class OnboardingPanel extends AltimateWebviewProvider {
         try {
           const projects = this.dbtProjectContainer.getProjects();
           const dbtWorkspaces = this.dbtProjectContainer.dbtWorkspaceFolders;
-          const dbtIntegrationMode = getDbtIntegrationMode();
           const pythonEnvironment =
             this.dbtProjectContainer.getPythonEnvironment();
           // On first run Get Started opens during activation, before the Python
@@ -487,6 +486,8 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             excludePattern,
           );
           const projectsFoundInWorkspace = dbtProjectFiles.length > 0;
+          // Read after the waits: the mode is resolved during activation.
+          const dbtIntegrationMode = getDbtIntegrationMode();
 
           this.sendResponseToWebview({
             command: "response",

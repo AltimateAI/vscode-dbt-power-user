@@ -82,8 +82,7 @@ export class IntegrationModeService {
 
   async resolve(workspaceState: Memento): Promise<string> {
     this.workspaceState = workspaceState;
-    const configured = readConfiguredDbtIntegration();
-    this.resolvedExplicit = configured.explicit;
+    let configured = readConfiguredDbtIntegration();
     let binary: DbtV2Binary | undefined;
     let pythonDbtCore: PythonDbtCore = { importable: false };
     let dbtLoom = false;
@@ -108,7 +107,10 @@ export class IntegrationModeService {
             existsSync(path.join(folder.uri.fsPath, DBT_LOOM_CONFIG)),
           );
       }
+      // A setting made explicit while the probes ran wins over their result.
+      configured = readConfiguredDbtIntegration();
     }
+    this.resolvedExplicit = configured.explicit;
     const { mode, autoSwitched, heldBack } = decideDbtIntegrationMode(
       configured,
       {
