@@ -181,8 +181,16 @@ export class QueryResultPanel extends AltimateWebviewProvider {
 
   private queryExecution?: QueryExecution;
   // Render messages waiting for their webview (or, with none yet, the next one) to load.
-  private incomingMessages: { webview?: Webview; message: SendMessageProps }[] =
-    [];
+  // `sequence` orders all render messages, so a re-targeted one older than
+  // what its new webview has already shown can be dropped.
+  private incomingMessages: {
+    webview?: Webview;
+    message: SendMessageProps;
+    sequence: number;
+  }[] = [];
+  private renderSequence = 0;
+  // The newest render message posted to each webview.
+  private lastPosted = new WeakMap<Webview, number>();
   // Webviews whose script has reported ready. The bottom view and each "Open in
   // Tab" panel load on their own; one that never loads holds back only itself.
   private readyWebviews = new WeakSet<Webview>();
@@ -812,11 +820,13 @@ export class QueryResultPanel extends AltimateWebviewProvider {
    * {@link incomingMessages} and {@link sendQueued} sends it in order once it has loaded. */
   private async postWhenReady(message: SendMessageProps) {
     const webview = this._panel?.webview;
+    const sequence = ++this.renderSequence;
     if (webview && this.readyWebviews.has(webview)) {
+      this.lastPosted.set(webview, sequence);
       await webview.postMessage(message);
       return;
     }
-    this.incomingMessages.push({ webview, message });
+    this.incomingMessages.push({ webview, message, sequence });
   }
 
   /** A wrapper for {@link transmitData} which converts server
@@ -1010,12 +1020,18 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   }
 
   /** Points what waits for `gone`, a webview that will never load, at `to`,
-   * and sends it now if `to` has loaded. Without `to`, it waits for the first
+   * and sends it now if `to` has loaded, except what is older than the newest
+   * message `to` has already been sent. Without `to`, it waits for the first
    * webview that loads. */
   private retargetQueued(gone: Webview, to: Webview | undefined) {
-    this.incomingMessages = this.incomingMessages.map((entry) =>
-      entry.webview === gone ? { ...entry, webview: to } : entry,
-    );
+    // Older than what `to` has already shown: dropped, so a newer preview
+    // there isn't replaced by an older one.
+    const shown = (to && this.lastPosted.get(to)) ?? 0;
+    this.incomingMessages = this.incomingMessages
+      .filter((entry) => entry.webview !== gone || entry.sequence > shown)
+      .map((entry) =>
+        entry.webview === gone ? { ...entry, webview: to } : entry,
+      );
     if (to && this.readyWebviews.has(to)) {
       this.sendQueued(to);
     }
@@ -1030,6 +1046,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this.incomingMessages = [];
     for (const entry of queued) {
       if ((entry.webview ?? ready) === ready) {
+        this.lastPosted.set(ready, entry.sequence);
         ready.postMessage(entry.message);
       } else {
         this.incomingMessages.push(entry);

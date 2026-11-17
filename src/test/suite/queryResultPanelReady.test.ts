@@ -61,6 +61,8 @@ function panelLoading() {
     isWebviewReady: false,
     incomingMessages: [],
     readyWebviews: new WeakSet(),
+    renderSequence: 0,
+    lastPosted: new WeakMap(),
     dbtTerminal: { debug: jest.fn(), warn: jest.fn(), info: jest.fn() },
     queryManifestService: { getProject: () => undefined },
     renderWebviewView: jest.fn(),
@@ -272,6 +274,28 @@ describe("an Open in Tab panel that never loads", () => {
       "renderLoading",
       "renderQuery",
     ]);
+  });
+
+  it("doesn't replace a newer result in the bottom view with an older one it was waiting for", async () => {
+    const { panel, bottom } = panelLoading();
+    await bottom.load();
+    const { close } = openTab(panel);
+    // A runs while the unloaded tab is current: its messages wait for the tab.
+    await panel.executeQuery(
+      "select a",
+      execution(Promise.resolve(output)),
+      "",
+    );
+    // B runs back on the bottom view, which has loaded: it renders there.
+    const newer = { ...output, compiled_sql: "select 2 as id" };
+    await panel.executeQuery("select b", execution(Promise.resolve(newer)), "");
+
+    close();
+
+    expect(bottom.renders()).toEqual(["renderLoading", "renderQuery"]);
+    expect(
+      bottom.received.filter((m) => m.command === "renderQuery").pop(),
+    ).toMatchObject({ compiled_sql: "select 2 as id" });
   });
 
   it("hands a result it was waiting for to the bottom view when it closes", async () => {
