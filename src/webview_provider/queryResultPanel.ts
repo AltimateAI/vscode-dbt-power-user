@@ -725,12 +725,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       raw_sql,
       compiled_sql,
     };
-    if (this._panel) {
-      await this._panel.webview.postMessage({
-        command: OutboundCommand.RenderQuery,
-        ...(<RenderQuery>result),
-      });
-    }
+    await this.postWhenReady({
+      command: OutboundCommand.RenderQuery,
+      ...(<RenderQuery>result),
+    });
 
     return result;
   }
@@ -741,13 +739,11 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     raw_sql: string,
     compiled_sql: string,
   ) {
-    if (this._panel) {
-      // TODO: telemetry
-      await this._panel.webview.postMessage({
-        command: OutboundCommand.RenderError,
-        ...(<RenderError>{ ...error, raw_sql, compiled_sql }),
-      });
-    }
+    // TODO: telemetry
+    await this.postWhenReady({
+      command: OutboundCommand.RenderError,
+      ...(<RenderError>{ ...error, raw_sql, compiled_sql }),
+    });
   }
 
   /** Sends VSCode config data to webview */
@@ -770,27 +766,23 @@ export class QueryResultPanel extends AltimateWebviewProvider {
 
   /** Sends VSCode render loading command to webview */
   private async transmitLoading() {
-    if (this._panel) {
-      if (this.isWebviewReady) {
-        await this._panel.webview.postMessage({
-          command: OutboundCommand.RenderLoading,
-        });
-        return;
-      }
-    }
-
-    this.incomingMessages.push({
-      command: OutboundCommand.RenderLoading,
-    });
+    await this.postWhenReady({ command: OutboundCommand.RenderLoading });
   }
 
   /** Sends VSCode clear state command */
   private async transmitReset() {
-    if (this._panel) {
-      await this._panel.webview.postMessage({
-        command: OutboundCommand.ResetState,
-      });
+    await this.postWhenReady({ command: OutboundCommand.ResetState });
+  }
+
+  /** Posts a render message once the webview has loaded. A message posted
+   * before its script reports ready is lost, so earlier ones wait in
+   * {@link incomingMessages} and {@link onWebviewReady} sends them in order. */
+  private async postWhenReady(message: SendMessageProps) {
+    if (this._panel && this.isWebviewReady) {
+      await this._panel.webview.postMessage(message);
+      return;
     }
+    this.incomingMessages.push(message);
   }
 
   /** A wrapper for {@link transmitData} which converts server
@@ -967,11 +959,11 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       return;
     }
 
-    while (this.incomingMessages.length) {
-      const message = this.incomingMessages.pop();
-      if (message) {
-        this.sendResponseToWebview(message);
-      }
+    // In arrival order, as they would have been posted: the loading state
+    // first, then the result, error or reset that replaces it.
+    const queued = this.incomingMessages.splice(0);
+    for (const message of queued) {
+      this._panel.webview.postMessage(message);
     }
   }
 }
