@@ -70,6 +70,7 @@ function panelLoading() {
     isWebviewReady: false,
     bottomQueue: [],
     tabQueues: new WeakMap(),
+    tabResults: new WeakMap(),
     readyWebviews: new WeakSet(),
     dbtTerminal: { debug: jest.fn(), warn: jest.fn(), info: jest.fn() },
     queryManifestService: { getProject: () => undefined },
@@ -475,6 +476,49 @@ describe("an Open in Tab panel", () => {
 
     expect(bottom.renders()).toEqual(["renderLoading", "renderQuery"]);
     expect(tab.renders()).toEqual([]);
+  });
+});
+
+describe("an Open in Tab panel's own result", () => {
+  const responses = (view: ReturnType<typeof fakeWebview>) =>
+    view.received
+      .filter((m) => m.command === "response")
+      .map((m) => (m.args as { body: unknown }).body);
+
+  it("reaches it when it loads only after a preview has finished", async () => {
+    const { panel, bottom } = panelLoading();
+    await bottom.load();
+    // Open in Tab, hidden at once; a preview runs and finishes before it loads.
+    const { tab, snapshot } = openTab(panel);
+    await panel.executeQuery(
+      "select * from orders",
+      execution(Promise.resolve(output)),
+      "",
+    );
+
+    await tab.load();
+    await snapshot();
+
+    expect(responses(tab)).toEqual([
+      { compiledCodeMarkup: "select * from customers" },
+    ]);
+    expect(responses(bottom)).toEqual([]);
+  });
+
+  it("isn't taken by the bottom view's own data request", async () => {
+    const { panel, bottom } = panelLoading();
+    const { tab, snapshot } = openTab(panel);
+    // The bottom view loads, and asks for its data, before the tab does.
+    await bottom.load();
+    await bottom.send({ command: "getQueryTabData", syncRequestId: "2" });
+
+    await tab.load();
+    await snapshot();
+
+    expect(responses(bottom)).toEqual([undefined]);
+    expect(responses(tab)).toEqual([
+      { compiledCodeMarkup: "select * from customers" },
+    ]);
   });
 });
 

@@ -117,14 +117,13 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     return (<WebviewView>panel).show !== undefined;
   }
 
-  protected sendResponseToWebview({
-    command,
-    data,
-    error,
-    syncRequestId,
-    ...rest
-  }: SendMessageProps) {
-    this._panel?.webview?.postMessage({
+  /** Answers a webview's request; `to` is the webview that asked, when it may
+   * not be the current panel's. */
+  protected sendResponseToWebview(
+    { command, data, error, syncRequestId, ...rest }: SendMessageProps,
+    to: Webview | undefined = this._panel?.webview,
+  ) {
+    to?.postMessage({
       command,
       args: {
         syncRequestId,

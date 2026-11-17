@@ -181,6 +181,9 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   protected viewPath = "/query-panel";
   protected panelDescription = "Query results panel";
   private _queryTabData: any;
+  // The result each tab opened with ("Open in Tab", a history entry), which
+  // its data request gets whenever the tab asks.
+  private tabResults = new WeakMap<Webview, unknown>();
   private _bottomPanel: WebviewView | undefined;
 
   private queryExecution?: QueryExecution;
@@ -320,6 +323,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._panel = webviewPanel;
     const tabWebview = webviewPanel.webview;
     this._webview = tabWebview;
+    if (this._queryTabData) {
+      this.tabResults.set(tabWebview, this._queryTabData);
+      this._queryTabData = undefined;
+    }
     // A closed tab gets nothing more: point the panel back at the bottom view
     // if it still points here, and drop what was waiting for the tab.
     webviewPanel.onDidDispose(
@@ -544,19 +551,25 @@ export class QueryResultPanel extends AltimateWebviewProvider {
               data: this._queryHistory,
             });
             break;
-          case InboundCommand.GetQueryTabData:
-            this.sendResponseToWebview({
-              command: "response",
-              data: this._queryTabData,
-              syncRequestId: message.syncRequestId,
-            });
-            // Reset only if opening query results in a tab using "Open in Tab" button
-            if (this._queryTabData) {
-              // reset to bottom panel
+          case InboundCommand.GetQueryTabData: {
+            // Answered to the webview that asks, with its own result: a tab
+            // hidden as it opened may load only once shown, when the panel
+            // points elsewhere.
+            const tabResult = this.tabResults.get(webview);
+            this.sendResponseToWebview(
+              {
+                command: "response",
+                data: tabResult,
+                syncRequestId: message.syncRequestId,
+              },
+              webview,
+            );
+            // A tab with a result has loaded: back to the bottom view.
+            if (tabResult) {
               this._panel = this._bottomPanel;
-              this._queryTabData = undefined;
             }
             break;
+          }
           case InboundCommand.GetQueryPanelContext:
             {
               await this.sendUpdatedContextToWebview();
