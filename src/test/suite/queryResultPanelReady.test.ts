@@ -73,6 +73,7 @@ function panelLoading() {
     tabResults: new WeakMap(),
     readyWebviews: new WeakSet(),
     dbtTerminal: { debug: jest.fn(), warn: jest.fn(), info: jest.fn() },
+    telemetry: { sendTelemetryEvent: jest.fn(), sendTelemetryError: jest.fn() },
     queryManifestService: { getProject: () => undefined },
     renderWebviewView: jest.fn(),
     // Never settles, and starts no timer.
@@ -131,17 +132,18 @@ function openTab(panel: QueryResultPanel) {
 /** A Query History or Bookmark "Execute" of `result`: the panel opens a tab
  * for the run and starts it once the tab is ready (`tabReady()`), through the
  * project, which fires an `executeQuery` event carrying the tab.
- * `finished()` waits for the run. */
+ * `finished()` waits for the run. The button sends no `limit`; with one, the
+ * run goes through the project's limited variant. */
 function historyExecute(
   panel: QueryResultPanel,
   result: Promise<typeof output>,
+  limit?: number,
 ) {
   const state = panel as unknown as Record<string, unknown>;
   const opened = nextTab();
   let tabReady!: () => void;
   const ready = new Promise<void>((resolve) => (tabReady = resolve));
   state.checkIfWebviewReady = () => ready;
-  state.telemetry = { sendTelemetryEvent: jest.fn() };
   const runs: Promise<unknown>[] = [];
   const executeQuery = panel.executeQuery.bind(panel);
   state.executeQuery = (
@@ -151,7 +153,20 @@ function historyExecute(
     runs.push(run);
     return run;
   };
+  // As the project does: an `executeQuery` event carrying the tab.
+  const fire = (query: string, tab: unknown) =>
+    (panel as unknown as { onEvent(event: unknown): Promise<void> }).onEvent({
+      command: "executeQuery",
+      payload: { query, fn: execution(result), projectName: "", tab },
+    });
   state.getProject = async () => ({
+    executeSQLOnQueryPanel: (
+      query: string,
+      _modelName: string,
+      _previewMode: string,
+      _uri: unknown,
+      tab: unknown,
+    ) => fire(query, tab),
     executeSQLWithLimitOnQueryPanel: (
       query: string,
       _modelName: string,
@@ -159,11 +174,7 @@ function historyExecute(
       _previewMode: string,
       _uri: unknown,
       tab: unknown,
-    ) =>
-      (panel as unknown as { onEvent(event: unknown): Promise<void> }).onEvent({
-        command: "executeQuery",
-        payload: { query, fn: execution(result), projectName: "", tab },
-      }),
+    ) => fire(query, tab),
   });
   const started = (
     panel as unknown as { executeIncomingQuery(m: unknown): Promise<void> }
@@ -171,7 +182,7 @@ function historyExecute(
     query: "select * from orders",
     projectName: "jaffle_shop",
     editorName: "History",
-    limit: 50,
+    limit,
   });
   const finished = async () => {
     await started;
@@ -590,6 +601,87 @@ describe("a Query History or Bookmark Execute", () => {
 
     expect(bottom.renders()).toEqual(["renderLoading", "renderQuery"]);
     expect(run.tab.renders()).toEqual(["renderLoading", "renderQuery"]);
+  });
+});
+
+describe("a Query History or Bookmark Execute with a limit", () => {
+  it("also shows the run in the tab it opened", async () => {
+    const { panel, bottom } = panelLoading();
+    await bottom.load();
+    const run = historyExecute(panel, Promise.resolve(output), 50);
+    await tick();
+    await run.tab.load();
+    run.tabReady();
+
+    await run.finished();
+
+    expect(run.tab.renders()).toEqual(["renderLoading", "renderQuery"]);
+    expect(bottom.renders()).toEqual([]);
+  });
+});
+
+describe("a Query History or Bookmark Execute's view type", () => {
+  it("goes to its tab, even when a preview has pointed the panel back meanwhile", async () => {
+    const { panel, bottom } = panelLoading();
+    await bottom.load();
+    const run = historyExecute(panel, Promise.resolve(output));
+    await tick();
+    await run.tab.load();
+    // A preview finishes while the tab's wait goes on.
+    await panel.executeQuery(
+      "select 1",
+      execution(Promise.resolve(output)),
+      "",
+    );
+    run.tabReady();
+
+    await run.finished();
+
+    const viewTypes = (view: ReturnType<typeof fakeWebview>) =>
+      view.received.filter((m) => m.command === "updateViewType");
+    expect(viewTypes(run.tab)).toHaveLength(1);
+    expect(viewTypes(bottom)).toEqual([]);
+  });
+});
+
+describe("a request from a webview", () => {
+  const answered = (view: ReturnType<typeof fakeWebview>) =>
+    view.received
+      .filter((m) => m.command !== "focus" && !RENDERS.includes(m.command))
+      .map((m) =>
+        m.command === "response"
+          ? (m.args as { syncRequestId: string }).syncRequestId
+          : m.command,
+      );
+
+  it("from a loaded tab is answered to the tab, once the panel points at the bottom view", async () => {
+    const { panel, bottom } = panelLoading();
+    await bottom.load();
+    const { tab, snapshot } = openTab(panel);
+    await tab.load();
+    await snapshot();
+
+    // Answered by the base provider, and by the panel itself.
+    await tab.send({ command: "getProjectAdapterType", syncRequestId: "a" });
+    await tab.send({ command: "clearQueryHistory", syncRequestId: "b" });
+    await tab.send({ command: "getQueryPanelContext", syncRequestId: "c" });
+    await tick();
+
+    expect(answered(tab)).toEqual(["1", "a", "b", "getContext"]);
+    expect(answered(bottom)).toEqual([]);
+  });
+
+  it("from the bottom view is answered to it while an unloaded tab is current", async () => {
+    const { panel, bottom } = panelLoading();
+    await bottom.load();
+    const { tab } = openTab(panel);
+
+    await bottom.send({ command: "getQueryHistory", syncRequestId: "d" });
+    await bottom.send({ command: "getProjectAdapterType", syncRequestId: "e" });
+    await tick();
+
+    expect(answered(bottom)).toEqual(["queryHistory", "e"]);
+    expect(tab.received).toEqual([]);
   });
 });
 

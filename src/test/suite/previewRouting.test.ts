@@ -437,6 +437,22 @@ describe("executeSqlWithNodeContextWithLimitOnQueryPanel", () => {
   });
 });
 
+describe("executeSQLOnQueryPanel", () => {
+  it("hands the Query Results tab a run was started for to the limited run", async () => {
+    const p = createProject({
+      canInjectNodeContextInSqlSnippetExecution: true,
+      nodes: [],
+    }) as any;
+    p.executeSQLWithLimitOnQueryPanel = jest.fn(() => Promise.resolve());
+    const tab = { postMessage: jest.fn() };
+
+    await p.executeSQLOnQueryPanel("select 1", "", "inline", undefined, tab);
+
+    expect(p.executeSQLWithLimitOnQueryPanel).toHaveBeenCalledTimes(1);
+    expect(p.executeSQLWithLimitOnQueryPanel.mock.calls[0][5]).toBe(tab);
+  });
+});
+
 describe("offerModelRunOnIdentityFailure when the offer itself fails", () => {
   it("reports a failed save or prompt instead of dropping it", async () => {
     const p = createProject({

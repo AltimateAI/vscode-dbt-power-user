@@ -268,7 +268,11 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     );
   }
 
-  private async sendUpdatedContextToWebview() {
+  /** Sends the query limit, theme and active editor to `to` (by default, the
+   * current panel's webview). */
+  private async sendUpdatedContextToWebview(
+    to: Webview | undefined = this._panel?.webview,
+  ) {
     const perspectiveTheme = workspace
       .getConfiguration("dbt")
       .get("perspectiveTheme", "Vintage");
@@ -277,18 +281,16 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       .get("disableQueryHistory", false);
 
     const limit = workspace.getConfiguration("dbt").get<number>("queryLimit");
-    if (this._panel) {
-      await this._panel.webview.postMessage({
-        command: OutboundCommand.GetContext,
-        limit,
-        perspectiveTheme,
-        queryHistoryDisabled,
-        activeEditor: {
-          query: window.activeTextEditor?.document.getText(),
-          filepath: window.activeTextEditor?.document.uri.fsPath,
-        },
-      });
-    }
+    await to?.postMessage({
+      command: OutboundCommand.GetContext,
+      limit,
+      perspectiveTheme,
+      queryHistoryDisabled,
+      activeEditor: {
+        query: window.activeTextEditor?.document.getText(),
+        filepath: window.activeTextEditor?.document.uri.fsPath,
+      },
+    });
   }
 
   private collectQueryResultsDebugInfo() {
@@ -346,11 +348,14 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     return tabWebview;
   }
 
-  private updateViewTypeToWebview(viewType: QueryPanelViewType) {
-    this.sendResponseToWebview({
-      command: "updateViewType",
-      data: { type: viewType },
-    });
+  private updateViewTypeToWebview(viewType: QueryPanelViewType, to?: Webview) {
+    this.sendResponseToWebview(
+      {
+        command: "updateViewType",
+        data: { type: viewType },
+      },
+      to,
+    );
   }
 
   protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
@@ -441,6 +446,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         : undefined;
       this.updateViewTypeToWebview(
         QueryPanelViewType.OPEN_RESULTS_FROM_HISTORY_BOOKMARKS,
+        tab,
       );
       this.telemetry.sendTelemetryEvent(
         isHistoryTab ? "QueryHistoryExecuteSql" : "QueryBookmarkExecuteSql",
@@ -495,7 +501,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         switch (message.command) {
           case "webview:ready":
             this.readyWebviews.add(webview);
-            super.handleCommand(message);
+            super.handleCommand(message, webview);
             this.sendQueued(webview);
             break;
           // Incase of error in rendering perspective viewer query results, user can click button
@@ -506,11 +512,14 @@ export class QueryResultPanel extends AltimateWebviewProvider {
               message.error,
             );
             this._queryHistory = [];
-            this.sendResponseToWebview({
-              command: "response",
-              data: {},
-              syncRequestId: message.syncRequestId,
-            });
+            this.sendResponseToWebview(
+              {
+                command: "response",
+                data: {},
+                syncRequestId: message.syncRequestId,
+              },
+              webview,
+            );
             break;
           case InboundCommand.OpenCodeInEditor:
             this.handleOpenCodeInEditor(message);
@@ -546,10 +555,13 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             await this.executeIncomingQuery(message);
             break;
           case InboundCommand.GetQueryHistory:
-            this.sendResponseToWebview({
-              command: "queryHistory",
-              data: this._queryHistory,
-            });
+            this.sendResponseToWebview(
+              {
+                command: "queryHistory",
+                data: this._queryHistory,
+              },
+              webview,
+            );
             break;
           case InboundCommand.GetQueryTabData: {
             // Answered to the webview that asks, with its own result: a tab
@@ -572,7 +584,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           }
           case InboundCommand.GetQueryPanelContext:
             {
-              await this.sendUpdatedContextToWebview();
+              await this.sendUpdatedContextToWebview(webview);
             }
             break;
           case InboundCommand.CancelQuery:
@@ -726,7 +738,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             );
             break;
           default:
-            super.handleCommand(message);
+            super.handleCommand(message, webview);
         }
       },
       this,
