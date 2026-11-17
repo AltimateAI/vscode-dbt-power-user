@@ -176,6 +176,23 @@ describe("Query Results before its webview is ready", () => {
   });
 });
 
+describe("the time shown with a result", () => {
+  it("is the duration the extension measured, in seconds, sent with the rows", async () => {
+    const { panel, bottom } = panelLoading();
+    const slow = new Promise<typeof output>((resolve) =>
+      setTimeout(() => resolve(output), 300),
+    );
+
+    await panel.executeQuery("select 1", execution(slow), "");
+    await bottom.load();
+
+    const rows = bottom.received.find((m) => m.command === "renderQuery");
+    expect(typeof rows?.elapsedTime).toBe("number");
+    expect(rows?.elapsedTime as number).toBeGreaterThanOrEqual(0.3);
+    expect(rows?.elapsedTime as number).toBeLessThan(2);
+  });
+});
+
 describe("a message queued before any panel exists", () => {
   it("goes to the first webview that loads, even while another is current", async () => {
     const { panel, bottom } = panelLoading();

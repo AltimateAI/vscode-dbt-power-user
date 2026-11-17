@@ -30,10 +30,15 @@
       "@modules/*": ["src/modules/*"],
       "@testUtils": ["src/testUtils/index.ts"],
       "@vscodeApi": ["src/modules/vscode/index.ts"],
-      "@telemetryEvents": ["../src/telemetry/events.ts"]
+      "@telemetryEvents": ["../src/telemetry/events.ts"],
+      "@queryElapsedTime": ["../src/webview_provider/queryElapsedTime.ts"]
     },
     "typeRoots": ["src/modules/queryPanel/components/perspective"]
   },
-  "include": ["src", "../src/telemetry/events.ts"],
+  "include": [
+    "src",
+    "../src/telemetry/events.ts",
+    "../src/webview_provider/queryElapsedTime.ts"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

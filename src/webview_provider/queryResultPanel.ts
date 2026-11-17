@@ -38,6 +38,7 @@ import {
   SendMessageProps,
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
+import { toElapsedSeconds } from "./queryElapsedTime";
 import {
   buildCappedRows,
   evictToBudget,
@@ -70,6 +71,8 @@ interface RenderQuery {
   rows: JsonObj[];
   raw_sql: string;
   compiled_sql: string;
+  // Seconds the query took, as measured here; the header shows it.
+  elapsedTime?: number;
 }
 
 interface RenderError {
@@ -742,6 +745,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     rows: JsonObj[],
     raw_sql: string,
     compiled_sql: string,
+    elapsedTime: number,
   ) {
     const result = {
       columnNames,
@@ -752,7 +756,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     };
     await this.postWhenReady({
       command: OutboundCommand.RenderQuery,
-      ...(<RenderQuery>result),
+      ...(<RenderQuery>{ ...result, elapsedTime }),
     });
 
     return result;
@@ -813,7 +817,11 @@ export class QueryResultPanel extends AltimateWebviewProvider {
 
   /** A wrapper for {@link transmitData} which converts server
    * results interface ({@link ExecuteSQLResult}) to what the webview expects */
-  private async transmitDataWrapper(result: ExecuteSQLResult, query: string) {
+  private async transmitDataWrapper(
+    result: ExecuteSQLResult,
+    query: string,
+    elapsedTime: number,
+  ) {
     // Rows are serialized one at a time while they are built and capped by
     // their serialized size: one JSON.stringify over the whole result (what
     // VS Code does when the message is posted) hit V8's string-length limit
@@ -839,6 +847,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       rows,
       query,
       result.compiled_sql,
+      elapsedTime,
     );
     return { ...transmitted, payloadChars: chars };
   }
@@ -915,12 +924,19 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       const queryExecution = (this.queryExecution =
         await queryExecutionPromise);
       const output = await queryExecution.executeQuery();
-      const result = await this.transmitDataWrapper(output, query);
+      // Measured here and sent with the rows: the webview's own timer starts
+      // when it shows the loading state, which may be only as it loads.
+      const duration = Date.now() - start;
+      const result = await this.transmitDataWrapper(
+        output,
+        query,
+        toElapsedSeconds(duration),
+      );
       this.updateQueryHistory(
         result,
         projectName,
         query,
-        Date.now() - start,
+        duration,
         output.modelName,
       );
       return result;
