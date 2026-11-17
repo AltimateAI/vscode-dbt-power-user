@@ -206,6 +206,29 @@ describe("the time shown with a result", () => {
   });
 });
 
+describe("a bottom view replaced before it loads", () => {
+  it("passes what waited for it to the view that replaces it", async () => {
+    const { panel } = panelLoading();
+    const state = panel as unknown as Record<string, unknown>;
+    await (
+      panel as unknown as { transmitLoading(): Promise<void> }
+    ).transmitLoading();
+    // The view is closed before it loads and opened again: a new webview.
+    const replacement = fakeWebview();
+    const view = { show: jest.fn(), webview: replacement.webview };
+    state._panel = view;
+    state._bottomPanel = view;
+    (
+      panel as unknown as { adoptBottomWebview(webview: unknown): void }
+    ).adoptBottomWebview(replacement.webview);
+    (panel as unknown as { setupWebviewHooks(): void }).setupWebviewHooks();
+
+    await replacement.load();
+
+    expect(replacement.renders()).toEqual(["renderLoading"]);
+  });
+});
+
 describe("a message queued before any panel exists", () => {
   it("goes to the first webview that loads, even while another is current", async () => {
     const { panel, bottom } = panelLoading();

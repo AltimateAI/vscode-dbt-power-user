@@ -364,7 +364,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._panel = panel;
     this._bottomPanel = panel;
     this._webview = panel.webview;
-    this.bottomWebview = panel.webview;
+    this.adoptBottomWebview(panel.webview);
     this.bindWebviewOptions(context);
     this.renderWebviewView(panel.webview);
     this.setupWebviewHooks();
@@ -1002,6 +1002,17 @@ export class QueryResultPanel extends AltimateWebviewProvider {
    * order: the loading state first, then the result, error or reset that
    * replaces it. A message queued before any panel existed goes to the first
    * webview that loads; one for another webview keeps waiting. */
+  /** The bottom view resolved with `webview`. If it replaces an earlier one
+   * (the view was closed and opened again), what waited for that one now
+   * waits for this one. */
+  private adoptBottomWebview(webview: Webview) {
+    const previous = this.bottomWebview;
+    this.bottomWebview = webview;
+    if (previous && previous !== webview) {
+      this.retargetQueued(previous, webview);
+    }
+  }
+
   /** Points what waits for `gone`, a webview that will never load, at `to`,
    * and sends it now if `to` has loaded. Without `to`, it waits for the first
    * webview that loads. */
