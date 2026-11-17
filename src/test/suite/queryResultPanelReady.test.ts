@@ -59,10 +59,8 @@ function panelLoading() {
     bottomWebview: bottom.webview,
     _disposables: [],
     isWebviewReady: false,
-    incomingMessages: [],
+    bottomQueue: [],
     readyWebviews: new WeakSet(),
-    renderSequence: 0,
-    lastPosted: new WeakMap(),
     dbtTerminal: { debug: jest.fn(), warn: jest.fn(), info: jest.fn() },
     queryManifestService: { getProject: () => undefined },
     renderWebviewView: jest.fn(),
@@ -215,14 +213,13 @@ describe("a bottom view replaced before it loads", () => {
     await (
       panel as unknown as { transmitLoading(): Promise<void> }
     ).transmitLoading();
-    // The view is closed before it loads and opened again: a new webview.
+    // The view is closed before it loads and opened again: a new webview, as
+    // `resolveWebviewView` records it.
     const replacement = fakeWebview();
     const view = { show: jest.fn(), webview: replacement.webview };
     state._panel = view;
     state._bottomPanel = view;
-    (
-      panel as unknown as { adoptBottomWebview(webview: unknown): void }
-    ).adoptBottomWebview(replacement.webview);
+    state.bottomWebview = replacement.webview;
     (panel as unknown as { setupWebviewHooks(): void }).setupWebviewHooks();
 
     await replacement.load();
@@ -231,27 +228,34 @@ describe("a bottom view replaced before it loads", () => {
   });
 });
 
-describe("a message queued before any panel exists", () => {
-  it("goes to the first webview that loads, even while another is current", async () => {
+describe("render messages sent before the bottom view exists", () => {
+  it("wait for the bottom view, even when a tab loads first", async () => {
     const { panel, bottom } = panelLoading();
     const state = panel as unknown as Record<string, unknown>;
     const view = state._bottomPanel;
     state._panel = undefined;
+    state._bottomPanel = undefined;
+    state.bottomWebview = undefined;
     await (
       panel as unknown as { transmitLoading(): Promise<void> }
     ).transmitLoading();
-    // The bottom view resolves, then a tab opens before either has loaded.
+    // A tab opens and loads first.
+    const { tab } = openTab(panel);
+    await tab.load();
+    // Then the bottom view resolves and loads.
     state._panel = view;
-    openTab(panel);
+    state._bottomPanel = view;
+    state.bottomWebview = bottom.webview;
 
     await bottom.load();
 
+    expect(tab.renders()).toEqual([]);
     expect(bottom.renders()).toEqual(["renderLoading"]);
   });
 });
 
-describe("an Open in Tab panel that never loads", () => {
-  it("doesn't hold back the bottom view once it is closed", async () => {
+describe("an Open in Tab panel", () => {
+  it("doesn't hold back the bottom view once it closes before loading", async () => {
     const { panel, bottom } = panelLoading();
     await bottom.load();
     const { close } = openTab(panel);
@@ -299,27 +303,31 @@ describe("an Open in Tab panel that never loads", () => {
     expect(tab.renders()).toEqual([]);
   });
 
-  it("doesn't let an older message it was waiting for replace a newer result in the bottom view", async () => {
+  it("closing never puts an older result after a newer one in the bottom view", async () => {
     const { panel, bottom } = panelLoading();
     await bottom.load();
     const { close } = openTab(panel);
-    // A reset aimed at the current panel (the unloaded tab) waits for it.
-    await (
-      panel as unknown as { transmitReset(): Promise<void> }
-    ).transmitReset();
-    // A newer preview renders in the bottom view.
+    // A runs while the unloaded tab is current; B runs after it.
+    await panel.executeQuery(
+      "select a",
+      execution(Promise.resolve(output)),
+      "",
+    );
     const newer = { ...output, compiled_sql: "select 2 as id" };
     await panel.executeQuery("select b", execution(Promise.resolve(newer)), "");
+    const shown = bottom.received.length;
 
     close();
 
-    expect(bottom.renders()).toEqual(["renderLoading", "renderQuery"]);
     expect(
-      bottom.received.filter((m) => m.command === "renderQuery").pop(),
-    ).toMatchObject({ compiled_sql: "select 2 as id" });
+      bottom.received
+        .filter((m) => m.command === "renderQuery")
+        .map((m) => m.compiled_sql),
+    ).toEqual(["select 1 as id", "select 2 as id"]);
+    expect(bottom.received.length).toBe(shown);
   });
 
-  it("hands a result it was waiting for to the bottom view when it closes", async () => {
+  it("opened while a preview runs doesn't take its result, and closing it doesn't throw", async () => {
     const { panel, bottom } = panelLoading();
     await bottom.load();
     let finish!: (value: typeof output) => void;
@@ -330,13 +338,14 @@ describe("an Open in Tab panel that never loads", () => {
     );
     // The loading state reached the bottom view; Open in Tab while the query runs.
     await new Promise((resolve) => setImmediate(resolve));
-    const { close } = openTab(panel);
+    const { tab, close } = openTab(panel);
     finish(output);
     await running;
 
-    close();
+    expect(() => close()).not.toThrow();
 
     expect(bottom.renders()).toEqual(["renderLoading", "renderQuery"]);
+    expect(tab.renders()).toEqual([]);
     expect((panel as unknown as Record<string, unknown>)._panel).toBe(
       (panel as unknown as Record<string, unknown>)._bottomPanel,
     );
@@ -357,5 +366,24 @@ describe("an Open in Tab panel that never loads", () => {
     );
 
     expect(bottom.renders()).toEqual(["renderLoading", "renderQuery"]);
+  });
+
+  it("starts runs whose results render in the bottom view, once loaded", async () => {
+    const { panel, bottom } = panelLoading();
+    await bottom.load();
+    const state = panel as unknown as Record<string, unknown>;
+    const { tab } = openTab(panel);
+    await tab.load();
+    // Its data request points the panel back at the bottom view; then its run button.
+    state._panel = state._bottomPanel;
+
+    await panel.executeQuery(
+      "select 1",
+      execution(Promise.resolve(output)),
+      "",
+    );
+
+    expect(bottom.renders()).toEqual(["renderLoading", "renderQuery"]);
+    expect(tab.renders()).toEqual([]);
   });
 });

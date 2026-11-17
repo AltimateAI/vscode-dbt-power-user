@@ -9,7 +9,6 @@ import {
   ViewColumn,
   Webview,
   WebviewOptions,
-  WebviewPanel,
   WebviewView,
   WebviewViewResolveContext,
   window,
@@ -50,9 +49,6 @@ import path = require("path");
 interface JsonObj {
   [key: string]: string | number | undefined;
 }
-
-// The bottom view, or an "Open in Tab" panel.
-type QueryPanel = WebviewView | WebviewPanel | undefined;
 
 enum QueryPanelViewType {
   DEFAULT,
@@ -184,21 +180,18 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   private _bottomPanel: WebviewView | undefined;
 
   private queryExecution?: QueryExecution;
-  // Render messages waiting for their webview (or, with none yet, the next one) to load.
-  // `sequence` orders all render messages, so a re-targeted one older than
-  // what its new webview has already shown can be dropped.
-  private incomingMessages: {
-    webview?: Webview;
-    message: SendMessageProps;
-    sequence: number;
-  }[] = [];
-  private renderSequence = 0;
-  // The newest render message posted to each webview.
-  private lastPosted = new WeakMap<Webview, number>();
-  // Webviews whose script has reported ready. The bottom view and each "Open in
-  // Tab" panel load on their own; one that never loads holds back only itself.
+  // How render messages (loading, rows, error, reset) are routed:
+  // - They all go to the bottom view. An "Open in Tab" panel never gets one;
+  //   it shows the result it asks for when it loads.
+  // - Each webview is ready once its own script reports `webview:ready`.
+  // - The bottom view has one queue: a render message waits in it until the
+  //   bottom view's current webview is ready, then all go out in the order
+  //   sent. It belongs to the bottom view, not to a webview, so a webview that
+  //   replaces another (the view closed and opened again) takes it.
+  // - Nothing is re-aimed at another webview or reordered.
+  private bottomQueue: SendMessageProps[] = [];
   private readyWebviews = new WeakSet<Webview>();
-  // The bottom view's webview, kept so a closed tab can hand its queue to it.
+  // Read when the bottom view resolves: a disposed view's `webview` throws.
   private bottomWebview?: Webview;
 
   // stored only for current session, if user reloads or opens new workspace, this will be reset
@@ -314,18 +307,15 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       { enableScripts: true, retainContextWhenHidden: true },
     );
     this._panel = webviewPanel;
-    // Read once, now: a disposed panel's `webview` throws, and VS Code marks
-    // the panel disposed before its dispose listeners run.
     const tabWebview = webviewPanel.webview;
     this._webview = tabWebview;
-    // A tab closed before it loads: go back to the bottom view, and hand it
-    // what was waiting for the tab, so no result is aimed at a closed tab.
+    // A tab closed before its data request pointed the panel back: point it
+    // back now, so nothing is sent to a closed tab.
     webviewPanel.onDidDispose(
       () => {
         if (this._panel === webviewPanel) {
           this._panel = this._bottomPanel;
         }
-        this.retargetQueued(tabWebview, this.bottomWebview);
       },
       null,
       this._disposables,
@@ -376,7 +366,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._panel = panel;
     this._bottomPanel = panel;
     this._webview = panel.webview;
-    this.adoptBottomWebview(panel.webview);
+    this.bottomWebview = panel.webview;
     this.bindWebviewOptions(context);
     this.renderWebviewView(panel.webview);
     this.setupWebviewHooks();
@@ -474,7 +464,9 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           case "webview:ready":
             this.readyWebviews.add(webview);
             super.handleCommand(message);
-            this.sendQueued(webview);
+            if (webview === this.bottomWebview) {
+              this.sendBottomQueue();
+            }
             break;
           // Incase of error in rendering perspective viewer query results, user can click button
           // to disable query history and retry
@@ -762,7 +754,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     raw_sql: string,
     compiled_sql: string,
     elapsedTime: number,
-    panel: QueryPanel,
   ) {
     const result = {
       columnNames,
@@ -771,13 +762,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       raw_sql,
       compiled_sql,
     };
-    await this.postWhenReady(
-      {
-        command: OutboundCommand.RenderQuery,
-        ...(<RenderQuery>{ ...result, elapsedTime }),
-      },
-      panel,
-    );
+    await this.postToBottomView({
+      command: OutboundCommand.RenderQuery,
+      ...(<RenderQuery>{ ...result, elapsedTime }),
+    });
 
     return result;
   }
@@ -787,16 +775,12 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     error: any,
     raw_sql: string,
     compiled_sql: string,
-    panel: QueryPanel,
   ) {
     // TODO: telemetry
-    await this.postWhenReady(
-      {
-        command: OutboundCommand.RenderError,
-        ...(<RenderError>{ ...error, raw_sql, compiled_sql }),
-      },
-      panel,
-    );
+    await this.postToBottomView({
+      command: OutboundCommand.RenderError,
+      ...(<RenderError>{ ...error, raw_sql, compiled_sql }),
+    });
   }
 
   /** Sends VSCode config data to webview */
@@ -818,31 +802,26 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   }
 
   /** Sends VSCode render loading command to webview */
-  private async transmitLoading(panel: QueryPanel = this._panel) {
-    await this.postWhenReady({ command: OutboundCommand.RenderLoading }, panel);
+  private async transmitLoading() {
+    await this.postToBottomView({ command: OutboundCommand.RenderLoading });
   }
 
   /** Sends VSCode clear state command */
-  private async transmitReset(panel: QueryPanel = this._panel) {
-    await this.postWhenReady({ command: OutboundCommand.ResetState }, panel);
+  private async transmitReset() {
+    await this.postToBottomView({ command: OutboundCommand.ResetState });
   }
 
-  /** Posts a render message once `panel`'s webview (the current panel's, by
-   * default) has loaded. A message posted before its script reports ready is
-   * lost, so it waits in {@link incomingMessages} and {@link sendQueued} sends
-   * it in order once it has loaded. */
-  private async postWhenReady(
-    message: SendMessageProps,
-    panel: QueryPanel = this._panel,
-  ) {
-    const webview = panel?.webview;
-    const sequence = ++this.renderSequence;
+  /** Posts a render message to the bottom view: at once if its webview has
+   * loaded, otherwise into {@link bottomQueue}, which {@link sendBottomQueue}
+   * sends in order once it has. A message posted before a webview's script
+   * reports ready is lost. */
+  private async postToBottomView(message: SendMessageProps) {
+    const webview = this.bottomWebview;
     if (webview && this.readyWebviews.has(webview)) {
-      this.lastPosted.set(webview, sequence);
       await webview.postMessage(message);
       return;
     }
-    this.incomingMessages.push({ webview, message, sequence });
+    this.bottomQueue.push(message);
   }
 
   /** A wrapper for {@link transmitData} which converts server
@@ -851,7 +830,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     result: ExecuteSQLResult,
     query: string,
     elapsedTime: number,
-    panel: QueryPanel,
   ) {
     // Rows are serialized one at a time while they are built and capped by
     // their serialized size: one JSON.stringify over the whole result (what
@@ -879,7 +857,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       query,
       result.compiled_sql,
       elapsedTime,
-      panel,
     );
     return { ...transmitted, payloadChars: chars };
   }
@@ -947,15 +924,12 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     const start = Date.now();
     //using id to focus on the webview is more reliable than using the view title
     await commands.executeCommand("dbtPowerUser.PreviewResults.focus");
-    // A preview renders in the bottom view, start to finish. An "Open in Tab"
-    // panel that is current meanwhile (loading, or its data request pointing the
-    // panel elsewhere) must not get part of it: it shows the result it opened with.
-    const panel = this._bottomPanel ?? this._panel;
-    if (panel && this.isWebviewView(panel)) {
-      panel.show(); // Show the view
-      panel.webview.postMessage({ command: "focus" }); // keyboard focus
+    // A preview renders in the bottom view (see `bottomQueue`).
+    if (this._bottomPanel) {
+      this._bottomPanel.show(); // Show the view
+      this.bottomWebview?.postMessage({ command: "focus" }); // keyboard focus
     }
-    this.transmitLoading(panel);
+    this.transmitLoading();
     try {
       const queryExecution = (this.queryExecution =
         await queryExecutionPromise);
@@ -967,7 +941,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         output,
         query,
         toElapsedSeconds(duration),
-        panel,
       );
       this.updateQueryHistory(
         result,
@@ -981,7 +954,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       if (exc instanceof PythonException) {
         if (exc.exception.type.name === "KeyboardInterrupt") {
           // query cancellation
-          this.transmitReset(panel);
+          this.transmitReset();
           return;
         }
         window.showErrorMessage(
@@ -998,7 +971,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           },
           query,
           query,
-          panel,
         );
         return;
       }
@@ -1016,7 +988,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           },
           query,
           exc.compiled_sql,
-          panel,
         );
         return;
       }
@@ -1026,7 +997,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         },
         query,
         query,
-        panel,
       );
     } finally {
       this.queryExecution = undefined;
@@ -1034,49 +1004,15 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     }
   }
 
-  /** The bottom view resolved with `webview`. If it replaces an earlier one
-   * (the view was closed and opened again), what waited for that one now
-   * waits for this one. */
-  private adoptBottomWebview(webview: Webview) {
-    const previous = this.bottomWebview;
-    this.bottomWebview = webview;
-    if (previous && previous !== webview) {
-      this.retargetQueued(previous, webview);
+  /** Sends {@link bottomQueue} to the bottom view's webview, which has just
+   * loaded, in the order the messages were sent. */
+  private sendBottomQueue() {
+    const webview = this.bottomWebview;
+    if (!webview) {
+      return;
     }
-  }
-
-  /** Points what waits for `gone`, a webview that will never load, at `to`,
-   * and sends it now if `to` has loaded, except what is older than the newest
-   * message `to` has already been sent. Without `to`, it waits for the first
-   * webview that loads. */
-  private retargetQueued(gone: Webview, to: Webview | undefined) {
-    // Older than what `to` has already shown: dropped, so a newer preview
-    // there isn't replaced by an older one.
-    const shown = (to && this.lastPosted.get(to)) ?? 0;
-    this.incomingMessages = this.incomingMessages
-      .filter((entry) => entry.webview !== gone || entry.sequence > shown)
-      .map((entry) =>
-        entry.webview === gone ? { ...entry, webview: to } : entry,
-      );
-    if (to && this.readyWebviews.has(to)) {
-      this.sendQueued(to);
-    }
-  }
-
-  /** Sends what waits for `ready`, the webview that just loaded, in arrival
-   * order: the loading state first, then the result, error or reset that
-   * replaces it. A message queued before any panel existed goes to the first
-   * webview that loads; one for another webview keeps waiting. */
-  private sendQueued(ready: Webview) {
-    const queued = this.incomingMessages;
-    this.incomingMessages = [];
-    for (const entry of queued) {
-      if ((entry.webview ?? ready) === ready) {
-        this.lastPosted.set(ready, entry.sequence);
-        ready.postMessage(entry.message);
-      } else {
-        this.incomingMessages.push(entry);
-      }
+    for (const message of this.bottomQueue.splice(0)) {
+      webview.postMessage(message);
     }
   }
 }
