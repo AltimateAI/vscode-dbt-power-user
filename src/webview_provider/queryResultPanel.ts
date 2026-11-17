@@ -177,7 +177,12 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   private _bottomPanel: WebviewView | undefined;
 
   private queryExecution?: QueryExecution;
-  private incomingMessages: SendMessageProps[] = [];
+  // Render messages waiting for their webview (or, with none yet, the next one) to load.
+  private incomingMessages: { webview?: Webview; message: SendMessageProps }[] =
+    [];
+  // Webviews whose script has reported ready. The bottom view and each "Open in
+  // Tab" panel load on their own; one that never loads holds back only itself.
+  private readyWebviews = new WeakSet<Webview>();
 
   // stored only for current session, if user reloads or opens new workspace, this will be reset
   private _queryHistory: QueryHistory[] = [];
@@ -293,6 +298,20 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     );
     this._panel = webviewPanel;
     this._webview = webviewPanel.webview;
+    // A tab closed before it loads: drop what waits for it, and go back to the
+    // bottom view rather than leaving results aimed at a closed tab.
+    webviewPanel.onDidDispose(
+      () => {
+        this.incomingMessages = this.incomingMessages.filter(
+          (entry) => entry.webview !== webviewPanel.webview,
+        );
+        if (this._panel === webviewPanel) {
+          this._panel = this._bottomPanel;
+        }
+      },
+      null,
+      this._disposables,
+    );
     this.renderWebviewView(webviewPanel.webview);
     this.setupWebviewHooks();
     await this.checkIfWebviewReady();
@@ -429,9 +448,14 @@ export class QueryResultPanel extends AltimateWebviewProvider {
 
   /** Primary interface for WebviewView inbound communication */
   private setupWebviewHooks() {
-    this._panel!.webview.onDidReceiveMessage(
+    const webview = this._panel!.webview;
+    webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
+          case "webview:ready":
+            this.readyWebviews.add(webview);
+            super.handleCommand(message);
+            break;
           // Incase of error in rendering perspective viewer query results, user can click button
           // to disable query history and retry
           case InboundCommand.ClearQueryHistory:
@@ -774,15 +798,16 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     await this.postWhenReady({ command: OutboundCommand.ResetState });
   }
 
-  /** Posts a render message once the webview has loaded. A message posted
-   * before its script reports ready is lost, so earlier ones wait in
-   * {@link incomingMessages} and {@link onWebviewReady} sends them in order. */
+  /** Posts a render message once the current panel's webview has loaded. A
+   * message posted before its script reports ready is lost, so it waits in
+   * {@link incomingMessages} and {@link onWebviewReady} sends it in order. */
   private async postWhenReady(message: SendMessageProps) {
-    if (this._panel && this.isWebviewReady) {
-      await this._panel.webview.postMessage(message);
+    const webview = this._panel?.webview;
+    if (webview && this.readyWebviews.has(webview)) {
+      await webview.postMessage(message);
       return;
     }
-    this.incomingMessages.push(message);
+    this.incomingMessages.push({ webview, message });
   }
 
   /** A wrapper for {@link transmitData} which converts server
@@ -955,15 +980,19 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   protected onWebviewReady() {
     super.onWebviewReady();
 
-    if (!this._panel) {
-      return;
-    }
-
     // In arrival order, as they would have been posted: the loading state
-    // first, then the result, error or reset that replaces it.
-    const queued = this.incomingMessages.splice(0);
-    for (const message of queued) {
-      this._panel.webview.postMessage(message);
+    // first, then the result, error or reset that replaces it. A message
+    // queued with no panel yet goes to the current one; one whose webview
+    // still hasn't loaded keeps waiting.
+    const queued = this.incomingMessages;
+    this.incomingMessages = [];
+    for (const entry of queued) {
+      const webview = entry.webview ?? this._panel?.webview;
+      if (webview && this.readyWebviews.has(webview)) {
+        webview.postMessage(entry.message);
+      } else {
+        this.incomingMessages.push(entry);
+      }
     }
   }
 }
