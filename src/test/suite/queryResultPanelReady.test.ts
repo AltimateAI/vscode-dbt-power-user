@@ -276,17 +276,38 @@ describe("an Open in Tab panel that never loads", () => {
     ]);
   });
 
-  it("doesn't replace a newer result in the bottom view with an older one it was waiting for", async () => {
+  it("doesn't take a preview's loading state while it loads hidden", async () => {
+    const { panel, bottom } = panelLoading();
+    await bottom.load();
+    const state = panel as unknown as Record<string, unknown>;
+    // Open in Tab, then straight back to the SQL file: the tab loads hidden.
+    const { tab } = openTab(panel);
+    let finish!: (value: typeof output) => void;
+    const running = panel.executeQuery(
+      "select * from orders",
+      execution(new Promise((resolve) => (finish = resolve))),
+      "",
+    );
+    await new Promise((resolve) => setImmediate(resolve));
+    // The tab loads, and its data request points the panel back at the bottom view.
+    await tab.load();
+    state._panel = state._bottomPanel;
+    finish(output);
+    await running;
+
+    expect(bottom.renders()).toEqual(["renderLoading", "renderQuery"]);
+    expect(tab.renders()).toEqual([]);
+  });
+
+  it("doesn't let an older message it was waiting for replace a newer result in the bottom view", async () => {
     const { panel, bottom } = panelLoading();
     await bottom.load();
     const { close } = openTab(panel);
-    // A runs while the unloaded tab is current: its messages wait for the tab.
-    await panel.executeQuery(
-      "select a",
-      execution(Promise.resolve(output)),
-      "",
-    );
-    // B runs back on the bottom view, which has loaded: it renders there.
+    // A reset aimed at the current panel (the unloaded tab) waits for it.
+    await (
+      panel as unknown as { transmitReset(): Promise<void> }
+    ).transmitReset();
+    // A newer preview renders in the bottom view.
     const newer = { ...output, compiled_sql: "select 2 as id" };
     await panel.executeQuery("select b", execution(Promise.resolve(newer)), "");
 

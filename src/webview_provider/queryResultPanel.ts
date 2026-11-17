@@ -9,6 +9,7 @@ import {
   ViewColumn,
   Webview,
   WebviewOptions,
+  WebviewPanel,
   WebviewView,
   WebviewViewResolveContext,
   window,
@@ -49,6 +50,9 @@ import path = require("path");
 interface JsonObj {
   [key: string]: string | number | undefined;
 }
+
+// The bottom view, or an "Open in Tab" panel.
+type QueryPanel = WebviewView | WebviewPanel | undefined;
 
 enum QueryPanelViewType {
   DEFAULT,
@@ -758,6 +762,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     raw_sql: string,
     compiled_sql: string,
     elapsedTime: number,
+    panel: QueryPanel,
   ) {
     const result = {
       columnNames,
@@ -766,10 +771,13 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       raw_sql,
       compiled_sql,
     };
-    await this.postWhenReady({
-      command: OutboundCommand.RenderQuery,
-      ...(<RenderQuery>{ ...result, elapsedTime }),
-    });
+    await this.postWhenReady(
+      {
+        command: OutboundCommand.RenderQuery,
+        ...(<RenderQuery>{ ...result, elapsedTime }),
+      },
+      panel,
+    );
 
     return result;
   }
@@ -779,12 +787,16 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     error: any,
     raw_sql: string,
     compiled_sql: string,
+    panel: QueryPanel,
   ) {
     // TODO: telemetry
-    await this.postWhenReady({
-      command: OutboundCommand.RenderError,
-      ...(<RenderError>{ ...error, raw_sql, compiled_sql }),
-    });
+    await this.postWhenReady(
+      {
+        command: OutboundCommand.RenderError,
+        ...(<RenderError>{ ...error, raw_sql, compiled_sql }),
+      },
+      panel,
+    );
   }
 
   /** Sends VSCode config data to webview */
@@ -806,20 +818,24 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   }
 
   /** Sends VSCode render loading command to webview */
-  private async transmitLoading() {
-    await this.postWhenReady({ command: OutboundCommand.RenderLoading });
+  private async transmitLoading(panel: QueryPanel = this._panel) {
+    await this.postWhenReady({ command: OutboundCommand.RenderLoading }, panel);
   }
 
   /** Sends VSCode clear state command */
-  private async transmitReset() {
-    await this.postWhenReady({ command: OutboundCommand.ResetState });
+  private async transmitReset(panel: QueryPanel = this._panel) {
+    await this.postWhenReady({ command: OutboundCommand.ResetState }, panel);
   }
 
-  /** Posts a render message once the current panel's webview has loaded. A
-   * message posted before its script reports ready is lost, so it waits in
-   * {@link incomingMessages} and {@link sendQueued} sends it in order once it has loaded. */
-  private async postWhenReady(message: SendMessageProps) {
-    const webview = this._panel?.webview;
+  /** Posts a render message once `panel`'s webview (the current panel's, by
+   * default) has loaded. A message posted before its script reports ready is
+   * lost, so it waits in {@link incomingMessages} and {@link sendQueued} sends
+   * it in order once it has loaded. */
+  private async postWhenReady(
+    message: SendMessageProps,
+    panel: QueryPanel = this._panel,
+  ) {
+    const webview = panel?.webview;
     const sequence = ++this.renderSequence;
     if (webview && this.readyWebviews.has(webview)) {
       this.lastPosted.set(webview, sequence);
@@ -835,6 +851,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     result: ExecuteSQLResult,
     query: string,
     elapsedTime: number,
+    panel: QueryPanel,
   ) {
     // Rows are serialized one at a time while they are built and capped by
     // their serialized size: one JSON.stringify over the whole result (what
@@ -862,6 +879,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       query,
       result.compiled_sql,
       elapsedTime,
+      panel,
     );
     return { ...transmitted, payloadChars: chars };
   }
@@ -929,11 +947,15 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     const start = Date.now();
     //using id to focus on the webview is more reliable than using the view title
     await commands.executeCommand("dbtPowerUser.PreviewResults.focus");
-    if (this._panel && this.isWebviewView(this._panel)) {
-      this._panel.show(); // Show the view
-      this._panel.webview.postMessage({ command: "focus" }); // keyboard focus
+    // A preview renders in the bottom view, start to finish. An "Open in Tab"
+    // panel that is current meanwhile (loading, or its data request pointing the
+    // panel elsewhere) must not get part of it: it shows the result it opened with.
+    const panel = this._bottomPanel ?? this._panel;
+    if (panel && this.isWebviewView(panel)) {
+      panel.show(); // Show the view
+      panel.webview.postMessage({ command: "focus" }); // keyboard focus
     }
-    this.transmitLoading();
+    this.transmitLoading(panel);
     try {
       const queryExecution = (this.queryExecution =
         await queryExecutionPromise);
@@ -945,6 +967,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         output,
         query,
         toElapsedSeconds(duration),
+        panel,
       );
       this.updateQueryHistory(
         result,
@@ -958,7 +981,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       if (exc instanceof PythonException) {
         if (exc.exception.type.name === "KeyboardInterrupt") {
           // query cancellation
-          this.transmitReset();
+          this.transmitReset(panel);
           return;
         }
         window.showErrorMessage(
@@ -975,6 +998,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           },
           query,
           query,
+          panel,
         );
         return;
       }
@@ -992,6 +1016,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           },
           query,
           exc.compiled_sql,
+          panel,
         );
         return;
       }
@@ -1001,6 +1026,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         },
         query,
         query,
+        panel,
       );
     } finally {
       this.queryExecution = undefined;
