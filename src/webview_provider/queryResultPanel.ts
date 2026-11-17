@@ -302,10 +302,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       { enableScripts: true, retainContextWhenHidden: true },
     );
     this._panel = webviewPanel;
-    this._webview = webviewPanel.webview;
-    // Read now: a disposed panel's `webview` throws, and VS Code marks the panel
-    // disposed before its dispose listeners run.
+    // Read once, now: a disposed panel's `webview` throws, and VS Code marks
+    // the panel disposed before its dispose listeners run.
     const tabWebview = webviewPanel.webview;
+    this._webview = tabWebview;
     // A tab closed before it loads: go back to the bottom view, and hand it
     // what was waiting for the tab, so no result is aimed at a closed tab.
     webviewPanel.onDidDispose(
@@ -318,7 +318,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       null,
       this._disposables,
     );
-    this.renderWebviewView(webviewPanel.webview);
+    this.renderWebviewView(tabWebview);
     this.setupWebviewHooks();
     await this.checkIfWebviewReady();
   }
@@ -998,10 +998,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     }
   }
 
-  /** Sends what waits for `ready`, the webview that just loaded, in arrival
-   * order: the loading state first, then the result, error or reset that
-   * replaces it. A message queued before any panel existed goes to the first
-   * webview that loads; one for another webview keeps waiting. */
   /** The bottom view resolved with `webview`. If it replaces an earlier one
    * (the view was closed and opened again), what waited for that one now
    * waits for this one. */
@@ -1025,6 +1021,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     }
   }
 
+  /** Sends what waits for `ready`, the webview that just loaded, in arrival
+   * order: the loading state first, then the result, error or reset that
+   * replaces it. A message queued before any panel existed goes to the first
+   * webview that loads; one for another webview keeps waiting. */
   private sendQueued(ready: Webview) {
     const queued = this.incomingMessages;
     this.incomingMessages = [];
