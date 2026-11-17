@@ -13,6 +13,9 @@ import { QueryResultPanel } from "../../webview_provider/queryResultPanel";
  * Readiness belongs to each webview: the bottom view and every "Open in Tab"
  * panel load on their own, and a tab closed before it loads must not hold
  * back the bottom view.
+ *
+ * A run renders in one place, fixed when it starts: the tab a Query History
+ * or Bookmark "Execute" opened for it, or otherwise the bottom view.
  */
 
 type Posted = { command: string } & Record<string, unknown>;
@@ -42,10 +45,16 @@ function fakeWebview() {
     loaded = true;
     await Promise.all(listeners.map((l) => l({ command: "webview:ready" })));
   };
+  /** A message from the webview's script, such as a button click. */
+  const send = async (message: Posted) => {
+    await Promise.all(listeners.map((l) => l(message)));
+  };
   const renders = () =>
     received.filter((m) => RENDERS.includes(m.command)).map((m) => m.command);
-  return { webview, load, received, renders };
+  return { webview, load, send, received, renders };
 }
+
+const tick = () => new Promise((resolve) => setImmediate(resolve));
 
 /** A Query Results panel with its bottom view resolved but not loaded. */
 function panelLoading() {
@@ -60,6 +69,7 @@ function panelLoading() {
     _disposables: [],
     isWebviewReady: false,
     bottomQueue: [],
+    tabQueues: new WeakMap(),
     readyWebviews: new WeakSet(),
     dbtTerminal: { debug: jest.fn(), warn: jest.fn(), info: jest.fn() },
     queryManifestService: { getProject: () => undefined },
@@ -71,10 +81,10 @@ function panelLoading() {
   return { panel, bottom };
 }
 
-/** Opens an "Open in Tab" panel; `close()` disposes it. As in VS Code, the
- * panel is marked disposed before its dispose listeners run, and reading its
- * `webview` then throws. */
-function openTab(panel: QueryResultPanel) {
+/** The next Query Results tab VS Code creates; `close()` disposes it. As in
+ * VS Code, the panel is marked disposed before its dispose listeners run, and
+ * reading its `webview` then throws. */
+function nextTab() {
   const tab = fakeWebview();
   const disposeListeners: (() => void)[] = [];
   let disposed = false;
@@ -92,16 +102,81 @@ function openTab(panel: QueryResultPanel) {
       }),
     }),
   );
-  void (
-    panel as unknown as {
-      createQueryResultsPanelVirtualDocument(name: string): Promise<void>;
-    }
-  ).createQueryResultsPanelVirtualDocument("Query results");
   const close = () => {
     disposed = true;
     disposeListeners.forEach((l) => l());
   };
   return { tab, close };
+}
+
+/** Opens an "Open in Tab" panel, which shows the result it asks for when it
+ * loads; `snapshot()` is that request. */
+function openTab(panel: QueryResultPanel) {
+  const opened = nextTab();
+  // As "Open in Tab" does before it opens the tab.
+  (panel as unknown as Record<string, unknown>)._queryTabData = {
+    compiledCodeMarkup: "select * from customers",
+  };
+  void (
+    panel as unknown as {
+      createQueryResultsPanelVirtualDocument(name: string): Promise<void>;
+    }
+  ).createQueryResultsPanelVirtualDocument("Query results");
+  const snapshot = () =>
+    opened.tab.send({ command: "getQueryTabData", syncRequestId: "1" });
+  return { ...opened, snapshot };
+}
+
+/** A Query History or Bookmark "Execute" of `result`: the panel opens a tab
+ * for the run and starts it once the tab is ready (`tabReady()`), through the
+ * project, which fires an `executeQuery` event carrying the tab.
+ * `finished()` waits for the run. */
+function historyExecute(
+  panel: QueryResultPanel,
+  result: Promise<typeof output>,
+) {
+  const state = panel as unknown as Record<string, unknown>;
+  const opened = nextTab();
+  let tabReady!: () => void;
+  const ready = new Promise<void>((resolve) => (tabReady = resolve));
+  state.checkIfWebviewReady = () => ready;
+  state.telemetry = { sendTelemetryEvent: jest.fn() };
+  const runs: Promise<unknown>[] = [];
+  const executeQuery = panel.executeQuery.bind(panel);
+  state.executeQuery = (
+    ...args: Parameters<QueryResultPanel["executeQuery"]>
+  ) => {
+    const run = executeQuery(...args);
+    runs.push(run);
+    return run;
+  };
+  state.getProject = async () => ({
+    executeSQLWithLimitOnQueryPanel: (
+      query: string,
+      _modelName: string,
+      _limit: number,
+      _previewMode: string,
+      _uri: unknown,
+      tab: unknown,
+    ) =>
+      (panel as unknown as { onEvent(event: unknown): Promise<void> }).onEvent({
+        command: "executeQuery",
+        payload: { query, fn: execution(result), projectName: "", tab },
+      }),
+  });
+  const started = (
+    panel as unknown as { executeIncomingQuery(m: unknown): Promise<void> }
+  ).executeIncomingQuery({
+    query: "select * from orders",
+    projectName: "jaffle_shop",
+    editorName: "History",
+    limit: 50,
+  });
+  const finished = async () => {
+    await started;
+    await Promise.all(runs);
+  };
+  return { ...opened, tabReady: () => tabReady(), finished };
 }
 
 const output = {
@@ -177,12 +252,12 @@ describe("Query Results before its webview is ready", () => {
   it("replays a reset that came before the webview loaded, after the loading state", async () => {
     const { panel, bottom } = panelLoading();
     const loading = panel as unknown as {
-      transmitLoading(): Promise<void>;
-      transmitReset(): Promise<void>;
+      transmitLoading(to: "bottom"): Promise<void>;
+      transmitReset(to: "bottom"): Promise<void>;
     };
 
-    await loading.transmitLoading();
-    await loading.transmitReset();
+    await loading.transmitLoading("bottom");
+    await loading.transmitReset("bottom");
     await bottom.load();
 
     expect(bottom.renders()).toEqual(["renderLoading", "resetState"]);
@@ -211,8 +286,8 @@ describe("a bottom view replaced before it loads", () => {
     const { panel } = panelLoading();
     const state = panel as unknown as Record<string, unknown>;
     await (
-      panel as unknown as { transmitLoading(): Promise<void> }
-    ).transmitLoading();
+      panel as unknown as { transmitLoading(to: "bottom"): Promise<void> }
+    ).transmitLoading("bottom");
     // The view is closed before it loads and opened again: a new webview, as
     // `resolveWebviewView` records it.
     const replacement = fakeWebview();
@@ -237,8 +312,8 @@ describe("render messages sent before the bottom view exists", () => {
     state._bottomPanel = undefined;
     state.bottomWebview = undefined;
     await (
-      panel as unknown as { transmitLoading(): Promise<void> }
-    ).transmitLoading();
+      panel as unknown as { transmitLoading(to: "bottom"): Promise<void> }
+    ).transmitLoading("bottom");
     // A tab opens and loads first.
     const { tab } = openTab(panel);
     await tab.load();
@@ -283,9 +358,9 @@ describe("an Open in Tab panel", () => {
   it("doesn't take a preview's loading state while it loads hidden", async () => {
     const { panel, bottom } = panelLoading();
     await bottom.load();
-    const state = panel as unknown as Record<string, unknown>;
     // Open in Tab, then straight back to the SQL file: the tab loads hidden.
-    const { tab } = openTab(panel);
+    const opened = openTab(panel);
+    const { tab } = opened;
     let finish!: (value: typeof output) => void;
     const running = panel.executeQuery(
       "select * from orders",
@@ -293,9 +368,9 @@ describe("an Open in Tab panel", () => {
       "",
     );
     await new Promise((resolve) => setImmediate(resolve));
-    // The tab loads, and its data request points the panel back at the bottom view.
+    // The tab loads and asks for its result.
     await tab.load();
-    state._panel = state._bottomPanel;
+    await opened.snapshot();
     finish(output);
     await running;
 
@@ -372,10 +447,8 @@ describe("an Open in Tab panel", () => {
   it("doesn't hold back the bottom view while it is still open", async () => {
     const { panel, bottom } = panelLoading();
     await bottom.load();
+    // The tab hasn't loaded, so the panel still points at it.
     openTab(panel);
-    // Back on the bottom view, as `executeQuery` and the tab's data request leave it.
-    const state = panel as unknown as Record<string, unknown>;
-    state._panel = state._bottomPanel;
 
     await panel.executeQuery(
       "select 1",
@@ -389,11 +462,10 @@ describe("an Open in Tab panel", () => {
   it("starts runs whose results render in the bottom view, once loaded", async () => {
     const { panel, bottom } = panelLoading();
     await bottom.load();
-    const state = panel as unknown as Record<string, unknown>;
-    const { tab } = openTab(panel);
+    const { tab, snapshot } = openTab(panel);
     await tab.load();
-    // Its data request points the panel back at the bottom view; then its run button.
-    state._panel = state._bottomPanel;
+    await snapshot();
+    // Then its run button.
 
     await panel.executeQuery(
       "select 1",
@@ -403,5 +475,97 @@ describe("an Open in Tab panel", () => {
 
     expect(bottom.renders()).toEqual(["renderLoading", "renderQuery"]);
     expect(tab.renders()).toEqual([]);
+  });
+});
+
+describe("a Query History or Bookmark Execute", () => {
+  it("shows the run in the tab it opened, not in the bottom view", async () => {
+    const { panel, bottom } = panelLoading();
+    await bottom.load();
+    const run = historyExecute(panel, Promise.resolve(output));
+    await tick();
+    await run.tab.load();
+    run.tabReady();
+
+    await run.finished();
+
+    expect(run.tab.renders()).toEqual(["renderLoading", "renderQuery"]);
+    expect(bottom.renders()).toEqual([]);
+  });
+
+  it("shows the run once its tab loads, when the run started first", async () => {
+    const { panel, bottom } = panelLoading();
+    await bottom.load();
+    const run = historyExecute(panel, Promise.resolve(output));
+    // The wait ends before this tab loads (another webview reported ready).
+    run.tabReady();
+    await run.finished();
+    expect(run.tab.renders()).toEqual([]);
+
+    await run.tab.load();
+
+    expect(run.tab.renders()).toEqual(["renderLoading", "renderQuery"]);
+    expect(bottom.renders()).toEqual([]);
+  });
+
+  it("drops a run whose tab is closed while it runs, without throwing", async () => {
+    const { panel, bottom } = panelLoading();
+    await bottom.load();
+    let finish!: (value: typeof output) => void;
+    const run = historyExecute(
+      panel,
+      new Promise((resolve) => (finish = resolve)),
+    );
+    await tick();
+    await run.tab.load();
+    run.tabReady();
+    await tick();
+
+    run.close();
+    finish(output);
+
+    await expect(run.finished()).resolves.toBeUndefined();
+    expect(run.tab.renders()).toEqual(["renderLoading"]);
+    expect(bottom.renders()).toEqual([]);
+  });
+
+  it("leaves the next preview to the bottom view", async () => {
+    const { panel, bottom } = panelLoading();
+    await bottom.load();
+    const run = historyExecute(panel, Promise.resolve(output));
+    await tick();
+    await run.tab.load();
+    run.tabReady();
+    await run.finished();
+
+    await panel.executeQuery(
+      "select 1",
+      execution(Promise.resolve(output)),
+      "",
+    );
+
+    expect(bottom.renders()).toEqual(["renderLoading", "renderQuery"]);
+    expect(run.tab.renders()).toEqual(["renderLoading", "renderQuery"]);
+  });
+});
+
+describe("Cancel", () => {
+  it("resets the view it was clicked in", async () => {
+    const { panel, bottom } = panelLoading();
+    await bottom.load();
+    const run = historyExecute(panel, new Promise(() => {}));
+    await tick();
+    await run.tab.load();
+    run.tabReady();
+    await tick();
+
+    await run.tab.send({ command: "cancelQuery" });
+
+    expect(run.tab.renders()).toEqual(["renderLoading", "resetState"]);
+    expect(bottom.renders()).toEqual([]);
+
+    await bottom.send({ command: "cancelQuery" });
+
+    expect(bottom.renders()).toEqual(["resetState"]);
   });
 });

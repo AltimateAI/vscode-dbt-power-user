@@ -172,6 +172,10 @@ function fenceCodeBlock(content: string, language = ""): string {
   return `${fence}${language}\n${safe}\n${fence}`;
 }
 
+// Where a run's render messages go: the bottom view, or the webview of the tab
+// a Query History or Bookmark "Execute" opened for that run.
+type Destination = "bottom" | Webview;
+
 export class QueryResultPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.PreviewResults";
   protected viewPath = "/query-panel";
@@ -181,15 +185,19 @@ export class QueryResultPanel extends AltimateWebviewProvider {
 
   private queryExecution?: QueryExecution;
   // How render messages (loading, rows, error, reset) are routed:
-  // - They all go to the bottom view. An "Open in Tab" panel never gets one;
-  //   it shows the result it asks for when it loads.
+  // - A run's destination comes with it and is fixed when it starts: the tab
+  //   a Query History or Bookmark "Execute" opened for it, or otherwise the
+  //   bottom view. An "Open in Tab" panel is never one; it shows the result it
+  //   asks for when it loads.
   // - Each webview is ready once its own script reports `webview:ready`.
-  // - The bottom view has one queue: a render message waits in it until the
-  //   bottom view's current webview is ready, then all go out in the order
-  //   sent. It belongs to the bottom view, not to a webview, so a webview that
-  //   replaces another (the view closed and opened again) takes it.
-  // - Nothing is re-aimed at another webview or reordered.
+  // - Each destination has its own queue: a message waits there until the
+  //   destination's webview is ready, then all go out in the order sent. The
+  //   bottom view's queue belongs to the view, not to a webview, so a webview
+  //   that replaces another (the view closed and opened again) takes it. A
+  //   closed tab gets nothing more.
+  // - Nothing is re-aimed at another destination or reordered.
   private bottomQueue: SendMessageProps[] = [];
+  private tabQueues = new WeakMap<Webview, SendMessageProps[]>();
   private readyWebviews = new WeakSet<Webview>();
   // Read when the bottom view resolves: a disposed view's `webview` throws.
   private bottomWebview?: Webview;
@@ -296,7 +304,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     );
   }
 
-  private async createQueryResultsPanelVirtualDocument(editorName: string) {
+  /** Opens a Query Results tab and waits for it to load; returns its webview. */
+  private async createQueryResultsPanelVirtualDocument(
+    editorName: string,
+  ): Promise<Webview> {
     this.isWebviewReady = false;
     const webviewPanel = window.createWebviewPanel(
       QueryResultPanel.viewType,
@@ -309,13 +320,15 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._panel = webviewPanel;
     const tabWebview = webviewPanel.webview;
     this._webview = tabWebview;
-    // A tab closed before its data request pointed the panel back: point it
-    // back now, so nothing is sent to a closed tab.
+    // A closed tab gets nothing more: point the panel back at the bottom view
+    // if it still points here, and drop what was waiting for the tab.
     webviewPanel.onDidDispose(
       () => {
         if (this._panel === webviewPanel) {
           this._panel = this._bottomPanel;
         }
+        this.readyWebviews.delete(tabWebview);
+        this.tabQueues.delete(tabWebview);
       },
       null,
       this._disposables,
@@ -323,6 +336,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this.renderWebviewView(tabWebview);
     this.setupWebviewHooks();
     await this.checkIfWebviewReady();
+    return tabWebview;
   }
 
   private updateViewTypeToWebview(viewType: QueryPanelViewType) {
@@ -339,6 +353,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           payload.query as string,
           payload.fn as Promise<QueryExecution>,
           payload.projectName as string,
+          (payload.tab as Webview | undefined) ?? "bottom",
         );
         break;
       case "queryResultTab:render":
@@ -372,7 +387,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this.setupWebviewHooks();
     this.transmitConfig();
     _token.onCancellationRequested(async () => {
-      await this.transmitReset();
+      await this.transmitReset("bottom");
     });
     this.sendQueryPanelViewEvent();
     this._panel.onDidChangeVisibility(this.sendQueryPanelViewEvent);
@@ -414,23 +429,33 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       if (!project) {
         throw new Error("Unable to find project to execute query");
       }
-      if (message.editorName) {
-        await this.createQueryResultsPanelVirtualDocument(message.editorName);
-      }
+      const tab = message.editorName
+        ? await this.createQueryResultsPanelVirtualDocument(message.editorName)
+        : undefined;
       this.updateViewTypeToWebview(
         QueryPanelViewType.OPEN_RESULTS_FROM_HISTORY_BOOKMARKS,
       );
       this.telemetry.sendTelemetryEvent(
         isHistoryTab ? "QueryHistoryExecuteSql" : "QueryBookmarkExecuteSql",
       );
+      // The run shows in the tab opened for it.
       if (message.limit) {
         await project.executeSQLWithLimitOnQueryPanel(
           message.query,
           "",
           message.limit,
+          "inline",
+          undefined,
+          tab,
         );
       } else {
-        await project.executeSQLOnQueryPanel(message.query, "");
+        await project.executeSQLOnQueryPanel(
+          message.query,
+          "",
+          "inline",
+          undefined,
+          tab,
+        );
       }
       return;
     } catch (error) {
@@ -464,9 +489,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           case "webview:ready":
             this.readyWebviews.add(webview);
             super.handleCommand(message);
-            if (webview === this.bottomWebview) {
-              this.sendBottomQueue();
-            }
+            this.sendQueued(webview);
             break;
           // Incase of error in rendering perspective viewer query results, user can click button
           // to disable query history and retry
@@ -543,7 +566,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             if (this.queryExecution) {
               this.queryExecution.cancel();
             }
-            await this.transmitReset();
+            // The view whose Cancel was clicked leaves its loading state.
+            await this.transmitReset(
+              webview === this.bottomWebview ? "bottom" : webview,
+            );
             break;
           case InboundCommand.Error:
             const error = message as RecError;
@@ -754,6 +780,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     raw_sql: string,
     compiled_sql: string,
     elapsedTime: number,
+    to: Destination,
   ) {
     const result = {
       columnNames,
@@ -762,7 +789,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       raw_sql,
       compiled_sql,
     };
-    await this.postToBottomView({
+    await this.postTo(to, {
       command: OutboundCommand.RenderQuery,
       ...(<RenderQuery>{ ...result, elapsedTime }),
     });
@@ -775,9 +802,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     error: any,
     raw_sql: string,
     compiled_sql: string,
+    to: Destination,
   ) {
     // TODO: telemetry
-    await this.postToBottomView({
+    await this.postTo(to, {
       command: OutboundCommand.RenderError,
       ...(<RenderError>{ ...error, raw_sql, compiled_sql }),
     });
@@ -802,26 +830,31 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   }
 
   /** Sends VSCode render loading command to webview */
-  private async transmitLoading() {
-    await this.postToBottomView({ command: OutboundCommand.RenderLoading });
+  private async transmitLoading(to: Destination) {
+    await this.postTo(to, { command: OutboundCommand.RenderLoading });
   }
 
   /** Sends VSCode clear state command */
-  private async transmitReset() {
-    await this.postToBottomView({ command: OutboundCommand.ResetState });
+  private async transmitReset(to: Destination) {
+    await this.postTo(to, { command: OutboundCommand.ResetState });
   }
 
-  /** Posts a render message to the bottom view: at once if its webview has
-   * loaded, otherwise into {@link bottomQueue}, which {@link sendBottomQueue}
-   * sends in order once it has. A message posted before a webview's script
-   * reports ready is lost. */
-  private async postToBottomView(message: SendMessageProps) {
-    const webview = this.bottomWebview;
+  /** Posts a render message to `to`: at once if its webview has loaded,
+   * otherwise into its queue, which {@link sendQueued} sends in order once it
+   * has. A message posted before a webview's script reports ready is lost. */
+  private async postTo(to: Destination, message: SendMessageProps) {
+    const webview = to === "bottom" ? this.bottomWebview : to;
     if (webview && this.readyWebviews.has(webview)) {
       await webview.postMessage(message);
       return;
     }
-    this.bottomQueue.push(message);
+    if (to === "bottom") {
+      this.bottomQueue.push(message);
+      return;
+    }
+    const queue = this.tabQueues.get(to) ?? [];
+    queue.push(message);
+    this.tabQueues.set(to, queue);
   }
 
   /** A wrapper for {@link transmitData} which converts server
@@ -830,6 +863,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     result: ExecuteSQLResult,
     query: string,
     elapsedTime: number,
+    to: Destination,
   ) {
     // Rows are serialized one at a time while they are built and capped by
     // their serialized size: one JSON.stringify over the whole result (what
@@ -857,6 +891,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       query,
       result.compiled_sql,
       elapsedTime,
+      to,
     );
     return { ...transmitted, payloadChars: chars };
   }
@@ -920,16 +955,16 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     query: string,
     queryExecutionPromise: Promise<QueryExecution>,
     projectName: string,
+    to: Destination = "bottom",
   ) {
     const start = Date.now();
     //using id to focus on the webview is more reliable than using the view title
     await commands.executeCommand("dbtPowerUser.PreviewResults.focus");
-    // A preview renders in the bottom view (see `bottomQueue`).
-    if (this._bottomPanel) {
+    if (to === "bottom" && this._bottomPanel) {
       this._bottomPanel.show(); // Show the view
       this.bottomWebview?.postMessage({ command: "focus" }); // keyboard focus
     }
-    this.transmitLoading();
+    this.transmitLoading(to);
     try {
       const queryExecution = (this.queryExecution =
         await queryExecutionPromise);
@@ -941,6 +976,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         output,
         query,
         toElapsedSeconds(duration),
+        to,
       );
       this.updateQueryHistory(
         result,
@@ -954,7 +990,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       if (exc instanceof PythonException) {
         if (exc.exception.type.name === "KeyboardInterrupt") {
           // query cancellation
-          this.transmitReset();
+          this.transmitReset(to);
           return;
         }
         window.showErrorMessage(
@@ -971,6 +1007,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           },
           query,
           query,
+          to,
         );
         return;
       }
@@ -988,6 +1025,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           },
           query,
           exc.compiled_sql,
+          to,
         );
         return;
       }
@@ -997,6 +1035,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         },
         query,
         query,
+        to,
       );
     } finally {
       this.queryExecution = undefined;
@@ -1004,14 +1043,16 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     }
   }
 
-  /** Sends {@link bottomQueue} to the bottom view's webview, which has just
-   * loaded, in the order the messages were sent. */
-  private sendBottomQueue() {
-    const webview = this.bottomWebview;
-    if (!webview) {
-      return;
-    }
-    for (const message of this.bottomQueue.splice(0)) {
+  /** Sends what waited for `webview`, which has just loaded, in the order it
+   * was sent: the bottom view's queue if it is the bottom view's webview, or
+   * else its own as a tab. */
+  private sendQueued(webview: Webview) {
+    const queue =
+      webview === this.bottomWebview
+        ? this.bottomQueue.splice(0)
+        : (this.tabQueues.get(webview) ?? []);
+    this.tabQueues.delete(webview);
+    for (const message of queue) {
       webview.postMessage(message);
     }
   }
