@@ -455,6 +455,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           case "webview:ready":
             this.readyWebviews.add(webview);
             super.handleCommand(message);
+            this.sendQueued(webview);
             break;
           // Incase of error in rendering perspective viewer query results, user can click button
           // to disable query history and retry
@@ -800,7 +801,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
 
   /** Posts a render message once the current panel's webview has loaded. A
    * message posted before its script reports ready is lost, so it waits in
-   * {@link incomingMessages} and {@link onWebviewReady} sends it in order. */
+   * {@link incomingMessages} and {@link sendQueued} sends it in order once it has loaded. */
   private async postWhenReady(message: SendMessageProps) {
     const webview = this._panel?.webview;
     if (webview && this.readyWebviews.has(webview)) {
@@ -977,19 +978,16 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     }
   }
 
-  protected onWebviewReady() {
-    super.onWebviewReady();
-
-    // In arrival order, as they would have been posted: the loading state
-    // first, then the result, error or reset that replaces it. A message
-    // queued with no panel yet goes to the current one; one whose webview
-    // still hasn't loaded keeps waiting.
+  /** Sends what waits for `ready`, the webview that just loaded, in arrival
+   * order: the loading state first, then the result, error or reset that
+   * replaces it. A message queued before any panel existed goes to the first
+   * webview that loads; one for another webview keeps waiting. */
+  private sendQueued(ready: Webview) {
     const queued = this.incomingMessages;
     this.incomingMessages = [];
     for (const entry of queued) {
-      const webview = entry.webview ?? this._panel?.webview;
-      if (webview && this.readyWebviews.has(webview)) {
-        webview.postMessage(entry.message);
+      if ((entry.webview ?? ready) === ready) {
+        ready.postMessage(entry.message);
       } else {
         this.incomingMessages.push(entry);
       }

@@ -176,6 +176,25 @@ describe("Query Results before its webview is ready", () => {
   });
 });
 
+describe("a message queued before any panel exists", () => {
+  it("goes to the first webview that loads, even while another is current", async () => {
+    const { panel, bottom } = panelLoading();
+    const state = panel as unknown as Record<string, unknown>;
+    const view = state._bottomPanel;
+    state._panel = undefined;
+    await (
+      panel as unknown as { transmitLoading(): Promise<void> }
+    ).transmitLoading();
+    // The bottom view resolves, then a tab opens before either has loaded.
+    state._panel = view;
+    openTab(panel);
+
+    await bottom.load();
+
+    expect(bottom.renders()).toEqual(["renderLoading"]);
+  });
+});
+
 describe("an Open in Tab panel that never loads", () => {
   it("doesn't hold back the bottom view once it is closed", async () => {
     const { panel, bottom } = panelLoading();
