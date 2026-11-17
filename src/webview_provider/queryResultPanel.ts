@@ -186,6 +186,8 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   // Webviews whose script has reported ready. The bottom view and each "Open in
   // Tab" panel load on their own; one that never loads holds back only itself.
   private readyWebviews = new WeakSet<Webview>();
+  // The bottom view's webview, kept so a closed tab can hand its queue to it.
+  private bottomWebview?: Webview;
 
   // stored only for current session, if user reloads or opens new workspace, this will be reset
   private _queryHistory: QueryHistory[] = [];
@@ -301,16 +303,17 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     );
     this._panel = webviewPanel;
     this._webview = webviewPanel.webview;
-    // A tab closed before it loads: drop what waits for it, and go back to the
-    // bottom view rather than leaving results aimed at a closed tab.
+    // Read now: a disposed panel's `webview` throws, and VS Code marks the panel
+    // disposed before its dispose listeners run.
+    const tabWebview = webviewPanel.webview;
+    // A tab closed before it loads: go back to the bottom view, and hand it
+    // what was waiting for the tab, so no result is aimed at a closed tab.
     webviewPanel.onDidDispose(
       () => {
-        this.incomingMessages = this.incomingMessages.filter(
-          (entry) => entry.webview !== webviewPanel.webview,
-        );
         if (this._panel === webviewPanel) {
           this._panel = this._bottomPanel;
         }
+        this.retargetQueued(tabWebview, this.bottomWebview);
       },
       null,
       this._disposables,
@@ -361,6 +364,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._panel = panel;
     this._bottomPanel = panel;
     this._webview = panel.webview;
+    this.bottomWebview = panel.webview;
     this.bindWebviewOptions(context);
     this.renderWebviewView(panel.webview);
     this.setupWebviewHooks();
@@ -998,6 +1002,18 @@ export class QueryResultPanel extends AltimateWebviewProvider {
    * order: the loading state first, then the result, error or reset that
    * replaces it. A message queued before any panel existed goes to the first
    * webview that loads; one for another webview keeps waiting. */
+  /** Points what waits for `gone`, a webview that will never load, at `to`,
+   * and sends it now if `to` has loaded. Without `to`, it waits for the first
+   * webview that loads. */
+  private retargetQueued(gone: Webview, to: Webview | undefined) {
+    this.incomingMessages = this.incomingMessages.map((entry) =>
+      entry.webview === gone ? { ...entry, webview: to } : entry,
+    );
+    if (to && this.readyWebviews.has(to)) {
+      this.sendQueued(to);
+    }
+  }
+
   private sendQueued(ready: Webview) {
     const queued = this.incomingMessages;
     this.incomingMessages = [];

@@ -56,6 +56,7 @@ function panelLoading() {
   Object.assign(panel, {
     _panel: view,
     _bottomPanel: view,
+    bottomWebview: bottom.webview,
     _disposables: [],
     isWebviewReady: false,
     incomingMessages: [],
@@ -70,13 +71,21 @@ function panelLoading() {
   return { panel, bottom };
 }
 
-/** Opens an "Open in Tab" panel; `close()` disposes it. */
+/** Opens an "Open in Tab" panel; `close()` disposes it. As in VS Code, the
+ * panel is marked disposed before its dispose listeners run, and reading its
+ * `webview` then throws. */
 function openTab(panel: QueryResultPanel) {
   const tab = fakeWebview();
   const disposeListeners: (() => void)[] = [];
+  let disposed = false;
   (window as unknown as Record<string, unknown>).createWebviewPanel = jest.fn(
     () => ({
-      webview: tab.webview,
+      get webview() {
+        if (disposed) {
+          throw new Error("Webview is disposed");
+        }
+        return tab.webview;
+      },
       onDidDispose: jest.fn((listener: () => void) => {
         disposeListeners.push(listener);
         return { dispose: jest.fn() };
@@ -88,7 +97,11 @@ function openTab(panel: QueryResultPanel) {
       createQueryResultsPanelVirtualDocument(name: string): Promise<void>;
     }
   ).createQueryResultsPanelVirtualDocument("Query results");
-  return { tab, close: () => disposeListeners.forEach((l) => l()) };
+  const close = () => {
+    disposed = true;
+    disposeListeners.forEach((l) => l());
+  };
+  return { tab, close };
 }
 
 const output = {
@@ -236,6 +249,29 @@ describe("an Open in Tab panel that never loads", () => {
       "renderLoading",
       "renderQuery",
     ]);
+  });
+
+  it("hands a result it was waiting for to the bottom view when it closes", async () => {
+    const { panel, bottom } = panelLoading();
+    await bottom.load();
+    let finish!: (value: typeof output) => void;
+    const running = panel.executeQuery(
+      "select 1",
+      execution(new Promise((resolve) => (finish = resolve))),
+      "",
+    );
+    // The loading state reached the bottom view; Open in Tab while the query runs.
+    await new Promise((resolve) => setImmediate(resolve));
+    const { close } = openTab(panel);
+    finish(output);
+    await running;
+
+    close();
+
+    expect(bottom.renders()).toEqual(["renderLoading", "renderQuery"]);
+    expect((panel as unknown as Record<string, unknown>)._panel).toBe(
+      (panel as unknown as Record<string, unknown>)._bottomPanel,
+    );
   });
 
   it("doesn't hold back the bottom view while it is still open", async () => {
