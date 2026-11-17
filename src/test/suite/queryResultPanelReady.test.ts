@@ -303,6 +303,24 @@ describe("an Open in Tab panel", () => {
     expect(tab.renders()).toEqual([]);
   });
 
+  it("doesn't take a preview that finished before it loaded", async () => {
+    const { panel, bottom } = panelLoading();
+    await bottom.load();
+    // Open in Tab, then straight back to the SQL file; the preview finishes
+    // while the hidden tab is still the current panel, and only then it loads.
+    const { tab } = openTab(panel);
+    await panel.executeQuery(
+      "select * from orders",
+      execution(Promise.resolve(output)),
+      "",
+    );
+
+    await tab.load();
+
+    expect(tab.renders()).toEqual([]);
+    expect(bottom.renders()).toEqual(["renderLoading", "renderQuery"]);
+  });
+
   it("closing never puts an older result after a newer one in the bottom view", async () => {
     const { panel, bottom } = panelLoading();
     await bottom.load();
