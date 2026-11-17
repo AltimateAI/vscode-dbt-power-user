@@ -193,12 +193,16 @@ describe("interpreter commands without the Python extension", () => {
     }) => void;
     const changed = jest.fn();
     env.onPythonEnvironmentChanged(changed);
+    // The change is announced once the interpreter it names is resolved.
+    const resolved = () => new Promise((resolve) => setImmediate(resolve));
     listener({ affectsConfiguration: () => false });
+    await resolved();
     expect(changed).not.toHaveBeenCalled();
     listener({
       affectsConfiguration: (section) =>
         section === "dbt.dbtPythonPathOverride",
     });
+    await resolved();
     expect(changed).toHaveBeenCalledTimes(1);
   });
 });

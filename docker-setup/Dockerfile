@@ -45,7 +45,6 @@ RUN mkdir -p ~/.dbt && printf '%s\n' \
 
 # Install all required extensions for dbt Power User (extensionDependencies in package.json)
 RUN code-server --install-extension ms-python.python \
-    && code-server --install-extension samuelcolvin.jinjahtml \
     && code-server --install-extension altimateai.vscode-altimate-mcp-server
 
 EXPOSE 3001

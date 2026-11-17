@@ -1204,10 +1204,31 @@
     "languages": [
       {
         "id": "jinja-sql",
+        "aliases": [
+          "Jinja SQL",
+          "jinja-sql"
+        ],
         "icon": {
           "light": "./media/images/dbt_file_icon.svg",
           "dark": "./media/images/dbt_file_icon.svg"
-        }
+        },
+        "configuration": "./language-configuration/jinja-sql.json"
+      },
+      {
+        "id": "jinja-yaml",
+        "aliases": [
+          "Jinja YAML",
+          "jinja-yaml"
+        ],
+        "configuration": "./language-configuration/jinja-yaml.json"
+      },
+      {
+        "id": "jinja-md",
+        "aliases": [
+          "Jinja Markdown",
+          "jinja-md"
+        ],
+        "configuration": "./language-configuration/jinja-md.json"
       }
     ],
     "grammars": [
@@ -1215,6 +1236,21 @@
         "language": "jinja-sql",
         "scopeName": "source.sql.jinja",
         "path": "./syntaxes/jinja-sql.tmLanguage.json"
+      },
+      {
+        "language": "jinja-yaml",
+        "scopeName": "text.yaml.jinja",
+        "path": "./syntaxes/jinja-yaml-language.tmLanguage.json",
+        "tokenTypes": {
+          "meta.expression.jinja": "other",
+          "meta.statement.jinja": "other",
+          "comment.block.jinja": "comment"
+        }
+      },
+      {
+        "language": "jinja-md",
+        "scopeName": "text.html.markdown.jinja",
+        "path": "./syntaxes/jinja-md-language.tmLanguage.json"
       },
       {
         "scopeName": "source.yaml.jinja",
@@ -1268,7 +1304,6 @@
     "@vscode/debugadapter": "^1.68.0",
     "@vscode/debugprotocol": "^1.68.0",
     "@vscode/test-electron": "^3.1.0",
-    "@vscode/zeromq": "^0.2.1",
     "concurrently": "^9.2.1",
     "cross-env": "^7.0.3",
     "eslint": "^8.57.0",
@@ -1296,7 +1331,6 @@
     "webpack": "^5.106.2"
   },
   "extensionDependencies": [
-    "samuelcolvin.jinjahtml",
     "altimateai.vscode-altimate-mcp-server"
   ],
   "dependencies": {

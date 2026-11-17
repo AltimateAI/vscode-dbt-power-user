@@ -2,8 +2,9 @@ import { DBTDetection } from "@altimateai/dbt-integration";
 import { existsSync } from "fs";
 import { inject } from "inversify";
 import { delimiter, isAbsolute, join } from "path";
-import { commands, Disposable, EventEmitter, window, workspace } from "vscode";
+import { commands, Disposable, EventEmitter, window } from "vscode";
 import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
+import { getDbtIntegrationMode } from "./integrationMode";
 import {
   PythonEnvironment,
   PythonInterpreterPromptAnswer,
@@ -169,15 +170,9 @@ export class DBTClient implements Disposable {
     }
   }
 
-  private dbtIntegrationMode(): string {
-    return workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
-  }
-
   private pythonExtensionMissing(): boolean {
     return awaitingPythonExtension(
-      this.dbtIntegrationMode(),
+      getDbtIntegrationMode(),
       this.pythonEnvironment,
     );
   }
@@ -190,9 +185,7 @@ export class DBTClient implements Disposable {
   }
 
   async showErrorIfDbtOrPythonNotInstalled() {
-    const dbtIntegrationMode = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
+    const dbtIntegrationMode = getDbtIntegrationMode();
     if (!integrationNeedsPython(dbtIntegrationMode)) {
       return this.showErrorIfDbtIsNotInstalled();
     }
@@ -248,7 +241,7 @@ export class DBTClient implements Disposable {
     // Name the runner for the mode in use: dbt Core (core and corecommand)
     // keeps its wording; cloud mode names the dbt Cloud CLI.
     const runner =
-      this.dbtIntegrationMode() === "cloud"
+      getDbtIntegrationMode() === "cloud"
         ? "The dbt Cloud CLI runs"
         : "dbt Core runs";
     const answer = await window.showErrorMessage(
@@ -307,9 +300,7 @@ export class DBTClient implements Disposable {
       if (!this.shownError) {
         // We don't want to flood the user with errors
         this.shownError = true;
-        const dbtIntegrationMode = workspace
-          .getConfiguration("dbt")
-          .get<string>("dbtIntegration", "core");
+        const dbtIntegrationMode = getDbtIntegrationMode();
         switch (dbtIntegrationMode) {
           case "fusion":
             await this.showDbtFusionNotFound();

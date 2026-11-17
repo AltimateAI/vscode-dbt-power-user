@@ -24,7 +24,7 @@ import { AltimateRequest } from "../altimate";
 import { DBTClient } from "../dbt_client";
 import { AltimateDatapilot } from "../dbt_client/datapilot";
 import { extractDbtSubcommand } from "../utils";
-import { DBTProject } from "./dbtProject";
+import { DBTProject, PreviewMode } from "./dbtProject";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
 import {
   ManifestCacheChangedEvent,
@@ -68,6 +68,8 @@ export class DBTProjectContainer implements Disposable {
   private _onProjectRegisteredUnregistered =
     new EventEmitter<ProjectRegisteredUnregisteredEvent>();
   public readonly onManifestChanged = this._onManifestChanged.event;
+  public readonly onProjectRegisteredUnregistered =
+    this._onProjectRegisteredUnregistered.event;
   private disposables: Disposable[] = [
     this._onManifestChanged,
     this._onProjectRegisteredUnregistered,
@@ -270,7 +272,12 @@ export class DBTProjectContainer implements Disposable {
     this.getProjects().forEach((project) => project.initialize());
   }
 
-  executeSQL(uri: Uri, query: string, modelName: string): void {
+  executeSQL(
+    uri: Uri,
+    query: string,
+    modelName: string,
+    previewMode: PreviewMode = "inline",
+  ): void {
     if (uri.scheme === "untitled") {
       const selectedProject = this.getFromWorkspaceState(
         "dbtPowerUser.projectSelected",
@@ -279,7 +286,12 @@ export class DBTProjectContainer implements Disposable {
         uri = selectedProject.uri;
       }
     }
-    this.findDBTProject(uri)?.executeSQLOnQueryPanel(query, modelName);
+    this.findDBTProject(uri)?.executeSQLOnQueryPanel(
+      query,
+      modelName,
+      previewMode,
+      uri,
+    );
   }
 
   runModel(modelPath: Uri, type?: RunModelType) {

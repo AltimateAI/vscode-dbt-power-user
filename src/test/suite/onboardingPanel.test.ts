@@ -1,4 +1,11 @@
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import {
   commands,
   ConfigurationTarget,
@@ -6,6 +13,7 @@ import {
   window,
   workspace,
 } from "vscode";
+import { setEffectiveDbtIntegrationMode } from "../../dbt_client/integrationMode";
 import { OnboardingPanel } from "../../webview_provider/onboardingPanel";
 
 type AnyMock = jest.Mock<any>;
@@ -423,5 +431,61 @@ describe("OnboardingPanel getDiagnosticsStatus before the Python environment is 
       pythonVersion: "3.12.1",
       dbtIntegrationMode: "core",
     });
+  });
+
+  it("reports the mode resolved while it waited, not the one at the request", async () => {
+    // Get Started can open during activation; the auto-switch resolves while
+    // this handler awaits the Python environment. The response must carry the
+    // mode in effect when it is built.
+    const h = harness();
+    const env = environmentActivatingLater();
+    const initialize = env.initialize;
+    env.initialize = jest.fn(async () => {
+      await initialize();
+      setEffectiveDbtIntegrationMode("fusion");
+    });
+    Object.assign((h.panel as any).dbtProjectContainer, {
+      getProjects: () => [],
+      dbtWorkspaceFolders: [],
+      pythonInstalled: false,
+      dbtInstalled: false,
+      getPythonEnvironment: () => env,
+    });
+    try {
+      await h.handle("getDiagnosticsStatus");
+      await new Promise((resolve) => setImmediate(resolve));
+      const calls = (h.panel as any)._panel.webview.postMessage.mock.calls;
+      const response = calls[calls.length - 1][0] as {
+        args: { body?: Record<string, unknown> };
+      };
+      expect(response.args.body).toMatchObject({
+        dbtIntegrationMode: "fusion",
+      });
+    } finally {
+      setEffectiveDbtIntegrationMode(undefined);
+    }
+  });
+});
+
+describe("OnboardingPanel installDbt", () => {
+  afterEach(() => {
+    setEffectiveDbtIntegrationMode(undefined);
+  });
+
+  it("installs the mode the user picked, not the mode the window started in", async () => {
+    // Picking Fusion writes the setting, but the window's effective mode is
+    // still the one `resolve` pinned at activation; the installer must follow
+    // the pick.
+    (workspace.getConfiguration as AnyMock).mockReturnValue({
+      get: jest.fn((_key: string, fallback?: unknown) => fallback),
+      has: jest.fn(),
+      update: jest.fn(async () => undefined),
+    });
+    setEffectiveDbtIntegrationMode("core");
+    const h = harness();
+    const installDbt = jest.fn(async () => undefined);
+    (h.panel as any).walkthroughCommands = { installDbt };
+    await h.handle("installDbt", { integrationType: "fusion" });
+    expect(installDbt).toHaveBeenCalledWith("fusion");
   });
 });

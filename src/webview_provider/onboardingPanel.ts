@@ -24,6 +24,7 @@ import {
   ONBOARDING_STATE_KEY,
   OnboardingState,
 } from "../dbt_client/dbtProjectContainer";
+import { getDbtIntegrationMode } from "../dbt_client/integrationMode";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
 import {
@@ -384,7 +385,7 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           await config.update("dbtIntegration", integrationType, true);
 
           // Call the installDbt command
-          await this.walkthroughCommands.installDbt();
+          await this.walkthroughCommands.installDbt(integrationType);
 
           this.sendResponseToWebview({
             command: "response",
@@ -435,9 +436,6 @@ export class OnboardingPanel extends AltimateWebviewProvider {
         try {
           const projects = this.dbtProjectContainer.getProjects();
           const dbtWorkspaces = this.dbtProjectContainer.dbtWorkspaceFolders;
-          const dbtIntegrationMode = workspace
-            .getConfiguration("dbt")
-            .get<string>("dbtIntegration", "core");
           const pythonEnvironment =
             this.dbtProjectContainer.getPythonEnvironment();
           // On first run Get Started opens during activation, before the Python
@@ -488,6 +486,8 @@ export class OnboardingPanel extends AltimateWebviewProvider {
             excludePattern,
           );
           const projectsFoundInWorkspace = dbtProjectFiles.length > 0;
+          // Read after the waits: the mode is resolved during activation.
+          const dbtIntegrationMode = getDbtIntegrationMode();
 
           this.sendResponseToWebview({
             command: "response",
@@ -542,7 +542,7 @@ export class OnboardingPanel extends AltimateWebviewProvider {
           const config = workspace.getConfiguration("dbt");
           // A new integration reloads the window, so reopen Get Started after
           // it; the validation was for the old integration.
-          if (config.get("dbtIntegration", "core") !== integrationType) {
+          if (getDbtIntegrationMode() !== integrationType) {
             this.saveOnboardingState({ resume: true, validation: null });
           }
           await config.update(

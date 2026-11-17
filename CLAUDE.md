@@ -166,7 +166,6 @@ npm run panel:webviews  # Build React components
 
 **Required Extensions**:
 
-- `samuelcolvin.jinjahtml` - Jinja templating support
 - `altimateai.vscode-altimate-mcp-server` - MCP server
 
 **Optional Extensions**:
@@ -212,7 +211,7 @@ npm run panel:webviews  # Build React components
 
 ### 2. Language Support
 
-**File Type Associations**:
+**Languages** (contributed by the extension itself: grammars in `syntaxes/`, configurations in `language-configuration/`; files map to them through `files.associations`, which the setup wizard writes):
 
 - `jinja-sql` - Primary dbt model files
 - `jinja-yaml` - dbt configuration files

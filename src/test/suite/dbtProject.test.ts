@@ -25,6 +25,7 @@ import { AltimateRequest } from "../../altimate";
 import { DBTProject } from "../../dbt_client/dbtProject";
 import { DBTProjectLog } from "../../dbt_client/dbtProjectLog";
 import { ManifestCacheChangedEvent } from "../../dbt_client/event/manifestCacheChangedEvent";
+import { setEffectiveDbtIntegrationMode } from "../../dbt_client/integrationMode";
 import { PythonEnvironment } from "../../dbt_client/pythonEnvironment";
 import { AltimateAuthService } from "../../services/altimateAuthService";
 import { RunHistoryService } from "../../services/runHistoryService";
@@ -1699,6 +1700,25 @@ describe("DBTProject Test Suite", () => {
         dbtAdapter: "snowflake",
       });
       expect(removed()).not.toContain("dbtFusionVersion");
+    });
+
+    it("stamps by the mode in effect, not the raw setting, after an auto-switch", () => {
+      // The setting still reads core in a window that switched itself to
+      // Fusion; the stamp must follow the effective mode or Fusion windows
+      // lose their dbtFusionVersion.
+      useMode("core");
+      setEffectiveDbtIntegrationMode("fusion");
+      try {
+        mockProjectIntegration.getVersion = jest.fn(() => [2, 0, 11]);
+        dbtProject = construct();
+
+        emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
+
+        expect(stamped()).toMatchObject({ dbtFusionVersion: "2.0.11" });
+        expect(removed()).not.toContain("dbtFusionVersion");
+      } finally {
+        setEffectiveDbtIntegrationMode(undefined);
+      }
     });
 
     it("stamps the Fusion version a Fusion project reports", () => {
