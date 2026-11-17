@@ -160,6 +160,16 @@ export function activationState(log, extensionId) {
   return ok ? { ok: true, ms: Number(ok[1]) } : undefined;
 }
 
+// A shared-process log line reporting an install, download or extraction error for one of `ids`
+// (matched as whole extension ids, case-insensitively). Other extensions' errors don't count.
+export function isInstallErrorLine(line, ids) {
+  if (!/\[error\]/i.test(line) || !/(install|download|extract)/i.test(line))
+    return false;
+  return ids.some((id) =>
+    new RegExp(`(^|[^\\w.-])${escapeRegExp(id)}(?![\\w.-])`, "i").test(line),
+  );
+}
+
 export function compareVersions(a, b) {
   const pa = String(a)
     .split(/[.-]/)

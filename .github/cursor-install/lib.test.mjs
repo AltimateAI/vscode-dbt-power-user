@@ -5,6 +5,7 @@ import {
   annotate,
   escapeData,
   escapeProperty,
+  isInstallErrorLine,
 } from "./lib.mjs";
 
 function captured(fn) {
@@ -79,5 +80,50 @@ test("an activation failure is reported", () => {
   assert.match(
     activationState([lines.start, lines.failed].join("\n"), PU).failed,
     /failed: boom/,
+  );
+});
+
+const installSet = [
+  "innoverio.vscode-dbt-power-user",
+  "altimateai.vscode-altimate-mcp-server",
+];
+const err = (id) =>
+  `2026-11-16 09:28:49.712 [error] Error while installing the extension ${id}: Download failed`;
+
+test("another extension's install error doesn't count", () => {
+  assert.equal(isInstallErrorLine(err("eamodio.gitlens"), installSet), false);
+});
+
+test("Power User's install error counts", () => {
+  assert.equal(
+    isInstallErrorLine(err("innoverio.vscode-dbt-power-user"), installSet),
+    true,
+  );
+});
+
+test("a dependency's install error counts, case-insensitively", () => {
+  assert.equal(
+    isInstallErrorLine(
+      err("AltimateAI.vscode-altimate-mcp-server"),
+      installSet,
+    ),
+    true,
+  );
+});
+
+test("an id that only starts with an install-set id doesn't count", () => {
+  assert.equal(
+    isInstallErrorLine(err("innoverio.vscode-dbt-power-user-foo"), installSet),
+    false,
+  );
+});
+
+test("a non-error line naming Power User doesn't count", () => {
+  assert.equal(
+    isInstallErrorLine(
+      "2026-11-16 09:28:49.712 [info] Installing extension: innoverio.vscode-dbt-power-user",
+      installSet,
+    ),
+    false,
   );
 });

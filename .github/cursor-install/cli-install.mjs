@@ -135,18 +135,25 @@ let galleryPick;
 if (vsix) {
   expected = readJson(path.join(process.cwd(), "package.json")).version;
 } else {
-  const release = await latestRelease();
-  galleryPick = resolveForTarget(await cursorGalleryVersions(PU_ID), target);
-  if (galleryPick && compareVersions(galleryPick.version, release) < 0) {
-    warn(
-      `Cursor's gallery offers ${galleryPick.version} for ${target}, behind release ${release}; expecting ${galleryPick.version}`,
+  try {
+    const release = await latestRelease();
+    galleryPick = resolveForTarget(await cursorGalleryVersions(PU_ID), target);
+    if (galleryPick && compareVersions(galleryPick.version, release) < 0) {
+      warn(
+        `Cursor's gallery offers ${galleryPick.version} for ${target}, behind release ${release}; expecting ${galleryPick.version}`,
+      );
+      expected = galleryPick.version;
+    } else {
+      expected = release;
+    }
+  } catch (error) {
+    // The version can't be checked, so the job fails, but the summary and result.json are still written.
+    fail(
+      `could not resolve the latest release / Cursor's gallery: ${error.message}`,
     );
-    expected = galleryPick.version;
-  } else {
-    expected = release;
   }
 }
-if (pu && pu.version !== expected)
+if (pu && expected && pu.version !== expected)
   fail(`installed Power User ${pu.version}, expected ${expected}`);
 
 // Cursor's gallery has served an older MCP server for a moment; say so when it happens.

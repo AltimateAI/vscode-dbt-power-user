@@ -29,6 +29,7 @@ import {
   activationState,
   dirSize,
   escapeRegExp,
+  isInstallErrorLine,
   log,
   mb,
   newestLogDir,
@@ -339,6 +340,23 @@ async function handleDialog(win) {
 }
 
 // What the shared process has logged about the install so far.
+// The extensions this install brings in: the target plus its declared extensionDependencies (from the
+// gallery manifest, or from the checkout's package.json for the VSIX legs, which build from it).
+let installSet = [extensionId];
+async function resolveInstallSet() {
+  try {
+    const deps = vsix
+      ? (readJson("package.json").extensionDependencies || []).map((d) =>
+          d.toLowerCase(),
+        )
+      : resolveForTarget(await cursorGalleryVersions(extensionId), target)
+          ?.dependencies || [];
+    installSet = [extensionId, ...deps];
+  } catch (error) {
+    note(`install set limited to ${extensionId}: ${error.message}`);
+  }
+}
+
 function installState() {
   const dir = newestLogDir(dirs.userData);
   const lines = readIfExists(dir && path.join(dir, "sharedprocess.log")).split(
@@ -350,7 +368,7 @@ function installState() {
         /installed successfully/i.test(l) &&
         l.toLowerCase().includes(extensionId),
     ),
-    error: lines.find((l) => /\[error\].*(install|download|extract)/i.test(l)),
+    error: lines.find((l) => isInstallErrorLine(l, installSet)),
     started: lines.some((l) => /Installing (the )?extension:/i.test(l)),
   };
 }
@@ -521,8 +539,10 @@ let win;
 // Last resort: never let a stuck Cursor hold the job until its timeout.
 const watchdog = setTimeout(
   () => {
-    console.log(
-      `::error title=${label}::HARNESS: the run did not finish in time; killing Cursor`,
+    annotate(
+      "error",
+      label,
+      "HARNESS: the run did not finish in time; killing Cursor",
     );
     app?.process().kill("SIGKILL");
     process.exit(1);
@@ -602,6 +622,7 @@ try {
     else await startGalleryInstall(win);
     const clickedAt = Date.now();
     note("install requested");
+    await resolveInstallSet();
     await waitForInstall(win, clickedAt);
     const installSeconds = (Date.now() - clickedAt) / 1000;
     note(`installed after ${installSeconds.toFixed(1)} s`);
