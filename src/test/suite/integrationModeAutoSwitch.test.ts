@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
-import { mkdtempSync, rmSync, writeFileSync } from "fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import * as path from "path";
 import { ConfigurationTarget, Uri, window, workspace } from "vscode";
@@ -97,8 +97,14 @@ const V2 = {
 function service({
   // null: no dbt 2.x binary on the path.
   binary = V2 as typeof V2 | null,
-  dbtCore = { importable: false } as { importable: boolean; version?: string },
+  // "never": the probe does not answer (a slow first `import dbt.version`).
+  dbtCore = { importable: false } as
+    | { importable: boolean; version?: string }
+    | "never",
   pythonExtensionAvailable = true,
+  // dbt_project.yml files per workspace folder root, as discovery would list them.
+  projectFiles = {} as Record<string, string[]>,
+  probeTimeoutMs = undefined as number | undefined,
   // An override interpreter; without one, the extension's when it is there.
   pythonPath = undefined as string | undefined,
   env = { PATH: "/usr/bin" } as Record<string, string>,
@@ -108,7 +114,16 @@ function service({
     setTelemetryCustomAttribute: jest.fn(),
   };
   const findBinary = jest.fn(() => Promise.resolve(binary ?? undefined));
-  const probeDbtCore = jest.fn(() => Promise.resolve(dbtCore));
+  const probeDbtCore = jest.fn(() =>
+    dbtCore === "never"
+      ? new Promise<{ importable: boolean }>(() => undefined)
+      : Promise.resolve(dbtCore),
+  );
+  const findProjectFiles = jest.fn((folder: { uri: { fsPath: string } }) =>
+    Promise.resolve(
+      (projectFiles[folder.uri.fsPath] ?? []).map((file) => Uri.file(file)),
+    ),
+  );
   const svc = new IntegrationModeService(
     {
       initialize: () => Promise.resolve(),
@@ -119,9 +134,10 @@ function service({
     } as never,
     telemetry as never,
     { info: jest.fn(), debug: jest.fn() } as never,
-    { findBinary, probeDbtCore } as never,
+    { findBinary, probeDbtCore, findProjectFiles } as never,
+    probeTimeoutMs,
   );
-  return { svc, telemetry, findBinary, probeDbtCore };
+  return { svc, telemetry, findBinary, probeDbtCore, findProjectFiles };
 }
 
 const shown = () =>
@@ -178,6 +194,8 @@ describe("decideDbtIntegrationMode", () => {
     [{ pythonDbtCore: true }, "dbtCore"],
     [{ dbtLoom: true }, "dbtLoom"],
     [{ pythonDbtCore: true, dbtLoom: true }, "dbtCore"],
+    [{ pythonDbtCore: "unknown" as const }, "dbtCoreUnknown"],
+    [{ pythonDbtCore: "unknown" as const, dbtLoom: true }, "dbtLoom"],
   ])(
     "keeps the default when the project can run in dbt Core mode: %j",
     (facts, reason) => {
@@ -211,9 +229,11 @@ describe("IntegrationModeService.resolve", () => {
       cwd: undefined,
       env: { PATH: "/usr/bin" },
     });
-    expect(probeDbtCore).toHaveBeenCalledWith("/venv/bin/python", {
-      PATH: "/usr/bin",
-    });
+    expect(probeDbtCore).toHaveBeenCalledWith(
+      "/venv/bin/python",
+      { PATH: "/usr/bin" },
+      expect.any(Number),
+    );
     expect(getDbtIntegrationMode()).toBe("fusion");
     expect(new VSCodeDBTConfiguration().getDbtIntegration()).toBe("fusion");
     expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
@@ -307,6 +327,69 @@ describe("IntegrationModeService.resolve", () => {
       );
     });
 
+    it("keeps core when a nested dbt project has a dbt_loom.config.yml", async () => {
+      // The library reads dbt-loom from each project's root, so a config
+      // beside a project below the workspace folder holds the switch too.
+      const nested = path.join(dir, "analytics");
+      mkdirSync(nested);
+      writeFileSync(
+        path.join(nested, "dbt_loom.config.yml"),
+        "manifests: []\n",
+      );
+      (workspace as { workspaceFolders: unknown }).workspaceFolders = [
+        { uri: Uri.file(dir), name: "repo", index: 0 },
+      ];
+      const { svc, telemetry, findProjectFiles } = service({
+        projectFiles: { [dir]: [path.join(nested, "dbt_project.yml")] },
+      });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "core",
+      );
+      expect(findProjectFiles).toHaveBeenCalledTimes(1);
+      expect(findProjectFiles).toHaveBeenCalledWith(
+        expect.objectContaining({
+          uri: expect.objectContaining({ fsPath: dir }),
+        }),
+      );
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        expect.objectContaining({ reason: "dbtLoom" }),
+      );
+    });
+
+    it("looks under every workspace folder: a nested config in the second one holds the switch", async () => {
+      const first = path.join(dir, "first");
+      const second = path.join(dir, "second");
+      const nested = path.join(second, "analytics");
+      mkdirSync(first);
+      mkdirSync(nested, { recursive: true });
+      writeFileSync(
+        path.join(nested, "dbt_loom.config.yml"),
+        "manifests: []\n",
+      );
+      (workspace as { workspaceFolders: unknown }).workspaceFolders = [
+        { uri: Uri.file(first), name: "first", index: 0 },
+        { uri: Uri.file(second), name: "second", index: 1 },
+      ];
+      const { svc, telemetry, findProjectFiles } = service({
+        projectFiles: {
+          [first]: [path.join(first, "dbt_project.yml")],
+          [second]: [path.join(nested, "dbt_project.yml")],
+        },
+      });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "core",
+      );
+      expect(findProjectFiles.mock.calls.map((c) => c[0].uri.fsPath)).toEqual([
+        first,
+        second,
+      ]);
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        expect.objectContaining({ reason: "dbtLoom" }),
+      );
+    });
+
     it("switches when the folder has no dbt-loom config", async () => {
       (workspace as { workspaceFolders: unknown }).workspaceFolders = [
         { uri: Uri.file(dir), name: "plain", index: 0 },
@@ -334,9 +417,11 @@ describe("IntegrationModeService.resolve", () => {
     });
     await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe("core");
     expect(probeDbtCore).toHaveBeenCalledTimes(1);
-    expect(probeDbtCore).toHaveBeenCalledWith("/opt/dbt-env/bin/python", {
-      PATH: "/usr/bin",
-    });
+    expect(probeDbtCore).toHaveBeenCalledWith(
+      "/opt/dbt-env/bin/python",
+      { PATH: "/usr/bin" },
+      expect.any(Number),
+    );
     expect(svc.autoSwitched).toBeUndefined();
     await svc.notifySwitchHeld();
     expect(shown()[0][0]).toContain(
@@ -409,6 +494,41 @@ describe("IntegrationModeService.notifyProjects", () => {
     await svc.resolve(new FakeMemento() as never);
     await svc.notifyProjects([jaffle]);
     expect(shown()).toHaveLength(0);
+  });
+});
+
+describe("IntegrationModeService.resolve when the dbt-core probe does not answer", () => {
+  it("holds the switch back as unknown instead of switching", async () => {
+    // A slow first `import dbt.version` (a cold virus scan of a large venv)
+    // must not read as "no dbt-core": a dbt Core user would be switched.
+    const { svc, telemetry } = service({
+      dbtCore: "never",
+      probeTimeoutMs: 20,
+    });
+    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe("core");
+    expect(getDbtIntegrationMode()).toBe("core");
+    expect(svc.autoSwitched).toBeUndefined();
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationSwitchHeld",
+      expect.objectContaining({
+        reason: "dbtCoreUnknown",
+        binaryVersion: "2.0.9",
+      }),
+    );
+    await svc.notifySwitchHeld();
+    expect(shown()[0][0]).toContain(
+      "keeps dbt Core mode because dbt-core could not be checked in the selected interpreter in time.",
+    );
+  });
+
+  it("gives the library a longer timeout than its own, so the library's 'no dbt-core' never wins the race", async () => {
+    const { svc, probeDbtCore } = service({ probeTimeoutMs: 20 });
+    await svc.resolve(new FakeMemento() as never);
+    expect(probeDbtCore).toHaveBeenCalledWith(
+      "/venv/bin/python",
+      { PATH: "/usr/bin" },
+      5020,
+    );
   });
 });
 

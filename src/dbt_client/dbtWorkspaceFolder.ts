@@ -39,6 +39,14 @@ import { getDbtIntegrationMode } from "./integrationMode";
 // multi-root workspaces) from a real `findFiles` failure (telemetry-worthy).
 class NoProjectsFound extends Error {}
 
+/**
+ * Where dbt projects are not looked for: installed packages and Python
+ * site-packages hold `dbt_project.yml` files that are not the user's projects.
+ * Shared with the integration-mode decision, which lists projects the same way.
+ */
+export const PROJECT_EXCLUDE_PATTERN =
+  "**/{dbt_packages,site-packages,dbt_internal_packages}";
+
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
   readonly projectDiscoveryDiagnostics =
@@ -128,9 +136,7 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   async discoverProjects() {
-    // Ignore dbt_packages and venv/site-packages/dbt project folders
-    const excludePattern =
-      "**/{dbt_packages,site-packages,dbt_internal_packages}";
+    const excludePattern = PROJECT_EXCLUDE_PATTERN;
     // Multi-root workspaces activate the extension when any folder contains
     // `dbt_project.yml`, but discoverProjects runs on every folder. A folder
     // that genuinely has no dbt project must resolve to an empty result

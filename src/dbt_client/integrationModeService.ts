@@ -1,10 +1,10 @@
 import {
+  DBT_PROJECT_FILE,
   DBTTerminal,
   DbtV2Binary,
   findDbtV2Binary,
   FindDbtV2BinaryOptions,
   probePythonDbtCore,
-  PythonDbtCore,
 } from "@altimateai/dbt-integration";
 import { existsSync } from "fs";
 import * as path from "path";
@@ -12,10 +12,14 @@ import {
   commands,
   ConfigurationTarget,
   Memento,
+  RelativePattern,
+  Uri,
   window,
   workspace,
+  WorkspaceFolder,
 } from "vscode";
 import { TelemetryService } from "../telemetry";
+import { PROJECT_EXCLUDE_PATTERN } from "./dbtWorkspaceFolder";
 import {
   decideDbtIntegrationMode,
   getDbtIntegrationMode,
@@ -34,6 +38,27 @@ const OPEN_SETTINGS = "Open setting";
 const USE_FUSION = "Use dbt Fusion";
 const DISMISS = "Dismiss";
 const DBT_LOOM_CONFIG = "dbt_loom.config.yml";
+/**
+ * How long the dbt-core probe may take before its answer counts as unknown.
+ * A slow first `import dbt.version` (a cold virus scan of a large venv) must
+ * hold the switch back, not switch the window.
+ */
+export const DBT_CORE_PROBE_TIMEOUT_MS = 15_000;
+/** The library's own timeout sits behind ours, so ours is the one that fires. */
+const PROBE_GRACE_MS = 5_000;
+
+const HELD_CAUSES: Record<SwitchHeldReason, string> = {
+  dbtCore: "dbt-core imports in the selected interpreter",
+  dbtLoom: "a dbt-loom config is present",
+  dbtCoreUnknown:
+    "dbt-core could not be checked in the selected interpreter in time",
+};
+const HELD_BECAUSE: Record<SwitchHeldReason, string> = {
+  dbtCore: "the interpreter has dbt-core",
+  dbtLoom: "a dbt-loom config is present",
+  dbtCoreUnknown:
+    "dbt-core could not be checked in the selected interpreter in time",
+};
 
 export interface AutoSwitch {
   from: string;
@@ -50,7 +75,15 @@ export interface IntegrationModeProbes {
     options: FindDbtV2BinaryOptions,
   ) => Promise<DbtV2Binary | undefined>;
   probeDbtCore: typeof probePythonDbtCore;
+  /** The `dbt_project.yml` files under a workspace folder, as discovery finds them. */
+  findProjectFiles: (folder: WorkspaceFolder) => Thenable<Uri[]>;
 }
+
+const findProjectFiles = (folder: WorkspaceFolder) =>
+  workspace.findFiles(
+    new RelativePattern(folder, `**/${DBT_PROJECT_FILE}`),
+    new RelativePattern(folder, PROJECT_EXCLUDE_PATTERN),
+  );
 
 /**
  * Decides, once per window and before dbt is detected, which integration
@@ -73,7 +106,9 @@ export class IntegrationModeService {
     private probes: IntegrationModeProbes = {
       findBinary: findDbtV2Binary,
       probeDbtCore: probePythonDbtCore,
+      findProjectFiles,
     },
+    private probeTimeoutMs = DBT_CORE_PROBE_TIMEOUT_MS,
   ) {}
 
   get autoSwitched(): AutoSwitch | undefined {
@@ -84,7 +119,7 @@ export class IntegrationModeService {
     this.workspaceState = workspaceState;
     let configured = readConfiguredDbtIntegration();
     let binary: DbtV2Binary | undefined;
-    let pythonDbtCore: PythonDbtCore = { importable: false };
+    let pythonDbtCore: boolean | "unknown" = false;
     let dbtLoom = false;
     if (!configured.explicit) {
       await this.pythonEnvironment.initialize();
@@ -99,13 +134,10 @@ export class IntegrationModeService {
       });
       if (binary) {
         if (pythonPath) {
-          pythonDbtCore = await this.probes.probeDbtCore(pythonPath, env);
+          pythonDbtCore = await this.probeDbtCore(pythonPath, env);
         }
         dbtLoom =
-          Boolean(env.DBT_LOOM_CONFIG_PATH) ||
-          (workspace.workspaceFolders ?? []).some((folder) =>
-            existsSync(path.join(folder.uri.fsPath, DBT_LOOM_CONFIG)),
-          );
+          Boolean(env.DBT_LOOM_CONFIG_PATH) || (await this.dbtLoomConfigured());
       }
       // A setting made explicit while the probes ran wins over their result.
       configured = readConfiguredDbtIntegration();
@@ -115,17 +147,14 @@ export class IntegrationModeService {
       configured,
       {
         dbtV2Found: binary !== undefined,
-        pythonDbtCore: pythonDbtCore.importable,
+        pythonDbtCore,
         dbtLoom,
       },
     );
     setEffectiveDbtIntegrationMode(mode);
     if (heldBack && binary) {
       this.switchHeld = { reason: heldBack, binary };
-      const cause =
-        heldBack === "dbtCore"
-          ? "dbt-core imports in the selected interpreter"
-          : "a dbt-loom config is present";
+      const cause = HELD_CAUSES[heldBack];
       this.terminal.info(
         "dbtIntegrationSwitchHeld",
         `${binary.path} is dbt ${binary.version.join(".")}, but ${cause}: keeping ${mode}`,
@@ -156,6 +185,68 @@ export class IntegrationModeService {
       });
     }
     return mode;
+  }
+
+  /**
+   * Whether dbt-core imports in `pythonPath`, or "unknown" when the probe has
+   * not answered within `probeTimeoutMs`. The library's own timeout reports
+   * "no dbt-core"; a user with both dbt Core and Fusion whose first import is
+   * slow would be switched by that, so the slow answer is not trusted.
+   */
+  private async probeDbtCore(
+    pythonPath: string,
+    env: Record<string, string | undefined>,
+  ): Promise<boolean | "unknown"> {
+    let timer: NodeJS.Timeout | undefined;
+    const unknown = new Promise<"unknown">((resolve) => {
+      timer = setTimeout(() => resolve("unknown"), this.probeTimeoutMs);
+    });
+    try {
+      const probe = this.probes
+        .probeDbtCore(pythonPath, env, this.probeTimeoutMs + PROBE_GRACE_MS)
+        .then((result) => result.importable);
+      return await Promise.race([probe, unknown]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /**
+   * Whether a dbt-loom config sits at a workspace folder root or beside any
+   * dbt project under one, the roots `discoverProjects` will find. The
+   * library reads dbt-loom from each project's root, so a nested project's
+   * config holds the switch back too.
+   */
+  private async dbtLoomConfigured(): Promise<boolean> {
+    const folders = workspace.workspaceFolders ?? [];
+    if (
+      folders.some((folder) =>
+        existsSync(path.join(folder.uri.fsPath, DBT_LOOM_CONFIG)),
+      )
+    ) {
+      return true;
+    }
+    for (const folder of folders) {
+      let projectFiles: Uri[] = [];
+      try {
+        projectFiles = await this.probes.findProjectFiles(folder);
+      } catch (error) {
+        // Discovery retries this later; for the mode decision an unreadable
+        // folder is a folder without a dbt-loom config.
+        this.terminal.debug(
+          "dbtIntegrationLoomCheck",
+          `Could not list dbt projects under ${folder.uri.fsPath}: ${error}`,
+        );
+      }
+      if (
+        projectFiles.some((file) =>
+          existsSync(path.join(path.dirname(file.fsPath), DBT_LOOM_CONFIG)),
+        )
+      ) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -229,10 +320,7 @@ export class IntegrationModeService {
       return;
     }
     await this.workspaceState.update(SWITCH_HELD_NOTIFIED_KEY, true);
-    const because =
-      held.reason === "dbtCore"
-        ? "the interpreter has dbt-core"
-        : "a dbt-loom config is present";
+    const because = HELD_BECAUSE[held.reason];
     const answer = await window.showInformationMessage(
       `dbt Fusion ${held.binary.version.join(".")} was found at ${held.binary.path}, but this window keeps dbt Core mode because ${because}.`,
       USE_FUSION,
