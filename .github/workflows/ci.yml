@@ -37,6 +37,11 @@ jobs:
     permissions:
       contents: read
     steps:
+      # The VSIX built here is the one published, so check out with LF line endings
+      # on Windows too, as on the Linux runners that used to build every release.
+      - name: Keep LF line endings
+        if: runner.os == 'Windows'
+        run: git config --global core.autocrlf false
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -45,8 +50,9 @@ jobs:
         uses: ./.github/actions/common-build
         with:
           vsce-target: ${{ matrix.vsce-target }}
+      # A pre-release must be packaged as one: `publish --packagePath` can't mark it.
       - name: Build and package VSIX
-        run: npx @vscode/vsce package --target ${{ matrix.vsce-target }}
+        run: npx @vscode/vsce package --target ${{ matrix.vsce-target }} ${{ github.event_name == 'release' && github.event.release.prerelease && '--pre-release' || '' }}
         env:
           VSCE_TARGET: ${{ matrix.vsce-target }}
           NODE_OPTIONS: --max-old-space-size=8192
@@ -77,13 +83,6 @@ jobs:
             }
             console.log("zeromq loads from the VSIX, libzmq " + z.version);
           ' "$dir"
-      - name: Upload VSIX
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: vsix-${{ matrix.vsce-target }}
-          path: "*.vsix"
-          retention-days: 14
       - name: Analyze bundle size
         id: analyze
         run: python3 .github/scripts/analyze-vsix.py
@@ -124,10 +123,32 @@ jobs:
       - name: Job summary
         shell: bash
         run: cat bundle-report.md >> "$GITHUB_STEP_SUMMARY"
-      # Last, so the uploaded VSIX and the size report are there when it fails.
       - name: Check VSIX size and contents
         shell: bash
         run: python3 .github/scripts/check-vsix.py ./*.vsix ${{ matrix.vsce-target }}
+      # Only a VSIX that passed every step above is uploaded, with its checksum. The
+      # publish jobs publish exactly this file.
+      - name: Record VSIX checksum
+        if: github.event_name == 'pull_request' || github.event_name == 'release'
+        shell: bash
+        run: python3 .github/scripts/release-vsix.py record ./*.vsix
+      - name: Upload checked VSIX
+        if: github.event_name == 'pull_request' || github.event_name == 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-${{ matrix.vsce-target }}
+          path: |
+            *.vsix
+            *.vsix.sha256
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload unchecked VSIX
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-${{ matrix.vsce-target }}-unchecked
+          path: "*.vsix"
+          retention-days: 7
 
   bundle-size-report:
     needs: build
@@ -206,10 +227,14 @@ jobs:
               });
             }
 
-  release-vsstudio-marketplace:
+  # Rehearses the publish jobs on every PR: downloads each checked VSIX and runs the
+  # same verification and retry wrapper. No publish token is referenced here.
+  release-dry-run:
     needs: build
     runs-on: ubuntu-latest
-    if: success() && startsWith( github.ref, 'refs/tags/')
+    if: success() && github.event_name == 'pull_request'
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -222,10 +247,70 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Run common build steps
-        uses: ./.github/actions/common-build
         with:
-          vsce-target: ${{ matrix.target }}
+          persist-credentials: false
+      - name: Download checked VSIX
+        uses: actions/download-artifact@v4
+        with:
+          name: vsix-${{ matrix.target }}
+          path: vsix
+      # A PR has no tag: package.json's version stands in for it.
+      - name: Verify checked VSIX
+        id: vsix
+        run: python3 .github/scripts/release-vsix.py verify vsix "$TARGET" "$(node -p "require('./package.json').version")" false
+        env:
+          TARGET: ${{ matrix.target }}
+      - name: Retry a command that fails twice, then succeeds
+        env:
+          RETRY_DELAYS: "1 1"
+        run: |
+          cat > flaky.sh <<'EOF'
+          n=$(( $(cat attempts 2>/dev/null || echo 0) + 1 ))
+          echo "$n" > attempts
+          [ "$n" -ge 3 ]
+          EOF
+          .github/scripts/retry.sh bash flaky.sh
+          [ "$(cat attempts)" = 3 ]
+      - name: Stop after three failed attempts
+        env:
+          RETRY_DELAYS: "1 1"
+        run: |
+          if .github/scripts/retry.sh false; then exit 1; fi
+      - name: Show the publish commands (not run)
+        env:
+          VSIX: ${{ steps.vsix.outputs.vsix }}
+        run: |
+          echo "would run: .github/scripts/retry.sh npx vsce publish --packagePath $VSIX --skip-duplicate"
+          echo "would run: .github/scripts/retry.sh npx ovsx publish $VSIX --skip-duplicate"
+
+  release-vsstudio-marketplace:
+    needs: build
+    runs-on: ubuntu-latest
+    if: success() && github.event_name == 'release' && startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - darwin-arm64
+          - darwin-x64
+          - linux-arm64
+          - linux-x64
+          - win32-x64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      # Only the publish CLIs at their lockfile versions; nothing is built here.
+      - name: Install vsce and ovsx
+        run: npm ci --ignore-scripts
       - name: Verify package.json version matches release tag
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
@@ -235,21 +320,31 @@ jobs:
             exit 1
           fi
           echo "package.json version $PKG_VERSION matches tag $TAG_VERSION"
+      - name: Download checked VSIX
+        uses: actions/download-artifact@v4
+        with:
+          name: vsix-${{ matrix.target }}
+          path: vsix
+      - name: Verify checked VSIX
+        id: vsix
+        run: python3 .github/scripts/release-vsix.py verify vsix "$TARGET" "$GITHUB_REF_NAME" "$PRE_RELEASE"
+        env:
+          TARGET: ${{ matrix.target }}
+          PRE_RELEASE: ${{ github.event.release.prerelease }}
+      # --skip-duplicate makes a retry after an attempt that did land a no-op.
       - name: Publish Visual Studio Marketplace
-        run: |
-          PRE_RELEASE=""
-          if [ "${{ github.event_name }}" == "release" ] && [ "${{ github.event.release.prerelease }}" == "true" ]; then
-            PRE_RELEASE="--pre-release"
-          fi
-          npx vsce publish --skip-duplicate --target ${{ matrix.target }} $PRE_RELEASE
+        run: .github/scripts/retry.sh npx vsce publish --packagePath "$VSIX" --skip-duplicate ${PRE_RELEASE:+"$PRE_RELEASE"}
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-          VSCE_TARGET: ${{ matrix.target }}
+          VSIX: ${{ steps.vsix.outputs.vsix }}
+          PRE_RELEASE: ${{ github.event.release.prerelease && '--pre-release' || '' }}
 
   release-openvsx-marketplace:
     needs: build
     runs-on: ubuntu-latest
-    if: success() && startsWith( github.ref, 'refs/tags/')
+    if: success() && github.event_name == 'release' && startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -262,10 +357,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Run common build steps
-        uses: ./.github/actions/common-build
         with:
-          vsce-target: ${{ matrix.target }}
+          persist-credentials: false
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      # Only the publish CLIs at their lockfile versions; nothing is built here.
+      - name: Install vsce and ovsx
+        run: npm ci --ignore-scripts
       - name: Verify package.json version matches release tag
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
@@ -275,16 +376,24 @@ jobs:
             exit 1
           fi
           echo "package.json version $PKG_VERSION matches tag $TAG_VERSION"
+      - name: Download checked VSIX
+        uses: actions/download-artifact@v4
+        with:
+          name: vsix-${{ matrix.target }}
+          path: vsix
+      - name: Verify checked VSIX
+        id: vsix
+        run: python3 .github/scripts/release-vsix.py verify vsix "$TARGET" "$GITHUB_REF_NAME" "$PRE_RELEASE"
+        env:
+          TARGET: ${{ matrix.target }}
+          PRE_RELEASE: ${{ github.event.release.prerelease }}
+      # Open VSX reads the pre-release flag from the VSIX. --skip-duplicate makes a
+      # retry after an attempt that did land a no-op.
       - name: Publish OpenVSX Marketplace
-        run: |
-          PRE_RELEASE=""
-          if [ "${{ github.event_name }}" == "release" ] && [ "${{ github.event.release.prerelease }}" == "true" ]; then
-            PRE_RELEASE="--pre-release"
-          fi
-          npx ovsx publish --skip-duplicate --target ${{ matrix.target }} $PRE_RELEASE
+        run: .github/scripts/retry.sh npx ovsx publish "$VSIX" --skip-duplicate
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
-          VSCE_TARGET: ${{ matrix.target }}
+          VSIX: ${{ steps.vsix.outputs.vsix }}
 
   # Single release notification across both marketplaces, now including the
   # release notes body. Kept inline (not the shared AltimateAI/ci-workflows
