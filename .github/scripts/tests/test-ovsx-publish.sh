@@ -6,8 +6,8 @@ here=$(cd "$(dirname "$0")" && pwd)
 wrapper="$here/../ovsx-publish.sh"
 failures=0
 
-# run_case <name> <ovsx mode: inactive|ok|fail> <visible after N requests, 0 = never>
-# Sets: status, attempts, polls, output.
+# run_case <name> <ovsx mode: inactive|ok|fail> <visible after N requests, 0 = never> [API delay, s]
+# Sets: status, attempts, polls, output, elapsed.
 run_case() {
   dir=$(mktemp -d)
   cat > "$dir/ovsx" <<'STUB'
@@ -18,14 +18,16 @@ case "$STUB_MODE" in
   *) echo "❌  Service Unavailable (503)"; exit 1 ;;
 esac
 STUB
-  python3 "$here/openvsx_stub.py" "$dir/port" "$dir/polls" "$3" &
+  python3 "$here/openvsx_stub.py" "$dir/port" "$dir/polls" "$3" "${4:-0}" &
   server=$!
   for _ in $(seq 50); do [ -s "$dir/port" ] && break; sleep 0.1; done
+  started=$SECONDS
   output=$(STUB_DIR=$dir STUB_MODE=$2 OVSX="bash $dir/ovsx" \
     OVSX_API="http://127.0.0.1:$(cat "$dir/port")" RETRY_DELAYS="0 0" \
     VISIBLE_POLL_INTERVAL=1 VISIBLE_POLL_LIMIT=3 \
     "$wrapper" "$dir/x.vsix" linux-x64 9.9.9 2>&1)
   status=$?
+  elapsed=$((SECONDS - started))
   kill "$server" 2>/dev/null
   wait "$server" 2>/dev/null
   attempts=$(cat "$dir/attempts" 2>/dev/null || echo 0)
@@ -63,5 +65,9 @@ check "says it isn't visible" \
 run_case "ordinary failure" fail 1
 check "three attempts, no polling" \
   test "$status" = 1 -a "$attempts" = 3 -a "$polls" = 0
+
+run_case "API slower than the limit" ok 1 6
+check "fails at the limit instead of waiting for the slow answer" \
+  test "$status" = 1 -a "$elapsed" -lt 6
 
 [ "$failures" -eq 0 ]

@@ -39,7 +39,11 @@ limit=${VISIBLE_POLL_LIMIT:-1200}
 response=$(mktemp)
 deadline=$((SECONDS + limit))
 while true; do
-  code=$(curl -sS -o "$response" -w '%{http_code}' "$api/$target/$version" 2>/dev/null || true)
+  # Each request gets only what is left of the budget, so a stalled API can't
+  # carry the wait past the limit, and a 200 always comes within it.
+  remaining=$((deadline - SECONDS))
+  [ "$remaining" -lt 1 ] && remaining=1
+  code=$(curl -sS --max-time "$remaining" -o "$response" -w '%{http_code}' "$api/$target/$version" 2>/dev/null || true)
   if [ "$code" = 200 ] && python3 -c '
 import json, sys
 data = json.load(open(sys.argv[1]))
