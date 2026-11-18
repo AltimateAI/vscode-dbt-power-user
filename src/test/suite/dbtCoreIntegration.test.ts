@@ -35,7 +35,8 @@ describe("DBTCoreDetection Tests", () => {
     } as any;
 
     mockPythonEnvironment = {
-      pythonPath: "/usr/bin/python3",
+      // A file that exists on every OS: detection skips an interpreter path that doesn't.
+      pythonPath: process.execPath,
       getEnvironmentVariables: jest.fn().mockReturnValue({}),
     } as any;
 
@@ -78,7 +79,7 @@ describe("DBTCoreDetection Tests", () => {
     expect(
       mockCommandProcessExecutionFactory.createCommandProcessExecution,
     ).toHaveBeenCalledWith({
-      command: "/usr/bin/python3",
+      command: process.execPath,
       args: ["-c", "import dbt"],
       envVars: {},
     });
@@ -120,7 +121,7 @@ describe("DBTCoreDetection Tests", () => {
     expect(
       mockCommandProcessExecutionFactory.createCommandProcessExecution,
     ).toHaveBeenCalledWith({
-      command: "/usr/bin/python3",
+      command: process.execPath,
       args: ["-c", "import dbt"],
       envVars: {},
     });

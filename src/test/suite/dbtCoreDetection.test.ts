@@ -51,7 +51,8 @@ describe("DBTCoreDetection Tests", () => {
     } as unknown as jest.Mocked<CommandProcessExecutionFactory>;
 
     mockPythonEnvironment = {
-      pythonPath: "/path/to/python",
+      // A file that exists: detection skips an interpreter path that doesn't.
+      pythonPath: process.execPath,
       getEnvironmentVariables: jest
         .fn()
         .mockReturnValue({ PATH: "/some/path" }),
@@ -89,7 +90,7 @@ describe("DBTCoreDetection Tests", () => {
     expect(
       mockCommandProcessExecutionFactory.createCommandProcessExecution,
     ).toHaveBeenCalledWith({
-      command: "/path/to/python",
+      command: process.execPath,
       args: ["-c", "import dbt"],
       envVars: { PATH: "/some/path" },
     });
