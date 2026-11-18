@@ -32,7 +32,8 @@ def sha256(path):
 
 def record(vsix):
     digest = sha256(vsix)
-    with open(vsix + ".sha256", "w") as f:
+    # newline="\n": the same `sha256sum -c` format on every runner, Windows too.
+    with open(vsix + ".sha256", "w", newline="\n") as f:
         f.write(f"{digest}  {os.path.basename(vsix)}\n")
     print(f"{os.path.basename(vsix)}: sha256 {digest}")
 
