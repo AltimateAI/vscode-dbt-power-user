@@ -7,6 +7,7 @@ wrapper="$here/../ovsx-publish.sh"
 failures=0
 
 # run_case <name> <ovsx mode: inactive|ok|fail> <visible after N requests, 0 = never> [API delay, s]
+# Polls every CASE_INTERVAL seconds (default 1) with a 3 s limit.
 # Sets: status, attempts, polls, output, elapsed.
 run_case() {
   dir=$(mktemp -d)
@@ -24,7 +25,7 @@ STUB
   started=$SECONDS
   output=$(STUB_DIR=$dir STUB_MODE=$2 OVSX="bash $dir/ovsx" \
     OVSX_API="http://127.0.0.1:$(cat "$dir/port")" RETRY_DELAYS="0 0" \
-    VISIBLE_POLL_INTERVAL=1 VISIBLE_POLL_LIMIT=3 \
+    VISIBLE_POLL_INTERVAL=${CASE_INTERVAL:-1} VISIBLE_POLL_LIMIT=3 \
     "$wrapper" "$dir/x.vsix" linux-x64 9.9.9 2>&1)
   status=$?
   elapsed=$((SECONDS - started))
@@ -69,5 +70,12 @@ check "three attempts, no polling" \
 run_case "API slower than the limit" ok 1 6
 check "fails at the limit instead of waiting for the slow answer" \
   test "$status" = 1 -a "$elapsed" -lt 6
+
+# Requests at 0 s and 2 s miss; a third, where the version would first be
+# served, would fall after the 3 s limit, so it must not be made.
+CASE_INTERVAL=2 run_case "first served after the deadline" ok 3
+check "fails without a request past the limit" test "$status" = 1 -a "$polls" = 2
+check "says it isn't visible" \
+  grep -q "uploaded but not visible on Open VSX after 3 s" <<< "$output"
 
 [ "$failures" -eq 0 ]

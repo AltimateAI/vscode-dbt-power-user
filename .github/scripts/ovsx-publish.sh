@@ -7,7 +7,9 @@
 #     An upload Open VSX has accepted but not yet activated ("is already
 #     published, but currently isn't active") counts as landed: no more attempts.
 #   - Then it polls the Open VSX API until it returns 200 with that version, and
-#     fails if that hasn't happened within the limit.
+#     fails if that hasn't happened by the limit. No request starts after the
+#     deadline, each one is cut off at it, and no wait runs past it, so a 200
+#     only counts when it came within the limit.
 #
 # Env: OVSX (publish command, default "npx ovsx"); OVSX_API (default
 # https://open-vsx.org/api/innoverio/vscode-dbt-power-user); VISIBLE_POLL_INTERVAL
@@ -36,14 +38,19 @@ limit=${VISIBLE_POLL_LIMIT:-1200}
 
 "$here/retry.sh" "$0" --attempt "$vsix" "$target" "$version" || exit $?
 
+# Times in milliseconds (bash 5's EPOCHREALTIME), so the deadline holds to the
+# millisecond rather than to SECONDS' whole seconds.
+now_ms() { local t=${EPOCHREALTIME/[.,]/}; echo $((10#$t / 1000)); }
+as_secs() { printf '%d.%03d' $(($1 / 1000)) $(($1 % 1000)); }
+
 response=$(mktemp)
-deadline=$((SECONDS + limit))
+deadline=$(($(now_ms) + limit * 1000))
 while true; do
-  # Each request gets only what is left of the budget, so a stalled API can't
-  # carry the wait past the limit, and a 200 always comes within it.
-  remaining=$((deadline - SECONDS))
-  [ "$remaining" -lt 1 ] && remaining=1
-  code=$(curl -sS --max-time "$remaining" -o "$response" -w '%{http_code}' "$api/$target/$version" 2>/dev/null || true)
+  # No request starts at or after the deadline, and each one gets only the
+  # time left, so a 200 can only arrive within the limit.
+  left=$((deadline - $(now_ms)))
+  [ "$left" -gt 0 ] || break
+  code=$(curl -sS --max-time "$(as_secs "$left")" -o "$response" -w '%{http_code}' "$api/$target/$version" 2>/dev/null || true)
   if [ "$code" = 200 ] && python3 -c '
 import json, sys
 data = json.load(open(sys.argv[1]))
@@ -53,11 +60,13 @@ sys.exit(0 if found == (sys.argv[2], sys.argv[3]) else 1)
     echo "Open VSX serves $version for $target"
     exit 0
   fi
-  if [ "$SECONDS" -ge "$deadline" ]; then
-    if [ $((limit % 60)) -eq 0 ]; then wait_for="$((limit / 60)) min"; else wait_for="${limit} s"; fi
-    echo "::error::$version for $target uploaded but not visible on Open VSX after $wait_for"
-    exit 1
-  fi
-  echo "Open VSX doesn't serve $version for $target yet (HTTP ${code:-none}); checking again in ${interval}s"
-  sleep "$interval"
+  # The wait before the next request never runs past the deadline either.
+  left=$((deadline - $(now_ms)))
+  [ "$left" -gt 0 ] || break
+  pause=$((interval * 1000 < left ? interval * 1000 : left))
+  echo "Open VSX doesn't serve $version for $target yet (HTTP ${code:-none}); checking again in $(as_secs "$pause")s"
+  sleep "$(as_secs "$pause")"
 done
+if [ $((limit % 60)) -eq 0 ]; then wait_for="$((limit / 60)) min"; else wait_for="${limit} s"; fi
+echo "::error::$version for $target uploaded but not visible on Open VSX after $wait_for"
+exit 1
