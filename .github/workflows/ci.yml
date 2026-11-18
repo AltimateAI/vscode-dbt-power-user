@@ -291,11 +291,11 @@ jobs:
           VSIX: ${{ steps.vsix.outputs.vsix }}
         run: |
           echo "would run: .github/scripts/retry.sh npx vsce publish --packagePath $VSIX --skip-duplicate"
-          echo "would run: .github/scripts/retry.sh npx ovsx publish $VSIX --skip-duplicate"
+          echo "would run: .github/scripts/ovsx-publish.sh $VSIX ${{ matrix.target }} <tag>"
 
   # Tests the release scripts on every PR: the Slack mrkdwn conversion, the Slack text
   # the release notice would post for 0.70.0 (printed, not sent), and the Open VSX
-  # publish wrapper against stubs. No secret is referenced here.
+  # publish wrapper against a stub ovsx and a local stub API. No secret is referenced.
   release-scripts-test:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
@@ -322,6 +322,8 @@ jobs:
           grep -q "Could not read the release notes" stderr.log
           printf '%s\n' "$text" | grep -q "(re-run, attempt 2)"
           printf '%s\n' "$text" | grep -q "No release notes provided."
+      - name: Open VSX publish wrapper against stubs
+        run: .github/scripts/tests/test-ovsx-publish.sh
 
   release-vsstudio-marketplace:
     needs: build
@@ -427,13 +429,16 @@ jobs:
         env:
           TARGET: ${{ matrix.target }}
           PRE_RELEASE: ${{ github.event.release.prerelease }}
-      # Open VSX reads the pre-release flag from the VSIX. --skip-duplicate makes a
-      # retry after an attempt that did land a no-op.
+      # Open VSX reads the pre-release flag from the VSIX. ovsx-publish.sh retries a
+      # failed upload, stops retrying once Open VSX reports the upload landed but not
+      # yet active, and succeeds only when the API serves this version for this
+      # target (polled for up to 20 min).
       - name: Publish OpenVSX Marketplace
-        run: .github/scripts/retry.sh npx ovsx publish "$VSIX" --skip-duplicate
+        run: .github/scripts/ovsx-publish.sh "$VSIX" "$TARGET" "$GITHUB_REF_NAME"
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
           VSIX: ${{ steps.vsix.outputs.vsix }}
+          TARGET: ${{ matrix.target }}
 
   # Single release notification across both marketplaces, now including the
   # release notes body. Kept inline (not the shared AltimateAI/ci-workflows
