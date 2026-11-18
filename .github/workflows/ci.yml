@@ -142,6 +142,9 @@ jobs:
             *.vsix.sha256
           if-no-files-found: error
           retention-days: 14
+          # "Re-run all jobs" uploads again under the same name; v4 artifacts are
+          # immutable, so replace the earlier attempt's instead of failing.
+          overwrite: true
       - name: Upload unchecked VSIX
         if: failure() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
@@ -149,6 +152,7 @@ jobs:
           name: vsix-${{ matrix.vsce-target }}-unchecked
           path: "*.vsix"
           retention-days: 7
+          overwrite: true
 
   bundle-size-report:
     needs: build
