@@ -1,71 +1,81 @@
 """Convert GitHub Markdown (release notes) to Slack mrkdwn: stdin to stdout.
 
-Rules, in order:
-  1. Strip HTML comments.
-  2. Escape `&`, `<` and `>` everywhere, code included.
-  3. Outside code: `#`-`######` headings become `*Heading*` (trailing `#`s and
-     `**` dropped); `* `, `- ` and `+ ` bullets become `• `, keeping the indent;
-     `**x**` and `__x__` become `*x*`; `~~x~~` becomes `~x~`; `[t](u)` and
-     `![a](u)` become `<u|t>`, with `&` restored in the URL.
-  4. Inline code spans and fenced blocks keep their text apart from step 2.
-     @mentions, bare URLs, tables and `---` are left alone.
+Kept identical to the shared release-notify converter; update both together.
+Everything between the slack_mrkdwn markers is that converter, copied verbatim.
 """
 
 import re
 import sys
 
-COMMENT = re.compile(r"<!--.*?-->", re.S)
-FENCE = re.compile(r"^\s*(```|~~~)")
-HEADING = re.compile(r"^#{1,6}[ \t]+(.*?)(?:[ \t]+#+)?[ \t]*$")
-BULLET = re.compile(r"^([ \t]*)[*+-][ \t]+")
-CODE_SPAN = re.compile(r"(?<!`)(`+)(?!`).+?(?<!`)\1(?!`)")
-LINK = re.compile(r"!?\[([^\]]*)\]\(([^)\s]+)\)")
-BOLD = re.compile(r"\*\*(.+?)\*\*|__(.+?)__")
-STRIKE = re.compile(r"~~(.+?)~~")
+# --- slack_mrkdwn begin ---
+# GitHub Markdown -> Slack mrkdwn. The same rules as Power User's release
+# notify (.github/scripts/slack-mrkdwn.py there); keep the two in step.
+#  1. & < > are escaped everywhere, code and URLs included.
+#  2. HTML comments are dropped.
+#  3. # to ###### headings become *Heading* (bold inside them dropped).
+#  4. **x** and __x__ become *x*; ~~x~~ becomes ~x~.
+#  5. [t](u) becomes <u|t>; ![a](u) becomes <u|a>.
+#  6. *, - and + bullets become •, keeping their indent.
+#  7. Inline code and fenced blocks are only escaped.
+#  8. @mentions, bare URLs, tables and rules are left as they are.
+_FENCE = re.compile(r"^\s*(```|~~~)")
+_HEADING = re.compile(r"^\s{0,3}#{1,6}\s+(.*?)(?:\s+#+)?\s*$")
+_RULE = re.compile(r"^\s*([*_-])(?:\s*\1){2,}\s*$")
+_BULLET = re.compile(r"^(\s*)[*+-]\s+")
+_LINK = re.compile(r"!?\[([^\]]*)\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
+_BARE_URL = re.compile(r"https?://[^\s<>|]+")
 
 
-def escape(text):
-    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+def _esc(s):
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def slack_link(match):
-    url = match.group(2).replace("&amp;", "&")
-    return f"<{url}|{match.group(1)}>"
+def _inline(s):
+    # Links and bare URLs are set aside so the bold and strike rules
+    # never touch a URL.
+    kept = []
+
+    def keep(token):
+        kept.append(token)
+        return f"\x00{len(kept) - 1}\x00"
+
+    def link(m):
+        text = re.sub(r"\*\*|__", "", m.group(1))
+        return keep(f"<{m.group(2)}|{text}>" if text else f"<{m.group(2)}>")
+
+    s = _LINK.sub(link, _esc(s))
+    s = _BARE_URL.sub(lambda m: keep(m.group(0)), s)
+    s = re.sub(r"\*\*(.+?)\*\*", r"*\1*", s)
+    s = re.sub(r"__(.+?)__", r"*\1*", s)
+    s = re.sub(r"~~(.+?)~~", r"~\1~", s)
+    return re.sub(r"\x00(\d+)\x00", lambda m: kept[int(m.group(1))], s)
 
 
-def convert_text(text):
-    """Inline conversions for text that holds no code span."""
-    text = LINK.sub(slack_link, text)
-    text = BOLD.sub(lambda m: f"*{m.group(1) or m.group(2)}*", text)
-    return STRIKE.sub(r"~\1~", text)
+def _text(s):
+    parts = re.split(r"(`[^`]*`)", s)
+    return "".join(_esc(p) if i % 2 else _inline(p) for i, p in enumerate(parts))
 
 
-def convert_inline(line):
-    """Apply convert_text to everything but the inline code spans."""
-    out, pos = [], 0
-    for span in CODE_SPAN.finditer(line):
-        out += [convert_text(line[pos : span.start()]), span.group(0)]
-        pos = span.end()
-    return "".join(out + [convert_text(line[pos:])])
-
-
-def convert_line(line):
-    heading = HEADING.match(line)
-    if heading:
-        return f"*{convert_inline(heading.group(1).replace('**', ''))}*"
-    return convert_inline(BULLET.sub(r"\1• ", line, count=1))
-
-
-def convert(markdown):
-    lines, in_fence = [], False
-    for line in escape(COMMENT.sub("", markdown)).split("\n"):
-        if FENCE.match(line):
-            in_fence = not in_fence
-            lines.append(line)
+def slack_mrkdwn(md):
+    md = re.sub(r"<!--.*?-->", "", md.replace("\r\n", "\n"), flags=re.S)
+    out, fenced = [], False
+    for line in md.split("\n"):
+        if _FENCE.match(line):
+            fenced = not fenced
+            out.append(_esc(line))
+        elif fenced or _RULE.match(line):
+            out.append(_esc(line))
+        elif _HEADING.match(line):
+            title = re.sub(r"\*\*|__", "", _HEADING.match(line).group(1))
+            out.append(f"*{_text(title)}*" if title else "")
         else:
-            lines.append(line if in_fence else convert_line(line))
-    return "\n".join(lines)
+            b = _BULLET.match(line)
+            if b:
+                line = f"{b.group(1)}• {line[b.end():]}"
+            out.append(_text(line))
+    return "\n".join(out).strip()
+# --- slack_mrkdwn end ---
 
 
 if __name__ == "__main__":
-    sys.stdout.write(convert(sys.stdin.read()))
+    sys.stdout.write(slack_mrkdwn(sys.stdin.read()))
