@@ -260,6 +260,8 @@ jobs:
         run: python3 .github/scripts/release-vsix.py verify vsix "$TARGET" "$(node -p "require('./package.json').version")" false
         env:
           TARGET: ${{ matrix.target }}
+      # retry.sh's output is indented in these two steps, so the expected failures
+      # raise no workflow annotations.
       - name: Retry a command that fails twice, then succeeds
         env:
           RETRY_DELAYS: "1 1"
@@ -269,13 +271,17 @@ jobs:
           echo "$n" > attempts
           [ "$n" -ge 3 ]
           EOF
-          .github/scripts/retry.sh bash flaky.sh
-          [ "$(cat attempts)" = 3 ]
+          status=0
+          .github/scripts/retry.sh bash flaky.sh > retry.log 2>&1 || status=$?
+          sed 's/^/  /' retry.log
+          [ "$status" = 0 ] && [ "$(cat attempts)" = 3 ]
       - name: Stop after three failed attempts
         env:
           RETRY_DELAYS: "1 1"
         run: |
-          if .github/scripts/retry.sh false; then exit 1; fi
+          .github/scripts/retry.sh false > retry.log 2>&1 && exit 1
+          sed 's/^/  /' retry.log
+          grep -q "failed after 3 attempts" retry.log
       - name: Show the publish commands (not run)
         env:
           VSIX: ${{ steps.vsix.outputs.vsix }}
