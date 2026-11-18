@@ -25,7 +25,7 @@ class SharedCases(unittest.TestCase):
     """One test per shared case, named after it."""
 
     def test_case_count(self):
-        self.assertEqual(len(CASES), 34)
+        self.assertEqual(len(CASES), 43)
 
 
 def shared_case(case):

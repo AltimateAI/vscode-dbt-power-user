@@ -168,5 +168,50 @@
   "name": "unclosed fence runs to the end",
   "input": "```\n**x**\n## y",
   "expected": "```\n**x**\n## y"
+ },
+ {
+  "name": "multi-backtick code span",
+  "input": "Use ``**literal**`` here",
+  "expected": "Use ``**literal**`` here"
+ },
+ {
+  "name": "code span holding a backtick",
+  "input": "``a`b`` and **c**",
+  "expected": "``a`b`` and *c*"
+ },
+ {
+  "name": "unpartnered backtick run is text",
+  "input": "a ` b **c**",
+  "expected": "a ` b *c*"
+ },
+ {
+  "name": "link label with inline code",
+  "input": "[`foo`](https://example.com/docs)",
+  "expected": "<https://example.com/docs|`foo`>"
+ },
+ {
+  "name": "balanced parentheses in a link",
+  "input": "[docs](https://example.com/a_(b))",
+  "expected": "<https://example.com/a_(b)|docs>"
+ },
+ {
+  "name": "bold around a link",
+  "input": "**see [x](https://example.com)**",
+  "expected": "*see <https://example.com|x>*"
+ },
+ {
+  "name": "link label with brackets",
+  "input": "[a [b] c](https://example.com)",
+  "expected": "<https://example.com|a [b] c>"
+ },
+ {
+  "name": "text before brackets and parentheses is not a link",
+  "input": "[AI-123] fix (see notes)",
+  "expected": "[AI-123] fix (see notes)"
+ },
+ {
+  "name": "NUL in the notes is dropped",
+  "input": "a\u0000b **c**",
+  "expected": "ab *c*"
  }
 ]
