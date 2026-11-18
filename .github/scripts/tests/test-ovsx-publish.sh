@@ -7,7 +7,10 @@ wrapper="$here/../ovsx-publish.sh"
 failures=0
 
 # run_case <name> <ovsx mode: inactive|ok|fail> <visible after N requests, 0 = never> [API delay, s]
-# Polls every CASE_INTERVAL seconds (default 1) with a 3 s limit.
+# Polls every CASE_INTERVAL seconds (default 1) with a CASE_LIMIT s limit (default 3).
+# With CASE_CURL_SLEEP, a stub curl on PATH answers 200 for the requested version
+# only after sleeping that long, whatever --max-time says: an answer that arrives
+# after the deadline although the request started before it.
 # Sets: status, attempts, polls, output, elapsed.
 run_case() {
   dir=$(mktemp -d)
@@ -20,12 +23,29 @@ case "$STUB_MODE" in
 esac
 STUB
   python3 "$here/openvsx_stub.py" "$dir/port" "$dir/polls" "$3" "${4:-0}" &
+  path=$PATH
+  if [ -n "${CASE_CURL_SLEEP:-}" ]; then
+    mkdir -p "$dir/bin"
+    cat > "$dir/bin/curl" <<'CURL'
+#!/usr/bin/env bash
+out="" url=""
+while [ $# -gt 0 ]; do
+  case "$1" in -o|-w|--max-time) [ "$1" = -o ] && out=$2; shift 2 ;; -*) shift ;; *) url=$1; shift ;; esac
+done
+sleep "$CASE_CURL_SLEEP"
+target=${url%/*}; target=${target##*/}
+printf '{"version": "%s", "targetPlatform": "%s"}' "${url##*/}" "$target" > "$out"
+printf 200
+CURL
+    chmod +x "$dir/bin/curl"
+    path="$dir/bin:$PATH"
+  fi
   server=$!
   for _ in $(seq 50); do [ -s "$dir/port" ] && break; sleep 0.1; done
   started=$SECONDS
-  output=$(STUB_DIR=$dir STUB_MODE=$2 OVSX="bash $dir/ovsx" \
+  output=$(PATH=$path CASE_CURL_SLEEP=${CASE_CURL_SLEEP:-} STUB_DIR=$dir STUB_MODE=$2 OVSX="bash $dir/ovsx" \
     OVSX_API="http://127.0.0.1:$(cat "$dir/port")" RETRY_DELAYS="0 0" \
-    VISIBLE_POLL_INTERVAL=${CASE_INTERVAL:-1} VISIBLE_POLL_LIMIT=3 \
+    VISIBLE_POLL_INTERVAL=${CASE_INTERVAL:-1} VISIBLE_POLL_LIMIT=${CASE_LIMIT:-3} \
     "$wrapper" "$dir/x.vsix" linux-x64 9.9.9 2>&1)
   status=$?
   elapsed=$((SECONDS - started))
@@ -77,5 +97,11 @@ CASE_INTERVAL=2 run_case "first served after the deadline" ok 3
 check "fails without a request past the limit" test "$status" = 1 -a "$polls" = 2
 check "says it isn't visible" \
   grep -q "uploaded but not visible on Open VSX after 3 s" <<< "$output"
+
+# The only answer is a matching 200 that arrives 0.5 s after the 1 s limit.
+CASE_LIMIT=1 CASE_CURL_SLEEP=1.5 run_case "matching 200 after the deadline" ok 0
+check "is not accepted" test "$status" = 1
+check "says it isn't visible" \
+  grep -q "uploaded but not visible on Open VSX after 1 s" <<< "$output"
 
 [ "$failures" -eq 0 ]

@@ -51,7 +51,10 @@ while true; do
   left=$((deadline - $(now_ms)))
   [ "$left" -gt 0 ] || break
   code=$(curl -sS --max-time "$(as_secs "$left")" -o "$response" -w '%{http_code}' "$api/$target/$version" 2>/dev/null || true)
-  if [ "$code" = 200 ] && python3 -c '
+  # curl's limit is relative and already a little stale when it starts, so the
+  # deadline is checked again once the answer is in hand: a 200 read before the
+  # deadline also arrived before it.
+  if [ "$code" = 200 ] && [ "$(now_ms)" -lt "$deadline" ] && python3 -c '
 import json, sys
 data = json.load(open(sys.argv[1]))
 found = (data.get("version"), data.get("targetPlatform", sys.argv[3]))
