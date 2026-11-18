@@ -117,14 +117,13 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     return (<WebviewView>panel).show !== undefined;
   }
 
-  protected sendResponseToWebview({
-    command,
-    data,
-    error,
-    syncRequestId,
-    ...rest
-  }: SendMessageProps) {
-    this._panel?.webview?.postMessage({
+  /** Answers a webview's request; `to` is the webview that asked, when it may
+   * not be the current panel's. */
+  protected sendResponseToWebview(
+    { command, data, error, syncRequestId, ...rest }: SendMessageProps,
+    to: Webview | undefined = this._panel?.webview,
+  ) {
+    to?.postMessage({
       command,
       args: {
         syncRequestId,
@@ -147,16 +146,20 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     callback: () => any,
     command: string,
     showErrorNotification?: boolean,
+    to?: Webview,
   ) {
     try {
       const response = await callback();
 
-      this.sendResponseToWebview({
-        command: "response",
-        syncRequestId,
-        status: true,
-        data: response,
-      });
+      this.sendResponseToWebview(
+        {
+          command: "response",
+          syncRequestId,
+          status: true,
+          data: response,
+        },
+        to,
+      );
     } catch (error) {
       const message =
         error instanceof PythonException
@@ -170,12 +173,15 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
       if (showErrorNotification) {
         window.showErrorMessage(extendErrorWithSupportLinks(message));
       }
-      this.sendResponseToWebview({
-        command: "response",
-        syncRequestId,
-        error: message,
-        status: false,
-      });
+      this.sendResponseToWebview(
+        {
+          command: "response",
+          syncRequestId,
+          error: message,
+          status: false,
+        },
+        to,
+      );
     }
   }
 
@@ -217,15 +223,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     return (data as UpdateConfigProps).key !== undefined;
   }
 
-  protected onWebviewReady() {
+  /** `from` is the webview that reported ready (by default, the current
+   * panel's). */
+  protected onWebviewReady(from?: Webview) {
     this.isWebviewReady = true;
-    this.sendCreditsToWebview();
+    this.sendCreditsToWebview(from);
   }
 
-  private sendCreditsToWebview() {
+  private sendCreditsToWebview(to: Webview | undefined = this._panel?.webview) {
     const credits = getCachedCredits();
     if (credits !== null) {
-      this._panel?.webview?.postMessage({
+      to?.postMessage({
         command: "creditsUpdate",
         args: { availableExecutions: credits.available_executions },
       });
@@ -238,19 +246,28 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
       items: any[];
     },
     syncRequestId?: string,
+    to?: Webview,
   ) {
     const { infoMessage, items } = params;
     const result = await window.showWarningMessage(infoMessage, ...items);
     if (syncRequestId) {
-      this.sendResponseToWebview({
-        command: "response",
-        data: result,
-        syncRequestId,
-      });
+      this.sendResponseToWebview(
+        {
+          command: "response",
+          data: result,
+          syncRequestId,
+        },
+        to,
+      );
     }
   }
 
-  protected async handleCommand(message: HandleCommandProps): Promise<void> {
+  /** Handles a message from a webview; `from` is the webview that sent it,
+   * which gets the answer (by default, the current panel's). */
+  protected async handleCommand(
+    message: HandleCommandProps,
+    from?: Webview,
+  ): Promise<void> {
     const { command, syncRequestId, ...params } = message;
 
     try {
@@ -265,6 +282,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             },
             command,
             true,
+            from,
           );
           break;
         case "deleteNotebook":
@@ -277,6 +295,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             },
             command,
             true,
+            from,
           );
           break;
         case "updateNotebook":
@@ -295,6 +314,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             },
             command,
             true,
+            from,
           );
           break;
         case "openNewNotebook":
@@ -327,6 +347,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             },
             command,
             true,
+            from,
           );
           break;
         case "getCurrentUser":
@@ -337,6 +358,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             },
             command,
             true,
+            from,
           );
           break;
         case "fetch":
@@ -350,6 +372,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             },
             command,
             params.endpoint === "auth/tenant-info" ? false : true,
+            from,
           );
           break;
         case "getProjectAdapterType":
@@ -359,6 +382,8 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               return this.queryManifestService.getProject()?.getAdapterType();
             },
             command,
+            undefined,
+            from,
           );
           break;
         case "openFile":
@@ -367,7 +392,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           });
           break;
         case "webview:ready":
-          this.onWebviewReady();
+          this.onWebviewReady(from);
           break;
         case "openURL":
           if (!params.url) {
@@ -380,13 +405,16 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           break;
         case "validateCredentials":
           const isValid = this.altimateAuthService.handlePreviewFeatures();
-          this.sendResponseToWebview({
-            command: "response",
-            syncRequestId,
-            data: {
-              isValid,
+          this.sendResponseToWebview(
+            {
+              command: "response",
+              syncRequestId,
+              data: {
+                isValid,
+              },
             },
-          });
+            from,
+          );
           break;
         case "sendTelemetryEvent":
           this.telemetry.sendTelemetryEvent(
@@ -409,13 +437,16 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           );
           break;
         case "getFromContext":
-          this.sendResponseToWebview({
-            command: "response",
-            data: this.dbtProjectContainer.getFromGlobalState(
-              params.key as string,
-            ),
-            syncRequestId,
-          });
+          this.sendResponseToWebview(
+            {
+              command: "response",
+              data: this.dbtProjectContainer.getFromGlobalState(
+                params.key as string,
+              ),
+              syncRequestId,
+            },
+            from,
+          );
           break;
         case "updateConfig":
           if (!this.isUpdateConfigProps(params)) {
@@ -436,13 +467,16 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               .update(params.key, params.value);
           }
           if (syncRequestId) {
-            this.sendResponseToWebview({
-              command: "response",
-              syncRequestId,
-              data: {
-                updated: shouldUpdate,
+            this.sendResponseToWebview(
+              {
+                command: "response",
+                syncRequestId,
+                data: {
+                  updated: shouldUpdate,
+                },
               },
-            });
+              from,
+            );
           }
           break;
         case "showInformationMessage":
@@ -455,11 +489,14 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             ...items,
           );
           if (syncRequestId) {
-            this.sendResponseToWebview({
-              command: "response",
-              data: result,
-              syncRequestId,
-            });
+            this.sendResponseToWebview(
+              {
+                command: "response",
+                data: result,
+                syncRequestId,
+              },
+              from,
+            );
           }
           break;
         case "showErrorMessage":
@@ -473,6 +510,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           this.handleWarningMessage(
             params as Parameters<typeof this.handleWarningMessage>["0"],
             syncRequestId,
+            from,
           );
           break;
         case "findPackageVersion":
@@ -493,6 +531,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             },
             command,
             false,
+            from,
           );
 
           break;

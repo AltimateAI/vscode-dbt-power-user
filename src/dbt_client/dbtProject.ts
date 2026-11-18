@@ -57,6 +57,7 @@ import {
   RelativePattern,
   Uri,
   ViewColumn,
+  Webview,
   window,
   workspace,
 } from "vscode";
@@ -111,6 +112,8 @@ interface NodeRunRequest {
   nodeSelector: string;
   modelSql: string;
   uri?: Uri;
+  /** See `executeSQLWithLimitOnQueryPanel`'s `tab`. */
+  tab?: Webview;
 }
 
 interface JsonObj {
@@ -1719,6 +1722,7 @@ export class DBTProject implements Disposable {
     modelName: string,
     previewMode: PreviewMode = "inline",
     uri?: Uri,
+    tab?: Webview,
   ) {
     const limit = workspace
       .getConfiguration("dbt")
@@ -1729,15 +1733,21 @@ export class DBTProject implements Disposable {
       limit,
       previewMode,
       uri,
+      tab,
     );
   }
 
+  /**
+   * @param tab The webview of a Query Results tab opened for this run, which
+   * shows the run instead of the bottom view.
+   */
   async executeSQLWithLimitOnQueryPanel(
     query: string,
     modelName: string,
     limit: number,
     previewMode: PreviewMode = "inline",
     uri?: Uri,
+    tab?: Webview,
   ) {
     if (limit <= 0) {
       window.showErrorMessage("Please enter a positive number for query limit");
@@ -1757,6 +1767,7 @@ export class DBTProject implements Disposable {
         nodeSelector,
         modelSql: query,
         uri,
+        tab,
       });
     }
 
@@ -1784,6 +1795,7 @@ export class DBTProject implements Disposable {
               })
             : execution,
         projectName: this.getProjectName(),
+        tab,
       },
     });
   }
@@ -1986,6 +1998,7 @@ export class DBTProject implements Disposable {
           },
         ),
         projectName: this.getProjectName(),
+        tab: nodeRun.tab,
       },
     });
   }
