@@ -293,6 +293,36 @@ jobs:
           echo "would run: .github/scripts/retry.sh npx vsce publish --packagePath $VSIX --skip-duplicate"
           echo "would run: .github/scripts/retry.sh npx ovsx publish $VSIX --skip-duplicate"
 
+  # Tests the release scripts on every PR: the Slack mrkdwn conversion, the Slack text
+  # the release notice would post for 0.70.0 (printed, not sent), and the Open VSX
+  # publish wrapper against stubs. No secret is referenced here.
+  release-scripts-test:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Unit tests
+        run: python3 -m unittest discover -s .github/scripts/tests -v
+      - name: Slack text for 0.70.0 (not sent)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/scripts/release-slack-text.sh 0.70.0 1
+      - name: Slack text for a re-run whose notes can't be read (not sent)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          text=$(.github/scripts/release-slack-text.sh 0.0.0-missing 2 2> stderr.log)
+          sed 's/^::\([a-z]*\)::/  \1: /' stderr.log
+          printf '%s\n' "$text"
+          grep -q "Could not read the release notes" stderr.log
+          printf '%s\n' "$text" | grep -q "(re-run, attempt 2)"
+          printf '%s\n' "$text" | grep -q "No release notes provided."
+
   release-vsstudio-marketplace:
     needs: build
     runs-on: ubuntu-latest
@@ -412,23 +442,26 @@ jobs:
     runs-on: ubuntu-latest
     needs: [release-vsstudio-marketplace, release-openvsx-marketplace]
     if: always() && startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: read
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      # The notes come from this repo's release, converted to Slack mrkdwn. A failed
+      # fetch warns in the log and posts the status without notes.
       - name: Get release notes for Slack
         id: get_release_notes
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          CURRENT_TAG=${{ github.ref_name }}
-          if RELEASE_NOTES=$(gh release view "$CURRENT_TAG" --json body --jq '.body' 2>/dev/null) \
-             && [ -n "$RELEASE_NOTES" ] && [ "$RELEASE_NOTES" != "null" ]; then
-            SLACK_TEXT="🚀 *Release $CURRENT_TAG*\n\n$RELEASE_NOTES"
-          else
-            SLACK_TEXT="🚀 *Release $CURRENT_TAG*\n\nNo release notes provided."
-          fi
+          text=$(.github/scripts/release-slack-text.sh "$GITHUB_REF_NAME" "$GITHUB_RUN_ATTEMPT")
+          delimiter="SLACK_$(openssl rand -hex 16)"
           {
-            echo "slack_message<<SLACK_EOF"
-            echo -e "$SLACK_TEXT"
-            echo "SLACK_EOF"
+            printf 'slack_message<<%s\n' "$delimiter"
+            printf '%s\n' "$text"
+            printf '%s\n' "$delimiter"
           } >> "$GITHUB_OUTPUT"
       - name: Send Slack notification
         if: ${{ always() }}
