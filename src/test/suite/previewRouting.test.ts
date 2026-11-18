@@ -409,14 +409,17 @@ describe("executeSqlWithNodeContextWithLimitOnQueryPanel", () => {
     p.dbtProjectIntegration.executeSQLWithLimit = jest.fn(() =>
       Promise.resolve("execution"),
     );
+    const tab = { postMessage: jest.fn() };
     await p.executeSqlWithNodeContextWithLimitOnQueryPanel({
       modelName: "orders",
       limit: 500,
       nodeSelector:
         "package:jaffle_shop,resource_type:model,path:models/orders.sql,orders",
       modelSql: "select * from {{ ref('stg_orders') }}",
+      tab,
     });
     expect(fired).toHaveLength(1);
+    expect(fired[0].payload.tab).toBe(tab);
     expect(fired[0].command).toBe("executeQuery");
     expect(fired[0].payload.query).toBe(
       "select * from {{ ref('stg_orders') }}",
@@ -431,6 +434,22 @@ describe("executeSqlWithNodeContextWithLimitOnQueryPanel", () => {
           "package:jaffle_shop,resource_type:model,path:models/orders.sql,orders",
       },
     );
+  });
+});
+
+describe("executeSQLOnQueryPanel", () => {
+  it("hands the Query Results tab a run was started for to the limited run", async () => {
+    const p = createProject({
+      canInjectNodeContextInSqlSnippetExecution: true,
+      nodes: [],
+    }) as any;
+    p.executeSQLWithLimitOnQueryPanel = jest.fn(() => Promise.resolve());
+    const tab = { postMessage: jest.fn() };
+
+    await p.executeSQLOnQueryPanel("select 1", "", "inline", undefined, tab);
+
+    expect(p.executeSQLWithLimitOnQueryPanel).toHaveBeenCalledTimes(1);
+    expect(p.executeSQLWithLimitOnQueryPanel.mock.calls[0][5]).toBe(tab);
   });
 });
 
@@ -464,7 +483,11 @@ describe("offerModelRunOnIdentityFailure when the offer itself fails", () => {
 describe("executeSQLWithLimitOnQueryPanel routes by preview mode", () => {
   const SELECTOR =
     "package:jaffle_shop,resource_type:model,path:models/orders.sql,orders";
-  const routed = async (previewMode: PreviewMode, filePath?: string) => {
+  const routed = async (
+    previewMode: PreviewMode,
+    filePath?: string,
+    tab?: unknown,
+  ) => {
     const p = createProject({
       canInjectNodeContextInSqlSnippetExecution: true,
       nodes: [
@@ -493,6 +516,7 @@ describe("executeSQLWithLimitOnQueryPanel routes by preview mode", () => {
       500,
       previewMode,
       uri,
+      tab,
     );
     return { p, fired, inline };
   };
@@ -540,6 +564,24 @@ describe("executeSQLWithLimitOnQueryPanel routes by preview mode", () => {
   it("inline never looks the node up: a selection preview pays no manifest scan", async () => {
     const { p } = await routed("inline", "/w/jaffle_shop/models/orders.sql");
     expect(p.findNodeForFile).not.toHaveBeenCalled();
+  });
+
+  it("carries the Query Results tab a run was started for in its event", async () => {
+    const tab = { postMessage: jest.fn() };
+    const { fired } = await routed("inline", undefined, tab);
+    expect(fired[0].payload.tab).toBe(tab);
+  });
+
+  it("hands the Query Results tab to a node run", async () => {
+    const tab = { postMessage: jest.fn() };
+    const { p } = await routed(
+      "as-model",
+      "/w/jaffle_shop/models/orders.sql",
+      tab,
+    );
+    expect(
+      p.executeSqlWithNodeContextWithLimitOnQueryPanel,
+    ).toHaveBeenCalledWith(expect.objectContaining({ tab }));
   });
 
   it("inline runs the editor text with no offer, node or not", async () => {
