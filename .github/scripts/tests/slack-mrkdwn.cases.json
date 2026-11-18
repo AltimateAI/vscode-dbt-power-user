@@ -123,5 +123,50 @@
   "name": "crlf",
   "input": "## A\r\n**b**",
   "expected": "*A*\n*b*"
+ },
+ {
+  "name": "heading keeps a URL",
+  "input": "## https://example.com/a__b__c",
+  "expected": "*https://example.com/a__b__c*"
+ },
+ {
+  "name": "heading keeps inline code",
+  "input": "## Use `__version__`",
+  "expected": "*Use `__version__`*"
+ },
+ {
+  "name": "link text that is a URL is kept",
+  "input": "[https://example.com/a__b__c](https://example.com/a__b__c)",
+  "expected": "<https://example.com/a__b__c|https://example.com/a__b__c>"
+ },
+ {
+  "name": "comment inside a fence is kept",
+  "input": "```html\n<!-- keep -->\n```",
+  "expected": "```html\n&lt;!-- keep --&gt;\n```"
+ },
+ {
+  "name": "comment inside inline code is kept",
+  "input": "use `<!-- x -->` here <!-- gone -->",
+  "expected": "use `&lt;!-- x --&gt;` here"
+ },
+ {
+  "name": "multi-line comment outside code",
+  "input": "a\n<!--\nb\n-->\nc",
+  "expected": "a\n\nc"
+ },
+ {
+  "name": "longer fence holds a shorter one",
+  "input": "````markdown\n```python\n**literal**\n```\n````",
+  "expected": "````markdown\n```python\n**literal**\n```\n````"
+ },
+ {
+  "name": "tilde fence isn't closed by backticks",
+  "input": "~~~\n```\n**x**\n~~~",
+  "expected": "~~~\n```\n**x**\n~~~"
+ },
+ {
+  "name": "unclosed fence runs to the end",
+  "input": "```\n**x**\n## y",
+  "expected": "```\n**x**\n## y"
  }
 ]
