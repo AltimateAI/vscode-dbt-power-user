@@ -113,7 +113,10 @@ nav:
   - Multi-project Support with dbt-loom: govern/multiproject.md
   - Query Bookmarks and History: govern/querybookmarks.md
 - Discover:
-  - Setup UI for docs & lineage: discover/setupui.md
+  - Setup UI for docs & lineage:
+    - discover/setupui.md
+    - Setup dbt Core: discover/setupui-dbt-core.md
+    - Setup dbt Cloud: discover/setupui-dbt-cloud.md
   - Search and view docs: discover/viewdocs.md
   - Column lineage with Xformations: discover/viewlineage.md
 - Utilities:
