@@ -1,1 +1,3 @@
 node_modules
+# Copied verbatim from shared sources; reformatting would make them diverge.
+.github/scripts/tests/slack-mrkdwn.cases.json
