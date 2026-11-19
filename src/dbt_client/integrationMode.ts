@@ -1,3 +1,4 @@
+import { PythonDbtCoreUnknownReason } from "@altimateai/dbt-integration";
 import { workspace } from "vscode";
 
 /**
@@ -42,6 +43,42 @@ export function readConfiguredDbtIntegration(): ConfiguredDbtIntegration {
     : { value: inspected?.defaultValue ?? "core", explicit: false };
 }
 
+/**
+ * The outcome of the dbt-core check in the selected interpreter:
+ * - "importable" / "notInstalled": the check answered.
+ * - "noInterpreter": neither the Python extension nor
+ *   `dbt.dbtPythonPathOverride` gives one, so dbt Core mode cannot run.
+ * - "unresolvedInterpreter": the Python extension has not resolved the
+ *   workspace's interpreter yet (an empty path or a bare command such as
+ *   `python`), so it was not checked.
+ * - the library's other unknown reasons ("spawnError", "timeout", "failed",
+ *   "noVersion"): the check ran and could not tell.
+ */
+export type DbtCoreCheck =
+  | "importable"
+  | "notInstalled"
+  | "unresolvedInterpreter"
+  | PythonDbtCoreUnknownReason;
+
+/**
+ * `DbtIntegrationFacts.pythonDbtCore` for a check: only "notInstalled" and
+ * "noInterpreter" mean the project cannot run in dbt Core mode; any check
+ * that could not tell is "unknown", which holds the switch back.
+ */
+export function pythonDbtCoreFromCheck(
+  check: DbtCoreCheck,
+): boolean | "unknown" {
+  switch (check) {
+    case "importable":
+      return true;
+    case "notInstalled":
+    case "noInterpreter":
+      return false;
+    default:
+      return "unknown";
+  }
+}
+
 /** Modes a dbt 2.x binary is routed away from when the setting is left at its default. */
 const AUTO_SWITCHABLE = ["core", "corecommand"];
 
@@ -51,7 +88,7 @@ export interface DbtIntegrationFacts {
   dbtV2Found: boolean;
   /**
    * dbt-core imports in the selected Python interpreter; "unknown" when the
-   * probe did not answer in time.
+   * check could not tell (see `pythonDbtCoreFromCheck`).
    */
   pythonDbtCore: boolean | "unknown";
   /** A dbt-loom config is present, which only dbt Core mode reads. */
@@ -60,8 +97,8 @@ export interface DbtIntegrationFacts {
 
 /**
  * Why a found dbt 2.x binary did not switch the window: dbt-core imports in
- * the interpreter, a dbt-loom config is present, or the dbt-core probe did not
- * answer in time (unknown counts as "may have dbt-core", so the window is held).
+ * the interpreter, a dbt-loom config is present, or the dbt-core check could
+ * not tell (unknown counts as "may have dbt-core", so the window is held).
  */
 export type SwitchHeldReason = "dbtCore" | "dbtLoom" | "dbtCoreUnknown";
 

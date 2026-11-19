@@ -49,7 +49,7 @@ const FALLBACK_PROBE =
   "import sys, dbt.version; print(sys.executable); print(dbt.version.__version__)";
 
 /** A path rather than a command the PATH resolves (`python3`). */
-function isInterpreterPath(value: string): boolean {
+export function isInterpreterPath(value: string): boolean {
   return isAbsolute(value) || /[\\/]/.test(value);
 }
 
@@ -154,6 +154,13 @@ export class PythonEnvironment {
     }
     const selected = this.executionDetails!.getPythonPath();
     return this.fallback?.missing === selected ? this.fallback.path : selected;
+  }
+
+  /** Whether `pythonPath` is `dbt.dbtPythonPathOverride` rather than the
+   * Python extension's interpreter. */
+  public get pythonPathFromOverride(): boolean {
+    const override = this.getResolvedConfigValue("dbtPythonPathOverride");
+    return Boolean(override) && this.isUsableInterpreterOverride(override);
   }
 
   /**

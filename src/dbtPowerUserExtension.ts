@@ -261,6 +261,29 @@ export class DBTPowerUserExtension implements Disposable {
       } catch (error) {
         this.telemetry.sendTelemetryError("dbtIntegrationModeError", error);
       }
+      if (this.integrationModeService.autoSwitched) {
+        // Subscribed before the projects start, so each one's first rebuild is seen.
+        context.subscriptions.push(
+          this.dbtProjectContainer.onProjectRebuildManifestStatusChange(
+            ({ project, inProgress }) =>
+              void this.integrationModeService
+                .rebuildStatusChanged({
+                  root: project.projectRoot.fsPath,
+                  name: project.getProjectName(),
+                  inProgress,
+                  errorCount: inProgress
+                    ? 0
+                    : project.rebuildManifestErrorCount(),
+                })
+                .catch((error) =>
+                  this.telemetry.sendTelemetryError(
+                    "dbtIntegrationAutoSwitchParseFailedError",
+                    error,
+                  ),
+                ),
+          ),
+        );
+      }
       await this.dbtProjectContainer.detectDBT();
       await this.dbtProjectContainer.initializeDBTProjects();
       const notifyAutoSwitch = (roots: Uri[]) =>

@@ -1,17 +1,24 @@
+import type {
+  PythonDbtCore,
+  PythonDbtCoreUnknownReason,
+} from "@altimateai/dbt-integration";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import * as path from "path";
 import { ConfigurationTarget, Uri, window, workspace } from "vscode";
 import {
+  DbtCoreCheck,
   decideDbtIntegrationMode,
   getDbtIntegrationMode,
+  pythonDbtCoreFromCheck,
   readConfiguredDbtIntegration,
   setEffectiveDbtIntegrationMode,
 } from "../../dbt_client/integrationMode";
 import {
   AUTO_SWITCH_NOTIFIED_KEY,
   IntegrationModeService,
+  PARSE_FAILED_OFFERED_KEY,
   SWITCH_HELD_NOTIFIED_KEY,
 } from "../../dbt_client/integrationModeService";
 import { VSCodeDBTConfiguration } from "../../dbt_client/vscodeConfiguration";
@@ -88,6 +95,21 @@ class FakeMemento {
   }
 }
 
+const NOT_INSTALLED: PythonDbtCore = {
+  importable: false,
+  status: "notInstalled",
+};
+const IMPORTABLE: PythonDbtCore = {
+  importable: true,
+  status: "importable",
+  version: "1.12.6",
+};
+const unknownBecause = (reason: PythonDbtCoreUnknownReason): PythonDbtCore => ({
+  importable: false,
+  status: "unknown",
+  reason,
+});
+
 const V2 = {
   path: "/home/user/.local/bin/dbt",
   version: [2, 0, 9],
@@ -98,10 +120,10 @@ function service({
   // null: no dbt 2.x binary on the path.
   binary = V2 as typeof V2 | null,
   // "never": the probe does not answer (a slow first `import dbt.version`).
-  dbtCore = { importable: false } as
-    | { importable: boolean; version?: string }
-    | "never",
+  dbtCore = NOT_INSTALLED as PythonDbtCore | "never",
   pythonExtensionAvailable = true,
+  // The Python extension's interpreter, when it is there and no override is set.
+  extensionPath = "/venv/bin/python",
   // dbt_project.yml files per workspace folder root, as discovery would list them.
   projectFiles = {} as Record<string, string[]>,
   probeTimeoutMs = undefined as number | undefined,
@@ -116,7 +138,7 @@ function service({
   const findBinary = jest.fn(() => Promise.resolve(binary ?? undefined));
   const probeDbtCore = jest.fn(() =>
     dbtCore === "never"
-      ? new Promise<{ importable: boolean }>(() => undefined)
+      ? new Promise<PythonDbtCore>(() => undefined)
       : Promise.resolve(dbtCore),
   );
   const findProjectFiles = jest.fn((folder: { uri: { fsPath: string } }) =>
@@ -124,20 +146,28 @@ function service({
       (projectFiles[folder.uri.fsPath] ?? []).map((file) => Uri.file(file)),
     ),
   );
+  const terminal = { info: jest.fn(), debug: jest.fn() };
   const svc = new IntegrationModeService(
     {
       initialize: () => Promise.resolve(),
-      pythonPath:
-        pythonPath ?? (pythonExtensionAvailable ? "/venv/bin/python" : ""),
+      pythonPath: pythonPath ?? (pythonExtensionAvailable ? extensionPath : ""),
+      pythonPathFromOverride: pythonPath !== undefined,
       pythonExtensionAvailable,
       getEnvironmentVariables: () => env,
     } as never,
     telemetry as never,
-    { info: jest.fn(), debug: jest.fn() } as never,
+    terminal as never,
     { findBinary, probeDbtCore, findProjectFiles } as never,
     probeTimeoutMs,
   );
-  return { svc, telemetry, findBinary, probeDbtCore, findProjectFiles };
+  return {
+    svc,
+    telemetry,
+    terminal,
+    findBinary,
+    probeDbtCore,
+    findProjectFiles,
+  };
 }
 
 const shown = () =>
@@ -243,6 +273,7 @@ describe("IntegrationModeService.resolve", () => {
         to: "fusion",
         binaryVersion: "2.0.9",
         binaryLocation: "installer",
+        dbtCoreCheck: "notInstalled",
       },
     );
     expect(telemetry.setTelemetryCustomAttribute).toHaveBeenCalledWith(
@@ -268,9 +299,7 @@ describe("IntegrationModeService.resolve", () => {
   });
 
   it("keeps core when dbt-core imports in the selected interpreter", async () => {
-    const { svc, telemetry } = service({
-      dbtCore: { importable: true, version: "1.12.6" },
-    });
+    const { svc, telemetry } = service({ dbtCore: IMPORTABLE });
     await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe("core");
     expect(getDbtIntegrationMode()).toBe("core");
     expect(svc.autoSwitched).toBeUndefined();
@@ -280,6 +309,7 @@ describe("IntegrationModeService.resolve", () => {
         reason: "dbtCore",
         binaryVersion: "2.0.9",
         binaryLocation: "installer",
+        dbtCoreCheck: "importable",
       },
     );
     expect(telemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
@@ -413,7 +443,7 @@ describe("IntegrationModeService.resolve", () => {
     const { svc, probeDbtCore } = service({
       pythonExtensionAvailable: false,
       pythonPath: "/opt/dbt-env/bin/python",
-      dbtCore: { importable: true, version: "1.10.4" },
+      dbtCore: { ...IMPORTABLE, version: "1.10.4" },
     });
     await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe("core");
     expect(probeDbtCore).toHaveBeenCalledTimes(1);
@@ -513,11 +543,12 @@ describe("IntegrationModeService.resolve when the dbt-core probe does not answer
       expect.objectContaining({
         reason: "dbtCoreUnknown",
         binaryVersion: "2.0.9",
+        dbtCoreCheck: "timeout",
       }),
     );
     await svc.notifySwitchHeld();
     expect(shown()[0][0]).toContain(
-      "keeps dbt Core mode because dbt-core could not be checked in the selected interpreter in time.",
+      "keeps dbt Core mode because dbt-core could not be checked in the selected interpreter.",
     );
   });
 
@@ -533,7 +564,7 @@ describe("IntegrationModeService.resolve when the dbt-core probe does not answer
 });
 
 describe("IntegrationModeService.notifySwitchHeld", () => {
-  const withDbtCore = { dbtCore: { importable: true, version: "1.12.6" } };
+  const withDbtCore = { dbtCore: IMPORTABLE };
 
   it("tells the workspace once why it kept dbt Core mode, across reloads", async () => {
     const memento = new FakeMemento();
@@ -624,5 +655,278 @@ describe("IntegrationModeService.needsReload", () => {
     await svc.resolve(new FakeMemento() as never);
     useSetting({});
     expect(svc.needsReload()).toBe(true);
+  });
+});
+
+describe("pythonDbtCoreFromCheck", () => {
+  it.each<[DbtCoreCheck, boolean | "unknown"]>([
+    ["importable", true],
+    ["notInstalled", false],
+    ["noInterpreter", false],
+    ["unresolvedInterpreter", "unknown"],
+    ["spawnError", "unknown"],
+    ["timeout", "unknown"],
+    ["failed", "unknown"],
+    ["noVersion", "unknown"],
+  ])("%s reads as %s", (check, pythonDbtCore) => {
+    expect(pythonDbtCoreFromCheck(check)).toBe(pythonDbtCore);
+  });
+});
+
+/**
+ * Before, any failure of the dbt-core check (an interpreter that could not
+ * start, a non-zero exit, no output) read as "no dbt-core", and the check ran
+ * against the Python extension's default `python` before it had resolved the
+ * workspace's interpreter: working dbt Core users were switched to dbt Fusion.
+ */
+describe("IntegrationModeService.resolve: the dbt-core check", () => {
+  it.each<[PythonDbtCore, string, DbtCoreCheck]>([
+    [IMPORTABLE, "core", "importable"],
+    [NOT_INSTALLED, "fusion", "notInstalled"],
+    [unknownBecause("spawnError"), "core", "spawnError"],
+    [unknownBecause("timeout"), "core", "timeout"],
+    [unknownBecause("failed"), "core", "failed"],
+    [unknownBecause("noVersion"), "core", "noVersion"],
+    [{ importable: false, status: "unknown" }, "core", "failed"],
+  ])(
+    "probe result %j runs %s, reported as %s",
+    async (dbtCore, mode, check) => {
+      const { svc, telemetry, terminal, probeDbtCore } = service({ dbtCore });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(mode);
+      expect(probeDbtCore).toHaveBeenCalledTimes(1);
+      const event =
+        mode === "fusion"
+          ? "dbtIntegrationAutoSwitched"
+          : "dbtIntegrationSwitchHeld";
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledTimes(1);
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        event,
+        expect.objectContaining({ dbtCoreCheck: check }),
+      );
+      if (mode === "core") {
+        expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+          event,
+          expect.objectContaining({
+            reason: check === "importable" ? "dbtCore" : "dbtCoreUnknown",
+          }),
+        );
+      }
+      expect(terminal.info).toHaveBeenCalledWith(
+        event,
+        expect.stringContaining(`(dbt-core check: ${check})`),
+        false,
+      );
+    },
+  );
+
+  it.each(["python", "python3", ""])(
+    "holds without probing when the Python extension reports %j, its interpreter not yet resolved",
+    async (extensionPath) => {
+      const { svc, telemetry, probeDbtCore } = service({ extensionPath });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "core",
+      );
+      expect(probeDbtCore).not.toHaveBeenCalled();
+      expect(svc.autoSwitched).toBeUndefined();
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        expect.objectContaining({
+          reason: "dbtCoreUnknown",
+          dbtCoreCheck: "unresolvedInterpreter",
+        }),
+      );
+    },
+  );
+
+  it("probes a bare command from dbt.dbtPythonPathOverride, with or without the Python extension", async () => {
+    for (const pythonExtensionAvailable of [true, false]) {
+      const { svc, probeDbtCore, telemetry } = service({
+        pythonExtensionAvailable,
+        pythonPath: "python",
+      });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "fusion",
+      );
+      expect(probeDbtCore).toHaveBeenCalledWith(
+        "python",
+        { PATH: "/usr/bin" },
+        expect.any(Number),
+      );
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationAutoSwitched",
+        expect.objectContaining({ dbtCoreCheck: "notInstalled" }),
+      );
+    }
+  });
+
+  it("switches without the Python extension or an override, reported as noInterpreter", async () => {
+    const { svc, telemetry, terminal, probeDbtCore } = service({
+      pythonExtensionAvailable: false,
+    });
+    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+      "fusion",
+    );
+    expect(probeDbtCore).not.toHaveBeenCalled();
+    expect(svc.autoSwitched?.dbtCoreCheck).toBe("noInterpreter");
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationAutoSwitched",
+      expect.objectContaining({ dbtCoreCheck: "noInterpreter" }),
+    );
+    expect(terminal.info).toHaveBeenCalledWith(
+      "dbtIntegrationAutoSwitched",
+      expect.stringContaining(
+        "using dbt Fusion (dbt-core check: noInterpreter)",
+      ),
+      false,
+    );
+  });
+
+  it("says the held reason without 'in time' for a check that failed", async () => {
+    const { svc } = service({ dbtCore: unknownBecause("spawnError") });
+    await svc.resolve(new FakeMemento() as never);
+    await svc.notifySwitchHeld();
+    expect(shown()[0][0]).toBe(
+      "dbt Fusion 2.0.9 was found at /home/user/.local/bin/dbt, but this window keeps dbt Core mode because dbt-core could not be checked in the selected interpreter.",
+    );
+  });
+});
+
+describe("IntegrationModeService.rebuildStatusChanged", () => {
+  const jaffle = { root: "/projects/jaffle", name: "jaffle" };
+  const shop = { root: "/projects/shop", name: "shop" };
+  const warned = () =>
+    (window.showWarningMessage as jest.Mock).mock.calls as unknown[][];
+
+  beforeEach(() => {
+    (window.showWarningMessage as jest.Mock).mockReturnValue(
+      Promise.resolve(undefined),
+    );
+  });
+
+  async function rebuild(
+    svc: IntegrationModeService,
+    project: { root: string; name: string },
+    errorCount: number,
+  ) {
+    await svc.rebuildStatusChanged({
+      ...project,
+      inProgress: true,
+      errorCount: 0,
+    });
+    await svc.rebuildStatusChanged({
+      ...project,
+      inProgress: false,
+      errorCount,
+    });
+  }
+
+  async function switchedService(memento = new FakeMemento()) {
+    const created = service();
+    await created.svc.resolve(memento as never);
+    expect(created.svc.autoSwitched).toBeDefined();
+    return { ...created, memento };
+  }
+
+  it("offers dbt Core once when the first rebuild after a switch fails", async () => {
+    const { svc, memento } = await switchedService();
+    await rebuild(svc, jaffle, 2);
+    expect(warned()).toEqual([
+      [
+        "dbt Fusion could not parse jaffle. Power User switched this window to dbt Fusion because dbt 2.0.9 is on your path.",
+        "Switch back to dbt Core",
+        "Keep dbt Fusion",
+      ],
+    ]);
+    expect(memento.get(PARSE_FAILED_OFFERED_KEY)).toBe(true);
+
+    // Another project failing, and a reload, do not offer it again.
+    await rebuild(svc, shop, 1);
+    const reloaded = service().svc;
+    await reloaded.resolve(memento as never);
+    await rebuild(reloaded, jaffle, 2);
+    expect(warned()).toHaveLength(1);
+  });
+
+  it("does not offer it when the first rebuild parses, even if a later one fails", async () => {
+    const { svc, telemetry } = await switchedService();
+    await rebuild(svc, jaffle, 0);
+    await rebuild(svc, jaffle, 3);
+    expect(warned()).toHaveLength(0);
+    expect(telemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+      "dbtIntegrationAutoSwitchParseFailed",
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+
+  it("waits for overlapping rebuilds to end before judging the first one", async () => {
+    // A newer rebuild aborts an older one, which still reports its end.
+    const { svc } = await switchedService();
+    await svc.rebuildStatusChanged({
+      ...jaffle,
+      inProgress: true,
+      errorCount: 0,
+    });
+    await svc.rebuildStatusChanged({
+      ...jaffle,
+      inProgress: true,
+      errorCount: 0,
+    });
+    await svc.rebuildStatusChanged({
+      ...jaffle,
+      inProgress: false,
+      errorCount: 0,
+    });
+    expect(warned()).toHaveLength(0);
+    await svc.rebuildStatusChanged({
+      ...jaffle,
+      inProgress: false,
+      errorCount: 4,
+    });
+    expect(warned()).toHaveLength(1);
+  });
+
+  it("does not offer it in a window that was held back or set explicitly", async () => {
+    const held = service({ dbtCore: IMPORTABLE }).svc;
+    await held.resolve(new FakeMemento() as never);
+    await rebuild(held, jaffle, 2);
+
+    useSetting({ workspaceValue: "fusion" });
+    const explicit = service().svc;
+    await explicit.resolve(new FakeMemento() as never);
+    expect(getDbtIntegrationMode()).toBe("fusion");
+    await rebuild(explicit, jaffle, 2);
+
+    expect(warned()).toHaveLength(0);
+  });
+
+  it.each([
+    ["Switch back to dbt Core", "switchBack"],
+    ["Keep dbt Fusion", "keepFusion"],
+    [undefined, "dismissed"],
+  ])("records %j as %s", async (choice, answer) => {
+    const { svc, telemetry } = await switchedService();
+    (window.showWarningMessage as jest.Mock).mockReturnValueOnce(
+      Promise.resolve(choice),
+    );
+    await rebuild(svc, jaffle, 3);
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationAutoSwitchParseFailed",
+      { answer, binaryVersion: "2.0.9", dbtCoreCheck: "notInstalled" },
+      { errorCount: 3 },
+    );
+    if (answer === "switchBack") {
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(update).toHaveBeenCalledWith(
+        "dbtIntegration",
+        "core",
+        ConfigurationTarget.Workspace,
+      );
+      // The window runs fusion; the explicit core setting reloads it.
+      useSetting({ workspaceValue: "core" });
+      expect(svc.needsReload()).toBe(true);
+    } else {
+      expect(update).not.toHaveBeenCalled();
+    }
   });
 });

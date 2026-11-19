@@ -29,6 +29,7 @@ import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
 import {
   ManifestCacheChangedEvent,
   RebuildManifestCombinedStatusChange,
+  RebuildManifestStatusChange,
 } from "./event/manifestCacheChangedEvent";
 
 /**
@@ -81,6 +82,11 @@ export class DBTProjectContainer implements Disposable {
   readonly onRebuildManifestStatusChange =
     this._onRebuildManifestStatusChange.event;
   private rebuildManifestStatusChangeMap = new Map<string, boolean>();
+  private _onProjectRebuildManifestStatusChange =
+    new EventEmitter<RebuildManifestStatusChange>();
+  /** Each project's manifest rebuild starting and ending. */
+  readonly onProjectRebuildManifestStatusChange =
+    this._onProjectRebuildManifestStatusChange.event;
 
   constructor(
     private dbtClient: DBTClient,
@@ -488,6 +494,7 @@ export class DBTProjectContainer implements Disposable {
     );
     this.disposables.push(
       dbtProjectWorkspaceFolder.onRebuildManifestStatusChange((e) => {
+        this._onProjectRebuildManifestStatusChange.fire(e);
         this.rebuildManifestStatusChangeMap.set(
           e.project.projectRoot.fsPath,
           e.inProgress,

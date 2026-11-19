@@ -21,22 +21,30 @@ import {
 import { TelemetryService } from "../telemetry";
 import { PROJECT_EXCLUDE_PATTERN } from "./dbtWorkspaceFolder";
 import {
+  DbtCoreCheck,
   decideDbtIntegrationMode,
   getDbtIntegrationMode,
+  pythonDbtCoreFromCheck,
   readConfiguredDbtIntegration,
   setEffectiveDbtIntegrationMode,
   SwitchHeldReason,
 } from "./integrationMode";
-import { PythonEnvironment } from "./pythonEnvironment";
+import { isInterpreterPath, PythonEnvironment } from "./pythonEnvironment";
 
 /** workspaceState key: the project roots already told about the switch. */
 export const AUTO_SWITCH_NOTIFIED_KEY = "dbtPowerUser.fusionAutoSwitchNotified";
 /** workspaceState key: the workspace was told why it was not switched. */
 export const SWITCH_HELD_NOTIFIED_KEY = "dbtPowerUser.fusionSwitchHeldNotified";
+/** workspaceState key: the workspace was offered dbt Core after dbt Fusion
+ * could not parse a project in an automatically switched window. */
+export const PARSE_FAILED_OFFERED_KEY =
+  "dbtPowerUser.fusionAutoSwitchParseFailedOffered";
 
 const OPEN_SETTINGS = "Open setting";
 const USE_FUSION = "Use dbt Fusion";
 const DISMISS = "Dismiss";
+const SWITCH_BACK = "Switch back to dbt Core";
+const KEEP_FUSION = "Keep dbt Fusion";
 const DBT_LOOM_CONFIG = "dbt_loom.config.yml";
 /**
  * How long the dbt-core probe may take before its answer counts as unknown.
@@ -50,25 +58,28 @@ const PROBE_GRACE_MS = 5_000;
 const HELD_CAUSES: Record<SwitchHeldReason, string> = {
   dbtCore: "dbt-core imports in the selected interpreter",
   dbtLoom: "a dbt-loom config is present",
-  dbtCoreUnknown:
-    "dbt-core could not be checked in the selected interpreter in time",
+  dbtCoreUnknown: "dbt-core could not be checked in the selected interpreter",
 };
 const HELD_BECAUSE: Record<SwitchHeldReason, string> = {
   dbtCore: "the interpreter has dbt-core",
   dbtLoom: "a dbt-loom config is present",
-  dbtCoreUnknown:
-    "dbt-core could not be checked in the selected interpreter in time",
+  dbtCoreUnknown: "dbt-core could not be checked in the selected interpreter",
 };
 
 export interface AutoSwitch {
   from: string;
   binary: DbtV2Binary;
+  dbtCoreCheck: DbtCoreCheck;
 }
 
 export interface SwitchHeld {
   reason: SwitchHeldReason;
   binary: DbtV2Binary;
+  dbtCoreCheck: DbtCoreCheck;
 }
+
+/** How the user answered the offer to switch back to dbt Core. */
+export type ParseFailedAnswer = "switchBack" | "keepFusion" | "dismissed";
 
 export interface IntegrationModeProbes {
   findBinary: (
@@ -91,13 +102,18 @@ const findProjectFiles = (folder: WorkspaceFolder) =>
  * Fusion when a dbt 2.x binary is on the project's path and the project
  * cannot run in dbt Core mode (no dbt-core in the selected interpreter, no
  * dbt-loom config). Tells each project about an automatic switch once, and
- * the workspace once why a found binary did not switch it.
+ * the workspace once why a found binary did not switch it; after a switch,
+ * offers dbt Core once when dbt Fusion cannot parse a project.
  */
 export class IntegrationModeService {
   private autoSwitch?: AutoSwitch;
   private switchHeld?: SwitchHeld;
   private resolvedExplicit = false;
   private workspaceState?: Memento;
+  /** Project roots whose first manifest rebuild has settled. */
+  private firstRebuildSettled = new Set<string>();
+  /** Manifest rebuilds running per project root. */
+  private rebuildsRunning = new Map<string, number>();
 
   constructor(
     private pythonEnvironment: PythonEnvironment,
@@ -119,7 +135,7 @@ export class IntegrationModeService {
     this.workspaceState = workspaceState;
     let configured = readConfiguredDbtIntegration();
     let binary: DbtV2Binary | undefined;
-    let pythonDbtCore: boolean | "unknown" = false;
+    let dbtCoreCheck: DbtCoreCheck = "noInterpreter";
     let dbtLoom = false;
     if (!configured.explicit) {
       await this.pythonEnvironment.initialize();
@@ -133,9 +149,7 @@ export class IntegrationModeService {
         env,
       });
       if (binary) {
-        if (pythonPath) {
-          pythonDbtCore = await this.probeDbtCore(pythonPath, env);
-        }
+        dbtCoreCheck = await this.checkDbtCore(pythonPath, env);
         dbtLoom =
           Boolean(env.DBT_LOOM_CONFIG_PATH) || (await this.dbtLoomConfigured());
       }
@@ -147,30 +161,31 @@ export class IntegrationModeService {
       configured,
       {
         dbtV2Found: binary !== undefined,
-        pythonDbtCore,
+        pythonDbtCore: pythonDbtCoreFromCheck(dbtCoreCheck),
         dbtLoom,
       },
     );
     setEffectiveDbtIntegrationMode(mode);
     if (heldBack && binary) {
-      this.switchHeld = { reason: heldBack, binary };
+      this.switchHeld = { reason: heldBack, binary, dbtCoreCheck };
       const cause = HELD_CAUSES[heldBack];
       this.terminal.info(
         "dbtIntegrationSwitchHeld",
-        `${binary.path} is dbt ${binary.version.join(".")}, but ${cause}: keeping ${mode}`,
+        `${binary.path} is dbt ${binary.version.join(".")}, but ${cause}: keeping ${mode} (dbt-core check: ${dbtCoreCheck})`,
         false,
       );
       this.telemetry.sendTelemetryEvent("dbtIntegrationSwitchHeld", {
         reason: heldBack,
         binaryVersion: binary.version.join("."),
         binaryLocation: binary.location,
+        dbtCoreCheck,
       });
     }
     if (autoSwitched && binary) {
-      this.autoSwitch = { from: configured.value, binary };
+      this.autoSwitch = { from: configured.value, binary, dbtCoreCheck };
       this.terminal.info(
         "dbtIntegrationAutoSwitched",
-        `dbt.dbtIntegration is not set and ${binary.path} is dbt ${binary.version.join(".")}: using dbt Fusion`,
+        `dbt.dbtIntegration is not set and ${binary.path} is dbt ${binary.version.join(".")}: using dbt Fusion (dbt-core check: ${dbtCoreCheck})`,
         false,
       );
       this.telemetry.setTelemetryCustomAttribute(
@@ -182,30 +197,59 @@ export class IntegrationModeService {
         to: mode,
         binaryVersion: binary.version.join("."),
         binaryLocation: binary.location,
+        dbtCoreCheck,
       });
     }
     return mode;
   }
 
   /**
-   * Whether dbt-core imports in `pythonPath`, or "unknown" when the probe has
-   * not answered within `probeTimeoutMs`. The library's own timeout reports
-   * "no dbt-core"; a user with both dbt Core and Fusion whose first import is
-   * slow would be switched by that, so the slow answer is not trusted.
+   * Checks whether dbt-core imports in the selected interpreter. Until the
+   * Python extension has resolved the workspace's interpreter it reports its
+   * default, a bare `python`, which runs whatever is first on the PATH: that
+   * is not checked. A bare command from `dbt.dbtPythonPathOverride` is the
+   * user's choice and is checked.
+   */
+  private async checkDbtCore(
+    pythonPath: string | undefined,
+    env: Record<string, string | undefined>,
+  ): Promise<DbtCoreCheck> {
+    if (
+      this.pythonEnvironment.pythonExtensionAvailable &&
+      !this.pythonEnvironment.pythonPathFromOverride &&
+      (!pythonPath || !isInterpreterPath(pythonPath))
+    ) {
+      return "unresolvedInterpreter";
+    }
+    if (!pythonPath) {
+      return "noInterpreter";
+    }
+    return this.probeDbtCore(pythonPath, env);
+  }
+
+  /**
+   * The probe's answer, or "timeout" when it has not answered within
+   * `probeTimeoutMs`. The library's own timeout sits behind ours, so a slow
+   * first `import dbt.version` reads as this race's "timeout".
    */
   private async probeDbtCore(
     pythonPath: string,
     env: Record<string, string | undefined>,
-  ): Promise<boolean | "unknown"> {
+  ): Promise<DbtCoreCheck> {
     let timer: NodeJS.Timeout | undefined;
-    const unknown = new Promise<"unknown">((resolve) => {
-      timer = setTimeout(() => resolve("unknown"), this.probeTimeoutMs);
+    const timedOut = new Promise<DbtCoreCheck>((resolve) => {
+      timer = setTimeout(() => resolve("timeout"), this.probeTimeoutMs);
     });
     try {
       const probe = this.probes
         .probeDbtCore(pythonPath, env, this.probeTimeoutMs + PROBE_GRACE_MS)
-        .then((result) => result.importable);
-      return await Promise.race([probe, unknown]);
+        .then(
+          (result): DbtCoreCheck =>
+            result.status === "unknown"
+              ? (result.reason ?? "failed")
+              : result.status,
+        );
+      return await Promise.race([probe, timedOut]);
     } finally {
       clearTimeout(timer);
     }
@@ -303,6 +347,80 @@ export class IntegrationModeService {
         "workbench.action.openSettings",
         "dbt.dbtIntegration",
       );
+    }
+  }
+
+  /**
+   * Follows a project's manifest rebuilds in an automatically switched
+   * window. When the first rebuild that settles leaves `errorCount` errors,
+   * offers once per workspace to switch back to dbt Core. Later rebuilds,
+   * and projects whose first rebuild parsed, are never offered it. No-op
+   * without a switch.
+   */
+  async rebuildStatusChanged(project: {
+    root: string;
+    name: string;
+    inProgress: boolean;
+    errorCount: number;
+  }): Promise<void> {
+    const autoSwitch = this.autoSwitch;
+    if (!autoSwitch || !this.workspaceState) {
+      return;
+    }
+    const { root, name, inProgress, errorCount } = project;
+    // Rebuilds overlap (a newer one aborts an older one, which still ends):
+    // the first rebuild has settled when none is running.
+    const running = this.rebuildsRunning.get(root) ?? 0;
+    if (inProgress) {
+      this.rebuildsRunning.set(root, running + 1);
+      return;
+    }
+    this.rebuildsRunning.set(root, Math.max(0, running - 1));
+    if (running > 1 || this.firstRebuildSettled.has(root)) {
+      return;
+    }
+    this.firstRebuildSettled.add(root);
+    if (
+      errorCount === 0 ||
+      this.workspaceState.get<boolean>(PARSE_FAILED_OFFERED_KEY, false)
+    ) {
+      return;
+    }
+    // Remembered before the warning is shown, so another project failing
+    // while it is open does not show it again.
+    await this.workspaceState.update(PARSE_FAILED_OFFERED_KEY, true);
+    const version = autoSwitch.binary.version.join(".");
+    this.terminal.info(
+      "dbtIntegrationAutoSwitchParseFailed",
+      `dbt Fusion could not parse ${name} (${errorCount} errors): offering dbt Core`,
+      false,
+    );
+    const choice = await window.showWarningMessage(
+      `dbt Fusion could not parse ${name}. Power User switched this window to dbt Fusion because dbt ${version} is on your path.`,
+      SWITCH_BACK,
+      KEEP_FUSION,
+    );
+    const answer: ParseFailedAnswer =
+      choice === SWITCH_BACK
+        ? "switchBack"
+        : choice === KEEP_FUSION
+          ? "keepFusion"
+          : "dismissed";
+    this.telemetry.sendTelemetryEvent(
+      "dbtIntegrationAutoSwitchParseFailed",
+      {
+        answer,
+        binaryVersion: version,
+        dbtCoreCheck: autoSwitch.dbtCoreCheck,
+      },
+      { errorCount },
+    );
+    if (answer === "switchBack") {
+      // Explicit from here on: the configuration listener reloads the window
+      // in dbt Core mode.
+      await workspace
+        .getConfiguration("dbt")
+        .update("dbtIntegration", "core", ConfigurationTarget.Workspace);
     }
   }
 

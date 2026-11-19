@@ -91,6 +91,20 @@ describe("PythonEnvironment without the Python extension", () => {
     expect(env.pythonPath).toBe(process.execPath);
   });
 
+  it("says whether the interpreter comes from dbt.dbtPythonPathOverride", async () => {
+    const env = new PythonEnvironment(terminal());
+    await env.initialize();
+    expect(env.pythonPathFromOverride).toBe(false);
+    useSettings({ dbtPythonPathOverride: "python" });
+    expect(env.pythonPathFromOverride).toBe(true);
+    useSettings({ dbtPythonPathOverride: process.execPath });
+    expect(env.pythonPathFromOverride).toBe(true);
+    // An override that is not a usable interpreter is ignored.
+    useSettings({ dbtPythonPathOverride: "python; echo hi" });
+    expect(env.pythonPathFromOverride).toBe(false);
+    expect(env.pythonPath).toBe("");
+  });
+
   it("merges terminal.integrated.env into the environment", async () => {
     useSettings({ "integrated.env": { linux: { FUSION_TEST_VAR: "on" } } });
     const env = new PythonEnvironment(terminal());
