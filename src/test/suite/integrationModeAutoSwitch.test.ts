@@ -832,7 +832,7 @@ describe("IntegrationModeService.rebuildStatusChanged", () => {
     await rebuild(svc, jaffle, 2);
     expect(warned()).toEqual([
       [
-        "dbt Fusion could not parse jaffle. Power User switched this window to dbt Fusion because dbt 2.0.9 is on your path.",
+        "dbt Fusion could not parse jaffle. Power User switched this window to dbt Fusion because dbt 2.0.9 is on your path and the selected Python interpreter has no dbt-core. dbt Core mode needs dbt-core in the selected interpreter.",
         "Switch back to dbt Core",
         "Keep dbt Fusion",
       ],
@@ -845,6 +845,19 @@ describe("IntegrationModeService.rebuildStatusChanged", () => {
     await reloaded.resolve(memento as never);
     await rebuild(reloaded, jaffle, 2);
     expect(warned()).toHaveLength(1);
+  });
+
+  it("says what dbt Core mode needs when the window was switched for having no interpreter", async () => {
+    const created = service({
+      pythonExtensionAvailable: false,
+      extensionPath: "",
+    });
+    await created.svc.resolve(new FakeMemento() as never);
+    expect(created.svc.autoSwitched?.dbtCoreCheck).toBe("noInterpreter");
+    await rebuild(created.svc, jaffle, 1);
+    expect(warned()[0][0]).toBe(
+      "dbt Fusion could not parse jaffle. Power User switched this window to dbt Fusion because dbt 2.0.9 is on your path and there is no Python interpreter. dbt Core mode needs a Python interpreter with dbt-core.",
+    );
   });
 
   it("does not offer it when the first rebuild parses, even if a later one fails", async () => {

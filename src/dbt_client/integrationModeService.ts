@@ -47,6 +47,18 @@ const SWITCH_BACK = "Switch back to dbt Core";
 const KEEP_FUSION = "Keep dbt Fusion";
 const DBT_LOOM_CONFIG = "dbt_loom.config.yml";
 /**
+ * Why the window was switched, and what dbt Core mode would need, for the
+ * offer to switch back. A window is switched only when the selected
+ * interpreter has no dbt-core or there is no interpreter at all, so dbt Core
+ * mode needs one of those fixed first.
+ */
+const SWITCHED_BECAUSE: Partial<Record<DbtCoreCheck, string>> = {
+  notInstalled:
+    "the selected Python interpreter has no dbt-core. dbt Core mode needs dbt-core in the selected interpreter.",
+  noInterpreter:
+    "there is no Python interpreter. dbt Core mode needs a Python interpreter with dbt-core.",
+};
+/**
  * How long the dbt-core probe may take before its answer counts as unknown.
  * A slow first `import dbt.version` (a cold virus scan of a large venv) must
  * hold the switch back, not switch the window.
@@ -396,7 +408,10 @@ export class IntegrationModeService {
       false,
     );
     const choice = await window.showWarningMessage(
-      `dbt Fusion could not parse ${name}. Power User switched this window to dbt Fusion because dbt ${version} is on your path.`,
+      `dbt Fusion could not parse ${name}. Power User switched this window to dbt Fusion because dbt ${version} is on your path` +
+        (SWITCHED_BECAUSE[autoSwitch.dbtCoreCheck]
+          ? ` and ${SWITCHED_BECAUSE[autoSwitch.dbtCoreCheck]}`
+          : "."),
       SWITCH_BACK,
       KEEP_FUSION,
     );
