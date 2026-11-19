@@ -85,3 +85,10 @@ When you hover a column's `name:` value in `schema.yml`, two more Altimate Code 
 
 Like all Altimate Code surfaces, hover actions open the chat panel provided by the **Altimate Workspaces** extension (`altimateai.vscode-altimate-mcp-server`), which is installed as a dependency of Power User for dbt. The bundled chat handles BYOK or [Altimate LLM Gateway](../arch/llm-gateway.md) routing.
 ///
+
+## Watch the Video
+
+<figure class="video-clip">
+<div class="video-clip__frame"><iframe src="https://www.youtube.com/embed/kbRZ-hrENyc?rel=0" title="dbt ref() and Macros Explained on Hover | dbt Power User Spotlight 5" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+<figcaption>Video (4:22): dbt ref() and Macros Explained on Hover | dbt Power User Spotlight 5. <a href="https://www.youtube.com/watch?v=kbRZ-hrENyc" target="_blank" rel="noopener">Watch on YouTube</a>.</figcaption>
+</figure>

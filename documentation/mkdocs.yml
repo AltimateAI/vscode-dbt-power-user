@@ -73,7 +73,7 @@ nav:
 - Overview: index.md
 - Setup:
   - Install the extension: setup/installation.md
-  - Cursor IDE workaround: setup/cursor_installation_workaround.md
+  - Cursor IDE troubleshooting: setup/cursor_installation_workaround.md
   - Required config:
     - dbt Core: setup/reqdConfig.md
     - dbt Cloud: setup/reqdConfigCloud.md
