@@ -177,7 +177,7 @@ snowplow-tracker==1.1.0
     # via dbt-core
 sqlfluff==4.2.0
     # via jaffle-shop (pyproject.toml)
-sqlparse==0.5.4
+sqlparse==0.6.0
     # via dbt-core
 tblib==3.2.2
     # via sqlfluff
