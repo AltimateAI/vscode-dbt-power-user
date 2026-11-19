@@ -738,6 +738,56 @@ describe("IntegrationModeService.resolve: the dbt-core check", () => {
     },
   );
 
+  it("judges the interpreter by where it came from when it was read, not by an override set during the binary search", async () => {
+    // The Python extension's bare default is read; the user sets an override
+    // while the dbt Fusion binary is being looked for.
+    let override = false;
+    let resolveBinary: (binary: typeof V2) => void = () => undefined;
+    const findBinary = jest.fn(
+      () =>
+        new Promise<typeof V2>((resolve) => {
+          resolveBinary = resolve;
+        }),
+    );
+    const probeDbtCore = jest.fn(() => Promise.resolve(NOT_INSTALLED));
+    const telemetry = {
+      sendTelemetryEvent: jest.fn(),
+      setTelemetryCustomAttribute: jest.fn(),
+    };
+    const svc = new IntegrationModeService(
+      {
+        initialize: () => Promise.resolve(),
+        get pythonPath() {
+          return override ? "/venv/bin/python" : "python";
+        },
+        get pythonPathFromOverride() {
+          return override;
+        },
+        pythonExtensionAvailable: true,
+        getEnvironmentVariables: () => ({ PATH: "/usr/bin" }),
+      } as never,
+      telemetry as never,
+      { info: jest.fn(), debug: jest.fn() } as never,
+      {
+        findBinary,
+        probeDbtCore,
+        findProjectFiles: () => Promise.resolve([]),
+      } as never,
+    );
+    const resolving = svc.resolve(new FakeMemento() as never);
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(findBinary).toHaveBeenCalled();
+    override = true;
+    resolveBinary(V2);
+
+    await expect(resolving).resolves.toBe("core");
+    expect(probeDbtCore).not.toHaveBeenCalled();
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationSwitchHeld",
+      expect.objectContaining({ dbtCoreCheck: "unresolvedInterpreter" }),
+    );
+  });
+
   it("probes a bare command from dbt.dbtPythonPathOverride, with or without the Python extension", async () => {
     for (const pythonExtensionAvailable of [true, false]) {
       const { svc, probeDbtCore, telemetry } = service({

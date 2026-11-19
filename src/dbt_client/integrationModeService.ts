@@ -155,13 +155,16 @@ export class IntegrationModeService {
       // The selected interpreter, or `dbt.dbtPythonPathOverride` without the
       // Python extension; empty when there is no interpreter at all.
       const pythonPath = this.pythonEnvironment.pythonPath || undefined;
+      // Read with the path: the check judges the interpreter by where it came
+      // from when it was read, even if the override changes meanwhile.
+      const fromOverride = this.pythonEnvironment.pythonPathFromOverride;
       binary = await this.probes.findBinary({
         pythonPath,
         cwd: workspace.workspaceFolders?.[0]?.uri.fsPath,
         env,
       });
       if (binary) {
-        dbtCoreCheck = await this.checkDbtCore(pythonPath, env);
+        dbtCoreCheck = await this.checkDbtCore(pythonPath, fromOverride, env);
         dbtLoom =
           Boolean(env.DBT_LOOM_CONFIG_PATH) || (await this.dbtLoomConfigured());
       }
@@ -224,11 +227,12 @@ export class IntegrationModeService {
    */
   private async checkDbtCore(
     pythonPath: string | undefined,
+    fromOverride: boolean,
     env: Record<string, string | undefined>,
   ): Promise<DbtCoreCheck> {
     if (
       this.pythonEnvironment.pythonExtensionAvailable &&
-      !this.pythonEnvironment.pythonPathFromOverride &&
+      !fromOverride &&
       (!pythonPath || !isInterpreterPath(pythonPath))
     ) {
       return "unresolvedInterpreter";
