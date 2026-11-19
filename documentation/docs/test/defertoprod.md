@@ -51,6 +51,16 @@ Now, choose the right dbt integration to reference in your VSCode as below:
 
 ![addIntegration](images/chooseSaaS.png)<br>
 
+/// admonition | SaaS mode doesn't defer in dbt Fusion mode
+    type: warning
+
+In dbt Fusion mode, Defer to production with the manifest stored in the Altimate SaaS instance runs without deferral. Power User for dbt logs this warning once per project in the `Log - dbt` output:
+
+`Defer to production in DataPilot dbt integration mode needs the DataPilot client, which this project was not given; running without deferral`
+
+Local mode still defers in dbt Fusion mode. See [Feature Support](../setup/reqdConfigFusion.md#feature-support) on the dbt Fusion page.
+///
+
 ### Step 3: Enable/disable favor state
 
 Turn on favor-state if you need it. If it's turned on, the defer functionality will favor using the node defined in the referenced integration, even if the node exists in the current project.
