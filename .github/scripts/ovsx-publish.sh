@@ -17,6 +17,14 @@
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 
+# The visibility wait is timed with EPOCHREALTIME (bash 5). Without it (macOS's
+# bash 3.2) the clock never moves and the wait never ends, so stop here, before
+# anything is published.
+if [ -z "${EPOCHREALTIME:-}" ]; then
+  echo "::error::ovsx-publish.sh needs bash 5 or later (EPOCHREALTIME); this is bash ${BASH_VERSION:-unknown}"
+  exit 2
+fi
+
 if [ "${1:-}" = "--attempt" ]; then
   vsix=$2 target=$3 version=$4
   read -r -a ovsx <<< "${OVSX:-npx ovsx}"
