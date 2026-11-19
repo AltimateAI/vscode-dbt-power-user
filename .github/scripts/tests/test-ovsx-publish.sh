@@ -104,4 +104,17 @@ check "is not accepted" test "$status" = 1
 check "says it isn't visible" \
   grep -q "uploaded but not visible on Open VSX after 1 s" <<< "$output"
 
+# Without EPOCHREALTIME (bash before 5) the script stops before publishing.
+name="no EPOCHREALTIME"
+dir=$(mktemp -d)
+printf 'n=$(( $(cat "$STUB_DIR/attempts" 2>/dev/null || echo 0) + 1 )); echo "$n" > "$STUB_DIR/attempts"\n' > "$dir/ovsx"
+output=$(STUB_DIR=$dir OVSX="bash $dir/ovsx" timeout 20 bash -c 'unset EPOCHREALTIME; . "$0" "$@"' \
+  "$wrapper" "$dir/x.vsix" linux-x64 9.9.9 2>&1)
+status=$?
+attempts=$(cat "$dir/attempts" 2>/dev/null || echo 0)
+polls=0
+rm -rf "${dir:?}"
+check "stops with exit 2 and publishes nothing" test "$status" = 2 -a "$attempts" = 0
+check "says it needs bash 5" grep -q "needs bash 5 or later" <<< "$output"
+
 [ "$failures" -eq 0 ]
