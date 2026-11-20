@@ -1,5 +1,6 @@
 import {
   afterAll,
+  afterEach,
   beforeEach,
   describe,
   expect,
@@ -20,6 +21,7 @@ import {
   AltimateConnectService,
   stripRemoteCredentials,
 } from "../../services/altimateConnectService";
+import { uriParts } from "../mock/vscode";
 
 const PROJECT_ROOT = "/repo/jaffle_shop";
 
@@ -794,6 +796,70 @@ describe("AltimateConnectService review fixes", () => {
     expect(await h.service.canLinkWorkspace()).toBe(false);
 
     (env as Record<string, unknown>).uriScheme = scheme;
+  });
+});
+
+describe("AltimateConnectService in a desktop editor", () => {
+  // Desktop VS Code and Cursor add the window id to every `asExternalUri`
+  // result, so the callback reaches the window that started the round trip.
+  let desktop: ((uri: unknown) => unknown) | undefined;
+  beforeEach(() => {
+    jest.clearAllMocks();
+    desktop = (env.asExternalUri as jest.Mock).getMockImplementation();
+    (env.asExternalUri as jest.Mock).mockImplementation(async (uri: unknown) =>
+      uriParts(`${String(uri)}?windowId=1`),
+    );
+  });
+  afterEach(() => {
+    (env.asExternalUri as jest.Mock).mockImplementation(desktop!);
+  });
+
+  // A `Uri` stands in for VS Code's, which re-encodes the URL it is built
+  // from; the page must reach `openExternal` as the string that was built.
+  const harnessWithRealUri = () => {
+    const h = harness();
+    (Uri.parse as jest.Mock).mockImplementation((value: unknown) => ({
+      toString: () => String(value),
+    }));
+    return h;
+  };
+
+  it("opens the sign-in page as built, with the window's callback", async () => {
+    const h = harnessWithRealUri();
+    await h.service.startSignIn();
+
+    expect(typeof h.opened[0]).toBe("string");
+    expect(new URL(h.opened[0]).searchParams.get("redirect")).toBe(
+      "vscode://innoverio.vscode-dbt-power-user/auth?windowId=1",
+    );
+  });
+
+  it("opens the create-and-link page as built, with the window's callback", async () => {
+    const h = harnessWithRealUri();
+    await h.service.startWorkspaceLink(PROJECT_ROOT);
+
+    expect(typeof h.opened[0]).toBe("string");
+    const url = new URL(h.opened[0]);
+    expect(url.searchParams.get("redirect")).toBe(
+      "vscode://innoverio.vscode-dbt-power-user/workspace-bound?windowId=1",
+    );
+    const fragment = new URLSearchParams(url.hash.slice(1));
+    expect(fragment.get("project_name")).toBe("jaffle_shop");
+    expect(fragment.get("project_path")).toBe(PROJECT_ROOT);
+  });
+
+  it("links the workspace the window's callback returns", async () => {
+    const h = harnessWithRealUri();
+    await h.service.startWorkspaceLink(PROJECT_ROOT);
+
+    await h.callback("/workspace-bound", {
+      windowId: "1",
+      state: h.lastState(),
+      workspace_id: "42",
+      tenant: "acme",
+    });
+
+    expect(h.service.getLinkedWorkspaceId(PROJECT_ROOT)).toBe("42");
   });
 });
 

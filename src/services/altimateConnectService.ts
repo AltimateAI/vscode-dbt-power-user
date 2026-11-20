@@ -690,18 +690,15 @@ export class AltimateConnectService implements Disposable {
   }
 
   /**
-   * Open a SaaS page exactly as built. A `Uri` decodes the query and writes it
-   * back with `&` and `=` unescaped, which splits a web editor's encoded
-   * `redirect` (`…/callback?vscode-reqid=…&…`) into separate params. Desktop
-   * redirects (`vscode://…/auth`) carry no query, so they keep the `Uri`.
+   * Open a SaaS page exactly as built. Every `redirect` carries a query: a web
+   * editor's `…/callback?vscode-reqid=…`, and the `?windowId=N` desktop editors
+   * add to their own links. A `Uri` writes the URL back re-encoded, which
+   * splits the first into separate params and turns the second's `%3F` into
+   * `%253F`, so the SaaS reads `/workspace-bound%3FwindowId=1` as the path.
+   * The extension host's `openUri` accepts a string, and the workbench opens
+   * that string as given (`$openUri` prefers it over the parsed `Uri`).
    */
   private async openInBrowser(url: string) {
-    if (env.uiKind !== UIKind.Web) {
-      await env.openExternal(Uri.parse(url, true));
-      return;
-    }
-    // The extension host's `openUri` accepts a string and the workbench opens
-    // that string as given (`$openUri` prefers it over the parsed `Uri`).
     await env.openExternal(url as unknown as Uri);
   }
 
