@@ -1,0 +1,15 @@
+{
+  "name": "vsix-install-check",
+  "displayName": "VSIX install check",
+  "description": "Development extension that checks the installed Power User, writes the result and quits VS Code.",
+  "publisher": "vsix-install-check",
+  "version": "0.0.0",
+  "private": true,
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "main": "./extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ]
+}
