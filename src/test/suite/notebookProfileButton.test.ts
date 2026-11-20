@@ -151,6 +151,7 @@ describe("Profile your query command", () => {
     v.workspace.applyEdit = applyEdit;
     executeCommand = v.commands.executeCommand as jest.Mock;
     executeCommand.mockClear();
+    (v.window.showErrorMessage as jest.Mock).mockClear();
     verifyAndInstallDependenciesIfNeeded = jest.fn(async () => undefined);
   });
 
@@ -164,15 +165,35 @@ describe("Profile your query command", () => {
       v[k] = saved[k];
     }
     v.workspace.applyEdit = saved.applyEdit;
+    executeCommand.mockReset();
+    executeCommand.mockReturnValue(Promise.resolve());
   });
+
+  // Running the SQL cell ends with this execution summary on it.
+  const queryEnds = (cell: any, success: boolean, endTime?: number) =>
+    executeCommand.mockImplementation(async (_command: unknown, args: any) => {
+      if (args.ranges[0].start === cell.index) {
+        cell.executionSummary = {
+          success,
+          timing: { startTime: 0, endTime: endTime ?? Date.now() },
+        };
+      }
+    });
+  const executedRanges = () =>
+    executeCommand.mock.calls.map(([command, args]: any[]) => [
+      command,
+      args.ranges,
+      args.document,
+    ]);
 
   const run = (cell: any, getProject = async () => project) =>
     profileNotebookCell(cell, getProject, {
       verifyAndInstallDependenciesIfNeeded,
     } as any);
 
-  it("adds a Python cell below that reads this cell's result, then runs both", async () => {
+  it("adds a Python cell below that reads this cell's result, runs the query, then the new cell", async () => {
     const cell = sqlCell({ cellId: "python_9s5o3" });
+    queryEnds(cell, true);
 
     await run(cell);
 
@@ -189,10 +210,33 @@ describe("Profile your query command", () => {
     expect(insert.cells[0].languageId).toBe("python");
     expect(insert.cells[0].value).toBe(profileCellSource("python_9s5o3"));
     expect(insert.cells[0].value).toContain("data = cell_python_9s5o3['data']");
-    expect(executeCommand).toHaveBeenCalledWith("notebook.cell.execute", {
-      ranges: [{ start: 2, end: 4 }],
-      document: cell.notebook.uri,
-    });
+    expect(executedRanges()).toEqual([
+      ["notebook.cell.execute", [{ start: 2, end: 3 }], cell.notebook.uri],
+      ["notebook.cell.execute", [{ start: 3, end: 4 }], cell.notebook.uri],
+    ]);
+  });
+
+  it("does not run the profiling cell when the query fails", async () => {
+    const cell = sqlCell({ cellId: "python_9s5o3" });
+    queryEnds(cell, false);
+
+    await run(cell);
+
+    expect(edits).toHaveLength(1);
+    expect(executedRanges()).toEqual([
+      ["notebook.cell.execute", [{ start: 2, end: 3 }], cell.notebook.uri],
+    ]);
+  });
+
+  it("does not run the profiling cell on an earlier run's success", async () => {
+    const cell = sqlCell({ cellId: "python_9s5o3" });
+    queryEnds(cell, true, 1);
+
+    await run(cell);
+
+    expect(executedRanges()).toEqual([
+      ["notebook.cell.execute", [{ start: 2, end: 3 }], cell.notebook.uri],
+    ]);
   });
 
   it("asks for pandas and ydata-profiling", () => {
@@ -211,6 +255,20 @@ describe("Profile your query command", () => {
 
     expect(edits).toHaveLength(0);
     expect(executeCommand).not.toHaveBeenCalled();
+    expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+  });
+
+  it("shows any other failure of the package check, and adds nothing", async () => {
+    verifyAndInstallDependenciesIfNeeded.mockImplementation(async () => {
+      throw new Error("spawn EACCES");
+    });
+
+    await run(sqlCell({ cellId: "python_9s5o3" }));
+
+    expect(edits).toHaveLength(0);
+    expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+      "Couldn't prepare the profiling packages: spawn EACCES",
+    );
   });
 
   it("adds nothing without a dbt project", async () => {

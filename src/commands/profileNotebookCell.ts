@@ -5,6 +5,7 @@ import {
   NotebookCellData,
   NotebookCellKind,
   NotebookEdit,
+  window,
   workspace,
   WorkspaceEdit,
 } from "vscode";
@@ -31,10 +32,21 @@ export const profileCellSource = (cellId: string): string =>
     "profile.to_notebook_iframe()",
   ].join("\n");
 
+// The notebook library throws this when the user declines the install.
+const DECLINED_INSTALL = "User cancelled python package installation";
+
+const runCell = (cell: NotebookCell, index: number) =>
+  commands.executeCommand("notebook.cell.execute", {
+    ranges: [{ start: index, end: index + 1 }],
+    document: cell.notebook.uri,
+  });
+
 /**
  * "Profile your query" on a notebook SQL cell: once the profiling packages are
  * installed, adds a Python cell below that profiles this cell's own result,
- * then runs the query and the new cell.
+ * runs the query and, only if it succeeded, runs the new cell. A failed query
+ * leaves the kernel holding an earlier run's rows, which must not be profiled
+ * as this query's.
  */
 export async function profileNotebookCell(
   cell: NotebookCell | undefined,
@@ -54,8 +66,13 @@ export async function profileNotebookCell(
       PROFILE_DEPENDENCIES,
       project,
     );
-  } catch {
-    // The user declined the install; the library already recorded it.
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message !== DECLINED_INSTALL) {
+      window.showErrorMessage(
+        `Couldn't prepare the profiling packages: ${message}`,
+      );
+    }
     return;
   }
   const edit = new WorkspaceEdit();
@@ -71,8 +88,10 @@ export async function profileNotebookCell(
   if (!(await workspace.applyEdit(edit))) {
     return;
   }
-  await commands.executeCommand("notebook.cell.execute", {
-    ranges: [{ start: cell.index, end: cell.index + 2 }],
-    document: cell.notebook.uri,
-  });
+  const started = Date.now();
+  await runCell(cell, cell.index);
+  const summary = cell.executionSummary;
+  if (summary?.success === true && (summary.timing?.endTime ?? 0) >= started) {
+    await runCell(cell, cell.index + 1);
+  }
 }
