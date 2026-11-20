@@ -1,4 +1,4 @@
-import { DBTTerminal, NodeMetaMap } from "@altimateai/dbt-integration";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
 import {
   CancellationToken,
@@ -15,10 +15,11 @@ import {
 } from "vscode";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
+import { lookupRefNode, ProjectNodeMap } from "../dbt_client/refNodeLookup";
 import { TelemetryService } from "../telemetry";
 
 export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
-  private modelToLocationMap: Map<string, NodeMetaMap> = new Map();
+  private modelToLocationMap: Map<string, ProjectNodeMap> = new Map();
   private static readonly IS_REF = /(ref)\([^)]*\)/;
   private static readonly GET_DBT_MODEL = /(?!'|")([^(?!'|")]*)(?='|")/gi;
   private disposables: Disposable[] = [];
@@ -65,16 +66,13 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
           "Could not load definition provider, project not found in container for " +
             document.uri.fsPath,
         );
+        resolve(undefined);
         return;
       }
       if (word !== undefined && hover !== "ref") {
         const dbtModel = word.match(ModelDefinitionProvider.GET_DBT_MODEL);
         if (dbtModel && dbtModel.length === 1) {
-          const definition = this.getDefinitionFor(
-            project.getProjectName(),
-            dbtModel[0],
-            document.uri,
-          );
+          const definition = this.getDefinitionFor(dbtModel[0], document.uri);
           resolve(definition);
           this.telemetry.sendTelemetryEvent("provideModelDefinition", {
             type: "single",
@@ -83,9 +81,9 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
         }
         if (dbtModel && dbtModel.length === 3) {
           const definition = this.getDefinitionFor(
-            dbtModel[0],
             dbtModel[2],
             document.uri,
+            dbtModel[0],
           );
           this.telemetry.sendTelemetryEvent("provideModelDefinition", {
             type: "dual",
@@ -100,10 +98,10 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
-      this.modelToLocationMap.set(
-        added.project.projectRoot.fsPath,
-        added.nodeMetaMap,
-      );
+      this.modelToLocationMap.set(added.project.projectRoot.fsPath, {
+        projectName: added.project.getProjectName(),
+        nodeMap: added.nodeMetaMap,
+      });
     });
     event.removed?.forEach((removed) => {
       this.modelToLocationMap.delete(removed.projectRoot.fsPath);
@@ -111,20 +109,25 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
   }
 
   private getDefinitionFor(
-    projectName: string,
     modelName: string,
     currentFilePath: Uri,
+    packageName?: string,
   ): Definition | undefined {
     const projectRootpath =
       this.dbtProjectContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
       return;
     }
-    const nodeMap = this.modelToLocationMap.get(projectRootpath.fsPath);
-    if (nodeMap === undefined) {
+    const current = this.modelToLocationMap.get(projectRootpath.fsPath);
+    if (current === undefined) {
       return;
     }
-    const location = nodeMap.lookupByBaseName(modelName);
+    const location = lookupRefNode(
+      current,
+      this.modelToLocationMap.values(),
+      modelName,
+      packageName,
+    );
     if (location && location.path) {
       return new Location(Uri.file(location.path), new Range(0, 0, 999, 999));
     }
