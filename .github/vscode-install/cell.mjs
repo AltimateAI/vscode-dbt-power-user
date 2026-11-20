@@ -145,8 +145,8 @@ function checkInstalled(version) {
   return installed.map((e) => `${e.id}@${e.version}`);
 }
 
-// Names of the keys Power User keeps in VS Code's global state (state.vscdb), read with the
-// check's Python. Values are not read.
+// Names of the keys Power User keeps in VS Code's global state, read with the check's Python from
+// the profile's User/globalStorage/state.vscdb once VS Code has exited. Values are not read.
 function globalStateKeys() {
   const db = path.join(dirs.userData, "User", "globalStorage", "state.vscdb");
   if (!fs.existsSync(db)) return undefined;
@@ -233,6 +233,17 @@ async function launch(phase, version) {
   };
   cell.phases.push(entry);
   if (!seen.ok) throw new Error(`${phase}: ${seen.error}`);
+  // The harness quits VS Code after writing its result. Only a clean exit has flushed the state
+  // the next launch reads, so a hang (killed on the timer) or a crash fails the launch too.
+  if (exit.code !== 0) {
+    const how = exit.timedOut
+      ? `killed after ${LAUNCH_TIMEOUT_MS / 60000} min`
+      : exit.error || `exit code ${exit.code}, signal ${exit.signal}`;
+    throw new Error(
+      `${phase}: the check passed but VS Code didn't exit cleanly (${how})`,
+    );
+  }
+  // Read from the profile on disk after VS Code exited: what the next launch starts from.
   entry.globalStateKeys = globalStateKeys();
   log(`${phase}: ok`, JSON.stringify(entry));
 }
