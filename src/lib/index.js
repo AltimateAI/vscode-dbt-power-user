@@ -2471,7 +2471,8 @@ project_name="${e.getProjectName()}"
         (i.executionOrder = ++this.executionOrder),
         i.start(Date.now()),
         i.token.onCancellationRequested((c) => {
-          i == null || i.end(!0, Date.now());
+          // A cancelled cell neither succeeded nor failed.
+          i == null || i.end(void 0, Date.now());
         }),
         i.clearOutput(),
         e.document.languageId)

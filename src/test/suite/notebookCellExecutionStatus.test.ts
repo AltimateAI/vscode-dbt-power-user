@@ -40,9 +40,11 @@ type Kernel = {
   streamed?: unknown[];
   returned?: unknown[];
   throws?: Error;
+  cancelled?: boolean;
 };
 
 async function runPythonCell(kernel: Kernel) {
+  let onCancel: (() => void) | undefined;
   const lib = loadLib();
   const controller = Object.create(lib.DatapilotNotebookController.prototype);
   Object.assign(controller, {
@@ -60,12 +62,19 @@ async function runPythonCell(kernel: Kernel) {
     clearOutput: jest.fn(),
     replaceOutput: jest.fn(),
     appendOutput: jest.fn((o: any) => appended.push(...o)),
-    token: { onCancellationRequested: jest.fn() },
+    token: {
+      onCancellationRequested: jest.fn((listener: () => void) => {
+        onCancel = listener;
+      }),
+    },
   };
   const client = {
     executePython: jest.fn(
       async (_code: string, _cell: unknown, onOutput: (o: any) => void) => {
         (kernel.streamed ?? []).forEach((o) => onOutput(o));
+        if (kernel.cancelled) {
+          onCancel?.();
+        }
         if (kernel.throws) {
           throw kernel.throws;
         }
@@ -127,6 +136,12 @@ describe("notebook Python cell execution status (vendored library)", () => {
     const { end } = await runPythonCell({ returned: [] });
 
     expect(end).toHaveBeenCalledWith(true, expect.any(Number));
+  });
+
+  it("ends a cancelled cell without a success flag", async () => {
+    const { end } = await runPythonCell({ cancelled: true, returned: [] });
+
+    expect(end.mock.calls[0]).toEqual([undefined, expect.any(Number)]);
   });
 
   it("still finishes as failed when the extension itself throws", async () => {
