@@ -102,6 +102,9 @@ def check(vsix, target):
 
 def main():
     vsix, target = sys.argv[1], sys.argv[2]
+    if target not in BUDGET_MIB or target not in ZEROMQ_RUNTIMES:
+        print(f"::error::{target}: no size budget or zeromq runtimes for this target")
+        sys.exit(1)
     size_mib, budget, addons, errors = check(vsix, target)
     print(f"{target}: {size_mib:.1f} MiB (budget {budget} MiB)")
     for addon in addons:

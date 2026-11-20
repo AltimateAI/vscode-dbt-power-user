@@ -1,0 +1,217 @@
+[
+ {
+  "name": "heading h2",
+  "input": "## What's Changed",
+  "expected": "*What's Changed*"
+ },
+ {
+  "name": "heading h3 with bold",
+  "input": "### **Known** issues",
+  "expected": "*Known issues*"
+ },
+ {
+  "name": "heading keeps a trailing # in text",
+  "input": "## Support for C#",
+  "expected": "*Support for C#*"
+ },
+ {
+  "name": "heading closing hashes dropped",
+  "input": "## Title ##",
+  "expected": "*Title*"
+ },
+ {
+  "name": "issue number at line start is not a heading",
+  "input": "#123 is fixed",
+  "expected": "#123 is fixed"
+ },
+ {
+  "name": "bold",
+  "input": "**Full Changelog**: https://github.com/o/r/compare/1.0.0...1.1.0",
+  "expected": "*Full Changelog*: https://github.com/o/r/compare/1.0.0...1.1.0"
+ },
+ {
+  "name": "underscore bold",
+  "input": "__important__ change",
+  "expected": "*important* change"
+ },
+ {
+  "name": "strike",
+  "input": "~~old~~ new",
+  "expected": "~old~ new"
+ },
+ {
+  "name": "link",
+  "input": "See [the docs](https://example.com/a?b=1&c=2).",
+  "expected": "See <https://example.com/a?b=1&amp;c=2|the docs>."
+ },
+ {
+  "name": "link with title",
+  "input": "[docs](https://example.com \"Docs\")",
+  "expected": "<https://example.com|docs>"
+ },
+ {
+  "name": "image",
+  "input": "![screenshot](https://example.com/s.png)",
+  "expected": "<https://example.com/s.png|screenshot>"
+ },
+ {
+  "name": "bold link text",
+  "input": "[**x**](https://example.com)",
+  "expected": "<https://example.com|x>"
+ },
+ {
+  "name": "star bullet",
+  "input": "* fix: a thing by @someone in https://github.com/o/r/pull/1",
+  "expected": "• fix: a thing by @someone in https://github.com/o/r/pull/1"
+ },
+ {
+  "name": "dash and plus bullets, indent kept",
+  "input": "- one\n  - two\n+ three",
+  "expected": "• one\n  • two\n• three"
+ },
+ {
+  "name": "bullet next to bold",
+  "input": "* **Bold** item",
+  "expected": "• *Bold* item"
+ },
+ {
+  "name": "escaping",
+  "input": "a < b && c > d",
+  "expected": "a &lt; b &amp;&amp; c &gt; d"
+ },
+ {
+  "name": "html comment dropped",
+  "input": "<!-- Release notes generated using configuration in .github/release.yml at main -->\n\n## What's Changed",
+  "expected": "*What's Changed*"
+ },
+ {
+  "name": "inline code only escaped",
+  "input": "use `**not bold**` and `<x>`",
+  "expected": "use `**not bold**` and `&lt;x&gt;`"
+ },
+ {
+  "name": "fenced block only escaped",
+  "input": "```\n## not a heading\n* not a bullet **x** <y>\n```",
+  "expected": "```\n## not a heading\n* not a bullet **x** &lt;y&gt;\n```"
+ },
+ {
+  "name": "horizontal rule left",
+  "input": "a\n---\nb",
+  "expected": "a\n---\nb"
+ },
+ {
+  "name": "bare URL untouched by bold rules",
+  "input": "see https://example.com/a__b__c and __bold__",
+  "expected": "see https://example.com/a__b__c and *bold*"
+ },
+ {
+  "name": "square brackets that are not a link",
+  "input": "fix: [AI-123] a thing",
+  "expected": "fix: [AI-123] a thing"
+ },
+ {
+  "name": "mention left",
+  "input": "thanks @someone",
+  "expected": "thanks @someone"
+ },
+ {
+  "name": "table left",
+  "input": "| a | b |\n|---|---|\n| 1 | 2 |",
+  "expected": "| a | b |\n|---|---|\n| 1 | 2 |"
+ },
+ {
+  "name": "crlf",
+  "input": "## A\r\n**b**",
+  "expected": "*A*\n*b*"
+ },
+ {
+  "name": "heading keeps a URL",
+  "input": "## https://example.com/a__b__c",
+  "expected": "*https://example.com/a__b__c*"
+ },
+ {
+  "name": "heading keeps inline code",
+  "input": "## Use `__version__`",
+  "expected": "*Use `__version__`*"
+ },
+ {
+  "name": "link text that is a URL is kept",
+  "input": "[https://example.com/a__b__c](https://example.com/a__b__c)",
+  "expected": "<https://example.com/a__b__c|https://example.com/a__b__c>"
+ },
+ {
+  "name": "comment inside a fence is kept",
+  "input": "```html\n<!-- keep -->\n```",
+  "expected": "```html\n&lt;!-- keep --&gt;\n```"
+ },
+ {
+  "name": "comment inside inline code is kept",
+  "input": "use `<!-- x -->` here <!-- gone -->",
+  "expected": "use `&lt;!-- x --&gt;` here"
+ },
+ {
+  "name": "multi-line comment outside code",
+  "input": "a\n<!--\nb\n-->\nc",
+  "expected": "a\n\nc"
+ },
+ {
+  "name": "longer fence holds a shorter one",
+  "input": "````markdown\n```python\n**literal**\n```\n````",
+  "expected": "````markdown\n```python\n**literal**\n```\n````"
+ },
+ {
+  "name": "tilde fence isn't closed by backticks",
+  "input": "~~~\n```\n**x**\n~~~",
+  "expected": "~~~\n```\n**x**\n~~~"
+ },
+ {
+  "name": "unclosed fence runs to the end",
+  "input": "```\n**x**\n## y",
+  "expected": "```\n**x**\n## y"
+ },
+ {
+  "name": "multi-backtick code span",
+  "input": "Use ``**literal**`` here",
+  "expected": "Use ``**literal**`` here"
+ },
+ {
+  "name": "code span holding a backtick",
+  "input": "``a`b`` and **c**",
+  "expected": "``a`b`` and *c*"
+ },
+ {
+  "name": "unpartnered backtick run is text",
+  "input": "a ` b **c**",
+  "expected": "a ` b *c*"
+ },
+ {
+  "name": "link label with inline code",
+  "input": "[`foo`](https://example.com/docs)",
+  "expected": "<https://example.com/docs|`foo`>"
+ },
+ {
+  "name": "balanced parentheses in a link",
+  "input": "[docs](https://example.com/a_(b))",
+  "expected": "<https://example.com/a_(b)|docs>"
+ },
+ {
+  "name": "bold around a link",
+  "input": "**see [x](https://example.com)**",
+  "expected": "*see <https://example.com|x>*"
+ },
+ {
+  "name": "link label with brackets",
+  "input": "[a [b] c](https://example.com)",
+  "expected": "<https://example.com|a [b] c>"
+ },
+ {
+  "name": "text before brackets and parentheses is not a link",
+  "input": "[AI-123] fix (see notes)",
+  "expected": "[AI-123] fix (see notes)"
+ },
+ {
+  "name": "NUL in the notes is dropped",
+  "input": "a\u0000b **c**",
+  "expected": "ab *c*"
+ }
+]

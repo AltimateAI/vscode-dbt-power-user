@@ -49,6 +49,16 @@ You can start the setup wizard by clicking on dbt status icon in bottom status b
 
 **Here are the steps covered in the setup wizard**
 
+/// admonition | The dbt Cloud CLI needs the Python extension
+    type: info
+
+Installing Power User for dbt doesn't install the Python extension (`ms-python.python`). Without it, Power User shows:
+
+> The dbt Cloud CLI runs through the Python extension, which is not installed. Install it, or switch dbt.dbtIntegration to fusion to use dbt Fusion without Python.
+
+Install the Python extension: **Install Python extension** installs it and then offers **Reload window**, and in the Get Started panel the Python interpreter check offers **Install Python Extension**. If your project runs on dbt Fusion, set `dbt.dbtIntegration` to `fusion` instead. The prompt also doesn't appear when `dbt.dbtPythonPathOverride` names an interpreter that exists, but avoid that setting unless you use Meltano; see [the warning about Python path overrides](reqdConfig.md#associate-python-interpreter-with-dbt-installation).
+///
+
 **Select Python Interpreter**
 
 Click on the action button - "Select Python Interpreter" and choose your preferred python interpreter. Usually, choosing interpreter that's recommended, or mapped to your virtual environment software (e.g. venv) as per the list is a good idea. If you know the path of your Python envionment, you can choose it from the list or if the path is not present there, you can enter it manually.

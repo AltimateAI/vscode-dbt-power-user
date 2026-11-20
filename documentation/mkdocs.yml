@@ -51,7 +51,6 @@ extra_css:
   - assets/stylesheets/neoteroi-cards.css
   - assets/stylesheets/extra.css
   - assets/stylesheets/copy-page.css
-- stylesheets/extra.css
 markdown_extensions:
 - pymdownx.blocks.admonition
 - markdown.extensions.codehilite:
@@ -74,7 +73,7 @@ nav:
 - Overview: index.md
 - Setup:
   - Install the extension: setup/installation.md
-  - Cursor IDE workaround: setup/cursor_installation_workaround.md
+  - Cursor IDE troubleshooting: setup/cursor_installation_workaround.md
   - Required config:
     - dbt Core: setup/reqdConfig.md
     - dbt Cloud: setup/reqdConfigCloud.md
@@ -114,7 +113,10 @@ nav:
   - Multi-project Support with dbt-loom: govern/multiproject.md
   - Query Bookmarks and History: govern/querybookmarks.md
 - Discover:
-  - Setup UI for docs & lineage: discover/setupui.md
+  - Setup UI for docs & lineage:
+    - discover/setupui.md
+    - Setup dbt Core: discover/setupui-dbt-core.md
+    - Setup dbt Cloud: discover/setupui-dbt-cloud.md
   - Search and view docs: discover/viewdocs.md
   - Column lineage with Xformations: discover/viewlineage.md
 - Utilities:

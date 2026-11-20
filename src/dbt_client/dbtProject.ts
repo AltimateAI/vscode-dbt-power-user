@@ -583,6 +583,14 @@ export class DBTProject implements Disposable {
     return this.dbtProjectIntegration.isInitialized();
   }
 
+  /** The error diagnostics the latest manifest rebuild left. */
+  rebuildManifestErrorCount(): number {
+    return this.getCurrentProjectIntegration()
+      .getDiagnostics()
+      .rebuildManifestDiagnostics.filter(({ severity }) => severity === "error")
+      .length;
+  }
+
   getAllDiagnostic(): Diagnostic[] {
     const projectURI = Uri.file(
       path.join(this.projectRoot.fsPath, DBT_PROJECT_FILE),

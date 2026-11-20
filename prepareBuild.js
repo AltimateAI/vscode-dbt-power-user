@@ -183,7 +183,7 @@ function pruneZeromq() {
  * Returns empty array if no target is set (keep all).
  */
 function getAltimateCorePackagesToKeep() {
-  const vsceTarget = process.env.VSC_VSCE_TARGET || process.env.VSCE_TARGET;
+  const vsceTarget = getVsceTarget();
   if (!vsceTarget) {
     return [];
   }
@@ -204,7 +204,7 @@ function getAltimateCorePackagesToKeep() {
 }
 
 function deleteUnnecessaryAltimateCorePackages() {
-  const vsceTarget = process.env.VSC_VSCE_TARGET || process.env.VSCE_TARGET;
+  const vsceTarget = getVsceTarget();
   if (!vsceTarget) {
     console.log(
       "vsceTarget is not set, keeping all altimate-core platform packages",
