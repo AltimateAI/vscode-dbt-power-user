@@ -80,23 +80,34 @@ export async function profileNotebookCell(
   if (cell.index < 0 || cell.notebook.isClosed) {
     return;
   }
+  const source = profileCellSource(cellId);
   const edit = new WorkspaceEdit();
   edit.set(cell.notebook.uri, [
     NotebookEdit.insertCells(cell.index + 1, [
-      new NotebookCellData(
-        NotebookCellKind.Code,
-        profileCellSource(cellId),
-        "python",
-      ),
+      new NotebookCellData(NotebookCellKind.Code, source, "python"),
     ]),
   ]);
   if (!(await workspace.applyEdit(edit))) {
     return;
   }
+  // Keep the inserted cell itself: the notebook can be edited while the
+  // query runs, so its position below the SQL cell may change.
+  const profileCell = cell.notebook
+    .getCells()
+    .slice(cell.index + 1)
+    .find((c) => c.document.getText() === source);
+  if (!profileCell) {
+    return;
+  }
   const started = Date.now();
   await runCell(cell, cell.index);
   const summary = cell.executionSummary;
-  if (summary?.success === true && (summary.timing?.endTime ?? 0) >= started) {
-    await runCell(cell, cell.index + 1);
+  if (
+    summary?.success === true &&
+    (summary.timing?.endTime ?? 0) >= started &&
+    profileCell.index >= 0 &&
+    !profileCell.notebook.isClosed
+  ) {
+    await runCell(profileCell, profileCell.index);
   }
 }

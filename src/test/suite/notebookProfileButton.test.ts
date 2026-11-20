@@ -120,6 +120,57 @@ describe("Profile your query command", () => {
   let verifyAndInstallDependenciesIfNeeded: jest.Mock;
   const project = { projectRoot: "/p" } as any;
 
+  // A notebook whose cells know their own index, like VS Code's (-1 once removed).
+  type FakeCell = {
+    readonly index: number;
+    metadata: Record<string, unknown>;
+    notebook: FakeNotebook;
+    document: { languageId: string; getText: () => string };
+    executionSummary?: unknown;
+  };
+  type FakeNotebook = {
+    uri: { toString: () => string };
+    isClosed: boolean;
+    cells: FakeCell[];
+    getCells: () => FakeCell[];
+  };
+  const makeNotebook = (): FakeNotebook => {
+    const notebook: FakeNotebook = {
+      uri: { toString: () => "datapilot:/p/report.notebook" },
+      isClosed: false,
+      cells: [],
+      getCells: () => notebook.cells,
+    };
+    return notebook;
+  };
+  const addCell = (
+    notebook: FakeNotebook,
+    at: number,
+    text: string,
+    languageId: string,
+    metadata: Record<string, unknown> = {},
+  ): FakeCell => {
+    const cell: FakeCell = {
+      get index() {
+        return notebook.cells.indexOf(cell);
+      },
+      metadata,
+      notebook,
+      document: { languageId, getText: () => text },
+    };
+    notebook.cells.splice(at, 0, cell);
+    return cell;
+  };
+  // [python, python, SQL (index 2), python]
+  const notebookWithSql = (metadata: Record<string, unknown>) => {
+    const notebook = makeNotebook();
+    addCell(notebook, 0, "print(0)", "python");
+    addCell(notebook, 1, "print(1)", "python");
+    const sql = addCell(notebook, 2, "select 1", "jinja-sql", metadata);
+    addCell(notebook, 3, "print(3)", "python");
+    return { notebook, sql };
+  };
+
   beforeEach(() => {
     for (const k of [
       "WorkspaceEdit",
@@ -147,7 +198,17 @@ describe("Profile your query command", () => {
       ) {}
     };
     v.NotebookCellKind = { Markup: 1, Code: 2 };
-    applyEdit = jest.fn(async () => true);
+    // Applies the insert to the fake notebook the edit targets.
+    applyEdit = jest.fn(async () => {
+      for (const { changes } of edits) {
+        for (const { index, cells } of changes) {
+          cells.forEach((c: any, k: number) =>
+            addCell(current!, index + k, c.value, c.languageId),
+          );
+        }
+      }
+      return true;
+    });
     v.workspace.applyEdit = applyEdit;
     executeCommand = v.commands.executeCommand as jest.Mock;
     executeCommand.mockClear();
@@ -167,76 +228,117 @@ describe("Profile your query command", () => {
     v.workspace.applyEdit = saved.applyEdit;
     executeCommand.mockReset();
     executeCommand.mockReturnValue(Promise.resolve());
+    current = undefined;
   });
 
-  // Running the SQL cell ends with this execution summary on it.
-  const queryEnds = (cell: any, success: boolean, endTime?: number) =>
+  let current: FakeNotebook | undefined;
+  // Running the SQL cell ends with this execution summary on it; `during`
+  // runs while the query runs (to edit the notebook meanwhile).
+  const queryEnds = (
+    sql: FakeCell,
+    success: boolean,
+    endTime?: number,
+    during?: () => void,
+  ) =>
     executeCommand.mockImplementation(async (_command: unknown, args: any) => {
-      if (args.ranges[0].start === cell.index) {
-        cell.executionSummary = {
+      if (args.ranges[0].start === sql.index) {
+        during?.();
+        sql.executionSummary = {
           success,
           timing: { startTime: 0, endTime: endTime ?? Date.now() },
         };
       }
     });
-  const executedRanges = () =>
-    executeCommand.mock.calls.map(([command, args]: any[]) => [
-      command,
-      args.ranges,
-      args.document,
-    ]);
+  const executedTexts = () =>
+    executeCommand.mock.calls.map(([command, args]: any[]) => {
+      expect(command).toBe("notebook.cell.execute");
+      expect(args.document).toBe(current!.uri);
+      expect(args.ranges).toHaveLength(1);
+      const { start, end } = args.ranges[0];
+      expect(end).toBe(start + 1);
+      return current!.cells[start].document.getText();
+    });
 
-  const run = (cell: any, getProject = async () => project) =>
-    profileNotebookCell(cell, getProject, {
+  const run = (cell: any, getProject = async () => project) => {
+    current = cell?.notebook;
+    return profileNotebookCell(cell, getProject, {
       verifyAndInstallDependenciesIfNeeded,
     } as any);
+  };
+  const source = profileCellSource("python_9s5o3");
 
   it("adds a Python cell below that reads this cell's result, runs the query, then the new cell", async () => {
-    const cell = sqlCell({ cellId: "python_9s5o3" });
-    queryEnds(cell, true);
+    const { notebook, sql } = notebookWithSql({ cellId: "python_9s5o3" });
+    queryEnds(sql, true);
 
-    await run(cell);
+    await run(sql);
 
     expect(verifyAndInstallDependenciesIfNeeded).toHaveBeenCalledWith(
       PROFILE_DEPENDENCIES,
       project,
     );
     expect(edits).toHaveLength(1);
-    expect(edits[0].uri).toBe(cell.notebook.uri);
+    expect(edits[0].uri).toBe(notebook.uri);
     const [insert] = edits[0].changes;
     expect(insert.index).toBe(3);
     expect(insert.cells).toHaveLength(1);
     expect(insert.cells[0].kind).toBe(2);
     expect(insert.cells[0].languageId).toBe("python");
-    expect(insert.cells[0].value).toBe(profileCellSource("python_9s5o3"));
-    expect(insert.cells[0].value).toContain("data = cell_python_9s5o3['data']");
-    expect(executedRanges()).toEqual([
-      ["notebook.cell.execute", [{ start: 2, end: 3 }], cell.notebook.uri],
-      ["notebook.cell.execute", [{ start: 3, end: 4 }], cell.notebook.uri],
-    ]);
+    expect(insert.cells[0].value).toBe(source);
+    expect(source).toContain("data = cell_python_9s5o3['data']");
+    expect(notebook.cells[3].document.getText()).toBe(source);
+    expect(executedTexts()).toEqual(["select 1", source]);
+  });
+
+  it("runs the inserted cell itself when the notebook changes while the query runs", async () => {
+    const { notebook, sql } = notebookWithSql({ cellId: "python_9s5o3" });
+    queryEnds(sql, true, undefined, () =>
+      addCell(notebook, 3, "print('added by the user')", "python"),
+    );
+
+    await run(sql);
+
+    expect(executedTexts()).toEqual(["select 1", source]);
+    expect(notebook.cells[4].document.getText()).toBe(source);
+  });
+
+  it("does not run the profiling cell when it was deleted while the query ran", async () => {
+    const { notebook, sql } = notebookWithSql({ cellId: "python_9s5o3" });
+    queryEnds(sql, true, undefined, () => notebook.cells.splice(3, 1));
+
+    await run(sql);
+
+    expect(executedTexts()).toEqual(["select 1"]);
+  });
+
+  it("does not run the profiling cell when the notebook was closed while the query ran", async () => {
+    const { notebook, sql } = notebookWithSql({ cellId: "python_9s5o3" });
+    queryEnds(sql, true, undefined, () => {
+      notebook.isClosed = true;
+    });
+
+    await run(sql);
+
+    expect(executedTexts()).toEqual(["select 1"]);
   });
 
   it("does not run the profiling cell when the query fails", async () => {
-    const cell = sqlCell({ cellId: "python_9s5o3" });
-    queryEnds(cell, false);
+    const { sql } = notebookWithSql({ cellId: "python_9s5o3" });
+    queryEnds(sql, false);
 
-    await run(cell);
+    await run(sql);
 
     expect(edits).toHaveLength(1);
-    expect(executedRanges()).toEqual([
-      ["notebook.cell.execute", [{ start: 2, end: 3 }], cell.notebook.uri],
-    ]);
+    expect(executedTexts()).toEqual(["select 1"]);
   });
 
   it("does not run the profiling cell on an earlier run's success", async () => {
-    const cell = sqlCell({ cellId: "python_9s5o3" });
-    queryEnds(cell, true, 1);
+    const { sql } = notebookWithSql({ cellId: "python_9s5o3" });
+    queryEnds(sql, true, 1);
 
-    await run(cell);
+    await run(sql);
 
-    expect(executedRanges()).toEqual([
-      ["notebook.cell.execute", [{ start: 2, end: 3 }], cell.notebook.uri],
-    ]);
+    expect(executedTexts()).toEqual(["select 1"]);
   });
 
   it("asks for pandas and ydata-profiling", () => {
@@ -251,7 +353,7 @@ describe("Profile your query command", () => {
       throw new Error("User cancelled python package installation");
     });
 
-    await run(sqlCell({ cellId: "python_9s5o3" }));
+    await run(notebookWithSql({ cellId: "python_9s5o3" }).sql);
 
     expect(edits).toHaveLength(0);
     expect(executeCommand).not.toHaveBeenCalled();
@@ -263,7 +365,7 @@ describe("Profile your query command", () => {
       throw new Error("spawn EACCES");
     });
 
-    await run(sqlCell({ cellId: "python_9s5o3" }));
+    await run(notebookWithSql({ cellId: "python_9s5o3" }).sql);
 
     expect(edits).toHaveLength(0);
     expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
@@ -272,7 +374,10 @@ describe("Profile your query command", () => {
   });
 
   it("adds nothing without a dbt project", async () => {
-    await run(sqlCell({ cellId: "python_9s5o3" }), async () => undefined);
+    await run(
+      notebookWithSql({ cellId: "python_9s5o3" }).sql,
+      async () => undefined,
+    );
 
     expect(verifyAndInstallDependenciesIfNeeded).not.toHaveBeenCalled();
     expect(edits).toHaveLength(0);
@@ -281,31 +386,32 @@ describe("Profile your query command", () => {
   it("adds nothing for a cell without an id", async () => {
     const getProject = jest.fn(async () => project);
 
-    await run(sqlCell({}), getProject);
+    await run(notebookWithSql({}).sql, getProject);
 
     expect(getProject).not.toHaveBeenCalled();
     expect(edits).toHaveLength(0);
   });
 
   it("adds nothing when the cell was deleted while the packages were checked", async () => {
-    const cell = sqlCell({ cellId: "python_9s5o3" });
+    const { notebook, sql } = notebookWithSql({ cellId: "python_9s5o3" });
     verifyAndInstallDependenciesIfNeeded.mockImplementation(async () => {
-      cell.index = -1;
+      notebook.cells.splice(sql.index, 1);
     });
 
-    await run(cell);
+    await run(sql);
 
+    expect(sql.index).toBe(-1);
     expect(edits).toHaveLength(0);
     expect(executeCommand).not.toHaveBeenCalled();
   });
 
   it("adds nothing when the notebook was closed while the packages were checked", async () => {
-    const cell = sqlCell({ cellId: "python_9s5o3" });
+    const { notebook, sql } = notebookWithSql({ cellId: "python_9s5o3" });
     verifyAndInstallDependenciesIfNeeded.mockImplementation(async () => {
-      (cell.notebook as any).isClosed = true;
+      notebook.isClosed = true;
     });
 
-    await run(cell);
+    await run(sql);
 
     expect(edits).toHaveLength(0);
     expect(executeCommand).not.toHaveBeenCalled();
@@ -314,7 +420,7 @@ describe("Profile your query command", () => {
   it("runs nothing when the edit is not applied", async () => {
     applyEdit.mockImplementation(async () => false);
 
-    await run(sqlCell({ cellId: "python_9s5o3" }));
+    await run(notebookWithSql({ cellId: "python_9s5o3" }).sql);
 
     expect(executeCommand).not.toHaveBeenCalled();
   });
