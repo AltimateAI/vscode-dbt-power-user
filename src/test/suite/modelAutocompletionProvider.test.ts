@@ -52,7 +52,8 @@ function complete(
   textWithCursor: string,
 ): Item[] | undefined {
   const offset = textWithCursor.indexOf("|");
-  const text = textWithCursor.replace("|", "");
+  const text =
+    textWithCursor.slice(0, offset) + textWithCursor.slice(offset + 1);
   const before = text.substring(0, offset).split("\n");
   const position = new vscode.Position(
     before.length - 1,
