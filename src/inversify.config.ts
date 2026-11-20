@@ -1157,7 +1157,6 @@ container
     return new VirtualSqlCodeLensProvider(
       context.container.get(DBTProjectContainer),
       context.container.get(QueryManifestService),
-      context.container.get("NotebookService"),
     );
   })
   .inSingletonScope();
