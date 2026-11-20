@@ -126,6 +126,24 @@ describe("VirtualSqlCodeLensProvider notebook result lens", () => {
     expect(lensesOf(makeProvider(), newCell.document)).toEqual([]);
   });
 
+  it("shows no lens on a compile-only cell, which stores nothing in the kernel", () => {
+    const compileCell = makeCell(
+      "/p/tests.notebook",
+      "W0sZmlsZQ==",
+      "jinja-sql",
+      {
+        cellId: "jinja_sql_cu6pt",
+        execution_type: "compile",
+        output_mime_type: "text/x-yaml",
+      },
+    );
+    (workspace as any).notebookDocuments = [
+      makeNotebook(NOTEBOOK_TYPE, [compileCell]),
+    ];
+
+    expect(lensesOf(makeProvider(), compileCell.document)).toEqual([]);
+  });
+
   it("shows no lens on a Python cell", () => {
     const pythonCell = makeCell("/p/report.notebook", "Y1sZmlsZQ==", "python", {
       cellId: "jinja_sql_snbdv",
@@ -161,13 +179,20 @@ describe("VirtualSqlCodeLensProvider notebook result lens", () => {
     ]);
   });
 
-  it("asks for lenses again when cells are added or their metadata changes, not on text edits", () => {
+  it("asks for lenses again when cells are added or their metadata changes, not on text edits or removals", () => {
     const provider = makeProvider();
     const fired = jest.fn();
     provider.onDidChangeCodeLenses(fired);
     const notebook = makeNotebook(NOTEBOOK_TYPE, []);
 
     notebookListener!({ notebook, contentChanges: [], cellChanges: [{}] });
+    expect(fired).toHaveBeenCalledTimes(0);
+
+    notebookListener!({
+      notebook,
+      contentChanges: [{ addedCells: [], removedCells: [{}] }],
+      cellChanges: [],
+    });
     expect(fired).toHaveBeenCalledTimes(0);
 
     notebookListener!({

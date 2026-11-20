@@ -34,7 +34,9 @@ export class VirtualSqlCodeLensProvider
       workspace.onDidChangeNotebookDocument((event) => {
         if (
           event.notebook.notebookType === NOTEBOOK_TYPE &&
-          (event.contentChanges.length > 0 ||
+          (event.contentChanges.some(
+            (change) => change.addedCells.length > 0,
+          ) ||
             event.cellChanges.some((change) => change.metadata))
         ) {
           this._onDidChangeCodeLenses.fire();
@@ -108,9 +110,11 @@ export class VirtualSqlCodeLensProvider
 
     // Notebook SQL cells: the kernel variable that holds this cell's result.
     // The id comes from the cell's own metadata, which the kernel uses too.
+    // A compile-only cell renders text and stores nothing in the kernel.
     if (document.uri.scheme === "vscode-notebook-cell") {
-      const cellId = this.findNotebookCell(document)?.metadata?.cellId;
-      if (!cellId) {
+      const metadata = this.findNotebookCell(document)?.metadata;
+      const cellId = metadata?.cellId;
+      if (!cellId || metadata?.execution_type === "compile") {
         return [];
       }
       const resultVariable = `cell_${cellId}['data']`;
