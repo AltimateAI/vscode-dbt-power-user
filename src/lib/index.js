@@ -2554,8 +2554,16 @@ project_name="${e.getProjectName()}"
       }
       this.telemetry.endTelemetryEvent(
         p.TelemetryEvents["Notebook/Execute"],
-        void 0,
-        { language: e.document.languageId },
+        // A Python cell's own error is the user's code failing: a fixed
+        // message (never the cell's output), classed for triage.
+        kernelError
+          ? Object.assign(new Error("Cell output contains an error"), {
+              errorClass: "user_code",
+            })
+          : void 0,
+        kernelError
+          ? { language: e.document.languageId, kernelError: "true" }
+          : { language: e.document.languageId },
       ),
         i.end(!kernelError, Date.now());
     } catch (l) {

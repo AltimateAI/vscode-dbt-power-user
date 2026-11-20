@@ -73,6 +73,40 @@ const runSqlCell = async (
   return execution;
 };
 
+const ERROR_MIME = "application/vnd.code.notebook.error";
+
+// Runs one Python cell through the controller; the kernel returns `outputs`.
+const runPythonCell = async (telemetry: unknown, outputs: unknown[]) => {
+  const lib = loadLib();
+  const controller = Object.create(lib.DatapilotNotebookController.prototype);
+  Object.assign(controller, {
+    executionOrder: 0,
+    dbtTerminal: { debug: jest.fn(), error: jest.fn() },
+    telemetry,
+  });
+  const execution = {
+    start: jest.fn(),
+    end: jest.fn(),
+    clearOutput: jest.fn(),
+    replaceOutput: jest.fn(),
+    appendOutput: jest.fn(),
+    token: { onCancellationRequested: jest.fn() },
+  };
+  await controller._doExecution(
+    {
+      index: 0,
+      metadata: { cellId: "python_1" },
+      document: { languageId: "python", getText: () => "print(secret_table)" },
+    },
+    { uri: { fsPath: "/project/a.notebook" } },
+    false,
+    { createNotebookCellExecution: () => execution },
+    {},
+    { executePython: jest.fn(() => Promise.resolve(outputs)) },
+  );
+  return execution;
+};
+
 describe("notebook cell telemetry (vendored library)", () => {
   let telemetry: TelemetryService;
   let sendTelemetryEvent: jest.Mock;
@@ -137,5 +171,76 @@ describe("notebook cell telemetry (vendored library)", () => {
     ) as [string, Record<string, string>];
     expect(properties.language).toBe("jinja-sql");
     expect(properties.error_message).toContain("relation does not exist");
+  });
+
+  it("reports a Python cell with an error output as Notebook/ExecuteError, without its output", async () => {
+    const execution = await runPythonCell(telemetry, [
+      {
+        items: [
+          {
+            mime: "application/vnd.code.notebook.stdout",
+            value: "row 42 of secret_table",
+          },
+        ],
+      },
+      {
+        items: [
+          {
+            mime: ERROR_MIME,
+            value: {
+              name: "NameError",
+              message: "name 'secret_table' is not defined",
+              stack: "Traceback (most recent call last): secret_table",
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(execution.end).toHaveBeenCalledWith(false, expect.any(Number));
+    expect(sentNames(sendTelemetryEvent)).not.toContain(
+      "Notebook/ExecuteSuccess",
+    );
+    const errors = sendTelemetryErrorEvent.mock.calls.filter(
+      (call) => call[0] === "Notebook/ExecuteError",
+    );
+    expect(errors).toHaveLength(1);
+    const [, properties, measurements] = errors[0] as [
+      string,
+      Record<string, string>,
+      Record<string, number>,
+    ];
+    expect(properties).toEqual(
+      expect.objectContaining({
+        language: "python",
+        kernelError: "true",
+        errorClass: "user_code",
+        error_message: "Cell output contains an error",
+      }),
+    );
+    expect(measurements.duration).toEqual(expect.any(Number));
+    const everythingSent = JSON.stringify([
+      sendTelemetryEvent.mock.calls,
+      sendTelemetryErrorEvent.mock.calls,
+    ]);
+    expect(everythingSent).not.toContain("secret_table");
+  });
+
+  it("reports a Python cell without an error output as Notebook/ExecuteSuccess", async () => {
+    const execution = await runPythonCell(telemetry, [
+      {
+        items: [{ mime: "application/vnd.code.notebook.stdout", value: "2" }],
+      },
+    ]);
+
+    expect(execution.end).toHaveBeenCalledWith(true, expect.any(Number));
+    expect(sentNames(sendTelemetryErrorEvent)).not.toContain(
+      "Notebook/ExecuteError",
+    );
+    const [, properties] = sendTelemetryEvent.mock.calls.find(
+      (call) => call[0] === "Notebook/ExecuteSuccess",
+    ) as [string, Record<string, string>];
+    expect(properties.language).toBe("python");
+    expect(properties.kernelError).toBeUndefined();
   });
 });
