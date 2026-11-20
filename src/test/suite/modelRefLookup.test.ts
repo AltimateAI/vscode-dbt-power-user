@@ -74,8 +74,11 @@ const modelNode = (
 });
 
 // What dbt-loom injects into the consumer manifest for a producer model.
-const injectedNode = (packageName: string, name: string) =>
-  modelNode(packageName, name, "");
+const injectedNode = (
+  packageName: string,
+  name: string,
+  extra: Record<string, unknown> = {},
+) => modelNode(packageName, name, "", extra);
 
 const buildNodeMap = (
   projectRoot: string,
@@ -89,12 +92,18 @@ const buildNodeMap = (
     getTargetPath: () => path.join(projectRoot, "target"),
   } as any);
 
-// Settles the provider promise or reports that it never did.
-const settle = <T>(result: unknown): Promise<T | "PENDING"> =>
-  Promise.race([
+// Settles the provider promise, failing the test if it never does.
+const settle = async <T>(result: unknown): Promise<T> => {
+  const pending = Symbol("pending");
+  const value = await Promise.race([
     Promise.resolve(result as T),
-    new Promise<"PENDING">((r) => setTimeout(() => r("PENDING"), 500)),
+    new Promise<typeof pending>((r) => setTimeout(() => r(pending), 500)),
   ]);
+  if (value === pending) {
+    throw new Error("provider promise never settled");
+  }
+  return value as T;
+};
 
 describe("ref() hover and go-to-definition across packages and projects", () => {
   let tmp: string;
@@ -175,6 +184,17 @@ describe("ref() hover and go-to-definition across packages and projects", () => 
       ),
       injectedNode("platform", "dim_customers"),
       injectedNode("platform", "orders"),
+      // A stale producer manifest: the consumer resolved v1 as the latest.
+      injectedNode("platform", "dim_accounts", {
+        unique_id: "model.platform.dim_accounts.v1",
+        version: 1,
+        latest_version: 1,
+      }),
+      injectedNode("platform", "dim_regions", {
+        unique_id: "model.platform.dim_regions.v1",
+        version: 1,
+        latest_version: 1,
+      }),
     ]);
     platformMap = await buildNodeMap(platformRoot, "platform", [
       modelNode(
@@ -195,6 +215,29 @@ describe("ref() hover and go-to-definition across packages and projects", () => 
       modelNode("platform", "orders", path.join("models", "orders.sql"), {
         description: "PLATFORM orders",
       }),
+      ...[1, 2].map((v) =>
+        modelNode(
+          "platform",
+          "dim_accounts",
+          path.join("models", `dim_accounts_v${v}.sql`),
+          {
+            unique_id: `model.platform.dim_accounts.v${v}`,
+            version: v,
+            latest_version: 2,
+          },
+        ),
+      ),
+      // The producer no longer has the version the consumer resolved.
+      modelNode(
+        "platform",
+        "dim_regions",
+        path.join("models", "dim_regions_v2.sql"),
+        {
+          unique_id: "model.platform.dim_regions.v2",
+          version: 2,
+          latest_version: 2,
+        },
+      ),
     ]);
     jaffleMap = await buildNodeMap(jaffleRoot, "jaffle_shop", [
       modelNode(
@@ -287,7 +330,7 @@ describe("ref() hover and go-to-definition across packages and projects", () => 
     const hover = await settle<FakeHover | undefined>(
       hoverProvider.provideHover(doc(root, refText, word), position, {} as any),
     );
-    return hover === "PENDING" ? "PENDING" : hover?.contents.value;
+    return hover?.contents.value;
   };
   const definitionPath = async (
     root: string,
@@ -301,7 +344,7 @@ describe("ref() hover and go-to-definition across packages and projects", () => 
         {} as any,
       ),
     );
-    return location === "PENDING" ? "PENDING" : location?.uri.fsPath;
+    return location?.uri.fsPath;
   };
 
   describe("two-argument ref to an installed package", () => {
@@ -338,9 +381,9 @@ describe("ref() hover and go-to-definition across packages and projects", () => 
     it("with only the consumer loaded, a name collision does not resolve to the local model", async () => {
       loadConsumer();
       const ref = "ref('platform', 'orders')";
-      expect(await hoverText(marketingRoot, ref, "orders")).not.toContain(
-        "MARKETING orders",
-      );
+      const hover = await hoverText(marketingRoot, ref, "orders");
+      expect(hover).toContain("<strong>orders</strong>");
+      expect(hover).not.toContain("MARKETING orders");
       expect(await definitionPath(marketingRoot, ref, "orders")).toBe(
         undefined,
       );
@@ -354,6 +397,22 @@ describe("ref() hover and go-to-definition across packages and projects", () => 
       expect(hover).toContain("customer_id");
       expect(await definitionPath(marketingRoot, ref, "dim_customers")).toBe(
         path.join(platformRoot, "models", "dim_customers.sql"),
+      );
+    });
+
+    it("with the producer loaded, opens the version the consumer resolved, not the producer's latest", async () => {
+      loadBoth();
+      const ref = "ref('platform', 'dim_accounts')";
+      expect(await definitionPath(marketingRoot, ref, "dim_accounts")).toBe(
+        path.join(platformRoot, "models", "dim_accounts_v1.sql"),
+      );
+    });
+
+    it("with the producer loaded, falls back to the producer's latest when it lacks the consumer's version", async () => {
+      loadBoth();
+      const ref = "ref('platform', 'dim_regions')";
+      expect(await definitionPath(marketingRoot, ref, "dim_regions")).toBe(
+        path.join(platformRoot, "models", "dim_regions_v2.sql"),
       );
     });
 

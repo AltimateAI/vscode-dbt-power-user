@@ -45,7 +45,9 @@ const lookupByPackage = (
  * - `ref('package', 'name')`: the node with that package, never a same-named
  *   node from another package. A dbt Mesh node injected by a plugin such as
  *   dbt-loom has no local file; when the producer project is loaded in the
- *   workspace, its own node (with file, description and columns) is used.
+ *   workspace, its own node (with file, description and columns) is used:
+ *   the node with the same unique id first, so the version matches what the
+ *   consumer resolved, else the producer's latest.
  */
 export const lookupRefNode = (
   current: ProjectNodeMap,
@@ -65,7 +67,11 @@ export const lookupRefNode = (
   }
   for (const project of loadedProjects) {
     if (project !== current && project.projectName === packageName) {
-      const producerNode = lookupByPackage(project.nodeMap, packageName, name);
+      // Prefer the exact version the consumer manifest resolved; a stale
+      // producer manifest in the consumer can lag the producer's latest.
+      const producerNode =
+        (node && project.nodeMap.lookupByUniqueId(node.unique_id)) ||
+        lookupByPackage(project.nodeMap, packageName, name);
       if (producerNode) {
         return producerNode;
       }
