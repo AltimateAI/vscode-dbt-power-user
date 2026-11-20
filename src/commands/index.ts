@@ -391,6 +391,13 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.copyModelName", (model) =>
         env.clipboard.writeText(model.label.toString()),
       ),
+      commands.registerCommand(
+        "dbtPowerUser.copyNotebookCellResult",
+        async (resultVariable: string) => {
+          await env.clipboard.writeText(resultVariable);
+          window.setStatusBarMessage(`Copied ${resultVariable}`, 3000);
+        },
+      ),
       commands.registerCommand("dbtPowerUser.showRunSQL", () =>
         this.runModel.showRunSQLOnActiveWindow(),
       ),

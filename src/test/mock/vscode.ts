@@ -204,7 +204,11 @@ export const workspace = {
   }),
   workspaceFolders: [],
   textDocuments: [] as any[],
+  notebookDocuments: [] as any[],
   onDidChangeTextDocument: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+  onDidChangeNotebookDocument: jest
+    .fn()
+    .mockReturnValue({ dispose: jest.fn() }),
   getWorkspaceFolder: jest.fn((uri: typeof Uri) => {
     if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
       return workspace.workspaceFolders[0];
