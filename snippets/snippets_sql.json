@@ -199,13 +199,6 @@
       ],
       "description": "Statement"
   },
-  "Ref": {
-      "prefix": "ref",
-      "body": [
-          "{{ ref('${1:model_name}') }}"
-      ],
-      "description": "Ref"
-  },
   "Return": {
       "prefix": "return",
       "body": [
