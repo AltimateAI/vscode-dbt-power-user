@@ -2434,6 +2434,10 @@ exports.DatapilotNotebookController = class {
         s,
       );
   }
+  // A kernel error reaches the cell as an error output, not as an exception.
+  hasErrorOutput(e) {
+    return e.some((t) => t.items.some((n) => n.mime === I.error));
+  }
   filterIPyWidgets(e, t = !1) {
     return e.map((n) => {
       const s = n.items.find(
@@ -2461,12 +2465,14 @@ project_name="${e.getProjectName()}"
     let i;
     try {
       const l = [];
+      let kernelError = !1;
       switch (
         ((i = r.createNotebookCellExecution(e)),
         (i.executionOrder = ++this.executionOrder),
         i.start(Date.now()),
         i.token.onCancellationRequested((c) => {
-          i == null || i.end(!0, Date.now());
+          // A cancelled cell neither succeeded nor failed.
+          i == null || i.end(void 0, Date.now());
         }),
         i.clearOutput(),
         e.document.languageId)
@@ -2482,9 +2488,15 @@ project_name="${e.getProjectName()}"
             const c = await (a == null
               ? void 0
               : a.executePython(e.document.getText(), e, (m) => {
-                  i == null || i.appendOutput(this.filterIPyWidgets([m], n));
+                  const h = this.filterIPyWidgets([m], n);
+                  kernelError = kernelError || this.hasErrorOutput(h);
+                  i == null || i.appendOutput(h);
                 }));
-            c && i.appendOutput(this.filterIPyWidgets(c, n));
+            if (c) {
+              const m = this.filterIPyWidgets(c, n);
+              kernelError = kernelError || this.hasErrorOutput(m);
+              i.appendOutput(m);
+            }
           }
           break;
         case "jinja-sql":
@@ -2540,11 +2552,33 @@ project_name="${e.getProjectName()}"
           );
           break;
       }
-      this.telemetry.endTelemetryEvent(p.TelemetryEvents["Notebook/Execute"], {
-        language: e.document.languageId,
-      }),
-        i.end(!0, Date.now());
+      // The cancellation handler has already ended a cancelled cell.
+      if (i.token.isCancellationRequested) return;
+      this.telemetry.endTelemetryEvent(
+        p.TelemetryEvents["Notebook/Execute"],
+        // A Python cell's own error is the user's code failing: a fixed
+        // message (never the cell's output), classed for triage.
+        kernelError
+          ? Object.assign(new Error("Cell output contains an error"), {
+              errorClass: "user_code",
+            })
+          : void 0,
+        kernelError
+          ? { language: e.document.languageId, kernelError: "true" }
+          : { language: e.document.languageId },
+      ),
+        i.end(!kernelError, Date.now());
     } catch (l) {
+      // A cancelled cell is already ended and VS Code refuses its outputs, so
+      // the rest of its run, that refusal included, is dropped.
+      if (i != null && i.token.isCancellationRequested) {
+        this.dbtTerminal.debug(
+          "Notebook",
+          "dropped a cancelled cell's late result",
+          l == null ? void 0 : l.message,
+        );
+        return;
+      }
       this.dbtTerminal.error(
         "Notebook",
         `Error executing cell: ${l.message}`,
