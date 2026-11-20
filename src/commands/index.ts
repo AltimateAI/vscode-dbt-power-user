@@ -1039,6 +1039,21 @@ export class VSCodeCommands implements Disposable {
             ];
 
             docOpenPromise.then((doc) => {
+              // Execute and the code lens use the project New query resolved.
+              this.dbtProjectContainer.setProjectForUntitledDocument(
+                doc.uri,
+                project.projectRoot,
+              );
+              const closeListener = workspace.onDidCloseTextDocument(
+                (closed) => {
+                  if (closed.uri.toString() === doc.uri.toString()) {
+                    this.dbtProjectContainer.forgetProjectForUntitledDocument(
+                      doc.uri,
+                    );
+                    closeListener.dispose();
+                  }
+                },
+              );
               // set this to sql language so we can bind codelens and other features
               languages.setTextDocumentLanguage(doc, "jinja-sql");
               window.showTextDocument(doc).then((editor) => {

@@ -864,7 +864,7 @@ describe("DBTProjectContainer Tests", () => {
       );
     });
 
-    it("should handle executeSQL with untitled URI and no selected project", () => {
+    it("should run an untitled query in the only project when none is selected", () => {
       const mockContext = {
         workspaceState: {
           get: jest.fn(() => undefined),
@@ -883,10 +883,14 @@ describe("DBTProjectContainer Tests", () => {
       const query = "SELECT * FROM table";
       const modelName = "test_model";
 
-      // Should not throw error
       container.executeSQL(untitledUri, query, modelName);
 
-      expect(mockDbtProject.executeSQLOnQueryPanel).not.toHaveBeenCalled();
+      expect(mockDbtProject.executeSQLOnQueryPanel).toHaveBeenCalledWith(
+        query,
+        modelName,
+        "inline",
+        untitledUri,
+      );
     });
   });
 

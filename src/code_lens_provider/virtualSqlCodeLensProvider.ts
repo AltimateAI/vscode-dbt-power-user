@@ -5,6 +5,7 @@ import {
   CodeLensProvider,
   Command,
   Disposable,
+  EventEmitter,
   Range,
   TextDocument,
   window,
@@ -16,12 +17,22 @@ export class VirtualSqlCodeLensProvider
   implements CodeLensProvider, Disposable
 {
   private disposables: Disposable[] = [];
+  private _onDidChangeCodeLenses = new EventEmitter<void>();
+  // The "Project:" lens follows the project chosen for the document.
+  readonly onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
 
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private queryManifestService: QueryManifestService,
     private notebookService: NotebookService,
-  ) {}
+  ) {
+    this.disposables.push(
+      this._onDidChangeCodeLenses,
+      dbtProjectContainer.onDidChangeUntitledDocumentProject(() =>
+        this._onDidChangeCodeLenses.fire(),
+      ),
+    );
+  }
 
   dispose() {
     while (this.disposables.length) {
@@ -32,7 +43,13 @@ export class VirtualSqlCodeLensProvider
     }
   }
 
-  private getProjectName() {
+  private getProjectName(document: TextDocument) {
+    if (document.uri.scheme === "untitled") {
+      // The project Execute runs this query in.
+      return this.dbtProjectContainer
+        .findProjectForUntitledDocument(document.uri)
+        ?.getProjectName();
+    }
     const project = this.dbtProjectContainer.getFromWorkspaceState(
       "dbtPowerUser.projectSelected",
     );
@@ -58,7 +75,7 @@ export class VirtualSqlCodeLensProvider
     }
 
     const topOfDocument = new Range(0, 0, 0, 0);
-    const projectName = this.getProjectName();
+    const projectName = this.getProjectName(document);
     const projectSelectorCommand: Command = {
       title: `Project: ${projectName || "Select a project"}`,
       command: "dbtPowerUser.pickProject",

@@ -1,4 +1,4 @@
-import { commands, Disposable, window } from "vscode";
+import { commands, Disposable, Uri, window } from "vscode";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { SharedStateService } from "../services/sharedStateService";
 import { OnboardingPanel } from "../webview_provider/onboardingPanel";
@@ -36,11 +36,23 @@ export class DbtPowerUserActionsCenter implements Disposable {
     commands.registerCommand("dbtPowerUser.sqlQuickPick", async () => {
       await this.sqlQuickPick.openQuickPick();
     });
-    commands.registerCommand("dbtPowerUser.pickProject", async () => {
-      const pickedProject = await this.projectQuickPick.projectPicker(
-        await this.dbtProjectContainer.getProjects(),
-      );
-      if (pickedProject) {
+    // The untitled query code lens passes its document, so the pick also
+    // applies to that document.
+    commands.registerCommand(
+      "dbtPowerUser.pickProject",
+      async (documentUri?: Uri) => {
+        const pickedProject = await this.projectQuickPick.projectPicker(
+          await this.dbtProjectContainer.getProjects(),
+        );
+        if (!pickedProject) {
+          return;
+        }
+        if (documentUri?.scheme === "untitled") {
+          this.dbtProjectContainer.setProjectForUntitledDocument(
+            documentUri,
+            pickedProject.uri,
+          );
+        }
         this.dbtProjectContainer.setToWorkspaceState(
           "dbtPowerUser.projectSelected",
           pickedProject,
@@ -53,8 +65,8 @@ export class DbtPowerUserActionsCenter implements Disposable {
         window.showInformationMessage(
           "You have succesfully selected " + pickedProject.label + ".",
         );
-      }
-    });
+      },
+    );
   }
 
   dispose() {
