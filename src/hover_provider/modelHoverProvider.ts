@@ -1,4 +1,4 @@
-import { DBTTerminal, NodeMetaMap } from "@altimateai/dbt-integration";
+import { DBTTerminal } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
 import {
   CancellationToken,
@@ -15,11 +15,12 @@ import {
 import { DBTProject } from "../dbt_client/dbtProject";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../dbt_client/event/manifestCacheChangedEvent";
+import { lookupRefNode, ProjectNodeMap } from "../dbt_client/refNodeLookup";
 import { TelemetryService } from "../telemetry";
 import { generateHoverMarkdownString } from "./utils";
 
 export class ModelHoverProvider implements HoverProvider, Disposable {
-  private modelToLocationMap: Map<string, NodeMetaMap> = new Map();
+  private modelToLocationMap: Map<string, ProjectNodeMap> = new Map();
   private static readonly IS_REF = /(ref)\([^)]*\)/;
   private static readonly GET_DBT_MODEL = /(?!'|")([^(?!'|")]*)(?='|")/gi;
   private disposables: Disposable[] = [];
@@ -75,6 +76,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
       );
       if (!range) {
         resolve(undefined);
+        return;
       }
       const word = document.getText(range);
       const project = this.getProject(document.uri);
@@ -84,6 +86,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
           "Could not load hover provider, project not found in container for " +
             document.uri.fsPath,
         );
+        resolve(undefined);
         return;
       }
       if (word !== undefined && hover !== "ref") {
@@ -93,10 +96,11 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
             dbtModel[0],
             project.projectRoot,
           );
-          if (mdString !== undefined) {
-            const hover = new Hover(mdString, new Range(position, position));
-            resolve(hover);
-          }
+          resolve(
+            mdString !== undefined
+              ? new Hover(mdString, new Range(position, position))
+              : undefined,
+          );
           this.telemetry.sendTelemetryEvent("provideModelHover", {
             type: "single",
           });
@@ -106,11 +110,13 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
           const mdString = this.getHoverMarkdownFor(
             dbtModel[2],
             project.projectRoot,
+            dbtModel[0],
           );
-          if (mdString !== undefined) {
-            const hover = new Hover(mdString, new Range(position, position));
-            resolve(hover);
-          }
+          resolve(
+            mdString !== undefined
+              ? new Hover(mdString, new Range(position, position))
+              : undefined,
+          );
           this.telemetry.sendTelemetryEvent("provideModelHover", {
             type: "dual",
           });
@@ -123,10 +129,10 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
-      this.modelToLocationMap.set(
-        added.project.projectRoot.fsPath,
-        added.nodeMetaMap,
-      );
+      this.modelToLocationMap.set(added.project.projectRoot.fsPath, {
+        projectName: added.project.getProjectName(),
+        nodeMap: added.nodeMetaMap,
+      });
     });
     event.removed?.forEach((removed) => {
       this.modelToLocationMap.delete(removed.projectRoot.fsPath);
@@ -136,17 +142,23 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
   private getHoverMarkdownFor(
     modelName: string,
     currentFilePath: Uri,
+    packageName?: string,
   ): MarkdownString | undefined {
     const projectRootpath =
       this.dbtProjectContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
       return;
     }
-    const nodeMap = this.modelToLocationMap.get(projectRootpath.fsPath);
-    if (nodeMap === undefined) {
+    const current = this.modelToLocationMap.get(projectRootpath.fsPath);
+    if (current === undefined) {
       return;
     }
-    const node = nodeMap.lookupByBaseName(modelName);
+    const node = lookupRefNode(
+      current,
+      this.modelToLocationMap.values(),
+      modelName,
+      packageName,
+    );
     if (node) {
       return generateHoverMarkdownString(node, "ref");
     }
