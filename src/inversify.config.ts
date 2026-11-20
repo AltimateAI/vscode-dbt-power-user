@@ -226,16 +226,6 @@ container
   .toDynamicValue(
     (context) => new DocParser(context.container.get("DBTTerminal")),
   );
-container
-  .bind(ModelDepthParser)
-  .toDynamicValue(
-    (context) =>
-      new ModelDepthParser(
-        context.container.get("DBTTerminal"),
-        context.container.get(DbtIntegrationClient),
-        context.container.get("DBTConfiguration"),
-      ),
-  );
 
 // Bind core dbt integration classes using factory functions
 container
@@ -259,10 +249,9 @@ container
   >((context: interfaces.Context) => {
     return (projectRoot: string) => {
       const { container } = context;
-      const baseConfig = container.get<DBTConfiguration>("DBTConfiguration");
-      // Create a per-project config that returns the correct working directory
-      // so that PythonDBTCommandExecutionStrategy resolves the right .env file
-      const projectConfig = Object.create(baseConfig) as DBTConfiguration;
+      // A per-project config that also returns the project's working
+      // directory, so PythonDBTCommandExecutionStrategy resolves the right .env
+      const projectConfig = projectConfiguration(container, projectRoot);
       projectConfig.getWorkingDirectory = () => projectRoot;
       return new PythonDBTCommandExecutionStrategy(
         container.get(CommandProcessExecutionFactory),
@@ -279,13 +268,6 @@ container.bind(DBTCommandExecutionInfrastructure).toDynamicValue((context) => {
     context.container.get("DBTTerminal"),
   );
 });
-
-container
-  .bind(DBTCommandFactory)
-  .toDynamicValue((context) => {
-    return new DBTCommandFactory(context.container.get("DBTConfiguration"));
-  })
-  .inSingletonScope();
 
 container
   .bind(DbtCloudVariantDetector)
@@ -425,6 +407,22 @@ container
   .bind<DBTConfiguration>("DBTConfiguration")
   .to(VSCodeDBTConfiguration)
   .inSingletonScope();
+
+/** The `DBTConfiguration` for one dbt project: resource-scoped `dbt.*`
+ * settings come from the project's folder, then the workspace and user. */
+const projectConfiguration = (
+  container: interfaces.Container,
+  projectRoot: string,
+): DBTConfiguration =>
+  container
+    .get<VSCodeDBTConfiguration>("DBTConfiguration")
+    .forResource(Uri.file(projectRoot));
+
+/** A `DBTCommandFactory` whose run/build/test parameters are the project's. */
+const projectCommandFactory = (
+  container: interfaces.Container,
+  projectRoot: string,
+) => new DBTCommandFactory(projectConfiguration(container, projectRoot));
 
 // Bind DBTTerminal
 container
@@ -599,7 +597,7 @@ container
         pythonStrategyFactory(projectRoot),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
         container.get("DBTTerminal"),
-        container.get("DBTConfiguration"),
+        projectConfiguration(container, projectRoot),
         container.get(DbtIntegrationClient),
         projectRoot,
         projectConfigDiagnostics,
@@ -634,7 +632,7 @@ container
         pythonStrategyFactory(projectRoot),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
         container.get("DBTTerminal"),
-        container.get("DBTConfiguration"),
+        projectConfiguration(container, projectRoot),
         container.get(DbtIntegrationClient),
         projectRoot,
         projectConfigDiagnostics,
@@ -661,7 +659,7 @@ container
       const { container } = context;
       return new DBTFusionCommandProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
-        container.get(DBTCommandFactory),
+        projectCommandFactory(container, projectRoot),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
         container.get("RuntimePythonEnvironment"),
         container.get("PythonEnvironmentProvider"),
@@ -694,7 +692,7 @@ container
       >("Factory<PythonDBTCommandExecutionStrategy>");
       return new DBTCloudProjectIntegration(
         container.get(DBTCommandExecutionInfrastructure),
-        container.get(DBTCommandFactory),
+        projectCommandFactory(container, projectRoot),
         container.get("Factory<CLIDBTCommandExecutionStrategy>"),
         container.get("RuntimePythonEnvironment"),
         container.get("PythonEnvironmentProvider"),
@@ -706,7 +704,7 @@ container
         container.get(DbtCloudVariantDetector),
         {
           pythonDBTCommandExecutionStrategy: pythonStrategyFactory(projectRoot),
-          dbtConfiguration: container.get<DBTConfiguration>("DBTConfiguration"),
+          dbtConfiguration: projectConfiguration(container, projectRoot),
           dbtIntegrationClient: container.get(DbtIntegrationClient),
         },
       );
@@ -723,9 +721,10 @@ container
   >((context: interfaces.Context) => {
     return (projectRoot: string, deferConfig: DeferConfig | undefined) => {
       const { container } = context;
+      const projectConfig = projectConfiguration(container, projectRoot);
       return new DBTProjectIntegrationAdapter(
-        container.get("DBTConfiguration"),
-        container.get(DBTCommandFactory),
+        projectConfig,
+        new DBTCommandFactory(projectConfig),
         container.get("Factory<DBTCoreProjectIntegration>"),
         container.get("Factory<DBTCloudProjectIntegration>"),
         container.get("Factory<DBTFusionCommandProjectIntegration>"),
@@ -744,7 +743,11 @@ container
         container.get(FunctionParser),
         container.get(DocParser),
         container.get("DBTTerminal"),
-        container.get(ModelDepthParser),
+        new ModelDepthParser(
+          container.get("DBTTerminal"),
+          container.get(DbtIntegrationClient),
+          projectConfig,
+        ),
         container.get(SemanticModelParser),
       );
     };
@@ -765,7 +768,7 @@ container
       return new DBTProject(
         container.get(PythonEnvironment),
         container.get("Factory<DBTProjectLog>"),
-        container.get(DBTCommandFactory),
+        projectCommandFactory(container, path.fsPath),
         container.get("DBTTerminal"),
         container.get(SharedStateService),
         container.get(TelemetryService),

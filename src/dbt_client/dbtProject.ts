@@ -1626,7 +1626,7 @@ export class DBTProject implements Disposable {
       async () => {
         try {
           const prefix = workspace
-            .getConfiguration("dbt")
+            .getConfiguration("dbt", this.projectRoot)
             .get<string>("prefixGenerateModel", "base");
 
           // Map setting to fileName
@@ -1641,7 +1641,7 @@ export class DBTProject implements Disposable {
           let fileName = `${prefix}_${sourceName}_${tableName}`;
 
           const fileNameTemplate = workspace
-            .getConfiguration("dbt")
+            .getConfiguration("dbt", this.projectRoot)
             .get<string>(
               "fileNameTemplateGenerateModel",
               "{prefix}_{sourceName}_{tableName}",
@@ -1725,7 +1725,7 @@ export class DBTProject implements Disposable {
     tab?: Webview,
   ) {
     const limit = workspace
-      .getConfiguration("dbt")
+      .getConfiguration("dbt", this.projectRoot)
       .get<number>("queryLimit", 500);
     return this.executeSQLWithLimitOnQueryPanel(
       query,
@@ -2042,7 +2042,7 @@ export class DBTProject implements Disposable {
     this.throwDiagnosticsErrorIfAvailable();
     this.throwIfNotAuthenticated();
     const limit = workspace
-      .getConfiguration("dbt")
+      .getConfiguration("dbt", this.projectRoot)
       .get<number>("queryLimit", 500);
     this.terminal.info("executeSQL", "Executed query: " + query, true, {
       adapter: this.getAdapterType(),
@@ -2053,7 +2053,7 @@ export class DBTProject implements Disposable {
 
   executeSQL(query: string, modelName: string): Promise<QueryExecution> {
     const limit = workspace
-      .getConfiguration("dbt")
+      .getConfiguration("dbt", this.projectRoot)
       .get<number>("queryLimit", 500);
     this.terminal.info("executeSQL", "Executed query: " + query, true, {
       adapter: this.getAdapterType(),
@@ -2126,13 +2126,16 @@ export class DBTProject implements Disposable {
     }
     const columnsFromManifest: Record<string, ColumnMetaData> = {};
     Object.entries(node.columns).forEach(([k, v]) => {
-      columnsFromManifest[getColumnNameByCase(k, this.getAdapterType())] = v;
+      columnsFromManifest[
+        getColumnNameByCase(k, this.getAdapterType(), this.projectRoot)
+      ] = v;
     });
 
     for (const c of columnsFromDB) {
       const columnNameFromDB = getColumnNameByCase(
         c.column,
         this.getAdapterType(),
+        this.projectRoot,
       );
       const existing_column = columnsFromManifest[columnNameFromDB];
       if (existing_column) {
@@ -2423,7 +2426,7 @@ export class DBTProject implements Disposable {
   private retrieveDeferConfigFromSettings(): DeferConfig | undefined {
     const relativePath = getProjectRelativePath(this.projectRoot);
     const currentConfig: Record<string, DeferConfig> = workspace
-      .getConfiguration("dbt")
+      .getConfiguration("dbt", this.projectRoot)
       .get("deferConfigPerProject", {});
     if (currentConfig[relativePath]) {
       const config = currentConfig[relativePath];
