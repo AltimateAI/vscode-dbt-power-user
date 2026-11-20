@@ -75,6 +75,11 @@ export async function profileNotebookCell(
     }
     return;
   }
+  // The cell may have been deleted, or its notebook closed, while the
+  // packages were being checked or installed.
+  if (cell.index < 0 || cell.notebook.isClosed) {
+    return;
+  }
   const edit = new WorkspaceEdit();
   edit.set(cell.notebook.uri, [
     NotebookEdit.insertCells(cell.index + 1, [

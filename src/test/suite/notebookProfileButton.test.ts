@@ -287,6 +287,30 @@ describe("Profile your query command", () => {
     expect(edits).toHaveLength(0);
   });
 
+  it("adds nothing when the cell was deleted while the packages were checked", async () => {
+    const cell = sqlCell({ cellId: "python_9s5o3" });
+    verifyAndInstallDependenciesIfNeeded.mockImplementation(async () => {
+      cell.index = -1;
+    });
+
+    await run(cell);
+
+    expect(edits).toHaveLength(0);
+    expect(executeCommand).not.toHaveBeenCalled();
+  });
+
+  it("adds nothing when the notebook was closed while the packages were checked", async () => {
+    const cell = sqlCell({ cellId: "python_9s5o3" });
+    verifyAndInstallDependenciesIfNeeded.mockImplementation(async () => {
+      (cell.notebook as any).isClosed = true;
+    });
+
+    await run(cell);
+
+    expect(edits).toHaveLength(0);
+    expect(executeCommand).not.toHaveBeenCalled();
+  });
+
   it("runs nothing when the edit is not applied", async () => {
     applyEdit.mockImplementation(async () => false);
 
