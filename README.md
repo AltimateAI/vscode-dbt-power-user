@@ -20,7 +20,7 @@ For any issues or bugs, please [contact us](https://www.altimate.ai/support?utm_
 | [Generate documentation](#gendoc)                           | Generate model and column descriptions or write in the UI editor. Save formatted text in YAML files.                                    |
 | [Defer to prod](#defertoprod)                               | Build your model in development without building (by defering) your upstream models                                                     |
 | [Click to run parent / child models and tests](#clicktorun) | Just click to do common dbt™ operations like running tests, parent / child models or previewing data.                                  |
-| [Compiled query preview and explanation](#queryexplanation) | Get live preview of compiled query as your write code. Also, generate explanations for dbt™ code written previously (by somebody else) |
+| [Compiled query preview and explanation](#queryexplanation) | Get live preview of compiled query as you write code. Also, generate explanations for dbt™ code written previously (by somebody else) |
 | [Project health check](#healthcheck)                        | Identify issues in your dbt™ project like columns not present, models not materialized                                                 |
 | [SQL validator](#validateSQL)                               | Identify issues in SQL like typos in keywords, missing or extra parentheses, non-existent columns                                       |
 | [Big Query cost estimator](#bqcost)                         | Estimate data that will be processed by dbt™ model in BigQuery                                                                         |
@@ -51,7 +51,7 @@ View model lineage as well as column lineage with components like models, seeds,
 
 ### <a id="genmodel"> Generate dbt™ Models from source or SQL</a>
 
-Generate dbt™ models from sources defined in YAML. You can also convert existing SQL to a dbt™ model where references get populated automatically. [(docs)](https://help.altimate.ai/dbt-power-user/develop/clicktorun/?utm_source=dbt-power-user&utm_medium=marketplace&utm_campaign=readme-docs)
+Generate dbt™ models from sources defined in YAML [(docs)](https://help.altimate.ai/dbt-power-user/develop/genmodelSource/?utm_source=dbt-power-user&utm_medium=marketplace&utm_campaign=readme-docs). You can also convert existing SQL to a dbt™ model where references get populated automatically [(docs)](https://help.altimate.ai/dbt-power-user/develop/genmodelSQL/?utm_source=dbt-power-user&utm_medium=marketplace&utm_campaign=readme-docs).
 
 ![genmodel](media/images/genmodel.gif)
 
@@ -73,7 +73,7 @@ Just click to do common button operations like executing tests, building or runn
 
 ### <a id="queryexplanation"> Compiled query preview and explanation</a>
 
-Get live preview of compiled query as your write code. Also, generate explanations for dbt™ code written previously (by somebody else). [(docs)](https://help.altimate.ai/dbt-power-user/develop/explanation/?utm_source=dbt-power-user&utm_medium=marketplace&utm_campaign=readme-docs)
+Get live preview of compiled query as you write code. Also, generate explanations for dbt™ code written previously (by somebody else). [(docs)](https://help.altimate.ai/dbt-power-user/develop/explanation/?utm_source=dbt-power-user&utm_medium=marketplace&utm_campaign=readme-docs)
 
 ![explanation](media/images/explanation.gif)
 
@@ -85,7 +85,7 @@ Identify issues in your dbt™ project like columns not present, models not mate
 
 ### <a id="validateSQL"> SQL validator</a>
 
-Validate SQL to identify issues like mistyped keywords, extra parentheses, columns no present in database [(docs)](https://help.altimate.ai/dbt-power-user/test/sqlvalidation/?utm_source=dbt-power-user&utm_medium=marketplace&utm_campaign=readme-docs)
+Validate SQL to identify issues like mistyped keywords, extra parentheses, columns not present in the database [(docs)](https://help.altimate.ai/dbt-power-user/test/sqlvalidation/?utm_source=dbt-power-user&utm_medium=marketplace&utm_campaign=readme-docs)
 
 ![sql-validator](media/images/sqlValidation.gif)
 
@@ -101,5 +101,5 @@ Estimate data that will be processed by dbt™ model in BigQuery [(docs)](https:
 
 ![dbt-log](media/images/dbt-log.gif)
 
-Please check [documentation](https://help.altimate.ai/dbt-power-user/arch/faq/?utm_source=dbt-power-user&utm_medium=marketplace&utm_campaign=readme-docs) for additional info.
+Please check [documentation](https://help.altimate.ai/dbt-power-user/setup/faq/?utm_source=dbt-power-user&utm_medium=marketplace&utm_campaign=readme-docs) for additional info.
 For any issues or bugs, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=marketplace) via chat or Slack.
