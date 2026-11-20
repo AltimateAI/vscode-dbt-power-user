@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import * as path from "path";
 import { workspace } from "vscode";
 import { DBTProject } from "../../dbt_client/dbtProject";
 import { DBTProjectContainer } from "../../dbt_client/dbtProjectContainer";
@@ -15,10 +16,14 @@ import { DBTWorkspaceFolder } from "../../dbt_client/dbtWorkspaceFolder";
 
 const uri = (fsPath: string) => ({ fsPath }) as any;
 
+// Paths in the platform's form: the production `contains` checks compare
+// against `fsPath + path.sep`, which is a backslash on Windows.
+const p = (...segments: string[]) => path.join(path.sep, "ws", ...segments);
+
 const project = (root: string): DBTProject => {
-  const p = Object.create(DBTProject.prototype);
-  p.projectRoot = uri(root);
-  return p;
+  const dbtProject = Object.create(DBTProject.prototype);
+  dbtProject.projectRoot = uri(root);
+  return dbtProject;
 };
 
 const folder = (root: string, projects: DBTProject[]): DBTWorkspaceFolder => {
@@ -41,9 +46,9 @@ const newContainer = () =>
     {} as any,
   );
 
-const REPO = "/ws/repo";
-const DBT = `${REPO}/dbt_vocab_ingest`;
-const MODEL = `${DBT}/models/customers.sql`;
+const REPO = p("repo");
+const DBT = path.join(REPO, "dbt_vocab_ingest");
+const MODEL = path.join(DBT, "models", "customers.sql");
 
 describe("DBTProjectContainer.findDBTProject with nested workspace folders", () => {
   let container: DBTProjectContainer;
@@ -87,8 +92,8 @@ describe("DBTProjectContainer.findDBTProject with nested workspace folders", () 
   });
 
   it("falls back to the outer folder's project when the inner folder has none (a subfolder of the project added as its own folder)", () => {
-    const PROJECT = "/ws/jaffle_shop";
-    const STAGING = `${PROJECT}/models/staging`;
+    const PROJECT = p("jaffle_shop");
+    const STAGING = path.join(PROJECT, "models", "staging");
     const dbtProject = project(PROJECT);
     const outer = folder(PROJECT, [dbtProject]);
     const inner = folder(STAGING, []);
@@ -99,28 +104,32 @@ describe("DBTProjectContainer.findDBTProject with nested workspace folders", () 
     ]) {
       container.dbtWorkspaceFolders = order;
       expect(
-        container.findDBTProject(uri(`${STAGING}/stg_customers.sql`)),
+        container.findDBTProject(uri(path.join(STAGING, "stg_customers.sql"))),
       ).toBe(dbtProject);
       expect(
-        container.findDBTProject(uri(`${PROJECT}/models/customers.sql`)),
+        container.findDBTProject(
+          uri(path.join(PROJECT, "models", "customers.sql")),
+        ),
       ).toBe(dbtProject);
     }
   });
 
   it("returns the deepest project root that contains the file, across folders", () => {
-    const outerProject = project(`${REPO}/a`);
-    const nestedProject = project(`${REPO}/a/b`);
+    const outerProject = project(path.join(REPO, "a"));
+    const nestedProject = project(path.join(REPO, "a", "b"));
     container.dbtWorkspaceFolders = [
-      folder(`${REPO}/a`, [outerProject]),
+      folder(path.join(REPO, "a"), [outerProject]),
       folder(REPO, [nestedProject]),
     ];
 
-    expect(container.findDBTProject(uri(`${REPO}/a/b/models/x.sql`))).toBe(
-      nestedProject,
-    );
-    expect(container.findDBTProject(uri(`${REPO}/a/models/x.sql`))).toBe(
-      outerProject,
-    );
+    expect(
+      container.findDBTProject(
+        uri(path.join(REPO, "a", "b", "models", "x.sql")),
+      ),
+    ).toBe(nestedProject);
+    expect(
+      container.findDBTProject(uri(path.join(REPO, "a", "models", "x.sql"))),
+    ).toBe(outerProject);
   });
 
   it.each([
@@ -129,34 +138,38 @@ describe("DBTProjectContainer.findDBTProject with nested workspace folders", () 
   ])(
     "resolves each of two sibling dbt folders listed %s the root folder that registered nothing",
     (_label, rootFirst) => {
-      const alpha = project(`${REPO}/alpha`);
-      const beta = project(`${REPO}/beta`);
+      const alpha = project(path.join(REPO, "alpha"));
+      const beta = project(path.join(REPO, "beta"));
       const siblings = [
-        folder(`${REPO}/alpha`, [alpha]),
-        folder(`${REPO}/beta`, [beta]),
+        folder(path.join(REPO, "alpha"), [alpha]),
+        folder(path.join(REPO, "beta"), [beta]),
       ];
       const root = folder(REPO, []);
       container.dbtWorkspaceFolders = rootFirst
         ? [root, ...siblings]
         : [...siblings, root];
 
-      expect(container.findDBTProject(uri(`${REPO}/alpha/models/a.sql`))).toBe(
-        alpha,
-      );
-      expect(container.findDBTProject(uri(`${REPO}/beta/models/b.sql`))).toBe(
-        beta,
-      );
       expect(
-        container.findDBTProject(uri(`${REPO}/scripts/deploy.py`)),
+        container.findDBTProject(
+          uri(path.join(REPO, "alpha", "models", "a.sql")),
+        ),
+      ).toBe(alpha);
+      expect(
+        container.findDBTProject(
+          uri(path.join(REPO, "beta", "models", "b.sql")),
+        ),
+      ).toBe(beta);
+      expect(
+        container.findDBTProject(uri(path.join(REPO, "scripts", "deploy.py"))),
       ).toBeUndefined();
     },
   );
 
   it("does not match a sibling folder that only shares a name prefix", () => {
-    container.dbtWorkspaceFolders = [folder("/ws/dbt", [project("/ws/dbt")])];
+    container.dbtWorkspaceFolders = [folder(p("dbt"), [project(p("dbt"))])];
 
     expect(
-      container.findDBTProject(uri("/ws/dbt_other/models/x.sql")),
+      container.findDBTProject(uri(p("dbt_other", "models", "x.sql"))),
     ).toBeUndefined();
   });
 });
