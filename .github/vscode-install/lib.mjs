@@ -77,3 +77,17 @@ export function projectFiles(name, duckdbPath) {
 export function shellQuote(args) {
   return args.map((a) => (/[\s"&|<>^]/.test(a) ? `"${a}"` : a));
 }
+
+// The file cell.mjs writes into a --work folder it creates.
+export const WORK_MARKER = ".vscode-install-work";
+
+// Whether cell.mjs may delete --work before a run: only a folder that doesn't exist, is empty, or
+// was created by cell.mjs (it holds WORK_MARKER). `entries` is the folder's file names, or
+// undefined when it doesn't exist.
+export function mayClearWork(entries) {
+  return (
+    entries === undefined ||
+    entries.length === 0 ||
+    entries.includes(WORK_MARKER)
+  );
+}

@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  mayClearWork,
   pickBaseline,
   projectFiles,
   shellQuote,
   versionsFromQuery,
+  WORK_MARKER,
 } from "./lib.mjs";
 
 const PRE = { key: "Microsoft.VisualStudio.Code.PreRelease", value: "true" };
@@ -74,4 +76,13 @@ test("shellQuote quotes only what a shell would split", () => {
     '"a b.vsix"',
     "x@1.0.0",
   ]);
+});
+
+test("mayClearWork deletes only a missing, empty or marked folder", () => {
+  assert.equal(mayClearWork(undefined), true);
+  assert.equal(mayClearWork([]), true);
+  assert.equal(mayClearWork([WORK_MARKER, "user-data", "result.json"]), true);
+  // A home folder, a checkout, anything else that already has files: refused.
+  assert.equal(mayClearWork([".bashrc", "Projects"]), false);
+  assert.equal(mayClearWork(["result.json"]), false);
 });

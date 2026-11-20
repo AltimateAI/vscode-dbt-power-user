@@ -28,11 +28,13 @@ import {
 } from "../cursor-install/lib.mjs";
 import {
   MARKETPLACE_QUERY,
+  mayClearWork,
   pickBaseline,
   projectFiles,
   shellQuote,
   versionsFromQuery,
   versionsQuery,
+  WORK_MARKER,
 } from "./lib.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -270,8 +272,31 @@ async function marketplaceBaseline() {
   return baseline;
 }
 
-async function main() {
+// Empty --work for this run, deleting it only when mayClearWork allows: --work names a folder to
+// delete, and a mistyped one (~, .) must not be wiped. Exits before anything is written.
+function resetWork() {
+  let entries;
+  try {
+    entries = fs.readdirSync(work);
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      console.error(`--work ${work}: ${error.message}`);
+      process.exit(2);
+    }
+  }
+  if (!mayClearWork(entries)) {
+    console.error(
+      `--work ${work} already holds files and wasn't created by this script (no ${WORK_MARKER}). ` +
+        "Name a new or empty folder.",
+    );
+    process.exit(2);
+  }
   fs.rmSync(work, { recursive: true, force: true });
+  fs.mkdirSync(work, { recursive: true });
+  fs.writeFileSync(path.join(work, WORK_MARKER), "");
+}
+
+async function main() {
   Object.values(dirs).forEach((d) => fs.mkdirSync(d, { recursive: true }));
   writeProject();
   writeSettings();
@@ -290,6 +315,7 @@ async function main() {
   await launch("vsix", args.version);
 }
 
+resetWork();
 let failure;
 try {
   await main();
