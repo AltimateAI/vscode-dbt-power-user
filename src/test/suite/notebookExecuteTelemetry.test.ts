@@ -12,6 +12,8 @@ import { TelemetryService } from "../../telemetry";
 // The vendored notebook library (src/lib) ends the Notebook/Execute event once
 // per cell: Notebook/ExecuteSuccess when the cell runs, Notebook/ExecuteError
 // with the thrown error when it fails.
+const ERROR_MIME = "application/vnd.code.notebook.error";
+
 const loadLib = () => {
   let lib: any;
   jest.isolateModules(() => {
@@ -20,7 +22,7 @@ const loadLib = () => {
     isolatedVscode.NotebookCellOutputItem = {
       json: (value: unknown, mime: string) => ({ mime, value }),
       text: (value: unknown, mime: string) => ({ mime, value }),
-      error: (value: unknown) => ({ mime: "error", value }),
+      error: (value: unknown) => ({ mime: ERROR_MIME, value }),
     };
     isolatedVscode.NotebookCellOutput = class {
       constructor(public items: unknown[]) {}
@@ -38,9 +40,11 @@ const QUERY_RESULT = {
 };
 
 // Runs one SQL cell through the controller with the given query outcome.
+// `executeQuery` gets a function that cancels the cell, as VS Code does.
 const runSqlCell = async (
   telemetry: unknown,
-  executeQuery: () => Promise<unknown>,
+  executeQuery: (cancel: () => void) => Promise<unknown>,
+  isUserNotebook = false,
 ) => {
   const lib = loadLib();
   const controller = Object.create(lib.DatapilotNotebookController.prototype);
@@ -50,13 +54,23 @@ const runSqlCell = async (
     telemetry,
     _onNotebookCellEvent: { fire: jest.fn() },
   });
+  let onCancel: (() => void) | undefined;
   const execution = {
     start: jest.fn(),
     end: jest.fn(),
     clearOutput: jest.fn(),
     replaceOutput: jest.fn(),
     appendOutput: jest.fn(),
-    token: { onCancellationRequested: jest.fn() },
+    token: {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn((listener: () => void) => {
+        onCancel = listener;
+      }),
+    },
+  };
+  const cancel = () => {
+    execution.token.isCancellationRequested = true;
+    onCancel?.();
   };
   await controller._doExecution(
     {
@@ -65,15 +79,17 @@ const runSqlCell = async (
       document: { languageId: "jinja-sql", getText: () => "select 1 as one" },
     },
     { uri: { fsPath: "/project/a.notebook" } },
-    false,
+    isUserNotebook,
     { createNotebookCellExecution: () => execution },
-    { executeSQL: jest.fn(() => Promise.resolve({ executeQuery })) },
+    {
+      executeSQL: jest.fn(() =>
+        Promise.resolve({ executeQuery: () => executeQuery(cancel) }),
+      ),
+    },
     { storeDataInKernel: jest.fn(() => Promise.resolve()) },
   );
   return execution;
 };
-
-const ERROR_MIME = "application/vnd.code.notebook.error";
 
 // Runs one Python cell through the controller; the kernel returns `outputs`.
 const runPythonCell = async (telemetry: unknown, outputs: unknown[]) => {
@@ -171,6 +187,28 @@ describe("notebook cell telemetry (vendored library)", () => {
     ) as [string, Record<string, string>];
     expect(properties.language).toBe("jinja-sql");
     expect(properties.error_message).toContain("relation does not exist");
+  });
+
+  it("sends no end event for a SQL cell cancelled while its query runs", async () => {
+    // In a user notebook the result goes to its own view, not the cell's
+    // outputs, so the run gets past the cancel without an output refusal.
+    const execution = await runSqlCell(
+      telemetry,
+      (cancel) => {
+        cancel();
+        return Promise.resolve(QUERY_RESULT);
+      },
+      true,
+    );
+
+    expect(execution.end).toHaveBeenCalledTimes(1);
+    expect(execution.end).toHaveBeenCalledWith(undefined, expect.any(Number));
+    expect(sentNames(sendTelemetryEvent)).not.toContain(
+      "Notebook/ExecuteSuccess",
+    );
+    expect(sentNames(sendTelemetryErrorEvent)).not.toContain(
+      "Notebook/ExecuteError",
+    );
   });
 
   it("reports a Python cell with an error output as Notebook/ExecuteError, without its output", async () => {

@@ -2552,6 +2552,8 @@ project_name="${e.getProjectName()}"
           );
           break;
       }
+      // The cancellation handler has already ended a cancelled cell.
+      if (i.token.isCancellationRequested) return;
       this.telemetry.endTelemetryEvent(
         p.TelemetryEvents["Notebook/Execute"],
         // A Python cell's own error is the user's code failing: a fixed
@@ -2567,6 +2569,16 @@ project_name="${e.getProjectName()}"
       ),
         i.end(!kernelError, Date.now());
     } catch (l) {
+      // A cancelled cell is already ended and VS Code refuses its outputs, so
+      // the rest of its run, that refusal included, is dropped.
+      if (i != null && i.token.isCancellationRequested) {
+        this.dbtTerminal.debug(
+          "Notebook",
+          "dropped a cancelled cell's late result",
+          l == null ? void 0 : l.message,
+        );
+        return;
+      }
       this.dbtTerminal.error(
         "Notebook",
         `Error executing cell: ${l.message}`,

@@ -56,15 +56,34 @@ async function runPythonCell(kernel: Kernel) {
     },
   });
   const appended: any[] = [];
+  // Like VS Code's execution: it ends once and takes no output after that.
+  let ended = false;
+  const writable = () => {
+    if (ended) {
+      throw new Error("Cannot modify cell output after calling resolve");
+    }
+  };
   const execution = {
     start: jest.fn(),
-    end: jest.fn(),
-    clearOutput: jest.fn(),
-    replaceOutput: jest.fn(),
-    appendOutput: jest.fn((o: any) => appended.push(...o)),
+    end: jest.fn(() => {
+      if (ended) {
+        throw new Error("Cannot call resolve twice");
+      }
+      ended = true;
+    }),
+    clearOutput: jest.fn(writable),
+    replaceOutput: jest.fn(writable),
+    appendOutput: jest.fn((o: any) => {
+      writable();
+      appended.push(...o);
+    }),
     token: {
+      isCancellationRequested: false,
       onCancellationRequested: jest.fn((listener: () => void) => {
-        onCancel = listener;
+        onCancel = () => {
+          execution.token.isCancellationRequested = true;
+          listener();
+        };
       }),
     },
   };
@@ -97,7 +116,7 @@ async function runPythonCell(kernel: Kernel) {
     client,
   );
 
-  return { end: execution.end, appended };
+  return { end: execution.end, appended, telemetry: controller.telemetry };
 }
 
 describe("notebook Python cell execution status (vendored library)", () => {
@@ -138,10 +157,27 @@ describe("notebook Python cell execution status (vendored library)", () => {
     expect(end).toHaveBeenCalledWith(true, expect.any(Number));
   });
 
-  it("ends a cancelled cell without a success flag", async () => {
-    const { end } = await runPythonCell({ cancelled: true, returned: [] });
+  it("ends a cancelled cell once, without a success flag, and drops its late outputs", async () => {
+    const { end, appended, telemetry } = await runPythonCell({
+      cancelled: true,
+      returned: [stdout("finished after the cancel\n")],
+    });
 
-    expect(end.mock.calls[0]).toEqual([undefined, expect.any(Number)]);
+    expect(end).toHaveBeenCalledTimes(1);
+    expect(end).toHaveBeenCalledWith(undefined, expect.any(Number));
+    expect(appended).toEqual([]);
+    expect(telemetry.endTelemetryEvent).not.toHaveBeenCalled();
+  });
+
+  it("ends a cancelled cell once when its run finishes with no output", async () => {
+    const { end, telemetry } = await runPythonCell({
+      cancelled: true,
+      returned: undefined,
+    });
+
+    expect(end).toHaveBeenCalledTimes(1);
+    expect(end).toHaveBeenCalledWith(undefined, expect.any(Number));
+    expect(telemetry.endTelemetryEvent).not.toHaveBeenCalled();
   });
 
   it("still finishes as failed when the extension itself throws", async () => {
