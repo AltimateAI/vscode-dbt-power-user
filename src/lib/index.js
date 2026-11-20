@@ -2434,6 +2434,10 @@ exports.DatapilotNotebookController = class {
         s,
       );
   }
+  // A kernel error reaches the cell as an error output, not as an exception.
+  hasErrorOutput(e) {
+    return e.some((t) => t.items.some((n) => n.mime === I.error));
+  }
   filterIPyWidgets(e, t = !1) {
     return e.map((n) => {
       const s = n.items.find(
@@ -2461,6 +2465,7 @@ project_name="${e.getProjectName()}"
     let i;
     try {
       const l = [];
+      let kernelError = !1;
       switch (
         ((i = r.createNotebookCellExecution(e)),
         (i.executionOrder = ++this.executionOrder),
@@ -2482,9 +2487,15 @@ project_name="${e.getProjectName()}"
             const c = await (a == null
               ? void 0
               : a.executePython(e.document.getText(), e, (m) => {
-                  i == null || i.appendOutput(this.filterIPyWidgets([m], n));
+                  const h = this.filterIPyWidgets([m], n);
+                  kernelError = kernelError || this.hasErrorOutput(h);
+                  i == null || i.appendOutput(h);
                 }));
-            c && i.appendOutput(this.filterIPyWidgets(c, n));
+            if (c) {
+              const m = this.filterIPyWidgets(c, n);
+              kernelError = kernelError || this.hasErrorOutput(m);
+              i.appendOutput(m);
+            }
           }
           break;
         case "jinja-sql":
@@ -2543,7 +2554,7 @@ project_name="${e.getProjectName()}"
       this.telemetry.endTelemetryEvent(p.TelemetryEvents["Notebook/Execute"], {
         language: e.document.languageId,
       }),
-        i.end(!0, Date.now());
+        i.end(!kernelError, Date.now());
     } catch (l) {
       this.dbtTerminal.error(
         "Notebook",
